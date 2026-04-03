@@ -60,7 +60,7 @@ class ProjectController extends Controller
     // 상세
     public function show(Project $project)
     {
-        $project->load('client', 'assignedUser');
+        $project->load('client', 'assignedUser', 'consultations.consultant');
         return view('projects.show', compact('project'));
     }
 

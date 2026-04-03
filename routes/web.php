@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,5 +35,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/clients/{client}/projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::patch('/projects/{project}/stage', [ProjectController::class, 'updateStage'])->name('projects.stage');
+
+    // 상담 이력
+    Route::post('/projects/{project}/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
+    Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
+    Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');
 
 });

@@ -163,7 +163,7 @@
             @if($client->projects->count() > 0)
                 <div class="project-list">
                     @foreach($client->projects as $project)
-                    <a href="#" class="project-item">
+                    <a href="{{ route('projects.show', $project) }}" class="project-item">
                         <div>
                             <div class="project-name">{{ $project->name }}</div>
                             <div class="project-meta">
