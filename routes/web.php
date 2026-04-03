@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\ClientController;
 use Illuminate\Support\Facades\Route;
 
 // 로그인
@@ -23,5 +24,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/events', [CalendarController::class, 'store'])->name('api.events.store');
     Route::put('/api/events/{schedule}', [CalendarController::class, 'update'])->name('api.events.update');
     Route::delete('/api/events/{schedule}', [CalendarController::class, 'destroy'])->name('api.events.destroy');
+
+    // 의뢰자
+    Route::resource('clients', ClientController::class);
 
 });
