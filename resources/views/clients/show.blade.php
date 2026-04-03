@@ -78,7 +78,7 @@
         </div>
         <div style="display:flex; gap:8px;">
             <a href="{{ route('clients.edit', $client) }}" class="btn-edit">수정</a>
-            <a href="#" class="btn-primary">+ 프로젝트</a>
+            <a href="#" class="btn-primary" onclick="openProjectModal(); return false;">+ 프로젝트</a>
         </div>
     </div>
 
@@ -184,3 +184,53 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// 프로젝트 추가 모달
+const projectModal = document.getElementById('projectModal');
+
+function openProjectModal() {
+    projectModal.style.display = 'flex';
+}
+function closeProjectModal() {
+    projectModal.style.display = 'none';
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeProjectModal(); });
+</script>
+@endpush
+
+<!-- 프로젝트 등록 모달 -->
+<div id="projectModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; width:440px; max-width:95vw; padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div style="font-size:16px; font-weight:700;">새 프로젝트</div>
+            <button onclick="closeProjectModal()" style="background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">×</button>
+        </div>
+        <form method="POST" action="{{ route('projects.store', $client) }}">
+            @csrf
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">프로젝트명 *</div>
+                <input type="text" name="name" required placeholder="예: 풀세팅 - 홍길동"
+                    style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none;">
+            </div>
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">유형 *</div>
+                <select name="project_type" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; cursor:pointer;">
+                    <option value="visit">방문세팅</option>
+                    <option value="remote">원격세팅</option>
+                    <option value="as">AS</option>
+                </select>
+            </div>
+            <div style="margin-bottom:20px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">메모</div>
+                <textarea name="memo" rows="2" placeholder="간단한 메모"
+                    style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; resize:vertical;"></textarea>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button type="button" onclick="closeProjectModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer;">취소</button>
+                <button type="submit" style="background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">생성</button>
+            </div>
+        </form>
+    </div>
+</div>

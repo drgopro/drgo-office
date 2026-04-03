@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 // 로그인
@@ -27,5 +28,11 @@ Route::middleware('auth')->group(function () {
 
     // 의뢰자
     Route::resource('clients', ClientController::class);
+
+    // 프로젝트
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::post('/clients/{client}/projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::patch('/projects/{project}/stage', [ProjectController::class, 'updateStage'])->name('projects.stage');
 
 });
