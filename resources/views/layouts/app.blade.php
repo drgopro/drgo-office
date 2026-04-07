@@ -60,12 +60,81 @@
         .user-role { color:var(--text-muted); font-size:11px; }
         .logout-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.15s; }
         .logout-btn:hover { border-color:var(--accent); color:var(--accent); }
+        .admin-link { font-size:12px; color:var(--text-muted); text-decoration:none; padding:5px 10px; border:1px solid var(--border); border-radius:6px; transition:all 0.15s; }
+        .admin-link:hover, .admin-link.active { border-color:var(--accent); color:var(--accent); }
 
         /* 다크/라이트 토글 */
         .theme-toggle { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; transition:all 0.15s; }
         .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
 
         .main { flex:1; }
+
+        /* 햄버거 / 모바일전용 */
+        .menu-toggle { display:none; background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; padding:6px; }
+        .nav-overlay { display:none; }
+        .nav-mobile-only { display:none; }
+
+        /* ── 모바일 반응형 ── */
+        @media (max-width: 768px) {
+            .header { padding:0 12px; height:48px; }
+            .logo { font-size:12px; padding-right:10px; margin-right:10px; }
+            .header-right .user-name, .header-right .user-role, .header-right .admin-link { display:none; }
+            .header-right { gap:8px; }
+
+            .menu-toggle { display:flex; align-items:center; justify-content:center; }
+            .nav { display:none; position:fixed; top:48px; left:0; right:0; bottom:0; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:99; overflow-y:auto; }
+            .nav.open { display:flex; }
+            .nav a { font-size:15px; padding:12px 16px; border-radius:8px; }
+            .nav-overlay { display:none; position:fixed; inset:0; top:48px; background:rgba(0,0,0,0.5); z-index:98; }
+            .nav-overlay.open { display:block; }
+
+            /* 모바일 nav 하단에 사용자/관리 표시 */
+            .nav-mobile-only { display:none; border-top:1px solid var(--border); margin-top:8px; padding-top:12px; }
+            .nav.open .nav-mobile-only { display:block; }
+            .nav-mobile-only a, .nav-mobile-only span { display:block; font-size:13px; padding:8px 16px; color:var(--text-muted); text-decoration:none; border-radius:8px; }
+            .nav-mobile-only a:hover { color:var(--accent); background:var(--surface2); }
+            .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
+
+            /* 공통 페이지 */
+            .page-wrap { padding:16px !important; }
+            .page-header { flex-direction:column; align-items:flex-start !important; gap:10px; }
+            .info-grid { grid-template-columns:1fr !important; }
+            .info-card.full { grid-column:1 !important; }
+
+            /* 테이블 수평 스크롤 */
+            .data-card { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+            .data-table { min-width:600px; }
+            .data-table th, .data-table td { padding:10px 10px; font-size:12px; white-space:nowrap; }
+
+            /* 모달 */
+            .modal { width:95vw !important; max-width:95vw !important; padding:16px !important; }
+            .field-row, .field-row-3 { grid-template-columns:1fr !important; }
+
+            /* 탭 바 */
+            .tab-bar { flex-wrap:wrap; }
+            .tab-btn { font-size:12px; padding:8px 4px; min-width:0; }
+
+            /* 툴바 */
+            .toolbar { flex-direction:column; align-items:stretch; }
+            .toolbar input[type="text"] { width:100% !important; }
+
+            /* 문서 썸네일 */
+            .doc-grid { gap:8px; }
+            .doc-thumb-card { width:90px; }
+            .doc-thumb-card .thumb-img { width:90px; height:90px; }
+
+            /* 앨범 */
+            .album-nav { width:50px; height:120px; }
+            .album-nav .nav-circle { width:36px; height:36px; }
+            .album-media { max-width:95vw !important; max-height:70vh !important; }
+            .album-zoom-controls { bottom:12px; }
+        }
+
+        @media (max-width: 480px) {
+            .tab-bar { border-radius:8px; padding:3px; }
+            .tab-btn { font-size:11px; padding:7px 2px; }
+            .data-table { min-width:500px; }
+        }
     </style>
     @stack('styles')
 </head>
@@ -74,15 +143,27 @@
 <div class="header">
     <div class="header-left">
         <a href="/" class="logo">🟢 DRGO</a>
-        <nav class="nav">
+        <button class="menu-toggle" id="menuToggle" onclick="toggleNav()">☰</button>
+        <nav class="nav" id="mainNav">
             <a href="/" class="{{ request()->is('/') ? 'active' : '' }}">대시보드</a>
             <a href="/calendar" class="{{ request()->is('calendar*') ? 'active' : '' }}">캘린더</a>
             <a href="/clients" class="{{ request()->is('clients*') ? 'active' : '' }}">의뢰자</a>
             <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}">프로젝트</a>
             <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}">재고</a>
+            <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}">견적서</a>
+            <div class="nav-mobile-only">
+                @if(in_array(Auth::user()->role, ['master', 'admin']))
+                    <a href="{{ route('admin') }}">관리</a>
+                @endif
+                <span class="mobile-user">{{ Auth::user()->display_name }} ({{ Auth::user()->role }})</span>
+            </div>
         </nav>
+        <div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
     </div>
     <div class="header-right">
+        @if(in_array(Auth::user()->role, ['master', 'admin']))
+            <a href="{{ route('admin') }}" class="admin-link {{ request()->is('admin*') ? 'active' : '' }}">관리</a>
+        @endif
         <button class="theme-toggle" id="themeToggle" title="다크/라이트 모드">🌙</button>
         <span class="user-name">{{ Auth::user()->display_name }}</span>
         <span class="user-role">{{ Auth::user()->role }}</span>
@@ -102,6 +183,14 @@
     const savedTheme = localStorage.getItem('drgo_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+
+    // 모바일 네비
+    function toggleNav() {
+        document.getElementById('mainNav').classList.toggle('open');
+        document.getElementById('navOverlay').classList.toggle('open');
+        const btn = document.getElementById('menuToggle');
+        btn.textContent = document.getElementById('mainNav').classList.contains('open') ? '✕' : '☰';
+    }
 
     // 토글
     document.getElementById('themeToggle').addEventListener('click', function() {

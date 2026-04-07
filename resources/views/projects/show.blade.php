@@ -514,8 +514,6 @@ function openEditModal(id, date, type, result, isImportant, content) {
     document.getElementById('editModal').classList.add('open');
 }
 function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
-document.getElementById('consultModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeConsultModal(); });
-document.getElementById('editModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeEditModal(); });
 
 // 앨범 뷰어 + 줌/드래그
 const albumDocs = @json($projectDocs);

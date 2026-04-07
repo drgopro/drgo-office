@@ -591,7 +591,6 @@ function searchCalAddr() {
     }).open();
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 
 init();
 </script>

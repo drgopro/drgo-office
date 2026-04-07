@@ -16,10 +16,10 @@ class ClientController extends Controller
 
         // 검색
         if ($search = $request->query('search')) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nickname', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('nickname', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -37,6 +37,7 @@ class ClientController extends Controller
     public function show(Client $client)
     {
         $client->load('assignedUser', 'projects', 'documents');
+
         return view('clients.show', compact('client'));
     }
 
@@ -50,18 +51,18 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:100',
-            'nickname'       => 'nullable|string|max:100',
-            'phone'          => 'nullable|string|max:30',
-            'address'        => 'nullable|string|max:300',
+            'name' => 'required|string|max:100',
+            'nickname' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
-            'grade'          => 'required|in:normal,vip,rental',
-            'platforms'      => 'nullable|array',
-            'content_types'  => 'nullable|array',
-            'gender'         => 'nullable|in:male,female,other',
-            'affiliation'    => 'nullable|string|max:200',
+            'grade' => 'required|in:normal,vip,rental',
+            'platforms' => 'nullable|array',
+            'content_types' => 'nullable|array',
+            'gender' => 'nullable|in:male,female,other',
+            'affiliation' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
-            'memo'           => 'nullable|string',
+            'memo' => 'nullable|string',
         ]);
 
         $validated['assigned_user_id'] = Auth::id();
@@ -82,18 +83,18 @@ class ClientController extends Controller
     public function update(Request $request, Client $client)
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:100',
-            'nickname'       => 'nullable|string|max:100',
-            'phone'          => 'nullable|string|max:30',
-            'address'        => 'nullable|string|max:300',
+            'name' => 'required|string|max:100',
+            'nickname' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
-            'grade'          => 'required|in:normal,vip,rental',
-            'platforms'      => 'nullable|array',
-            'content_types'  => 'nullable|array',
-            'gender'         => 'nullable|in:male,female,other',
-            'affiliation'    => 'nullable|string|max:200',
+            'grade' => 'required|in:normal,vip,rental',
+            'platforms' => 'nullable|array',
+            'content_types' => 'nullable|array',
+            'gender' => 'nullable|in:male,female,other',
+            'affiliation' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
-            'memo'           => 'nullable|string',
+            'memo' => 'nullable|string',
         ]);
 
         $client->update($validated);
@@ -101,10 +102,31 @@ class ClientController extends Controller
         return redirect()->route('clients.show', $client)->with('success', '수정되었습니다.');
     }
 
+    // 검색 API (견적서 등에서 사용)
+    public function search(Request $request)
+    {
+        $q = $request->query('q', '');
+        if (strlen($q) < 1) {
+            return response()->json([]);
+        }
+
+        $clients = Client::where('status', '!=', 'blacklist')
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('nickname', 'like', "%{$q}%")
+                    ->orWhere('phone', 'like', "%{$q}%");
+            })
+            ->limit(10)
+            ->get(['id', 'name', 'nickname', 'phone']);
+
+        return response()->json($clients);
+    }
+
     // 삭제
     public function destroy(Client $client)
     {
         $client->delete();
+
         return redirect()->route('clients.index')->with('success', '삭제되었습니다.');
     }
 }
