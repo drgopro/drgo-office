@@ -222,7 +222,11 @@
         </div>
         <div class="field-group">
             <div class="field-label">주소</div>
-            <input class="field-input" id="inputAddress" type="text" placeholder="방문 주소">
+            <div style="display:flex; gap:8px; margin-bottom:6px;">
+                <input class="field-input" id="inputAddress" type="text" placeholder="우편번호 검색 버튼을 눌러주세요" readonly style="flex:1; cursor:pointer;" onclick="searchCalAddr()">
+                <button type="button" onclick="searchCalAddr()" style="background:var(--accent); color:#1a1207; border:none; padding:0 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">검색</button>
+            </div>
+            <input class="field-input" id="inputAddressDetail" type="text" placeholder="상세주소 (동/호수)">
         </div>
         <div class="field-group">
             <div class="field-label">담당자</div>
@@ -243,6 +247,7 @@
 </div>
 @endsection
 
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 @push('scripts')
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -516,6 +521,7 @@ function openNewModal(dateStr,timeStr){
     document.getElementById('inputEndTime').value=timeStr?`${String(parseInt(timeStr)+1).padStart(2,'0')}:00`:'14:00';
     document.getElementById('inputClientName').value='';
     document.getElementById('inputAddress').value='';
+    document.getElementById('inputAddressDetail').value='';
     document.getElementById('inputDesc').value='';
     document.getElementById('btnDelete').style.display='none';
     renderAssigneeList();
@@ -537,6 +543,7 @@ function openEditModal(ev){
     document.getElementById('inputEndTime').value=ev.end_time||'14:00';
     document.getElementById('inputClientName').value=ev.client_name||'';
     document.getElementById('inputAddress').value=ev.address||'';
+    document.getElementById('inputAddressDetail').value=ev.location||'';
     document.getElementById('inputDesc').value=ev.description||'';
     document.getElementById('btnDelete').style.display='block';
     renderAssigneeList();
@@ -558,6 +565,7 @@ async function saveEvent(){
         color:      currentColor,
         client_name:document.getElementById('inputClientName').value.trim(),
         address:    document.getElementById('inputAddress').value.trim(),
+        location:   document.getElementById('inputAddressDetail').value.trim(),
         description:document.getElementById('inputDesc').value.trim(),
         assignees:  selectedAssignees,
     };
@@ -575,6 +583,13 @@ async function deleteEvent(){
     if(res.ok){closeModal();loadEvents();}
 }
 
+function searchCalAddr() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            document.getElementById('inputAddress').value = data.roadAddress || data.jibunAddress;
+        }
+    }).open();
+}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 

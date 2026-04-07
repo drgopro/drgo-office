@@ -80,11 +80,14 @@
 
             <div class="field-group">
                 <div class="field-label">주소</div>
-                <input class="field-input" type="text" name="address" value="{{ old('address', $client?->address) }}" placeholder="도로명 주소">
+                <div style="display:flex; gap:8px;">
+                    <input class="field-input" type="text" name="address" id="address" value="{{ old('address', $client?->address) }}" placeholder="우편번호 검색 버튼을 눌러주세요" readonly style="flex:1; cursor:pointer;" onclick="searchAddress()">
+                    <button type="button" onclick="searchAddress()" style="background:var(--accent); color:#1a1207; border:none; padding:0 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">주소 검색</button>
+                </div>
             </div>
             <div class="field-group">
                 <div class="field-label">상세주소</div>
-                <input class="field-input" type="text" name="address_detail" value="{{ old('address_detail', $client?->address_detail) }}" placeholder="동/호수">
+                <input class="field-input" type="text" name="address_detail" id="address_detail" value="{{ old('address_detail', $client?->address_detail) }}" placeholder="동/호수 직접 입력">
             </div>
         </div>
 
@@ -176,3 +179,18 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+function searchAddress() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            let addr = data.roadAddress || data.jibunAddress;
+            document.getElementById('address').value = addr;
+            document.getElementById('address_detail').focus();
+        }
+    }).open();
+}
+</script>
+@endpush
