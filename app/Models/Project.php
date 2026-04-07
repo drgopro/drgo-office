@@ -23,7 +23,7 @@ class Project extends Model
     ];
 
     protected $casts = [
-        'as_deadline'  => 'date',
+        'as_deadline' => 'date',
         'completed_at' => 'datetime',
     ];
 
@@ -40,5 +40,10 @@ class Project extends Model
     public function consultations()
     {
         return $this->hasMany(Consultation::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(ProjectDocument::class);
     }
 }

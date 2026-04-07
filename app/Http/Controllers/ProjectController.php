@@ -17,9 +17,9 @@ class ProjectController extends Controller
 
         // 검색
         if ($search = $request->query('search')) {
-            $query->whereHas('client', function($q) use ($search) {
+            $query->whereHas('client', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nickname', 'like', "%{$search}%");
+                    ->orWhere('nickname', 'like', "%{$search}%");
             })->orWhere('name', 'like', "%{$search}%");
         }
 
@@ -42,15 +42,15 @@ class ProjectController extends Controller
     public function store(Request $request, Client $client)
     {
         $validated = $request->validate([
-            'name'         => 'required|string|max:200',
+            'name' => 'required|string|max:200',
             'project_type' => 'required|in:visit,remote,as',
-            'memo'         => 'nullable|string',
+            'memo' => 'nullable|string',
         ]);
 
-        $validated['client_id']        = $client->id;
+        $validated['client_id'] = $client->id;
         $validated['assigned_user_id'] = Auth::id();
-        $validated['stage']            = 'consulting';
-        $validated['status']           = 'active';
+        $validated['stage'] = 'consulting';
+        $validated['status'] = 'active';
 
         $project = Project::create($validated);
 
@@ -60,7 +60,8 @@ class ProjectController extends Controller
     // 상세
     public function show(Project $project)
     {
-        $project->load('client', 'assignedUser', 'consultations.consultant');
+        $project->load('client', 'assignedUser', 'consultations.consultant', 'documents');
+
         return view('projects.show', compact('project'));
     }
 
