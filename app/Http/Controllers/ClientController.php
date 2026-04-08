@@ -141,7 +141,7 @@ class ClientController extends Controller
                 'note' => $d->note,
                 'view_url' => route('documents.serve', $d),
                 'download_url' => route('documents.download', $d),
-                'created_at' => $d->created_at->format('Y.m.d'),
+                'created_at' => $d->created_at->format('Y.m.d H:i:s'),
             ]),
             'memos' => $client->memos->map(fn ($m) => [
                 'id' => $m->id,
