@@ -314,6 +314,7 @@ const drgoTabs = {
         if (!tab.loaded) this._load(tab, pane);
         this.render();
         this._save();
+        this._updateNav(tab.type);
     },
 
     close(id) {
@@ -359,6 +360,14 @@ const drgoTabs = {
     },
 
     closeMenu() { document.getElementById('tabMenu').classList.remove('open'); },
+
+    _updateNav(type) {
+        const NAV_MAP = { dashboard:'/', calendar:'/calendar', clients:'/clients', projects:'/projects', inventory:'/inventory', estimates:'/estimates', admin:'/admin', profile:'/profile' };
+        document.querySelectorAll('#mainNav > a').forEach(a => {
+            const href = a.getAttribute('href');
+            a.classList.toggle('active', href === NAV_MAP[type]);
+        });
+    },
 
     _typeFromPath(p) {
         if (p === '/') return 'dashboard';

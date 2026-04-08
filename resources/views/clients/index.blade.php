@@ -203,7 +203,7 @@ let openClientTabs = []; // {id, name, nickname, grade, data, activeSubTab}
 let activeClientId = null;
 
 // ── 초기화 ──
-loadClientList();
+loadClientList().then(() => restoreClientTabs());
 
 async function loadClientList() {
     const res = await fetch('/api/clients/list', { headers:{ 'Accept':'application/json' } });
@@ -284,7 +284,8 @@ function activateClientTab(id) {
     activeClientId = id;
     renderClientTabs();
     renderClientContent(id);
-    renderClientList(); // sidebar active 표시
+    renderClientList();
+    saveClientTabs();
 }
 
 function closeClientTab(id, e) {
@@ -305,9 +306,11 @@ function closeClientTab(id, e) {
             renderClientTabs();
             document.getElementById('clientContent').innerHTML = '<div class="client-empty" id="clientEmpty">좌측 목록에서 의뢰자를 선택하세요</div>';
             renderClientList();
+            saveClientTabs();
         }
     } else {
         renderClientTabs();
+        saveClientTabs();
     }
 }
 
@@ -429,13 +432,14 @@ function renderClientContent(id) {
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
             </div>
 
-            <!-- 최근 메모 (기본 정보에 미리보기) -->
+            <!-- 메모 (인라인 스레드) -->
             <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <div class="field-label" style="margin:0; font-size:12px; font-weight:600;">최근 메모</div>
-                    <button class="btn-save" style="padding:4px 10px; font-size:11px;" onclick="switchSubTab(${id},'memo',document.querySelector('#subtabs-${id} .sub-tab:last-child'))">전체 보기</button>
+                <div class="field-label" style="margin:0 0 10px; font-size:12px; font-weight:600;">메모</div>
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <textarea class="field-input" id="info-memo-input-${id}" rows="1" placeholder="메모를 입력하세요..." style="flex:1; resize:none; min-height:34px;" onfocus="this.rows=2" onblur="if(!this.value)this.rows=1"></textarea>
+                    <button class="btn-save" onclick="addMemo(${id}, 'info')" style="align-self:flex-end; white-space:nowrap; padding:7px 14px;">추가</button>
                 </div>
-                <div id="recent-memos-${id}">${renderRecentMemos(d.memos, id)}</div>
+                <div id="info-memos-${id}">${renderInfoMemos(d.memos, id)}</div>
             </div>
         </div>
 
@@ -499,11 +503,11 @@ function renderClientContent(id) {
             </div>
         </div>
 
-        <!-- 메모 (스레드) -->
+        <!-- 메모 (전체) -->
         <div class="sub-panel" id="sub-memo-${id}">
             <div style="display:flex; gap:8px; margin-bottom:16px;">
                 <textarea class="field-input" id="new-memo-${id}" rows="2" placeholder="메모를 입력하세요..." style="flex:1; resize:vertical;"></textarea>
-                <button class="btn-save" onclick="addMemo(${id})" style="align-self:flex-end; white-space:nowrap;">메모 추가</button>
+                <button class="btn-save" onclick="addMemo(${id}, 'full')" style="align-self:flex-end; white-space:nowrap;">메모 추가</button>
             </div>
             <div id="memo-thread-${id}">${renderMemoThread(d.memos, id)}</div>
         </div>
@@ -916,21 +920,34 @@ function renderMemoThread(memos, clientId) {
     return memos.map(m => renderMemoItem(m, clientId)).join('');
 }
 
-function renderRecentMemos(memos, clientId) {
+function renderInfoMemos(memos, clientId) {
     if (!memos || !memos.length) return '<div style="padding:12px; text-align:center; color:var(--text-muted); font-size:12px;">메모가 없습니다.</div>';
     const recent = memos.slice(0, 3);
-    const hasMore = memos.length > 3;
+    const rest = memos.slice(3);
     let html = recent.map(m => renderMemoItem(m, clientId)).join('');
-    if (hasMore) {
-        html += `<div style="text-align:center; padding:8px;">
-            <button onclick="switchSubTab(${clientId},'memo',document.querySelector('#subtabs-${clientId} .sub-tab:last-child'))" style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer;">+ ${memos.length - 3}개 더 보기</button>
+    if (rest.length) {
+        html += `<div id="info-memos-rest-${clientId}" style="display:none;">
+            ${rest.map(m => renderMemoItem(m, clientId)).join('')}
+        </div>`;
+        html += `<div style="text-align:center; padding:8px;" id="info-memos-toggle-${clientId}">
+            <button onclick="toggleMoreMemos(${clientId})" style="background:none; border:1px solid var(--border); color:var(--accent); font-size:11px; padding:4px 12px; border-radius:5px; cursor:pointer;">+ ${rest.length}개 더 보기</button>
         </div>`;
     }
     return html;
 }
 
-async function addMemo(clientId) {
-    const textarea = document.getElementById('new-memo-' + clientId);
+function toggleMoreMemos(clientId) {
+    const rest = document.getElementById('info-memos-rest-' + clientId);
+    const toggle = document.getElementById('info-memos-toggle-' + clientId);
+    if (!rest) return;
+    const isHidden = rest.style.display === 'none';
+    rest.style.display = isHidden ? 'block' : 'none';
+    toggle.querySelector('button').textContent = isHidden ? '접기' : `+ ${rest.children.length}개 더 보기`;
+}
+
+async function addMemo(clientId, from) {
+    const inputId = from === 'info' ? 'info-memo-input-' + clientId : 'new-memo-' + clientId;
+    const textarea = document.getElementById(inputId);
     const content = textarea.value.trim();
     if (!content) return;
 
@@ -942,6 +959,7 @@ async function addMemo(clientId) {
 
     if (res.ok) {
         textarea.value = '';
+        if (from === 'info') textarea.rows = 1;
         await refreshClientData(clientId);
         showToast('메모가 추가되었습니다');
     } else {
@@ -964,6 +982,31 @@ function showToast(msg) {
     el.textContent = msg;
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── 의뢰자 탭 상태 저장/복원 ──
+function saveClientTabs() {
+    const data = {
+        tabs: openClientTabs.map(t => t.id),
+        activeId: activeClientId
+    };
+    sessionStorage.setItem('drgo_client_tabs', JSON.stringify(data));
+}
+
+async function restoreClientTabs() {
+    try {
+        const raw = sessionStorage.getItem('drgo_client_tabs');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (!data.tabs || !data.tabs.length) return;
+
+        for (const id of data.tabs) {
+            await openClient(id);
+        }
+        if (data.activeId && openClientTabs.find(t => t.id === data.activeId)) {
+            activateClientTab(data.activeId);
+        }
+    } catch {}
 }
 
 // 키보드 단축키
