@@ -134,6 +134,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/settings', [AdminController::class, 'settings']);
         Route::post('/api/settings', [AdminController::class, 'updateSettings']);
         Route::get('/api/admin/users', [AdminController::class, 'users']);
+        Route::post('/api/admin/users', [AdminController::class, 'storeUser']);
         Route::patch('/api/admin/users/{user}', [AdminController::class, 'updateUser']);
         Route::get('/api/admin/teams', [AdminController::class, 'teams']);
         Route::post('/api/admin/teams', [AdminController::class, 'storeTeam']);

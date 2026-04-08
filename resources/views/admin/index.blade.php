@@ -124,6 +124,39 @@
 
     {{-- 사용자 관리 --}}
     <div class="tab-panel" id="panel-users">
+        <button class="btn-add" onclick="toggleNewUserForm()">+ 사용자 추가</button>
+        <div id="newUserForm" style="display:none; margin-bottom:16px;" class="settings-form">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field-group">
+                    <div class="field-label">아이디 (로그인용)</div>
+                    <input class="field-input" id="newUsername" placeholder="username">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">표시 이름</div>
+                    <input class="field-input" id="newDisplayName" placeholder="홍길동">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">비밀번호</div>
+                    <input class="field-input" id="newPassword" type="password" placeholder="8자 이상">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">역할</div>
+                    <select class="field-input" id="newRole" onchange="document.getElementById('newTeamId').disabled=this.value!=='member'">
+                        <option value="member">member</option>
+                        <option value="admin">admin</option>
+                        <option value="guest">guest</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">팀</div>
+                    <select class="field-input" id="newTeamId"><option value="">없음</option></select>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn-save" onclick="createUser()">생성</button>
+                <button class="btn-danger" onclick="document.getElementById('newUserForm').style.display='none'">취소</button>
+            </div>
+        </div>
         <div class="data-card">
             <table class="data-table">
                 <thead>
@@ -271,6 +304,42 @@ function toggleActive(span) {
     span.classList.toggle('on', !isOn);
     span.classList.toggle('off', isOn);
     span.textContent = isOn ? '비활성' : '활성';
+}
+
+function toggleNewUserForm() {
+    const form = document.getElementById('newUserForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    // 팀 목록 채우기
+    const sel = document.getElementById('newTeamId');
+    sel.innerHTML = '<option value="">없음</option>' + teamsList.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+async function createUser() {
+    const username = document.getElementById('newUsername').value.trim();
+    const display_name = document.getElementById('newDisplayName').value.trim();
+    const password = document.getElementById('newPassword').value;
+    const role = document.getElementById('newRole').value;
+    const team_id = document.getElementById('newTeamId').value || null;
+
+    if (!username || !display_name || !password) return alert('아이디, 이름, 비밀번호를 입력하세요.');
+    if (password.length < 8) return alert('비밀번호는 8자 이상이어야 합니다.');
+
+    const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ username, display_name, password, role, team_id }),
+    });
+
+    if (res.ok) {
+        document.getElementById('newUserForm').style.display = 'none';
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newDisplayName').value = '';
+        document.getElementById('newPassword').value = '';
+        loadUsers();
+    } else {
+        const err = await res.json();
+        alert(err.message || Object.values(err.errors || {}).flat().join('\n') || '생성 실패');
+    }
 }
 
 async function saveUser(id, btn) {

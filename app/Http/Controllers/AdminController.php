@@ -8,6 +8,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -66,6 +67,32 @@ class AdminController extends Controller
             ]);
 
         return response()->json($users);
+    }
+
+    public function storeUser(Request $request)
+    {
+        $validated = $request->validate([
+            'username' => 'required|string|max:50|unique:users,username',
+            'display_name' => 'required|string|max:50',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:master,admin,member,guest',
+            'team_id' => 'nullable|exists:teams,id',
+        ]);
+
+        // admin은 master 역할 부여 불가
+        if (Auth::user()->role !== 'master' && $validated['role'] === 'master') {
+            return response()->json(['message' => 'master 역할은 최고관리자만 부여할 수 있습니다.'], 403);
+        }
+
+        if ($validated['role'] !== 'member') {
+            $validated['team_id'] = null;
+        }
+
+        $validated['password'] = Hash::make($validated['password']);
+
+        $user = User::create($validated);
+
+        return response()->json($user, 201);
     }
 
     public function updateUser(Request $request, User $user)
