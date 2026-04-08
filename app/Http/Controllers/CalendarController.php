@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Schedule;
+use App\Models\ScheduleChange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -106,6 +107,26 @@ class CalendarController extends Controller
             'teal_data' => 'nullable|array',
         ]);
 
+        // 변경 이력 기록
+        $diff = [];
+        foreach ($validated as $key => $newVal) {
+            if ($key === 'assignees') {
+                continue;
+            }
+            $oldVal = $schedule->getOriginal($key);
+            if (json_encode($oldVal) !== json_encode($newVal)) {
+                $diff[$key] = ['old' => $oldVal, 'new' => $newVal];
+            }
+        }
+        if (! empty($diff)) {
+            ScheduleChange::create([
+                'schedule_id' => $schedule->id,
+                'user_id' => Auth::id(),
+                'action' => 'update',
+                'changes' => $diff,
+            ]);
+        }
+
         $schedule->update($validated);
 
         if (isset($validated['assignees'])) {
@@ -113,6 +134,28 @@ class CalendarController extends Controller
         }
 
         return response()->json($schedule);
+    }
+
+    // 일정 상세 API
+    public function detail(Schedule $schedule)
+    {
+        $schedule->load('assignees', 'creator');
+
+        return response()->json($schedule);
+    }
+
+    // 수정내역 API
+    public function history(Schedule $schedule)
+    {
+        $changes = $schedule->changes()->with('user')->get()->map(fn ($c) => [
+            'id' => $c->id,
+            'action' => $c->action,
+            'changes' => $c->changes,
+            'user_name' => $c->user?->display_name ?? '알 수 없음',
+            'created_at' => $c->created_at->format('Y.m.d H:i'),
+        ]);
+
+        return response()->json($changes);
     }
 
     // 일정 삭제

@@ -247,6 +247,38 @@
         </div>
     </div>
 </div>
+<!-- 일정 상세 모달 (조회전용) -->
+<div class="modal-overlay" id="detailOverlay" style="display:none;" onclick="if(event.target===this) closeDetail()">
+    <div class="modal" style="max-width:600px; max-height:85vh; overflow-y:auto;">
+        <div id="detailHeader" style="margin-bottom:16px;">
+            <div style="font-size:11px; color:var(--text-muted);" id="detailDateType"></div>
+            <div style="font-size:18px; font-weight:700; margin-top:4px;" id="detailTitle"></div>
+        </div>
+        <div id="detailBody"></div>
+        <div style="display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid var(--border);">
+            <div style="display:flex; gap:6px;">
+                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px; color:var(--red); border-color:var(--red);" onclick="deleteEventFromDetail()">삭제</button>
+                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px;" onclick="openHistoryModal()">수정내역</button>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px; color:var(--accent); border-color:var(--accent);" onclick="editFromDetail()">수정</button>
+                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px;" onclick="closeDetail()">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 수정내역 모달 -->
+<div class="modal-overlay" id="historyOverlay" style="display:none;" onclick="if(event.target===this) this.style.display='none'">
+    <div class="modal" style="max-width:500px; max-height:70vh; overflow-y:auto;">
+        <div class="modal-header">
+            <div class="modal-title">수정내역</div>
+            <button class="modal-close" onclick="document.getElementById('historyOverlay').style.display='none'">×</button>
+        </div>
+        <div id="historyBody"><div style="padding:20px; text-align:center; color:var(--text-muted);">로딩 중...</div></div>
+    </div>
+</div>
+
 @endsection
 
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
@@ -375,7 +407,7 @@ function renderMonth() {
                 const chip=document.createElement('div');
                 chip.className=`event-chip color-${ev.color}`;
                 chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):((ev.client_name?ev.client_name+' ':'')+ev.title);
-                chip.onclick=e=>{e.stopPropagation();openEditModal(ev);};
+                chip.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 div.appendChild(chip);
             });
             if(dayEvs.length>3){
@@ -443,7 +475,7 @@ function renderTimeline() {
             chip.className=`event-chip color-${ev.color}`;
             chip.style.marginBottom='2px';
             chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):((ev.client_name?ev.client_name+' ':'')+ev.title);
-            chip.onclick=()=>openEditModal(ev);
+            chip.onclick=()=>openDetailModal(ev);
             cell.appendChild(chip);
         });
         cell.addEventListener('click',e=>{if(e.target===cell)openNewModal(ds);});
@@ -479,7 +511,7 @@ function renderTimeline() {
                 el.style.top=`${(sm/60)*48}px`;
                 el.style.height=`${Math.max(dur*48,20)}px`;
                 el.textContent=(ev.client_name?ev.client_name+' ':'')+ev.title;
-                el.onclick=e=>{e.stopPropagation();openEditModal(ev);};
+                el.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 slot.appendChild(el);
             });
             slot.addEventListener('click',e=>{
@@ -533,6 +565,155 @@ function openNewModal(dateStr,timeStr){
     setTimeout(()=>document.getElementById('inputTitle').focus(),50);
 }
 
+// ── 상세 모달 ──
+const COLOR_LABELS = {gold:'방문의뢰',teal:'원격/방송룸',blue:'사내업무',red:'휴가/개인',green:'촬영/스튜디오',purple:'미팅/내방',holiday:'공휴일'};
+const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'특이사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보'};
+let detailEvent = null;
+
+function openDetailModal(ev) {
+    if(isGuestUser) return;
+    detailEvent = ev;
+    const d = ev;
+    const colorLabel = COLOR_LABELS[d.color] || d.color;
+    const dateStr = d.start_date + (d.end_date && d.end_date !== d.start_date ? ' ~ ' + d.end_date : '');
+    const timeStr = d.start_time ? d.start_time.substring(0,5) + (d.end_time ? ' ~ ' + d.end_time.substring(0,5) : '') : '';
+
+    document.getElementById('detailDateType').textContent = dateStr + '  ' + colorLabel;
+    document.getElementById('detailTitle').textContent = d.title || '(제목 없음)';
+
+    let html = '';
+    // 기본 정보
+    html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">기본 정보</legend>`;
+    html += infoRow('시작일', d.start_date) + infoRow('종료일', d.end_date);
+    if (timeStr) html += infoRow('시간', timeStr);
+    html += infoRow('분류', colorLabel);
+    if (d.client_name) html += infoRow('이름/담당자', d.client_name);
+    if (d.location) html += infoRow('장소', d.location);
+    if (d.address) html += infoRow('주소', d.address);
+    html += infoRow('잠금', d.is_locked ? '🔒 잠금됨' : '해제');
+    if (d.assignees && d.assignees.length) html += infoRow('담당자', d.assignees.map(a => a.name).join(', '));
+    html += `</fieldset>`;
+
+    // gold_data (방문의뢰)
+    const g = d.gold_data;
+    if (g && Object.keys(g).length) {
+        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰자 정보</legend>`;
+        if (g.phone) html += infoRow('전화번호', g.phone);
+        if (g.source) html += infoRow('유입 경로', g.source);
+        if (g.platform) html += infoRow('플랫폼', g.platform);
+        if (g.topic) html += infoRow('방송주제', g.topic);
+        if (g.budget) html += infoRow('예산 성향', g.budget);
+        if (g.career) html += infoRow('경력', g.career);
+        if (g.paid) html += infoRow('결제', g.paid);
+        if (g.delivery) html += infoRow('주문제품', g.delivery);
+        if (g.balance) html += infoRow('잔금', g.balance);
+        if (g.balance_amount) html += infoRow('잔금금액', g.balance_amount);
+        if (g.estimate_amount) html += infoRow('견적 총액', g.estimate_amount);
+        html += `</fieldset>`;
+
+        if (g.equipment) {
+            html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">장비 목록</legend>`;
+            html += `<div style="font-size:13px; white-space:pre-wrap;">${g.equipment}</div>`;
+            html += `</fieldset>`;
+        }
+    }
+
+    // teal_data (원격/방송룸)
+    const t = d.teal_data;
+    if (t && Object.keys(t).length) {
+        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">원격/방송룸 정보</legend>`;
+        if (t.mode) html += infoRow('모드', t.mode === 'remote' ? '원격' : '스튜디오');
+        if (t.name) html += infoRow('이름', t.name);
+        if (t.platform) html += infoRow('플랫폼', t.platform);
+        if (t.content) html += infoRow('콘텐츠', t.content);
+        if (t.desc) html += infoRow('세부', `<div style="white-space:pre-wrap;">${t.desc}</div>`);
+        html += `</fieldset>`;
+    }
+
+    // 의뢰 내용
+    if (g && (g.request_topic || g.request_detail)) {
+        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰 내용</legend>`;
+        if (g.request_topic) html += infoRow('주제', g.request_topic);
+        if (g.request_detail) html += `<div style="font-size:13px; white-space:pre-wrap; margin-top:6px;">${g.request_detail}</div>`;
+        html += `</fieldset>`;
+    }
+
+    // 특이사항
+    if (d.description) {
+        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">특이사항</legend>`;
+        html += `<div style="font-size:13px; white-space:pre-wrap; color:var(--accent);">${d.description}</div>`;
+        html += `</fieldset>`;
+    }
+
+    document.getElementById('detailBody').innerHTML = html;
+    document.getElementById('detailOverlay').style.display = 'flex';
+}
+
+function infoRow(label, value) {
+    return `<div style="display:flex; padding:5px 0; border-bottom:1px solid var(--border);">
+        <div style="width:100px; font-size:11px; color:var(--text-muted); flex-shrink:0;">${label}</div>
+        <div style="font-size:13px; flex:1;">${value || '—'}</div>
+    </div>`;
+}
+
+function closeDetail() {
+    document.getElementById('detailOverlay').style.display = 'none';
+    detailEvent = null;
+}
+
+function editFromDetail() {
+    if (!detailEvent) return;
+    closeDetail();
+    openEditModal(detailEvent);
+}
+
+function deleteEventFromDetail() {
+    if (!detailEvent || !confirm('이 일정을 삭제하시겠습니까?')) return;
+    deleteEvent(detailEvent.id);
+    closeDetail();
+}
+
+async function openHistoryModal() {
+    if (!detailEvent) return;
+    document.getElementById('historyOverlay').style.display = 'flex';
+    document.getElementById('historyBody').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">로딩 중...</div>';
+
+    const res = await fetch(`/api/events/${detailEvent.id}/history`, { headers:{'Accept':'application/json'} });
+    if (!res.ok) { document.getElementById('historyBody').innerHTML = '<div style="padding:20px; text-align:center; color:var(--red);">로드 실패</div>'; return; }
+    const data = await res.json();
+
+    if (!data.length) {
+        document.getElementById('historyBody').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">수정내역이 없습니다.</div>';
+        return;
+    }
+
+    document.getElementById('historyBody').innerHTML = data.map(h => {
+        const changes = h.changes || {};
+        const rows = Object.entries(changes).map(([key, val]) => {
+            const label = FIELD_LABELS[key] || key;
+            const oldVal = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
+            const newVal = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
+            return `<div style="margin:6px 0;">
+                <div style="font-size:11px; color:var(--text-muted);">${label}</div>
+                <div style="display:flex; gap:6px; margin-top:2px;">
+                    <span style="padding:2px 8px; border-radius:4px; background:#2a1a1a; color:var(--red); font-size:12px; text-decoration:line-through;">${oldVal}</span>
+                    <span style="padding:2px 8px; border-radius:4px; background:#1a2a1a; color:var(--green); font-size:12px;">${newVal}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span style="font-size:10px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:var(--accent); font-weight:600;">수정</span>
+                <span style="font-size:12px; font-weight:600;">${h.user_name}</span>
+                <span style="font-size:10px; color:var(--text-muted);">${h.created_at}</span>
+            </div>
+            ${rows}
+        </div>`;
+    }).join('');
+}
+
+// ── 편집 모달 ──
 function openEditModal(ev){
     if(isGuestUser) return;
     editingId=ev.id; currentColor=ev.color;
@@ -595,7 +776,7 @@ function searchCalAddr() {
         }
     }).open();
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDetail();document.getElementById('historyOverlay').style.display='none';}});
 
 init();
 </script>

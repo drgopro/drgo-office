@@ -31,6 +31,8 @@ Route::middleware('auth')->group(function () {
     // 캘린더 (조회: 전체, 수정: 권한 필요)
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
+    Route::get('/api/events/{schedule}/detail', [CalendarController::class, 'detail']);
+    Route::get('/api/events/{schedule}/history', [CalendarController::class, 'history']);
     Route::middleware('permission:calendar.edit')->group(function () {
         Route::post('/api/events', [CalendarController::class, 'store'])->name('api.events.store');
         Route::match(['PUT', 'PATCH', 'POST'], '/api/events/{schedule}', [CalendarController::class, 'update'])->name('api.events.update');

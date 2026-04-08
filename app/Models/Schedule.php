@@ -37,15 +37,15 @@ class Schedule extends Model
     ];
 
     protected $casts = [
-        'is_all_day'       => 'boolean',
-        'is_locked'        => 'boolean',
-        'is_private'       => 'boolean',
-        'special_opts'     => 'array',
+        'is_all_day' => 'boolean',
+        'is_locked' => 'boolean',
+        'is_private' => 'boolean',
+        'special_opts' => 'array',
         'sched_event_opts' => 'array',
-        'gold_data'        => 'array',
-        'teal_data'        => 'array',
-        'start_date'       => 'date:Y-m-d',
-        'end_date'         => 'date:Y-m-d',
+        'gold_data' => 'array',
+        'teal_data' => 'array',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
         'sched_after_date' => 'date:Y-m-d',
     ];
 
@@ -62,5 +62,10 @@ class Schedule extends Model
     public function logs()
     {
         return $this->hasMany(ScheduleLog::class);
+    }
+
+    public function changes()
+    {
+        return $this->hasMany(ScheduleChange::class)->orderByDesc('created_at');
     }
 }
