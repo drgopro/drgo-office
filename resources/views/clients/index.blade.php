@@ -167,6 +167,27 @@
     </div>
 </div>
 
+{{-- 앨범 뷰어 모달 --}}
+<div id="albumOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:600; align-items:center; justify-content:center;" onclick="if(event.target===this) closeAlbumViewer()">
+    <button onclick="closeAlbumViewer()" style="position:fixed; top:16px; right:16px; background:none; border:none; color:#fff; font-size:28px; cursor:pointer; z-index:603;">×</button>
+    <button onclick="albumNavDir(-1)" style="position:fixed; left:16px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.12); border:none; color:#fff; width:44px; height:44px; border-radius:50%; font-size:20px; cursor:pointer; z-index:603;">‹</button>
+    <button onclick="albumNavDir(1)" style="position:fixed; right:16px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.12); border:none; color:#fff; width:44px; height:44px; border-radius:50%; font-size:20px; cursor:pointer; z-index:603;">›</button>
+    <div style="display:flex; flex-direction:column; align-items:center;">
+        <div id="albumMediaWrap" style="display:flex; align-items:center; justify-content:center; min-height:200px;"></div>
+        <div style="text-align:center; margin-top:10px;">
+            <div id="albumName" style="color:#fff; font-size:13px;"></div>
+            <div id="albumNote" style="color:rgba(255,255,255,0.5); font-size:11px;"></div>
+            <div id="albumCounter" style="color:rgba(255,255,255,0.4); font-size:11px; margin-top:4px;"></div>
+        </div>
+    </div>
+    <div id="albumZoomControls" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); gap:8px; z-index:603;">
+        <button onclick="albumZoomStep(-1)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;">−</button>
+        <span id="albumZoomLevel" style="min-width:48px;text-align:center;color:#fff;font-size:13px;font-weight:600;line-height:36px;">100%</span>
+        <button onclick="albumZoomStep(1)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;">+</button>
+        <button onclick="albumZoomReset()" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:11px;cursor:pointer;padding:0 12px;">맞춤</button>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 @endsection
 
@@ -307,12 +328,14 @@ function renderClientTabs() {
     }).join('');
 }
 
+const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',as:'AS',done:'완료',cancelled:'취소'};
+const TYPE_LABELS = {visit:'방문세팅',remote:'원격세팅',as:'AS'};
+
 function renderClientContent(id) {
     const tab = openClientTabs.find(t => t.id === id);
     if (!tab) return;
     const d = tab.data;
 
-    // 모든 client pane 숨기기
     document.querySelectorAll('.client-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('clientEmpty')?.remove();
 
@@ -341,11 +364,12 @@ function renderClientContent(id) {
 
         <div class="sub-tabs" id="subtabs-${id}">
             <button class="sub-tab active" onclick="switchSubTab(${id},'info',this)">기본 정보</button>
-            <button class="sub-tab" onclick="switchSubTab(${id},'projects',this)">상담/프로젝트 ${d.projects.length}</button>
-            <button class="sub-tab" onclick="switchSubTab(${id},'docs',this)">문서/파일 ${d.documents.length}</button>
+            <button class="sub-tab" onclick="switchSubTab(${id},'projects',this)">프로젝트 ${d.projects.length}</button>
+            <button class="sub-tab" onclick="switchSubTab(${id},'docs',this)">첨부파일 ${d.documents.length}</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'memo',this)">메모</button>
         </div>
 
+        <!-- 기본 정보 -->
         <div class="sub-panel active" id="sub-info-${id}">
             <div class="form-grid">
                 <div class="field">
@@ -382,12 +406,15 @@ function renderClientContent(id) {
                     </select>
                 </div>
             </div>
-            <div class="form-grid full" style="margin-top:14px;">
-                <div class="field">
+            <div class="form-grid" style="margin-top:14px;">
+                <div class="field" style="grid-column:1/-1;">
                     <div class="field-label">주소</div>
-                    <input class="field-input" id="f-address-${id}" value="${d.address||''}">
+                    <div style="display:flex; gap:6px;">
+                        <input class="field-input" id="f-address-${id}" value="${d.address||''}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
+                        <button class="btn-save" onclick="searchAddress(${id})" style="white-space:nowrap;">주소 검색</button>
+                    </div>
                 </div>
-                <div class="field">
+                <div class="field" style="grid-column:1/-1;">
                     <div class="field-label">상세주소</div>
                     <input class="field-input" id="f-address_detail-${id}" value="${d.address_detail||''}">
                 </div>
@@ -403,36 +430,73 @@ function renderClientContent(id) {
             </div>
         </div>
 
+        <!-- 프로젝트 -->
         <div class="sub-panel" id="sub-projects-${id}">
-            ${d.projects.length ? d.projects.map(p => `
-                <div style="padding:10px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div style="font-size:14px; font-weight:600;">${p.name}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">${p.type} · ${p.stage} · 상담 ${p.consultations_count}건</div>
+            <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+                <button class="btn-save" onclick="openProjectForm(${id})">+ 프로젝트</button>
+            </div>
+            <div id="project-form-${id}" style="display:none; margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
+                <div class="form-grid">
+                    <div class="field">
+                        <div class="field-label">프로젝트명 *</div>
+                        <input class="field-input" id="pf-name-${id}">
                     </div>
-                    <div style="font-size:11px; color:var(--text-muted);">${p.created_at}</div>
+                    <div class="field">
+                        <div class="field-label">유형 *</div>
+                        <select class="field-input field-select" id="pf-type-${id}">
+                            <option value="visit">방문세팅</option>
+                            <option value="remote">원격세팅</option>
+                            <option value="as">AS</option>
+                        </select>
+                    </div>
                 </div>
-            `).join('') : '<div style="padding:40px; text-align:center; color:var(--text-muted);">프로젝트가 없습니다.</div>'}
+                <div class="field" style="margin-top:10px;">
+                    <div class="field-label">메모</div>
+                    <textarea class="field-input field-textarea" id="pf-memo-${id}" rows="2"></textarea>
+                </div>
+                <div style="display:flex; gap:6px; margin-top:10px; justify-content:flex-end;">
+                    <button class="btn-delete" onclick="document.getElementById('project-form-${id}').style.display='none'" style="border-color:var(--border); color:var(--text-muted);">취소</button>
+                    <button class="btn-save" onclick="createProject(${id})">생성</button>
+                </div>
+            </div>
+            <div id="project-list-${id}">
+                ${renderProjectList(d.projects, id)}
+            </div>
         </div>
 
+        <!-- 첨부파일 -->
         <div class="sub-panel" id="sub-docs-${id}">
-            ${d.documents.length ? `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px;">
-                ${d.documents.map(doc => {
-                    const isImage = doc.mime_type && doc.mime_type.startsWith('image/');
-                    const preview = isImage
-                        ? `<div style="width:100%; height:90px; background:url('${doc.view_url}') center/cover; border-radius:6px;"></div>`
-                        : `<div style="width:100%; height:90px; display:flex; align-items:center; justify-content:center; background:var(--surface2); border-radius:6px; font-size:11px; color:var(--text-muted);">${doc.file_name.split('.').pop().toUpperCase()}</div>`;
-                    return `<div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
-                        <a href="${doc.view_url}" target="_blank">${preview}</a>
-                        <div style="padding:6px 8px;">
-                            <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.file_name}">${doc.file_name}</div>
-                            <div style="font-size:10px; color:var(--text-muted);">${doc.note||''}</div>
-                        </div>
-                    </div>`;
-                }).join('')}
-            </div>` : '<div style="padding:40px; text-align:center; color:var(--text-muted);">문서가 없습니다.</div>'}
+            <form id="doc-upload-form-${id}" enctype="multipart/form-data" style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
+                <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:120px;">
+                        <div class="field-label">파일 선택</div>
+                        <input type="file" multiple class="field-input" id="doc-file-${id}" style="padding:5px;" onchange="docFileChanged(${id})">
+                    </div>
+                    <div style="min-width:100px;">
+                        <div class="field-label">분류</div>
+                        <select class="field-input field-select" id="doc-cat-${id}">
+                            <option>사진/이미지</option>
+                            <option>현금영수증</option>
+                            <option>사업자등록증</option>
+                            <option>계약서</option>
+                            <option>견적서</option>
+                            <option>기타</option>
+                        </select>
+                    </div>
+                    <div style="flex:1; min-width:100px;">
+                        <div class="field-label">메모</div>
+                        <input class="field-input" id="doc-note-${id}" placeholder="간단한 메모">
+                    </div>
+                    <button type="button" class="btn-save" id="doc-upload-btn-${id}" onclick="uploadDocs(${id})" disabled>업로드</button>
+                </div>
+                <div id="doc-preview-${id}" style="margin-top:8px;"></div>
+            </form>
+            <div id="doc-grid-${id}" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;">
+                ${renderDocGrid(d.documents, id)}
+            </div>
         </div>
 
+        <!-- 메모 -->
         <div class="sub-panel" id="sub-memo-${id}">
             <div class="form-grid full">
                 <div class="field">
@@ -450,8 +514,246 @@ function renderClientContent(id) {
         </div>
         `;
     }
-
     pane.classList.add('active');
+}
+
+function renderProjectList(projects, clientId) {
+    if (!projects.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted);">프로젝트가 없습니다.</div>';
+    return projects.map(p => `
+        <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="if(typeof drgoTabs!=='undefined') drgoTabs.openNav('projects','/projects/${p.id}');">
+            <div>
+                <div style="font-size:14px; font-weight:600;">${p.name}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${TYPE_LABELS[p.type]||p.type} · 상담 ${p.consultations_count}건 · ${p.created_at}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${STAGE_LABELS[p.stage]||p.stage}</span>
+                <button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})">삭제</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderDocGrid(docs, clientId) {
+    if (!docs.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted); grid-column:1/-1;">첨부파일이 없습니다.</div>';
+    return docs.map((doc, i) => {
+        const isImg = doc.mime_type && doc.mime_type.startsWith('image/');
+        const isVid = doc.mime_type && doc.mime_type.startsWith('video/');
+        const ext = doc.file_name.split('.').pop().toUpperCase();
+        const thumb = isImg
+            ? `<img src="${doc.view_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`
+            : isVid ? `<div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:20px;">▶</div>`
+            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:11px;color:var(--text-muted);">${ext}</div>`;
+        return `<div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+            <div style="width:100%;height:90px;cursor:pointer;overflow:hidden;" onclick="openAlbumViewer(${clientId},${i})">${thumb}</div>
+            <div style="padding:5px 7px;">
+                <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.file_name}">${doc.file_name}</div>
+                <div style="display:flex; gap:4px; margin-top:3px;">
+                    <a href="${doc.download_url}" style="font-size:9px; color:var(--accent); text-decoration:none;">다운</a>
+                    <button onclick="deleteDoc(${doc.id},${clientId})" style="font-size:9px; color:var(--red); background:none; border:none; cursor:pointer;">삭제</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── 주소 검색 (Daum Postcode) ──
+function searchAddress(clientId) {
+    if (typeof daum === 'undefined' || !daum.Postcode) {
+        // 다음 주소 API 동적 로드
+        const script = document.createElement('script');
+        script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        script.onload = () => _openPostcode(clientId);
+        document.head.appendChild(script);
+    } else {
+        _openPostcode(clientId);
+    }
+}
+function _openPostcode(clientId) {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            document.getElementById('f-address-' + clientId).value = data.address;
+            document.getElementById('f-address_detail-' + clientId).focus();
+        }
+    }).open();
+}
+
+// ── 프로젝트 CRUD ──
+function openProjectForm(clientId) {
+    const form = document.getElementById('project-form-' + clientId);
+    form.style.display = 'block';
+    document.getElementById('pf-name-' + clientId).value = '';
+    document.getElementById('pf-memo-' + clientId).value = '';
+}
+
+async function createProject(clientId) {
+    const name = document.getElementById('pf-name-' + clientId).value.trim();
+    if (!name) return alert('프로젝트명을 입력하세요.');
+    const body = {
+        name,
+        project_type: document.getElementById('pf-type-' + clientId).value,
+        memo: document.getElementById('pf-memo-' + clientId).value,
+    };
+    const res = await fetch(`/clients/${clientId}/projects`, {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify(body)
+    });
+    if (res.ok || res.status === 302) {
+        document.getElementById('project-form-' + clientId).style.display = 'none';
+        await refreshClientData(clientId);
+        showToast('프로젝트가 생성되었습니다');
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || '생성 실패');
+    }
+}
+
+async function deleteProject(projectId, clientId) {
+    if (!confirm('이 프로젝트를 삭제하시겠습니까?')) return;
+    // 프로젝트는 soft delete이므로 stage를 cancelled로 변경
+    await fetch(`/projects/${projectId}/stage`, {
+        method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify({stage:'cancelled'})
+    });
+    await refreshClientData(clientId);
+    showToast('프로젝트가 취소되었습니다');
+}
+
+// ── 첨부파일 업로드 ──
+function docFileChanged(clientId) {
+    const input = document.getElementById('doc-file-' + clientId);
+    const btn = document.getElementById('doc-upload-btn-' + clientId);
+    const preview = document.getElementById('doc-preview-' + clientId);
+    btn.disabled = input.files.length === 0;
+    if (input.files.length) {
+        preview.innerHTML = [...input.files].map(f => `<span style="font-size:11px; padding:2px 6px; background:var(--surface2); border-radius:4px; margin-right:4px;">${f.name}</span>`).join('');
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+async function uploadDocs(clientId) {
+    const input = document.getElementById('doc-file-' + clientId);
+    if (!input.files.length) return;
+    const formData = new FormData();
+    for (const f of input.files) formData.append('files[]', f);
+    formData.append('category', document.getElementById('doc-cat-' + clientId).value);
+    formData.append('note', document.getElementById('doc-note-' + clientId).value);
+
+    const res = await fetch(`/clients/${clientId}/documents`, {
+        method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:formData
+    });
+    if (res.ok || res.status === 302) {
+        input.value = '';
+        document.getElementById('doc-note-' + clientId).value = '';
+        document.getElementById('doc-preview-' + clientId).innerHTML = '';
+        document.getElementById('doc-upload-btn-' + clientId).disabled = true;
+        await refreshClientData(clientId);
+        showToast('업로드 완료');
+    } else {
+        alert('업로드 실패');
+    }
+}
+
+async function deleteDoc(docId, clientId) {
+    if (!confirm('이 파일을 삭제하시겠습니까?')) return;
+    await fetch(`/documents/${docId}`, {
+        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+    });
+    await refreshClientData(clientId);
+    showToast('삭제되었습니다');
+}
+
+// ── 앨범 뷰어 ──
+let albumDocs = [], albumIdx = 0, zoomScale = 1, panX = 0, panY = 0, isPanning = false, panStartX, panStartY, baseW = 0, baseH = 0;
+
+function openAlbumViewer(clientId, idx) {
+    const tab = openClientTabs.find(t => t.id === clientId);
+    if (!tab) return;
+    albumDocs = tab.data.documents;
+    albumIdx = idx;
+    renderAlbumMedia();
+    document.getElementById('albumOverlay').style.display = 'flex';
+}
+function closeAlbumViewer() {
+    document.getElementById('albumOverlay').style.display = 'none';
+    document.getElementById('albumMediaWrap').innerHTML = '';
+    document.getElementById('albumZoomControls').style.display = 'none';
+    zoomScale = 1; panX = 0; panY = 0;
+}
+function albumNavDir(dir) {
+    albumIdx = (albumIdx + dir + albumDocs.length) % albumDocs.length;
+    zoomScale = 1; panX = 0; panY = 0;
+    renderAlbumMedia();
+}
+function albumZoomStep(dir) {
+    const steps = [0.5, 0.75, 1, 1.5, 2, 3, 4];
+    let ci = steps.indexOf(zoomScale); if (ci === -1) ci = 2;
+    ci = Math.max(0, Math.min(steps.length - 1, ci + dir));
+    zoomScale = steps[ci];
+    if (zoomScale === 1) { panX = 0; panY = 0; }
+    applyAlbumZoom();
+}
+function albumZoomReset() { zoomScale = 1; panX = 0; panY = 0; applyAlbumZoom(); }
+function applyAlbumZoom() {
+    const img = document.querySelector('#albumMediaWrap img.album-media');
+    if (!img) return;
+    if (zoomScale === 1) { img.style.width = ''; img.style.height = ''; }
+    else { img.style.width = (baseW * zoomScale) + 'px'; img.style.height = (baseH * zoomScale) + 'px'; }
+    img.style.transform = `translate(${panX}px,${panY}px)`;
+    document.getElementById('albumZoomLevel').textContent = Math.round(zoomScale * 100) + '%';
+}
+function renderAlbumMedia() {
+    const doc = albumDocs[albumIdx]; if (!doc) return;
+    const wrap = document.getElementById('albumMediaWrap');
+    const zoomCtrl = document.getElementById('albumZoomControls');
+    wrap.innerHTML = '';
+    const isImage = doc.mime_type && doc.mime_type.startsWith('image/');
+    zoomCtrl.style.display = isImage ? 'flex' : 'none';
+    if (isImage) {
+        const img = document.createElement('img');
+        img.className = 'album-media'; img.src = doc.view_url;
+        img.style.maxWidth = '85vw'; img.style.maxHeight = '75vh';
+        img.onload = () => { baseW = img.offsetWidth; baseH = img.offsetHeight; };
+        img.addEventListener('wheel', e => { e.preventDefault(); albumZoomStep(e.deltaY < 0 ? 1 : -1); }, {passive:false});
+        img.addEventListener('mousedown', e => { if (zoomScale===1) return; isPanning=true; panStartX=e.clientX-panX; panStartY=e.clientY-panY; e.preventDefault(); });
+        img.addEventListener('dblclick', () => { zoomScale===1 ? albumZoomStep(2) : albumZoomReset(); });
+        wrap.appendChild(img);
+    } else if (doc.mime_type && doc.mime_type.startsWith('video/')) {
+        const vid = document.createElement('video');
+        vid.className = 'album-media'; vid.src = doc.view_url; vid.controls = true; vid.autoplay = true;
+        vid.style.maxWidth = '85vw'; vid.style.maxHeight = '75vh';
+        wrap.appendChild(vid);
+    } else if (doc.mime_type === 'application/pdf') {
+        const iframe = document.createElement('iframe');
+        iframe.src = doc.view_url; iframe.style.cssText = 'width:80vw;height:75vh;border:none;';
+        wrap.appendChild(iframe);
+    } else {
+        wrap.innerHTML = '<div style="color:var(--text-muted);font-size:14px;padding:60px;text-align:center;">미리보기를 지원하지 않는 파일입니다.</div>';
+    }
+    document.getElementById('albumName').textContent = doc.file_name;
+    document.getElementById('albumNote').textContent = doc.note || '';
+    document.getElementById('albumCounter').textContent = `${albumIdx + 1} / ${albumDocs.length}`;
+}
+document.addEventListener('mousemove', e => { if (!isPanning) return; panX = e.clientX - panStartX; panY = e.clientY - panStartY; applyAlbumZoom(); });
+document.addEventListener('mouseup', () => { isPanning = false; });
+
+// ── 클라이언트 데이터 새로고침 ──
+async function refreshClientData(clientId) {
+    const res = await fetch(`/api/clients/${clientId}/detail`, { headers:{'Accept':'application/json'} });
+    if (!res.ok) return;
+    const data = await res.json();
+    const tab = openClientTabs.find(t => t.id === clientId);
+    if (tab) {
+        tab.data = data;
+        tab.name = data.name;
+        tab.nickname = data.nickname;
+        tab.grade = data.grade;
+    }
+    // 해당 pane 재생성
+    const pane = document.getElementById('cpane-' + clientId);
+    if (pane) pane.remove();
+    renderClientContent(clientId);
+    renderClientTabs();
 }
 
 function switchSubTab(clientId, tab, btn) {
@@ -553,5 +855,14 @@ function showToast(msg) {
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 2000);
 }
+
+// 키보드 단축키
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeAlbumViewer(); closeNewClientModal(); }
+    if (document.getElementById('albumOverlay').style.display === 'flex') {
+        if (e.key === 'ArrowLeft') albumNavDir(-1);
+        if (e.key === 'ArrowRight') albumNavDir(1);
+    }
+});
 </script>
 @endpush

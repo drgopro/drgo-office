@@ -322,23 +322,16 @@ const drgoTabs = {
         }
     },
 
-    async _load(tab, pane) {
-        try {
-            const sep = tab.url.includes('?') ? '&' : '?';
-            const res = await fetch(tab.url + sep + '_tab=1', {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
-            });
-            if (!res.ok) throw new Error(res.status);
-            pane.innerHTML = await res.text();
-            tab.loaded = true;
-            pane.querySelectorAll('script').forEach(old => {
-                const s = document.createElement('script');
-                if (old.src) s.src = old.src; else s.textContent = old.textContent;
-                old.replaceWith(s);
-            });
-        } catch {
+    _load(tab, pane) {
+        const iframe = document.createElement('iframe');
+        iframe.src = tab.url;
+        iframe.style.cssText = 'width:100%;height:calc(100vh - 86px);border:none;display:block;';
+        iframe.onload = () => { tab.loaded = true; };
+        iframe.onerror = () => {
             pane.innerHTML = '<div class="tab-loading" style="color:var(--red)">로드 실패 — <a href="' + tab.url + '" style="color:var(--accent)">직접 열기</a></div>';
-        }
+        };
+        pane.innerHTML = '';
+        pane.appendChild(iframe);
     },
 
     render() {
