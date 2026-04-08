@@ -51,7 +51,7 @@ class LoginController extends Controller
         // 실패 로그
         $user = User::where('username', $request->username)->first();
         LoginLog::create([
-            'user_id' => $user?->id ?? 0,
+            'user_id' => $user?->id,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'success' => false,
