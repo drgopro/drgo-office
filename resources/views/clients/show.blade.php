@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
 
 @section('title', $client->name . ' - 닥터고블린 오피스')
 
