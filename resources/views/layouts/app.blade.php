@@ -270,21 +270,25 @@ const drgoTabs = {
     LABELS: { dashboard:'대시보드', calendar:'캘린더', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', admin:'관리', profile:'마이페이지' },
 
     init() {
+        // iframe 내부에서는 탭 시스템 비활성화
+        if (window !== window.top) return;
+
+        const saved = this._restore();
+        if (saved) return;
+
         const path = window.location.pathname;
         const type = this._typeFromPath(path);
         this.tabs = [{ id: 'initial', type, url: path, loaded: true }];
         this.activeId = 'initial';
         this.render();
+        this._save();
     },
 
     openNav(type, url) {
-        // 모바일 네비 닫기
         document.getElementById('mainNav').classList.remove('open');
         document.getElementById('navOverlay').classList.remove('open');
-        // 같은 URL 탭이 있으면 전환
         const existing = this.tabs.find(t => t.url === url);
         if (existing) { this.activate(existing.id); return; }
-        // 새 탭 생성
         const id = 'tab-' + Date.now();
         this.tabs.push({ id, type, url, loaded: false });
         this.activate(id);
@@ -309,6 +313,7 @@ const drgoTabs = {
 
         if (!tab.loaded) this._load(tab, pane);
         this.render();
+        this._save();
     },
 
     close(id) {
@@ -325,6 +330,7 @@ const drgoTabs = {
             this.activate(next.id);
         } else {
             this.render();
+            this._save();
         }
     },
 
@@ -364,6 +370,59 @@ const drgoTabs = {
         if (p.startsWith('/admin')) return 'admin';
         if (p.startsWith('/profile')) return 'profile';
         return 'page';
+    },
+
+    _save() {
+        const data = {
+            tabs: this.tabs.map(t => ({ type: t.type, url: t.url })),
+            activeUrl: this.tabs.find(t => t.id === this.activeId)?.url
+        };
+        sessionStorage.setItem('drgo_tabs', JSON.stringify(data));
+    },
+
+    _restore() {
+        try {
+            const raw = sessionStorage.getItem('drgo_tabs');
+            if (!raw) return false;
+            const data = JSON.parse(raw);
+            if (!data.tabs || !data.tabs.length) return false;
+
+            const currentPath = window.location.pathname;
+
+            // 현재 서버 렌더링된 페이지를 initial 탭으로
+            // 저장된 탭 중 현재 페이지와 같은 것을 찾아 initial로 매핑
+            this.tabs = [];
+            let initialSet = false;
+
+            data.tabs.forEach((t, i) => {
+                if (t.url === currentPath && !initialSet) {
+                    this.tabs.push({ id: 'initial', type: t.type, url: t.url, loaded: true });
+                    initialSet = true;
+                } else {
+                    this.tabs.push({ id: 'tab-r-' + i, type: t.type, url: t.url, loaded: false });
+                }
+            });
+
+            // 현재 페이지가 저장된 탭에 없으면 첫 번째로 추가
+            if (!initialSet) {
+                const type = this._typeFromPath(currentPath);
+                this.tabs.unshift({ id: 'initial', type, url: currentPath, loaded: true });
+            }
+
+            // 활성 탭 결정
+            const activeTab = this.tabs.find(t => t.url === data.activeUrl);
+            this.activeId = activeTab ? activeTab.id : 'initial';
+
+            // initial이 아닌 활성 탭이면 해당 탭 활성화
+            if (this.activeId !== 'initial') {
+                this.render();
+                this.activate(this.activeId);
+            } else {
+                this.render();
+            }
+
+            return true;
+        } catch { return false; }
     }
 };
 
