@@ -37,7 +37,33 @@
     .settings-form .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
     .settings-form .field-input:focus { border-color:var(--accent); }
     .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save:hover { opacity:0.85; }
     .save-msg { font-size:12px; color:var(--green); margin-left:10px; display:none; }
+
+    /* 셀렉트, 인라인 폼 */
+    .inline-select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12px; outline:none; }
+    .inline-select:focus { border-color:var(--accent); }
+    .btn-sm { background:var(--accent); color:#1a1207; border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
+    .btn-sm:hover { opacity:0.85; }
+    .btn-danger { background:var(--red); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
+    .btn-danger:hover { opacity:0.85; }
+    .btn-add { background:none; border:1px solid var(--accent); color:var(--accent); padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:12px; }
+    .btn-add:hover { background:var(--accent); color:#1a1207; }
+
+    /* 팀 카드 */
+    .team-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
+    .team-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .team-name { font-size:15px; font-weight:700; }
+    .team-count { font-size:11px; color:var(--text-muted); }
+    .perm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:6px; }
+    .perm-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
+    .perm-item input[type="checkbox"] { accent-color:var(--accent); }
+    .perm-item.checked { color:var(--text); }
+
+    /* 활성 토글 */
+    .toggle-active { cursor:pointer; font-size:12px; }
+    .toggle-active.on { color:var(--green); }
+    .toggle-active.off { color:var(--red); }
 </style>
 @endpush
 
@@ -45,11 +71,14 @@
 <div class="page-wrap">
     <div class="page-title">관리</div>
 
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="adminTab('logs')">로그인 기록</button>
-        <button class="tab-btn" onclick="adminTab('seller')">판매처 설정</button>
+    <div class="tab-bar" id="adminTabBar">
+        <button class="tab-btn active" data-tab="logs">로그인 기록</button>
+        <button class="tab-btn" data-tab="users">사용자 관리</button>
+        <button class="tab-btn" data-tab="teams">팀 관리</button>
+        <button class="tab-btn" data-tab="seller">판매처 설정</button>
     </div>
 
+    {{-- 로그인 기록 --}}
     <div class="tab-panel active" id="panel-logs">
         <div class="data-card">
             <table class="data-table">
@@ -93,6 +122,37 @@
         @endif
     </div>
 
+    {{-- 사용자 관리 --}}
+    <div class="tab-panel" id="panel-users">
+        <div class="data-card">
+            <table class="data-table">
+                <thead>
+                    <tr><th>이름</th><th>아이디</th><th>역할</th><th>팀</th><th>활성</th><th></th></tr>
+                </thead>
+                <tbody id="usersBody">
+                    <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">로딩 중...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- 팀 관리 --}}
+    <div class="tab-panel" id="panel-teams">
+        <button class="btn-add" onclick="showNewTeamForm()">+ 팀 추가</button>
+        <div id="newTeamForm" style="display:none;" class="team-card">
+            <div class="team-header">
+                <input class="settings-form field-input" id="newTeamName" placeholder="팀 이름" style="max-width:200px; font-size:14px; font-weight:700;">
+                <div style="display:flex; gap:6px;">
+                    <button class="btn-sm" onclick="createTeam()">저장</button>
+                    <button class="btn-danger" onclick="document.getElementById('newTeamForm').style.display='none'">취소</button>
+                </div>
+            </div>
+            <div class="perm-grid" id="newTeamPerms"></div>
+        </div>
+        <div id="teamsContainer"></div>
+    </div>
+
+    {{-- 판매처 설정 --}}
     <div class="tab-panel" id="panel-seller">
         <div class="settings-form">
             <div class="field-group">
@@ -130,13 +190,208 @@
 
 @push('scripts')
 <script>
-function adminTab(name) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.textContent.includes(name==='logs'?'로그인':'판매처')));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+const currentRole = @json(Auth::user()->role);
+const PERMISSIONS = [
+    { key: 'calendar.view', label: '캘린더 조회' },
+    { key: 'calendar.edit', label: '캘린더 편집' },
+    { key: 'clients.view', label: '의뢰자 조회' },
+    { key: 'clients.edit', label: '의뢰자 편집' },
+    { key: 'projects.view', label: '프로젝트 조회' },
+    { key: 'projects.edit', label: '프로젝트 편집' },
+    { key: 'inventory.view', label: '재고 조회' },
+    { key: 'inventory.edit', label: '재고 편집' },
+    { key: 'estimates.view', label: '견적서 조회' },
+    { key: 'estimates.edit', label: '견적서 편집' },
+    { key: 'documents.edit', label: '문서 편집' },
+];
+
+let teamsList = [];
+
+// ── 탭 전환 ──
+document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('#adminTabBar .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+        if (tab === 'users') loadUsers();
+        if (tab === 'teams') loadTeams();
+    });
+});
+
+// ── 사용자 관리 ──
+async function loadUsers() {
+    const [usersRes, teamsRes] = await Promise.all([
+        fetch('/api/admin/users', { headers: { 'Accept': 'application/json' } }),
+        fetch('/api/admin/teams', { headers: { 'Accept': 'application/json' } }),
+    ]);
+    const users = await usersRes.json();
+    teamsList = await teamsRes.json();
+
+    const tbody = document.getElementById('usersBody');
+    if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">사용자가 없습니다.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = users.map(u => {
+        const roles = ['master', 'admin', 'member', 'guest'];
+        const roleOpts = roles.map(r => {
+            const disabled = (r === 'master' && currentRole !== 'master') ? 'disabled' : '';
+            return `<option value="${r}" ${u.role === r ? 'selected' : ''} ${disabled}>${r}</option>`;
+        }).join('');
+
+        const teamOpts = ['<option value="">없음</option>'].concat(
+            teamsList.map(t => `<option value="${t.id}" ${u.team_id === t.id ? 'selected' : ''}>${t.name}</option>`)
+        ).join('');
+
+        const activeClass = u.is_active ? 'on' : 'off';
+        const activeText = u.is_active ? '활성' : '비활성';
+
+        return `<tr data-uid="${u.id}">
+            <td>${u.display_name}</td>
+            <td class="text-muted">${u.username}</td>
+            <td><select class="inline-select ur" onchange="toggleTeamSelect(this)">${roleOpts}</select></td>
+            <td><select class="inline-select ut" ${u.role !== 'member' ? 'disabled' : ''}>${teamOpts}</select></td>
+            <td><span class="toggle-active ${activeClass}" onclick="toggleActive(this)">${activeText}</span></td>
+            <td><button class="btn-sm" onclick="saveUser(${u.id}, this)">저장</button></td>
+        </tr>`;
+    }).join('');
 }
 
+function toggleTeamSelect(sel) {
+    const row = sel.closest('tr');
+    const teamSel = row.querySelector('.ut');
+    teamSel.disabled = sel.value !== 'member';
+    if (sel.value !== 'member') teamSel.value = '';
+}
+
+function toggleActive(span) {
+    const isOn = span.classList.contains('on');
+    span.classList.toggle('on', !isOn);
+    span.classList.toggle('off', isOn);
+    span.textContent = isOn ? '비활성' : '활성';
+}
+
+async function saveUser(id, btn) {
+    const row = btn.closest('tr');
+    const role = row.querySelector('.ur').value;
+    const team_id = row.querySelector('.ut').value || null;
+    const is_active = row.querySelector('.toggle-active').classList.contains('on');
+
+    const res = await fetch(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ role, team_id, is_active }),
+    });
+
+    if (res.ok) {
+        btn.textContent = '완료';
+        setTimeout(() => btn.textContent = '저장', 1500);
+    } else {
+        const err = await res.json();
+        alert(err.message || '저장 실패');
+    }
+}
+
+// ── 팀 관리 ──
+async function loadTeams() {
+    const res = await fetch('/api/admin/teams', { headers: { 'Accept': 'application/json' } });
+    teamsList = await res.json();
+    renderTeams();
+}
+
+function renderTeams() {
+    const container = document.getElementById('teamsContainer');
+    if (!teamsList.length) {
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">등록된 팀이 없습니다.</div>';
+        return;
+    }
+
+    container.innerHTML = teamsList.map(t => {
+        const permsHtml = PERMISSIONS.map(p => {
+            const checked = (t.permissions || []).includes(p.key) ? 'checked' : '';
+            const cls = checked ? 'checked' : '';
+            return `<label class="perm-item ${cls}"><input type="checkbox" value="${p.key}" ${checked} onchange="this.parentElement.classList.toggle('checked', this.checked)">${p.label}</label>`;
+        }).join('');
+
+        return `<div class="team-card" data-tid="${t.id}">
+            <div class="team-header">
+                <div>
+                    <input class="settings-form field-input tn" value="${t.name}" style="max-width:200px; font-size:14px; font-weight:700;">
+                    <span class="team-count">${t.users_count || 0}명</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn-sm" onclick="saveTeam(${t.id}, this)">저장</button>
+                    <button class="btn-danger" onclick="deleteTeam(${t.id})">삭제</button>
+                </div>
+            </div>
+            <div class="perm-grid">${permsHtml}</div>
+        </div>`;
+    }).join('');
+}
+
+function showNewTeamForm() {
+    const form = document.getElementById('newTeamForm');
+    form.style.display = 'block';
+    document.getElementById('newTeamName').value = '';
+    document.getElementById('newTeamPerms').innerHTML = PERMISSIONS.map(p =>
+        `<label class="perm-item"><input type="checkbox" value="${p.key}">${p.label}</label>`
+    ).join('');
+}
+
+async function createTeam() {
+    const name = document.getElementById('newTeamName').value.trim();
+    if (!name) return alert('팀 이름을 입력하세요.');
+
+    const perms = [...document.querySelectorAll('#newTeamPerms input:checked')].map(c => c.value);
+
+    const res = await fetch('/api/admin/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ name, permissions: perms }),
+    });
+
+    if (res.ok) {
+        document.getElementById('newTeamForm').style.display = 'none';
+        loadTeams();
+    } else {
+        const err = await res.json();
+        alert(err.message || '생성 실패');
+    }
+}
+
+async function saveTeam(id, btn) {
+    const card = btn.closest('.team-card');
+    const name = card.querySelector('.tn').value.trim();
+    const perms = [...card.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value);
+
+    const res = await fetch(`/api/admin/teams/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ name, permissions: perms }),
+    });
+
+    if (res.ok) {
+        btn.textContent = '완료';
+        setTimeout(() => btn.textContent = '저장', 1500);
+    } else {
+        alert('저장 실패');
+    }
+}
+
+async function deleteTeam(id) {
+    if (!confirm('이 팀을 삭제하시겠습니까? 소속 사용자의 팀이 해제됩니다.')) return;
+
+    await fetch(`/api/admin/teams/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+    });
+    loadTeams();
+}
+
+// ── 판매처 설정 ──
 async function saveSellerSettings() {
-    const CSRF = document.querySelector('meta[name="csrf-token"]').content;
     const body = {
         seller_name: document.getElementById('sellerName').value,
         seller_biz_no: document.getElementById('sellerBizNo').value,
@@ -146,9 +401,9 @@ async function saveSellerSettings() {
         seller_phone: document.getElementById('sellerPhone').value,
     };
     await fetch('/api/settings', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify(body)
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify(body)
     });
     const msg = document.getElementById('sellerSaveMsg');
     msg.style.display = 'inline';

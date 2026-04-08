@@ -145,12 +145,22 @@
         <a href="/" class="logo">🟢 DRGO</a>
         <button class="menu-toggle" id="menuToggle" onclick="toggleNav()">☰</button>
         <nav class="nav" id="mainNav">
-            <a href="/" class="{{ request()->is('/') ? 'active' : '' }}">대시보드</a>
+            @if(!Auth::user()->isGuest())
+                <a href="/" class="{{ request()->is('/') ? 'active' : '' }}">대시보드</a>
+            @endif
             <a href="/calendar" class="{{ request()->is('calendar*') ? 'active' : '' }}">캘린더</a>
-            <a href="/clients" class="{{ request()->is('clients*') ? 'active' : '' }}">의뢰자</a>
-            <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}">프로젝트</a>
-            <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}">재고</a>
-            <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}">견적서</a>
+            @if(Auth::user()->hasPermission('clients.view'))
+                <a href="/clients" class="{{ request()->is('clients*') ? 'active' : '' }}">의뢰자</a>
+            @endif
+            @if(Auth::user()->hasPermission('projects.view'))
+                <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}">프로젝트</a>
+            @endif
+            @if(Auth::user()->hasPermission('inventory.view'))
+                <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}">재고</a>
+            @endif
+            @if(Auth::user()->hasPermission('estimates.view'))
+                <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}">견적서</a>
+            @endif
             <div class="nav-mobile-only">
                 @if(in_array(Auth::user()->role, ['master', 'admin']))
                     <a href="{{ route('admin') }}">관리</a>

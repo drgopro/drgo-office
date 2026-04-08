@@ -144,7 +144,9 @@
             <button class="view-tab"        id="tabDay"   onclick="switchView('day')">일간</button>
         </div>
     </div>
-    <button class="add-btn" onclick="openNewModal()">+ 일정</button>
+    @if(Auth::user()->hasPermission('calendar.edit'))
+        <button class="add-btn" onclick="openNewModal()">+ 일정</button>
+    @endif
 </div>
 
 <div class="legend">
@@ -252,6 +254,8 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const DAYS_KO = ['일','월','화','수','목','금','토'];
+const canEditCalendar = @json(Auth::user()->hasPermission('calendar.edit'));
+const isGuestUser = @json(Auth::user()->isGuest());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;
@@ -370,7 +374,7 @@ function renderMonth() {
             dayEvs.slice(0,3).forEach(ev=>{
                 const chip=document.createElement('div');
                 chip.className=`event-chip color-${ev.color}`;
-                chip.textContent=(ev.client_name?ev.client_name+' ':'')+ev.title;
+                chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):((ev.client_name?ev.client_name+' ':'')+ev.title);
                 chip.onclick=e=>{e.stopPropagation();openEditModal(ev);};
                 div.appendChild(chip);
             });
@@ -438,7 +442,7 @@ function renderTimeline() {
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`;
             chip.style.marginBottom='2px';
-            chip.textContent=(ev.client_name?ev.client_name+' ':'')+ev.title;
+            chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):((ev.client_name?ev.client_name+' ':'')+ev.title);
             chip.onclick=()=>openEditModal(ev);
             cell.appendChild(chip);
         });
@@ -530,6 +534,7 @@ function openNewModal(dateStr,timeStr){
 }
 
 function openEditModal(ev){
+    if(isGuestUser) return;
     editingId=ev.id; currentColor=ev.color;
     selectedAssignees=ev.assignees?ev.assignees.map(a=>a.id):[];
     document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('active'));
