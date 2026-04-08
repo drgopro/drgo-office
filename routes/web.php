@@ -9,6 +9,7 @@ use App\Http\Controllers\ClientDocumentController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -87,6 +88,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
     Route::delete('/api/estimates/{estimate}', [EstimateController::class, 'destroy']);
     Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
+
+    // 마이페이지
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
     // 관리자
     Route::get('/admin', [AdminController::class, 'index'])->name('admin');

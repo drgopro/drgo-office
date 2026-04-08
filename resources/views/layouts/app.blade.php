@@ -155,6 +155,7 @@
                 @if(in_array(Auth::user()->role, ['master', 'admin']))
                     <a href="{{ route('admin') }}">관리</a>
                 @endif
+                <a href="{{ route('profile.edit') }}">마이페이지</a>
                 <span class="mobile-user">{{ Auth::user()->display_name }} ({{ Auth::user()->role }})</span>
             </div>
         </nav>
@@ -165,7 +166,7 @@
             <a href="{{ route('admin') }}" class="admin-link {{ request()->is('admin*') ? 'active' : '' }}">관리</a>
         @endif
         <button class="theme-toggle" id="themeToggle" title="다크/라이트 모드">🌙</button>
-        <span class="user-name">{{ Auth::user()->display_name }}</span>
+        <a href="{{ route('profile.edit') }}" class="admin-link {{ request()->is('profile*') ? 'active' : '' }}">{{ Auth::user()->display_name }}</a>
         <span class="user-role">{{ Auth::user()->role }}</span>
         <form method="POST" action="{{ route('logout') }}">
             @csrf
