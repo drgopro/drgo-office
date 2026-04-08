@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Project;
+use App\Models\ProjectMemo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -60,9 +61,39 @@ class ProjectController extends Controller
     // 상세
     public function show(Project $project)
     {
-        $project->load('client', 'assignedUser', 'consultations.consultant', 'documents');
+        $project->load('client', 'assignedUser', 'consultations.consultant', 'documents', 'memos.user');
 
         return view('projects.show', compact('project'));
+    }
+
+    // 메모 추가
+    public function storeMemo(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'content' => 'required|string|max:2000',
+        ]);
+
+        $memo = $project->memos()->create([
+            'user_id' => Auth::id(),
+            'content' => $validated['content'],
+        ]);
+
+        $memo->load('user');
+
+        return response()->json([
+            'id' => $memo->id,
+            'content' => $memo->content,
+            'user_name' => $memo->user?->display_name,
+            'created_at' => $memo->created_at->format('Y.m.d H:i'),
+        ], 201);
+    }
+
+    // 메모 삭제
+    public function destroyMemo(ProjectMemo $memo)
+    {
+        $memo->delete();
+
+        return response()->json(['message' => '삭제되었습니다.']);
     }
 
     // 단계 변경

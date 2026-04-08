@@ -46,4 +46,9 @@ class Project extends Model
     {
         return $this->hasMany(ProjectDocument::class);
     }
+
+    public function memos()
+    {
+        return $this->hasMany(ProjectMemo::class)->orderByDesc('created_at');
+    }
 }

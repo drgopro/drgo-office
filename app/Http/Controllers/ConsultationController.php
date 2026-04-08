@@ -12,17 +12,17 @@ class ConsultationController extends Controller
     public function store(Request $request, Project $project)
     {
         $validated = $request->validate([
-            'consulted_at'  => 'required|date',
-            'consult_type'  => 'required|in:kakao,phone,visit,field',
-            'result'        => 'required|in:in_progress,waiting,valid,invalid,done',
-            'content'       => 'nullable|string',
-            'is_important'  => 'boolean',
+            'consulted_at' => 'required|date',
+            'consult_type' => 'required|in:kakao,phone,visit,field',
+            'result' => 'required|in:in_progress,waiting,valid,invalid,done',
+            'content' => 'nullable|string',
+            'is_important' => 'boolean',
         ]);
 
-        $validated['project_id']    = $project->id;
-        $validated['client_id']     = $project->client_id;
+        $validated['project_id'] = $project->id;
+        $validated['client_id'] = $project->client_id;
         $validated['consultant_id'] = Auth::id();
-        $validated['is_important']  = $request->boolean('is_important');
+        $validated['is_important'] = $request->boolean('is_important');
 
         Consultation::create($validated);
 
@@ -34,11 +34,11 @@ class ConsultationController extends Controller
     public function update(Request $request, Consultation $consultation)
     {
         $validated = $request->validate([
-            'consulted_at'  => 'required|date',
-            'consult_type'  => 'required|in:kakao,phone,visit,field',
-            'result'        => 'required|in:in_progress,waiting,valid,invalid,done',
-            'content'       => 'nullable|string',
-            'is_important'  => 'boolean',
+            'consulted_at' => 'required|date',
+            'consult_type' => 'required|in:kakao,phone,visit,field',
+            'result' => 'required|in:in_progress,waiting,valid,invalid,done',
+            'content' => 'nullable|string',
+            'is_important' => 'boolean',
         ]);
 
         $validated['is_important'] = $request->boolean('is_important');
@@ -51,6 +51,7 @@ class ConsultationController extends Controller
     public function destroy(Consultation $consultation)
     {
         $consultation->delete();
+
         return back()->with('success', '삭제되었습니다.');
     }
 }
