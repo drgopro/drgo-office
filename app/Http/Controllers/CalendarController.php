@@ -78,6 +78,8 @@ class CalendarController extends Controller
             'sched_after_days' => 'nullable|integer',
             'sched_after_date' => 'nullable|date',
             'sched_after_reason' => 'nullable|string|max:300',
+            'notif_minutes' => 'nullable|string|max:10',
+            'is_locked' => 'boolean',
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -117,6 +119,8 @@ class CalendarController extends Controller
             'sched_after_days' => 'nullable|integer',
             'sched_after_date' => 'nullable|date',
             'sched_after_reason' => 'nullable|string|max:300',
+            'notif_minutes' => 'nullable|string|max:10',
+            'is_locked' => 'boolean',
         ]);
 
         // 변경 이력 기록
