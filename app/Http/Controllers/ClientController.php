@@ -102,6 +102,113 @@ class ClientController extends Controller
         return redirect()->route('clients.show', $client)->with('success', '수정되었습니다.');
     }
 
+    // JSON 상세 API (탭 내 로드)
+    public function detail(Client $client)
+    {
+        $client->load('assignedUser', 'projects.consultations', 'documents');
+
+        return response()->json([
+            'id' => $client->id,
+            'name' => $client->name,
+            'nickname' => $client->nickname,
+            'phone' => $client->phone,
+            'address' => $client->address,
+            'address_detail' => $client->address_detail,
+            'grade' => $client->grade,
+            'platforms' => $client->platforms ?? [],
+            'content_types' => $client->content_types ?? [],
+            'gender' => $client->gender,
+            'affiliation' => $client->affiliation,
+            'important_memo' => $client->important_memo,
+            'memo' => $client->memo,
+            'status' => $client->status,
+            'assigned_user' => $client->assignedUser?->display_name,
+            'created_at' => $client->created_at->format('Y.m.d'),
+            'projects' => $client->projects->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'type' => $p->type,
+                'stage' => $p->stage,
+                'created_at' => $p->created_at->format('Y.m.d'),
+                'consultations_count' => $p->consultations->count(),
+            ]),
+            'documents' => $client->documents->map(fn ($d) => [
+                'id' => $d->id,
+                'file_name' => $d->file_name,
+                'mime_type' => $d->mime_type,
+                'file_size' => $d->file_size,
+                'note' => $d->note,
+                'view_url' => route('documents.serve', $d),
+                'download_url' => route('documents.download', $d),
+                'created_at' => $d->created_at->format('Y.m.d'),
+            ]),
+        ]);
+    }
+
+    // JSON 업데이트 API
+    public function updateJson(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'nickname' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'address' => 'nullable|string|max:300',
+            'address_detail' => 'nullable|string|max:200',
+            'grade' => 'required|in:normal,vip,rental',
+            'platforms' => 'nullable|array',
+            'content_types' => 'nullable|array',
+            'gender' => 'nullable|in:male,female,other',
+            'affiliation' => 'nullable|string|max:200',
+            'important_memo' => 'nullable|string',
+            'memo' => 'nullable|string',
+        ]);
+
+        $client->update($validated);
+
+        return response()->json(['message' => '저장되었습니다.']);
+    }
+
+    // JSON 생성 API
+    public function storeJson(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'nickname' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'grade' => 'required|in:normal,vip,rental',
+        ]);
+
+        $validated['assigned_user_id'] = Auth::id();
+        $validated['status'] = 'active';
+
+        $client = Client::create($validated);
+
+        return response()->json(['id' => $client->id, 'message' => '등록되었습니다.'], 201);
+    }
+
+    // JSON 목록 API
+    public function listJson(Request $request)
+    {
+        $query = Client::where('status', '!=', 'blacklist');
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('nickname', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($grade = $request->query('grade')) {
+            $query->where('grade', $grade);
+        }
+
+        return response()->json(
+            $query->orderBy('created_at', 'desc')
+                ->get(['id', 'name', 'nickname', 'phone', 'grade', 'status'])
+        );
+    }
+
     // 검색 API (견적서 등에서 사용)
     public function search(Request $request)
     {

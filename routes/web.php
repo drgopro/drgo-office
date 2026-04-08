@@ -40,6 +40,16 @@ Route::middleware('auth')->group(function () {
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
 
+    // 의뢰자 JSON API
+    Route::middleware('permission:clients.view')->group(function () {
+        Route::get('/api/clients/list', [ClientController::class, 'listJson']);
+        Route::get('/api/clients/{client}/detail', [ClientController::class, 'detail']);
+    });
+    Route::middleware('permission:clients.edit')->group(function () {
+        Route::post('/api/clients', [ClientController::class, 'storeJson']);
+        Route::patch('/api/clients/{client}', [ClientController::class, 'updateJson']);
+    });
+
     // 의뢰자 (create가 {client} 와일드카드보다 먼저)
     Route::middleware('permission:clients.edit')->group(function () {
         Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
