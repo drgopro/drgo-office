@@ -142,9 +142,15 @@
             .data-table { min-width:500px; }
         }
     </style>
+    <style>
+        /* iframe 내부에서는 내비/탭바 숨김 */
+        body.in-iframe .header, body.in-iframe .tab-bar-wrap { display:none !important; }
+        body.in-iframe .main { height:100vh; }
+    </style>
     @stack('styles')
 </head>
 <body>
+<script>if (window !== window.top) document.body.classList.add('in-iframe');</script>
 
 {{-- ── 상단 내비게이션 ── --}}
 <div class="header">
