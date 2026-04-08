@@ -428,6 +428,15 @@ function renderClientContent(id) {
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
             </div>
+
+            <!-- 최근 메모 (기본 정보에 미리보기) -->
+            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div class="field-label" style="margin:0; font-size:12px; font-weight:600;">최근 메모</div>
+                    <button class="btn-save" style="padding:4px 10px; font-size:11px;" onclick="switchSubTab(${id},'memo',document.querySelector('#subtabs-${id} .sub-tab:last-child'))">전체 보기</button>
+                </div>
+                <div id="recent-memos-${id}">${renderRecentMemos(d.memos, id)}</div>
+            </div>
         </div>
 
         <!-- 프로젝트 -->
@@ -499,21 +508,13 @@ function renderClientContent(id) {
             </div>
         </div>
 
-        <!-- 메모 -->
+        <!-- 메모 (스레드) -->
         <div class="sub-panel" id="sub-memo-${id}">
-            <div class="form-grid full">
-                <div class="field">
-                    <div class="field-label">중요 메모</div>
-                    <textarea class="field-input field-textarea" id="f-imp-memo-${id}" rows="3">${d.important_memo||''}</textarea>
-                </div>
-                <div class="field">
-                    <div class="field-label">일반 메모</div>
-                    <textarea class="field-input field-textarea" id="f-memo-${id}" rows="4">${d.memo||''}</textarea>
-                </div>
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <textarea class="field-input" id="new-memo-${id}" rows="2" placeholder="메모를 입력하세요..." style="flex:1; resize:vertical;"></textarea>
+                <button class="btn-save" onclick="addMemo(${id})" style="align-self:flex-end; white-space:nowrap;">메모 추가</button>
             </div>
-            <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
-                <button class="btn-save" onclick="saveClient(${id})">저장</button>
-            </div>
+            <div id="memo-thread-${id}">${renderMemoThread(d.memos, id)}</div>
         </div>
         `;
     }
@@ -901,6 +902,71 @@ async function createClient() {
 }
 
 // ── 토스트 ──
+// ── 메모 스레드 ──
+function renderMemoItem(m, clientId) {
+    return `<div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="memo-item-${m.id}">
+        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--accent); flex-shrink:0;">${(m.user_name||'?').substring(0,1)}</div>
+        <div style="flex:1; min-width:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <span style="font-size:12px; font-weight:600;">${m.user_name}</span>
+                    <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
+                </div>
+                <button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
+            </div>
+            <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${m.content}</div>
+        </div>
+    </div>`;
+}
+
+function renderMemoThread(memos, clientId) {
+    if (!memos || !memos.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">메모가 없습니다.</div>';
+    return memos.map(m => renderMemoItem(m, clientId)).join('');
+}
+
+function renderRecentMemos(memos, clientId) {
+    if (!memos || !memos.length) return '<div style="padding:12px; text-align:center; color:var(--text-muted); font-size:12px;">메모가 없습니다.</div>';
+    const recent = memos.slice(0, 3);
+    const hasMore = memos.length > 3;
+    let html = recent.map(m => renderMemoItem(m, clientId)).join('');
+    if (hasMore) {
+        html += `<div style="text-align:center; padding:8px;">
+            <button onclick="switchSubTab(${clientId},'memo',document.querySelector('#subtabs-${clientId} .sub-tab:last-child'))" style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer;">+ ${memos.length - 3}개 더 보기</button>
+        </div>`;
+    }
+    return html;
+}
+
+async function addMemo(clientId) {
+    const textarea = document.getElementById('new-memo-' + clientId);
+    const content = textarea.value.trim();
+    if (!content) return;
+
+    const res = await fetch(`/api/clients/${clientId}/memos`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify({ content })
+    });
+
+    if (res.ok) {
+        textarea.value = '';
+        await refreshClientData(clientId);
+        showToast('메모가 추가되었습니다');
+    } else {
+        alert('메모 추가 실패');
+    }
+}
+
+async function deleteMemo(memoId, clientId) {
+    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+    await fetch(`/api/client-memos/${memoId}`, {
+        method:'DELETE',
+        headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+    });
+    await refreshClientData(clientId);
+    showToast('메모가 삭제되었습니다');
+}
+
 function showToast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg;

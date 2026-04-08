@@ -48,6 +48,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:clients.edit')->group(function () {
         Route::post('/api/clients', [ClientController::class, 'storeJson']);
         Route::patch('/api/clients/{client}', [ClientController::class, 'updateJson']);
+        Route::post('/api/clients/{client}/memos', [ClientController::class, 'storeMemo']);
+        Route::delete('/api/client-memos/{memo}', [ClientController::class, 'destroyMemo']);
     });
 
     // 의뢰자 (create가 {client} 와일드카드보다 먼저)

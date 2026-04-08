@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\ClientMemo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -105,7 +106,7 @@ class ClientController extends Controller
     // JSON 상세 API (탭 내 로드)
     public function detail(Client $client)
     {
-        $client->load('assignedUser', 'projects.consultations', 'documents');
+        $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user');
 
         return response()->json([
             'id' => $client->id,
@@ -141,6 +142,12 @@ class ClientController extends Controller
                 'view_url' => route('documents.serve', $d),
                 'download_url' => route('documents.download', $d),
                 'created_at' => $d->created_at->format('Y.m.d'),
+            ]),
+            'memos' => $client->memos->map(fn ($m) => [
+                'id' => $m->id,
+                'content' => $m->content,
+                'user_name' => $m->user?->display_name ?? '알 수 없음',
+                'created_at' => $m->created_at->format('Y.m.d H:i'),
             ]),
         ]);
     }
@@ -207,6 +214,36 @@ class ClientController extends Controller
             $query->orderBy('created_at', 'desc')
                 ->get(['id', 'name', 'nickname', 'phone', 'grade', 'status'])
         );
+    }
+
+    // 메모 추가
+    public function storeMemo(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'content' => 'required|string|max:2000',
+        ]);
+
+        $memo = $client->memos()->create([
+            'user_id' => Auth::id(),
+            'content' => $validated['content'],
+        ]);
+
+        $memo->load('user');
+
+        return response()->json([
+            'id' => $memo->id,
+            'content' => $memo->content,
+            'user_name' => $memo->user?->display_name,
+            'created_at' => $memo->created_at->format('Y.m.d H:i'),
+        ], 201);
+    }
+
+    // 메모 삭제
+    public function destroyMemo(ClientMemo $memo)
+    {
+        $memo->delete();
+
+        return response()->json(['message' => '삭제되었습니다.']);
     }
 
     // 검색 API (견적서 등에서 사용)

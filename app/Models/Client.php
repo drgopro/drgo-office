@@ -30,8 +30,8 @@ class Client extends Model
     ];
 
     protected $casts = [
-        'phones'        => 'array',
-        'platforms'     => 'array',
+        'phones' => 'array',
+        'platforms' => 'array',
         'content_types' => 'array',
         'last_contact_at' => 'datetime',
     ];
@@ -49,5 +49,10 @@ class Client extends Model
     public function documents()
     {
         return $this->hasMany(ClientDocument::class);
+    }
+
+    public function memos()
+    {
+        return $this->hasMany(ClientMemo::class)->orderByDesc('created_at');
     }
 }
