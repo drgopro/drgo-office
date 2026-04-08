@@ -68,4 +68,9 @@ class Schedule extends Model
     {
         return $this->hasMany(ScheduleChange::class)->orderByDesc('created_at');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(ScheduleAttachment::class)->orderBy('sort_order');
+    }
 }

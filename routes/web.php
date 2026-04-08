@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\ScheduleAttachmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
@@ -37,7 +38,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/events', [CalendarController::class, 'store'])->name('api.events.store');
         Route::match(['PUT', 'PATCH', 'POST'], '/api/events/{schedule}', [CalendarController::class, 'update'])->name('api.events.update');
         Route::delete('/api/events/{schedule}', [CalendarController::class, 'destroy'])->name('api.events.destroy');
+        Route::get('/api/schedules/{schedule}/attachments', [ScheduleAttachmentController::class, 'index']);
+        Route::post('/api/schedules/{schedule}/attachments', [ScheduleAttachmentController::class, 'store']);
+        Route::delete('/api/schedule-attachments/{attachment}', [ScheduleAttachmentController::class, 'destroy']);
     });
+    Route::get('/schedule-attachments/{attachment}/view', [ScheduleAttachmentController::class, 'serve'])->name('schedule-attachments.serve');
 
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
