@@ -40,12 +40,7 @@ Route::middleware('auth')->group(function () {
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
 
-    // 의뢰자
-    Route::middleware('permission:clients.view')->group(function () {
-        Route::get('/api/clients/search', [ClientController::class, 'search']);
-        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
-        Route::get('/clients/{client}', [ClientController::class, 'show'])->name('clients.show');
-    });
+    // 의뢰자 (create가 {client} 와일드카드보다 먼저)
     Route::middleware('permission:clients.edit')->group(function () {
         Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
         Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
@@ -53,35 +48,47 @@ Route::middleware('auth')->group(function () {
         Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
     });
+    Route::middleware('permission:clients.view')->group(function () {
+        Route::get('/api/clients/search', [ClientController::class, 'search']);
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('/clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+    });
 
     // 프로젝트
-    Route::middleware('permission:projects.view')->group(function () {
-        Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-        Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
-    });
     Route::middleware('permission:projects.edit')->group(function () {
         Route::post('/clients/{client}/projects', [ProjectController::class, 'store'])->name('projects.store');
         Route::patch('/projects/{project}/stage', [ProjectController::class, 'updateStage'])->name('projects.stage');
     });
+    Route::middleware('permission:projects.view')->group(function () {
+        Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+        Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    });
 
     // 의뢰자 문서
-    Route::middleware('permission:clients.view')->group(function () {
-        Route::get('/documents/{document}/download', [ClientDocumentController::class, 'download'])->name('documents.download');
-        Route::get('/documents/{document}/view', [ClientDocumentController::class, 'serve'])->name('documents.serve');
-    });
     Route::middleware('permission:documents.edit')->group(function () {
         Route::post('/clients/{client}/documents', [ClientDocumentController::class, 'store'])->name('documents.store');
         Route::delete('/documents/{document}', [ClientDocumentController::class, 'destroy'])->name('documents.destroy');
     });
+    Route::middleware('permission:clients.view')->group(function () {
+        Route::get('/documents/{document}/download', [ClientDocumentController::class, 'download'])->name('documents.download');
+        Route::get('/documents/{document}/view', [ClientDocumentController::class, 'serve'])->name('documents.serve');
+    });
 
     // 프로젝트 문서
+    Route::middleware('permission:documents.edit')->group(function () {
+        Route::post('/projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('project-documents.store');
+        Route::delete('/project-documents/{document}', [ProjectDocumentController::class, 'destroy'])->name('project-documents.destroy');
+    });
     Route::middleware('permission:projects.view')->group(function () {
         Route::get('/project-documents/{document}/download', [ProjectDocumentController::class, 'download'])->name('project-documents.download');
         Route::get('/project-documents/{document}/view', [ProjectDocumentController::class, 'serve'])->name('project-documents.serve');
     });
-    Route::middleware('permission:documents.edit')->group(function () {
-        Route::post('/projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('project-documents.store');
-        Route::delete('/project-documents/{document}', [ProjectDocumentController::class, 'destroy'])->name('project-documents.destroy');
+
+    // 상담 이력
+    Route::middleware('permission:projects.edit')->group(function () {
+        Route::post('/projects/{project}/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
+        Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
+        Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');
     });
 
     // 재고 관리
@@ -107,25 +114,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/inventory/orders/{order}/receive', [PurchaseOrderController::class, 'receive']);
     });
 
-    // 상담 이력
-    Route::middleware('permission:projects.edit')->group(function () {
-        Route::post('/projects/{project}/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
-        Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
-        Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');
-    });
-
-    // 견적서
-    Route::middleware('permission:estimates.view')->group(function () {
-        Route::get('/estimates', [EstimateController::class, 'index'])->name('estimates');
-        Route::get('/api/estimates', [EstimateController::class, 'estimates']);
-        Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
-    });
+    // 견적서 (edit가 {estimate} 와일드카드보다 먼저)
     Route::middleware('permission:estimates.edit')->group(function () {
         Route::post('/api/estimates', [EstimateController::class, 'store']);
         Route::get('/estimates/{estimate}/edit', [EstimateController::class, 'edit'])->name('estimates.edit');
         Route::patch('/api/estimates/{estimate}', [EstimateController::class, 'update']);
         Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
         Route::delete('/api/estimates/{estimate}', [EstimateController::class, 'destroy']);
+    });
+    Route::middleware('permission:estimates.view')->group(function () {
+        Route::get('/estimates', [EstimateController::class, 'index'])->name('estimates');
+        Route::get('/api/estimates', [EstimateController::class, 'estimates']);
+        Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
     });
 
     // 관리자 (master, admin만)
