@@ -466,11 +466,14 @@ function renderClientContent(id) {
 
         <!-- 첨부파일 -->
         <div class="sub-panel" id="sub-docs-${id}">
-            <form id="doc-upload-form-${id}" enctype="multipart/form-data" style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
+            <div style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
                 <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:120px;">
+                    <div>
                         <div class="field-label">파일 선택</div>
-                        <input type="file" multiple class="field-input" id="doc-file-${id}" style="padding:5px;" onchange="docFileChanged(${id})">
+                        <label style="display:inline-block; padding:6px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:12px; cursor:pointer; color:var(--text-muted); transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+                            파일 추가
+                            <input type="file" multiple id="doc-file-${id}" style="display:none;" onchange="docAddFiles(${id}, this)">
+                        </label>
                     </div>
                     <div style="min-width:100px;">
                         <div class="field-label">분류</div>
@@ -489,8 +492,8 @@ function renderClientContent(id) {
                     </div>
                     <button type="button" class="btn-save" id="doc-upload-btn-${id}" onclick="uploadDocs(${id})" disabled>업로드</button>
                 </div>
-                <div id="doc-preview-${id}" style="margin-top:8px;"></div>
-            </form>
+                <div id="doc-preview-${id}" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
             <div id="doc-grid-${id}" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;">
                 ${renderDocGrid(d.documents, id)}
             </div>
@@ -618,38 +621,87 @@ async function deleteProject(projectId, clientId) {
     showToast('프로젝트가 취소되었습니다');
 }
 
-// ── 첨부파일 업로드 ──
-function docFileChanged(clientId) {
-    const input = document.getElementById('doc-file-' + clientId);
+// ── 첨부파일 업로드 (썸네일 프리뷰 + 누적 목록) ──
+const pendingFiles = {}; // clientId → File[]
+const IMG_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','image/svg+xml'];
+const VID_TYPES = ['video/mp4','video/webm','video/ogg','video/quicktime','video/x-msvideo','video/x-matroska'];
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function docAddFiles(clientId, input) {
+    if (!pendingFiles[clientId]) pendingFiles[clientId] = [];
+    for (const f of input.files) pendingFiles[clientId].push(f);
+    input.value = '';
+    renderFilePreview(clientId);
+}
+
+function removeFile(clientId, idx) {
+    pendingFiles[clientId].splice(idx, 1);
+    renderFilePreview(clientId);
+}
+
+function renderFilePreview(clientId) {
+    const container = document.getElementById('doc-preview-' + clientId);
     const btn = document.getElementById('doc-upload-btn-' + clientId);
-    const preview = document.getElementById('doc-preview-' + clientId);
-    btn.disabled = input.files.length === 0;
-    if (input.files.length) {
-        preview.innerHTML = [...input.files].map(f => `<span style="font-size:11px; padding:2px 6px; background:var(--surface2); border-radius:4px; margin-right:4px;">${f.name}</span>`).join('');
-    } else {
-        preview.innerHTML = '';
-    }
+    const files = pendingFiles[clientId] || [];
+    btn.disabled = files.length === 0;
+
+    if (!files.length) { container.innerHTML = ''; return; }
+
+    container.innerHTML = files.map((f, i) => {
+        let thumbContent;
+        if (IMG_TYPES.includes(f.type)) {
+            const url = URL.createObjectURL(f);
+            thumbContent = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">`;
+        } else if (VID_TYPES.includes(f.type)) {
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:16px;">▶</div>`;
+        } else if (f.type === 'application/pdf') {
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:10px;font-weight:700;color:var(--red);">PDF</div>`;
+        } else {
+            const ext = f.name.split('.').pop().toUpperCase();
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:10px;color:var(--text-muted);">${ext}</div>`;
+        }
+
+        return `<div style="width:80px; position:relative;">
+            <div style="width:80px; height:80px; border:1px solid var(--border); border-radius:6px; overflow:hidden;">${thumbContent}</div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</div>
+            <div style="font-size:9px; color:var(--text-muted);">${formatFileSize(f.size)}</div>
+            <button onclick="removeFile(${clientId},${i})" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>`;
+    }).join('');
 }
 
 async function uploadDocs(clientId) {
-    const input = document.getElementById('doc-file-' + clientId);
-    if (!input.files.length) return;
+    const files = pendingFiles[clientId] || [];
+    if (!files.length) return;
+
     const formData = new FormData();
-    for (const f of input.files) formData.append('files[]', f);
+    files.forEach(f => formData.append('files[]', f));
     formData.append('category', document.getElementById('doc-cat-' + clientId).value);
     formData.append('note', document.getElementById('doc-note-' + clientId).value);
+
+    const btn = document.getElementById('doc-upload-btn-' + clientId);
+    btn.disabled = true;
+    btn.textContent = '업로드 중...';
 
     const res = await fetch(`/clients/${clientId}/documents`, {
         method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:formData
     });
+
+    btn.textContent = '업로드';
+
     if (res.ok || res.status === 302) {
-        input.value = '';
+        pendingFiles[clientId] = [];
         document.getElementById('doc-note-' + clientId).value = '';
-        document.getElementById('doc-preview-' + clientId).innerHTML = '';
-        document.getElementById('doc-upload-btn-' + clientId).disabled = true;
+        renderFilePreview(clientId);
         await refreshClientData(clientId);
-        showToast('업로드 완료');
+        showToast(`${files.length}개 파일 업로드 완료`);
     } else {
+        btn.disabled = false;
         alert('업로드 실패');
     }
 }
