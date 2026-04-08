@@ -51,14 +51,25 @@
     .btn-add:hover { background:var(--accent); color:#1a1207; }
 
     /* 팀 카드 */
-    .team-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
-    .team-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-    .team-name { font-size:15px; font-weight:700; }
-    .team-count { font-size:11px; color:var(--text-muted); }
-    .perm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:6px; }
-    .perm-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
-    .perm-item input[type="checkbox"] { accent-color:var(--accent); }
-    .perm-item.checked { color:var(--text); }
+    .team-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:12px; }
+    .team-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .team-name-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:15px; font-weight:700; outline:none; max-width:220px; }
+    .team-name-input:focus { border-color:var(--accent); }
+    .team-count { font-size:11px; color:var(--text-muted); margin-left:8px; }
+
+    /* 권한 토글 */
+    .perm-section { margin-bottom:14px; }
+    .perm-section:last-child { margin-bottom:0; }
+    .perm-section-title { font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em; }
+    .perm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; }
+    .perm-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+    .perm-toggle input[type="checkbox"] { display:none; }
+    .perm-switch { position:relative; width:34px; height:18px; background:var(--border); border-radius:9px; transition:background 0.2s; flex-shrink:0; }
+    .perm-switch::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; background:var(--text-muted); border-radius:50%; transition:all 0.2s; }
+    .perm-toggle input:checked + .perm-switch { background:var(--accent); }
+    .perm-toggle input:checked + .perm-switch::after { left:18px; background:#fff; }
+    .perm-label { font-size:12px; color:var(--text-muted); transition:color 0.15s; }
+    .perm-toggle input:checked ~ .perm-label { color:var(--text); font-weight:600; }
 
     /* 활성 토글 */
     .toggle-active { cursor:pointer; font-size:12px; }
@@ -174,13 +185,13 @@
         <button class="btn-add" onclick="showNewTeamForm()">+ 팀 추가</button>
         <div id="newTeamForm" style="display:none;" class="team-card">
             <div class="team-header">
-                <input class="settings-form field-input" id="newTeamName" placeholder="팀 이름" style="max-width:200px; font-size:14px; font-weight:700;">
+                <input class="team-name-input" id="newTeamName" placeholder="팀 이름">
                 <div style="display:flex; gap:6px;">
                     <button class="btn-sm" onclick="createTeam()">저장</button>
                     <button class="btn-danger" onclick="document.getElementById('newTeamForm').style.display='none'">취소</button>
                 </div>
             </div>
-            <div class="perm-grid" id="newTeamPerms"></div>
+            <div id="newTeamPerms"></div>
         </div>
         <div id="teamsContainer"></div>
     </div>
@@ -225,19 +236,33 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const currentRole = @json(Auth::user()->role);
-const PERMISSIONS = [
-    { key: 'calendar.view', label: '캘린더 조회' },
-    { key: 'calendar.edit', label: '캘린더 편집' },
-    { key: 'clients.view', label: '의뢰자 조회' },
-    { key: 'clients.edit', label: '의뢰자 편집' },
-    { key: 'projects.view', label: '프로젝트 조회' },
-    { key: 'projects.edit', label: '프로젝트 편집' },
-    { key: 'inventory.view', label: '재고 조회' },
-    { key: 'inventory.edit', label: '재고 편집' },
-    { key: 'estimates.view', label: '견적서 조회' },
-    { key: 'estimates.edit', label: '견적서 편집' },
-    { key: 'documents.edit', label: '문서 편집' },
+const PERM_GROUPS = [
+    { title: '캘린더', perms: [{ key: 'calendar.view', label: '조회' }, { key: 'calendar.edit', label: '편집' }] },
+    { title: '의뢰자', perms: [{ key: 'clients.view', label: '조회' }, { key: 'clients.edit', label: '편집' }] },
+    { title: '프로젝트', perms: [{ key: 'projects.view', label: '조회' }, { key: 'projects.edit', label: '편집' }] },
+    { title: '재고', perms: [{ key: 'inventory.view', label: '조회' }, { key: 'inventory.edit', label: '편집' }] },
+    { title: '견적서', perms: [{ key: 'estimates.view', label: '조회' }, { key: 'estimates.edit', label: '편집' }] },
+    { title: '문서', perms: [{ key: 'documents.edit', label: '편집' }] },
 ];
+const ALL_PERMS = PERM_GROUPS.flatMap(g => g.perms);
+
+function renderPermToggles(containerId, activePerms = []) {
+    return PERM_GROUPS.map(g => `
+        <div class="perm-section">
+            <div class="perm-section-title">${g.title}</div>
+            <div class="perm-grid">
+                ${g.perms.map(p => {
+                    const checked = activePerms.includes(p.key) ? 'checked' : '';
+                    return `<label class="perm-toggle">
+                        <input type="checkbox" value="${p.key}" ${checked}>
+                        <span class="perm-switch"></span>
+                        <span class="perm-label">${p.label}</span>
+                    </label>`;
+                }).join('')}
+            </div>
+        </div>
+    `).join('');
+}
 
 let teamsList = [];
 
@@ -377,36 +402,26 @@ function renderTeams() {
         return;
     }
 
-    container.innerHTML = teamsList.map(t => {
-        const permsHtml = PERMISSIONS.map(p => {
-            const checked = (t.permissions || []).includes(p.key) ? 'checked' : '';
-            const cls = checked ? 'checked' : '';
-            return `<label class="perm-item ${cls}"><input type="checkbox" value="${p.key}" ${checked} onchange="this.parentElement.classList.toggle('checked', this.checked)">${p.label}</label>`;
-        }).join('');
-
-        return `<div class="team-card" data-tid="${t.id}">
-            <div class="team-header">
-                <div>
-                    <input class="settings-form field-input tn" value="${t.name}" style="max-width:200px; font-size:14px; font-weight:700;">
-                    <span class="team-count">${t.users_count || 0}명</span>
-                </div>
-                <div style="display:flex; gap:6px;">
-                    <button class="btn-sm" onclick="saveTeam(${t.id}, this)">저장</button>
-                    <button class="btn-danger" onclick="deleteTeam(${t.id})">삭제</button>
-                </div>
+    container.innerHTML = teamsList.map(t => `<div class="team-card" data-tid="${t.id}">
+        <div class="team-header">
+            <div style="display:flex; align-items:center;">
+                <input class="team-name-input tn" value="${t.name}">
+                <span class="team-count">${t.users_count || 0}명</span>
             </div>
-            <div class="perm-grid">${permsHtml}</div>
-        </div>`;
-    }).join('');
+            <div style="display:flex; gap:6px;">
+                <button class="btn-sm" onclick="saveTeam(${t.id}, this)">저장</button>
+                <button class="btn-danger" onclick="deleteTeam(${t.id})">삭제</button>
+            </div>
+        </div>
+        ${renderPermToggles('', t.permissions || [])}
+    </div>`).join('');
 }
 
 function showNewTeamForm() {
     const form = document.getElementById('newTeamForm');
     form.style.display = 'block';
     document.getElementById('newTeamName').value = '';
-    document.getElementById('newTeamPerms').innerHTML = PERMISSIONS.map(p =>
-        `<label class="perm-item"><input type="checkbox" value="${p.key}">${p.label}</label>`
-    ).join('');
+    document.getElementById('newTeamPerms').innerHTML = renderPermToggles('newTeamPerms', []);
 }
 
 async function createTeam() {
