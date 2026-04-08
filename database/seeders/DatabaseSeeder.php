@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -14,8 +15,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-            AdminUserSeeder::class,
+        User::factory()->create([
+            'username' => 'admin',
+            'display_name' => '관리자',
+            'email' => 'admin@drgo.pro',
+            'password' => bcrypt('password'),
+            'role' => 'master',
+            'is_active' => 1,
         ]);
     }
 }

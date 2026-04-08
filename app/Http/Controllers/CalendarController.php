@@ -72,6 +72,14 @@ class CalendarController extends Controller
             'assignees' => 'nullable|array',
             'gold_data' => 'nullable|array',
             'teal_data' => 'nullable|array',
+            'special_opts' => 'nullable|array',
+            'sched_opt' => 'nullable|string|max:50',
+            'sched_event_opts' => 'nullable|array',
+            'sched_after_days' => 'nullable|integer',
+            'sched_after_date' => 'nullable|date',
+            'sched_after_reason' => 'nullable|string|max:300',
+            'notif_minutes' => 'nullable|string|max:10',
+            'is_locked' => 'boolean',
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -105,6 +113,14 @@ class CalendarController extends Controller
             'assignees' => 'nullable|array',
             'gold_data' => 'nullable|array',
             'teal_data' => 'nullable|array',
+            'special_opts' => 'nullable|array',
+            'sched_opt' => 'nullable|string|max:50',
+            'sched_event_opts' => 'nullable|array',
+            'sched_after_days' => 'nullable|integer',
+            'sched_after_date' => 'nullable|date',
+            'sched_after_reason' => 'nullable|string|max:300',
+            'notif_minutes' => 'nullable|string|max:10',
+            'is_locked' => 'boolean',
         ]);
 
         // 변경 이력 기록
