@@ -476,35 +476,26 @@ function renderClientContent(id) {
         <!-- 첨부파일 -->
         <div class="sub-panel" id="sub-docs-${id}">
             <div style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
-                <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                    <div>
-                        <div class="field-label">파일 선택</div>
-                        <label style="display:inline-block; padding:6px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:12px; cursor:pointer; color:var(--text-muted); transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
-                            파일 추가
-                            <input type="file" multiple id="doc-file-${id}" style="display:none;" onchange="docAddFiles(${id}, this)">
-                        </label>
-                    </div>
-                    <div style="min-width:100px;">
-                        <div class="field-label">분류</div>
-                        <select class="field-input field-select" id="doc-cat-${id}">
-                            <option>사진/이미지</option>
-                            <option>현금영수증</option>
-                            <option>사업자등록증</option>
-                            <option>계약서</option>
-                            <option>견적서</option>
-                            <option>기타</option>
-                        </select>
-                    </div>
-                    <div style="flex:1; min-width:100px;">
-                        <div class="field-label">메모</div>
-                        <input class="field-input" id="doc-note-${id}" placeholder="간단한 메모">
-                    </div>
-                    <button type="button" class="btn-save" id="doc-upload-btn-${id}" onclick="uploadDocs(${id})" disabled>업로드</button>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--accent); color:#1a1207; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                        + 파일 추가
+                        <input type="file" multiple id="doc-file-${id}" style="display:none;" onchange="docAddFiles(${id}, this)">
+                    </label>
+                    <select class="field-input field-select" id="doc-cat-${id}" style="width:auto; padding:7px 10px; font-size:12px;">
+                        <option>사진/이미지</option>
+                        <option>현금영수증</option>
+                        <option>사업자등록증</option>
+                        <option>계약서</option>
+                        <option>견적서</option>
+                        <option>기타</option>
+                    </select>
+                    <input class="field-input" id="doc-note-${id}" placeholder="메모" style="width:140px; padding:7px 10px; font-size:12px;">
+                    <button type="button" class="btn-save" id="doc-upload-btn-${id}" onclick="uploadDocs(${id})" disabled style="padding:7px 16px;">업로드</button>
                 </div>
-                <div id="doc-preview-${id}" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+                <div id="doc-preview-${id}" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
-            <div id="doc-grid-${id}" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;">
-                ${renderDocGrid(d.documents, id)}
+            <div id="doc-list-${id}">
+                ${renderDocList(d.documents, id)}
             </div>
         </div>
 
@@ -537,24 +528,25 @@ function renderProjectList(projects, clientId) {
     `).join('');
 }
 
-function renderDocGrid(docs, clientId) {
-    if (!docs.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted); grid-column:1/-1;">첨부파일이 없습니다.</div>';
+function renderDocList(docs, clientId) {
+    if (!docs.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">첨부파일이 없습니다.</div>';
     return docs.map((doc, i) => {
         const isImg = doc.mime_type && doc.mime_type.startsWith('image/');
         const isVid = doc.mime_type && doc.mime_type.startsWith('video/');
         const ext = doc.file_name.split('.').pop().toUpperCase();
-        const thumb = isImg
+        const thumbContent = isImg
             ? `<img src="${doc.view_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`
-            : isVid ? `<div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:20px;">▶</div>`
-            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:11px;color:var(--text-muted);">${ext}</div>`;
-        return `<div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
-            <div style="width:100%;height:90px;cursor:pointer;overflow:hidden;" onclick="openAlbumViewer(${clientId},${i})">${thumb}</div>
-            <div style="padding:5px 7px;">
-                <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.file_name}">${doc.file_name}</div>
-                <div style="display:flex; gap:4px; margin-top:3px;">
-                    <a href="${doc.download_url}" style="font-size:9px; color:var(--accent); text-decoration:none;">다운</a>
-                    <button onclick="deleteDoc(${doc.id},${clientId})" style="font-size:9px; color:var(--red); background:none; border:none; cursor:pointer;">삭제</button>
-                </div>
+            : isVid ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:14px;">▶</div>`
+            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:10px;font-weight:600;color:var(--text-muted);">${ext}</div>`;
+        return `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+            <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; flex-shrink:0; cursor:pointer; border:1px solid var(--border);" onclick="openAlbumViewer(${clientId},${i})">${thumbContent}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.file_name}">${doc.file_name}</div>
+                <div style="font-size:10px; color:var(--text-muted);">${doc.note ? doc.note + ' · ' : ''}${doc.created_at}</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+                <a href="${doc.download_url}" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--accent); text-decoration:none; transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">다운로드</a>
+                <button onclick="deleteDoc(${doc.id},${clientId})" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--red); color:var(--red); cursor:pointer; transition:all 0.12s;" onmouseover="this.style.background='var(--red)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='var(--red)'">삭제</button>
             </div>
         </div>`;
     }).join('');
