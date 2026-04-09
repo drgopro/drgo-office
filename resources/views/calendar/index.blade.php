@@ -330,16 +330,22 @@
     .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 
     /* ── 라이트박스 ── */
-    .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; flex-direction:column; gap:12px; }
+    .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
     .lightbox.open { display:flex; }
-    .lightbox img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); }
-    .lightbox-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+    .lightbox-img-wrap { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; max-width:90vw; max-height:80vh; cursor:grab; }
+    .lightbox-img-wrap.dragging { cursor:grabbing; }
+    .lightbox-img-wrap.zoomed { cursor:grab; }
+    .lightbox-img-wrap img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; }
+    .lightbox-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:1; }
     .lightbox-close:hover { background:rgba(255,255,255,0.3); }
+    .lightbox-zoom-info { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px; border-radius:20px; font-size:11px; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+    .lightbox-zoom-info.show { opacity:1; }
     .lightbox-filename { color:rgba(255,255,255,0.7); font-size:12px; text-align:center; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15); border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+    .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15); border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:1; }
     .lightbox-nav:hover { background:rgba(255,255,255,0.3); }
     .lightbox-nav.prev { left:16px; }
     .lightbox-nav.next { right:16px; }
+    .lightbox-hint { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.4); font-size:11px; pointer-events:none; }
 
     /* ── 액션 버튼 (견적서 첨부 등) ── */
     .action-btn { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:12px; font-weight:500; cursor:pointer; transition:all 0.2s; }
@@ -924,12 +930,16 @@
 </div>
 
 <!-- 이미지 라이트박스 -->
-<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+<div class="lightbox" id="lightbox">
     <button class="lightbox-close" onclick="closeLightbox()">✕</button>
     <button class="lightbox-nav prev" onclick="lightboxNav(-1)">‹</button>
     <button class="lightbox-nav next" onclick="lightboxNav(1)">›</button>
-    <img id="lightboxImg" src="" alt="">
+    <div class="lightbox-img-wrap" id="lightboxWrap">
+        <img id="lightboxImg" src="" alt="">
+    </div>
+    <div class="lightbox-zoom-info" id="lightboxZoomInfo">100%</div>
     <div class="lightbox-filename" id="lightboxFilename"></div>
+    <div class="lightbox-hint">스크롤: 확대/축소 · 더블클릭: 원본 크기 · 드래그: 이동</div>
 </div>
 
 @endsection
@@ -2114,29 +2124,92 @@ function initAllRadioGroups(){
 setTimeout(initAllRadioGroups,0);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDetail();document.getElementById('historyOverlay').style.display='none';}});
 
-// ── 라이트박스 (이미지 뷰어) ──
+// ── 라이트박스 (이미지 뷰어 + 줌/팬) ──
 let lightboxImages=[], lightboxIdx=0;
+let lbZoom=1, lbPanX=0, lbPanY=0, lbDragging=false, lbStartX=0, lbStartY=0;
+const LB_MIN_ZOOM=0.5, LB_MAX_ZOOM=8;
+
+function lbUpdateTransform(){
+    const img=document.getElementById('lightboxImg');
+    img.style.transform=`translate(${lbPanX}px,${lbPanY}px) scale(${lbZoom})`;
+    img.style.transition=lbDragging?'none':'transform 0.15s ease';
+    const wrap=document.getElementById('lightboxWrap');
+    wrap.classList.toggle('zoomed',lbZoom>1.05);
+}
+function lbResetZoom(){ lbZoom=1; lbPanX=0; lbPanY=0; lbUpdateTransform(); }
+function lbShowZoomInfo(){
+    const info=document.getElementById('lightboxZoomInfo');
+    info.textContent=Math.round(lbZoom*100)+'%';
+    info.classList.add('show');
+    clearTimeout(info._t);
+    info._t=setTimeout(()=>info.classList.remove('show'),800);
+}
+
 function openLightbox(src,filename,images,idx){
     lightboxImages=images||[{src,filename}];
     lightboxIdx=idx||0;
+    lbResetZoom();
     document.getElementById('lightboxImg').src=lightboxImages[lightboxIdx].src;
     document.getElementById('lightboxFilename').textContent=lightboxImages[lightboxIdx].filename||'';
     document.getElementById('lightbox').classList.add('open');
-    // 네비 표시/숨김
     document.querySelector('.lightbox-nav.prev').style.display=lightboxImages.length>1?'':'none';
     document.querySelector('.lightbox-nav.next').style.display=lightboxImages.length>1?'':'none';
 }
-function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); lbResetZoom(); }
 function lightboxNav(dir){
     lightboxIdx=(lightboxIdx+dir+lightboxImages.length)%lightboxImages.length;
+    lbResetZoom();
     document.getElementById('lightboxImg').src=lightboxImages[lightboxIdx].src;
     document.getElementById('lightboxFilename').textContent=lightboxImages[lightboxIdx].filename||'';
 }
+
+// 휠 줌
+document.getElementById('lightbox').addEventListener('wheel',e=>{
+    e.preventDefault();
+    const delta=e.deltaY>0?-0.15:0.15;
+    lbZoom=Math.min(LB_MAX_ZOOM,Math.max(LB_MIN_ZOOM,lbZoom+delta*lbZoom));
+    if(lbZoom<1.05){lbPanX=0;lbPanY=0;}
+    lbUpdateTransform(); lbShowZoomInfo();
+},{passive:false});
+
+// 더블클릭 줌 토글
+document.getElementById('lightboxWrap').addEventListener('dblclick',e=>{
+    e.preventDefault();
+    if(lbZoom>1.05){lbResetZoom();}
+    else{lbZoom=3;lbPanX=0;lbPanY=0;lbUpdateTransform();}
+    lbShowZoomInfo();
+});
+
+// 드래그 팬
+document.getElementById('lightboxWrap').addEventListener('mousedown',e=>{
+    if(lbZoom<=1.05) return;
+    e.preventDefault(); lbDragging=true; lbStartX=e.clientX-lbPanX; lbStartY=e.clientY-lbPanY;
+    document.getElementById('lightboxWrap').classList.add('dragging');
+});
+document.addEventListener('mousemove',e=>{
+    if(!lbDragging) return;
+    lbPanX=e.clientX-lbStartX; lbPanY=e.clientY-lbStartY; lbUpdateTransform();
+});
+document.addEventListener('mouseup',()=>{
+    if(!lbDragging) return;
+    lbDragging=false;
+    document.getElementById('lightboxWrap').classList.remove('dragging');
+});
+
+// 배경 클릭으로 닫기 (줌 안되어있을 때만)
+document.getElementById('lightbox').addEventListener('click',e=>{
+    if(e.target===document.getElementById('lightbox')&&lbZoom<=1.05) closeLightbox();
+});
+
+// 키보드
 document.addEventListener('keydown',e=>{
     if(!document.getElementById('lightbox').classList.contains('open')) return;
     if(e.key==='Escape') closeLightbox();
     if(e.key==='ArrowLeft') lightboxNav(-1);
     if(e.key==='ArrowRight') lightboxNav(1);
+    if(e.key==='+'||e.key==='='){lbZoom=Math.min(LB_MAX_ZOOM,lbZoom*1.3);lbUpdateTransform();lbShowZoomInfo();}
+    if(e.key==='-'){lbZoom=Math.max(LB_MIN_ZOOM,lbZoom/1.3);if(lbZoom<1.05){lbPanX=0;lbPanY=0;}lbUpdateTransform();lbShowZoomInfo();}
+    if(e.key==='0'){lbResetZoom();lbShowZoomInfo();}
 });
 
 // 이미지 그리드 클릭 이벤트 위임
