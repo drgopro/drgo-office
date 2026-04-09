@@ -202,7 +202,7 @@
     .btn-delete:hover { opacity:1; background:rgba(200,122,122,0.1); }
     .btn-save { background:var(--accent); color:#1a1207; border:none; padding:10px 28px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
     .btn-save:hover { filter:brightness(1.1); }
-    .btn-log { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; transition:all 0.2s; display:none; }
+    .btn-log { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; transition:all 0.2s; }
     .btn-log:hover { border-color:var(--accent); color:var(--accent); }
 
     /* ── 섹션/필드 ── */
