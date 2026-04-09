@@ -4,22 +4,16 @@
 
 @push('styles')
 <style>
-    :root {
-        --gold: #c8b08a;
-        --teal: #e8894a;
-        --blue: #8ab4c8;
-        --red: #c87a7a;
-        --green: #7ac87a;
-        --purple: #9b70c8;
-        --accent2: #8ab4c8;
-        --chip-gold-bg: #c8a870; --chip-gold-text: #1a1207;
-        --chip-blue-bg: #7aaec8; --chip-blue-text: #061825;
-        --chip-red-bg: #c87070; --chip-red-text: #200808;
-        --chip-green-bg: #70c870; --chip-green-text: #08200a;
-        --chip-purple-bg: #9b70c8; --chip-purple-text: #f0eaff;
-        --chip-teal-bg: #e8894a; --chip-teal-text: #1a0a00;
-        --chip-single-bg: #303030;
-    }
+    /* ── 라이트모드 캘린더 보정 ── */
+    [data-theme="light"] .day-cell { background:var(--surface); }
+    [data-theme="light"] .day-cell.other-month { background:var(--surface2); opacity:0.6; }
+    [data-theme="light"] .day-cell.today .day-num { background:var(--accent); color:#fff !important; }
+    [data-theme="light"] .event-chip.single { background:var(--chip-single-bg); color:var(--text); }
+    [data-theme="light"] .dt-input { color-scheme:light; }
+    [data-theme="light"] .modal { box-shadow:0 8px 40px rgba(0,0,0,0.12); }
+    [data-theme="light"] .time-picker-popup { box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+    [data-theme="light"] .tp-item.selected { background:rgba(138,106,58,0.15); color:var(--accent); }
+    [data-theme="light"] .notif-select { color-scheme:light; }
 
     .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
     .cal-header-left { display:flex; align-items:center; gap:16px; }
@@ -330,6 +324,10 @@
     .upload-zone { border:1px dashed var(--border); border-radius:10px; padding:16px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; }
     .upload-zone:hover, .upload-zone.drag-over { border-color:var(--accent); background:rgba(200,176,138,0.04); }
     .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+
+    /* ── 액션 버튼 (견적서 첨부 등) ── */
+    .action-btn { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:12px; font-weight:500; cursor:pointer; transition:all 0.2s; }
+    .action-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(200,176,138,0.08); }
 
     /* ── gold/teal 조건부 ── */
     .gold-only, .teal-only, .common-only { display:none; }
@@ -736,8 +734,8 @@
                 <div class="img-upload-group">
                     <div class="img-upload-label">견적서</div>
                     <div style="display:flex;gap:8px;margin-bottom:6px;">
-                        <button type="button" onclick="triggerAttach('quote')" class="radio-btn" style="flex:1;text-align:center;">견적서 첨부</button>
-                        <button type="button" onclick="openEstimateSearch()" class="radio-btn" style="flex:1;text-align:center;">견적서 불러오기</button>
+                        <button type="button" onclick="triggerAttach('quote')" class="action-btn" style="flex:1;">📄 견적서 첨부</button>
+                        <button type="button" onclick="openEstimateSearch()" class="action-btn" style="flex:1;">📋 견적서 불러오기</button>
                     </div>
                     <div class="img-upload-zone" id="quoteZone">
                         <input type="file" id="fileQuote" multiple accept="image/*" onchange="handleImgFiles('quote',this.files)">

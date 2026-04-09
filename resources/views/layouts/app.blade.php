@@ -8,34 +8,52 @@
     <style>
         /* ── 다크 모드 (기본) ── */
         :root, [data-theme="dark"] {
-            --bg: #0f0f0f;
-            --surface: #1a1a1a;
-            --surface2: #222;
-            --border: #2a2a2a;
-            --text: #f0e8d8;
-            --text-muted: rgba(240,232,216,0.45);
-            --accent: #c8b08a;
-            --red: #c87a7a;
+            --bg: #111111;
+            --surface: #1c1c1c;
+            --surface2: #272727;
+            --surface3: #333333;
+            --border: #3a3a3a;
+            --text: #f0ebe2;
+            --text-muted: #a09890;
+            --accent: #d4bc96;
+            --accent2: #90bcd4;
+            --red: #d48888;
             --blue: #8ab4c8;
-            --green: #7ac87a;
+            --green: #88d488;
             --gold: #c8b08a;
-            --teal: #4ecdc4;
+            --teal: #e8894a;
             --purple: #9b70c8;
+            --chip-gold-bg: #c8a870; --chip-gold-text: #1a1207;
+            --chip-blue-bg: #7aaec8; --chip-blue-text: #061825;
+            --chip-red-bg: #c87070; --chip-red-text: #200808;
+            --chip-green-bg: #70c870; --chip-green-text: #08200a;
+            --chip-purple-bg: #9b70c8; --chip-purple-text: #f0eaff;
+            --chip-teal-bg: #e8894a; --chip-teal-text: #1a0a00;
+            --chip-single-bg: #303030;
         }
         [data-theme="light"] {
-            --bg: #f5f3ef;
-            --surface: #ffffff;
-            --surface2: #f0ede8;
-            --border: #e0d8cc;
-            --text: #2a2218;
-            --text-muted: rgba(42,34,24,0.5);
+            --bg: #f7f5f0;
+            --surface: #faf8f4;
+            --surface2: #eee9e0;
+            --surface3: #e5dfd5;
+            --border: #d8cfc0;
+            --text: #2c2418;
+            --text-muted: #8a7e6e;
             --accent: #8a6a3a;
-            --red: #c84040;
-            --blue: #2a6a9a;
-            --green: #2a8a2a;
+            --accent2: #3a7a9a;
+            --red: #b84444;
+            --blue: #3a7a9a;
+            --green: #3a8a3a;
             --gold: #8a6a3a;
-            --teal: #1a8a82;
+            --teal: #c06820;
             --purple: #6a3a9a;
+            --chip-gold-bg: #c8a870; --chip-gold-text: #3a2a10;
+            --chip-blue-bg: #5898ba; --chip-blue-text: #0a2838;
+            --chip-red-bg: #c87070; --chip-red-text: #380808;
+            --chip-green-bg: #58a858; --chip-green-text: #0a280a;
+            --chip-purple-bg: #8860b8; --chip-purple-text: #fff;
+            --chip-teal-bg: #d07830; --chip-teal-text: #382008;
+            --chip-single-bg: #eae4d8;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
