@@ -1727,8 +1727,7 @@ function extractEstimateAmount(){
 
 function openHistoryFromEdit(){
     if(!editingId) return;
-    detailEvent={id:editingId};
-    openHistoryModal();
+    openActivityLog('Schedule', editingId, '일정 수정 로그');
 }
 
 // ── 폼 초기화 ──

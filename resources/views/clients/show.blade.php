@@ -161,6 +161,7 @@
             </div>
         </div>
         <div style="display:flex; gap:8px;">
+            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'의뢰자 {{ $client->name }} 수정 로그')">📋 로그</button>
             <a href="{{ route('clients.edit', $client) }}" class="btn-edit">수정</a>
             <a href="#" class="btn-primary" onclick="openProjectModal(); return false;">+ 프로젝트</a>
         </div>

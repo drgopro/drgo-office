@@ -169,6 +169,7 @@
 
     <div class="panel-right-footer">
         <span class="save-indicator" id="saveIndicator"></span>
+        <button class="btn" style="border:1px solid var(--border);color:var(--text-muted);background:none;" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">📋 로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print" onclick="printEstimate()">견적서 출력</button>
         <button class="btn btn-save" onclick="saveEstimate()" style="background:var(--accent); color:#1a1207; font-weight:700;">저장</button>

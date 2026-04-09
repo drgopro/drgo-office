@@ -176,7 +176,10 @@
                 </div>
             </div>
         </div>
-        <button class="btn-primary" onclick="openConsultModal()">+ 상담 등록</button>
+        <div style="display:flex;gap:8px;">
+            <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
+            <button class="btn-primary" onclick="openConsultModal()">+ 상담 등록</button>
+        </div>
     </div>
 
     <!-- 7단계 프로세스 바 -->
