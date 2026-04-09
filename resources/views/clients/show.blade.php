@@ -374,10 +374,13 @@
                         </div>
                         <div class="estimate-actions">
                             @if(Auth::user()->hasPermission('estimates.view'))
-                                <a href="{{ route('estimates.print', $estimate) }}" target="_blank" class="estimate-btn">인쇄</a>
+                                <a href="{{ route('estimates.print', $estimate) }}" onclick="event.preventDefault();window.open(this.href,'estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" class="estimate-btn">보기</a>
                             @endif
-                            @if(Auth::user()->hasPermission('estimates.edit'))
+                            @if(Auth::user()->hasPermission('estimates.edit') && $estimate->status !== 'paid')
                                 <a href="{{ route('estimates.edit', $estimate) }}" target="_blank" class="estimate-btn" style="border-color:var(--accent);color:var(--accent);">편집</a>
+                            @endif
+                            @if($estimate->status === 'paid')
+                                <span class="estimate-btn" style="opacity:0.4;cursor:not-allowed;">결제완료</span>
                             @endif
                         </div>
                     </div>

@@ -1680,7 +1680,7 @@ function renderEstimateList(list){
                     ${date?'<span>'+date+'</span>':''}
                 </div>
             </div>
-            <button onclick="event.stopPropagation();window.open('/estimates/${e.id}/edit','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
+            <button onclick="event.stopPropagation();window.open('/estimates/${e.id}/print','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
         </div>`;
     }).join('');
 }
@@ -1713,7 +1713,10 @@ function selectEstimate(id,name,amount){
     document.getElementById('estimateSearchOverlay').style.display='none';
 }
 function unlinkEstimate(){linkedEstimateId=null;document.getElementById('linkedEstimateInfo').style.display='none';}
-function openLinkedEstimate(){if(linkedEstimateId) window.open(`/estimates/${linkedEstimateId}/edit`,'_blank');}
+function openLinkedEstimate(){
+    if(!linkedEstimateId) return;
+    window.open(`/estimates/${linkedEstimateId}/print`,'estimate_print','width=900,height=700,scrollbars=yes,resizable=yes');
+}
 function extractEstimateAmount(){
     if(!linkedEstimateId){alert('먼저 견적서를 불러와주세요.');return;}
     fetch(`/api/estimates?search=${linkedEstimateId}`).then(r=>r.json()).then(data=>{

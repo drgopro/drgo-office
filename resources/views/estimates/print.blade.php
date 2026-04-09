@@ -70,8 +70,26 @@
 
 <div class="no-print-bar no-print">
     <button onclick="window.print()">인쇄</button>
+    <button onclick="savePNG()" style="background:#2d8a3e;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">PNG 저장</button>
+    @if($estimate->status !== 'paid')
+        <a href="{{ route('estimates.edit', $estimate) }}" style="padding:8px 18px;background:#3b5ea0;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;display:inline-block;">수정</a>
+    @else
+        <span style="padding:8px 18px;background:#888;color:#fff;border-radius:6px;font-size:13px;font-weight:700;display:inline-block;cursor:not-allowed;">결제완료 (수정불가)</span>
+    @endif
     <span>견적서 #{{ $estimate->id }} | {{ $estimate->updated_at->format('Y-m-d H:i') }}</span>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+function savePNG(){
+    const el=document.querySelector('.estimate-wrap');
+    html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true}).then(canvas=>{
+        const link=document.createElement('a');
+        link.download='견적서_{{ $estimate->id }}_{{ $estimate->client_name ?? "drgo" }}.png';
+        link.href=canvas.toDataURL('image/png');
+        link.click();
+    });
+}
+</script>
 
 <div class="estimate-wrap" style="margin-top:50px;">
 
