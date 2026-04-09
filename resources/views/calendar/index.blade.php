@@ -332,10 +332,11 @@
     /* ── 라이트박스 ── */
     .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
     .lightbox.open { display:flex; }
-    .lightbox-img-wrap { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; max-width:90vw; max-height:80vh; cursor:grab; }
+    .lightbox-img-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; }
     .lightbox-img-wrap.dragging { cursor:grabbing; }
     .lightbox-img-wrap.zoomed { cursor:grab; }
-    .lightbox-img-wrap img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; }
+    .lightbox-img-wrap:not(.zoomed) { cursor:default; }
+    .lightbox-img-wrap img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; pointer-events:auto; }
     .lightbox-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:1; }
     .lightbox-close:hover { background:rgba(255,255,255,0.3); }
     .lightbox-zoom-info { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px; border-radius:20px; font-size:11px; opacity:0; transition:opacity 0.3s; pointer-events:none; }
