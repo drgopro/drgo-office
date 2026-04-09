@@ -466,6 +466,30 @@
             {{-- Gold 템플릿 (방문의뢰) --}}
             <div class="gold-only">
                 <div class="section-heading">의뢰자 정보</div>
+                {{-- 의뢰자 검색/연결 --}}
+                <div class="field-group">
+                    <label class="field-label">의뢰자 검색</label>
+                    <div style="position:relative;">
+                        <input class="field-input" id="clientSearchInput" placeholder="이름/닉네임/전화번호로 검색" autocomplete="off" oninput="searchClients(this.value)">
+                        <div id="clientSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;"></div>
+                    </div>
+                </div>
+                <div id="linkedClientInfo" style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <span style="font-size:11px;color:var(--text-muted);">연결된 의뢰자</span>
+                            <div style="font-size:13px;font-weight:600;" id="linkedClientName"></div>
+                        </div>
+                        <button type="button" onclick="unlinkClient()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
+                    </div>
+                </div>
+                {{-- 프로젝트 선택 --}}
+                <div id="projectSelectWrap" style="display:none;" class="field-group">
+                    <label class="field-label">프로젝트 연결</label>
+                    <select class="field-input" id="projectSelect" style="cursor:pointer;">
+                        <option value="">프로젝트 선택 (선택사항)</option>
+                    </select>
+                </div>
                 <div class="field-row" style="gap:10px;">
                     <div class="field-group"><label class="field-label">의뢰자 닉네임</label><input class="field-input" id="g_nickname" placeholder="닉네임"></div>
                     <div class="field-group"><label class="field-label">의뢰자 이름</label><input class="field-input" id="g_name" placeholder="이름"></div>
@@ -1193,6 +1217,78 @@ function openTimePicker(trigger,hiddenId){
     setTimeout(()=>{document.addEventListener('click',function handler(e){if(!popup.contains(e.target)&&e.target!==trigger){popup.remove();document.removeEventListener('click',handler);}});},10);
 }
 
+// ── 의뢰자/프로젝트 연동 ──
+let linkedClientId=null, linkedProjectId=null;
+let clientSearchTimer=null;
+
+function searchClients(query){
+    clearTimeout(clientSearchTimer);
+    const results=document.getElementById('clientSearchResults');
+    if(!query.trim()||query.length<1){results.style.display='none';return;}
+    clientSearchTimer=setTimeout(async()=>{
+        const res=await fetch(`/api/clients/search?q=${encodeURIComponent(query)}`);
+        if(!res.ok)return;
+        const list=await res.json();
+        if(!list.length){results.innerHTML='<div style="padding:10px;font-size:12px;color:var(--text-muted);text-align:center;">결과 없음</div>';results.style.display='';return;}
+        results.innerHTML=list.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="selectClient(${c.id},'${(c.nickname||'').replace(/'/g,"\\'")}','${(c.name||'').replace(/'/g,"\\'")}','${(c.phone||'').replace(/'/g,"\\'")}')"><span style="font-weight:600;">${c.nickname||c.name}</span>${c.nickname&&c.name?' <span style="color:var(--text-muted);">('+c.name+')</span>':''} <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${c.phone||''}</span></div>`).join('');
+        results.style.display='';
+    },250);
+}
+
+async function selectClient(id,nickname,name,phone){
+    linkedClientId=id;
+    document.getElementById('clientSearchResults').style.display='none';
+    document.getElementById('clientSearchInput').value='';
+    document.getElementById('linkedClientName').textContent=(nickname||name)+(nickname&&name?' ('+name+')':'');
+    document.getElementById('linkedClientInfo').style.display='';
+    // 필드 자동채움
+    document.getElementById('g_nickname').value=nickname||'';
+    document.getElementById('g_name').value=name||'';
+    document.getElementById('g_phone').value=phone||'';
+    // client_name도 채움
+    document.getElementById('modalTitle').value=document.getElementById('modalTitle').value||(nickname||name);
+    // 프로젝트 목록 로드
+    await loadClientProjects(id);
+}
+
+async function loadClientProjects(clientId){
+    const wrap=document.getElementById('projectSelectWrap');
+    const sel=document.getElementById('projectSelect');
+    try{
+        const res=await fetch(`/api/clients/${clientId}/detail`);
+        if(!res.ok){wrap.style.display='none';return;}
+        const data=await res.json();
+        const projects=data.projects||[];
+        if(!projects.length){wrap.style.display='none';return;}
+        sel.innerHTML='<option value="">프로젝트 선택 (선택사항)</option>';
+        projects.forEach(p=>{
+            const opt=document.createElement('option');
+            opt.value=p.id;
+            opt.textContent=`${p.name} (${p.stage||p.type||''})`;
+            sel.appendChild(opt);
+        });
+        // 이전에 연결된 프로젝트가 있으면 선택
+        if(linkedProjectId) sel.value=linkedProjectId;
+        wrap.style.display='';
+    }catch(e){wrap.style.display='none';}
+}
+
+function unlinkClient(){
+    linkedClientId=null;linkedProjectId=null;
+    document.getElementById('linkedClientInfo').style.display='none';
+    document.getElementById('projectSelectWrap').style.display='none';
+    document.getElementById('g_nickname').value='';
+    document.getElementById('g_name').value='';
+    document.getElementById('g_phone').value='';
+}
+
+// 검색 외부 클릭 시 닫기
+document.addEventListener('click',e=>{
+    const results=document.getElementById('clientSearchResults');
+    const input=document.getElementById('clientSearchInput');
+    if(results&&input&&!results.contains(e.target)&&e.target!==input) results.style.display='none';
+});
+
 // ── 이미지 첨부 ──
 let pendingAttachments={quote:[],reference:[],room:[]};
 let existingAttachments={quote:[],reference:[],room:[]};
@@ -1327,7 +1423,11 @@ function resetModalForm(){
     document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
     ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonName','commonDesc','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
-    // 견적서/잠금/잔금
+    // 의뢰자/프로젝트/견적서/잠금/잔금
+    linkedClientId=null;linkedProjectId=null;
+    document.getElementById('linkedClientInfo').style.display='none';
+    document.getElementById('projectSelectWrap').style.display='none';
+    document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
     isLocked=false; document.getElementById('lockBtn').textContent='🔓'; document.getElementById('lockBtn').classList.remove('locked');
@@ -1406,6 +1506,8 @@ function openDetailModal(ev) {
     const g = d.gold_data;
     if (g && Object.keys(g).length) {
         html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰자 정보</legend>`;
+        if (g.client_id) html += infoRow('의뢰자', `<a href="/clients/${g.client_id}" target="_blank" style="color:var(--accent);">${g.nickname||g.name||'#'+g.client_id} 보기</a>`);
+        if (g.project_id) html += infoRow('프로젝트', `<a href="/projects/${g.project_id}" target="_blank" style="color:var(--accent);">#${g.project_id} 보기</a>`);
         if (g.nickname) html += infoRow('닉네임', g.nickname);
         if (g.name) html += infoRow('이름', g.name);
         if (g.phone) html += infoRow('전화번호', g.phone);
@@ -1606,6 +1708,14 @@ function openEditModal(ev){
     if(g.balance){setRadio('g_balance_group',g.balance);if(g.balance==='O'){const cond=document.getElementById('g_balance_cond');if(cond)cond.classList.add('visible');}}
     document.getElementById('g_balance_amount').value=g.balance_amount||'';
     if(g.estimate_id){linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';}
+    // 의뢰자/프로젝트 연결 복원
+    if(g.client_id){
+        linkedClientId=g.client_id;
+        document.getElementById('linkedClientName').textContent=g.nickname||g.name||`의뢰자 #${g.client_id}`;
+        document.getElementById('linkedClientInfo').style.display='';
+        linkedProjectId=g.project_id||null;
+        loadClientProjects(g.client_id);
+    }
     // teal_data 복원
     const t=ev.teal_data||{};
     if(t.mode){setRadio('teal_mode_group',t.mode);document.getElementById('teal_remote_fields').style.display=t.mode==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=t.mode==='studio'?'':'none';}
@@ -1656,6 +1766,8 @@ function collectGoldFields(){
         balance:getRadio('g_balance_group'),
         balance_amount:document.getElementById('g_balance_amount').value.trim(),
         estimate_id:linkedEstimateId,
+        client_id:linkedClientId,
+        project_id:document.getElementById('projectSelect')?.value||null,
     };
 }
 function collectTealFields(){
