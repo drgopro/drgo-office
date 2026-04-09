@@ -859,20 +859,29 @@
 
 <!-- 일정 상세 모달 (조회전용) -->
 <div class="modal-overlay" id="detailOverlay" style="display:none;" onclick="if(event.target===this) closeDetail()">
-    <div class="modal" style="max-width:600px; max-height:85vh; overflow-y:auto;">
-        <div id="detailHeader" style="margin-bottom:16px;">
-            <div style="font-size:11px; color:var(--text-muted);" id="detailDateType"></div>
-            <div style="font-size:18px; font-weight:700; margin-top:4px;" id="detailTitle"></div>
-        </div>
-        <div id="detailBody"></div>
-        <div style="display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1px solid var(--border);">
-            <div style="display:flex; gap:6px;">
-                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px; color:var(--red); border-color:var(--red);" onclick="deleteEventFromDetail()">삭제</button>
-                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px;" onclick="openHistoryModal()">수정내역</button>
+    <div class="modal" style="max-width:620px;">
+        <div class="modal-strip" id="detailStrip"></div>
+        <div class="modal-header" style="padding-bottom:12px;">
+            <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span class="modal-date-badge" id="detailDateBadge"></span>
+                    <span class="type-badge" id="detailTypeBadge">● 방문의뢰</span>
+                </div>
+                <div style="font-size:20px;font-weight:500;margin-top:4px;" id="detailTitle"></div>
+                <div id="detailAssignees" style="margin-top:6px;"></div>
             </div>
-            <div style="display:flex; gap:6px;">
-                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px; color:var(--accent); border-color:var(--accent);" onclick="editFromDetail()">수정</button>
-                <button class="field-input" style="width:auto; padding:6px 14px; cursor:pointer; font-size:12px;" onclick="closeDetail()">닫기</button>
+            <div class="modal-header-btns">
+                <button class="icon-btn close-btn" onclick="closeDetail()">✕</button>
+            </div>
+        </div>
+        <div class="modal-body" id="detailBody" style="gap:10px;"></div>
+        <div class="modal-footer">
+            <div style="display:flex;gap:6px;">
+                <button class="btn-delete" onclick="deleteEventFromDetail()">삭제</button>
+                <button class="btn-log" style="display:inline-flex;" onclick="openHistoryModal()">📋 수정내역</button>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="btn-save" onclick="editFromDetail()">수정</button>
             </div>
         </div>
     </div>
@@ -1667,82 +1676,36 @@ function openDetailModal(ev) {
     const dateStr = d.start_date + (d.end_date && d.end_date !== d.start_date ? ' ~ ' + d.end_date : '');
     const timeStr = d.start_time ? d.start_time.substring(0,5) + (d.end_time ? ' ~ ' + d.end_time.substring(0,5) : '') : '';
 
-    document.getElementById('detailDateType').textContent = dateStr + '  ' + colorLabel;
+    // 헤더
+    const dd=d.start_date?new Date(d.start_date):new Date();
+    document.getElementById('detailDateBadge').textContent=`${dd.getFullYear()}년 ${dd.getMonth()+1}월 ${dd.getDate()}일 (${DAYS_KO[dd.getDay()]})`;
+    const tb=document.getElementById('detailTypeBadge');
+    tb.className='type-badge '+d.color;
+    tb.textContent='● '+colorLabel;
+    document.getElementById('detailStrip').className='modal-strip'+(d.color!=='gold'?' color-'+d.color:'');
     document.getElementById('detailTitle').textContent = d.title || '(제목 없음)';
+    // 담당자
+    const aDiv=document.getElementById('detailAssignees');
+    if(d.assignees&&d.assignees.length){
+        aDiv.innerHTML=d.assignees.map(a=>`<span class="assignee-chip selected" style="pointer-events:none;">${a.name}</span>`).join('');
+        aDiv.style.display='';
+    } else { aDiv.innerHTML=''; }
 
     let html = '';
+    const section=(title)=>`<div class="section-heading">${title}</div>`;
+    const row=(label,value)=>value?`<div style="display:flex;padding:6px 0;border-bottom:1px solid var(--border);"><div style="width:110px;font-size:10px;letter-spacing:0.15em;color:var(--text-muted);flex-shrink:0;text-transform:uppercase;padding-top:2px;">${label}</div><div style="font-size:13px;flex:1;">${value}</div></div>`:'';
+    const preBlock=(text)=>text?`<div style="font-size:13px;white-space:pre-wrap;padding:8px 0;line-height:1.7;">${text}</div>`:'';
+
     // 기본 정보
-    html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">기본 정보</legend>`;
-    html += infoRow('시작일', d.start_date) + infoRow('종료일', d.end_date);
-    if (timeStr) html += infoRow('시간', timeStr);
-    html += infoRow('분류', colorLabel);
-    if (d.client_name) html += infoRow('이름/담당자', d.client_name);
-    if (d.location) html += infoRow('장소', d.location);
-    if (d.address) html += infoRow('주소', d.address);
-    html += infoRow('잠금', d.is_locked ? '🔒 잠금됨' : '해제');
-    if (d.assignees && d.assignees.length) html += infoRow('담당자', d.assignees.map(a => a.name).join(', '));
-    html += `</fieldset>`;
+    html += section('기본 정보');
+    html += row('날짜', dateStr);
+    if (timeStr) html += row('시간', timeStr);
+    if (d.location) html += row('장소', d.location);
+    if (d.address) html += row('주소', d.address);
+    if (d.is_locked) html += row('잠금', '🔒 잠금됨');
+    if (d.notif_minutes) html += row('알림', d.notif_minutes+'분 전');
 
-    // gold_data (방문의뢰) — 값은 이제 한글로 저장됨
-    const g = d.gold_data;
-    if (g && Object.keys(g).length) {
-        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰자 정보</legend>`;
-        if (g.client_id) html += infoRow('의뢰자', `<a href="/clients/${g.client_id}" target="_blank" style="color:var(--accent);">${g.nickname||g.name||'#'+g.client_id} 보기</a>`);
-        if (g.project_id) html += infoRow('프로젝트', `<a href="/projects/${g.project_id}" target="_blank" style="color:var(--accent);">#${g.project_id} 보기</a>`);
-        if (g.nickname) html += infoRow('닉네임', g.nickname);
-        if (g.name) html += infoRow('이름', g.name);
-        if (g.phone) html += infoRow('전화번호', g.phone);
-        if (g.platform) html += infoRow('플랫폼', g.platform);
-        if (g.career) html += infoRow('경력 여부', g.career);
-        if (g.source) html += infoRow('유입 경로', g.source + (g.source_ref ? ' ('+g.source_ref+')' : ''));
-        if (g.topic) html += infoRow('방송 주제', g.topic);
-        if (g.budget) html += infoRow('예산 성향', g.budget + (g.budget_etc ? ' ('+g.budget_etc+')' : ''));
-        html += `</fieldset>`;
-
-        if (g.equipment) {
-            html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">장비 목록</legend>`;
-            html += `<div style="font-size:13px; white-space:pre-wrap;">${g.equipment}</div>`;
-            html += `</fieldset>`;
-        }
-
-        if (g.request_topic || g.req_detail) {
-            html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰 내용</legend>`;
-            if (g.request_topic) html += infoRow('주제', g.request_topic + (g.req_topic_etc ? ' ('+g.req_topic_etc+')' : ''));
-            if (g.req_detail) html += `<div style="font-size:13px; white-space:pre-wrap; margin-top:6px;">${g.req_detail}</div>`;
-            html += `</fieldset>`;
-        }
-
-        if (g.special) {
-            html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">특이사항</legend>`;
-            html += `<div style="font-size:13px; white-space:pre-wrap; color:var(--accent);">${g.special}</div>`;
-            html += `</fieldset>`;
-        }
-
-        // 결제 정보
-        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">결제 정보</legend>`;
-        if (g.paid) html += infoRow('결제 여부', g.paid);
-        if (g.estimate_amount) html += infoRow('견적 총액', g.estimate_amount);
-        if (g.order) html += infoRow('주문 제품', g.order);
-        if (g.order === 'O' && g.delivery) html += infoRow('배송완료', g.delivery);
-        if (g.balance) html += infoRow('잔금 여부', g.balance);
-        if (g.balance === 'O' && g.balance_amount) html += infoRow('잔금 금액', g.balance_amount);
-        if (g.estimate_id) html += infoRow('견적서', `<a href="/estimates/${g.estimate_id}/edit" target="_blank" style="color:var(--accent);">#${g.estimate_id} 보기</a>`);
-        html += `</fieldset>`;
-    }
-
-    // teal_data (원격/방송룸)
-    const t = d.teal_data;
-    if (t && Object.keys(t).length) {
-        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">원격/방송룸 정보</legend>`;
-        if (t.mode) html += infoRow('모드', t.mode === 'remote' ? '원격' : '스튜디오');
-        if (t.name) html += infoRow('이름', t.name);
-        if (t.platform) html += infoRow('플랫폼', t.platform);
-        if (t.content) html += infoRow('콘텐츠', t.content);
-        if (t.desc) html += infoRow('세부', `<div style="white-space:pre-wrap;">${t.desc}</div>`);
-        html += `</fieldset>`;
-    }
-
-    // 일정 옵션 표시
+    // 일정 옵션
     const schedEvOpts = d.sched_event_opts || [];
     const schedOpt = d.sched_opt;
     const specOpts = d.special_opts || [];
@@ -1750,30 +1713,85 @@ function openDetailModal(ev) {
         const SCHED_EV_L={fast:'← 빠른 일정',urgent:'🚨 긴급',after:'→ 날짜 이후'};
         const SCHED_L={suggest:'💬 제안',hope:'🙏 희망',target:'🎯 목표'};
         const SPEC_L={car:'🚗 차량',brief:'💼 제품',group:'👥 2인',ladder:'▤ 사다리'};
-        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">일정 옵션</legend>`;
-        if (schedEvOpts.length) html += infoRow('일정 옵션', schedEvOpts.map(v=>SCHED_EV_L[v]||v).join(', '));
-        if (schedOpt) html += infoRow('일정 관련', SCHED_L[schedOpt]||schedOpt);
-        if (specOpts.length) html += infoRow('특수 옵션', specOpts.map(v=>SPEC_L[v]||v).join(', '));
-        if (d.sched_after_reason) html += infoRow('사유', d.sched_after_reason);
-        html += `</fieldset>`;
+        html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">`;
+        schedEvOpts.forEach(v=>{html+=`<span class="special-opt-btn active" style="pointer-events:none;padding:4px 10px;font-size:11px;">${SCHED_EV_L[v]||v}</span>`;});
+        if(schedOpt) html+=`<span class="sched-opt-btn active" data-sopt="${schedOpt}" style="pointer-events:none;padding:4px 10px;font-size:11px;">${SCHED_L[schedOpt]||schedOpt}</span>`;
+        specOpts.forEach(v=>{html+=`<span class="special-opt-btn active" style="pointer-events:none;padding:4px 10px;font-size:11px;">${SPEC_L[v]||v}</span>`;});
+        html += `</div>`;
+        if (d.sched_after_reason) html += row('사유', d.sched_after_reason);
     }
 
-    // 비-gold 특이사항 (description)
-    if (d.description && d.color !== 'gold') {
-        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">특이사항</legend>`;
-        html += `<div style="font-size:13px; white-space:pre-wrap; color:var(--accent);">${d.description}</div>`;
-        html += `</fieldset>`;
+    html += `<div class="divider" style="margin:8px 0;"></div>`;
+
+    // gold_data (방문의뢰)
+    const g = d.gold_data;
+    if (g && Object.keys(g).length) {
+        html += section('의뢰자 정보');
+        if (g.client_id) html += row('의뢰자', `<a href="/clients/${g.client_id}" target="_blank" style="color:var(--accent);">${g.nickname||g.name||'#'+g.client_id} 보기</a>`);
+        if (g.project_id) html += row('프로젝트', `<a href="/projects/${g.project_id}" target="_blank" style="color:var(--accent);">#${g.project_id} 보기</a>`);
+        if (g.nickname) html += row('닉네임', g.nickname);
+        if (g.name) html += row('이름', g.name);
+        if (g.phone) html += row('전화번호', g.phone);
+        if (g.platform) html += row('플랫폼', g.platform);
+        if (g.career) html += row('경력', g.career);
+        if (g.source) html += row('유입 경로', g.source + (g.source_ref ? ' ('+g.source_ref+')' : ''));
+        if (g.topic) html += row('방송 주제', g.topic);
+        if (g.budget) html += row('예산 성향', g.budget + (g.budget_etc ? ' ('+g.budget_etc+')' : ''));
+
+        if (g.equipment) {
+            html += `<div class="divider" style="margin:8px 0;"></div>`;
+            html += section('장비 목록');
+            html += preBlock(g.equipment);
+        }
+
+        if (g.request_topic || g.req_detail) {
+            html += `<div class="divider" style="margin:8px 0;"></div>`;
+            html += section('의뢰 내용');
+            if (g.request_topic) html += row('주제', g.request_topic + (g.req_topic_etc ? ' ('+g.req_topic_etc+')' : ''));
+            if (g.req_detail) html += preBlock(g.req_detail);
+        }
+
+        if (g.special) {
+            html += `<div class="divider" style="margin:8px 0;"></div>`;
+            html += section('특이사항');
+            html += `<div style="font-size:13px;white-space:pre-wrap;color:var(--accent);padding:6px 0;">${g.special}</div>`;
+        }
+
+        html += `<div class="divider" style="margin:8px 0;"></div>`;
+        html += section('결제 정보');
+        if (g.paid) html += row('결제 여부', g.paid);
+        if (g.estimate_amount) html += row('견적 총액', g.estimate_amount);
+        if (g.order) html += row('주문 제품', g.order);
+        if (g.order === 'O' && g.delivery) html += row('배송완료', g.delivery);
+        if (g.balance) html += row('잔금 여부', g.balance);
+        if (g.balance === 'O' && g.balance_amount) html += row('잔금 금액', g.balance_amount);
+        if (g.estimate_id) html += row('견적서', `<a href="/estimates/${g.estimate_id}/edit" target="_blank" style="color:var(--accent);">#${g.estimate_id} 보기</a>`);
+    }
+
+    // teal_data (원격/방송룸)
+    const t = d.teal_data;
+    if (t && Object.keys(t).length) {
+        html += `<div class="divider" style="margin:8px 0;"></div>`;
+        html += section('원격/방송룸 정보');
+        if (t.mode) html += row('모드', t.mode === 'remote' ? '🖥 원격' : '🎙 스튜디오');
+        if (t.name) html += row('이름', t.name);
+        if (t.platform) html += row('플랫폼', t.platform);
+        if (t.content) html += row('콘텐츠', t.content);
+        if (t.desc) html += preBlock(t.desc);
+    }
+
+    // 비-gold 특이사항
+    if (d.color !== 'gold') {
+        if (d.client_name) html += row('이름/담당자', d.client_name);
+        if (d.description) {
+            html += `<div class="divider" style="margin:8px 0;"></div>`;
+            html += section('상세 설명');
+            html += preBlock(d.description);
+        }
     }
 
     document.getElementById('detailBody').innerHTML = html;
     document.getElementById('detailOverlay').style.display = 'flex';
-}
-
-function infoRow(label, value) {
-    return `<div style="display:flex; padding:5px 0; border-bottom:1px solid var(--border);">
-        <div style="width:100px; font-size:11px; color:var(--text-muted); flex-shrink:0;">${label}</div>
-        <div style="font-size:13px; flex:1;">${value || '—'}</div>
-    </div>`;
 }
 
 function closeDetail() {
