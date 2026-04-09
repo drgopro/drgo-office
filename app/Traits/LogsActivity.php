@@ -86,14 +86,19 @@ trait LogsActivity
 
     public function logActivity(string $action, array $changes = [], ?string $summary = null): void
     {
-        ActivityLog::create([
-            'loggable_type' => get_class($this),
-            'loggable_id' => $this->getKey(),
-            'user_id' => Auth::id(),
-            'action' => $action,
-            'changes' => $changes ?: null,
-            'summary' => $summary,
-        ]);
+        try {
+            ActivityLog::create([
+                'loggable_type' => get_class($this),
+                'loggable_id' => $this->getKey(),
+                'user_id' => Auth::id(),
+                'action' => $action,
+                'changes' => $changes ?: null,
+                'summary' => $summary,
+            ]);
+        } catch (\Throwable $e) {
+            // 로그 기록 실패해도 원래 동작은 계속 진행
+            report($e);
+        }
     }
 
     protected function getActivitySummary(string $action): string
