@@ -329,6 +329,18 @@
     .upload-zone:hover, .upload-zone.drag-over { border-color:var(--accent); background:rgba(200,176,138,0.04); }
     .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 
+    /* ── 라이트박스 ── */
+    .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; flex-direction:column; gap:12px; }
+    .lightbox.open { display:flex; }
+    .lightbox img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); }
+    .lightbox-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+    .lightbox-close:hover { background:rgba(255,255,255,0.3); }
+    .lightbox-filename { color:rgba(255,255,255,0.7); font-size:12px; text-align:center; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15); border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+    .lightbox-nav:hover { background:rgba(255,255,255,0.3); }
+    .lightbox-nav.prev { left:16px; }
+    .lightbox-nav.next { right:16px; }
+
     /* ── 액션 버튼 (견적서 첨부 등) ── */
     .action-btn { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:12px; font-weight:500; cursor:pointer; transition:all 0.2s; }
     .action-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(200,176,138,0.08); }
@@ -909,6 +921,15 @@
         </div>
         <div id="historyBody"><div style="padding:20px; text-align:center; color:var(--text-muted);">로딩 중...</div></div>
     </div>
+</div>
+
+<!-- 이미지 라이트박스 -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <button class="lightbox-nav prev" onclick="lightboxNav(-1)">‹</button>
+    <button class="lightbox-nav next" onclick="lightboxNav(1)">›</button>
+    <img id="lightboxImg" src="" alt="">
+    <div class="lightbox-filename" id="lightboxFilename"></div>
 </div>
 
 @endsection
@@ -1527,13 +1548,13 @@ function renderImgGrid(type){
     grid.innerHTML='';
     // 기존
     existingAttachments[type].forEach((a,i)=>{
-        grid.innerHTML+=`<div class="img-item"><div class="img-thumb-wrap"><img src="${a.url}"><button class="img-remove" onclick="removeExistingAttach('${type}',${i},${a.id})">✕</button></div><div class="img-filename">${a.file_name||''}</div></div>`;
+        grid.innerHTML+=`<div class="img-item"><div class="img-thumb-wrap"><img src="${a.url}" alt="${a.file_name||''}"><button class="img-remove" onclick="removeExistingAttach('${type}',${i},${a.id})">✕</button></div><div class="img-filename">${a.file_name||''}</div></div>`;
     });
     // 새로 추가된
     pendingAttachments[type].forEach((item,i)=>{
         const div=document.createElement('div');div.className='img-item';
         const wrap=document.createElement('div');wrap.className='img-thumb-wrap';
-        const img=document.createElement('img');img.src=URL.createObjectURL(item.file);wrap.appendChild(img);
+        const img=document.createElement('img');img.src=URL.createObjectURL(item.file);img.alt=item.file.name;wrap.appendChild(img);
         const rm=document.createElement('button');rm.className='img-remove';rm.textContent='✕';
         rm.onclick=()=>{pendingAttachments[type].splice(i,1);renderImgGrid(type);};
         wrap.appendChild(rm);div.appendChild(wrap);
@@ -1708,8 +1729,11 @@ function openDetailModal(ev) {
     viewMode = true;
     // 편집 모달을 읽기전용으로 열기
     openEditModal(ev);
-    // 잠금 상태로 만들기 (읽기전용)
-    if(!isLocked) toggleLock();
+    // 모든 입력 비활성화 (잠금 배너 없이)
+    document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=true;});
+    document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='none';});
+    // 잠금 배너 숨기기 (상세보기 모드에서는 불필요)
+    document.getElementById('lockedBanner').classList.remove('visible');
     // 잠금 버튼 숨기고, 저장 버튼 숨기고, 수정 버튼 표시
     document.getElementById('lockBtn').style.display='none';
     document.querySelector('.btn-save-top').style.display='none';
@@ -2089,6 +2113,43 @@ function initAllRadioGroups(){
 // init 시 호출
 setTimeout(initAllRadioGroups,0);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDetail();document.getElementById('historyOverlay').style.display='none';}});
+
+// ── 라이트박스 (이미지 뷰어) ──
+let lightboxImages=[], lightboxIdx=0;
+function openLightbox(src,filename,images,idx){
+    lightboxImages=images||[{src,filename}];
+    lightboxIdx=idx||0;
+    document.getElementById('lightboxImg').src=lightboxImages[lightboxIdx].src;
+    document.getElementById('lightboxFilename').textContent=lightboxImages[lightboxIdx].filename||'';
+    document.getElementById('lightbox').classList.add('open');
+    // 네비 표시/숨김
+    document.querySelector('.lightbox-nav.prev').style.display=lightboxImages.length>1?'':'none';
+    document.querySelector('.lightbox-nav.next').style.display=lightboxImages.length>1?'':'none';
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+function lightboxNav(dir){
+    lightboxIdx=(lightboxIdx+dir+lightboxImages.length)%lightboxImages.length;
+    document.getElementById('lightboxImg').src=lightboxImages[lightboxIdx].src;
+    document.getElementById('lightboxFilename').textContent=lightboxImages[lightboxIdx].filename||'';
+}
+document.addEventListener('keydown',e=>{
+    if(!document.getElementById('lightbox').classList.contains('open')) return;
+    if(e.key==='Escape') closeLightbox();
+    if(e.key==='ArrowLeft') lightboxNav(-1);
+    if(e.key==='ArrowRight') lightboxNav(1);
+});
+
+// 이미지 그리드 클릭 이벤트 위임
+document.addEventListener('click',e=>{
+    const img=e.target.closest('.img-item img');
+    if(!img) return;
+    e.preventDefault();
+    const grid=img.closest('.img-grid');
+    if(!grid) { openLightbox(img.src,img.alt||''); return; }
+    const allImgs=[...grid.querySelectorAll('.img-item img')].map(i=>({src:i.src,filename:i.alt||i.closest('.img-item')?.querySelector('.img-filename')?.textContent||''}));
+    const idx=[...grid.querySelectorAll('.img-item img')].indexOf(img);
+    openLightbox(img.src,'',allImgs,idx);
+});
 
 init();
 </script>
