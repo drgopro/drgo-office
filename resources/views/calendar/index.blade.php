@@ -140,7 +140,11 @@
     /* ── 모달 ── */
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:200; backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
     .modal-overlay.open { display:flex; }
+    .modal-wrapper { position:relative; display:flex; align-items:flex-start; gap:8px; max-height:92vh; }
     .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:660px; max-height:92vh; overflow-y:auto; animation:modalIn 0.22s ease; }
+    .modal-external-close { position:sticky; top:0; flex-shrink:0; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; z-index:1; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    .modal-external-close:hover { border-color:var(--red); color:var(--red); background:var(--surface2); }
+    @media (max-width:720px) { .modal-external-close { display:none; } }
     @keyframes modalIn { from{opacity:0;transform:translateY(18px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
 
     .modal-strip { height:4px; border-radius:16px 16px 0 0; background:var(--accent); transition:background 0.3s; }
@@ -338,9 +342,11 @@
 <div class="cal-header">
     <div class="cal-header-left">
         <span class="app-title">Calendar</span>
+        <button class="nav-btn" onclick="changeYear(-1)" title="이전 년도">«</button>
         <button class="nav-btn" onclick="changePeriod(-1)">‹</button>
         <div class="month-label" id="periodTitle"></div>
         <button class="nav-btn" onclick="changePeriod(1)">›</button>
+        <button class="nav-btn" onclick="changeYear(1)" title="다음 년도">»</button>
         <button class="nav-btn" onclick="goToday()" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">TODAY</button>
         <div class="view-toggle-group">
             <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월간</button>
@@ -383,7 +389,8 @@
 </div>
 
 <!-- 일정 모달 -->
-<div class="modal-overlay" id="modalOverlay">
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal-wrapper">
     <div class="modal" id="modal">
         <div class="modal-strip" id="modalStrip"></div>
         <div class="modal-header">
@@ -844,6 +851,8 @@
             </div>
         </div>
     </div>
+    <button class="modal-external-close" onclick="closeModal()" title="닫기">✕</button>
+    </div>{{-- modal-wrapper end --}}
 </div>
 <!-- 견적서 검색 모달 -->
 <div class="modal-overlay" id="estimateSearchOverlay" style="display:none;" onclick="if(event.target===this) this.style.display='none'">
@@ -979,6 +988,13 @@ function switchView(view) {
     document.getElementById('timelineView').style.display = view!=='month' ? '' : 'none';
     renderView();
     loadEvents();
+}
+
+function changeYear(dir) {
+    currentYear += dir;
+    if (currentView==='week') { currentWeekStart.setFullYear(currentWeekStart.getFullYear()+dir); }
+    if (currentView==='day') { currentDay.setFullYear(currentDay.getFullYear()+dir); }
+    renderView(); loadEvents();
 }
 
 function changePeriod(dir) {
