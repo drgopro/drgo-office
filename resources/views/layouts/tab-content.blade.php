@@ -1,7 +1,17 @@
+<script>
+// 부모 테마 동기화 (iframe 로드 시)
+try {
+    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+    if (parentTheme) document.documentElement.setAttribute('data-theme', parentTheme);
+} catch(e) {
+    const saved = localStorage.getItem('drgo_theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+}
+</script>
 <style>
-/* tab-content 내 활동 로그 모달용 기본 변수 */
-:root { --surface:#1c1c1c; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --red:#d48888; --green:#88d488; }
-[data-theme="light"] { --surface:#ffffff; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --red:#c03838; --green:#248a38; }
+/* tab-content 기본 CSS 변수 */
+:root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
+[data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
 </style>
 @stack('styles')
 @yield('content')

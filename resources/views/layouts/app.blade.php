@@ -271,6 +271,13 @@ document.getElementById('themeToggle').addEventListener('click', function() {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('drgo_theme', next);
     this.textContent = next === 'dark' ? '🌙' : '☀️';
+    // iframe 내부에도 테마 전파
+    document.querySelectorAll('iframe').forEach(iframe => {
+        try {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.documentElement.setAttribute('data-theme', next);
+        } catch(e) {}
+    });
 });
 
 // ── 모바일 네비 ──
