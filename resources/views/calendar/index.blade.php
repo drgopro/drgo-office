@@ -11,54 +11,97 @@
         --red: #c87a7a;
         --green: #7ac87a;
         --purple: #9b70c8;
+        --accent2: #8ab4c8;
+        --chip-gold-bg: #c8a870; --chip-gold-text: #1a1207;
+        --chip-blue-bg: #7aaec8; --chip-blue-text: #061825;
+        --chip-red-bg: #c87070; --chip-red-text: #200808;
+        --chip-green-bg: #70c870; --chip-green-text: #08200a;
+        --chip-purple-bg: #9b70c8; --chip-purple-text: #f0eaff;
+        --chip-teal-bg: #e8894a; --chip-teal-text: #1a0a00;
+        --chip-single-bg: #303030;
     }
 
-    .cal-header { padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--surface); }
-    .cal-header-left { display:flex; align-items:center; gap:10px; }
-    .month-nav { display:flex; align-items:center; gap:8px; }
-    .month-nav button { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px; transition:all 0.15s; }
-    .month-nav button:hover { background:var(--surface2); color:var(--text); }
-    .month-title { font-size:15px; font-weight:700; min-width:160px; text-align:center; }
-    .nav-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer; transition:all 0.15s; }
+    .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
+    .cal-header-left { display:flex; align-items:center; gap:16px; }
+    .app-title { font-size:13px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; }
+    .nav-btn { background:none; border:1px solid var(--border); color:var(--text-muted); cursor:pointer; width:32px; height:32px; border-radius:6px; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
     .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .month-label { font-size:18px; font-weight:500; letter-spacing:0.05em; min-width:180px; text-align:center; }
 
-    .view-tabs { display:flex; background:var(--surface2); border-radius:8px; padding:2px; gap:2px; }
-    .view-tab { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
-    .view-tab.active { background:var(--surface); color:var(--accent); font-weight:600; }
+    .view-toggle-group { display:flex; background:var(--surface2); border-radius:8px; padding:2px; gap:2px; }
+    .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
+    .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
 
-    .add-btn { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:filter 0.15s; }
-    .add-btn:hover { filter:brightness(1.1); }
+    .add-btn { background:var(--accent); color:#1a1207; border:none; padding:8px 20px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; }
+    .add-btn:hover { background:#d4c09a; transform:translateY(-1px); }
 
-    .legend { padding:8px 20px; display:flex; gap:12px; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--surface); }
-    .legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); }
-    .legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .legend { display:flex; gap:8px; align-items:center; padding:10px 32px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .filter-btn { display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:none; font-size:12px; letter-spacing:0.06em; color:var(--text-muted); transition:all 0.18s; user-select:none; flex-shrink:0; }
+    .filter-btn:hover { border-color:var(--accent); color:var(--text); }
+    .filter-btn .filter-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; transition:all 0.18s; }
+    .filter-btn.active { color:var(--text); }
+    .filter-btn.active.f-gold   { background:rgba(200,176,138,0.15); border-color:var(--chip-gold-bg); }
+    .filter-btn.active.f-teal   { background:rgba(232,137,74,0.15); border-color:var(--chip-teal-bg); }
+    .filter-btn.active.f-blue   { background:rgba(138,180,200,0.15); border-color:var(--chip-blue-bg); }
+    .filter-btn.active.f-red    { background:rgba(200,122,122,0.15); border-color:var(--chip-red-bg); }
+    .filter-btn.active.f-green  { background:rgba(122,200,122,0.15); border-color:var(--chip-green-bg); }
+    .filter-btn.active.f-purple { background:rgba(180,122,200,0.15); border-color:var(--chip-purple-bg); }
+    .filter-btn:not(.active) .filter-dot { opacity:0.25; }
+    .filter-btn:not(.active) { opacity:0.55; }
 
     /* ── 월간 뷰 ── */
-    .calendar-wrap { padding:16px 20px; }
+    .calendar-wrap { padding:20px 32px; }
     .weekdays { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:4px; }
-    .weekday { text-align:center; font-size:11px; color:var(--text-muted); padding:6px 0; letter-spacing:0.08em; }
+    .weekday { text-align:center; font-size:13px; letter-spacing:0.12em; color:var(--text-muted); padding:8px 0; }
     .weekday:first-child { color:var(--red); }
-    .weekday:last-child { color:var(--blue); }
-    .days-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-    .day-cell { background:var(--bg); min-height:100px; padding:6px; cursor:pointer; transition:background 0.1s; }
+    .weekday:last-child { color:var(--accent2); }
+    .days-grid { border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; gap:1px; background:var(--border); }
+    .week-row { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; position:relative; background:var(--border); min-height:110px; }
+    .day-cell { background:var(--surface); min-height:0; padding:6px; position:relative; transition:background 0.15s; cursor:default; overflow:hidden; }
     .day-cell:hover { background:var(--surface2); }
-    .day-cell.other-month { opacity:0.35; }
-    .day-cell.today .day-num { background:var(--accent); color:#1a1207; border-radius:50%; }
-    .day-num { font-size:12px; color:var(--text-muted); margin-bottom:4px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
+    .day-cell.other-month { background:#111; }
+    .day-cell.today .day-num { background:var(--accent); color:#1a1207 !important; font-weight:700; border-radius:50%; }
+    .day-num-row { display:flex; align-items:center; gap:4px; margin-bottom:2px; min-width:0; }
+    .day-num { font-size:13px; color:var(--text-muted); position:relative; z-index:1; width:24px; height:24px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .day-num.sun { color:var(--red); }
-    .day-num.sat { color:var(--blue); }
+    .day-num.sat { color:var(--accent2); }
+    .holiday-label { font-size:11px; color:var(--red); opacity:0.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; letter-spacing:0.02em; line-height:1; }
+    .events-list { display:flex; flex-direction:column; gap:2px; }
 
     /* ── 이벤트 칩 ── */
-    .event-chip { font-size:11px; padding:2px 6px; border-radius:4px; margin-bottom:2px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:filter 0.1s; }
-    .event-chip:hover { filter:brightness(1.15); }
-    .event-chip.color-gold   { background:var(--gold); color:#1a1207; }
-    .event-chip.color-teal   { background:var(--teal); color:#1a1207; }
-    .event-chip.color-blue   { background:var(--blue); color:#1a1207; }
-    .event-chip.color-red    { background:var(--red); color:#fff; }
-    .event-chip.color-green  { background:var(--green); color:#1a1207; }
-    .event-chip.color-purple { background:var(--purple); color:#fff; }
-    .event-chip.color-holiday{ background:var(--red); color:#fff; }
-    .more-events { font-size:10px; color:var(--text-muted); padding:1px 4px; cursor:pointer; }
+    .event-chip { border-radius:4px; padding:2px 6px; font-size:12px; white-space:nowrap; overflow:hidden; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; line-height:1.4; height:22px; box-sizing:border-box; min-width:0; }
+    .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
+    .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
+    .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
+    .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
+    .event-chip.single.color-blue   { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
+    .event-chip.single.color-red    { background:rgba(200,122,122,0.22); border-left-color:var(--chip-red-bg); }
+    .event-chip.single.color-green  { background:rgba(122,200,122,0.22); border-left-color:var(--chip-green-bg); }
+    .event-chip.single.color-purple { background:rgba(155,112,200,0.22); border-left-color:var(--chip-purple-bg); }
+    .chip-time { font-size:12px; opacity:0.85; flex-shrink:0; margin-right:3px; }
+    .chip-special { font-size:11px; flex-shrink:0; letter-spacing:1px; }
+    .sched-icon-badge { flex-shrink:0; font-size:12px; margin-left:3px; display:inline-flex; align-items:center; }
+    .chip-badges { display:flex; align-items:center; flex-shrink:0; gap:2px; margin-left:2px; }
+    .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; letter-spacing:-0.5px; color:var(--text); white-space:nowrap; flex-shrink:0; margin-left:3px; line-height:1; }
+
+    /* ── 다일 스판 칩 ── */
+    .span-chip-overlay { position:absolute; top:0; left:0; right:0; pointer-events:none; z-index:2; }
+    .span-chip { position:absolute; height:22px; font-size:12px; font-weight:500; color:#111; display:flex; align-items:center; overflow:hidden; white-space:nowrap; cursor:pointer; pointer-events:all; box-sizing:border-box; padding:0 7px; transition:filter 0.15s; min-width:0; }
+    .span-chip:hover { filter:brightness(1.12); }
+    .span-chip.color-gold   { background:var(--chip-gold-bg); color:var(--chip-gold-text); font-weight:600; }
+    .span-chip.color-teal   { background:var(--chip-teal-bg); color:var(--chip-teal-text); font-weight:600; }
+    .span-chip.color-blue   { background:var(--chip-blue-bg); color:var(--chip-blue-text); font-weight:600; }
+    .span-chip.color-red    { background:var(--chip-red-bg); color:var(--chip-red-text); font-weight:600; }
+    .span-chip.color-green  { background:var(--chip-green-bg); color:var(--chip-green-text); font-weight:600; }
+    .span-chip.color-purple { background:var(--chip-purple-bg); color:var(--chip-purple-text); font-weight:600; }
+    .span-chip.is-start { border-radius:4px 0 0 4px; }
+    .span-chip.is-end { border-radius:0 4px 4px 0; }
+    .span-chip.is-solo { border-radius:4px; }
+    .lane-spacer { height:24px; margin-bottom:2px; flex-shrink:0; }
+
+    .more-badge { font-size:12px; color:var(--text-muted); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; }
+    .more-badge:hover { color:var(--accent); background:rgba(200,176,138,0.1); }
 
     /* ── 주간/일간 공통 ── */
     .timeline-wrap { padding:0 20px 20px; overflow-x:auto; }
@@ -296,38 +339,39 @@
 @section('content')
 <div class="cal-header">
     <div class="cal-header-left">
-        <div class="month-nav">
-            <button onclick="changePeriod(-1)">‹</button>
-            <div class="month-title" id="periodTitle"></div>
-            <button onclick="changePeriod(1)">›</button>
-        </div>
-        <button class="nav-btn" onclick="goToday()">오늘</button>
-        <div class="view-tabs">
-            <button class="view-tab active" id="tabMonth" onclick="switchView('month')">월간</button>
-            <button class="view-tab"        id="tabWeek"  onclick="switchView('week')">주간</button>
-            <button class="view-tab"        id="tabDay"   onclick="switchView('day')">일간</button>
+        <span class="app-title">Calendar</span>
+        <button class="nav-btn" onclick="changePeriod(-1)">‹</button>
+        <div class="month-label" id="periodTitle"></div>
+        <button class="nav-btn" onclick="changePeriod(1)">›</button>
+        <button class="nav-btn" onclick="goToday()" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">TODAY</button>
+        <div class="view-toggle-group">
+            <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월간</button>
+            <button class="view-toggle-btn"        id="tabWeek"  onclick="switchView('week')">주간</button>
+            <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일간</button>
         </div>
     </div>
-    @if(Auth::user()->hasPermission('calendar.edit'))
-        <button class="add-btn" onclick="openNewModal()">+ 일정</button>
-    @endif
+    <div style="display:flex;align-items:center;gap:8px;">
+        @if(Auth::user()->hasPermission('calendar.edit'))
+            <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
+        @endif
+    </div>
 </div>
 
-<div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>방문의뢰</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>원격/방송룸</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>사내업무</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>휴가/개인</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>촬영/스튜디오</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>미팅/내방</div>
+<div class="legend" id="filterBar">
+    <button class="filter-btn active f-gold" data-filter="gold" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-gold-bg)"></span>방문의뢰</button>
+    <button class="filter-btn active f-teal" data-filter="teal" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-teal-bg)"></span>원격/방송룸</button>
+    <button class="filter-btn active f-blue" data-filter="blue" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-blue-bg)"></span>사내업무</button>
+    <button class="filter-btn active f-red" data-filter="red" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-red-bg)"></span>휴가/개인</button>
+    <button class="filter-btn active f-green" data-filter="green" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-green-bg)"></span>촬영/스튜디오</button>
+    <button class="filter-btn active f-purple" data-filter="purple" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-purple-bg)"></span>미팅/내방</button>
 </div>
 
 <!-- 월간 뷰 -->
 <div id="monthView">
     <div class="calendar-wrap">
         <div class="weekdays">
-            <div class="weekday">일</div><div class="weekday">월</div><div class="weekday">화</div>
-            <div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday">토</div>
+            <div class="weekday">SUN</div><div class="weekday">MON</div><div class="weekday">TUE</div>
+            <div class="weekday">WED</div><div class="weekday">THU</div><div class="weekday">FRI</div><div class="weekday">SAT</div>
         </div>
         <div class="days-grid" id="daysGrid"></div>
     </div>
@@ -880,12 +924,44 @@ function fmt(d) {
 }
 function todayStr() { return fmt(new Date()); }
 
+// ── 필터 ──
+let activeFilters = new Set(['gold','teal','blue','red','green','purple','holiday']);
+function toggleFilter(btn){
+    const f=btn.dataset.filter;
+    if(activeFilters.has(f)){activeFilters.delete(f);btn.classList.remove('active');}
+    else{activeFilters.add(f);btn.classList.add('active');}
+    renderView();
+}
+function isFiltered(ev){ return activeFilters.has(ev.color); }
+
+// ── 이벤트 칩 생성 헬퍼 ──
+const SPECIAL_ICONS={car:'🚗',brief:'💼',group:'👥',ladder:'▤'};
+const SCHED_ICONS={suggest:'💬',hope:'🙏',target:'🎯'};
+function buildChipHtml(ev){
+    let html='';
+    const time=ev.start_time?ev.start_time.substring(0,5):'';
+    if(time) html+=`<span class="chip-time">${time}</span>`;
+    // 특수 아이콘
+    const specOpts=ev.special_opts||[];
+    specOpts.forEach(o=>{if(SPECIAL_ICONS[o]) html+=`<span class="chip-special">${SPECIAL_ICONS[o]}</span>`;});
+    // 제목
+    const title=isGuestUser?(ev.location||'일정'):((ev.client_name?ev.client_name+' ':'')+ev.title);
+    html+=`<span>${title}</span>`;
+    // 일정 관련 아이콘
+    if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
+    // 담당자 배지
+    if(ev.assignees&&ev.assignees.length){
+        html+='<span class="chip-badges">';
+        ev.assignees.forEach(a=>{html+=`<span class="ev-assignee-badge" title="${a.name}">${(a.name||'?')[0]}</span>`;});
+        html+='</span>';
+    }
+    return html;
+}
+
 // ── 뷰 전환 ─────────────────────────────────────────────────────
 function switchView(view) {
     currentView = view;
-    ['month','week','day'].forEach(v => {
-        document.getElementById(`tab${v.charAt(0).toUpperCase()+v.slice(1)}`).classList.toggle('active', v===view);
-    });
+    document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.includes(view==='month'?'월간':view==='week'?'주간':'일간')));
     document.getElementById('monthView').style.display    = view==='month' ? '' : 'none';
     document.getElementById('timelineView').style.display = view!=='month' ? '' : 'none';
     renderView();
@@ -945,13 +1021,14 @@ async function loadAssignees() {
 
 // ── 월간 뷰 ─────────────────────────────────────────────────────
 function renderMonth() {
-    const months=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-    document.getElementById('periodTitle').textContent=`${currentYear}년 ${months[currentMonth]}`;
+    document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
     const grid=document.getElementById('daysGrid'); grid.innerHTML='';
     const firstDay=new Date(currentYear,currentMonth,1).getDay();
     const lastDate=new Date(currentYear,currentMonth+1,0).getDate();
     const prevLast=new Date(currentYear,currentMonth,0).getDate();
     const ts=todayStr();
+
+    // 셀 데이터 생성
     let cells=[];
     for(let i=firstDay-1;i>=0;i--) cells.push({date:prevLast-i,month:'prev',full:null});
     for(let d=1;d<=lastDate;d++){
@@ -960,32 +1037,65 @@ function renderMonth() {
     }
     const rem=42-cells.length;
     for(let d=1;d<=rem;d++) cells.push({date:d,month:'next',full:null});
-    cells.forEach((cell,idx)=>{
-        const div=document.createElement('div');
-        div.className='day-cell'+(cell.month!=='cur'?' other-month':'');
-        if(cell.full===ts) div.classList.add('today');
-        const dow=idx%7;
-        const nc=dow===0?'sun':dow===6?'sat':'';
-        div.innerHTML=`<div class="day-num ${nc}">${cell.date}</div>`;
-        if(cell.full){
-            const dayEvs=events.filter(ev=>ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
-            dayEvs.slice(0,3).forEach(ev=>{
-                const chip=document.createElement('div');
-                chip.className=`event-chip color-${ev.color}`;
-                chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):((ev.client_name?ev.client_name+' ':'')+ev.title);
-                chip.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
-                div.appendChild(chip);
-            });
-            if(dayEvs.length>3){
-                const more=document.createElement('div');
-                more.className='more-events';
-                more.textContent=`+${dayEvs.length-3}개 더`;
-                div.appendChild(more);
+
+    // 주 단위로 렌더링
+    for(let w=0;w<6;w++){
+        const weekRow=document.createElement('div');
+        weekRow.className='week-row';
+        for(let d=0;d<7;d++){
+            const idx=w*7+d;
+            const cell=cells[idx];
+            const div=document.createElement('div');
+            div.className='day-cell'+(cell.month!=='cur'?' other-month':'');
+            if(cell.full===ts) div.classList.add('today');
+            const nc=d===0?'sun':d===6?'sat':'';
+            div.innerHTML=`<div class="day-num-row"><span class="day-num ${nc}">${cell.date}</span></div>`;
+
+            if(cell.full){
+                // 필터 적용된 이벤트
+                const dayEvs=events.filter(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
+                // 다일 이벤트와 단일 이벤트 분리
+                const multiDay=dayEvs.filter(ev=>ev.end_date&&ev.end_date!==ev.start_date);
+                const singleDay=dayEvs.filter(ev=>!ev.end_date||ev.end_date===ev.start_date);
+
+                const evList=document.createElement('div');
+                evList.className='events-list';
+
+                // 다일 이벤트 (시작일에만 칩 표시)
+                multiDay.forEach(ev=>{
+                    if(ev.start_date===cell.full){
+                        const chip=document.createElement('div');
+                        chip.className=`event-chip single color-${ev.color}`;
+                        chip.innerHTML=buildChipHtml(ev);
+                        chip.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
+                        evList.appendChild(chip);
+                    }
+                });
+
+                // 단일 이벤트
+                singleDay.slice(0,3).forEach(ev=>{
+                    const chip=document.createElement('div');
+                    chip.className=`event-chip single color-${ev.color}`;
+                    chip.innerHTML=buildChipHtml(ev);
+                    chip.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
+                    evList.appendChild(chip);
+                });
+
+                if(singleDay.length>3){
+                    const more=document.createElement('div');
+                    more.className='more-badge';
+                    more.textContent='전체보기';
+                    more.onclick=e=>{e.stopPropagation();/* TODO: 팝오버 */};
+                    evList.appendChild(more);
+                }
+
+                div.appendChild(evList);
+                if(canEditCalendar) div.addEventListener('click',e=>{if(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))openNewModal(cell.full);});
             }
-            div.addEventListener('click',()=>openNewModal(cell.full));
+            weekRow.appendChild(div);
         }
-        grid.appendChild(div);
-    });
+        grid.appendChild(weekRow);
+    }
 }
 
 // ── 주간/일간 타임라인 ───────────────────────────────────────────
