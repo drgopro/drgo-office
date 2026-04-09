@@ -1807,25 +1807,72 @@ function openEditModal(ev){
     // 공통 필드
     document.getElementById('commonName').value=ev.client_name||'';
     document.getElementById('commonDesc').value=ev.description||'';
-    // gold_data 복원
+    // gold_data 복원 (Firebase 데이터 구조 호환)
     const g=ev.gold_data||{};
     document.getElementById('g_nickname').value=g.nickname||ev.client_name||'';
     document.getElementById('g_name').value=g.name||'';
     document.getElementById('g_phone').value=g.phone||'';
-    if(g.platform){const vals=g.platform.split(',').map(v=>v.trim());setMultiRadio('g_platform_group',vals);if(vals.includes('기타'))document.getElementById('g_platform_etc').value=g.platform_etc||'';}
+    // 플랫폼: "SOOP, 유튜브, 직접입력값" → pill 선택 + 기타 입력
+    if(g.platform){
+        const known=['SOOP','치지직','유튜브','틱톡','기타'];
+        const vals=g.platform.split(',').map(v=>v.trim());
+        const pillVals=vals.map(v=>known.includes(v)?v:'기타');
+        setMultiRadio('g_platform_group',[...new Set(pillVals)]);
+        const etcVals=vals.filter(v=>!known.includes(v));
+        if(etcVals.length) document.getElementById('g_platform_etc').value=etcVals.join(', ');
+        handleConditional('g_platform_group');
+    }
     if(g.career) setRadio('g_career_group',g.career);
-    if(g.source){setRadio('g_source_group',g.source);if(g.source==='소개')document.getElementById('g_source_ref').value=g.source_ref||'';}
-    if(g.topic){const vals=g.topic.split(',').map(v=>v.trim());setMultiRadio('g_topic_group',vals);if(vals.includes('기타'))document.getElementById('g_topic_etc').value=g.topic_etc||'';}
-    if(g.budget){setRadio('g_budget_group',g.budget);if(g.budget==='직접입력')document.getElementById('g_budget_etc').value=g.budget_etc||'';}
+    // 유입경로: "소개:홍길동" → 소개 선택 + 이름 입력
+    if(g.source){
+        if(g.source.startsWith('소개:')){
+            setRadio('g_source_group','소개');
+            document.getElementById('g_source_ref').value=g.source.substring(3);
+            handleConditional('g_source_group');
+        } else {
+            setRadio('g_source_group',g.source);
+        }
+    }
+    // 방송주제: "소통, 게임, 직접입력값" → pill 선택 + 기타 입력
+    if(g.topic){
+        const known=['소통','먹방','게임','야외','노래','주식/코인','기타'];
+        const vals=g.topic.split(',').map(v=>v.trim());
+        const pillVals=vals.map(v=>known.includes(v)?v:'기타');
+        setMultiRadio('g_topic_group',[...new Set(pillVals)]);
+        const etcVals=vals.filter(v=>!known.includes(v));
+        if(etcVals.length) document.getElementById('g_topic_etc').value=etcVals.join(', ');
+        handleConditional('g_topic_group');
+    }
+    // 예산: "풍족"/"부족"/"모름" or 직접입력한 값 → pill 선택 + 기타 입력
+    if(g.budget){
+        const known=['풍족','부족','모름','직접입력'];
+        if(known.includes(g.budget)){
+            setRadio('g_budget_group',g.budget);
+        } else {
+            setRadio('g_budget_group','직접입력');
+            document.getElementById('g_budget_etc').value=g.budget;
+            handleConditional('g_budget_group');
+        }
+    }
     document.getElementById('g_equipment').value=g.equipment||'';
-    if(g.request_topic){setRadio('g_req_topic_group',g.request_topic);if(g.request_topic==='기타')document.getElementById('g_req_topic_etc').value=g.req_topic_etc||'';}
-    document.getElementById('g_req_detail').value=g.request_detail||g.req_detail||'';
+    // 의뢰주제: "처음세팅, 추가세팅, 직접입력값" → pill 선택 + 기타 입력
+    if(g.req_topic){
+        const known=['처음세팅','추가세팅','이사세팅','렌탈','기타'];
+        const vals=g.req_topic.split(',').map(v=>v.trim());
+        const pillVals=vals.map(v=>known.includes(v)?v:'기타');
+        setMultiRadio('g_req_topic_group',[...new Set(pillVals)]);
+        const etcVals=vals.filter(v=>!known.includes(v));
+        if(etcVals.length) document.getElementById('g_req_topic_etc').value=etcVals.join(', ');
+        handleConditional('g_req_topic_group');
+    }
+    document.getElementById('g_req_detail').value=g.req_detail||'';
     document.getElementById('g_special').value=g.special||'';
+    if(g.specialReason) document.getElementById('specialReason').value=g.specialReason;
     if(g.paid) setRadio('g_paid_group',g.paid);
     document.getElementById('g_estimate_amount').value=g.estimate_amount||'';
-    if(g.order) setRadio('g_order_group',g.order);
-    if(g.delivery){document.getElementById('g_delivery_wrap').style.display='';setRadio('g_delivery_group',g.delivery);}
-    if(g.balance){setRadio('g_balance_group',g.balance);if(g.balance==='O'){const cond=document.getElementById('g_balance_cond');if(cond)cond.classList.add('visible');}}
+    if(g.order){setRadio('g_order_group',g.order);if(g.order==='O')document.getElementById('g_delivery_wrap').style.display='';handleConditional('g_order_group');}
+    if(g.delivery) setRadio('g_delivery_group',g.delivery);
+    if(g.balance){setRadio('g_balance_group',g.balance);handleConditional('g_balance_group');}
     document.getElementById('g_balance_amount').value=g.balance_amount||'';
     if(g.estimate_id){linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';}
     // 의뢰자/프로젝트 연결 복원
@@ -1872,23 +1919,39 @@ function closeModal(){
 
 // ── 데이터 수집 ──
 function collectGoldFields(){
-    const platform=getMultiRadio('g_platform_group').join(', ');
-    const topic=getMultiRadio('g_topic_group').join(', ');
+    // 플랫폼 (멀티선택, 기타→직접입력 치환)
+    const platSel=getMultiRadio('g_platform_group');
+    const platEtc=document.getElementById('g_platform_etc')?.value.trim()||'';
+    const platform=platSel.length?platSel.map(v=>v==='기타'?(platEtc||'기타'):v).join(', '):'';
+    // 방송주제 (멀티선택, 기타→직접입력 치환)
+    const topicSel=getMultiRadio('g_topic_group');
+    const topicEtc=document.getElementById('g_topic_etc')?.value.trim()||'';
+    const topic=topicSel.length?topicSel.map(v=>v==='기타'?(topicEtc||'기타'):v).join(', '):'';
+    // 예산 (직접입력→실제값 치환)
+    const budgetSel=getRadio('g_budget_group');
+    const budget=budgetSel==='직접입력'?(document.getElementById('g_budget_etc')?.value.trim()||'직접입력'):(budgetSel||'');
+    // 유입경로 (소개→소개:이름)
+    const sourceSel=getRadio('g_source_group');
+    const source=sourceSel==='소개'?'소개:'+(document.getElementById('g_source_ref')?.value.trim()||''):(sourceSel||'');
+    // 의뢰주제 (멀티선택, 기타→직접입력 치환)
+    const reqTopicSel=getMultiRadio('g_req_topic_group');
+    const reqTopicEtc=document.getElementById('g_req_topic_etc')?.value.trim()||'';
+    const req_topic=reqTopicSel.length?reqTopicSel.map(v=>v==='기타'?(reqTopicEtc||'기타'):v).join(', '):'';
+    // 특수옵션 사유
+    const specialReason=document.getElementById('specialReason')?.value.trim()||'';
     return {
         nickname:document.getElementById('g_nickname').value.trim(),
         name:document.getElementById('g_name').value.trim(),
         phone:document.getElementById('g_phone').value.trim(),
-        platform, platform_etc:document.getElementById('g_platform_etc').value.trim(),
-        career:getRadio('g_career_group'),
-        source:getRadio('g_source_group'),source_ref:document.getElementById('g_source_ref').value.trim(),
-        topic, topic_etc:document.getElementById('g_topic_etc').value.trim(),
-        budget:getRadio('g_budget_group'),budget_etc:document.getElementById('g_budget_etc').value.trim(),
+        platform, topic, budget, source,
         equipment:document.getElementById('g_equipment').value.trim(),
-        request_topic:getRadio('g_req_topic_group'),req_topic_etc:document.getElementById('g_req_topic_etc').value.trim(),
+        req_topic,
+        estimate_amount:document.getElementById('g_estimate_amount')?.value.trim()||'',
         req_detail:document.getElementById('g_req_detail').value.trim(),
         special:document.getElementById('g_special').value.trim(),
+        specialReason,
+        career:getRadio('g_career_group'),
         paid:getRadio('g_paid_group'),
-        estimate_amount:document.getElementById('g_estimate_amount').value.trim(),
         order:getRadio('g_order_group'),
         delivery:getRadio('g_delivery_group'),
         balance:getRadio('g_balance_group'),
@@ -1971,7 +2034,8 @@ function initAllRadioGroups(){
     initRadioGroup('g_platform_group',{multi:true});
     initRadioGroup('g_topic_group',{multi:true});
     // 단일 선택
-    ['g_career_group','g_source_group','g_budget_group','g_req_topic_group','g_paid_group','g_order_group','g_delivery_group','g_balance_group'].forEach(id=>initRadioGroup(id));
+    ['g_career_group','g_source_group','g_budget_group','g_paid_group','g_order_group','g_delivery_group','g_balance_group'].forEach(id=>initRadioGroup(id));
+    initRadioGroup('g_req_topic_group',{multi:true});
     // teal 모드 전환
     initRadioGroup('teal_mode_group',{onChange:v=>{document.getElementById('teal_remote_fields').style.display=v==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=v==='studio'?'':'none';}});
     // 색상 dot 클릭
