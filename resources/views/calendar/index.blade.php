@@ -407,7 +407,7 @@
 </div>
 
 <!-- 일정 모달 -->
-<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+<div class="modal-overlay" id="modalOverlay">
     <div class="modal-wrapper">
     <div class="modal" id="modal">
         <div class="modal-strip" id="modalStrip"></div>
