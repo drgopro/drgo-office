@@ -137,9 +137,14 @@ class AdminController extends Controller
             'permissions' => 'required|array',
         ]);
 
+        $slug = Str::slug($validated['name']);
+        if (! $slug) {
+            $slug = 'team-'.time();
+        }
+
         $team = Team::create([
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
+            'slug' => $slug,
             'permissions' => $validated['permissions'],
         ]);
 
@@ -154,7 +159,8 @@ class AdminController extends Controller
         ]);
 
         if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+            $slug = Str::slug($validated['name']);
+            $validated['slug'] = $slug ?: 'team-'.$team->id;
         }
 
         $team->update($validated);
