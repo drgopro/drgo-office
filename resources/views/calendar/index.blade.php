@@ -541,33 +541,39 @@
                 </div>
             </div>
 
-            {{-- Gold 템플릿 (방문의뢰) --}}
-            <div class="gold-only">
-                <div class="section-heading">의뢰자 정보</div>
-                {{-- 의뢰자 검색/연결 --}}
-                <div class="field-group">
-                    <label class="field-label">의뢰자 검색</label>
-                    <div style="position:relative;">
-                        <input class="field-input" id="clientSearchInput" placeholder="이름/닉네임/전화번호로 검색" autocomplete="off" oninput="searchClients(this.value)">
-                        <div id="clientSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;"></div>
-                    </div>
+            {{-- 의뢰자 검색/연결 (모든 유형 공통) --}}
+            <div class="section-heading">의뢰자 / 프로젝트</div>
+            <div class="field-group">
+                <label class="field-label">의뢰자 검색</label>
+                <div style="position:relative;">
+                    <input class="field-input" id="clientSearchInput" placeholder="이름/닉네임/전화번호로 검색" autocomplete="off" oninput="searchClients(this.value)">
+                    <div id="clientSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;"></div>
                 </div>
-                <div id="linkedClientInfo" style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:10px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <span style="font-size:11px;color:var(--text-muted);">연결된 의뢰자</span>
-                            <div style="font-size:13px;font-weight:600;" id="linkedClientName"></div>
-                        </div>
+            </div>
+            <div id="linkedClientInfo" style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span style="font-size:11px;color:var(--text-muted);">연결된 의뢰자</span>
+                        <div style="font-size:13px;font-weight:600;" id="linkedClientName"></div>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <a id="linkedClientLink" href="#" target="_blank" class="radio-btn" style="font-size:11px;padding:3px 10px;text-decoration:none;">보기</a>
                         <button type="button" onclick="unlinkClient()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
                     </div>
                 </div>
-                {{-- 프로젝트 선택 --}}
-                <div id="projectSelectWrap" style="display:none;" class="field-group">
-                    <label class="field-label">프로젝트 연결</label>
-                    <select class="field-input" id="projectSelect" style="cursor:pointer;">
-                        <option value="">프로젝트 선택 (선택사항)</option>
-                    </select>
-                </div>
+            </div>
+            <div id="projectSelectWrap" style="display:none;" class="field-group">
+                <label class="field-label">프로젝트 연결</label>
+                <select class="field-input" id="projectSelect" style="cursor:pointer;">
+                    <option value="">프로젝트 선택 (선택사항)</option>
+                </select>
+            </div>
+
+            <div class="divider"></div>
+
+            {{-- Gold 템플릿 (방문의뢰) --}}
+            <div class="gold-only" style="display:none;flex-direction:column;gap:14px;">
+                <div class="section-heading">의뢰자 정보</div>
                 <div class="field-row" style="gap:10px;">
                     <div class="field-group"><label class="field-label">의뢰자 닉네임</label><input class="field-input" id="g_nickname" placeholder="닉네임"></div>
                     <div class="field-group"><label class="field-label">의뢰자 이름</label><input class="field-input" id="g_name" placeholder="이름"></div>
@@ -1294,7 +1300,7 @@ function setColor(c){
     badge.className='type-badge '+c;
     badge.textContent='● '+(COLOR_NAMES[c]||c);
     // 템플릿 토글
-    document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'':'none');
+    document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'flex':'none');
     document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
     document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'':'none');
     // gold 전용 날짜 행
@@ -1431,10 +1437,17 @@ async function selectClient(id,nickname,name,phone){
     document.getElementById('clientSearchInput').value='';
     document.getElementById('linkedClientName').textContent=(nickname||name)+(nickname&&name?' ('+name+')':'');
     document.getElementById('linkedClientInfo').style.display='';
-    // 필드 자동채움
-    document.getElementById('g_nickname').value=nickname||'';
-    document.getElementById('g_name').value=name||'';
-    document.getElementById('g_phone').value=phone||'';
+    document.getElementById('linkedClientLink').href='/clients/'+id;
+    // gold 필드 자동채움
+    const gNick=document.getElementById('g_nickname');
+    const gName=document.getElementById('g_name');
+    const gPhone=document.getElementById('g_phone');
+    if(gNick) gNick.value=nickname||'';
+    if(gName) gName.value=name||'';
+    if(gPhone) gPhone.value=phone||'';
+    // 공통 이름 필드도 채움
+    const commonName=document.getElementById('commonName');
+    if(commonName&&!commonName.value) commonName.value=nickname||name||'';
     // client_name도 채움
     document.getElementById('modalTitle').value=document.getElementById('modalTitle').value||(nickname||name);
     // 프로젝트 목록 로드
@@ -1880,8 +1893,18 @@ function openEditModal(ev){
         linkedClientId=g.client_id;
         document.getElementById('linkedClientName').textContent=g.nickname||g.name||`의뢰자 #${g.client_id}`;
         document.getElementById('linkedClientInfo').style.display='';
+        document.getElementById('linkedClientLink').href='/clients/'+g.client_id;
         linkedProjectId=g.project_id||null;
         loadClientProjects(g.client_id);
+    }
+    // 비-gold에서도 gold_data에 저장된 의뢰자 연결 복원
+    if(!g.client_id && ev.gold_data && ev.gold_data.client_id){
+        linkedClientId=ev.gold_data.client_id;
+        document.getElementById('linkedClientName').textContent=`의뢰자 #${ev.gold_data.client_id}`;
+        document.getElementById('linkedClientInfo').style.display='';
+        document.getElementById('linkedClientLink').href='/clients/'+ev.gold_data.client_id;
+        linkedProjectId=ev.gold_data.project_id||null;
+        loadClientProjects(ev.gold_data.client_id);
     }
     // teal_data 복원
     const t=ev.teal_data||{};
@@ -1998,7 +2021,7 @@ async function saveEvent(){
         sched_event_opts:schedEventOpts,
         special_opts:specialOpts,
         sched_after_reason:document.getElementById('schedAfterReason').value.trim()||null,
-        gold_data:isGold?collectGoldFields():null,
+        gold_data:isGold?collectGoldFields():(linkedClientId?{client_id:linkedClientId,project_id:document.getElementById('projectSelect')?.value||null,nickname:'',name:'',phone:''}:null),
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
 
