@@ -1402,28 +1402,18 @@ function openDetailModal(ev) {
     if (d.assignees && d.assignees.length) html += infoRow('담당자', d.assignees.map(a => a.name).join(', '));
     html += `</fieldset>`;
 
-    // gold_data (방문의뢰) — pill value → label 매핑
-    const PLATFORM_L={soop:'SOOP',chzzk:'치지직',youtube:'유튜브',tiktok:'틱톡',etc:'기타'};
-    const CAREER_L={first:'처음',beginner:'초보',experienced:'경력'};
-    const SOURCE_L={ad:'광고',search:'검색',referral:'소개'};
-    const TOPIC_L={talk:'소통',food:'먹방',game:'게임',outdoor:'야외',song:'노래',stock:'주식/코인',etc:'기타'};
-    const BUDGET_L={plenty:'풍족',lack:'부족',unknown:'모름',direct:'직접입력'};
-    const PAID_L={unpaid:'미결제',paid:'결제완료'};
-    const YN_L={yes:'O',no:'X'};
+    // gold_data (방문의뢰) — 값은 이제 한글로 저장됨
     const g = d.gold_data;
     if (g && Object.keys(g).length) {
         html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰자 정보</legend>`;
+        if (g.nickname) html += infoRow('닉네임', g.nickname);
+        if (g.name) html += infoRow('이름', g.name);
         if (g.phone) html += infoRow('전화번호', g.phone);
-        if (g.source) html += infoRow('유입 경로', SOURCE_L[g.source]||g.source);
-        if (g.platform) html += infoRow('플랫폼', PLATFORM_L[g.platform]||g.platform);
-        if (g.topic) html += infoRow('방송 주제', TOPIC_L[g.topic]||g.topic);
-        if (g.budget) html += infoRow('예산 성향', BUDGET_L[g.budget]||g.budget);
-        if (g.career) html += infoRow('경력 여부', CAREER_L[g.career]||g.career);
-        if (g.paid) html += infoRow('결제 여부', PAID_L[g.paid]||g.paid);
-        if (g.delivery) html += infoRow('주문 제품', YN_L[g.delivery]||g.delivery);
-        if (g.balance) html += infoRow('잔금 여부', YN_L[g.balance]||g.balance);
-        if (g.estimate_amount) html += infoRow('견적 총액', g.estimate_amount);
-        if (g.estimate_id) html += infoRow('견적서', `<a href="/estimates/${g.estimate_id}/edit" target="_blank" style="color:var(--accent);">#${g.estimate_id} 보기</a>`);
+        if (g.platform) html += infoRow('플랫폼', g.platform);
+        if (g.career) html += infoRow('경력 여부', g.career);
+        if (g.source) html += infoRow('유입 경로', g.source + (g.source_ref ? ' ('+g.source_ref+')' : ''));
+        if (g.topic) html += infoRow('방송 주제', g.topic);
+        if (g.budget) html += infoRow('예산 성향', g.budget + (g.budget_etc ? ' ('+g.budget_etc+')' : ''));
         html += `</fieldset>`;
 
         if (g.equipment) {
@@ -1431,6 +1421,30 @@ function openDetailModal(ev) {
             html += `<div style="font-size:13px; white-space:pre-wrap;">${g.equipment}</div>`;
             html += `</fieldset>`;
         }
+
+        if (g.request_topic || g.req_detail) {
+            html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰 내용</legend>`;
+            if (g.request_topic) html += infoRow('주제', g.request_topic + (g.req_topic_etc ? ' ('+g.req_topic_etc+')' : ''));
+            if (g.req_detail) html += `<div style="font-size:13px; white-space:pre-wrap; margin-top:6px;">${g.req_detail}</div>`;
+            html += `</fieldset>`;
+        }
+
+        if (g.special) {
+            html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">특이사항</legend>`;
+            html += `<div style="font-size:13px; white-space:pre-wrap; color:var(--accent);">${g.special}</div>`;
+            html += `</fieldset>`;
+        }
+
+        // 결제 정보
+        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">결제 정보</legend>`;
+        if (g.paid) html += infoRow('결제 여부', g.paid);
+        if (g.estimate_amount) html += infoRow('견적 총액', g.estimate_amount);
+        if (g.order) html += infoRow('주문 제품', g.order);
+        if (g.order === 'O' && g.delivery) html += infoRow('배송완료', g.delivery);
+        if (g.balance) html += infoRow('잔금 여부', g.balance);
+        if (g.balance === 'O' && g.balance_amount) html += infoRow('잔금 금액', g.balance_amount);
+        if (g.estimate_id) html += infoRow('견적서', `<a href="/estimates/${g.estimate_id}/edit" target="_blank" style="color:var(--accent);">#${g.estimate_id} 보기</a>`);
+        html += `</fieldset>`;
     }
 
     // teal_data (원격/방송룸)
@@ -1445,16 +1459,24 @@ function openDetailModal(ev) {
         html += `</fieldset>`;
     }
 
-    // 의뢰 내용
-    if (g && (g.request_topic || g.request_detail)) {
-        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">의뢰 내용</legend>`;
-        if (g.request_topic) html += infoRow('주제', g.request_topic);
-        if (g.request_detail) html += `<div style="font-size:13px; white-space:pre-wrap; margin-top:6px;">${g.request_detail}</div>`;
+    // 일정 옵션 표시
+    const schedEvOpts = d.sched_event_opts || [];
+    const schedOpt = d.sched_opt;
+    const specOpts = d.special_opts || [];
+    if (schedEvOpts.length || schedOpt || specOpts.length) {
+        const SCHED_EV_L={fast:'← 빠른 일정',urgent:'🚨 긴급',after:'→ 날짜 이후'};
+        const SCHED_L={suggest:'💬 제안',hope:'🙏 희망',target:'🎯 목표'};
+        const SPEC_L={car:'🚗 차량',product:'💼 제품',two_person:'👥 2인',ladder:'▤ 사다리'};
+        html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">일정 옵션</legend>`;
+        if (schedEvOpts.length) html += infoRow('일정 옵션', schedEvOpts.map(v=>SCHED_EV_L[v]||v).join(', '));
+        if (schedOpt) html += infoRow('일정 관련', SCHED_L[schedOpt]||schedOpt);
+        if (specOpts.length) html += infoRow('특수 옵션', specOpts.map(v=>SPEC_L[v]||v).join(', '));
+        if (d.sched_after_reason) html += infoRow('사유', d.sched_after_reason);
         html += `</fieldset>`;
     }
 
-    // 특이사항
-    if (d.description) {
+    // 비-gold 특이사항 (description)
+    if (d.description && d.color !== 'gold') {
         html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">특이사항</legend>`;
         html += `<div style="font-size:13px; white-space:pre-wrap; color:var(--accent);">${d.description}</div>`;
         html += `</fieldset>`;
