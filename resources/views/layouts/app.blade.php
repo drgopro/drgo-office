@@ -465,6 +465,65 @@ const drgoTabs = {
 drgoTabs.init();
 </script>
 
+{{-- ── 활동 로그 모달 (글로벌) ── --}}
+<div id="activityLogOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;backdrop-filter:blur(3px);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:580px;max-height:80vh;display:flex;flex-direction:column;animation:modalIn 0.2s ease;">
+        <div style="padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0;">
+            <div style="font-size:15px;font-weight:600;" id="activityLogTitle">수정 로그</div>
+            <button onclick="document.getElementById('activityLogOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <div id="activityLogBody" style="flex:1;overflow-y:auto;padding:12px 20px 20px;">
+            <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로딩 중...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function openActivityLog(type, id, title) {
+    const overlay = document.getElementById('activityLogOverlay');
+    const body = document.getElementById('activityLogBody');
+    const titleEl = document.getElementById('activityLogTitle');
+    titleEl.textContent = (title || '수정 로그');
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로딩 중...</div>';
+    overlay.style.display = 'flex';
+
+    const ACTION_L = {create:'생성',update:'수정',delete:'삭제'};
+    const ACTION_C = {create:'#22c55e',update:'var(--accent)',delete:'#ef4444'};
+
+    try {
+        const res = await fetch(`/api/activity-logs?type=${type}&id=${id}&limit=100`);
+        if (!res.ok) throw new Error();
+        const logs = await res.json();
+        if (!logs.length) { body.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-muted);font-size:13px;">수정 이력이 없습니다.</div>'; return; }
+        body.innerHTML = logs.map(log => {
+            let changesHtml = '';
+            if (log.changes && Object.keys(log.changes).length) {
+                changesHtml = Object.entries(log.changes).map(([key, val]) => {
+                    const oldV = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
+                    const newV = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
+                    return `<div style="margin:4px 0 4px 12px;font-size:12px;">
+                        <span style="color:var(--text-muted);">${key}:</span>
+                        <span style="text-decoration:line-through;color:var(--red);opacity:0.7;">${oldV}</span>
+                        → <span style="color:var(--green);">${newV}</span>
+                    </div>`;
+                }).join('');
+            }
+            return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;color:${ACTION_C[log.action]||'var(--text-muted)'};border:1px solid;opacity:0.8;">${ACTION_L[log.action]||log.action}</span>
+                    <span style="font-size:12px;font-weight:600;">${log.user}</span>
+                    <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">${log.created_at}</span>
+                </div>
+                ${log.summary ? '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+log.summary+'</div>' : ''}
+                ${changesHtml}
+            </div>`;
+        }).join('');
+    } catch(e) {
+        body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;">로드 실패</div>';
+    }
+}
+</script>
+
 @stack('scripts')
 </body>
 </html>

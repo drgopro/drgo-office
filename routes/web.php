@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
@@ -46,6 +47,7 @@ Route::middleware('auth')->group(function () {
 
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
+    Route::get('/api/activity-logs', [ActivityLogController::class, 'index']);
 
     // 의뢰자 JSON API
     Route::middleware('permission:clients.view')->group(function () {

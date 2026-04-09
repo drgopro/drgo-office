@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Estimate extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'client_id',
         'project_id',
