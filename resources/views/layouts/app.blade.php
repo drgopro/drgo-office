@@ -57,6 +57,15 @@
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
+
+        /* ── 스크롤바 ── */
+        ::-webkit-scrollbar { width:8px; height:8px; }
+        ::-webkit-scrollbar-track { background:var(--surface); }
+        ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; border:2px solid var(--surface); }
+        ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+        ::-webkit-scrollbar-corner { background:var(--surface); }
+        * { scrollbar-width:thin; scrollbar-color:var(--border) var(--surface); }
+
         body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
 
         /* ── 상단 내비게이션 ── */
