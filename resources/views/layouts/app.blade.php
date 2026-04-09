@@ -56,6 +56,26 @@
             --chip-single-bg: #e6e8ee;
         }
 
+        /* ── 라이트모드 글로벌 보정 ── */
+        [data-theme="light"] .header { background:#fff; border-bottom-color:#c8ccd4; }
+        [data-theme="light"] .logo { color:var(--accent); border-right-color:#c8ccd4; }
+        [data-theme="light"] .nav a { color:#4a5060; }
+        [data-theme="light"] .nav a:hover { color:var(--text); background:#e8eaef; }
+        [data-theme="light"] .nav a.active { color:var(--accent); background:#e0e4ec; font-weight:600; }
+        [data-theme="light"] .logout-btn { border-color:#a0a8b4; color:#4a5060; }
+        [data-theme="light"] .logout-btn:hover { border-color:var(--accent); color:var(--accent); }
+        [data-theme="light"] .admin-link { border-color:#a0a8b4; color:#4a5060; }
+        [data-theme="light"] .theme-toggle { border-color:#a0a8b4; color:#4a5060; }
+        [data-theme="light"] .tab-bar-wrap { background:#e8eaef; border-bottom-color:#c8ccd4; }
+        [data-theme="light"] .tab-item { color:#5a6070; }
+        [data-theme="light"] .tab-item:hover { color:var(--text); background:#fff; }
+        [data-theme="light"] .tab-item.active { color:var(--accent); background:#fff; border-color:#c8ccd4; }
+        [data-theme="light"] .tab-add { color:#5a6070; }
+        [data-theme="light"] .tab-menu { background:#fff; border-color:#c8ccd4; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+        [data-theme="light"] .tab-menu-item { color:#4a5060; }
+        [data-theme="light"] .tab-menu-item:hover { color:var(--text); background:#eceef2; }
+        [data-theme="light"] .user-role { color:#6b7280; }
+
         * { margin:0; padding:0; box-sizing:border-box; }
 
         /* ── 스크롤바 ── */

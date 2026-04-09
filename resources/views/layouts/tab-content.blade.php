@@ -10,8 +10,34 @@ try {
 </script>
 <style>
 /* tab-content 기본 CSS 변수 */
-:root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
+:root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --surface3:#333; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
 [data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
+/* 라이트모드 버튼/입력 보정 */
+[data-theme="light"] body { background:var(--bg); color:var(--text); }
+[data-theme="light"] .btn-edit, [data-theme="light"] .btn-outline { border-color:#a0a8b4; color:#4a5060; }
+[data-theme="light"] .btn-edit:hover, [data-theme="light"] .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+[data-theme="light"] .btn-primary { background:var(--accent); color:#fff; }
+[data-theme="light"] .info-card { background:#fff; border-color:#c8ccd4; }
+[data-theme="light"] .info-label { color:#6b7280; }
+[data-theme="light"] .tag { background:#e8eaef; color:#4a5060; }
+[data-theme="light"] .badge-normal { background:#e8eaef; color:#5a6070; }
+[data-theme="light"] .badge-vip { background:#fff3e0; color:#a06800; }
+[data-theme="light"] .project-item { background:#f8f9fb; border-color:#c8ccd4; }
+[data-theme="light"] .project-item:hover { border-color:var(--accent); }
+[data-theme="light"] .estimate-item { background:#f8f9fb; border-color:#c8ccd4; }
+[data-theme="light"] .estimate-btn { border-color:#a0a8b4; color:#4a5060; }
+[data-theme="light"] .estimate-btn:hover { border-color:var(--accent); color:var(--accent); }
+[data-theme="light"] .success-msg { background:#e8f5e8; border-color:#a0d8a0; color:#248a38; }
+[data-theme="light"] select, [data-theme="light"] input[type="text"], [data-theme="light"] textarea { background:#fff; border-color:#b8bcc8; color:var(--text); }
+[data-theme="light"] .doc-item { border-color:#c8ccd4; }
+[data-theme="light"] .stage-consulting { background:#fff3e0; color:#a06800; }
+[data-theme="light"] .stage-equipment { background:#e8f5e8; color:#248a38; }
+[data-theme="light"] .stage-proposal { background:#e0f0ff; color:#2e6a9a; }
+[data-theme="light"] .stage-estimate { background:#f0e8ff; color:#5c2e90; }
+[data-theme="light"] .stage-payment { background:#e0f8f5; color:#0a8a70; }
+[data-theme="light"] .stage-visit { background:#e8f5e8; color:#248a38; }
+[data-theme="light"] .stage-as { background:#ffe8e8; color:#c03838; }
+[data-theme="light"] .stage-done { background:#e8eaef; color:#5a6070; }
 </style>
 @stack('styles')
 @yield('content')
