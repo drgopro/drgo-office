@@ -1636,8 +1636,13 @@ function resetModalForm(){
 
 // ── 모달 열기 ──
 function openNewModal(dateStr,timeStr){
-    editingId=null; selectedAssignees=[];
+    editingId=null; selectedAssignees=[]; viewMode=false;
     resetModalForm();
+    // 저장 버튼 복원
+    document.getElementById('lockBtn').style.display='';
+    document.querySelector('.btn-save-top').style.display='';
+    const saveBtn=document.querySelector('.modal-footer .btn-save');
+    if(saveBtn){saveBtn.textContent='저장';saveBtn.onclick=()=>{saveEvent();};};
     setColor('gold');
     document.getElementById('modalTitle').value='';
     // 날짜
@@ -1668,141 +1673,57 @@ const COLOR_LABELS = {gold:'방문의뢰',teal:'원격/방송룸',blue:'사내�
 const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'특이사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보'};
 let detailEvent = null;
 
+let viewMode = false; // true: 상세보기(읽기전용), false: 편집
+
 function openDetailModal(ev) {
     if(isGuestUser) return;
     detailEvent = ev;
-    const d = ev;
-    const colorLabel = COLOR_LABELS[d.color] || d.color;
-    const dateStr = d.start_date + (d.end_date && d.end_date !== d.start_date ? ' ~ ' + d.end_date : '');
-    const timeStr = d.start_time ? d.start_time.substring(0,5) + (d.end_time ? ' ~ ' + d.end_time.substring(0,5) : '') : '';
+    viewMode = true;
+    // 편집 모달을 읽기전용으로 열기
+    openEditModal(ev);
+    // 잠금 상태로 만들기 (읽기전용)
+    if(!isLocked) toggleLock();
+    // 잠금 버튼 숨기고, 저장 버튼 숨기고, 수정 버튼 표시
+    document.getElementById('lockBtn').style.display='none';
+    document.querySelector('.btn-save-top').style.display='none';
+    document.getElementById('btnDelete').style.display='';
+    document.getElementById('btnLog').style.display='';
+    // 푸터의 저장 → 수정으로 변경
+    const saveBtn=document.querySelector('.modal-footer .btn-save');
+    saveBtn.textContent='수정';
+    saveBtn.onclick=()=>{ switchToEditMode(); };
+}
 
-    // 헤더
-    const dd=d.start_date?new Date(d.start_date):new Date();
-    document.getElementById('detailDateBadge').textContent=`${dd.getFullYear()}년 ${dd.getMonth()+1}월 ${dd.getDate()}일 (${DAYS_KO[dd.getDay()]})`;
-    const tb=document.getElementById('detailTypeBadge');
-    tb.className='type-badge '+d.color;
-    tb.textContent='● '+colorLabel;
-    document.getElementById('detailStrip').className='modal-strip'+(d.color!=='gold'?' color-'+d.color:'');
-    document.getElementById('detailTitle').textContent = d.title || '(제목 없음)';
-    // 담당자
-    const aDiv=document.getElementById('detailAssignees');
-    if(d.assignees&&d.assignees.length){
-        aDiv.innerHTML=d.assignees.map(a=>`<span class="assignee-chip selected" style="pointer-events:none;">${a.name}</span>`).join('');
-        aDiv.style.display='';
-    } else { aDiv.innerHTML=''; }
-
-    let html = '';
-    const section=(title)=>`<div class="section-heading">${title}</div>`;
-    const row=(label,value)=>value?`<div style="display:flex;padding:6px 0;border-bottom:1px solid var(--border);"><div style="width:110px;font-size:10px;letter-spacing:0.15em;color:var(--text-muted);flex-shrink:0;text-transform:uppercase;padding-top:2px;">${label}</div><div style="font-size:13px;flex:1;">${value}</div></div>`:'';
-    const preBlock=(text)=>text?`<div style="font-size:13px;white-space:pre-wrap;padding:8px 0;line-height:1.7;">${text}</div>`:'';
-
-    // 기본 정보
-    html += section('기본 정보');
-    html += row('날짜', dateStr);
-    if (timeStr) html += row('시간', timeStr);
-    if (d.location) html += row('장소', d.location);
-    if (d.address) html += row('주소', d.address);
-    if (d.is_locked) html += row('잠금', '🔒 잠금됨');
-    if (d.notif_minutes) html += row('알림', d.notif_minutes+'분 전');
-
-    // 일정 옵션
-    const schedEvOpts = d.sched_event_opts || [];
-    const schedOpt = d.sched_opt;
-    const specOpts = d.special_opts || [];
-    if (schedEvOpts.length || schedOpt || specOpts.length) {
-        const SCHED_EV_L={fast:'← 빠른 일정',urgent:'🚨 긴급',after:'→ 날짜 이후'};
-        const SCHED_L={suggest:'💬 제안',hope:'🙏 희망',target:'🎯 목표'};
-        const SPEC_L={car:'🚗 차량',brief:'💼 제품',group:'👥 2인',ladder:'▤ 사다리'};
-        html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">`;
-        schedEvOpts.forEach(v=>{html+=`<span class="special-opt-btn active" style="pointer-events:none;padding:4px 10px;font-size:11px;">${SCHED_EV_L[v]||v}</span>`;});
-        if(schedOpt) html+=`<span class="sched-opt-btn active" data-sopt="${schedOpt}" style="pointer-events:none;padding:4px 10px;font-size:11px;">${SCHED_L[schedOpt]||schedOpt}</span>`;
-        specOpts.forEach(v=>{html+=`<span class="special-opt-btn active" style="pointer-events:none;padding:4px 10px;font-size:11px;">${SPEC_L[v]||v}</span>`;});
-        html += `</div>`;
-        if (d.sched_after_reason) html += row('사유', d.sched_after_reason);
-    }
-
-    html += `<div class="divider" style="margin:8px 0;"></div>`;
-
-    // gold_data (방문의뢰)
-    const g = d.gold_data;
-    if (g && Object.keys(g).length) {
-        html += section('의뢰자 정보');
-        if (g.client_id) html += row('의뢰자', `<a href="/clients/${g.client_id}" target="_blank" style="color:var(--accent);">${g.nickname||g.name||'#'+g.client_id} 보기</a>`);
-        if (g.project_id) html += row('프로젝트', `<a href="/projects/${g.project_id}" target="_blank" style="color:var(--accent);">#${g.project_id} 보기</a>`);
-        if (g.nickname) html += row('닉네임', g.nickname);
-        if (g.name) html += row('이름', g.name);
-        if (g.phone) html += row('전화번호', g.phone);
-        if (g.platform) html += row('플랫폼', g.platform);
-        if (g.career) html += row('경력', g.career);
-        if (g.source) html += row('유입 경로', g.source + (g.source_ref ? ' ('+g.source_ref+')' : ''));
-        if (g.topic) html += row('방송 주제', g.topic);
-        if (g.budget) html += row('예산 성향', g.budget + (g.budget_etc ? ' ('+g.budget_etc+')' : ''));
-
-        if (g.equipment) {
-            html += `<div class="divider" style="margin:8px 0;"></div>`;
-            html += section('장비 목록');
-            html += preBlock(g.equipment);
-        }
-
-        if (g.request_topic || g.req_detail) {
-            html += `<div class="divider" style="margin:8px 0;"></div>`;
-            html += section('의뢰 내용');
-            if (g.request_topic) html += row('주제', g.request_topic + (g.req_topic_etc ? ' ('+g.req_topic_etc+')' : ''));
-            if (g.req_detail) html += preBlock(g.req_detail);
-        }
-
-        if (g.special) {
-            html += `<div class="divider" style="margin:8px 0;"></div>`;
-            html += section('특이사항');
-            html += `<div style="font-size:13px;white-space:pre-wrap;color:var(--accent);padding:6px 0;">${g.special}</div>`;
-        }
-
-        html += `<div class="divider" style="margin:8px 0;"></div>`;
-        html += section('결제 정보');
-        if (g.paid) html += row('결제 여부', g.paid);
-        if (g.estimate_amount) html += row('견적 총액', g.estimate_amount);
-        if (g.order) html += row('주문 제품', g.order);
-        if (g.order === 'O' && g.delivery) html += row('배송완료', g.delivery);
-        if (g.balance) html += row('잔금 여부', g.balance);
-        if (g.balance === 'O' && g.balance_amount) html += row('잔금 금액', g.balance_amount);
-        if (g.estimate_id) html += row('견적서', `<a href="/estimates/${g.estimate_id}/edit" target="_blank" style="color:var(--accent);">#${g.estimate_id} 보기</a>`);
-    }
-
-    // teal_data (원격/방송룸)
-    const t = d.teal_data;
-    if (t && Object.keys(t).length) {
-        html += `<div class="divider" style="margin:8px 0;"></div>`;
-        html += section('원격/방송룸 정보');
-        if (t.mode) html += row('모드', t.mode === 'remote' ? '🖥 원격' : '🎙 스튜디오');
-        if (t.name) html += row('이름', t.name);
-        if (t.platform) html += row('플랫폼', t.platform);
-        if (t.content) html += row('콘텐츠', t.content);
-        if (t.desc) html += preBlock(t.desc);
-    }
-
-    // 비-gold 특이사항
-    if (d.color !== 'gold') {
-        if (d.client_name) html += row('이름/담당자', d.client_name);
-        if (d.description) {
-            html += `<div class="divider" style="margin:8px 0;"></div>`;
-            html += section('상세 설명');
-            html += preBlock(d.description);
-        }
-    }
-
-    document.getElementById('detailBody').innerHTML = html;
-    document.getElementById('detailOverlay').style.display = 'flex';
+function switchToEditMode() {
+    viewMode = false;
+    // 잠금 해제
+    if(isLocked) toggleLock();
+    // 잠금 버튼 복원, 저장 버튼 복원
+    document.getElementById('lockBtn').style.display='';
+    document.querySelector('.btn-save-top').style.display='';
+    // 푸터의 수정 → 저장으로 복원
+    const saveBtn=document.querySelector('.modal-footer .btn-save');
+    saveBtn.textContent='저장';
+    saveBtn.onclick=()=>{ saveEvent(); };
 }
 
 function closeDetail() {
-    document.getElementById('detailOverlay').style.display = 'none';
+    // viewMode에서 열린 경우 편집 모달을 닫기
+    if(viewMode) {
+        viewMode = false;
+        closeModal();
+        // 푸터 저장 버튼 복원
+        const saveBtn=document.querySelector('.modal-footer .btn-save');
+        if(saveBtn){saveBtn.textContent='저장';saveBtn.onclick=()=>{saveEvent();};}
+    } else {
+        document.getElementById('detailOverlay').style.display = 'none';
+    }
     detailEvent = null;
 }
 
 function editFromDetail() {
     if (!detailEvent) return;
-    closeDetail();
-    openEditModal(detailEvent);
+    switchToEditMode();
 }
 
 function deleteEventFromDetail() {
@@ -1939,6 +1860,14 @@ function openEditModal(ev){
 function closeModal(){
     document.getElementById('modalOverlay').classList.remove('open');editingId=null;
     document.querySelectorAll('.time-picker-popup').forEach(p=>p.remove());
+    // viewMode 복원
+    if(viewMode){
+        viewMode=false;
+        document.getElementById('lockBtn').style.display='';
+        document.querySelector('.btn-save-top').style.display='';
+        const saveBtn=document.querySelector('.modal-footer .btn-save');
+        if(saveBtn){saveBtn.textContent='저장';saveBtn.onclick=()=>{saveEvent();};}
+    }
 }
 
 // ── 데이터 수집 ──
