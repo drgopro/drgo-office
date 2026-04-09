@@ -142,9 +142,12 @@
     .modal-overlay.open { display:flex; }
     .modal-wrapper { position:relative; display:flex; align-items:flex-start; gap:8px; max-height:92vh; }
     .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:660px; max-height:92vh; overflow-y:auto; animation:modalIn 0.22s ease; }
-    .modal-external-close { position:sticky; top:0; flex-shrink:0; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; z-index:1; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    .modal-external-btns { position:sticky; top:0; flex-shrink:0; display:flex; flex-direction:column; gap:8px; z-index:1; }
+    .modal-external-close { background:var(--surface); border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
     .modal-external-close:hover { border-color:var(--red); color:var(--red); background:var(--surface2); }
-    @media (max-width:720px) { .modal-external-close { display:none; } }
+    .modal-external-action { background:var(--accent); color:#1a1207; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.3); letter-spacing:-0.5px; }
+    .modal-external-action:hover { filter:brightness(1.1); }
+    @media (max-width:720px) { .modal-external-btns { display:none; } }
     @keyframes modalIn { from{opacity:0;transform:translateY(18px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
 
     .modal-strip { height:4px; border-radius:16px 16px 0 0; background:var(--accent); transition:background 0.3s; }
@@ -870,7 +873,10 @@
             </div>
         </div>
     </div>
-    <button class="modal-external-close" onclick="closeModal()" title="닫기">✕</button>
+    <div class="modal-external-btns">
+        <button class="modal-external-close" onclick="closeModal()" title="닫기">✕</button>
+        <button class="modal-external-action" id="modalExternalAction" onclick="saveEvent()" title="저장">저장</button>
+    </div>
     </div>{{-- modal-wrapper end --}}
 </div>
 <!-- 견적서 검색 모달 -->
@@ -1748,11 +1754,7 @@ function resetModalForm(){
 function openNewModal(dateStr,timeStr){
     editingId=null; selectedAssignees=[]; viewMode=false;
     resetModalForm();
-    // 저장 버튼 복원
-    document.getElementById('lockBtn').style.display='';
-    document.querySelector('.btn-save-top').style.display='';
-    const saveBtn=document.querySelector('.modal-footer .btn-save');
-    if(saveBtn){saveBtn.textContent='저장';saveBtn.onclick=()=>{saveEvent();};};
+    setEditModeUI();
     setColor('gold');
     document.getElementById('modalTitle').value='';
     // 날짜
@@ -1785,49 +1787,72 @@ let detailEvent = null;
 
 let viewMode = false; // true: 상세보기(읽기전용), false: 편집
 
-function openDetailModal(ev) {
-    if(isGuestUser) return;
-    detailEvent = ev;
-    viewMode = true;
-    // 편집 모달을 읽기전용으로 열기
-    openEditModal(ev);
-    // 모든 입력 비활성화 (잠금 배너 없이)
-    document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=true;});
+function setViewModeUI(){
+    // 모든 입력 비활성화
+    document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input, #modalOverlay select').forEach(el=>{el.disabled=true;});
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='none';});
-    // 잠금 배너 숨기기 (상세보기 모드에서는 불필요)
+    document.querySelectorAll('#modalOverlay .radio-btn').forEach(b=>{b.style.pointerEvents='none';});
+    document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='none';});
+    document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='none';});
+    // 잠금 배너 숨기기
     document.getElementById('lockedBanner').classList.remove('visible');
-    // 잠금 버튼 숨기고, 저장 버튼 숨기고, 수정 버튼 표시
+    isLocked=false;
+    document.getElementById('lockBtn').textContent='🔓';
+    document.getElementById('lockBtn').classList.remove('locked');
+    // 버튼 전환
     document.getElementById('lockBtn').style.display='none';
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
     document.getElementById('btnLog').style.display='';
-    // 푸터의 저장 → 수정으로 변경
+    // 외부 버튼을 수정으로
+    const extBtn=document.getElementById('modalExternalAction');
+    extBtn.textContent='수정';
+    extBtn.style.display='';
+    extBtn.onclick=()=>{switchToEditMode();};
+    // 푸터
     const saveBtn=document.querySelector('.modal-footer .btn-save');
     saveBtn.textContent='수정';
-    saveBtn.onclick=()=>{ switchToEditMode(); };
+    saveBtn.onclick=()=>{switchToEditMode();};
+}
+
+function setEditModeUI(){
+    // 모든 입력 활성화
+    document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input, #modalOverlay select').forEach(el=>{el.disabled=false;});
+    document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='';});
+    document.querySelectorAll('#modalOverlay .radio-btn').forEach(b=>{b.style.pointerEvents='';});
+    document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='';});
+    document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='';});
+    // 버튼 복원
+    document.getElementById('lockBtn').style.display='';
+    document.querySelector('.btn-save-top').style.display='';
+    // 외부 버튼을 저장으로
+    const extBtn=document.getElementById('modalExternalAction');
+    extBtn.textContent='저장';
+    extBtn.onclick=()=>{saveEvent();};
+    // 푸터
+    const saveBtn=document.querySelector('.modal-footer .btn-save');
+    saveBtn.textContent='저장';
+    saveBtn.onclick=()=>{saveEvent();};
+}
+
+function openDetailModal(ev) {
+    if(isGuestUser) return;
+    detailEvent = ev;
+    viewMode = true;
+    openEditModal(ev);
+    // 읽기전용 UI 적용
+    setTimeout(()=>setViewModeUI(),0);
 }
 
 function switchToEditMode() {
     viewMode = false;
-    // 잠금 해제
-    if(isLocked) toggleLock();
-    // 잠금 버튼 복원, 저장 버튼 복원
-    document.getElementById('lockBtn').style.display='';
-    document.querySelector('.btn-save-top').style.display='';
-    // 푸터의 수정 → 저장으로 복원
-    const saveBtn=document.querySelector('.modal-footer .btn-save');
-    saveBtn.textContent='저장';
-    saveBtn.onclick=()=>{ saveEvent(); };
+    setEditModeUI();
 }
 
 function closeDetail() {
-    // viewMode에서 열린 경우 편집 모달을 닫기
     if(viewMode) {
         viewMode = false;
         closeModal();
-        // 푸터 저장 버튼 복원
-        const saveBtn=document.querySelector('.modal-footer .btn-save');
-        if(saveBtn){saveBtn.textContent='저장';saveBtn.onclick=()=>{saveEvent();};}
     } else {
         document.getElementById('detailOverlay').style.display = 'none';
     }
@@ -2030,14 +2055,9 @@ function openEditModal(ev){
 function closeModal(){
     document.getElementById('modalOverlay').classList.remove('open');editingId=null;
     document.querySelectorAll('.time-picker-popup').forEach(p=>p.remove());
-    // viewMode 복원
-    if(viewMode){
-        viewMode=false;
-        document.getElementById('lockBtn').style.display='';
-        document.querySelector('.btn-save-top').style.display='';
-        const saveBtn=document.querySelector('.modal-footer .btn-save');
-        if(saveBtn){saveBtn.textContent='저장';saveBtn.onclick=()=>{saveEvent();};}
-    }
+    // 상태 복원
+    viewMode=false;
+    setEditModeUI();
 }
 
 // ── 데이터 수집 ──
