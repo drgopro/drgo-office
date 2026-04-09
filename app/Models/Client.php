@@ -55,4 +55,9 @@ class Client extends Model
     {
         return $this->hasMany(ClientMemo::class)->orderByDesc('created_at');
     }
+
+    public function estimates()
+    {
+        return $this->hasMany(Estimate::class)->orderByDesc('created_at');
+    }
 }

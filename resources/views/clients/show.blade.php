@@ -52,6 +52,24 @@
 
     .success-msg { background:#1a3a2a; border:1px solid #2a5a3a; color:#7ac87a; padding:10px 16px; border-radius:8px; margin-bottom:16px; font-size:13px; }
 
+    /* 견적서 */
+    .estimate-list { display:flex; flex-direction:column; gap:6px; }
+    .estimate-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; transition:border-color 0.15s; }
+    .estimate-item:hover { border-color:var(--accent); }
+    .estimate-info { display:flex; flex-direction:column; gap:3px; }
+    .estimate-id { font-size:13px; font-weight:600; color:var(--text); }
+    .estimate-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
+    .estimate-amount { font-size:13px; font-weight:600; color:var(--accent); }
+    .estimate-status { font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .est-created { background:var(--surface2); color:var(--text-muted); }
+    .est-editing { background:#2a2010; color:var(--accent); }
+    .est-completed { background:#1a2a1a; color:#7ac87a; }
+    .est-paid { background:#1a2a2a; color:#4ecdc4; }
+    .est-hold { background:#2a1a1a; color:#c87a7a; }
+    .estimate-actions { display:flex; gap:6px; align-items:center; }
+    .estimate-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 12px; border-radius:6px; font-size:11px; cursor:pointer; text-decoration:none; transition:all 0.15s; }
+    .estimate-btn:hover { border-color:var(--accent); color:var(--accent); }
+
     /* 문서 */
     .doc-upload-area { margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border); }
     .doc-upload-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
@@ -322,6 +340,51 @@
                 </div>
             @else
                 <div class="empty-projects">진행 중인 프로젝트가 없습니다.</div>
+            @endif
+        </div>
+
+        <!-- 견적서 목록 -->
+        <div class="info-card full">
+            <div class="card-title" style="display:flex; justify-content:space-between;">
+                <span>견적서 ({{ $client->estimates->count() }}건)</span>
+                @if(Auth::user()->hasPermission('estimates.edit'))
+                    <a href="{{ route('estimates') }}?client_id={{ $client->id }}" class="btn-edit" style="font-size:11px; padding:4px 10px;">+ 새 견적서</a>
+                @endif
+            </div>
+            @if($client->estimates->count() > 0)
+                <div class="estimate-list">
+                    @foreach($client->estimates as $estimate)
+                    <div class="estimate-item">
+                        <div class="estimate-info">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="estimate-id">#{{ $estimate->id }}</span>
+                                <span class="estimate-status est-{{ $estimate->status }}">
+                                    {{ ['created'=>'작성중','editing'=>'수정중','completed'=>'완료','paid'=>'결제완료','hold'=>'보류'][$estimate->status] ?? $estimate->status }}
+                                </span>
+                            </div>
+                            <div class="estimate-meta">
+                                @if($estimate->total_amount)
+                                    <span class="estimate-amount">{{ number_format($estimate->total_amount) }}원</span>
+                                @endif
+                                <span>{{ $estimate->created_at->format('Y.m.d') }}</span>
+                                @if($estimate->creator)
+                                    <span>{{ $estimate->creator->display_name ?? $estimate->creator->name }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="estimate-actions">
+                            @if(Auth::user()->hasPermission('estimates.view'))
+                                <a href="{{ route('estimates.print', $estimate) }}" target="_blank" class="estimate-btn">인쇄</a>
+                            @endif
+                            @if(Auth::user()->hasPermission('estimates.edit'))
+                                <a href="{{ route('estimates.edit', $estimate) }}" target="_blank" class="estimate-btn" style="border-color:var(--accent);color:var(--accent);">편집</a>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="empty-projects">등록된 견적서가 없습니다.</div>
             @endif
         </div>
     </div>

@@ -37,7 +37,7 @@ class ClientController extends Controller
     // 상세
     public function show(Client $client)
     {
-        $client->load('assignedUser', 'projects', 'documents');
+        $client->load('assignedUser', 'projects', 'documents', 'estimates.creator');
 
         return view('clients.show', compact('client'));
     }
