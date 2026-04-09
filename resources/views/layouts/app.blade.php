@@ -195,11 +195,11 @@
             @if(Auth::user()->hasPermission('projects.view'))
                 <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('projects','/projects');">프로젝트</a>
             @endif
-            @if(Auth::user()->hasPermission('inventory.view'))
-                <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');">재고</a>
-            @endif
             @if(Auth::user()->hasPermission('estimates.view'))
                 <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('estimates','/estimates');">견적서</a>
+            @endif
+            @if(Auth::user()->hasPermission('inventory.view'))
+                <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');">재고</a>
             @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
@@ -241,11 +241,11 @@
             @if(Auth::user()->hasPermission('projects.view'))
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('projects','/projects'); drgoTabs.closeMenu();">📁 프로젝트</button>
             @endif
-            @if(Auth::user()->hasPermission('inventory.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('inventory','/inventory'); drgoTabs.closeMenu();">📦 재고</button>
-            @endif
             @if(Auth::user()->hasPermission('estimates.view'))
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('estimates','/estimates'); drgoTabs.closeMenu();">📝 견적서</button>
+            @endif
+            @if(Auth::user()->hasPermission('inventory.view'))
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('inventory','/inventory'); drgoTabs.closeMenu();">📦 재고</button>
             @endif
             @if(Auth::user()->isAdmin())
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();">⚙️ 관리</button>
