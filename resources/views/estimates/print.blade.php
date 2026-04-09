@@ -82,10 +82,18 @@
 <script>
 function savePNG(){
     const el=document.querySelector('.estimate-wrap');
-    html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true}).then(canvas=>{
+    const pad=100; // 50px * scale2
+    html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true}).then(src=>{
+        const c=document.createElement('canvas');
+        c.width=src.width+pad*2;
+        c.height=src.height+pad*2;
+        const ctx=c.getContext('2d');
+        ctx.fillStyle='#fff';
+        ctx.fillRect(0,0,c.width,c.height);
+        ctx.drawImage(src,pad,pad);
         const link=document.createElement('a');
         link.download='견적서_{{ $estimate->id }}_{{ $estimate->client_name ?? "drgo" }}.png';
-        link.href=canvas.toDataURL('image/png');
+        link.href=c.toDataURL('image/png');
         link.click();
     });
 }
