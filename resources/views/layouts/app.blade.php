@@ -32,19 +32,19 @@
             --chip-single-bg: #303030;
         }
         [data-theme="light"] {
-            --bg: #f7f5f0;
-            --surface: #faf8f4;
-            --surface2: #eee9e0;
-            --surface3: #e5dfd5;
-            --border: #d8cfc0;
-            --text: #2c2418;
-            --text-muted: #8a7e6e;
-            --accent: #8a6a3a;
+            --bg: #f5f6f8;
+            --surface: #fafbfc;
+            --surface2: #eef0f3;
+            --surface3: #e4e7ec;
+            --border: #d0d5dd;
+            --text: #1a1e28;
+            --text-muted: #6b7280;
+            --accent: #4a6fa5;
             --accent2: #3a7a9a;
-            --red: #b84444;
-            --blue: #3a7a9a;
-            --green: #3a8a3a;
-            --gold: #8a6a3a;
+            --red: #c04040;
+            --blue: #3a72a4;
+            --green: #2d8a3e;
+            --gold: #a08040;
             --teal: #c06820;
             --purple: #6a3a9a;
             --chip-gold-bg: #c8a870; --chip-gold-text: #3a2a10;
@@ -53,7 +53,7 @@
             --chip-green-bg: #58a858; --chip-green-text: #0a280a;
             --chip-purple-bg: #8860b8; --chip-purple-text: #fff;
             --chip-teal-bg: #d07830; --chip-teal-text: #382008;
-            --chip-single-bg: #eae4d8;
+            --chip-single-bg: #e8eaef;
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }

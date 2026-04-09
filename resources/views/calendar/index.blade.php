@@ -12,7 +12,7 @@
     [data-theme="light"] .dt-input { color-scheme:light; }
     [data-theme="light"] .modal { box-shadow:0 8px 40px rgba(0,0,0,0.12); }
     [data-theme="light"] .time-picker-popup { box-shadow:0 8px 32px rgba(0,0,0,0.15); }
-    [data-theme="light"] .tp-item.selected { background:rgba(138,106,58,0.15); color:var(--accent); }
+    [data-theme="light"] .tp-item.selected { background:rgba(74,111,165,0.15); color:var(--accent); }
     [data-theme="light"] .notif-select { color-scheme:light; }
 
     .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
