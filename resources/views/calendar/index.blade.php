@@ -570,8 +570,8 @@
             <div class="field-group">
                 <label class="field-label">의뢰자 검색</label>
                 <div style="position:relative;">
-                    <input class="field-input" id="clientSearchInput" placeholder="이름/닉네임/전화번호로 검색" autocomplete="off" oninput="searchClients(this.value)">
-                    <div id="clientSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:10;"></div>
+                    <input class="field-input" id="clientSearchInput" placeholder="이름/닉네임/전화번호로 검색" autocomplete="off" oninput="searchClients(this.value)" onfocus="loadRecentClients()">
+                    <div id="clientSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:0 0 8px 8px;max-height:300px;overflow-y:auto;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
                 </div>
             </div>
             <div id="linkedClientInfo" style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:10px;">
@@ -875,16 +875,16 @@
 </div>
 <!-- 견적서 검색 모달 -->
 <div class="modal-overlay" id="estimateSearchOverlay" style="display:none;" onclick="if(event.target===this) this.style.display='none'">
-    <div class="modal" style="max-width:500px; max-height:70vh; overflow-y:auto;">
-        <div class="modal-header">
-            <div class="modal-title">견적서 불러오기</div>
-            <button class="modal-close" onclick="document.getElementById('estimateSearchOverlay').style.display='none'">×</button>
+    <div class="modal" style="max-width:540px; max-height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="padding:16px 20px 12px; flex-shrink:0;">
+            <div style="font-size:16px; font-weight:600;">견적서 불러오기</div>
+            <button class="icon-btn close-btn" onclick="document.getElementById('estimateSearchOverlay').style.display='none'">✕</button>
         </div>
-        <div class="field-group">
-            <input class="field-input" id="estimateSearchInput" type="text" placeholder="의뢰자명 또는 견적서 번호로 검색" oninput="searchEstimates(this.value)">
+        <div style="padding:0 20px 12px; flex-shrink:0;">
+            <input class="field-input" id="estimateSearchInput" type="text" placeholder="🔍 의뢰자명, 견적서 번호로 검색..." oninput="searchEstimates(this.value)">
         </div>
-        <div id="estimateSearchResults" style="max-height:400px; overflow-y:auto;">
-            <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">검색어를 입력하세요</div>
+        <div id="estimateSearchResults" style="flex:1; overflow-y:auto; padding:0 20px 16px;">
+            <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">로딩 중...</div>
         </div>
     </div>
 </div>
@@ -1463,18 +1463,45 @@ function openTimePicker(trigger,hiddenId){
 let linkedClientId=null, linkedProjectId=null;
 let clientSearchTimer=null;
 
+function renderClientList(list){
+    if(!list.length) return '<div style="padding:10px;font-size:12px;color:var(--text-muted);text-align:center;">결과 없음</div>';
+    return list.map(c=>{
+        const nick=c.nickname||'';const nm=c.name||'';const ph=c.phone||'';
+        return `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+            <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectClient(${c.id},'${nick.replace(/'/g,"\\'")}','${nm.replace(/'/g,"\\'")}','${ph.replace(/'/g,"\\'")}')">
+                <span style="font-weight:600;font-size:13px;">${nick||nm}</span>${nick&&nm?' <span style="color:var(--text-muted);font-size:12px;">('+nm+')</span>':''}
+                <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${ph}</span>
+            </div>
+            <button onclick="event.stopPropagation();window.open('/clients/${c.id}','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
+        </div>`;
+    }).join('');
+}
+
 function searchClients(query){
     clearTimeout(clientSearchTimer);
     const results=document.getElementById('clientSearchResults');
-    if(!query.trim()||query.length<1){results.style.display='none';return;}
+    if(!query.trim()||query.length<1){
+        // 빈 입력 → 최근 의뢰자 목록
+        loadRecentClients();
+        return;
+    }
     clientSearchTimer=setTimeout(async()=>{
         const res=await fetch(`/api/clients/search?q=${encodeURIComponent(query)}`);
         if(!res.ok)return;
         const list=await res.json();
-        if(!list.length){results.innerHTML='<div style="padding:10px;font-size:12px;color:var(--text-muted);text-align:center;">결과 없음</div>';results.style.display='';return;}
-        results.innerHTML=list.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="selectClient(${c.id},'${(c.nickname||'').replace(/'/g,"\\'")}','${(c.name||'').replace(/'/g,"\\'")}','${(c.phone||'').replace(/'/g,"\\'")}')"><span style="font-weight:600;">${c.nickname||c.name}</span>${c.nickname&&c.name?' <span style="color:var(--text-muted);">('+c.name+')</span>':''} <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${c.phone||''}</span></div>`).join('');
+        results.innerHTML=renderClientList(list);
         results.style.display='';
     },250);
+}
+
+async function loadRecentClients(){
+    const results=document.getElementById('clientSearchResults');
+    results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:12px;">로딩 중...</div>';
+    results.style.display='';
+    try{
+        const res=await fetch('/api/clients/list?limit=15');
+        if(res.ok){const data=await res.json();const list=data.data||data;results.innerHTML=renderClientList(Array.isArray(list)?list.slice(0,15):[]);}
+    }catch(e){results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:12px;">로드 실패</div>';}
 }
 
 async function selectClient(id,nickname,name,phone){
@@ -1610,24 +1637,48 @@ function resetAttachments(){
 
 // ── 견적서 연동 ──
 let estimateSearchTimer=null;
-function openEstimateSearch(){
+function renderEstimateList(list){
+    const sm={created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
+    if(!list.length) return '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">결과 없음</div>';
+    return list.map(e=>{
+        const amt=e.total_amount?Number(e.total_amount).toLocaleString()+'원':'';
+        const date=e.created_at?(e.created_at.substring(0,10)):'';
+        const name=e.client_nickname||e.client_name||'(이름없음)';
+        return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectEstimate(${e.id},'${name.replace(/'/g,"\\'")}',${e.total_amount||0})">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;font-weight:600;">#${e.id}</span>
+                    <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+                    <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--text-muted);">
+                    ${amt?'<span style="color:var(--accent);">'+amt+'</span>':''}
+                    ${date?'<span>'+date+'</span>':''}
+                </div>
+            </div>
+            <button onclick="event.stopPropagation();window.open('/estimates/${e.id}/edit','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
+        </div>`;
+    }).join('');
+}
+
+async function openEstimateSearch(){
     document.getElementById('estimateSearchOverlay').style.display='flex';
     document.getElementById('estimateSearchInput').value='';
-    document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">검색어를 입력하세요</div>';
+    document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로딩 중...</div>';
     setTimeout(()=>document.getElementById('estimateSearchInput').focus(),50);
+    // 최근 목록 자동 로드
+    try{
+        const res=await fetch('/api/estimates');
+        if(res.ok){const data=await res.json();const list=data.data||data;document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);}
+    }catch(e){document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로드 실패</div>';}
 }
 function searchEstimates(query){
     clearTimeout(estimateSearchTimer);
-    if(!query.trim()){document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">검색어를 입력하세요</div>';return;}
+    if(!query.trim()){openEstimateSearch();return;}
     estimateSearchTimer=setTimeout(async()=>{
         const res=await fetch(`/api/estimates?search=${encodeURIComponent(query)}`);if(!res.ok)return;
         const data=await res.json();const list=data.data||data;
-        if(!list.length){document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">결과 없음</div>';return;}
-        document.getElementById('estimateSearchResults').innerHTML=list.map(e=>{
-            const sm={created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
-            const amt=e.total_amount?Number(e.total_amount).toLocaleString()+'원':'';
-            return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" onclick="selectEstimate(${e.id},'${(e.client_nickname||e.client_name||'').replace(/'/g,"\\'")}',${e.total_amount||0})"><div style="display:flex;justify-content:space-between;align-items:center;"><div><span style="font-size:13px;font-weight:600;">#${e.id}</span><span style="font-size:13px;margin-left:8px;">${e.client_nickname||e.client_name||'(이름없음)'}</span></div><div style="display:flex;gap:6px;align-items:center;"><span style="font-size:12px;color:var(--accent);">${amt}</span><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);">${sm[e.status]||e.status}</span></div></div></div>`;
-        }).join('');
+        document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);
     },300);
 }
 function selectEstimate(id,name,amount){
