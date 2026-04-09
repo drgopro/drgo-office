@@ -15,13 +15,8 @@ class ActivityLogController extends Controller
             $query->where('loggable_type', 'App\\Models\\'.$request->type);
         }
 
-        if ($request->filled('id')) {
+        if ($request->filled('id') && $request->integer('id') > 0) {
             $query->where('loggable_id', $request->id);
-        }
-
-        if ($request->filled('type') && $request->filled('id')) {
-            $query->where('loggable_type', 'App\\Models\\'.$request->type)
-                ->where('loggable_id', $request->id);
         }
 
         $logs = $query->limit($request->integer('limit', 50))->get();

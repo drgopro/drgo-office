@@ -93,6 +93,7 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">재고 관리</div>
+        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Product',0,'재고 전체 수정 로그')">📋 수정 로그</button>
     </div>
 
     <div class="tab-bar">
@@ -477,6 +478,7 @@ async function loadProducts() {
         <td class="text-right">${p.safety_stock||'-'}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td>
+            <button class="btn-outline btn-sm" onclick="openActivityLog('Product',${p.id},'제품 '+p.name+' 수정 로그')">📋</button>
             <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </td>
