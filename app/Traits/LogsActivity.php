@@ -33,25 +33,36 @@ trait LogsActivity
                     $oldArr = $oldArr ?: [];
                     $newArr = $newArr ?: [];
                     $parentLabel = self::fieldLabel($key);
-                    $allKeys = array_unique(array_merge(array_keys($oldArr), array_keys($newArr)));
-                    $hasInnerChange = false;
-                    foreach ($allKeys as $subKey) {
-                        if (is_int($subKey)) {
-                            continue;
-                        } // 배열 인덱스 건너뛰기
-                        $ov = $oldArr[$subKey] ?? null;
-                        $nv = $newArr[$subKey] ?? null;
-                        if (json_encode($ov) !== json_encode($nv)) {
-                            $subLabel = self::fieldLabel($subKey);
-                            $changes[$parentLabel.' > '.$subLabel] = [
-                                'old' => self::formatValue($subKey, $ov),
-                                'new' => self::formatValue($subKey, $nv),
-                            ];
-                            $hasInnerChange = true;
+
+                    // 단순 배열 (["유튜브","인스타"] 등) → 쉼표로 합쳐서 표시
+                    $isSimpleArray = ! empty($oldArr) ? array_is_list($oldArr) : (! empty($newArr) ? array_is_list($newArr) : false);
+                    if ($isSimpleArray) {
+                        $changes[$parentLabel] = [
+                            'old' => ! empty($oldArr) ? implode(', ', $oldArr) : '—',
+                            'new' => ! empty($newArr) ? implode(', ', $newArr) : '—',
+                        ];
+                    } else {
+                        // 연관 배열 (gold_data 등) → 키별 diff
+                        $allKeys = array_unique(array_merge(array_keys($oldArr), array_keys($newArr)));
+                        $hasInnerChange = false;
+                        foreach ($allKeys as $subKey) {
+                            if (is_int($subKey)) {
+                                continue;
+                            }
+                            $ov = $oldArr[$subKey] ?? null;
+                            $nv = $newArr[$subKey] ?? null;
+                            if (json_encode($ov) !== json_encode($nv)) {
+                                $subLabel = self::fieldLabel($subKey);
+                                $changes[$parentLabel.' > '.$subLabel] = [
+                                    'old' => self::formatValue($subKey, $ov),
+                                    'new' => self::formatValue($subKey, $nv),
+                                ];
+                                $hasInnerChange = true;
+                            }
                         }
-                    }
-                    if (! $hasInnerChange) {
-                        $changes[$parentLabel] = ['old' => '(변경됨)', 'new' => '(변경됨)'];
+                        if (! $hasInnerChange) {
+                            $changes[$parentLabel] = ['old' => '(변경됨)', 'new' => '(변경됨)'];
+                        }
                     }
                 } else {
                     $label = self::fieldLabel($key);
