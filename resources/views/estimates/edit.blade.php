@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
+    <script>(function(){var t=localStorage.getItem('drgo_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>견적서 #{{ $estimate->id }} - 닥터고블린 오피스</title>
     <style>
-        :root { --bg:#0f0f0f; --surface:#1a1a1a; --surface2:#222; --border:#2a2a2a; --text:#f0e8d8; --text-muted:rgba(240,232,216,0.45); --accent:#c8b08a; --red:#c87a7a; --green:#7ac87a; --blue:#8ab4c8; }
+        :root, [data-theme="dark"] { --bg:#111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --red:#d48888; --green:#88d488; --blue:#8ab4c8; }
+        [data-theme="light"] { --bg:#f4f5f7; --surface:#fff; --surface2:#eceef2; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --red:#c03838; --green:#248a38; --blue:#2e6a9a; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; display:flex; height:100vh; overflow:hidden; }
 
