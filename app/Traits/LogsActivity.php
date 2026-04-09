@@ -15,12 +15,45 @@ trait LogsActivity
 
         static::updated(function ($model) {
             $changes = [];
+            $jsonFields = ['gold_data', 'teal_data', 'special_opts', 'sched_event_opts', 'product_items', 'service_items', 'platforms', 'content_types', 'phones', 'items'];
+
             foreach ($model->getDirty() as $key => $newVal) {
                 if (in_array($key, ['updated_at', 'created_at'])) {
                     continue;
                 }
                 $oldVal = $model->getOriginal($key);
-                if (json_encode($oldVal) !== json_encode($newVal)) {
+                if (json_encode($oldVal) === json_encode($newVal)) {
+                    continue;
+                }
+
+                // JSON 필드는 내부 diff로 분해
+                if (in_array($key, $jsonFields)) {
+                    $oldArr = is_array($oldVal) ? $oldVal : (is_string($oldVal) ? json_decode($oldVal, true) : []);
+                    $newArr = is_array($newVal) ? $newVal : (is_string($newVal) ? json_decode($newVal, true) : []);
+                    $oldArr = $oldArr ?: [];
+                    $newArr = $newArr ?: [];
+                    $parentLabel = self::fieldLabel($key);
+                    $allKeys = array_unique(array_merge(array_keys($oldArr), array_keys($newArr)));
+                    $hasInnerChange = false;
+                    foreach ($allKeys as $subKey) {
+                        if (is_int($subKey)) {
+                            continue;
+                        } // 배열 인덱스 건너뛰기
+                        $ov = $oldArr[$subKey] ?? null;
+                        $nv = $newArr[$subKey] ?? null;
+                        if (json_encode($ov) !== json_encode($nv)) {
+                            $subLabel = self::fieldLabel($subKey);
+                            $changes[$parentLabel.' > '.$subLabel] = [
+                                'old' => self::formatValue($subKey, $ov),
+                                'new' => self::formatValue($subKey, $nv),
+                            ];
+                            $hasInnerChange = true;
+                        }
+                    }
+                    if (! $hasInnerChange) {
+                        $changes[$parentLabel] = ['old' => '(변경됨)', 'new' => '(변경됨)'];
+                    }
+                } else {
                     $label = self::fieldLabel($key);
                     $changes[$label] = ['old' => self::formatValue($key, $oldVal), 'new' => self::formatValue($key, $newVal)];
                 }
@@ -133,6 +166,21 @@ trait LogsActivity
             // 첨부파일
             'file_name' => '파일명', 'file_path' => '파일경로', 'file_size' => '파일크기',
             'mime_type' => '파일유형', 'attachment_type' => '첨부유형',
+            // gold_data 내부 필드
+            'nickname' => '닉네임', 'platform' => '플랫폼', 'career' => '경력',
+            'source' => '유입경로', 'topic' => '방송주제', 'equipment' => '장비목록',
+            'request_topic' => '의뢰주제', 'req_topic' => '의뢰주제',
+            'req_detail' => '의뢰세부', 'special' => '특이사항',
+            'specialReason' => '특수옵션사유', 'paid' => '결제여부',
+            'estimate_amount' => '견적총액', 'order' => '주문제품',
+            'delivery' => '배송완료', 'balance' => '잔금여부',
+            'balance_amount' => '잔금금액', 'estimate_id' => '연결견적서',
+            'client_id' => '의뢰자', 'project_id' => '프로젝트',
+            'platform_etc' => '플랫폼(기타)', 'topic_etc' => '방송주제(기타)',
+            'budget_etc' => '예산(직접입력)', 'source_ref' => '소개자',
+            'req_topic_etc' => '의뢰주제(기타)',
+            // teal_data 내부 필드
+            'mode' => '모드', 'desc' => '설명',
         ];
 
         return $labels[$key] ?? $key;
