@@ -60,12 +60,12 @@
     .estimate-id { font-size:13px; font-weight:600; color:var(--text); }
     .estimate-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
     .estimate-amount { font-size:13px; font-weight:600; color:var(--accent); }
-    .estimate-status { font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
-    .est-created { background:var(--surface2); color:var(--text-muted); }
-    .est-editing { background:#2a2010; color:var(--accent); }
-    .est-completed { background:#1a2a1a; color:#7ac87a; }
-    .est-paid { background:#1a2a2a; color:#4ecdc4; }
-    .est-hold { background:#2a1a1a; color:#c87a7a; }
+    .estimate-status { font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; letter-spacing:0.03em; border:1px solid; }
+    .est-created { background:rgba(107,114,128,0.1); color:#6b7280; border-color:rgba(107,114,128,0.3); }
+    .est-editing { background:rgba(200,176,138,0.15); color:var(--accent); border-color:rgba(200,176,138,0.4); }
+    .est-completed { background:rgba(34,197,94,0.12); color:#22c55e; border-color:rgba(34,197,94,0.35); }
+    .est-paid { background:rgba(6,182,212,0.12); color:#06b6d4; border-color:rgba(6,182,212,0.35); }
+    .est-hold { background:rgba(239,68,68,0.12); color:#ef4444; border-color:rgba(239,68,68,0.35); }
     .estimate-actions { display:flex; gap:6px; align-items:center; }
     .estimate-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 12px; border-radius:6px; font-size:11px; cursor:pointer; text-decoration:none; transition:all 0.15s; }
     .estimate-btn:hover { border-color:var(--accent); color:var(--accent); }
