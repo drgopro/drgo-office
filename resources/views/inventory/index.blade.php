@@ -93,7 +93,7 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">재고 관리</div>
-        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Product',0,'재고 전체 수정 로그')">📋 수정 로그</button>
+        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Product,ProductCategory,StockMovement,PurchaseOrder',0,'재고 전체 수정 로그')">📋 수정 로그</button>
     </div>
 
     <div class="tab-bar">

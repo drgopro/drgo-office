@@ -11,7 +11,7 @@
     .back-btn:hover { color:var(--text); }
     .client-name { font-size:22px; font-weight:700; }
     .client-nickname { font-size:14px; color:var(--text-muted); margin-top:2px; }
-    .btn-edit { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:13px; text-decoration:none; }
+    .btn-edit { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:13px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
     .btn-edit:hover { border-color:var(--accent); color:var(--accent); }
     .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; }
 
@@ -161,7 +161,7 @@
             </div>
         </div>
         <div style="display:flex; gap:8px;">
-            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'의뢰자 {{ $client->name }} 수정 로그')">📋 로그</button>
+            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'{{ $client->name }} 수정 로그')">📋 로그</button>
             <a href="{{ route('clients.edit', $client) }}" class="btn-edit">수정</a>
             <a href="#" class="btn-primary" onclick="openProjectModal(); return false;">+ 프로젝트</a>
         </div>
