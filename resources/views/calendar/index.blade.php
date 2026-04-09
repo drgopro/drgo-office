@@ -11,9 +11,27 @@
     [data-theme="light"] .event-chip.single { background:var(--chip-single-bg); color:var(--text); }
     [data-theme="light"] .dt-input { color-scheme:light; }
     [data-theme="light"] .modal { box-shadow:0 8px 40px rgba(0,0,0,0.12); }
+    [data-theme="light"] .modal-overlay { background:rgba(0,0,0,0.45); }
     [data-theme="light"] .time-picker-popup { box-shadow:0 8px 32px rgba(0,0,0,0.15); }
-    [data-theme="light"] .tp-item.selected { background:rgba(74,111,165,0.15); color:var(--accent); }
+    [data-theme="light"] .tp-item.selected { background:rgba(59,94,160,0.15); color:var(--accent); }
     [data-theme="light"] .notif-select { color-scheme:light; }
+    /* 라이트모드 버튼 대비 강화 */
+    [data-theme="light"] .nav-btn { border-color:#a0a8b4; color:#5a6070; }
+    [data-theme="light"] .icon-btn { border-color:#a0a8b4; color:#5a6070; }
+    [data-theme="light"] .radio-btn { border-color:#b0b8c4; color:#4a5060; }
+    [data-theme="light"] .radio-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    [data-theme="light"] .special-opt-btn { border-color:#b0b8c4; color:#4a5060; background:#f0f1f4; }
+    [data-theme="light"] .special-opt-btn.active { background:rgba(59,94,160,0.12); border-color:var(--accent); color:var(--accent); }
+    [data-theme="light"] .sched-opt-btn { border-color:#b0b8c4; color:#4a5060; background:#f0f1f4; }
+    [data-theme="light"] .filter-btn { border-color:#a0a8b4; color:#4a5060; }
+    [data-theme="light"] .add-btn { background:var(--accent); color:#fff; }
+    [data-theme="light"] .btn-save { background:var(--accent); color:#fff; }
+    [data-theme="light"] .btn-save-top { background:var(--accent); color:#fff; }
+    [data-theme="light"] .modal-external-action { background:var(--accent); color:#fff; }
+    [data-theme="light"] .modal-external-close { background:#fff; border-color:#a0a8b4; }
+    [data-theme="light"] .action-btn { border-color:#a0a8b4; color:#4a5060; background:#f0f1f4; }
+    [data-theme="light"] .field-input, [data-theme="light"] .field-textarea { border-color:#b8bcc8; background:#fff; }
+    [data-theme="light"] .color-dot { border-color:transparent; }
 
     .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
     .cal-header-left { display:flex; align-items:center; gap:16px; }
@@ -584,7 +602,7 @@
                         <div style="font-size:13px;font-weight:600;" id="linkedClientName"></div>
                     </div>
                     <div style="display:flex;gap:6px;">
-                        <a id="linkedClientLink" href="#" target="_blank" class="radio-btn" style="font-size:11px;padding:3px 10px;text-decoration:none;">보기</a>
+                        <a id="linkedClientLink" href="#" target="_blank" data-always-active style="font-size:11px;padding:3px 10px;text-decoration:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);display:inline-flex;align-items:center;">보기</a>
                         <button type="button" onclick="unlinkClient()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
                     </div>
                 </div>
@@ -778,8 +796,8 @@
                                 <div style="font-size:13px;font-weight:600;" id="linkedEstimateTitle"></div>
                             </div>
                             <div style="display:flex;gap:6px;">
-                                <button type="button" onclick="openLinkedEstimate()" class="radio-btn" style="font-size:11px;padding:3px 10px;">보기</button>
-                                <button type="button" onclick="unlinkEstimate()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
+                                <button type="button" onclick="openLinkedEstimate()" class="estimate-btn" data-always-active style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);cursor:pointer;">보기</button>
+                                <button type="button" onclick="unlinkEstimate()" data-always-active style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
                             </div>
                         </div>
                     </div>
@@ -1791,9 +1809,11 @@ function setViewModeUI(){
     // 모든 입력 비활성화
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input, #modalOverlay select').forEach(el=>{el.disabled=true;});
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='none';});
-    document.querySelectorAll('#modalOverlay .radio-btn').forEach(b=>{b.style.pointerEvents='none';});
+    document.querySelectorAll('#modalOverlay .radio-btn:not([data-always-active])').forEach(b=>{b.style.pointerEvents='none';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='none';});
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='none';});
+    // 보기/해제 버튼은 항상 활성화
+    document.querySelectorAll('#modalOverlay [data-always-active]').forEach(b=>{b.style.pointerEvents='auto';});
     // 잠금 배너 숨기기
     document.getElementById('lockedBanner').classList.remove('visible');
     isLocked=false;
