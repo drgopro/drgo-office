@@ -270,6 +270,24 @@
     .assignee-chip.selected { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:600; }
     .assignee-chip:hover { border-color:var(--accent); }
 
+    /* ── 장소/주소 ── */
+    .location-input-wrap { display:flex; flex-direction:column; gap:6px; }
+    .addr-search-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all 0.2s; }
+    .addr-search-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(200,176,138,.1); }
+    .route-search-btn { display:none; align-items:center; gap:4px; padding:6px 10px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all 0.2s; }
+    .route-search-btn:hover { background:rgba(249,224,0,0.18); border-color:#F9E000; color:#e8cc10; }
+
+    /* ── 공휴일 ── */
+    .holiday-btn-wrap { margin-bottom:4px; }
+    .holiday-dot { font-size:12px; color:var(--text-muted); cursor:pointer; padding:3px 8px; border-radius:4px; transition:all 0.15s; }
+    .holiday-dot:hover { background:rgba(200,122,122,0.1); color:var(--red); }
+    .holiday-dot.active { background:rgba(200,122,122,0.18); color:var(--red); border:1px solid rgba(200,122,122,0.35); }
+
+    /* ── 일반 첨부 ── */
+    .upload-zone { border:1px dashed var(--border); border-radius:10px; padding:16px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; }
+    .upload-zone:hover, .upload-zone.drag-over { border-color:var(--accent); background:rgba(200,176,138,0.04); }
+    .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+
     /* ── gold/teal 조건부 ── */
     .gold-only, .teal-only, .common-only { display:none; }
 </style>
@@ -372,7 +390,7 @@
                 <div class="location-input-wrap">
                     <textarea class="field-input field-textarea" id="modalLocation" placeholder="장소를 입력하세요" autocomplete="off" rows="2" style="min-height:40px;resize:none;"></textarea>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">🔍 주소 검색</button>
+                        <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색">🔍 주소 검색</button>
                     </div>
                 </div>
                 <input type="hidden" id="modalAddress" value="">
