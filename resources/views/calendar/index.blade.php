@@ -324,17 +324,15 @@
 
 <!-- 일정 모달 -->
 <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
+    <div class="modal" id="modal">
         <div class="modal-strip" id="modalStrip"></div>
-        <div id="lockedBanner" class="locked-banner">🔒 내용이 고정되어 있습니다. 잠금을 해제해야 수정할 수 있습니다.</div>
-        <div id="balanceBanner" class="balance-banner"><span>💰</span><span id="balanceBannerText">잔금 있음</span></div>
         <div class="modal-header">
             <div style="flex:1">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                     <span class="modal-date-badge" id="modalDateBadge"></span>
                     <span class="type-badge gold" id="typeBadge">● 방문의뢰</span>
                 </div>
-                <div class="color-row" id="colorRow">
+                <div class="color-row" id="colorRow" style="margin-bottom:4px;flex-wrap:wrap;">
                     <div class="color-dot active" data-color="gold">방문의뢰</div>
                     <div class="color-dot" data-color="teal">원격/방송룸</div>
                     <div class="color-dot" data-color="blue">사내업무</div>
@@ -342,27 +340,40 @@
                     <div class="color-dot" data-color="green">촬영/스튜디오</div>
                     <div class="color-dot" data-color="purple">미팅/내방</div>
                 </div>
-                <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요" rows="1"></textarea>
-                <button class="assignee-btn" id="assigneeBtn" onclick="toggleAssigneePanel()">
+                <div class="holiday-btn-wrap" style="margin-bottom:4px;">
+                    <span class="holiday-dot" id="holidayDot" style="font-size:12px;color:var(--text-muted);cursor:pointer;">📅 공휴일로 지정</span>
+                </div>
+                <div class="title-wrap">
+                    <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요" rows="1"></textarea>
+                </div>
+                <button class="assignee-btn" id="assigneeBtn" onclick="toggleAssigneePanel()" title="담당자 지정">
                     <span id="assigneeBtnIcon">👤</span>
                     <span id="assigneeBtnLabel">담당자 지정</span>
                 </button>
                 <div class="assignee-list" id="assigneeList" style="display:none;margin-top:8px;"></div>
             </div>
             <div class="modal-header-btns">
+                <span id="privateModeBadge" style="display:none;font-size:11px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa55;border-radius:6px;padding:2px 8px;font-weight:600;">🔒 개인</span>
                 <button class="icon-btn" id="lockBtn" onclick="toggleLock()" title="내용 고정">🔓</button>
                 <button class="btn-save-top" onclick="saveEvent()">저장</button>
                 <button class="icon-btn close-btn" onclick="closeModal()">✕</button>
             </div>
         </div>
+        <div class="locked-banner" id="lockedBanner">🔒&nbsp; 이 일정은 고정되어 있습니다 — 수정하려면 자물쇠를 해제하세요</div>
+        <div id="balanceBanner" style="display:none;align-items:center;gap:8px;background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.35);border-radius:8px;padding:8px 14px;font-size:12px;letter-spacing:0.05em;color:#e07070;margin:10px 28px 0;">
+            <span style="font-size:15px;">💰</span>
+            <span id="balanceBannerText">잔금 있음</span>
+        </div>
 
         <div class="modal-body">
             {{-- 장소 --}}
             <div class="field-group">
-                <label class="field-label">장소</label>
-                <textarea class="field-textarea" id="modalLocation" placeholder="장소를 입력하세요" rows="2" style="min-height:50px;"></textarea>
-                <div style="display:flex;gap:6px;margin-top:6px;">
-                    <button type="button" class="radio-btn" onclick="searchCalAddr()">🔍 주소 검색</button>
+                <label class="field-label" for="modalLocation">장소</label>
+                <div class="location-input-wrap">
+                    <textarea class="field-input field-textarea" id="modalLocation" placeholder="장소를 입력하세요" autocomplete="off" rows="2" style="min-height:40px;resize:none;"></textarea>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">🔍 주소 검색</button>
+                    </div>
                 </div>
                 <input type="hidden" id="modalAddress" value="">
             </div>
@@ -389,18 +400,18 @@
                         <div class="time-picker-trigger dt-input" id="endTimeTrigger" onclick="openTimePicker(this,'endTime')">14:00</div>
                     </div>
                 </div>
-                <div id="goldDtRow" style="display:none;align-items:center;gap:6px;">
-                    <input class="dt-input" type="date" id="goldStartDate">
+                <div id="goldDtRow" style="display:none;align-items:center;gap:6px;flex-wrap:nowrap;width:100%;">
+                    <input class="dt-input" type="date" id="goldStartDate" style="flex:2;min-width:0;">
                     <input type="hidden" id="goldStartTime" value="13:00">
-                    <div class="time-picker-trigger dt-input" id="goldStartTimeTrigger" onclick="openTimePicker(this,'goldStartTime')">13:00</div>
-                    <span style="color:var(--text-muted);font-size:13px;">~</span>
+                    <div class="time-picker-trigger dt-input" id="goldStartTimeTrigger" onclick="openTimePicker(this,'goldStartTime')" style="flex:1;min-width:0;">13:00</div>
+                    <span style="color:var(--text-muted);font-size:13px;flex-shrink:0;">~</span>
                     <input type="hidden" id="goldEndTime" value="14:00">
-                    <div class="time-picker-trigger dt-input" id="goldEndTimeTrigger" onclick="openTimePicker(this,'goldEndTime')">14:00</div>
+                    <div class="time-picker-trigger dt-input" id="goldEndTimeTrigger" onclick="openTimePicker(this,'goldEndTime')" style="flex:1;min-width:0;">14:00</div>
                 </div>
             </div>
 
             {{-- 알림 --}}
-            <div class="field-group">
+            <div class="field-group" id="notifGroup">
                 <label class="field-label">🔔 알림</label>
                 <div class="notif-row">
                     <select class="notif-select" id="notifSelect">
@@ -410,15 +421,16 @@
                         <option value="10">10분 전</option>
                         <option value="15">15분 전</option>
                         <option value="30">30분 전</option>
-                        <option value="60" selected>1시간 전</option>
+                        <option value="60">1시간 전</option>
                         <option value="120">2시간 전</option>
                         <option value="1440">하루 전 오전 9시</option>
                     </select>
+                    <span class="notif-allday-label" id="notifAlldayLabel" style="display:none;">당일 오전 9시 발송</span>
                 </div>
             </div>
 
             {{-- 일정 옵션 --}}
-            <div class="field-group">
+            <div class="field-group" style="margin-top:10px;">
                 <div class="field-label">일정 옵션</div>
                 <div class="special-opts" id="schedEventOpts">
                     <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
@@ -426,26 +438,30 @@
                     <div class="special-opt-btn" data-seopt="after"><span class="opt-icon">→</span><span id="schedAfterLabel">날짜 선택</span> 이후 희망</div>
                 </div>
                 <div id="schedReasonWrap" style="display:none;margin-top:6px;">
-                    <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)">
+                    <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
                 </div>
             </div>
 
-            <div class="field-group">
+            <div class="field-group" style="margin-top:10px;">
                 <div class="field-label">일정 관련 옵션</div>
                 <div class="special-opts" id="scheduleOpts">
                     <div class="sched-opt-btn" data-sopt="suggest"><span class="opt-icon">💬</span>제안</div>
                     <div class="sched-opt-btn" data-sopt="hope"><span class="opt-icon">🙏</span>희망</div>
                     <div class="sched-opt-btn" data-sopt="target"><span class="opt-icon">🎯</span>목표</div>
                 </div>
+                <div class="sched-opt-desc" id="schedOptDesc"></div>
             </div>
 
-            <div class="field-group">
+            <div class="field-group" style="margin-top:10px;">
                 <div class="field-label">특수 옵션</div>
                 <div class="special-opts" id="specialOpts">
                     <div class="special-opt-btn" data-opt="car"><span class="opt-icon">🚗</span>차량 이용 필요</div>
-                    <div class="special-opt-btn" data-opt="product"><span class="opt-icon">💼</span>들고 갈 제품 있음</div>
-                    <div class="special-opt-btn" data-opt="two_person"><span class="opt-icon">👥</span>2인필수 작업</div>
+                    <div class="special-opt-btn" data-opt="brief"><span class="opt-icon">💼</span>들고 갈 제품 있음</div>
+                    <div class="special-opt-btn" data-opt="group"><span class="opt-icon">👥</span>2인필수 작업</div>
                     <div class="special-opt-btn" data-opt="ladder"><span class="opt-icon">▤</span>사다리 필요</div>
+                </div>
+                <div id="specialReasonWrap" style="display:none;margin-top:6px;">
+                    <input class="field-input" id="specialReason" placeholder="특수옵션 사유 (선택)" style="font-size:13px;">
                 </div>
             </div>
 
@@ -496,22 +512,24 @@
                     <div class="field-group"><label class="field-label">전화번호</label><input class="field-input" id="g_phone" placeholder="010-0000-0000"></div>
                 </div>
 
-                <div class="field-group">
-                    <label class="field-label">플랫폼</label>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <div class="radio-group" id="g_platform_group">
-                            <div class="radio-btn" data-val="SOOP">SOOP</div>
-                            <div class="radio-btn" data-val="치지직">치지직</div>
-                            <div class="radio-btn" data-val="유튜브">유튜브</div>
-                            <div class="radio-btn" data-val="틱톡">틱톡</div>
-                            <div class="radio-btn" data-val="기타">기타</div>
+                <div class="field-row">
+                    <div class="field-group" style="flex:1;">
+                        <label class="field-label">플랫폼</label>
+                        <div id="g_platform_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
+                            <div class="radio-group" id="g_platform_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
+                                <div class="radio-btn" data-val="SOOP">SOOP</div>
+                                <div class="radio-btn" data-val="치지직">치지직</div>
+                                <div class="radio-btn" data-val="유튜브">유튜브</div>
+                                <div class="radio-btn" data-val="틱톡">틱톡</div>
+                                <div class="radio-btn" data-val="기타">기타</div>
+                            </div>
+                            <div class="conditional-field" id="g_platform_etc_wrap" style="margin-top:0;flex:1;min-width:80px;"><input class="field-input" id="g_platform_etc" placeholder="직접 입력" style="font-size:13px;"></div>
                         </div>
-                        <div class="conditional-field" id="g_platform_etc_wrap"><input class="field-input" id="g_platform_etc" placeholder="직접 입력"></div>
                     </div>
                 </div>
 
                 <div class="field-row">
-                    <div class="field-group">
+                    <div class="field-group" style="flex:0 0 auto;">
                         <label class="field-label">경력 여부</label>
                         <div class="radio-group" id="g_career_group">
                             <div class="radio-btn active" data-val="처음">처음</div>
@@ -519,23 +537,23 @@
                             <div class="radio-btn" data-val="경력">경력</div>
                         </div>
                     </div>
-                    <div class="field-group">
+                    <div class="field-group" style="flex:1;">
                         <label class="field-label">유입 경로</label>
-                        <div style="display:flex;gap:6px;align-items:center;">
-                            <div class="radio-group" id="g_source_group">
+                        <div id="g_source_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
+                            <div class="radio-group" id="g_source_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
                                 <div class="radio-btn" data-val="광고">📢 광고</div>
                                 <div class="radio-btn" data-val="검색">🔍 검색</div>
                                 <div class="radio-btn" data-val="소개">🤝 소개</div>
                             </div>
-                            <div class="conditional-field" id="g_source_ref_wrap"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름"></div>
+                            <div class="conditional-field" id="g_source_ref_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름" style="font-size:13px;"></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="field-group">
                     <label class="field-label">방송 주제</label>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <div class="radio-group" id="g_topic_group">
+                    <div id="g_topic_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
+                        <div class="radio-group" id="g_topic_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
                             <div class="radio-btn" data-val="소통">소통</div>
                             <div class="radio-btn" data-val="먹방">먹방</div>
                             <div class="radio-btn" data-val="게임">게임</div>
@@ -544,20 +562,20 @@
                             <div class="radio-btn" data-val="주식/코인">주식/코인</div>
                             <div class="radio-btn" data-val="기타">기타</div>
                         </div>
-                        <div class="conditional-field" id="g_topic_etc_wrap"><input class="field-input" id="g_topic_etc" placeholder="직접 입력"></div>
+                        <div class="conditional-field" id="g_topic_etc_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_topic_etc" placeholder="방송 주제를 직접 입력하세요" style="font-size:13px;"></div>
                     </div>
                 </div>
 
-                <div class="field-group">
+                <div class="field-group" style="margin-top:10px;">
                     <label class="field-label">예산 성향</label>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <div class="radio-group" id="g_budget_group">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                        <div class="radio-group" id="g_budget_group" style="flex-wrap:wrap;gap:5px;">
                             <div class="radio-btn" data-val="풍족">풍족</div>
                             <div class="radio-btn" data-val="부족">부족</div>
                             <div class="radio-btn" data-val="모름">모름</div>
                             <div class="radio-btn" data-val="직접입력">직접입력</div>
                         </div>
-                        <div class="conditional-field" id="g_budget_etc_wrap"><input class="field-input" id="g_budget_etc" placeholder="예산 직접 입력"></div>
+                        <div class="conditional-field" id="g_budget_etc_wrap" style="margin-top:0;flex:1;min-width:120px;"><input class="field-input" id="g_budget_etc" placeholder="예산 직접 입력" style="font-size:13px;"></div>
                     </div>
                 </div>
 
@@ -598,45 +616,46 @@
 
                 <div class="section-heading">결제 정보</div>
                 <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-                    <div class="field-group">
+                    <div class="field-group" style="flex:none;">
                         <div class="field-label">결제 여부</div>
                         <div class="radio-group" id="g_paid_group">
                             <div class="radio-btn active" data-val="미결제">미결제</div>
                             <div class="radio-btn" data-val="결제완료">결제완료</div>
                         </div>
                     </div>
-                    <div class="field-group" style="flex:1;">
+                    <div class="field-group" style="flex:1;min-width:0;">
                         <label class="field-label">견적 총액</label>
                         <div style="display:flex;align-items:center;gap:6px;">
-                            <input class="field-input" id="g_estimate_amount" placeholder="금액 입력" type="text">
-                            <button type="button" onclick="extractEstimateAmount()" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer;white-space:nowrap;">🔍 추출</button>
+                            <input class="field-input" id="g_estimate_amount" placeholder="금액 입력" type="text" style="flex:1;min-width:0;">
+                            <button type="button" id="g_estimate_btn" onclick="extractEstimateAmount()" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔍 추출</button>
+                            <span id="g_estimate_status" style="font-size:11px;color:var(--text-muted);white-space:nowrap;"></span>
                         </div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-                    <div class="field-group">
+                    <div class="field-group" style="flex:none;">
                         <div class="field-label">주문 제품</div>
                         <div class="radio-group" id="g_order_group">
                             <div class="radio-btn active" data-val="X">X</div>
                             <div class="radio-btn" data-val="O">O</div>
                         </div>
                     </div>
-                    <div class="field-group" id="g_delivery_wrap" style="display:none;">
+                    <div class="field-group" id="g_delivery_wrap" style="flex:none;display:none;">
                         <div class="field-label">배송완료</div>
                         <div class="radio-group" id="g_delivery_group">
                             <div class="radio-btn active" data-val="X">X</div>
                             <div class="radio-btn" data-val="O">O</div>
                         </div>
                     </div>
-                    <div class="field-group">
+                    <div class="field-group" style="flex:none;">
                         <div class="field-label">잔금 여부</div>
                         <div class="radio-group" id="g_balance_group">
                             <div class="radio-btn active" data-val="X">X</div>
                             <div class="radio-btn" data-val="O">O</div>
                         </div>
                     </div>
-                    <div class="field-group" id="g_balance_amount_wrap" style="flex:1;">
-                        <div class="conditional-field" id="g_balance_cond">
+                    <div class="field-group" id="g_balance_amount_outer" style="flex:1;min-width:0;">
+                        <div class="conditional-field" id="g_balance_amount_wrap">
                             <label class="field-label">잔금 금액</label>
                             <input class="field-input" id="g_balance_amount" placeholder="잔금 금액 (원)" type="text">
                         </div>
@@ -689,8 +708,7 @@
             </div>
 
             {{-- Teal 템플릿 (원격/방송룸) --}}
-            <div class="teal-only">
-                <div class="section-heading">원격/방송룸 정보</div>
+            <div class="teal-only" style="display:none;flex-direction:column;gap:14px;">
                 <div class="field-group">
                     <label class="field-label">유형 선택</label>
                     <div class="radio-group" id="teal_mode_group">
@@ -698,21 +716,56 @@
                         <div class="radio-btn" data-val="studio">🎙 방송룸 이용</div>
                     </div>
                 </div>
-                <div id="teal_remote_fields">
+                <div id="teal_remote_fields" style="display:flex;flex-direction:column;gap:12px;">
                     <div class="field-row">
-                        <div class="field-group"><label class="field-label">원격 대상자 이름(닉네임)</label><input class="field-input" id="t_remote_name" placeholder="이름 또는 닉네임"></div>
-                        <div class="field-group"><label class="field-label">방송 플랫폼</label><input class="field-input" id="t_remote_platform" placeholder="유튜브, SOOP 등"></div>
+                        <div class="field-group">
+                            <label class="field-label">원격 대상자 이름(닉네임)</label>
+                            <input class="field-input" id="t_remote_name" placeholder="이름 또는 닉네임">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">방송 플랫폼</label>
+                            <input class="field-input" id="t_remote_platform" placeholder="유튜브, 아프리카TV 등">
+                        </div>
                     </div>
-                    <div class="field-group"><label class="field-label">원격 의뢰 내용</label><textarea class="field-textarea" id="t_remote_content" placeholder="원격으로 진행할 내용을 입력하세요"></textarea></div>
+                    <div class="field-group" style="margin-top:4px;">
+                        <label class="field-label">원격 의뢰 내용</label>
+                        <textarea class="field-textarea" id="t_remote_content" placeholder="원격으로 진행할 내용을 입력하세요"></textarea>
+                    </div>
                 </div>
-                <div id="teal_studio_fields" style="display:none;">
+                <div id="teal_studio_fields" style="display:none;flex-direction:column;gap:12px;">
                     <div class="field-row">
-                        <div class="field-group"><label class="field-label">방송룸 이용자 이름(닉네임)</label><input class="field-input" id="t_studio_name" placeholder="이름 또는 닉네임"></div>
-                        <div class="field-group"><label class="field-label">방송 플랫폼</label><input class="field-input" id="t_studio_platform" placeholder="유튜브, SOOP 등"></div>
+                        <div class="field-group">
+                            <label class="field-label">방송룸 이용자 이름(닉네임)</label>
+                            <input class="field-input" id="t_studio_name" placeholder="이름 또는 닉네임">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">방송 플랫폼</label>
+                            <input class="field-input" id="t_studio_platform" placeholder="유튜브, 아프리카TV 등">
+                        </div>
                     </div>
-                    <div class="field-group"><label class="field-label">방송룸 이용 내용</label><textarea class="field-textarea" id="t_studio_content" placeholder="방송룸 이용 내용을 입력하세요"></textarea></div>
+                    <div class="field-group" style="margin-top:4px;">
+                        <label class="field-label">방송룸 이용 내용</label>
+                        <textarea class="field-textarea" id="t_studio_content" placeholder="방송룸 이용 내용을 입력하세요"></textarea>
+                    </div>
                 </div>
-                <div class="field-group"><label class="field-label">메모 (선택)</label><textarea class="field-textarea" id="t_desc" placeholder="추가 메모를 입력하세요"></textarea></div>
+                <div class="field-group">
+                    <label class="field-label">메모 (선택)</label>
+                    <textarea class="field-textarea" id="t_desc" placeholder="추가 메모를 입력하세요"></textarea>
+                </div>
+            </div>
+
+            {{-- 일반 첨부 파일 --}}
+            <div id="generalAttachSection">
+                <div class="divider" style="margin-bottom:14px;"></div>
+                <div class="field-group">
+                    <div class="field-label">첨부 파일</div>
+                    <div class="upload-zone" id="uploadZone" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;position:relative;">
+                        <input type="file" id="generalFileInput" multiple accept="*/*" onchange="handleGeneralFiles(this.files)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+                        <div style="font-size:22px;margin-bottom:5px;">📎</div>
+                        <div style="font-size:12px;color:var(--text-muted);">파일을 <span style="color:var(--accent);">클릭</span>하거나 드래그하여 첨부하세요<br><small style="opacity:0.55">이미지는 미리보기가 지원됩니다</small></div>
+                    </div>
+                    <div class="img-grid" id="generalAttachGrid" style="margin-top:8px;"></div>
+                </div>
             </div>
 
         </div>{{-- modal-body end --}}
@@ -720,7 +773,7 @@
         <div class="modal-footer">
             <button class="btn-delete" id="btnDelete" style="display:none" onclick="deleteEvent()">일정 삭제</button>
             <div style="display:flex;gap:8px;align-items:center;">
-                <button class="btn-log" id="btnLog" onclick="openHistoryFromEdit()">📋 변경 로그</button>
+                <button class="btn-log" id="btnLog" style="display:none" onclick="openHistoryFromEdit()">📋 <span>변경 로그</span></button>
                 <button class="btn-save" onclick="saveEvent()">저장</button>
             </div>
         </div>
@@ -1105,7 +1158,7 @@ function setColor(c){
     badge.textContent='● '+(COLOR_NAMES[c]||c);
     // 템플릿 토글
     document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'':'none');
-    document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'':'none');
+    document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
     document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'':'none');
     // gold 전용 날짜 행
     document.getElementById('standardDtRows').style.display=c==='gold'?'none':'';
@@ -1179,9 +1232,9 @@ function updateBalanceBanner(){
     const amount=document.getElementById('g_balance_amount')?.value?.trim();
     if(isGold&&balanceOn&&amount){
         text.textContent='잔금 '+amount+' 있음';
-        banner.classList.add('visible');
+        banner.style.display='flex';
     }else{
-        banner.classList.remove('visible');
+        banner.style.display='none';
     }
 }
 
@@ -1568,7 +1621,7 @@ function openDetailModal(ev) {
     if (schedEvOpts.length || schedOpt || specOpts.length) {
         const SCHED_EV_L={fast:'← 빠른 일정',urgent:'🚨 긴급',after:'→ 날짜 이후'};
         const SCHED_L={suggest:'💬 제안',hope:'🙏 희망',target:'🎯 목표'};
-        const SPEC_L={car:'🚗 차량',product:'💼 제품',two_person:'👥 2인',ladder:'▤ 사다리'};
+        const SPEC_L={car:'🚗 차량',brief:'💼 제품',group:'👥 2인',ladder:'▤ 사다리'};
         html += `<fieldset style="border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:14px;"><legend style="font-size:11px; color:var(--text-muted); padding:0 6px;">일정 옵션</legend>`;
         if (schedEvOpts.length) html += infoRow('일정 옵션', schedEvOpts.map(v=>SCHED_EV_L[v]||v).join(', '));
         if (schedOpt) html += infoRow('일정 관련', SCHED_L[schedOpt]||schedOpt);
