@@ -203,7 +203,16 @@ let openClientTabs = []; // {id, name, nickname, grade, data, activeSubTab}
 let activeClientId = null;
 
 // ── 초기화 ──
-loadClientList().then(() => restoreClientTabs());
+loadClientList().then(async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const openId = urlParams.get('open');
+    if (openId) {
+        await openClient(parseInt(openId));
+        history.replaceState(null, '', window.location.pathname);
+    } else {
+        await restoreClientTabs();
+    }
+});
 
 async function loadClientList() {
     const res = await fetch('/api/clients/list', { headers:{ 'Accept':'application/json' } });

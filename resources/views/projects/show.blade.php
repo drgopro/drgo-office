@@ -164,7 +164,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <a href="{{ route('clients.show', $project->client) }}" class="back-btn">← {{ $project->client->name }}</a>
+            <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">← {{ $project->client->name }}</a>
             <div>
                 <div class="project-name">{{ $project->name }}</div>
                 <div class="project-meta">
@@ -223,7 +223,7 @@
             <div class="info-row">
                 <div class="info-label">이름</div>
                 <div>
-                    <a href="{{ route('clients.show', $project->client) }}" style="color:var(--accent); text-decoration:none;">
+                    <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" style="color:var(--accent); text-decoration:none;" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
                         {{ $project->client->name }}
                     </a>
                     @if($project->client->nickname)

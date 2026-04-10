@@ -351,6 +351,26 @@ const drgoTabs = {
         this.activate(id);
     },
 
+    openClientDetail(clientId) {
+        const baseUrl = '/clients';
+        const existing = this.tabs.find(t => t.url === baseUrl);
+        if (existing) {
+            this.activate(existing.id);
+            const pane = document.getElementById('pane-' + existing.id);
+            if (pane) {
+                const iframe = pane.querySelector('iframe');
+                if (iframe && iframe.contentWindow && iframe.contentWindow.openClient) {
+                    iframe.contentWindow.openClient(clientId);
+                }
+            }
+        } else {
+            const url = baseUrl + '?open=' + clientId;
+            const id = 'tab-' + Date.now();
+            this.tabs.push({ id, type: 'clients', url, loaded: false });
+            this.activate(id);
+        }
+    },
+
     activate(id) {
         this.activeId = id;
         const tab = this.tabs.find(t => t.id === id);
