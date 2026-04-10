@@ -124,11 +124,47 @@
     [data-theme="light"] .filter-chip.active { color:#fff; }
     [data-theme="light"] .toast { color:#fff; }
 
+    /* 사이드바 토글 버튼 (모바일 전용) */
+    .sidebar-toggle { display:none; }
+    .sidebar-overlay { display:none; }
+
     @media (max-width: 768px) {
-        .crm-wrap { flex-direction:column; height:auto; }
-        body.in-iframe .crm-wrap { height:auto; }
-        .crm-sidebar { width:100%; min-width:0; max-height:40vh; border-right:none; border-bottom:1px solid var(--border); }
+        .crm-wrap { flex-direction:column; height:var(--full-h, 100vh); }
+        body.in-iframe .crm-wrap { height:var(--full-h, 100vh); }
+
+        /* 사이드바 → 슬라이드 드로어 */
+        .crm-sidebar { position:fixed; left:0; top:0; bottom:0; width:280px; min-width:0; max-height:none; z-index:300; transform:translateX(-100%); transition:transform 0.25s ease; border-right:1px solid var(--border); border-bottom:none; box-shadow:4px 0 20px rgba(0,0,0,0.3); }
+        .crm-sidebar.open { transform:translateX(0); }
+        .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:299; display:none; }
+        .sidebar-overlay.open { display:block; }
+
+        /* 사이드바 토글 버튼 표시 */
+        .sidebar-toggle { display:flex; align-items:center; gap:6px; padding:8px 12px; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:12px; cursor:pointer; min-height:36px; flex-shrink:0; }
+        .sidebar-toggle:hover { border-color:var(--accent); color:var(--accent); }
+
+        /* 터치 타겟 확대 */
+        .filter-chip { padding:6px 12px; font-size:11px; min-height:32px; }
+        .sidebar-item { padding:12px 12px; }
+        .sidebar-search { min-height:40px; font-size:14px; }
+        .sidebar-add { min-height:44px; display:flex; align-items:center; justify-content:center; }
+
+        /* 서브탭 스크롤 */
+        .sub-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; }
+        .sub-tabs::-webkit-scrollbar { display:none; }
+        .sub-tab { white-space:nowrap; flex-shrink:0; padding:8px 14px; font-size:12px; }
+
+        /* 상세 헤더 세로 배치 */
+        .detail-header { flex-direction:column; gap:10px; align-items:flex-start; }
+        .detail-actions { width:100%; justify-content:flex-start; flex-wrap:wrap; }
+        .detail-actions button { min-height:36px; }
+
+        /* 폼/콘텐츠 */
         .form-grid { grid-template-columns:1fr; }
+        .client-pane { padding:16px; padding-bottom:60px; }
+
+        /* 탭바에 토글 버튼 포함 */
+        .client-tab-bar { gap:4px; }
+        .client-tab .ct-close { opacity:0.5; }
     }
 </style>
 @endpush
@@ -151,9 +187,12 @@
         <div class="sidebar-add" onclick="openNewClientModal()">+ 의뢰자 등록</div>
     </div>
 
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
     {{-- 우측 메인 --}}
     <div class="crm-main">
         <div class="client-tab-bar" id="clientTabBar">
+            <button class="sidebar-toggle" onclick="openSidebar()">👤 고객목록</button>
             <span style="padding:0 8px; color:var(--text-muted); font-size:11px;">열린 의뢰자가 없습니다</span>
         </div>
         <div class="client-content" id="clientContent">
@@ -296,6 +335,8 @@ function renderClientList() {
 
 // ── 의뢰자 탭 ──
 async function openClient(id) {
+    // 모바일: 사이드바 닫기
+    if(window.innerWidth<=768) closeSidebar();
     // 이미 열려있으면 전환만
     const existing = openClientTabs.find(t => t.id === id);
     if (existing) { activateClientTab(id); return; }
@@ -1061,6 +1102,16 @@ async function deleteMemo(memoId, clientId) {
     });
     await refreshClientData(clientId);
     showToast('메모가 삭제되었습니다');
+}
+
+// ── 사이드바 토글 (모바일) ──
+function openSidebar() {
+    document.querySelector('.crm-sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('open');
+}
+function closeSidebar() {
+    document.querySelector('.crm-sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
 function showToast(msg) {

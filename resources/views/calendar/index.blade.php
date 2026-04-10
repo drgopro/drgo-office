@@ -392,6 +392,84 @@
 
     /* ── gold/teal 조건부 ── */
     .gold-only, .teal-only, .common-only { display:none; }
+
+    /* ── 모바일 일정 리스트 (네이버 캘린더 스타일) ── */
+    .mobile-day-events { display:none; }
+
+    @media (max-width: 768px) {
+        /* 헤더 컴팩트 */
+        .cal-header { padding:12px; gap:8px; flex-wrap:wrap; }
+        .cal-header-left { gap:8px; }
+        .app-title { display:none; }
+        .nav-btn { width:40px; height:40px; }
+        .month-label { font-size:16px; min-width:0; }
+        .view-toggle-btn { padding:6px 12px; min-height:36px; font-size:11px; }
+        .add-btn { padding:8px 14px; font-size:12px; }
+
+        /* 필터바 컴팩트 */
+        .legend { padding:8px 12px; gap:6px; }
+        .filter-btn { padding:6px 10px; min-height:36px; font-size:11px; }
+
+        /* 월간 그리드 컴팩트 */
+        .calendar-wrap { padding:8px 12px; }
+        .weekday { font-size:11px; padding:6px 0; }
+        .week-row { min-height:60px; }
+        .day-cell { padding:4px 2px; }
+        .day-num { font-size:11px; width:22px; height:22px; }
+        .day-cell.today .day-num { width:22px; height:22px; }
+
+        /* 이벤트 칩 → dot 표시 */
+        .events-list { flex-direction:row; gap:2px; justify-content:center; flex-wrap:wrap; }
+        .event-chip { width:6px; height:6px; min-width:6px; border-radius:50%; padding:0; overflow:hidden; border:none !important; }
+        .event-chip span, .event-chip .chip-time, .event-chip .chip-special,
+        .event-chip .chip-badges, .event-chip .sched-icon-badge, .event-chip .ev-assignee-badge { display:none; }
+        .event-chip.single { border-left:none; }
+        .event-chip.single.color-gold   { background:var(--chip-gold-bg); }
+        .event-chip.single.color-teal   { background:var(--chip-teal-bg); }
+        .event-chip.single.color-blue   { background:var(--chip-blue-bg); }
+        .event-chip.single.color-red    { background:var(--chip-red-bg); }
+        .event-chip.single.color-green  { background:var(--chip-green-bg); }
+        .event-chip.single.color-purple { background:var(--chip-purple-bg); }
+        .event-chip { pointer-events:none; }
+        .more-badge { font-size:9px; padding:0 2px; pointer-events:none; }
+
+        /* 선택된 날짜 */
+        .day-cell.mobile-selected { background:var(--surface2); }
+        .day-cell.mobile-selected .day-num { background:var(--accent); color:#fff; border-radius:50%; font-weight:700; }
+
+        /* 하단 일정 리스트 */
+        .mobile-day-events { display:block; padding:12px; border-top:1px solid var(--border); background:var(--surface); }
+        .mobile-day-events .mde-header { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:10px; }
+        .mobile-day-events .mde-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; cursor:pointer; transition:background 0.15s; min-height:44px; }
+        .mobile-day-events .mde-item:hover { background:var(--surface2); }
+        .mobile-day-events .mde-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .mobile-day-events .mde-info { flex:1; min-width:0; }
+        .mobile-day-events .mde-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mobile-day-events .mde-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+        .mobile-day-events .mde-empty { text-align:center; padding:20px; color:var(--text-muted); font-size:13px; }
+
+        /* 다일 스판 칩 숨김 (모바일에서는 dot으로 대체) */
+        .span-chip-overlay { display:none; }
+        .lane-spacer { display:none; }
+
+        /* 모달 모바일 */
+        .modal { max-width:95vw; border-radius:12px; }
+        .modal-body { padding:14px 16px; }
+        .modal-header { padding:16px 16px 0; }
+        .modal-footer { padding:0 16px 16px; }
+        .icon-btn { width:40px; height:40px; }
+        .modal-title-input { font-size:18px; }
+        .field-section { padding:12px; }
+    }
+
+    @media (max-width: 480px) {
+        .cal-header { flex-wrap:wrap; justify-content:center; gap:6px; }
+        .cal-header-left { width:100%; justify-content:center; }
+        .cal-header-right { width:100%; justify-content:center; }
+        .weekday { font-size:10px; letter-spacing:0; }
+        .week-row { min-height:50px; }
+        .day-num { font-size:10px; width:20px; height:20px; }
+    }
 </style>
 @endpush
 
@@ -435,6 +513,7 @@
             <div class="weekday">WED</div><div class="weekday">THU</div><div class="weekday">FRI</div><div class="weekday">SAT</div>
         </div>
         <div class="days-grid" id="daysGrid"></div>
+        <div class="mobile-day-events" id="mobileDayEvents"></div>
     </div>
 </div>
 
@@ -1155,6 +1234,7 @@ function renderMonth() {
             const cell=cells[idx];
             const div=document.createElement('div');
             div.className='day-cell'+(cell.month!=='cur'?' other-month':'');
+            if(cell.full) div.dataset.date=cell.full;
             if(cell.full===ts) div.classList.add('today');
             const nc=d===0?'sun':d===6?'sat':'';
             div.innerHTML=`<div class="day-num-row"><span class="day-num ${nc}">${cell.date}</span></div>`;
@@ -1201,12 +1281,62 @@ function renderMonth() {
                 }
 
                 div.appendChild(evList);
-                if(canEditCalendar) div.addEventListener('click',e=>{if(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))openNewModal(cell.full);});
+                div.addEventListener('click',e=>{
+                    if(window.innerWidth<=768){
+                        selectMobileDay(cell.full);
+                    } else {
+                        if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return;
+                        if(canEditCalendar&&(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))) openNewModal(cell.full);
+                    }
+                });
             }
             weekRow.appendChild(div);
         }
         grid.appendChild(weekRow);
     }
+    // 모바일: 오늘 날짜 자동 선택
+    if(window.innerWidth<=768){
+        const ts=todayStr();
+        const cells=document.querySelectorAll('.day-cell[data-date]');
+        const todayCell=[...cells].find(c=>c.dataset.date===ts);
+        if(todayCell) selectMobileDay(ts);
+    }
+}
+
+let mobileSelectedDate = null;
+function selectMobileDay(dateStr){
+    mobileSelectedDate = dateStr;
+    document.querySelectorAll('.day-cell.mobile-selected').forEach(c=>c.classList.remove('mobile-selected'));
+    const cell=document.querySelector(`.day-cell[data-date="${dateStr}"]`);
+    if(cell) cell.classList.add('mobile-selected');
+    renderMobileDayEvents(dateStr);
+}
+
+function renderMobileDayEvents(dateStr){
+    const container=document.getElementById('mobileDayEvents');
+    if(!container) return;
+    const dayEvs=events.filter(ev=>isFiltered(ev)&&ev.start_date<=dateStr&&(ev.end_date||ev.start_date)>=dateStr);
+    const d=new Date(dateStr+'T00:00:00');
+    const DAYS_KO_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+    const header=`${d.getMonth()+1}월 ${d.getDate()}일 ${DAYS_KO_FULL[d.getDay()]}`;
+    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
+
+    if(!dayEvs.length){
+        container.innerHTML=`<div class="mde-header">${header}</div><div class="mde-empty">일정이 없습니다</div>`;
+        return;
+    }
+    const items=dayEvs.map(ev=>{
+        const time=ev.is_allday?'종일':(ev.start_time||'').substring(0,5);
+        const title=ev.title||'(제목 없음)';
+        return `<div class="mde-item" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
+            <div class="mde-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
+            <div class="mde-info">
+                <div class="mde-title">${title}</div>
+                <div class="mde-meta">${time}${ev.location?' · '+ev.location:''}</div>
+            </div>
+        </div>`;
+    }).join('');
+    container.innerHTML=`<div class="mde-header">${header}</div>${items}`;
 }
 
 // ── 주간/일간 타임라인 ───────────────────────────────────────────
