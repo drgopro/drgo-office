@@ -126,8 +126,8 @@
 
     .more-badge { font-size:11px; color:var(--accent); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; font-weight:600; }
     .more-badge:hover { background:rgba(200,176,138,0.15); }
-    .day-cell.expanded { overflow:visible; z-index:10; }
-    .day-cell.expanded .events-list { position:relative; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px; margin:-4px; box-shadow:0 4px 16px rgba(0,0,0,0.3); }
+    .day-cell.expanded { overflow:visible; z-index:10; position:relative; }
+    .day-cell.expanded .events-list { position:absolute; top:30px; left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px; box-shadow:0 6px 24px rgba(0,0,0,0.35); max-height:200px; overflow-y:auto; z-index:11; }
 
     /* ── 주간/일간 공통 ── */
     .timeline-wrap { padding:0 20px 20px; overflow-x:auto; }
