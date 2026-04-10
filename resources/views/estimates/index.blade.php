@@ -44,6 +44,11 @@
     .print-dropdown-menu button { display:block; width:100%; text-align:left; background:none; border:none; color:var(--text); padding:8px 12px; font-size:12px; cursor:pointer; border-radius:4px; white-space:nowrap; }
     .print-dropdown-menu button:hover { background:var(--surface2); color:var(--accent); }
     [data-theme="light"] .btn-primary { color:#fff; }
+    [data-theme="light"] .badge-created   { background:#f0ebe2; color:#8a6d30; }
+    [data-theme="light"] .badge-editing   { background:#e0f0ff; color:#2e6a9a; }
+    [data-theme="light"] .badge-completed { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .badge-paid      { background:#e0f8f5; color:#0a8a70; }
+    [data-theme="light"] .badge-hold      { background:#ffe8e8; color:#c03838; }
 </style>
 @endpush
 

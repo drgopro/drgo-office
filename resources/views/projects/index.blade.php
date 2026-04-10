@@ -45,6 +45,17 @@
     .pagination a, .pagination span { padding:6px 12px; border-radius:6px; font-size:12px; text-decoration:none; border:1px solid var(--border); color:var(--text-muted); }
     .pagination .active span { background:var(--accent); color:#1a1207; border-color:var(--accent); }
     [data-theme="light"] .pagination .active span { color:#fff; }
+    [data-theme="light"] .badge-visit   { background:#e8f5e8; color:#1a7a2a; }
+    [data-theme="light"] .badge-remote  { background:#e0f0ff; color:#1a5a8a; }
+    [data-theme="light"] .badge-as      { background:#ffe8e8; color:#a03030; }
+    [data-theme="light"] .stage-consulting { background:#fff3e0; color:#a06800; }
+    [data-theme="light"] .stage-equipment  { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .stage-proposal   { background:#e0f0ff; color:#2e6a9a; }
+    [data-theme="light"] .stage-estimate   { background:#f0e8ff; color:#5c2e90; }
+    [data-theme="light"] .stage-payment    { background:#e0f8f5; color:#0a8a70; }
+    [data-theme="light"] .stage-visit      { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .stage-as         { background:#ffe8e8; color:#c03838; }
+    [data-theme="light"] .stage-done       { background:#e8eaef; color:#5a6070; }
 </style>
 @endpush
 

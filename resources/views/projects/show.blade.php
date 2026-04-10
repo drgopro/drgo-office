@@ -148,6 +148,14 @@
     [data-theme="light"] .btn-upload { color:#fff; }
     [data-theme="light"] .btn-primary { color:#fff; }
     [data-theme="light"] .btn-save { color:#fff; }
+    [data-theme="light"] .badge-visit   { background:#e8f5e8; color:#1a7a2a; }
+    [data-theme="light"] .badge-remote  { background:#e0f0ff; color:#1a5a8a; }
+    [data-theme="light"] .badge-as      { background:#ffe8e8; color:#a03030; }
+    [data-theme="light"] .result-in_progress { background:#fff3e0; color:#a06800; }
+    [data-theme="light"] .result-waiting     { background:#e0f0ff; color:#2e6a9a; }
+    [data-theme="light"] .result-valid       { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .result-invalid     { background:#ffe8e8; color:#c03838; }
+    [data-theme="light"] .result-done        { background:#e8eaef; color:#5a6070; }
 </style>
 @endpush
 

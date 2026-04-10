@@ -129,6 +129,11 @@
     .album-media-wrap img.album-media.dragging { cursor:grabbing; transition:none; }
     [data-theme="light"] .btn-primary { color:#fff; }
     [data-theme="light"] .btn-upload { color:#fff; }
+    [data-theme="light"] .est-created   { background:#f0f1f3; color:#5a6070; border-color:#c8ccd4; }
+    [data-theme="light"] .est-editing   { background:#eef0f8; color:#3b5ea0; border-color:#a0b4d0; }
+    [data-theme="light"] .est-completed { background:#e8f5e8; color:#1a7a2a; border-color:#a0d8a0; }
+    [data-theme="light"] .est-paid      { background:#e0f8f5; color:#0a7a6a; border-color:#80d0c0; }
+    [data-theme="light"] .est-hold      { background:#ffe8e8; color:#c03838; border-color:#e0a0a0; }
 </style>
 @endpush
 
