@@ -517,7 +517,7 @@ async function loadProducts() {
         <td class="text-right">${p.safety_stock||'-'}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td>
-            <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'제품 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋</button>
+            <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${p.name.replace(/'/g,"\\'")} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋</button>
             <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </td>

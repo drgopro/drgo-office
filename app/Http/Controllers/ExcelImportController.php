@@ -41,7 +41,7 @@ class ExcelImportController extends Controller
         $required = self::TEMPLATES[$type]['required'];
 
         foreach ($headers as $col => $header) {
-            $cell = $sheet->getCellByColumnAndRow($col + 1, 1);
+            $cell = $sheet->getCell([$col + 1, 1]);
             $cell->setValue($header);
             $cell->getStyle()->getFont()->setBold(true);
             if (in_array($header, $required)) {
