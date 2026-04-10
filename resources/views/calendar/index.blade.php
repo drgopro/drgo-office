@@ -415,8 +415,8 @@
         .weekday { font-size:11px; padding:6px 0; }
         .week-row { min-height:60px; }
         .day-cell { padding:4px 2px; }
-        .day-num { font-size:11px; width:22px; height:22px; }
-        .day-cell.today .day-num { width:22px; height:22px; }
+        .day-num { font-size:14px; width:28px; height:28px; font-weight:600; }
+        .day-cell.today .day-num { width:28px; height:28px; }
 
         /* 이벤트 칩 → dot 표시 */
         .events-list { flex-direction:row; gap:2px; justify-content:center; flex-wrap:wrap; }
@@ -468,7 +468,7 @@
         .cal-header-right { width:100%; justify-content:center; }
         .weekday { font-size:10px; letter-spacing:0; }
         .week-row { min-height:50px; }
-        .day-num { font-size:10px; width:20px; height:20px; }
+        .day-num { font-size:13px; width:26px; height:26px; }
     }
 </style>
 @endpush
