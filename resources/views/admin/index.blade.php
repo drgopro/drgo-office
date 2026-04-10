@@ -80,6 +80,19 @@
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .btn-sm { color:#fff; }
     [data-theme="light"] .btn-add:hover { color:#fff; }
+    .account-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+    .account-modal-overlay.open { display:flex; }
+    .account-modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:440px; max-width:95vw; padding:24px; }
+    .account-modal h3 { font-size:16px; font-weight:700; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; }
+    .account-modal .close-btn { background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; }
+    .account-modal .field-group { margin-bottom:14px; }
+    .account-modal .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
+    .account-modal .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
+    .account-modal .field-input:focus { border-color:var(--accent); }
+    .account-modal .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    [data-theme="light"] .account-modal { background:#fff; border-color:#c8ccd4; }
+    [data-theme="light"] .account-modal .field-input { background:#fff; border-color:#b8bcc8; }
+
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
@@ -245,6 +258,36 @@
         </div>
     </div>
 </div>
+
+{{-- 계정 수정 모달 (master 전용) --}}
+@if(Auth::user()->role === 'master')
+<div class="account-modal-overlay" id="accountModalOverlay" onclick="if(event.target===this) closeAccountModal()">
+    <div class="account-modal">
+        <h3>계정 정보 수정 <button class="close-btn" onclick="closeAccountModal()">✕</button></h3>
+        <input type="hidden" id="accUserId">
+        <div class="field-group">
+            <div class="field-label">아이디 (로그인 ID)</div>
+            <input class="field-input" id="accUsername">
+        </div>
+        <div class="field-group">
+            <div class="field-label">이름</div>
+            <input class="field-input" id="accDisplayName">
+        </div>
+        <div class="field-group">
+            <div class="field-label">이메일</div>
+            <input class="field-input" type="email" id="accEmail">
+        </div>
+        <div class="field-group">
+            <div class="field-label">비밀번호 변경 <span style="font-size:10px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
+            <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeAccountModal()">취소</button>
+            <button class="btn-save" onclick="saveAccount()">저장</button>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
@@ -327,7 +370,10 @@ async function loadUsers() {
             <td><select class="inline-select ur" onchange="toggleTeamSelect(this)">${roleOpts}</select></td>
             <td><select class="inline-select ut" ${u.role !== 'member' ? 'disabled' : ''}>${teamOpts}</select></td>
             <td><span class="toggle-active ${activeClass}" onclick="toggleActive(this)">${activeText}</span></td>
-            <td><button class="btn-sm" onclick="saveUser(${u.id}, this)">저장</button></td>
+            <td style="display:flex;gap:4px;">
+                <button class="btn-sm" onclick="saveUser(${u.id}, this)">저장</button>
+                ${currentRole==='master'?`<button class="btn-sm" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);" onclick="openAccountModal(${u.id},'${(u.username||'').replace(/'/g,"\\'")}','${(u.display_name||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}')">수정</button>`:''}
+            </td>
         </tr>`;
     }).join('');
 }
@@ -400,6 +446,46 @@ async function saveUser(id, btn) {
     } else {
         const err = await res.json();
         alert(err.message || '저장 실패');
+    }
+}
+
+// ── 계정 수정 모달 (master 전용) ──
+function openAccountModal(id, username, displayName, email) {
+    document.getElementById('accUserId').value = id;
+    document.getElementById('accUsername').value = username || '';
+    document.getElementById('accDisplayName').value = displayName || '';
+    document.getElementById('accEmail').value = email || '';
+    document.getElementById('accPassword').value = '';
+    document.getElementById('accountModalOverlay').classList.add('open');
+}
+
+function closeAccountModal() {
+    document.getElementById('accountModalOverlay').classList.remove('open');
+}
+
+async function saveAccount() {
+    const id = document.getElementById('accUserId').value;
+    const body = {
+        username: document.getElementById('accUsername').value,
+        display_name: document.getElementById('accDisplayName').value,
+        email: document.getElementById('accEmail').value || null,
+    };
+    const pw = document.getElementById('accPassword').value;
+    if (pw) body.password = pw;
+
+    const res = await fetch(`/api/admin/users/${id}/account`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+        closeAccountModal();
+        loadUsers();
+        alert('계정 정보가 수정되었습니다.');
+    } else {
+        const err = await res.json();
+        alert(err.message || Object.values(err.errors || {}).flat().join('\n') || '수정 실패');
     }
 }
 

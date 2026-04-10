@@ -165,6 +165,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/admin/users', [AdminController::class, 'users']);
         Route::post('/api/admin/users', [AdminController::class, 'storeUser']);
         Route::patch('/api/admin/users/{user}', [AdminController::class, 'updateUser']);
+        Route::middleware('role:master')->patch('/api/admin/users/{user}/account', [AdminController::class, 'updateUserAccount']);
         Route::get('/api/admin/teams', [AdminController::class, 'teams']);
         Route::post('/api/admin/teams', [AdminController::class, 'storeTeam']);
         Route::patch('/api/admin/teams/{team}', [AdminController::class, 'updateTeam']);

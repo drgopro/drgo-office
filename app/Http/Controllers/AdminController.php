@@ -123,6 +123,27 @@ class AdminController extends Controller
         return response()->json(['message' => '저장되었습니다.']);
     }
 
+    // Master 전용: 계정 정보 수정
+    public function updateUserAccount(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'username' => 'sometimes|string|max:50|unique:users,username,'.$user->id,
+            'display_name' => 'sometimes|string|max:50',
+            'email' => 'nullable|email|max:100',
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        if (isset($validated['password']) && $validated['password']) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return response()->json(['message' => '계정 정보가 수정되었습니다.']);
+    }
+
     // ── 팀 관리 ──
 
     public function teams()
