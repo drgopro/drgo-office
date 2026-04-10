@@ -106,7 +106,7 @@ class ClientController extends Controller
     // JSON 상세 API (탭 내 로드)
     public function detail(Client $client)
     {
-        $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user');
+        $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator');
 
         return response()->json([
             'id' => $client->id,
@@ -148,6 +148,15 @@ class ClientController extends Controller
                 'content' => $m->content,
                 'user_name' => $m->user?->display_name ?? '알 수 없음',
                 'created_at' => $m->created_at->format('Y.m.d H:i'),
+            ]),
+            'estimates' => $client->estimates->map(fn ($e) => [
+                'id' => $e->id,
+                'status' => $e->status,
+                'total_amount' => $e->total_amount,
+                'created_at' => $e->created_at->format('Y.m.d'),
+                'creator_name' => $e->creator?->display_name ?? $e->creator?->name,
+                'print_url' => route('estimates.print', $e),
+                'edit_url' => route('estimates.edit', $e),
             ]),
         ]);
     }

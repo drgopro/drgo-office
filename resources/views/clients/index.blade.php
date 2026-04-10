@@ -369,6 +369,7 @@ function renderClientContent(id) {
                 </div>
             </div>
             <div class="detail-actions">
+                <button class="btn-save" onclick="openActivityLog('Client',${id},'${(d.name||'').replace(/'/g,"\\'")} 수정 로그')" style="background:var(--surface2); color:var(--text-muted); border:1px solid var(--border);">📋 로그</button>
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
                 <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>
             </div>
@@ -378,6 +379,7 @@ function renderClientContent(id) {
             <button class="sub-tab active" onclick="switchSubTab(${id},'info',this)">기본 정보</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'projects',this)">프로젝트 ${d.projects.length}</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'docs',this)">첨부파일 ${d.documents.length}</button>
+            <button class="sub-tab" onclick="switchSubTab(${id},'estimates',this)">견적서 ${(d.estimates||[]).length}</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'memo',this)">메모</button>
         </div>
 
@@ -435,6 +437,16 @@ function renderClientContent(id) {
                 <div class="field">
                     <div class="field-label">특이사항</div>
                     <textarea class="field-input field-textarea" id="f-important_memo-${id}">${d.important_memo||''}</textarea>
+                </div>
+            </div>
+            <div class="form-grid" style="margin-top:14px;">
+                <div class="field">
+                    <div class="field-label">플랫폼</div>
+                    <input class="field-input" id="f-platforms-${id}" value="${(d.platforms||[]).join(', ')}" placeholder="쉼표로 구분 (예: 유튜브, 인스타)">
+                </div>
+                <div class="field">
+                    <div class="field-label">콘텐츠 유형</div>
+                    <input class="field-input" id="f-content_types-${id}" value="${(d.content_types||[]).join(', ')}" placeholder="쉼표로 구분 (예: 먹방, 뷰티)">
                 </div>
             </div>
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
@@ -512,6 +524,13 @@ function renderClientContent(id) {
             </div>
         </div>
 
+        <!-- 견적서 -->
+        <div class="sub-panel" id="sub-estimates-${id}">
+            <div id="estimate-list-${id}">
+                ${renderEstimateList(d.estimates||[], id)}
+            </div>
+        </div>
+
         <!-- 메모 (전체) -->
         <div class="sub-panel" id="sub-memo-${id}">
             <div style="display:flex; gap:8px; margin-bottom:16px;">
@@ -560,6 +579,34 @@ function renderDocList(docs, clientId) {
             <div style="display:flex; gap:6px; flex-shrink:0;">
                 <a href="${doc.download_url}" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--accent); text-decoration:none; transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">다운로드</a>
                 <button onclick="deleteDoc(${doc.id},${clientId})" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--red); color:var(--red); cursor:pointer; transition:all 0.12s;" onmouseover="this.style.background='var(--red)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='var(--red)'">삭제</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+const EST_STATUS = {created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
+const EST_COLOR = {created:'var(--text-muted)',editing:'var(--accent)',completed:'var(--green)',paid:'var(--accent2)',hold:'var(--red)'};
+
+function renderEstimateList(estimates, clientId) {
+    if (!estimates.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:13px;">등록된 견적서가 없습니다.</div>';
+    return estimates.map(e => {
+        const statusLabel = EST_STATUS[e.status] || e.status;
+        const statusColor = EST_COLOR[e.status] || 'var(--text-muted)';
+        const amount = e.total_amount ? Number(e.total_amount).toLocaleString() + '원' : '';
+        const isPaid = e.status === 'paid';
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px;">
+            <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:12px; color:var(--text-muted);">#${e.id}</span>
+                    <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:color-mix(in srgb, ${statusColor} 20%, transparent); color:${statusColor}; font-weight:600;">${statusLabel}</span>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                    ${amount ? '<span style="font-weight:600; color:var(--text);">' + amount + '</span> · ' : ''}${e.created_at}${e.creator_name ? ' · ' + e.creator_name : ''}
+                </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button onclick="window.open('${e.print_url}','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--text); cursor:pointer;">보기</button>
+                ${isPaid ? '<span style="padding:4px 10px; font-size:11px; color:var(--text-muted); opacity:0.5;">결제완료</span>' : `<button onclick="window.open('${e.edit_url}','_blank')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">편집</button>`}
             </div>
         </div>`;
     }).join('');
@@ -840,6 +887,8 @@ async function saveClient(id) {
         address_detail: document.getElementById(`f-address_detail-${id}`)?.value || '',
         important_memo: document.getElementById(`f-imp-memo-${id}`)?.value || document.getElementById(`f-important_memo-${id}`)?.value || '',
         memo: document.getElementById(`f-memo-${id}`)?.value || '',
+        platforms: (document.getElementById(`f-platforms-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
+        content_types: (document.getElementById(`f-content_types-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
     };
 
     const res = await fetch(`/api/clients/${id}`, {
