@@ -413,10 +413,10 @@
         /* 월간 그리드 컴팩트 */
         .calendar-wrap { padding:8px 12px; }
         .weekday { font-size:11px; padding:6px 0; }
-        .week-row { min-height:60px; }
-        .day-cell { padding:4px 2px; }
-        .day-num { font-size:14px; width:28px; height:28px; font-weight:600; }
-        .day-cell.today .day-num { width:28px; height:28px; }
+        .week-row { min-height:70px; }
+        .day-cell { padding:6px 3px; }
+        .day-num { font-size:18px; width:32px; height:32px; font-weight:700; }
+        .day-cell.today .day-num { width:32px; height:32px; }
 
         /* 이벤트 칩 → dot 표시 */
         .events-list { flex-direction:row; gap:2px; justify-content:center; flex-wrap:wrap; }
@@ -467,8 +467,8 @@
         .cal-header-left { width:100%; justify-content:center; }
         .cal-header-right { width:100%; justify-content:center; }
         .weekday { font-size:10px; letter-spacing:0; }
-        .week-row { min-height:50px; }
-        .day-num { font-size:13px; width:26px; height:26px; }
+        .week-row { min-height:60px; }
+        .day-num { font-size:16px; width:28px; height:28px; }
     }
 </style>
 @endpush
