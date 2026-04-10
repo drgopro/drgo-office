@@ -4,8 +4,8 @@
 
 @push('styles')
 <style>
-    .crm-wrap { display:flex; height:calc(100vh - 86px); overflow:hidden; }
-    body.in-iframe .crm-wrap { height:100vh; }
+    .crm-wrap { display:flex; height:calc(var(--full-h, 100vh) - var(--chrome-h, 86px)); overflow:hidden; }
+    body.in-iframe .crm-wrap { height:var(--full-h, 100vh); }
 
     /* ── 좌측 사이드바 ── */
     .crm-sidebar { width:220px; min-width:220px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; }

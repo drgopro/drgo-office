@@ -38,6 +38,44 @@ try {
 [data-theme="light"] .stage-visit { background:#e8f5e8; color:#248a38; }
 [data-theme="light"] .stage-as { background:#ffe8e8; color:#c03838; }
 [data-theme="light"] .stage-done { background:#e8eaef; color:#5a6070; }
+
+/* ── dvh 지원 ── */
+:root { --full-h: 100vh; }
+@supports (height: 100dvh) { :root { --full-h: 100dvh; } }
+
+/* ── 모바일 기본 스타일 (iframe 내부 모든 페이지 적용) ── */
+@media (max-width: 768px) {
+    /* 입력 필드 터치 대응 */
+    input[type="text"], input[type="email"], input[type="tel"], input[type="number"],
+    input[type="date"], input[type="time"], input[type="search"], input[type="url"],
+    input[type="password"], select, textarea {
+        min-height: 44px;
+        font-size: 16px !important; /* iOS 줌 방지 */
+    }
+    /* 버튼 터치 대응 */
+    button:not(.tab-close):not(.ct-close), .btn, [class*="btn-"] {
+        min-height: 36px;
+    }
+    /* 모달 전체폭 */
+    .modal-overlay > div, .modal, .new-client-modal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        padding: 16px !important;
+    }
+    /* 테이블 스크롤 */
+    .data-card, .table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* 그리드 1열 */
+    .field-row, .field-row-3, .info-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .info-card.full { grid-column: 1 !important; }
+    /* 페이지 패딩 */
+    .page-wrap { padding: 16px !important; }
+    .page-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+}
 </style>
 @stack('styles')
 @yield('content')

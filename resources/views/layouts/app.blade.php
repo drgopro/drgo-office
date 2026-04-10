@@ -33,6 +33,10 @@
             --chip-purple-bg: #9b70c8; --chip-purple-text: #f0eaff;
             --chip-teal-bg: #e8894a; --chip-teal-text: #1a0a00;
             --chip-single-bg: #303030;
+            --header-h: 48px;
+            --tab-h: 36px;
+            --chrome-h: calc(var(--header-h) + var(--tab-h) + 2px);
+            --full-h: 100vh;
         }
         [data-theme="light"] {
             --bg: #f4f5f7;
@@ -92,7 +96,7 @@
         body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
 
         /* ── 상단 내비게이션 ── */
-        .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; display:flex; justify-content:space-between; align-items:center; height:48px; position:sticky; top:0; z-index:200; }
+        .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; display:flex; justify-content:space-between; align-items:center; height:var(--header-h); position:sticky; top:0; z-index:200; }
         .header-left { display:flex; align-items:center; gap:0; }
         .logo { font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.15em; text-decoration:none; padding:0 16px 0 0; margin-right:16px; border-right:1px solid var(--border); }
 
@@ -116,7 +120,7 @@
         .nav-mobile-only { display:none; }
 
         /* ── 탭 바 ── */
-        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:36px; padding:0 16px; position:sticky; top:48px; z-index:190; }
+        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:var(--header-h); z-index:190; }
         .tab-strip { display:flex; align-items:center; flex:1; overflow-x:auto; gap:1px; scrollbar-width:none; }
         .tab-strip::-webkit-scrollbar { display:none; }
 
@@ -145,16 +149,19 @@
 
         /* ── 모바일 ── */
         @media (max-width: 768px) {
-            .header { padding:0 12px; height:44px; }
+            :root { --header-h:44px; --tab-h:32px; }
+            .header { padding:0 12px; height:var(--header-h); }
             .logo { font-size:12px; padding-right:10px; margin-right:10px; }
             .header-right .user-role, .header-right .admin-link { display:none; }
-            .header-right { gap:8px; }
+            .header-right { gap:4px; }
 
-            .menu-toggle { display:flex; align-items:center; justify-content:center; }
-            .nav { display:none; position:fixed; top:44px; left:0; right:0; bottom:0; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; }
+            .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
+            .theme-toggle { width:44px; height:44px; font-size:18px; }
+            .logout-btn { min-height:44px; padding:8px 12px; }
+            .nav { display:none; position:fixed; top:var(--header-h); left:0; right:0; bottom:0; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; }
             .nav.open { display:flex; }
-            .nav a { font-size:15px; padding:12px 16px; border-radius:8px; }
-            .nav-overlay { display:none; position:fixed; inset:0; top:44px; background:rgba(0,0,0,0.5); z-index:198; }
+            .nav a { font-size:15px; padding:12px 16px; border-radius:8px; min-height:44px; display:flex; align-items:center; }
+            .nav-overlay { display:none; position:fixed; inset:0; top:var(--header-h); background:rgba(0,0,0,0.5); z-index:198; }
             .nav-overlay.open { display:block; }
             .nav-mobile-only { display:none; border-top:1px solid var(--border); margin-top:8px; padding-top:12px; }
             .nav.open .nav-mobile-only { display:block; }
@@ -162,8 +169,10 @@
             .nav-mobile-only a:hover { color:var(--accent); background:var(--surface2); }
             .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
 
-            .tab-bar-wrap { top:44px; height:32px; padding:0 8px; }
-            .tab-item { font-size:11px; padding:3px 8px; }
+            .tab-bar-wrap { top:var(--header-h); height:var(--tab-h); padding:0 8px; }
+            .tab-item { font-size:11px; padding:6px 10px; }
+            .tab-item .tab-close { opacity:0.5; position:relative; }
+            .tab-item .tab-close::before { content:''; position:absolute; top:-10px; right:-8px; bottom:-10px; left:-8px; }
 
             .page-wrap { padding:16px !important; }
             .page-header { flex-direction:column; align-items:flex-start !important; gap:10px; }
@@ -195,7 +204,11 @@
     <style>
         /* iframe 내부에서는 내비/탭바 숨김 */
         body.in-iframe .header, body.in-iframe .tab-bar-wrap { display:none !important; }
-        body.in-iframe .main { height:100vh; }
+        body.in-iframe .main { height:var(--full-h, 100vh); }
+        @supports (height: 100dvh) {
+            :root { --full-h: 100dvh; }
+            .tab-pane iframe { height: calc(100dvh - var(--chrome-h, 86px)) !important; }
+        }
     </style>
     @stack('styles')
 </head>
@@ -415,7 +428,7 @@ const drgoTabs = {
     _load(tab, pane) {
         const iframe = document.createElement('iframe');
         iframe.src = tab.url;
-        iframe.style.cssText = 'width:100%;height:calc(100vh - 86px);border:none;display:block;';
+        iframe.style.cssText = 'width:100%;height:calc(100vh - var(--chrome-h, 86px));border:none;display:block;';
         iframe.onload = () => { tab.loaded = true; };
         iframe.onerror = () => {
             pane.innerHTML = '<div class="tab-loading" style="color:var(--red)">로드 실패 — <a href="' + tab.url + '" style="color:var(--accent)">직접 열기</a></div>';
