@@ -1810,6 +1810,9 @@ let viewMode = false; // true: 상세보기(읽기전용), false: 편집
 function setViewModeUI(){
     // 모든 입력 비활성화
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input, #modalOverlay select').forEach(el=>{el.disabled=true;});
+    document.querySelectorAll('#modalOverlay .time-picker-trigger').forEach(el=>{el.style.pointerEvents='none'; el.style.opacity='0.6';});
+    document.querySelectorAll('#modalOverlay input[type="date"]').forEach(el=>{el.readOnly=true; el.style.pointerEvents='none'; el.style.opacity='0.6';});
+    document.getElementById('alldayToggle').style.pointerEvents='none';
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='none';});
     document.querySelectorAll('#modalOverlay .radio-btn:not([data-always-active])').forEach(b=>{b.style.pointerEvents='none';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='none';});
@@ -1840,6 +1843,9 @@ function setViewModeUI(){
 function setEditModeUI(){
     // 모든 입력 활성화
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input, #modalOverlay select').forEach(el=>{el.disabled=false;});
+    document.querySelectorAll('#modalOverlay .time-picker-trigger').forEach(el=>{el.style.pointerEvents=''; el.style.opacity='';});
+    document.querySelectorAll('#modalOverlay input[type="date"]').forEach(el=>{el.readOnly=false; el.style.pointerEvents=''; el.style.opacity='';});
+    document.getElementById('alldayToggle').style.pointerEvents='';
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='';});
     document.querySelectorAll('#modalOverlay .radio-btn').forEach(b=>{b.style.pointerEvents='';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='';});
