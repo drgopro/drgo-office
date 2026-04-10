@@ -393,6 +393,13 @@
     /* ── gold/teal 조건부 ── */
     .gold-only, .teal-only, .common-only { display:none; }
 
+    /* ── 드래그앤드롭 ── */
+    .drag-ghost { position:fixed; pointer-events:none; z-index:1000; opacity:0.85; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.4); max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+    .day-cell.drop-target { background:rgba(212,188,150,0.15) !important; box-shadow:inset 0 0 0 2px var(--accent); }
+    body.dragging { cursor:grabbing !important; user-select:none; }
+    body.dragging .event-chip { cursor:grabbing; }
+    .event-chip { cursor:grab; }
+
     /* ── 모바일 일정 리스트 (네이버 캘린더 스타일) ── */
     .mobile-day-events { display:none; }
 
@@ -492,6 +499,18 @@
     <div style="display:flex;align-items:center;gap:8px;">
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
+            <div style="position:relative;">
+                <button class="nav-btn" onclick="toggleCalMenu()" title="내보내기/가져오기" style="font-size:14px;">⋯</button>
+                <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+                    <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📦 JSON 백업</button>
+                    <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📅 iCal 내보내기</button>
+                    <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+                    <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📥 JSON 가져오기</button>
+                    <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📥 iCal 가져오기</button>
+                </div>
+            </div>
+            <input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importFile('json',this)">
+            <input type="file" id="icalImportInput" accept=".ics,.ical" style="display:none" onchange="importFile('ical',this)">
         @endif
     </div>
 </div>
@@ -1263,7 +1282,8 @@ function renderMonth() {
                     const chip=document.createElement('div');
                     chip.className=`event-chip single color-${ev.color}`;
                     chip.innerHTML=buildChipHtml(ev);
-                    chip.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
+                    chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
+                    chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
                     evList.appendChild(chip);
                 });
 
@@ -2479,6 +2499,126 @@ document.addEventListener('click',e=>{
     const idx=[...grid.querySelectorAll('.img-item img')].indexOf(img);
     openLightbox(img.src,'',allImgs,idx);
 });
+
+// ── 캘린더 메뉴 (백업/내보내기) ──
+function toggleCalMenu(){
+    const m=document.getElementById('calMenu');
+    m.style.display=m.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',e=>{
+    const m=document.getElementById('calMenu');
+    if(m&&!e.target.closest('.cal-menu')&&!e.target.closest('[onclick*="toggleCalMenu"]')) m.style.display='none';
+});
+async function importFile(type, input){
+    if(!input.files[0]) return;
+    const fd=new FormData();
+    fd.append('file',input.files[0]);
+    const res=await fetch(`/api/events/import/${type}`,{
+        method:'POST',
+        headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:fd
+    });
+    input.value='';
+    if(res.ok){ const d=await res.json(); showCalToast(d.message); loadEvents(); }
+    else { const d=await res.json().catch(()=>({})); showCalToast(d.error||'가져오기 실패'); }
+}
+
+// ── 드래그앤드롭 (데스크탑 월간뷰) ──
+let dragEvent=null, dragGhost=null, dragStartDate=null, dragStartX=0, dragStartY=0, isDragging=false;
+const DRAG_COLORS={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
+
+function dragStart(ev, e){
+    if(window.innerWidth<=768||!canEditCalendar||ev.is_locked) return;
+    e.preventDefault();
+    dragEvent=ev;
+    dragStartDate=ev.start_date;
+    dragStartX=e.clientX; dragStartY=e.clientY;
+    isDragging=false;
+}
+
+function dragActivate(e){
+    if(isDragging) return;
+    isDragging=true;
+    dragGhost=document.createElement('div');
+    dragGhost.className='drag-ghost';
+    dragGhost.style.background=DRAG_COLORS[dragEvent.color]||'var(--accent)';
+    dragGhost.style.color='#fff';
+    dragGhost.textContent=dragEvent.title||'(제목 없음)';
+    dragGhost.style.left=(e.clientX+12)+'px';
+    dragGhost.style.top=(e.clientY-12)+'px';
+    document.body.appendChild(dragGhost);
+    document.body.classList.add('dragging');
+}
+
+document.addEventListener('mousemove',e=>{
+    if(!dragEvent) return;
+    // 5px 이상 움직여야 드래그 활성화
+    if(!isDragging){
+        if(Math.abs(e.clientX-dragStartX)+Math.abs(e.clientY-dragStartY)<5) return;
+        dragActivate(e);
+    }
+    dragGhost.style.left=(e.clientX+12)+'px';
+    dragGhost.style.top=(e.clientY-12)+'px';
+    document.querySelectorAll('.day-cell.drop-target').forEach(c=>c.classList.remove('drop-target'));
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=el?.closest('.day-cell[data-date]');
+    if(cell) cell.classList.add('drop-target');
+});
+
+document.addEventListener('mouseup',async e=>{
+    if(!dragEvent) return;
+    document.querySelectorAll('.day-cell.drop-target').forEach(c=>c.classList.remove('drop-target'));
+    document.body.classList.remove('dragging');
+    if(dragGhost){ dragGhost.remove(); dragGhost=null; }
+    if(!isDragging){ dragEvent=null; return; } // 드래그 안 했으면 클릭으로 처리
+    isDragging=false;
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=el?.closest('.day-cell[data-date]');
+    const targetDate=cell?.dataset.date;
+    if(!targetDate||targetDate===dragStartDate){ dragEvent=null; return; }
+    // 날짜 차이 계산 (다일 이벤트 대응)
+    const diff=(new Date(targetDate)-new Date(dragStartDate))/(1000*60*60*24);
+    const ev=dragEvent;
+    const newStart=shiftDate(ev.start_date, diff);
+    const newEnd=ev.end_date?shiftDate(ev.end_date, diff):newStart;
+    dragEvent=null;
+    // API 호출
+    const res=await fetch(`/api/events/${ev.id}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify({...buildEventPayload(ev), start_date:newStart, end_date:newEnd})
+    });
+    if(res.ok){ showCalToast('일정이 이동되었습니다'); loadEvents(); }
+    else showCalToast('이동 실패');
+});
+
+function shiftDate(dateStr, days){
+    const d=new Date(dateStr+'T00:00:00');
+    d.setDate(d.getDate()+days);
+    return d.toISOString().slice(0,10);
+}
+
+function buildEventPayload(ev){
+    return {
+        title:ev.title, start_date:ev.start_date, end_date:ev.end_date||ev.start_date,
+        start_time:ev.start_time, end_time:ev.end_time, is_all_day:ev.is_allday||ev.is_all_day||false,
+        color:ev.color, client_name:ev.client_name||'', address:ev.address||'', location:ev.location||'',
+        description:ev.description||'', notif_minutes:ev.notif_minutes||null,
+        is_locked:ev.is_locked||false, is_private:ev.is_private||false,
+        sched_opt:ev.sched_opt||null, sched_event_opts:ev.sched_event_opts||[],
+        special_opts:ev.special_opts||[], sched_after_reason:ev.sched_after_reason||null,
+        gold_data:ev.gold_data||null, teal_data:ev.teal_data||null,
+        assignees:ev.assignees?ev.assignees.map(a=>a.id||a):[],
+    };
+}
+
+function showCalToast(msg){
+    const t=document.createElement('div');
+    t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a1207;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;';
+    t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),2000);
+}
 
 init();
 </script>
