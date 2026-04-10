@@ -112,8 +112,10 @@
     .span-chip.is-solo { border-radius:4px; }
     .lane-spacer { height:24px; margin-bottom:2px; flex-shrink:0; }
 
-    .more-badge { font-size:12px; color:var(--text-muted); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; }
-    .more-badge:hover { color:var(--accent); background:rgba(200,176,138,0.1); }
+    .more-badge { font-size:11px; color:var(--accent); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; font-weight:600; }
+    .more-badge:hover { background:rgba(200,176,138,0.15); }
+    .day-cell.expanded { overflow:visible; z-index:10; }
+    .day-cell.expanded .events-list { position:relative; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px; margin:-4px; box-shadow:0 4px 16px rgba(0,0,0,0.3); }
 
     /* ── 주간/일간 공통 ── */
     .timeline-wrap { padding:0 20px 20px; overflow-x:auto; }
@@ -981,6 +983,7 @@ const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 let currentYear, currentMonth, currentWeekStart, currentDay;
 let events = [], assignees = [], selectedAssignees = [];
 let editingId = null, currentColor = 'gold', currentView = 'month';
+let expandedDays = new Set();
 
 // ── 초기화 ──────────────────────────────────────────────────────
 function init() {
@@ -1083,6 +1086,7 @@ function renderView() {
 
 // ── 이벤트 로드 ─────────────────────────────────────────────────
 async function loadEvents() {
+    expandedDays.clear();
     let start, end;
     if (currentView==='month') {
         start=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`;
@@ -1146,19 +1150,17 @@ function renderMonth() {
                 const evList=document.createElement('div');
                 evList.className='events-list';
 
-                // 다일 이벤트 (시작일에만 칩 표시)
-                multiDay.forEach(ev=>{
-                    if(ev.start_date===cell.full){
-                        const chip=document.createElement('div');
-                        chip.className=`event-chip single color-${ev.color}`;
-                        chip.innerHTML=buildChipHtml(ev);
-                        chip.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
-                        evList.appendChild(chip);
-                    }
-                });
+                // 모든 이벤트를 하나의 리스트로 합산 (다일은 시작일에만)
+                const allChipEvs = [];
+                multiDay.forEach(ev=>{ if(ev.start_date===cell.full) allChipEvs.push(ev); });
+                singleDay.forEach(ev=>allChipEvs.push(ev));
 
-                // 단일 이벤트
-                singleDay.slice(0,3).forEach(ev=>{
+                const MAX_VISIBLE = 3;
+                const isExpanded = expandedDays.has(cell.full);
+                if(isExpanded) div.classList.add('expanded');
+                const visibleEvs = isExpanded ? allChipEvs : allChipEvs.slice(0, MAX_VISIBLE);
+
+                visibleEvs.forEach(ev=>{
                     const chip=document.createElement('div');
                     chip.className=`event-chip single color-${ev.color}`;
                     chip.innerHTML=buildChipHtml(ev);
@@ -1166,11 +1168,16 @@ function renderMonth() {
                     evList.appendChild(chip);
                 });
 
-                if(singleDay.length>3){
+                if(allChipEvs.length > MAX_VISIBLE){
                     const more=document.createElement('div');
                     more.className='more-badge';
-                    more.textContent='전체보기';
-                    more.onclick=e=>{e.stopPropagation();/* TODO: 팝오버 */};
+                    if(isExpanded){
+                        more.textContent='접기';
+                        more.onclick=e=>{e.stopPropagation(); expandedDays.delete(cell.full); renderMonth();};
+                    } else {
+                        more.textContent=`+${allChipEvs.length - MAX_VISIBLE}`;
+                        more.onclick=e=>{e.stopPropagation(); expandedDays.add(cell.full); renderMonth();};
+                    }
                     evList.appendChild(more);
                 }
 
