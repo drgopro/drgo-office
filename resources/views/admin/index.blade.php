@@ -555,7 +555,7 @@ async function createTeam() {
         loadTeams();
     } else {
         const err = await res.json();
-        alert(err.message || '생성 실패');
+        alert(err.message || Object.values(err.errors || {}).flat().join('\n') || '생성 실패');
     }
 }
 

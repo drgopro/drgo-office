@@ -155,8 +155,9 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:50|unique:teams,name',
-            'permissions' => 'required|array',
+            'permissions' => 'nullable|array',
         ]);
+        $validated['permissions'] = $validated['permissions'] ?? [];
 
         $slug = Str::slug($validated['name']);
         if (! $slug) {
