@@ -176,7 +176,10 @@
                 </div>
                 <div class="field-group">
                     <div class="field-label">비밀번호</div>
-                    <input class="field-input" id="newPassword" type="password" placeholder="8자 이상">
+                    <div style="position:relative;">
+                        <input class="field-input" id="newPassword" type="password" placeholder="8자 이상" style="padding-right:40px;">
+                        <button type="button" onclick="togglePwVisibility('newPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;">👁</button>
+                    </div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">역할</div>
@@ -279,7 +282,10 @@
         </div>
         <div class="field-group">
             <div class="field-label">비밀번호 변경 <span style="font-size:10px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
-            <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)">
+            <div style="position:relative;">
+                <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)" style="padding-right:40px;">
+                <button type="button" onclick="togglePwVisibility('accPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;">👁</button>
+            </div>
         </div>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeAccountModal()">취소</button>
@@ -447,6 +453,13 @@ async function saveUser(id, btn) {
         const err = await res.json();
         alert(err.message || '저장 실패');
     }
+}
+
+function togglePwVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    btn.textContent = isPassword ? '🙈' : '👁';
 }
 
 // ── 계정 수정 모달 (master 전용) ──
