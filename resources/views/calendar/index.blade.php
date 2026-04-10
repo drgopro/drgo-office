@@ -415,8 +415,8 @@
         .weekday { font-size:11px; padding:6px 0; }
         .week-row { min-height:70px; }
         .day-cell { padding:6px 3px; }
-        .day-num { font-size:18px; width:32px; height:32px; font-weight:700; }
-        .day-cell.today .day-num { width:32px; height:32px; }
+        .day-num { font-size:16px; width:28px; height:28px; font-weight:700; }
+        .day-cell.today .day-num { width:28px; height:28px; }
 
         /* 이벤트 칩 → dot 표시 */
         .events-list { flex-direction:row; gap:2px; justify-content:center; flex-wrap:wrap; }
@@ -431,7 +431,7 @@
         .event-chip.single.color-green  { background:var(--chip-green-bg); }
         .event-chip.single.color-purple { background:var(--chip-purple-bg); }
         .event-chip { pointer-events:none; }
-        .more-badge { font-size:9px; padding:0 2px; pointer-events:none; }
+        .more-badge { font-size:13px; padding:2px 4px; pointer-events:none; font-weight:700; }
 
         /* 선택된 날짜 */
         .day-cell.mobile-selected { background:var(--surface2); }
@@ -468,7 +468,7 @@
         .cal-header-right { width:100%; justify-content:center; }
         .weekday { font-size:10px; letter-spacing:0; }
         .week-row { min-height:60px; }
-        .day-num { font-size:16px; width:28px; height:28px; }
+        .day-num { font-size:14px; width:26px; height:26px; }
     }
 </style>
 @endpush
