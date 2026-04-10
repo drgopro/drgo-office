@@ -1825,12 +1825,22 @@ async function removeExistingAttach(type,idx,id){
     existingAttachments[type].splice(idx,1);renderImgGrid(type);
 }
 async function uploadPendingAttachments(scheduleId){
+    const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진'};
+    let failedTypes=[];
     for(const type of ['quote','reference','room']){
         if(!pendingAttachments[type].length) continue;
         const fd=new FormData();fd.append('attachment_type',type);
         pendingAttachments[type].forEach(item=>fd.append('files[]',item.file));
-        await fetch(`/api/schedules/${scheduleId}/attachments`,{method:'POST',headers:{'X-CSRF-TOKEN':CSRF},body:fd});
+        try{
+            const res=await fetch(`/api/schedules/${scheduleId}/attachments`,{method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:fd});
+            if(!res.ok){
+                const err=await res.json().catch(()=>({}));
+                console.error(`첨부파일 업로드 실패 (${type}):`, res.status, err);
+                failedTypes.push(TYPE_LABEL[type]||type);
+            }
+        }catch(e){ console.error(`첨부파일 업로드 오류 (${type}):`,e); failedTypes.push(TYPE_LABEL[type]||type); }
     }
+    if(failedTypes.length) showCalToast('⚠ '+failedTypes.join(', ')+' 업로드 실패 — 권한을 확인하세요');
 }
 async function loadExistingAttachments(scheduleId){
     existingAttachments={quote:[],reference:[],room:[]};
