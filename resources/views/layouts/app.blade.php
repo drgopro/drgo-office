@@ -585,6 +585,52 @@ async function openActivityLog(type, id, title) {
         body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;">로드 실패</div>';
     }
 }
+
+// ── 엑셀 가져오기 공통 ──
+function openExcelImportModal(type, typeName) {
+    let overlay = document.getElementById('excelImportOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'excelImportOverlay';
+        overlay.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;backdrop-filter:blur(3px);align-items:center;justify-content:center;';
+        overlay.onclick = e => { if (e.target === overlay) overlay.style.display = 'none'; };
+        overlay.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:440px;padding:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:700;" id="excelImportTitle">엑셀 가져오기</div><button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button></div>
+            <div style="margin-bottom:16px;"><a id="excelTemplateLink" href="#" style="font-size:12px;color:var(--accent);text-decoration:none;">📥 템플릿 다운로드 (.xlsx)</a><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">템플릿을 다운로드하여 데이터를 입력한 후 업로드하세요.</div></div>
+            <div style="margin-bottom:16px;"><input type="file" id="excelImportFile" accept=".xlsx,.xls,.csv" style="display:none;"><button onclick="document.getElementById('excelImportFile').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:13px;cursor:pointer;width:100%;text-align:center;">📎 파일 선택 (.xlsx, .csv)</button><div id="excelFileName" style="font-size:12px;color:var(--accent);margin-top:6px;display:none;"></div></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;"><button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button><button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button></div>
+            <div id="excelImportResult" style="display:none;margin-top:16px;padding:12px;border-radius:8px;font-size:12px;"></div></div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('excelImportFile').addEventListener('change', function() {
+            const n=this.files[0]?.name, el=document.getElementById('excelFileName');
+            if(n){el.textContent='📄 '+n;el.style.display='block';document.getElementById('excelImportBtn').disabled=false;}
+            else{el.style.display='none';document.getElementById('excelImportBtn').disabled=true;}
+        });
+    }
+    overlay.dataset.type=type;
+    document.getElementById('excelImportTitle').textContent=typeName+' 엑셀 가져오기';
+    document.getElementById('excelTemplateLink').href='/api/import/template/'+type;
+    document.getElementById('excelImportFile').value='';
+    document.getElementById('excelFileName').style.display='none';
+    document.getElementById('excelImportBtn').disabled=true;
+    document.getElementById('excelImportResult').style.display='none';
+    overlay.style.display='flex';
+}
+async function submitExcelImport() {
+    const overlay=document.getElementById('excelImportOverlay'), type=overlay.dataset.type;
+    const file=document.getElementById('excelImportFile').files[0]; if(!file)return;
+    const btn=document.getElementById('excelImportBtn'); btn.disabled=true; btn.textContent='처리 중...';
+    const fd=new FormData(); fd.append('file',file);
+    const csrf=document.querySelector('meta[name="csrf-token"]')?.content;
+    try{
+        const res=await fetch('/api/import/'+type,{method:'POST',headers:{'X-CSRF-TOKEN':csrf,'Accept':'application/json'},body:fd});
+        const data=await res.json(); const r=document.getElementById('excelImportResult');
+        if(res.ok){r.style.background='rgba(34,197,94,0.1)';r.style.color='var(--green)';let h='✅ '+data.message;if(data.errors?.length)h+='<br><br><span style="color:var(--red);">⚠ 오류:</span><br>'+data.errors.join('<br>');r.innerHTML=h;}
+        else{r.style.background='rgba(239,68,68,0.1)';r.style.color='var(--red)';r.innerHTML='❌ '+(data.error||data.message||'가져오기 실패');}
+        r.style.display='block';
+    }catch(e){alert('오류가 발생했습니다.');}
+    btn.disabled=false; btn.textContent='가져오기';
+}
 </script>
 
 @stack('scripts')
