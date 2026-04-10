@@ -31,6 +31,11 @@
     [data-theme="light"] .modal-external-close { background:#fff; border-color:#a0a8b4; }
     [data-theme="light"] .action-btn { border-color:#a0a8b4; color:#4a5060; background:#f0f1f4; }
     [data-theme="light"] .field-input, [data-theme="light"] .field-textarea { border-color:#b8bcc8; background:#fff; }
+    [data-theme="light"] .field-section { background:#f4f5f7; border-color:#d0d4dc; }
+    [data-theme="light"] .field-section .field-input, [data-theme="light"] .field-section .field-textarea { background:#fff; }
+    [data-theme="light"] .field-section .field-label { color:var(--accent); }
+    [data-theme="light"] .datetime-section { background:#f4f5f7; border-color:#d0d4dc; }
+    [data-theme="light"] .dt-input { background:#fff; border-color:#b8bcc8; color-scheme:light; }
     [data-theme="light"] .color-dot { border-color:transparent; }
 
     .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
@@ -211,6 +216,9 @@
     .section-heading { font-size:10px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-muted); display:flex; align-items:center; gap:10px; margin-bottom:2px; }
     .section-heading::after { content:''; flex:1; height:1px; background:var(--border); }
     .divider { height:1px; background:var(--border); margin:2px 0; }
+    .field-section { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+    .field-section .field-label { color:var(--accent); font-weight:600; }
+    .field-section .field-input, .field-section .field-textarea { background:var(--surface); }
     .field-group { display:flex; flex-direction:column; gap:5px; }
     .field-row { display:flex; gap:12px; }
     .field-row .field-group { flex:1; }
@@ -476,15 +484,17 @@
 
         <div class="modal-body">
             {{-- 장소 --}}
-            <div class="field-group">
-                <label class="field-label" for="modalLocation">장소</label>
-                <div class="location-input-wrap">
-                    <textarea class="field-input field-textarea" id="modalLocation" placeholder="장소를 입력하세요" autocomplete="off" rows="2" style="min-height:40px;resize:none;"></textarea>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색">🔍 주소 검색</button>
+            <div class="field-section">
+                <div class="field-group">
+                    <label class="field-label" for="modalLocation">장소</label>
+                    <div class="location-input-wrap">
+                        <textarea class="field-input field-textarea" id="modalLocation" placeholder="장소를 입력하세요" autocomplete="off" rows="2" style="min-height:40px;resize:none;"></textarea>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색">🔍 주소 검색</button>
+                        </div>
                     </div>
+                    <input type="hidden" id="modalAddress" value="">
                 </div>
-                <input type="hidden" id="modalAddress" value="">
             </div>
 
             {{-- 날짜/시간 --}}
@@ -519,7 +529,8 @@
                 </div>
             </div>
 
-            {{-- 알림 --}}
+            {{-- 알림 + 옵션 --}}
+            <div class="field-section">
             <div class="field-group" id="notifGroup">
                 <label class="field-label">🔔 알림</label>
                 <div class="notif-row">
@@ -539,7 +550,7 @@
             </div>
 
             {{-- 일정 옵션 --}}
-            <div class="field-group" style="margin-top:10px;">
+            <div class="field-group">
                 <div class="field-label">일정 옵션</div>
                 <div class="special-opts" id="schedEventOpts">
                     <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
@@ -551,7 +562,7 @@
                 </div>
             </div>
 
-            <div class="field-group" style="margin-top:10px;">
+            <div class="field-group">
                 <div class="field-label">일정 관련 옵션</div>
                 <div class="special-opts" id="scheduleOpts">
                     <div class="sched-opt-btn" data-sopt="suggest"><span class="opt-icon">💬</span>제안</div>
@@ -561,7 +572,7 @@
                 <div class="sched-opt-desc" id="schedOptDesc"></div>
             </div>
 
-            <div class="field-group" style="margin-top:10px;">
+            <div class="field-group">
                 <div class="field-label">특수 옵션</div>
                 <div class="special-opts" id="specialOpts">
                     <div class="special-opt-btn" data-opt="car"><span class="opt-icon">🚗</span>차량 이용 필요</div>
@@ -573,11 +584,12 @@
                     <input class="field-input" id="specialReason" placeholder="특수옵션 사유 (선택)" style="font-size:13px;">
                 </div>
             </div>
+            </div>{{-- /field-section (알림+옵션) --}}
 
             <div class="divider"></div>
 
             {{-- 공통 필드 (비-gold/비-teal) --}}
-            <div class="common-only">
+            <div class="common-only field-section">
                 <div class="field-group">
                     <label class="field-label">이름 / 담당자</label>
                     <input class="field-input" id="commonName" placeholder="이름을 입력하세요">
@@ -589,7 +601,8 @@
             </div>
 
             {{-- 의뢰자 검색/연결 (모든 유형 공통) --}}
-            <div class="section-heading">의뢰자 / 프로젝트</div>
+            <div class="field-section">
+            <div class="section-heading" style="margin-bottom:4px;">의뢰자 / 프로젝트</div>
             <div class="field-group">
                 <label class="field-label">의뢰자 검색</label>
                 <div style="position:relative;">
@@ -615,8 +628,7 @@
                     <option value="">프로젝트 선택 (선택사항)</option>
                 </select>
             </div>
-
-            <div class="divider"></div>
+            </div>{{-- /field-section (의뢰자/프로젝트) --}}
 
             {{-- Gold 템플릿 (방문의뢰) --}}
             <div class="gold-only" style="display:none;flex-direction:column;gap:14px;">
