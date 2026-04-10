@@ -1474,7 +1474,11 @@ function initRadioGroup(gid, opts){
         btn.addEventListener('click',()=>{
             if(isLocked) return;
             if(multi){btn.classList.toggle('active');}
-            else{g.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active','active-red','active-green'));btn.classList.add('active');}
+            else{
+                const wasActive=btn.classList.contains('active');
+                g.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active','active-red','active-green'));
+                if(!wasActive) btn.classList.add('active');
+            }
             // conditional field 토글
             handleConditional(gid);
             if(opts?.onChange) opts.onChange(getRadio(gid));
