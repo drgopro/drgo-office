@@ -90,6 +90,28 @@
     [data-theme="light"] .btn-primary { color:#fff; }
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .cat-add-inline button { color:#fff; }
+    /* 배지 라이트모드 */
+    [data-theme="light"] .badge-in       { background:#e8f5e8; color:#1a7a2a; }
+    [data-theme="light"] .badge-out      { background:#ffe8e8; color:#c03838; }
+    [data-theme="light"] .badge-adjust   { background:#e0f0ff; color:#2e6a9a; }
+    [data-theme="light"] .badge-return   { background:#fff3e0; color:#a06800; }
+    [data-theme="light"] .badge-low      { background:#ffe8e8; color:#c03838; }
+    [data-theme="light"] .badge-ok       { background:#e8f5e8; color:#1a7a2a; }
+    [data-theme="light"] .badge-requested { background:#fff3e0; color:#a06800; }
+    [data-theme="light"] .badge-approved  { background:#e0f0ff; color:#2e6a9a; }
+    [data-theme="light"] .badge-ordered   { background:#f0e8ff; color:#5c2e90; }
+    [data-theme="light"] .badge-received  { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .badge-cancelled { background:#e8eaef; color:#5a6070; }
+    /* 입력/테이블 라이트모드 */
+    [data-theme="light"] .toolbar input[type="text"], [data-theme="light"] .toolbar select { background:#fff; border-color:#b8bcc8; }
+    [data-theme="light"] .field-input, [data-theme="light"] .field-select { background:#fff; border-color:#b8bcc8; }
+    [data-theme="light"] .data-table th { background:#f0f1f3; color:#4a5060; }
+    [data-theme="light"] .modal { background:#fff; border-color:#c8ccd4; }
+    [data-theme="light"] .data-card { border-color:#c8ccd4; }
+    [data-theme="light"] .cat-lv1 { border-color:#c8ccd4; }
+    [data-theme="light"] .cat-add-inline input { background:#fff; border-color:#b8bcc8; }
+    [data-theme="light"] .btn-outline { border-color:#b8bcc8; color:#4a5060; }
+    [data-theme="light"] .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
 </style>
 @endpush
 
