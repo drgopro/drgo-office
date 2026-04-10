@@ -219,11 +219,17 @@ class CalendarController extends Controller
     // JSON 가져오기
     public function importJson(Request $request)
     {
-        $request->validate(['file' => 'required|file|mimes:json,txt']);
+        $request->validate(['file' => 'required|file']);
 
-        $content = json_decode(file_get_contents($request->file('file')->getRealPath()), true);
+        $ext = strtolower($request->file('file')->getClientOriginalExtension());
+        if (! in_array($ext, ['json', 'txt'])) {
+            return response()->json(['error' => 'JSON 또는 TXT 파일만 업로드 가능합니다.'], 422);
+        }
+
+        $raw = file_get_contents($request->file('file')->getRealPath());
+        $content = json_decode($raw, true);
         if (! $content || ! isset($content['events'])) {
-            return response()->json(['error' => '올바르지 않은 JSON 파일입니다.'], 422);
+            return response()->json(['error' => '올바르지 않은 JSON 형식입니다. events 키가 필요합니다.'], 422);
         }
 
         $count = 0;
