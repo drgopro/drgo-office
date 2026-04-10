@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-    .page-wrap { padding:24px; max-width:1000px; }
+    .page-wrap { padding:24px; max-width:1000px; margin:0 auto; }
     .page-title { font-size:22px; font-weight:700; margin-bottom:20px; }
 
     .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:20px; }

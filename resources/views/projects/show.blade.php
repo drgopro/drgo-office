@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-    .page-wrap { padding:24px; max-width:900px; }
+    .page-wrap { padding:24px; max-width:900px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
     .page-header-left { display:flex; align-items:center; gap:12px; }
     .back-btn { color:var(--text-muted); text-decoration:none; font-size:13px; }
