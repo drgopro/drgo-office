@@ -230,6 +230,7 @@
     .field-row { display:flex; gap:12px; }
     .field-row .field-group { flex:1; }
     .field-label { font-size:10px; letter-spacing:0.2em; color:var(--text-muted); text-transform:uppercase; }
+    .field-label .req { color:var(--red); font-weight:700; }
     .field-input, .field-textarea, .field-select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; transition:border-color 0.2s; width:100%; box-sizing:border-box; }
     .field-input:focus, .field-textarea:focus { border-color:var(--accent); }
     .field-input::placeholder, .field-textarea::placeholder { color:var(--text-muted); }
@@ -568,7 +569,7 @@
                     <span class="holiday-dot" id="holidayDot" style="font-size:12px;color:var(--text-muted);cursor:pointer;">📅 공휴일로 지정</span>
                 </div>
                 <div class="title-wrap">
-                    <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요" rows="1"></textarea>
+                    <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요 *" rows="1"></textarea>
                 </div>
                 <button class="assignee-btn" id="assigneeBtn" onclick="toggleAssigneePanel()" title="담당자 지정">
                     <span id="assigneeBtnIcon">👤</span>
@@ -593,7 +594,7 @@
             {{-- 장소 --}}
             <div class="field-section">
                 <div class="field-group">
-                    <label class="field-label" for="modalLocation">장소</label>
+                    <label class="field-label" for="modalLocation">장소 <span class="req">*</span></label>
                     <div class="location-input-wrap">
                         <textarea class="field-input field-textarea" id="modalLocation" placeholder="장소를 입력하세요" autocomplete="off" rows="2" style="min-height:40px;resize:none;"></textarea>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -698,7 +699,7 @@
             {{-- 공통 필드 (비-gold/비-teal) --}}
             <div class="common-only field-section">
                 <div class="field-group">
-                    <label class="field-label">이름 / 담당자</label>
+                    <label class="field-label">이름 / 담당자 <span class="req">*</span></label>
                     <input class="field-input" id="commonName" placeholder="이름을 입력하세요">
                 </div>
                 <div class="field-group">
@@ -741,14 +742,14 @@
             <div class="gold-only" style="display:none;flex-direction:column;gap:14px;">
                 <div class="section-heading">의뢰자 정보</div>
                 <div class="field-row" style="gap:10px;">
-                    <div class="field-group"><label class="field-label">의뢰자 닉네임</label><input class="field-input" id="g_nickname" placeholder="닉네임"></div>
-                    <div class="field-group"><label class="field-label">의뢰자 이름</label><input class="field-input" id="g_name" placeholder="이름"></div>
-                    <div class="field-group"><label class="field-label">전화번호</label><input class="field-input" id="g_phone" placeholder="010-0000-0000"></div>
+                    <div class="field-group"><label class="field-label">의뢰자 닉네임 <span class="req">*</span></label><input class="field-input" id="g_nickname" placeholder="닉네임"></div>
+                    <div class="field-group"><label class="field-label">의뢰자 이름 <span class="req">*</span></label><input class="field-input" id="g_name" placeholder="이름"></div>
+                    <div class="field-group"><label class="field-label">전화번호 <span class="req">*</span></label><input class="field-input" id="g_phone" placeholder="010-0000-0000"></div>
                 </div>
 
                 <div class="field-row">
                     <div class="field-group" style="flex:1;">
-                        <label class="field-label">플랫폼</label>
+                        <label class="field-label">플랫폼 <span class="req">*</span></label>
                         <div id="g_platform_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
                             <div class="radio-group" id="g_platform_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
                                 <div class="radio-btn" data-val="SOOP">SOOP</div>
@@ -953,11 +954,11 @@
                 <div id="teal_remote_fields" style="display:flex;flex-direction:column;gap:12px;">
                     <div class="field-row">
                         <div class="field-group">
-                            <label class="field-label">원격 대상자 이름(닉네임)</label>
+                            <label class="field-label">원격 대상자 이름(닉네임) <span class="req">*</span></label>
                             <input class="field-input" id="t_remote_name" placeholder="이름 또는 닉네임">
                         </div>
                         <div class="field-group">
-                            <label class="field-label">방송 플랫폼</label>
+                            <label class="field-label">방송 플랫폼 <span class="req">*</span></label>
                             <input class="field-input" id="t_remote_platform" placeholder="유튜브, 아프리카TV 등">
                         </div>
                     </div>
@@ -969,11 +970,11 @@
                 <div id="teal_studio_fields" style="display:none;flex-direction:column;gap:12px;">
                     <div class="field-row">
                         <div class="field-group">
-                            <label class="field-label">방송룸 이용자 이름(닉네임)</label>
+                            <label class="field-label">방송룸 이용자 이름(닉네임) <span class="req">*</span></label>
                             <input class="field-input" id="t_studio_name" placeholder="이름 또는 닉네임">
                         </div>
                         <div class="field-group">
-                            <label class="field-label">방송 플랫폼</label>
+                            <label class="field-label">방송 플랫폼 <span class="req">*</span></label>
                             <input class="field-input" id="t_studio_platform" placeholder="유튜브, 아프리카TV 등">
                         </div>
                     </div>
