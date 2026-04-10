@@ -43,7 +43,7 @@
     .badge-requested { background:#2a2010; color:var(--accent); } .badge-approved { background:#1a1a2a; color:#8ab4c8; }
     .badge-ordered { background:#2a1a2a; color:#9b70c8; } .badge-received { background:#1a2a1a; color:#7ac87a; }
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
-    .text-muted { color:var(--text-muted); font-size:12px; } .text-right { text-align:right; } .text-warn { color:var(--red); }
+    .text-muted { color:var(--text-muted); font-size:12px; } .text-right { text-align:center; } .text-warn { color:var(--red); }
 
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
     .modal-overlay.open { display:flex; }
