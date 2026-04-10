@@ -37,6 +37,13 @@
     [data-theme="light"] .datetime-section { background:#f4f5f7; border-color:#d0d4dc; }
     [data-theme="light"] .dt-input { background:#fff; border-color:#b8bcc8; color-scheme:light; }
     [data-theme="light"] .color-dot { border-color:transparent; }
+    [data-theme="light"] .span-chip { color:#fff; }
+    [data-theme="light"] .tl-event { color:#fff; }
+    [data-theme="light"] .day-cell.today .day-num { color:#fff; }
+    [data-theme="light"] .tl-day-num.today-num { color:#fff; }
+    [data-theme="light"] .tp-confirm-btn { color:#fff; }
+    [data-theme="light"] .assignee-chip.selected { color:#fff; }
+    [data-theme="light"] .radio-btn.active-green { color:#fff; }
 
     .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
     .cal-header-left { display:flex; align-items:center; gap:16px; }

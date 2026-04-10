@@ -43,6 +43,7 @@
     .print-dropdown-menu.show { display:block; }
     .print-dropdown-menu button { display:block; width:100%; text-align:left; background:none; border:none; color:var(--text); padding:8px 12px; font-size:12px; cursor:pointer; border-radius:4px; white-space:nowrap; }
     .print-dropdown-menu button:hover { background:var(--surface2); color:var(--accent); }
+    [data-theme="light"] .btn-primary { color:#fff; }
 </style>
 @endpush
 

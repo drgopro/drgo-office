@@ -37,6 +37,7 @@
     .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:10px 24px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; }
     .btn-danger { background:none; border:1px solid var(--red); color:var(--red); padding:10px 24px; border-radius:8px; font-size:13px; cursor:pointer; }
+    [data-theme="light"] .btn-primary { color:#fff; }
 </style>
 @endpush
 

@@ -86,6 +86,10 @@
     .cat-add-inline input:focus { border-color:var(--accent); }
     .cat-add-inline button { background:var(--accent); color:#1a1207; border:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
     .sku-preview { font-size:12px; color:var(--accent); font-weight:600; padding:8px 12px; background:var(--surface2); border-radius:6px; margin-top:4px; }
+    [data-theme="light"] .tab-btn.active { color:#fff; }
+    [data-theme="light"] .btn-primary { color:#fff; }
+    [data-theme="light"] .btn-save { color:#fff; }
+    [data-theme="light"] .cat-add-inline button { color:#fff; }
 </style>
 @endpush
 

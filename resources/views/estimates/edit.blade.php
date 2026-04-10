@@ -92,6 +92,9 @@
         .btn-delete:hover { border-color:var(--red); }
         .btn-print { background:var(--blue); color:#1a1207; }
         .save-indicator { font-size:11px; color:var(--text-muted); align-self:center; }
+        [data-theme="light"] .cat-tab.active { color:#fff; }
+        [data-theme="light"] .btn-issue { color:#fff; }
+        [data-theme="light"] .btn-print { color:#fff; }
     </style>
 </head>
 <body>

@@ -127,6 +127,8 @@
     .album-media-wrap { display:flex; align-items:center; justify-content:center; min-height:200px; }
     .album-media-wrap img.album-media { transition:transform 0.2s; cursor:grab; }
     .album-media-wrap img.album-media.dragging { cursor:grabbing; transition:none; }
+    [data-theme="light"] .btn-primary { color:#fff; }
+    [data-theme="light"] .btn-upload { color:#fff; }
 </style>
 @endpush
 

@@ -144,6 +144,10 @@
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    [data-theme="light"] .step-dot.done { color:#fff; }
+    [data-theme="light"] .btn-upload { color:#fff; }
+    [data-theme="light"] .btn-primary { color:#fff; }
+    [data-theme="light"] .btn-save { color:#fff; }
 </style>
 @endpush
 

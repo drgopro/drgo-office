@@ -121,6 +121,8 @@
     [data-theme="light"] .grade-chip.active { background:var(--accent); color:#fff; }
     [data-theme="light"] .new-client-overlay { background:rgba(0,0,0,0.4); }
     [data-theme="light"] .new-client-modal { background:#fff; border-color:#c8ccd4; }
+    [data-theme="light"] .filter-chip.active { color:#fff; }
+    [data-theme="light"] .toast { color:#fff; }
 
     @media (max-width: 768px) {
         .crm-wrap { flex-direction:column; height:auto; }

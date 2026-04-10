@@ -75,6 +75,11 @@
     .toggle-active { cursor:pointer; font-size:12px; }
     .toggle-active.on { color:var(--green); }
     .toggle-active.off { color:var(--red); }
+    [data-theme="light"] .tab-btn.active { color:#fff; }
+    [data-theme="light"] .pagination-wrap nav span[aria-current] { color:#fff; }
+    [data-theme="light"] .btn-save { color:#fff; }
+    [data-theme="light"] .btn-sm { color:#fff; }
+    [data-theme="light"] .btn-add:hover { color:#fff; }
 </style>
 @endpush
 

@@ -44,6 +44,7 @@
     .pagination { display:flex; gap:4px; justify-content:center; margin-top:20px; }
     .pagination a, .pagination span { padding:6px 12px; border-radius:6px; font-size:12px; text-decoration:none; border:1px solid var(--border); color:var(--text-muted); }
     .pagination .active span { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    [data-theme="light"] .pagination .active span { color:#fff; }
 </style>
 @endpush
 

@@ -27,6 +27,7 @@
     .info-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
     .info-row:last-child { border-bottom:none; }
     .info-label { color:var(--text-muted); }
+    [data-theme="light"] .btn-save { color:#fff; }
 </style>
 @endpush
 
