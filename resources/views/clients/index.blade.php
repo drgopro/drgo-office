@@ -5,6 +5,7 @@
 @push('styles')
 <style>
     .crm-wrap { display:flex; height:calc(100vh - 86px); overflow:hidden; }
+    body.in-iframe .crm-wrap { height:100vh; }
 
     /* ── 좌측 사이드바 ── */
     .crm-sidebar { width:220px; min-width:220px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; }
@@ -54,7 +55,7 @@
     /* 의뢰자 상세 영역 */
     .client-content { flex:1; overflow-y:auto; }
     .client-empty { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:14px; }
-    .client-pane { display:none; padding:20px; }
+    .client-pane { display:none; padding:20px; padding-bottom:60px; }
     .client-pane.active { display:block; }
 
     /* 상세 헤더 */
@@ -99,6 +100,7 @@
 
     @media (max-width: 768px) {
         .crm-wrap { flex-direction:column; height:auto; }
+        body.in-iframe .crm-wrap { height:auto; }
         .crm-sidebar { width:100%; min-width:0; max-height:40vh; border-right:none; border-bottom:1px solid var(--border); }
         .form-grid { grid-template-columns:1fr; }
     }
