@@ -69,6 +69,8 @@
     .btn-save:hover { opacity:0.85; }
     .btn-delete { background:none; border:1px solid var(--red); color:var(--red); padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
     .btn-delete:hover { background:var(--red); color:#fff; }
+    .btn-log { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-log:hover { border-color:var(--accent); color:var(--accent); }
 
     /* 서브 탭 */
     .sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
@@ -97,6 +99,28 @@
     .new-client-overlay.open { display:flex; }
     .new-client-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; width:400px; max-width:90vw; }
     .new-client-modal h3 { font-size:16px; margin-bottom:16px; }
+
+    /* ── 라이트모드 보정 ── */
+    [data-theme="light"] .btn-log { background:#f0f1f3; border-color:#b8bcc8; color:#4a5060; }
+    [data-theme="light"] .btn-log:hover { border-color:var(--accent); color:var(--accent); background:#e8eaef; }
+    [data-theme="light"] .btn-save { background:var(--accent); color:#fff; }
+    [data-theme="light"] .btn-save:hover { opacity:0.9; }
+    [data-theme="light"] .btn-delete { border-color:var(--red); color:var(--red); }
+    [data-theme="light"] .btn-delete:hover { background:var(--red); color:#fff; }
+    [data-theme="light"] .sidebar-item { color:var(--text); }
+    [data-theme="light"] .sidebar-item:hover { background:var(--surface2); }
+    [data-theme="light"] .sidebar-item.active { background:var(--accent); color:#fff; }
+    [data-theme="light"] .sidebar-item.active .item-sub { color:rgba(255,255,255,0.8); }
+    [data-theme="light"] .sidebar-item.active .avatar { color:#fff !important; border-color:rgba(255,255,255,0.5) !important; }
+    [data-theme="light"] .client-tab.active { background:var(--surface2); border-color:var(--border); }
+    [data-theme="light"] .sub-tab { color:var(--text-muted); }
+    [data-theme="light"] .sub-tab.active { color:var(--accent); border-color:var(--accent); }
+    [data-theme="light"] .field-input { background:#fff; border-color:#c8ccd4; color:var(--text); }
+    [data-theme="light"] .field-input:focus { border-color:var(--accent); }
+    [data-theme="light"] .field-select { background:#fff; }
+    [data-theme="light"] .grade-chip.active { background:var(--accent); color:#fff; }
+    [data-theme="light"] .new-client-overlay { background:rgba(0,0,0,0.4); }
+    [data-theme="light"] .new-client-modal { background:#fff; border-color:#c8ccd4; }
 
     @media (max-width: 768px) {
         .crm-wrap { flex-direction:column; height:auto; }
@@ -371,7 +395,7 @@ function renderClientContent(id) {
                 </div>
             </div>
             <div class="detail-actions">
-                <button class="btn-save" onclick="openActivityLog('Client',${id},'${(d.name||'').replace(/'/g,"\\'")} 수정 로그')" style="background:var(--surface2); color:var(--text-muted); border:1px solid var(--border);">📋 로그</button>
+                <button class="btn-log" onclick="openActivityLog('Client',${id},'${(d.name||'').replace(/'/g,"\\'")} 수정 로그')">📋 로그</button>
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
                 <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>
             </div>
