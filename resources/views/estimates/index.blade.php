@@ -14,7 +14,7 @@
     .toolbar input:focus { border-color:var(--accent); }
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
 
-    .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:visible; }
+    .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
     .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
     .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); }
@@ -49,6 +49,14 @@
     [data-theme="light"] .badge-completed { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .badge-paid      { background:#e0f8f5; color:#0a8a70; }
     [data-theme="light"] .badge-hold      { background:#ffe8e8; color:#c03838; }
+    @media (max-width: 768px) {
+        .page-wrap { padding:16px; }
+        .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
+        .data-table { min-width:600px; }
+        .data-table th, .data-table td { padding:10px; font-size:12px; white-space:nowrap; }
+        .toolbar { flex-direction:column; align-items:stretch; }
+        .toolbar input[type="text"] { width:100%; }
+    }
 </style>
 @endpush
 

@@ -14,7 +14,7 @@
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
 
-    .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
     .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
     .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); }
@@ -80,6 +80,16 @@
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .btn-sm { color:#fff; }
     [data-theme="light"] .btn-add:hover { color:#fff; }
+    @media (max-width: 768px) {
+        .page-wrap { padding:16px; }
+        .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
+        .data-table { min-width:500px; }
+        .data-table th, .data-table td { padding:10px; font-size:12px; white-space:nowrap; }
+        .tab-bar { flex-wrap:wrap; }
+        .tab-btn { font-size:12px; padding:8px 4px; }
+        .modal { width:95vw !important; max-width:95vw !important; padding:16px !important; }
+        .field-row { grid-template-columns:1fr !important; }
+    }
 </style>
 @endpush
 
