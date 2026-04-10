@@ -71,6 +71,7 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">프로젝트 관리</div>
+        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')">📥 엑셀 가져오기</button>
     </div>
 
     <form method="GET" action="{{ route('projects.index') }}" class="search-bar">

@@ -9,6 +9,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDocumentController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\EstimateController;
+use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -158,6 +159,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // 관리자 (master, admin만)
+    // 엑셀 가져오기
+    Route::get('/api/import/template/{type}', [ExcelImportController::class, 'template']);
+    Route::post('/api/import/{type}', [ExcelImportController::class, 'import']);
+
     Route::middleware('role:master,admin')->group(function () {
         Route::get('/admin', [AdminController::class, 'index'])->name('admin');
         Route::get('/api/settings', [AdminController::class, 'settings']);

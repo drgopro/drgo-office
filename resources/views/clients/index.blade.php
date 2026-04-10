@@ -184,7 +184,10 @@
             </div>
         </div>
         <div class="sidebar-list" id="clientList"></div>
-        <div class="sidebar-add" onclick="openNewClientModal()">+ 의뢰자 등록</div>
+        <div style="display:flex; gap:6px; margin:8px;">
+            <div class="sidebar-add" style="flex:1; margin:0;" onclick="openNewClientModal()">+ 의뢰자 등록</div>
+            <div class="sidebar-add" style="flex:0; margin:0; white-space:nowrap;" onclick="openExcelImportModal('clients','의뢰자')">📥 엑셀</div>
+        </div>
     </div>
 
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
