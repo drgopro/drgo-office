@@ -420,7 +420,7 @@
 
         /* 이벤트 칩 → dot 표시 */
         .events-list { flex-direction:row; gap:2px; justify-content:center; flex-wrap:wrap; }
-        .event-chip { width:6px; height:6px; min-width:6px; border-radius:50%; padding:0; overflow:hidden; border:none !important; }
+        .event-chip { width:10px; height:10px; min-width:10px; border-radius:50%; padding:0; overflow:hidden; border:none !important; }
         .event-chip span, .event-chip .chip-time, .event-chip .chip-special,
         .event-chip .chip-badges, .event-chip .sched-icon-badge, .event-chip .ev-assignee-badge { display:none; }
         .event-chip.single { border-left:none; }
