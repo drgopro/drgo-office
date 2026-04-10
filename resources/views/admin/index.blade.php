@@ -252,7 +252,7 @@
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const currentRole = @json(Auth::user()->role);
 const PERM_GROUPS = [
-    { title: '캘린더', perms: [{ key: 'calendar.view', label: '조회' }, { key: 'calendar.edit', label: '편집' }] },
+    { title: '캘린더', perms: [{ key: 'calendar.view', label: '조회' }, { key: 'calendar.edit', label: '편집' }, { key: 'calendar.backup', label: '백업/내보내기' }] },
     { title: '의뢰자', perms: [{ key: 'clients.view', label: '조회' }, { key: 'clients.edit', label: '편집' }] },
     { title: '프로젝트', perms: [{ key: 'projects.view', label: '조회' }, { key: 'projects.edit', label: '편집' }] },
     { title: '재고', perms: [{ key: 'inventory.view', label: '조회' }, { key: 'inventory.edit', label: '편집' }] },

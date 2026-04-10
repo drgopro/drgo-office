@@ -39,10 +39,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/events', [CalendarController::class, 'store'])->name('api.events.store');
         Route::match(['PUT', 'PATCH', 'POST'], '/api/events/{schedule}', [CalendarController::class, 'update'])->name('api.events.update');
         Route::delete('/api/events/{schedule}', [CalendarController::class, 'destroy'])->name('api.events.destroy');
-        Route::get('/api/events/export/json', [CalendarController::class, 'exportJson']);
-        Route::post('/api/events/import/json', [CalendarController::class, 'importJson']);
-        Route::get('/api/events/export/ical', [CalendarController::class, 'exportIcal']);
-        Route::post('/api/events/import/ical', [CalendarController::class, 'importIcal']);
+        Route::middleware('permission:calendar.backup')->group(function () {
+            Route::get('/api/events/export/json', [CalendarController::class, 'exportJson']);
+            Route::post('/api/events/import/json', [CalendarController::class, 'importJson']);
+            Route::get('/api/events/export/ical', [CalendarController::class, 'exportIcal']);
+            Route::post('/api/events/import/ical', [CalendarController::class, 'importIcal']);
+        });
         Route::get('/api/schedules/{schedule}/attachments', [ScheduleAttachmentController::class, 'index']);
         Route::post('/api/schedules/{schedule}/attachments', [ScheduleAttachmentController::class, 'store']);
         Route::delete('/api/schedule-attachments/{attachment}', [ScheduleAttachmentController::class, 'destroy']);

@@ -499,6 +499,7 @@
     <div style="display:flex;align-items:center;gap:8px;">
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
+            @if(Auth::user()->hasPermission('calendar.backup'))
             <div style="position:relative;">
                 <button class="nav-btn" onclick="toggleCalMenu()" title="내보내기/가져오기" style="font-size:14px;">⋯</button>
                 <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
@@ -511,6 +512,7 @@
             </div>
             <input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importFile('json',this)">
             <input type="file" id="icalImportInput" accept=".ics,.ical" style="display:none" onchange="importFile('ical',this)">
+            @endif
         @endif
     </div>
 </div>
