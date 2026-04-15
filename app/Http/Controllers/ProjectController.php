@@ -125,4 +125,16 @@ class ProjectController extends Controller
 
         return response()->json(['success' => true, 'project' => $project]);
     }
+
+    // 프로젝트 완전 삭제 (soft delete)
+    public function destroy(Request $request, Project $project)
+    {
+        $project->delete();
+
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => '프로젝트가 삭제되었습니다.']);
+        }
+
+        return back()->with('success', '프로젝트가 삭제되었습니다.');
+    }
 }

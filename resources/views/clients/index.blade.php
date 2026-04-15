@@ -177,7 +177,7 @@
     {{-- 좌측 사이드바 --}}
     <div class="crm-sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-title">고객 목록</div>
+            <div class="sidebar-title" id="clientListTitle">의뢰자 목록</div>
             <input class="sidebar-search" type="text" id="clientSearch" placeholder="검색..." oninput="filterClients()">
             <div class="sidebar-filters">
                 <button class="filter-chip active" data-grade="" onclick="setGradeFilter(this)">전체</button>
@@ -319,6 +319,10 @@ function renderClientList() {
     if (currentGrade) {
         filtered = filtered.filter(c => c.grade === currentGrade);
     }
+
+    // 타이틀 업데이트
+    const titleEl = document.getElementById('clientListTitle');
+    if (titleEl) titleEl.textContent = `의뢰자 목록 (${allClients.length}명)`;
 
     if (!filtered.length) {
         list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">결과 없음</div>';
@@ -639,9 +643,10 @@ function renderProjectList(projects, clientId, order) {
                 <div style="font-size:14px; font-weight:600;">${p.name}</div>
                 <div style="font-size:11px; color:var(--text-muted);">${TYPE_LABELS[p.type]||p.type} · 상담 ${p.consultations_count}건 · ${p.created_at}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${STAGE_LABELS[p.stage]||p.stage}</span>
-                <button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})">삭제</button>
+                ${p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
+                <button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>
             </div>
         </div>
     `).join('');
@@ -750,15 +755,27 @@ async function createProject(clientId) {
     }
 }
 
-async function deleteProject(projectId, clientId) {
-    if (!confirm('이 프로젝트를 삭제하시겠습니까?')) return;
-    // 프로젝트는 soft delete이므로 stage를 cancelled로 변경
+async function cancelProject(projectId, clientId) {
+    if (!confirm('이 프로젝트를 취소 상태로 변경하시겠습니까?\n(데이터는 보존되며, 단계만 "취소"로 변경됩니다)')) return;
     await fetch(`/projects/${projectId}/stage`, {
         method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
         body:JSON.stringify({stage:'cancelled'})
     });
     await refreshClientData(clientId);
     showToast('프로젝트가 취소되었습니다');
+}
+
+async function deleteProject(projectId, clientId) {
+    if (!confirm('⚠️ 이 프로젝트를 완전히 삭제하시겠습니까?\n상담 이력/문서 등 관련 데이터가 함께 삭제되며 되돌릴 수 없습니다.')) return;
+    const res = await fetch(`/api/projects/${projectId}`, {
+        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+    });
+    if (res.ok) {
+        await refreshClientData(clientId);
+        showToast('프로젝트가 삭제되었습니다');
+    } else {
+        alert('삭제 실패');
+    }
 }
 
 // 프로젝트 정렬

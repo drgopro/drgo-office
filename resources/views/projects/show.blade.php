@@ -193,6 +193,10 @@
         </div>
         <div style="display:flex;gap:8px;">
             <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
+            @if($project->stage !== 'cancelled')
+                <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="cancelProject()" title="프로젝트 취소 (데이터 보존)">취소</button>
+            @endif
+            <button class="btn-edit" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="deleteProject()" title="완전 삭제">삭제</button>
             <button class="btn-primary" onclick="openConsultModal()">+ 상담 등록</button>
         </div>
     </div>
@@ -675,6 +679,40 @@ async function saveMemo() {
     edit.style.display = 'none';
     display.style.display = '';
     btn.textContent = '수정';
+}
+
+// 프로젝트 취소
+async function cancelProject() {
+    if (!confirm('이 프로젝트를 취소 상태로 변경하시겠습니까?\n(데이터는 보존되며, 단계만 "취소"로 변경됩니다)')) return;
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/projects/{{ $project->id }}/stage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+        body: JSON.stringify({ stage: 'cancelled' }),
+    });
+    if (res.ok || res.status === 302) location.reload();
+    else alert('취소 처리 실패');
+}
+
+// 프로젝트 완전 삭제
+async function deleteProject() {
+    if (!confirm('⚠️ 이 프로젝트를 완전히 삭제하시겠습니까?\n상담 이력/문서 등 관련 데이터가 함께 삭제되며 되돌릴 수 없습니다.')) return;
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/api/projects/{{ $project->id }}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+    });
+    if (res.ok) {
+        alert('프로젝트가 삭제되었습니다.');
+        // 부모(의뢰자 상세) 탭이 있으면 그쪽으로 이동, 아니면 프로젝트 목록
+        if (window.parent && window.parent.location) {
+            window.parent.location.href = '/projects';
+        } else {
+            location.href = '/projects';
+        }
+    } else {
+        alert('삭제 실패');
+    }
 }
 
 // 앨범 뷰어 + 줌/드래그
