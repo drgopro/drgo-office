@@ -325,11 +325,13 @@ function renderClientList() {
     list.innerHTML = filtered.map(c => {
         const initials = (c.nickname || c.name).substring(0, 2);
         const active = activeClientId === c.id ? 'active' : '';
+        const displayName = c.nickname && c.name ? `${c.nickname} / ${c.name}` : (c.nickname || c.name);
+        const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.join(', ') : '';
         return `<div class="sidebar-item ${active}" onclick="openClient(${c.id})">
             <div class="avatar" style="color:${GRADE_COLORS[c.grade]||'var(--text-muted)'}; border-color:${GRADE_COLORS[c.grade]||'var(--border)'}">${initials}</div>
             <div class="item-info">
-                <div class="item-name">${c.nickname || c.name}</div>
-                <div class="item-sub">${c.name}${c.nickname ? '' : ''}</div>
+                <div class="item-name">${displayName}</div>
+                <div class="item-sub">${platforms || '<span style="opacity:0.5;">플랫폼 없음</span>'}</div>
             </div>
             <span class="item-grade grade-${c.grade}">${GRADE_LABELS[c.grade]||''}</span>
         </div>`;

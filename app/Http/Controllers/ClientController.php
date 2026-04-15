@@ -221,7 +221,7 @@ class ClientController extends Controller
 
         return response()->json(
             $query->orderBy('created_at', 'desc')
-                ->get(['id', 'name', 'nickname', 'phone', 'grade', 'status'])
+                ->get(['id', 'name', 'nickname', 'phone', 'grade', 'status', 'platforms'])
         );
     }
 
