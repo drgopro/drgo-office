@@ -265,12 +265,12 @@
             @endif
         </div>
 
-        <div class="info-card full">
-            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="info-card">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>메모</span>
                 <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
             </div>
-            <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0; width:100%; display:block;">{{ $project->memo ?: '메모 없음' }}</div>
+            <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '메모 없음' }}</div>
             <textarea id="memoEdit" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
         </div>
 
@@ -408,7 +408,7 @@
 </div>
 
 <!-- 메모 스레드 -->
-<div style="max-width:900px; margin-top:20px;">
+<div style="max-width:900px; margin:20px auto 0; padding:0 24px;">
     <div class="section-card" style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
         <div style="font-size:14px; font-weight:700; margin-bottom:12px;">메모</div>
         <div style="display:flex; gap:8px; margin-bottom:14px;">
