@@ -637,63 +637,6 @@
                 </div>
             </div>
 
-            {{-- 알림 + 옵션 --}}
-            <div class="field-section">
-            <div class="field-group" id="notifGroup">
-                <label class="field-label">🔔 알림</label>
-                <div class="notif-row">
-                    <select class="notif-select" id="notifSelect">
-                        <option value="">알림 없음</option>
-                        <option value="0">정시 (일정 시작 시간)</option>
-                        <option value="5">5분 전</option>
-                        <option value="10">10분 전</option>
-                        <option value="15">15분 전</option>
-                        <option value="30">30분 전</option>
-                        <option value="60">1시간 전</option>
-                        <option value="120">2시간 전</option>
-                        <option value="1440">하루 전 오전 9시</option>
-                    </select>
-                    <span class="notif-allday-label" id="notifAlldayLabel" style="display:none;">당일 오전 9시 발송</span>
-                </div>
-            </div>
-
-            {{-- 일정 옵션 --}}
-            <div class="field-group">
-                <div class="field-label">일정 옵션</div>
-                <div class="special-opts" id="schedEventOpts">
-                    <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
-                    <div class="special-opt-btn" data-seopt="urgent"><span class="opt-icon">🚨</span>긴급 일정</div>
-                    <div class="special-opt-btn" data-seopt="after"><span class="opt-icon">→</span><span id="schedAfterLabel">날짜 선택</span> 이후 희망</div>
-                </div>
-                <div id="schedReasonWrap" style="display:none;margin-top:6px;">
-                    <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
-                </div>
-            </div>
-
-            <div class="field-group">
-                <div class="field-label">일정 관련 옵션</div>
-                <div class="special-opts" id="scheduleOpts">
-                    <div class="sched-opt-btn" data-sopt="suggest"><span class="opt-icon">💬</span>제안</div>
-                    <div class="sched-opt-btn" data-sopt="hope"><span class="opt-icon">🙏</span>희망</div>
-                    <div class="sched-opt-btn" data-sopt="target"><span class="opt-icon">🎯</span>목표</div>
-                </div>
-                <div class="sched-opt-desc" id="schedOptDesc"></div>
-            </div>
-
-            <div class="field-group">
-                <div class="field-label">특수 옵션</div>
-                <div class="special-opts" id="specialOpts">
-                    <div class="special-opt-btn" data-opt="car"><span class="opt-icon">🚗</span>차량 이용 필요</div>
-                    <div class="special-opt-btn" data-opt="brief"><span class="opt-icon">💼</span>들고 갈 제품 있음</div>
-                    <div class="special-opt-btn" data-opt="group"><span class="opt-icon">👥</span>2인필수 작업</div>
-                    <div class="special-opt-btn" data-opt="ladder"><span class="opt-icon">▤</span>사다리 필요</div>
-                </div>
-                <div id="specialReasonWrap" style="display:none;margin-top:6px;">
-                    <input class="field-input" id="specialReason" placeholder="특수옵션 사유 (선택)" style="font-size:13px;">
-                </div>
-            </div>
-            </div>{{-- /field-section (알림+옵션) --}}
-
             <div class="divider"></div>
 
             {{-- 공통 필드 (비-gold/비-teal) --}}
@@ -824,6 +767,60 @@
 
                 <div class="divider"></div>
 
+                {{-- 알림 + 옵션 --}}
+                <div class="section-heading">알림 시간</div>
+                <div class="field-group" id="notifGroup">
+                    <label class="field-label">🔔 알림</label>
+                    <div class="notif-row">
+                        <select class="notif-select" id="notifSelect">
+                            <option value="">알림 없음</option>
+                            <option value="0">정시 (일정 시작 시간)</option>
+                            <option value="5">5분 전</option>
+                            <option value="10">10분 전</option>
+                            <option value="15">15분 전</option>
+                            <option value="30">30분 전</option>
+                            <option value="60">1시간 전</option>
+                            <option value="120">2시간 전</option>
+                            <option value="1440">하루 전 오전 9시</option>
+                        </select>
+                        <span class="notif-allday-label" id="notifAlldayLabel" style="display:none;">당일 오전 9시 발송</span>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">일정 옵션</div>
+                    <div class="special-opts" id="schedEventOpts">
+                        <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
+                        <div class="special-opt-btn" data-seopt="urgent"><span class="opt-icon">🚨</span>긴급 일정</div>
+                        <div class="special-opt-btn" data-seopt="after"><span class="opt-icon">→</span><span id="schedAfterLabel">날짜 선택</span> 이후 희망</div>
+                    </div>
+                    <div id="schedReasonWrap" style="display:none;margin-top:6px;">
+                        <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">일정 관련 옵션</div>
+                    <div class="special-opts" id="scheduleOpts">
+                        <div class="sched-opt-btn" data-sopt="suggest"><span class="opt-icon">💬</span>제안</div>
+                        <div class="sched-opt-btn" data-sopt="hope"><span class="opt-icon">🙏</span>희망</div>
+                        <div class="sched-opt-btn" data-sopt="target"><span class="opt-icon">🎯</span>목표</div>
+                    </div>
+                    <div class="sched-opt-desc" id="schedOptDesc"></div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">특수 옵션</div>
+                    <div class="special-opts" id="specialOpts">
+                        <div class="special-opt-btn" data-opt="car"><span class="opt-icon">🚗</span>차량 이용 필요</div>
+                        <div class="special-opt-btn" data-opt="brief"><span class="opt-icon">💼</span>들고 갈 제품 있음</div>
+                        <div class="special-opt-btn" data-opt="group"><span class="opt-icon">👥</span>2인필수 작업</div>
+                        <div class="special-opt-btn" data-opt="ladder"><span class="opt-icon">▤</span>사다리 필요</div>
+                    </div>
+                    <div id="specialReasonWrap" style="display:none;margin-top:6px;">
+                        <input class="field-input" id="specialReason" placeholder="특수옵션 사유 (선택)" style="font-size:13px;">
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
                 <div class="section-heading">의뢰 내용</div>
                 <div class="field-group">
                     <label class="field-label">의뢰 주제</label>
@@ -939,6 +936,14 @@
                         🏠 방 사진을 클릭 또는 드래그하여 추가
                     </div>
                     <div class="img-grid" id="roomGrid"></div>
+                </div>
+                <div class="img-upload-group">
+                    <div class="img-upload-label">첨부 파일</div>
+                    <div class="img-upload-zone" id="generalZone">
+                        <input type="file" id="fileGeneral" multiple onchange="handleImgFiles('general',this.files)">
+                        📎 파일을 클릭 또는 드래그하여 추가 (PDF, 문서 등 가능)
+                    </div>
+                    <div class="img-grid" id="generalGrid"></div>
                 </div>
             </div>
 
@@ -1773,10 +1778,10 @@ document.addEventListener('click',e=>{
 });
 
 // ── 이미지 첨부 ──
-let pendingAttachments={quote:[],reference:[],room:[]};
-let existingAttachments={quote:[],reference:[],room:[]};
-const GRID_MAP={quote:'quoteGrid',reference:'refGrid',room:'roomGrid'};
-const FILE_MAP={quote:'fileQuote',reference:'fileReference',room:'fileRoom'};
+let pendingAttachments={quote:[],reference:[],room:[],general:[]};
+let existingAttachments={quote:[],reference:[],room:[],general:[]};
+const GRID_MAP={quote:'quoteGrid',reference:'refGrid',room:'roomGrid',general:'generalGrid'};
+const FILE_MAP={quote:'fileQuote',reference:'fileReference',room:'fileRoom',general:'fileGeneral'};
 
 function triggerAttach(type){document.getElementById(FILE_MAP[type]).click();}
 
@@ -1811,9 +1816,8 @@ function renderImgGrid(type){
 }
 
 // 드래그 드롭
-['quoteZone','refZone','roomZone'].forEach(zid=>{
+[['quoteZone','quote'],['refZone','reference'],['roomZone','room'],['generalZone','general']].forEach(([zid,type])=>{
     const zone=document.getElementById(zid); if(!zone) return;
-    const type=zid==='quoteZone'?'quote':zid==='refZone'?'reference':'room';
     zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
     zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
     zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');handleImgFiles(type,e.dataTransfer.files);});
@@ -1825,7 +1829,7 @@ async function removeExistingAttach(type,idx,id){
     existingAttachments[type].splice(idx,1);renderImgGrid(type);
 }
 async function uploadPendingAttachments(scheduleId){
-    const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진'};
+    const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진',general:'첨부 파일'};
     let failedTypes=[];
     for(const type of ['quote','reference','room']){
         if(!pendingAttachments[type].length) continue;
@@ -1843,12 +1847,12 @@ async function uploadPendingAttachments(scheduleId){
     if(failedTypes.length) showCalToast('⚠ '+failedTypes.join(', ')+' 업로드 실패 — 권한을 확인하세요');
 }
 async function loadExistingAttachments(scheduleId){
-    existingAttachments={quote:[],reference:[],room:[]};
+    existingAttachments={quote:[],reference:[],room:[],general:[]};
     try{const res=await fetch(`/api/schedules/${scheduleId}/attachments`);if(res.ok){const list=await res.json();list.forEach(a=>{if(existingAttachments[a.attachment_type])existingAttachments[a.attachment_type].push(a);});}}catch(e){}
     ['quote','reference','room'].forEach(t=>renderImgGrid(t));
 }
 function resetAttachments(){
-    pendingAttachments={quote:[],reference:[],room:[]};existingAttachments={quote:[],reference:[],room:[]};
+    pendingAttachments={quote:[],reference:[],room:[],general:[]};existingAttachments={quote:[],reference:[],room:[],general:[]};
     ['quote','reference','room'].forEach(t=>renderImgGrid(t));
 }
 
@@ -2263,7 +2267,7 @@ function openEditModal(ev){
     document.getElementById('t_studio_content').value=t.mode==='studio'?t.content||'':'';
     document.getElementById('t_desc').value=t.desc||'';
     // 첨부파일
-    pendingAttachments={quote:[],reference:[],room:[]};
+    pendingAttachments={quote:[],reference:[],room:[],general:[]};
     loadExistingAttachments(ev.id);
     // UI
     document.getElementById('btnDelete').style.display='';

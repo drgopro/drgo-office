@@ -63,6 +63,8 @@
     .empty { text-align:center; padding:30px; color:var(--text-muted); font-size:13px; }
 
     .success-msg { background:#1a3a2a; border:1px solid #2a5a3a; color:#7ac87a; padding:10px 16px; border-radius:8px; margin-bottom:16px; font-size:13px; }
+    .important-memo-box { background:rgba(212,188,150,0.12); border:1px solid rgba(212,188,150,0.4); color:var(--accent); }
+    [data-theme="light"] .important-memo-box { background:#fff3e0; border-color:#e0b870; color:#a06800; }
 
     /* 문서 업로드 */
     .doc-upload-area { margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border); }
@@ -252,7 +254,7 @@
                 <div>{{ $project->client->address ?? '-' }}</div>
             </div>
             @if($project->client->important_memo)
-            <div style="margin-top:10px; background:#1a1500; border:1px solid #3a2a10; border-radius:6px; padding:8px 12px; font-size:12px; color:var(--accent);">
+            <div class="important-memo-box" style="margin-top:10px; border-radius:6px; padding:8px 12px; font-size:12px;">
                 ⚠ {{ $project->client->important_memo }}
             </div>
             @endif
@@ -260,7 +262,7 @@
 
         <div class="info-card">
             <div class="card-title">메모</div>
-            <div style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap;">
+            <div style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left;">
                 {{ $project->memo ?? '메모 없음' }}
             </div>
         </div>
