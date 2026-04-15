@@ -180,10 +180,11 @@
         <div class="page-header-left">
             <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">← {{ $project->client->name }}</a>
             <div>
-                <div class="project-name">{{ $project->name }}</div>
+                <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
+                <input id="projectNameEdit" type="text" value="{{ $project->name }}" style="display:none;font-size:22px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);width:100%;outline:none;" onblur="saveProjectName()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.value='{{ addslashes($project->name) }}';this.blur();}">
                 <div class="project-meta">
                     <span class="badge badge-{{ $project->project_type }}">
-                        {{ ['visit'=>'방문세팅','remote'=>'원격세팅','as'=>'AS'][$project->project_type] }}
+                        {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
                     </span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
                     <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
@@ -261,21 +262,28 @@
         </div>
 
         <div class="info-card">
-            <div class="card-title">메모</div>
-            <div style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left;">
-                {{ $project->memo ?? '메모 없음' }}
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>메모</span>
+                <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
             </div>
+            <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '메모 없음' }}</div>
+            <textarea id="memoEdit" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
         </div>
 
         <!-- 상담 이력 -->
+        @php $consultations = $project->consultations->load('authorUser', 'consultant'); @endphp
         <div class="info-card full">
-            <div class="card-title">
-                <span>상담 이력 ({{ $project->consultations->count() }}건)</span>
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>상담 이력 ({{ $consultations->count() }}건)</span>
+                <select id="consultSortSelect" onchange="sortConsultations(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-size:12px;cursor:pointer;">
+                    <option value="desc">최근 순</option>
+                    <option value="asc">오래된 순</option>
+                </select>
             </div>
-            @if($project->consultations->count() > 0)
-                <div class="consult-list">
-                    @foreach($project->consultations->sortByDesc('consulted_at') as $consult)
-                    <div class="consult-item {{ $consult->is_important ? 'important' : '' }}">
+            @if($consultations->count() > 0)
+                <div class="consult-list" id="consultList">
+                    @foreach($consultations->sortByDesc('consulted_at') as $consult)
+                    <div class="consult-item {{ $consult->is_important ? 'important' : '' }}" data-date="{{ $consult->consulted_at->format('Y-m-d') }}" data-id="{{ $consult->id }}">
                         <div class="consult-header">
                             <div class="consult-meta">
                                 @if($consult->is_important)
@@ -283,14 +291,14 @@
                                 @endif
                                 <span class="consult-date">{{ $consult->consulted_at->format('Y.m.d') }}</span>
                                 <span class="consult-type-badge">
-                                    {{ ['kakao'=>'카카오톡','phone'=>'전화','visit'=>'내방상담','field'=>'현장답사'][$consult->consult_type] }}
+                                    {{ ['kakao'=>'카카오톡','phone'=>'전화','visit'=>'내방상담','field'=>'현장답사'][$consult->consult_type] ?? $consult->consult_type }}
                                 </span>
                                 <span class="consult-result-badge result-{{ $consult->result }}">
                                     {{ ['in_progress'=>'진행중','waiting'=>'대기','valid'=>'유효','invalid'=>'무효','done'=>'완료'][$consult->result] }}
                                 </span>
                             </div>
                             <div class="consult-actions">
-                                <button class="btn-edit-sm" onclick="openEditModal({{ $consult->id }}, '{{ $consult->consulted_at->format('Y-m-d') }}', '{{ $consult->consult_type }}', '{{ $consult->result }}', {{ $consult->is_important ? 'true' : 'false' }}, @js($consult->content))">수정</button>
+                                <button class="btn-edit-sm" onclick="openEditModal({{ $consult->id }}, '{{ $consult->consulted_at->format('Y-m-d') }}', '{{ $consult->consult_type }}', '{{ $consult->result }}', {{ $consult->is_important ? 'true' : 'false' }}, @js($consult->content), @js($consult->manager_name))">수정</button>
                                 <form method="POST" action="{{ route('consultations.destroy', $consult) }}" style="display:inline;">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn-del" onclick="return confirm('삭제할까요?')">삭제</button>
@@ -301,7 +309,12 @@
                             <div class="consult-content">{{ $consult->content }}</div>
                         @endif
                         <div class="consult-footer">
-                            <span class="consult-author">{{ $consult->consultant?->display_name ?? '-' }}</span>
+                            <span class="consult-author">
+                                작성자: {{ $consult->authorUser?->display_name ?? $consult->consultant?->display_name ?? '-' }}
+                                @if($consult->manager_name)
+                                    · 담당자: {{ $consult->manager_name }}
+                                @endif
+                            </span>
                             <span class="consult-date">{{ $consult->created_at->format('H:i') }}</span>
                         </div>
                     </div>
@@ -455,6 +468,10 @@
                 </select>
             </div>
             <div class="field-group">
+                <div class="field-label">담당자 (수기 입력)</div>
+                <input class="field-input" type="text" name="manager_name" placeholder="담당자 이름 (선택)">
+            </div>
+            <div class="field-group">
                 <div class="field-label">상담 내용</div>
                 <textarea class="field-textarea" name="content" rows="5" placeholder="상담 내용을 입력하세요"></textarea>
             </div>
@@ -528,6 +545,10 @@
                 </select>
             </div>
             <div class="field-group">
+                <div class="field-label">담당자 (수기 입력)</div>
+                <input class="field-input" type="text" name="manager_name" id="editManagerName" placeholder="담당자 이름 (선택)">
+            </div>
+            <div class="field-group">
                 <div class="field-label">상담 내용</div>
                 <textarea class="field-textarea" name="content" id="editContent" rows="5"></textarea>
             </div>
@@ -551,16 +572,110 @@
 // 상담 모달
 function openConsultModal() { document.getElementById('consultModal').classList.add('open'); }
 function closeConsultModal() { document.getElementById('consultModal').classList.remove('open'); }
-function openEditModal(id, date, type, result, isImportant, content) {
+function openEditModal(id, date, type, result, isImportant, content, managerName) {
     document.getElementById('editForm').action = `/consultations/${id}`;
     document.getElementById('editDate').value = date;
     document.getElementById('editType').value = type;
     document.getElementById('editResult').value = result;
     document.getElementById('editContent').value = content || '';
+    document.getElementById('editManagerName').value = managerName || '';
     document.getElementById('editImportant').checked = isImportant;
     document.getElementById('editModal').classList.add('open');
 }
 function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+
+// 상담 정렬
+function sortConsultations(order) {
+    const list = document.getElementById('consultList');
+    if (!list) return;
+    const items = Array.from(list.children);
+    items.sort((a, b) => {
+        const da = a.dataset.date, db = b.dataset.date;
+        return order === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
+    });
+    items.forEach(el => list.appendChild(el));
+}
+
+// 프로젝트 제목 인라인 수정
+function enableProjectNameEdit() {
+    const display = document.getElementById('projectNameDisplay');
+    const input = document.getElementById('projectNameEdit');
+    display.style.display = 'none';
+    input.style.display = 'block';
+    input.focus();
+    input.select();
+}
+async function saveProjectName() {
+    const display = document.getElementById('projectNameDisplay');
+    const input = document.getElementById('projectNameEdit');
+    const newName = input.value.trim();
+    const oldName = display.textContent.trim();
+    if (!newName || newName === oldName) {
+        input.style.display = 'none';
+        display.style.display = '';
+        input.value = oldName;
+        return;
+    }
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/projects/{{ $project->id }}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            body: JSON.stringify({ name: newName }),
+        });
+        if (res.ok) {
+            display.textContent = newName;
+        } else {
+            input.value = oldName;
+            alert('수정 실패');
+        }
+    } catch (e) {
+        input.value = oldName;
+        alert('수정 오류');
+    }
+    input.style.display = 'none';
+    display.style.display = '';
+}
+
+// 프로젝트 메모 인라인 수정
+function toggleMemoEdit() {
+    const display = document.getElementById('memoDisplay');
+    const edit = document.getElementById('memoEdit');
+    const btn = document.getElementById('memoEditBtn');
+    if (edit.style.display === 'none') {
+        display.style.display = 'none';
+        edit.style.display = 'block';
+        btn.textContent = '저장';
+        edit.focus();
+    } else {
+        saveMemo();
+    }
+}
+async function saveMemo() {
+    const display = document.getElementById('memoDisplay');
+    const edit = document.getElementById('memoEdit');
+    const btn = document.getElementById('memoEditBtn');
+    const newMemo = edit.value.trim();
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/projects/{{ $project->id }}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            body: JSON.stringify({ memo: newMemo }),
+        });
+        if (res.ok) {
+            display.textContent = newMemo || '메모 없음';
+            display.style.color = newMemo ? 'var(--text)' : 'var(--text-muted)';
+        } else {
+            alert('저장 실패');
+        }
+    } catch (e) {
+        alert('저장 오류');
+    }
+    edit.style.display = 'none';
+    display.style.display = '';
+    btn.textContent = '수정';
+}
 
 // 앨범 뷰어 + 줌/드래그
 const albumDocs = @json($projectDocs);

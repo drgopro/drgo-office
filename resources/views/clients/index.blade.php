@@ -416,7 +416,7 @@ function renderClientTabs() {
 }
 
 const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',as:'AS',done:'완료',cancelled:'취소'};
-const TYPE_LABELS = {visit:'방문세팅',remote:'원격세팅',as:'AS'};
+const TYPE_LABELS = {visit:'방문세팅',remote:'원격세팅',design:'디자인',inquiry:'단순문의',as:'A/S',troubleshoot:'문제 해결'};
 
 function renderClientContent(id) {
     const tab = openClientTabs.find(t => t.id === id);
@@ -555,7 +555,10 @@ function renderClientContent(id) {
                         <select class="field-input field-select" id="pf-type-${id}">
                             <option value="visit">방문세팅</option>
                             <option value="remote">원격세팅</option>
-                            <option value="as">AS</option>
+                            <option value="design">디자인</option>
+                            <option value="inquiry">단순문의</option>
+                            <option value="as">A/S</option>
+                            <option value="troubleshoot">문제 해결</option>
                         </select>
                     </div>
                 </div>

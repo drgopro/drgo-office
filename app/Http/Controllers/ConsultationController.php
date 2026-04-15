@@ -17,11 +17,13 @@ class ConsultationController extends Controller
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',
             'is_important' => 'boolean',
+            'manager_name' => 'nullable|string|max:100',
         ]);
 
         $validated['project_id'] = $project->id;
         $validated['client_id'] = $project->client_id;
         $validated['consultant_id'] = Auth::id();
+        $validated['author_user_id'] = Auth::id();
         $validated['is_important'] = $request->boolean('is_important');
 
         Consultation::create($validated);
@@ -39,6 +41,7 @@ class ConsultationController extends Controller
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',
             'is_important' => 'boolean',
+            'manager_name' => 'nullable|string|max:100',
         ]);
 
         $validated['is_important'] = $request->boolean('is_important');

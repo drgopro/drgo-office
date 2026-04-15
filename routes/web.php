@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:projects.edit')->group(function () {
         Route::post('/clients/{client}/projects', [ProjectController::class, 'store'])->name('projects.store');
         Route::patch('/projects/{project}/stage', [ProjectController::class, 'updateStage'])->name('projects.stage');
+        Route::patch('/api/projects/{project}', [ProjectController::class, 'updateJson']);
         Route::post('/api/projects/{project}/memos', [ProjectController::class, 'storeMemo']);
         Route::delete('/api/project-memos/{memo}', [ProjectController::class, 'destroyMemo']);
     });

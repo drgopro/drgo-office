@@ -44,7 +44,7 @@ class ProjectController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:200',
-            'project_type' => 'required|in:visit,remote,as',
+            'project_type' => 'required|in:visit,remote,design,inquiry,as,troubleshoot',
             'memo' => 'nullable|string',
         ]);
 
@@ -110,5 +110,19 @@ class ProjectController extends Controller
         }
 
         return back()->with('success', '단계가 변경되었습니다.');
+    }
+
+    // 프로젝트 부분 수정 (이름, 메모 등)
+    public function updateJson(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:200',
+            'memo' => 'nullable|string',
+            'project_type' => 'sometimes|in:visit,remote,design,inquiry,as,troubleshoot',
+        ]);
+
+        $project->update($validated);
+
+        return response()->json(['success' => true, 'project' => $project]);
     }
 }

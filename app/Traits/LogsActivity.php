@@ -237,6 +237,13 @@ trait LogsActivity
             return $stages[$value] ?? $value;
         }
 
+        // 프로젝트 유형 → 한글
+        if ($key === 'project_type') {
+            $types = ['visit' => '방문세팅', 'remote' => '원격세팅', 'design' => '디자인', 'inquiry' => '단순문의', 'as' => 'A/S', 'troubleshoot' => '문제 해결'];
+
+            return $types[$value] ?? $value;
+        }
+
         return $value;
     }
 }

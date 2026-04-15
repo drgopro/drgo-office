@@ -336,7 +336,7 @@
                         <div>
                             <div class="project-name">{{ $project->name }}</div>
                             <div class="project-meta">
-                                {{ ['visit'=>'방문세팅','remote'=>'원격세팅','as'=>'AS'][$project->project_type] }}
+                                {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
                                 · {{ $project->created_at->format('Y.m.d') }}
                             </div>
                         </div>
@@ -645,7 +645,10 @@ document.addEventListener('keydown', e => {
                 <select name="project_type" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; cursor:pointer;">
                     <option value="visit">방문세팅</option>
                     <option value="remote">원격세팅</option>
-                    <option value="as">AS</option>
+                    <option value="design">디자인</option>
+                    <option value="inquiry">단순문의</option>
+                    <option value="as">A/S</option>
+                    <option value="troubleshoot">문제 해결</option>
                 </select>
             </div>
             <div style="margin-bottom:20px;">

@@ -16,6 +16,8 @@ class Consultation extends Model
         'client_id',
         'consulted_at',
         'consultant_id',
+        'manager_name',
+        'author_user_id',
         'consult_type',
         'result',
         'content',
@@ -40,5 +42,10 @@ class Consultation extends Model
     public function consultant()
     {
         return $this->belongsTo(User::class, 'consultant_id');
+    }
+
+    public function authorUser()
+    {
+        return $this->belongsTo(User::class, 'author_user_id');
     }
 }

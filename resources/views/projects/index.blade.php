@@ -89,9 +89,12 @@
         </select>
         <select class="filter-select" name="project_type">
             <option value="">전체 유형</option>
-            <option value="visit"  {{ request('project_type') === 'visit'  ? 'selected' : '' }}>방문세팅</option>
-            <option value="remote" {{ request('project_type') === 'remote' ? 'selected' : '' }}>원격세팅</option>
-            <option value="as"     {{ request('project_type') === 'as'     ? 'selected' : '' }}>AS</option>
+            <option value="visit"        {{ request('project_type') === 'visit' ? 'selected' : '' }}>방문세팅</option>
+            <option value="remote"       {{ request('project_type') === 'remote' ? 'selected' : '' }}>원격세팅</option>
+            <option value="design"       {{ request('project_type') === 'design' ? 'selected' : '' }}>디자인</option>
+            <option value="inquiry"      {{ request('project_type') === 'inquiry' ? 'selected' : '' }}>단순문의</option>
+            <option value="as"           {{ request('project_type') === 'as' ? 'selected' : '' }}>A/S</option>
+            <option value="troubleshoot" {{ request('project_type') === 'troubleshoot' ? 'selected' : '' }}>문제 해결</option>
         </select>
         <button type="submit" class="btn-search">검색</button>
     </form>
@@ -125,7 +128,7 @@
                     </td>
                     <td>
                         <span class="badge badge-{{ $project->project_type }}">
-                            {{ ['visit'=>'방문세팅','remote'=>'원격세팅','as'=>'AS'][$project->project_type] }}
+                            {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
                         </span>
                     </td>
                     <td>

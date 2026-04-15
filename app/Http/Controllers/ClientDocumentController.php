@@ -37,6 +37,10 @@ class ClientDocumentController extends Controller
 
         $count = count($request->file('files'));
 
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json(['success' => true, 'count' => $count, 'message' => "{$count}개 파일이 업로드되었습니다."]);
+        }
+
         return back()->with('success', "{$count}개 파일이 업로드되었습니다.");
     }
 
@@ -49,10 +53,14 @@ class ClientDocumentController extends Controller
         return Storage::download($document->file_path, $document->file_name);
     }
 
-    public function destroy(ClientDocument $document)
+    public function destroy(Request $request, ClientDocument $document)
     {
         Storage::delete($document->file_path);
         $document->delete();
+
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => '파일이 삭제되었습니다.']);
+        }
 
         return back()->with('success', '파일이 삭제되었습니다.');
     }
