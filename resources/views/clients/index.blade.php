@@ -541,7 +541,11 @@ function renderClientContent(id) {
 
         <!-- 프로젝트 -->
         <div class="sub-panel" id="sub-projects-${id}">
-            <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
+                <select id="project-sort-${id}" onchange="sortProjects(${id}, this.value)" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer;">
+                    <option value="desc">최신 순</option>
+                    <option value="asc">오래된 순</option>
+                </select>
                 <button class="btn-save" onclick="openProjectForm(${id})">+ 프로젝트</button>
             </div>
             <div id="project-form-${id}" style="display:none; margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
@@ -622,9 +626,14 @@ function renderClientContent(id) {
     pane.classList.add('active');
 }
 
-function renderProjectList(projects, clientId) {
+function renderProjectList(projects, clientId, order) {
     if (!projects.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted);">프로젝트가 없습니다.</div>';
-    return projects.map(p => `
+    const sortOrder = order || 'desc';
+    const sorted = [...projects].sort((a, b) => {
+        const da = a.created_at || '', db = b.created_at || '';
+        return sortOrder === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
+    });
+    return sorted.map(p => `
         <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="if(typeof drgoTabs!=='undefined') drgoTabs.openNav('projects','/projects/${p.id}');">
             <div>
                 <div style="font-size:14px; font-weight:600;">${p.name}</div>
@@ -750,6 +759,15 @@ async function deleteProject(projectId, clientId) {
     });
     await refreshClientData(clientId);
     showToast('프로젝트가 취소되었습니다');
+}
+
+// 프로젝트 정렬
+function sortProjects(clientId, order) {
+    const tab = openClientTabs.find(t => t.id === clientId);
+    if (!tab || !tab.data) return;
+    const listEl = document.getElementById('project-list-' + clientId);
+    if (!listEl) return;
+    listEl.innerHTML = renderProjectList(tab.data.projects, clientId, order);
 }
 
 // ── 첨부파일 업로드 (썸네일 프리뷰 + 누적 목록) ──
@@ -920,7 +938,7 @@ function renderAlbumMedia() {
 document.addEventListener('mousemove', e => { if (!isPanning) return; panX = e.clientX - panStartX; panY = e.clientY - panStartY; applyAlbumZoom(); });
 document.addEventListener('mouseup', () => { isPanning = false; });
 
-// ── 클라이언트 데이터 새로고침 ──
+// ── 클라이언트 데이터 새로고침 (현재 활성 sub-tab 유지) ──
 async function refreshClientData(clientId) {
     const res = await fetch(`/api/clients/${clientId}/detail`, { headers:{'Accept':'application/json'} });
     if (!res.ok) return;
@@ -932,10 +950,32 @@ async function refreshClientData(clientId) {
         tab.nickname = data.nickname;
         tab.grade = data.grade;
     }
-    // 해당 pane 재생성
+    // pane 내부 데이터만 갱신 (sub-tab 활성 상태 유지)
     const pane = document.getElementById('cpane-' + clientId);
-    if (pane) pane.remove();
-    renderClientContent(clientId);
+    if (pane) {
+        // sub-tab 카운트 갱신
+        const subTabs = document.getElementById('subtabs-' + clientId);
+        if (subTabs) {
+            const btns = subTabs.querySelectorAll('.sub-tab');
+            if (btns[1]) btns[1].textContent = `프로젝트 ${data.projects.length}`;
+            if (btns[2]) btns[2].textContent = `첨부파일 ${data.documents.length}`;
+            if (btns[3]) btns[3].textContent = `견적서 ${(data.estimates||[]).length}`;
+        }
+        // 각 sub-panel 내용 재렌더링
+        const projectListEl = document.getElementById('project-list-' + clientId);
+        if (projectListEl) {
+            const order = document.getElementById('project-sort-' + clientId)?.value || 'desc';
+            projectListEl.innerHTML = renderProjectList(data.projects, clientId, order);
+        }
+        const docListEl = document.getElementById('doc-list-' + clientId);
+        if (docListEl) docListEl.innerHTML = renderDocList(data.documents, clientId);
+        const estimateListEl = document.getElementById('estimate-list-' + clientId);
+        if (estimateListEl && typeof renderEstimateList === 'function') estimateListEl.innerHTML = renderEstimateList(data.estimates||[], clientId);
+        const memoThreadEl = document.getElementById('memo-thread-' + clientId);
+        if (memoThreadEl) memoThreadEl.innerHTML = renderMemoThread(data.memos, clientId);
+    } else {
+        renderClientContent(clientId);
+    }
     renderClientTabs();
 }
 
