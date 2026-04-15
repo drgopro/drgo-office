@@ -26,10 +26,13 @@
     .sidebar-item .item-info { flex:1; min-width:0; }
     .sidebar-item .item-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sidebar-item .item-sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sidebar-item .item-grade { font-size:9px; padding:2px 6px; border-radius:3px; font-weight:600; flex-shrink:0; }
-    .grade-normal { background:var(--surface2); color:var(--text-muted); }
-    .grade-vip { background:#3a2a1a; color:var(--accent); }
-    .grade-rental { background:#1a2a3a; color:var(--blue); }
+    .sidebar-item .item-grade { font-size:10px; padding:3px 8px; border-radius:10px; font-weight:700; flex-shrink:0; letter-spacing:0.05em; border:1px solid; }
+    .grade-normal { background:rgba(160,168,180,0.15); color:#a0a8b4; border-color:rgba(160,168,180,0.4); }
+    .grade-vip { background:rgba(212,188,150,0.18); color:#d4bc96; border-color:rgba(212,188,150,0.5); }
+    .grade-rental { background:rgba(138,180,200,0.18); color:#8ab4c8; border-color:rgba(138,180,200,0.5); }
+    [data-theme="light"] .grade-normal { background:#eceef2; color:#5a6070; border-color:#b8bcc8; }
+    [data-theme="light"] .grade-vip { background:#fff3e0; color:#a06800; border-color:#e0b870; }
+    [data-theme="light"] .grade-rental { background:#e0f0ff; color:#2e6a9a; border-color:#88b8d8; }
     .sidebar-item .online-dot { width:6px; height:6px; border-radius:50%; background:var(--green); position:absolute; right:10px; top:50%; transform:translateY(-50%); }
 
     .sidebar-add { margin:8px; padding:8px; border-radius:8px; border:1px dashed var(--border); text-align:center; font-size:12px; color:var(--text-muted); cursor:pointer; transition:all 0.12s; }
