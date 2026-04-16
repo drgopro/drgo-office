@@ -203,7 +203,7 @@
     <div id="sb-list"></div>
   </div>
   <div style="position:relative;flex:1;overflow:hidden;">
-    <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)" style="width:100%;height:100%;overflow:auto;">
+    <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)" tabindex="0" style="width:100%;height:100%;overflow:auto;outline:none;" onclick="this.focus()">
       <div id="canvas" class="grid-on"><svg id="svg-layer"></svg></div>
     </div>
     <div id="canvas-overlay">
@@ -760,8 +760,10 @@ document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
   // Delete/Backspace: 선택된 장비/케이블 삭제
   if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
     if (selectedId?.type === 'dev') { snapshot(); deleteDevice(selectedId.id); setStatus('장비 삭제됨'); }
     else if (selectedId?.type === 'cable') { snapshot(); cables.splice(selectedId.i, 1); redrawCables(); document.getElementById('prop-content').innerHTML = '<div class="no-sel">장비를 선택하세요</div>'; selectedId = null; setStatus('케이블 삭제됨'); }
+    else { setStatus('삭제할 장비 또는 케이블을 먼저 선택하세요.'); }
     return;
   }
   // Ctrl+C: 선택된 장비 복사
