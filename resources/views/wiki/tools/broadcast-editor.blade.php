@@ -229,6 +229,8 @@
 </div>
 
 <script>
+console.log('[BroadcastEditor] Script loading...');
+try {
 const DB_DIAGRAM='bcast_diagram_db';
 const DB_CATALOG='bcast_catalog_db';
 const CATALOG_PERSIST_KEY='bcast_catalog_live'; // 장비목록 실시간 누적 저장
@@ -1031,34 +1033,27 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// redrawCables 후 snapshot 자동 실행 + 미니맵 업데이트
-const __origRedraw2 = redrawCables;
-redrawCables = function() { __origRedraw2(); updateMinimap(); };
-
-// 장비 이동 시 snapshot (mouseup)
-const _origRenderDevice = renderDevice;
-renderDevice = function(id, skip) {
-  _origRenderDevice(id, skip);
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener('mouseup', function() { if (mode === 'select') snapshot(); });
-};
-
 /* ── 수정이력 (최근 5건 자동 저장) ── */
 const HISTORY_KEY='bcast_history';
 const MAX_HISTORY=5;
 
 function getHistory(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch{return[];}}
 function saveHistory(name){
-  const hist=getHistory();
-  hist.unshift({name:name||currentDiagramName||'미저장',savedAt:Date.now(),data:{devices:JSON.parse(JSON.stringify(devices)),cables:JSON.parse(JSON.stringify(cables)),catalog,devCount,catCount}});
-  while(hist.length>MAX_HISTORY) hist.pop();
-  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch{}
+  try{
+    const hist=getHistory();
+    hist.unshift({name:name||currentDiagramName||'미저장',savedAt:Date.now(),data:{devices:JSON.parse(JSON.stringify(devices)),cables:JSON.parse(JSON.stringify(cables)),catalog,devCount,catCount}});
+    while(hist.length>MAX_HISTORY) hist.pop();
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
+  }catch(e){}
 }
 
-// 케이블 연결/삭제/장비 이동 시 자동 저장
-const _origRedraw=redrawCables;
-redrawCables=function(){_origRedraw();saveHistory();};
+// redrawCables 후처리 통합 (미니맵 + 수정이력)
+const _baseRedraw = redrawCables;
+redrawCables = function() {
+  _baseRedraw();
+  try { updateMinimap(); } catch(e) {}
+  try { saveHistory(); } catch(e) {}
+};
 
 function openHistoryModal(){
   const hist=getHistory();
@@ -1168,6 +1163,9 @@ renderSidebar();
   }
   if (WIKI_ID) document.getElementById('btn-wiki-save').style.display='';
 })();
+
+console.log('[BroadcastEditor] Script loaded OK');
+} catch(globalErr) { console.error('[BroadcastEditor] FATAL:', globalErr); }
 </script>
 </body>
 </html>
