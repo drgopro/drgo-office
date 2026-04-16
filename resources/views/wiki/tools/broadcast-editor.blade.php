@@ -564,14 +564,36 @@ function redrawCables(){
   // waypoint DOM 제거
   document.querySelectorAll('.waypoint').forEach(w=>w.remove());
 
+  // 포트별 케이블 인덱스 계산 (화살표 겹침 방지)
+  const portCount={};
+  cables.forEach((c,i)=>{
+    if(!devices[c.from]||!devices[c.to])return;
+    const k1=c.from+'_'+c.fs, k2=c.to+'_'+c.ts;
+    if(!portCount[k1])portCount[k1]={total:0,idx:0};
+    if(!portCount[k2])portCount[k2]={total:0,idx:0};
+    portCount[k1].total++;portCount[k2].total++;
+  });
+  const portUsed={};
+
   cables.forEach((c,i)=>{
     if(!devices[c.from]||!devices[c.to])return;
     const p1=getPortXY(c.from,c.fs),p2=getPortXY(c.to,c.ts),col=getCableColor(c);
+    // 같은 포트에 여러 케이블 → 오프셋
+    const k2=c.to+'_'+c.ts;
+    if(!portUsed[k2])portUsed[k2]=0;
+    const idx=portUsed[k2]++;
+    const total=portCount[k2]?.total||1;
+    if(total>1){
+      const spread=8;
+      const offset=(idx-(total-1)/2)*spread;
+      if(c.ts==='l'||c.ts==='r'){p2.y+=offset;}
+      else{p2.x+=offset;}
+    }
     const wps=c.waypoints||[];
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.classList.add('cg');
     const mkId='mk'+i;defs.querySelector('#'+mkId)?.remove();
-    const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');mk.id=mkId;mk.setAttribute('markerWidth','7');mk.setAttribute('markerHeight','7');mk.setAttribute('refX','5');mk.setAttribute('refY','3.5');mk.setAttribute('orient','auto');
-    const ap=document.createElementNS('http://www.w3.org/2000/svg','path');ap.setAttribute('d','M0,0 L0,7 L7,3.5 Z');ap.setAttribute('fill',col);mk.appendChild(ap);defs.appendChild(mk);
+    const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');mk.id=mkId;mk.setAttribute('markerWidth','10');mk.setAttribute('markerHeight','10');mk.setAttribute('refX','8');mk.setAttribute('refY','5');mk.setAttribute('orient','auto');mk.setAttribute('markerUnits','userSpaceOnUse');
+    const ap=document.createElementNS('http://www.w3.org/2000/svg','path');ap.setAttribute('d','M0,1 L0,9 L9,5 Z');ap.setAttribute('fill',col);mk.appendChild(ap);defs.appendChild(mk);
 
     // waypoints가 있으면 직선 연결, 없으면 기존 베지어
     let pathD;
