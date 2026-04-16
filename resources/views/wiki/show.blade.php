@@ -47,8 +47,8 @@
     .field-input:focus { border-color:var(--accent); }
 
     /* Tiptap 에디터 */
-    .tiptap-wrap { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
-    .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); }
+    .tiptap-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+    .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
     .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
     .tiptap-toolbar button.is-active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
