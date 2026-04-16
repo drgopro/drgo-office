@@ -210,13 +210,24 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TextAlign from '@tiptap/extension-text-align';
 
+// Image 확장 커스텀 — width/height 속성 보존
+const ResizableImage = Image.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px','') || null, renderHTML: attrs => attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;height:auto;` } : {} },
+            height: { default: null, renderHTML: () => ({}) },
+        };
+    },
+});
+
 const wikiContent = @json($wiki->content);
 
 window.editor = new Editor({
     element: document.getElementById('editor'),
     extensions: [
         StarterKit.configure({ heading: { levels: [1,2,3] } }),
-        Image.configure({ inline: false, allowBase64: true }),
+        ResizableImage.configure({ inline: false, allowBase64: true }),
         Link.configure({ openOnClick: false }),
         Placeholder.configure({ placeholder: '내용을 입력하세요... ("/" 입력으로 블록 추가)' }),
         Table.configure({ resizable: true }),
@@ -439,6 +450,14 @@ window.toggleEdit = function() {
         activeImg.setAttribute('width', w);
         activeImg.removeAttribute('height');
         if (popup) popup.querySelector('#imgWidthInput').value = w;
+        // Tiptap 내부 상태 업데이트
+        try {
+            const pos = editor.view.posAtDOM(activeImg, 0);
+            if (pos != null) {
+                const tr = editor.view.state.tr.setNodeMarkup(pos, undefined, { ...editor.view.state.doc.nodeAt(pos)?.attrs, width: String(w) });
+                editor.view.dispatch(tr);
+            }
+        } catch(e) {}
     }
 
     // 퍼센트 리사이즈 — 에디터 너비 기준

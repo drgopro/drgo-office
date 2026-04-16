@@ -143,11 +143,21 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TextAlign from '@tiptap/extension-text-align';
 
+const ResizableImage = Image.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px','') || null, renderHTML: attrs => attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;height:auto;` } : {} },
+            height: { default: null, renderHTML: () => ({}) },
+        };
+    },
+});
+
 window.editor = new Editor({
     element: document.getElementById('editor'),
     extensions: [
         StarterKit.configure({ heading: { levels: [1,2,3] } }),
-        Image.configure({ inline: false }),
+        ResizableImage.configure({ inline: false }),
         Link.configure({ openOnClick: false }),
         Placeholder.configure({ placeholder: '내용을 입력하세요... ("/" 입력으로 블록 추가)' }),
         Table.configure({ resizable: true }),
@@ -271,7 +281,12 @@ window.saveNewWiki=async function(){
         popup.querySelector('#imgWidthInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();imgApplyWidth();}});
         popup.addEventListener('mousedown',e=>e.stopPropagation());
     }
-    function applyImgW(w){if(!activeImg)return;w=Math.max(30,Math.min(2000,w));activeImg.style.width=w+'px';activeImg.style.height='auto';activeImg.setAttribute('width',w);activeImg.removeAttribute('height');if(popup)popup.querySelector('#imgWidthInput').value=w;}
+    function applyImgW(w){
+        if(!activeImg)return;w=Math.max(30,Math.min(2000,w));
+        activeImg.style.width=w+'px';activeImg.style.height='auto';activeImg.setAttribute('width',w);activeImg.removeAttribute('height');
+        if(popup)popup.querySelector('#imgWidthInput').value=w;
+        try{const pos=editor.view.posAtDOM(activeImg,0);if(pos!=null){const tr=editor.view.state.tr.setNodeMarkup(pos,undefined,{...editor.view.state.doc.nodeAt(pos)?.attrs,width:String(w)});editor.view.dispatch(tr);}}catch(e){}
+    }
     window.imgResize=function(ratio){if(!activeImg)return;const maxW=(document.querySelector('.ProseMirror')?.clientWidth||800)-48;applyImgW(Math.round(maxW*ratio));};
     window.imgApplyWidth=function(){if(!activeImg||!popup)return;applyImgW(parseInt(popup.querySelector('#imgWidthInput').value)||200);};
     document.addEventListener('click',function(e){
