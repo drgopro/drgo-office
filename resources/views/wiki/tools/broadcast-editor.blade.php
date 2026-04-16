@@ -221,7 +221,7 @@
 <div id="minimap"><canvas id="minimapCanvas" width="180" height="110"></canvas></div>
 
 <div id="status-bar">
-  <span id="status-msg">준비 | Ctrl+Z 되돌리기 · Ctrl+C/V 복사 · Delete 삭제 · 방향키 이동 · Ctrl+휠 확대축소</span>
+  <span id="status-msg">준비 | Ctrl+Z 되돌리기 · Ctrl+C/V 복사 · Delete 삭제 · 방향키 이동 · Ctrl+휠 확대축소 · Shift+드래그 직선이동 · Alt+드래그 자유이동</span>
   <span id="current-name"></span>
 </div>
 </div>
@@ -483,7 +483,18 @@ function renderDevice(id,skip){
   el.addEventListener('mousedown',ev=>{
     if(mode!=='select'||ev.target.classList.contains('port'))return;ev.stopPropagation();selectDevice(id);
     const ox=ev.clientX-d.x,oy=ev.clientY-d.y;
-    function mm(e2){d.x=e2.clientX-ox;d.y=e2.clientY-oy;el.style.left=d.x+'px';el.style.top=d.y+'px';expandCanvas(d.x+200,d.y+200);redrawCables();}
+    const startX=d.x,startY=d.y;
+    function mm(e2){
+      let nx=e2.clientX-ox, ny=e2.clientY-oy;
+      // Shift: 수평 또는 수직으로만 이동 (축 고정)
+      if(e2.shiftKey){
+        const dx=Math.abs(nx-startX),dy=Math.abs(ny-startY);
+        if(dx>dy) ny=startY; else nx=startX;
+      }
+      // 그리드 스냅 (Alt 미사용 시)
+      if(gridOn&&!e2.altKey){ nx=Math.round(nx/20)*20; ny=Math.round(ny/20)*20; }
+      d.x=nx;d.y=ny;el.style.left=d.x+'px';el.style.top=d.y+'px';expandCanvas(d.x+200,d.y+200);redrawCables();
+    }
     function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}
     document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
   });
