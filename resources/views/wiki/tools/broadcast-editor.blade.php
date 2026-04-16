@@ -83,6 +83,8 @@
 #svg-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .cable{pointer-events:stroke;cursor:pointer;stroke-width:2.5;fill:none;stroke-linecap:round}
 .cable:hover{stroke-width:4}
+.waypoint{position:absolute;width:10px;height:10px;border-radius:50%;background:#185FA5;border:2px solid #fff;cursor:move;z-index:15;transform:translate(-5px,-5px);transition:transform 0.05s}
+.waypoint:hover{transform:translate(-5px,-5px) scale(1.4);background:#0C447C}
 .cable-builtin-line{fill:none;stroke-linecap:round;stroke-dasharray:6 4;stroke-width:1.5;opacity:.7}
 #prop-panel{width:208px;flex-shrink:0;border-left:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);padding:12px;overflow-y:auto}
 .prop-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
@@ -505,7 +507,7 @@ function handlePort(id,s,portEl){
   } else {
     if(connecting===id&&connectingPort===s){connecting=null;connectingPort=null;document.getElementById('canvas').removeEventListener('mousemove',onTempLine);removeTempLine();document.querySelectorAll('.port.active').forEach(p=>p.classList.remove('active'));updatePorts();return;}
     snapshot();
-    cables.push({from:connecting,fs:connectingPort,to:id,ts:s,type:'HDMI',label:'',length:'',customColor:null,customName:''});
+    cables.push({from:connecting,fs:connectingPort,to:id,ts:s,type:'HDMI',label:'',length:'',customColor:null,customName:'',waypoints:[]});
     document.querySelectorAll('.port.active').forEach(p=>p.classList.remove('active'));document.getElementById('canvas').removeEventListener('mousemove',onTempLine);removeTempLine();connecting=null;connectingPort=null;redrawCables();updatePorts();setStatus('케이블 연결 완료');
   }
 }
@@ -531,20 +533,91 @@ function redrawCables(){
     g.appendChild(path);drawHT(g,(p1.x+p2.x)/2,(p1.y+p2.y)/2,'내장',col,'9');svg.appendChild(g);
   });
   assignLP();
+  // waypoint DOM 제거
+  document.querySelectorAll('.waypoint').forEach(w=>w.remove());
+
   cables.forEach((c,i)=>{
     if(!devices[c.from]||!devices[c.to])return;
     const p1=getPortXY(c.from,c.fs),p2=getPortXY(c.to,c.ts),col=getCableColor(c);
-    const cx1=p1.x+(c.fs==='r'?60:c.fs==='l'?-60:0),cx2=p2.x+(c.ts==='r'?60:c.ts==='l'?-60:0);
-    const cp1={x:cx1,y:p1.y},cp2={x:cx2,y:p2.y};
+    const wps=c.waypoints||[];
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.classList.add('cg');
     const mkId='mk'+i;defs.querySelector('#'+mkId)?.remove();
     const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');mk.id=mkId;mk.setAttribute('markerWidth','7');mk.setAttribute('markerHeight','7');mk.setAttribute('refX','5');mk.setAttribute('refY','3.5');mk.setAttribute('orient','auto');
     const ap=document.createElementNS('http://www.w3.org/2000/svg','path');ap.setAttribute('d','M0,0 L0,7 L7,3.5 Z');ap.setAttribute('fill',col);mk.appendChild(ap);defs.appendChild(mk);
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',`M${p1.x},${p1.y} C${cx1},${p1.y} ${cx2},${p2.y} ${p2.x},${p2.y}`);path.setAttribute('stroke',col);path.setAttribute('stroke-width','2.5');path.setAttribute('fill','none');path.setAttribute('stroke-linecap','round');path.setAttribute('marker-end','url(#'+mkId+')');path.classList.add('cable');
-    path.addEventListener('click',()=>{if(mode==='select')selectCable(i);});g.appendChild(path);
-    const lp=cubicBP(p1,cp1,cp2,p2,c._t||0.5);const{line1,line2}=getCableLines(c);
-    const lineH=13,total=line2?2:1,startY=lp.y-(total-1)*lineH/2;
-    drawHT(g,lp.x,startY,line1,col,'10');if(line2)drawHT(g,lp.x,startY+lineH,line2,col,'10');svg.appendChild(g);
+
+    // waypoints가 있으면 직선 연결, 없으면 기존 베지어
+    let pathD;
+    const allPts=[p1,...wps,p2];
+    if(wps.length>0){
+      pathD='M'+allPts.map(p=>p.x+','+p.y).join(' L');
+    } else {
+      const cx1=p1.x+(c.fs==='r'?60:c.fs==='l'?-60:0),cx2=p2.x+(c.ts==='r'?60:c.ts==='l'?-60:0);
+      pathD=`M${p1.x},${p1.y} C${cx1},${p1.y} ${cx2},${p2.y} ${p2.x},${p2.y}`;
+    }
+
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',pathD);path.setAttribute('stroke',col);path.setAttribute('stroke-width','2.5');path.setAttribute('fill','none');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');path.setAttribute('marker-end','url(#'+mkId+')');path.classList.add('cable');
+    path.addEventListener('click',()=>{if(mode==='select')selectCable(i);});
+    path.addEventListener('dblclick',(e)=>{
+      e.stopPropagation();
+      const rect=document.getElementById('canvas').getBoundingClientRect();
+      const wrap=document.getElementById('canvas-wrap');
+      const x=(e.clientX-rect.left+wrap.scrollLeft)/zoom;
+      const y=(e.clientY-rect.top+wrap.scrollTop)/zoom;
+      if(!c.waypoints)c.waypoints=[];
+      // 가장 가까운 세그먼트에 삽입
+      let bestIdx=c.waypoints.length;
+      const pts=[p1,...c.waypoints,p2];
+      let bestDist=Infinity;
+      for(let j=0;j<pts.length-1;j++){
+        const mx=(pts[j].x+pts[j+1].x)/2,my=(pts[j].y+pts[j+1].y)/2;
+        const d=Math.sqrt((x-mx)**2+(y-my)**2);
+        if(d<bestDist){bestDist=d;bestIdx=j;}
+      }
+      snapshot();
+      c.waypoints.splice(bestIdx,0,{x:Math.round(x),y:Math.round(y)});
+      redrawCables();
+      setStatus('꺾임점 추가됨 (드래그로 이동, 우클릭으로 삭제)');
+    });
+    g.appendChild(path);
+
+    // 라벨
+    const mid=wps.length>0?allPts[Math.floor(allPts.length/2)]:{x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2};
+    const{line1,line2}=getCableLines(c);
+    const lineH=13,total=line2?2:1,startY=mid.y-(total-1)*lineH/2;
+    drawHT(g,mid.x,startY,line1,col,'10');if(line2)drawHT(g,mid.x,startY+lineH,line2,col,'10');
+    svg.appendChild(g);
+
+    // waypoint DOM 생성
+    wps.forEach((wp,wi)=>{
+      const dot=document.createElement('div');
+      dot.className='waypoint';
+      dot.style.left=wp.x+'px';dot.style.top=wp.y+'px';
+      dot.style.borderColor=col;dot.style.background=col;
+      dot.title='드래그: 이동 / 우클릭: 삭제';
+      // 드래그
+      dot.addEventListener('mousedown',(e)=>{
+        if(e.button!==0)return;
+        e.stopPropagation();e.preventDefault();
+        const startX=e.clientX,startY2=e.clientY,origX=wp.x,origY=wp.y;
+        function mm(e2){
+          wp.x=Math.round(origX+(e2.clientX-startX)/zoom);
+          wp.y=Math.round(origY+(e2.clientY-startY2)/zoom);
+          redrawCables();
+        }
+        function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);snapshot();}
+        document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+      });
+      // 우클릭 삭제
+      dot.addEventListener('contextmenu',(e)=>{
+        e.preventDefault();e.stopPropagation();
+        snapshot();
+        c.waypoints.splice(wi,1);
+        redrawCables();
+        setStatus('꺾임점 삭제됨');
+      });
+      document.getElementById('canvas').appendChild(dot);
+    });
   });
 }
 function selectDevice(id){
@@ -580,6 +653,8 @@ function selectCable(i){
       <div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--color-text-secondary)">직접 입력</span><input id="cp-color" type="color" value="${col}" style="width:36px;height:24px;padding:1px 2px;border-radius:6px;cursor:pointer"></div></div>
     <div class="prop-divider"></div>
     <div class="prop-row" style="font-size:11px;color:var(--color-text-secondary)">${devices[c.from]?.label||c.from} → ${devices[c.to]?.label||c.to}</div>
+    <div class="prop-row" style="font-size:11px;color:var(--color-text-tertiary)">꺾임점 ${(c.waypoints||[]).length}개 · 더블클릭으로 추가 · 우클릭으로 삭제</div>
+    ${(c.waypoints||[]).length?'<button class="del-btn" style="border-color:var(--color-border-secondary);color:var(--color-text-secondary);margin-bottom:4px" onclick="clearWaypoints('+i+')">꺾임점 모두 제거</button>':''}
     <button class="del-btn" id="cp-del">케이블 삭제</button>`;
   function apply(){cables[i].type=document.getElementById('cp-type').value;cables[i].label=document.getElementById('cp-label').value;cables[i].customName=document.getElementById('cp-customname')?.value||'';const v=document.getElementById('cp-length').value;cables[i].length=v!==''?parseFloat(v):'';redrawCables();}
   document.getElementById('cp-type').addEventListener('change',function(){document.getElementById('cp-custom-row').style.display=this.value==='기타'?'block':'none';apply();});
@@ -590,6 +665,7 @@ function selectCable(i){
 }
 function updBg(id,v,el){devices[id].bg=v;document.querySelector('#'+id+' .device-inner').style.background=v;document.querySelectorAll('#prop-content .cswatch').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
 function deleteDevice(id){cables=cables.filter(c=>c.from!==id&&c.to!==id);document.getElementById(id)?.remove();delete devices[id];document.getElementById('prop-content').innerHTML='<div class="no-sel">장비를 선택하세요</div>';selectedId=null;redrawCables();}
+function clearWaypoints(i){snapshot();cables[i].waypoints=[];redrawCables();selectCable(i);setStatus('꺾임점 모두 제거됨');}
 
 /* clearAll → 캔버스만 초기화, 장비목록은 유지 */
 function clearCanvas(){
