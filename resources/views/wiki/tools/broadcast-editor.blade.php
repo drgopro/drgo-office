@@ -150,9 +150,8 @@
     <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="2.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.3"/><circle cx="10.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.3"/><line x1="4.3" y1="6.5" x2="8.7" y2="6.5" stroke="currentColor" stroke-width="1.3"/></svg>케이블
   </button>
   <div class="tb-sep"></div>
-  <button class="tb-btn active" id="btn-grid" onclick="toggleGrid()">
-    <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="8" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/></svg>격자
-  </button>
+  <button class="tb-btn active" id="btn-grid" onclick="setBg('grid')">격자</button>
+  <button class="tb-btn" id="btn-blank" onclick="setBg('blank')">백지</button>
   <div class="tb-sep"></div>
   <button class="tb-btn" onclick="undo()" title="실행 취소 (Ctrl+Z)">↩</button>
   <button class="tb-btn" onclick="redo()" title="다시 실행 (Ctrl+Y)">↪</button>
@@ -331,7 +330,16 @@ function assignLP(){
   });
 }
 
-function toggleGrid(){gridOn=!gridOn;document.getElementById('canvas').classList.toggle('grid-on',gridOn);document.getElementById('btn-grid').classList.toggle('active',gridOn);setStatus(gridOn?'격자 켜짐':'격자 꺼짐');}
+function setBg(type){
+  gridOn=(type==='grid');
+  document.getElementById('canvas').classList.toggle('grid-on',gridOn);
+  document.getElementById('canvas').style.background=gridOn?'#f8f7f4':'#ffffff';
+  document.getElementById('btn-grid').classList.toggle('active',type==='grid');
+  document.getElementById('btn-blank').classList.toggle('active',type==='blank');
+  redrawCables(); // 라벨 배경색 갱신
+  setStatus(type==='grid'?'배경: 격자':'배경: 백지');
+}
+function toggleGrid(){setBg(gridOn?'blank':'grid');}
 
 function renderSidebar(){
   const list=document.getElementById('sb-list');list.innerHTML='';
@@ -473,7 +481,7 @@ function renderDevice(id,skip){
   el.addEventListener('mousedown',ev=>{
     if(mode!=='select'||ev.target.classList.contains('port'))return;ev.stopPropagation();selectDevice(id);
     const ox=ev.clientX-d.x,oy=ev.clientY-d.y;
-    function mm(e2){d.x=e2.clientX-ox;d.y=e2.clientY-oy;el.style.left=d.x+'px';el.style.top=d.y+'px';redrawCables();}
+    function mm(e2){d.x=e2.clientX-ox;d.y=e2.clientY-oy;el.style.left=d.x+'px';el.style.top=d.y+'px';expandCanvas(d.x+200,d.y+200);redrawCables();}
     function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}
     document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
   });
@@ -518,8 +526,21 @@ function onTempLine(e){
 }
 function removeTempLine(){if(tempLine){tempLine.remove();tempLine=null;}}
 function drawHT(g,x,y,text,col,fs){
-  const h=document.createElementNS('http://www.w3.org/2000/svg','text');[['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['stroke','#f8f7f4'],['stroke-width','3.5'],['stroke-linejoin','round'],['fill','none'],['paint-order','stroke']].forEach(([a,v])=>h.setAttribute(a,v));h.textContent=text;g.appendChild(h);
-  const t=document.createElementNS('http://www.w3.org/2000/svg','text');[['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['fill',col]].forEach(([a,v])=>t.setAttribute(a,v));t.textContent=text;g.appendChild(t);
+  // 배경 rect (캔버스 배경색으로 라인 가림)
+  const bgCol = document.getElementById('canvas').classList.contains('grid-on') ? '#f8f7f4' : '#ffffff';
+  const tmpT=document.createElementNS('http://www.w3.org/2000/svg','text');
+  [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['fill',col]].forEach(([a,v])=>tmpT.setAttribute(a,v));
+  tmpT.textContent=text;g.appendChild(tmpT);
+  // bbox 계산 후 배경 rect 삽입
+  try{
+    const bb=tmpT.getBBox();
+    const pad=3;
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',bb.x-pad);rect.setAttribute('y',bb.y-pad);
+    rect.setAttribute('width',bb.width+pad*2);rect.setAttribute('height',bb.height+pad*2);
+    rect.setAttribute('rx','3');rect.setAttribute('fill',bgCol);rect.setAttribute('opacity','0.9');
+    g.insertBefore(rect,tmpT);
+  }catch(e){}
 }
 function redrawCables(){
   const svg=document.getElementById('svg-layer');svg.querySelectorAll('.cg').forEach(g=>g.remove());
@@ -581,11 +602,16 @@ function redrawCables(){
     });
     g.appendChild(path);
 
-    // 라벨
-    const mid=wps.length>0?allPts[Math.floor(allPts.length/2)]:{x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2};
+    // 라벨 — 첫 번째 세그먼트 중간에 배치 (꺾임점과 겹치지 않게)
+    let labelPt;
+    if(wps.length>0){
+      labelPt={x:(allPts[0].x+allPts[1].x)/2, y:(allPts[0].y+allPts[1].y)/2 - 10};
+    } else {
+      labelPt={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
+    }
     const{line1,line2}=getCableLines(c);
-    const lineH=13,total=line2?2:1,startY=mid.y-(total-1)*lineH/2;
-    drawHT(g,mid.x,startY,line1,col,'10');if(line2)drawHT(g,mid.x,startY+lineH,line2,col,'10');
+    const lineH=13,total=line2?2:1,startY2=labelPt.y-(total-1)*lineH/2;
+    drawHT(g,labelPt.x,startY2,line1,col,'10');if(line2)drawHT(g,labelPt.x,startY2+lineH,line2,col,'10');
     svg.appendChild(g);
 
     // waypoint DOM 생성
@@ -744,6 +770,17 @@ setTimeout(() => {
   makeDraggable(document.getElementById('minimap'));
   makeDraggable(document.getElementById('zoom-info'));
 }, 200);
+
+/* ── 캔버스 자동 확장 ── */
+function expandCanvas(needX, needY) {
+  const c = document.getElementById('canvas');
+  const curW = parseInt(c.style.width) || 3000;
+  const curH = parseInt(c.style.height) || 2000;
+  let changed = false;
+  if (needX > curW - 100) { c.style.width = (needX + 500) + 'px'; changed = true; }
+  if (needY > curH - 100) { c.style.height = (needY + 500) + 'px'; changed = true; }
+  if (changed) updateMinimap();
+}
 
 /* ── 확대/축소 ── */
 let zoom = 1;
