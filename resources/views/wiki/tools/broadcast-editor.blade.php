@@ -50,11 +50,10 @@
 .sb-act-btn.del:hover{background:#FCEBEB;color:#A32D2D}
 #canvas-wrap{flex:1;overflow:auto;background:var(--color-background-tertiary);position:relative}
 #canvas{position:relative;width:3000px;height:2000px;background:#f8f7f4;transform-origin:0 0;transition:none}
-#canvas-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:5}
-#zoom-info{position:absolute;bottom:8px;right:12px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;user-select:none;pointer-events:all;cursor:move}
+#zoom-info{position:fixed;bottom:40px;right:230px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;user-select:none;z-index:50;cursor:move;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
 #zoom-info button{background:none;border:1px solid var(--color-border-secondary);color:var(--color-text-primary);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
 #zoom-info button:hover{background:var(--color-background-secondary)}
-#minimap{position:absolute;bottom:8px;right:12px;margin-bottom:34px;width:180px;height:110px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;opacity:0.9;pointer-events:all;cursor:move}
+#minimap{position:fixed;bottom:70px;right:230px;width:180px;height:110px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;opacity:0.95;z-index:50;cursor:move;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
 #minimap canvas{width:100%;height:100%}
 .snap-guide{position:absolute;z-index:20;pointer-events:none}
 .snap-guide-h{width:100%;height:1px;background:#ef4444;left:0}
@@ -203,25 +202,24 @@
     </div>
     <div id="sb-list"></div>
   </div>
-  <div style="position:relative;flex:1;overflow:hidden;">
-    <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)" tabindex="0" style="width:100%;height:100%;overflow:auto;outline:none;" onclick="this.focus()">
-      <div id="canvas" class="grid-on"><svg id="svg-layer"></svg></div>
-    </div>
-    <div id="canvas-overlay">
-      <div id="zoom-info">
-        <button onclick="zoomTo(zoom-0.1)">−</button>
-        <span id="zoom-level">100%</span>
-        <button onclick="zoomTo(zoom+0.1)">+</button>
-        <button onclick="zoomTo(1)" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
-      </div>
-      <div id="minimap"><canvas id="minimapCanvas" width="160" height="100"></canvas></div>
-    </div>
+  <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)" tabindex="0" style="flex:1;overflow:auto;outline:none;" onclick="this.focus()">
+    <div id="canvas" class="grid-on"><svg id="svg-layer"></svg></div>
   </div>
   <div id="prop-panel">
     <div class="prop-title">속성</div>
     <div id="prop-content"><div class="no-sel">장비를 선택하세요</div></div>
   </div>
 </div>
+
+<!-- 줌/미니맵 (fixed 위치) -->
+<div id="zoom-info">
+  <button onclick="zoomTo(zoom-0.1)">−</button>
+  <span id="zoom-level">100%</span>
+  <button onclick="zoomTo(zoom+0.1)">+</button>
+  <button onclick="zoomTo(1)" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
+</div>
+<div id="minimap"><canvas id="minimapCanvas" width="180" height="110"></canvas></div>
+
 <div id="status-bar">
   <span id="status-msg">준비 | Ctrl+Z 되돌리기 · Ctrl+C/V 복사 · Delete 삭제 · 방향키 이동 · Ctrl+휠 확대축소</span>
   <span id="current-name"></span>
@@ -742,25 +740,20 @@ function makeDraggable(el) {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'CANVAS') return;
     e.preventDefault(); e.stopPropagation();
     isDragging = true;
-    // 현재 렌더링 위치를 left/top으로 고정
     const rect = el.getBoundingClientRect();
-    const parentRect = el.parentElement.getBoundingClientRect();
-    elX = rect.left - parentRect.left;
-    elY = rect.top - parentRect.top;
+    elX = rect.left;
+    elY = rect.top;
     el.style.left = elX + 'px';
     el.style.top = elY + 'px';
     el.style.right = 'auto';
     el.style.bottom = 'auto';
-    el.style.marginBottom = '0';
     startX = e.clientX;
     startY = e.clientY;
   });
   document.addEventListener('mousemove', function(e) {
     if (!isDragging) return;
-    const dx = e.clientX - startX, dy = e.clientY - startY;
-    const parent = el.parentElement;
-    const x = Math.max(0, Math.min(parent.clientWidth - el.offsetWidth, elX + dx));
-    const y = Math.max(0, Math.min(parent.clientHeight - el.offsetHeight, elY + dy));
+    const x = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, elX + (e.clientX - startX)));
+    const y = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, elY + (e.clientY - startY)));
     el.style.left = x + 'px';
     el.style.top = y + 'px';
   });
@@ -769,7 +762,7 @@ function makeDraggable(el) {
 setTimeout(() => {
   makeDraggable(document.getElementById('minimap'));
   makeDraggable(document.getElementById('zoom-info'));
-}, 200);
+}, 300);
 
 /* ── 캔버스 자동 확장 ── */
 function expandCanvas(needX, needY) {
