@@ -379,40 +379,56 @@ window.toggleEdit = function() {
     if (editMode) editor.commands.focus();
 };
 
-// 이미지 리사이즈
-document.addEventListener('click', function(e) {
-    // 기존 핸들 제거
-    document.querySelectorAll('.img-resize-handle').forEach(h => h.remove());
-    const img = e.target.closest('.ProseMirror img');
-    if (!img) return;
-    const handle = document.createElement('div');
-    handle.className = 'img-resize-handle';
-    img.parentElement.style.position = 'relative';
-    img.parentElement.style.display = 'inline-block';
-    img.parentElement.appendChild(handle);
-    let startX, startW;
-    handle.addEventListener('mousedown', function(ev) {
-        ev.preventDefault();
-        startX = ev.clientX;
-        startW = img.offsetWidth;
-        function onMove(e2) {
-            const w = Math.max(50, startW + (e2.clientX - startX));
-            img.style.width = w + 'px';
-            img.style.height = 'auto';
-            img.setAttribute('width', w);
-        }
-        function onUp() {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-            // Tiptap에 크기 반영
-            const pos = editor.view.posAtDOM(img, 0);
-            if (pos != null) {
-                editor.chain().focus().setNodeSelection(pos).updateAttributes('image', { width: img.style.width }).run();
+// 이미지 리사이즈 — 이미지 위에 호버/클릭 시 크기 조절 바 표시
+(function(){
+    let activeImg = null, handle = null;
+
+    function removeHandle() {
+        if (handle) { handle.remove(); handle = null; }
+        activeImg = null;
+    }
+
+    function showHandle(img) {
+        removeHandle();
+        activeImg = img;
+        handle = document.createElement('div');
+        handle.style.cssText = 'position:absolute;bottom:-4px;right:-4px;width:14px;height:14px;background:var(--accent);border:2px solid var(--surface);border-radius:3px;cursor:nwse-resize;z-index:50;';
+        // 이미지의 부모에 relative 설정
+        const wrapper = img.parentElement;
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+        wrapper.appendChild(handle);
+
+        handle.addEventListener('mousedown', function(ev) {
+            ev.preventDefault(); ev.stopPropagation();
+            const startX = ev.clientX, startW = img.offsetWidth;
+            function onMove(e) {
+                const w = Math.max(50, startW + (e.clientX - startX));
+                img.style.width = w + 'px';
+                img.style.height = 'auto';
             }
+            function onUp() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+    }
+
+    // 에디터 영역에서 이미지 클릭 감지 (캡처 페이즈)
+    document.getElementById('editor')?.addEventListener('click', function(e) {
+        const img = e.target.tagName === 'IMG' ? e.target : null;
+        if (img) { showHandle(img); }
+        else { removeHandle(); }
+    }, true);
+
+    // 에디터 외부 클릭 시 핸들 제거
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#editor') && !e.target.closest('.img-resize-handle')) {
+            removeHandle();
         }
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
     });
-});
+})();
 </script>
 @endpush

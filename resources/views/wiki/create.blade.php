@@ -241,22 +241,27 @@ window.saveNewWiki=async function(){
 };
 
 // 이미지 리사이즈
-document.addEventListener('click', function(e) {
-    document.querySelectorAll('.img-resize-handle').forEach(h => h.remove());
-    const img = e.target.closest('.ProseMirror img');
-    if (!img) return;
-    const handle = document.createElement('div');
-    handle.className = 'img-resize-handle';
-    img.parentElement.style.position = 'relative';
-    img.parentElement.style.display = 'inline-block';
-    img.parentElement.appendChild(handle);
-    let startX, startW;
-    handle.addEventListener('mousedown', function(ev) {
-        ev.preventDefault(); startX = ev.clientX; startW = img.offsetWidth;
-        function onMove(e2) { const w = Math.max(50, startW + (e2.clientX - startX)); img.style.width = w + 'px'; img.style.height = 'auto'; }
-        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
-        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-    });
-});
+(function(){
+    let activeImg=null,handle=null;
+    function removeHandle(){if(handle){handle.remove();handle=null;}activeImg=null;}
+    function showHandle(img){
+        removeHandle();activeImg=img;
+        handle=document.createElement('div');
+        handle.style.cssText='position:absolute;bottom:-4px;right:-4px;width:14px;height:14px;background:var(--accent);border:2px solid var(--surface);border-radius:3px;cursor:nwse-resize;z-index:50;';
+        img.parentElement.style.position='relative';img.parentElement.style.display='inline-block';
+        img.parentElement.appendChild(handle);
+        handle.addEventListener('mousedown',function(ev){
+            ev.preventDefault();ev.stopPropagation();const startX=ev.clientX,startW=img.offsetWidth;
+            function onMove(e){const w=Math.max(50,startW+(e.clientX-startX));img.style.width=w+'px';img.style.height='auto';}
+            function onUp(){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+            document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+        });
+    }
+    document.getElementById('editor')?.addEventListener('click',function(e){
+        const img=e.target.tagName==='IMG'?e.target:null;
+        if(img)showHandle(img);else removeHandle();
+    },true);
+    document.addEventListener('click',function(e){if(!e.target.closest('#editor'))removeHandle();});
+})();
 </script>
 @endpush
