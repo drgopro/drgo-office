@@ -541,18 +541,21 @@ function onTempLine(e){
 }
 function removeTempLine(){if(tempLine){tempLine.remove();tempLine=null;}}
 function drawHT(g,x,y,text,col,fs){
-  const bgCol = document.getElementById('canvas').classList.contains('grid-on') ? '#f8f7f4' : '#ffffff';
-  // 1층: 배경색 stroke (라인을 가림)
-  const bg=document.createElementNS('http://www.w3.org/2000/svg','text');
-  [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['stroke',bgCol],['stroke-width','6'],['stroke-linejoin','round'],['fill',bgCol],['paint-order','stroke']].forEach(([a,v])=>bg.setAttribute(a,v));
-  bg.textContent=text;g.appendChild(bg);
-  // 2층: 실제 텍스트
-  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-  [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['fill',col]].forEach(([a,v])=>t.setAttribute(a,v));
-  t.textContent=text;g.appendChild(t);
+  try{
+    const cvs=document.getElementById('canvas');
+    const bgCol = cvs&&cvs.classList.contains('grid-on') ? '#f8f7f4' : '#ffffff';
+    const bg=document.createElementNS('http://www.w3.org/2000/svg','text');
+    [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['stroke',bgCol],['stroke-width','6'],['stroke-linejoin','round'],['fill',bgCol],['paint-order','stroke']].forEach(([a,v])=>bg.setAttribute(a,v));
+    bg.textContent=text;g.appendChild(bg);
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['fill',col]].forEach(([a,v])=>t.setAttribute(a,v));
+    t.textContent=text;g.appendChild(t);
+  }catch(e){console.warn('drawHT error:',e);}
 }
 function redrawCables(){
-  const svg=document.getElementById('svg-layer');svg.querySelectorAll('.cg').forEach(g=>g.remove());
+  try{
+  const svg=document.getElementById('svg-layer');if(!svg)return;
+  svg.querySelectorAll('.cg').forEach(g=>g.remove());
   let defs=svg.querySelector('defs');if(!defs){defs=document.createElementNS('http://www.w3.org/2000/svg','defs');svg.prepend(defs);}
   Object.values(devices).forEach(d=>{
     if(!d.builtin||!d.builtinHost||!devices[d.builtinHost])return;
@@ -676,6 +679,7 @@ function redrawCables(){
       document.getElementById('canvas').appendChild(dot);
     });
   });
+  }catch(e){console.error('redrawCables error:',e);}
 }
 function selectDevice(id){
   document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected'));
