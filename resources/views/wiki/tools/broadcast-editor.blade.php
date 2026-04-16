@@ -330,11 +330,15 @@ function assignLP(){
 
 function setBg(type){
   gridOn=(type==='grid');
-  document.getElementById('canvas').classList.toggle('grid-on',gridOn);
-  document.getElementById('canvas').style.background=gridOn?'#f8f7f4':'#ffffff';
+  const canvas=document.getElementById('canvas');
+  canvas.classList.toggle('grid-on',gridOn);
+  // 격자: 인라인 background 제거 → CSS 클래스의 background-image가 적용됨
+  // 백지: 인라인 background로 순백색 강제
+  if(gridOn){ canvas.style.removeProperty('background'); }
+  else{ canvas.style.background='#ffffff'; }
   document.getElementById('btn-grid').classList.toggle('active',type==='grid');
   document.getElementById('btn-blank').classList.toggle('active',type==='blank');
-  redrawCables(); // 라벨 배경색 갱신
+  redrawCables();
   setStatus(type==='grid'?'배경: 격자':'배경: 백지');
 }
 function toggleGrid(){setBg(gridOn?'blank':'grid');}
@@ -524,21 +528,15 @@ function onTempLine(e){
 }
 function removeTempLine(){if(tempLine){tempLine.remove();tempLine=null;}}
 function drawHT(g,x,y,text,col,fs){
-  // 배경 rect (캔버스 배경색으로 라인 가림)
   const bgCol = document.getElementById('canvas').classList.contains('grid-on') ? '#f8f7f4' : '#ffffff';
-  const tmpT=document.createElementNS('http://www.w3.org/2000/svg','text');
-  [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['fill',col]].forEach(([a,v])=>tmpT.setAttribute(a,v));
-  tmpT.textContent=text;g.appendChild(tmpT);
-  // bbox 계산 후 배경 rect 삽입
-  try{
-    const bb=tmpT.getBBox();
-    const pad=3;
-    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x',bb.x-pad);rect.setAttribute('y',bb.y-pad);
-    rect.setAttribute('width',bb.width+pad*2);rect.setAttribute('height',bb.height+pad*2);
-    rect.setAttribute('rx','3');rect.setAttribute('fill',bgCol);rect.setAttribute('opacity','0.9');
-    g.insertBefore(rect,tmpT);
-  }catch(e){}
+  // 1층: 배경색 stroke (라인을 가림)
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','text');
+  [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['stroke',bgCol],['stroke-width','6'],['stroke-linejoin','round'],['fill',bgCol],['paint-order','stroke']].forEach(([a,v])=>bg.setAttribute(a,v));
+  bg.textContent=text;g.appendChild(bg);
+  // 2층: 실제 텍스트
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  [['x',x],['y',y],['text-anchor','middle'],['dominant-baseline','central'],['font-size',fs],['font-weight','700'],['font-family','sans-serif'],['fill',col]].forEach(([a,v])=>t.setAttribute(a,v));
+  t.textContent=text;g.appendChild(t);
 }
 function redrawCables(){
   const svg=document.getElementById('svg-layer');svg.querySelectorAll('.cg').forEach(g=>g.remove());
