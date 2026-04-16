@@ -16,6 +16,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ScheduleAttachmentController;
+use App\Http\Controllers\WikiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
@@ -159,6 +160,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estimates', [EstimateController::class, 'estimates']);
         Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
     });
+
+    // 위키
+    Route::get('/wiki', [WikiController::class, 'index'])->name('wiki.index');
+    Route::get('/wiki/{wiki}', [WikiController::class, 'show'])->name('wiki.show');
+    Route::post('/wiki', [WikiController::class, 'store'])->name('wiki.store');
+    Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
+    Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');
 
     // 관리자 (master, admin만)
     // 엑셀 가져오기
