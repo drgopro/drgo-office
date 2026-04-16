@@ -51,10 +51,10 @@
 #canvas-wrap{flex:1;overflow:auto;background:var(--color-background-tertiary);position:relative}
 #canvas{position:relative;width:3000px;height:2000px;background:#f8f7f4;transform-origin:0 0;transition:none}
 #canvas-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:5}
-#zoom-info{position:absolute;bottom:8px;right:220px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;user-select:none;pointer-events:all}
+#zoom-info{position:absolute;bottom:8px;right:12px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;user-select:none;pointer-events:all;cursor:move}
 #zoom-info button{background:none;border:1px solid var(--color-border-secondary);color:var(--color-text-primary);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
 #zoom-info button:hover{background:var(--color-background-secondary)}
-#minimap{position:absolute;bottom:8px;left:200px;width:160px;height:100px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;opacity:0.9;pointer-events:all}
+#minimap{position:absolute;bottom:8px;right:12px;margin-bottom:34px;width:180px;height:110px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;opacity:0.9;pointer-events:all;cursor:move}
 #minimap canvas{width:100%;height:100%}
 .snap-guide{position:absolute;z-index:20;pointer-events:none}
 .snap-guide-h{width:100%;height:1px;background:#ef4444;left:0}
@@ -475,7 +475,7 @@ function renderDevice(id,skip){
     function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}
     document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
   });
-  el.querySelectorAll('.port').forEach(p=>p.addEventListener('mousedown',ev=>{if(mode!=='connect')return;ev.stopPropagation();handlePort(id,p.dataset.s,p);}));
+  el.querySelectorAll('.port').forEach(p=>p.addEventListener('mousedown',ev=>{ev.stopPropagation();handlePort(id,p.dataset.s,p);}));
   document.getElementById('canvas').appendChild(el);updatePorts();if(!skip&&mode==='select')selectDevice(id);
 }
 function updatePorts(){
@@ -496,11 +496,17 @@ function getPortXY(id,s){
   if(s==='r')return{x:d.x+w,y:d.y+h/2};if(s==='l')return{x:d.x,y:d.y+h/2};if(s==='t')return{x:d.x+w/2,y:d.y};if(s==='b')return{x:d.x+w/2,y:d.y+h};return{x:d.x+w/2,y:d.y+h/2};
 }
 function handlePort(id,s,portEl){
-  if(!connecting){connecting=id;connectingPort=s;portEl.classList.add('active');document.getElementById('canvas').addEventListener('mousemove',onTempLine);setStatus('연결 시작 → 다른 장비 포트 클릭');}
-  else{
-    if(connecting===id&&connectingPort===s){connecting=null;connectingPort=null;document.getElementById('canvas').removeEventListener('mousemove',onTempLine);removeTempLine();document.querySelectorAll('.port.active').forEach(p=>p.classList.remove('active'));return;}
+  if(!connecting){
+    connecting=id;connectingPort=s;portEl.classList.add('active');
+    // 연결 시작 시 모든 장비의 포트를 표시
+    document.querySelectorAll('.port').forEach(p=>{p.style.display='block';p.style.opacity='';});
+    document.getElementById('canvas').addEventListener('mousemove',onTempLine);
+    setStatus('연결 시작 → 다른 장비 포트를 클릭하세요 (Esc 취소)');
+  } else {
+    if(connecting===id&&connectingPort===s){connecting=null;connectingPort=null;document.getElementById('canvas').removeEventListener('mousemove',onTempLine);removeTempLine();document.querySelectorAll('.port.active').forEach(p=>p.classList.remove('active'));updatePorts();return;}
+    snapshot();
     cables.push({from:connecting,fs:connectingPort,to:id,ts:s,type:'HDMI',label:'',length:'',customColor:null,customName:''});
-    document.querySelectorAll('.port.active').forEach(p=>p.classList.remove('active'));document.getElementById('canvas').removeEventListener('mousemove',onTempLine);removeTempLine();connecting=null;connectingPort=null;redrawCables();setStatus('케이블 연결 완료');
+    document.querySelectorAll('.port.active').forEach(p=>p.classList.remove('active'));document.getElementById('canvas').removeEventListener('mousemove',onTempLine);removeTempLine();connecting=null;connectingPort=null;redrawCables();updatePorts();setStatus('케이블 연결 완료');
   }
 }
 function onTempLine(e){
@@ -626,6 +632,33 @@ function setStatus(msg){document.getElementById('status-msg').textContent=msg;}
 document.getElementById('canvas').addEventListener('mousedown',e=>{
   if(e.target===document.getElementById('canvas')||e.target===document.getElementById('svg-layer')){document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected'));selectedId=null;document.getElementById('prop-content').innerHTML='<div class="no-sel">장비를 선택하세요</div>';}
 });
+
+/* ── 내비게이터/줌 드래그 이동 ── */
+function makeDraggable(el) {
+  let isDragging = false, ox, oy;
+  el.addEventListener('mousedown', function(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'CANVAS') return;
+    isDragging = true;
+    ox = e.clientX - el.offsetLeft;
+    oy = e.clientY - el.offsetTop;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    const parent = el.parentElement;
+    const x = Math.max(0, Math.min(parent.clientWidth - el.offsetWidth, e.clientX - ox));
+    const y = Math.max(0, Math.min(parent.clientHeight - el.offsetHeight, e.clientY - oy));
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  });
+  document.addEventListener('mouseup', function() { isDragging = false; });
+}
+setTimeout(() => {
+  makeDraggable(document.getElementById('minimap'));
+  makeDraggable(document.getElementById('zoom-info'));
+}, 100);
 
 /* ── 확대/축소 ── */
 let zoom = 1;
