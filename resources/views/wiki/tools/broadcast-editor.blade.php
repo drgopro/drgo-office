@@ -646,7 +646,7 @@ function redrawCables(){
       labelPt={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
     }
     const{line1,line2}=getCableLines(c);
-    const lineH=13,total=line2?2:1,startY2=labelPt.y-(total-1)*lineH/2;
+    const lineH=13,totalLines=line2?2:1,startY2=labelPt.y-(totalLines-1)*lineH/2;
     drawHT(g,labelPt.x,startY2,line1,col,'10');if(line2)drawHT(g,labelPt.x,startY2+lineH,line2,col,'10');
     svg.appendChild(g);
 
