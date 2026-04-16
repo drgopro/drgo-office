@@ -13,6 +13,7 @@ class Wiki extends Model
         'title',
         'category',
         'content',
+        'diagram_data',
         'is_pinned',
         'created_by',
         'updated_by',
@@ -20,6 +21,7 @@ class Wiki extends Model
 
     protected $casts = [
         'is_pinned' => 'boolean',
+        'diagram_data' => 'array',
     ];
 
     public function creator()

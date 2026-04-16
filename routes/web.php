@@ -168,6 +168,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/wiki', [WikiController::class, 'store'])->name('wiki.store');
     Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
     Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');
+    Route::get('/api/wiki/{wiki}/diagram', [WikiController::class, 'getDiagram']);
+    Route::post('/api/wiki/{wiki}/diagram', [WikiController::class, 'saveDiagram']);
     Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');

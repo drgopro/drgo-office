@@ -19,7 +19,7 @@
     .tiptap-toolbar button.is-active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
     [data-theme="light"] .tiptap-toolbar button.is-active { color:#fff; }
     .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
-    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; }
+    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
     .ProseMirror { padding:20px 24px; min-height:400px; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
     .ProseMirror p { margin:0 0 10px; }
     .ProseMirror h1 { font-size:24px; font-weight:700; margin:20px 0 10px; }
@@ -95,7 +95,7 @@
                 📎
                 <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
             </label>
-            <button class="tool-btn" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')" title="방송 세팅 에디터">🎛️ 연결도</button>
+            <button class="tool-btn" onclick="alert('문서를 먼저 저장하면 연결도를 추가할 수 있습니다.')" title="저장 후 연결도 추가 가능">🎛️ 연결도</button>
         </div>
         <div id="editor"></div>
     </div>

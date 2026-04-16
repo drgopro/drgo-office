@@ -172,8 +172,9 @@
   </button>
   <div class="tb-sep"></div>
   <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="openHistoryModal()">📋 수정내역 (최근 5건)</button>
+  <button class="tb-btn" onclick="openHistoryModal()">📋 수정내역</button>
   <div class="tb-sep"></div>
+  <button class="tb-btn green" id="btn-wiki-save" onclick="saveWikiDiagram()" style="display:none">💾 위키에 저장</button>
   <span id="mode-badge">선택</span>
 </div>
 
@@ -631,12 +632,57 @@ function loadHistory(idx){
   setStatus('수정내역에서 복원 완료');
 }
 
-/* ── 시작 시 저장된 장비목록 불러오기 ── */
+/* ── 위키 연결도 연동 ── */
+const WIKI_ID = new URLSearchParams(location.search).get('wiki_id');
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content;
+
+async function loadWikiDiagram() {
+  if (!WIKI_ID) return false;
+  try {
+    const res = await fetch(`/api/wiki/${WIKI_ID}/diagram`, {headers:{'Accept':'application/json'}});
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data.diagram && data.diagram.devices) {
+      applyDiagramData(data.diagram, '위키 연결도');
+      setStatus('위키 연결도를 불러왔습니다.');
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+async function saveWikiDiagram() {
+  if (!WIKI_ID) { alert('위키 문서와 연결되지 않았습니다. 위키 문서에서 연결도를 열어주세요.'); return; }
+  try {
+    const res = await fetch(`/api/wiki/${WIKI_ID}/diagram`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_TOKEN,'Accept':'application/json'},
+      body:JSON.stringify({diagram:{devices,cables,catalog,devCount,catCount}}),
+    });
+    if (res.ok) setStatus('위키 연결도가 저장되었습니다.');
+    else alert('저장 실패');
+  } catch(e) { alert('저장 오류'); }
+}
+
+/* ── 시작 시: wiki_id가 있으면 위키 데이터 로드, 없으면 빈 캔버스 ── */
 if(!loadCatalogLive()){
-  saveCatalogLive(); // 최초 실행 시 기본값을 저장
+  saveCatalogLive();
 }
 renderSidebar();
-loadPreset();
+
+(async()=>{
+  if (WIKI_ID) {
+    const loaded = await loadWikiDiagram();
+    if (!loaded) {
+      clearCanvas();
+      setStatus('새 연결도 — 장비를 드래그하여 배치하세요.');
+    }
+  } else {
+    clearCanvas();
+    setStatus('위키와 연결되지 않은 독립 모드 — 장비를 드래그하여 배치하세요.');
+  }
+  if (WIKI_ID) document.getElementById('btn-wiki-save').style.display='';
+})();
 </script>
 </body>
 </html>

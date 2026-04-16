@@ -94,6 +94,23 @@ class WikiController extends Controller
         return redirect()->route('wiki.index')->with('success', '문서가 삭제되었습니다.');
     }
 
+    // 연결도 데이터 저장
+    public function saveDiagram(Request $request, Wiki $wiki)
+    {
+        $wiki->update([
+            'diagram_data' => $request->input('diagram'),
+            'updated_by' => Auth::id(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    // 연결도 데이터 조회
+    public function getDiagram(Wiki $wiki)
+    {
+        return response()->json(['diagram' => $wiki->diagram_data]);
+    }
+
     // 파일 업로드 (에디터에서 이미지/파일 삽입용)
     public function uploadFile(Request $request)
     {
