@@ -77,7 +77,7 @@
     </div>
 
     <!-- 보기 모드 -->
-    <div class="wiki-content view-mode" id="viewContent">{!! nl2br(e($wiki->content)) !!}</div>
+    <div class="wiki-content view-mode" id="viewContent">{!! Str::markdown($wiki->content, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
 
     <!-- 수정 모드 -->
     <div class="edit-form" id="editForm">
