@@ -18,6 +18,7 @@
     .wiki-actions .btn-del { border-color:var(--red); color:var(--red); }
     .wiki-actions .btn-del:hover { background:rgba(200,50,50,0.1); }
 
+    /* 보기 모드 콘텐츠 */
     .wiki-content { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px 32px; line-height:1.85; font-size:14px; }
     .wiki-content h1 { font-size:24px; font-weight:700; margin:24px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--border); }
     .wiki-content h2 { font-size:20px; font-weight:700; margin:20px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
@@ -44,18 +45,43 @@
     .field-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
     .field-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; }
     .field-input:focus { border-color:var(--accent); }
-    .field-textarea { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; color:var(--text); font-size:13px; outline:none; width:100%; resize:vertical; min-height:400px; line-height:1.7; font-family:monospace; box-sizing:border-box; }
-    .field-textarea:focus { border-color:var(--accent); }
-    .hidden { display:none !important; }
-    .wiki-preview-pane h1 { font-size:22px; font-weight:700; margin:16px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--border); }
-    .wiki-preview-pane h2 { font-size:18px; font-weight:700; margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
-    .wiki-preview-pane h3 { font-size:15px; font-weight:600; margin:12px 0 6px; }
-    .wiki-preview-pane p { margin:0 0 10px; }
-    .wiki-preview-pane code { background:var(--surface); padding:1px 5px; border-radius:3px; font-size:12px; }
-    .wiki-preview-pane pre { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px 14px; overflow-x:auto; margin:8px 0; }
-    .wiki-preview-pane pre code { background:none; }
-    .wiki-preview-pane blockquote { border-left:3px solid var(--accent); margin:8px 0; padding:6px 14px; color:var(--text-muted); background:var(--surface); border-radius:0 6px 6px 0; }
-    .wiki-preview-pane img { max-width:100%; border-radius:6px; }
+
+    /* Tiptap 에디터 */
+    .tiptap-wrap { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+    .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); }
+    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
+    .tiptap-toolbar button.is-active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    [data-theme="light"] .tiptap-toolbar button.is-active { color:#fff; }
+    .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
+    .tiptap-toolbar .file-label { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; cursor:pointer; color:var(--text-muted); font-size:13px; transition:all 0.12s; }
+    .tiptap-toolbar .file-label:hover { background:var(--surface); color:var(--text); }
+    .ProseMirror { padding:20px 24px; min-height:400px; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
+    .ProseMirror p { margin:0 0 10px; }
+    .ProseMirror h1 { font-size:24px; font-weight:700; margin:20px 0 10px; }
+    .ProseMirror h2 { font-size:20px; font-weight:700; margin:16px 0 8px; }
+    .ProseMirror h3 { font-size:16px; font-weight:600; margin:14px 0 6px; }
+    .ProseMirror ul, .ProseMirror ol { margin:0 0 10px; padding-left:24px; }
+    .ProseMirror li { margin:3px 0; }
+    .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:13px; }
+    .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
+    .ProseMirror pre code { background:none; padding:0; }
+    .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
+    .ProseMirror img { max-width:100%; border-radius:8px; margin:6px 0; display:block; }
+    .ProseMirror hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
+    .ProseMirror table { width:100%; border-collapse:collapse; margin:10px 0; }
+    .ProseMirror th, .ProseMirror td { border:1px solid var(--border); padding:6px 10px; min-width:60px; }
+    .ProseMirror th { background:var(--surface2); font-weight:600; }
+    .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
+
+    /* 슬래시 메뉴 */
+    .slash-menu { position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:200px; box-shadow:0 4px 20px rgba(0,0,0,0.2); display:none; }
+    .slash-menu.visible { display:block; }
+    .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); transition:background 0.1s; }
+    .slash-item:hover, .slash-item.selected { background:var(--surface2); }
+    .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+    .slash-label { font-weight:500; }
+    .slash-desc { font-size:11px; color:var(--text-muted); }
 </style>
 @endpush
 
@@ -87,120 +113,261 @@
     </div>
 
     <!-- 보기 모드 -->
-    <div class="wiki-content view-mode" id="viewContent">{!! Str::markdown($wiki->content, ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
+    @if(str_starts_with(trim($wiki->content ?? ''), '<'))
+        <div class="wiki-content view-mode" id="viewContent">{!! $wiki->content !!}</div>
+    @else
+        <div class="wiki-content view-mode" id="viewContent">{!! Str::markdown($wiki->content ?? '', ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
+    @endif
 
     <!-- 수정 모드 -->
     <div class="edit-form" id="editForm">
-        <form method="POST" action="{{ route('wiki.update', $wiki) }}">
-            @csrf @method('PATCH')
-            <div style="display:flex;gap:12px;">
-                <div class="field-group" style="flex:1;">
-                    <div class="field-label">제목</div>
-                    <input class="field-input" name="title" value="{{ $wiki->title }}" required>
-                </div>
-                <div class="field-group" style="width:160px;">
-                    <div class="field-label">카테고리</div>
-                    <input class="field-input" name="category" value="{{ $wiki->category }}" required>
-                </div>
-                <div class="field-group" style="width:auto;">
-                    <div class="field-label">고정</div>
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0;">
-                        <input type="checkbox" name="is_pinned" value="1" {{ $wiki->is_pinned ? 'checked' : '' }}>
-                        <span style="font-size:12px;">📌</span>
-                    </label>
-                </div>
+        <div style="display:flex;gap:12px;margin-bottom:14px;">
+            <div class="field-group" style="flex:1;margin:0;">
+                <div class="field-label">제목</div>
+                <input class="field-input" id="editTitle" value="{{ $wiki->title }}" required>
             </div>
-            <div class="field-group">
-                <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
-                    <span>내용 (마크다운)</span>
-                    <div style="display:flex;gap:6px;">
-                        <label style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-muted);">
-                            📎 파일 첨부
-                            <input type="file" style="display:none;" onchange="uploadWikiFile(this.files[0],'editContent')">
-                        </label>
-                        <button type="button" onclick="document.getElementById('editPreviewPane').classList.toggle('hidden');this.textContent=this.textContent==='미리보기'?'미리보기 닫기':'미리보기'" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;background:none;color:var(--text-muted);">미리보기</button>
-                    </div>
-                </div>
-                <div style="display:flex;gap:12px;">
-                    <textarea class="field-textarea" name="content" id="editContent" required oninput="updatePreview('editContent','editPreviewPane')" style="flex:1;">{{ $wiki->content }}</textarea>
-                    <div id="editPreviewPane" class="wiki-preview-pane hidden" style="flex:1;min-height:400px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;overflow-y:auto;font-size:14px;line-height:1.85;"></div>
-                </div>
+            <div class="field-group" style="width:160px;margin:0;">
+                <div class="field-label">카테고리</div>
+                <input class="field-input" id="editCategory" value="{{ $wiki->category }}" required>
             </div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;">
-                <button type="button" onclick="toggleEdit()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
-                <button type="submit" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            <div class="field-group" style="width:auto;margin:0;">
+                <div class="field-label">고정</div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0;">
+                    <input type="checkbox" id="editPinned" {{ $wiki->is_pinned ? 'checked' : '' }}>
+                    <span style="font-size:12px;">📌</span>
+                </label>
             </div>
-        </form>
+        </div>
+
+        <div class="tiptap-wrap">
+            <div class="tiptap-toolbar" id="toolbar">
+                <button onclick="editor.chain().focus().toggleHeading({level:1}).run()" title="제목 1">H1</button>
+                <button onclick="editor.chain().focus().toggleHeading({level:2}).run()" title="제목 2">H2</button>
+                <button onclick="editor.chain().focus().toggleHeading({level:3}).run()" title="제목 3">H3</button>
+                <div class="sep"></div>
+                <button onclick="editor.chain().focus().toggleBold().run()" title="굵게"><b>B</b></button>
+                <button onclick="editor.chain().focus().toggleItalic().run()" title="기울임"><i>I</i></button>
+                <button onclick="editor.chain().focus().toggleStrike().run()" title="취소선"><s>S</s></button>
+                <button onclick="editor.chain().focus().toggleCode().run()" title="인라인 코드">&lt;&gt;</button>
+                <div class="sep"></div>
+                <button onclick="editor.chain().focus().toggleBulletList().run()" title="글머리 목록">•</button>
+                <button onclick="editor.chain().focus().toggleOrderedList().run()" title="번호 목록">1.</button>
+                <button onclick="editor.chain().focus().toggleBlockquote().run()" title="인용">"</button>
+                <button onclick="editor.chain().focus().toggleCodeBlock().run()" title="코드 블록">{ }</button>
+                <button onclick="editor.chain().focus().setHorizontalRule().run()" title="구분선">—</button>
+                <div class="sep"></div>
+                <label class="file-label" title="이미지/파일 첨부">
+                    📎
+                    <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
+                </label>
+            </div>
+            <div id="editor"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+            <button onclick="toggleEdit()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
+            <button onclick="saveWiki()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+        </div>
     </div>
 </div>
+
+<div class="slash-menu" id="slashMenu"></div>
 @endsection
 
 @push('scripts')
-<script>
-let editMode = false;
-function toggleEdit() {
-    editMode = !editMode;
-    document.getElementById('viewContent').classList.toggle('hidden', editMode);
-    document.getElementById('viewActions').style.display = editMode ? 'none' : '';
-    document.getElementById('viewTitle').style.display = editMode ? 'none' : '';
-    document.getElementById('editForm').classList.toggle('active', editMode);
-    if (editMode) document.getElementById('editContent').focus();
+<script type="importmap">
+{
+    "imports": {
+        "@tiptap/core": "https://esm.sh/@tiptap/core@2.11.5",
+        "@tiptap/starter-kit": "https://esm.sh/@tiptap/starter-kit@2.11.5",
+        "@tiptap/extension-image": "https://esm.sh/@tiptap/extension-image@2.11.5",
+        "@tiptap/extension-link": "https://esm.sh/@tiptap/extension-link@2.11.5",
+        "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@2.11.5",
+        "@tiptap/extension-table": "https://esm.sh/@tiptap/extension-table@2.11.5",
+        "@tiptap/extension-table-row": "https://esm.sh/@tiptap/extension-table-row@2.11.5",
+        "@tiptap/extension-table-cell": "https://esm.sh/@tiptap/extension-table-cell@2.11.5",
+        "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5"
+    }
+}
+</script>
+<script type="module">
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+
+const wikiContent = @json($wiki->content);
+
+window.editor = new Editor({
+    element: document.getElementById('editor'),
+    extensions: [
+        StarterKit.configure({ heading: { levels: [1,2,3] } }),
+        Image.configure({ inline: false, allowBase64: true }),
+        Link.configure({ openOnClick: false }),
+        Placeholder.configure({ placeholder: '내용을 입력하세요... ("/" 입력으로 블록 추가)' }),
+        Table.configure({ resizable: true }),
+        TableRow,
+        TableCell,
+        TableHeader,
+    ],
+    content: wikiContent,
+    editorProps: {
+        handleKeyDown(view, event) {
+            if (event.key === '/') {
+                setTimeout(() => showSlashMenu(view), 10);
+            }
+            return false;
+        },
+        handleDrop(view, event) {
+            const files = event.dataTransfer?.files;
+            if (files?.length) {
+                event.preventDefault();
+                uploadAndInsertToEditor(files[0]);
+                return true;
+            }
+            return false;
+        },
+        handlePaste(view, event) {
+            const items = event.clipboardData?.items;
+            if (!items) return false;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    event.preventDefault();
+                    uploadAndInsertToEditor(item.getAsFile());
+                    return true;
+                }
+            }
+            return false;
+        },
+    },
+    onUpdate({ editor: e }) {
+        updateToolbar(e);
+    },
+    onSelectionUpdate({ editor: e }) {
+        updateToolbar(e);
+    },
+});
+
+// 툴바 active 상태
+function updateToolbar(e) {
+    document.querySelectorAll('.tiptap-toolbar button').forEach(btn => btn.classList.remove('is-active'));
+    const tb = document.getElementById('toolbar');
+    if (e.isActive('heading',{level:1})) tb.children[0].classList.add('is-active');
+    if (e.isActive('heading',{level:2})) tb.children[1].classList.add('is-active');
+    if (e.isActive('heading',{level:3})) tb.children[2].classList.add('is-active');
+    if (e.isActive('bold')) tb.children[4].classList.add('is-active');
+    if (e.isActive('italic')) tb.children[5].classList.add('is-active');
+    if (e.isActive('strike')) tb.children[6].classList.add('is-active');
+    if (e.isActive('code')) tb.children[7].classList.add('is-active');
+    if (e.isActive('bulletList')) tb.children[9].classList.add('is-active');
+    if (e.isActive('orderedList')) tb.children[10].classList.add('is-active');
+    if (e.isActive('blockquote')) tb.children[11].classList.add('is-active');
+    if (e.isActive('codeBlock')) tb.children[12].classList.add('is-active');
 }
 
-// 마크다운 → HTML 간이 변환
-function mdToHtml(md) {
-    let html = md
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/```(\w*)\n([\s\S]*?)```/g, (m,lang,code)=>`<pre><code>${code.trim()}</code></pre>`)
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/~~(.+?)~~/g, '<del>$1</del>')
-        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-        .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-        .replace(/^---$/gm, '<hr>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-    html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
-    return '<p>'+html+'</p>';
+// 슬래시 메뉴
+const SLASH_ITEMS = [
+    { icon:'📝', label:'텍스트', desc:'기본 텍스트', action:()=>editor.chain().focus().setParagraph().run() },
+    { icon:'H1', label:'제목 1', desc:'큰 제목', action:()=>editor.chain().focus().toggleHeading({level:1}).run() },
+    { icon:'H2', label:'제목 2', desc:'중간 제목', action:()=>editor.chain().focus().toggleHeading({level:2}).run() },
+    { icon:'H3', label:'제목 3', desc:'작은 제목', action:()=>editor.chain().focus().toggleHeading({level:3}).run() },
+    { icon:'•', label:'글머리 목록', desc:'순서 없는 목록', action:()=>editor.chain().focus().toggleBulletList().run() },
+    { icon:'1.', label:'번호 목록', desc:'순서 있는 목록', action:()=>editor.chain().focus().toggleOrderedList().run() },
+    { icon:'"', label:'인용', desc:'인용 블록', action:()=>editor.chain().focus().toggleBlockquote().run() },
+    { icon:'{ }', label:'코드 블록', desc:'코드 삽입', action:()=>editor.chain().focus().toggleCodeBlock().run() },
+    { icon:'—', label:'구분선', desc:'수평 구분선', action:()=>editor.chain().focus().setHorizontalRule().run() },
+    { icon:'🖼', label:'이미지', desc:'파일에서 업로드', action:()=>document.querySelector('.tiptap-toolbar input[type=file]').click() },
+    { icon:'📊', label:'표', desc:'3x3 표 삽입', action:()=>editor.chain().focus().insertTable({rows:3,cols:3,withHeaderRow:true}).run() },
+];
+
+let slashIdx = 0;
+function showSlashMenu(view) {
+    const menu = document.getElementById('slashMenu');
+    const { from } = view.state.selection;
+    const coords = view.coordsAtPos(from);
+    menu.style.top = (coords.bottom + 4) + 'px';
+    menu.style.left = coords.left + 'px';
+    slashIdx = 0;
+    renderSlashMenu('');
+    menu.classList.add('visible');
+
+    const handler = (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = Math.min(slashIdx+1, SLASH_ITEMS.length-1); renderSlashMenu(''); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = Math.max(slashIdx-1, 0); renderSlashMenu(''); }
+        else if (e.key === 'Enter') { e.preventDefault(); SLASH_ITEMS[slashIdx].action(); hideSlashMenu(); editor.commands.deleteRange({from:from-1,to:from}); }
+        else if (e.key === 'Escape') { hideSlashMenu(); }
+        else { setTimeout(()=>hideSlashMenu(), 100); }
+        if (!menu.classList.contains('visible')) document.removeEventListener('keydown', handler);
+    };
+    document.addEventListener('keydown', handler);
+    document.addEventListener('click', function once(){ hideSlashMenu(); document.removeEventListener('click', once); }, {once:true});
 }
-function updatePreview(tid, pid) {
-    const ta=document.getElementById(tid),pv=document.getElementById(pid);
-    if(ta&&pv) pv.innerHTML=mdToHtml(ta.value);
+function renderSlashMenu(filter) {
+    const menu = document.getElementById('slashMenu');
+    menu.innerHTML = SLASH_ITEMS.map((item,i) =>
+        `<div class="slash-item ${i===slashIdx?'selected':''}" onmouseenter="slashIdx=${i}" onclick="SLASH_ITEMS[${i}].action();hideSlashMenu();">
+            <div class="slash-icon">${item.icon}</div>
+            <div><div class="slash-label">${item.label}</div><div class="slash-desc">${item.desc}</div></div>
+        </div>`
+    ).join('');
 }
+function hideSlashMenu() { document.getElementById('slashMenu').classList.remove('visible'); }
+window.SLASH_ITEMS = SLASH_ITEMS;
+window.slashIdx = slashIdx;
+window.hideSlashMenu = hideSlashMenu;
 
 // 파일 업로드
 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
-async function uploadWikiFile(file, textareaId) {
+window.uploadAndInsert = async function(file) {
     if (!file) return;
+    uploadAndInsertToEditor(file);
+};
+async function uploadAndInsertToEditor(file) {
     const fd = new FormData(); fd.append('file', file); fd.append('wiki_id', '{{ $wiki->id }}');
     try {
         const res = await fetch('/api/wiki/upload', {method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:fd});
         if (!res.ok) { alert('업로드 실패'); return; }
         const data = await res.json();
-        const ta = document.getElementById(textareaId);
-        if (ta) {
-            const pos = ta.selectionStart;
-            ta.value = ta.value.substring(0,pos) + '\n' + data.markdown + '\n' + ta.value.substring(pos);
-            ta.focus();
-            updatePreview(textareaId, 'editPreviewPane');
+        if (data.is_image) {
+            editor.chain().focus().setImage({src:data.url,alt:data.name}).run();
+        } else {
+            editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank">${data.name}</a>`).run();
         }
     } catch(e) { alert('업로드 오류'); }
 }
 
-// 드래그/붙여넣기
-const editTa = document.getElementById('editContent');
-if (editTa) {
-    editTa.addEventListener('dragover', e=>{e.preventDefault();editTa.style.borderColor='var(--accent)';});
-    editTa.addEventListener('dragleave', ()=>{editTa.style.borderColor='var(--border)';});
-    editTa.addEventListener('drop', e=>{e.preventDefault();editTa.style.borderColor='var(--border)';if(e.dataTransfer.files.length)uploadWikiFile(e.dataTransfer.files[0],'editContent');});
-    editTa.addEventListener('paste', e=>{const items=e.clipboardData?.items;if(!items)return;for(const i of items){if(i.type.startsWith('image/')){e.preventDefault();uploadWikiFile(i.getAsFile(),'editContent');break;}}});
-}
+// 저장 — HTML을 마크다운으로 변환하지 않고 HTML로 저장 (서버에서 처리)
+window.saveWiki = async function() {
+    const html = editor.getHTML();
+    const title = document.getElementById('editTitle').value.trim();
+    const category = document.getElementById('editCategory').value.trim();
+    const isPinned = document.getElementById('editPinned').checked;
+    if (!title || !html) { alert('제목과 내용을 입력하세요.'); return; }
+
+    const res = await fetch('{{ route("wiki.update", $wiki) }}', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify({ title, category, content:html, is_pinned:isPinned?1:0 }),
+    });
+    if (res.ok) {
+        location.reload();
+    } else {
+        alert('저장 실패');
+    }
+};
+
+// 수정 모드 토글
+window.toggleEdit = function() {
+    const editMode = document.getElementById('editForm').classList.toggle('active');
+    document.getElementById('viewContent').classList.toggle('hidden', editMode);
+    document.getElementById('viewActions').style.display = editMode ? 'none' : '';
+    document.getElementById('viewTitle').style.display = editMode ? 'none' : '';
+    if (editMode) editor.commands.focus();
+};
 </script>
 @endpush
