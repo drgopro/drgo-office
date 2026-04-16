@@ -161,6 +161,10 @@
                 <button onclick="editor.chain().focus().toggleCodeBlock().run()" title="코드 블록">{ }</button>
                 <button onclick="editor.chain().focus().setHorizontalRule().run()" title="구분선">—</button>
                 <div class="sep"></div>
+                <button onclick="editor.chain().focus().setTextAlign('left').run()" title="좌측 정렬" style="font-size:11px;">≡←</button>
+                <button onclick="editor.chain().focus().setTextAlign('center').run()" title="중앙 정렬" style="font-size:11px;">≡</button>
+                <button onclick="editor.chain().focus().setTextAlign('right').run()" title="우측 정렬" style="font-size:11px;">→≡</button>
+                <div class="sep"></div>
                 <label class="file-label" title="이미지/파일 첨부">
                     📎
                     <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
@@ -192,7 +196,8 @@
         "@tiptap/extension-table": "https://esm.sh/@tiptap/extension-table@2.11.5",
         "@tiptap/extension-table-row": "https://esm.sh/@tiptap/extension-table-row@2.11.5",
         "@tiptap/extension-table-cell": "https://esm.sh/@tiptap/extension-table-cell@2.11.5",
-        "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5"
+        "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5",
+        "@tiptap/extension-text-align": "https://esm.sh/@tiptap/extension-text-align@2.11.5"
     }
 }
 </script>
@@ -206,6 +211,7 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+import TextAlign from '@tiptap/extension-text-align';
 
 const wikiContent = @json($wiki->content);
 
@@ -220,6 +226,7 @@ window.editor = new Editor({
         TableRow,
         TableCell,
         TableHeader,
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: wikiContent,
     editorProps: {
@@ -416,16 +423,12 @@ window.toggleEdit = function() {
         });
     }
 
-    // 에디터 영역에서 이미지 클릭 감지 (캡처 페이즈)
-    document.getElementById('editor')?.addEventListener('click', function(e) {
-        const img = e.target.tagName === 'IMG' ? e.target : null;
-        if (img) { showHandle(img); }
-        else { removeHandle(); }
-    }, true);
-
-    // 에디터 외부 클릭 시 핸들 제거
+    // document 레벨에서 이미지 클릭 감지 (Tiptap ProseMirror 내부)
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('#editor') && !e.target.closest('.img-resize-handle')) {
+        // ProseMirror 내부의 이미지인지 확인
+        if (e.target.tagName === 'IMG' && e.target.closest('.ProseMirror')) {
+            showHandle(e.target);
+        } else if (!e.target.closest('.img-resize-handle')) {
             removeHandle();
         }
     });

@@ -48,8 +48,17 @@
 .sb-act-btn{width:20px;height:20px;border:none;border-radius:4px;background:transparent;color:var(--color-text-secondary);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .sb-act-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
 .sb-act-btn.del:hover{background:#FCEBEB;color:#A32D2D}
-#canvas-wrap{flex:1;overflow:auto;background:var(--color-background-tertiary)}
-#canvas{position:relative;width:1400px;height:900px;background:#f8f7f4}
+#canvas-wrap{flex:1;overflow:auto;background:var(--color-background-tertiary);position:relative}
+#canvas{position:relative;width:3000px;height:2000px;background:#f8f7f4;transform-origin:0 0;transition:none}
+#zoom-info{position:absolute;bottom:40px;right:12px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);z-index:5;display:flex;align-items:center;gap:6px;user-select:none}
+#zoom-info button{background:none;border:1px solid var(--color-border-secondary);color:var(--color-text-primary);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+#zoom-info button:hover{background:var(--color-background-secondary)}
+#minimap{position:absolute;bottom:40px;left:12px;width:160px;height:100px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;z-index:5;opacity:0.85}
+#minimap canvas{width:100%;height:100%}
+.snap-guide{position:absolute;z-index:20;pointer-events:none}
+.snap-guide-h{width:100%;height:1px;background:#ef4444;left:0}
+.snap-guide-v{height:100%;width:1px;background:#ef4444;top:0}
+.shortcut-hint{font-size:9px;color:var(--color-text-tertiary);margin-left:4px;opacity:0.7}
 #canvas.grid-on{background-image:linear-gradient(to right,rgba(100,95,85,0.18) 1px,transparent 1px),linear-gradient(to bottom,rgba(100,95,85,0.18) 1px,transparent 1px);background-size:20px 20px}
 .device{position:absolute;cursor:move;user-select:none}
 .device-inner{border:1.5px solid var(--color-border-secondary);border-radius:10px;padding:8px 12px;min-width:128px;text-align:center;transition:border-color .15s}
@@ -142,7 +151,10 @@
     <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="8" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.2"/></svg>격자
   </button>
   <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="clearCanvas()">캔버스 초기화</button>
+  <button class="tb-btn" onclick="undo()" title="실행 취소 (Ctrl+Z)">↩</button>
+  <button class="tb-btn" onclick="redo()" title="다시 실행 (Ctrl+Y)">↪</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="clearCanvas()">초기화</button>
   <button class="tb-btn" onclick="loadPreset()">예시</button>
   <div class="tb-sep"></div>
   <div class="tb-group">
@@ -191,6 +203,13 @@
   </div>
   <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)">
     <div id="canvas" class="grid-on"><svg id="svg-layer"></svg></div>
+    <div id="zoom-info">
+      <button onclick="zoomTo(zoom-0.1)">−</button>
+      <span id="zoom-level">100%</span>
+      <button onclick="zoomTo(zoom+0.1)">+</button>
+      <button onclick="zoomTo(1)" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
+    </div>
+    <div id="minimap"><canvas id="minimapCanvas" width="160" height="100"></canvas></div>
   </div>
   <div id="prop-panel">
     <div class="prop-title">속성</div>
@@ -198,7 +217,7 @@
   </div>
 </div>
 <div id="status-bar">
-  <span id="status-msg">준비 | 장비 드래그 배치 → 케이블 연결 모드에서 포트 클릭</span>
+  <span id="status-msg">준비 | Ctrl+Z 되돌리기 · Ctrl+C/V 복사 · Delete 삭제 · 방향키 이동 · Ctrl+휠 확대축소</span>
   <span id="current-name"></span>
 </div>
 </div>
@@ -590,6 +609,160 @@ function setStatus(msg){document.getElementById('status-msg').textContent=msg;}
 document.getElementById('canvas').addEventListener('mousedown',e=>{
   if(e.target===document.getElementById('canvas')||e.target===document.getElementById('svg-layer')){document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected'));selectedId=null;document.getElementById('prop-content').innerHTML='<div class="no-sel">장비를 선택하세요</div>';}
 });
+
+/* ── 확대/축소 ── */
+let zoom = 1;
+function zoomTo(z) {
+  zoom = Math.max(0.3, Math.min(2, z));
+  document.getElementById('canvas').style.transform = `scale(${zoom})`;
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  updateMinimap();
+}
+document.getElementById('canvas-wrap').addEventListener('wheel', function(e) {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    zoomTo(zoom + (e.deltaY < 0 ? 0.08 : -0.08));
+  }
+}, { passive: false });
+
+/* ── Undo/Redo ── */
+const undoStack = [], redoStack = [];
+let skipSnapshot = false;
+function snapshot() {
+  if (skipSnapshot) return;
+  undoStack.push(JSON.stringify({ devices: JSON.parse(JSON.stringify(devices)), cables: JSON.parse(JSON.stringify(cables)), devCount }));
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack.length = 0;
+}
+function undo() {
+  if (!undoStack.length) { setStatus('되돌릴 작업이 없습니다.'); return; }
+  redoStack.push(JSON.stringify({ devices: JSON.parse(JSON.stringify(devices)), cables: JSON.parse(JSON.stringify(cables)), devCount }));
+  const state = JSON.parse(undoStack.pop());
+  skipSnapshot = true;
+  Object.keys(devices).forEach(id => document.getElementById(id)?.remove());
+  devices = {}; cables = []; document.getElementById('svg-layer').innerHTML = '';
+  devCount = state.devCount || 0;
+  Object.values(state.devices || {}).forEach(d => { devices[d.id] = d; renderDevice(d.id, true); });
+  cables = state.cables || [];
+  redrawCables();
+  skipSnapshot = false;
+  setStatus('실행 취소');
+}
+function redo() {
+  if (!redoStack.length) { setStatus('다시 실행할 작업이 없습니다.'); return; }
+  undoStack.push(JSON.stringify({ devices: JSON.parse(JSON.stringify(devices)), cables: JSON.parse(JSON.stringify(cables)), devCount }));
+  const state = JSON.parse(redoStack.pop());
+  skipSnapshot = true;
+  Object.keys(devices).forEach(id => document.getElementById(id)?.remove());
+  devices = {}; cables = []; document.getElementById('svg-layer').innerHTML = '';
+  devCount = state.devCount || 0;
+  Object.values(state.devices || {}).forEach(d => { devices[d.id] = d; renderDevice(d.id, true); });
+  cables = state.cables || [];
+  redrawCables();
+  skipSnapshot = false;
+  setStatus('다시 실행');
+}
+
+/* ── 미니맵 ── */
+function updateMinimap() {
+  const mc = document.getElementById('minimapCanvas');
+  if (!mc) return;
+  const ctx = mc.getContext('2d');
+  ctx.clearRect(0, 0, 160, 100);
+  ctx.fillStyle = '#f8f7f4';
+  ctx.fillRect(0, 0, 160, 100);
+  const sx = 160 / 3000, sy = 100 / 2000;
+  // 장비
+  Object.values(devices).forEach(d => {
+    ctx.fillStyle = d.bg || '#ddd';
+    ctx.fillRect(d.x * sx, d.y * sy, 8, 5);
+    ctx.strokeStyle = '#999';
+    ctx.strokeRect(d.x * sx, d.y * sy, 8, 5);
+  });
+  // 케이블
+  cables.forEach(c => {
+    if (!devices[c.from] || !devices[c.to]) return;
+    ctx.beginPath();
+    ctx.moveTo(devices[c.from].x * sx + 4, devices[c.from].y * sy + 2.5);
+    ctx.lineTo(devices[c.to].x * sx + 4, devices[c.to].y * sy + 2.5);
+    ctx.strokeStyle = getCableColor(c);
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  });
+  // 뷰포트
+  const wrap = document.getElementById('canvas-wrap');
+  const vx = wrap.scrollLeft / zoom * sx, vy = wrap.scrollTop / zoom * sy;
+  const vw = wrap.clientWidth / zoom * sx, vh = wrap.clientHeight / zoom * sy;
+  ctx.strokeStyle = '#185FA5';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(vx, vy, vw, vh);
+}
+setInterval(updateMinimap, 1000);
+
+/* ── 키보드 단축키 ── */
+document.addEventListener('keydown', function(e) {
+  // 모달이 열려있거나 input에 포커스면 무시
+  if (document.getElementById('modal-card') || ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+
+  // Ctrl+Z: Undo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  // Ctrl+Y / Ctrl+Shift+Z: Redo
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+  // Delete/Backspace: 선택된 장비/케이블 삭제
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (selectedId?.type === 'dev') { snapshot(); deleteDevice(selectedId.id); setStatus('장비 삭제됨'); }
+    else if (selectedId?.type === 'cable') { snapshot(); cables.splice(selectedId.i, 1); redrawCables(); document.getElementById('prop-content').innerHTML = '<div class="no-sel">장비를 선택하세요</div>'; selectedId = null; setStatus('케이블 삭제됨'); }
+    return;
+  }
+  // Ctrl+C: 선택된 장비 복사
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    if (selectedId?.type === 'dev') { window._copiedDevice = JSON.parse(JSON.stringify(devices[selectedId.id])); setStatus('장비 복사됨'); }
+    return;
+  }
+  // Ctrl+V: 붙여넣기
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    if (window._copiedDevice) {
+      snapshot();
+      const d = window._copiedDevice;
+      addDevice(d.label + ' (복사)', d.icon, d.bg, d.x + 30, d.y + 30, d.sub);
+      setStatus('장비 붙여넣기');
+    }
+    return;
+  }
+  // 방향키: 선택된 장비 이동
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && selectedId?.type === 'dev') {
+    e.preventDefault();
+    const d = devices[selectedId.id];
+    const step = e.shiftKey ? 1 : (gridOn ? 20 : 5);
+    if (e.key === 'ArrowUp') d.y -= step;
+    if (e.key === 'ArrowDown') d.y += step;
+    if (e.key === 'ArrowLeft') d.x -= step;
+    if (e.key === 'ArrowRight') d.x += step;
+    document.getElementById(selectedId.id).style.left = d.x + 'px';
+    document.getElementById(selectedId.id).style.top = d.y + 'px';
+    redrawCables();
+    return;
+  }
+  // Escape: 선택 해제 / 연결 취소
+  if (e.key === 'Escape') {
+    if (connecting) { connecting = null; connectingPort = null; document.getElementById('canvas').removeEventListener('mousemove', onTempLine); removeTempLine(); document.querySelectorAll('.port.active').forEach(p => p.classList.remove('active')); setStatus('연결 취소'); }
+    else { document.querySelectorAll('.device').forEach(d => d.classList.remove('selected')); selectedId = null; document.getElementById('prop-content').innerHTML = '<div class="no-sel">장비를 선택하세요</div>'; }
+    return;
+  }
+});
+
+// redrawCables 후 snapshot 자동 실행 + 미니맵 업데이트
+const __origRedraw2 = redrawCables;
+redrawCables = function() { __origRedraw2(); updateMinimap(); };
+
+// 장비 이동 시 snapshot (mouseup)
+const _origRenderDevice = renderDevice;
+renderDevice = function(id, skip) {
+  _origRenderDevice(id, skip);
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('mouseup', function() { if (mode === 'select') snapshot(); });
+};
 
 /* ── 수정이력 (최근 5건 자동 저장) ── */
 const HISTORY_KEY='bcast_history';

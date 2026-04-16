@@ -94,6 +94,10 @@
             <button onclick="editor.chain().focus().toggleCodeBlock().run()" title="코드 블록">{ }</button>
             <button onclick="editor.chain().focus().setHorizontalRule().run()" title="구분선">—</button>
             <div class="sep"></div>
+            <button onclick="editor.chain().focus().setTextAlign('left').run()" title="좌측 정렬" style="font-size:11px;">≡←</button>
+            <button onclick="editor.chain().focus().setTextAlign('center').run()" title="중앙 정렬" style="font-size:11px;">≡</button>
+            <button onclick="editor.chain().focus().setTextAlign('right').run()" title="우측 정렬" style="font-size:11px;">→≡</button>
+            <div class="sep"></div>
             <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:13px;">
                 📎
                 <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
@@ -124,7 +128,8 @@
         "@tiptap/extension-table": "https://esm.sh/@tiptap/extension-table@2.11.5",
         "@tiptap/extension-table-row": "https://esm.sh/@tiptap/extension-table-row@2.11.5",
         "@tiptap/extension-table-cell": "https://esm.sh/@tiptap/extension-table-cell@2.11.5",
-        "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5"
+        "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5",
+        "@tiptap/extension-text-align": "https://esm.sh/@tiptap/extension-text-align@2.11.5"
     }
 }
 </script>
@@ -138,6 +143,7 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+import TextAlign from '@tiptap/extension-text-align';
 
 window.editor = new Editor({
     element: document.getElementById('editor'),
@@ -148,6 +154,7 @@ window.editor = new Editor({
         Placeholder.configure({ placeholder: '내용을 입력하세요... ("/" 입력으로 블록 추가)' }),
         Table.configure({ resizable: true }),
         TableRow, TableCell, TableHeader,
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: '',
     editorProps: {
@@ -257,11 +264,10 @@ window.saveNewWiki=async function(){
             document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
         });
     }
-    document.getElementById('editor')?.addEventListener('click',function(e){
-        const img=e.target.tagName==='IMG'?e.target:null;
-        if(img)showHandle(img);else removeHandle();
-    },true);
-    document.addEventListener('click',function(e){if(!e.target.closest('#editor'))removeHandle();});
+    document.addEventListener('click',function(e){
+        if(e.target.tagName==='IMG'&&e.target.closest('.ProseMirror')){showHandle(e.target);}
+        else if(!e.target.closest('.img-resize-handle')){removeHandle();}
+    });
 })();
 </script>
 @endpush
