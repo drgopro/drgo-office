@@ -31,4 +31,9 @@ class Wiki extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(WikiAttachment::class)->orderByDesc('created_at');
+    }
 }

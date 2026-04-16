@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Wiki;
+use App\Models\WikiAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class WikiController extends Controller
 {
@@ -83,5 +85,47 @@ class WikiController extends Controller
         }
 
         return redirect()->route('wiki.index')->with('success', '문서가 삭제되었습니다.');
+    }
+
+    // 파일 업로드 (에디터에서 이미지/파일 삽입용)
+    public function uploadFile(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:20480',
+            'wiki_id' => 'nullable|integer',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('wiki');
+
+        $attachment = WikiAttachment::create([
+            'wiki_id' => $request->wiki_id,
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'mime_type' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+            'uploaded_by' => Auth::id(),
+        ]);
+
+        $isImage = str_starts_with($file->getMimeType(), 'image/');
+        $url = route('wiki.file', $attachment);
+
+        return response()->json([
+            'id' => $attachment->id,
+            'url' => $url,
+            'name' => $file->getClientOriginalName(),
+            'is_image' => $isImage,
+            'markdown' => $isImage ? "![{$file->getClientOriginalName()}]({$url})" : "[{$file->getClientOriginalName()}]({$url})",
+        ]);
+    }
+
+    // 파일 서빙
+    public function serveFile(WikiAttachment $attachment)
+    {
+        if (! Storage::exists($attachment->file_path)) {
+            abort(404);
+        }
+
+        return Storage::response($attachment->file_path, $attachment->file_name);
     }
 }

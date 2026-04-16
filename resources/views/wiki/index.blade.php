@@ -53,6 +53,20 @@
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-save { color:#fff; }
+    .hidden { display:none !important; }
+    .wiki-preview-pane h1 { font-size:22px; font-weight:700; margin:16px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--border); }
+    .wiki-preview-pane h2 { font-size:18px; font-weight:700; margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+    .wiki-preview-pane h3 { font-size:15px; font-weight:600; margin:12px 0 6px; }
+    .wiki-preview-pane p { margin:0 0 10px; }
+    .wiki-preview-pane ul, .wiki-preview-pane ol { margin:0 0 10px; padding-left:20px; }
+    .wiki-preview-pane code { background:var(--surface); padding:1px 5px; border-radius:3px; font-size:12px; }
+    .wiki-preview-pane pre { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px 14px; overflow-x:auto; margin:8px 0; font-size:12px; }
+    .wiki-preview-pane pre code { background:none; padding:0; }
+    .wiki-preview-pane blockquote { border-left:3px solid var(--accent); margin:8px 0; padding:6px 14px; color:var(--text-muted); background:var(--surface); border-radius:0 6px 6px 0; }
+    .wiki-preview-pane table { width:100%; border-collapse:collapse; margin:8px 0; }
+    .wiki-preview-pane th, .wiki-preview-pane td { border:1px solid var(--border); padding:6px 10px; font-size:12px; }
+    .wiki-preview-pane th { background:var(--surface); font-weight:600; }
+    .wiki-preview-pane img { max-width:100%; border-radius:6px; }
 
     @media (max-width:768px) {
         .wiki-layout { flex-direction:column; height:auto; }
@@ -154,8 +168,20 @@
                 </div>
             </div>
             <div class="field-group">
-                <div class="field-label">내용 * (마크다운 지원)</div>
-                <textarea class="field-textarea" name="content" required placeholder="# 제목&#10;&#10;내용을 입력하세요...&#10;&#10;## 소제목&#10;- 항목 1&#10;- 항목 2"></textarea>
+                <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>내용 * (마크다운 지원)</span>
+                    <div style="display:flex;gap:6px;">
+                        <label style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-muted);">
+                            📎 파일 첨부
+                            <input type="file" id="wikiFileInput" style="display:none;" onchange="uploadWikiFile(this.files[0],'newContent')">
+                        </label>
+                        <button type="button" onclick="document.getElementById('previewPane').classList.toggle('hidden');this.textContent=this.textContent==='미리보기'?'미리보기 닫기':'미리보기'" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;background:none;color:var(--text-muted);">미리보기</button>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;">
+                    <textarea class="field-textarea" name="content" id="newContent" required placeholder="# 제목&#10;&#10;내용을 입력하세요..." oninput="updatePreview('newContent','previewPane')" style="flex:1;"></textarea>
+                    <div id="previewPane" class="wiki-preview-pane hidden" style="flex:1;min-height:300px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;overflow-y:auto;font-size:14px;line-height:1.85;"></div>
+                </div>
             </div>
             <div class="field-group">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
@@ -181,5 +207,96 @@ function filterCat(cat) {
 function openWikiModal() { document.getElementById('wikiModal').classList.add('open'); }
 function closeWikiModal() { document.getElementById('wikiModal').classList.remove('open'); }
 document.getElementById('wikiModal').addEventListener('click', e => { if (e.target === document.getElementById('wikiModal')) closeWikiModal(); });
+
+// 마크다운 → HTML 간이 변환 (클라이언트 사이드 라이브 프리뷰)
+function mdToHtml(md) {
+    let html = md
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        // code block
+        .replace(/```(\w*)\n([\s\S]*?)```/g, (m,lang,code)=>`<pre><code>${code.trim()}</code></pre>`)
+        // inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // headings
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        // bold/italic
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/~~(.+?)~~/g, '<del>$1</del>')
+        // images
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;">')
+        // links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        // blockquote
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+        // unordered list
+        .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+        // ordered list
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        // hr
+        .replace(/^---$/gm, '<hr>')
+        // paragraphs
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    // wrap li in ul
+    html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
+    return '<p>'+html+'</p>';
+}
+
+function updatePreview(textareaId, previewId) {
+    const ta = document.getElementById(textareaId);
+    const pv = document.getElementById(previewId);
+    if (!ta || !pv) return;
+    pv.innerHTML = mdToHtml(ta.value);
+}
+
+// 파일 업로드 → 마크다운 삽입
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+async function uploadWikiFile(file, textareaId) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const res = await fetch('/api/wiki/upload', {
+            method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:fd
+        });
+        if (!res.ok) { alert('업로드 실패'); return; }
+        const data = await res.json();
+        const ta = document.getElementById(textareaId);
+        if (ta) {
+            const pos = ta.selectionStart;
+            const before = ta.value.substring(0, pos);
+            const after = ta.value.substring(pos);
+            ta.value = before + '\n' + data.markdown + '\n' + after;
+            ta.focus();
+            updatePreview(textareaId, textareaId === 'newContent' ? 'previewPane' : 'editPreviewPane');
+        }
+    } catch(e) { alert('업로드 오류'); }
+}
+
+// 드래그 앤 드롭
+['newContent'].forEach(id => {
+    const ta = document.getElementById(id);
+    if (!ta) return;
+    ta.addEventListener('dragover', e => { e.preventDefault(); ta.style.borderColor='var(--accent)'; });
+    ta.addEventListener('dragleave', () => { ta.style.borderColor='var(--border)'; });
+    ta.addEventListener('drop', e => {
+        e.preventDefault(); ta.style.borderColor='var(--border)';
+        if (e.dataTransfer.files.length) uploadWikiFile(e.dataTransfer.files[0], id);
+    });
+    // 클립보드 붙여넣기 (이미지)
+    ta.addEventListener('paste', e => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                uploadWikiFile(item.getAsFile(), id);
+                break;
+            }
+        }
+    });
+});
 </script>
 @endpush

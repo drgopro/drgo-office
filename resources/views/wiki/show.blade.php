@@ -46,6 +46,16 @@
     .field-input:focus { border-color:var(--accent); }
     .field-textarea { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; color:var(--text); font-size:13px; outline:none; width:100%; resize:vertical; min-height:400px; line-height:1.7; font-family:monospace; box-sizing:border-box; }
     .field-textarea:focus { border-color:var(--accent); }
+    .hidden { display:none !important; }
+    .wiki-preview-pane h1 { font-size:22px; font-weight:700; margin:16px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--border); }
+    .wiki-preview-pane h2 { font-size:18px; font-weight:700; margin:14px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+    .wiki-preview-pane h3 { font-size:15px; font-weight:600; margin:12px 0 6px; }
+    .wiki-preview-pane p { margin:0 0 10px; }
+    .wiki-preview-pane code { background:var(--surface); padding:1px 5px; border-radius:3px; font-size:12px; }
+    .wiki-preview-pane pre { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px 14px; overflow-x:auto; margin:8px 0; }
+    .wiki-preview-pane pre code { background:none; }
+    .wiki-preview-pane blockquote { border-left:3px solid var(--accent); margin:8px 0; padding:6px 14px; color:var(--text-muted); background:var(--surface); border-radius:0 6px 6px 0; }
+    .wiki-preview-pane img { max-width:100%; border-radius:6px; }
 </style>
 @endpush
 
@@ -101,8 +111,20 @@
                 </div>
             </div>
             <div class="field-group">
-                <div class="field-label">내용</div>
-                <textarea class="field-textarea" name="content" required>{{ $wiki->content }}</textarea>
+                <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>내용 (마크다운)</span>
+                    <div style="display:flex;gap:6px;">
+                        <label style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-muted);">
+                            📎 파일 첨부
+                            <input type="file" style="display:none;" onchange="uploadWikiFile(this.files[0],'editContent')">
+                        </label>
+                        <button type="button" onclick="document.getElementById('editPreviewPane').classList.toggle('hidden');this.textContent=this.textContent==='미리보기'?'미리보기 닫기':'미리보기'" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;background:none;color:var(--text-muted);">미리보기</button>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;">
+                    <textarea class="field-textarea" name="content" id="editContent" required oninput="updatePreview('editContent','editPreviewPane')" style="flex:1;">{{ $wiki->content }}</textarea>
+                    <div id="editPreviewPane" class="wiki-preview-pane hidden" style="flex:1;min-height:400px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;overflow-y:auto;font-size:14px;line-height:1.85;"></div>
+                </div>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
                 <button type="button" onclick="toggleEdit()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
@@ -122,7 +144,63 @@ function toggleEdit() {
     document.getElementById('viewActions').style.display = editMode ? 'none' : '';
     document.getElementById('viewTitle').style.display = editMode ? 'none' : '';
     document.getElementById('editForm').classList.toggle('active', editMode);
-    if (editMode) document.querySelector('#editForm textarea').focus();
+    if (editMode) document.getElementById('editContent').focus();
+}
+
+// 마크다운 → HTML 간이 변환
+function mdToHtml(md) {
+    let html = md
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/```(\w*)\n([\s\S]*?)```/g, (m,lang,code)=>`<pre><code>${code.trim()}</code></pre>`)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/~~(.+?)~~/g, '<del>$1</del>')
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+        .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        .replace(/^---$/gm, '<hr>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
+    return '<p>'+html+'</p>';
+}
+function updatePreview(tid, pid) {
+    const ta=document.getElementById(tid),pv=document.getElementById(pid);
+    if(ta&&pv) pv.innerHTML=mdToHtml(ta.value);
+}
+
+// 파일 업로드
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+async function uploadWikiFile(file, textareaId) {
+    if (!file) return;
+    const fd = new FormData(); fd.append('file', file); fd.append('wiki_id', '{{ $wiki->id }}');
+    try {
+        const res = await fetch('/api/wiki/upload', {method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:fd});
+        if (!res.ok) { alert('업로드 실패'); return; }
+        const data = await res.json();
+        const ta = document.getElementById(textareaId);
+        if (ta) {
+            const pos = ta.selectionStart;
+            ta.value = ta.value.substring(0,pos) + '\n' + data.markdown + '\n' + ta.value.substring(pos);
+            ta.focus();
+            updatePreview(textareaId, 'editPreviewPane');
+        }
+    } catch(e) { alert('업로드 오류'); }
+}
+
+// 드래그/붙여넣기
+const editTa = document.getElementById('editContent');
+if (editTa) {
+    editTa.addEventListener('dragover', e=>{e.preventDefault();editTa.style.borderColor='var(--accent)';});
+    editTa.addEventListener('dragleave', ()=>{editTa.style.borderColor='var(--border)';});
+    editTa.addEventListener('drop', e=>{e.preventDefault();editTa.style.borderColor='var(--border)';if(e.dataTransfer.files.length)uploadWikiFile(e.dataTransfer.files[0],'editContent');});
+    editTa.addEventListener('paste', e=>{const items=e.clipboardData?.items;if(!items)return;for(const i of items){if(i.type.startsWith('image/')){e.preventDefault();uploadWikiFile(i.getAsFile(),'editContent');break;}}});
 }
 </script>
 @endpush

@@ -167,6 +167,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/wiki', [WikiController::class, 'store'])->name('wiki.store');
     Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
     Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');
+    Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');
+    Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
 
     // 관리자 (master, admin만)
     // 엑셀 가져오기
