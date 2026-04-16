@@ -36,6 +36,9 @@
     .ProseMirror th, .ProseMirror td { border:1px solid var(--border); padding:6px 10px; min-width:60px; }
     .ProseMirror th { background:var(--surface2); font-weight:600; }
     .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
+    .ProseMirror img { cursor:pointer; transition:outline 0.1s; }
+    .ProseMirror img.ProseMirror-selectednode { outline:2px solid var(--accent); outline-offset:2px; }
+    .img-resize-handle { position:absolute; bottom:-4px; right:-4px; width:12px; height:12px; background:var(--accent); border:2px solid var(--surface); border-radius:2px; cursor:nwse-resize; z-index:5; }
 
     .slash-menu { position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:200px; box-shadow:0 4px 20px rgba(0,0,0,0.2); display:none; }
     .slash-menu.visible { display:block; }
@@ -222,13 +225,38 @@ window.saveNewWiki=async function(){
     const category=document.getElementById('wikiCategory').value.trim();
     const html=editor.getHTML();
     const isPinned=document.getElementById('wikiPinned').checked;
-    if(!title||!html||html==='<p></p>'){alert('제목과 내용을 입력하세요.');return;}
+    // 필수값 검증
+    if(!title){alert('제목을 입력해주세요.');document.getElementById('wikiTitle').focus();return;}
+    if(!category){alert('카테고리를 선택해주세요.');document.getElementById('wikiCategory').focus();return;}
+    if(!html||html==='<p></p>'){alert('내용을 입력해주세요.');editor.commands.focus();return;}
     const res=await fetch('{{ route("wiki.store") }}',{
         method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
         body:JSON.stringify({title,category,content:html,is_pinned:isPinned?1:0}),
     });
     if(res.ok){const data=await res.json();location.href='/wiki/'+data.id;}
-    else{alert('저장 실패');}
+    else{
+        try{const err=await res.json();const msgs=err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패');alert(msgs);}
+        catch(e){alert('저장 실패');}
+    }
 };
+
+// 이미지 리사이즈
+document.addEventListener('click', function(e) {
+    document.querySelectorAll('.img-resize-handle').forEach(h => h.remove());
+    const img = e.target.closest('.ProseMirror img');
+    if (!img) return;
+    const handle = document.createElement('div');
+    handle.className = 'img-resize-handle';
+    img.parentElement.style.position = 'relative';
+    img.parentElement.style.display = 'inline-block';
+    img.parentElement.appendChild(handle);
+    let startX, startW;
+    handle.addEventListener('mousedown', function(ev) {
+        ev.preventDefault(); startX = ev.clientX; startW = img.offsetWidth;
+        function onMove(e2) { const w = Math.max(50, startW + (e2.clientX - startX)); img.style.width = w + 'px'; img.style.height = 'auto'; }
+        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    });
+});
 </script>
 @endpush

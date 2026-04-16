@@ -73,6 +73,11 @@
     .ProseMirror th, .ProseMirror td { border:1px solid var(--border); padding:6px 10px; min-width:60px; }
     .ProseMirror th { background:var(--surface2); font-weight:600; }
     .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
+    .ProseMirror img { cursor:pointer; transition:outline 0.1s; }
+    .ProseMirror img.ProseMirror-selectednode { outline:2px solid var(--accent); outline-offset:2px; }
+    .img-resize-wrap { display:inline-block; position:relative; line-height:0; }
+    .img-resize-wrap img { display:block; }
+    .img-resize-handle { position:absolute; bottom:-4px; right:-4px; width:12px; height:12px; background:var(--accent); border:2px solid var(--surface); border-radius:2px; cursor:nwse-resize; z-index:5; }
 
     /* 슬래시 메뉴 */
     .slash-menu { position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:200px; box-shadow:0 4px 20px rgba(0,0,0,0.2); display:none; }
@@ -348,7 +353,9 @@ window.saveWiki = async function() {
     const title = document.getElementById('editTitle').value.trim();
     const category = document.getElementById('editCategory').value.trim();
     const isPinned = document.getElementById('editPinned').checked;
-    if (!title || !html) { alert('제목과 내용을 입력하세요.'); return; }
+    if (!title) { alert('제목을 입력해주세요.'); return; }
+    if (!category) { alert('카테고리를 선택해주세요.'); return; }
+    if (!html || html==='<p></p>') { alert('내용을 입력해주세요.'); return; }
 
     const res = await fetch('{{ route("wiki.update", $wiki) }}', {
         method:'PATCH',
@@ -358,7 +365,8 @@ window.saveWiki = async function() {
     if (res.ok) {
         location.reload();
     } else {
-        alert('저장 실패');
+        try { const err=await res.json(); const msgs=err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패'); alert(msgs); }
+        catch(e) { alert('저장 실패'); }
     }
 };
 
@@ -370,5 +378,41 @@ window.toggleEdit = function() {
     document.getElementById('viewTitle').style.display = editMode ? 'none' : '';
     if (editMode) editor.commands.focus();
 };
+
+// 이미지 리사이즈
+document.addEventListener('click', function(e) {
+    // 기존 핸들 제거
+    document.querySelectorAll('.img-resize-handle').forEach(h => h.remove());
+    const img = e.target.closest('.ProseMirror img');
+    if (!img) return;
+    const handle = document.createElement('div');
+    handle.className = 'img-resize-handle';
+    img.parentElement.style.position = 'relative';
+    img.parentElement.style.display = 'inline-block';
+    img.parentElement.appendChild(handle);
+    let startX, startW;
+    handle.addEventListener('mousedown', function(ev) {
+        ev.preventDefault();
+        startX = ev.clientX;
+        startW = img.offsetWidth;
+        function onMove(e2) {
+            const w = Math.max(50, startW + (e2.clientX - startX));
+            img.style.width = w + 'px';
+            img.style.height = 'auto';
+            img.setAttribute('width', w);
+        }
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            // Tiptap에 크기 반영
+            const pos = editor.view.posAtDOM(img, 0);
+            if (pos != null) {
+                editor.chain().focus().setNodeSelection(pos).updateAttributes('image', { width: img.style.width }).run();
+            }
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+});
 </script>
 @endpush

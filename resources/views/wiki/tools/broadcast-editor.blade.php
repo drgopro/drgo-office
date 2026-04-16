@@ -642,26 +642,58 @@ async function loadWikiDiagram() {
     const res = await fetch(`/api/wiki/${WIKI_ID}/diagram`, {headers:{'Accept':'application/json'}});
     if (!res.ok) return false;
     const data = await res.json();
-    if (data.diagram && data.diagram.devices) {
-      applyDiagramData(data.diagram, '위키 연결도');
+    let diagram = data.diagram;
+    // 이중 JSON 문자열 방어
+    if (typeof diagram === 'string') { try { diagram = JSON.parse(diagram); } catch(e) {} }
+    if (diagram && typeof diagram === 'object' && (diagram.devices || diagram.cables)) {
+      // catalog가 있으면 복원
+      if (diagram.catalog) { catalog = diagram.catalog; catCount = diagram.catCount || 0; saveCatalogLive(); renderSidebar(); }
+      applyDiagramData(diagram, '위키 연결도');
       setStatus('위키 연결도를 불러왔습니다.');
       return true;
     }
-  } catch(e) {}
+  } catch(e) { console.error('연결도 로드 오류:', e); }
   return false;
 }
 
 async function saveWikiDiagram() {
   if (!WIKI_ID) { alert('위키 문서와 연결되지 않았습니다. 위키 문서에서 연결도를 열어주세요.'); return; }
   try {
+    // 1. JSON 저장
     const res = await fetch(`/api/wiki/${WIKI_ID}/diagram`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_TOKEN,'Accept':'application/json'},
       body:JSON.stringify({diagram:{devices,cables,catalog,devCount,catCount}}),
     });
-    if (res.ok) setStatus('위키 연결도가 저장되었습니다.');
-    else alert('저장 실패');
-  } catch(e) { alert('저장 오류'); }
+    if (!res.ok) { alert('저장 실패'); return; }
+
+    // 2. PNG 생성 → 에디터에 이미지 삽입
+    setStatus('PNG 생성 중...');
+    if (!window.html2canvas) {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+    }
+    const canvas = await html2canvas(document.getElementById('canvas'), {backgroundColor:'#f8f7f4', scale:1.5, useCORS:true});
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+
+    // 3. 서버에 PNG 업로드
+    const fd = new FormData();
+    fd.append('file', blob, '연결도_' + WIKI_ID + '.png');
+    fd.append('wiki_id', WIKI_ID);
+    const upRes = await fetch('/api/wiki/upload', {method:'POST', headers:{'X-CSRF-TOKEN':CSRF_TOKEN,'Accept':'application/json'}, body:fd});
+    if (upRes.ok) {
+      const upData = await upRes.json();
+      // 부모 창(Tiptap 에디터)에 이미지 삽입
+      if (window.opener && window.opener.editor) {
+        window.opener.editor.chain().focus().setImage({src:upData.url, alt:'방송 연결도'}).run();
+      }
+      setStatus('위키에 저장 + 에디터에 이미지 삽입 완료!');
+    } else {
+      setStatus('위키에 저장 완료 (이미지 업로드 실패)');
+    }
+  } catch(e) { console.error(e); alert('저장 오류'); }
 }
 
 /* ── 시작 시: wiki_id가 있으면 위키 데이터 로드, 없으면 빈 캔버스 ── */
