@@ -485,19 +485,28 @@ function renderDevice(id,skip){
   el.innerHTML=`<div class="device-inner" style="background:${d.builtin?'#fffdf7':d.bg}"><div class="device-icon">${d.icon}</div><div class="device-label">${d.label}</div><div class="device-sublabel">${d.sub||''}</div>${builtinHtml}</div>
   <div class="port output" data-s="r"></div><div class="port input" data-s="l"></div><div class="port top" data-s="t"></div><div class="port bottom" data-s="b"></div>`;
   el.addEventListener('mousedown',ev=>{
-    if(mode!=='select'||ev.target.classList.contains('port'))return;ev.stopPropagation();selectDevice(id);
-    const ox=ev.clientX-d.x,oy=ev.clientY-d.y;
-    const startX=d.x,startY=d.y;
+    if(mode!=='select'||ev.target.classList.contains('port'))return;ev.stopPropagation();
+    // 다중 선택된 장비 중 하나를 드래그하면 전체 이동
+    const isMulti = multiSelected.length > 0 && multiSelected.includes(id);
+    if(!isMulti) selectDevice(id);
+    const startMouseX=ev.clientX, startMouseY=ev.clientY;
+    // 다중 선택: 각 장비의 시작 위치 저장
+    const startPositions = {};
+    const moveIds = isMulti ? multiSelected : [id];
+    moveIds.forEach(mid => { if(devices[mid]) startPositions[mid] = {x:devices[mid].x, y:devices[mid].y}; });
     function mm(e2){
-      let nx=e2.clientX-ox, ny=e2.clientY-oy;
-      // Shift: 수평 또는 수직으로만 이동 (축 고정)
-      if(e2.shiftKey){
-        const dx=Math.abs(nx-startX),dy=Math.abs(ny-startY);
-        if(dx>dy) ny=startY; else nx=startX;
-      }
-      // 그리드 스냅 (Alt 미사용 시)
-      if(gridOn&&!e2.altKey){ nx=Math.round(nx/20)*20; ny=Math.round(ny/20)*20; }
-      d.x=nx;d.y=ny;el.style.left=d.x+'px';el.style.top=d.y+'px';expandCanvas(d.x+200,d.y+200);redrawCables();
+      let dx = e2.clientX - startMouseX, dy = e2.clientY - startMouseY;
+      if(e2.shiftKey){ if(Math.abs(dx)>Math.abs(dy)) dy=0; else dx=0; }
+      moveIds.forEach(mid => {
+        const dd = devices[mid]; if(!dd || !startPositions[mid]) return;
+        let nx = startPositions[mid].x + dx, ny = startPositions[mid].y + dy;
+        if(gridOn && !e2.altKey){ nx=Math.round(nx/20)*20; ny=Math.round(ny/20)*20; }
+        dd.x=nx; dd.y=ny;
+        const mel=document.getElementById(mid);
+        if(mel){mel.style.left=nx+'px';mel.style.top=ny+'px';}
+      });
+      expandCanvas(d.x+200,d.y+200);
+      redrawCables();
     }
     function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}
     document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
