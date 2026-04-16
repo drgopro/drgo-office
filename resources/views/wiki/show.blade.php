@@ -33,8 +33,8 @@
     .wiki-content table { width:100%; border-collapse:collapse; margin:12px 0; }
     .wiki-content th, .wiki-content td { border:1px solid var(--border); padding:8px 12px; text-align:left; font-size:13px; }
     .wiki-content th { background:var(--surface2); font-weight:600; }
-    .wiki-content img { max-width:100%; border-radius:8px; margin:8px 0; height:auto; }
-    .wiki-content img[width] { width:attr(width px); }
+    .wiki-content img { max-width:100%; border-radius:8px; margin:8px 0; height:auto; cursor:zoom-in; transition:opacity 0.15s; }
+    .wiki-content img:hover { opacity:0.85; }
     .wiki-content a { color:var(--accent); text-decoration:underline; }
     .wiki-content hr { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
@@ -84,6 +84,19 @@
     .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
     .slash-label { font-weight:500; }
     .slash-desc { font-size:11px; color:var(--text-muted); }
+
+    /* 이미지 뷰어 모달 */
+    .img-viewer { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; }
+    .img-viewer.open { display:flex; }
+    .img-viewer-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; }
+    .img-viewer-wrap img { max-width:90vw; max-height:85vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; }
+    .img-viewer-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:1; }
+    .img-viewer-close:hover { background:rgba(255,255,255,0.3); }
+    .img-viewer-zoom { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:10px; z-index:1; }
+    .img-viewer-zoom button { background:rgba(255,255,255,0.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+    .img-viewer-zoom button:hover { background:rgba(255,255,255,0.3); }
+    .img-viewer-zoom span { color:#fff; font-size:12px; min-width:40px; text-align:center; }
+    .img-viewer-hint { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.4); font-size:11px; pointer-events:none; }
 </style>
 @endpush
 
@@ -179,6 +192,21 @@
 </div>
 
 <div class="slash-menu" id="slashMenu"></div>
+
+<!-- 이미지 뷰어 모달 -->
+<div class="img-viewer" id="imgViewer">
+    <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
+    <div class="img-viewer-wrap" id="imgViewerWrap">
+        <img id="imgViewerImg" src="" alt="">
+    </div>
+    <div class="img-viewer-zoom">
+        <button onclick="imgViewerZoom(-0.2)">−</button>
+        <span id="imgViewerLevel">100%</span>
+        <button onclick="imgViewerZoom(0.2)">+</button>
+        <button onclick="imgViewerZoomReset()" style="font-size:10px;width:auto;padding:0 8px;border-radius:12px;">맞춤</button>
+    </div>
+    <div class="img-viewer-hint">스크롤: 확대/축소 · 더블클릭: 원본 크기 · 드래그: 이동</div>
+</div>
 @endsection
 
 @push('scripts')
@@ -487,6 +515,88 @@ window.toggleEdit = function() {
     // Escape로 닫기
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && popup) removePopup();
+    });
+})();
+
+// ── 위키 뷰 이미지 뷰어 (확대/축소/드래그) ──
+(function(){
+    let vZoom=1, vPanX=0, vPanY=0, vDragging=false, vStartX=0, vStartY=0;
+    const viewer=document.getElementById('imgViewer');
+    const vImg=document.getElementById('imgViewerImg');
+    const vWrap=document.getElementById('imgViewerWrap');
+
+    function vUpdate(){
+        vImg.style.transform=`translate(${vPanX}px,${vPanY}px) scale(${vZoom})`;
+        vImg.style.transition=vDragging?'none':'transform 0.15s ease';
+        document.getElementById('imgViewerLevel').textContent=Math.round(vZoom*100)+'%';
+    }
+    function vReset(){vZoom=1;vPanX=0;vPanY=0;vUpdate();}
+
+    window.openImgViewer=function(src){
+        vReset();
+        vImg.src=src;
+        viewer.classList.add('open');
+    };
+    window.closeImgViewer=function(){
+        viewer.classList.remove('open');
+        vImg.src='';
+    };
+    window.imgViewerZoom=function(d){
+        vZoom=Math.max(0.3,Math.min(8,vZoom+d));
+        if(vZoom<1.05){vPanX=0;vPanY=0;}
+        vUpdate();
+    };
+    window.imgViewerZoomReset=function(){vReset();};
+
+    // 휠 줌
+    viewer.addEventListener('wheel',function(e){
+        e.preventDefault();
+        const d=e.deltaY>0?-0.15:0.15;
+        vZoom=Math.max(0.3,Math.min(8,vZoom+d*vZoom));
+        if(vZoom<1.05){vPanX=0;vPanY=0;}
+        vUpdate();
+    },{passive:false});
+
+    // 더블클릭 줌 토글
+    vWrap.addEventListener('dblclick',function(e){
+        e.preventDefault();
+        if(vZoom>1.05){vReset();}else{vZoom=3;vPanX=0;vPanY=0;vUpdate();}
+    });
+
+    // 드래그 팬
+    vWrap.addEventListener('mousedown',function(e){
+        if(vZoom<=1.05)return;
+        e.preventDefault();vDragging=true;vStartX=e.clientX-vPanX;vStartY=e.clientY-vPanY;
+        vWrap.style.cursor='grabbing';
+    });
+    document.addEventListener('mousemove',function(e){
+        if(!vDragging)return;
+        vPanX=e.clientX-vStartX;vPanY=e.clientY-vStartY;vUpdate();
+    });
+    document.addEventListener('mouseup',function(){
+        if(!vDragging)return;vDragging=false;vWrap.style.cursor='';
+    });
+
+    // 배경 클릭으로 닫기
+    viewer.addEventListener('click',function(e){
+        if(e.target===viewer&&vZoom<=1.05)closeImgViewer();
+    });
+
+    // 키보드
+    document.addEventListener('keydown',function(e){
+        if(!viewer.classList.contains('open'))return;
+        if(e.key==='Escape')closeImgViewer();
+        if(e.key==='+'||e.key==='=')imgViewerZoom(0.3);
+        if(e.key==='-')imgViewerZoom(-0.3);
+        if(e.key==='0')imgViewerZoomReset();
+    });
+
+    // 위키 뷰 콘텐츠 내 이미지 클릭 감지
+    document.getElementById('viewContent')?.addEventListener('click',function(e){
+        if(e.target.tagName==='IMG'){
+            e.preventDefault();
+            openImgViewer(e.target.src);
+        }
     });
 })();
 </script>
