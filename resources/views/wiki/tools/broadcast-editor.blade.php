@@ -84,6 +84,8 @@
 .cable:hover{stroke-width:4}
 .waypoint{position:absolute;width:10px;height:10px;border-radius:50%;background:#185FA5;border:2px solid #fff;cursor:move;z-index:15;transform:translate(-5px,-5px);transition:transform 0.05s}
 .waypoint:hover{transform:translate(-5px,-5px) scale(1.4);background:#0C447C}
+.sel-box{position:absolute;border:1.5px dashed #185FA5;background:rgba(24,95,165,0.08);z-index:20;pointer-events:none}
+.device.multi-selected .device-inner{border-color:#185FA5;box-shadow:0 0 0 2px #B5D4F4}
 .cable-builtin-line{fill:none;stroke-linecap:round;stroke-dasharray:6 4;stroke-width:1.5;opacity:.7}
 #prop-panel{width:208px;flex-shrink:0;border-left:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);padding:12px;overflow-y:auto}
 .prop-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
@@ -760,9 +762,81 @@ async function exportPNG(){
   s.onload=async()=>{const c=await html2canvas(document.getElementById('canvas'),{backgroundColor:'#f8f7f4',scale:1.5,useCORS:true});const a=document.createElement('a');a.download=(currentDiagramName||'방송세팅')+'.png';a.href=c.toDataURL('image/png');a.click();setStatus('PNG 저장 완료');};
 }
 function setStatus(msg){document.getElementById('status-msg').textContent=msg;}
-document.getElementById('canvas').addEventListener('mousedown',e=>{
-  if(e.target===document.getElementById('canvas')||e.target===document.getElementById('svg-layer')){document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected'));selectedId=null;document.getElementById('prop-content').innerHTML='<div class="no-sel">장비를 선택하세요</div>';}
+// ── 드래그 영역 선택 ──
+let multiSelected = [];
+document.getElementById('canvas').addEventListener('mousedown',function(e){
+  const isCanvas = e.target===document.getElementById('canvas')||e.target===document.getElementById('svg-layer');
+  if(!isCanvas) return;
+  if(mode!=='select') return;
+
+  // 기존 선택 해제
+  document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected','multi-selected'));
+  selectedId=null; multiSelected=[];
+  document.getElementById('prop-content').innerHTML='<div class="no-sel">장비를 선택하세요</div>';
+
+  // 드래그 선택 시작
+  const canvas=document.getElementById('canvas');
+  const rect=canvas.getBoundingClientRect();
+  const wrap=document.getElementById('canvas-wrap');
+  const sx=(e.clientX-rect.left+wrap.scrollLeft)/zoom;
+  const sy=(e.clientY-rect.top+wrap.scrollTop)/zoom;
+
+  const box=document.createElement('div');
+  box.className='sel-box';
+  box.style.left=sx+'px'; box.style.top=sy+'px'; box.style.width='0'; box.style.height='0';
+  canvas.appendChild(box);
+
+  function onMove(e2){
+    const cx=(e2.clientX-rect.left+wrap.scrollLeft)/zoom;
+    const cy=(e2.clientY-rect.top+wrap.scrollTop)/zoom;
+    const x=Math.min(sx,cx), y=Math.min(sy,cy);
+    const w=Math.abs(cx-sx), h=Math.abs(cy-sy);
+    box.style.left=x+'px'; box.style.top=y+'px'; box.style.width=w+'px'; box.style.height=h+'px';
+  }
+  function onUp(e2){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    const bx=parseFloat(box.style.left), by=parseFloat(box.style.top);
+    const bw=parseFloat(box.style.width), bh=parseFloat(box.style.height);
+    box.remove();
+
+    if(bw<5&&bh<5) return; // 너무 작으면 무시 (단순 클릭)
+
+    // 범위 내 장비 선택
+    multiSelected=[];
+    Object.values(devices).forEach(d=>{
+      const el=document.getElementById(d.id);
+      if(!el)return;
+      const inner=el.querySelector('.device-inner');
+      const dw=inner?.offsetWidth||100, dh=inner?.offsetHeight||60;
+      const dcx=d.x+dw/2, dcy=d.y+dh/2;
+      if(dcx>=bx && dcx<=bx+bw && dcy>=by && dcy<=by+bh){
+        el.classList.add('multi-selected');
+        multiSelected.push(d.id);
+      }
+    });
+    if(multiSelected.length){
+      setStatus(multiSelected.length+'개 장비 선택됨 (방향키: 일괄 이동 · Delete: 일괄 삭제)');
+      document.getElementById('prop-content').innerHTML=`<div class="prop-title">다중 선택</div><div style="font-size:13px;color:var(--color-text-secondary);">${multiSelected.length}개 장비 선택됨</div><button class="del-btn" onclick="deleteMulti()">선택 장비 모두 삭제</button>`;
+    }
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
 });
+
+function deleteMulti(){
+  if(!multiSelected.length)return;
+  snapshot();
+  multiSelected.forEach(id=>{
+    cables=cables.filter(c=>c.from!==id&&c.to!==id);
+    document.getElementById(id)?.remove();
+    delete devices[id];
+  });
+  redrawCables();
+  multiSelected=[];selectedId=null;
+  document.getElementById('prop-content').innerHTML='<div class="no-sel">장비를 선택하세요</div>';
+  setStatus('선택된 장비 삭제 완료');
+}
 
 /* ── 내비게이터/줌 드래그 이동 ── */
 function makeDraggable(el) {
@@ -907,7 +981,8 @@ document.addEventListener('keydown', function(e) {
   // Delete/Backspace: 선택된 장비/케이블 삭제
   if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault();
-    if (selectedId?.type === 'dev') { snapshot(); deleteDevice(selectedId.id); setStatus('장비 삭제됨'); }
+    if (multiSelected.length) { deleteMulti(); }
+    else if (selectedId?.type === 'dev') { snapshot(); deleteDevice(selectedId.id); setStatus('장비 삭제됨'); }
     else if (selectedId?.type === 'cable') { snapshot(); cables.splice(selectedId.i, 1); redrawCables(); document.getElementById('prop-content').innerHTML = '<div class="no-sel">장비를 선택하세요</div>'; selectedId = null; setStatus('케이블 삭제됨'); }
     else { setStatus('삭제할 장비 또는 케이블을 먼저 선택하세요.'); }
     return;
@@ -928,16 +1003,19 @@ document.addEventListener('keydown', function(e) {
     return;
   }
   // 방향키: 선택된 장비 이동
-  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && selectedId?.type === 'dev') {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && (selectedId?.type === 'dev' || multiSelected.length)) {
     e.preventDefault();
-    const d = devices[selectedId.id];
     const step = e.shiftKey ? 1 : (gridOn ? 20 : 5);
-    if (e.key === 'ArrowUp') d.y -= step;
-    if (e.key === 'ArrowDown') d.y += step;
-    if (e.key === 'ArrowLeft') d.x -= step;
-    if (e.key === 'ArrowRight') d.x += step;
-    document.getElementById(selectedId.id).style.left = d.x + 'px';
-    document.getElementById(selectedId.id).style.top = d.y + 'px';
+    const ids = multiSelected.length ? multiSelected : (selectedId?.type==='dev' ? [selectedId.id] : []);
+    ids.forEach(id => {
+      const d = devices[id]; if(!d) return;
+      if (e.key === 'ArrowUp') d.y -= step;
+      if (e.key === 'ArrowDown') d.y += step;
+      if (e.key === 'ArrowLeft') d.x -= step;
+      if (e.key === 'ArrowRight') d.x += step;
+      const el = document.getElementById(id);
+      if(el){el.style.left=d.x+'px';el.style.top=d.y+'px';}
+    });
     redrawCables();
     return;
   }
