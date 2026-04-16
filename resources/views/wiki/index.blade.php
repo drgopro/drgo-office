@@ -108,7 +108,7 @@
             @endforeach
         </div>
         <div class="wiki-sidebar-footer">
-            <button class="btn-new" onclick="openWikiModal()">+ 새 문서</button>
+            <a href="{{ route('wiki.create') }}" class="btn-new" style="text-decoration:none;display:inline-flex;align-items:center;">+ 새 문서</a>
         </div>
     </div>
 

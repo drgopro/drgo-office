@@ -29,6 +29,13 @@ class WikiController extends Controller
         return view('wiki.index', compact('wikis', 'categories'));
     }
 
+    public function create()
+    {
+        $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
+
+        return view('wiki.create', compact('categories'));
+    }
+
     public function show(Wiki $wiki)
     {
         $wiki->load('creator', 'updater');

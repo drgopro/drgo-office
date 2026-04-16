@@ -163,12 +163,14 @@ Route::middleware('auth')->group(function () {
 
     // 위키
     Route::get('/wiki', [WikiController::class, 'index'])->name('wiki.index');
+    Route::get('/wiki/create', [WikiController::class, 'create'])->name('wiki.create');
     Route::get('/wiki/{wiki}', [WikiController::class, 'show'])->name('wiki.show');
     Route::post('/wiki', [WikiController::class, 'store'])->name('wiki.store');
     Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
     Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');
     Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
+    Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
 
     // 관리자 (master, admin만)
     // 엑셀 가져오기

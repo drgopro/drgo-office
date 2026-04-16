@@ -160,6 +160,7 @@
                     📎
                     <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
                 </label>
+                <button onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid transparent;color:var(--text-muted);padding:0 8px;height:30px;border-radius:6px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;gap:3px;" title="방송 연결도 에디터">🎛️ 연결도</button>
             </div>
             <div id="editor"></div>
         </div>
