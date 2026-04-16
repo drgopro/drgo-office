@@ -73,11 +73,7 @@
     .ProseMirror th, .ProseMirror td { border:1px solid var(--border); padding:6px 10px; min-width:60px; }
     .ProseMirror th { background:var(--surface2); font-weight:600; }
     .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
-    .ProseMirror img { cursor:pointer; transition:outline 0.1s; }
-    .ProseMirror img.ProseMirror-selectednode { outline:2px solid var(--accent); outline-offset:2px; }
-    .img-resize-wrap { display:inline-block; position:relative; line-height:0; }
-    .img-resize-wrap img { display:block; }
-    .img-resize-handle { position:absolute; bottom:-4px; right:-4px; width:12px; height:12px; background:var(--accent); border:2px solid var(--surface); border-radius:2px; cursor:nwse-resize; z-index:5; }
+    .ProseMirror img { cursor:pointer; transition:outline 0.15s; border-radius:6px; }
 
     /* 슬래시 메뉴 */
     .slash-menu { position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:200px; box-shadow:0 4px 20px rgba(0,0,0,0.2); display:none; }
@@ -386,51 +382,86 @@ window.toggleEdit = function() {
     if (editMode) editor.commands.focus();
 };
 
-// 이미지 리사이즈 — 이미지 위에 호버/클릭 시 크기 조절 바 표시
+// 이미지 리사이즈 — 네이버 에디터 스타일 (이미지 위에 크기 조절 바)
 (function(){
-    let activeImg = null, handle = null;
+    let popup = null, activeImg = null;
 
-    function removeHandle() {
-        if (handle) { handle.remove(); handle = null; }
-        activeImg = null;
+    function removePopup() {
+        if (popup) { popup.remove(); popup = null; }
+        if (activeImg) { activeImg.style.outline = ''; activeImg = null; }
     }
 
-    function showHandle(img) {
-        removeHandle();
+    function showPopup(img) {
+        removePopup();
         activeImg = img;
-        handle = document.createElement('div');
-        handle.style.cssText = 'position:absolute;bottom:-4px;right:-4px;width:14px;height:14px;background:var(--accent);border:2px solid var(--surface);border-radius:3px;cursor:nwse-resize;z-index:50;';
-        // 이미지의 부모에 relative 설정
-        const wrapper = img.parentElement;
-        wrapper.style.position = 'relative';
-        wrapper.style.display = 'inline-block';
-        wrapper.appendChild(handle);
+        img.style.outline = '2px solid var(--accent)';
+        img.style.outlineOffset = '2px';
 
-        handle.addEventListener('mousedown', function(ev) {
-            ev.preventDefault(); ev.stopPropagation();
-            const startX = ev.clientX, startW = img.offsetWidth;
-            function onMove(e) {
-                const w = Math.max(50, startW + (e.clientX - startX));
-                img.style.width = w + 'px';
-                img.style.height = 'auto';
-            }
-            function onUp() {
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
-            }
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
+        popup = document.createElement('div');
+        popup.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:12px;';
+        popup.innerHTML = `
+            <span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">크기:</span>
+            <button onclick="imgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">25%</button>
+            <button onclick="imgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">50%</button>
+            <button onclick="imgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">75%</button>
+            <button onclick="imgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">100%</button>
+            <span style="color:var(--text-muted);">|</span>
+            <input type="number" id="imgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
+            <span style="color:var(--text-muted);font-size:11px;">px</span>
+            <button onclick="imgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:#1a1207;font-size:11px;font-weight:600;cursor:pointer;">적용</button>
+        `;
+        document.body.appendChild(popup);
+
+        // 이미지 위 가운데에 위치
+        const rect = img.getBoundingClientRect();
+        popup.style.left = Math.max(8, rect.left + (rect.width - popup.offsetWidth) / 2) + 'px';
+        popup.style.top = Math.max(8, rect.top - popup.offsetHeight - 8) + 'px';
+        // 화면 밖이면 아래로
+        if (parseFloat(popup.style.top) < 8) {
+            popup.style.top = (rect.bottom + 8) + 'px';
+        }
+
+        // Enter키로 적용
+        popup.querySelector('#imgWidthInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); imgApplyWidth(); }
         });
+
+        // 클릭 이벤트 전파 방지
+        popup.addEventListener('mousedown', function(e) { e.stopPropagation(); });
     }
 
-    // document 레벨에서 이미지 클릭 감지 (Tiptap ProseMirror 내부)
+    // 퍼센트 리사이즈 — 에디터 너비 기준
+    window.imgResize = function(ratio) {
+        if (!activeImg) return;
+        const editorEl = document.querySelector('.ProseMirror');
+        const maxW = editorEl ? editorEl.clientWidth - 48 : 800;
+        const w = Math.round(maxW * ratio);
+        activeImg.style.width = w + 'px';
+        activeImg.style.height = 'auto';
+        if (popup) popup.querySelector('#imgWidthInput').value = w;
+    };
+
+    // px 직접 입력
+    window.imgApplyWidth = function() {
+        if (!activeImg || !popup) return;
+        const w = parseInt(popup.querySelector('#imgWidthInput').value) || 200;
+        activeImg.style.width = Math.max(30, Math.min(2000, w)) + 'px';
+        activeImg.style.height = 'auto';
+    };
+
+    // ProseMirror 내 이미지 클릭 감지
     document.addEventListener('click', function(e) {
-        // ProseMirror 내부의 이미지인지 확인
         if (e.target.tagName === 'IMG' && e.target.closest('.ProseMirror')) {
-            showHandle(e.target);
-        } else if (!e.target.closest('.img-resize-handle')) {
-            removeHandle();
+            e.preventDefault();
+            showPopup(e.target);
+        } else if (popup && !popup.contains(e.target)) {
+            removePopup();
         }
+    });
+
+    // Escape로 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && popup) removePopup();
     });
 })();
 </script>
