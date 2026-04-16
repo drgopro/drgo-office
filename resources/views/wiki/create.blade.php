@@ -271,8 +271,9 @@ window.saveNewWiki=async function(){
         popup.querySelector('#imgWidthInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();imgApplyWidth();}});
         popup.addEventListener('mousedown',e=>e.stopPropagation());
     }
-    window.imgResize=function(ratio){if(!activeImg)return;const maxW=(document.querySelector('.ProseMirror')?.clientWidth||800)-48;const w=Math.round(maxW*ratio);activeImg.style.width=w+'px';activeImg.style.height='auto';if(popup)popup.querySelector('#imgWidthInput').value=w;};
-    window.imgApplyWidth=function(){if(!activeImg||!popup)return;const w=parseInt(popup.querySelector('#imgWidthInput').value)||200;activeImg.style.width=Math.max(30,Math.min(2000,w))+'px';activeImg.style.height='auto';};
+    function applyImgW(w){if(!activeImg)return;w=Math.max(30,Math.min(2000,w));activeImg.style.width=w+'px';activeImg.style.height='auto';activeImg.setAttribute('width',w);activeImg.removeAttribute('height');if(popup)popup.querySelector('#imgWidthInput').value=w;}
+    window.imgResize=function(ratio){if(!activeImg)return;const maxW=(document.querySelector('.ProseMirror')?.clientWidth||800)-48;applyImgW(Math.round(maxW*ratio));};
+    window.imgApplyWidth=function(){if(!activeImg||!popup)return;applyImgW(parseInt(popup.querySelector('#imgWidthInput').value)||200);};
     document.addEventListener('click',function(e){
         if(e.target.tagName==='IMG'&&e.target.closest('.ProseMirror')){e.preventDefault();showPopup(e.target);}
         else if(popup&&!popup.contains(e.target)){removePopup();}

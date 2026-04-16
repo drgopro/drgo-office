@@ -33,7 +33,8 @@
     .wiki-content table { width:100%; border-collapse:collapse; margin:12px 0; }
     .wiki-content th, .wiki-content td { border:1px solid var(--border); padding:8px 12px; text-align:left; font-size:13px; }
     .wiki-content th { background:var(--surface2); font-weight:600; }
-    .wiki-content img { max-width:100%; border-radius:8px; margin:8px 0; }
+    .wiki-content img { max-width:100%; border-radius:8px; margin:8px 0; height:auto; }
+    .wiki-content img[width] { width:attr(width px); }
     .wiki-content a { color:var(--accent); text-decoration:underline; }
     .wiki-content hr { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
@@ -430,23 +431,28 @@ window.toggleEdit = function() {
         popup.addEventListener('mousedown', function(e) { e.stopPropagation(); });
     }
 
+    function applyImgWidth(w) {
+        if (!activeImg) return;
+        w = Math.max(30, Math.min(2000, w));
+        activeImg.style.width = w + 'px';
+        activeImg.style.height = 'auto';
+        activeImg.setAttribute('width', w);
+        activeImg.removeAttribute('height');
+        if (popup) popup.querySelector('#imgWidthInput').value = w;
+    }
+
     // 퍼센트 리사이즈 — 에디터 너비 기준
     window.imgResize = function(ratio) {
         if (!activeImg) return;
         const editorEl = document.querySelector('.ProseMirror');
         const maxW = editorEl ? editorEl.clientWidth - 48 : 800;
-        const w = Math.round(maxW * ratio);
-        activeImg.style.width = w + 'px';
-        activeImg.style.height = 'auto';
-        if (popup) popup.querySelector('#imgWidthInput').value = w;
+        applyImgWidth(Math.round(maxW * ratio));
     };
 
     // px 직접 입력
     window.imgApplyWidth = function() {
         if (!activeImg || !popup) return;
-        const w = parseInt(popup.querySelector('#imgWidthInput').value) || 200;
-        activeImg.style.width = Math.max(30, Math.min(2000, w)) + 'px';
-        activeImg.style.height = 'auto';
+        applyImgWidth(parseInt(popup.querySelector('#imgWidthInput').value) || 200);
     };
 
     // ProseMirror 내 이미지 클릭 감지

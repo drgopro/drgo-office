@@ -50,10 +50,11 @@
 .sb-act-btn.del:hover{background:#FCEBEB;color:#A32D2D}
 #canvas-wrap{flex:1;overflow:auto;background:var(--color-background-tertiary);position:relative}
 #canvas{position:relative;width:3000px;height:2000px;background:#f8f7f4;transform-origin:0 0;transition:none}
-#zoom-info{position:absolute;bottom:40px;right:12px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);z-index:5;display:flex;align-items:center;gap:6px;user-select:none}
+#canvas-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:5}
+#zoom-info{position:absolute;bottom:8px;right:220px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;user-select:none;pointer-events:all}
 #zoom-info button{background:none;border:1px solid var(--color-border-secondary);color:var(--color-text-primary);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
 #zoom-info button:hover{background:var(--color-background-secondary)}
-#minimap{position:absolute;bottom:40px;left:12px;width:160px;height:100px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;z-index:5;opacity:0.85}
+#minimap{position:absolute;bottom:8px;left:200px;width:160px;height:100px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:8px;overflow:hidden;opacity:0.9;pointer-events:all}
 #minimap canvas{width:100%;height:100%}
 .snap-guide{position:absolute;z-index:20;pointer-events:none}
 .snap-guide-h{width:100%;height:1px;background:#ef4444;left:0}
@@ -201,15 +202,19 @@
     </div>
     <div id="sb-list"></div>
   </div>
-  <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)">
-    <div id="canvas" class="grid-on"><svg id="svg-layer"></svg></div>
-    <div id="zoom-info">
-      <button onclick="zoomTo(zoom-0.1)">−</button>
-      <span id="zoom-level">100%</span>
-      <button onclick="zoomTo(zoom+0.1)">+</button>
-      <button onclick="zoomTo(1)" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
+  <div style="position:relative;flex:1;overflow:hidden;">
+    <div id="canvas-wrap" ondragover="event.preventDefault()" ondrop="dropDevice(event)" style="width:100%;height:100%;overflow:auto;">
+      <div id="canvas" class="grid-on"><svg id="svg-layer"></svg></div>
     </div>
-    <div id="minimap"><canvas id="minimapCanvas" width="160" height="100"></canvas></div>
+    <div id="canvas-overlay">
+      <div id="zoom-info">
+        <button onclick="zoomTo(zoom-0.1)">−</button>
+        <span id="zoom-level">100%</span>
+        <button onclick="zoomTo(zoom+0.1)">+</button>
+        <button onclick="zoomTo(1)" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
+      </div>
+      <div id="minimap"><canvas id="minimapCanvas" width="160" height="100"></canvas></div>
+    </div>
   </div>
   <div id="prop-panel">
     <div class="prop-title">속성</div>
@@ -473,7 +478,14 @@ function renderDevice(id,skip){
   el.querySelectorAll('.port').forEach(p=>p.addEventListener('mousedown',ev=>{if(mode!=='connect')return;ev.stopPropagation();handlePort(id,p.dataset.s,p);}));
   document.getElementById('canvas').appendChild(el);updatePorts();if(!skip&&mode==='select')selectDevice(id);
 }
-function updatePorts(){document.querySelectorAll('.port').forEach(p=>p.style.display=mode==='connect'?'block':'none');}
+function updatePorts(){
+  document.querySelectorAll('.port').forEach(p=>p.style.display=mode==='connect'?'block':'none');
+  // select 모드에서 선택된 장비의 포트는 항상 표시
+  if(mode==='select'&&selectedId?.type==='dev'){
+    const el=document.getElementById(selectedId.id);
+    if(el) el.querySelectorAll('.port').forEach(p=>{p.style.display='block';p.style.opacity='0.5';});
+  }
+}
 function setMode(m){
   mode=m;document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+m)?.classList.add('active');if(gridOn)document.getElementById('btn-grid').classList.add('active');
   document.getElementById('mode-badge').textContent=m==='select'?'선택':'케이블';if(m!=='connect'){connecting=null;connectingPort=null;removeTempLine();}updatePorts();
@@ -530,7 +542,12 @@ function redrawCables(){
   });
 }
 function selectDevice(id){
-  document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected'));document.getElementById(id)?.classList.add('selected');selectedId={type:'dev',id};
+  document.querySelectorAll('.device').forEach(d=>d.classList.remove('selected'));
+  document.querySelectorAll('.port').forEach(p=>{p.style.display=mode==='connect'?'block':'none';p.style.opacity='';});
+  document.getElementById(id)?.classList.add('selected');selectedId={type:'dev',id};
+  // 선택된 장비의 포트 표시
+  const selEl=document.getElementById(id);
+  if(selEl) selEl.querySelectorAll('.port').forEach(p=>{p.style.display='block';p.style.opacity='0.5';});
   const d=devices[id];
   const hostOpts=`<option value="">── 선택 없음 ──</option>`+Object.values(devices).filter(x=>x.id!==id&&!x.builtin).map(x=>`<option value="${x.id}"${d.builtinHost===x.id?' selected':''}>${x.label}</option>`).join('');
   document.getElementById('prop-content').innerHTML=`
