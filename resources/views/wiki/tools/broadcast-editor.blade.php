@@ -635,30 +635,39 @@ document.getElementById('canvas').addEventListener('mousedown',e=>{
 
 /* ── 내비게이터/줌 드래그 이동 ── */
 function makeDraggable(el) {
-  let isDragging = false, ox, oy;
+  let isDragging = false, startX, startY, elX, elY;
   el.addEventListener('mousedown', function(e) {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'CANVAS') return;
+    e.preventDefault(); e.stopPropagation();
     isDragging = true;
-    ox = e.clientX - el.offsetLeft;
-    oy = e.clientY - el.offsetTop;
-    e.preventDefault();
+    // 현재 렌더링 위치를 left/top으로 고정
+    const rect = el.getBoundingClientRect();
+    const parentRect = el.parentElement.getBoundingClientRect();
+    elX = rect.left - parentRect.left;
+    elY = rect.top - parentRect.top;
+    el.style.left = elX + 'px';
+    el.style.top = elY + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.marginBottom = '0';
+    startX = e.clientX;
+    startY = e.clientY;
   });
   document.addEventListener('mousemove', function(e) {
     if (!isDragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
     const parent = el.parentElement;
-    const x = Math.max(0, Math.min(parent.clientWidth - el.offsetWidth, e.clientX - ox));
-    const y = Math.max(0, Math.min(parent.clientHeight - el.offsetHeight, e.clientY - oy));
+    const x = Math.max(0, Math.min(parent.clientWidth - el.offsetWidth, elX + dx));
+    const y = Math.max(0, Math.min(parent.clientHeight - el.offsetHeight, elY + dy));
     el.style.left = x + 'px';
     el.style.top = y + 'px';
-    el.style.right = 'auto';
-    el.style.bottom = 'auto';
   });
   document.addEventListener('mouseup', function() { isDragging = false; });
 }
 setTimeout(() => {
   makeDraggable(document.getElementById('minimap'));
   makeDraggable(document.getElementById('zoom-info'));
-}, 100);
+}, 200);
 
 /* ── 확대/축소 ── */
 let zoom = 1;
