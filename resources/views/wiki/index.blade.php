@@ -4,27 +4,43 @@
 
 @push('styles')
 <style>
-    .wiki-wrap { padding:24px; max-width:1000px; margin:0 auto; }
-    .wiki-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
-    .wiki-header h1 { font-size:20px; font-weight:700; }
-    .wiki-toolbar { display:flex; gap:8px; flex-wrap:wrap; }
-    .wiki-search { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; min-width:200px; }
-    .wiki-search:focus { border-color:var(--accent); }
-    .cat-filter { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; cursor:pointer; outline:none; }
-    .btn-new { background:var(--accent); color:#1a1207; border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .wiki-layout { display:flex; height:calc(100vh - 120px); overflow:hidden; }
+
+    /* 좌측 사이드바 */
+    .wiki-sidebar { width:240px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+    .wiki-sidebar-header { padding:16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+    .wiki-sidebar-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; }
+    .wiki-sidebar-search { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; width:100%; }
+    .wiki-sidebar-search:focus { border-color:var(--accent); }
+    .wiki-cat-list { flex:1; overflow-y:auto; padding:8px 0; }
+    .wiki-cat-item { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; font-size:13px; cursor:pointer; color:var(--text-muted); transition:all 0.12s; border-left:3px solid transparent; }
+    .wiki-cat-item:hover { color:var(--text); background:var(--surface2); }
+    .wiki-cat-item.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
+    .wiki-cat-count { font-size:10px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
+    .wiki-cat-item.active .wiki-cat-count { background:rgba(var(--accent),0.15); color:var(--accent); }
+    .wiki-sidebar-footer { padding:12px 16px; border-top:1px solid var(--border); }
+    .btn-new { background:var(--accent); color:#1a1207; border:none; padding:8px 0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
     [data-theme="light"] .btn-new { color:#fff; }
 
-    .wiki-list { display:flex; flex-direction:column; gap:8px; }
-    .wiki-item { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 20px; cursor:pointer; transition:all 0.15s; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-    .wiki-item:hover { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-    .wiki-item.pinned { border-left:3px solid var(--accent); }
-    .wiki-title { font-size:15px; font-weight:600; margin-bottom:4px; }
-    .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .wiki-cat { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
-    .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-    .wiki-pin { font-size:11px; color:var(--accent); }
+    /* 우측 문서 목록 */
+    .wiki-main { flex:1; overflow-y:auto; padding:20px 24px; min-width:0; }
+    .wiki-main-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .wiki-main-title { font-size:16px; font-weight:700; }
+    .wiki-main-count { font-size:12px; color:var(--text-muted); }
 
-    /* 새 문서 모달 */
+    .wiki-list { display:flex; flex-direction:column; gap:6px; }
+    .wiki-item { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 16px; cursor:pointer; transition:all 0.12s; }
+    .wiki-item:hover { border-color:var(--accent); background:var(--surface2); }
+    .wiki-item.pinned { border-left:3px solid var(--accent); }
+    .wiki-item-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+    .wiki-title { font-size:14px; font-weight:600; }
+    .wiki-pin { font-size:11px; color:var(--accent); }
+    .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
+    .wiki-cat-badge { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
+    .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
+    .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
+
+    /* 모달 */
     .wiki-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9000; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
     .wiki-modal.open { display:flex; }
     .wiki-modal-body { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:700px; max-height:90vh; overflow-y:auto; padding:24px; }
@@ -37,53 +53,79 @@
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-save { color:#fff; }
-    .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
+
+    @media (max-width:768px) {
+        .wiki-layout { flex-direction:column; height:auto; }
+        .wiki-sidebar { width:100%; border-right:none; border-bottom:1px solid var(--border); max-height:200px; }
+        .wiki-cat-list { display:flex; flex-wrap:wrap; gap:4px; padding:8px 16px; overflow-x:auto; overflow-y:hidden; }
+        .wiki-cat-item { padding:5px 12px; border-left:none; border-radius:20px; border:1px solid var(--border); white-space:nowrap; }
+        .wiki-cat-item.active { border-color:var(--accent); }
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="wiki-wrap">
-    <div class="wiki-header">
-        <h1>📖 위키</h1>
-        <div class="wiki-toolbar">
-            <form method="GET" action="{{ route('wiki.index') }}" style="display:flex;gap:8px;">
-                <input class="wiki-search" type="text" name="search" placeholder="검색..." value="{{ request('search') }}">
-                <select class="cat-filter" name="category" onchange="this.form.submit()">
-                    <option value="">전체 카테고리</option>
-                    @foreach($categories as $cat)
-                        <option value="{{ $cat }}" {{ request('category') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                    @endforeach
-                </select>
+@php
+    $currentCat = request('category');
+    $grouped = $wikis->groupBy('category');
+    $allCats = $categories->count() ? $categories : collect(['일반']);
+@endphp
+
+<div class="wiki-layout">
+    <!-- 좌측: 카테고리 사이드바 -->
+    <div class="wiki-sidebar">
+        <div class="wiki-sidebar-header">
+            <div class="wiki-sidebar-title">📖 위키</div>
+            <form method="GET" action="{{ route('wiki.index') }}" id="wikiSearchForm">
+                <input class="wiki-sidebar-search" type="text" name="search" placeholder="문서 검색..." value="{{ request('search') }}">
+                <input type="hidden" name="category" id="catInput" value="{{ $currentCat }}">
             </form>
+        </div>
+        <div class="wiki-cat-list">
+            <div class="wiki-cat-item {{ !$currentCat ? 'active' : '' }}" onclick="filterCat('')">
+                <span>전체</span>
+                <span class="wiki-cat-count">{{ $wikis->count() }}</span>
+            </div>
+            @foreach($allCats as $cat)
+                <div class="wiki-cat-item {{ $currentCat === $cat ? 'active' : '' }}" onclick="filterCat('{{ $cat }}')">
+                    <span>{{ $cat }}</span>
+                    <span class="wiki-cat-count">{{ $grouped->get($cat)?->count() ?? 0 }}</span>
+                </div>
+            @endforeach
+        </div>
+        <div class="wiki-sidebar-footer">
             <button class="btn-new" onclick="openWikiModal()">+ 새 문서</button>
         </div>
     </div>
 
-    @if($wikis->count() > 0)
-        <div class="wiki-list">
-            @foreach($wikis as $wiki)
-            <div class="wiki-item {{ $wiki->is_pinned ? 'pinned' : '' }}" onclick="location.href='{{ route('wiki.show', $wiki) }}'">
-                <div style="flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;gap:6px;">
+    <!-- 우측: 문서 목록 -->
+    <div class="wiki-main">
+        <div class="wiki-main-header">
+            <div class="wiki-main-title">{{ $currentCat ?: '전체 문서' }}</div>
+            <div class="wiki-main-count">{{ $wikis->count() }}건</div>
+        </div>
+
+        @if($wikis->count() > 0)
+            <div class="wiki-list">
+                @foreach($wikis as $wiki)
+                <div class="wiki-item {{ $wiki->is_pinned ? 'pinned' : '' }}" onclick="location.href='{{ route('wiki.show', $wiki) }}'">
+                    <div class="wiki-item-header">
                         @if($wiki->is_pinned)<span class="wiki-pin">📌</span>@endif
                         <div class="wiki-title">{{ $wiki->title }}</div>
                     </div>
                     <div class="wiki-meta">
-                        <span class="wiki-cat">{{ $wiki->category }}</span>
+                        <span class="wiki-cat-badge">{{ $wiki->category }}</span>
                         <span>{{ $wiki->creator?->display_name ?? '알 수 없음' }}</span>
                         <span>{{ $wiki->updated_at->format('Y.m.d H:i') }}</span>
-                        @if($wiki->updated_by && $wiki->updated_by !== $wiki->created_by)
-                            <span>수정: {{ $wiki->updater?->display_name }}</span>
-                        @endif
                     </div>
-                    <div class="wiki-preview">{{ Str::limit(strip_tags($wiki->content), 150) }}</div>
+                    <div class="wiki-preview">{{ Str::limit(strip_tags($wiki->content), 120) }}</div>
                 </div>
+                @endforeach
             </div>
-            @endforeach
-        </div>
-    @else
-        <div class="empty">등록된 문서가 없습니다.</div>
-    @endif
+        @else
+            <div class="empty">{{ $currentCat ? $currentCat.' 카테고리에 문서가 없습니다.' : '등록된 문서가 없습니다.' }}</div>
+        @endif
+    </div>
 </div>
 
 <!-- 새 문서 모달 -->
@@ -101,7 +143,7 @@
                     <div class="field-label">카테고리 *</div>
                     <input class="field-input" name="category" required placeholder="예: 기술매뉴얼" list="catList">
                     <datalist id="catList">
-                        @foreach($categories as $cat)
+                        @foreach($allCats as $cat)
                             <option value="{{ $cat }}">
                         @endforeach
                         <option value="기술매뉴얼">
@@ -132,6 +174,10 @@
 
 @push('scripts')
 <script>
+function filterCat(cat) {
+    document.getElementById('catInput').value = cat;
+    document.getElementById('wikiSearchForm').submit();
+}
 function openWikiModal() { document.getElementById('wikiModal').classList.add('open'); }
 function closeWikiModal() { document.getElementById('wikiModal').classList.remove('open'); }
 document.getElementById('wikiModal').addEventListener('click', e => { if (e.target === document.getElementById('wikiModal')) closeWikiModal(); });
