@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/movements', [InventoryController::class, 'movements']);
         Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
+        Route::get('/rental-equipment', [RentalEquipmentController::class, 'index'])->name('rental-equipment');
         Route::get('/api/rental/board', [RentalEquipmentController::class, 'board']);
     });
     Route::middleware('permission:inventory.edit')->group(function () {
@@ -160,6 +161,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/rental/groups', [RentalEquipmentController::class, 'storeGroup']);
         Route::patch('/api/rental/groups/{group}', [RentalEquipmentController::class, 'updateGroup']);
         Route::delete('/api/rental/groups/{group}', [RentalEquipmentController::class, 'destroyGroup']);
+        Route::post('/api/rental/categories', [RentalEquipmentController::class, 'storeCategory']);
+        Route::patch('/api/rental/categories/{category}', [RentalEquipmentController::class, 'updateCategory']);
+        Route::delete('/api/rental/categories/{category}', [RentalEquipmentController::class, 'destroyCategory']);
         Route::post('/api/rental/assign', [RentalEquipmentController::class, 'assign']);
         Route::post('/api/rental/assign-group', [RentalEquipmentController::class, 'assignGroup']);
     });

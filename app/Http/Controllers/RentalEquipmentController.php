@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RentalCategory;
 use App\Models\RentalGroup;
 use App\Models\RentalItem;
 use App\Models\RentalLog;
@@ -16,12 +17,17 @@ use Illuminate\Support\Facades\DB;
  */
 class RentalEquipmentController extends Controller
 {
+    public function index()
+    {
+        return view('rental.index');
+    }
+
     // === 보드 통합 조회 ===
 
     public function board(): JsonResponse
     {
         $items = RentalItem::orderBy('name')->get([
-            'id', 'name', 'serial', 'category', 'components', 'description',
+            'id', 'name', 'serial', 'category_id', 'components', 'description',
             'current_target_id', 'home_target_id', 'group_id',
         ]);
 
@@ -30,6 +36,10 @@ class RentalEquipmentController extends Controller
             ->get(['id', 'name', 'phone', 'address', 'note']);
 
         $groups = RentalGroup::orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $categories = RentalCategory::orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -53,6 +63,7 @@ class RentalEquipmentController extends Controller
             'items' => $items,
             'targets' => $targets,
             'groups' => $groups,
+            'categories' => $categories,
             'assignments' => $assignments,
             'logs' => $logs,
         ]);
@@ -64,8 +75,13 @@ class RentalEquipmentController extends Controller
     {
         $validated = $this->validateItem($request);
 
+        // 원래 위치가 지정되면 현재 위치도 같은 곳으로 초기화 (보드에 바로 표시)
+        if (! empty($validated['home_target_id'])) {
+            $validated['current_target_id'] = $validated['home_target_id'];
+        }
+
         $item = RentalItem::create($validated);
-        $this->log($item->id, null, '장비 추가', $item->name.' 등록');
+        $this->log($item->id, $item->current_target_id, '장비 추가', $item->name.' 등록');
 
         return response()->json($item, 201);
     }
@@ -73,6 +89,11 @@ class RentalEquipmentController extends Controller
     public function updateItem(Request $request, RentalItem $item): JsonResponse
     {
         $validated = $this->validateItem($request);
+
+        // 현재 위치가 비어 있는 상태에서 home이 지정되면 현재 위치도 함께 채움
+        if ($item->current_target_id === null && ! empty($validated['home_target_id'])) {
+            $validated['current_target_id'] = $validated['home_target_id'];
+        }
 
         $item->update($validated);
         $this->log($item->id, $item->current_target_id, '장비 편집', $item->name.' 정보 수정');
@@ -88,7 +109,7 @@ class RentalEquipmentController extends Controller
         return $request->validate([
             'name' => 'required|string|max:200',
             'serial' => 'nullable|string|max:100',
-            'category' => 'nullable|string|max:100',
+            'category_id' => 'nullable|exists:rental_categories,id',
             'components' => 'nullable|string',
             'description' => 'nullable|string',
             'home_target_id' => 'nullable|exists:rental_targets,id',
@@ -188,6 +209,43 @@ class RentalEquipmentController extends Controller
 
             return response()->json($item->fresh('currentTarget'));
         });
+    }
+
+    // === 카테고리 CRUD ===
+
+    public function storeCategory(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+        ]);
+
+        $validated['sort_order'] = (RentalCategory::max('sort_order') ?? 0) + 1;
+
+        $category = RentalCategory::create($validated);
+        $this->log(null, null, '카테고리 추가', $category->name.' 등록');
+
+        return response()->json($category, 201);
+    }
+
+    public function updateCategory(Request $request, RentalCategory $category): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+        ]);
+
+        $category->update($validated);
+        $this->log(null, null, '카테고리 편집', $category->name.' 정보 수정');
+
+        return response()->json($category);
+    }
+
+    public function destroyCategory(RentalCategory $category): JsonResponse
+    {
+        $name = $category->name;
+        $category->delete();
+        $this->log(null, null, '카테고리 삭제', $name.' 제거');
+
+        return response()->json(['message' => '삭제되었습니다.']);
     }
 
     // === 그룹 CRUD ===

@@ -12,13 +12,18 @@ class RentalItem extends Model
     protected $fillable = [
         'name',
         'serial',
-        'category',
+        'category_id',
         'components',
         'description',
         'current_target_id',
         'home_target_id',
         'group_id',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(RentalCategory::class, 'category_id');
+    }
 
     public function currentTarget()
     {

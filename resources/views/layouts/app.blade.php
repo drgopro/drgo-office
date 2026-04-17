@@ -238,6 +238,9 @@
                 <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');">재고</a>
             @endif
             <a href="/wiki" class="{{ request()->is('wiki*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki');">위키</a>
+            @if(Auth::user()->hasPermission('inventory.view'))
+                <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');">장비 위치</a>
+            @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
                     <a href="#" onclick="event.preventDefault(); drgoTabs.openNav('admin','/admin');">관리</a>
@@ -285,6 +288,9 @@
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('inventory','/inventory'); drgoTabs.closeMenu();">📦 재고</button>
             @endif
             <button class="tab-menu-item" onclick="drgoTabs.openNav('wiki','/wiki'); drgoTabs.closeMenu();">📖 위키</button>
+            @if(Auth::user()->hasPermission('inventory.view'))
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental','/rental-equipment'); drgoTabs.closeMenu();">📷 장비 위치</button>
+            @endif
             @if(Auth::user()->isAdmin())
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();">⚙️ 관리</button>
             @endif
@@ -338,8 +344,8 @@ const drgoTabs = {
     tabs: [],
     activeId: null,
 
-    ICONS: { dashboard:'📊', calendar:'📅', clients:'👤', projects:'📁', inventory:'📦', estimates:'📝', wiki:'📖', admin:'⚙️', profile:'👤' },
-    LABELS: { dashboard:'대시보드', calendar:'캘린더', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', admin:'관리', profile:'마이페이지' },
+    ICONS: { dashboard:'📊', calendar:'📅', clients:'👤', projects:'📁', inventory:'📦', estimates:'📝', wiki:'📖', rental:'📷', admin:'⚙️', profile:'👤' },
+    LABELS: { dashboard:'대시보드', calendar:'캘린더', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', admin:'관리', profile:'마이페이지' },
 
     init() {
         // iframe 내부에서는 탭 시스템 비활성화
@@ -469,6 +475,7 @@ const drgoTabs = {
         if (p.startsWith('/inventory')) return 'inventory';
         if (p.startsWith('/estimates')) return 'estimates';
         if (p.startsWith('/wiki')) return 'wiki';
+        if (p.startsWith('/rental-equipment')) return 'rental';
         if (p.startsWith('/admin')) return 'admin';
         if (p.startsWith('/profile')) return 'profile';
         return 'page';
