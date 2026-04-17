@@ -149,7 +149,7 @@
     .eq-matrix-cell.marked:hover { background:rgba(212,188,150,0.2); }
     [data-theme="light"] .eq-matrix-cell.marked { background:rgba(156,125,72,0.12); }
     [data-theme="light"] .eq-matrix-cell.marked:hover { background:rgba(156,125,72,0.22); }
-    .eq-o-mark { width:30px; height:30px; border-radius:50%; border:2.5px solid var(--accent); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:700; font-size:14px; letter-spacing:0; transition:transform .15s; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .eq-o-mark { width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:28px; line-height:1; transition:transform .15s; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
     .eq-o-mark:active { cursor:grabbing; }
     .eq-matrix-cell:hover .eq-o-mark { transform:scale(1.08); }
     .eq-matrix-cell.dragging-source .eq-o-mark { opacity:0.25; transform:scale(0.9); }
@@ -157,7 +157,7 @@
     .eq-matrix-cell.drop-target.drop-hover { background:rgba(212,188,150,0.24); box-shadow:inset 0 0 0 2px var(--accent); }
     [data-theme="light"] .eq-matrix-cell.drop-target { background:rgba(156,125,72,0.08); box-shadow:inset 0 0 0 1px rgba(156,125,72,0.3); }
     [data-theme="light"] .eq-matrix-cell.drop-target.drop-hover { background:rgba(156,125,72,0.26); box-shadow:inset 0 0 0 2px var(--accent); }
-    .eq-drag-ghost { position:fixed; pointer-events:none; z-index:300; width:34px; height:34px; border-radius:50%; border:2.5px solid var(--accent); background:rgba(212,188,150,0.15); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:700; box-shadow:0 6px 20px rgba(0,0,0,0.5); transform:translate(-50%,-50%); }
+    .eq-drag-ghost { position:fixed; pointer-events:none; z-index:300; width:34px; height:34px; display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:32px; line-height:1; text-shadow:0 4px 12px rgba(0,0,0,0.5); transform:translate(-50%,-50%); }
     body.eq-dragging { cursor:grabbing !important; }
     body.eq-dragging .eq-o-mark { cursor:grabbing; }
     body.eq-dragging .board-wrap { touch-action:none; }
@@ -996,7 +996,7 @@ function bdRender() {
         targets.forEach(t => {
             const marked = bdState.assignments[item.id] === t.id;
             html += `<div class="eq-cell-base eq-matrix-cell ${marked?'marked':''}" data-item-id="${item.id}" data-target-id="${t.id}">
-                ${marked ? '<div class="eq-o-mark">O</div>' : ''}
+                ${marked ? '<div class="eq-o-mark">●</div>' : ''}
             </div>`;
         });
         // 빈 대상 열 셀 (비활성)
@@ -1074,7 +1074,7 @@ function bdStartDrag() {
         if (c !== bdDrag.sourceCell) c.classList.add('drop-target');
     });
     const ghost = document.createElement('div');
-    ghost.className = 'eq-drag-ghost'; ghost.textContent = 'O';
+    ghost.className = 'eq-drag-ghost'; ghost.textContent = '●';
     ghost.style.left = bdDrag.startX+'px'; ghost.style.top = bdDrag.startY+'px';
     document.body.appendChild(ghost); bdDrag.ghost = ghost;
 }
