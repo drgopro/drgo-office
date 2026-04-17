@@ -249,12 +249,83 @@
             <span class="stat-pill">대상 <strong id="bdStatTargets">0</strong></span>
             <div class="spacer"></div>
             <button class="board-log-btn" id="bdLogBtn" title="변경 이력">📋 이력</button>
-            <button class="btn-outline" onclick="openProductModal()">＋ 장비</button>
+            <button class="btn-outline" onclick="openRentalItemModal(null)">＋ 장비</button>
+            <button class="btn-primary btn-sm" onclick="openRentalTargetModal(null)">＋ 대상</button>
         </div>
         <div class="board-wrap" id="bdBoardWrap">
             <div class="eq-board" id="bdBoard"></div>
         </div>
-        <div class="text-muted" style="margin-top:8px; font-size:11px;">셀을 클릭하면 해당 대상으로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다. 대상(스튜디오)은 프로젝트 관리 페이지에서 추가하세요.</div>
+        <div class="text-muted" style="margin-top:8px; font-size:11px;">셀을 클릭하면 해당 대상으로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다.</div>
+    </div>
+
+    <!-- 대여 장비: 추가/편집 모달 -->
+    <div class="modal-overlay" id="rentalItemModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="rentalItemTitle">＋ 장비 추가</div>
+                <button class="modal-close" onclick="closeModal('rentalItemModal')">×</button>
+            </div>
+            <div class="field-group">
+                <div class="field-label">장비명 *</div>
+                <input class="field-input" id="riName" placeholder="예: SONY FX30 카메라">
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <div class="field-label">시리얼 번호</div>
+                    <input class="field-input" id="riSerial" placeholder="예: 4512789">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">카테고리</div>
+                    <input class="field-input" id="riCategory" placeholder="예: 카메라">
+                </div>
+            </div>
+            <div class="field-group">
+                <div class="field-label">제품 구성</div>
+                <textarea class="field-input" id="riComponents" rows="2" placeholder="예: 본체, 배터리 2개, 충전기, 가방"></textarea>
+            </div>
+            <div class="field-group">
+                <div class="field-label">제품 설명 / 비고</div>
+                <textarea class="field-input" id="riDesc" rows="2" placeholder="추가 설명, 특이사항"></textarea>
+            </div>
+            <input type="hidden" id="riId">
+            <div class="modal-actions">
+                <button class="btn-danger-sm" id="riDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteRentalItem()">삭제</button>
+                <button class="btn-cancel" onclick="closeModal('rentalItemModal')">취소</button>
+                <button class="btn-save" onclick="saveRentalItem()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 대여 대상: 추가/편집 모달 -->
+    <div class="modal-overlay" id="rentalTargetModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="rentalTargetTitle">＋ 사용 대상 추가</div>
+                <button class="modal-close" onclick="closeModal('rentalTargetModal')">×</button>
+            </div>
+            <div class="field-group">
+                <div class="field-label">이름 / 명칭 *</div>
+                <input class="field-input" id="rtName" placeholder="예: 신창고 / 스튜디오A / 김광래">
+            </div>
+            <div class="field-group">
+                <div class="field-label">연락처</div>
+                <input class="field-input" id="rtPhone" placeholder="010-0000-0000">
+            </div>
+            <div class="field-group">
+                <div class="field-label">주소 / 장소</div>
+                <textarea class="field-input" id="rtAddress" rows="2" placeholder="장비 보관/사용 위치"></textarea>
+            </div>
+            <div class="field-group">
+                <div class="field-label">메모</div>
+                <textarea class="field-input" id="rtNote" rows="2"></textarea>
+            </div>
+            <input type="hidden" id="rtId">
+            <div class="modal-actions">
+                <button class="btn-danger-sm" id="rtDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteRentalTarget()">삭제</button>
+                <button class="btn-cancel" onclick="closeModal('rentalTargetModal')">취소</button>
+                <button class="btn-save" onclick="saveRentalTarget()">저장</button>
+            </div>
+        </div>
     </div>
 
     <!-- 매트릭스: 셀 액션 모달 -->
@@ -753,7 +824,7 @@ function bdToast(msg) {
 }
 
 async function loadLocations() {
-    const res = await fetch('/api/inventory/board');
+    const res = await fetch('/api/rental/board');
     const data = await res.json();
     bdState.items = data.items || [];
     bdState.targets = data.targets || [];
@@ -769,7 +840,7 @@ function bdFilteredItems() {
     return bdState.items.filter(it => {
         const tg = bdState.targets.find(t => t.id === bdState.assignments[it.id]);
         return (it.name||'').toLowerCase().includes(q)
-            || (it.sku||'').toLowerCase().includes(q)
+            || (it.serial||'').toLowerCase().includes(q)
             || (it.category||'').toLowerCase().includes(q)
             || (tg && (tg.name||'').toLowerCase().includes(q));
     });
@@ -779,37 +850,38 @@ function bdRender() {
     const board = document.getElementById('bdBoard');
     const items = bdFilteredItems();
     const targets = bdState.targets;
-    const totalCols = targets.length;
+    const totalCols = targets.length + 1; // +1 for "+ 대상 추가" 빈 열
     const colWidth = 120, firstColWidth = 200;
-    board.style.gridTemplateColumns = `${firstColWidth}px repeat(${Math.max(totalCols,1)}, minmax(${colWidth}px, 1fr))`;
+    board.style.gridTemplateColumns = `${firstColWidth}px repeat(${totalCols}, minmax(${colWidth}px, 1fr))`;
 
     let html = `<div class="eq-cell-base eq-corner">장비 \\ 대상 →</div>`;
-    if (!targets.length) {
-        html += `<div class="eq-cell-base eq-col-header empty">등록된 대상(프로젝트)이 없습니다</div>`;
-    } else {
-        targets.forEach(t => {
-            html += `<div class="eq-cell-base eq-col-header" data-target-id="${t.id}">
-                <div class="ch-name">${bdEsc(t.name)}</div>
-                ${t.stage ? `<div class="ch-sub">${bdEsc(t.stage)}</div>` : ''}
-            </div>`;
-        });
-    }
+    targets.forEach(t => {
+        html += `<div class="eq-cell-base eq-col-header" data-target-id="${t.id}">
+            <div class="ch-name">${bdEsc(t.name)}</div>
+            ${t.phone ? `<div class="ch-sub">${bdEsc(t.phone)}</div>` : ''}
+        </div>`;
+    });
+    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1">＋ 대상 추가</div>`;
 
-    if (!items.length) {
-        html += `<div class="eq-cell-base eq-row-header empty" style="grid-column:1 / -1;">장비가 없습니다 — "＋ 장비" 버튼으로 추가</div>`;
-    } else {
-        items.forEach(item => {
-            html += `<div class="eq-cell-base eq-row-header" data-item-id="${item.id}">
-                <div class="rh-name">${bdEsc(item.name)}</div>
-                ${item.sku ? `<div class="rh-serial">${bdEsc(item.sku)}</div>` : ''}
+    items.forEach(item => {
+        html += `<div class="eq-cell-base eq-row-header" data-item-id="${item.id}">
+            <div class="rh-name">${bdEsc(item.name)}</div>
+            ${item.serial ? `<div class="rh-serial">${bdEsc(item.serial)}</div>` : ''}
+        </div>`;
+        targets.forEach(t => {
+            const marked = bdState.assignments[item.id] === t.id;
+            html += `<div class="eq-cell-base eq-matrix-cell ${marked?'marked':''}" data-item-id="${item.id}" data-target-id="${t.id}">
+                ${marked ? '<div class="eq-o-mark">●</div>' : ''}
             </div>`;
-            targets.forEach(t => {
-                const marked = bdState.assignments[item.id] === t.id;
-                html += `<div class="eq-cell-base eq-matrix-cell ${marked?'marked':''}" data-item-id="${item.id}" data-target-id="${t.id}">
-                    ${marked ? '<div class="eq-o-mark">●</div>' : ''}
-                </div>`;
-            });
         });
+        // 빈 대상 열 셀 (비활성)
+        html += `<div class="eq-cell-base eq-matrix-cell" style="cursor:default;"></div>`;
+    });
+
+    // 마지막 빈 행: "+ 장비 추가"
+    html += `<div class="eq-cell-base eq-row-header empty" data-add-item="1">＋ 장비 추가</div>`;
+    for (let i = 0; i < totalCols; i++) {
+        html += `<div class="eq-cell-base eq-matrix-cell" style="cursor:default;"></div>`;
     }
 
     board.innerHTML = html;
@@ -823,16 +895,16 @@ function bdRender() {
 
 function bdBindEvents() {
     document.querySelectorAll('#bdBoard .eq-row-header[data-item-id]').forEach(el => {
-        el.addEventListener('click', () => {
-            const p = allProducts.find(x=>x.id===+el.dataset.itemId);
-            if (p) openProductModal(p); else loadProducts().then(()=>openProductModal(allProducts.find(x=>x.id===+el.dataset.itemId)));
-        });
+        el.addEventListener('click', () => openRentalItemModal(+el.dataset.itemId));
+    });
+    document.querySelectorAll('#bdBoard .eq-row-header[data-add-item]').forEach(el => {
+        el.addEventListener('click', () => openRentalItemModal(null));
     });
     document.querySelectorAll('#bdBoard .eq-col-header[data-target-id]').forEach(el => {
-        el.addEventListener('click', () => {
-            const tg = bdState.targets.find(t=>t.id===+el.dataset.targetId);
-            bdToast(`프로젝트: ${tg.name}${tg.project_type?' · '+tg.project_type:''}`);
-        });
+        el.addEventListener('click', () => openRentalTargetModal(+el.dataset.targetId));
+    });
+    document.querySelectorAll('#bdBoard .eq-col-header[data-add-target]').forEach(el => {
+        el.addEventListener('click', () => openRentalTargetModal(null));
     });
     document.querySelectorAll('#bdBoard .eq-matrix-cell[data-item-id][data-target-id]').forEach(el => {
         el.addEventListener('click', (e) => {
@@ -916,7 +988,7 @@ function bdOpenCellModal(itemId, targetId) {
     document.getElementById('bdCellInfo').innerHTML = `
         <div style="margin-bottom:10px;">
             <div style="font-size:11px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">장비</div>
-            <div style="color:var(--text);font-weight:600;">${bdEsc(item.name)} ${item.sku?`<span style="font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-muted);">· ${bdEsc(item.sku)}</span>`:''}</div>
+            <div style="color:var(--text);font-weight:600;">${bdEsc(item.name)} ${item.serial?`<span style="font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-muted);">· ${bdEsc(item.serial)}</span>`:''}</div>
         </div>
         <div style="margin-bottom:10px;">
             <div style="font-size:11px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">현재 위치</div>
@@ -940,8 +1012,8 @@ function bdOpenCellModal(itemId, targetId) {
 }
 
 async function bdAssign(itemId, targetId, memo) {
-    const body = { product_id: itemId, target_id: targetId, memo: memo || null };
-    const res = await fetch('/api/inventory/assign-location', {method:'POST', headers:H, body:JSON.stringify(body)});
+    const body = { item_id: itemId, target_id: targetId, memo: memo || null };
+    const res = await fetch('/api/rental/assign', {method:'POST', headers:H, body:JSON.stringify(body)});
     if (!res.ok) { const e = await res.json(); bdToast(e.message || Object.values(e.errors||{}).flat().join('\n') || '오류'); return; }
     const item = bdState.items.find(i=>i.id===itemId);
     const target = bdState.targets.find(t=>t.id===targetId);
@@ -949,11 +1021,99 @@ async function bdAssign(itemId, targetId, memo) {
     await loadLocations();
 }
 async function bdClear(itemId, memo) {
-    const body = { product_id: itemId, target_id: null, memo: memo || null };
-    const res = await fetch('/api/inventory/assign-location', {method:'POST', headers:H, body:JSON.stringify(body)});
+    const body = { item_id: itemId, target_id: null, memo: memo || null };
+    const res = await fetch('/api/rental/assign', {method:'POST', headers:H, body:JSON.stringify(body)});
     if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
     const item = bdState.items.find(i=>i.id===itemId);
     bdToast(`${item?.name||''} 반납 처리 완료`);
+    await loadLocations();
+}
+
+// === 장비(item) 모달 ===
+function openRentalItemModal(itemId) {
+    const isEdit = !!itemId;
+    const it = isEdit ? bdState.items.find(i=>i.id===itemId) : null;
+    document.getElementById('rentalItemTitle').textContent = isEdit ? '장비 편집' : '＋ 장비 추가';
+    document.getElementById('riId').value = itemId || '';
+    document.getElementById('riName').value = it?.name || '';
+    document.getElementById('riSerial').value = it?.serial || '';
+    document.getElementById('riCategory').value = it?.category || '';
+    document.getElementById('riComponents').value = it?.components || '';
+    document.getElementById('riDesc').value = it?.description || '';
+    document.getElementById('riDeleteBtn').style.display = isEdit ? 'inline-block' : 'none';
+    openModal('rentalItemModal');
+    setTimeout(()=>document.getElementById('riName').focus(), 50);
+}
+async function saveRentalItem() {
+    const id = document.getElementById('riId').value;
+    const body = {
+        name: document.getElementById('riName').value.trim(),
+        serial: document.getElementById('riSerial').value.trim() || null,
+        category: document.getElementById('riCategory').value.trim() || null,
+        components: document.getElementById('riComponents').value.trim() || null,
+        description: document.getElementById('riDesc').value.trim() || null,
+    };
+    if (!body.name) { bdToast('장비명은 필수입니다.'); return; }
+    const url = id ? `/api/rental/items/${id}` : '/api/rental/items';
+    const method = id ? 'PATCH' : 'POST';
+    const res = await fetch(url, {method, headers:H, body:JSON.stringify(body)});
+    if (!res.ok) { const e = await res.json(); bdToast(Object.values(e.errors||{}).flat().join('\n') || e.message || '오류'); return; }
+    closeModal('rentalItemModal');
+    bdToast(id ? '장비 정보가 수정되었습니다.' : '새 장비가 추가되었습니다.');
+    await loadLocations();
+}
+async function deleteRentalItem() {
+    const id = document.getElementById('riId').value;
+    if (!id) return;
+    const it = bdState.items.find(i=>i.id===+id);
+    if (!confirm(`"${it?.name}" 장비를 삭제하시겠습니까?`)) return;
+    const res = await fetch(`/api/rental/items/${id}`, {method:'DELETE', headers:H});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    closeModal('rentalItemModal');
+    bdToast('장비가 삭제되었습니다.');
+    await loadLocations();
+}
+
+// === 대상(target) 모달 ===
+function openRentalTargetModal(targetId) {
+    const isEdit = !!targetId;
+    const tg = isEdit ? bdState.targets.find(t=>t.id===targetId) : null;
+    document.getElementById('rentalTargetTitle').textContent = isEdit ? '사용 대상 편집' : '＋ 사용 대상 추가';
+    document.getElementById('rtId').value = targetId || '';
+    document.getElementById('rtName').value = tg?.name || '';
+    document.getElementById('rtPhone').value = tg?.phone || '';
+    document.getElementById('rtAddress').value = tg?.address || '';
+    document.getElementById('rtNote').value = tg?.note || '';
+    document.getElementById('rtDeleteBtn').style.display = isEdit ? 'inline-block' : 'none';
+    openModal('rentalTargetModal');
+    setTimeout(()=>document.getElementById('rtName').focus(), 50);
+}
+async function saveRentalTarget() {
+    const id = document.getElementById('rtId').value;
+    const body = {
+        name: document.getElementById('rtName').value.trim(),
+        phone: document.getElementById('rtPhone').value.trim() || null,
+        address: document.getElementById('rtAddress').value.trim() || null,
+        note: document.getElementById('rtNote').value.trim() || null,
+    };
+    if (!body.name) { bdToast('이름은 필수입니다.'); return; }
+    const url = id ? `/api/rental/targets/${id}` : '/api/rental/targets';
+    const method = id ? 'PATCH' : 'POST';
+    const res = await fetch(url, {method, headers:H, body:JSON.stringify(body)});
+    if (!res.ok) { const e = await res.json(); bdToast(Object.values(e.errors||{}).flat().join('\n') || e.message || '오류'); return; }
+    closeModal('rentalTargetModal');
+    bdToast(id ? '대상 정보가 수정되었습니다.' : '새 대상이 추가되었습니다.');
+    await loadLocations();
+}
+async function deleteRentalTarget() {
+    const id = document.getElementById('rtId').value;
+    if (!id) return;
+    const tg = bdState.targets.find(t=>t.id===+id);
+    if (!confirm(`"${tg?.name}" 대상을 삭제하시겠습니까?\n이 대상에 지정된 장비는 위치가 해제됩니다.`)) return;
+    const res = await fetch(`/api/rental/targets/${id}`, {method:'DELETE', headers:H});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    closeModal('rentalTargetModal');
+    bdToast('대상이 삭제되었습니다.');
     await loadLocations();
 }
 
@@ -970,14 +1130,13 @@ document.getElementById('bdCellClearBtn').addEventListener('click', async () => 
 function bdRenderLogs() {
     const body = document.getElementById('bdLogBody');
     if (!bdState.logs.length) { body.innerHTML = '<div class="empty-row">아직 기록된 변경이 없습니다.</div>'; return; }
-    const typeLabel = {in:'입고',out:'대여(출고)',adjust:'조정',return:'반납'};
     body.innerHTML = bdState.logs.map(log => `
         <div class="eq-log-item">
             <div class="eq-log-head-row">
                 <span class="eq-log-user">${bdEsc(log.user||'-')}</span>
                 <span class="eq-log-time">${fmtTime(log.created_at)}</span>
             </div>
-            <div class="eq-log-action"><strong>${bdEsc(typeLabel[log.type]||log.type)}</strong> · ${bdEsc(log.product||'')}${log.target?' → '+bdEsc(log.target):''}${log.memo?' <span style="color:var(--text-muted);">('+bdEsc(log.memo)+')</span>':''}</div>
+            <div class="eq-log-action"><strong>${bdEsc(log.action||'')}</strong>${log.detail?' · '+bdEsc(log.detail):''}</div>
         </div>
     `).join('');
 }

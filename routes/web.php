@@ -16,6 +16,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\WikiController;
 use Illuminate\Support\Facades\Route;
@@ -134,10 +135,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/stock', [InventoryController::class, 'stock']);
         Route::get('/api/inventory/estimate-products', [InventoryController::class, 'estimateProducts']);
         Route::get('/api/inventory/movements', [InventoryController::class, 'movements']);
-        Route::get('/api/inventory/locations', [InventoryController::class, 'locations']);
         Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
-        Route::get('/api/inventory/board', [InventoryController::class, 'board']);
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
+        Route::get('/api/rental/board', [RentalEquipmentController::class, 'board']);
     });
     Route::middleware('permission:inventory.edit')->group(function () {
         Route::post('/api/inventory/categories', [InventoryController::class, 'storeCategory']);
@@ -147,10 +147,17 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);
         Route::delete('/api/inventory/products/{product}', [InventoryController::class, 'destroyProduct']);
         Route::post('/api/inventory/movements', [InventoryController::class, 'storeMovement']);
-        Route::post('/api/inventory/assign-location', [InventoryController::class, 'assignLocation']);
         Route::post('/api/inventory/orders', [PurchaseOrderController::class, 'store']);
         Route::patch('/api/inventory/orders/{order}', [PurchaseOrderController::class, 'update']);
         Route::post('/api/inventory/orders/{order}/receive', [PurchaseOrderController::class, 'receive']);
+
+        Route::post('/api/rental/items', [RentalEquipmentController::class, 'storeItem']);
+        Route::patch('/api/rental/items/{item}', [RentalEquipmentController::class, 'updateItem']);
+        Route::delete('/api/rental/items/{item}', [RentalEquipmentController::class, 'destroyItem']);
+        Route::post('/api/rental/targets', [RentalEquipmentController::class, 'storeTarget']);
+        Route::patch('/api/rental/targets/{target}', [RentalEquipmentController::class, 'updateTarget']);
+        Route::delete('/api/rental/targets/{target}', [RentalEquipmentController::class, 'destroyTarget']);
+        Route::post('/api/rental/assign', [RentalEquipmentController::class, 'assign']);
     });
 
     // 견적서 (edit가 {estimate} 와일드카드보다 먼저)
