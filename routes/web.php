@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/movements', [InventoryController::class, 'movements']);
         Route::get('/api/inventory/locations', [InventoryController::class, 'locations']);
         Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
+        Route::get('/api/inventory/board', [InventoryController::class, 'board']);
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
     });
     Route::middleware('permission:inventory.edit')->group(function () {
@@ -146,6 +147,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);
         Route::delete('/api/inventory/products/{product}', [InventoryController::class, 'destroyProduct']);
         Route::post('/api/inventory/movements', [InventoryController::class, 'storeMovement']);
+        Route::post('/api/inventory/assign-location', [InventoryController::class, 'assignLocation']);
         Route::post('/api/inventory/orders', [PurchaseOrderController::class, 'store']);
         Route::patch('/api/inventory/orders/{order}', [PurchaseOrderController::class, 'update']);
         Route::post('/api/inventory/orders/{order}/receive', [PurchaseOrderController::class, 'receive']);

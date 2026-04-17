@@ -339,6 +339,108 @@ class InventoryController extends Controller
     }
 
     /**
+     * 장비 현황판 — 매트릭스 보드용 통합 데이터.
+     *
+     * 목업 equipment-board.html 의 items / targets / assignments / logs 스키마를 그대로 따른다.
+     * - items: 활성 Product
+     * - targets: 진행 중(completed_at NULL) Project (스튜디오/사용 대상)
+     * - assignments: 각 product_id → target project_id (최신 out movement 기준, 이후 return/in 이면 해제)
+     * - logs: 최근 StockMovement 50건
+     */
+    public function board()
+    {
+        $items = Product::where('is_active', true)
+            ->orderBy('sku')
+            ->get(['id', 'sku', 'name', 'category', 'memo'])
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'sku' => $p->sku,
+                'name' => $p->name,
+                'category' => $p->category,
+                'desc' => $p->memo,
+            ]);
+
+        $targets = Project::select('id', 'name', 'project_type', 'stage', 'status')
+            ->whereNull('completed_at')
+            ->orderBy('name')
+            ->get();
+
+        $latestMovementIds = StockMovement::selectRaw('MAX(id) as id')
+            ->groupBy('product_id')
+            ->pluck('id');
+
+        $latestByProduct = StockMovement::whereIn('id', $latestMovementIds)
+            ->get()
+            ->keyBy('product_id');
+
+        $assignments = [];
+        foreach ($items as $item) {
+            $last = $latestByProduct->get($item['id']);
+            if ($last && $last->movement_type === 'out' && $last->project_id) {
+                $assignments[$item['id']] = $last->project_id;
+            }
+        }
+
+        $logs = StockMovement::with('user', 'product', 'project')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'type' => $m->movement_type,
+                'product' => $m->product?->name,
+                'target' => $m->project?->name,
+                'user' => $m->user?->display_name,
+                'memo' => $m->memo,
+                'created_at' => $m->created_at,
+            ]);
+
+        return response()->json(compact('items', 'targets', 'assignments', 'logs'));
+    }
+
+    /**
+     * 보드 전용 간편 위치 변경 API.
+     * - targetId 있음 → out(대여) + project_id 기록, 수량 1 차감
+     * - targetId null → return(반납) 기록, 수량 1 증가 (이전 위치는 memo에 기록)
+     */
+    public function assignLocation(Request $request)
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'target_id' => 'nullable|exists:projects,id',
+            'memo' => 'nullable|string|max:500',
+        ]);
+
+        return DB::transaction(function () use ($validated) {
+            $inventory = Inventory::firstOrCreate(
+                ['product_id' => $validated['product_id']],
+                ['quantity' => 0, 'last_updated_at' => now()]
+            );
+
+            $isReturn = empty($validated['target_id']);
+            $type = $isReturn ? 'return' : 'out';
+            $newQty = $isReturn ? $inventory->quantity + 1 : max(0, $inventory->quantity - 1);
+
+            $movement = StockMovement::create([
+                'product_id' => $validated['product_id'],
+                'movement_type' => $type,
+                'quantity' => 1,
+                'quantity_after' => $newQty,
+                'user_id' => Auth::id(),
+                'project_id' => $validated['target_id'] ?? null,
+                'memo' => $validated['memo'] ?? null,
+            ]);
+
+            $inventory->update([
+                'quantity' => $newQty,
+                'last_updated_at' => now(),
+            ]);
+
+            return response()->json($movement->load('product', 'user', 'project'), 201);
+        });
+    }
+
+    /**
      * @return array{0: string, 1: string} [라벨, 타입(studio|warehouse|none)]
      */
     private function resolveLocation(?StockMovement $movement): array
