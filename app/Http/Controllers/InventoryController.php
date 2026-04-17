@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Project;
 use App\Models\StockMovement;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -254,7 +256,7 @@ class InventoryController extends Controller
 
     public function movements(Request $request)
     {
-        $query = StockMovement::with('product', 'user')
+        $query = StockMovement::with('product', 'user', 'project')
             ->orderBy('created_at', 'desc');
 
         if ($type = $request->query('type')) {
@@ -266,6 +268,90 @@ class InventoryController extends Controller
         }
 
         return response()->json($query->limit(100)->get());
+    }
+
+    // === 장비 위치 추적 (테스트) ===
+
+    /**
+     * 각 제품의 최근 StockMovement를 기준으로 "최종 위치"를 집계한다.
+     * - 최신 movement가 out + project_id 있음 → 해당 프로젝트(스튜디오)로 대여 중
+     * - 최신 movement가 return/in → 본사/창고 복귀
+     * - 최신 movement가 adjust → 본사/창고 (관리 조정)
+     * - 기록 없음 → 미기록
+     */
+    public function locations(Request $request)
+    {
+        $latestMovementIds = StockMovement::selectRaw('MAX(id) as id')
+            ->groupBy('product_id')
+            ->pluck('id');
+
+        $latestByProduct = StockMovement::with('user', 'project')
+            ->whereIn('id', $latestMovementIds)
+            ->get()
+            ->keyBy('product_id');
+
+        $query = Product::with('inventory')->where('is_active', true);
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        $rows = $query->orderBy('sku')->get()->map(function ($p) use ($latestByProduct) {
+            $qty = $p->inventory?->quantity ?? 0;
+            $last = $latestByProduct->get($p->id);
+
+            [$locationLabel, $locationType] = $this->resolveLocation($last);
+
+            return [
+                'id' => $p->id,
+                'sku' => $p->sku,
+                'name' => $p->name,
+                'category' => $p->category,
+                'quantity' => $qty,
+                'location' => $locationLabel,
+                'location_type' => $locationType,
+                'last_movement_type' => $last?->movement_type,
+                'last_moved_at' => $last?->created_at,
+                'last_user' => $last?->user?->display_name,
+                'last_memo' => $last?->memo,
+            ];
+        });
+
+        return response()->json($rows);
+    }
+
+    /**
+     * 스튜디오 선택 드롭다운용 프로젝트 목록.
+     *
+     * @return JsonResponse
+     */
+    public function projectsForMovement()
+    {
+        $projects = Project::select('id', 'name', 'status')
+            ->whereNull('completed_at')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($projects);
+    }
+
+    /**
+     * @return array{0: string, 1: string} [라벨, 타입(studio|warehouse|none)]
+     */
+    private function resolveLocation(?StockMovement $movement): array
+    {
+        if (! $movement) {
+            return ['미기록', 'none'];
+        }
+
+        if ($movement->movement_type === 'out' && $movement->project) {
+            return [$movement->project->name, 'studio'];
+        }
+
+        return ['본사/창고', 'warehouse'];
     }
 
     public function storeMovement(Request $request)

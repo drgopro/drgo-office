@@ -138,6 +138,7 @@
     <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTab('stock')">재고 현황</button>
         <button class="tab-btn" onclick="switchTab('products')">제품 관리</button>
+        <button class="tab-btn" onclick="switchTab('locations')">장비 위치</button>
         <button class="tab-btn" onclick="switchTab('movements')">입출고 내역</button>
         <button class="tab-btn" onclick="switchTab('orders')">발주 관리</button>
         <button class="tab-btn" onclick="switchTab('categories')">카테고리</button>
@@ -169,6 +170,29 @@
             <table class="data-table">
                 <thead><tr><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
                 <tbody id="productBody"><tr><td colspan="8" class="empty-row">로딩 중...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 장비 위치 (테스트) -->
+    <div class="tab-panel" id="panel-locations">
+        <div class="toolbar">
+            <input type="text" id="locSearch" placeholder="제품명/SKU 검색" oninput="loadLocations()">
+            <select id="locFilter" onchange="renderLocations()">
+                <option value="">전체 위치</option>
+                <option value="studio">스튜디오 대여중</option>
+                <option value="warehouse">본사/창고</option>
+                <option value="none">미기록</option>
+            </select>
+            <span class="text-muted">최근 입출고 기록 기준 최종 위치를 보여줍니다</span>
+        </div>
+        <div class="data-card">
+            <table class="data-table">
+                <thead><tr>
+                    <th>SKU</th><th>제품명</th><th class="text-right">수량</th>
+                    <th>최종 위치</th><th>최근 이동</th><th>처리자</th><th>메모</th><th></th>
+                </tr></thead>
+                <tbody id="locBody"><tr><td colspan="8" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -287,14 +311,34 @@
         <div class="field-group"><div class="field-label">제품 *</div><select class="field-select" id="mProduct"></select></div>
         <div class="field-row">
             <div class="field-group"><div class="field-label">유형 *</div>
-                <select class="field-select" id="mType"><option value="in">입고</option><option value="out">출고</option><option value="adjust">재고 조정</option><option value="return">반품</option></select>
+                <select class="field-select" id="mType" onchange="onMovementTypeChange()"><option value="in">입고</option><option value="out">출고(대여)</option><option value="adjust">재고 조정</option><option value="return">반품(반납)</option></select>
             </div>
             <div class="field-group"><div class="field-label">수량 *</div><input class="field-input" id="mQty" type="number" min="1" value="1"></div>
+        </div>
+        <div class="field-group" id="mProjectGroup" style="display:none;">
+            <div class="field-label">스튜디오(프로젝트)</div>
+            <select class="field-select" id="mProject"><option value="">선택 없음 (본사/창고)</option></select>
         </div>
         <div class="field-group"><div class="field-label">메모</div><input class="field-input" id="mMemo" placeholder="사유 또는 참고사항"></div>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('movementModal')">취소</button>
             <button class="btn-save" onclick="saveMovement()">등록</button>
+        </div>
+    </div>
+</div>
+
+<!-- 장비 이동 이력 모달 -->
+<div class="modal-overlay" id="historyModal">
+    <div class="modal" style="width:720px;">
+        <div class="modal-header">
+            <div class="modal-title" id="histTitle">이동 이력</div>
+            <button class="modal-close" onclick="closeModal('historyModal')">×</button>
+        </div>
+        <div class="data-card" style="border:none;">
+            <table class="data-table">
+                <thead><tr><th>일시</th><th>유형</th><th class="text-right">수량</th><th>위치</th><th>처리자</th><th>메모</th></tr></thead>
+                <tbody id="histBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -328,16 +372,16 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
-let allProducts = [], catData = [];
+let allProducts = [], catData = [], allProjects = [], locationsCache = [];
 
 function switchTab(name, skipHash) {
     document.querySelectorAll('.tab-btn').forEach(b => {
-        const map = {stock:'현황',products:'제품',movements:'입출고',orders:'발주',categories:'카테고리'};
+        const map = {stock:'현황',products:'제품',locations:'장비 위치',movements:'입출고',orders:'발주',categories:'카테고리'};
         b.classList.toggle('active', b.textContent.includes(map[name]));
     });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
     if (!skipHash) history.replaceState(null, '', '#'+name);
-    ({stock:loadStock,products:loadProducts,movements:loadMovements,orders:loadOrders,categories:loadCategories})[name]();
+    ({stock:loadStock,products:loadProducts,locations:loadLocations,movements:loadMovements,orders:loadOrders,categories:loadCategories})[name]();
 }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -587,15 +631,93 @@ async function loadMovements() {
 }
 async function openMovementModal() {
     if (!allProducts.length) { const r = await fetch('/api/inventory/products'); allProducts = await r.json(); }
+    if (!allProjects.length) { const r = await fetch('/api/inventory/projects'); allProjects = await r.json(); }
     document.getElementById('mProduct').innerHTML = allProducts.map(p=>`<option value="${p.id}">${p.name} (${p.sku})</option>`).join('');
+    document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
     document.getElementById('mType').value='in'; document.getElementById('mQty').value=1; document.getElementById('mMemo').value='';
+    document.getElementById('mProject').value='';
+    onMovementTypeChange();
     openModal('movementModal');
 }
+function onMovementTypeChange() {
+    const t = document.getElementById('mType').value;
+    document.getElementById('mProjectGroup').style.display = (t==='out' || t==='return') ? 'block' : 'none';
+}
 async function saveMovement() {
-    const body = { product_id:+document.getElementById('mProduct').value, movement_type:document.getElementById('mType').value, quantity:+document.getElementById('mQty').value, memo:document.getElementById('mMemo').value||null };
+    const projectId = document.getElementById('mProject').value;
+    const body = {
+        product_id:+document.getElementById('mProduct').value,
+        movement_type:document.getElementById('mType').value,
+        quantity:+document.getElementById('mQty').value,
+        project_id: projectId ? +projectId : null,
+        memo:document.getElementById('mMemo').value||null,
+    };
     const res = await fetch('/api/inventory/movements',{method:'POST',headers:H,body:JSON.stringify(body)});
     if (!res.ok) { const e = await res.json(); alert(Object.values(e.errors||{}).flat().join('\n')||'오류 발생'); return; }
     closeModal('movementModal'); loadMovements();
+    if (document.getElementById('panel-locations').classList.contains('active')) loadLocations();
+}
+
+// === 장비 위치 (테스트) ===
+async function loadLocations() {
+    const search = document.getElementById('locSearch').value;
+    const params = search ? '?search='+encodeURIComponent(search) : '';
+    const res = await fetch('/api/inventory/locations'+params);
+    locationsCache = await res.json();
+    renderLocations();
+}
+function renderLocations() {
+    const filter = document.getElementById('locFilter').value;
+    const rows = filter ? locationsCache.filter(r=>r.location_type===filter) : locationsCache;
+    const tb = document.getElementById('locBody');
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">데이터가 없습니다.</td></tr>'; return; }
+    const typeMap = {in:'입고',out:'출고',adjust:'조정',return:'반품'};
+    tb.innerHTML = rows.map(r => {
+        const locBadge = r.location_type==='studio'
+            ? `<span class="badge badge-out">🎬 ${escapeHtml(r.location)}</span>`
+            : r.location_type==='warehouse'
+                ? `<span class="badge badge-ok">🏢 ${escapeHtml(r.location)}</span>`
+                : `<span class="badge badge-cancelled">${escapeHtml(r.location)}</span>`;
+        const lastMv = r.last_movement_type
+            ? `<span class="badge badge-${r.last_movement_type}">${typeMap[r.last_movement_type]||'-'}</span> <span class="text-muted">${fmtTime(r.last_moved_at)}</span>`
+            : '<span class="text-muted">-</span>';
+        return `<tr>
+            <td class="text-muted">${escapeHtml(r.sku)}</td>
+            <td>${escapeHtml(r.name)}</td>
+            <td class="text-right" style="font-weight:600;">${r.quantity}</td>
+            <td>${locBadge}</td>
+            <td>${lastMv}</td>
+            <td class="text-muted">${escapeHtml(r.last_user||'-')}</td>
+            <td class="text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.last_memo||'-')}</td>
+            <td><button class="btn-outline btn-sm" onclick="openLocationHistory(${r.id},'${escapeAttr(r.name)}')">이력</button></td>
+        </tr>`;
+    }).join('');
+}
+function escapeHtml(s) {
+    if (s==null) return '';
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+async function openLocationHistory(productId, productName) {
+    document.getElementById('histTitle').textContent = productName + ' · 이동 이력';
+    document.getElementById('histBody').innerHTML = '<tr><td colspan="6" class="empty-row">로딩 중...</td></tr>';
+    openModal('historyModal');
+    const res = await fetch('/api/inventory/movements?product_id='+productId);
+    const data = await res.json();
+    const typeMap = {in:'입고',out:'출고',adjust:'조정',return:'반품'};
+    if (!data.length) {
+        document.getElementById('histBody').innerHTML = '<tr><td colspan="6" class="empty-row">이력이 없습니다.</td></tr>';
+        return;
+    }
+    document.getElementById('histBody').innerHTML = data.map(m=>`<tr>
+        <td class="text-muted">${fmtTime(m.created_at)}</td>
+        <td><span class="badge badge-${m.movement_type}">${typeMap[m.movement_type]}</span></td>
+        <td class="text-right" style="font-weight:600;">${m.movement_type==='out'?'-':''}${m.quantity}</td>
+        <td>${m.project ? '🎬 '+escapeHtml(m.project.name) : '<span class="text-muted">본사/창고</span>'}</td>
+        <td class="text-muted">${escapeHtml(m.user?.display_name||'-')}</td>
+        <td class="text-muted">${escapeHtml(m.memo||'-')}</td>
+    </tr>`).join('');
 }
 
 // === 발주 ===
@@ -654,7 +776,7 @@ async function receiveOrder(id){
 }
 
 // 초기
-const validTabs = ['stock','products','movements','orders','categories'];
+const validTabs = ['stock','products','locations','movements','orders','categories'];
 
 const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stock';
 fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; });

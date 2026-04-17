@@ -134,6 +134,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/stock', [InventoryController::class, 'stock']);
         Route::get('/api/inventory/estimate-products', [InventoryController::class, 'estimateProducts']);
         Route::get('/api/inventory/movements', [InventoryController::class, 'movements']);
+        Route::get('/api/inventory/locations', [InventoryController::class, 'locations']);
+        Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
     });
     Route::middleware('permission:inventory.edit')->group(function () {
