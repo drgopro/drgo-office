@@ -10,7 +10,8 @@
     .dash-header p { font-size:12px; color:var(--text-muted); margin-top:4px; }
 
     .stat-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-bottom:24px; }
-    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; }
+    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; cursor:pointer; transition:all 0.15s; }
+    .stat-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
     .stat-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; }
     .stat-value { font-size:28px; font-weight:700; color:var(--text); }
     .stat-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
@@ -28,9 +29,26 @@
     .detail-item-label { color:var(--text-muted); }
     .detail-item-value { font-weight:600; color:var(--text); }
 
+    /* 상세 모달 */
+    .dash-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9000; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+    .dash-modal.open { display:flex; }
+    .dash-modal-body { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:700px; max-height:80vh; display:flex; flex-direction:column; }
+    .dash-modal-header { padding:16px 20px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .dash-modal-header h3 { font-size:15px; font-weight:600; }
+    .dash-modal-content { flex:1; overflow-y:auto; padding:16px 20px; }
+    .dash-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .dash-table th { text-align:left; padding:8px 10px; font-size:10px; letter-spacing:0.1em; color:var(--text-muted); text-transform:uppercase; border-bottom:2px solid var(--border); position:sticky; top:0; background:var(--surface); }
+    .dash-table td { padding:8px 10px; border-bottom:1px solid var(--border); }
+    .dash-table tr:hover td { background:var(--surface2); }
+    .dash-table a { color:var(--accent); text-decoration:none; }
+    .dash-table a:hover { text-decoration:underline; }
+    .dash-filter { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+    .dash-filter select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer; }
+
     @media (max-width:768px) {
         .stat-cards { grid-template-columns:repeat(2,1fr); }
         .chart-grid { grid-template-columns:1fr; }
+        .dash-modal-body { max-width:95vw; }
     }
 </style>
 @endpush
@@ -44,31 +62,31 @@
 
     {{-- 주요 수치 카드 --}}
     <div class="stat-cards">
-        <div class="stat-card">
+        <div class="stat-card" onclick="openDetail('clients')">
             <div class="stat-label">총 의뢰자</div>
             <div class="stat-value">{{ number_format($clientTotal) }}</div>
             <div class="stat-sub">이번 달 +{{ $clientThisMonth }}명</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openDetail('projects')">
             <div class="stat-label">진행 중 프로젝트</div>
             <div class="stat-value">{{ number_format($projectActive) }}</div>
             <div class="stat-sub">전체 {{ $projectTotal }}건</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openDetail('consultations')">
             <div class="stat-label">이번 달 상담</div>
             <div class="stat-value">{{ number_format($consultThisMonth) }}</div>
             <div class="stat-sub">전체 {{ $consultTotal }}건</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openDetail('schedules')">
             <div class="stat-label">이번 달 일정</div>
             <div class="stat-value">{{ number_format($scheduleThisMonth) }}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openDetail('estimates')">
             <div class="stat-label">견적 총액 (완료+결제)</div>
             <div class="stat-value" style="font-size:22px;">{{ number_format($estimateTotalAmount) }}원</div>
             <div class="stat-sub">결제 완료 {{ number_format($estimatePaidAmount) }}원</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openDetail('estimates')">
             <div class="stat-label">총 견적서</div>
             <div class="stat-value">{{ number_format($estimateTotal) }}</div>
             <div class="stat-sub">
@@ -135,11 +153,63 @@
         </div>
     </div>
 </div>
+<!-- 상세 모달 -->
+<div class="dash-modal" id="dashModal" onclick="if(event.target===this)closeDashModal()">
+    <div class="dash-modal-body">
+        <div class="dash-modal-header">
+            <h3 id="dashModalTitle">상세</h3>
+            <button onclick="closeDashModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <div class="dash-modal-content" id="dashModalContent">
+            <div style="padding:20px;text-align:center;color:var(--text-muted);">로딩 중...</div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
+// 상세 모달
+const DETAIL_TITLES={clients:'👤 의뢰자 상세',projects:'📁 프로젝트 상세',consultations:'💬 상담 이력 상세',estimates:'📄 견적서 상세',schedules:'📅 이번 달 일정'};
+const DETAIL_COLS={
+    clients:['이름','닉네임','전화번호','등급','등록일',''],
+    projects:['프로젝트명','의뢰자','유형','단계','등록일',''],
+    consultations:['의뢰자','유형','결과','내용','담당자','날짜'],
+    estimates:['#','의뢰자','상태','총액','작성자','등록일'],
+    schedules:['제목','유형','의뢰자','날짜','시간',''],
+};
+
+function openDetail(type){
+    document.getElementById('dashModalTitle').textContent=DETAIL_TITLES[type]||'상세';
+    document.getElementById('dashModalContent').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">로딩 중...</div>';
+    document.getElementById('dashModal').classList.add('open');
+    fetch('/api/dashboard/'+type,{headers:{'Accept':'application/json'}}).then(r=>r.json()).then(data=>{
+        if(!data.length){document.getElementById('dashModalContent').innerHTML='<div style="padding:30px;text-align:center;color:var(--text-muted);">데이터가 없습니다.</div>';return;}
+        const cols=DETAIL_COLS[type]||[];
+        let html='<table class="dash-table"><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
+        data.forEach(row=>{
+            const link=row.url?`onclick="navTo('${row.url}')" style="cursor:pointer;"`:'';
+            if(type==='clients') html+=`<tr ${link}><td>${row.name}</td><td>${row.nickname||''}</td><td>${row.phone||''}</td><td>${row.grade}</td><td>${row.created_at}</td><td></td></tr>`;
+            else if(type==='projects') html+=`<tr ${link}><td>${row.name}</td><td>${row.client||''}</td><td>${row.type}</td><td>${row.stage}</td><td>${row.created_at}</td><td></td></tr>`;
+            else if(type==='consultations') html+=`<tr><td>${row.client||''}</td><td>${row.type}</td><td>${row.result}</td><td>${row.content||''}</td><td>${row.consultant||''}</td><td>${row.date}</td></tr>`;
+            else if(type==='estimates') html+=`<tr ${link}><td>#${row.id}</td><td>${row.client||''}</td><td>${row.status}</td><td>${row.total}원</td><td>${row.creator||''}</td><td>${row.created_at}</td></tr>`;
+            else if(type==='schedules') html+=`<tr><td>${row.title}</td><td>${row.color}</td><td>${row.client||''}</td><td>${row.date}</td><td>${row.time}</td><td></td></tr>`;
+        });
+        html+='</tbody></table>';
+        document.getElementById('dashModalContent').innerHTML=html;
+    }).catch(()=>{document.getElementById('dashModalContent').innerHTML='<div style="padding:20px;text-align:center;color:var(--red);">로드 실패</div>';});
+}
+function closeDashModal(){document.getElementById('dashModal').classList.remove('open');}
+function navTo(url){
+    closeDashModal();
+    if(window.parent&&window.parent.drgoTabs){
+        const type=url.startsWith('/clients')?'clients':url.startsWith('/projects')?'projects':url.startsWith('/estimates')?'estimates':'page';
+        window.parent.drgoTabs.openNav(type,url);
+    } else { location.href=url; }
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDashModal();});
+
 const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
 const textColor = isDark ? '#a09890' : '#5a6070';
 const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';

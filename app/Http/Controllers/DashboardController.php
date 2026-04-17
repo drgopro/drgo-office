@@ -7,6 +7,7 @@ use App\Models\Consultation;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\Schedule;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -63,5 +64,57 @@ class DashboardController extends Controller
             'monthlyClients', 'monthlyProjects', 'monthlyConsults', 'monthlyEstimates',
             'scheduleThisMonth', 'scheduleByColor'
         ));
+    }
+
+    public function detail(Request $request, string $type)
+    {
+        $gradeL = ['normal' => '일반', 'vip' => 'VIP', 'rental' => '렌탈'];
+        $stageL = ['consulting' => '상담', 'equipment' => '장비파악', 'proposal' => '일정제안', 'estimate' => '견적/계약', 'payment' => '결제/예약', 'visit' => '세팅', 'as' => 'AS', 'done' => '완료', 'cancelled' => '취소'];
+        $typeL = ['visit' => '방문세팅', 'remote' => '원격세팅', 'design' => '디자인', 'inquiry' => '단순문의', 'as' => 'A/S', 'troubleshoot' => '문제 해결'];
+        $consultL = ['kakao' => '카카오톡', 'phone' => '전화', 'visit' => '내방상담', 'field' => '현장답사'];
+        $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
+        $colorL = ['gold' => '방문의뢰', 'teal' => '원격/방송룸', 'blue' => '사내업무', 'red' => '휴가/개인', 'green' => '촬영/스튜디오', 'purple' => '미팅/내방'];
+
+        return match ($type) {
+            'clients' => response()->json(
+                Client::orderByDesc('created_at')->limit(100)->get()->map(fn ($c) => [
+                    'id' => $c->id, 'name' => $c->name, 'nickname' => $c->nickname, 'phone' => $c->phone,
+                    'grade' => $gradeL[$c->grade] ?? $c->grade, 'created_at' => $c->created_at->format('Y.m.d'),
+                    'url' => '/clients?open='.$c->id,
+                ])
+            ),
+            'projects' => response()->json(
+                Project::with('client')->orderByDesc('created_at')->limit(100)->get()->map(fn ($p) => [
+                    'id' => $p->id, 'name' => $p->name, 'client' => $p->client?->name,
+                    'type' => $typeL[$p->project_type] ?? $p->project_type,
+                    'stage' => $stageL[$p->stage] ?? $p->stage,
+                    'created_at' => $p->created_at->format('Y.m.d'),
+                    'url' => '/projects/'.$p->id,
+                ])
+            ),
+            'consultations' => response()->json(
+                Consultation::with('client', 'consultant')->orderByDesc('consulted_at')->limit(100)->get()->map(fn ($c) => [
+                    'id' => $c->id, 'client' => $c->client?->name, 'type' => $consultL[$c->consult_type] ?? $c->consult_type,
+                    'result' => $c->result, 'content' => \Str::limit($c->content, 60),
+                    'consultant' => $c->consultant?->display_name, 'date' => $c->consulted_at->format('Y.m.d'),
+                ])
+            ),
+            'estimates' => response()->json(
+                Estimate::with('creator')->orderByDesc('created_at')->limit(100)->get()->map(fn ($e) => [
+                    'id' => $e->id, 'client' => $e->client_nickname ?: $e->client_name,
+                    'status' => $statusL[$e->status] ?? $e->status, 'total' => number_format($e->total_amount ?? 0),
+                    'creator' => $e->creator?->display_name, 'created_at' => $e->created_at->format('Y.m.d'),
+                    'url' => '/estimates/'.$e->id.'/edit',
+                ])
+            ),
+            'schedules' => response()->json(
+                Schedule::where('start_date', '>=', now()->startOfMonth())->orderBy('start_date')->limit(100)->get()->map(fn ($s) => [
+                    'id' => $s->id, 'title' => $s->title, 'color' => $colorL[$s->color] ?? $s->color,
+                    'client' => $s->client_name, 'date' => $s->start_date,
+                    'time' => $s->start_time ? substr($s->start_time, 0, 5) : '종일',
+                ])
+            ),
+            default => response()->json([]),
+        };
     }
 }

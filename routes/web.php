@@ -27,6 +27,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
 
     // 마이페이지 (전체 사용자)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
