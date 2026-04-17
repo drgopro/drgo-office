@@ -157,7 +157,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/rental/targets', [RentalEquipmentController::class, 'storeTarget']);
         Route::patch('/api/rental/targets/{target}', [RentalEquipmentController::class, 'updateTarget']);
         Route::delete('/api/rental/targets/{target}', [RentalEquipmentController::class, 'destroyTarget']);
+        Route::post('/api/rental/groups', [RentalEquipmentController::class, 'storeGroup']);
+        Route::patch('/api/rental/groups/{group}', [RentalEquipmentController::class, 'updateGroup']);
+        Route::delete('/api/rental/groups/{group}', [RentalEquipmentController::class, 'destroyGroup']);
         Route::post('/api/rental/assign', [RentalEquipmentController::class, 'assign']);
+        Route::post('/api/rental/assign-group', [RentalEquipmentController::class, 'assignGroup']);
     });
 
     // 견적서 (edit가 {estimate} 와일드카드보다 먼저)

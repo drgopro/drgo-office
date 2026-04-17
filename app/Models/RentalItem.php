@@ -16,11 +16,23 @@ class RentalItem extends Model
         'components',
         'description',
         'current_target_id',
+        'home_target_id',
+        'group_id',
     ];
 
     public function currentTarget()
     {
         return $this->belongsTo(RentalTarget::class, 'current_target_id');
+    }
+
+    public function homeTarget()
+    {
+        return $this->belongsTo(RentalTarget::class, 'home_target_id');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(RentalGroup::class, 'group_id');
     }
 
     public function logs()

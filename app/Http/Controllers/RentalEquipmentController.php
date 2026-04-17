@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RentalGroup;
 use App\Models\RentalItem;
 use App\Models\RentalLog;
 use App\Models\RentalTarget;
@@ -20,12 +21,17 @@ class RentalEquipmentController extends Controller
     public function board(): JsonResponse
     {
         $items = RentalItem::orderBy('name')->get([
-            'id', 'name', 'serial', 'category', 'components', 'description', 'current_target_id',
+            'id', 'name', 'serial', 'category', 'components', 'description',
+            'current_target_id', 'home_target_id', 'group_id',
         ]);
 
         $targets = RentalTarget::orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'phone', 'address', 'note']);
+
+        $groups = RentalGroup::orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         $assignments = $items
             ->filter(fn ($i) => $i->current_target_id !== null)
@@ -46,6 +52,7 @@ class RentalEquipmentController extends Controller
         return response()->json([
             'items' => $items,
             'targets' => $targets,
+            'groups' => $groups,
             'assignments' => $assignments,
             'logs' => $logs,
         ]);
@@ -55,13 +62,7 @@ class RentalEquipmentController extends Controller
 
     public function storeItem(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:200',
-            'serial' => 'nullable|string|max:100',
-            'category' => 'nullable|string|max:100',
-            'components' => 'nullable|string',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $this->validateItem($request);
 
         $item = RentalItem::create($validated);
         $this->log($item->id, null, '장비 추가', $item->name.' 등록');
@@ -71,18 +72,28 @@ class RentalEquipmentController extends Controller
 
     public function updateItem(Request $request, RentalItem $item): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:200',
-            'serial' => 'nullable|string|max:100',
-            'category' => 'nullable|string|max:100',
-            'components' => 'nullable|string',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $this->validateItem($request);
 
         $item->update($validated);
         $this->log($item->id, $item->current_target_id, '장비 편집', $item->name.' 정보 수정');
 
         return response()->json($item);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateItem(Request $request): array
+    {
+        return $request->validate([
+            'name' => 'required|string|max:200',
+            'serial' => 'nullable|string|max:100',
+            'category' => 'nullable|string|max:100',
+            'components' => 'nullable|string',
+            'description' => 'nullable|string',
+            'home_target_id' => 'nullable|exists:rental_targets,id',
+            'group_id' => 'nullable|exists:rental_groups,id',
+        ]);
     }
 
     public function destroyItem(RentalItem $item): JsonResponse
@@ -144,6 +155,7 @@ class RentalEquipmentController extends Controller
         $validated = $request->validate([
             'item_id' => 'required|exists:rental_items,id',
             'target_id' => 'nullable|exists:rental_targets,id',
+            'return' => 'nullable|boolean',
             'memo' => 'nullable|string|max:500',
         ]);
 
@@ -151,7 +163,11 @@ class RentalEquipmentController extends Controller
             /** @var RentalItem $item */
             $item = RentalItem::findOrFail($validated['item_id']);
             $prevTargetId = $item->current_target_id;
-            $newTargetId = $validated['target_id'] ?? null;
+
+            $isReturn = ! empty($validated['return']);
+            $newTargetId = $isReturn
+                ? $item->home_target_id
+                : ($validated['target_id'] ?? null);
 
             if ($prevTargetId === $newTargetId) {
                 return response()->json(['message' => '변경 없음'], 200);
@@ -162,16 +178,7 @@ class RentalEquipmentController extends Controller
             $prev = $prevTargetId ? RentalTarget::find($prevTargetId) : null;
             $next = $newTargetId ? RentalTarget::find($newTargetId) : null;
 
-            if ($next && $prev) {
-                $action = '위치 변경';
-                $detail = "{$item->name}: {$prev->name} → {$next->name}";
-            } elseif ($next) {
-                $action = '위치 지정';
-                $detail = "{$item->name} → {$next->name}";
-            } else {
-                $action = '반납 처리';
-                $detail = "{$item->name} 위치 해제".($prev ? " (이전: {$prev->name})" : '');
-            }
+            [$action, $detail] = $this->describeMovement($item->name, $prev, $next, $isReturn);
 
             if (! empty($validated['memo'])) {
                 $detail .= " ({$validated['memo']})";
@@ -181,6 +188,125 @@ class RentalEquipmentController extends Controller
 
             return response()->json($item->fresh('currentTarget'));
         });
+    }
+
+    // === 그룹 CRUD ===
+
+    public function storeGroup(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+        ]);
+
+        $validated['sort_order'] = (RentalGroup::max('sort_order') ?? 0) + 1;
+
+        $group = RentalGroup::create($validated);
+        $this->log(null, null, '그룹 추가', $group->name.' 등록');
+
+        return response()->json($group, 201);
+    }
+
+    public function updateGroup(Request $request, RentalGroup $group): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+        ]);
+
+        $group->update($validated);
+        $this->log(null, null, '그룹 편집', $group->name.' 정보 수정');
+
+        return response()->json($group);
+    }
+
+    public function destroyGroup(RentalGroup $group): JsonResponse
+    {
+        $name = $group->name;
+        $group->delete();
+        $this->log(null, null, '그룹 삭제', $name.' 제거');
+
+        return response()->json(['message' => '삭제되었습니다.']);
+    }
+
+    /**
+     * 그룹 내 모든 장비를 한 target으로 일괄 이동 (또는 반납).
+     */
+    public function assignGroup(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'group_id' => 'required|exists:rental_groups,id',
+            'target_id' => 'nullable|exists:rental_targets,id',
+            'return' => 'nullable|boolean',
+            'memo' => 'nullable|string|max:500',
+        ]);
+
+        return DB::transaction(function () use ($validated) {
+            $group = RentalGroup::findOrFail($validated['group_id']);
+            $items = RentalItem::where('group_id', $group->id)->get();
+
+            if ($items->isEmpty()) {
+                return response()->json(['message' => '그룹에 장비가 없습니다.'], 422);
+            }
+
+            $isReturn = ! empty($validated['return']);
+            $targetName = null;
+            $count = 0;
+
+            foreach ($items as $item) {
+                $newTargetId = $isReturn
+                    ? $item->home_target_id
+                    : ($validated['target_id'] ?? null);
+
+                if ($item->current_target_id === $newTargetId) {
+                    continue;
+                }
+
+                $item->update(['current_target_id' => $newTargetId]);
+                $count++;
+            }
+
+            if ($validated['target_id'] ?? null) {
+                $targetName = RentalTarget::find($validated['target_id'])?->name;
+            }
+
+            $action = $isReturn ? '그룹 반납' : '그룹 이동';
+            $detail = "[{$group->name}] "
+                .($isReturn ? '각 장비 원래 위치로 복귀' : ($targetName ? "→ {$targetName}" : '위치 해제'))
+                ." ({$count}개)";
+
+            if (! empty($validated['memo'])) {
+                $detail .= " ({$validated['memo']})";
+            }
+
+            $this->log(null, $validated['target_id'] ?? null, $action, $detail);
+
+            return response()->json(['updated' => $count]);
+        });
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function describeMovement(string $itemName, ?RentalTarget $prev, ?RentalTarget $next, bool $isReturn): array
+    {
+        if ($isReturn) {
+            if ($next && $prev) {
+                return ['반납 처리', "{$itemName}: {$prev->name} → {$next->name} (원위치 복귀)"];
+            }
+            if ($next) {
+                return ['반납 처리', "{$itemName} → {$next->name} (원위치 복귀)"];
+            }
+
+            return ['반납 처리', "{$itemName} 위치 해제".($prev ? " (이전: {$prev->name})" : '')];
+        }
+
+        if ($next && $prev) {
+            return ['위치 변경', "{$itemName}: {$prev->name} → {$next->name}"];
+        }
+        if ($next) {
+            return ['위치 지정', "{$itemName} → {$next->name}"];
+        }
+
+        return ['위치 해제', "{$itemName} 위치 해제".($prev ? " (이전: {$prev->name})" : '')];
     }
 
     // === 헬퍼 ===

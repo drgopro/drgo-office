@@ -113,16 +113,19 @@
     [data-theme="light"] .btn-outline { border-color:#b8bcc8; color:#4a5060; }
     [data-theme="light"] .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
     /* ── 장비 현황판 (매트릭스 보드) ── */
-    .board-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
-    .board-toolbar .search-box { flex:1; min-width:200px; max-width:320px; position:relative; }
-    .board-toolbar .search-box input { width:100%; padding:8px 12px 8px 30px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; }
+    .board-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    .board-toolbar > * { flex-shrink:0; }
+    .board-toolbar .search-box { flex:1 1 220px; min-width:180px; max-width:320px; position:relative; }
+    .board-toolbar .search-box input { width:100%; height:32px; padding:0 12px 0 30px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
     .board-toolbar .search-box input:focus { border-color:var(--accent); }
     .board-toolbar .search-box::before { content:"🔍"; position:absolute; left:9px; top:50%; transform:translateY(-50%); font-size:12px; opacity:.6; }
-    .board-toolbar .stat-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; font-size:11px; color:var(--text-muted); }
-    .board-toolbar .stat-pill strong { color:var(--accent); font-family:"SF Mono",Menlo,Monaco,monospace; }
-    .board-toolbar .spacer { flex:1; }
-    .board-log-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 12px; border-radius:7px; font-size:12px; cursor:pointer; }
-    .board-log-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .board-toolbar .stat-pill { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 12px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; font-size:11px; color:var(--text-muted); line-height:1; white-space:nowrap; }
+    .board-toolbar .stat-pill strong { color:var(--accent); font-family:"SF Mono",Menlo,Monaco,monospace; font-size:12px; font-weight:700; line-height:1; }
+    .board-toolbar .spacer { flex:1 1 0; min-width:0; }
+    .board-toolbar .tb-btn { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border:1px solid var(--border); background:none; border-radius:7px; color:var(--text-muted); font-size:12px; cursor:pointer; white-space:nowrap; font-family:inherit; }
+    .board-toolbar .tb-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .board-toolbar .tb-btn.primary { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; }
+    [data-theme="light"] .board-toolbar .tb-btn.primary { color:#fff; }
 
     .board-wrap { max-height:calc(100vh - 280px); min-height:420px; overflow:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; -webkit-overflow-scrolling:touch; position:relative; }
     .eq-board { display:grid; min-width:max-content; border-collapse:collapse; }
@@ -146,7 +149,7 @@
     .eq-matrix-cell.marked:hover { background:rgba(212,188,150,0.2); }
     [data-theme="light"] .eq-matrix-cell.marked { background:rgba(156,125,72,0.12); }
     [data-theme="light"] .eq-matrix-cell.marked:hover { background:rgba(156,125,72,0.22); }
-    .eq-o-mark { width:30px; height:30px; border-radius:50%; border:2.5px solid var(--accent); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:700; transition:transform .15s; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .eq-o-mark { width:30px; height:30px; border-radius:50%; border:2.5px solid var(--accent); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:700; font-size:14px; letter-spacing:0; transition:transform .15s; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
     .eq-o-mark:active { cursor:grabbing; }
     .eq-matrix-cell:hover .eq-o-mark { transform:scale(1.08); }
     .eq-matrix-cell.dragging-source .eq-o-mark { opacity:0.25; transform:scale(0.9); }
@@ -242,15 +245,17 @@
     <div class="tab-panel" id="panel-locations">
         <div class="board-toolbar">
             <div class="search-box">
-                <input type="text" id="bdSearch" placeholder="장비명, SKU, 대상 검색…">
+                <input type="text" id="bdSearch" placeholder="장비명, 시리얼, 대상 검색…">
             </div>
             <span class="stat-pill">장비 <strong id="bdStatItems">0</strong></span>
             <span class="stat-pill">대여중 <strong id="bdStatInUse">0</strong></span>
             <span class="stat-pill">대상 <strong id="bdStatTargets">0</strong></span>
             <div class="spacer"></div>
-            <button class="board-log-btn" id="bdLogBtn" title="변경 이력">📋 이력</button>
-            <button class="btn-outline" onclick="openRentalItemModal(null)">＋ 장비</button>
-            <button class="btn-primary btn-sm" onclick="openRentalTargetModal(null)">＋ 대상</button>
+            <button class="tb-btn" id="bdScanBtn" title="QR 스캔">📷 스캔</button>
+            <button class="tb-btn" id="bdGroupBtn" title="그룹 관리">🧩 그룹</button>
+            <button class="tb-btn" id="bdLogBtn" title="변경 이력">📋 이력</button>
+            <button class="tb-btn" onclick="openRentalItemModal(null)">＋ 장비</button>
+            <button class="tb-btn primary" onclick="openRentalTargetModal(null)">＋ 대상</button>
         </div>
         <div class="board-wrap" id="bdBoardWrap">
             <div class="eq-board" id="bdBoard"></div>
@@ -267,25 +272,42 @@
             </div>
             <div class="field-group">
                 <div class="field-label">장비명 *</div>
-                <input class="field-input" id="riName" placeholder="예: SONY FX30 카메라">
+                <input class="field-input" id="riName">
             </div>
             <div class="field-row">
                 <div class="field-group">
                     <div class="field-label">시리얼 번호</div>
-                    <input class="field-input" id="riSerial" placeholder="예: 4512789">
+                    <input class="field-input" id="riSerial">
                 </div>
                 <div class="field-group">
                     <div class="field-label">카테고리</div>
-                    <input class="field-input" id="riCategory" placeholder="예: 카메라">
+                    <input class="field-input" id="riCategory">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <div class="field-label">원래 위치 (반납 시 복귀)</div>
+                    <select class="field-select" id="riHomeTarget"><option value="">없음</option></select>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">그룹</div>
+                    <select class="field-select" id="riGroup"><option value="">없음</option></select>
                 </div>
             </div>
             <div class="field-group">
                 <div class="field-label">제품 구성</div>
-                <textarea class="field-input" id="riComponents" rows="2" placeholder="예: 본체, 배터리 2개, 충전기, 가방"></textarea>
+                <textarea class="field-input" id="riComponents" rows="2"></textarea>
             </div>
             <div class="field-group">
                 <div class="field-label">제품 설명 / 비고</div>
-                <textarea class="field-input" id="riDesc" rows="2" placeholder="추가 설명, 특이사항"></textarea>
+                <textarea class="field-input" id="riDesc" rows="2"></textarea>
+            </div>
+            <div class="field-group" id="riQrWrap" style="display:none;">
+                <div class="field-label">QR 코드 (이 장비 식별용)</div>
+                <div style="background:#fff; padding:8px; border-radius:8px; display:inline-block;">
+                    <img id="riQrImg" alt="QR" style="display:block; width:160px; height:160px;">
+                </div>
+                <div class="text-muted" style="font-size:11px; margin-top:4px;">인쇄 후 장비에 부착 · 📷 스캔으로 인식</div>
             </div>
             <input type="hidden" id="riId">
             <div class="modal-actions">
@@ -305,15 +327,15 @@
             </div>
             <div class="field-group">
                 <div class="field-label">이름 / 명칭 *</div>
-                <input class="field-input" id="rtName" placeholder="예: 신창고 / 스튜디오A / 김광래">
+                <input class="field-input" id="rtName">
             </div>
             <div class="field-group">
                 <div class="field-label">연락처</div>
-                <input class="field-input" id="rtPhone" placeholder="010-0000-0000">
+                <input class="field-input" id="rtPhone">
             </div>
             <div class="field-group">
                 <div class="field-label">주소 / 장소</div>
-                <textarea class="field-input" id="rtAddress" rows="2" placeholder="장비 보관/사용 위치"></textarea>
+                <textarea class="field-input" id="rtAddress" rows="2"></textarea>
             </div>
             <div class="field-group">
                 <div class="field-label">메모</div>
@@ -324,6 +346,105 @@
                 <button class="btn-danger-sm" id="rtDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteRentalTarget()">삭제</button>
                 <button class="btn-cancel" onclick="closeModal('rentalTargetModal')">취소</button>
                 <button class="btn-save" onclick="saveRentalTarget()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 그룹 관리 모달 -->
+    <div class="modal-overlay" id="groupManageModal">
+        <div class="modal" style="width:520px;">
+            <div class="modal-header">
+                <div class="modal-title">🧩 그룹 관리</div>
+                <button class="modal-close" onclick="closeModal('groupManageModal')">×</button>
+            </div>
+            <div class="field-group">
+                <div class="field-label">새 그룹 추가</div>
+                <div style="display:flex; gap:6px;">
+                    <input class="field-input" id="newGroupName" style="flex:1;">
+                    <button class="btn-save" onclick="saveNewGroup()">추가</button>
+                </div>
+            </div>
+            <div class="field-group">
+                <div class="field-label">그룹 목록 (장비 수 / 일괄 이동)</div>
+                <div id="groupList" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('groupManageModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 그룹 일괄 이동 모달 -->
+    <div class="modal-overlay" id="groupAssignModal">
+        <div class="modal" style="width:420px;">
+            <div class="modal-header">
+                <div class="modal-title" id="gaTitle">그룹 일괄 이동</div>
+                <button class="modal-close" onclick="closeModal('groupAssignModal')">×</button>
+            </div>
+            <div class="field-group">
+                <div class="field-label">이동할 대상</div>
+                <select class="field-select" id="gaTarget"><option value="">선택하세요</option></select>
+            </div>
+            <input type="hidden" id="gaGroupId">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="gaReturnAll()" style="margin-right:auto;">원래 위치로 반납</button>
+                <button class="btn-cancel" onclick="closeModal('groupAssignModal')">취소</button>
+                <button class="btn-save" onclick="gaAssign()">이동</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR 스캐너 모달 -->
+    <div class="modal-overlay" id="qrScanModal">
+        <div class="modal" style="width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">📷 QR 스캔</div>
+                <button class="modal-close" onclick="stopQrScan(true)">×</button>
+            </div>
+            <div id="qrScanReader" style="width:100%; background:#000; border-radius:8px; overflow:hidden; min-height:260px;"></div>
+            <div class="text-muted" style="font-size:11px; margin-top:6px;">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
+            <div class="field-group" style="margin-top:10px;">
+                <div class="field-label">수동 입력 (테스트)</div>
+                <div style="display:flex; gap:6px;">
+                    <input class="field-input" id="qrManual" placeholder="예: rental:3 또는 3" style="flex:1;">
+                    <button class="btn-cancel" onclick="handleScanResult(document.getElementById('qrManual').value)">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR 스캔 결과 액션 모달 -->
+    <div class="modal-overlay" id="scanActionModal">
+        <div class="modal" style="width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">장비 액션</div>
+                <button class="modal-close" onclick="closeModal('scanActionModal')">×</button>
+            </div>
+            <div id="scanActionInfo" style="font-size:13px; line-height:1.6; color:var(--text-muted); margin-bottom:16px;"></div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn-save" id="saReturnBtn" onclick="scanActionReturn()">반납 처리</button>
+                <button class="btn-cancel" id="saDetailBtn" onclick="scanActionDetail()">상세 보기 (편집)</button>
+                <button class="btn-cancel" id="saMoveBtn" onclick="scanActionMove()">다른 위치로 이동</button>
+            </div>
+            <input type="hidden" id="scanActionItemId">
+        </div>
+    </div>
+
+    <!-- 단일 장비 이동 모달 (스캔 결과에서) -->
+    <div class="modal-overlay" id="moveItemModal">
+        <div class="modal" style="width:400px;">
+            <div class="modal-header">
+                <div class="modal-title" id="miTitle">위치 이동</div>
+                <button class="modal-close" onclick="closeModal('moveItemModal')">×</button>
+            </div>
+            <div class="field-group">
+                <div class="field-label">이동할 대상</div>
+                <select class="field-select" id="miTarget"><option value="">선택하세요</option></select>
+            </div>
+            <input type="hidden" id="miItemId">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('moveItemModal')">취소</button>
+                <button class="btn-save" onclick="miAssign()">이동</button>
             </div>
         </div>
     </div>
@@ -513,6 +634,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
@@ -531,6 +653,7 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('keydown', e => {
     if (e.key==='Escape') {
+        if (qrScanner) stopQrScan(false);
         document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
         document.getElementById('bdLogPanel')?.classList.remove('open');
     }
@@ -808,7 +931,8 @@ async function saveMovement() {
 }
 
 // === 장비 현황판 (매트릭스 보드) ===
-const bdState = { items:[], targets:[], assignments:{}, logs:[] };
+const bdState = { items:[], targets:[], groups:[], assignments:{}, logs:[] };
+let qrScanner = null;
 const bdDrag = { active:false, justDragged:false, itemId:null, fromTargetId:null, ghost:null, sourceCell:null, currentDropEl:null, startX:0, startY:0, pointerId:null };
 
 function bdEsc(s) {
@@ -828,6 +952,7 @@ async function loadLocations() {
     const data = await res.json();
     bdState.items = data.items || [];
     bdState.targets = data.targets || [];
+    bdState.groups = data.groups || [];
     bdState.assignments = data.assignments || {};
     bdState.logs = data.logs || [];
     bdRender();
@@ -871,7 +996,7 @@ function bdRender() {
         targets.forEach(t => {
             const marked = bdState.assignments[item.id] === t.id;
             html += `<div class="eq-cell-base eq-matrix-cell ${marked?'marked':''}" data-item-id="${item.id}" data-target-id="${t.id}">
-                ${marked ? '<div class="eq-o-mark">●</div>' : ''}
+                ${marked ? '<div class="eq-o-mark">O</div>' : ''}
             </div>`;
         });
         // 빈 대상 열 셀 (비활성)
@@ -949,7 +1074,7 @@ function bdStartDrag() {
         if (c !== bdDrag.sourceCell) c.classList.add('drop-target');
     });
     const ghost = document.createElement('div');
-    ghost.className = 'eq-drag-ghost'; ghost.textContent = '●';
+    ghost.className = 'eq-drag-ghost'; ghost.textContent = 'O';
     ghost.style.left = bdDrag.startX+'px'; ghost.style.top = bdDrag.startY+'px';
     document.body.appendChild(ghost); bdDrag.ghost = ghost;
 }
@@ -1021,11 +1146,12 @@ async function bdAssign(itemId, targetId, memo) {
     await loadLocations();
 }
 async function bdClear(itemId, memo) {
-    const body = { item_id: itemId, target_id: null, memo: memo || null };
+    const body = { item_id: itemId, return: true, memo: memo || null };
     const res = await fetch('/api/rental/assign', {method:'POST', headers:H, body:JSON.stringify(body)});
     if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
     const item = bdState.items.find(i=>i.id===itemId);
-    bdToast(`${item?.name||''} 반납 처리 완료`);
+    const home = item?.home_target_id ? bdState.targets.find(t=>t.id===item.home_target_id) : null;
+    bdToast(home ? `${item?.name||''} → ${home.name} (원위치)` : `${item?.name||''} 반납 처리`);
     await loadLocations();
 }
 
@@ -1040,6 +1166,23 @@ function openRentalItemModal(itemId) {
     document.getElementById('riCategory').value = it?.category || '';
     document.getElementById('riComponents').value = it?.components || '';
     document.getElementById('riDesc').value = it?.description || '';
+
+    const homeSel = document.getElementById('riHomeTarget');
+    homeSel.innerHTML = '<option value="">없음</option>' + bdState.targets.map(t=>`<option value="${t.id}">${bdEsc(t.name)}</option>`).join('');
+    homeSel.value = it?.home_target_id || '';
+
+    const grpSel = document.getElementById('riGroup');
+    grpSel.innerHTML = '<option value="">없음</option>' + bdState.groups.map(g=>`<option value="${g.id}">${bdEsc(g.name)}</option>`).join('');
+    grpSel.value = it?.group_id || '';
+
+    const qrWrap = document.getElementById('riQrWrap');
+    if (isEdit) {
+        qrWrap.style.display = 'block';
+        document.getElementById('riQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent('rental:'+itemId)}&size=200x200&margin=8`;
+    } else {
+        qrWrap.style.display = 'none';
+    }
+
     document.getElementById('riDeleteBtn').style.display = isEdit ? 'inline-block' : 'none';
     openModal('rentalItemModal');
     setTimeout(()=>document.getElementById('riName').focus(), 50);
@@ -1052,6 +1195,8 @@ async function saveRentalItem() {
         category: document.getElementById('riCategory').value.trim() || null,
         components: document.getElementById('riComponents').value.trim() || null,
         description: document.getElementById('riDesc').value.trim() || null,
+        home_target_id: document.getElementById('riHomeTarget').value ? +document.getElementById('riHomeTarget').value : null,
+        group_id: document.getElementById('riGroup').value ? +document.getElementById('riGroup').value : null,
     };
     if (!body.name) { bdToast('장비명은 필수입니다.'); return; }
     const url = id ? `/api/rental/items/${id}` : '/api/rental/items';
@@ -1142,6 +1287,156 @@ function bdRenderLogs() {
 }
 document.getElementById('bdLogBtn').addEventListener('click', () => { document.getElementById('bdLogPanel').classList.add('open'); bdRenderLogs(); });
 document.getElementById('bdSearch').addEventListener('input', () => bdRender());
+
+// === 그룹 관리 ===
+document.getElementById('bdGroupBtn').addEventListener('click', () => { renderGroupList(); openModal('groupManageModal'); });
+function renderGroupList() {
+    const wrap = document.getElementById('groupList');
+    if (!bdState.groups.length) { wrap.innerHTML = '<div class="text-muted" style="padding:10px 0;">등록된 그룹이 없습니다.</div>'; return; }
+    wrap.innerHTML = bdState.groups.map(g => {
+        const count = bdState.items.filter(i => i.group_id === g.id).length;
+        return `<div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px;">
+            <span style="flex:1; font-weight:600;">${bdEsc(g.name)}</span>
+            <span class="text-muted" style="font-size:11px;">장비 ${count}개</span>
+            <button class="btn-outline btn-sm" onclick="openGroupAssignModal(${g.id})">이동</button>
+            <button class="btn-outline btn-sm" onclick="renameGroup(${g.id})">이름</button>
+            <button class="btn-danger-sm" onclick="deleteGroup(${g.id})">삭제</button>
+        </div>`;
+    }).join('');
+}
+async function saveNewGroup() {
+    const name = document.getElementById('newGroupName').value.trim();
+    if (!name) { bdToast('그룹명을 입력하세요.'); return; }
+    const res = await fetch('/api/rental/groups', {method:'POST', headers:H, body:JSON.stringify({name})});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    document.getElementById('newGroupName').value = '';
+    await loadLocations();
+    renderGroupList();
+}
+async function renameGroup(id) {
+    const g = bdState.groups.find(x=>x.id===id);
+    const name = prompt('그룹명', g?.name || '');
+    if (!name || !name.trim()) return;
+    const res = await fetch(`/api/rental/groups/${id}`, {method:'PATCH', headers:H, body:JSON.stringify({name: name.trim()})});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    await loadLocations();
+    renderGroupList();
+}
+async function deleteGroup(id) {
+    const g = bdState.groups.find(x=>x.id===id);
+    if (!confirm(`"${g?.name}" 그룹을 삭제할까요?\n소속 장비의 그룹 소속만 해제됩니다.`)) return;
+    const res = await fetch(`/api/rental/groups/${id}`, {method:'DELETE', headers:H});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    await loadLocations();
+    renderGroupList();
+}
+function openGroupAssignModal(groupId) {
+    const g = bdState.groups.find(x=>x.id===groupId);
+    const count = bdState.items.filter(i=>i.group_id===groupId).length;
+    document.getElementById('gaTitle').textContent = `[${g.name}] 일괄 이동 (${count}개)`;
+    document.getElementById('gaGroupId').value = groupId;
+    document.getElementById('gaTarget').innerHTML = '<option value="">선택하세요</option>' + bdState.targets.map(t=>`<option value="${t.id}">${bdEsc(t.name)}</option>`).join('');
+    openModal('groupAssignModal');
+}
+async function gaAssign() {
+    const groupId = +document.getElementById('gaGroupId').value;
+    const targetId = document.getElementById('gaTarget').value;
+    if (!targetId) { bdToast('대상을 선택하세요.'); return; }
+    const res = await fetch('/api/rental/assign-group', {method:'POST', headers:H, body:JSON.stringify({group_id: groupId, target_id: +targetId})});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    const data = await res.json();
+    bdToast(`${data.updated}개 장비 이동 완료`);
+    closeModal('groupAssignModal'); closeModal('groupManageModal');
+    await loadLocations();
+}
+async function gaReturnAll() {
+    const groupId = +document.getElementById('gaGroupId').value;
+    if (!confirm('그룹 내 모든 장비를 각자의 원래 위치로 반납할까요?')) return;
+    const res = await fetch('/api/rental/assign-group', {method:'POST', headers:H, body:JSON.stringify({group_id: groupId, return: true})});
+    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
+    const data = await res.json();
+    bdToast(`${data.updated}개 장비 반납 완료`);
+    closeModal('groupAssignModal'); closeModal('groupManageModal');
+    await loadLocations();
+}
+
+// === QR 스캔 ===
+document.getElementById('bdScanBtn').addEventListener('click', () => startQrScan());
+async function startQrScan() {
+    document.getElementById('qrManual').value = '';
+    openModal('qrScanModal');
+    if (typeof Html5Qrcode === 'undefined') { return; }
+    try {
+        qrScanner = new Html5Qrcode('qrScanReader');
+        await qrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            (decoded) => { handleScanResult(decoded); },
+            () => {}
+        );
+    } catch (err) {
+        // 카메라 실패 시 수동 입력 fallback
+    }
+}
+async function stopQrScan(alsoClose) {
+    if (qrScanner) {
+        try { await qrScanner.stop(); qrScanner.clear(); } catch(_) {}
+        qrScanner = null;
+    }
+    if (alsoClose) closeModal('qrScanModal');
+}
+async function handleScanResult(text) {
+    if (!text) return;
+    const match = String(text).match(/^(?:rental:)?(\d+)$/i);
+    if (!match) { bdToast('인식 실패: rental:ID 형식이 아닙니다.'); return; }
+    const itemId = +match[1];
+    const item = bdState.items.find(i=>i.id===itemId);
+    await stopQrScan(false);
+    closeModal('qrScanModal');
+    if (!item) { bdToast(`장비 ID ${itemId}를 찾을 수 없습니다.`); return; }
+    openScanActionModal(item);
+}
+function openScanActionModal(item) {
+    const currentTarget = item.current_target_id ? bdState.targets.find(t=>t.id===item.current_target_id) : null;
+    const home = item.home_target_id ? bdState.targets.find(t=>t.id===item.home_target_id) : null;
+    document.getElementById('scanActionItemId').value = item.id;
+    document.getElementById('scanActionInfo').innerHTML = `
+        <div style="color:var(--text); font-weight:700; font-size:14px; margin-bottom:6px;">${bdEsc(item.name)}</div>
+        ${item.serial ? `<div style="font-family:'SF Mono',Menlo,monospace; font-size:11px;">${bdEsc(item.serial)}</div>` : ''}
+        <div style="margin-top:8px;">현재 위치: <span style="color:var(--text);">${currentTarget ? bdEsc(currentTarget.name) : '미지정'}</span></div>
+        ${home ? `<div>원래 위치: <span style="color:var(--text);">${bdEsc(home.name)}</span></div>` : ''}
+    `;
+    openModal('scanActionModal');
+}
+async function scanActionReturn() {
+    const id = +document.getElementById('scanActionItemId').value;
+    closeModal('scanActionModal');
+    await bdClear(id, 'QR 스캔 반납');
+}
+function scanActionDetail() {
+    const id = +document.getElementById('scanActionItemId').value;
+    closeModal('scanActionModal');
+    openRentalItemModal(id);
+}
+function scanActionMove() {
+    const id = +document.getElementById('scanActionItemId').value;
+    closeModal('scanActionModal');
+    openMoveItemModal(id);
+}
+function openMoveItemModal(itemId) {
+    const item = bdState.items.find(i=>i.id===itemId);
+    document.getElementById('miTitle').textContent = `${item.name} · 위치 이동`;
+    document.getElementById('miItemId').value = itemId;
+    document.getElementById('miTarget').innerHTML = '<option value="">선택하세요</option>' + bdState.targets.map(t=>`<option value="${t.id}">${bdEsc(t.name)}</option>`).join('');
+    openModal('moveItemModal');
+}
+async function miAssign() {
+    const itemId = +document.getElementById('miItemId').value;
+    const targetId = document.getElementById('miTarget').value;
+    if (!targetId) { bdToast('대상을 선택하세요.'); return; }
+    closeModal('moveItemModal');
+    await bdAssign(itemId, +targetId, 'QR 스캔으로 이동');
+}
 
 // === 발주 ===
 async function loadOrders() {
