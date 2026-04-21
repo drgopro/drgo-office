@@ -1,0 +1,24 @@
+{
+    "name": "닥터고블린 오피스",
+    "short_name": "QR스캔",
+    "description": "장비 QR 스캔 & 오피스 관리",
+    "start_url": "/qr-scan",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#111111",
+    "theme_color": "#d4bc96",
+    "icons": [
+        {
+            "src": "/icon-192.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-512.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

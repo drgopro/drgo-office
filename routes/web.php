@@ -28,6 +28,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/qr-scan', fn () => view('qr-scan'))->name('qr-scan');
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
     Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
 

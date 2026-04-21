@@ -5,8 +5,13 @@
 (function(){var t=localStorage.getItem('drgo_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
 </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#111111">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
     <title>닥터고블린 오피스</title>
     <style>
         /* ── 다크 모드 (기본) ── */
@@ -115,6 +120,7 @@
         .qr-fab { background:var(--accent); color:#1a1207; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
         .qr-fab:hover { filter:brightness(1.1); }
         [data-theme="light"] .qr-fab { color:#fff; }
+        @keyframes gqrToastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
 
         /* 햄버거 / 모바일전용 */
@@ -156,7 +162,7 @@
             .header { padding:0 12px; height:var(--header-h); }
             .logo { font-size:12px; padding-right:10px; margin-right:10px; }
             .header-right .user-role, .header-right .admin-link { display:none; }
-            .qr-fab { position:fixed; top:6px; right:12px; z-index:210; padding:8px 14px; font-size:12px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+            .qr-fab { position:fixed; bottom:24px; right:16px; z-index:210; padding:12px 18px; font-size:13px; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,0.4); }
             .header-right { gap:4px; }
 
             .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
@@ -653,6 +659,8 @@ async function submitExcelImport() {
 }
 </script>
 
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
+
 {{-- 글로벌 QR 스캔 모달 --}}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <div id="globalQrOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9500;backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;overflow-y:auto;">
@@ -746,6 +754,7 @@ async function gqrAssign(itemId, targetId, targetName){
     if(res.ok){
         showGqrStatus(`✅ <b>${gqrItemData.name}</b> → <b>${targetName}</b> 대여 완료!`,'#7ac87a');
         showGqrActions([{label:'📷 다음 장비 스캔', color:'var(--accent)', action:()=>gqrReset()}]);
+        showGqrToast(`✅ ${gqrItemData.name} → ${targetName} 대여 처리되었습니다.`);
     } else {
         showGqrStatus('❌ 대여 처리 실패','#c87a7a');
     }
@@ -760,6 +769,7 @@ async function gqrReturn(itemId){
     if(res.ok){
         showGqrStatus(`✅ <b>${gqrItemData.name}</b> 반납 완료! (원위치 복귀)`,'#7ac87a');
         showGqrActions([{label:'📷 다음 장비 스캔', color:'var(--accent)', action:()=>gqrReset()}]);
+        showGqrToast(`✅ ${gqrItemData.name} 반납 처리되었습니다.`);
     } else { showGqrStatus('❌ 반납 실패','#c87a7a'); }
 }
 
@@ -777,6 +787,15 @@ function showGqrActions(btns){
 }
 
 function hideGqrActions(){ document.getElementById('gqrActions').style.display='none'; }
+
+function showGqrToast(msg){
+    const el=document.createElement('div');
+    el.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a1207;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,0.4);animation:gqrToastIn 0.3s ease;white-space:nowrap;';
+    el.textContent=msg;
+    document.body.appendChild(el);
+    setTimeout(()=>{el.style.transition='opacity 0.3s';el.style.opacity='0';setTimeout(()=>el.remove(),300);},2700);
+}
+
 </script>
 
 @stack('scripts')
