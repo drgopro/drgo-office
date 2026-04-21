@@ -1101,6 +1101,23 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const DAYS_KO = ['일','월','화','수','목','금','토'];
+
+// 한국 공휴일 (양력 고정 + 음력 변동 2025~2027)
+const KR_HOLIDAYS = {
+    // 양력 고정
+    '01-01':'신정','03-01':'삼일절','05-05':'어린이날','06-06':'현충일','08-15':'광복절','10-03':'개천절','10-09':'한글날','12-25':'성탄절',
+    // 2025 음력 변동
+    '2025-01-28':'설날 연휴','2025-01-29':'설날','2025-01-30':'설날 연휴','2025-05-05':'부처님오신날','2025-10-05':'추석 연휴','2025-10-06':'추석','2025-10-07':'추석 연휴','2025-10-08':'대체공휴일',
+    // 2026 음력 변동
+    '2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-05-24':'부처님오신날','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+    // 2027 음력 변동
+    '2027-02-06':'설날 연휴','2027-02-07':'설날','2027-02-08':'설날 연휴','2027-05-13':'부처님오신날','2027-10-14':'추석 연휴','2027-10-15':'추석','2027-10-16':'추석 연휴',
+};
+function getHoliday(dateStr) {
+    if (!dateStr) return null;
+    return KR_HOLIDAYS[dateStr] || KR_HOLIDAYS[dateStr.substring(5)] || null;
+}
+
 const canEditCalendar = @json(Auth::user()->hasPermission('calendar.edit'));
 const isGuestUser = @json(Auth::user()->isGuest());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
@@ -1263,8 +1280,10 @@ function renderMonth() {
             div.className='day-cell'+(cell.month!=='cur'?' other-month':'');
             if(cell.full) div.dataset.date=cell.full;
             if(cell.full===ts) div.classList.add('today');
-            const nc=d===0?'sun':d===6?'sat':'';
-            div.innerHTML=`<div class="day-num-row"><span class="day-num ${nc}">${cell.date}</span></div>`;
+            const holiday=getHoliday(cell.full);
+            const nc=d===0||holiday?'sun':d===6?'sat':'';
+            const holidayHtml=holiday?`<span class="holiday-label">${holiday}</span>`:'';
+            div.innerHTML=`<div class="day-num-row"><span class="day-num ${nc}">${cell.date}</span>${holidayHtml}</div>`;
 
             if(cell.full){
                 // 필터 적용된 이벤트

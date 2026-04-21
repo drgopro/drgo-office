@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
+    Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
 
     // 마이페이지 (전체 사용자)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

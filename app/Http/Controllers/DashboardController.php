@@ -9,6 +9,9 @@ use App\Models\Project;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
@@ -36,20 +39,32 @@ class DashboardController extends Controller
         $consultThisMonth = Consultation::where('consulted_at', '>=', now()->startOfMonth())->count();
         $consultByType = Consultation::select('consult_type', DB::raw('count(*) as cnt'))->groupBy('consult_type')->pluck('cnt', 'consult_type');
 
-        // 월별 추이 (최근 6개월)
+        // 월별 추이 (최근 6개월) — 신규/누적 분리
         $monthlyClients = [];
         $monthlyProjects = [];
         $monthlyConsults = [];
         $monthlyEstimates = [];
+        $monthlySchedules = [];
         for ($i = 5; $i >= 0; $i--) {
             $m = now()->subMonths($i);
             $label = $m->format('Y.m');
             $start = $m->copy()->startOfMonth();
             $end = $m->copy()->endOfMonth();
-            $monthlyClients[] = ['label' => $label, 'value' => Client::whereBetween('created_at', [$start, $end])->count()];
-            $monthlyProjects[] = ['label' => $label, 'value' => Project::whereBetween('created_at', [$start, $end])->count()];
-            $monthlyConsults[] = ['label' => $label, 'value' => Consultation::whereBetween('consulted_at', [$start, $end])->count()];
-            $monthlyEstimates[] = ['label' => $label, 'value' => (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount')];
+
+            $newClients = Client::whereBetween('created_at', [$start, $end])->count();
+            $newProjects = Project::whereBetween('created_at', [$start, $end])->count();
+            $newConsults = Consultation::whereBetween('consulted_at', [$start, $end])->count();
+            $estAmount = (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount');
+            $estPaid = (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount');
+            $estCount = Estimate::whereBetween('created_at', [$start, $end])->count();
+            $schedCount = Schedule::where('start_date', '>=', $start->format('Y-m-d'))->where('start_date', '<=', $end->format('Y-m-d'))->count();
+            $cumulClients = Client::where('created_at', '<=', $end)->count();
+
+            $monthlyClients[] = ['label' => $label, 'value' => $newClients, 'cumul' => $cumulClients];
+            $monthlyProjects[] = ['label' => $label, 'value' => $newProjects];
+            $monthlyConsults[] = ['label' => $label, 'value' => $newConsults];
+            $monthlyEstimates[] = ['label' => $label, 'value' => $estAmount, 'paid' => $estPaid, 'count' => $estCount];
+            $monthlySchedules[] = ['label' => $label, 'value' => $schedCount];
         }
 
         // 일정 통계
@@ -61,7 +76,7 @@ class DashboardController extends Controller
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',
             'consultTotal', 'consultThisMonth', 'consultByType',
-            'monthlyClients', 'monthlyProjects', 'monthlyConsults', 'monthlyEstimates',
+            'monthlyClients', 'monthlyProjects', 'monthlyConsults', 'monthlyEstimates', 'monthlySchedules',
             'scheduleThisMonth', 'scheduleByColor'
         ));
     }
@@ -116,5 +131,76 @@ class DashboardController extends Controller
             ),
             default => response()->json([]),
         };
+    }
+
+    public function exportExcel(): StreamedResponse
+    {
+        $spreadsheet = new Spreadsheet;
+
+        // Sheet 1: 월별 추이
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('월별 추이');
+        $sheet->fromArray(['월', '신규 의뢰자', '누적 의뢰자', '신규 프로젝트', '상담 건수', '견적 건수', '견적 금액', '결제 금액', '일정 수'], null, 'A1');
+        $row = 2;
+        for ($i = 11; $i >= 0; $i--) {
+            $m = now()->subMonths($i);
+            $start = $m->copy()->startOfMonth();
+            $end = $m->copy()->endOfMonth();
+            $sheet->fromArray([
+                $m->format('Y.m'),
+                Client::whereBetween('created_at', [$start, $end])->count(),
+                Client::where('created_at', '<=', $end)->count(),
+                Project::whereBetween('created_at', [$start, $end])->count(),
+                Consultation::whereBetween('consulted_at', [$start, $end])->count(),
+                Estimate::whereBetween('created_at', [$start, $end])->count(),
+                (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount'),
+                (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount'),
+                Schedule::where('start_date', '>=', $start->format('Y-m-d'))->where('start_date', '<=', $end->format('Y-m-d'))->count(),
+            ], null, "A{$row}");
+            $row++;
+        }
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Sheet 2: 의뢰자 목록
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('의뢰자');
+        $gradeL = ['normal' => '일반', 'vip' => 'VIP', 'rental' => '렌탈'];
+        $sheet2->fromArray(['이름', '닉네임', '전화번호', '등급', '소속', '주소', '등록일'], null, 'A1');
+        $row = 2;
+        Client::orderByDesc('created_at')->chunk(200, function ($clients) use ($sheet2, &$row, $gradeL) {
+            foreach ($clients as $c) {
+                $sheet2->fromArray([$c->name, $c->nickname, $c->phone, $gradeL[$c->grade] ?? $c->grade, $c->affiliation, $c->address, $c->created_at->format('Y.m.d')], null, "A{$row}");
+                $row++;
+            }
+        });
+        $sheet2->getStyle('A1:G1')->getFont()->setBold(true);
+
+        // Sheet 3: 프로젝트 목록
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('프로젝트');
+        $typeL = ['visit' => '방문세팅', 'remote' => '원격세팅', 'design' => '디자인', 'inquiry' => '단순문의', 'as' => 'A/S', 'troubleshoot' => '문제 해결'];
+        $stageL = ['consulting' => '상담', 'equipment' => '장비파악', 'proposal' => '일정제안', 'estimate' => '견적/계약', 'payment' => '결제/예약', 'visit' => '세팅', 'as' => 'AS', 'done' => '완료', 'cancelled' => '취소'];
+        $sheet3->fromArray(['프로젝트명', '의뢰자', '유형', '단계', '상태', '등록일'], null, 'A1');
+        $row = 2;
+        Project::with('client')->orderByDesc('created_at')->chunk(200, function ($projects) use ($sheet3, &$row, $typeL, $stageL) {
+            foreach ($projects as $p) {
+                $sheet3->fromArray([$p->name, $p->client?->name, $typeL[$p->project_type] ?? $p->project_type, $stageL[$p->stage] ?? $p->stage, $p->status, $p->created_at->format('Y.m.d')], null, "A{$row}");
+                $row++;
+            }
+        });
+        $sheet3->getStyle('A1:F1')->getFont()->setBold(true);
+
+        $filename = 'drgo-statistics-'.now()->format('Y-m-d').'.xlsx';
+
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
     }
 }

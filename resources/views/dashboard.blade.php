@@ -55,9 +55,12 @@
 
 @section('content')
 <div class="dash-wrap">
-    <div class="dash-header">
-        <h1>📊 대시보드</h1>
-        <p>{{ now()->format('Y년 m월 d일') }} 기준 통계</p>
+    <div class="dash-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+            <h1>📊 대시보드</h1>
+            <p>{{ now()->format('Y년 m월 d일') }} 기준 통계</p>
+        </div>
+        <a href="/api/dashboard-export/excel" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:8px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📥 통계 엑셀 다운로드</a>
     </div>
 
     {{-- 주요 수치 카드 --}}
@@ -102,7 +105,7 @@
     <div class="chart-grid">
         {{-- 월별 추이 --}}
         <div class="chart-card full">
-            <div class="chart-title">📈 월별 추이 (최근 6개월)</div>
+            <div class="chart-title">📈 월별 신규 등록 추이 (최근 6개월)</div>
             <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
         </div>
 
@@ -128,6 +131,12 @@
         <div class="chart-card">
             <div class="chart-title">📅 일정 유형별</div>
             <div class="chart-wrap short"><canvas id="chartScheduleColor"></canvas></div>
+        </div>
+
+        {{-- 월별 견적 금액 --}}
+        <div class="chart-card full">
+            <div class="chart-title">💰 월별 견적 금액 추이</div>
+            <div class="chart-wrap"><canvas id="chartMonthlyEstimate"></canvas></div>
         </div>
     </div>
 
@@ -216,18 +225,20 @@ const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
 Chart.defaults.color = textColor;
 Chart.defaults.borderColor = gridColor;
 
-// 월별 추이
+// 월별 추이 (신규 등록 기준)
 new Chart(document.getElementById('chartMonthly'), {
-    type: 'line',
+    type: 'bar',
     data: {
         labels: @json(array_column($monthlyClients, 'label')),
         datasets: [
-            { label:'의뢰자', data:@json(array_column($monthlyClients, 'value')), borderColor:'#c8b08a', backgroundColor:'rgba(200,176,138,0.1)', fill:true, tension:0.3 },
-            { label:'프로젝트', data:@json(array_column($monthlyProjects, 'value')), borderColor:'#8ab4c8', backgroundColor:'rgba(138,180,200,0.1)', fill:true, tension:0.3 },
-            { label:'상담', data:@json(array_column($monthlyConsults, 'value')), borderColor:'#7ac87a', backgroundColor:'rgba(122,200,122,0.1)', fill:true, tension:0.3 },
+            { label:'신규 의뢰자', data:@json(array_column($monthlyClients, 'value')), backgroundColor:'rgba(200,176,138,0.7)', borderColor:'#c8b08a', borderWidth:1 },
+            { label:'신규 프로젝트', data:@json(array_column($monthlyProjects, 'value')), backgroundColor:'rgba(138,180,200,0.7)', borderColor:'#8ab4c8', borderWidth:1 },
+            { label:'상담', data:@json(array_column($monthlyConsults, 'value')), backgroundColor:'rgba(122,200,122,0.7)', borderColor:'#7ac87a', borderWidth:1 },
+            { label:'일정', data:@json(array_column($monthlySchedules, 'value')), backgroundColor:'rgba(155,112,200,0.7)', borderColor:'#9b70c8', borderWidth:1 },
+            { label:'누적 의뢰자', data:@json(array_column($monthlyClients, 'cumul')), type:'line', borderColor:'#e8894a', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', borderDash:[5,3], pointRadius:3 },
         ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}}} }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1},title:{display:true,text:'건수',font:{size:10}}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'누적',font:{size:10}}}} }
 });
 
 // 프로젝트 단계별
@@ -277,6 +288,20 @@ new Chart(document.getElementById('chartScheduleColor'), {
         datasets: [{ data:Object.values(schedData), backgroundColor:Object.keys(schedData).map(k=>schedColors[k]||'#999') }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}} }
+});
+
+// 월별 견적 금액 추이
+new Chart(document.getElementById('chartMonthlyEstimate'), {
+    type: 'bar',
+    data: {
+        labels: @json(array_column($monthlyEstimates, 'label')),
+        datasets: [
+            { label:'견적 금액', data:@json(array_column($monthlyEstimates, 'value')), backgroundColor:'rgba(200,176,138,0.6)', borderColor:'#c8b08a', borderWidth:1 },
+            { label:'결제 금액', data:@json(array_column($monthlyEstimates, 'paid')), backgroundColor:'rgba(78,205,196,0.6)', borderColor:'#4ecdc4', borderWidth:1 },
+            { label:'견적 건수', data:@json(array_column($monthlyEstimates, 'count')), type:'line', borderColor:'#9b70c8', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', pointRadius:3 },
+        ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=10000?(v/10000)+'만':v.toLocaleString()},title:{display:true,text:'금액(원)',font:{size:10}}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'건수',font:{size:10}}}} }
 });
 </script>
 @endpush
