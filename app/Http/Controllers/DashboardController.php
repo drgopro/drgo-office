@@ -216,44 +216,88 @@ class DashboardController extends Controller
         $bold = fn ($sheet, $range) => $sheet->getStyle($range)->getFont()->setBold(true);
         $auto = fn ($sheet, $cols) => collect($cols)->each(fn ($c) => $sheet->getColumnDimension($c)->setAutoSize(true));
 
-        // Sheet 1: 기간 요약
-        $s1 = $spreadsheet->getActiveSheet();
-        $s1->setTitle('기간 요약');
-        $s1->fromArray(["조회 기간: {$from} ~ {$to}"], null, 'A1');
-        $s1->mergeCells('A1:D1');
-        $bold($s1, 'A1');
+        // ── 핵심 지표 계산 ──
 
-        $s1->fromArray(['지표', '건수', '비고'], null, 'A3');
-        $bold($s1, 'A3:C3');
+        // 1. 재상담 수 (기간 이전에 등록된 의뢰자가 기간 내에 상담한 건수 중 2회차 이상)
+        $consultationsInPeriod = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])->get();
+        $clientConsultCounts = $consultationsInPeriod->groupBy(fn ($c) => $c->client_id ?? 0)->map->count();
+        $reConsultCount = $clientConsultCounts->filter(fn ($cnt) => $cnt >= 2)->sum(fn ($cnt) => $cnt - 1);
+        $existingClientConsults = $consultationsInPeriod->filter(fn ($c) => $c->client_id && Client::where('id', $c->client_id)->where('created_at', '<', $fromDt)->exists())->count();
 
+        // 2. 신규 의뢰자
         $newClients = Client::whereBetween('created_at', [$fromDt, $toDt])->count();
+
+        // 3. 상담 진행 중
+        $consultInProgress = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])->where('result', 'in_progress')->count();
+        $totalConsults = $consultationsInPeriod->count();
+
+        // 4. 세팅까지 진행된 건수 (stage가 visit, as, done)
+        $settingDone = Project::whereBetween('created_at', [$fromDt, $toDt])->whereIn('stage', ['visit', 'as', 'done'])->count();
+
+        // 5. 취소된 프로젝트
+        $cancelledProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->where('stage', 'cancelled')->count();
+
+        // 6. 세팅 후 매출 등록된 건수 (결제완료 견적서)
+        $paidEstimates = Estimate::where('status', 'paid')->whereBetween('created_at', [$fromDt, $toDt]);
+        $paidCount = $paidEstimates->count();
+
+        // 7. 매출 분류 (세팅비 = service_total, 장비판매 = product_total)
+        $allPaidEstimates = Estimate::where('status', 'paid')->whereBetween('created_at', [$fromDt, $toDt])->get();
+        $revenueService = $allPaidEstimates->sum('service_total');
+        $revenueProduct = $allPaidEstimates->sum('product_total');
+        $revenueTotal = $allPaidEstimates->sum('total_amount');
+
+        // 기타 보조 지표
         $newProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->count();
         $visitProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->where('project_type', 'visit')->count();
         $remoteProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->where('project_type', 'remote')->count();
-        $consults = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])->count();
-        $schedTotal = Schedule::where('start_date', '>=', $from)->where('start_date', '<=', $to)->count();
-        $schedVisit = Schedule::where('start_date', '>=', $from)->where('start_date', '<=', $to)->where('color', 'gold')->count();
-        $schedRemote = Schedule::where('start_date', '>=', $from)->where('start_date', '<=', $to)->where('color', 'teal')->count();
-        $estCount = Estimate::whereBetween('created_at', [$fromDt, $toDt])->count();
-        $estAmount = (int) Estimate::whereBetween('created_at', [$fromDt, $toDt])->sum('total_amount');
-        $estPaid = (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$fromDt, $toDt])->sum('total_amount');
 
-        $summaryRows = [
-            ['신규 의뢰자', $newClients, '기간 내 등록된 의뢰자'],
-            ['신규 프로젝트', $newProjects, "방문 {$visitProjects} / 원격 {$remoteProjects}"],
-            ['상담 건수', $consults, ''],
-            ['총 일정 수', $schedTotal, "방문 {$schedVisit} / 원격 {$schedRemote}"],
-            ['방문 건수 (프로젝트+일정)', $visitProjects + $schedVisit, ''],
-            ['원격 건수 (프로젝트+일정)', $remoteProjects + $schedRemote, ''],
-            ['견적서', $estCount, ''],
-            ['견적 금액', $estAmount, ''],
-            ['결제 금액 (매출)', $estPaid, ''],
-            ['누적 의뢰자 (기간 종료 시점)', Client::where('created_at', '<=', $toDt)->count(), ''],
+        // Sheet 1: 핵심 KPI 요약
+        $s1 = $spreadsheet->getActiveSheet();
+        $s1->setTitle('KPI 요약');
+        $s1->fromArray(['닥터고블린 오피스 — 기간 보고서'], null, 'A1');
+        $s1->mergeCells('A1:D1');
+        $s1->fromArray(["조회 기간: {$from} ~ {$to}"], null, 'A2');
+        $s1->mergeCells('A2:D2');
+        $bold($s1, 'A1');
+
+        // 마케팅 → 매출 파이프라인
+        $s1->fromArray(['구분', '지표', '건수/금액', '비고'], null, 'A4');
+        $bold($s1, 'A4:D4');
+
+        $kpiRows = [
+            ['마케팅', '신규 등록 의뢰자', $newClients, '기간 내 새로 등록된 의뢰자'],
+            ['마케팅', '기존 의뢰자 재상담 수', $reConsultCount, '같은 의뢰자의 2번째 이상 상담'],
+            ['마케팅', '기존 의뢰자 상담 건수', $existingClientConsults, '기간 전에 등록된 의뢰자의 기간 내 상담'],
+            ['', '', '', ''],
+            ['상담', '총 상담 건수', $totalConsults, ''],
+            ['상담', '상담 진행 중', $consultInProgress, '아직 완료되지 않은 상담'],
+            ['상담', '상담 완료', $consultationsInPeriod->where('result', 'done')->count(), ''],
+            ['', '', '', ''],
+            ['프로젝트', '신규 프로젝트', $newProjects, "방문 {$visitProjects} / 원격 {$remoteProjects}"],
+            ['프로젝트', '세팅 완료 (visit 이상)', $settingDone, '세팅·AS·완료 단계에 도달한 건'],
+            ['프로젝트', '취소된 프로젝트', $cancelledProjects, ''],
+            ['프로젝트', '전환율 (세팅/신규)', $newProjects > 0 ? round($settingDone / $newProjects * 100, 1).'%' : '-', '프로젝트 → 세팅 전환율'],
+            ['', '', '', ''],
+            ['매출', '결제 완료 건수', $paidCount, ''],
+            ['매출', '총 매출', number_format($revenueTotal).'원', ''],
+            ['매출', '└ 세팅비', number_format($revenueService).'원', 'service_items 합계'],
+            ['매출', '└ 장비판매', number_format($revenueProduct).'원', 'product_items 합계'],
+            ['매출', '건당 평균 매출', $paidCount > 0 ? number_format((int) ($revenueTotal / $paidCount)).'원' : '-', ''],
+            ['', '', '', ''],
+            ['누적', '총 의뢰자 (기간 종료 시점)', Client::where('created_at', '<=', $toDt)->count(), ''],
+            ['누적', '총 프로젝트', Project::where('created_at', '<=', $toDt)->count(), ''],
         ];
-        foreach ($summaryRows as $i => $r) {
-            $s1->fromArray($r, null, 'A'.($i + 4));
+        foreach ($kpiRows as $i => $r) {
+            $s1->fromArray($r, null, 'A'.($i + 5));
         }
-        $auto($s1, ['A', 'B', 'C']);
+        // 구분 열 색상 강조
+        foreach ([5, 6, 7, 9, 10, 11, 13, 14, 15, 18, 19, 20, 24, 25] as $r) {
+            if ($r <= count($kpiRows) + 4) {
+                $s1->getStyle("A{$r}")->getFont()->setBold(true);
+            }
+        }
+        $auto($s1, ['A', 'B', 'C', 'D']);
 
         // Sheet 2: 일별 추이
         $s2 = $spreadsheet->createSheet();
