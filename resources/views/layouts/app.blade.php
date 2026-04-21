@@ -242,7 +242,7 @@
                 <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');">장비 위치</a>
             @endif
             @if(Auth::user()->hasPermission('inventory.edit'))
-                <a href="#" style="font-size:14px;" onclick="event.preventDefault(); openGlobalQrScan();" title="QR 스캔">📷</a>
+                <a href="#" onclick="event.preventDefault(); openGlobalQrScan();">QR스캔</a>
             @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
