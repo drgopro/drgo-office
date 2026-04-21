@@ -194,7 +194,7 @@
         <div style="display:flex;gap:8px;">
             <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
             @if($project->stage !== 'cancelled')
-                <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="cancelProject()" title="프로젝트 취소 (데이터 보존)">취소</button>
+                <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
             @endif
             <button class="btn-edit" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="deleteProject()" title="완전 삭제">삭제</button>
             <button class="btn-primary" onclick="openConsultModal()">+ 상담 등록</button>
@@ -235,6 +235,19 @@
             @endforeach
         </div>
     </div>
+
+    @if($project->stage === 'cancelled' && $project->cancel_reason)
+    <div style="background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;">
+        <div style="font-weight:700;color:var(--red);margin-bottom:6px;">⛔ 취소 사유</div>
+        <div style="color:var(--text);">{{ $project->cancel_reason }}</div>
+        @if($project->cancel_detail)
+            <div style="color:var(--text-muted);margin-top:4px;">{{ $project->cancel_detail }}</div>
+        @endif
+        @if($project->cancelled_at)
+            <div style="color:var(--text-muted);font-size:11px;margin-top:6px;">취소일: {{ $project->cancelled_at->format('Y.m.d H:i') }}</div>
+        @endif
+    </div>
+    @endif
 
     <div class="info-grid">
         <div class="info-card">
@@ -569,6 +582,41 @@
         </form>
     </div>
 </div>
+{{-- 취소 사유 모달 --}}
+<div class="modal-overlay" id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)closeCancelModal()">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:440px;max-width:95vw;padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div style="font-size:16px;font-weight:700;">프로젝트 취소</div>
+            <button onclick="closeCancelModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">데이터는 보존되며, 단계만 "취소"로 변경됩니다.</p>
+        <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">취소 사유 *</div>
+            <div style="display:flex;flex-direction:column;gap:6px;" id="cancelReasons">
+                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+                    <input type="radio" name="cancel_reason" value="no_contact" style="accent-color:var(--accent);"> 의뢰자 연락 두절
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+                    <input type="radio" name="cancel_reason" value="client_request" style="accent-color:var(--accent);"> 의뢰자 사정으로 취소
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+                    <input type="radio" name="cancel_reason" value="schedule_mismatch" style="accent-color:var(--accent);"> 일정이 맞지 않음
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+                    <input type="radio" name="cancel_reason" value="other" style="accent-color:var(--accent);"> 기타
+                </label>
+            </div>
+        </div>
+        <div id="cancelDetailWrap" style="display:none;margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">상세 사유</div>
+            <textarea id="cancelDetail" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;resize:vertical;" placeholder="취소 사유를 입력하세요"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeCancelModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">닫기</button>
+            <button onclick="submitCancel()" style="background:var(--red);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">취소 처리</button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -681,14 +729,41 @@ async function saveMemo() {
     btn.textContent = '수정';
 }
 
-// 프로젝트 취소
-async function cancelProject() {
-    if (!confirm('이 프로젝트를 취소 상태로 변경하시겠습니까?\n(데이터는 보존되며, 단계만 "취소"로 변경됩니다)')) return;
+// 프로젝트 취소 모달
+function openCancelModal() {
+    document.getElementById('cancelModal').style.display = 'flex';
+    document.querySelectorAll('input[name="cancel_reason"]').forEach(r => r.checked = false);
+    document.getElementById('cancelDetail').value = '';
+    document.getElementById('cancelDetailWrap').style.display = 'none';
+}
+function closeCancelModal() { document.getElementById('cancelModal').style.display = 'none'; }
+
+// 라디오 선택 시 기타 상세 입력 토글
+document.querySelectorAll('input[name="cancel_reason"]').forEach(r => {
+    r.addEventListener('change', function() {
+        document.getElementById('cancelDetailWrap').style.display = this.value === 'other' ? 'block' : 'none';
+        // 선택된 라벨 강조
+        document.querySelectorAll('#cancelReasons label').forEach(l => l.style.borderColor = 'var(--border)');
+        this.closest('label').style.borderColor = 'var(--accent)';
+    });
+});
+
+async function submitCancel() {
+    const reason = document.querySelector('input[name="cancel_reason"]:checked');
+    if (!reason) { alert('취소 사유를 선택하세요.'); return; }
+    const REASON_LABELS = { no_contact:'의뢰자 연락 두절', client_request:'의뢰자 사정으로 취소', schedule_mismatch:'일정이 맞지 않음', other:'기타' };
+    const detail = reason.value === 'other' ? document.getElementById('cancelDetail').value.trim() : '';
+    if (reason.value === 'other' && !detail) { alert('기타 사유를 입력하세요.'); return; }
+
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const res = await fetch(`/projects/{{ $project->id }}/stage`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-        body: JSON.stringify({ stage: 'cancelled' }),
+        body: JSON.stringify({
+            stage: 'cancelled',
+            cancel_reason: REASON_LABELS[reason.value] || reason.value,
+            cancel_detail: detail || null,
+        }),
     });
     if (res.ok || res.status === 302) location.reload();
     else alert('취소 처리 실패');

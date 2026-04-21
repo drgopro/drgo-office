@@ -21,11 +21,15 @@ class Project extends Model
         'memo',
         'as_deadline',
         'completed_at',
+        'cancel_reason',
+        'cancel_detail',
+        'cancelled_at',
     ];
 
     protected $casts = [
         'as_deadline' => 'date',
         'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function client()

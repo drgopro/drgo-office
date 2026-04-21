@@ -101,12 +101,26 @@ class ProjectController extends Controller
     {
         $request->validate([
             'stage' => 'required|in:consulting,equipment,proposal,estimate,payment,visit,as,done,cancelled',
+            'cancel_reason' => 'nullable|string|max:50',
+            'cancel_detail' => 'nullable|string|max:500',
         ]);
 
-        $project->update(['stage' => $request->stage]);
+        $data = ['stage' => $request->stage];
 
         if ($request->stage === 'done') {
-            $project->update(['completed_at' => now()]);
+            $data['completed_at'] = now();
+        }
+
+        if ($request->stage === 'cancelled') {
+            $data['cancel_reason'] = $request->cancel_reason;
+            $data['cancel_detail'] = $request->cancel_detail;
+            $data['cancelled_at'] = now();
+        }
+
+        $project->update($data);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => '변경되었습니다.']);
         }
 
         return back()->with('success', '단계가 변경되었습니다.');
