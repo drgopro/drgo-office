@@ -105,6 +105,7 @@ class DashboardController extends Controller
         $consultL = ['kakao' => '카카오톡', 'phone' => '전화', 'visit' => '내방상담', 'field' => '현장답사'];
         $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
         $colorL = ['gold' => '방문의뢰', 'teal' => '원격/방송룸', 'blue' => '사내업무', 'red' => '휴가/개인', 'green' => '촬영/스튜디오', 'purple' => '미팅/내방'];
+        $resultL = ['in_progress' => '진행중', 'waiting' => '대기', 'valid' => '유효', 'invalid' => '무효', 'done' => '완료'];
 
         // 기간 필터
         $from = $request->query('from');
@@ -141,7 +142,7 @@ class DashboardController extends Controller
             'consultations' => response()->json(
                 $dateFilter(Consultation::with('client', 'consultant')->orderByDesc('consulted_at'), 'consulted_at')->limit(300)->get()->map(fn ($c) => [
                     'id' => $c->id, 'client' => $c->client?->name, 'type' => $consultL[$c->consult_type] ?? $c->consult_type,
-                    'result' => $c->result, 'content' => \Str::limit($c->content, 60),
+                    'result' => $resultL[$c->result] ?? $c->result, 'content' => \Str::limit($c->content, 60),
                     'consultant' => $c->consultant?->display_name, 'date' => $c->consulted_at->format('Y.m.d'),
                 ])
             ),
@@ -156,7 +157,8 @@ class DashboardController extends Controller
             'schedules' => response()->json(
                 $dateFilter(Schedule::orderBy('start_date'), 'start_date')->limit(300)->get()->map(fn ($s) => [
                     'id' => $s->id, 'title' => $s->title, 'color' => $colorL[$s->color] ?? $s->color,
-                    'client' => $s->client_name, 'date' => $s->start_date,
+                    'client' => $s->client_name,
+                    'date' => $s->start_date?->format('Y-m-d'),
                     'time' => $s->start_time ? substr($s->start_time, 0, 5) : '종일',
                 ])
             ),

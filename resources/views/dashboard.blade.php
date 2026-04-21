@@ -21,9 +21,9 @@
     .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .chart-card.full { grid-column:1/-1; }
     .chart-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
-    .chart-wrap { position:relative; height:220px; max-height:220px; overflow:hidden; }
-    .chart-wrap.short { height:180px; max-height:180px; }
-    .chart-wrap canvas { max-height:100% !important; }
+    .chart-wrap { position:relative; width:100%; height:220px; }
+    .chart-wrap.short { height:180px; }
+    .chart-wrap canvas { position:absolute; inset:0; width:100% !important; height:100% !important; }
 
     .detail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
     .detail-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:12px; }
@@ -272,7 +272,7 @@ const DETAIL_TITLES={clients:'👤 의뢰자 상세',projects:'📁 프로젝트
 const DETAIL_COLS={
     clients:['이름','닉네임','전화번호','등급','등록일'],
     projects:['프로젝트명','의뢰자','유형','단계','등록일'],
-    consultations:['의뢰자','유형','결과','내용','담당자','날짜'],
+    consultations:['의뢰자','유형','진행상황','내용','담당자','날짜'],
     estimates:['#','의뢰자','상태','총액','작성자','등록일'],
     schedules:['제목','유형','의뢰자','날짜','시간'],
 };
