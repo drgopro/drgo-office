@@ -10,6 +10,12 @@ use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Chart\Chart;
+use PhpOffice\PhpSpreadsheet\Chart\DataSeries;
+use PhpOffice\PhpSpreadsheet\Chart\DataSeriesValues;
+use PhpOffice\PhpSpreadsheet\Chart\Legend;
+use PhpOffice\PhpSpreadsheet\Chart\PlotArea;
+use PhpOffice\PhpSpreadsheet\Chart\Title;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -323,6 +329,55 @@ class DashboardController extends Controller
             $cur->addDay();
         }
         $auto($s2, ['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+        $dailyRowCount = $row - 1;
+
+        // 일별 추이 차트 (라인)
+        if ($dailyRowCount > 1) {
+            $dailyLabels = [new DataSeriesValues('String', "'일별 추이'!\$A\$2:\$A\${$dailyRowCount}", null, $dailyRowCount - 1)];
+            $dailySeries = [
+                new DataSeriesValues('Number', "'일별 추이'!\$B\$2:\$B\${$dailyRowCount}", "'일별 추이'!\$B\$1", $dailyRowCount - 1),
+                new DataSeriesValues('Number', "'일별 추이'!\$C\$2:\$C\${$dailyRowCount}", "'일별 추이'!\$C\$1", $dailyRowCount - 1),
+                new DataSeriesValues('Number', "'일별 추이'!\$D\$2:\$D\${$dailyRowCount}", "'일별 추이'!\$D\$1", $dailyRowCount - 1),
+            ];
+            $dailyDS = new DataSeries(DataSeries::TYPE_LINECHART, null, range(0, count($dailySeries) - 1), $dailyLabels, $dailyLabels, $dailySeries);
+            $dailyChart = new Chart('DailyTrend', new Title('일별 신규 등록 추이'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$dailyDS]));
+            $dailyChart->setTopLeftPosition('I1');
+            $dailyChart->setBottomRightPosition('R20');
+            $s2->addChart($dailyChart);
+        }
+
+        // KPI 요약에 매출 분류 파이차트
+        $chartDataRow = count($kpiRows) + 6;
+        $s1->fromArray(['매출 구성', '금액'], null, 'F4');
+        $s1->fromArray(['세팅비', $revenueService], null, 'F5');
+        $s1->fromArray(['장비판매', $revenueProduct], null, 'F6');
+        $bold($s1, 'F4:G4');
+
+        $pieLabels = [new DataSeriesValues('String', "'KPI 요약'!\$F\$5:\$F\$6", null, 2)];
+        $pieValues = [new DataSeriesValues('Number', "'KPI 요약'!\$G\$5:\$G\$6", "'KPI 요약'!\$G\$4", 2)];
+        $pieDS = new DataSeries(DataSeries::TYPE_PIECHART, null, [0], $pieLabels, $pieLabels, $pieValues);
+        $pieChart = new Chart('RevenueBreakdown', new Title('매출 구성 (세팅비 vs 장비판매)'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$pieDS]));
+        $pieChart->setTopLeftPosition('F8');
+        $pieChart->setBottomRightPosition('K22');
+        $s1->addChart($pieChart);
+
+        // KPI 요약에 파이프라인 바차트
+        $s1->fromArray(['파이프라인', '건수'], null, 'F24');
+        $s1->fromArray(['신규 의뢰자', $newClients], null, 'F25');
+        $s1->fromArray(['총 상담', $totalConsults], null, 'F26');
+        $s1->fromArray(['신규 프로젝트', $newProjects], null, 'F27');
+        $s1->fromArray(['세팅 완료', $settingDone], null, 'F28');
+        $s1->fromArray(['결제 완료', $paidCount], null, 'F29');
+        $bold($s1, 'F24:G24');
+
+        $barLabels = [new DataSeriesValues('String', "'KPI 요약'!\$F\$25:\$F\$29", null, 5)];
+        $barValues = [new DataSeriesValues('Number', "'KPI 요약'!\$G\$25:\$G\$29", "'KPI 요약'!\$G\$24", 5)];
+        $barDS = new DataSeries(DataSeries::TYPE_BARCHART, DataSeries::GROUPING_STANDARD, [0], $barLabels, $barLabels, $barValues);
+        $barDS->setPlotDirection(DataSeries::DIRECTION_HORIZONTAL);
+        $barChart = new Chart('Pipeline', new Title('마케팅 → 매출 파이프라인'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$barDS]));
+        $barChart->setTopLeftPosition('F31');
+        $barChart->setBottomRightPosition('K45');
+        $s1->addChart($barChart);
 
         // Sheet 3: 의뢰자 목록
         $s3 = $spreadsheet->createSheet();
@@ -393,6 +448,7 @@ class DashboardController extends Controller
 
         return new StreamedResponse(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
+            $writer->setIncludeCharts(true);
             $writer->save('php://output');
         }, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
