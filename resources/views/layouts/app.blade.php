@@ -112,6 +112,9 @@
         .admin-link { font-size:12px; color:var(--text-muted); text-decoration:none; padding:5px 10px; border:1px solid var(--border); border-radius:6px; transition:all 0.15s; }
         .admin-link:hover, .admin-link.active { border-color:var(--accent); color:var(--accent); }
         .theme-toggle { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; transition:all 0.15s; }
+        .qr-fab { background:var(--accent); color:#1a1207; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
+        .qr-fab:hover { filter:brightness(1.1); }
+        [data-theme="light"] .qr-fab { color:#fff; }
         .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
 
         /* 햄버거 / 모바일전용 */
@@ -153,6 +156,7 @@
             .header { padding:0 12px; height:var(--header-h); }
             .logo { font-size:12px; padding-right:10px; margin-right:10px; }
             .header-right .user-role, .header-right .admin-link { display:none; }
+            .qr-fab { position:fixed; top:6px; right:12px; z-index:210; padding:8px 14px; font-size:12px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
             .header-right { gap:4px; }
 
             .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
@@ -255,6 +259,9 @@
         <div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
     </div>
     <div class="header-right">
+        @if(Auth::user()->hasPermission('inventory.edit'))
+            <button class="qr-fab" onclick="openGlobalQrScan()" title="QR 스캔">QR</button>
+        @endif
         @if(Auth::user()->isAdmin())
             <a href="#" class="admin-link {{ request()->is('admin*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('admin','/admin');">관리</a>
         @endif
