@@ -69,7 +69,12 @@
             <h1>📊 대시보드</h1>
             <p>{{ now()->format('Y년 m월 d일') }} 기준 통계</p>
         </div>
-        <a href="/api/dashboard-export/excel" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:8px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📥 통계 엑셀 다운로드</a>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input type="date" id="excelFrom" value="{{ now()->startOfMonth()->format('Y-m-d') }}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:11px;">
+            <span style="color:var(--text-muted);font-size:11px;">~</span>
+            <input type="date" id="excelTo" value="{{ now()->format('Y-m-d') }}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:11px;">
+            <a href="#" onclick="event.preventDefault();location.href='/api/dashboard-export/excel?from='+document.getElementById('excelFrom').value+'&to='+document.getElementById('excelTo').value;" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:8px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📥 엑셀 다운로드</a>
+        </div>
     </div>
 
     {{-- 주요 수치 카드 --}}

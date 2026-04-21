@@ -454,10 +454,9 @@ function bdRender() {
     const board = document.getElementById('bdBoard');
     const items = bdFilteredItems();
     const targets = bdState.targets;
-    const addCol = targets.length + 2; // 마지막 열 번호
-    const addRow = items.length + 2; // 마지막 행 번호
+    const totalCols = targets.length + 1;
     const colWidth = 120, firstColWidth = 200;
-    board.style.gridTemplateColumns = `${firstColWidth}px repeat(${targets.length}, minmax(${colWidth}px, 1fr)) 60px`;
+    board.style.gridTemplateColumns = `${firstColWidth}px repeat(${totalCols}, minmax(${colWidth}px, 1fr))`;
 
     let html = `<div class="eq-cell-base eq-corner">장비 \\ 대상 →</div>`;
     targets.forEach(t => {
@@ -466,8 +465,7 @@ function bdRender() {
             ${t.phone ? `<div class="ch-sub">${bdEsc(t.phone)}</div>` : ''}
         </div>`;
     });
-    // 우측 마지막 열 헤더 빈칸
-    html += `<div class="eq-cell-base eq-corner" style="grid-column:${addCol};"></div>`;
+    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1">＋ 대상 추가</div>`;
 
     items.forEach(item => {
         html += `<div class="eq-cell-base eq-row-header" data-item-id="${item.id}">
@@ -480,14 +478,13 @@ function bdRender() {
                 ${marked ? '<div class="eq-o-mark">●</div>' : ''}
             </div>`;
         });
-        // 우측 빈칸 (대상 추가 셀 공간)
-        html += `<div class="eq-cell-base" style="grid-column:${addCol};"></div>`;
+        html += `<div class="eq-cell-base eq-matrix-cell" style="cursor:default;"></div>`;
     });
 
-    // 하단: 장비 추가 (가로 전체 통합)
-    html += `<div class="eq-cell-base eq-row-header empty" data-add-item="1" style="grid-column:1/span ${targets.length + 1};text-align:center;">＋ 장비 추가</div>`;
-    // 우측 하단: 대상 추가 (세로 세워서 표시)
-    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1" style="grid-column:${addCol};grid-row:2/span ${items.length + 1};display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;letter-spacing:0.08em;">＋ 추가</div>`;
+    html += `<div class="eq-cell-base eq-row-header empty" data-add-item="1">＋ 장비 추가</div>`;
+    for (let i = 0; i < totalCols; i++) {
+        html += `<div class="eq-cell-base eq-matrix-cell" style="cursor:default;"></div>`;
+    }
 
     board.innerHTML = html;
 
