@@ -21,8 +21,9 @@
     .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .chart-card.full { grid-column:1/-1; }
     .chart-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
-    .chart-wrap { position:relative; height:220px; }
-    .chart-wrap.short { height:180px; }
+    .chart-wrap { position:relative; height:220px; max-height:220px; overflow:hidden; }
+    .chart-wrap.short { height:180px; max-height:180px; }
+    .chart-wrap canvas { max-height:100% !important; }
 
     .detail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
     .detail-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:12px; }
@@ -44,6 +45,11 @@
     .dash-table a:hover { text-decoration:underline; }
     .dash-filter { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
     .dash-filter select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer; }
+
+    .dm-period { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.12s; }
+    .dm-period:hover { border-color:var(--accent); color:var(--accent); }
+    .dm-period.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:600; }
+    [data-theme="light"] .dm-period.active { color:#fff; }
 
     @media (max-width:768px) {
         .stat-cards { grid-template-columns:repeat(2,1fr); }
@@ -230,11 +236,27 @@
 </div>
 <!-- 상세 모달 -->
 <div class="dash-modal" id="dashModal" onclick="if(event.target===this)closeDashModal()">
-    <div class="dash-modal-body">
-        <div class="dash-modal-header">
-            <h3 id="dashModalTitle">상세</h3>
-            <button onclick="closeDashModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+    <div class="dash-modal-body" style="max-width:800px;">
+        <div class="dash-modal-header" style="flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                <h3 id="dashModalTitle">상세</h3>
+                <button onclick="closeDashModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+            </div>
+            <div id="dashModalFilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100;">
+                <button class="dm-period active" data-period="1m" onclick="setDetailPeriod('1m',this)">1개월</button>
+                <button class="dm-period" data-period="3m" onclick="setDetailPeriod('3m',this)">3개월</button>
+                <button class="dm-period" data-period="6m" onclick="setDetailPeriod('6m',this)">6개월</button>
+                <button class="dm-period" data-period="all" onclick="setDetailPeriod('all',this)">전체</button>
+                <span style="color:var(--border);margin:0 4px;">|</span>
+                <input type="month" id="dmMonth" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;cursor:pointer;" onchange="setDetailMonth(this.value)">
+                <span style="color:var(--border);margin:0 4px;">|</span>
+                <input type="date" id="dmFrom" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;" title="시작일">
+                <span style="font-size:11px;color:var(--text-muted);">~</span>
+                <input type="date" id="dmTo" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;" title="종료일">
+                <button onclick="applyCustomRange()" style="background:var(--accent);color:#1a1207;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">조회</button>
+            </div>
         </div>
+        <div style="padding:8px 20px 0;font-size:12px;color:var(--text-muted);" id="dashModalInfo"></div>
         <div class="dash-modal-content" id="dashModalContent">
             <div style="padding:20px;text-align:center;color:var(--text-muted);">로딩 중...</div>
         </div>
@@ -246,35 +268,99 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 // 상세 모달
-const DETAIL_TITLES={clients:'👤 의뢰자 상세',projects:'📁 프로젝트 상세',consultations:'💬 상담 이력 상세',estimates:'📄 견적서 상세',schedules:'📅 이번 달 일정'};
+const DETAIL_TITLES={clients:'👤 의뢰자 상세',projects:'📁 프로젝트 상세',consultations:'💬 상담 이력',estimates:'📄 견적서 상세',schedules:'📅 일정 상세'};
 const DETAIL_COLS={
-    clients:['이름','닉네임','전화번호','등급','등록일',''],
-    projects:['프로젝트명','의뢰자','유형','단계','등록일',''],
+    clients:['이름','닉네임','전화번호','등급','등록일'],
+    projects:['프로젝트명','의뢰자','유형','단계','등록일'],
     consultations:['의뢰자','유형','결과','내용','담당자','날짜'],
     estimates:['#','의뢰자','상태','총액','작성자','등록일'],
-    schedules:['제목','유형','의뢰자','날짜','시간',''],
+    schedules:['제목','유형','의뢰자','날짜','시간'],
 };
+let currentDetailType='';
+let currentDetailPeriod='1m';
 
 function openDetail(type){
+    currentDetailType=type;
     document.getElementById('dashModalTitle').textContent=DETAIL_TITLES[type]||'상세';
-    document.getElementById('dashModalContent').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">로딩 중...</div>';
     document.getElementById('dashModal').classList.add('open');
-    fetch('/api/dashboard/'+type,{headers:{'Accept':'application/json'}}).then(r=>r.json()).then(data=>{
-        if(!data.length){document.getElementById('dashModalContent').innerHTML='<div style="padding:30px;text-align:center;color:var(--text-muted);">데이터가 없습니다.</div>';return;}
+    // 기간 초기화: 1개월
+    document.querySelectorAll('.dm-period').forEach(b=>b.classList.remove('active'));
+    document.querySelector('.dm-period[data-period="1m"]').classList.add('active');
+    document.getElementById('dmMonth').value='';
+    document.getElementById('dmFrom').value='';
+    document.getElementById('dmTo').value='';
+    currentDetailPeriod='1m';
+    loadDetailData(type, periodToRange('1m'));
+}
+
+function periodToRange(period){
+    const now=new Date();
+    let from='', to=now.toISOString().slice(0,10);
+    if(period==='1m'){ const d=new Date(now); d.setMonth(d.getMonth()-1); from=d.toISOString().slice(0,10); }
+    else if(period==='3m'){ const d=new Date(now); d.setMonth(d.getMonth()-3); from=d.toISOString().slice(0,10); }
+    else if(period==='6m'){ const d=new Date(now); d.setMonth(d.getMonth()-6); from=d.toISOString().slice(0,10); }
+    else if(period==='all'){ from=''; to=''; }
+    return {from, to};
+}
+
+function setDetailPeriod(period, btn){
+    currentDetailPeriod=period;
+    document.querySelectorAll('.dm-period').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('dmMonth').value='';
+    document.getElementById('dmFrom').value='';
+    document.getElementById('dmTo').value='';
+    loadDetailData(currentDetailType, periodToRange(period));
+}
+
+function setDetailMonth(monthStr){
+    if(!monthStr) return;
+    document.querySelectorAll('.dm-period').forEach(b=>b.classList.remove('active'));
+    document.getElementById('dmFrom').value='';
+    document.getElementById('dmTo').value='';
+    const from=monthStr+'-01';
+    const d=new Date(from); d.setMonth(d.getMonth()+1); d.setDate(0);
+    const to=d.toISOString().slice(0,10);
+    loadDetailData(currentDetailType, {from, to});
+}
+
+function applyCustomRange(){
+    const from=document.getElementById('dmFrom').value;
+    const to=document.getElementById('dmTo').value;
+    if(!from&&!to){ alert('시작일 또는 종료일을 입력하세요.'); return; }
+    document.querySelectorAll('.dm-period').forEach(b=>b.classList.remove('active'));
+    document.getElementById('dmMonth').value='';
+    loadDetailData(currentDetailType, {from, to});
+}
+
+function loadDetailData(type, range){
+    const content=document.getElementById('dashModalContent');
+    const info=document.getElementById('dashModalInfo');
+    content.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">로딩 중...</div>';
+    let url='/api/dashboard/'+type+'?';
+    if(range.from) url+='from='+range.from+'&';
+    if(range.to) url+='to='+range.to+'&';
+    const rangeLabel=range.from&&range.to?range.from+' ~ '+range.to:range.from?range.from+' 이후':range.to?range.to+' 이전':'전체 기간';
+    info.textContent='📊 '+rangeLabel;
+
+    fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.json()).then(data=>{
+        if(!data.length){content.innerHTML='<div style="padding:30px;text-align:center;color:var(--text-muted);">해당 기간에 데이터가 없습니다.</div>';return;}
+        info.textContent='📊 '+rangeLabel+' · '+data.length+'건';
         const cols=DETAIL_COLS[type]||[];
         let html='<table class="dash-table"><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>';
         data.forEach(row=>{
             const link=row.url?`onclick="navTo('${row.url}')" style="cursor:pointer;"`:'';
-            if(type==='clients') html+=`<tr ${link}><td>${row.name}</td><td>${row.nickname||''}</td><td>${row.phone||''}</td><td>${row.grade}</td><td>${row.created_at}</td><td></td></tr>`;
-            else if(type==='projects') html+=`<tr ${link}><td>${row.name}</td><td>${row.client||''}</td><td>${row.type}</td><td>${row.stage}</td><td>${row.created_at}</td><td></td></tr>`;
+            if(type==='clients') html+=`<tr ${link}><td>${row.name}</td><td>${row.nickname||''}</td><td>${row.phone||''}</td><td>${row.grade}</td><td>${row.created_at}</td></tr>`;
+            else if(type==='projects') html+=`<tr ${link}><td>${row.name}</td><td>${row.client||''}</td><td>${row.type}</td><td>${row.stage}</td><td>${row.created_at}</td></tr>`;
             else if(type==='consultations') html+=`<tr><td>${row.client||''}</td><td>${row.type}</td><td>${row.result}</td><td>${row.content||''}</td><td>${row.consultant||''}</td><td>${row.date}</td></tr>`;
             else if(type==='estimates') html+=`<tr ${link}><td>#${row.id}</td><td>${row.client||''}</td><td>${row.status}</td><td>${row.total}원</td><td>${row.creator||''}</td><td>${row.created_at}</td></tr>`;
-            else if(type==='schedules') html+=`<tr><td>${row.title}</td><td>${row.color}</td><td>${row.client||''}</td><td>${row.date}</td><td>${row.time}</td><td></td></tr>`;
+            else if(type==='schedules') html+=`<tr><td>${row.title}</td><td>${row.color}</td><td>${row.client||''}</td><td>${row.date}</td><td>${row.time}</td></tr>`;
         });
         html+='</tbody></table>';
-        document.getElementById('dashModalContent').innerHTML=html;
-    }).catch(()=>{document.getElementById('dashModalContent').innerHTML='<div style="padding:20px;text-align:center;color:var(--red);">로드 실패</div>';});
+        content.innerHTML=html;
+    }).catch(()=>{content.innerHTML='<div style="padding:20px;text-align:center;color:var(--red);">로드 실패</div>';});
 }
+
 function closeDashModal(){document.getElementById('dashModal').classList.remove('open');}
 function navTo(url){
     closeDashModal();

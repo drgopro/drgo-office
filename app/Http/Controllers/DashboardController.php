@@ -106,16 +106,31 @@ class DashboardController extends Controller
         $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
         $colorL = ['gold' => '방문의뢰', 'teal' => '원격/방송룸', 'blue' => '사내업무', 'red' => '휴가/개인', 'green' => '촬영/스튜디오', 'purple' => '미팅/내방'];
 
+        // 기간 필터
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        $dateFilter = function ($query, string $dateCol = 'created_at') use ($from, $to) {
+            if ($from) {
+                $query->where($dateCol, '>=', $from);
+            }
+            if ($to) {
+                $query->where($dateCol, '<=', $to.' 23:59:59');
+            }
+
+            return $query;
+        };
+
         return match ($type) {
             'clients' => response()->json(
-                Client::orderByDesc('created_at')->limit(100)->get()->map(fn ($c) => [
+                $dateFilter(Client::orderByDesc('created_at'))->limit(300)->get()->map(fn ($c) => [
                     'id' => $c->id, 'name' => $c->name, 'nickname' => $c->nickname, 'phone' => $c->phone,
                     'grade' => $gradeL[$c->grade] ?? $c->grade, 'created_at' => $c->created_at->format('Y.m.d'),
                     'url' => '/clients?open='.$c->id,
                 ])
             ),
             'projects' => response()->json(
-                Project::with('client')->orderByDesc('created_at')->limit(100)->get()->map(fn ($p) => [
+                $dateFilter(Project::with('client')->orderByDesc('created_at'))->limit(300)->get()->map(fn ($p) => [
                     'id' => $p->id, 'name' => $p->name, 'client' => $p->client?->name,
                     'type' => $typeL[$p->project_type] ?? $p->project_type,
                     'stage' => $stageL[$p->stage] ?? $p->stage,
@@ -124,14 +139,14 @@ class DashboardController extends Controller
                 ])
             ),
             'consultations' => response()->json(
-                Consultation::with('client', 'consultant')->orderByDesc('consulted_at')->limit(100)->get()->map(fn ($c) => [
+                $dateFilter(Consultation::with('client', 'consultant')->orderByDesc('consulted_at'), 'consulted_at')->limit(300)->get()->map(fn ($c) => [
                     'id' => $c->id, 'client' => $c->client?->name, 'type' => $consultL[$c->consult_type] ?? $c->consult_type,
                     'result' => $c->result, 'content' => \Str::limit($c->content, 60),
                     'consultant' => $c->consultant?->display_name, 'date' => $c->consulted_at->format('Y.m.d'),
                 ])
             ),
             'estimates' => response()->json(
-                Estimate::with('creator')->orderByDesc('created_at')->limit(100)->get()->map(fn ($e) => [
+                $dateFilter(Estimate::with('creator')->orderByDesc('created_at'))->limit(300)->get()->map(fn ($e) => [
                     'id' => $e->id, 'client' => $e->client_nickname ?: $e->client_name,
                     'status' => $statusL[$e->status] ?? $e->status, 'total' => number_format($e->total_amount ?? 0),
                     'creator' => $e->creator?->display_name, 'created_at' => $e->created_at->format('Y.m.d'),
@@ -139,7 +154,7 @@ class DashboardController extends Controller
                 ])
             ),
             'schedules' => response()->json(
-                Schedule::where('start_date', '>=', now()->startOfMonth())->orderBy('start_date')->limit(100)->get()->map(fn ($s) => [
+                $dateFilter(Schedule::orderBy('start_date'), 'start_date')->limit(300)->get()->map(fn ($s) => [
                     'id' => $s->id, 'title' => $s->title, 'color' => $colorL[$s->color] ?? $s->color,
                     'client' => $s->client_name, 'date' => $s->start_date,
                     'time' => $s->start_time ? substr($s->start_time, 0, 5) : '종일',
