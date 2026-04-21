@@ -458,6 +458,8 @@ function bdRender() {
     const colWidth = 120, firstColWidth = 200;
     board.style.gridTemplateColumns = `${firstColWidth}px repeat(${totalCols}, minmax(${colWidth}px, 1fr))`;
 
+    const totalRows = items.length + 2; // header + items + add row
+
     let html = `<div class="eq-cell-base eq-corner">장비 \\ 대상 →</div>`;
     targets.forEach(t => {
         html += `<div class="eq-cell-base eq-col-header" data-target-id="${t.id}">
@@ -465,7 +467,8 @@ function bdRender() {
             ${t.phone ? `<div class="ch-sub">${bdEsc(t.phone)}</div>` : ''}
         </div>`;
     });
-    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1">＋ 대상 추가</div>`;
+    // 대상 추가: 세로 전체를 하나의 셀로 통합
+    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1" style="grid-row:1/span ${totalRows};display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;letter-spacing:0.1em;">＋ 위치/사람 추가</div>`;
 
     items.forEach(item => {
         html += `<div class="eq-cell-base eq-row-header" data-item-id="${item.id}">
@@ -478,13 +481,10 @@ function bdRender() {
                 ${marked ? '<div class="eq-o-mark">●</div>' : ''}
             </div>`;
         });
-        html += `<div class="eq-cell-base eq-matrix-cell" style="cursor:default;"></div>`;
     });
 
-    html += `<div class="eq-cell-base eq-row-header empty" data-add-item="1">＋ 장비 추가</div>`;
-    for (let i = 0; i < totalCols; i++) {
-        html += `<div class="eq-cell-base eq-matrix-cell" style="cursor:default;"></div>`;
-    }
+    // 장비 추가: 가로 전체를 하나의 셀로 통합
+    html += `<div class="eq-cell-base eq-row-header empty" data-add-item="1" style="grid-column:1/span ${targets.length + 1};text-align:center;">＋ 장비 추가</div>`;
 
     board.innerHTML = html;
 
