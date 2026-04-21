@@ -22,6 +22,36 @@ class DashboardController extends Controller
         $clientThisMonth = Client::where('created_at', '>=', now()->startOfMonth())->count();
         $clientByGrade = Client::select('grade', DB::raw('count(*) as cnt'))->groupBy('grade')->pluck('cnt', 'grade');
 
+        // 일별 집계 (이번 달)
+        $dailyData = [];
+        $daysInMonth = now()->daysInMonth;
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date = now()->startOfMonth()->addDays($d - 1);
+            $ds = $date->format('Y-m-d');
+            $de = $date->copy()->endOfDay();
+            $dailyData[] = [
+                'label' => $d.'일',
+                'clients' => Client::whereBetween('created_at', [$ds, $de])->count(),
+                'projects' => Project::whereBetween('created_at', [$ds, $de])->count(),
+                'consults' => Consultation::where('consulted_at', '>=', $ds)->where('consulted_at', '<=', $de)->count(),
+            ];
+        }
+
+        // 년별 집계 (최근 3년)
+        $yearlyData = [];
+        for ($y = 2; $y >= 0; $y--) {
+            $yr = now()->subYears($y)->year;
+            $ys = "{$yr}-01-01";
+            $ye = "{$yr}-12-31 23:59:59";
+            $yearlyData[] = [
+                'label' => $yr.'년',
+                'clients' => Client::whereBetween('created_at', [$ys, $ye])->count(),
+                'projects' => Project::whereBetween('created_at', [$ys, $ye])->count(),
+                'consults' => Consultation::whereBetween('consulted_at', [$ys, $ye])->count(),
+                'schedules' => Schedule::where('start_date', '>=', $ys)->where('start_date', '<=', substr($ye, 0, 10))->count(),
+            ];
+        }
+
         // 프로젝트 통계
         $projectTotal = Project::count();
         $projectActive = Project::whereNotIn('stage', ['done', 'cancelled'])->count();
@@ -87,7 +117,7 @@ class DashboardController extends Controller
         $scheduleByColor = Schedule::select('color', DB::raw('count(*) as cnt'))->groupBy('color')->pluck('cnt', 'color');
 
         return view('dashboard', compact(
-            'clientTotal', 'clientThisMonth', 'clientByGrade',
+            'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',
             'consultTotal', 'consultThisMonth', 'consultByType',

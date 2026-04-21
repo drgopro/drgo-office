@@ -46,6 +46,9 @@
     .dash-filter { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
     .dash-filter select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer; }
 
+    .trend-tab { background:none; border:none; color:var(--text-muted); padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:600; transition:all 0.12s; }
+    .trend-tab.active { background:var(--accent); color:#1a1207; }
+    [data-theme="light"] .trend-tab.active { color:#fff; }
     .dm-period { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.12s; }
     .dm-period:hover { border-color:var(--accent); color:var(--accent); }
     .dm-period.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:600; }
@@ -177,7 +180,14 @@
     <div class="chart-grid">
         {{-- 월별 추이 --}}
         <div class="chart-card full">
-            <div class="chart-title">📈 월별 신규 등록 추이 (최근 6개월)</div>
+            <div class="chart-title" style="justify-content:space-between;">
+                <span>📈 신규 등록 추이</span>
+                <div style="display:flex;gap:2px;background:var(--surface2);border-radius:6px;padding:2px;">
+                    <button class="trend-tab active" data-range="day" onclick="switchTrendTab('day',this)">일</button>
+                    <button class="trend-tab" data-range="month" onclick="switchTrendTab('month',this)">월</button>
+                    <button class="trend-tab" data-range="year" onclick="switchTrendTab('year',this)">년</button>
+                </div>
+            </div>
             <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
         </div>
 
@@ -377,10 +387,17 @@ const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
 Chart.defaults.color = textColor;
 Chart.defaults.borderColor = gridColor;
 
-// 월별 추이 (신규 등록 기준)
-new Chart(document.getElementById('chartMonthly'), {
-    type: 'bar',
-    data: {
+// 추이 차트 데이터
+const trendData = {
+    day: {
+        labels: @json(array_column($dailyData, 'label')),
+        datasets: [
+            { label:'신규 의뢰자', data:@json(array_column($dailyData, 'clients')), backgroundColor:'rgba(200,176,138,0.7)', borderColor:'#c8b08a', borderWidth:1 },
+            { label:'신규 프로젝트', data:@json(array_column($dailyData, 'projects')), backgroundColor:'rgba(138,180,200,0.7)', borderColor:'#8ab4c8', borderWidth:1 },
+            { label:'상담', data:@json(array_column($dailyData, 'consults')), backgroundColor:'rgba(122,200,122,0.7)', borderColor:'#7ac87a', borderWidth:1 },
+        ]
+    },
+    month: {
         labels: @json(array_column($monthlyClients, 'label')),
         datasets: [
             { label:'신규 의뢰자', data:@json(array_column($monthlyClients, 'value')), backgroundColor:'rgba(200,176,138,0.7)', borderColor:'#c8b08a', borderWidth:1 },
@@ -390,8 +407,37 @@ new Chart(document.getElementById('chartMonthly'), {
             { label:'누적 의뢰자', data:@json(array_column($monthlyClients, 'cumul')), type:'line', borderColor:'#e8894a', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', borderDash:[5,3], pointRadius:3 },
         ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1},title:{display:true,text:'건수',font:{size:10}}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'누적',font:{size:10}}}} }
-});
+    year: {
+        labels: @json(array_column($yearlyData, 'label')),
+        datasets: [
+            { label:'의뢰자', data:@json(array_column($yearlyData, 'clients')), backgroundColor:'rgba(200,176,138,0.7)', borderColor:'#c8b08a', borderWidth:1 },
+            { label:'프로젝트', data:@json(array_column($yearlyData, 'projects')), backgroundColor:'rgba(138,180,200,0.7)', borderColor:'#8ab4c8', borderWidth:1 },
+            { label:'상담', data:@json(array_column($yearlyData, 'consults')), backgroundColor:'rgba(122,200,122,0.7)', borderColor:'#7ac87a', borderWidth:1 },
+            { label:'일정', data:@json(array_column($yearlyData, 'schedules')), backgroundColor:'rgba(155,112,200,0.7)', borderColor:'#9b70c8', borderWidth:1 },
+        ]
+    }
+};
+
+let trendChart = null;
+function renderTrendChart(range) {
+    const canvas = document.getElementById('chartMonthly');
+    if (trendChart) trendChart.destroy();
+    const d = trendData[range];
+    const hasY1 = d.datasets.some(ds => ds.yAxisID === 'y1');
+    trendChart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: d.labels, datasets: d.datasets },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1},title:{display:true,text:'건수',font:{size:10}}}, ...(hasY1?{y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'누적',font:{size:10}}}}:{})} }
+    });
+}
+
+function switchTrendTab(range, btn) {
+    document.querySelectorAll('.trend-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTrendChart(range);
+}
+
+renderTrendChart('day');
 
 // 프로젝트 단계별
 const stageLabels = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',as:'AS',done:'완료',cancelled:'취소'};
@@ -455,5 +501,7 @@ new Chart(document.getElementById('chartMonthlyEstimate'), {
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=10000?(v/10000)+'만':v.toLocaleString()},title:{display:true,text:'금액(원)',font:{size:10}}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'건수',font:{size:10}}}} }
 });
+
+
 </script>
 @endpush
