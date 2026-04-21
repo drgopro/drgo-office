@@ -17,6 +17,10 @@ use PhpOffice\PhpSpreadsheet\Chart\Legend;
 use PhpOffice\PhpSpreadsheet\Chart\PlotArea;
 use PhpOffice\PhpSpreadsheet\Chart\Title;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -258,52 +262,238 @@ class DashboardController extends Controller
         $visitProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->where('project_type', 'visit')->count();
         $remoteProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->where('project_type', 'remote')->count();
 
-        // Sheet 1: 핵심 KPI 요약
-        $s1 = $spreadsheet->getActiveSheet();
-        $s1->setTitle('KPI 요약');
-        $s1->fromArray(['닥터고블린 오피스 — 기간 보고서'], null, 'A1');
-        $s1->mergeCells('A1:D1');
-        $s1->fromArray(["조회 기간: {$from} ~ {$to}"], null, 'A2');
-        $s1->mergeCells('A2:D2');
-        $bold($s1, 'A1');
+        // ── 스타일 헬퍼 ──
+        $consultDone = $consultationsInPeriod->where('result', 'done')->count();
+        $conversionRate = $newProjects > 0 ? round($settingDone / $newProjects * 100, 1).'%' : '—';
+        $avgRevenue = $paidCount > 0 ? number_format((int) ($revenueTotal / $paidCount)).'원' : '—';
+        $cumulClients = Client::where('created_at', '<=', $toDt)->count();
+        $cumulProjects = Project::where('created_at', '<=', $toDt)->count();
 
-        // 마케팅 → 매출 파이프라인
-        $s1->fromArray(['구분', '지표', '건수/금액', '비고'], null, 'A4');
-        $bold($s1, 'A4:D4');
+        $darkBlue = '1E3A5F';
+        $accentBlue = '2563EB';
+        $headerBg = 'F0F4FF';
+        $stripeBg = 'F8FAFC';
+        $white = 'FFFFFF';
 
-        $kpiRows = [
-            ['마케팅', '신규 등록 의뢰자', $newClients, '기간 내 새로 등록된 의뢰자'],
-            ['마케팅', '기존 의뢰자 재상담 수', $reConsultCount, '같은 의뢰자의 2번째 이상 상담'],
-            ['마케팅', '기존 의뢰자 상담 건수', $existingClientConsults, '기간 전에 등록된 의뢰자의 기간 내 상담'],
-            ['', '', '', ''],
-            ['상담', '총 상담 건수', $totalConsults, ''],
-            ['상담', '상담 진행 중', $consultInProgress, '아직 완료되지 않은 상담'],
-            ['상담', '상담 완료', $consultationsInPeriod->where('result', 'done')->count(), ''],
-            ['', '', '', ''],
-            ['프로젝트', '신규 프로젝트', $newProjects, "방문 {$visitProjects} / 원격 {$remoteProjects}"],
-            ['프로젝트', '세팅 완료 (visit 이상)', $settingDone, '세팅·AS·완료 단계에 도달한 건'],
-            ['프로젝트', '취소된 프로젝트', $cancelledProjects, ''],
-            ['프로젝트', '전환율 (세팅/신규)', $newProjects > 0 ? round($settingDone / $newProjects * 100, 1).'%' : '-', '프로젝트 → 세팅 전환율'],
-            ['', '', '', ''],
-            ['매출', '결제 완료 건수', $paidCount, ''],
-            ['매출', '총 매출', number_format($revenueTotal).'원', ''],
-            ['매출', '└ 세팅비', number_format($revenueService).'원', 'service_items 합계'],
-            ['매출', '└ 장비판매', number_format($revenueProduct).'원', 'product_items 합계'],
-            ['매출', '건당 평균 매출', $paidCount > 0 ? number_format((int) ($revenueTotal / $paidCount)).'원' : '-', ''],
-            ['', '', '', ''],
-            ['누적', '총 의뢰자 (기간 종료 시점)', Client::where('created_at', '<=', $toDt)->count(), ''],
-            ['누적', '총 프로젝트', Project::where('created_at', '<=', $toDt)->count(), ''],
-        ];
-        foreach ($kpiRows as $i => $r) {
-            $s1->fromArray($r, null, 'A'.($i + 5));
-        }
-        // 구분 열 색상 강조
-        foreach ([5, 6, 7, 9, 10, 11, 13, 14, 15, 18, 19, 20, 24, 25] as $r) {
-            if ($r <= count($kpiRows) + 4) {
-                $s1->getStyle("A{$r}")->getFont()->setBold(true);
+        $applyStyle = function ($sheet, $range, $bgColor, $fontColor = '333333', $isBold = false, $fontSize = 10) {
+            $style = $sheet->getStyle($range);
+            $style->getFont()->setSize($fontSize)->setColor(new Color($fontColor));
+            if ($isBold) {
+                $style->getFont()->setBold(true);
             }
-        }
-        $auto($s1, ['A', 'B', 'C', 'D']);
+            if ($bgColor) {
+                $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($bgColor);
+            }
+            $style->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        };
+
+        $sectionHeader = function ($sheet, $row, $title, $cols = 'A:D') use ($accentBlue, $applyStyle) {
+            $colEnd = explode(':', $cols)[1] ?? 'D';
+            $sheet->mergeCells("A{$row}:{$colEnd}{$row}");
+            $sheet->setCellValue("A{$row}", $title);
+            $applyStyle($sheet, "A{$row}:{$colEnd}{$row}", $accentBlue, 'FFFFFF', true, 11);
+        };
+
+        $subHeader = function ($sheet, $row, $headers) use ($headerBg, $applyStyle) {
+            foreach ($headers as $col => $val) {
+                $c = chr(65 + $col);
+                $sheet->setCellValue("{$c}{$row}", $val);
+            }
+            $endCol = chr(65 + count($headers) - 1);
+            $applyStyle($sheet, "A{$row}:{$endCol}{$row}", $headerBg, '333333', true);
+        };
+
+        $dataRow = function ($sheet, $row, $values, $isStripe = false) use ($stripeBg, $white) {
+            $bg = $isStripe ? $stripeBg : $white;
+            foreach ($values as $col => $val) {
+                $c = chr(65 + $col);
+                $sheet->setCellValue("{$c}{$row}", $val);
+            }
+            $endCol = chr(65 + count($values) - 1);
+            $sheet->getStyle("A{$row}:{$endCol}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($bg);
+        };
+
+        // Sheet 1: 기간 보고서
+        $s1 = $spreadsheet->getActiveSheet();
+        $s1->setTitle('기간 보고서');
+        $s1->getDefaultColumnDimension()->setWidth(16);
+        $s1->getColumnDimension('A')->setWidth(14);
+        $s1->getColumnDimension('B')->setWidth(28);
+        $s1->getColumnDimension('C')->setWidth(16);
+        $s1->getColumnDimension('D')->setWidth(32);
+        $s1->getColumnDimension('F')->setWidth(22);
+        $s1->getColumnDimension('G')->setWidth(4);
+        $s1->getColumnDimension('I')->setWidth(16);
+        $s1->getColumnDimension('J')->setWidth(12);
+
+        // 타이틀
+        $s1->mergeCells('A1:J1');
+        $s1->setCellValue('A1', '닥터고블린 오피스  —  기간 보고서');
+        $applyStyle($s1, 'A1:J1', $darkBlue, 'FFFFFF', true, 14);
+        $s1->getRowDimension(1)->setRowHeight(36);
+        $s1->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setIndent(1);
+
+        $s1->mergeCells('A2:J2');
+        $s1->setCellValue('A2', "조회 기간: {$from} ~ {$to}");
+        $applyStyle($s1, 'A2:J2', $darkBlue, 'BBCCE0', false, 10);
+        $s1->getRowDimension(2)->setRowHeight(22);
+
+        $r = 4;
+
+        // ── 마케팅 섹션 ──
+        $sectionHeader($s1, $r, '📢  마케팅');
+        // 우측: 핵심 지표 카드
+        $s1->setCellValue("F{$r}", '🎯  핵심 지표');
+        $applyStyle($s1, "F{$r}", $accentBlue, 'FFFFFF', true, 11);
+        // 차트 데이터
+        $s1->setCellValue("I{$r}", '차트 데이터');
+        $applyStyle($s1, "I{$r}:J{$r}", $accentBlue, 'FFFFFF', true, 10);
+        $r++;
+
+        $subHeader($s1, $r, ['구분', '지표', '건수/금액', '비고']);
+        $s1->setCellValue("F{$r}", '신규 의뢰자');
+        $applyStyle($s1, "F{$r}", $white, '666666', false);
+        $subHeader($s1, $r, array_merge(array_fill(0, 4, ''), ['', '', '', '', '단계', '건수']));
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '666666', true);
+        $r++;
+
+        // 마케팅 데이터
+        $dataRow($s1, $r, ['마케팅', '신규 등록 의뢰자', number_format($newClients), '기간 내 새로 등록된 의뢰자'], true);
+        $s1->setCellValue("F{$r}", number_format($newClients).'건');
+        $applyStyle($s1, "F{$r}", $white, '1E3A5F', true, 18);
+        $s1->setCellValue("I{$r}", '신규 의뢰자');
+        $s1->setCellValue("J{$r}", $newClients);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        $dataRow($s1, $r, ['마케팅', '기존 의뢰자 재상담 수', number_format($reConsultCount), '같은 의뢰자의 2번째 이상 상담']);
+        $s1->setCellValue("F{$r}", '이번 기간 신규 등록');
+        $applyStyle($s1, "F{$r}", $white, '999999', false, 9);
+        $s1->setCellValue("I{$r}", '총 상담');
+        $s1->setCellValue("J{$r}", $totalConsults);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        $dataRow($s1, $r, ['마케팅', '기존 의뢰자 상담 건수', $existingClientConsults > 0 ? number_format($existingClientConsults) : '—', '기간 전 등록된 의뢰자의 기간 내 상담'], true);
+        $s1->setCellValue("I{$r}", '신규 프로젝트');
+        $s1->setCellValue("J{$r}", $newProjects);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        // 총 상담 카드
+        $s1->setCellValue("F{$r}", '총 상담 건수');
+        $applyStyle($s1, "F{$r}", $white, '666666', false);
+        $s1->setCellValue("I{$r}", '세팅 완료');
+        $s1->setCellValue("J{$r}", $settingDone);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        // ── 상담 섹션 ──
+        $sectionHeader($s1, $r, '💬  상담');
+        $s1->setCellValue("F{$r}", number_format($totalConsults).'건');
+        $applyStyle($s1, "F{$r}", $white, '1E3A5F', true, 18);
+        $s1->setCellValue("I{$r}", '결제 완료');
+        $s1->setCellValue("J{$r}", $paidCount);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        $subHeader($s1, $r, ['구분', '지표', '건수/금액', '비고']);
+        $s1->setCellValue("F{$r}", "진행중 {$consultInProgress}  |  완료 {$consultDone}");
+        $applyStyle($s1, "F{$r}", $white, '666666', false, 9);
+        $r++;
+
+        $dataRow($s1, $r, ['상담', '총 상담 건수', number_format($totalConsults), ''], true);
+        $s1->setCellValue("I{$r}", '구분');
+        $s1->setCellValue("J{$r}", '금액');
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '666666', true);
+        $r++;
+
+        $dataRow($s1, $r, ['상담', '상담 진행중', number_format($consultInProgress), '아직 완료되지 않은 상담']);
+        $s1->setCellValue("F{$r}", '신규 프로젝트');
+        $applyStyle($s1, "F{$r}", $white, '666666', false);
+        $s1->setCellValue("I{$r}", '세팅비');
+        $s1->setCellValue("J{$r}", $revenueService);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        $dataRow($s1, $r, ['상담', '상담 완료', number_format($consultDone), ''], true);
+        $s1->setCellValue("F{$r}", number_format($newProjects).'건');
+        $applyStyle($s1, "F{$r}", $white, '1E3A5F', true, 18);
+        $s1->setCellValue("I{$r}", '장비판매');
+        $s1->setCellValue("J{$r}", $revenueProduct);
+        $applyStyle($s1, "I{$r}:J{$r}", $stripeBg, '333333', false);
+        $r++;
+
+        $s1->setCellValue("F{$r}", "방문 {$visitProjects}  |  원격 {$remoteProjects}");
+        $applyStyle($s1, "F{$r}", $white, '666666', false, 9);
+        $r++;
+
+        // ── 프로젝트 섹션 ──
+        $sectionHeader($s1, $r, '🏗  프로젝트');
+        $r++;
+
+        $subHeader($s1, $r, ['구분', '지표', '건수/금액', '비고']);
+        $s1->setCellValue("F{$r}", '프로젝트 취소');
+        $applyStyle($s1, "F{$r}", $white, '666666', false);
+        $r++;
+
+        $dataRow($s1, $r, ['프로젝트', '신규 프로젝트', number_format($newProjects), "방문 {$visitProjects} / 원격 {$remoteProjects}"], true);
+        $s1->setCellValue("F{$r}", number_format($cancelledProjects).'건');
+        $applyStyle($s1, "F{$r}", $white, '1E3A5F', true, 18);
+        $r++;
+
+        $dataRow($s1, $r, ['프로젝트', '세팅 완료 (visit 이상)', $settingDone > 0 ? number_format($settingDone) : '—', '세팅·AS·완료 단계에 도달한 건']);
+        $s1->setCellValue("F{$r}", "전환율 {$conversionRate}");
+        $applyStyle($s1, "F{$r}", $white, '666666', false, 9);
+        $r++;
+
+        $dataRow($s1, $r, ['프로젝트', '취소된 프로젝트', number_format($cancelledProjects), ''], true);
+        $r++;
+
+        $dataRow($s1, $r, ['프로젝트', '전환율 (세팅/신규)', $conversionRate, '프로젝트 → 세팅 전환율']);
+        $r++;
+
+        // 매출 카드
+        $s1->setCellValue("F{$r}", '총 매출');
+        $applyStyle($s1, "F{$r}", $white, '666666', false);
+        $r++;
+
+        // ── 매출 섹션 ──
+        $sectionHeader($s1, $r, '💰  매출');
+        $s1->setCellValue("F{$r}", number_format($revenueTotal).'원');
+        $applyStyle($s1, "F{$r}", $white, '1E3A5F', true, 18);
+        $r++;
+
+        $subHeader($s1, $r, ['구분', '지표', '금액', '비고']);
+        $s1->setCellValue("F{$r}", '세팅비 '.number_format($revenueService).'  |  장비판매 '.number_format($revenueProduct));
+        $applyStyle($s1, "F{$r}", $white, '666666', false, 9);
+        $r++;
+
+        $dataRow($s1, $r, ['매출', '결제 완료 건수', $paidCount > 0 ? number_format($paidCount) : '—', '']);
+        $r++;
+        $dataRow($s1, $r, ['매출', '총 매출', number_format($revenueTotal).'원', ''], true);
+        $r++;
+        $dataRow($s1, $r, ['매출', 'ㄴ 세팅비', number_format($revenueService).'원', 'service_items 합계']);
+        $r++;
+        $dataRow($s1, $r, ['매출', 'ㄴ 장비판매', number_format($revenueProduct).'원', 'product_items 합계'], true);
+        $r++;
+        $dataRow($s1, $r, ['매출', '건당 평균 매출', $avgRevenue, '']);
+        $r += 2;
+
+        // ── 누적 섹션 ──
+        $sectionHeader($s1, $r, '📊  누적');
+        $r++;
+        $subHeader($s1, $r, ['구분', '지표', '건수', '비고']);
+        $r++;
+        $dataRow($s1, $r, ['누적', '총 의뢰자 (기간 종료 시점)', number_format($cumulClients), '']);
+        $r++;
+        $dataRow($s1, $r, ['누적', '총 프로젝트', number_format($cumulProjects), ''], true);
+
+        // 얇은 테두리 적용 (전체 데이터 영역)
+        $s1->getStyle("A4:D{$r}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E2E8F0');
+        $s1->getStyle("F4:F{$r}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E2E8F0');
+
+        $kpiRows = []; // 하위호환
 
         // Sheet 2: 일별 추이
         $s2 = $spreadsheet->createSheet();
@@ -346,38 +536,27 @@ class DashboardController extends Controller
             $s2->addChart($dailyChart);
         }
 
-        // KPI 요약에 매출 분류 파이차트
-        $chartDataRow = count($kpiRows) + 6;
-        $s1->fromArray(['매출 구성', '금액'], null, 'F4');
-        $s1->fromArray(['세팅비', $revenueService], null, 'F5');
-        $s1->fromArray(['장비판매', $revenueProduct], null, 'F6');
-        $bold($s1, 'F4:G4');
+        // 차트 — I/J열의 차트 데이터 참조
+        $sheetName = '기간 보고서';
 
-        $pieLabels = [new DataSeriesValues('String', "'KPI 요약'!\$F\$5:\$F\$6", null, 2)];
-        $pieValues = [new DataSeriesValues('Number', "'KPI 요약'!\$G\$5:\$G\$6", "'KPI 요약'!\$G\$4", 2)];
-        $pieDS = new DataSeries(DataSeries::TYPE_PIECHART, null, [0], $pieLabels, $pieLabels, $pieValues);
-        $pieChart = new Chart('RevenueBreakdown', new Title('매출 구성 (세팅비 vs 장비판매)'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$pieDS]));
-        $pieChart->setTopLeftPosition('F8');
-        $pieChart->setBottomRightPosition('K22');
-        $s1->addChart($pieChart);
-
-        // KPI 요약에 파이프라인 바차트
-        $s1->fromArray(['파이프라인', '건수'], null, 'F24');
-        $s1->fromArray(['신규 의뢰자', $newClients], null, 'F25');
-        $s1->fromArray(['총 상담', $totalConsults], null, 'F26');
-        $s1->fromArray(['신규 프로젝트', $newProjects], null, 'F27');
-        $s1->fromArray(['세팅 완료', $settingDone], null, 'F28');
-        $s1->fromArray(['결제 완료', $paidCount], null, 'F29');
-        $bold($s1, 'F24:G24');
-
-        $barLabels = [new DataSeriesValues('String', "'KPI 요약'!\$F\$25:\$F\$29", null, 5)];
-        $barValues = [new DataSeriesValues('Number', "'KPI 요약'!\$G\$25:\$G\$29", "'KPI 요약'!\$G\$24", 5)];
+        // 파이프라인 바차트 (I6:J10)
+        $barLabels = [new DataSeriesValues('String', "'{$sheetName}'!\$I\$6:\$I\$10", null, 5)];
+        $barValues = [new DataSeriesValues('Number', "'{$sheetName}'!\$J\$6:\$J\$10", "'{$sheetName}'!\$J\$5", 5)];
         $barDS = new DataSeries(DataSeries::TYPE_BARCHART, DataSeries::GROUPING_STANDARD, [0], $barLabels, $barLabels, $barValues);
         $barDS->setPlotDirection(DataSeries::DIRECTION_HORIZONTAL);
         $barChart = new Chart('Pipeline', new Title('마케팅 → 매출 파이프라인'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$barDS]));
-        $barChart->setTopLeftPosition('F31');
-        $barChart->setBottomRightPosition('K45');
+        $barChart->setTopLeftPosition('I16');
+        $barChart->setBottomRightPosition('N30');
         $s1->addChart($barChart);
+
+        // 매출 구성 파이차트 (I13:J14)
+        $pieLabels = [new DataSeriesValues('String', "'{$sheetName}'!\$I\$13:\$I\$14", null, 2)];
+        $pieValues = [new DataSeriesValues('Number', "'{$sheetName}'!\$J\$13:\$J\$14", "'{$sheetName}'!\$J\$12", 2)];
+        $pieDS = new DataSeries(DataSeries::TYPE_PIECHART, null, [0], $pieLabels, $pieLabels, $pieValues);
+        $pieChart = new Chart('RevenueBreakdown', new Title('매출 구성'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$pieDS]));
+        $pieChart->setTopLeftPosition('L16');
+        $pieChart->setBottomRightPosition('Q30');
+        $s1->addChart($pieChart);
 
         // Sheet 3: 의뢰자 목록
         $s3 = $spreadsheet->createSheet();
