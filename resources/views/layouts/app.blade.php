@@ -101,7 +101,7 @@
         body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
 
         /* ── 상단 내비게이션 ── */
-        .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; display:flex; justify-content:space-between; align-items:center; height:var(--header-h); position:sticky; top:0; z-index:200; }
+        .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; padding-top:env(safe-area-inset-top, 0px); display:flex; justify-content:space-between; align-items:center; height:calc(var(--header-h) + env(safe-area-inset-top, 0px)); position:sticky; top:0; z-index:200; }
         .header-left { display:flex; align-items:center; gap:0; }
         .logo { font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.15em; text-decoration:none; padding:0 16px 0 0; margin-right:16px; border-right:1px solid var(--border); }
 
