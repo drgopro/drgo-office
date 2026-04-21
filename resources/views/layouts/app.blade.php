@@ -241,6 +241,9 @@
             @if(Auth::user()->hasPermission('inventory.view'))
                 <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');">장비 위치</a>
             @endif
+            @if(Auth::user()->hasPermission('inventory.edit'))
+                <a href="#" style="font-size:14px;" onclick="event.preventDefault(); openGlobalQrScan();" title="QR 스캔">📷</a>
+            @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
                     <a href="#" onclick="event.preventDefault(); drgoTabs.openNav('admin','/admin');">관리</a>
@@ -641,6 +644,132 @@ async function submitExcelImport() {
     }catch(e){alert('오류가 발생했습니다.');}
     btn.disabled=false; btn.textContent='가져오기';
 }
+</script>
+
+{{-- 글로벌 QR 스캔 모달 --}}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<div id="globalQrOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9500;backdrop-filter:blur(4px);flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;overflow-y:auto;">
+    <div style="width:100%;max-width:420px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:18px;font-weight:700;color:#fff;">📷 QR 스캔</div>
+            <button onclick="closeGlobalQrScan()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:#fff;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div id="globalQrReader" style="width:100%;background:#000;border-radius:12px;overflow:hidden;min-height:280px;"></div>
+        <div style="margin-top:10px;display:flex;gap:6px;">
+            <input id="globalQrManual" placeholder="rental:ID 또는 staff:ID" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 12px;color:#fff;font-size:13px;outline:none;">
+            <button onclick="globalQrHandle(document.getElementById('globalQrManual').value)" style="background:var(--accent);color:#1a1207;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">확인</button>
+        </div>
+        {{-- 스캔 상태 표시 --}}
+        <div id="gqrStatus" style="margin-top:16px;padding:14px;background:rgba(255,255,255,0.08);border-radius:10px;color:#fff;font-size:13px;display:none;"></div>
+        {{-- 액션 버튼 --}}
+        <div id="gqrActions" style="margin-top:12px;display:none;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+</div>
+
+<script>
+let gqrScanner=null, gqrItemData=null, gqrStaffData=null;
+const CSRF_GQR=document.querySelector('meta[name="csrf-token"]')?.content;
+
+function openGlobalQrScan(){
+    gqrItemData=null; gqrStaffData=null;
+    document.getElementById('globalQrOverlay').style.display='flex';
+    document.getElementById('gqrStatus').style.display='none';
+    document.getElementById('gqrActions').style.display='none';
+    document.getElementById('globalQrManual').value='';
+    startGlobalQr();
+}
+
+function closeGlobalQrScan(){
+    stopGlobalQr();
+    document.getElementById('globalQrOverlay').style.display='none';
+    gqrItemData=null; gqrStaffData=null;
+}
+
+async function startGlobalQr(){
+    try{
+        gqrScanner=new Html5Qrcode('globalQrReader');
+        await gqrScanner.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:240}},decoded=>{globalQrHandle(decoded);},()=>{});
+    }catch(e){ showGqrStatus('⚠ 카메라를 사용할 수 없습니다. 수동 입력을 이용하세요.','#c87a7a'); }
+}
+
+function stopGlobalQr(){
+    if(gqrScanner){try{gqrScanner.stop().catch(()=>{});}catch(e){}gqrScanner=null;}
+}
+
+async function globalQrHandle(code){
+    if(!code) return;
+    const res=await fetch('/api/rental/lookup?code='+encodeURIComponent(code.trim()),{headers:{'Accept':'application/json'}});
+    if(!res.ok){const err=await res.json().catch(()=>({}));showGqrStatus('❌ '+(err.error||'인식 실패'),'#c87a7a');return;}
+    const data=await res.json();
+
+    if(data.type==='item'){
+        gqrItemData=data;
+        if(gqrStaffData){
+            // 직원 먼저 스캔됨 → 바로 대여 처리
+            await gqrAssign(gqrItemData.id, gqrStaffData.id, gqrStaffData.name);
+        } else {
+            showGqrStatus(`🔧 <b>${data.name}</b>${data.serial?' ('+data.serial+')':''}<br>현재: ${data.current_target||'미지정'} · 원위치: ${data.home_target||'없음'}`, '#fff');
+            showGqrActions([
+                {label:'👤 직원 QR 스캔하여 대여', color:'var(--accent)', action:()=>{ showGqrStatus('👤 직원 QR을 스캔하세요...','#8ab4c8'); hideGqrActions(); }},
+                {label:'🏠 반납 (원위치)', color:'var(--green)', action:()=>gqrReturn(data.id)},
+                {label:'초기화', color:'var(--border)', action:()=>gqrReset()},
+            ]);
+        }
+    } else if(data.type==='staff'){
+        gqrStaffData=data;
+        if(gqrItemData){
+            // 장비 먼저 스캔됨 → 바로 대여 처리
+            await gqrAssign(gqrItemData.id, gqrStaffData.id, gqrStaffData.name);
+        } else {
+            showGqrStatus(`👤 <b>${data.name}</b>${data.phone?' · '+data.phone:''}<br>보유 장비: ${data.items_count}개`, '#fff');
+            showGqrActions([
+                {label:'🔧 장비 QR 스캔하여 대여', color:'var(--accent)', action:()=>{ showGqrStatus('🔧 장비 QR을 스캔하세요...','#c8b08a'); hideGqrActions(); }},
+                {label:'초기화', color:'var(--border)', action:()=>gqrReset()},
+            ]);
+        }
+    }
+}
+
+async function gqrAssign(itemId, targetId, targetName){
+    const res=await fetch('/api/rental/assign',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_GQR,'Accept':'application/json'},
+        body:JSON.stringify({item_id:itemId, target_id:targetId, memo:'QR 스캔 대여'})
+    });
+    if(res.ok){
+        showGqrStatus(`✅ <b>${gqrItemData.name}</b> → <b>${targetName}</b> 대여 완료!`,'#7ac87a');
+        showGqrActions([{label:'📷 다음 장비 스캔', color:'var(--accent)', action:()=>gqrReset()}]);
+    } else {
+        showGqrStatus('❌ 대여 처리 실패','#c87a7a');
+    }
+}
+
+async function gqrReturn(itemId){
+    const res=await fetch('/api/rental/assign',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_GQR,'Accept':'application/json'},
+        body:JSON.stringify({item_id:itemId, return:true, memo:'QR 스캔 반납'})
+    });
+    if(res.ok){
+        showGqrStatus(`✅ <b>${gqrItemData.name}</b> 반납 완료! (원위치 복귀)`,'#7ac87a');
+        showGqrActions([{label:'📷 다음 장비 스캔', color:'var(--accent)', action:()=>gqrReset()}]);
+    } else { showGqrStatus('❌ 반납 실패','#c87a7a'); }
+}
+
+function gqrReset(){ gqrItemData=null; gqrStaffData=null; document.getElementById('gqrStatus').style.display='none'; hideGqrActions(); }
+
+function showGqrStatus(html,color){
+    const el=document.getElementById('gqrStatus');
+    el.innerHTML=html; el.style.display='block'; el.style.color=color||'#fff';
+}
+
+function showGqrActions(btns){
+    const el=document.getElementById('gqrActions');
+    el.style.display='flex';
+    el.innerHTML=btns.map(b=>`<button onclick="(${b.action.toString()})()" style="background:${b.color};color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;flex:1;min-width:100px;">${b.label}</button>`).join('');
+}
+
+function hideGqrActions(){ document.getElementById('gqrActions').style.display='none'; }
 </script>
 
 @stack('scripts')

@@ -218,6 +218,13 @@
             <textarea class="field-input" id="rtNote" rows="2"></textarea>
         </div>
         <input type="hidden" id="rtId">
+        <div id="rtQrWrap" style="display:none; margin-top:14px; padding:14px; background:var(--surface2); border-radius:10px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">직원 QR 코드</div>
+            <img id="rtQrImg" style="width:160px; height:160px; border-radius:8px; background:#fff;">
+            <div style="margin-top:8px;">
+                <button onclick="printTargetQr()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:6px; font-size:11px; cursor:pointer;">🖨 인쇄</button>
+            </div>
+        </div>
         <div class="modal-actions">
             <button class="btn-danger-sm" id="rtDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteRentalTarget()">삭제</button>
             <button class="btn-cancel" onclick="closeModal('rentalTargetModal')">취소</button>
@@ -711,8 +718,24 @@ function openRentalTargetModal(targetId) {
     document.getElementById('rtAddress').value = tg?.address || '';
     document.getElementById('rtNote').value = tg?.note || '';
     document.getElementById('rtDeleteBtn').style.display = isEdit ? 'inline-block' : 'none';
+    // QR 코드
+    const qrWrap = document.getElementById('rtQrWrap');
+    if (isEdit) {
+        qrWrap.style.display = 'block';
+        document.getElementById('rtQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent('staff:'+targetId)}&size=200x200&margin=8`;
+    } else {
+        qrWrap.style.display = 'none';
+    }
     openModal('rentalTargetModal');
     setTimeout(()=>document.getElementById('rtName').focus(), 50);
+}
+function printTargetQr() {
+    const id = document.getElementById('rtId').value;
+    const name = document.getElementById('rtName').value;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent('staff:'+id)}&size=300x300&margin=10`;
+    const w = window.open('','_blank','width=400,height=500');
+    w.document.write(`<html><head><title>QR - ${name}</title><style>body{font-family:sans-serif;text-align:center;padding:40px;}h2{margin-bottom:8px;}p{color:#888;font-size:14px;margin-bottom:20px;}img{border:1px solid #ddd;border-radius:8px;}@media print{button{display:none;}}</style></head><body><h2>${name}</h2><p>staff:${id}</p><img src="${qrUrl}" width="250" height="250"><br><br><button onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer;">인쇄</button></body></html>`);
+    w.document.close();
 }
 async function saveRentalTarget() {
     const id = document.getElementById('rtId').value;

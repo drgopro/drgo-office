@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
         Route::get('/rental-equipment', [RentalEquipmentController::class, 'index'])->name('rental-equipment');
         Route::get('/api/rental/board', [RentalEquipmentController::class, 'board']);
+        Route::get('/api/rental/lookup', [RentalEquipmentController::class, 'lookup']);
     });
     Route::middleware('permission:inventory.edit')->group(function () {
         Route::post('/api/inventory/categories', [InventoryController::class, 'storeCategory']);

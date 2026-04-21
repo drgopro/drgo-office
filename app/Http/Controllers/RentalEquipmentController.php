@@ -367,6 +367,51 @@ class RentalEquipmentController extends Controller
         return ['위치 해제', "{$itemName} 위치 해제".($prev ? " (이전: {$prev->name})" : '')];
     }
 
+    // QR 코드 조회 API
+    public function lookup(Request $request): JsonResponse
+    {
+        $code = $request->query('code', '');
+
+        // 장비 QR: rental:ID
+        if (preg_match('/^(?:rental:)?(\d+)$/i', $code, $m)) {
+            $item = RentalItem::with('currentTarget', 'homeTarget', 'category', 'group')->find((int) $m[1]);
+            if (! $item) {
+                return response()->json(['error' => '장비를 찾을 수 없습니다.'], 404);
+            }
+
+            return response()->json([
+                'type' => 'item',
+                'id' => $item->id,
+                'name' => $item->name,
+                'serial' => $item->serial,
+                'category' => $item->category?->name,
+                'current_target' => $item->currentTarget?->name,
+                'current_target_id' => $item->current_target_id,
+                'home_target' => $item->homeTarget?->name,
+                'home_target_id' => $item->home_target_id,
+                'group' => $item->group?->name,
+            ]);
+        }
+
+        // 직원 QR: staff:ID
+        if (preg_match('/^staff:(\d+)$/i', $code, $m)) {
+            $target = RentalTarget::withCount('items')->find((int) $m[1]);
+            if (! $target) {
+                return response()->json(['error' => '직원/위치를 찾을 수 없습니다.'], 404);
+            }
+
+            return response()->json([
+                'type' => 'staff',
+                'id' => $target->id,
+                'name' => $target->name,
+                'phone' => $target->phone,
+                'items_count' => $target->items_count,
+            ]);
+        }
+
+        return response()->json(['error' => '인식할 수 없는 QR 코드입니다.'], 422);
+    }
+
     // === 헬퍼 ===
 
     private function log(?int $itemId, ?int $targetId, string $action, string $detail): void
