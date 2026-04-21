@@ -220,9 +220,16 @@
             <div class="chart-wrap short"><canvas id="chartScheduleColor"></canvas></div>
         </div>
 
-        {{-- 월별 견적 금액 --}}
+        {{-- 견적 금액 추이 --}}
         <div class="chart-card full">
-            <div class="chart-title">💰 월별 견적 금액 추이</div>
+            <div class="chart-title" style="justify-content:space-between;">
+                <span>💰 견적 금액 추이</span>
+                <div style="display:flex;gap:2px;background:var(--surface2);border-radius:6px;padding:2px;">
+                    <button class="trend-tab" data-range="day" onclick="switchEstTab('day',this)">일</button>
+                    <button class="trend-tab active" data-range="month" onclick="switchEstTab('month',this)">월</button>
+                    <button class="trend-tab" data-range="year" onclick="switchEstTab('year',this)">년</button>
+                </div>
+            </div>
             <div class="chart-wrap"><canvas id="chartMonthlyEstimate"></canvas></div>
         </div>
     </div>
@@ -493,19 +500,49 @@ new Chart(document.getElementById('chartScheduleColor'), {
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}} }
 });
 
-// 월별 견적 금액 추이
-new Chart(document.getElementById('chartMonthlyEstimate'), {
-    type: 'bar',
-    data: {
+// 견적 금액 추이 (일/월/년)
+const estData = {
+    day: {
+        labels: @json(array_column($dailyData, 'label')),
+        datasets: [
+            { label:'견적 금액', data:@json(array_column($dailyData, 'est_amount')), backgroundColor:'rgba(200,176,138,0.6)', borderColor:'#c8b08a', borderWidth:1 },
+            { label:'결제 금액', data:@json(array_column($dailyData, 'est_paid')), backgroundColor:'rgba(78,205,196,0.6)', borderColor:'#4ecdc4', borderWidth:1 },
+            { label:'건수', data:@json(array_column($dailyData, 'est_count')), type:'line', borderColor:'#9b70c8', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', pointRadius:3 },
+        ]
+    },
+    month: {
         labels: @json(array_column($monthlyEstimates, 'label')),
         datasets: [
             { label:'견적 금액', data:@json(array_column($monthlyEstimates, 'value')), backgroundColor:'rgba(200,176,138,0.6)', borderColor:'#c8b08a', borderWidth:1 },
             { label:'결제 금액', data:@json(array_column($monthlyEstimates, 'paid')), backgroundColor:'rgba(78,205,196,0.6)', borderColor:'#4ecdc4', borderWidth:1 },
-            { label:'견적 건수', data:@json(array_column($monthlyEstimates, 'count')), type:'line', borderColor:'#9b70c8', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', pointRadius:3 },
+            { label:'건수', data:@json(array_column($monthlyEstimates, 'count')), type:'line', borderColor:'#9b70c8', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', pointRadius:3 },
         ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=10000?(v/10000)+'만':v.toLocaleString()},title:{display:true,text:'금액(원)',font:{size:10}}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'건수',font:{size:10}}}} }
-});
+    year: {
+        labels: @json(array_column($yearlyData, 'label')),
+        datasets: [
+            { label:'견적 금액', data:@json(array_column($yearlyData, 'est_amount')), backgroundColor:'rgba(200,176,138,0.6)', borderColor:'#c8b08a', borderWidth:1 },
+            { label:'결제 금액', data:@json(array_column($yearlyData, 'est_paid')), backgroundColor:'rgba(78,205,196,0.6)', borderColor:'#4ecdc4', borderWidth:1 },
+            { label:'건수', data:@json(array_column($yearlyData, 'est_count')), type:'line', borderColor:'#9b70c8', backgroundColor:'transparent', tension:0.3, yAxisID:'y1', pointRadius:3 },
+        ]
+    }
+};
+let estChart = null;
+function renderEstChart(range) {
+    const canvas = document.getElementById('chartMonthlyEstimate');
+    if (estChart) estChart.destroy();
+    const d = estData[range];
+    estChart = new Chart(canvas, {
+        type:'bar', data:{labels:d.labels, datasets:d.datasets},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=10000?(v/10000)+'만':v.toLocaleString()},title:{display:true,text:'금액(원)',font:{size:10}}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'건수',font:{size:10}}}}}
+    });
+}
+function switchEstTab(range, btn) {
+    btn.closest('.chart-title').querySelectorAll('.trend-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderEstChart(range);
+}
+renderEstChart('month');
 
 
 </script>

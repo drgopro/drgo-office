@@ -45,6 +45,9 @@ class DashboardController extends Controller
                 'clients' => Client::whereBetween('created_at', [$ds, $de])->count(),
                 'projects' => Project::whereBetween('created_at', [$ds, $de])->count(),
                 'consults' => Consultation::where('consulted_at', '>=', $ds)->where('consulted_at', '<=', $de)->count(),
+                'est_amount' => (int) Estimate::whereBetween('created_at', [$ds, $de])->sum('total_amount'),
+                'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$ds, $de])->sum('total_amount'),
+                'est_count' => Estimate::whereBetween('created_at', [$ds, $de])->count(),
             ];
         }
 
@@ -60,6 +63,9 @@ class DashboardController extends Controller
                 'projects' => Project::whereBetween('created_at', [$ys, $ye])->count(),
                 'consults' => Consultation::whereBetween('consulted_at', [$ys, $ye])->count(),
                 'schedules' => Schedule::where('start_date', '>=', $ys)->where('start_date', '<=', substr($ye, 0, 10))->count(),
+                'est_amount' => (int) Estimate::whereBetween('created_at', [$ys, $ye])->sum('total_amount'),
+                'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$ys, $ye])->sum('total_amount'),
+                'est_count' => Estimate::whereBetween('created_at', [$ys, $ye])->count(),
             ];
         }
 
@@ -531,8 +537,8 @@ class DashboardController extends Controller
             ];
             $dailyDS = new DataSeries(DataSeries::TYPE_LINECHART, null, range(0, count($dailySeries) - 1), $dailyLabels, $dailyLabels, $dailySeries);
             $dailyChart = new Chart('DailyTrend', new Title('일별 신규 등록 추이'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$dailyDS]));
-            $dailyChart->setTopLeftPosition('I1');
-            $dailyChart->setBottomRightPosition('R20');
+            $dailyChart->setTopLeftPosition('I2');
+            $dailyChart->setBottomRightPosition('P18');
             $s2->addChart($dailyChart);
         }
 
@@ -545,8 +551,8 @@ class DashboardController extends Controller
         $barDS = new DataSeries(DataSeries::TYPE_BARCHART, DataSeries::GROUPING_STANDARD, [0], $barLabels, $barLabels, $barValues);
         $barDS->setPlotDirection(DataSeries::DIRECTION_HORIZONTAL);
         $barChart = new Chart('Pipeline', new Title('마케팅 → 매출 파이프라인'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$barDS]));
-        $barChart->setTopLeftPosition('I16');
-        $barChart->setBottomRightPosition('N30');
+        $barChart->setTopLeftPosition('F36');
+        $barChart->setBottomRightPosition('J52');
         $s1->addChart($barChart);
 
         // 매출 구성 파이차트 (I13:J14)
@@ -554,8 +560,8 @@ class DashboardController extends Controller
         $pieValues = [new DataSeriesValues('Number', "'{$sheetName}'!\$J\$13:\$J\$14", "'{$sheetName}'!\$J\$12", 2)];
         $pieDS = new DataSeries(DataSeries::TYPE_PIECHART, null, [0], $pieLabels, $pieLabels, $pieValues);
         $pieChart = new Chart('RevenueBreakdown', new Title('매출 구성'), new Legend(Legend::POSITION_BOTTOM), new PlotArea(null, [$pieDS]));
-        $pieChart->setTopLeftPosition('L16');
-        $pieChart->setBottomRightPosition('Q30');
+        $pieChart->setTopLeftPosition('F54');
+        $pieChart->setBottomRightPosition('J68');
         $s1->addChart($pieChart);
 
         // Sheet 3: 의뢰자 목록
