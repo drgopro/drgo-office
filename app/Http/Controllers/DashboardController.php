@@ -39,33 +39,48 @@ class DashboardController extends Controller
         $consultThisMonth = Consultation::where('consulted_at', '>=', now()->startOfMonth())->count();
         $consultByType = Consultation::select('consult_type', DB::raw('count(*) as cnt'))->groupBy('consult_type')->pluck('cnt', 'consult_type');
 
-        // 월별 추이 (최근 6개월) — 신규/누적 분리
-        $monthlyClients = [];
-        $monthlyProjects = [];
-        $monthlyConsults = [];
-        $monthlyEstimates = [];
-        $monthlySchedules = [];
+        // 월별 추이 (최근 6개월) — 유형별 분리
+        $monthlyData = [];
         for ($i = 5; $i >= 0; $i--) {
             $m = now()->subMonths($i);
             $label = $m->format('Y.m');
             $start = $m->copy()->startOfMonth();
             $end = $m->copy()->endOfMonth();
+            $sd = $start->format('Y-m-d');
+            $ed = $end->format('Y-m-d');
 
-            $newClients = Client::whereBetween('created_at', [$start, $end])->count();
-            $newProjects = Project::whereBetween('created_at', [$start, $end])->count();
-            $newConsults = Consultation::whereBetween('consulted_at', [$start, $end])->count();
-            $estAmount = (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount');
-            $estPaid = (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount');
-            $estCount = Estimate::whereBetween('created_at', [$start, $end])->count();
-            $schedCount = Schedule::where('start_date', '>=', $start->format('Y-m-d'))->where('start_date', '<=', $end->format('Y-m-d'))->count();
-            $cumulClients = Client::where('created_at', '<=', $end)->count();
-
-            $monthlyClients[] = ['label' => $label, 'value' => $newClients, 'cumul' => $cumulClients];
-            $monthlyProjects[] = ['label' => $label, 'value' => $newProjects];
-            $monthlyConsults[] = ['label' => $label, 'value' => $newConsults];
-            $monthlyEstimates[] = ['label' => $label, 'value' => $estAmount, 'paid' => $estPaid, 'count' => $estCount];
-            $monthlySchedules[] = ['label' => $label, 'value' => $schedCount];
+            $monthlyData[] = [
+                'label' => $label,
+                'clients' => Client::whereBetween('created_at', [$start, $end])->count(),
+                'clients_cumul' => Client::where('created_at', '<=', $end)->count(),
+                'projects' => Project::whereBetween('created_at', [$start, $end])->count(),
+                'projects_visit' => Project::whereBetween('created_at', [$start, $end])->where('project_type', 'visit')->count(),
+                'projects_remote' => Project::whereBetween('created_at', [$start, $end])->where('project_type', 'remote')->count(),
+                'consults' => Consultation::whereBetween('consulted_at', [$start, $end])->count(),
+                'schedules' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->count(),
+                'schedules_visit' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->where('color', 'gold')->count(),
+                'schedules_remote' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->where('color', 'teal')->count(),
+                'est_amount' => (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount'),
+                'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount'),
+                'est_count' => Estimate::whereBetween('created_at', [$start, $end])->count(),
+            ];
         }
+
+        // 하위호환용 배열 (기존 차트 코드 대응)
+        $monthlyClients = array_map(fn ($d) => ['label' => $d['label'], 'value' => $d['clients'], 'cumul' => $d['clients_cumul']], $monthlyData);
+        $monthlyProjects = array_map(fn ($d) => ['label' => $d['label'], 'value' => $d['projects']], $monthlyData);
+        $monthlyConsults = array_map(fn ($d) => ['label' => $d['label'], 'value' => $d['consults']], $monthlyData);
+        $monthlyEstimates = array_map(fn ($d) => ['label' => $d['label'], 'value' => $d['est_amount'], 'paid' => $d['est_paid'], 'count' => $d['est_count']], $monthlyData);
+        $monthlySchedules = array_map(fn ($d) => ['label' => $d['label'], 'value' => $d['schedules']], $monthlyData);
+
+        // 최근 3개월 요약 카드용
+        $recent3 = array_slice($monthlyData, -3);
+        $r3ProjectTotal = array_sum(array_column($recent3, 'projects'));
+        $r3Visit = array_sum(array_column($recent3, 'projects_visit')) + array_sum(array_column($recent3, 'schedules_visit'));
+        $r3Remote = array_sum(array_column($recent3, 'projects_remote')) + array_sum(array_column($recent3, 'schedules_remote'));
+        $r3Consults = array_sum(array_column($recent3, 'consults'));
+        $r3Clients = array_sum(array_column($recent3, 'clients'));
+        $r3Revenue = array_sum(array_column($recent3, 'est_paid'));
 
         // 일정 통계
         $scheduleThisMonth = Schedule::where('start_date', '>=', now()->startOfMonth())->where('start_date', '<=', now()->endOfMonth())->count();
@@ -77,6 +92,7 @@ class DashboardController extends Controller
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',
             'consultTotal', 'consultThisMonth', 'consultByType',
             'monthlyClients', 'monthlyProjects', 'monthlyConsults', 'monthlyEstimates', 'monthlySchedules',
+            'monthlyData', 'r3ProjectTotal', 'r3Visit', 'r3Remote', 'r3Consults', 'r3Clients', 'r3Revenue',
             'scheduleThisMonth', 'scheduleByColor'
         ));
     }
@@ -140,27 +156,34 @@ class DashboardController extends Controller
         // Sheet 1: 월별 추이
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('월별 추이');
-        $sheet->fromArray(['월', '신규 의뢰자', '누적 의뢰자', '신규 프로젝트', '상담 건수', '견적 건수', '견적 금액', '결제 금액', '일정 수'], null, 'A1');
+        $headers = ['월', '신규 의뢰자', '누적 의뢰자', '신규 프로젝트', '방문 프로젝트', '원격 프로젝트', '상담 건수', '방문 일정', '원격 일정', '견적 건수', '견적 금액', '결제 금액(매출)', '총 일정 수'];
+        $sheet->fromArray($headers, null, 'A1');
         $row = 2;
         for ($i = 11; $i >= 0; $i--) {
             $m = now()->subMonths($i);
             $start = $m->copy()->startOfMonth();
             $end = $m->copy()->endOfMonth();
+            $sd = $start->format('Y-m-d');
+            $ed = $end->format('Y-m-d');
             $sheet->fromArray([
                 $m->format('Y.m'),
                 Client::whereBetween('created_at', [$start, $end])->count(),
                 Client::where('created_at', '<=', $end)->count(),
                 Project::whereBetween('created_at', [$start, $end])->count(),
+                Project::whereBetween('created_at', [$start, $end])->where('project_type', 'visit')->count(),
+                Project::whereBetween('created_at', [$start, $end])->where('project_type', 'remote')->count(),
                 Consultation::whereBetween('consulted_at', [$start, $end])->count(),
+                Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->where('color', 'gold')->count(),
+                Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->where('color', 'teal')->count(),
                 Estimate::whereBetween('created_at', [$start, $end])->count(),
                 (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount'),
                 (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount'),
-                Schedule::where('start_date', '>=', $start->format('Y-m-d'))->where('start_date', '<=', $end->format('Y-m-d'))->count(),
+                Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->count(),
             ], null, "A{$row}");
             $row++;
         }
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
-        foreach (range('A', 'I') as $col) {
+        $sheet->getStyle('A1:M1')->getFont()->setBold(true);
+        foreach (range('A', 'M') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

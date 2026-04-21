@@ -101,6 +101,72 @@
         </div>
     </div>
 
+    {{-- 최근 3개월 요약 --}}
+    <div style="margin-bottom:24px;">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            📋 최근 3개월 요약
+            <span style="font-size:11px;color:var(--text-muted);font-weight:400;">
+                ({{ now()->subMonths(2)->format('Y.m') }} ~ {{ now()->format('Y.m') }})
+            </span>
+        </div>
+        <div class="stat-cards" style="margin-bottom:0;">
+            <div class="stat-card" onclick="openDetail('projects')">
+                <div class="stat-label">월간 프로젝트 건수</div>
+                <div class="stat-value">{{ $r3ProjectTotal }}</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)
+                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects'] }}</span>
+                    @endforeach
+                </div>
+            </div>
+            <div class="stat-card" onclick="openDetail('clients')">
+                <div class="stat-label">월간 응대 고객수</div>
+                <div class="stat-value">{{ $r3Clients }}</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)
+                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['clients'] }}</span>
+                    @endforeach
+                </div>
+            </div>
+            <div class="stat-card" onclick="openDetail('consultations')">
+                <div class="stat-label">월간 상담량</div>
+                <div class="stat-value">{{ $r3Consults }}</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)
+                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['consults'] }}</span>
+                    @endforeach
+                </div>
+            </div>
+            <div class="stat-card" onclick="openDetail('schedules')">
+                <div class="stat-label">월간 방문 건수</div>
+                <div class="stat-value">{{ $r3Visit }}</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)
+                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects_visit'] + $md['schedules_visit'] }}</span>
+                    @endforeach
+                </div>
+            </div>
+            <div class="stat-card" onclick="openDetail('schedules')">
+                <div class="stat-label">월간 원격 건수</div>
+                <div class="stat-value">{{ $r3Remote }}</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)
+                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects_remote'] + $md['schedules_remote'] }}</span>
+                    @endforeach
+                </div>
+            </div>
+            <div class="stat-card" onclick="openDetail('estimates')">
+                <div class="stat-label">매출 (결제 완료)</div>
+                <div class="stat-value" style="font-size:22px;">{{ number_format($r3Revenue) }}원</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)
+                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ number_format($md['est_paid']) }}</span>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- 그래프 --}}
     <div class="chart-grid">
         {{-- 월별 추이 --}}
