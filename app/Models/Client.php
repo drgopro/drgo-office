@@ -21,6 +21,8 @@ class Client extends Model
         'grade',
         'platforms',
         'content_types',
+        'inflow_source',
+        'client_type',
         'gender',
         'affiliation',
         'important_memo',
@@ -60,5 +62,20 @@ class Client extends Model
     public function estimates()
     {
         return $this->hasMany(Estimate::class)->orderByDesc('created_at');
+    }
+
+    public function rentalContracts()
+    {
+        return $this->hasMany(RentalContract::class)->orderByDesc('start_date');
+    }
+
+    public function broadcastRoomContracts()
+    {
+        return $this->hasMany(BroadcastRoomContract::class)->orderByDesc('start_date');
+    }
+
+    public function broadcastRoomUsages()
+    {
+        return $this->hasMany(BroadcastRoomUsage::class)->orderByDesc('used_date');
     }
 }

@@ -15,6 +15,8 @@ class Project extends Model
         'client_id',
         'name',
         'project_type',
+        'client_scale',
+        'work_type',
         'stage',
         'status',
         'assigned_user_id',

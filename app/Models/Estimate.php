@@ -20,6 +20,7 @@ class Estimate extends Model
         'product_total',
         'service_total',
         'total_amount',
+        'category_breakdown',
         'status',
         'validity_days',
         'issued_at',
@@ -30,6 +31,7 @@ class Estimate extends Model
     protected $casts = [
         'product_items' => 'array',
         'service_items' => 'array',
+        'category_breakdown' => 'array',
         'product_total' => 'integer',
         'service_total' => 'integer',
         'total_amount' => 'integer',
