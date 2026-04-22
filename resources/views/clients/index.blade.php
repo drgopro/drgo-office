@@ -232,6 +232,27 @@
                     <option value="rental">렌탈</option>
                 </select>
             </div>
+            <div class="field">
+                <div class="field-label">유입경로</div>
+                <select class="field-input field-select" id="ncInflowSource">
+                    <option value="">선택</option>
+                    <option value="search">검색</option>
+                    <option value="referral">지인 소개</option>
+                    <option value="sns">SNS</option>
+                    <option value="ad">광고</option>
+                    <option value="community">커뮤니티</option>
+                    <option value="other">기타</option>
+                </select>
+            </div>
+            <div class="field">
+                <div class="field-label">의뢰자 유형</div>
+                <select class="field-input field-select" id="ncClientType">
+                    <option value="">선택</option>
+                    <option value="personal">개인</option>
+                    <option value="enterprise">엔터</option>
+                    <option value="studio">스튜디오</option>
+                </select>
+            </div>
         </div>
         <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
             <button class="btn-delete" onclick="closeNewClientModal()" style="border-color:var(--border); color:var(--text-muted);">취소</button>
@@ -526,6 +547,29 @@ function renderClientContent(id) {
                 <div class="field">
                     <div class="field-label">콘텐츠 유형</div>
                     <input class="field-input" id="f-content_types-${id}" value="${(d.content_types||[]).join(', ')}" placeholder="쉼표로 구분 (예: 먹방, 뷰티)">
+                </div>
+            </div>
+            <div class="form-grid" style="margin-top:14px;">
+                <div class="field">
+                    <div class="field-label">유입경로</div>
+                    <select class="field-input field-select" id="f-inflow_source-${id}">
+                        <option value="">선택</option>
+                        <option value="search" ${d.inflow_source==='search'?'selected':''}>검색</option>
+                        <option value="referral" ${d.inflow_source==='referral'?'selected':''}>지인 소개</option>
+                        <option value="sns" ${d.inflow_source==='sns'?'selected':''}>SNS</option>
+                        <option value="ad" ${d.inflow_source==='ad'?'selected':''}>광고</option>
+                        <option value="community" ${d.inflow_source==='community'?'selected':''}>커뮤니티</option>
+                        <option value="other" ${d.inflow_source==='other'?'selected':''}>기타</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <div class="field-label">의뢰자 유형</div>
+                    <select class="field-input field-select" id="f-client_type-${id}">
+                        <option value="">선택</option>
+                        <option value="personal" ${d.client_type==='personal'?'selected':''}>개인</option>
+                        <option value="enterprise" ${d.client_type==='enterprise'?'selected':''}>엔터</option>
+                        <option value="studio" ${d.client_type==='studio'?'selected':''}>스튜디오</option>
+                    </select>
                 </div>
             </div>
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
@@ -1024,6 +1068,8 @@ async function saveClient(id) {
         memo: document.getElementById(`f-memo-${id}`)?.value || '',
         platforms: (document.getElementById(`f-platforms-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
         content_types: (document.getElementById(`f-content_types-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
+        inflow_source: document.getElementById(`f-inflow_source-${id}`)?.value || null,
+        client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
     };
 
     const res = await fetch(`/api/clients/${id}`, {
@@ -1067,6 +1113,8 @@ async function createClient() {
         nickname: document.getElementById('ncNickname').value.trim(),
         phone: document.getElementById('ncPhone').value.trim(),
         grade: document.getElementById('ncGrade').value,
+        inflow_source: document.getElementById('ncInflowSource').value || null,
+        client_type: document.getElementById('ncClientType').value || null,
     };
 
     const res = await fetch('/api/clients', {
