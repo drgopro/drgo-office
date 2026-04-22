@@ -13,6 +13,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
@@ -33,6 +34,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/qr-scan', fn () => view('qr-scan'))->name('qr-scan');
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
     Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
+
+    // 마케팅 통계 (master/admin 전용)
+    Route::middleware('role:master,admin')->group(function () {
+        Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
+    });
 
     // 마이페이지 (전체 사용자)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
