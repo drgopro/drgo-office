@@ -163,6 +163,93 @@
         </div>
     </div>
 
+    {{-- 섹션 1.5: 퍼널 분석 --}}
+    <div class="mk-section">
+        <div class="mk-section-title">🔀 퍼널 분석 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 내 유입된 문의 코호트)</span></div>
+
+        @php
+            $stages = [
+                ['label'=>'신규 문의', 'value'=>$funnelInquiry, 'color'=>'#c8b08a', 'icon'=>'💬'],
+                ['label'=>'견적 발행', 'value'=>$funnelEstimateIssued, 'color'=>'#8ab4c8', 'icon'=>'📝'],
+                ['label'=>'결제 완료', 'value'=>$funnelPaid, 'color'=>'#7ac87a', 'icon'=>'💰'],
+                ['label'=>'세팅 완료', 'value'=>$funnelSettingDone, 'color'=>'#9b70c8', 'icon'=>'✅'],
+            ];
+            $maxFunnel = max(array_column($stages, 'value')) ?: 1;
+        @endphp
+
+        <div style="display:flex; flex-direction:column; gap:6px;">
+            @foreach($stages as $i => $s)
+                @php
+                    $width = ($s['value'] / $maxFunnel) * 100;
+                    $conv = null;
+                    if ($i > 0) {
+                        $prev = $stages[$i-1]['value'];
+                        $conv = $prev > 0 ? round(($s['value'] / $prev) * 100, 1) : 0;
+                    }
+                @endphp
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:100px; font-size:12px; color:var(--text); font-weight:600;">{{ $s['icon'] }} {{ $s['label'] }}</div>
+                    <div style="flex:1; background:var(--surface2); border-radius:6px; height:34px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; left:0; top:0; bottom:0; width:{{ $width }}%; background:{{ $s['color'] }}; opacity:0.3; transition:width 0.5s;"></div>
+                        <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; padding:0 14px; height:100%; font-size:13px; font-weight:700;">
+                            <span>{{ number_format($s['value']) }}건</span>
+                            @if($conv !== null)
+                                <span style="font-size:11px; color:{{ $conv >= 50 ? '#7ac87a' : ($conv >= 20 ? '#c8b08a' : '#c87a7a') }};">
+                                    ↓ 전환율 {{ $conv }}%
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="mk-grid" style="margin-top:20px;">
+            <div class="mk-card">
+                <div class="mk-label">문의→세팅 전환율</div>
+                <div class="mk-value" style="color:var(--accent); font-size:24px;">{{ $funnelConversion['overall'] }}%</div>
+                <div class="mk-sub">전체 유입 대비 완료</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">평균 리드타임</div>
+                <div class="mk-value" style="font-size:20px;">{{ $avgInquiryToComplete }}일</div>
+                <div class="mk-sub">문의 → 세팅 완료까지</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">결제→세팅 평균</div>
+                <div class="mk-value" style="font-size:20px;">{{ $avgPaidToComplete }}일</div>
+                <div class="mk-sub">결제 후 실제 세팅</div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 섹션 1.6: 파이프라인 (현재 진행 중) --}}
+    <div class="mk-section">
+        <div class="mk-section-title">⚙️ 현재 파이프라인 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관, 실시간 스냅샷)</span></div>
+        <div class="mk-grid">
+            <div class="mk-card">
+                <div class="mk-label">💬 상담 중</div>
+                <div class="mk-value" style="color:#c8b08a;">{{ $pipeline['consulting'] }}</div>
+                <div class="mk-sub">초기 상담 단계</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">📝 견적 단계</div>
+                <div class="mk-value" style="color:#8ab4c8;">{{ $pipeline['estimate'] }}</div>
+                <div class="mk-sub">장비파악·제안·견적</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">💰 결제 대기</div>
+                <div class="mk-value" style="color:#e8894a;">{{ $pipeline['payment'] }}</div>
+                <div class="mk-sub">결제/예약 단계</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">🔧 세팅 진행</div>
+                <div class="mk-value" style="color:#7ac87a;">{{ $pipeline['visit'] }}</div>
+                <div class="mk-sub">세팅·AS 진행 중</div>
+            </div>
+        </div>
+    </div>
+
     {{-- 섹션 2: 프로젝트 지표 --}}
     <div class="mk-section">
         <div class="mk-section-title">🏗 프로젝트 지표</div>
@@ -326,7 +413,15 @@ Chart.defaults.color = textColor;
 Chart.defaults.borderColor = gridColor;
 
 // 유입경로 파이차트
-const inflowLabels = @json(array_values(array_map(fn($k) => ['search'=>'검색','referral'=>'지인 소개','sns'=>'SNS','ad'=>'광고','community'=>'커뮤니티','other'=>'기타'][$k] ?? ($k ?: '미지정'), array_keys($clientsByInflow->toArray()))));
+@php
+    $inflowLabelMap = ['search'=>'검색','referral'=>'지인 소개','sns'=>'SNS','ad'=>'광고','community'=>'커뮤니티','other'=>'기타'];
+    $inflowLabelArr = [];
+    foreach ($clientsByInflow as $k => $v) {
+        $key = $k === null || $k === '' ? '미지정' : ($inflowLabelMap[$k] ?? $k);
+        $inflowLabelArr[] = $key;
+    }
+@endphp
+const inflowLabels = @json($inflowLabelArr);
 const inflowData = @json(array_values($clientsByInflow->toArray()));
 if (inflowData.length) {
     new Chart(document.getElementById('chartInflow'), {

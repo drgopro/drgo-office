@@ -17,8 +17,8 @@ class MarketingReportController extends Controller
 {
     public function index(Request $request)
     {
-        // 마이그레이션 미적용 시 안내
-        if (! Schema::hasColumn('clients', 'inflow_source') || ! Schema::hasTable('rental_contracts')) {
+        // 핵심 컬럼 중 하나라도 없으면 안내
+        if (! Schema::hasColumn('clients', 'inflow_source') || ! Schema::hasColumn('projects', 'client_scale')) {
             return response()->view('marketing-report.needs-migration', [], 503);
         }
 
@@ -82,10 +82,64 @@ class MarketingReportController extends Controller
         $newProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->count();
         $settingDone = Project::whereBetween('created_at', [$fromDt, $toDt])->whereIn('stage', ['visit', 'as', 'done'])->count();
         $cancelled = Project::whereBetween('created_at', [$fromDt, $toDt])->where('stage', 'cancelled')->count();
-        $cancelReasons = Project::whereBetween('cancelled_at', [$fromDt, $toDt])
-            ->whereNotNull('cancel_reason')
-            ->select('cancel_reason', DB::raw('count(*) as cnt'))
-            ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason');
+
+        // ── 퍼널 분석 (기간 내 유입된 문의의 코호트 전환율) ──
+        $funnelInquiry = $newProjects;
+        $funnelEstimateIssued = 0;
+        $funnelPaid = 0;
+        $funnelSettingDone = 0;
+        $avgInquiryToComplete = 0;
+        $avgPaidToComplete = 0;
+
+        try {
+            $inquiryClientIds = Project::whereBetween('created_at', [$fromDt, $toDt])->pluck('client_id')->unique()->filter()->values()->toArray();
+            if (count($inquiryClientIds) > 0) {
+                $funnelEstimateIssued = Estimate::whereIn('client_id', $inquiryClientIds)->distinct('client_id')->count('client_id');
+                $funnelPaid = Estimate::whereIn('client_id', $inquiryClientIds)->where('status', 'paid')->distinct('client_id')->count('client_id');
+            }
+            $funnelSettingDone = Project::whereBetween('created_at', [$fromDt, $toDt])
+                ->where('stage', 'done')
+                ->count();
+
+            // 리드타임 분석
+            $completedProjects = Project::whereNotNull('completed_at')
+                ->whereBetween('completed_at', [$fromDt, $toDt])
+                ->get(['id', 'created_at', 'completed_at']);
+
+            $inquiryDiffs = [];
+            foreach ($completedProjects as $p) {
+                if ($p->created_at && $p->completed_at) {
+                    $inquiryDiffs[] = (int) abs($p->created_at->diffInDays($p->completed_at));
+                }
+            }
+            if (count($inquiryDiffs) > 0) {
+                $avgInquiryToComplete = round(array_sum($inquiryDiffs) / count($inquiryDiffs), 1);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        $funnelConversion = [
+            'inquiry_to_estimate' => $funnelInquiry > 0 ? round(($funnelEstimateIssued / $funnelInquiry) * 100, 1) : 0,
+            'estimate_to_paid' => $funnelEstimateIssued > 0 ? round(($funnelPaid / $funnelEstimateIssued) * 100, 1) : 0,
+            'paid_to_setting' => $funnelPaid > 0 ? round(($funnelSettingDone / $funnelPaid) * 100, 1) : 0,
+            'overall' => $funnelInquiry > 0 ? round(($funnelSettingDone / $funnelInquiry) * 100, 1) : 0,
+        ];
+
+        // ── 파이프라인 (현재 진행 중인 건 스냅샷, 날짜 무관) ──
+        $pipeline = [
+            'consulting' => Project::where('stage', 'consulting')->count(),
+            'estimate' => Project::whereIn('stage', ['equipment', 'proposal', 'estimate'])->count(),
+            'payment' => Project::where('stage', 'payment')->count(),
+            'visit' => Project::whereIn('stage', ['visit', 'as'])->count(),
+        ];
+        $cancelReasons = collect();
+        if (Schema::hasColumn('projects', 'cancel_reason') && Schema::hasColumn('projects', 'cancelled_at')) {
+            $cancelReasons = Project::whereBetween('cancelled_at', [$fromDt, $toDt])
+                ->whereNotNull('cancel_reason')
+                ->select('cancel_reason', DB::raw('count(*) as cnt'))
+                ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason');
+        }
 
         // ── 매출 지표 ──
         $paidEstimates = Estimate::where('status', 'paid')->whereBetween('created_at', [$fromDt, $toDt])->get();
@@ -103,15 +157,28 @@ class MarketingReportController extends Controller
             }
         }
 
-        // ── 렌탈/방송룸 현황 ──
-        $rentalActive = RentalContract::where('status', 'active')->count();
-        $rentalMonthlyRevenue = RentalContract::where('status', 'active')->sum('monthly_fee');
-        $rentalNewInPeriod = RentalContract::whereBetween('start_date', [$from, $to])->count();
+        // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──
+        $rentalActive = 0;
+        $rentalMonthlyRevenue = 0;
+        $rentalNewInPeriod = 0;
+        $broadcastActive = 0;
+        $broadcastMonthlyRevenue = 0;
+        $broadcastUsagesInPeriod = 0;
+        $broadcastUsageRevenue = 0;
 
-        $broadcastActive = BroadcastRoomContract::where('status', 'active')->count();
-        $broadcastMonthlyRevenue = BroadcastRoomContract::where('status', 'active')->sum('monthly_fee');
-        $broadcastUsagesInPeriod = BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->count();
-        $broadcastUsageRevenue = BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->sum('fee');
+        if (Schema::hasTable('rental_contracts')) {
+            $rentalActive = RentalContract::where('status', 'active')->count();
+            $rentalMonthlyRevenue = (int) RentalContract::where('status', 'active')->sum('monthly_fee');
+            $rentalNewInPeriod = RentalContract::whereBetween('start_date', [$from, $to])->count();
+        }
+        if (Schema::hasTable('broadcast_room_contracts')) {
+            $broadcastActive = BroadcastRoomContract::where('status', 'active')->count();
+            $broadcastMonthlyRevenue = (int) BroadcastRoomContract::where('status', 'active')->sum('monthly_fee');
+        }
+        if (Schema::hasTable('broadcast_room_usages')) {
+            $broadcastUsagesInPeriod = BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->count();
+            $broadcastUsageRevenue = (int) BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->sum('fee');
+        }
 
         // ── 월별 추이 (최근 6개월) ──
         $monthlyTrend = [];
@@ -137,7 +204,9 @@ class MarketingReportController extends Controller
             'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown',
             'rentalActive', 'rentalMonthlyRevenue', 'rentalNewInPeriod',
             'broadcastActive', 'broadcastMonthlyRevenue', 'broadcastUsagesInPeriod', 'broadcastUsageRevenue',
-            'monthlyTrend'
+            'monthlyTrend',
+            'funnelInquiry', 'funnelEstimateIssued', 'funnelPaid', 'funnelSettingDone', 'funnelConversion',
+            'avgInquiryToComplete', 'avgPaidToComplete', 'pipeline'
         ));
     }
 }
