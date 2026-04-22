@@ -603,7 +603,7 @@ function renderClientContent(id) {
                         <input class="field-input" id="pf-name-${id}">
                     </div>
                     <div class="field">
-                        <div class="field-label">유형 *</div>
+                        <div class="field-label">유형 (레거시)</div>
                         <select class="field-input field-select" id="pf-type-${id}">
                             <option value="visit">방문세팅</option>
                             <option value="remote">원격세팅</option>
@@ -611,6 +611,28 @@ function renderClientContent(id) {
                             <option value="inquiry">단순문의</option>
                             <option value="as">A/S</option>
                             <option value="troubleshoot">문제 해결</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-top:10px;">
+                    <div class="field">
+                        <div class="field-label">규모 *</div>
+                        <select class="field-input field-select" id="pf-scale-${id}" onchange="updateWorkTypeOptions(${id})">
+                            <option value="personal">개인</option>
+                            <option value="studio">스튜디오</option>
+                            <option value="corporate">기업</option>
+                            <option value="rental">렌탈</option>
+                            <option value="broadcast_room">방송룸</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">작업 유형 *</div>
+                        <select class="field-input field-select" id="pf-work_type-${id}">
+                            <option value="setup">세팅</option>
+                            <option value="remote">원격</option>
+                            <option value="filming">촬영중계</option>
+                            <option value="design">디자인</option>
+                            <option value="as">A/S</option>
                         </select>
                     </div>
                 </div>
@@ -770,11 +792,27 @@ function _openPostcode(clientId) {
 }
 
 // ── 프로젝트 CRUD ──
+const WORK_TYPE_OPTIONS = {
+    personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
+    studio: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S'],['dispatch','파견']],
+    corporate: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
+    rental: [['monthly','월 계약']],
+    broadcast_room: [['monthly','월 계약'],['hourly','시간 대여']],
+};
+
+function updateWorkTypeOptions(clientId) {
+    const scale = document.getElementById('pf-scale-' + clientId).value;
+    const sel = document.getElementById('pf-work_type-' + clientId);
+    const opts = WORK_TYPE_OPTIONS[scale] || [];
+    sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+}
+
 function openProjectForm(clientId) {
     const form = document.getElementById('project-form-' + clientId);
     form.style.display = 'block';
     document.getElementById('pf-name-' + clientId).value = '';
     document.getElementById('pf-memo-' + clientId).value = '';
+    updateWorkTypeOptions(clientId);
 }
 
 async function createProject(clientId) {
@@ -783,6 +821,8 @@ async function createProject(clientId) {
     const body = {
         name,
         project_type: document.getElementById('pf-type-' + clientId).value,
+        client_scale: document.getElementById('pf-scale-' + clientId).value,
+        work_type: document.getElementById('pf-work_type-' + clientId).value,
         memo: document.getElementById('pf-memo-' + clientId).value,
     };
     const res = await fetch(`/clients/${clientId}/projects`, {

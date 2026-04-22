@@ -45,6 +45,8 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:200',
             'project_type' => 'required|in:visit,remote,design,inquiry,as,troubleshoot',
+            'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
+            'work_type' => 'nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
             'memo' => 'nullable|string',
         ]);
 
@@ -133,6 +135,8 @@ class ProjectController extends Controller
             'name' => 'sometimes|string|max:200',
             'memo' => 'nullable|string',
             'project_type' => 'sometimes|in:visit,remote,design,inquiry,as,troubleshoot',
+            'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
+            'work_type' => 'sometimes|nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
         ]);
 
         $project->update($validated);

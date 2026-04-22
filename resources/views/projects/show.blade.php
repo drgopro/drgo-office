@@ -186,6 +186,18 @@
                     <span class="badge badge-{{ $project->project_type }}">
                         {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
                     </span>
+                    @if($project->client_scale)
+                        @php
+                            $scaleL = ['personal'=>'개인','studio'=>'스튜디오','corporate'=>'기업','rental'=>'렌탈','broadcast_room'=>'방송룸'];
+                            $workL = ['setup'=>'세팅','remote'=>'원격','survey'=>'답사','filming'=>'촬영중계','design'=>'디자인','as'=>'A/S','dispatch'=>'파견','monthly'=>'월 계약','hourly'=>'시간 대여'];
+                        @endphp
+                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
+                            {{ $scaleL[$project->client_scale] ?? $project->client_scale }}
+                            @if($project->work_type) · {{ $workL[$project->work_type] ?? $project->work_type }} @endif
+                        </span>
+                    @else
+                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text-muted);cursor:pointer;border:1px dashed var(--border);" onclick="openScaleEditor()">+ 규모 지정</span>
+                    @endif
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
                     <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
                 </div>
@@ -582,6 +594,34 @@
         </form>
     </div>
 </div>
+{{-- 규모/작업유형 편집 모달 --}}
+<div class="modal-overlay" id="scaleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)closeScaleEditor()">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:420px;max-width:95vw;padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div style="font-size:16px;font-weight:700;">규모 / 작업 유형</div>
+            <button onclick="closeScaleEditor()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+        </div>
+        <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">규모 *</div>
+            <select id="editScale" onchange="updateEditWorkTypes()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;">
+                <option value="personal" {{ $project->client_scale === 'personal' ? 'selected' : '' }}>개인</option>
+                <option value="studio" {{ $project->client_scale === 'studio' ? 'selected' : '' }}>스튜디오</option>
+                <option value="corporate" {{ $project->client_scale === 'corporate' ? 'selected' : '' }}>기업</option>
+                <option value="rental" {{ $project->client_scale === 'rental' ? 'selected' : '' }}>렌탈</option>
+                <option value="broadcast_room" {{ $project->client_scale === 'broadcast_room' ? 'selected' : '' }}>방송룸</option>
+            </select>
+        </div>
+        <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">작업 유형 *</div>
+            <select id="editWorkType" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;"></select>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeScaleEditor()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
+            <button onclick="submitScale()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+        </div>
+    </div>
+</div>
+
 {{-- 취소 사유 모달 --}}
 <div class="modal-overlay" id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)closeCancelModal()">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:440px;max-width:95vw;padding:24px;">
@@ -727,6 +767,44 @@ async function saveMemo() {
     edit.style.display = 'none';
     display.style.display = '';
     btn.textContent = '수정';
+}
+
+// 규모/작업유형 편집
+const WORK_TYPES = {
+    personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
+    studio: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S'],['dispatch','파견']],
+    corporate: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
+    rental: [['monthly','월 계약']],
+    broadcast_room: [['monthly','월 계약'],['hourly','시간 대여']],
+};
+const CURRENT_WORK_TYPE = @json($project->work_type);
+
+function updateEditWorkTypes() {
+    const scale = document.getElementById('editScale').value;
+    const sel = document.getElementById('editWorkType');
+    const opts = WORK_TYPES[scale] || [];
+    sel.innerHTML = opts.map(([v,l]) => `<option value="${v}" ${CURRENT_WORK_TYPE===v?'selected':''}>${l}</option>`).join('');
+}
+
+function openScaleEditor() {
+    updateEditWorkTypes();
+    document.getElementById('scaleModal').style.display = 'flex';
+}
+function closeScaleEditor() { document.getElementById('scaleModal').style.display = 'none'; }
+
+async function submitScale() {
+    const body = {
+        client_scale: document.getElementById('editScale').value,
+        work_type: document.getElementById('editWorkType').value,
+    };
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/api/projects/{{ $project->id }}`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+        body:JSON.stringify(body),
+    });
+    if (res.ok) location.reload();
+    else alert('저장 실패');
 }
 
 // 프로젝트 취소 모달
