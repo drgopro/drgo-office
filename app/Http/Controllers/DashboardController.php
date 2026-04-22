@@ -165,6 +165,29 @@ class DashboardController extends Controller
             $broadcastMonthlyRevenue = BroadcastRoomContract::where('status', 'active')->sum('monthly_fee');
         }
 
+        // ── 진행 상황 (파이프라인, 실시간 스냅샷) ──
+        $pipeline = [
+            'consulting' => Project::where('stage', 'consulting')->count(),
+            'estimate' => Project::whereIn('stage', ['equipment', 'proposal', 'estimate'])->count(),
+            'payment' => Project::where('stage', 'payment')->count(),
+            'visit' => Project::whereIn('stage', ['visit', 'as'])->count(),
+        ];
+
+        // 최근 상담 대기/진행중 (우선순위가 높은 항목)
+        $recentConsults = Consultation::with('client', 'consultant')
+            ->whereIn('result', ['in_progress', 'waiting'])
+            ->orderByDesc('consulted_at')
+            ->limit(10)
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'client' => $c->client?->nickname ?: $c->client?->name,
+                'result' => $c->result,
+                'content' => \Str::limit($c->content, 40),
+                'consultant' => $c->consultant?->display_name,
+                'date' => $c->consulted_at?->format('m.d'),
+            ]);
+
         return view('dashboard', compact(
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
@@ -174,7 +197,8 @@ class DashboardController extends Controller
             'monthlyData', 'r3ProjectTotal', 'r3Visit', 'r3Remote', 'r3Consults', 'r3Clients', 'r3Revenue',
             'scheduleThisMonth', 'scheduleByColor',
             'scaleThisMonth', 'projectByScale',
-            'rentalActive', 'rentalMonthlyRevenue', 'broadcastActive', 'broadcastMonthlyRevenue'
+            'rentalActive', 'rentalMonthlyRevenue', 'broadcastActive', 'broadcastMonthlyRevenue',
+            'pipeline', 'recentConsults'
         ));
     }
 
