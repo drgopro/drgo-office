@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BroadcastRoomContract;
+use App\Models\BroadcastRoomUsage;
 use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\Estimate;
 use App\Models\Project;
+use App\Models\RentalContract;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -486,6 +489,46 @@ class DashboardController extends Controller
         $dataRow($s1, $r, ['매출', '건당 평균 매출', $avgRevenue, '']);
         $r += 2;
 
+        // ── 마케팅 상세 섹션 ──
+        $inflowLabels = ['search' => '검색', 'referral' => '지인 소개', 'sns' => 'SNS', 'ad' => '광고', 'community' => '커뮤니티', 'other' => '기타'];
+        $typeLabels = ['personal' => '개인', 'enterprise' => '엔터', 'studio' => '스튜디오'];
+        $inflowDist = Client::whereBetween('created_at', [$fromDt, $toDt])->select('inflow_source', DB::raw('count(*) as cnt'))->groupBy('inflow_source')->pluck('cnt', 'inflow_source');
+        $typeDist = Client::whereBetween('created_at', [$fromDt, $toDt])->select('client_type', DB::raw('count(*) as cnt'))->groupBy('client_type')->pluck('cnt', 'client_type');
+        $scaleDist = Project::whereBetween('created_at', [$fromDt, $toDt])->select('client_scale', DB::raw('count(*) as cnt'))->groupBy('client_scale')->pluck('cnt', 'client_scale');
+
+        $sectionHeader($s1, $r, '🎯  마케팅 상세');
+        $r++;
+        $subHeader($s1, $r, ['구분', '지표', '건수', '비고']);
+        $r++;
+
+        $inflowStripe = true;
+        foreach ($inflowLabels as $key => $label) {
+            $cnt = $inflowDist[$key] ?? 0;
+            if ($cnt > 0) {
+                $dataRow($s1, $r, ['유입경로', $label, number_format($cnt), ''], $inflowStripe);
+                $r++;
+                $inflowStripe = ! $inflowStripe;
+            }
+        }
+        foreach ($typeLabels as $key => $label) {
+            $cnt = $typeDist[$key] ?? 0;
+            if ($cnt > 0) {
+                $dataRow($s1, $r, ['의뢰자 유형', $label, number_format($cnt), ''], $inflowStripe);
+                $r++;
+                $inflowStripe = ! $inflowStripe;
+            }
+        }
+        $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
+        foreach ($scaleLabels as $key => $label) {
+            $cnt = $scaleDist[$key] ?? 0;
+            if ($cnt > 0) {
+                $dataRow($s1, $r, ['프로젝트 규모', $label, number_format($cnt), ''], $inflowStripe);
+                $r++;
+                $inflowStripe = ! $inflowStripe;
+            }
+        }
+        $r += 2;
+
         // ── 누적 섹션 ──
         $sectionHeader($s1, $r, '📊  누적');
         $r++;
@@ -628,6 +671,215 @@ class DashboardController extends Controller
                 $row++;
             }
         });
+
+        // ── 마케팅 지표 계산 ──
+        $inflowL = ['search' => '검색', 'referral' => '지인 소개', 'sns' => 'SNS', 'ad' => '광고', 'community' => '커뮤니티', 'other' => '기타'];
+        $clientTypeL = ['personal' => '개인', 'enterprise' => '엔터', 'studio' => '스튜디오'];
+        $scaleL = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
+        $workL = ['setup' => '세팅', 'remote' => '원격', 'survey' => '답사', 'filming' => '촬영중계', 'design' => '디자인', 'as' => 'A/S', 'dispatch' => '파견', 'monthly' => '월 계약', 'hourly' => '시간 대여'];
+        $breakdownL = ['setup' => '세팅비', 'product' => '장비판매', 'labor' => '인건비', 'dispatch' => '파견비', 'rush' => '긴급비', 'other' => '기타'];
+
+        $clientsByInflow = Client::whereBetween('created_at', [$fromDt, $toDt])->select('inflow_source', DB::raw('count(*) as cnt'))->groupBy('inflow_source')->pluck('cnt', 'inflow_source');
+        $clientsByType = Client::whereBetween('created_at', [$fromDt, $toDt])->select('client_type', DB::raw('count(*) as cnt'))->groupBy('client_type')->pluck('cnt', 'client_type');
+
+        $platformCounts = [];
+        $contentCounts = [];
+        Client::whereBetween('created_at', [$fromDt, $toDt])->chunk(200, function ($chunk) use (&$platformCounts, &$contentCounts) {
+            foreach ($chunk as $c) {
+                foreach ($c->platforms ?? [] as $p) {
+                    $platformCounts[$p] = ($platformCounts[$p] ?? 0) + 1;
+                }
+                foreach ($c->content_types ?? [] as $t) {
+                    $contentCounts[$t] = ($contentCounts[$t] ?? 0) + 1;
+                }
+            }
+        });
+        arsort($platformCounts);
+        arsort($contentCounts);
+
+        $scaleWorkMatrix = Project::whereBetween('created_at', [$fromDt, $toDt])
+            ->select('client_scale', 'work_type', DB::raw('count(*) as cnt'))
+            ->groupBy('client_scale', 'work_type')->get();
+
+        $cancelReasons = Project::whereBetween('cancelled_at', [$fromDt, $toDt])
+            ->whereNotNull('cancel_reason')
+            ->select('cancel_reason', DB::raw('count(*) as cnt'))
+            ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason');
+
+        $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'other' => 0];
+        foreach ($allPaidEstimates as $e) {
+            foreach ($e->category_breakdown ?? [] as $key => $val) {
+                if (isset($revenueBreakdown[$key])) {
+                    $revenueBreakdown[$key] += (int) $val;
+                }
+            }
+        }
+
+        // Sheet 8: 마케팅 지표
+        $s8 = $spreadsheet->createSheet();
+        $s8->setTitle('마케팅 지표');
+        $s8->getColumnDimension('A')->setWidth(22);
+        $s8->getColumnDimension('B')->setWidth(14);
+        $s8->getColumnDimension('C')->setWidth(14);
+
+        $s8->setCellValue('A1', '📢 마케팅 지표');
+        $s8->mergeCells('A1:C1');
+        $bold($s8, 'A1');
+
+        // 유입경로
+        $s8->setCellValue('A3', '▸ 유입경로별 분포');
+        $bold($s8, 'A3');
+        $s8->fromArray(['유입경로', '건수', '비율(%)'], null, 'A4');
+        $bold($s8, 'A4:C4');
+        $row = 5;
+        $totalInflow = $clientsByInflow->sum();
+        foreach ($inflowL as $key => $label) {
+            $cnt = $clientsByInflow[$key] ?? 0;
+            $ratio = $totalInflow > 0 ? round(($cnt / $totalInflow) * 100, 1) : 0;
+            $s8->fromArray([$label, $cnt, $ratio.'%'], null, "A{$row}");
+            $row++;
+        }
+        if (($clientsByInflow[null] ?? 0) > 0) {
+            $s8->fromArray(['미지정', $clientsByInflow[null], $totalInflow > 0 ? round(($clientsByInflow[null] / $totalInflow) * 100, 1).'%' : '0%'], null, "A{$row}");
+            $row++;
+        }
+
+        // 의뢰자 유형
+        $row += 2;
+        $s8->setCellValue("A{$row}", '▸ 의뢰자 유형별 분포');
+        $bold($s8, "A{$row}");
+        $row++;
+        $s8->fromArray(['유형', '건수', '비율(%)'], null, "A{$row}");
+        $bold($s8, "A{$row}:C{$row}");
+        $row++;
+        $totalType = $clientsByType->sum();
+        foreach ($clientTypeL as $key => $label) {
+            $cnt = $clientsByType[$key] ?? 0;
+            $ratio = $totalType > 0 ? round(($cnt / $totalType) * 100, 1) : 0;
+            $s8->fromArray([$label, $cnt, $ratio.'%'], null, "A{$row}");
+            $row++;
+        }
+
+        // 플랫폼
+        $row += 2;
+        $s8->setCellValue("A{$row}", '▸ 플랫폼별 분포');
+        $bold($s8, "A{$row}");
+        $row++;
+        $s8->fromArray(['플랫폼', '건수', ''], null, "A{$row}");
+        $bold($s8, "A{$row}:C{$row}");
+        $row++;
+        if (empty($platformCounts)) {
+            $s8->fromArray(['(데이터 없음)', '', ''], null, "A{$row}");
+            $row++;
+        } else {
+            foreach ($platformCounts as $platform => $cnt) {
+                $s8->fromArray([$platform, $cnt, ''], null, "A{$row}");
+                $row++;
+            }
+        }
+
+        // 콘텐츠 유형
+        $row += 2;
+        $s8->setCellValue("A{$row}", '▸ 콘텐츠 유형별 분포');
+        $bold($s8, "A{$row}");
+        $row++;
+        $s8->fromArray(['콘텐츠', '건수', ''], null, "A{$row}");
+        $bold($s8, "A{$row}:C{$row}");
+        $row++;
+        if (empty($contentCounts)) {
+            $s8->fromArray(['(데이터 없음)', '', ''], null, "A{$row}");
+        } else {
+            foreach ($contentCounts as $content => $cnt) {
+                $s8->fromArray([$content, $cnt, ''], null, "A{$row}");
+                $row++;
+            }
+        }
+
+        // Sheet 9: 프로젝트 규모×작업유형 매트릭스
+        $s9 = $spreadsheet->createSheet();
+        $s9->setTitle('규모 매트릭스');
+        $workKeys = array_keys($workL);
+        $headers = array_merge(['규모 \ 작업'], array_values($workL), ['합계']);
+        $s9->fromArray($headers, null, 'A1');
+        $bold($s9, 'A1:'.chr(65 + count($headers) - 1).'1');
+
+        // 매트릭스 데이터 준비
+        $matrix = [];
+        foreach ($scaleWorkMatrix as $entry) {
+            $matrix[$entry->client_scale][$entry->work_type] = $entry->cnt;
+        }
+
+        $row = 2;
+        foreach ($scaleL as $scaleKey => $scaleName) {
+            $line = [$scaleName];
+            $total = 0;
+            foreach ($workKeys as $wt) {
+                $cnt = $matrix[$scaleKey][$wt] ?? 0;
+                $line[] = $cnt > 0 ? $cnt : '';
+                $total += $cnt;
+            }
+            $line[] = $total;
+            $s9->fromArray($line, null, "A{$row}");
+            $row++;
+        }
+        $bold($s9, 'A2:A'.($row - 1));
+        foreach (range(0, count($headers) - 1) as $i) {
+            $s9->getColumnDimension(chr(65 + $i))->setAutoSize(true);
+        }
+
+        // 취소 사유
+        if ($cancelReasons->count() > 0) {
+            $row += 2;
+            $s9->setCellValue("A{$row}", '▸ 취소 사유별 분포');
+            $bold($s9, "A{$row}");
+            $row++;
+            $s9->fromArray(['사유', '건수'], null, "A{$row}");
+            $bold($s9, "A{$row}:B{$row}");
+            $row++;
+            foreach ($cancelReasons as $reason => $cnt) {
+                $s9->fromArray([$reason, $cnt], null, "A{$row}");
+                $row++;
+            }
+        }
+
+        // Sheet 10: 매출 세부 카테고리
+        $s10 = $spreadsheet->createSheet();
+        $s10->setTitle('매출 세부');
+        $s10->getColumnDimension('A')->setWidth(22);
+        $s10->getColumnDimension('B')->setWidth(18);
+        $s10->getColumnDimension('C')->setWidth(14);
+        $s10->fromArray(['카테고리', '금액(원)', '비율(%)'], null, 'A1');
+        $bold($s10, 'A1:C1');
+
+        $breakdownTotal = array_sum($revenueBreakdown);
+        $row = 2;
+        foreach ($breakdownL as $key => $label) {
+            $val = $revenueBreakdown[$key] ?? 0;
+            $ratio = $breakdownTotal > 0 ? round(($val / $breakdownTotal) * 100, 1) : 0;
+            $s10->fromArray([$label, $val, $ratio.'%'], null, "A{$row}");
+            $row++;
+        }
+        $s10->fromArray(['합계', $breakdownTotal, '100%'], null, "A{$row}");
+        $bold($s10, "A{$row}:C{$row}");
+
+        // Sheet 11: 렌탈/방송룸 현황
+        $s11 = $spreadsheet->createSheet();
+        $s11->setTitle('렌탈 방송룸');
+        $s11->getColumnDimension('A')->setWidth(30);
+        $s11->getColumnDimension('B')->setWidth(20);
+
+        $s11->setCellValue('A1', '🏠 렌탈 현황');
+        $bold($s11, 'A1');
+        $s11->fromArray(['진행중 계약', RentalContract::where('status', 'active')->count().'건'], null, 'A3');
+        $s11->fromArray(['월 매출 (진행중)', number_format(RentalContract::where('status', 'active')->sum('monthly_fee')).'원'], null, 'A4');
+        $s11->fromArray(['기간 내 신규 계약', RentalContract::whereBetween('start_date', [$from, $to])->count().'건'], null, 'A5');
+
+        $s11->setCellValue('A7', '🎙 방송룸 현황');
+        $bold($s11, 'A7');
+        $s11->fromArray(['진행중 월 계약', BroadcastRoomContract::where('status', 'active')->count().'건'], null, 'A9');
+        $s11->fromArray(['월 계약 매출', number_format(BroadcastRoomContract::where('status', 'active')->sum('monthly_fee')).'원'], null, 'A10');
+        $s11->fromArray(['기간 내 시간 대여', BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->count().'회'], null, 'A11');
+        $s11->fromArray(['시간 대여 매출', number_format(BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->sum('fee')).'원'], null, 'A12');
 
         $filename = "drgo-report-{$from}-{$to}.xlsx";
 
