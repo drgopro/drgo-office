@@ -11,11 +11,17 @@ use App\Models\Project;
 use App\Models\RentalContract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MarketingReportController extends Controller
 {
     public function index(Request $request)
     {
+        // 마이그레이션 미적용 시 안내
+        if (! Schema::hasColumn('clients', 'inflow_source') || ! Schema::hasTable('rental_contracts')) {
+            return response()->view('marketing-report.needs-migration', [], 503);
+        }
+
         $from = $request->query('from', now()->subMonths(2)->startOfMonth()->format('Y-m-d'));
         $to = $request->query('to', now()->format('Y-m-d'));
         $fromDt = $from.' 00:00:00';

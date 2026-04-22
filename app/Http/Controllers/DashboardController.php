@@ -13,6 +13,7 @@ use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Chart\Chart;
 use PhpOffice\PhpSpreadsheet\Chart\DataSeries;
 use PhpOffice\PhpSpreadsheet\Chart\DataSeriesValues;
@@ -136,21 +137,33 @@ class DashboardController extends Controller
         $scheduleThisMonth = Schedule::where('start_date', '>=', now()->startOfMonth())->where('start_date', '<=', now()->endOfMonth())->count();
         $scheduleByColor = Schedule::select('color', DB::raw('count(*) as cnt'))->groupBy('color')->pluck('cnt', 'color');
 
-        // 규모별 프로젝트 (이번 달 기준)
-        $mStart = now()->startOfMonth();
-        $mEnd = now()->endOfMonth();
-        $scaleThisMonth = Project::whereBetween('created_at', [$mStart, $mEnd])
-            ->select('client_scale', DB::raw('count(*) as cnt'))
-            ->groupBy('client_scale')->pluck('cnt', 'client_scale');
-        $projectByScale = Project::select('client_scale', DB::raw('count(*) as cnt'))
-            ->whereNotNull('client_scale')
-            ->groupBy('client_scale')->pluck('cnt', 'client_scale');
+        // 규모별 프로젝트 (이번 달 기준) — 컬럼 있을 때만
+        $scaleThisMonth = collect();
+        $projectByScale = collect();
+        if (Schema::hasColumn('projects', 'client_scale')) {
+            $mStart = now()->startOfMonth();
+            $mEnd = now()->endOfMonth();
+            $scaleThisMonth = Project::whereBetween('created_at', [$mStart, $mEnd])
+                ->select('client_scale', DB::raw('count(*) as cnt'))
+                ->groupBy('client_scale')->pluck('cnt', 'client_scale');
+            $projectByScale = Project::select('client_scale', DB::raw('count(*) as cnt'))
+                ->whereNotNull('client_scale')
+                ->groupBy('client_scale')->pluck('cnt', 'client_scale');
+        }
 
-        // 렌탈/방송룸 현황
-        $rentalActive = RentalContract::where('status', 'active')->count();
-        $rentalMonthlyRevenue = RentalContract::where('status', 'active')->sum('monthly_fee');
-        $broadcastActive = BroadcastRoomContract::where('status', 'active')->count();
-        $broadcastMonthlyRevenue = BroadcastRoomContract::where('status', 'active')->sum('monthly_fee');
+        // 렌탈/방송룸 현황 — 테이블 있을 때만
+        $rentalActive = 0;
+        $rentalMonthlyRevenue = 0;
+        $broadcastActive = 0;
+        $broadcastMonthlyRevenue = 0;
+        if (Schema::hasTable('rental_contracts')) {
+            $rentalActive = RentalContract::where('status', 'active')->count();
+            $rentalMonthlyRevenue = RentalContract::where('status', 'active')->sum('monthly_fee');
+        }
+        if (Schema::hasTable('broadcast_room_contracts')) {
+            $broadcastActive = BroadcastRoomContract::where('status', 'active')->count();
+            $broadcastMonthlyRevenue = BroadcastRoomContract::where('status', 'active')->sum('monthly_fee');
+        }
 
         return view('dashboard', compact(
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
@@ -507,12 +520,13 @@ class DashboardController extends Controller
         $dataRow($s1, $r, ['매출', '건당 평균 매출', $avgRevenue, '']);
         $r += 2;
 
-        // ── 마케팅 상세 섹션 ──
+        // ── 마케팅 상세 섹션 (컬럼 있을 때만) ──
+        $hasMarketingCols = Schema::hasColumn('clients', 'inflow_source') && Schema::hasColumn('projects', 'client_scale');
         $inflowLabels = ['search' => '검색', 'referral' => '지인 소개', 'sns' => 'SNS', 'ad' => '광고', 'community' => '커뮤니티', 'other' => '기타'];
         $typeLabels = ['personal' => '개인', 'enterprise' => '엔터', 'studio' => '스튜디오'];
-        $inflowDist = Client::whereBetween('created_at', [$fromDt, $toDt])->select('inflow_source', DB::raw('count(*) as cnt'))->groupBy('inflow_source')->pluck('cnt', 'inflow_source');
-        $typeDist = Client::whereBetween('created_at', [$fromDt, $toDt])->select('client_type', DB::raw('count(*) as cnt'))->groupBy('client_type')->pluck('cnt', 'client_type');
-        $scaleDist = Project::whereBetween('created_at', [$fromDt, $toDt])->select('client_scale', DB::raw('count(*) as cnt'))->groupBy('client_scale')->pluck('cnt', 'client_scale');
+        $inflowDist = $hasMarketingCols ? Client::whereBetween('created_at', [$fromDt, $toDt])->select('inflow_source', DB::raw('count(*) as cnt'))->groupBy('inflow_source')->pluck('cnt', 'inflow_source') : collect();
+        $typeDist = $hasMarketingCols ? Client::whereBetween('created_at', [$fromDt, $toDt])->select('client_type', DB::raw('count(*) as cnt'))->groupBy('client_type')->pluck('cnt', 'client_type') : collect();
+        $scaleDist = $hasMarketingCols ? Project::whereBetween('created_at', [$fromDt, $toDt])->select('client_scale', DB::raw('count(*) as cnt'))->groupBy('client_scale')->pluck('cnt', 'client_scale') : collect();
 
         $sectionHeader($s1, $r, '🎯  마케팅 상세');
         $r++;
@@ -690,15 +704,16 @@ class DashboardController extends Controller
             }
         });
 
-        // ── 마케팅 지표 계산 ──
+        // ── 마케팅 지표 계산 (컬럼 있을 때만) ──
+        $hasMarketingCols2 = Schema::hasColumn('clients', 'inflow_source') && Schema::hasColumn('projects', 'client_scale');
         $inflowL = ['search' => '검색', 'referral' => '지인 소개', 'sns' => 'SNS', 'ad' => '광고', 'community' => '커뮤니티', 'other' => '기타'];
         $clientTypeL = ['personal' => '개인', 'enterprise' => '엔터', 'studio' => '스튜디오'];
         $scaleL = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
         $workL = ['setup' => '세팅', 'remote' => '원격', 'survey' => '답사', 'filming' => '촬영중계', 'design' => '디자인', 'as' => 'A/S', 'dispatch' => '파견', 'monthly' => '월 계약', 'hourly' => '시간 대여'];
         $breakdownL = ['setup' => '세팅비', 'product' => '장비판매', 'labor' => '인건비', 'dispatch' => '파견비', 'rush' => '긴급비', 'other' => '기타'];
 
-        $clientsByInflow = Client::whereBetween('created_at', [$fromDt, $toDt])->select('inflow_source', DB::raw('count(*) as cnt'))->groupBy('inflow_source')->pluck('cnt', 'inflow_source');
-        $clientsByType = Client::whereBetween('created_at', [$fromDt, $toDt])->select('client_type', DB::raw('count(*) as cnt'))->groupBy('client_type')->pluck('cnt', 'client_type');
+        $clientsByInflow = $hasMarketingCols2 ? Client::whereBetween('created_at', [$fromDt, $toDt])->select('inflow_source', DB::raw('count(*) as cnt'))->groupBy('inflow_source')->pluck('cnt', 'inflow_source') : collect();
+        $clientsByType = $hasMarketingCols2 ? Client::whereBetween('created_at', [$fromDt, $toDt])->select('client_type', DB::raw('count(*) as cnt'))->groupBy('client_type')->pluck('cnt', 'client_type') : collect();
 
         $platformCounts = [];
         $contentCounts = [];
@@ -715,17 +730,20 @@ class DashboardController extends Controller
         arsort($platformCounts);
         arsort($contentCounts);
 
-        $scaleWorkMatrix = Project::whereBetween('created_at', [$fromDt, $toDt])
+        $scaleWorkMatrix = $hasMarketingCols2 ? Project::whereBetween('created_at', [$fromDt, $toDt])
             ->select('client_scale', 'work_type', DB::raw('count(*) as cnt'))
-            ->groupBy('client_scale', 'work_type')->get();
+            ->groupBy('client_scale', 'work_type')->get() : collect();
 
-        $cancelReasons = Project::whereBetween('cancelled_at', [$fromDt, $toDt])
+        $cancelReasons = Schema::hasColumn('projects', 'cancel_reason') ? Project::whereBetween('cancelled_at', [$fromDt, $toDt])
             ->whereNotNull('cancel_reason')
             ->select('cancel_reason', DB::raw('count(*) as cnt'))
-            ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason');
+            ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason') : collect();
 
         $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'other' => 0];
         foreach ($allPaidEstimates as $e) {
+            if (! Schema::hasColumn('estimates', 'category_breakdown')) {
+                break;
+            }
             foreach ($e->category_breakdown ?? [] as $key => $val) {
                 if (isset($revenueBreakdown[$key])) {
                     $revenueBreakdown[$key] += (int) $val;
@@ -880,24 +898,32 @@ class DashboardController extends Controller
         $s10->fromArray(['합계', $breakdownTotal, '100%'], null, "A{$row}");
         $bold($s10, "A{$row}:C{$row}");
 
-        // Sheet 11: 렌탈/방송룸 현황
-        $s11 = $spreadsheet->createSheet();
-        $s11->setTitle('렌탈 방송룸');
-        $s11->getColumnDimension('A')->setWidth(30);
-        $s11->getColumnDimension('B')->setWidth(20);
+        // Sheet 11: 렌탈/방송룸 현황 (테이블 있을 때만)
+        if (Schema::hasTable('rental_contracts') || Schema::hasTable('broadcast_room_contracts')) {
+            $s11 = $spreadsheet->createSheet();
+            $s11->setTitle('렌탈 방송룸');
+            $s11->getColumnDimension('A')->setWidth(30);
+            $s11->getColumnDimension('B')->setWidth(20);
 
-        $s11->setCellValue('A1', '🏠 렌탈 현황');
-        $bold($s11, 'A1');
-        $s11->fromArray(['진행중 계약', RentalContract::where('status', 'active')->count().'건'], null, 'A3');
-        $s11->fromArray(['월 매출 (진행중)', number_format(RentalContract::where('status', 'active')->sum('monthly_fee')).'원'], null, 'A4');
-        $s11->fromArray(['기간 내 신규 계약', RentalContract::whereBetween('start_date', [$from, $to])->count().'건'], null, 'A5');
+            if (Schema::hasTable('rental_contracts')) {
+                $s11->setCellValue('A1', '🏠 렌탈 현황');
+                $bold($s11, 'A1');
+                $s11->fromArray(['진행중 계약', RentalContract::where('status', 'active')->count().'건'], null, 'A3');
+                $s11->fromArray(['월 매출 (진행중)', number_format(RentalContract::where('status', 'active')->sum('monthly_fee')).'원'], null, 'A4');
+                $s11->fromArray(['기간 내 신규 계약', RentalContract::whereBetween('start_date', [$from, $to])->count().'건'], null, 'A5');
+            }
 
-        $s11->setCellValue('A7', '🎙 방송룸 현황');
-        $bold($s11, 'A7');
-        $s11->fromArray(['진행중 월 계약', BroadcastRoomContract::where('status', 'active')->count().'건'], null, 'A9');
-        $s11->fromArray(['월 계약 매출', number_format(BroadcastRoomContract::where('status', 'active')->sum('monthly_fee')).'원'], null, 'A10');
-        $s11->fromArray(['기간 내 시간 대여', BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->count().'회'], null, 'A11');
-        $s11->fromArray(['시간 대여 매출', number_format(BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->sum('fee')).'원'], null, 'A12');
+            if (Schema::hasTable('broadcast_room_contracts')) {
+                $s11->setCellValue('A7', '🎙 방송룸 현황');
+                $bold($s11, 'A7');
+                $s11->fromArray(['진행중 월 계약', BroadcastRoomContract::where('status', 'active')->count().'건'], null, 'A9');
+                $s11->fromArray(['월 계약 매출', number_format(BroadcastRoomContract::where('status', 'active')->sum('monthly_fee')).'원'], null, 'A10');
+                if (Schema::hasTable('broadcast_room_usages')) {
+                    $s11->fromArray(['기간 내 시간 대여', BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->count().'회'], null, 'A11');
+                    $s11->fromArray(['시간 대여 매출', number_format(BroadcastRoomUsage::whereBetween('used_date', [$from, $to])->sum('fee')).'원'], null, 'A12');
+                }
+            }
+        }
 
         $filename = "drgo-report-{$from}-{$to}.xlsx";
 
