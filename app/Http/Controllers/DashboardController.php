@@ -136,6 +136,22 @@ class DashboardController extends Controller
         $scheduleThisMonth = Schedule::where('start_date', '>=', now()->startOfMonth())->where('start_date', '<=', now()->endOfMonth())->count();
         $scheduleByColor = Schedule::select('color', DB::raw('count(*) as cnt'))->groupBy('color')->pluck('cnt', 'color');
 
+        // 규모별 프로젝트 (이번 달 기준)
+        $mStart = now()->startOfMonth();
+        $mEnd = now()->endOfMonth();
+        $scaleThisMonth = Project::whereBetween('created_at', [$mStart, $mEnd])
+            ->select('client_scale', DB::raw('count(*) as cnt'))
+            ->groupBy('client_scale')->pluck('cnt', 'client_scale');
+        $projectByScale = Project::select('client_scale', DB::raw('count(*) as cnt'))
+            ->whereNotNull('client_scale')
+            ->groupBy('client_scale')->pluck('cnt', 'client_scale');
+
+        // 렌탈/방송룸 현황
+        $rentalActive = RentalContract::where('status', 'active')->count();
+        $rentalMonthlyRevenue = RentalContract::where('status', 'active')->sum('monthly_fee');
+        $broadcastActive = BroadcastRoomContract::where('status', 'active')->count();
+        $broadcastMonthlyRevenue = BroadcastRoomContract::where('status', 'active')->sum('monthly_fee');
+
         return view('dashboard', compact(
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
@@ -143,7 +159,9 @@ class DashboardController extends Controller
             'consultTotal', 'consultThisMonth', 'consultByType',
             'monthlyClients', 'monthlyProjects', 'monthlyConsults', 'monthlyEstimates', 'monthlySchedules',
             'monthlyData', 'r3ProjectTotal', 'r3Visit', 'r3Remote', 'r3Consults', 'r3Clients', 'r3Revenue',
-            'scheduleThisMonth', 'scheduleByColor'
+            'scheduleThisMonth', 'scheduleByColor',
+            'scaleThisMonth', 'projectByScale',
+            'rentalActive', 'rentalMonthlyRevenue', 'broadcastActive', 'broadcastMonthlyRevenue'
         ));
     }
 

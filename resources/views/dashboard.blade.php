@@ -77,107 +77,106 @@
         </div>
     </div>
 
-    {{-- 주요 수치 카드 --}}
+    {{-- 핵심 지표 (축약) --}}
     <div class="stat-cards">
         <div class="stat-card" onclick="openDetail('clients')">
-            <div class="stat-label">총 의뢰자</div>
+            <div class="stat-label">총 의뢰자 / 이번달</div>
             <div class="stat-value">{{ number_format($clientTotal) }}</div>
             <div class="stat-sub">이번 달 +{{ $clientThisMonth }}명</div>
         </div>
         <div class="stat-card" onclick="openDetail('projects')">
-            <div class="stat-label">진행 중 프로젝트</div>
-            <div class="stat-value">{{ number_format($projectActive) }}</div>
-            <div class="stat-sub">전체 {{ $projectTotal }}건</div>
+            <div class="stat-label">진행중 / 전체 프로젝트</div>
+            <div class="stat-value">{{ number_format($projectActive) }} <span style="font-size:14px;color:var(--text-muted);">/ {{ $projectTotal }}</span></div>
         </div>
         <div class="stat-card" onclick="openDetail('consultations')">
             <div class="stat-label">이번 달 상담</div>
             <div class="stat-value">{{ number_format($consultThisMonth) }}</div>
-            <div class="stat-sub">전체 {{ $consultTotal }}건</div>
-        </div>
-        <div class="stat-card" onclick="openDetail('schedules')">
-            <div class="stat-label">이번 달 일정</div>
-            <div class="stat-value">{{ number_format($scheduleThisMonth) }}</div>
         </div>
         <div class="stat-card" onclick="openDetail('estimates')">
-            <div class="stat-label">견적 총액 (완료+결제)</div>
-            <div class="stat-value" style="font-size:22px;">{{ number_format($estimateTotalAmount) }}원</div>
-            <div class="stat-sub">결제 완료 {{ number_format($estimatePaidAmount) }}원</div>
-        </div>
-        <div class="stat-card" onclick="openDetail('estimates')">
-            <div class="stat-label">총 견적서</div>
-            <div class="stat-value">{{ number_format($estimateTotal) }}</div>
-            <div class="stat-sub">
-                @foreach($estimateByStatus as $status => $cnt)
-                    @php $sl=['created'=>'작성중','editing'=>'수정중','completed'=>'완료','paid'=>'결제완료','hold'=>'보류']; @endphp
-                    <span class="stat-badge" style="background:var(--surface2);">{{ $sl[$status] ?? $status }} {{ $cnt }}</span>
-                @endforeach
-            </div>
+            <div class="stat-label">누적 매출 (결제완료)</div>
+            <div class="stat-value" style="font-size:20px;color:var(--accent);">{{ number_format($estimatePaidAmount) }}원</div>
         </div>
     </div>
 
     {{-- 최근 3개월 요약 --}}
     <div style="margin-bottom:24px;">
-        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-            📋 최근 3개월 요약
-            <span style="font-size:11px;color:var(--text-muted);font-weight:400;">
-                ({{ now()->subMonths(2)->format('Y.m') }} ~ {{ now()->format('Y.m') }})
-            </span>
-        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">📋 최근 3개월 ({{ now()->subMonths(2)->format('Y.m') }} ~ {{ now()->format('Y.m') }})</div>
         <div class="stat-cards" style="margin-bottom:0;">
-            <div class="stat-card" onclick="openDetail('projects')">
-                <div class="stat-label">월간 프로젝트 건수</div>
-                <div class="stat-value">{{ $r3ProjectTotal }}</div>
-                <div class="stat-sub">
-                    @foreach(array_slice($monthlyData, -3) as $md)
-                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects'] }}</span>
-                    @endforeach
-                </div>
-            </div>
             <div class="stat-card" onclick="openDetail('clients')">
-                <div class="stat-label">월간 응대 고객수</div>
+                <div class="stat-label">신규 의뢰자</div>
                 <div class="stat-value">{{ $r3Clients }}</div>
                 <div class="stat-sub">
-                    @foreach(array_slice($monthlyData, -3) as $md)
-                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['clients'] }}</span>
-                    @endforeach
+                    @foreach(array_slice($monthlyData, -3) as $md)<span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['clients'] }}</span>@endforeach
+                </div>
+            </div>
+            <div class="stat-card" onclick="openDetail('projects')">
+                <div class="stat-label">프로젝트</div>
+                <div class="stat-value">{{ $r3ProjectTotal }}</div>
+                <div class="stat-sub">
+                    @foreach(array_slice($monthlyData, -3) as $md)<span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects'] }}</span>@endforeach
                 </div>
             </div>
             <div class="stat-card" onclick="openDetail('consultations')">
-                <div class="stat-label">월간 상담량</div>
+                <div class="stat-label">상담</div>
                 <div class="stat-value">{{ $r3Consults }}</div>
                 <div class="stat-sub">
-                    @foreach(array_slice($monthlyData, -3) as $md)
-                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['consults'] }}</span>
-                    @endforeach
-                </div>
-            </div>
-            <div class="stat-card" onclick="openDetail('schedules')">
-                <div class="stat-label">월간 방문 건수</div>
-                <div class="stat-value">{{ $r3Visit }}</div>
-                <div class="stat-sub">
-                    @foreach(array_slice($monthlyData, -3) as $md)
-                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects_visit'] + $md['schedules_visit'] }}</span>
-                    @endforeach
-                </div>
-            </div>
-            <div class="stat-card" onclick="openDetail('schedules')">
-                <div class="stat-label">월간 원격 건수</div>
-                <div class="stat-value">{{ $r3Remote }}</div>
-                <div class="stat-sub">
-                    @foreach(array_slice($monthlyData, -3) as $md)
-                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['projects_remote'] + $md['schedules_remote'] }}</span>
-                    @endforeach
+                    @foreach(array_slice($monthlyData, -3) as $md)<span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ $md['consults'] }}</span>@endforeach
                 </div>
             </div>
             <div class="stat-card" onclick="openDetail('estimates')">
-                <div class="stat-label">매출 (결제 완료)</div>
-                <div class="stat-value" style="font-size:22px;">{{ number_format($r3Revenue) }}원</div>
+                <div class="stat-label">매출 (결제)</div>
+                <div class="stat-value" style="font-size:18px;color:var(--accent);">{{ number_format($r3Revenue) }}원</div>
                 <div class="stat-sub">
-                    @foreach(array_slice($monthlyData, -3) as $md)
-                        <span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ number_format($md['est_paid']) }}</span>
-                    @endforeach
+                    @foreach(array_slice($monthlyData, -3) as $md)<span class="stat-badge" style="background:var(--surface2);">{{ substr($md['label'],5) }}월 {{ number_format($md['est_paid']) }}</span>@endforeach
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- 규모별 프로젝트 (이번 달) --}}
+    @php
+        $scaleLabels = ['personal'=>['개인','👤'],'studio'=>['스튜디오','🎙'],'corporate'=>['기업','🏢'],'rental'=>['렌탈','🏠'],'broadcast_room'=>['방송룸','📺']];
+        $scaleSum = ($scaleThisMonth ?? collect())->sum();
+    @endphp
+    <div style="margin-bottom:24px;">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">🏗 규모별 프로젝트 (이번 달)</div>
+        <div class="stat-cards" style="margin-bottom:0;">
+            @foreach($scaleLabels as $key => [$name, $icon])
+                @php $cnt = $scaleThisMonth[$key] ?? 0; $totalCnt = $projectByScale[$key] ?? 0; @endphp
+                <div class="stat-card" style="cursor:default;">
+                    <div class="stat-label">{{ $icon }} {{ $name }}</div>
+                    <div class="stat-value">{{ $cnt }}</div>
+                    <div class="stat-sub">누적 {{ $totalCnt }}건</div>
+                </div>
+            @endforeach
+            <div class="stat-card" style="cursor:default;background:rgba(200,176,138,0.08);">
+                <div class="stat-label">이번달 합계</div>
+                <div class="stat-value" style="color:var(--accent);">{{ $scaleSum }}</div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 렌탈/방송룸 요약 --}}
+    <div style="margin-bottom:24px;">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">🔁 렌탈/방송룸 현황</div>
+        <div class="stat-cards" style="margin-bottom:0;">
+            <div class="stat-card" style="cursor:pointer;" onclick="if(window.parent&&window.parent.drgoTabs)window.parent.drgoTabs.openNav('rental-contracts','/rental-contracts');else location.href='/rental-contracts'">
+                <div class="stat-label">🏠 렌탈 진행중</div>
+                <div class="stat-value">{{ $rentalActive ?? 0 }}</div>
+                <div class="stat-sub">월 {{ number_format($rentalMonthlyRevenue ?? 0) }}원</div>
+            </div>
+            <div class="stat-card" style="cursor:pointer;" onclick="if(window.parent&&window.parent.drgoTabs)window.parent.drgoTabs.openNav('broadcast-room','/broadcast-room');else location.href='/broadcast-room'">
+                <div class="stat-label">🎙 방송룸 월계약</div>
+                <div class="stat-value">{{ $broadcastActive ?? 0 }}</div>
+                <div class="stat-sub">월 {{ number_format($broadcastMonthlyRevenue ?? 0) }}원</div>
+            </div>
+            @if(Auth::user()->isAdmin())
+            <div class="stat-card" style="cursor:pointer;background:rgba(155,112,200,0.08);" onclick="if(window.parent&&window.parent.drgoTabs)window.parent.drgoTabs.openNav('marketing-report','/marketing-report');else location.href='/marketing-report'">
+                <div class="stat-label">📊 마케팅 통계</div>
+                <div class="stat-value" style="font-size:14px;color:var(--accent);">상세 보기 →</div>
+                <div class="stat-sub">유입·플랫폼·규모 분석</div>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -234,27 +233,6 @@
         </div>
     </div>
 
-    {{-- 상세 수치 --}}
-    <div class="chart-grid">
-        <div class="chart-card">
-            <div class="chart-title">👤 의뢰자 등급</div>
-            <div class="detail-grid">
-                @php $gl=['normal'=>'일반','vip'=>'VIP','rental'=>'렌탈']; @endphp
-                @foreach($clientByGrade as $grade => $cnt)
-                    <div class="detail-item"><span class="detail-item-label">{{ $gl[$grade] ?? $grade }}</span><span class="detail-item-value">{{ $cnt }}명</span></div>
-                @endforeach
-            </div>
-        </div>
-        <div class="chart-card">
-            <div class="chart-title">📁 프로젝트 단계 상세</div>
-            <div class="detail-grid">
-                @php $stl=['consulting'=>'상담','equipment'=>'장비파악','proposal'=>'일정제안','estimate'=>'견적/계약','payment'=>'결제/예약','visit'=>'세팅','as'=>'AS','done'=>'완료','cancelled'=>'취소']; @endphp
-                @foreach($projectByStage as $stage => $cnt)
-                    <div class="detail-item"><span class="detail-item-label">{{ $stl[$stage] ?? $stage }}</span><span class="detail-item-value">{{ $cnt }}건</span></div>
-                @endforeach
-            </div>
-        </div>
-    </div>
 </div>
 <!-- 상세 모달 -->
 <div class="dash-modal" id="dashModal" onclick="if(event.target===this)closeDashModal()">

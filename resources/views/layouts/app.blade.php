@@ -258,9 +258,6 @@
             @if(Auth::user()->isAdmin())
                 <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');">📊 통계</a>
             @endif
-            @if(Auth::user()->hasPermission('inventory.edit'))
-                <a href="#" onclick="event.preventDefault(); openGlobalQrScan();">QR스캔</a>
-            @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
                     <a href="#" onclick="event.preventDefault(); drgoTabs.openNav('admin','/admin');">관리</a>
