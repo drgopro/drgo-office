@@ -251,6 +251,10 @@
             @if(Auth::user()->hasPermission('inventory.view'))
                 <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');">장비 위치</a>
             @endif
+            @if(Auth::user()->hasPermission('clients.view'))
+                <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');">렌탈</a>
+                <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');">방송룸</a>
+            @endif
             @if(Auth::user()->hasPermission('inventory.edit'))
                 <a href="#" onclick="event.preventDefault(); openGlobalQrScan();">QR스캔</a>
             @endif
@@ -307,6 +311,10 @@
             @if(Auth::user()->hasPermission('inventory.view'))
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('rental','/rental-equipment'); drgoTabs.closeMenu();">📷 장비 위치</button>
             @endif
+            @if(Auth::user()->hasPermission('clients.view'))
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental-contracts','/rental-contracts'); drgoTabs.closeMenu();">🏠 렌탈</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('broadcast-room','/broadcast-room'); drgoTabs.closeMenu();">🎙 방송룸</button>
+            @endif
             @if(Auth::user()->isAdmin())
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();">⚙️ 관리</button>
             @endif
@@ -360,8 +368,8 @@ const drgoTabs = {
     tabs: [],
     activeId: null,
 
-    ICONS: { dashboard:'📊', calendar:'📅', clients:'👤', projects:'📁', inventory:'📦', estimates:'📝', wiki:'📖', rental:'📷', admin:'⚙️', profile:'👤' },
-    LABELS: { dashboard:'대시보드', calendar:'캘린더', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', admin:'관리', profile:'마이페이지' },
+    ICONS: { dashboard:'📊', calendar:'📅', clients:'👤', projects:'📁', inventory:'📦', estimates:'📝', wiki:'📖', rental:'📷', 'rental-contracts':'🏠', 'broadcast-room':'🎙', admin:'⚙️', profile:'👤' },
+    LABELS: { dashboard:'대시보드', calendar:'캘린더', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', admin:'관리', profile:'마이페이지' },
 
     init() {
         // iframe 내부에서는 탭 시스템 비활성화
@@ -492,6 +500,8 @@ const drgoTabs = {
         if (p.startsWith('/estimates')) return 'estimates';
         if (p.startsWith('/wiki')) return 'wiki';
         if (p.startsWith('/rental-equipment')) return 'rental';
+        if (p.startsWith('/rental-contracts')) return 'rental-contracts';
+        if (p.startsWith('/broadcast-room')) return 'broadcast-room';
         if (p.startsWith('/admin')) return 'admin';
         if (p.startsWith('/profile')) return 'profile';
         return 'page';

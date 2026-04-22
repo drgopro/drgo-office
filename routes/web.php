@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BroadcastRoomController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDocumentController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\WikiController;
@@ -169,6 +171,33 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/rental/categories/{category}', [RentalEquipmentController::class, 'destroyCategory']);
         Route::post('/api/rental/assign', [RentalEquipmentController::class, 'assign']);
         Route::post('/api/rental/assign-group', [RentalEquipmentController::class, 'assignGroup']);
+    });
+
+    // 렌탈 계약 (월 단위)
+    Route::middleware('permission:clients.view')->group(function () {
+        Route::get('/rental-contracts', [RentalContractController::class, 'index'])->name('rental-contracts');
+        Route::get('/api/rental-contracts', [RentalContractController::class, 'list']);
+        Route::get('/api/rental-contracts/search-clients', [RentalContractController::class, 'searchClients']);
+    });
+    Route::middleware('permission:clients.edit')->group(function () {
+        Route::post('/api/rental-contracts', [RentalContractController::class, 'store']);
+        Route::patch('/api/rental-contracts/{contract}', [RentalContractController::class, 'update']);
+        Route::delete('/api/rental-contracts/{contract}', [RentalContractController::class, 'destroy']);
+    });
+
+    // 방송룸
+    Route::middleware('permission:clients.view')->group(function () {
+        Route::get('/broadcast-room', [BroadcastRoomController::class, 'index'])->name('broadcast-room');
+        Route::get('/api/broadcast-room/contracts', [BroadcastRoomController::class, 'contracts']);
+        Route::get('/api/broadcast-room/usages', [BroadcastRoomController::class, 'usages']);
+    });
+    Route::middleware('permission:clients.edit')->group(function () {
+        Route::post('/api/broadcast-room/contracts', [BroadcastRoomController::class, 'storeContract']);
+        Route::patch('/api/broadcast-room/contracts/{contract}', [BroadcastRoomController::class, 'updateContract']);
+        Route::delete('/api/broadcast-room/contracts/{contract}', [BroadcastRoomController::class, 'destroyContract']);
+        Route::post('/api/broadcast-room/usages', [BroadcastRoomController::class, 'storeUsage']);
+        Route::patch('/api/broadcast-room/usages/{usage}', [BroadcastRoomController::class, 'updateUsage']);
+        Route::delete('/api/broadcast-room/usages/{usage}', [BroadcastRoomController::class, 'destroyUsage']);
     });
 
     // 견적서 (edit가 {estimate} 와일드카드보다 먼저)
