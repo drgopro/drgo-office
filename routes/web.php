@@ -8,6 +8,7 @@ use App\Http\Controllers\BroadcastRoomController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDocumentController;
+use App\Http\Controllers\ClientFieldDefinitionController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\WikiController;
+use App\Models\ClientFieldDefinition;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
@@ -250,6 +252,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/admin/teams', [AdminController::class, 'storeTeam']);
         Route::patch('/api/admin/teams/{team}', [AdminController::class, 'updateTeam']);
         Route::delete('/api/admin/teams/{team}', [AdminController::class, 'destroyTeam']);
+
+        // 의뢰자 동적 필드 정의 (master/admin 전용)
+        Route::get('/api/admin/client-fields', [ClientFieldDefinitionController::class, 'index']);
+        Route::post('/api/admin/client-fields', [ClientFieldDefinitionController::class, 'store']);
+        Route::patch('/api/admin/client-fields/{field}', [ClientFieldDefinitionController::class, 'update']);
+        Route::delete('/api/admin/client-fields/{field}', [ClientFieldDefinitionController::class, 'destroy']);
+        Route::post('/api/admin/client-fields/reorder', [ClientFieldDefinitionController::class, 'reorder']);
+    });
+
+    // 의뢰자 페이지에서 활성 필드 정의 조회 (clients.view 권한)
+    Route::middleware('permission:clients.view')->group(function () {
+        Route::get('/api/client-fields/active', function () {
+            return ClientFieldDefinition::active()->ordered()->get();
+        });
     });
 
 });

@@ -27,6 +27,7 @@ class Client extends Model
         'affiliation',
         'important_memo',
         'memo',
+        'custom_data',
         'assigned_user_id',
         'status',
         'last_contact_at',
@@ -36,6 +37,7 @@ class Client extends Model
         'phones' => 'array',
         'platforms' => 'array',
         'content_types' => 'array',
+        'custom_data' => 'array',
         'last_contact_at' => 'datetime',
     ];
 

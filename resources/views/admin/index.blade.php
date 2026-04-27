@@ -114,6 +114,7 @@
         <button class="tab-btn active" data-tab="logs">로그인 기록</button>
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
+        <button class="tab-btn" data-tab="clientFields">의뢰자 필드</button>
         <button class="tab-btn" data-tab="seller">판매처 설정</button>
     </div>
 
@@ -227,6 +228,74 @@
         <div id="teamsContainer"></div>
     </div>
 
+    {{-- 의뢰자 필드 정의 --}}
+    <div class="tab-panel" id="panel-clientFields">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div style="font-size:13px; color:var(--text-muted);">관리자가 정의한 필드는 의뢰자 등록/편집 화면에 자동으로 노출됩니다.</div>
+            <button class="btn-add" onclick="openFieldModal()">+ 필드 추가</button>
+        </div>
+        <div id="clientFieldsContainer"></div>
+    </div>
+
+    {{-- 의뢰자 필드 추가/편집 모달 --}}
+    <div id="fieldModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) closeFieldModal()">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; width:520px; max-width:95vw; max-height:90vh; overflow-y:auto; padding:24px;">
+            <h3 style="font-size:16px; font-weight:700; margin-bottom:18px;" id="fieldModalTitle">+ 필드 추가</h3>
+            <input type="hidden" id="fieldId">
+            <div class="field-group">
+                <div class="field-label">라벨 *</div>
+                <input type="text" class="field-input" id="fieldLabel" placeholder="예: 메인 카메라">
+            </div>
+            <div class="field-group">
+                <div class="field-label">타입 *</div>
+                <select class="field-input" id="fieldType" onchange="onTypeChange()">
+                    <option value="text">텍스트 (한 줄)</option>
+                    <option value="textarea">텍스트 (여러 줄)</option>
+                    <option value="select">드롭다운</option>
+                    <option value="radio">라디오 버튼</option>
+                    <option value="checkbox">체크박스 (다중 선택)</option>
+                    <option value="number">숫자</option>
+                    <option value="date">날짜</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <div class="field-label">섹션</div>
+                <select class="field-input" id="fieldSection">
+                    <option value="basic">기본 정보</option>
+                    <option value="equipment">장비 정보</option>
+                    <option value="broadcast">방송 정보</option>
+                    <option value="business">사업자 정보</option>
+                    <option value="etc">기타</option>
+                </select>
+            </div>
+            <div class="field-group" id="optionsWrap" style="display:none;">
+                <div class="field-label">선택지 (한 줄에 하나씩) *</div>
+                <textarea class="field-input" id="fieldOptions" rows="5" placeholder="옵션1&#10;옵션2&#10;옵션3"></textarea>
+            </div>
+            <div class="field-group">
+                <div class="field-label">플레이스홀더</div>
+                <input type="text" class="field-input" id="fieldPlaceholder" placeholder="입력 안내 문구">
+            </div>
+            <div class="field-group">
+                <div class="field-label">도움말</div>
+                <input type="text" class="field-input" id="fieldHelpText" placeholder="필드 아래 표시할 설명">
+            </div>
+            <div style="display:flex; gap:14px; margin-bottom:14px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                    <input type="checkbox" id="fieldRequired"> 필수
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                    <input type="checkbox" id="fieldActive" checked> 활성
+                </label>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn-outline" id="fieldDeleteBtn" style="margin-right:auto; display:none; border-color:var(--red); color:var(--red);" onclick="deleteFieldFromModal()">삭제</button>
+                <button class="btn-outline" onclick="closeFieldModal()">취소</button>
+                <button class="btn-add" onclick="saveField()">저장</button>
+            </div>
+        </div>
+    </div>
+
     {{-- 판매처 설정 --}}
     <div class="tab-panel" id="panel-seller">
         <div class="settings-form">
@@ -338,6 +407,7 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
+        if (tab === 'clientFields') loadClientFields();
     });
 });
 
@@ -606,6 +676,132 @@ async function saveSellerSettings() {
     const msg = document.getElementById('sellerSaveMsg');
     msg.style.display = 'inline';
     setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+// ────────────── 의뢰자 필드 관리 ──────────────
+const FIELD_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', broadcast:'방송 정보', business:'사업자 정보', etc:'기타' };
+const FIELD_TYPES = { text:'텍스트', textarea:'여러 줄', select:'드롭다운', radio:'라디오', checkbox:'체크박스', number:'숫자', date:'날짜' };
+let allFields = [];
+
+async function loadClientFields() {
+    const res = await fetch('/api/admin/client-fields', { headers:{ 'Accept':'application/json' } });
+    allFields = await res.json();
+    renderClientFields();
+}
+
+function renderClientFields() {
+    const container = document.getElementById('clientFieldsContainer');
+    if (!allFields.length) {
+        container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:13px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">정의된 필드가 없습니다. + 필드 추가 버튼을 눌러 시작하세요.</div>';
+        return;
+    }
+    // 섹션별 그룹핑
+    const grouped = {};
+    allFields.forEach(f => {
+        const sec = f.section || 'etc';
+        if (!grouped[sec]) grouped[sec] = [];
+        grouped[sec].push(f);
+    });
+    let html = '';
+    Object.entries(FIELD_SECTIONS).forEach(([key, label]) => {
+        if (!grouped[key]) return;
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:8px; padding-left:4px;">${label}</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">`;
+        grouped[key].forEach(f => {
+            const optsText = (f.options && f.options.length) ? ` · 옵션 ${f.options.length}개` : '';
+            const status = f.is_active ? '' : '<span style="color:var(--text-muted); font-size:10px;">(비활성)</span>';
+            const required = f.is_required ? '<span style="color:var(--red); font-weight:700;">*</span>' : '';
+            html += `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color 0.15s;" onclick='editField(${f.id})' onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div>
+                    <div style="font-size:13px; font-weight:600;">${f.label} ${required} ${status}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${FIELD_TYPES[f.type] || f.type} · ${f.key}${optsText}</div>
+                </div>
+                <span style="font-size:11px; color:var(--text-muted);">편집 →</span>
+            </div>`;
+        });
+        html += `</div></div>`;
+    });
+    container.innerHTML = html;
+}
+
+function openFieldModal(field) {
+    const m = document.getElementById('fieldModalOverlay');
+    m.style.display = 'flex';
+    document.getElementById('fieldModalTitle').textContent = field ? '필드 편집' : '+ 필드 추가';
+    document.getElementById('fieldId').value = field?.id || '';
+    document.getElementById('fieldLabel').value = field?.label || '';
+    document.getElementById('fieldType').value = field?.type || 'text';
+    document.getElementById('fieldSection').value = field?.section || 'basic';
+    document.getElementById('fieldOptions').value = (field?.options || []).join('\n');
+    document.getElementById('fieldPlaceholder').value = field?.placeholder || '';
+    document.getElementById('fieldHelpText').value = field?.help_text || '';
+    document.getElementById('fieldRequired').checked = !!field?.is_required;
+    document.getElementById('fieldActive').checked = field ? !!field.is_active : true;
+    document.getElementById('fieldDeleteBtn').style.display = field ? 'inline-block' : 'none';
+    onTypeChange();
+}
+
+function closeFieldModal() { document.getElementById('fieldModalOverlay').style.display = 'none'; }
+
+function onTypeChange() {
+    const type = document.getElementById('fieldType').value;
+    const needsOptions = ['select', 'radio', 'checkbox'].includes(type);
+    document.getElementById('optionsWrap').style.display = needsOptions ? 'block' : 'none';
+}
+
+function editField(id) {
+    const f = allFields.find(x => x.id === id);
+    if (f) openFieldModal(f);
+}
+
+async function saveField() {
+    const id = document.getElementById('fieldId').value;
+    const label = document.getElementById('fieldLabel').value.trim();
+    const type = document.getElementById('fieldType').value;
+    if (!label) return alert('라벨을 입력하세요.');
+
+    const optionsRaw = document.getElementById('fieldOptions').value.trim();
+    const options = optionsRaw ? optionsRaw.split('\n').map(s => s.trim()).filter(Boolean) : null;
+    if (['select','radio','checkbox'].includes(type) && (!options || !options.length)) {
+        return alert('선택지를 한 줄에 하나씩 입력하세요.');
+    }
+
+    const body = {
+        label,
+        type,
+        section: document.getElementById('fieldSection').value,
+        options,
+        placeholder: document.getElementById('fieldPlaceholder').value || null,
+        help_text: document.getElementById('fieldHelpText').value || null,
+        is_required: document.getElementById('fieldRequired').checked,
+        is_active: document.getElementById('fieldActive').checked,
+    };
+
+    const url = id ? `/api/admin/client-fields/${id}` : '/api/admin/client-fields';
+    const method = id ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+        method,
+        headers:{ 'Content-Type':'application/json', 'X-CSRF-TOKEN':CSRF, 'Accept':'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (res.ok) {
+        closeFieldModal();
+        await loadClientFields();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors || {}).flat().join('\n')));
+    }
+}
+
+async function deleteFieldFromModal() {
+    if (!confirm('이 필드를 삭제하시겠습니까?\n기존에 입력된 값은 DB에 남아있지만, 폼에서는 더 이상 노출되지 않습니다.')) return;
+    const id = document.getElementById('fieldId').value;
+    const res = await fetch(`/api/admin/client-fields/${id}`, { method:'DELETE', headers:{ 'X-CSRF-TOKEN':CSRF } });
+    if (res.ok) {
+        closeFieldModal();
+        await loadClientFields();
+    } else alert('삭제 실패');
 }
 </script>
 @endpush

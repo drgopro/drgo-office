@@ -295,8 +295,18 @@ let allClients = [];
 let currentGrade = '';
 let openClientTabs = []; // {id, name, nickname, grade, data, activeSubTab}
 let activeClientId = null;
+let customFieldDefs = []; // 동적 필드 정의
+
+// 동적 필드 정의 로드
+async function loadCustomFieldDefs() {
+    try {
+        const res = await fetch('/api/client-fields/active', { headers:{ 'Accept':'application/json' } });
+        if (res.ok) customFieldDefs = await res.json();
+    } catch(e) { customFieldDefs = []; }
+}
 
 // ── 초기화 ──
+loadCustomFieldDefs();
 loadClientList().then(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const openId = urlParams.get('open');
@@ -572,6 +582,10 @@ function renderClientContent(id) {
                     </select>
                 </div>
             </div>
+
+            <!-- 동적 필드 (관리자 정의) -->
+            ${renderCustomFields(d.custom_data || {}, id)}
+
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
             </div>
@@ -1110,6 +1124,7 @@ async function saveClient(id) {
         content_types: (document.getElementById(`f-content_types-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
         inflow_source: document.getElementById(`f-inflow_source-${id}`)?.value || null,
         client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
+        custom_data: collectCustomData(id),
     };
 
     const res = await fetch(`/api/clients/${id}`, {
@@ -1199,6 +1214,86 @@ function renderMemoItem(m, clientId) {
 function renderMemoThread(memos, clientId) {
     if (!memos || !memos.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">메모가 없습니다.</div>';
     return memos.map(m => renderMemoItem(m, clientId)).join('');
+}
+
+// ── 동적 필드 렌더링 ──
+const SECTION_LABELS = { basic:'기본 정보', equipment:'장비 정보', broadcast:'방송 정보', business:'사업자 정보', etc:'기타' };
+
+function escAttr(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+function escText(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function renderCustomFields(customData, clientId) {
+    if (!customFieldDefs || !customFieldDefs.length) return '';
+    // 섹션별 그룹핑
+    const grouped = {};
+    customFieldDefs.forEach(f => {
+        const sec = f.section || 'etc';
+        if (!grouped[sec]) grouped[sec] = [];
+        grouped[sec].push(f);
+    });
+
+    let html = '';
+    Object.entries(SECTION_LABELS).forEach(([secKey, secLabel]) => {
+        if (!grouped[secKey]) return;
+        html += `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>
+            <div class="form-grid">`;
+        grouped[secKey].forEach(f => {
+            const value = customData[f.key];
+            const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
+            const help = f.help_text ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
+            const inputId = `cf-${clientId}-${f.key}`;
+            const placeholder = escAttr(f.placeholder || '');
+            html += `<div class="field"><div class="field-label">${escText(f.label)}${required}</div>`;
+
+            if (f.type === 'text' || f.type === 'number' || f.type === 'date') {
+                const inputType = f.type === 'text' ? 'text' : f.type;
+                html += `<input type="${inputType}" class="field-input" id="${inputId}" value="${escAttr(value ?? '')}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="${f.type}">`;
+            } else if (f.type === 'textarea') {
+                html += `<textarea class="field-input field-textarea" id="${inputId}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="textarea" rows="3">${escText(value ?? '')}</textarea>`;
+            } else if (f.type === 'select') {
+                const opts = (f.options || []).map(o => `<option value="${escAttr(o)}" ${value === o ? 'selected' : ''}>${escText(o)}</option>`).join('');
+                html += `<select class="field-input field-select" id="${inputId}" data-cf-key="${escAttr(f.key)}" data-cf-type="select">
+                    <option value="">선택</option>${opts}
+                </select>`;
+            } else if (f.type === 'radio') {
+                const opts = (f.options || []).map((o, i) => `
+                    <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
+                        <input type="radio" name="${inputId}" value="${escAttr(o)}" ${value === o ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="radio"> ${escText(o)}
+                    </label>`).join('');
+                html += `<div style="padding:6px 0;">${opts}</div>`;
+            } else if (f.type === 'checkbox') {
+                const arr = Array.isArray(value) ? value : [];
+                const opts = (f.options || []).map(o => `
+                    <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
+                        <input type="checkbox" value="${escAttr(o)}" ${arr.includes(o) ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="checkbox"> ${escText(o)}
+                    </label>`).join('');
+                html += `<div style="padding:6px 0;">${opts}</div>`;
+            }
+            html += help + `</div>`;
+        });
+        html += `</div></div>`;
+    });
+    return html;
+}
+
+function collectCustomData(clientId) {
+    const data = {};
+    const pane = document.getElementById('cpane-' + clientId);
+    if (!pane) return data;
+    pane.querySelectorAll('[data-cf-key]').forEach(el => {
+        const key = el.dataset.cfKey;
+        const type = el.dataset.cfType;
+        if (type === 'checkbox') {
+            if (!data[key]) data[key] = [];
+            if (el.checked) data[key].push(el.value);
+        } else if (type === 'radio') {
+            if (el.checked) data[key] = el.value;
+        } else {
+            data[key] = el.value || null;
+        }
+    });
+    return data;
 }
 
 function renderInfoMemos(memos, clientId) {
