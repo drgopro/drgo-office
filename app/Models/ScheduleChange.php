@@ -12,6 +12,7 @@ class ScheduleChange extends Model
         'user_id',
         'action',
         'changes',
+        'reason',
     ];
 
     /** @return array{changes: 'array'} */

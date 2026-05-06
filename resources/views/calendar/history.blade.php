@@ -43,6 +43,9 @@
     .ch-chip { font-size:11px; padding:3px 7px; border-radius:4px; border-left:3px solid var(--accent); background:var(--surface2); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; position:relative; }
     .ch-chip:hover { filter:brightness(1.18); }
     .ch-chip .ch-marker { display:inline-block; margin-right:3px; font-size:10px; }
+    .ch-chip .ch-time { display:inline-block; margin-right:4px; font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .ch-chip.state-completed .ch-time,
+    .ch-chip.state-deleted .ch-time { opacity:0.7; }
 
     /* 활성 (기본) — 색상 그대로 */
     .ch-chip.color-gold { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
@@ -313,11 +316,12 @@ function chRender() {
             const stateClass = `state-${c.state}`;
             const colorClass = `color-${c.color}`;
             const marker = c.state === 'completed' ? '✓' : c.state === 'deleted' ? '🗑' : c.state === 'modified' ? '↻' : '';
-            const tooltip = c.is_shadow
-                ? (c.state === 'deleted' ? '삭제된 일정 — ' : '변경 전 위치 — ') + (c.title||'')
-                : (c.title||'');
+            const t = (!c.is_all_day && c.start_time) ? String(c.start_time).slice(0,5) : '';
+            const tooltipParts = [c.title||''];
+            if (t) tooltipParts.unshift(t);
+            const tooltip = (c.is_shadow ? (c.state === 'deleted' ? '삭제된 일정 — ' : '변경 전 위치 — ') : '') + tooltipParts.join(' ');
             return `<div class="ch-chip ${colorClass} ${stateClass}" onclick="chOpenPanel(${idx})" title="${chEsc(tooltip)}">
-                ${marker ? `<span class="ch-marker">${marker}</span>` : ''}${chEsc(c.title||'(제목 없음)')}
+                ${marker ? `<span class="ch-marker">${marker}</span>` : ''}${t ? `<span class="ch-time">${t}</span>` : ''}${chEsc(c.title||'(제목 없음)')}
             </div>`;
         }).join('');
 
@@ -391,6 +395,9 @@ async function chOpenPanel(chipIdx) {
             }
         }
 
+        const reasonHtml = h.reason
+            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:10px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${chEsc(h.reason)}</div>`
+            : '';
         return `<div class="ch-log-item">
             <div class="ch-log-head">
                 <span class="ch-log-action ${h.action}">${ACTION_LABEL[h.action]||h.action}</span>
@@ -398,6 +405,7 @@ async function chOpenPanel(chipIdx) {
                 <span class="ch-log-time">${h.created_at}</span>
             </div>
             ${body}
+            ${reasonHtml}
         </div>`;
     }).join('');
 }

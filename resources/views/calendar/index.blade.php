@@ -1012,6 +1012,11 @@
 
         </div>{{-- modal-body end --}}
 
+        <div id="reasonField" style="display:none; padding:0 28px 12px;">
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">변경 사유 <span style="color:var(--text-muted); opacity:0.7;">(선택)</span></div>
+            <textarea id="modalReason" rows="2" placeholder="예: 의뢰자 요청으로 일정 변경" style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
+        </div>
+
         <div class="modal-footer">
             <button class="btn-delete" id="btnDelete" style="display:none" onclick="deleteEvent()">일정 삭제</button>
             <div style="display:flex;gap:8px;align-items:center;">
@@ -1081,6 +1086,26 @@
             <button class="modal-close" onclick="document.getElementById('historyOverlay').style.display='none'">×</button>
         </div>
         <div id="historyBody"><div style="padding:20px; text-align:center; color:var(--text-muted);">로딩 중...</div></div>
+    </div>
+</div>
+
+<!-- 삭제 사유 입력 모달 -->
+<div class="modal-overlay" id="deleteReasonOverlay" style="display:none;" onclick="if(event.target===this) this.style.display='none'">
+    <div class="modal" style="max-width:440px;">
+        <div class="modal-header" style="padding:16px 20px 12px;">
+            <div style="font-size:16px; font-weight:600;">일정 삭제</div>
+            <button class="modal-close" onclick="document.getElementById('deleteReasonOverlay').style.display='none'">×</button>
+        </div>
+        <div style="padding:0 20px 12px; color:var(--text-muted); font-size:13px; line-height:1.5;">
+            이 일정을 삭제합니다. 휴지통으로 이동되며, <span style="color:var(--text);">사유를 입력</span>하면 캘린더 이력에 함께 남습니다.
+        </div>
+        <div style="padding:0 20px 16px;">
+            <textarea id="deleteReasonInput" rows="3" placeholder="삭제 사유 (선택) — 예: 일정 취소됨" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; padding:0 20px 20px;">
+            <button class="nav-btn" onclick="document.getElementById('deleteReasonOverlay').style.display='none'" style="width:auto; padding:6px 14px; font-size:12px;">취소</button>
+            <button class="btn-delete" onclick="confirmDeleteEvent()" style="padding:6px 14px;">삭제</button>
+        </div>
     </div>
 </div>
 
@@ -2108,6 +2133,9 @@ function setViewModeUI(){
     const saveBtn=document.querySelector('.modal-footer .btn-save');
     saveBtn.textContent='수정';
     saveBtn.onclick=()=>{switchToEditMode();};
+    // 보기 모드에서는 변경 사유 필드 숨김
+    const reasonField=document.getElementById('reasonField');
+    if (reasonField) reasonField.style.display='none';
 }
 
 function setEditModeUI(){
@@ -2131,6 +2159,12 @@ function setEditModeUI(){
     const saveBtn=document.querySelector('.modal-footer .btn-save');
     saveBtn.textContent='저장';
     saveBtn.onclick=()=>{saveEvent();};
+    // 변경 사유 필드: 수정 모드(editingId 있음)일 때만 표시. 새 일정은 숨김
+    const reasonField=document.getElementById('reasonField');
+    if (reasonField) {
+        reasonField.style.display = editingId ? '' : 'none';
+        if (!editingId) document.getElementById('modalReason').value='';
+    }
 }
 
 function openDetailModal(ev) {
@@ -2163,9 +2197,10 @@ function editFromDetail() {
 }
 
 function deleteEventFromDetail() {
-    if (!detailEvent || !confirm('이 일정을 삭제하시겠습니까?')) return;
-    deleteEvent(detailEvent.id);
+    if (!detailEvent) return;
+    const id = detailEvent.id;
     closeDetail();
+    deleteEvent(id);
 }
 
 async function openHistoryModal() {
@@ -2217,6 +2252,10 @@ async function openHistoryModal() {
             body = rows;
         }
 
+        const reasonHtml = h.reason
+            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface2); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:10px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${escHtml(h.reason)}</div>`
+            : '';
+
         return `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <span style="font-size:10px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:${ACTION_COLOR[h.action]||'var(--accent)'}; font-weight:600;">${ACTION_LABEL[h.action]||h.action}</span>
@@ -2224,6 +2263,7 @@ async function openHistoryModal() {
                 <span style="font-size:10px; color:var(--text-muted);">${h.created_at}</span>
             </div>
             ${body}
+            ${reasonHtml}
         </div>`;
     }).join('');
 }
@@ -2373,6 +2413,8 @@ function openEditModal(ev){
 function closeModal(){
     document.getElementById('modalOverlay').classList.remove('open');editingId=null;
     document.querySelectorAll('.time-picker-popup').forEach(p=>p.remove());
+    const rf=document.getElementById('reasonField'); if (rf) rf.style.display='none';
+    const rm=document.getElementById('modalReason'); if (rm) rm.value='';
     // 상태 복원
     viewMode=false;
     setEditModeUI();
@@ -2463,6 +2505,12 @@ async function saveEvent(){
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
 
+    // 수정 시 변경 사유 첨부 (선택)
+    if (editingId) {
+        const reasonVal = document.getElementById('modalReason')?.value.trim();
+        if (reasonVal) data.reason = reasonVal;
+    }
+
     const url=editingId?`/api/events/${editingId}`:'/api/events';
     const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify(data)});
     if(res.ok){
@@ -2473,11 +2521,31 @@ async function saveEvent(){
     }else{const err=await res.json();alert('저장 실패: '+JSON.stringify(err));}
 }
 
-async function deleteEvent(id){
+let pendingDeleteId = null;
+function deleteEvent(id){
     const delId=id||editingId;
-    if(!delId||!confirm('이 일정을 삭제할까요?')) return;
-    const res=await fetch(`/api/events/${delId}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF}});
-    if(res.ok){closeModal();loadEvents();}
+    if(!delId) return;
+    pendingDeleteId = delId;
+    document.getElementById('deleteReasonInput').value = '';
+    document.getElementById('deleteReasonOverlay').style.display = 'flex';
+    setTimeout(()=>document.getElementById('deleteReasonInput').focus(), 50);
+}
+async function confirmDeleteEvent(){
+    if (!pendingDeleteId) return;
+    const reason = document.getElementById('deleteReasonInput').value.trim();
+    const res = await fetch(`/api/events/${pendingDeleteId}`, {
+        method:'DELETE',
+        headers:{'X-CSRF-TOKEN':CSRF, 'Content-Type':'application/json', 'Accept':'application/json'},
+        body: JSON.stringify({ reason: reason || null }),
+    });
+    document.getElementById('deleteReasonOverlay').style.display='none';
+    pendingDeleteId = null;
+    if (res.ok) {
+        closeModal();
+        loadEvents();
+    } else {
+        alert('삭제 실패');
+    }
 }
 
 function searchCalAddr(){

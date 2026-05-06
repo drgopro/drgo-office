@@ -122,7 +122,12 @@ class CalendarController extends Controller
             'sched_after_reason' => 'nullable|string|max:300',
             'notif_minutes' => 'nullable|string|max:10',
             'is_locked' => 'boolean',
+            'reason' => 'nullable|string|max:500',
         ]);
+
+        // schedule 업데이트에는 reason 포함하지 않음 (변경 이력에만 기록)
+        $reason = $validated['reason'] ?? null;
+        unset($validated['reason']);
 
         // 변경 이력 기록
         $diff = [];
@@ -141,6 +146,7 @@ class CalendarController extends Controller
                 'user_id' => Auth::id(),
                 'action' => 'update',
                 'changes' => $diff,
+                'reason' => $reason,
             ]);
         }
 
@@ -170,6 +176,7 @@ class CalendarController extends Controller
             'id' => $c->id,
             'action' => $c->action,
             'changes' => $c->changes,
+            'reason' => $c->reason,
             'user_name' => $c->user?->display_name ?? '알 수 없음',
             'created_at' => $c->created_at->format('Y.m.d H:i'),
         ]);
@@ -189,8 +196,12 @@ class CalendarController extends Controller
     }
 
     // 일정 삭제 (soft delete + 이력 기록)
-    public function destroy(Schedule $schedule)
+    public function destroy(Request $request, Schedule $schedule)
     {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
         // 삭제 시점의 스냅샷을 changes에 보존
         $snapshot = collect($schedule->getAttributes())
             ->only([
@@ -205,6 +216,7 @@ class CalendarController extends Controller
             'user_id' => Auth::id(),
             'action' => 'delete',
             'changes' => ['snapshot' => $snapshot],
+            'reason' => $validated['reason'] ?? null,
         ]);
 
         $schedule->delete(); // SoftDeletes → deleted_at만 set
