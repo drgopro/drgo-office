@@ -498,7 +498,9 @@
         </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
+        <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">📋 캘린더 이력</button>
         @if(Auth::user()->hasPermission('calendar.edit'))
+            <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;">🗑 휴지통</button>
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
             @if(Auth::user()->hasPermission('calendar.backup'))
             <div style="position:relative;">
@@ -1064,6 +1066,7 @@
                 <button class="btn-log" style="display:inline-flex;" onclick="openHistoryModal()">📋 수정내역</button>
             </div>
             <div style="display:flex;gap:6px;">
+                <button class="btn-log" id="detailCompleteBtn" onclick="toggleCompleteFromDetail()">✓ 완료</button>
                 <button class="btn-save" onclick="editFromDetail()">수정</button>
             </div>
         </div>
@@ -1078,6 +1081,29 @@
             <button class="modal-close" onclick="document.getElementById('historyOverlay').style.display='none'">×</button>
         </div>
         <div id="historyBody"><div style="padding:20px; text-align:center; color:var(--text-muted);">로딩 중...</div></div>
+    </div>
+</div>
+
+<!-- 휴지통 모달 -->
+<div class="modal-overlay" id="trashOverlay" style="display:none;" onclick="if(event.target===this) this.style.display='none'">
+    <div class="modal" style="max-width:640px; max-height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <div class="modal-title">🗑 휴지통</div>
+            <button class="modal-close" onclick="document.getElementById('trashOverlay').style.display='none'">×</button>
+        </div>
+        <div style="padding:10px 16px; border-bottom:1px solid var(--border); display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:12px; color:var(--text-muted); display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="trashSelectAll" onchange="trashToggleAll(this.checked)"> 전체 선택
+            </label>
+            <span class="text-muted" id="trashCount" style="font-size:11px; color:var(--text-muted);">0건</span>
+            <div style="flex:1;"></div>
+            <button class="nav-btn" id="trashRestoreBtn" onclick="trashRestoreSelected()" style="font-size:11px; width:auto; padding:4px 10px;" disabled>선택 복원</button>
+            <button class="nav-btn" id="trashClearBtn" onclick="trashEmptySelected()" style="font-size:11px; width:auto; padding:4px 10px; color:var(--red); border-color:var(--red);" disabled>선택 정리</button>
+            <button class="nav-btn" onclick="trashEmptyAll()" style="font-size:11px; width:auto; padding:4px 10px; color:var(--red); border-color:var(--red);">전체 비우기</button>
+        </div>
+        <div id="trashBody" style="flex:1; overflow-y:auto; padding:8px;">
+            <div style="padding:30px; text-align:center; color:var(--text-muted);">로딩 중...</div>
+        </div>
     </div>
 </div>
 
@@ -2122,34 +2148,47 @@ async function openHistoryModal() {
     const res = await fetch(`/api/events/${detailEvent.id}/history`, { headers:{'Accept':'application/json'} });
     if (!res.ok) { document.getElementById('historyBody').innerHTML = '<div style="padding:20px; text-align:center; color:var(--red);">로드 실패</div>'; return; }
     const data = await res.json();
+    // 이전 응답(배열) 호환 + 새 응답({schedule, changes}) 처리
+    const items = Array.isArray(data) ? data : (data.changes || []);
 
-    if (!data.length) {
+    if (!items.length) {
         document.getElementById('historyBody').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">수정내역이 없습니다.</div>';
         return;
     }
 
-    document.getElementById('historyBody').innerHTML = data.map(h => {
+    const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원' };
+    const ACTION_COLOR = { update:'var(--accent)', delete:'var(--red)', complete:'var(--green)', uncomplete:'var(--text-muted)', restore:'var(--blue)' };
+
+    document.getElementById('historyBody').innerHTML = items.map(h => {
         const changes = h.changes || {};
-        const rows = Object.entries(changes).map(([key, val]) => {
-            const label = FIELD_LABELS[key] || key;
-            const oldVal = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
-            const newVal = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
-            return `<div style="margin:6px 0;">
-                <div style="font-size:11px; color:var(--text-muted);">${label}</div>
-                <div style="display:flex; gap:6px; margin-top:2px;">
-                    <span style="padding:2px 8px; border-radius:4px; background:#2a1a1a; color:var(--red); font-size:12px; text-decoration:line-through;">${oldVal}</span>
-                    <span style="padding:2px 8px; border-radius:4px; background:#1a2a1a; color:var(--green); font-size:12px;">${newVal}</span>
-                </div>
-            </div>`;
-        }).join('');
+        let body = '';
+        if (h.action === 'delete' && changes.snapshot) {
+            body = `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">삭제 시점 스냅샷: <span style="color:var(--text);">${escHtml(changes.snapshot.title||'(제목 없음)')}</span> · ${changes.snapshot.start_date||''}</div>`;
+        } else if (h.action === 'restore' || h.action === 'uncomplete' || h.action === 'complete' && !Object.keys(changes).length) {
+            body = '';
+        } else {
+            const rows = Object.entries(changes).filter(([k]) => k !== 'snapshot').map(([key, val]) => {
+                const label = (typeof FIELD_LABELS !== 'undefined' && FIELD_LABELS[key]) || key;
+                const oldVal = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
+                const newVal = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
+                return `<div style="margin:6px 0;">
+                    <div style="font-size:11px; color:var(--text-muted);">${label}</div>
+                    <div style="display:flex; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                        <span style="padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:12px; text-decoration:line-through;">${escHtml(oldVal)}</span>
+                        <span style="padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:12px;">${escHtml(newVal)}</span>
+                    </div>
+                </div>`;
+            }).join('');
+            body = rows;
+        }
 
         return `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <span style="font-size:10px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:var(--accent); font-weight:600;">수정</span>
-                <span style="font-size:12px; font-weight:600;">${h.user_name}</span>
+                <span style="font-size:10px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:${ACTION_COLOR[h.action]||'var(--accent)'}; font-weight:600;">${ACTION_LABEL[h.action]||h.action}</span>
+                <span style="font-size:12px; font-weight:600;">${escHtml(h.user_name||'-')}</span>
                 <span style="font-size:10px; color:var(--text-muted);">${h.created_at}</span>
             </div>
-            ${rows}
+            ${body}
         </div>`;
     }).join('');
 }
@@ -2658,6 +2697,105 @@ function showCalToast(msg){
     t.textContent=msg;
     document.body.appendChild(t);
     setTimeout(()=>t.remove(),2000);
+}
+
+// === 휴지통 ===
+let trashItems = [];
+async function openTrashModal() {
+    document.getElementById('trashOverlay').style.display = 'flex';
+    document.getElementById('trashBody').innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted);">로딩 중...</div>';
+    const res = await fetch('/api/events/trashed', {headers:{'Accept':'application/json'}});
+    if (!res.ok) { document.getElementById('trashBody').innerHTML = '<div style="padding:30px; text-align:center; color:var(--red);">불러오기 실패</div>'; return; }
+    trashItems = await res.json();
+    renderTrash();
+}
+function renderTrash() {
+    const body = document.getElementById('trashBody');
+    document.getElementById('trashCount').textContent = `${trashItems.length}건`;
+    if (!trashItems.length) {
+        body.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">휴지통이 비어 있습니다.</div>';
+        document.getElementById('trashSelectAll').checked = false;
+        updateTrashButtons();
+        return;
+    }
+    body.innerHTML = trashItems.map(it => `
+        <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border);">
+            <input type="checkbox" class="trash-check" data-id="${it.id}" onchange="updateTrashButtons()">
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(it.title||'(제목 없음)')}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${it.start_date}${it.end_date && it.end_date !== it.start_date ? ' ~ '+it.end_date : ''} · ${escHtml(it.client_name||'')} · ${escHtml(it.creator||'-')} 등록 · ${it.deleted_at} 삭제</div>
+            </div>
+            <button class="nav-btn" style="font-size:11px; width:auto; padding:3px 8px;" onclick="trashRestoreOne(${it.id})">복원</button>
+            <button class="nav-btn" style="font-size:11px; width:auto; padding:3px 8px; color:var(--red); border-color:var(--red);" onclick="trashForceOne(${it.id})">영구삭제</button>
+        </div>
+    `).join('');
+    document.getElementById('trashSelectAll').checked = false;
+    updateTrashButtons();
+}
+function trashToggleAll(checked) {
+    document.querySelectorAll('.trash-check').forEach(c => c.checked = checked);
+    updateTrashButtons();
+}
+function updateTrashButtons() {
+    const ids = [...document.querySelectorAll('.trash-check:checked')].map(c => +c.dataset.id);
+    document.getElementById('trashRestoreBtn').disabled = !ids.length;
+    document.getElementById('trashClearBtn').disabled = !ids.length;
+}
+function getTrashSelectedIds() {
+    return [...document.querySelectorAll('.trash-check:checked')].map(c => +c.dataset.id);
+}
+async function trashRestoreOne(id) {
+    const res = await fetch(`/api/events/${id}/restore`, {method:'POST', headers:{'X-CSRF-TOKEN':CSRF, 'Accept':'application/json'}});
+    if (!res.ok) { showCalToast('복원 실패'); return; }
+    showCalToast('복원되었습니다');
+    openTrashModal();
+    loadEvents();
+}
+async function trashRestoreSelected() {
+    const ids = getTrashSelectedIds();
+    if (!ids.length || !confirm(`${ids.length}건을 복원합니다. 계속할까요?`)) return;
+    for (const id of ids) {
+        await fetch(`/api/events/${id}/restore`, {method:'POST', headers:{'X-CSRF-TOKEN':CSRF, 'Accept':'application/json'}});
+    }
+    showCalToast(`${ids.length}건 복원 완료`);
+    openTrashModal();
+    loadEvents();
+}
+async function trashForceOne(id) {
+    if (!confirm('이 일정을 영구 삭제합니다. 복구할 수 없습니다. 계속할까요?')) return;
+    const res = await fetch(`/api/events/${id}/force`, {method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF, 'Accept':'application/json'}});
+    if (!res.ok) { showCalToast('삭제 실패'); return; }
+    showCalToast('영구 삭제됨');
+    openTrashModal();
+}
+async function trashEmptySelected() {
+    const ids = getTrashSelectedIds();
+    if (!ids.length || !confirm(`선택한 ${ids.length}건을 영구 삭제합니다. 복구할 수 없습니다. 계속할까요?`)) return;
+    const res = await fetch('/api/events/trash/empty', {method:'POST', headers:{'X-CSRF-TOKEN':CSRF, 'Content-Type':'application/json', 'Accept':'application/json'}, body:JSON.stringify({ids})});
+    if (!res.ok) { showCalToast('실패'); return; }
+    showCalToast(`${ids.length}건 영구 삭제 완료`);
+    openTrashModal();
+}
+async function trashEmptyAll() {
+    if (!confirm('휴지통 전체를 비웁니다. 모든 항목이 영구 삭제되며 복구할 수 없습니다. 계속할까요?')) return;
+    const res = await fetch('/api/events/trash/empty', {method:'POST', headers:{'X-CSRF-TOKEN':CSRF, 'Content-Type':'application/json', 'Accept':'application/json'}, body:JSON.stringify({})});
+    if (!res.ok) { showCalToast('실패'); return; }
+    showCalToast('휴지통이 비워졌습니다');
+    openTrashModal();
+}
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// === 일정 완료 토글 ===
+async function toggleCompleteFromDetail() {
+    if (!detailEvent) return;
+    const id = detailEvent.id;
+    const isCompleted = !!detailEvent.completed_at;
+    const url = `/api/events/${id}/${isCompleted ? 'uncomplete' : 'complete'}`;
+    const res = await fetch(url, {method:'POST', headers:{'X-CSRF-TOKEN':CSRF, 'Accept':'application/json'}});
+    if (!res.ok) { showCalToast('실패'); return; }
+    showCalToast(isCompleted ? '완료 해제' : '완료 처리');
+    closeDetail();
+    loadEvents();
 }
 
 init();

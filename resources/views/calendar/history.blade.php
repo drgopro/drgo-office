@@ -1,0 +1,338 @@
+@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
+
+@section('title', '캘린더 이력 - 닥터고블린 오피스')
+
+@push('styles')
+<style>
+    .ch-wrap { padding:14px 20px; max-width:1400px; margin:0 auto; }
+
+    /* 헤더 */
+    .ch-header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .ch-title { font-size:18px; font-weight:700; letter-spacing:0.04em; }
+    .ch-back { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 10px; border-radius:7px; font-size:12px; cursor:pointer; }
+    .ch-back:hover { border-color:var(--accent); color:var(--accent); }
+    .ch-spacer { flex:1; }
+    .ch-nav { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; justify-content:center; }
+    .ch-nav:hover { border-color:var(--accent); color:var(--accent); }
+    .ch-period { font-size:14px; font-weight:600; min-width:120px; text-align:center; }
+
+    /* 상태 필터 */
+    .ch-filter { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .ch-fbtn { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1px solid var(--border); background:none; color:var(--text-muted); border-radius:20px; font-size:12px; cursor:pointer; transition:all .15s; }
+    .ch-fbtn:hover { border-color:var(--accent); color:var(--accent); }
+    .ch-fbtn.active { color:var(--text); border-color:var(--accent); background:var(--surface2); }
+    .ch-dot { width:8px; height:8px; border-radius:50%; background:var(--text-muted); }
+    .ch-fbtn.active .ch-dot { background:var(--accent); }
+    .ch-fbtn[data-state="completed"] .ch-dot { background:var(--green); }
+    .ch-fbtn[data-state="modified"] .ch-dot { background:var(--purple); }
+    .ch-fbtn[data-state="deleted"] .ch-dot { background:var(--red); }
+
+    /* 캘린더 그리드 */
+    .ch-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .ch-weekdays { display:grid; grid-template-columns:repeat(7,1fr); background:var(--surface2); border-bottom:1px solid var(--border); }
+    .ch-weekday { padding:8px 0; text-align:center; font-size:11px; color:var(--text-muted); letter-spacing:0.1em; font-weight:600; }
+    .ch-days-grid { display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(120px,1fr); }
+    .ch-day { border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:6px; min-height:120px; position:relative; display:flex; flex-direction:column; gap:3px; overflow:hidden; }
+    .ch-day:nth-child(7n) { border-right:none; }
+    .ch-day-num { font-size:11px; color:var(--text-muted); margin-bottom:2px; }
+    .ch-day.today .ch-day-num { color:var(--accent); font-weight:700; }
+    .ch-day.other-month { opacity:0.4; }
+    .ch-day.sunday .ch-day-num { color:var(--red); }
+
+    /* 일정 칩 — 상태별 시각 구분 */
+    .ch-chip { font-size:11px; padding:3px 7px; border-radius:4px; border-left:3px solid var(--accent); background:var(--surface2); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; position:relative; }
+    .ch-chip:hover { filter:brightness(1.18); }
+    .ch-chip .ch-marker { display:inline-block; margin-right:3px; font-size:10px; }
+
+    /* 활성 (기본) — 색상 그대로 */
+    .ch-chip.color-gold { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
+    .ch-chip.color-teal { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
+    .ch-chip.color-blue { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
+    .ch-chip.color-red { background:rgba(200,122,122,0.22); border-left-color:var(--chip-red-bg); }
+    .ch-chip.color-green { background:rgba(122,200,122,0.22); border-left-color:var(--chip-green-bg); }
+    .ch-chip.color-purple { background:rgba(180,122,200,0.22); border-left-color:var(--chip-purple-bg); }
+    .ch-chip.color-holiday { background:rgba(200,122,122,0.22); border-left-color:var(--red); color:var(--red); font-weight:600; }
+
+    /* 완료 — 회색톤 + 취소선 */
+    .ch-chip.state-completed {
+        background:var(--surface2) !important;
+        border-left-color:var(--green) !important;
+        color:var(--text-muted);
+        text-decoration:line-through;
+        opacity:0.7;
+    }
+    .ch-chip.state-completed .ch-marker { color:var(--green); }
+
+    /* 변경 — purple bg + border, opacity 60% */
+    .ch-chip.state-modified {
+        background:rgba(155,112,200,0.18) !important;
+        border:1px solid rgba(155,112,200,0.55) !important;
+        border-left:3px solid var(--purple) !important;
+        opacity:0.6;
+    }
+    .ch-chip.state-modified .ch-marker { color:var(--purple); }
+
+    /* 삭제 — red bg + border, opacity 60%, 점선 */
+    .ch-chip.state-deleted {
+        background:rgba(212,136,136,0.18) !important;
+        border:1px dashed var(--red) !important;
+        border-left:3px dashed var(--red) !important;
+        opacity:0.6;
+        text-decoration:line-through;
+    }
+    .ch-chip.state-deleted .ch-marker { color:var(--red); }
+
+    /* 우측 슬라이드 패널 */
+    .ch-panel { position:fixed; top:0; right:0; bottom:0; width:420px; max-width:92vw; background:var(--surface); border-left:1px solid var(--border); z-index:90; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
+    .ch-panel.open { transform:translateX(0); }
+    .ch-panel-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+    .ch-panel-title { font-size:14px; font-weight:700; }
+    .ch-panel-close { background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; }
+    .ch-panel-meta { padding:12px 18px; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; }
+    .ch-panel-body { flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:10px; }
+    .ch-panel-empty { padding:30px 0; text-align:center; color:var(--text-muted); font-size:12px; }
+    .ch-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:12px; line-height:1.5; }
+    .ch-log-head { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
+    .ch-log-action { font-size:10px; padding:2px 7px; border-radius:3px; font-weight:600; }
+    .ch-log-action.update { background:var(--surface); color:var(--accent); }
+    .ch-log-action.delete { background:rgba(212,136,136,0.2); color:var(--red); }
+    .ch-log-action.complete { background:rgba(122,200,122,0.2); color:var(--green); }
+    .ch-log-action.uncomplete { background:var(--surface); color:var(--text-muted); }
+    .ch-log-action.restore { background:rgba(138,180,200,0.2); color:var(--blue); }
+    .ch-log-user { font-size:12px; font-weight:600; color:var(--text); }
+    .ch-log-time { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; margin-left:auto; }
+    .ch-log-diff { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center; }
+    .ch-log-key { font-size:10px; color:var(--text-muted); margin-right:4px; }
+    .ch-log-old { padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:11px; text-decoration:line-through; }
+    .ch-log-new { padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:11px; }
+    .ch-log-arrow { color:var(--text-muted); font-size:10px; }
+
+    @media (max-width:768px) {
+        .ch-day { min-height:80px; padding:4px; }
+        .ch-day-num { font-size:10px; }
+        .ch-chip { font-size:10px; padding:2px 5px; }
+        .ch-panel { width:100%; }
+    }
+</style>
+@endpush
+
+@section('content')
+<div class="ch-wrap">
+    <div class="ch-header">
+        <button class="ch-back" onclick="location.href='/calendar'">← 캘린더로</button>
+        <span class="ch-title">📋 캘린더 이력</span>
+        <div class="ch-spacer"></div>
+        <button class="ch-nav" onclick="chChangeMonth(-1)">‹</button>
+        <span class="ch-period" id="chPeriod"></span>
+        <button class="ch-nav" onclick="chChangeMonth(1)">›</button>
+        <button class="ch-back" onclick="chGoToday()">오늘</button>
+    </div>
+
+    <div class="ch-filter">
+        <button class="ch-fbtn active" data-state="all" onclick="chToggleFilter(this)"><span class="ch-dot"></span>전체</button>
+        <button class="ch-fbtn active" data-state="active" onclick="chToggleFilter(this)"><span class="ch-dot"></span>활성</button>
+        <button class="ch-fbtn active" data-state="completed" onclick="chToggleFilter(this)"><span class="ch-dot"></span>완료</button>
+        <button class="ch-fbtn active" data-state="modified" onclick="chToggleFilter(this)"><span class="ch-dot"></span>변경됨</button>
+        <button class="ch-fbtn active" data-state="deleted" onclick="chToggleFilter(this)"><span class="ch-dot"></span>삭제됨</button>
+        <div style="flex:1;"></div>
+        <span class="text-muted" id="chCount" style="font-size:11px; color:var(--text-muted); align-self:center;"></span>
+    </div>
+
+    <div class="ch-grid-wrap">
+        <div class="ch-weekdays">
+            <div class="ch-weekday" style="color:var(--red);">SUN</div>
+            <div class="ch-weekday">MON</div>
+            <div class="ch-weekday">TUE</div>
+            <div class="ch-weekday">WED</div>
+            <div class="ch-weekday">THU</div>
+            <div class="ch-weekday">FRI</div>
+            <div class="ch-weekday">SAT</div>
+        </div>
+        <div class="ch-days-grid" id="chDaysGrid"></div>
+    </div>
+</div>
+
+<!-- 우측 슬라이드 패널: 변경 이력 타임라인 -->
+<div class="ch-panel" id="chPanel">
+    <div class="ch-panel-head">
+        <span class="ch-panel-title" id="chPanelTitle">변경 이력</span>
+        <button class="ch-panel-close" onclick="document.getElementById('chPanel').classList.remove('open')">×</button>
+    </div>
+    <div class="ch-panel-meta" id="chPanelMeta"></div>
+    <div class="ch-panel-body" id="chPanelBody">
+        <div class="ch-panel-empty">일정을 클릭하면 변경 이력이 표시됩니다.</div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+const chState = {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+    events: [],
+    activeStates: new Set(['all','active','completed','modified','deleted']),
+};
+
+function chEsc(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function chFmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function chFmtTime(t){ return t ? new Date(t).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'; }
+
+function chChangeMonth(delta) {
+    chState.month += delta;
+    if (chState.month < 0) { chState.month = 11; chState.year--; }
+    if (chState.month > 11) { chState.month = 0; chState.year++; }
+    chLoad();
+}
+function chGoToday() {
+    const d = new Date();
+    chState.year = d.getFullYear(); chState.month = d.getMonth();
+    chLoad();
+}
+
+function chToggleFilter(btn) {
+    const state = btn.dataset.state;
+    if (state === 'all') {
+        // 전체 토글
+        const allOn = chState.activeStates.has('all');
+        chState.activeStates.clear();
+        if (!allOn) {
+            ['all','active','completed','modified','deleted'].forEach(s => chState.activeStates.add(s));
+        }
+    } else {
+        if (chState.activeStates.has(state)) chState.activeStates.delete(state);
+        else chState.activeStates.add(state);
+        // "전체"는 active+completed+modified+deleted 모두 켜져 있을 때만
+        const otherAllOn = ['active','completed','modified','deleted'].every(s => chState.activeStates.has(s));
+        if (otherAllOn) chState.activeStates.add('all');
+        else chState.activeStates.delete('all');
+    }
+    document.querySelectorAll('.ch-fbtn').forEach(b => b.classList.toggle('active', chState.activeStates.has(b.dataset.state)));
+    chRender();
+}
+
+async function chLoad() {
+    // 한 달 + 양 끝 주 buffer 포함
+    const first = new Date(chState.year, chState.month, 1);
+    const startDay = new Date(first); startDay.setDate(1 - first.getDay());
+    const last = new Date(chState.year, chState.month+1, 0);
+    const endDay = new Date(last); endDay.setDate(last.getDate() + (6 - last.getDay()));
+
+    const params = new URLSearchParams({ start: chFmtDate(startDay), end: chFmtDate(endDay) });
+    const res = await fetch(`/api/events/history?${params}`, {headers:{'Accept':'application/json'}});
+    if (!res.ok) { document.getElementById('chDaysGrid').innerHTML = '<div style="padding:40px; text-align:center; color:var(--red); grid-column:1/-1;">로드 실패</div>'; return; }
+    chState.events = await res.json();
+    chRender();
+}
+
+function chRender() {
+    document.getElementById('chPeriod').textContent = `${chState.year}년 ${chState.month+1}월`;
+
+    const grid = document.getElementById('chDaysGrid');
+    const first = new Date(chState.year, chState.month, 1);
+    const startDay = new Date(first); startDay.setDate(1 - first.getDay());
+    const todayStr = chFmtDate(new Date());
+
+    // 필터된 이벤트
+    const filtered = chState.events.filter(e => chState.activeStates.has(e.state));
+    document.getElementById('chCount').textContent = `${filtered.length}건 표시 (총 ${chState.events.length}건)`;
+
+    // 날짜별 묶기
+    const byDate = {};
+    filtered.forEach(e => {
+        const sd = new Date(e.start_date), ed = new Date(e.end_date || e.start_date);
+        for (let d = new Date(sd); d <= ed; d.setDate(d.getDate()+1)) {
+            const key = chFmtDate(d);
+            (byDate[key] ||= []).push(e);
+        }
+    });
+
+    let html = '';
+    for (let i = 0; i < 42; i++) {
+        const d = new Date(startDay); d.setDate(startDay.getDate() + i);
+        const key = chFmtDate(d);
+        const isOther = d.getMonth() !== chState.month;
+        const isToday = key === todayStr;
+        const isSunday = d.getDay() === 0;
+        const events = byDate[key] || [];
+
+        const chips = events.map(e => {
+            const stateClass = `state-${e.state}`;
+            const colorClass = `color-${e.color}`;
+            const marker = e.state === 'completed' ? '✓' : e.state === 'deleted' ? '🗑' : e.state === 'modified' ? '↻' : '';
+            return `<div class="ch-chip ${colorClass} ${stateClass}" onclick="chOpenPanel(${e.id})" title="${chEsc(e.title||'')}">
+                ${marker ? `<span class="ch-marker">${marker}</span>` : ''}${chEsc(e.title||'(제목 없음)')}
+            </div>`;
+        }).join('');
+
+        html += `<div class="ch-day ${isOther?'other-month':''} ${isToday?'today':''} ${isSunday?'sunday':''}">
+            <div class="ch-day-num">${d.getDate()}</div>
+            ${chips}
+        </div>`;
+    }
+    grid.innerHTML = html;
+}
+
+async function chOpenPanel(scheduleId) {
+    const ev = chState.events.find(e => e.id === scheduleId);
+    if (!ev) return;
+    document.getElementById('chPanel').classList.add('open');
+    document.getElementById('chPanelTitle').textContent = ev.title || '(제목 없음)';
+    const stateLabel = { active:'활성', completed:'완료됨', modified:'변경됨', deleted:'삭제됨' }[ev.state] || ev.state;
+    document.getElementById('chPanelMeta').innerHTML = `
+        <div>📅 ${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ' ~ '+ev.end_date : ''}${ev.is_all_day ? ' · 종일' : (ev.start_time ? ' · '+ev.start_time+'-'+(ev.end_time||'') : '')}</div>
+        ${ev.client_name ? `<div>👤 ${chEsc(ev.client_name)}</div>` : ''}
+        ${ev.location ? `<div>📍 ${chEsc(ev.location)}</div>` : ''}
+        <div>상태: <span style="color:var(--text);">${stateLabel}</span> · 변경 ${ev.changes_count}회${ev.completed_at ? ' · 완료 '+chFmtTime(ev.completed_at) : ''}${ev.deleted_at ? ' · 삭제 '+chFmtTime(ev.deleted_at) : ''}</div>
+    `;
+    document.getElementById('chPanelBody').innerHTML = '<div class="ch-panel-empty">로딩 중...</div>';
+
+    const res = await fetch(`/api/events/${scheduleId}/history`, {headers:{'Accept':'application/json'}});
+    if (!res.ok) { document.getElementById('chPanelBody').innerHTML = '<div class="ch-panel-empty" style="color:var(--red);">로드 실패</div>'; return; }
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : (data.changes || []);
+    if (!items.length) {
+        document.getElementById('chPanelBody').innerHTML = '<div class="ch-panel-empty">변경 이력이 없습니다.</div>';
+        return;
+    }
+
+    const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원' };
+    const FIELD_LABELS = { title:'제목', start_date:'시작일', end_date:'종료일', start_time:'시작시간', end_time:'종료시간', is_all_day:'종일', color:'분류', client_name:'의뢰자', address:'주소', location:'장소', description:'설명', is_private:'비공개', is_locked:'잠금' };
+
+    document.getElementById('chPanelBody').innerHTML = items.map(h => {
+        const changes = h.changes || {};
+        let body = '';
+        if (h.action === 'delete' && changes.snapshot) {
+            body = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">스냅샷: <span style="color:var(--text);">${chEsc(changes.snapshot.title||'(제목 없음)')}</span></div>`;
+        } else {
+            const rows = Object.entries(changes).filter(([k]) => k !== 'snapshot').map(([key, val]) => {
+                const label = FIELD_LABELS[key] || key;
+                const oldVal = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
+                const newVal = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
+                return `<div class="ch-log-diff">
+                    <span class="ch-log-key">${label}</span>
+                    <span class="ch-log-old">${chEsc(String(oldVal).slice(0,40))}</span>
+                    <span class="ch-log-arrow">→</span>
+                    <span class="ch-log-new">${chEsc(String(newVal).slice(0,40))}</span>
+                </div>`;
+            }).join('');
+            body = rows;
+        }
+        return `<div class="ch-log-item">
+            <div class="ch-log-head">
+                <span class="ch-log-action ${h.action}">${ACTION_LABEL[h.action]||h.action}</span>
+                <span class="ch-log-user">${chEsc(h.user_name||'-')}</span>
+                <span class="ch-log-time">${h.created_at}</span>
+            </div>
+            ${body}
+        </div>`;
+    }).join('');
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('chPanel').classList.remove('open');
+});
+
+chLoad();
+</script>
+@endpush

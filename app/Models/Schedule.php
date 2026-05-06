@@ -35,6 +35,7 @@ class Schedule extends Model
         'gold_data',
         'teal_data',
         'created_by',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -48,6 +49,7 @@ class Schedule extends Model
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'sched_after_date' => 'date:Y-m-d',
+        'completed_at' => 'datetime',
     ];
 
     public function assignees()

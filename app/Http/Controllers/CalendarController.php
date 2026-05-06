@@ -160,9 +160,11 @@ class CalendarController extends Controller
         return response()->json($schedule);
     }
 
-    // 수정내역 API
-    public function history(Schedule $schedule)
+    // 수정내역 API (소프트삭제된 일정도 조회 가능)
+    public function history($id)
     {
+        $schedule = Schedule::withTrashed()->findOrFail($id);
+
         $changes = $schedule->changes()->with('user')->get()->map(fn ($c) => [
             'id' => $c->id,
             'action' => $c->action,
@@ -171,15 +173,200 @@ class CalendarController extends Controller
             'created_at' => $c->created_at->format('Y.m.d H:i'),
         ]);
 
-        return response()->json($changes);
+        return response()->json([
+            'schedule' => [
+                'id' => $schedule->id,
+                'title' => $schedule->title,
+                'start_date' => $schedule->start_date,
+                'end_date' => $schedule->end_date,
+                'color' => $schedule->color,
+                'completed_at' => $schedule->completed_at,
+                'deleted_at' => $schedule->deleted_at,
+            ],
+            'changes' => $changes,
+        ]);
     }
 
-    // 일정 삭제
+    // 일정 삭제 (soft delete + 이력 기록)
     public function destroy(Schedule $schedule)
     {
-        $schedule->delete();
+        // 삭제 시점의 스냅샷을 changes에 보존
+        $snapshot = collect($schedule->getAttributes())
+            ->only([
+                'title', 'start_date', 'end_date', 'start_time', 'end_time',
+                'is_all_day', 'color', 'client_name', 'address', 'location',
+                'description', 'is_private',
+            ])
+            ->toArray();
+
+        ScheduleChange::create([
+            'schedule_id' => $schedule->id,
+            'user_id' => Auth::id(),
+            'action' => 'delete',
+            'changes' => ['snapshot' => $snapshot],
+        ]);
+
+        $schedule->delete(); // SoftDeletes → deleted_at만 set
 
         return response()->json(['ok' => true]);
+    }
+
+    // 완료 토글 (사용자가 명시적으로 ✓ 클릭)
+    public function complete(Schedule $schedule)
+    {
+        $schedule->update(['completed_at' => now()]);
+
+        ScheduleChange::create([
+            'schedule_id' => $schedule->id,
+            'user_id' => Auth::id(),
+            'action' => 'complete',
+            'changes' => ['completed_at' => ['old' => null, 'new' => $schedule->completed_at?->toIso8601String()]],
+        ]);
+
+        return response()->json(['ok' => true, 'completed_at' => $schedule->completed_at]);
+    }
+
+    public function uncomplete(Schedule $schedule)
+    {
+        $previous = $schedule->completed_at;
+        $schedule->update(['completed_at' => null]);
+
+        ScheduleChange::create([
+            'schedule_id' => $schedule->id,
+            'user_id' => Auth::id(),
+            'action' => 'uncomplete',
+            'changes' => ['completed_at' => ['old' => $previous?->toIso8601String(), 'new' => null]],
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    // === 휴지통 ===
+
+    public function trashed()
+    {
+        $items = Schedule::onlyTrashed()
+            ->with('creator:id,display_name')
+            ->orderByDesc('deleted_at')
+            ->get(['id', 'title', 'start_date', 'end_date', 'color', 'client_name', 'created_by', 'deleted_at'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'start_date' => $s->start_date,
+                'end_date' => $s->end_date,
+                'color' => $s->color,
+                'client_name' => $s->client_name,
+                'creator' => $s->creator?->display_name,
+                'deleted_at' => $s->deleted_at?->format('Y-m-d H:i'),
+            ]);
+
+        return response()->json($items);
+    }
+
+    public function restore($id)
+    {
+        $schedule = Schedule::onlyTrashed()->findOrFail($id);
+        $schedule->restore();
+
+        ScheduleChange::create([
+            'schedule_id' => $schedule->id,
+            'user_id' => Auth::id(),
+            'action' => 'restore',
+            'changes' => null,
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function forceDestroy($id)
+    {
+        $schedule = Schedule::onlyTrashed()->findOrFail($id);
+        $schedule->forceDelete(); // schedule_changes는 cascadeOnDelete로 함께 삭제
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * 휴지통 일괄 정리 — 전부(empty) 또는 선택(ids)
+     */
+    public function emptyTrash(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'nullable|array',
+            'ids.*' => 'integer',
+        ]);
+
+        $query = Schedule::onlyTrashed();
+        if (! empty($validated['ids'])) {
+            $query->whereIn('id', $validated['ids']);
+        }
+
+        $count = $query->forceDelete();
+
+        return response()->json(['ok' => true, 'deleted' => $count]);
+    }
+
+    // === 캘린더 이력 페이지 ===
+
+    public function historyIndex()
+    {
+        return view('calendar.history');
+    }
+
+    /**
+     * 캘린더 이력용 이벤트 — 모든 일정 (소프트삭제 포함) + 변경 메타.
+     */
+    public function historyEvents(Request $request)
+    {
+        $start = $request->query('start');
+        $end = $request->query('end');
+
+        $events = Schedule::withTrashed()
+            ->with('assignees')
+            ->withCount('changes')
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('start_date', [$start, $end])
+                    ->orWhereBetween('end_date', [$start, $end])
+                    ->orWhere(function ($q2) use ($start, $end) {
+                        $q2->where('start_date', '<=', $start)
+                            ->where('end_date', '>=', $end);
+                    });
+            })
+            ->where(function ($q) {
+                $q->where('is_private', false)
+                    ->orWhere('created_by', Auth::id());
+            })
+            ->get();
+
+        return response()->json($events->map(function ($e) {
+            // 변경/삭제/완료 상태 분류
+            $state = 'active';
+            if ($e->deleted_at !== null) {
+                $state = 'deleted';
+            } elseif ($e->completed_at !== null) {
+                $state = 'completed';
+            } elseif ($e->changes_count > 0) {
+                $state = 'modified';
+            }
+
+            return [
+                'id' => $e->id,
+                'title' => $e->title,
+                'start_date' => $e->start_date,
+                'end_date' => $e->end_date,
+                'start_time' => $e->start_time,
+                'end_time' => $e->end_time,
+                'is_all_day' => $e->is_all_day,
+                'color' => $e->color,
+                'client_name' => $e->client_name,
+                'location' => $e->location,
+                'completed_at' => $e->completed_at,
+                'deleted_at' => $e->deleted_at,
+                'changes_count' => $e->changes_count,
+                'state' => $state, // active | completed | modified | deleted
+                'assignees' => $e->assignees,
+            ];
+        }));
     }
 
     // JSON 내보내기
