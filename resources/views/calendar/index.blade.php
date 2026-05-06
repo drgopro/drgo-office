@@ -1013,7 +1013,7 @@
         </div>{{-- modal-body end --}}
 
         <div id="reasonField" style="display:none; padding:0 28px 12px;">
-            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">변경 사유 <span style="color:var(--text-muted); opacity:0.7;">(선택)</span></div>
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">변경 사유 <span style="color:var(--red);">*</span></div>
             <textarea id="modalReason" rows="2" placeholder="예: 의뢰자 요청으로 일정 변경" style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
         </div>
 
@@ -1097,10 +1097,11 @@
             <button class="modal-close" onclick="document.getElementById('deleteReasonOverlay').style.display='none'">×</button>
         </div>
         <div style="padding:0 20px 12px; color:var(--text-muted); font-size:13px; line-height:1.5;">
-            이 일정을 삭제합니다. 휴지통으로 이동되며, <span style="color:var(--text);">사유를 입력</span>하면 캘린더 이력에 함께 남습니다.
+            이 일정을 삭제합니다. 휴지통으로 이동되며, <span style="color:var(--text);">삭제 사유</span>를 반드시 입력해야 합니다.
         </div>
         <div style="padding:0 20px 16px;">
-            <textarea id="deleteReasonInput" rows="3" placeholder="삭제 사유 (선택) — 예: 일정 취소됨" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">삭제 사유 <span style="color:var(--red);">*</span></div>
+            <textarea id="deleteReasonInput" rows="3" placeholder="예: 일정 취소됨, 의뢰자 요청 등" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; padding:0 20px 20px;">
             <button class="nav-btn" onclick="document.getElementById('deleteReasonOverlay').style.display='none'" style="width:auto; padding:6px 14px; font-size:12px;">취소</button>
@@ -1736,6 +1737,20 @@ function openTimePicker(trigger,hiddenId){
         const sm=mCol.querySelector('.selected')?.dataset.m||'0';
         const val=String(sh).padStart(2,'0')+':'+String(sm).padStart(2,'0');
         hidden.value=val; trigger.textContent=val; popup.remove();
+
+        // 시작 시간을 선택하면 종료 시간을 자동으로 +1시간
+        if (hiddenId === 'startTime' || hiddenId === 'goldStartTime') {
+            const endIdMap = { startTime: 'endTime', goldStartTime: 'goldEndTime' };
+            const endTrigMap = { startTime: 'endTimeTrigger', goldStartTime: 'goldEndTimeTrigger' };
+            const endHidden = document.getElementById(endIdMap[hiddenId]);
+            const endTrig = document.getElementById(endTrigMap[hiddenId]);
+            if (endHidden && endTrig) {
+                const endH = (parseInt(sh, 10) + 1) % 24;
+                const endVal = String(endH).padStart(2, '0') + ':' + String(sm).padStart(2, '0');
+                endHidden.value = endVal;
+                endTrig.textContent = endVal;
+            }
+        }
     };
     // 외부 클릭으로 닫기
     setTimeout(()=>{document.addEventListener('click',function handler(e){if(!popup.contains(e.target)&&e.target!==trigger){popup.remove();document.removeEventListener('click',handler);}});},10);
@@ -2505,10 +2520,16 @@ async function saveEvent(){
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
 
-    // 수정 시 변경 사유 첨부 (선택)
+    // 수정 시 변경 사유 필수 (실제 변경이 있는지 백엔드에서 판정)
     if (editingId) {
-        const reasonVal = document.getElementById('modalReason')?.value.trim();
-        if (reasonVal) data.reason = reasonVal;
+        const reasonEl = document.getElementById('modalReason');
+        const reasonVal = (reasonEl?.value || '').trim();
+        if (!reasonVal) {
+            alert('변경 사유를 입력해주세요.');
+            reasonEl?.focus();
+            return;
+        }
+        data.reason = reasonVal;
     }
 
     const url=editingId?`/api/events/${editingId}`:'/api/events';
@@ -2518,7 +2539,11 @@ async function saveEvent(){
         const hasFiles=Object.values(pendingAttachments).some(arr=>arr.length);
         if(hasFiles) await uploadPendingAttachments(saved.id);
         closeModal();loadEvents();
-    }else{const err=await res.json();alert('저장 실패: '+JSON.stringify(err));}
+    }else{
+        const err=await res.json();
+        const msg = err.message || (err.errors && Object.values(err.errors).flat().join('\n')) || '저장 실패';
+        alert(msg);
+    }
 }
 
 let pendingDeleteId = null;
@@ -2532,19 +2557,27 @@ function deleteEvent(id){
 }
 async function confirmDeleteEvent(){
     if (!pendingDeleteId) return;
-    const reason = document.getElementById('deleteReasonInput').value.trim();
+    const inputEl = document.getElementById('deleteReasonInput');
+    const reason = (inputEl.value || '').trim();
+    if (!reason) {
+        alert('삭제 사유를 입력해주세요.');
+        inputEl.focus();
+        return;
+    }
     const res = await fetch(`/api/events/${pendingDeleteId}`, {
         method:'DELETE',
         headers:{'X-CSRF-TOKEN':CSRF, 'Content-Type':'application/json', 'Accept':'application/json'},
-        body: JSON.stringify({ reason: reason || null }),
+        body: JSON.stringify({ reason }),
     });
-    document.getElementById('deleteReasonOverlay').style.display='none';
-    pendingDeleteId = null;
     if (res.ok) {
+        document.getElementById('deleteReasonOverlay').style.display='none';
+        pendingDeleteId = null;
         closeModal();
         loadEvents();
     } else {
-        alert('삭제 실패');
+        const err = await res.json().catch(()=>({}));
+        const msg = err.message || (err.errors && Object.values(err.errors).flat().join('\n')) || '삭제 실패';
+        alert(msg);
     }
 }
 

@@ -141,6 +141,13 @@ class CalendarController extends Controller
             }
         }
         if (! empty($diff)) {
+            // 실제 변경이 있을 때만 사유를 필수로 받음
+            if (empty(trim((string) $reason))) {
+                return response()->json([
+                    'message' => '변경 사유를 입력해주세요.',
+                    'errors' => ['reason' => ['변경 사유는 필수입니다.']],
+                ], 422);
+            }
             ScheduleChange::create([
                 'schedule_id' => $schedule->id,
                 'user_id' => Auth::id(),
@@ -199,7 +206,9 @@ class CalendarController extends Controller
     public function destroy(Request $request, Schedule $schedule)
     {
         $validated = $request->validate([
-            'reason' => 'nullable|string|max:500',
+            'reason' => 'required|string|max:500',
+        ], [
+            'reason.required' => '삭제 사유를 입력해주세요.',
         ]);
 
         // 삭제 시점의 스냅샷을 changes에 보존
@@ -375,6 +384,7 @@ class CalendarController extends Controller
             }
 
             // 2. 과거 위치 흔적 — start_date가 변경된 update 이력마다 modified shadow
+            //    이 시점의 start_time/end_time/is_all_day도 함께 복원 (변경되지 않았으면 현재 값 그대로)
             foreach ($s->changes as $c) {
                 $changes = $c->changes ?? [];
                 if (! isset($changes['start_date']['old'])) {
@@ -388,14 +398,26 @@ class CalendarController extends Controller
                     continue;
                 }
 
-                $chips->push(array_merge($base, [
+                $shadow = array_merge($base, [
                     'chip_id' => 'sh-'.$c->id,
                     'display_start_date' => $oldStart,
                     'display_end_date' => $oldEnd ?? $oldStart,
                     'state' => 'modified',
                     'is_shadow' => true,
                     'change_at' => $c->created_at,
-                ]));
+                ]);
+                // 시간/종일 필드도 변경 이력이 있으면 그 시점의 값 사용
+                if (array_key_exists('start_time', $changes)) {
+                    $shadow['start_time'] = $changes['start_time']['old'] ?? null;
+                }
+                if (array_key_exists('end_time', $changes)) {
+                    $shadow['end_time'] = $changes['end_time']['old'] ?? null;
+                }
+                if (array_key_exists('is_all_day', $changes)) {
+                    $shadow['is_all_day'] = (bool) ($changes['is_all_day']['old'] ?? false);
+                }
+
+                $chips->push($shadow);
             }
 
             // 3. 삭제된 경우, 삭제 시점의 위치에 deleted shadow
