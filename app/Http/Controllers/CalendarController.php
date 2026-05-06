@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -314,59 +315,115 @@ class CalendarController extends Controller
     }
 
     /**
-     * 캘린더 이력용 이벤트 — 모든 일정 (소프트삭제 포함) + 변경 메타.
+     * 캘린더 이력용 이벤트 — 일정 1건이 여러 chip으로 분할될 수 있다.
+     *
+     * - 활성/완료 일정: 현재 위치에 active|completed chip + 과거 위치 변경 이력마다 modified shadow
+     * - 삭제 일정: 삭제 시점의 start_date에 deleted shadow + 그 이전의 위치 변경 이력도 modified shadow
      */
     public function historyEvents(Request $request)
     {
         $start = $request->query('start');
         $end = $request->query('end');
 
-        $events = Schedule::withTrashed()
-            ->with('assignees')
+        $schedules = Schedule::withTrashed()
+            ->with(['changes' => fn ($q) => $q->where('action', 'update')->orderBy('created_at')])
             ->withCount('changes')
-            ->where(function ($q) use ($start, $end) {
-                $q->whereBetween('start_date', [$start, $end])
-                    ->orWhereBetween('end_date', [$start, $end])
-                    ->orWhere(function ($q2) use ($start, $end) {
-                        $q2->where('start_date', '<=', $start)
-                            ->where('end_date', '>=', $end);
-                    });
-            })
             ->where(function ($q) {
                 $q->where('is_private', false)
                     ->orWhere('created_by', Auth::id());
             })
             ->get();
 
-        return response()->json($events->map(function ($e) {
-            // 변경/삭제/완료 상태 분류
-            $state = 'active';
-            if ($e->deleted_at !== null) {
-                $state = 'deleted';
-            } elseif ($e->completed_at !== null) {
-                $state = 'completed';
-            } elseif ($e->changes_count > 0) {
-                $state = 'modified';
+        $chips = collect();
+
+        foreach ($schedules as $s) {
+            $base = [
+                'schedule_id' => $s->id,
+                'title' => $s->title,
+                'color' => $s->color,
+                'client_name' => $s->client_name,
+                'location' => $s->location,
+                'start_time' => $s->start_time,
+                'end_time' => $s->end_time,
+                'is_all_day' => $s->is_all_day,
+                'changes_count' => $s->changes_count,
+                'completed_at' => $s->completed_at,
+                'deleted_at' => $s->deleted_at,
+            ];
+
+            // 1. 현재 위치 chip — 삭제되지 않은 경우만 (정상 표시)
+            if ($s->deleted_at === null) {
+                $chips->push(array_merge($base, [
+                    'chip_id' => 'cur-'.$s->id,
+                    'display_start_date' => $s->start_date->format('Y-m-d'),
+                    'display_end_date' => optional($s->end_date)->format('Y-m-d') ?? $s->start_date->format('Y-m-d'),
+                    'state' => $s->completed_at !== null ? 'completed' : 'active',
+                    'is_shadow' => false,
+                ]));
             }
 
-            return [
-                'id' => $e->id,
-                'title' => $e->title,
-                'start_date' => $e->start_date,
-                'end_date' => $e->end_date,
-                'start_time' => $e->start_time,
-                'end_time' => $e->end_time,
-                'is_all_day' => $e->is_all_day,
-                'color' => $e->color,
-                'client_name' => $e->client_name,
-                'location' => $e->location,
-                'completed_at' => $e->completed_at,
-                'deleted_at' => $e->deleted_at,
-                'changes_count' => $e->changes_count,
-                'state' => $state, // active | completed | modified | deleted
-                'assignees' => $e->assignees,
-            ];
-        }));
+            // 2. 과거 위치 흔적 — start_date가 변경된 update 이력마다 modified shadow
+            foreach ($s->changes as $c) {
+                $changes = $c->changes ?? [];
+                if (! isset($changes['start_date']['old'])) {
+                    continue;
+                }
+                $oldStart = $this->normalizeDate($changes['start_date']['old']);
+                $oldEnd = isset($changes['end_date']['old'])
+                    ? $this->normalizeDate($changes['end_date']['old'])
+                    : $oldStart;
+                if (! $oldStart) {
+                    continue;
+                }
+
+                $chips->push(array_merge($base, [
+                    'chip_id' => 'sh-'.$c->id,
+                    'display_start_date' => $oldStart,
+                    'display_end_date' => $oldEnd ?? $oldStart,
+                    'state' => 'modified',
+                    'is_shadow' => true,
+                    'change_at' => $c->created_at,
+                ]));
+            }
+
+            // 3. 삭제된 경우, 삭제 시점의 위치에 deleted shadow
+            if ($s->deleted_at !== null) {
+                $chips->push(array_merge($base, [
+                    'chip_id' => 'del-'.$s->id,
+                    'display_start_date' => $s->start_date->format('Y-m-d'),
+                    'display_end_date' => optional($s->end_date)->format('Y-m-d') ?? $s->start_date->format('Y-m-d'),
+                    'state' => 'deleted',
+                    'is_shadow' => true,
+                ]));
+            }
+        }
+
+        // 표시 기간으로 필터 (display_start ~ display_end가 [start, end]와 겹치는 칩만)
+        $filtered = $chips->filter(fn ($c) => $c['display_start_date'] <= $end && $c['display_end_date'] >= $start)
+            ->values();
+
+        return response()->json($filtered);
+    }
+
+    /**
+     * ISO datetime 또는 'YYYY-MM-DD' 문자열을 KST 기준 'YYYY-MM-DD'로 정규화.
+     */
+    private function normalizeDate(mixed $val): ?string
+    {
+        if (! $val) {
+            return null;
+        }
+        $s = (string) $val;
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) {
+            return $s;
+        }
+        try {
+            return Carbon::parse($s)
+                ->setTimezone(config('app.timezone', 'Asia/Seoul'))
+                ->format('Y-m-d');
+        } catch (\Exception) {
+            return substr($s, 0, 10) ?: null;
+        }
     }
 
     // JSON 내보내기

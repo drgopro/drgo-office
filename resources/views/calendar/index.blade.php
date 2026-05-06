@@ -2044,7 +2044,35 @@ function openNewModal(dateStr,timeStr){
 
 // ── 상세 모달 ──
 const COLOR_LABELS = {gold:'방문의뢰',teal:'원격/방송룸',blue:'사내업무',red:'휴가/개인',green:'촬영/스튜디오',purple:'미팅/내방',holiday:'공휴일'};
-const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'특이사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보'};
+const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'특이사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',completed_at:'완료시각'};
+
+// 변경 로그 값을 사람이 읽기 좋게 변환
+function fmtLogValue(key, val) {
+    if (val === null || val === undefined || val === '') return '—';
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return val;
+        return d.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\.\s?/g,'-').replace(/-$/,'');
+    }
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    if (typeof val === 'string' && /^\d{1,2}:\d{2}/.test(val)) return val.slice(0,5);
+    if (val === true || val === 'true' || val === 1 || val === '1') return '예';
+    if (val === false || val === 'false' || val === 0 || val === '0') return '아니오';
+    if (key === 'color' && COLOR_LABELS[val]) return COLOR_LABELS[val];
+    if (typeof val === 'object') {
+        if (Array.isArray(val)) {
+            if (val.length === 0) return '(없음)';
+            if (val.every(x => typeof x === 'number')) return `${val.length}명`;
+            const names = val.map(o => o?.name || o?.title).filter(Boolean).slice(0,3);
+            if (names.length) return names.join(', ') + (val.length > 3 ? ` 외 ${val.length-3}` : '');
+            return `(${val.length}개 항목)`;
+        }
+        if (val.name) return String(val.name);
+        if (val.title) return String(val.title);
+        return '(상세 변경)';
+    }
+    return String(val);
+}
 let detailEvent = null;
 
 let viewMode = false; // true: 상세보기(읽기전용), false: 편집
@@ -2163,18 +2191,25 @@ async function openHistoryModal() {
         const changes = h.changes || {};
         let body = '';
         if (h.action === 'delete' && changes.snapshot) {
-            body = `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">삭제 시점 스냅샷: <span style="color:var(--text);">${escHtml(changes.snapshot.title||'(제목 없음)')}</span> · ${changes.snapshot.start_date||''}</div>`;
-        } else if (h.action === 'restore' || h.action === 'uncomplete' || h.action === 'complete' && !Object.keys(changes).length) {
+            const snap = changes.snapshot;
+            const lines = [];
+            if (snap.title) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">제목</span> <span style="color:var(--text);">${escHtml(snap.title)}</span></div>`);
+            if (snap.start_date) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">일자</span> <span style="color:var(--text);">${escHtml(fmtLogValue('start_date', snap.start_date))}${snap.end_date && snap.end_date !== snap.start_date ? ' ~ '+escHtml(fmtLogValue('end_date', snap.end_date)) : ''}</span></div>`);
+            if (snap.client_name) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">의뢰자</span> <span style="color:var(--text);">${escHtml(snap.client_name)}</span></div>`);
+            if (snap.location) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">장소</span> <span style="color:var(--text);">${escHtml(snap.location)}</span></div>`);
+            body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:12px;">${lines.join('')}</div>`;
+        } else if (h.action === 'restore' || h.action === 'uncomplete' || (h.action === 'complete' && !Object.keys(changes).length)) {
             body = '';
         } else {
             const rows = Object.entries(changes).filter(([k]) => k !== 'snapshot').map(([key, val]) => {
                 const label = (typeof FIELD_LABELS !== 'undefined' && FIELD_LABELS[key]) || key;
-                const oldVal = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
-                const newVal = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
+                const oldVal = fmtLogValue(key, val.old);
+                const newVal = fmtLogValue(key, val.new);
                 return `<div style="margin:6px 0;">
                     <div style="font-size:11px; color:var(--text-muted);">${label}</div>
-                    <div style="display:flex; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                    <div style="display:flex; gap:6px; margin-top:2px; flex-wrap:wrap; align-items:center;">
                         <span style="padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:12px; text-decoration:line-through;">${escHtml(oldVal)}</span>
+                        <span style="color:var(--text-muted); font-size:11px;">→</span>
                         <span style="padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:12px;">${escHtml(newVal)}</span>
                     </div>
                 </div>`;

@@ -170,13 +170,67 @@
 const chState = {
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
-    events: [],
+    chips: [],
     activeStates: new Set(['all','active','completed','modified','deleted']),
 };
 
-function chEsc(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const FIELD_LABELS = {
+    title:'제목', start_date:'시작일', end_date:'종료일',
+    start_time:'시작시간', end_time:'종료시간', is_all_day:'종일',
+    color:'분류', client_name:'의뢰자', address:'주소',
+    location:'장소', description:'설명', is_private:'비공개',
+    is_locked:'잠금', notif_minutes:'알림(분)',
+    sched_opt:'세부유형', sched_event_opts:'세부옵션',
+    special_opts:'특수옵션', sched_after_days:'AS일수',
+    sched_after_date:'AS만료일', sched_after_reason:'AS사유',
+    gold_data:'방문 상세', teal_data:'원격 상세',
+    assignees:'담당자', completed_at:'완료시각',
+};
+const COLOR_LABELS = {
+    gold:'방문의뢰', teal:'원격/방송룸', blue:'사내업무',
+    red:'휴가/개인', green:'촬영/스튜디오', purple:'미팅/내방', holiday:'공휴일',
+};
+
+function chEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function chFmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function chFmtTime(t){ return t ? new Date(t).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'; }
+
+// 변경 로그 값을 사람이 읽기 좋게 포맷팅
+function chFmtValue(key, val) {
+    if (val === null || val === undefined || val === '') return '—';
+
+    // ISO datetime → 한국 시간대 날짜
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return val;
+        const kst = d.toLocaleDateString('ko-KR', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit'});
+        // "2026. 05. 06." → "2026-05-06"
+        return kst.replace(/\.\s?/g,'-').replace(/-$/,'');
+    }
+    // 'YYYY-MM-DD'
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    // 'HH:MM' 또는 'HH:MM:SS'
+    if (typeof val === 'string' && /^\d{1,2}:\d{2}/.test(val)) return val.slice(0,5);
+    // boolean
+    if (val === true || val === 'true' || val === 1 || val === '1') return '예';
+    if (val === false || val === 'false' || val === 0 || val === '0') return '아니오';
+    // color enum
+    if (key === 'color' && COLOR_LABELS[val]) return COLOR_LABELS[val];
+
+    if (typeof val === 'object') {
+        if (Array.isArray(val)) {
+            if (val.length === 0) return '(없음)';
+            if (val.every(x => typeof x === 'number')) return `${val.length}명`;
+            const names = val.map(o => o?.name || o?.title).filter(Boolean).slice(0,3);
+            if (names.length) return names.join(', ') + (val.length > 3 ? ` 외 ${val.length-3}` : '');
+            return `(${val.length}개 항목)`;
+        }
+        if (val.name) return String(val.name);
+        if (val.title) return String(val.title);
+        return '(상세 변경)';
+    }
+    return String(val);
+}
 
 function chChangeMonth(delta) {
     chState.month += delta;
@@ -212,7 +266,6 @@ function chToggleFilter(btn) {
 }
 
 async function chLoad() {
-    // 한 달 + 양 끝 주 buffer 포함
     const first = new Date(chState.year, chState.month, 1);
     const startDay = new Date(first); startDay.setDate(1 - first.getDay());
     const last = new Date(chState.year, chState.month+1, 0);
@@ -221,7 +274,7 @@ async function chLoad() {
     const params = new URLSearchParams({ start: chFmtDate(startDay), end: chFmtDate(endDay) });
     const res = await fetch(`/api/events/history?${params}`, {headers:{'Accept':'application/json'}});
     if (!res.ok) { document.getElementById('chDaysGrid').innerHTML = '<div style="padding:40px; text-align:center; color:var(--red); grid-column:1/-1;">로드 실패</div>'; return; }
-    chState.events = await res.json();
+    chState.chips = await res.json();
     chRender();
 }
 
@@ -233,17 +286,17 @@ function chRender() {
     const startDay = new Date(first); startDay.setDate(1 - first.getDay());
     const todayStr = chFmtDate(new Date());
 
-    // 필터된 이벤트
-    const filtered = chState.events.filter(e => chState.activeStates.has(e.state));
-    document.getElementById('chCount').textContent = `${filtered.length}건 표시 (총 ${chState.events.length}건)`;
+    const filtered = chState.chips.filter(c => chState.activeStates.has(c.state));
+    document.getElementById('chCount').textContent = `${filtered.length}건 표시 (총 ${chState.chips.length}건)`;
 
-    // 날짜별 묶기
+    // 날짜별 묶기 — 인덱스도 같이 저장 (클릭 시 chip 객체 찾기)
     const byDate = {};
-    filtered.forEach(e => {
-        const sd = new Date(e.start_date), ed = new Date(e.end_date || e.start_date);
+    filtered.forEach(c => {
+        const idx = chState.chips.indexOf(c);
+        const sd = new Date(c.display_start_date), ed = new Date(c.display_end_date || c.display_start_date);
         for (let d = new Date(sd); d <= ed; d.setDate(d.getDate()+1)) {
             const key = chFmtDate(d);
-            (byDate[key] ||= []).push(e);
+            (byDate[key] ||= []).push({chip:c, idx});
         }
     });
 
@@ -254,14 +307,17 @@ function chRender() {
         const isOther = d.getMonth() !== chState.month;
         const isToday = key === todayStr;
         const isSunday = d.getDay() === 0;
-        const events = byDate[key] || [];
+        const items = byDate[key] || [];
 
-        const chips = events.map(e => {
-            const stateClass = `state-${e.state}`;
-            const colorClass = `color-${e.color}`;
-            const marker = e.state === 'completed' ? '✓' : e.state === 'deleted' ? '🗑' : e.state === 'modified' ? '↻' : '';
-            return `<div class="ch-chip ${colorClass} ${stateClass}" onclick="chOpenPanel(${e.id})" title="${chEsc(e.title||'')}">
-                ${marker ? `<span class="ch-marker">${marker}</span>` : ''}${chEsc(e.title||'(제목 없음)')}
+        const chips = items.map(({chip:c, idx}) => {
+            const stateClass = `state-${c.state}`;
+            const colorClass = `color-${c.color}`;
+            const marker = c.state === 'completed' ? '✓' : c.state === 'deleted' ? '🗑' : c.state === 'modified' ? '↻' : '';
+            const tooltip = c.is_shadow
+                ? (c.state === 'deleted' ? '삭제된 일정 — ' : '변경 전 위치 — ') + (c.title||'')
+                : (c.title||'');
+            return `<div class="ch-chip ${colorClass} ${stateClass}" onclick="chOpenPanel(${idx})" title="${chEsc(tooltip)}">
+                ${marker ? `<span class="ch-marker">${marker}</span>` : ''}${chEsc(c.title||'(제목 없음)')}
             </div>`;
         }).join('');
 
@@ -273,17 +329,23 @@ function chRender() {
     grid.innerHTML = html;
 }
 
-async function chOpenPanel(scheduleId) {
-    const ev = chState.events.find(e => e.id === scheduleId);
-    if (!ev) return;
+async function chOpenPanel(chipIdx) {
+    const c = chState.chips[chipIdx];
+    if (!c) return;
+    const scheduleId = c.schedule_id;
     document.getElementById('chPanel').classList.add('open');
-    document.getElementById('chPanelTitle').textContent = ev.title || '(제목 없음)';
-    const stateLabel = { active:'활성', completed:'완료됨', modified:'변경됨', deleted:'삭제됨' }[ev.state] || ev.state;
+    document.getElementById('chPanelTitle').textContent = c.title || '(제목 없음)';
+
+    const stateLabel = { active:'활성', completed:'완료됨', modified:'변경됨', deleted:'삭제됨' }[c.state] || c.state;
+    const shadowNote = c.is_shadow
+        ? (c.state === 'deleted' ? '<div style="color:var(--red);">⚠ 이 위치에서 삭제됨</div>' : '<div style="color:var(--purple);">↻ 변경 전 위치 (현재는 다른 날짜)</div>')
+        : '';
     document.getElementById('chPanelMeta').innerHTML = `
-        <div>📅 ${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ' ~ '+ev.end_date : ''}${ev.is_all_day ? ' · 종일' : (ev.start_time ? ' · '+ev.start_time+'-'+(ev.end_time||'') : '')}</div>
-        ${ev.client_name ? `<div>👤 ${chEsc(ev.client_name)}</div>` : ''}
-        ${ev.location ? `<div>📍 ${chEsc(ev.location)}</div>` : ''}
-        <div>상태: <span style="color:var(--text);">${stateLabel}</span> · 변경 ${ev.changes_count}회${ev.completed_at ? ' · 완료 '+chFmtTime(ev.completed_at) : ''}${ev.deleted_at ? ' · 삭제 '+chFmtTime(ev.deleted_at) : ''}</div>
+        <div>📅 ${c.display_start_date}${c.display_end_date && c.display_end_date !== c.display_start_date ? ' ~ '+c.display_end_date : ''}${c.is_all_day ? ' · 종일' : (c.start_time ? ' · '+String(c.start_time).slice(0,5)+(c.end_time?'-'+String(c.end_time).slice(0,5):'') : '')}</div>
+        ${c.client_name ? `<div>👤 ${chEsc(c.client_name)}</div>` : ''}
+        ${c.location ? `<div>📍 ${chEsc(c.location)}</div>` : ''}
+        <div>상태: <span style="color:var(--text);">${stateLabel}</span> · 변경 ${c.changes_count}회${c.completed_at ? ' · 완료 '+chFmtTime(c.completed_at) : ''}${c.deleted_at ? ' · 삭제 '+chFmtTime(c.deleted_at) : ''}</div>
+        ${shadowNote}
     `;
     document.getElementById('chPanelBody').innerHTML = '<div class="ch-panel-empty">로딩 중...</div>';
 
@@ -297,27 +359,38 @@ async function chOpenPanel(scheduleId) {
     }
 
     const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원' };
-    const FIELD_LABELS = { title:'제목', start_date:'시작일', end_date:'종료일', start_time:'시작시간', end_time:'종료시간', is_all_day:'종일', color:'분류', client_name:'의뢰자', address:'주소', location:'장소', description:'설명', is_private:'비공개', is_locked:'잠금' };
 
     document.getElementById('chPanelBody').innerHTML = items.map(h => {
         const changes = h.changes || {};
         let body = '';
+
         if (h.action === 'delete' && changes.snapshot) {
-            body = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">스냅샷: <span style="color:var(--text);">${chEsc(changes.snapshot.title||'(제목 없음)')}</span></div>`;
+            const snap = changes.snapshot;
+            const lines = [];
+            if (snap.title) lines.push(`<div><span class="ch-log-key">제목</span> <span style="color:var(--text);">${chEsc(snap.title)}</span></div>`);
+            if (snap.start_date) lines.push(`<div><span class="ch-log-key">일자</span> <span style="color:var(--text);">${chFmtValue('start_date', snap.start_date)}${snap.end_date && snap.end_date !== snap.start_date ? ' ~ '+chFmtValue('end_date', snap.end_date) : ''}</span></div>`);
+            if (snap.client_name) lines.push(`<div><span class="ch-log-key">의뢰자</span> <span style="color:var(--text);">${chEsc(snap.client_name)}</span></div>`);
+            if (snap.location) lines.push(`<div><span class="ch-log-key">장소</span> <span style="color:var(--text);">${chEsc(snap.location)}</span></div>`);
+            body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:11px;">${lines.join('')}</div>`;
         } else {
-            const rows = Object.entries(changes).filter(([k]) => k !== 'snapshot').map(([key, val]) => {
-                const label = FIELD_LABELS[key] || key;
-                const oldVal = typeof val.old === 'object' ? JSON.stringify(val.old) : (val.old ?? '—');
-                const newVal = typeof val.new === 'object' ? JSON.stringify(val.new) : (val.new ?? '—');
-                return `<div class="ch-log-diff">
-                    <span class="ch-log-key">${label}</span>
-                    <span class="ch-log-old">${chEsc(String(oldVal).slice(0,40))}</span>
-                    <span class="ch-log-arrow">→</span>
-                    <span class="ch-log-new">${chEsc(String(newVal).slice(0,40))}</span>
-                </div>`;
-            }).join('');
-            body = rows;
+            const entries = Object.entries(changes).filter(([k]) => k !== 'snapshot');
+            if (!entries.length) {
+                body = '';
+            } else {
+                body = entries.map(([key, val]) => {
+                    const label = FIELD_LABELS[key] || key;
+                    const oldFmt = chFmtValue(key, val.old);
+                    const newFmt = chFmtValue(key, val.new);
+                    return `<div class="ch-log-diff">
+                        <span class="ch-log-key">${label}</span>
+                        <span class="ch-log-old">${chEsc(oldFmt)}</span>
+                        <span class="ch-log-arrow">→</span>
+                        <span class="ch-log-new">${chEsc(newFmt)}</span>
+                    </div>`;
+                }).join('');
+            }
         }
+
         return `<div class="ch-log-item">
             <div class="ch-log-head">
                 <span class="ch-log-action ${h.action}">${ACTION_LABEL[h.action]||h.action}</span>
