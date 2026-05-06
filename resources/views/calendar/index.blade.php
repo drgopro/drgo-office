@@ -2525,8 +2525,13 @@ async function saveEvent(){
         const reasonEl = document.getElementById('modalReason');
         const reasonVal = (reasonEl?.value || '').trim();
         if (!reasonVal) {
-            alert('변경 사유를 입력해주세요.');
-            reasonEl?.focus();
+            if (reasonEl) {
+                reasonEl.style.borderColor = 'var(--red)';
+                reasonEl.scrollIntoView({behavior:'smooth', block:'center'});
+                reasonEl.focus();
+                setTimeout(()=>{ reasonEl.style.borderColor=''; }, 3000);
+            }
+            showCalToast('변경 사유를 입력해주세요.');
             return;
         }
         data.reason = reasonVal;
@@ -2560,8 +2565,10 @@ async function confirmDeleteEvent(){
     const inputEl = document.getElementById('deleteReasonInput');
     const reason = (inputEl.value || '').trim();
     if (!reason) {
-        alert('삭제 사유를 입력해주세요.');
+        inputEl.style.borderColor = 'var(--red)';
         inputEl.focus();
+        setTimeout(()=>{ inputEl.style.borderColor=''; }, 3000);
+        showCalToast('삭제 사유를 입력해주세요.');
         return;
     }
     const res = await fetch(`/api/events/${pendingDeleteId}`, {
