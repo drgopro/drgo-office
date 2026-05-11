@@ -357,6 +357,7 @@
     .ls-info-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:18px 24px; }
     .ls-info-cell .ls-info-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; letter-spacing:0.04em; }
     .ls-info-cell .ls-info-val { font-size:15px; color:var(--text); font-weight:500; line-height:1.4; word-break:break-all; }
+    .ls-info-cell .ls-info-val.ls-empty { color:var(--text-muted); opacity:0.5; font-weight:400; }
     .ls-text-block { font-size:14px; color:var(--text); line-height:1.7; white-space:pre-wrap; word-break:break-word; padding:6px 0; }
     .ls-text-block.muted { color:var(--text-muted); font-style:italic; }
     .ls-amount { font-size:26px; font-weight:700; color:var(--text); line-height:1.2; }
@@ -1838,54 +1839,55 @@ function renderLockSummary(){
             html += `<div class="ls-chips">${chips.join('')}</div>`;
         }
 
-        // 의뢰자 정보
+        // 의뢰자 정보 (비어있어도 영역 표시)
         const nick = _val('g_nickname');
         const name = _val('g_name');
         const phone = _val('g_phone');
-        if (nick || name || phone) {
-            html += `<div class="ls-section">
-                <div class="ls-section-title">의뢰자 정보</div>
-                <div class="ls-info-grid">
-                    ${nick  ? `<div class="ls-info-cell"><div class="ls-info-label">의뢰자 닉네임</div><div class="ls-info-val">${_esc(nick)}</div></div>` : ''}
-                    ${name  ? `<div class="ls-info-cell"><div class="ls-info-label">의뢰자 이름</div><div class="ls-info-val">${_esc(name)}</div></div>` : ''}
-                    ${phone ? `<div class="ls-info-cell"><div class="ls-info-label">전화번호</div><div class="ls-info-val">${_esc(phone)}</div></div>` : ''}
-                </div>
-            </div>`;
-        }
+        const _cell = (label, v) => `<div class="ls-info-cell"><div class="ls-info-label">${label}</div><div class="ls-info-val${v?'':' ls-empty'}">${v ? _esc(v) : '—'}</div></div>`;
+        html += `<div class="ls-section">
+            <div class="ls-section-title">의뢰자 정보</div>
+            <div class="ls-info-grid">
+                ${_cell('의뢰자 닉네임', nick)}
+                ${_cell('의뢰자 이름', name)}
+                ${_cell('전화번호', phone)}
+            </div>
+        </div>`;
 
         // 장비 목록
         const equip = _val('g_equipment');
-        if (equip) {
-            html += `<div class="ls-section">
-                <div class="ls-section-title">장비 목록</div>
-                <div class="ls-text-block">${_esc(equip)}</div>
-            </div>`;
-        }
+        html += `<div class="ls-section">
+            <div class="ls-section-title">장비 목록</div>
+            ${equip ? `<div class="ls-text-block">${_esc(equip)}</div>` : `<div class="ls-text-block muted">— 등록된 장비 없음 —</div>`}
+        </div>`;
 
         // 의뢰 내용
         const reqDetail = _val('g_req_detail');
         const special = _val('g_special');
-        if (reqDetail || special) {
-            html += `<div class="ls-section"><div class="ls-section-title">의뢰 내용</div>`;
-            if (reqDetail) html += `<div><div class="ls-info-label">의뢰 세부항목</div><div class="ls-text-block">${_esc(reqDetail)}</div></div>`;
-            if (special) html += `<div><div class="ls-info-label">특이사항</div><div class="ls-text-block">${_esc(special)}</div></div>`;
-            html += `</div>`;
-        }
+        html += `<div class="ls-section">
+            <div class="ls-section-title">의뢰 내용</div>
+            <div><div class="ls-info-label">의뢰 세부항목</div>
+                ${reqDetail ? `<div class="ls-text-block">${_esc(reqDetail)}</div>` : `<div class="ls-text-block muted">— 내용 없음 —</div>`}
+            </div>
+            <div><div class="ls-info-label">특이사항</div>
+                ${special ? `<div class="ls-text-block">${_esc(special)}</div>` : `<div class="ls-text-block muted">— 내용 없음 —</div>`}
+            </div>
+        </div>`;
 
         // 결제 정보
         const amount = _val('g_estimate_amount');
         const balanceAmount = _val('g_balance_amount');
         const savedFlag = document.getElementById('g_estimate_status')?.textContent?.includes('저장');
-        if (amount || balanceAmount) {
-            html += `<div class="ls-section">
-                <div class="ls-section-title">결제 정보</div>
-                ${amount ? `<div class="ls-amount-row">
-                    <div><div class="ls-info-label">견적 총액</div><div class="ls-amount">${_esc(amount)}원</div></div>
-                    ${savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
-                </div>` : ''}
-                ${balanceAmount ? `<div style="margin-top:6px;"><div class="ls-info-label">잔금 금액</div><div class="ls-text-block">${_esc(balanceAmount)}원</div></div>` : ''}
-            </div>`;
-        }
+        html += `<div class="ls-section">
+            <div class="ls-section-title">결제 정보</div>
+            <div class="ls-amount-row">
+                <div>
+                    <div class="ls-info-label">견적 총액</div>
+                    ${amount ? `<div class="ls-amount">${_esc(amount)}원</div>` : `<div class="ls-text-block muted">— 미입력 —</div>`}
+                </div>
+                ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
+            </div>
+            ${balanceAmount ? `<div style="margin-top:6px;"><div class="ls-info-label">잔금 금액</div><div class="ls-text-block">${_esc(balanceAmount)}원</div></div>` : ''}
+        </div>`;
     }
 
     // 공통: 상세 설명
@@ -1894,7 +1896,7 @@ function renderLockSummary(){
         if (desc) html += `<div class="ls-section"><div class="ls-section-title">상세 설명</div><div class="ls-text-block">${_esc(desc)}</div></div>`;
     }
 
-    // 첨부 이미지 (모든 카테고리 공통)
+    // 첨부 이미지 (모든 카테고리 공통, 비어있어도 영역 표시)
     const imgGroups = [
         { label:'견적서', grid:'quoteGrid' },
         { label:'레퍼런스', grid:'refGrid' },
@@ -1904,17 +1906,15 @@ function renderLockSummary(){
     let imgHtml = '';
     imgGroups.forEach(g => {
         const grid = document.getElementById(g.grid);
-        if (!grid) return;
-        const imgs = Array.from(grid.querySelectorAll('img'));
-        if (!imgs.length) return;
+        const imgs = grid ? Array.from(grid.querySelectorAll('img')) : [];
         imgHtml += `<div class="ls-img-section">
             <div class="ls-img-label">${g.label}</div>
-            <div class="ls-img-grid">${imgs.map(im => `<img src="${_esc(im.src)}" alt="${_esc(g.label)}" onclick="openLightbox(this.src)">`).join('')}</div>
+            ${imgs.length
+                ? `<div class="ls-img-grid">${imgs.map(im => `<img src="${_esc(im.src)}" alt="${_esc(g.label)}" onclick="openLightbox(this.src)">`).join('')}</div>`
+                : `<div class="ls-img-empty">— 등록된 ${g.label} 없음 —</div>`}
         </div>`;
     });
-    if (imgHtml) {
-        html += `<div class="ls-section"><div class="ls-section-title">첨부 이미지</div>${imgHtml}</div>`;
-    }
+    html += `<div class="ls-section"><div class="ls-section-title">첨부 이미지</div>${imgHtml}</div>`;
 
     container.innerHTML = html || '<div class="ls-text-block muted">내용 없음</div>';
 }
