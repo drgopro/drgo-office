@@ -106,7 +106,9 @@
     /* 새 의뢰자 모달 */
     .new-client-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; }
     .new-client-overlay.open { display:flex; }
-    .new-client-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; width:400px; max-width:90vw; }
+    .new-client-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; width:560px; max-width:95vw; max-height:90vh; overflow-y:auto; }
+    .new-client-section { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+    .new-client-section-title { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:10px; letter-spacing:0.02em; }
     .new-client-modal h3 { font-size:16px; margin-bottom:16px; }
 
     /* ── 라이트모드 보정 ── */
@@ -260,7 +262,34 @@
                 </select>
             </div>
         </div>
-        <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
+
+        <div class="new-client-section">
+            <div class="new-client-section-title">플랫폼</div>
+            <div id="ncPlatformsWrap"></div>
+        </div>
+
+        <div class="new-client-section">
+            <div class="new-client-section-title">방송 주제</div>
+            <div id="ncTopicsWrap"></div>
+        </div>
+
+        <div class="new-client-section">
+            <div class="new-client-section-title">의뢰자 성향</div>
+            <div class="form-grid full">
+                <div class="field">
+                    <div class="field-label">의뢰자 성격</div>
+                    <textarea class="field-input field-textarea" id="ncPersonality" rows="2" placeholder="예: 꼼꼼함, 빠른 결정"></textarea>
+                </div>
+            </div>
+            <div class="form-grid full" style="margin-top:10px;">
+                <div class="field">
+                    <div class="field-label">예산 집행 스타일</div>
+                    <textarea class="field-input field-textarea" id="ncBudgetStyle" rows="2" placeholder="예: 보수적, 최고급 사양 선호"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:20px; justify-content:flex-end;">
             <button class="btn-delete" onclick="closeNewClientModal()" style="border-color:var(--border); color:var(--text-muted);">취소</button>
             <button class="btn-save" onclick="createClient()">등록</button>
         </div>
@@ -1239,12 +1268,20 @@ async function deleteClient(id) {
 }
 
 // ── 새 의뢰자 ──
-function openNewClientModal() { document.getElementById('newClientOverlay').classList.add('open'); }
+function openNewClientModal() {
+    document.getElementById('newClientOverlay').classList.add('open');
+    // 체크박스 그룹 렌더 (id='nc')
+    document.getElementById('ncPlatformsWrap').innerHTML = renderCheckboxGroup('platforms', 'nc', PLATFORM_OPTIONS, [], '');
+    document.getElementById('ncTopicsWrap').innerHTML = renderCheckboxGroup('topics', 'nc', TOPIC_OPTIONS, [], '');
+}
 function closeNewClientModal() { document.getElementById('newClientOverlay').classList.remove('open'); }
 
 async function createClient() {
     const name = document.getElementById('ncName').value.trim();
     if (!name) return alert('이름을 입력하세요.');
+
+    const p = collectCheckboxGroup('platforms', 'nc');
+    const t = collectCheckboxGroup('topics', 'nc');
 
     const body = {
         name,
@@ -1253,6 +1290,12 @@ async function createClient() {
         grade: document.getElementById('ncGrade').value,
         inflow_source: document.getElementById('ncInflowSource').value || null,
         client_type: document.getElementById('ncClientType').value || null,
+        platforms: p.values,
+        platform_etc: p.values.includes('기타') ? p.etc : null,
+        content_types: t.values,
+        topic_etc: t.values.includes('기타') ? t.etc : null,
+        personality: document.getElementById('ncPersonality').value.trim() || null,
+        budget_style: document.getElementById('ncBudgetStyle').value.trim() || null,
     };
 
     const res = await fetch('/api/clients', {
@@ -1264,9 +1307,9 @@ async function createClient() {
     if (res.ok) {
         const data = await res.json();
         closeNewClientModal();
-        document.getElementById('ncName').value = '';
-        document.getElementById('ncNickname').value = '';
-        document.getElementById('ncPhone').value = '';
+        ['ncName','ncNickname','ncPhone','ncPersonality','ncBudgetStyle'].forEach(k => {
+            const el = document.getElementById(k); if (el) el.value = '';
+        });
         await loadClientList();
         openClient(data.id);
         showToast('등록되었습니다');

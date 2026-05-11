@@ -222,6 +222,12 @@ class ClientController extends Controller
             'grade' => 'required|in:normal,vip,rental',
             'inflow_source' => 'nullable|string|in:search,referral,sns,ad,community,other',
             'client_type' => 'nullable|string|in:personal,enterprise,studio',
+            'platforms' => 'nullable|array',
+            'platform_etc' => 'nullable|string|max:100',
+            'content_types' => 'nullable|array',
+            'topic_etc' => 'nullable|string|max:100',
+            'personality' => 'nullable|string|max:500',
+            'budget_style' => 'nullable|string|max:500',
         ]);
 
         $validated['assigned_user_id'] = Auth::id();
