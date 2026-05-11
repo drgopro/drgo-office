@@ -163,8 +163,13 @@ class ExcelImportController extends Controller
 
     private function importClient(array $data): bool
     {
-        $name = $data['이름'] ?? null;
-        if (! $name) {
+        $name = trim((string) ($data['이름'] ?? ''));
+        $nickname = trim((string) ($data['닉네임'] ?? ''));
+        // 이름이 비어있으면 닉네임으로 대체
+        if ($name === '') {
+            $name = $nickname;
+        }
+        if ($name === '') {
             return false;
         }
 
@@ -188,7 +193,7 @@ class ExcelImportController extends Controller
 
         $client = new Client([
             'name' => $name,
-            'nickname' => $data['닉네임'] ?? null,
+            'nickname' => $nickname !== '' ? $nickname : null,
             'phone' => $data['전화번호'] ?? null,
             'address' => $data['주소'] ?? null,
             'address_detail' => $data['상세주소'] ?? null,
