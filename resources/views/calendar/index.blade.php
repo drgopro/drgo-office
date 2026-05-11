@@ -2365,8 +2365,8 @@ function setViewModeUI(){
     isLocked=false;
     document.getElementById('lockBtn').textContent='🔓';
     document.getElementById('lockBtn').classList.remove('locked');
-    // 버튼 전환
-    document.getElementById('lockBtn').style.display='none';
+    // 버튼 전환 (자물쇠는 view 모드에서도 항상 노출)
+    document.getElementById('lockBtn').style.display='';
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
     document.getElementById('btnLog').style.display='';
