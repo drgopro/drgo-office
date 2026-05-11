@@ -154,6 +154,21 @@
         .cf-grid { grid-template-columns:1fr; }
     }
 
+    /* 캘린더 카테고리 */
+    .cat-card { display:grid; grid-template-columns:64px 1fr 130px 130px auto auto; gap:12px; align-items:center; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
+    .cat-preview { padding:10px 14px; border-radius:8px; text-align:center; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cat-card input[type=text] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; width:100%; }
+    .cat-card input[type=text]:focus { border-color:var(--accent); }
+    .cat-color-wrap { display:flex; align-items:center; gap:6px; }
+    .cat-color-wrap input[type=color] { width:36px; height:36px; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer; padding:0; }
+    .cat-color-wrap input[type=text] { width:88px; font-family:ui-monospace,Menlo,monospace; font-size:11px; padding:7px 8px; }
+    .cat-actions { display:flex; gap:6px; }
+    @media (max-width:900px) {
+        .cat-card { grid-template-columns:1fr 1fr; }
+        .cat-preview { grid-column:1/-1; }
+        .cat-actions { grid-column:1/-1; justify-content:flex-end; }
+    }
+
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
@@ -176,6 +191,7 @@
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="clientFields">의뢰자 필드</button>
+        <button class="tab-btn" data-tab="calendarCategories">캘린더 카테고리</button>
         <button class="tab-btn" data-tab="seller">판매처 설정</button>
     </div>
 
@@ -373,6 +389,17 @@
         </div>
     </div>
 
+    {{-- 캘린더 카테고리 --}}
+    <div class="tab-panel" id="panel-calendarCategories">
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                캘린더 일정에 사용되는 카테고리의 <b>라벨</b>과 <b>색상</b>을 변경할 수 있습니다.<br>
+                <span style="opacity:0.7;">색상 변경은 페이지를 새로 고침해야 모든 화면에 반영됩니다.</span>
+            </div>
+        </div>
+        <div id="calendarCategoriesContainer"></div>
+    </div>
+
     {{-- 판매처 설정 --}}
     <div class="tab-panel" id="panel-seller">
         <div class="settings-form">
@@ -485,6 +512,7 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
         if (tab === 'clientFields') loadClientFields();
+        if (tab === 'calendarCategories') loadCalendarCategories();
     });
 });
 
@@ -893,6 +921,99 @@ async function deleteFieldFromModal() {
         closeFieldModal();
         await loadClientFields();
     } else alert('삭제 실패');
+}
+
+// ─────────────── 캘린더 카테고리 ───────────────
+let allCalendarCategories = [];
+
+async function loadCalendarCategories() {
+    const res = await fetch('/api/admin/calendar-categories', { headers:{ 'Accept':'application/json' } });
+    allCalendarCategories = await res.json();
+    renderCalendarCategories();
+}
+
+function renderCalendarCategories() {
+    const container = document.getElementById('calendarCategoriesContainer');
+    if (!allCalendarCategories.length) {
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📅</div><div class="cf-empty-title">카테고리가 없습니다</div></div>';
+        return;
+    }
+    container.innerHTML = allCalendarCategories.map(c => `
+        <div class="cat-card" data-id="${c.id}">
+            <div class="cat-preview" style="background:${c.color}; color:${c.text_color};" id="catPreview-${c.id}">${escHtml(c.label)}</div>
+            <input type="text" id="catLabel-${c.id}" value="${escHtml(c.label)}" placeholder="라벨" oninput="updateCatPreview(${c.id})">
+            <div class="cat-color-wrap">
+                <input type="color" id="catColor-${c.id}" value="${c.color}" oninput="syncCatColor(${c.id},'color')">
+                <input type="text" id="catColorHex-${c.id}" value="${c.color}" oninput="syncCatColor(${c.id},'hex')">
+            </div>
+            <div class="cat-color-wrap">
+                <input type="color" id="catTextColor-${c.id}" value="${c.text_color}" oninput="syncCatColor(${c.id},'textColor')">
+                <input type="text" id="catTextColorHex-${c.id}" value="${c.text_color}" oninput="syncCatColor(${c.id},'textHex')">
+            </div>
+            <div class="cat-actions">
+                <button class="btn-outline" onclick="resetCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;">기본값</button>
+            </div>
+            <div class="cat-actions">
+                <button class="btn-save" onclick="saveCalendarCategory(${c.id})" style="padding:7px 14px; font-size:12px;">저장</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateCatPreview(id) {
+    const label = document.getElementById(`catLabel-${id}`).value;
+    const color = document.getElementById(`catColor-${id}`).value;
+    const textColor = document.getElementById(`catTextColor-${id}`).value;
+    const preview = document.getElementById(`catPreview-${id}`);
+    preview.textContent = label;
+    preview.style.background = color;
+    preview.style.color = textColor;
+}
+
+function syncCatColor(id, source) {
+    const colorEl = document.getElementById(`catColor-${id}`);
+    const hexEl = document.getElementById(`catColorHex-${id}`);
+    const tColorEl = document.getElementById(`catTextColor-${id}`);
+    const tHexEl = document.getElementById(`catTextColorHex-${id}`);
+    if (source === 'color') hexEl.value = colorEl.value;
+    if (source === 'hex' && /^#[0-9A-Fa-f]{6}$/.test(hexEl.value)) colorEl.value = hexEl.value;
+    if (source === 'textColor') tHexEl.value = tColorEl.value;
+    if (source === 'textHex' && /^#[0-9A-Fa-f]{6}$/.test(tHexEl.value)) tColorEl.value = tHexEl.value;
+    updateCatPreview(id);
+}
+
+async function saveCalendarCategory(id) {
+    const body = {
+        label: document.getElementById(`catLabel-${id}`).value.trim(),
+        color: document.getElementById(`catColorHex-${id}`).value.trim(),
+        text_color: document.getElementById(`catTextColorHex-${id}`).value.trim(),
+    };
+    if (!body.label) return alert('라벨을 입력하세요.');
+    if (!/^#[0-9A-Fa-f]{6}$/.test(body.color)) return alert('배경색은 #RRGGBB 형식이어야 합니다.');
+    if (!/^#[0-9A-Fa-f]{6}$/.test(body.text_color)) return alert('글자색은 #RRGGBB 형식이어야 합니다.');
+
+    const res = await fetch(`/api/admin/calendar-categories/${id}`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify(body)
+    });
+    if (res.ok) {
+        alert('저장되었습니다. 캘린더 화면에서 새로고침하면 적용됩니다.');
+        await loadCalendarCategories();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+}
+
+async function resetCalendarCategory(id) {
+    if (!confirm('이 카테고리를 기본값으로 되돌리시겠습니까?')) return;
+    const res = await fetch(`/api/admin/calendar-categories/${id}/reset`, {
+        method:'POST',
+        headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+    });
+    if (res.ok) await loadCalendarCategories();
+    else alert('초기화 실패');
 }
 </script>
 @endpush

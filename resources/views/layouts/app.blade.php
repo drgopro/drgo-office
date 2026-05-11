@@ -31,12 +31,10 @@
             --gold: #c8b08a;
             --teal: #e8894a;
             --purple: #9b70c8;
-            --chip-gold-bg: #c8a870; --chip-gold-text: #1a1207;
-            --chip-blue-bg: #7aaec8; --chip-blue-text: #061825;
-            --chip-red-bg: #c87070; --chip-red-text: #200808;
-            --chip-green-bg: #70c870; --chip-green-text: #08200a;
-            --chip-purple-bg: #9b70c8; --chip-purple-text: #f0eaff;
-            --chip-teal-bg: #e8894a; --chip-teal-text: #1a0a00;
+            @php($__calCats = \App\Models\CalendarCategory::map())
+            @foreach($__calCats as $__k => $__c)
+            --chip-{{ $__k }}-bg: {{ $__c['color'] }}; --chip-{{ $__k }}-text: {{ $__c['text_color'] }};
+            @endforeach
             --chip-single-bg: #303030;
             --header-h: 48px;
             --tab-h: 36px;
@@ -59,12 +57,9 @@
             --gold: #907030;
             --teal: #b85c18;
             --purple: #5c2e90;
-            --chip-gold-bg: #c8a870; --chip-gold-text: #3a2a10;
-            --chip-blue-bg: #5898ba; --chip-blue-text: #0a2838;
-            --chip-red-bg: #c87070; --chip-red-text: #380808;
-            --chip-green-bg: #58a858; --chip-green-text: #0a280a;
-            --chip-purple-bg: #8860b8; --chip-purple-text: #fff;
-            --chip-teal-bg: #d07830; --chip-teal-text: #382008;
+            @foreach($__calCats as $__k => $__c)
+            --chip-{{ $__k }}-bg: {{ $__c['color'] }}; --chip-{{ $__k }}-text: {{ $__c['text_color'] }};
+            @endforeach
             --chip-single-bg: #e6e8ee;
         }
 
@@ -223,7 +218,10 @@
     @stack('styles')
 </head>
 <body>
-<script>if (window !== window.top) document.body.classList.add('in-iframe');</script>
+<script>
+if (window !== window.top) document.body.classList.add('in-iframe');
+window.CALENDAR_CATEGORIES = @json($__calCats);
+</script>
 
 {{-- ── 상단 내비게이션 ── --}}
 <div class="header">

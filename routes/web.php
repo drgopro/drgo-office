@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BroadcastRoomController;
+use App\Http\Controllers\CalendarCategoryController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDocumentController;
@@ -267,6 +268,11 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/admin/client-fields/{field}', [ClientFieldDefinitionController::class, 'update']);
         Route::delete('/api/admin/client-fields/{field}', [ClientFieldDefinitionController::class, 'destroy']);
         Route::post('/api/admin/client-fields/reorder', [ClientFieldDefinitionController::class, 'reorder']);
+
+        // 캘린더 카테고리 (master/admin 전용)
+        Route::get('/api/admin/calendar-categories', [CalendarCategoryController::class, 'index']);
+        Route::patch('/api/admin/calendar-categories/{category}', [CalendarCategoryController::class, 'update']);
+        Route::post('/api/admin/calendar-categories/{category}/reset', [CalendarCategoryController::class, 'reset']);
     });
 
     // 의뢰자 페이지에서 활성 필드 정의 조회 (clients.view 권한)

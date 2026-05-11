@@ -521,12 +521,9 @@
 </div>
 
 <div class="legend" id="filterBar">
-    <button class="filter-btn active f-gold" data-filter="gold" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-gold-bg)"></span>방문의뢰</button>
-    <button class="filter-btn active f-teal" data-filter="teal" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-teal-bg)"></span>원격/방송룸</button>
-    <button class="filter-btn active f-blue" data-filter="blue" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-blue-bg)"></span>사내업무</button>
-    <button class="filter-btn active f-red" data-filter="red" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-red-bg)"></span>휴가/개인</button>
-    <button class="filter-btn active f-green" data-filter="green" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-green-bg)"></span>촬영/스튜디오</button>
-    <button class="filter-btn active f-purple" data-filter="purple" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-purple-bg)"></span>미팅/내방</button>
+    @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
+    <button class="filter-btn active f-{{ $__k }}" data-filter="{{ $__k }}" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-{{ $__k }}-bg)"></span>{{ $__c['label'] }}</button>
+    @endforeach
 </div>
 
 <!-- 월간 뷰 -->
@@ -560,12 +557,9 @@
                     <span class="type-badge gold" id="typeBadge">● 방문의뢰</span>
                 </div>
                 <div class="color-row" id="colorRow" style="margin-bottom:4px;flex-wrap:wrap;">
-                    <div class="color-dot active" data-color="gold">방문의뢰</div>
-                    <div class="color-dot" data-color="teal">원격/방송룸</div>
-                    <div class="color-dot" data-color="blue">사내업무</div>
-                    <div class="color-dot" data-color="red">휴가/개인</div>
-                    <div class="color-dot" data-color="green">촬영/스튜디오</div>
-                    <div class="color-dot" data-color="purple">미팅/내방</div>
+                    @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
+                    <div class="color-dot{{ $loop->first ? ' active' : '' }}" data-color="{{ $__k }}">{{ $__c['label'] }}</div>
+                    @endforeach
                 </div>
                 <div class="holiday-btn-wrap" style="margin-bottom:4px;">
                     <span class="holiday-dot" id="holidayDot" style="font-size:12px;color:var(--text-muted);cursor:pointer;">📅 공휴일로 지정</span>
@@ -1540,7 +1534,12 @@ function renderTimeline() {
 }
 
 // ── 라디오 그룹 헬퍼 ──────────────────────────────────────────
-const COLOR_NAMES={gold:'방문의뢰',teal:'원격/방송룸',blue:'사내업무',red:'휴가/개인',green:'촬영/스튜디오',purple:'미팅/내방',holiday:'공휴일'};
+const COLOR_NAMES = (function(){
+    const o = {holiday:'공휴일'};
+    const cats = window.CALENDAR_CATEGORIES || {};
+    Object.keys(cats).forEach(k => { o[k] = cats[k].label; });
+    return o;
+})();
 let isAllDay=false, isLocked=false, linkedEstimateId=null;
 
 function initRadioGroup(gid, opts){
@@ -2083,7 +2082,12 @@ function openNewModal(dateStr,timeStr){
 }
 
 // ── 상세 모달 ──
-const COLOR_LABELS = {gold:'방문의뢰',teal:'원격/방송룸',blue:'사내업무',red:'휴가/개인',green:'촬영/스튜디오',purple:'미팅/내방',holiday:'공휴일'};
+const COLOR_LABELS = (function(){
+    const o = {holiday:'공휴일'};
+    const cats = window.CALENDAR_CATEGORIES || {};
+    Object.keys(cats).forEach(k => { o[k] = cats[k].label; });
+    return o;
+})();
 const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'특이사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',completed_at:'완료시각'};
 
 // 변경 로그 값을 사람이 읽기 좋게 변환
