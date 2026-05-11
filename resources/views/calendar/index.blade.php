@@ -335,6 +335,46 @@
     .img-remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.75); border:none; color:#fff; width:18px; height:18px; border-radius:50%; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; z-index:1; }
     .img-item:hover .img-remove { opacity:1; }
 
+    /* ── 잠금 요약 뷰 ── */
+    .lock-summary { display:none; padding:0 28px 28px; flex-direction:column; gap:18px; }
+    .modal-body.is-locked > *:not(#lockSummary) { display:none !important; }
+    .modal-body.is-locked > #lockSummary { display:flex; }
+    .ls-section { display:flex; flex-direction:column; gap:10px; }
+    .ls-section-title { font-size:11px; color:var(--text-muted); letter-spacing:0.06em; font-weight:600; padding-bottom:6px; border-bottom:1px solid var(--border); }
+    .ls-location { font-size:15px; color:var(--text); line-height:1.55; }
+    .ls-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+    .ls-action-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:18px; font-size:12px; cursor:pointer; transition:all 0.15s; }
+    .ls-action-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .ls-action-btn.primary { border-color:var(--accent); color:var(--accent); background:rgba(200,176,138,0.08); }
+    .ls-time { display:inline-flex; align-items:center; gap:8px; font-size:15px; color:var(--text); font-weight:500; padding:2px 0; }
+    .ls-time-icon { font-size:18px; }
+    .ls-type-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; background:var(--surface2); border:1px solid var(--border); font-size:13px; color:var(--text); font-weight:500; align-self:flex-start; }
+    .ls-chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .ls-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; background:var(--surface2); border:1px solid var(--border); font-size:13px; color:var(--text); font-weight:500; }
+    .ls-chip-icon { opacity:0.95; }
+    .ls-chip-key { color:var(--text-muted); font-weight:400; margin-right:2px; }
+    .ls-chip-val { color:var(--text); font-weight:600; }
+    .ls-info-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:18px 24px; }
+    .ls-info-cell .ls-info-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; letter-spacing:0.04em; }
+    .ls-info-cell .ls-info-val { font-size:15px; color:var(--text); font-weight:500; line-height:1.4; word-break:break-all; }
+    .ls-text-block { font-size:14px; color:var(--text); line-height:1.7; white-space:pre-wrap; word-break:break-word; padding:6px 0; }
+    .ls-text-block.muted { color:var(--text-muted); font-style:italic; }
+    .ls-amount { font-size:26px; font-weight:700; color:var(--text); line-height:1.2; }
+    .ls-amount-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+    .ls-saved-pill { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; background:rgba(122,200,122,0.12); border:1px solid rgba(122,200,122,0.35); color:#7ac87a; font-size:11px; font-weight:600; }
+    .ls-img-section { display:flex; flex-direction:column; gap:6px; }
+    .ls-img-label { font-size:11px; color:var(--text-muted); letter-spacing:0.04em; }
+    .ls-img-grid { display:flex; flex-wrap:wrap; gap:8px; }
+    .ls-img-grid img { width:88px; height:88px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:zoom-in; }
+    .ls-img-empty { font-size:12px; color:var(--text-muted); opacity:0.6; padding:6px 0; }
+    .ls-client-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; background:rgba(122,160,200,0.10); border:1px solid rgba(122,160,200,0.30); color:#8ab4c8; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; }
+    @media (max-width:768px) {
+        .lock-summary { padding:0 18px 22px; gap:16px; }
+        .ls-amount { font-size:22px; }
+        .ls-info-grid { grid-template-columns:1fr 1fr; gap:14px 16px; }
+        .ls-img-grid img { width:72px; height:72px; }
+    }
+
     /* ── 잠금/잔금 배너 ── */
     .locked-banner { display:none; align-items:center; gap:8px; background:rgba(200,176,138,0.08); border:1px solid rgba(200,176,138,0.25); border-radius:8px; padding:8px 14px; font-size:11px; letter-spacing:0.08em; color:var(--accent); margin:10px 28px 0; }
     .locked-banner.visible { display:flex; }
@@ -587,6 +627,9 @@
         </div>
 
         <div class="modal-body">
+            {{-- 잠금 요약 뷰 (isLocked=true 일 때 표시) --}}
+            <div id="lockSummary" class="lock-summary"></div>
+
             {{-- 장소 --}}
             <div class="field-section">
                 <div class="field-group">
@@ -1685,6 +1728,10 @@ function toggleAllDay(){
 // ── 잠금 ──
 function toggleLock(){
     isLocked=!isLocked;
+    applyLockUI();
+}
+
+function applyLockUI(){
     const btn=document.getElementById('lockBtn');
     btn.textContent=isLocked?'🔒':'🔓';
     btn.classList.toggle('locked',isLocked);
@@ -1692,6 +1739,184 @@ function toggleLock(){
     // 모든 입력 disable/enable
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=isLocked;});
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display=isLocked?'none':'';});
+    // 요약 뷰 토글
+    const body = document.querySelector('#modalOverlay .modal-body');
+    if (!body) return;
+    if (isLocked) {
+        renderLockSummary();
+        body.classList.add('is-locked');
+    } else {
+        body.classList.remove('is-locked');
+    }
+}
+
+function _esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _val(id){ const el=document.getElementById(id); return el ? (el.value||'').trim() : ''; }
+function _radio(gid){
+    const g=document.getElementById(gid); if(!g) return '';
+    const a=g.querySelector('.radio-btn.active'); return a ? (a.getAttribute('data-val')||'') : '';
+}
+function _radioMulti(gid){
+    const g=document.getElementById(gid); if(!g) return [];
+    return Array.from(g.querySelectorAll('.radio-btn.active')).map(b=>b.getAttribute('data-val'));
+}
+
+function renderLockSummary(){
+    const container = document.getElementById('lockSummary');
+    if (!container) return;
+    const color = currentColor || 'gold';
+    const location = _val('modalLocation');
+    const addr = document.getElementById('modalAddress')?.value || '';
+    const isAll = isAllDay;
+    const sDate = _val(color==='gold'?'goldStartDate':'startDate');
+    const eDate = _val(color==='gold'?'goldStartDate':'endDate');
+    const sTime = _val(color==='gold'?'goldStartTime':'startTime');
+    const eTime = _val(color==='gold'?'goldEndTime':'endTime');
+    const typeLabel = (window.CALENDAR_CATEGORIES?.[color]?.label) || color;
+
+    const linkedClientName = document.getElementById('linkedClientName')?.textContent?.trim() || '';
+    const linkedClientLink = document.getElementById('linkedClientLink')?.getAttribute('href') || '';
+    const clientChipHtml = linkedClientName
+        ? `<a class="ls-client-chip" href="${_esc(linkedClientLink)}" target="_blank"><span>👤</span>${_esc(linkedClientName)}</a>`
+        : '';
+
+    const timeStr = isAll
+        ? `${sDate} (종일)`
+        : `${sDate}${eDate&&eDate!==sDate?' ~ '+eDate:''}  ${sTime} ~ ${eTime}`;
+
+    let html = '';
+    // 장소
+    if (location || addr) {
+        html += `<div class="ls-section">
+            <div class="ls-section-title">장소</div>
+            <div class="ls-location">${_esc(location)}</div>
+            ${addr ? `<div class="ls-actions">
+                <a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 주소 검색</a>
+                <a class="ls-action-btn primary" href="https://map.kakao.com/?sName=출발지&eName=${encodeURIComponent(addr)}" target="_blank">🗺 동선 검색</a>
+            </div>` : ''}
+        </div>`;
+    }
+
+    // 시간 + 카테고리 핀
+    html += `<div class="ls-section">
+        <div class="ls-time"><span class="ls-time-icon">⏰</span><span>${_esc(timeStr)}</span></div>
+        <div><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}</div>
+    </div>`;
+
+    // Gold 전용 상세 칩 + 섹션
+    if (color === 'gold') {
+        const platform = _radio('g_platform_group');
+        const platformEtc = _val('g_platform_etc');
+        const career = _radio('g_career_group');
+        const source = _radio('g_source_group');
+        const sourceRef = _val('g_source_ref');
+        const topic = _radio('g_topic_group');
+        const topicEtc = _val('g_topic_etc');
+        const budget = _radio('g_budget_group');
+        const budgetEtc = _val('g_budget_etc');
+        const reqTopic = _radio('g_req_topic_group');
+        const reqTopicEtc = _val('g_req_topic_etc');
+        const paid = _radio('g_paid_group');
+        const orderVal = _radio('g_order_group');
+        const balanceVal = _radio('g_balance_group');
+        const delivery = _radio('g_delivery_group');
+
+        const chips = [];
+        const pushChip = (icon, key, val) => { if (val) chips.push(`<span class="ls-chip"><span class="ls-chip-icon">${icon}</span><span class="ls-chip-key">${key}</span><span class="ls-chip-val">${_esc(val)}</span></span>`); };
+        pushChip('🔗', '유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
+        pushChip('🖥', '플랫폼', platform === '기타' ? (platformEtc || '기타') : platform);
+        pushChip('🎓', '경력', career);
+        pushChip('🎙', '방송주제', topic === '기타' ? (topicEtc || '기타') : topic);
+        pushChip('💰', '예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
+        pushChip('📋', '의뢰주제', reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic);
+        pushChip('💳', '결제', paid);
+        pushChip('📦', '주문', orderVal);
+        pushChip('💵', '잔금', balanceVal);
+        if (orderVal === 'O') pushChip('🚛', '수령', delivery || 'X');
+
+        if (chips.length) {
+            html += `<div class="ls-chips">${chips.join('')}</div>`;
+        }
+
+        // 의뢰자 정보
+        const nick = _val('g_nickname');
+        const name = _val('g_name');
+        const phone = _val('g_phone');
+        if (nick || name || phone) {
+            html += `<div class="ls-section">
+                <div class="ls-section-title">의뢰자 정보</div>
+                <div class="ls-info-grid">
+                    ${nick  ? `<div class="ls-info-cell"><div class="ls-info-label">의뢰자 닉네임</div><div class="ls-info-val">${_esc(nick)}</div></div>` : ''}
+                    ${name  ? `<div class="ls-info-cell"><div class="ls-info-label">의뢰자 이름</div><div class="ls-info-val">${_esc(name)}</div></div>` : ''}
+                    ${phone ? `<div class="ls-info-cell"><div class="ls-info-label">전화번호</div><div class="ls-info-val">${_esc(phone)}</div></div>` : ''}
+                </div>
+            </div>`;
+        }
+
+        // 장비 목록
+        const equip = _val('g_equipment');
+        if (equip) {
+            html += `<div class="ls-section">
+                <div class="ls-section-title">장비 목록</div>
+                <div class="ls-text-block">${_esc(equip)}</div>
+            </div>`;
+        }
+
+        // 의뢰 내용
+        const reqDetail = _val('g_req_detail');
+        const special = _val('g_special');
+        if (reqDetail || special) {
+            html += `<div class="ls-section"><div class="ls-section-title">의뢰 내용</div>`;
+            if (reqDetail) html += `<div><div class="ls-info-label">의뢰 세부항목</div><div class="ls-text-block">${_esc(reqDetail)}</div></div>`;
+            if (special) html += `<div><div class="ls-info-label">특이사항</div><div class="ls-text-block">${_esc(special)}</div></div>`;
+            html += `</div>`;
+        }
+
+        // 결제 정보
+        const amount = _val('g_estimate_amount');
+        const balanceAmount = _val('g_balance_amount');
+        const savedFlag = document.getElementById('g_estimate_status')?.textContent?.includes('저장');
+        if (amount || balanceAmount) {
+            html += `<div class="ls-section">
+                <div class="ls-section-title">결제 정보</div>
+                ${amount ? `<div class="ls-amount-row">
+                    <div><div class="ls-info-label">견적 총액</div><div class="ls-amount">${_esc(amount)}원</div></div>
+                    ${savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
+                </div>` : ''}
+                ${balanceAmount ? `<div style="margin-top:6px;"><div class="ls-info-label">잔금 금액</div><div class="ls-text-block">${_esc(balanceAmount)}원</div></div>` : ''}
+            </div>`;
+        }
+    }
+
+    // 공통: 상세 설명
+    if (color !== 'gold' && color !== 'teal') {
+        const desc = _val('commonDesc');
+        if (desc) html += `<div class="ls-section"><div class="ls-section-title">상세 설명</div><div class="ls-text-block">${_esc(desc)}</div></div>`;
+    }
+
+    // 첨부 이미지 (모든 카테고리 공통)
+    const imgGroups = [
+        { label:'견적서', grid:'quoteGrid' },
+        { label:'레퍼런스', grid:'refGrid' },
+        { label:'방 사진', grid:'roomGrid' },
+        { label:'첨부 파일', grid:'generalGrid' },
+    ];
+    let imgHtml = '';
+    imgGroups.forEach(g => {
+        const grid = document.getElementById(g.grid);
+        if (!grid) return;
+        const imgs = Array.from(grid.querySelectorAll('img'));
+        if (!imgs.length) return;
+        imgHtml += `<div class="ls-img-section">
+            <div class="ls-img-label">${g.label}</div>
+            <div class="ls-img-grid">${imgs.map(im => `<img src="${_esc(im.src)}" alt="${_esc(g.label)}" onclick="openLightbox(this.src)">`).join('')}</div>
+        </div>`;
+    });
+    if (imgHtml) {
+        html += `<div class="ls-section"><div class="ls-section-title">첨부 이미지</div>${imgHtml}</div>`;
+    }
+
+    container.innerHTML = html || '<div class="ls-text-block muted">내용 없음</div>';
 }
 
 // ── 잔금 배너 ──
@@ -2039,6 +2264,7 @@ function resetModalForm(){
     document.getElementById('linkedEstimateInfo').style.display='none';
     isLocked=false; document.getElementById('lockBtn').textContent='🔓'; document.getElementById('lockBtn').classList.remove('locked');
     document.getElementById('lockedBanner').classList.remove('visible');
+    document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     document.getElementById('balanceBanner').classList.remove('visible');
     isAllDay=false; document.getElementById('alldayTrack').classList.remove('on');
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
@@ -2135,6 +2361,7 @@ function setViewModeUI(){
     document.querySelectorAll('#modalOverlay [data-always-active]').forEach(b=>{b.style.pointerEvents='auto';});
     // 잠금 배너 숨기기
     document.getElementById('lockedBanner').classList.remove('visible');
+    document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     isLocked=false;
     document.getElementById('lockBtn').textContent='🔓';
     document.getElementById('lockBtn').classList.remove('locked');
@@ -2310,7 +2537,7 @@ function openEditModal(ev){
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
     // 잠금
-    if(ev.is_locked){isLocked=true;document.getElementById('lockBtn').textContent='🔒';document.getElementById('lockBtn').classList.add('locked');document.getElementById('lockedBanner').classList.add('visible');}
+    if(ev.is_locked){isLocked=true;document.getElementById('lockBtn').textContent='🔒';document.getElementById('lockBtn').classList.add('locked');document.getElementById('lockedBanner').classList.add('visible');setTimeout(applyLockUI,0);}
     // 날짜 배지
     const d=sd?new Date(sd):new Date();
     document.getElementById('modalDateBadge').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]})`;
