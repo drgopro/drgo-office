@@ -274,6 +274,11 @@
         </div>
 
         <div class="new-client-section">
+            <div class="new-client-section-title">방송 아이디</div>
+            <input class="field-input" id="ncBroadcastId" placeholder="플랫폼 방송 ID/채널명">
+        </div>
+
+        <div class="new-client-section">
             <div class="new-client-section-title">의뢰자 성향</div>
             <div class="form-grid full">
                 <div class="field">
@@ -639,6 +644,10 @@ function renderClientContent(id) {
                 </div>
             </div>
             <div class="form-grid" style="margin-top:14px;">
+                <div class="field">
+                    <div class="field-label">방송 아이디</div>
+                    <input class="field-input" id="f-broadcast_id-${id}" value="${d.broadcast_id||''}" placeholder="플랫폼 방송 ID/채널명">
+                </div>
                 <div class="field">
                     <div class="field-label">최초 등록일</div>
                     <input class="field-input" value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;">
@@ -1232,6 +1241,7 @@ async function saveClient(id) {
                 topic_etc: t.values.includes('기타') ? t.etc : null,
             };
         })(),
+        broadcast_id: document.getElementById(`f-broadcast_id-${id}`)?.value || null,
         inflow_source: document.getElementById(`f-inflow_source-${id}`)?.value || null,
         client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
         personality: document.getElementById(`f-personality-${id}`)?.value || null,
@@ -1294,6 +1304,7 @@ async function createClient() {
         platform_etc: p.values.includes('기타') ? p.etc : null,
         content_types: t.values,
         topic_etc: t.values.includes('기타') ? t.etc : null,
+        broadcast_id: document.getElementById('ncBroadcastId').value.trim() || null,
         personality: document.getElementById('ncPersonality').value.trim() || null,
         budget_style: document.getElementById('ncBudgetStyle').value.trim() || null,
     };
@@ -1307,7 +1318,7 @@ async function createClient() {
     if (res.ok) {
         const data = await res.json();
         closeNewClientModal();
-        ['ncName','ncNickname','ncPhone','ncPersonality','ncBudgetStyle'].forEach(k => {
+        ['ncName','ncNickname','ncPhone','ncBroadcastId','ncPersonality','ncBudgetStyle'].forEach(k => {
             const el = document.getElementById(k); if (el) el.value = '';
         });
         await loadClientList();

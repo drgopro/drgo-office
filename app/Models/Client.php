@@ -23,6 +23,7 @@ class Client extends Model
         'platform_etc',
         'content_types',
         'topic_etc',
+        'broadcast_id',
         'inflow_source',
         'client_type',
         'gender',

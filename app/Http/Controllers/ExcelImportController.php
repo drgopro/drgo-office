@@ -21,7 +21,7 @@ class ExcelImportController extends Controller
             'required' => ['SKU', '제품명'],
         ],
         'clients' => [
-            'headers' => ['이름', '닉네임', '전화번호', '주소', '상세주소', '등급(일반/VIP/렌탈)', '성별(남/여/기타)', '소속', '플랫폼(쉼표:SOOP,유튜브,치지직,틱톡,팬더티비,기타)', '플랫폼-기타', '방송주제(쉼표:소통,게임,노래,먹방,야외,버추얼,코인,주식,기타,미정)', '방송주제-기타', '최초등록일(YYYY-MM-DD)', '특이사항', '메모'],
+            'headers' => ['이름', '닉네임', '전화번호', '주소', '상세주소', '등급(일반/VIP/렌탈)', '성별(남/여/기타)', '소속', '플랫폼(쉼표:SOOP,유튜브,치지직,틱톡,팬더티비,기타)', '플랫폼-기타', '방송주제(쉼표:소통,게임,노래,먹방,야외,버추얼,코인,주식,기타,미정)', '방송주제-기타', '방송아이디', '최초등록일(YYYY-MM-DD)', '특이사항', '메모'],
             'required' => ['이름'],
         ],
         'projects' => [
@@ -199,6 +199,7 @@ class ExcelImportController extends Controller
             'platform_etc' => in_array('기타', $platforms, true) ? ($data['플랫폼-기타'] ?? null) : null,
             'content_types' => $contentTypes ?: null,
             'topic_etc' => in_array('기타', $contentTypes, true) ? ($data['방송주제-기타'] ?? null) : null,
+            'broadcast_id' => $data['방송아이디'] ?? null,
             'important_memo' => $data['특이사항'] ?? null,
             'memo' => $data['메모'] ?? null,
             'assigned_user_id' => Auth::id(),
