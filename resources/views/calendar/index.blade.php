@@ -335,20 +335,6 @@
     .img-remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.75); border:none; color:#fff; width:18px; height:18px; border-radius:50%; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; z-index:1; }
     .img-item:hover .img-remove { opacity:1; }
 
-    /* ── 보기 잠금 (전역) ── */
-    .view-lock-btn.locked { border-color:var(--accent); background:rgba(200,176,138,0.15); color:var(--accent); }
-    body.view-locked .add-btn,
-    body.view-locked #calMenu,
-    body.view-locked .cal-menu { display:none !important; }
-    body.view-locked .event-chip { font-size:13px !important; font-weight:600 !important; padding:5px 9px !important; line-height:1.35 !important; }
-    body.view-locked .event-chip.single { border-left-width:4px !important; }
-    body.view-locked .calendar-cell { cursor:default !important; }
-    body.view-locked .day-num-row, body.view-locked .day-num { cursor:default !important; }
-    body.view-locked .calendar-cell:hover { background:inherit !important; }
-    body.view-locked .week-slot:hover, body.view-locked .day-slot:hover { background:inherit !important; }
-    .view-locked-banner { display:none; align-items:center; gap:8px; background:rgba(200,176,138,0.10); border:1px solid rgba(200,176,138,0.30); border-radius:8px; padding:8px 14px; font-size:12px; color:var(--accent); margin:8px 0 4px; font-weight:600; }
-    body.view-locked .view-locked-banner { display:flex; }
-
     /* ── 잠금/잔금 배너 ── */
     .locked-banner { display:none; align-items:center; gap:8px; background:rgba(200,176,138,0.08); border:1px solid rgba(200,176,138,0.25); border-radius:8px; padding:8px 14px; font-size:11px; letter-spacing:0.08em; color:var(--accent); margin:10px 28px 0; }
     .locked-banner.visible { display:flex; }
@@ -512,7 +498,6 @@
         </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-        <button class="nav-btn view-lock-btn" id="viewLockBtn" onclick="toggleViewLock()" title="보기 잠금 (수정 비활성화)" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">🔓 잠금해제</button>
         <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">📋 캘린더 이력</button>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;">🗑 휴지통</button>
@@ -540,7 +525,6 @@
     <button class="filter-btn active f-{{ $__k }}" data-filter="{{ $__k }}" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-{{ $__k }}-bg)"></span>{{ $__c['label'] }}</button>
     @endforeach
 </div>
-<div class="view-locked-banner">🔒 보기 잠금 — 일정 수정·추가가 비활성화되어 있습니다. 우측 상단 버튼으로 해제하세요.</div>
 
 <!-- 월간 뷰 -->
 <div id="monthView">
@@ -1181,24 +1165,6 @@ function getHoliday(dateStr) {
 }
 
 const canEditCalendar = @json(Auth::user()->hasPermission('calendar.edit'));
-
-// ── 보기 잠금 (전역, localStorage 영속) ──
-let isViewLocked = localStorage.getItem('drgo_cal_view_locked') === '1';
-function applyViewLockUI() {
-    document.body.classList.toggle('view-locked', isViewLocked);
-    const btn = document.getElementById('viewLockBtn');
-    if (btn) {
-        btn.textContent = isViewLocked ? '🔒 보기 잠금' : '🔓 잠금해제';
-        btn.classList.toggle('locked', isViewLocked);
-        btn.title = isViewLocked ? '클릭하여 잠금 해제' : '클릭하여 보기 잠금';
-    }
-}
-function toggleViewLock() {
-    isViewLocked = !isViewLocked;
-    localStorage.setItem('drgo_cal_view_locked', isViewLocked ? '1' : '0');
-    applyViewLockUI();
-}
-document.addEventListener('DOMContentLoaded', applyViewLockUI);
 const isGuestUser = @json(Auth::user()->isGuest());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
@@ -2087,7 +2053,6 @@ function resetModalForm(){
 
 // ── 모달 열기 ──
 function openNewModal(dateStr,timeStr){
-    if (isViewLocked) return; // 보기 잠금 시 새 일정 차단
     editingId=null; selectedAssignees=[]; viewMode=false;
     resetModalForm();
     setEditModeUI();
@@ -2190,13 +2155,6 @@ function setViewModeUI(){
     // 보기 모드에서는 변경 사유 필드 숨김
     const reasonField=document.getElementById('reasonField');
     if (reasonField) reasonField.style.display='none';
-    // 전역 보기 잠금 시: '수정' / '삭제' 버튼 숨김
-    if (isViewLocked) {
-        document.getElementById('modalExternalAction').style.display='none';
-        document.getElementById('btnDelete').style.display='none';
-        const fSaveBtn=document.querySelector('.modal-footer .btn-save');
-        if (fSaveBtn) fSaveBtn.style.display='none';
-    }
 }
 
 function setEditModeUI(){
@@ -2332,7 +2290,6 @@ async function openHistoryModal() {
 // ── 편집 모달 ──
 function openEditModal(ev){
     if(isGuestUser) return;
-    if(isViewLocked) { openDetailModal(ev); return; } // 보기 잠금: 편집 → 상세보기로 전환
     editingId=ev.id; selectedAssignees=ev.assignees?ev.assignees.map(a=>a.id):[];
     resetModalForm();
     setColor(ev.color);
@@ -2797,7 +2754,7 @@ let dragEvent=null, dragGhost=null, dragStartDate=null, dragStartX=0, dragStartY
 const DRAG_COLORS={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
 
 function dragStart(ev, e){
-    if(window.innerWidth<=768||!canEditCalendar||ev.is_locked||isViewLocked) return;
+    if(window.innerWidth<=768||!canEditCalendar||ev.is_locked) return;
     e.preventDefault();
     dragEvent=ev;
     dragStartDate=ev.start_date;
