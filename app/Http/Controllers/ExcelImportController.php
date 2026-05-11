@@ -8,6 +8,7 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,7 +21,7 @@ class ExcelImportController extends Controller
             'required' => ['SKU', '제품명'],
         ],
         'clients' => [
-            'headers' => ['이름', '닉네임', '전화번호', '주소', '상세주소', '등급(일반/VIP/렌탈)', '성별(남/여/기타)', '소속', '특이사항', '메모'],
+            'headers' => ['이름', '닉네임', '전화번호', '주소', '상세주소', '등급(일반/VIP/렌탈)', '성별(남/여/기타)', '소속', '플랫폼(쉼표:SOOP,유튜브,치지직,틱톡,팬더티비,기타)', '플랫폼-기타', '방송주제(쉼표:소통,게임,노래,먹방,야외,버추얼,코인,주식,기타,미정)', '방송주제-기타', '최초등록일(YYYY-MM-DD)', '특이사항', '메모'],
             'required' => ['이름'],
         ],
         'projects' => [
@@ -170,7 +171,22 @@ class ExcelImportController extends Controller
         $gradeMap = ['일반' => 'normal', 'VIP' => 'vip', 'vip' => 'vip', '렌탈' => 'rental'];
         $genderMap = ['남' => 'male', '남성' => 'male', '여' => 'female', '여성' => 'female', '기타' => 'other'];
 
-        Client::create([
+        $platformOptions = ['SOOP', '유튜브', '치지직', '틱톡', '팬더티비', '기타'];
+        $topicOptions = ['소통', '게임', '노래', '먹방', '야외', '버추얼', '코인', '주식', '기타', '미정'];
+
+        $platformsRaw = $data['플랫폼(쉼표:SOOP,유튜브,치지직,틱톡,팬더티비,기타)'] ?? null;
+        $platforms = $platformsRaw
+            ? array_values(array_filter(array_map('trim', preg_split('/[,\/]+/', (string) $platformsRaw)), fn ($v) => in_array($v, $platformOptions, true)))
+            : [];
+
+        $topicsRaw = $data['방송주제(쉼표:소통,게임,노래,먹방,야외,버추얼,코인,주식,기타,미정)'] ?? null;
+        $contentTypes = $topicsRaw
+            ? array_values(array_filter(array_map('trim', preg_split('/[,\/]+/', (string) $topicsRaw)), fn ($v) => in_array($v, $topicOptions, true)))
+            : [];
+
+        $registeredAt = $this->parseDate($data['최초등록일(YYYY-MM-DD)'] ?? null);
+
+        $client = new Client([
             'name' => $name,
             'nickname' => $data['닉네임'] ?? null,
             'phone' => $data['전화번호'] ?? null,
@@ -179,13 +195,48 @@ class ExcelImportController extends Controller
             'grade' => $gradeMap[$data['등급(일반/VIP/렌탈)'] ?? ''] ?? 'normal',
             'gender' => $genderMap[$data['성별(남/여/기타)'] ?? ''] ?? null,
             'affiliation' => $data['소속'] ?? null,
+            'platforms' => $platforms ?: null,
+            'platform_etc' => in_array('기타', $platforms, true) ? ($data['플랫폼-기타'] ?? null) : null,
+            'content_types' => $contentTypes ?: null,
+            'topic_etc' => in_array('기타', $contentTypes, true) ? ($data['방송주제-기타'] ?? null) : null,
             'important_memo' => $data['특이사항'] ?? null,
             'memo' => $data['메모'] ?? null,
             'assigned_user_id' => Auth::id(),
             'status' => 'active',
         ]);
+        $client->save();
+
+        // 최초 등록일 강제 지정 (수동 입력값 우선)
+        if ($registeredAt) {
+            $client->timestamps = false;
+            $client->created_at = $registeredAt;
+            $client->save();
+            $client->timestamps = true;
+        }
 
         return true;
+    }
+
+    private function parseDate(mixed $value): ?\DateTimeInterface
+    {
+        if (! $value) {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value;
+        }
+        if (is_numeric($value)) {
+            try {
+                return Date::excelToDateTimeObject((float) $value);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+        try {
+            return new \DateTimeImmutable((string) $value);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function importProject(array $data): bool

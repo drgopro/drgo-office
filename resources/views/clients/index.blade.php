@@ -91,6 +91,12 @@
     .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
     .field-input:focus { border-color:var(--accent); }
     .field-textarea { min-height:60px; resize:vertical; }
+    .chk-group { display:flex; flex-wrap:wrap; gap:6px; }
+    .chk-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:12px; cursor:pointer; user-select:none; transition:all 0.12s; }
+    .chk-chip:hover { border-color:var(--accent); color:var(--text); }
+    .chk-chip input[type=checkbox] { display:none; }
+    .chk-chip.on { background:var(--accent); border-color:var(--accent); color:#1a1207; font-weight:600; }
+    [data-theme="light"] .chk-chip.on { color:#fff; }
     .field-select { cursor:pointer; }
 
     /* 알림 */
@@ -290,6 +296,48 @@
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const GRADE_LABELS = { normal:'일반', vip:'VIP', rental:'렌탈' };
 const GRADE_COLORS = { normal:'var(--text-muted)', vip:'var(--accent)', rental:'var(--blue)' };
+
+const PLATFORM_OPTIONS = ['SOOP','유튜브','치지직','틱톡','팬더티비','기타'];
+const TOPIC_OPTIONS = ['소통','게임','노래','먹방','야외','버추얼','코인','주식','기타','미정'];
+
+function renderCheckboxGroup(group, id, options, selected, etcText) {
+    const sel = new Set(selected || []);
+    const hasEtc = sel.has('기타');
+    const items = options.map(opt => {
+        const checked = sel.has(opt) ? 'checked' : '';
+        const onChange = opt === '기타' ? ` onchange="toggleEtcInput('${group}',${id})"` : '';
+        return `<label class="chk-chip${checked?' on':''}">
+            <input type="checkbox" name="${group}-${id}" value="${opt}" ${checked}${onChange}>
+            <span>${opt}</span>
+        </label>`;
+    }).join('');
+    const etcInput = `<input type="text" class="field-input" id="f-${group}-etc-${id}" value="${(etcText||'').replace(/"/g,'&quot;')}" placeholder="기타 내용 입력" style="margin-top:8px; display:${hasEtc?'block':'none'};">`;
+    return `<div class="chk-group" id="chkgroup-${group}-${id}" onchange="syncChipState(this)">${items}</div>${etcInput}`;
+}
+
+function toggleEtcInput(group, id) {
+    const wrap = document.getElementById(`chkgroup-${group}-${id}`);
+    const etc = document.getElementById(`f-${group}-etc-${id}`);
+    if (!wrap || !etc) return;
+    const checked = wrap.querySelector(`input[value="기타"]`)?.checked;
+    etc.style.display = checked ? 'block' : 'none';
+    if (!checked) etc.value = '';
+}
+
+function syncChipState(wrap) {
+    wrap.querySelectorAll('label.chk-chip').forEach(l => {
+        const cb = l.querySelector('input[type=checkbox]');
+        l.classList.toggle('on', !!cb?.checked);
+    });
+}
+
+function collectCheckboxGroup(group, id) {
+    const wrap = document.getElementById(`chkgroup-${group}-${id}`);
+    if (!wrap) return { values:[], etc:'' };
+    const values = Array.from(wrap.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.value);
+    const etc = document.getElementById(`f-${group}-etc-${id}`)?.value?.trim() || '';
+    return { values, etc };
+}
 
 let allClients = [];
 let currentGrade = '';
@@ -549,14 +597,22 @@ function renderClientContent(id) {
                     <textarea class="field-input field-textarea" id="f-important_memo-${id}">${d.important_memo||''}</textarea>
                 </div>
             </div>
-            <div class="form-grid" style="margin-top:14px;">
+            <div class="form-grid full" style="margin-top:14px;">
                 <div class="field">
                     <div class="field-label">플랫폼</div>
-                    <input class="field-input" id="f-platforms-${id}" value="${(d.platforms||[]).join(', ')}" placeholder="쉼표로 구분 (예: 유튜브, 인스타)">
+                    ${renderCheckboxGroup('platforms', id, PLATFORM_OPTIONS, d.platforms||[], d.platform_etc||'')}
                 </div>
+            </div>
+            <div class="form-grid full" style="margin-top:14px;">
                 <div class="field">
-                    <div class="field-label">콘텐츠 유형</div>
-                    <input class="field-input" id="f-content_types-${id}" value="${(d.content_types||[]).join(', ')}" placeholder="쉼표로 구분 (예: 먹방, 뷰티)">
+                    <div class="field-label">방송 주제</div>
+                    ${renderCheckboxGroup('topics', id, TOPIC_OPTIONS, d.content_types||[], d.topic_etc||'')}
+                </div>
+            </div>
+            <div class="form-grid" style="margin-top:14px;">
+                <div class="field">
+                    <div class="field-label">최초 등록일</div>
+                    <input class="field-input" value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;">
                 </div>
             </div>
             <div class="form-grid" style="margin-top:14px;">
@@ -580,6 +636,23 @@ function renderClientContent(id) {
                         <option value="enterprise" ${d.client_type==='enterprise'?'selected':''}>엔터</option>
                         <option value="studio" ${d.client_type==='studio'?'selected':''}>스튜디오</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- 의뢰자 성향 -->
+            <div style="margin-top:18px; padding:14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px;">
+                <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:10px;">의뢰자 성향</div>
+                <div class="form-grid full">
+                    <div class="field">
+                        <div class="field-label">의뢰자 성격</div>
+                        <textarea class="field-input field-textarea" id="f-personality-${id}" rows="2" placeholder="예: 꼼꼼함, 빠른 결정, 의견 수용 적극적">${d.personality||''}</textarea>
+                    </div>
+                </div>
+                <div class="form-grid full" style="margin-top:10px;">
+                    <div class="field">
+                        <div class="field-label">예산 집행 스타일</div>
+                        <textarea class="field-input field-textarea" id="f-budget_style-${id}" rows="2" placeholder="예: 보수적, 최고급 사양 선호, 단계적 업그레이드">${d.budget_style||''}</textarea>
+                    </div>
                 </div>
             </div>
 
@@ -1120,10 +1193,20 @@ async function saveClient(id) {
         address_detail: document.getElementById(`f-address_detail-${id}`)?.value || '',
         important_memo: document.getElementById(`f-imp-memo-${id}`)?.value || document.getElementById(`f-important_memo-${id}`)?.value || '',
         memo: document.getElementById(`f-memo-${id}`)?.value || '',
-        platforms: (document.getElementById(`f-platforms-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
-        content_types: (document.getElementById(`f-content_types-${id}`)?.value || '').split(',').map(s=>s.trim()).filter(Boolean),
+        ...(() => {
+            const p = collectCheckboxGroup('platforms', id);
+            const t = collectCheckboxGroup('topics', id);
+            return {
+                platforms: p.values,
+                platform_etc: p.values.includes('기타') ? p.etc : null,
+                content_types: t.values,
+                topic_etc: t.values.includes('기타') ? t.etc : null,
+            };
+        })(),
         inflow_source: document.getElementById(`f-inflow_source-${id}`)?.value || null,
         client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
+        personality: document.getElementById(`f-personality-${id}`)?.value || null,
+        budget_style: document.getElementById(`f-budget_style-${id}`)?.value || null,
         custom_data: collectCustomData(id),
     };
 

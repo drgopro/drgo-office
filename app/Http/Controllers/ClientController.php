@@ -59,7 +59,9 @@ class ClientController extends Controller
             'address_detail' => 'nullable|string|max:200',
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
+            'platform_etc' => 'nullable|string|max:100',
             'content_types' => 'nullable|array',
+            'topic_etc' => 'nullable|string|max:100',
             'inflow_source' => 'nullable|string|in:search,referral,sns,ad,community,other',
             'client_type' => 'nullable|string|in:personal,enterprise,studio',
             'custom_data' => 'nullable|array',
@@ -67,6 +69,8 @@ class ClientController extends Controller
             'affiliation' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
+            'personality' => 'nullable|string|max:500',
+            'budget_style' => 'nullable|string|max:500',
         ]);
 
         $validated['assigned_user_id'] = Auth::id();
@@ -94,7 +98,9 @@ class ClientController extends Controller
             'address_detail' => 'nullable|string|max:200',
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
+            'platform_etc' => 'nullable|string|max:100',
             'content_types' => 'nullable|array',
+            'topic_etc' => 'nullable|string|max:100',
             'inflow_source' => 'nullable|string|in:search,referral,sns,ad,community,other',
             'client_type' => 'nullable|string|in:personal,enterprise,studio',
             'custom_data' => 'nullable|array',
@@ -102,6 +108,8 @@ class ClientController extends Controller
             'affiliation' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
+            'personality' => 'nullable|string|max:500',
+            'budget_style' => 'nullable|string|max:500',
         ]);
 
         $client->update($validated);
@@ -123,7 +131,9 @@ class ClientController extends Controller
             'address_detail' => $client->address_detail,
             'grade' => $client->grade,
             'platforms' => $client->platforms ?? [],
+            'platform_etc' => $client->platform_etc,
             'content_types' => $client->content_types ?? [],
+            'topic_etc' => $client->topic_etc,
             'inflow_source' => $client->inflow_source,
             'client_type' => $client->client_type,
             'custom_data' => $client->custom_data ?? new \stdClass,
@@ -131,6 +141,8 @@ class ClientController extends Controller
             'affiliation' => $client->affiliation,
             'important_memo' => $client->important_memo,
             'memo' => $client->memo,
+            'personality' => $client->personality,
+            'budget_style' => $client->budget_style,
             'status' => $client->status,
             'assigned_user' => $client->assignedUser?->display_name,
             'created_at' => $client->created_at->format('Y.m.d'),
@@ -181,7 +193,9 @@ class ClientController extends Controller
             'address_detail' => 'nullable|string|max:200',
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
+            'platform_etc' => 'nullable|string|max:100',
             'content_types' => 'nullable|array',
+            'topic_etc' => 'nullable|string|max:100',
             'inflow_source' => 'nullable|string|in:search,referral,sns,ad,community,other',
             'client_type' => 'nullable|string|in:personal,enterprise,studio',
             'custom_data' => 'nullable|array',
@@ -189,6 +203,8 @@ class ClientController extends Controller
             'affiliation' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
+            'personality' => 'nullable|string|max:500',
+            'budget_style' => 'nullable|string|max:500',
         ]);
 
         $client->update($validated);
