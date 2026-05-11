@@ -93,6 +93,67 @@
     [data-theme="light"] .account-modal { background:#fff; border-color:#c8ccd4; }
     [data-theme="light"] .account-modal .field-input { background:#fff; border-color:#b8bcc8; }
 
+    /* 의뢰자 필드 정의 */
+    .cf-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+    .cf-hint { font-size:12px; color:var(--text-muted); line-height:1.5; }
+    .cf-empty { padding:48px 24px; text-align:center; background:var(--surface); border:1px dashed var(--border); border-radius:14px; }
+    .cf-empty-icon { font-size:32px; margin-bottom:10px; opacity:0.5; }
+    .cf-empty-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
+    .cf-empty-sub { font-size:12px; color:var(--text-muted); }
+
+    .cf-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:14px; }
+    .cf-section-head { display:flex; align-items:center; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    .cf-section-title { font-size:13px; font-weight:700; color:var(--text); }
+    .cf-section-count { font-size:11px; color:var(--text-muted); background:var(--surface2); padding:2px 8px; border-radius:10px; }
+    .cf-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; }
+
+    .cf-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:13px 14px; cursor:pointer; transition:all 0.15s; display:flex; flex-direction:column; gap:8px; }
+    .cf-card:hover { border-color:var(--accent); transform:translateY(-1px); }
+    .cf-card.inactive { opacity:0.55; }
+    .cf-card-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .cf-card-label { font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:6px; line-height:1.3; }
+    .cf-required { color:var(--red); font-weight:700; }
+    .cf-card-key { font-size:10px; color:var(--text-muted); font-family:ui-monospace,Menlo,monospace; }
+    .cf-card-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .cf-type-badge { display:inline-flex; align-items:center; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; letter-spacing:0.02em; }
+    .cf-type-text { background:rgba(122,160,200,0.15); color:#7aa0c8; }
+    .cf-type-textarea { background:rgba(122,160,200,0.15); color:#7aa0c8; }
+    .cf-type-select { background:rgba(180,140,80,0.15); color:#d4a96a; }
+    .cf-type-radio { background:rgba(180,140,80,0.15); color:#d4a96a; }
+    .cf-type-checkbox { background:rgba(180,140,80,0.15); color:#d4a96a; }
+    .cf-type-number { background:rgba(122,200,160,0.15); color:#7ac8a0; }
+    .cf-type-date { background:rgba(200,122,180,0.15); color:#c87ab4; }
+    .cf-chip { display:inline-flex; align-items:center; font-size:10px; padding:2px 7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); }
+    .cf-chip.muted { opacity:0.7; }
+
+    /* 필드 모달 */
+    .cf-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+    .cf-modal-overlay.open { display:flex; }
+    .cf-modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:540px; max-width:95vw; max-height:90vh; overflow-y:auto; padding:24px; }
+    .cf-modal h3 { font-size:16px; font-weight:700; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+    .cf-modal-sub { font-size:11px; color:var(--text-muted); margin-bottom:18px; }
+    .cf-modal .close-btn { background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; }
+    .cf-modal .field-group { margin-bottom:14px; }
+    .cf-modal .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; font-weight:600; letter-spacing:0.02em; }
+    .cf-modal .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; font-family:inherit; }
+    .cf-modal .field-input:focus { border-color:var(--accent); }
+    .cf-modal textarea.field-input { resize:vertical; min-height:90px; }
+    .cf-modal-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .cf-toggle-row { display:flex; gap:14px; margin:8px 0 18px; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; }
+    .cf-toggle-row label { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); cursor:pointer; font-weight:500; }
+    .cf-toggle-row input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
+    .cf-modal-actions { display:flex; gap:10px; justify-content:flex-end; padding-top:14px; border-top:1px solid var(--border); }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-outline:hover { border-color:var(--text-muted); color:var(--text); }
+    .btn-danger-outline { background:none; border:1px solid var(--red); color:var(--red); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-danger-outline:hover { background:var(--red); color:#fff; }
+    [data-theme="light"] .cf-modal { background:#fff; border-color:#c8ccd4; }
+    [data-theme="light"] .cf-modal .field-input { background:#fff; border-color:#b8bcc8; }
+    @media (max-width:600px) {
+        .cf-modal-row { grid-template-columns:1fr; }
+        .cf-grid { grid-template-columns:1fr; }
+    }
+
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
@@ -230,68 +291,84 @@
 
     {{-- 의뢰자 필드 정의 --}}
     <div class="tab-panel" id="panel-clientFields">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div style="font-size:13px; color:var(--text-muted);">관리자가 정의한 필드는 의뢰자 등록/편집 화면에 자동으로 노출됩니다.</div>
-            <button class="btn-add" onclick="openFieldModal()">+ 필드 추가</button>
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                관리자가 정의한 필드는 의뢰자 등록/편집 화면에 자동으로 노출됩니다.<br>
+                <span style="opacity:0.7;">예: 메인 카메라, 렌즈, PC 사양, 방송 주제 등 장비/방송 정보를 자유롭게 추가하세요.</span>
+            </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openFieldModal()">+ 필드 추가</button>
         </div>
         <div id="clientFieldsContainer"></div>
     </div>
 
     {{-- 의뢰자 필드 추가/편집 모달 --}}
-    <div id="fieldModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) closeFieldModal()">
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; width:520px; max-width:95vw; max-height:90vh; overflow-y:auto; padding:24px;">
-            <h3 style="font-size:16px; font-weight:700; margin-bottom:18px;" id="fieldModalTitle">+ 필드 추가</h3>
+    <div id="fieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeFieldModal()">
+        <div class="cf-modal">
+            <h3>
+                <span id="fieldModalTitle">+ 필드 추가</span>
+                <button type="button" class="close-btn" onclick="closeFieldModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub">의뢰자 정보에 노출될 사용자 정의 필드를 구성합니다.</div>
             <input type="hidden" id="fieldId">
+
             <div class="field-group">
                 <div class="field-label">라벨 *</div>
                 <input type="text" class="field-input" id="fieldLabel" placeholder="예: 메인 카메라">
             </div>
-            <div class="field-group">
-                <div class="field-label">타입 *</div>
-                <select class="field-input" id="fieldType" onchange="onTypeChange()">
-                    <option value="text">텍스트 (한 줄)</option>
-                    <option value="textarea">텍스트 (여러 줄)</option>
-                    <option value="select">드롭다운</option>
-                    <option value="radio">라디오 버튼</option>
-                    <option value="checkbox">체크박스 (다중 선택)</option>
-                    <option value="number">숫자</option>
-                    <option value="date">날짜</option>
-                </select>
+
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">타입 *</div>
+                    <select class="field-input" id="fieldType" onchange="onTypeChange()">
+                        <option value="text">텍스트 (한 줄)</option>
+                        <option value="textarea">텍스트 (여러 줄)</option>
+                        <option value="select">드롭다운</option>
+                        <option value="radio">라디오 버튼</option>
+                        <option value="checkbox">체크박스 (다중)</option>
+                        <option value="number">숫자</option>
+                        <option value="date">날짜</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">섹션</div>
+                    <select class="field-input" id="fieldSection">
+                        <option value="basic">기본 정보</option>
+                        <option value="equipment">장비 정보</option>
+                        <option value="broadcast">방송 정보</option>
+                        <option value="business">사업자 정보</option>
+                        <option value="etc">기타</option>
+                    </select>
+                </div>
             </div>
-            <div class="field-group">
-                <div class="field-label">섹션</div>
-                <select class="field-input" id="fieldSection">
-                    <option value="basic">기본 정보</option>
-                    <option value="equipment">장비 정보</option>
-                    <option value="broadcast">방송 정보</option>
-                    <option value="business">사업자 정보</option>
-                    <option value="etc">기타</option>
-                </select>
-            </div>
+
             <div class="field-group" id="optionsWrap" style="display:none;">
                 <div class="field-label">선택지 (한 줄에 하나씩) *</div>
                 <textarea class="field-input" id="fieldOptions" rows="5" placeholder="옵션1&#10;옵션2&#10;옵션3"></textarea>
             </div>
+
             <div class="field-group">
                 <div class="field-label">플레이스홀더</div>
                 <input type="text" class="field-input" id="fieldPlaceholder" placeholder="입력 안내 문구">
             </div>
+
             <div class="field-group">
                 <div class="field-label">도움말</div>
                 <input type="text" class="field-input" id="fieldHelpText" placeholder="필드 아래 표시할 설명">
             </div>
-            <div style="display:flex; gap:14px; margin-bottom:14px;">
-                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
-                    <input type="checkbox" id="fieldRequired"> 필수
+
+            <div class="cf-toggle-row">
+                <label>
+                    <input type="checkbox" id="fieldRequired"> 필수 입력
                 </label>
-                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
-                    <input type="checkbox" id="fieldActive" checked> 활성
+                <label>
+                    <input type="checkbox" id="fieldActive" checked> 활성 (폼에 노출)
                 </label>
             </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn-outline" id="fieldDeleteBtn" style="margin-right:auto; display:none; border-color:var(--red); color:var(--red);" onclick="deleteFieldFromModal()">삭제</button>
+
+            <div class="cf-modal-actions">
+                <button class="btn-danger-outline" id="fieldDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteFieldFromModal()">삭제</button>
                 <button class="btn-outline" onclick="closeFieldModal()">취소</button>
-                <button class="btn-add" onclick="saveField()">저장</button>
+                <button class="btn-save" onclick="saveField()">저장</button>
             </div>
         </div>
     </div>
@@ -689,35 +766,49 @@ async function loadClientFields() {
     renderClientFields();
 }
 
+function escHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 function renderClientFields() {
     const container = document.getElementById('clientFieldsContainer');
     if (!allFields.length) {
-        container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:13px; background:var(--surface); border:1px solid var(--border); border-radius:10px;">정의된 필드가 없습니다. + 필드 추가 버튼을 눌러 시작하세요.</div>';
+        container.innerHTML = `<div class="cf-empty">
+            <div class="cf-empty-icon">📋</div>
+            <div class="cf-empty-title">정의된 필드가 없습니다</div>
+            <div class="cf-empty-sub">우측 상단 <b>+ 필드 추가</b> 버튼으로 첫 필드를 만들어 보세요.</div>
+        </div>`;
         return;
     }
     // 섹션별 그룹핑
     const grouped = {};
     allFields.forEach(f => {
         const sec = f.section || 'etc';
-        if (!grouped[sec]) grouped[sec] = [];
-        grouped[sec].push(f);
+        (grouped[sec] = grouped[sec] || []).push(f);
     });
     let html = '';
     Object.entries(FIELD_SECTIONS).forEach(([key, label]) => {
         if (!grouped[key]) return;
-        html += `<div style="margin-bottom:18px;">
-            <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:8px; padding-left:4px;">${label}</div>
-            <div style="display:flex; flex-direction:column; gap:6px;">`;
+        html += `<div class="cf-section">
+            <div class="cf-section-head">
+                <span class="cf-section-title">${escHtml(label)}</span>
+                <span class="cf-section-count">${grouped[key].length}개</span>
+            </div>
+            <div class="cf-grid">`;
         grouped[key].forEach(f => {
-            const optsText = (f.options && f.options.length) ? ` · 옵션 ${f.options.length}개` : '';
-            const status = f.is_active ? '' : '<span style="color:var(--text-muted); font-size:10px;">(비활성)</span>';
-            const required = f.is_required ? '<span style="color:var(--red); font-weight:700;">*</span>' : '';
-            html += `<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color 0.15s;" onclick='editField(${f.id})' onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div>
-                    <div style="font-size:13px; font-weight:600;">${f.label} ${required} ${status}</div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${FIELD_TYPES[f.type] || f.type} · ${f.key}${optsText}</div>
+            const required = f.is_required ? '<span class="cf-required">*</span>' : '';
+            const inactive = f.is_active ? '' : ' inactive';
+            const typeLabel = FIELD_TYPES[f.type] || f.type;
+            const optsChip = (f.options && f.options.length) ? `<span class="cf-chip">옵션 ${f.options.length}</span>` : '';
+            const statusChip = f.is_active ? '' : '<span class="cf-chip muted">비활성</span>';
+            const reqChip = f.is_required ? '<span class="cf-chip" style="color:var(--red); border-color:var(--red);">필수</span>' : '';
+            html += `<div class="cf-card${inactive}" onclick="editField(${f.id})">
+                <div class="cf-card-row">
+                    <div class="cf-card-label">${escHtml(f.label)} ${required}</div>
+                    <span class="cf-type-badge cf-type-${escHtml(f.type)}">${escHtml(typeLabel)}</span>
                 </div>
-                <span style="font-size:11px; color:var(--text-muted);">편집 →</span>
+                <div class="cf-card-row">
+                    <span class="cf-card-key">${escHtml(f.key)}</span>
+                    <div class="cf-card-meta">${reqChip}${optsChip}${statusChip}</div>
+                </div>
             </div>`;
         });
         html += `</div></div>`;
@@ -727,7 +818,7 @@ function renderClientFields() {
 
 function openFieldModal(field) {
     const m = document.getElementById('fieldModalOverlay');
-    m.style.display = 'flex';
+    m.classList.add('open');
     document.getElementById('fieldModalTitle').textContent = field ? '필드 편집' : '+ 필드 추가';
     document.getElementById('fieldId').value = field?.id || '';
     document.getElementById('fieldLabel').value = field?.label || '';
@@ -742,7 +833,7 @@ function openFieldModal(field) {
     onTypeChange();
 }
 
-function closeFieldModal() { document.getElementById('fieldModalOverlay').style.display = 'none'; }
+function closeFieldModal() { document.getElementById('fieldModalOverlay').classList.remove('open'); }
 
 function onTypeChange() {
     const type = document.getElementById('fieldType').value;
