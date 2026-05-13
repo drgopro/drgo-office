@@ -161,8 +161,11 @@
 
     /* 동적 필드 (관리자 정의) */
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
-    .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+    .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; }
+    .pcf-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; }
+    .pcf-grid .pcf-field.full { grid-column:1 / -1; }
     .pcf-field { display:flex; flex-direction:column; gap:4px; }
+    @media (max-width:768px) { .pcf-grid { grid-template-columns:1fr; } }
     .pcf-label { font-size:11px; color:var(--text-muted); font-weight:600; }
     .pcf-help { font-size:10px; color:var(--text-muted); opacity:0.7; }
     .pcf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; }
@@ -282,8 +285,8 @@
 
     @php
         // 단계별 전용 모달 매핑 — 단계 클릭 시 form submit 대신 해당 JS 함수 호출
+        // 장비파악(equipment)은 모달 없이 카드에서 인라인 직접 편집
         $stageModals = [
-            'equipment' => 'openEquipmentModal',
             'proposal' => 'openProposalModal',
             'estimate' => 'openEstimateInfoModal',
             'payment' => 'openPaymentModal',
@@ -378,28 +381,20 @@
             $visitData = $sdata['visit'] ?? null;
         @endphp
 
-        <!-- 장비파악 요약 -->
-        @if($eqData && (!empty($eqData['summary']) || !empty($eqData['items'])))
-        <div class="info-card full">
+        <!-- 장비 파악 — 인라인 직접 편집 (모달 없음) -->
+        <div class="info-card full" id="equipmentCard">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>📦 장비 파악 요약</span>
-                <button type="button" onclick="openEquipmentModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+                <span>📦 장비 파악</span>
+                <span id="eqSaveStatus" style="font-size:11px; color:var(--text-muted); min-height:14px;"></span>
             </div>
-            @if(!empty($eqData['summary']))
-                <div style="font-size:13px; color:var(--text); white-space:pre-wrap; margin-bottom:8px;">{{ $eqData['summary'] }}</div>
-            @endif
-            @if(!empty($eqData['items']))
-                <div style="display:flex; flex-direction:column; gap:4px;">
-                @foreach($eqData['items'] as $it)
-                    <div style="display:flex; gap:8px; font-size:12px;">
-                        <span style="flex:1; color:var(--text);">{{ $it['name'] ?? '-' }}</span>
-                        <span style="color:var(--text-muted);">{{ $it['qty'] ?? '' }}{{ !empty($it['note']) ? ' · '.$it['note'] : '' }}</span>
-                    </div>
-                @endforeach
-                </div>
-            @endif
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">요약 메모</div>
+            <textarea id="eqSummary" rows="3" placeholder="장비 파악 결과를 자유롭게 정리하세요." style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; font-family:inherit; box-sizing:border-box;">{{ $eqData['summary'] ?? '' }}</textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:6px;">
+                <span style="font-size:11px; color:var(--text-muted);">수집한 장비 목록</span>
+                <button type="button" onclick="addEqItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 10px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목 추가</button>
+            </div>
+            <div id="eqItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
-        @endif
 
         <!-- 일정제안 (연결 캘린더 일정) -->
         @if($proposalData && (!empty($proposalData['schedule_ids']) || !empty($proposalData['note'])))
@@ -486,33 +481,6 @@
             $sdInputStyle = 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box;';
             $sdLabelStyle = 'font-size:11px;color:var(--text-muted);margin-bottom:4px;';
         @endphp
-
-        <!-- 장비 파악 모달 -->
-        <div id="equipmentModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeEquipmentModal()">
-            <div class="modal" style="{{ $sdInnerStyle }}">
-                <div style="{{ $sdHeadStyle }}">
-                    <div style="font-size:15px; font-weight:700;">📦 장비 파악</div>
-                    <button type="button" onclick="closeEquipmentModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
-                </div>
-                <div style="{{ $sdBodyStyle }}">
-                    <div>
-                        <div style="{{ $sdLabelStyle }}">요약 / 메모</div>
-                        <textarea id="eqSummary" rows="3" placeholder="장비 파악 결과를 자유롭게 정리하세요." style="{{ $sdInputStyle }} resize:vertical;"></textarea>
-                    </div>
-                    <div>
-                        <div style="{{ $sdLabelStyle }} display:flex; justify-content:space-between; align-items:center;">
-                            <span>수집한 장비 목록</span>
-                            <button type="button" onclick="addEqItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 8px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목</button>
-                        </div>
-                        <div id="eqItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
-                    </div>
-                </div>
-                <div style="{{ $sdFootStyle }}">
-                    <button type="button" onclick="closeEquipmentModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveStageData('equipment', collectEquipment(), 'equipment')" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
-                </div>
-            </div>
-        </div>
 
         <!-- 일정제안 모달 -->
         <div id="proposalModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeProposalModal()">
@@ -1453,19 +1421,25 @@ function renderProjectCustomFields() {
     const grouped = {};
     projectFieldDefs.forEach(f => { (grouped[f.section||'etc'] = grouped[f.section||'etc'] || []).push(f); });
 
+    // 풀폭으로 보여줘야 자연스러운 타입 (textarea, 옵션이 많은 checkbox/radio)
+    const isFullWidth = (f) => f.type === 'textarea' || ((['radio','checkbox'].includes(f.type)) && (f.options||[]).length > 3);
+
     let html = '';
     Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
         if (!grouped[k]) return;
-        html += `<div class="pcf-section"><div class="pcf-sec-title">${pcfEsc(lbl)}</div>`;
+        html += `<div class="pcf-section">
+            <div class="pcf-sec-title">${pcfEsc(lbl)}</div>
+            <div class="pcf-grid">`;
         grouped[k].forEach(f => {
             const val = projectCustomData[f.key];
-            html += `<div class="pcf-field">
+            const fullCls = isFullWidth(f) ? ' full' : '';
+            html += `<div class="pcf-field${fullCls}">
                 <div class="pcf-label">${pcfEsc(f.label)}${f.is_required?' <span style="color:var(--red)">*</span>':''}</div>
                 ${pcfInput(f, val)}
                 ${f.help_text?`<div class="pcf-help">${pcfEsc(f.help_text)}</div>`:''}
             </div>`;
         });
-        html += '</div>';
+        html += `</div></div>`;
     });
     wrap.innerHTML = html;
 }
@@ -1550,29 +1524,17 @@ async function saveStageData(key, data, advanceTo = null) {
     return true;
 }
 
-// ── 장비 파악 ──
-function openEquipmentModal() {
-    const eq = INITIAL_STAGE_DATA.equipment || {};
-    document.getElementById('eqSummary').value = eq.summary || '';
-    const wrap = document.getElementById('eqItemsWrap');
-    wrap.innerHTML = '';
-    const items = (eq.items && eq.items.length) ? eq.items : [{name:'', qty:'', note:''}];
-    items.forEach(it => addEqItem(it));
-    document.getElementById('equipmentModalOverlay').style.display = 'flex';
-}
-function closeEquipmentModal() {
-    document.getElementById('equipmentModalOverlay').style.display = 'none';
-}
+// ── 장비 파악 (인라인 직접 편집) ──
 function addEqItem(it = {name:'',qty:'',note:''}) {
     const wrap = document.getElementById('eqItemsWrap');
     const row = document.createElement('div');
     row.className = 'eq-item-row';
     row.style.cssText = 'display:flex; gap:6px; align-items:center;';
     row.innerHTML = `
-        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="장비명" data-eq="name" style="flex:2;">
-        <input type="text" class="pcf-input" value="${pcfEsc(it.qty||'')}" placeholder="수량" data-eq="qty" style="flex:0.7; max-width:90px;">
-        <input type="text" class="pcf-input" value="${pcfEsc(it.note||'')}" placeholder="비고" data-eq="note" style="flex:2;">
-        <button type="button" onclick="this.parentElement.remove()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;border-radius:5px;font-size:11px;cursor:pointer;">×</button>
+        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="장비명" data-eq="name" oninput="scheduleEqSave()" style="flex:2;">
+        <input type="text" class="pcf-input" value="${pcfEsc(it.qty||'')}" placeholder="수량" data-eq="qty" oninput="scheduleEqSave()" style="flex:0.7; max-width:90px;">
+        <input type="text" class="pcf-input" value="${pcfEsc(it.note||'')}" placeholder="비고" data-eq="note" oninput="scheduleEqSave()" style="flex:2;">
+        <button type="button" onclick="this.parentElement.remove(); scheduleEqSave();" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;border-radius:5px;font-size:11px;cursor:pointer;">×</button>
     `;
     wrap.appendChild(row);
 }
@@ -1589,6 +1551,37 @@ function collectEquipment() {
         items,
     };
 }
+
+let eqSaveTimer = null;
+function scheduleEqSave() {
+    clearTimeout(eqSaveTimer);
+    document.getElementById('eqSaveStatus').textContent = '저장 중...';
+    eqSaveTimer = setTimeout(async () => {
+        const data = collectEquipment();
+        const res = await fetch(`/api/projects/${PROJECT_ID}/stage-data`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+            body: JSON.stringify({ key:'equipment', data }),
+        });
+        const status = document.getElementById('eqSaveStatus');
+        if (res.ok) {
+            status.textContent = '✓ 저장됨';
+            status.style.color = 'var(--text-muted)';
+            setTimeout(() => { status.textContent = ''; }, 2000);
+        } else {
+            status.textContent = '저장 실패';
+            status.style.color = 'var(--red)';
+        }
+    }, 600);
+}
+
+// 페이지 로드 시 기존 항목 채움 + 요약 textarea 입력 핸들러
+(function initEquipmentCard() {
+    const eq = INITIAL_STAGE_DATA.equipment || {};
+    const items = (eq.items && eq.items.length) ? eq.items : [{name:'',qty:'',note:''}];
+    items.forEach(it => addEqItem(it));
+    document.getElementById('eqSummary')?.addEventListener('input', scheduleEqSave);
+})();
 
 // ── 일정제안 ──
 let proposalScheduleCache = [];
@@ -1811,7 +1804,7 @@ async function savePayment() {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
         closeConsultModal(); closeEditModal(); closeAlbum(); closePaymentModal();
-        closeEquipmentModal(); closeProposalModal(); closeEstimateInfoModal(); closeVisitReportModal();
+        closeProposalModal(); closeEstimateInfoModal(); closeVisitReportModal();
     }
     if (document.getElementById('albumOverlay').classList.contains('open')) {
         if (e.key === 'ArrowLeft') albumNav(-1);

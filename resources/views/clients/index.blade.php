@@ -804,6 +804,9 @@ function renderClientContent(id) {
             <!-- 동적 필드 (관리자 정의) -->
             ${renderCustomFields(d.custom_data || {}, id)}
 
+            <!-- 장비 정보 요약 (프로젝트의 stage_data.equipment 합산) -->
+            ${renderEquipmentSummary(d.equipment_summary)}
+
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
             </div>
@@ -1465,6 +1468,46 @@ const SECTION_LABELS = { basic:'기본 정보', equipment:'장비 정보', broad
 
 function escAttr(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function escText(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+// 의뢰자가 가진 프로젝트들의 장비 파악(stage_data.equipment) 데이터 요약
+function renderEquipmentSummary(eq) {
+    if (!eq || (!eq.summaries?.length && !eq.items?.length)) return '';
+    const count = eq.project_count || 0;
+    let body = '';
+    if (eq.summaries?.length) {
+        body += '<div style="display:flex; flex-direction:column; gap:8px;">';
+        eq.summaries.forEach(s => {
+            body += `<div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">📁 ${escText(s.project_name)}</div>
+                <div style="font-size:13px; color:var(--text); white-space:pre-wrap;">${escText(s.summary)}</div>
+            </div>`;
+        });
+        body += '</div>';
+    }
+    if (eq.items?.length) {
+        // 프로젝트별로 그룹핑
+        const grouped = {};
+        eq.items.forEach(it => { (grouped[it.project_id] = grouped[it.project_id] || {name:it.project_name, items:[]}).items.push(it); });
+        body += '<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">';
+        Object.entries(grouped).forEach(([pid, g]) => {
+            body += `<div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">📁 ${escText(g.name)}</div>
+                <div style="display:flex; flex-direction:column; gap:3px;">`;
+            g.items.forEach(it => {
+                body += `<div style="display:flex; gap:8px; font-size:12px;">
+                    <span style="flex:1; color:var(--text);">${escText(it.name)}</span>
+                    <span style="color:var(--text-muted);">${escText(it.qty)}${it.note ? ' · '+escText(it.note) : ''}</span>
+                </div>`;
+            });
+            body += `</div></div>`;
+        });
+        body += '</div>';
+    }
+    return `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보 <span style="font-weight:400; font-size:11px; color:var(--text-muted);">(프로젝트 ${count}건에서 수집)</span></div>
+        ${body}
+    </div>`;
+}
 
 function renderCustomFields(customData, clientId) {
     if (!customFieldDefs || !customFieldDefs.length) return '';

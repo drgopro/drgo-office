@@ -124,6 +124,41 @@ class ClientController extends Controller
     {
         $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator');
 
+        // 의뢰자의 모든 프로젝트에서 stage_data.equipment 합산 (장비 정보 요약)
+        $equipmentSummary = [
+            'summaries' => [],          // [{project_id, project_name, summary, updated_at}]
+            'items' => [],              // [{project_id, project_name, name, qty, note}]
+            'project_count' => 0,
+        ];
+        foreach ($client->projects as $p) {
+            $sd = $p->stage_data ?? [];
+            $eq = $sd['equipment'] ?? null;
+            if (! $eq) {
+                continue;
+            }
+            $equipmentSummary['project_count']++;
+            if (! empty($eq['summary'])) {
+                $equipmentSummary['summaries'][] = [
+                    'project_id' => $p->id,
+                    'project_name' => $p->name,
+                    'summary' => $eq['summary'],
+                    'updated_at' => $eq['updated_at'] ?? null,
+                ];
+            }
+            foreach (($eq['items'] ?? []) as $it) {
+                if (empty($it['name'])) {
+                    continue;
+                }
+                $equipmentSummary['items'][] = [
+                    'project_id' => $p->id,
+                    'project_name' => $p->name,
+                    'name' => $it['name'],
+                    'qty' => $it['qty'] ?? '',
+                    'note' => $it['note'] ?? '',
+                ];
+            }
+        }
+
         return response()->json([
             'id' => $client->id,
             'name' => $client->name,
@@ -140,6 +175,7 @@ class ClientController extends Controller
             'inflow_source' => $client->inflow_source,
             'client_type' => $client->client_type,
             'custom_data' => $client->custom_data ?? new \stdClass,
+            'equipment_summary' => $equipmentSummary,
             'gender' => $client->gender,
             'affiliation' => $client->affiliation,
             'important_memo' => $client->important_memo,
