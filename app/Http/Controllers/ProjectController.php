@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectMemo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -154,6 +156,110 @@ class ProjectController extends Controller
         $project->update($validated);
 
         return response()->json(['success' => true, 'project' => $project]);
+    }
+
+    /**
+     * 결제 단계 — 이 프로젝트 또는 같은 의뢰자의 견적서 목록 (드롭다운용)
+     */
+    public function paymentEstimates(Project $project): JsonResponse
+    {
+        $query = Estimate::query();
+        // 이 프로젝트에 직접 연결된 견적서, 또는 같은 의뢰자의 견적서 모두 후보
+        $query->where(function ($q) use ($project) {
+            $q->where('project_id', $project->id);
+            if ($project->client_id) {
+                $q->orWhere('client_id', $project->client_id);
+            }
+        });
+        $estimates = $query->orderByDesc('id')
+            ->limit(50)
+            ->get(['id', 'client_name', 'client_nickname', 'total_amount', 'product_total', 'service_total', 'status', 'issued_at', 'created_at', 'product_items', 'service_items', 'project_id'])
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'client_name' => $e->client_name,
+                'client_nickname' => $e->client_nickname,
+                'total_amount' => $e->total_amount,
+                'product_total' => $e->product_total,
+                'service_total' => $e->service_total,
+                'status' => $e->status,
+                'is_linked' => $e->project_id === $project->id,
+                'created_at' => $e->created_at?->format('Y-m-d'),
+                'issued_at' => $e->issued_at?->format('Y-m-d'),
+                'items_summary' => [
+                    'products' => count($e->product_items ?? []),
+                    'services' => count($e->service_items ?? []),
+                ],
+            ]);
+
+        return response()->json($estimates);
+    }
+
+    /**
+     * 프로젝트 결제 정보 저장 (+선택적 stage 자동 진행)
+     *
+     * 입력 예:
+     *   estimate_id (nullable) — 연결할 견적서
+     *   amount       (int) — 결제 금액
+     *   paid_at      (date) — 결제일
+     *   method       (string nullable) — 결제 수단 (카드/현금/이체 등)
+     *   items        (array nullable) — 수기 항목 [{name, qty, price}, ...]
+     *   memo         (string nullable)
+     *   mark_estimate_paid (bool) — 연결 견적서의 status를 'paid'로 갱신
+     */
+    public function savePayment(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'estimate_id' => 'nullable|integer|exists:estimates,id',
+            'amount' => 'nullable|integer|min:0',
+            'paid_at' => 'nullable|date',
+            'method' => 'nullable|string|max:30',
+            'items' => 'nullable|array',
+            'items.*.name' => 'nullable|string|max:200',
+            'items.*.qty' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer|min:0',
+            'memo' => 'nullable|string|max:1000',
+            'mark_estimate_paid' => 'nullable|boolean',
+        ]);
+
+        // payment_info에 저장 (estimate_id, amount, paid_at, method, items, memo, recorded_at)
+        $payment = [
+            'estimate_id' => $validated['estimate_id'] ?? null,
+            'amount' => $validated['amount'] ?? 0,
+            'paid_at' => $validated['paid_at'] ?? now()->format('Y-m-d'),
+            'method' => $validated['method'] ?? null,
+            'items' => array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name']))),
+            'memo' => $validated['memo'] ?? null,
+            'recorded_at' => now()->toIso8601String(),
+            'recorded_by' => Auth::id(),
+        ];
+
+        $project->update(['payment_info' => $payment]);
+
+        // 현재 stage가 payment 이전이면 payment로 진행 (이후 단계는 그대로 유지)
+        $stageOrder = ['consulting', 'equipment', 'proposal', 'estimate', 'payment', 'visit', 'as', 'done'];
+        $curIdx = array_search($project->stage, $stageOrder, true);
+        $payIdx = array_search('payment', $stageOrder, true);
+        if ($curIdx === false || $curIdx < $payIdx) {
+            $project->update(['stage' => 'payment']);
+        }
+
+        // 견적서 연결 + 결제 완료 표시
+        if (! empty($validated['estimate_id'])) {
+            $estimate = Estimate::find($validated['estimate_id']);
+            if ($estimate) {
+                $estimateUpdate = ['project_id' => $project->id];
+                if (! empty($validated['mark_estimate_paid'])) {
+                    $estimateUpdate['status'] = 'paid';
+                }
+                $estimate->update($estimateUpdate);
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'project' => $project->fresh(),
+            'payment' => $payment,
+        ]);
     }
 
     // 프로젝트 완전 삭제 (soft delete)

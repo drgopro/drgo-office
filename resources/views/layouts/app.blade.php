@@ -142,8 +142,7 @@
         .tab-item.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface); }
         .tab-item .tab-icon { font-size:11px; }
         .tab-item .tab-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.12s; margin-left:2px; }
-        .tab-item[draggable="true"] { cursor:grab; }
-        .tab-item.tab-dragging { opacity:0.4; }
+        .tab-item.tab-dragging { opacity:0.4; cursor:grabbing; }
         .tab-item.tab-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
         .tab-item:hover .tab-close { opacity:0.5; }
         .tab-item .tab-close:hover { opacity:1; background:var(--border); }

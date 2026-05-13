@@ -286,13 +286,20 @@
             @foreach($stages as $key => $label)
             @php $idx = array_search($key, $stageKeys); @endphp
             <div class="process-step">
-                <form method="POST" action="{{ route('projects.stage', $project) }}">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="stage" value="{{ $key }}">
-                    <button type="submit" class="step-dot {{ $idx < $currentIdx ? 'done' : ($idx === $currentIdx ? 'active' : '') }}" title="{{ $label }}">
+                @if($key === 'payment')
+                    {{-- 결제 단계는 form 대신 모달 호출 --}}
+                    <button type="button" class="step-dot {{ $idx < $currentIdx ? 'done' : ($idx === $currentIdx ? 'active' : '') }}" title="{{ $label }} — 결제 정보 입력" onclick="openPaymentModal()">
                         {{ $idx < $currentIdx ? '✓' : $idx + 1 }}
                     </button>
-                </form>
+                @else
+                    <form method="POST" action="{{ route('projects.stage', $project) }}">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="stage" value="{{ $key }}">
+                        <button type="submit" class="step-dot {{ $idx < $currentIdx ? 'done' : ($idx === $currentIdx ? 'active' : '') }}" title="{{ $label }}">
+                            {{ $idx < $currentIdx ? '✓' : $idx + 1 }}
+                        </button>
+                    </form>
+                @endif
                 <div class="step-label {{ $idx === $currentIdx ? 'active' : '' }}">{{ $label }}</div>
             </div>
             @endforeach
@@ -348,6 +355,103 @@
             </div>
             <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '메모 없음' }}</div>
             <textarea id="memoEdit" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
+        </div>
+
+        @php $payment = $project->payment_info ?? null; @endphp
+        <!-- 결제 정보 카드 (입력되어 있을 때만) -->
+        @if($payment && (($payment['amount'] ?? 0) > 0 || !empty($payment['estimate_id']) || !empty($payment['items'])))
+        <div class="info-card full" id="paymentInfoCard">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>💰 결제 정보</span>
+                <button type="button" onclick="openPaymentModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13px;">
+                <div><span style="font-size:11px; color:var(--text-muted);">결제 금액</span><br><span style="font-size:18px; font-weight:700; color:var(--accent);">{{ number_format($payment['amount'] ?? 0) }}원</span></div>
+                <div><span style="font-size:11px; color:var(--text-muted);">결제일</span><br>{{ $payment['paid_at'] ?? '-' }}{!! !empty($payment['method']) ? ' <span style="color:var(--text-muted);">· '.e($payment['method']).'</span>' : '' !!}</div>
+                @if(!empty($payment['estimate_id']))
+                <div style="grid-column:1 / -1;"><span style="font-size:11px; color:var(--text-muted);">연결 견적서</span><br><a href="/estimates/{{ $payment['estimate_id'] }}/edit" style="color:var(--accent); text-decoration:none;">#{{ $payment['estimate_id'] }} 견적서 보기 →</a></div>
+                @endif
+                @if(!empty($payment['items']))
+                <div style="grid-column:1 / -1;">
+                    <span style="font-size:11px; color:var(--text-muted);">항목 ({{ count($payment['items']) }}건)</span>
+                    <div style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
+                        @foreach($payment['items'] as $it)
+                        <div style="display:flex; gap:8px; font-size:12px;">
+                            <span style="flex:1;">{{ $it['name'] ?? '-' }}</span>
+                            <span style="color:var(--text-muted);">{{ $it['qty'] ?? 1 }}개 × {{ number_format($it['price'] ?? 0) }}원</span>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+                @if(!empty($payment['memo']))
+                <div style="grid-column:1 / -1; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $payment['memo'] }}</div>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        <!-- 결제 정보 모달 -->
+        <div id="paymentModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closePaymentModal()">
+            <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:620px; max-height:90vh; overflow-y:auto;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
+                    <div style="font-size:15px; font-weight:700;">💰 결제 정보 입력</div>
+                    <button type="button" onclick="closePaymentModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+
+                    <div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">견적서 연결</div>
+                        <select id="payEstimateId" onchange="onSelectEstimate()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
+                            <option value="">— 견적서 미연결 (수기 입력) —</option>
+                        </select>
+                        <div id="payEstimateInfo" style="font-size:11px; color:var(--text-muted); margin-top:4px; min-height:14px;"></div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제 금액 (원) *</div>
+                            <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제일</div>
+                            <input type="date" id="payPaidAt" value="{{ $payment['paid_at'] ?? date('Y-m-d') }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제 수단</div>
+                        <select id="payMethod" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
+                            <option value="">선택...</option>
+                            <option value="카드">카드</option>
+                            <option value="현금">현금</option>
+                            <option value="계좌이체">계좌이체</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>결제 항목 (수기 또는 견적서에서 자동 채움)</span>
+                            <button type="button" onclick="addPayItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 8px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목</button>
+                        </div>
+                        <div id="payItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+
+                    <div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">메모</div>
+                        <textarea id="payMemo" rows="2" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; font-family:inherit; box-sizing:border-box;">{{ $payment['memo'] ?? '' }}</textarea>
+                    </div>
+
+                    <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;">
+                        <input type="checkbox" id="payMarkPaid" checked> 연결한 견적서의 상태를 '결제됨'으로 표시
+                    </label>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
+                    <button type="button" class="btn-cancel" onclick="closePaymentModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:7px; font-size:13px; cursor:pointer;">취소</button>
+                    <button type="button" class="btn-save" onclick="savePayment()" style="background:var(--accent); color:#1a1207; border:none; padding:8px 18px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;">저장</button>
+                </div>
+            </div>
         </div>
 
         <!-- 추가 정보 (관리자 정의 동적 필드) -->
@@ -1242,8 +1346,109 @@ async function pcfSave() {
 
 loadProjectFieldsForShow();
 
+// ── 결제 정보 모달 ──
+let payEstimatesList = [];
+const initialPayment = @json($project->payment_info ?? new \stdClass);
+
+async function openPaymentModal() {
+    document.getElementById('paymentModalOverlay').style.display = 'flex';
+    // 견적서 목록 로드
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}/payment-estimates`, {headers:{'Accept':'application/json'}});
+        payEstimatesList = res.ok ? await res.json() : [];
+    } catch { payEstimatesList = []; }
+    const sel = document.getElementById('payEstimateId');
+    sel.innerHTML = '<option value="">— 견적서 미연결 (수기 입력) —</option>'
+        + payEstimatesList.map(e => {
+            const tag = e.is_linked ? '★' : '';
+            const status = ({temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류'})[e.status] || e.status;
+            const name = e.client_nickname || e.client_name || '의뢰자';
+            return `<option value="${e.id}">${tag}#${e.id} · ${pcfEsc(name)} · ${(e.total_amount||0).toLocaleString()}원 (${status})</option>`;
+        }).join('');
+
+    // 기존 payment_info 복원
+    const cur = initialPayment || {};
+    if (cur.estimate_id) sel.value = String(cur.estimate_id);
+    document.getElementById('payAmount').value = cur.amount || '';
+    document.getElementById('payPaidAt').value = cur.paid_at || new Date().toISOString().slice(0,10);
+    document.getElementById('payMethod').value = cur.method || '';
+    document.getElementById('payMemo').value = cur.memo || '';
+    renderPayItems(cur.items || []);
+    onSelectEstimate(); // 정보 표시
+}
+function closePaymentModal() {
+    document.getElementById('paymentModalOverlay').style.display = 'none';
+}
+
+function onSelectEstimate() {
+    const id = document.getElementById('payEstimateId').value;
+    const info = document.getElementById('payEstimateInfo');
+    if (!id) { info.textContent = ''; return; }
+    const est = payEstimatesList.find(e => String(e.id) === id);
+    if (!est) { info.textContent = ''; return; }
+    info.innerHTML = `상품 ${est.items_summary.products}건 · 서비스 ${est.items_summary.services}건 · 합계 <strong style="color:var(--accent);">${(est.total_amount||0).toLocaleString()}원</strong> · 발행 ${est.issued_at || est.created_at || '-'}`;
+    // 결제 금액이 비어 있으면 견적서 합계로 자동 채움
+    const amountEl = document.getElementById('payAmount');
+    if (!amountEl.value || +amountEl.value === 0) amountEl.value = est.total_amount || 0;
+}
+
+function renderPayItems(items) {
+    const wrap = document.getElementById('payItemsWrap');
+    wrap.innerHTML = '';
+    (items.length ? items : [{name:'', qty:1, price:0}]).forEach(it => addPayItem(it));
+}
+function addPayItem(it = {name:'', qty:1, price:0}) {
+    const wrap = document.getElementById('payItemsWrap');
+    const row = document.createElement('div');
+    row.className = 'pay-item-row';
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;">
+        <input type="number" class="pcf-input" value="${it.qty ?? 1}" min="0" placeholder="수량" data-pi="qty" style="flex:0.6; max-width:80px;">
+        <input type="number" class="pcf-input" value="${it.price ?? 0}" min="0" placeholder="단가" data-pi="price" style="flex:1; max-width:120px;">
+        <button type="button" onclick="this.parentElement.remove()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 8px; border-radius:5px; font-size:11px; cursor:pointer;">×</button>
+    `;
+    wrap.appendChild(row);
+}
+function collectPayItems() {
+    const items = [];
+    document.querySelectorAll('#payItemsWrap .pay-item-row').forEach(row => {
+        const name = row.querySelector('[data-pi="name"]').value.trim();
+        const qty = parseInt(row.querySelector('[data-pi="qty"]').value, 10) || 0;
+        const price = parseInt(row.querySelector('[data-pi="price"]').value, 10) || 0;
+        if (name) items.push({name, qty, price});
+    });
+    return items;
+}
+
+async function savePayment() {
+    const body = {
+        estimate_id: document.getElementById('payEstimateId').value ? +document.getElementById('payEstimateId').value : null,
+        amount: parseInt(document.getElementById('payAmount').value, 10) || 0,
+        paid_at: document.getElementById('payPaidAt').value || null,
+        method: document.getElementById('payMethod').value || null,
+        items: collectPayItems(),
+        memo: document.getElementById('payMemo').value.trim() || null,
+        mark_estimate_paid: document.getElementById('payMarkPaid').checked,
+    };
+    if (!body.amount && !body.estimate_id && !body.items.length) {
+        return alert('결제 금액 또는 견적서, 항목 중 하나는 입력해야 합니다.');
+    }
+    const res = await fetch(`/api/projects/${PROJECT_ID}/payment`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        return alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+    closePaymentModal();
+    location.reload();
+}
+
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeConsultModal(); closeEditModal(); closeAlbum(); }
+    if (e.key === 'Escape') { closeConsultModal(); closeEditModal(); closeAlbum(); closePaymentModal(); }
     if (document.getElementById('albumOverlay').classList.contains('open')) {
         if (e.key === 'ArrowLeft') albumNav(-1);
         if (e.key === 'ArrowRight') albumNav(1);

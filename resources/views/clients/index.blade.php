@@ -61,8 +61,7 @@
     .client-tab .ct-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.1s; }
     .client-tab:hover .ct-close { opacity:0.5; }
     .client-tab .ct-close:hover { opacity:1; background:var(--border); }
-    .client-tab[draggable="true"] { cursor:grab; }
-    .client-tab.ct-dragging { opacity:0.4; }
+    .client-tab.ct-dragging { opacity:0.4; cursor:grabbing; }
     .client-tab.ct-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
     .client-tab-add { padding:4px 8px; font-size:14px; color:var(--text-muted); cursor:pointer; background:none; border:none; border-radius:4px; }
     .client-tab-add:hover { color:var(--accent); background:var(--surface2); }
