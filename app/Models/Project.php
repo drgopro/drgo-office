@@ -26,12 +26,14 @@ class Project extends Model
         'cancel_reason',
         'cancel_detail',
         'cancelled_at',
+        'custom_data',
     ];
 
     protected $casts = [
         'as_deadline' => 'date',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'custom_data' => 'array',
     ];
 
     public function client()

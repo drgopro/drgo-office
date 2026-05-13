@@ -191,6 +191,7 @@
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="clientFields">의뢰자 필드</button>
+        <button class="tab-btn" data-tab="projectFields">프로젝트 필드</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
         <button class="tab-btn" data-tab="calendarCategories">캘린더 카테고리</button>
         <button class="tab-btn" data-tab="seller">판매처 설정</button>
@@ -390,6 +391,90 @@
         </div>
     </div>
 
+    {{-- 프로젝트 동적 필드 정의 --}}
+    <div class="tab-panel" id="panel-projectFields">
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                관리자가 정의한 필드는 <b>프로젝트 상세 화면</b>에 자동으로 노출됩니다.<br>
+                <span style="opacity:0.7;">예: 작업 인원, 차량 번호, 출고 장비 메모, 견적 금액 등 자유롭게 추가하세요.</span>
+            </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openProjectFieldModal()">+ 필드 추가</button>
+        </div>
+        <div id="projectFieldsContainer"></div>
+    </div>
+
+    {{-- 프로젝트 필드 추가/편집 모달 --}}
+    <div id="projectFieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeProjectFieldModal()">
+        <div class="cf-modal">
+            <h3>
+                <span id="projectFieldModalTitle">+ 필드 추가</span>
+                <button type="button" class="close-btn" onclick="closeProjectFieldModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub">프로젝트 정보에 노출될 사용자 정의 필드를 구성합니다.</div>
+            <input type="hidden" id="projectFieldId">
+
+            <div class="field-group">
+                <div class="field-label">라벨 *</div>
+                <input type="text" class="field-input" id="projectFieldLabel" placeholder="예: 작업 인원">
+            </div>
+
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">타입 *</div>
+                    <select class="field-input" id="projectFieldType" onchange="onProjectFieldTypeChange()">
+                        <option value="text">텍스트 (한 줄)</option>
+                        <option value="textarea">텍스트 (여러 줄)</option>
+                        <option value="select">드롭다운</option>
+                        <option value="radio">라디오 버튼</option>
+                        <option value="checkbox">체크박스 (다중)</option>
+                        <option value="number">숫자</option>
+                        <option value="date">날짜</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">섹션</div>
+                    <select class="field-input" id="projectFieldSection">
+                        <option value="basic">기본 정보</option>
+                        <option value="equipment">장비 정보</option>
+                        <option value="schedule">일정 정보</option>
+                        <option value="billing">금액/결제</option>
+                        <option value="etc">기타</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="field-group" id="projectOptionsWrap" style="display:none;">
+                <div class="field-label">선택지 (한 줄에 하나씩) *</div>
+                <textarea class="field-input" id="projectFieldOptions" rows="5" placeholder="옵션1&#10;옵션2&#10;옵션3"></textarea>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">플레이스홀더</div>
+                <input type="text" class="field-input" id="projectFieldPlaceholder" placeholder="입력 안내 문구">
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">도움말</div>
+                <input type="text" class="field-input" id="projectFieldHelpText" placeholder="필드 아래 표시할 설명">
+            </div>
+
+            <div class="cf-toggle-row">
+                <label>
+                    <input type="checkbox" id="projectFieldRequired"> 필수 입력
+                </label>
+                <label>
+                    <input type="checkbox" id="projectFieldActive" checked> 활성 (폼에 노출)
+                </label>
+            </div>
+
+            <div class="cf-modal-actions">
+                <button class="btn-danger-outline" id="projectFieldDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteProjectFieldFromModal()">삭제</button>
+                <button class="btn-outline" onclick="closeProjectFieldModal()">취소</button>
+                <button class="btn-save" onclick="saveProjectField()">저장</button>
+            </div>
+        </div>
+    </div>
+
     {{-- 담당자 관리 --}}
     <div class="tab-panel" id="panel-assignees">
         <div class="cf-toolbar">
@@ -563,10 +648,140 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
         if (tab === 'clientFields') loadClientFields();
+        if (tab === 'projectFields') loadProjectFields();
         if (tab === 'assignees') loadAssigneesAdmin();
         if (tab === 'calendarCategories') loadCalendarCategories();
     });
 });
+
+// ── 프로젝트 필드 관리 (의뢰자 필드와 동일 패턴) ──
+let allProjectFields = [];
+const PROJECT_FIELD_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' };
+
+async function loadProjectFields() {
+    const res = await fetch('/api/admin/project-fields', { headers:{ 'Accept':'application/json' } });
+    allProjectFields = await res.json();
+    renderProjectFields();
+}
+function renderProjectFields() {
+    const container = document.getElementById('projectFieldsContainer');
+    if (!allProjectFields.length) {
+        container.innerHTML = `<div class="cf-empty">
+            <div class="cf-empty-icon">📋</div>
+            <div class="cf-empty-title">정의된 필드가 없습니다</div>
+            <div class="cf-empty-sub">우측 상단 <b>+ 필드 추가</b> 버튼으로 첫 필드를 만들어 보세요.</div>
+        </div>`;
+        return;
+    }
+    const grouped = {};
+    allProjectFields.forEach(f => {
+        const sec = f.section || 'etc';
+        (grouped[sec] = grouped[sec] || []).push(f);
+    });
+    let html = '';
+    Object.entries(PROJECT_FIELD_SECTIONS).forEach(([key, label]) => {
+        if (!grouped[key]) return;
+        html += `<div class="cf-section">
+            <div class="cf-section-head">
+                <span class="cf-section-title">${escHtml(label)}</span>
+                <span class="cf-section-count">${grouped[key].length}개</span>
+            </div>
+            <div class="cf-grid">`;
+        grouped[key].forEach(f => {
+            const required = f.is_required ? '<span class="cf-required">*</span>' : '';
+            const inactive = f.is_active ? '' : ' inactive';
+            const typeLabel = (typeof FIELD_TYPES !== 'undefined' ? FIELD_TYPES[f.type] : f.type) || f.type;
+            const optsChip = (f.options && f.options.length) ? `<span class="cf-chip">옵션 ${f.options.length}</span>` : '';
+            const statusChip = f.is_active ? '' : '<span class="cf-chip muted">비활성</span>';
+            const reqChip = f.is_required ? '<span class="cf-chip" style="color:var(--red); border-color:var(--red);">필수</span>' : '';
+            html += `<div class="cf-card${inactive}" onclick="editProjectField(${f.id})">
+                <div class="cf-card-row">
+                    <div class="cf-card-label">${escHtml(f.label)} ${required}</div>
+                    <span class="cf-type-badge cf-type-${escHtml(f.type)}">${escHtml(typeLabel)}</span>
+                </div>
+                <div class="cf-card-row">
+                    <span class="cf-card-key">${escHtml(f.key)}</span>
+                    <div class="cf-card-meta">${reqChip}${optsChip}${statusChip}</div>
+                </div>
+            </div>`;
+        });
+        html += `</div></div>`;
+    });
+    container.innerHTML = html;
+}
+function openProjectFieldModal(field) {
+    const m = document.getElementById('projectFieldModalOverlay');
+    m.classList.add('open');
+    document.getElementById('projectFieldModalTitle').textContent = field ? '필드 편집' : '+ 필드 추가';
+    document.getElementById('projectFieldId').value = field?.id || '';
+    document.getElementById('projectFieldLabel').value = field?.label || '';
+    document.getElementById('projectFieldType').value = field?.type || 'text';
+    document.getElementById('projectFieldSection').value = field?.section || 'basic';
+    document.getElementById('projectFieldOptions').value = (field?.options || []).join('\n');
+    document.getElementById('projectFieldPlaceholder').value = field?.placeholder || '';
+    document.getElementById('projectFieldHelpText').value = field?.help_text || '';
+    document.getElementById('projectFieldRequired').checked = !!field?.is_required;
+    document.getElementById('projectFieldActive').checked = field ? !!field.is_active : true;
+    document.getElementById('projectFieldDeleteBtn').style.display = field ? 'inline-block' : 'none';
+    onProjectFieldTypeChange();
+}
+function closeProjectFieldModal() { document.getElementById('projectFieldModalOverlay').classList.remove('open'); }
+function onProjectFieldTypeChange() {
+    const type = document.getElementById('projectFieldType').value;
+    const needsOptions = ['select','radio','checkbox'].includes(type);
+    document.getElementById('projectOptionsWrap').style.display = needsOptions ? 'block' : 'none';
+}
+function editProjectField(id) {
+    const f = allProjectFields.find(x => x.id === id);
+    if (f) openProjectFieldModal(f);
+}
+async function saveProjectField() {
+    const id = document.getElementById('projectFieldId').value;
+    const label = document.getElementById('projectFieldLabel').value.trim();
+    const type = document.getElementById('projectFieldType').value;
+    if (!label) return alert('라벨을 입력하세요.');
+
+    const optionsRaw = document.getElementById('projectFieldOptions').value.trim();
+    const options = optionsRaw ? optionsRaw.split('\n').map(s => s.trim()).filter(Boolean) : null;
+    if (['select','radio','checkbox'].includes(type) && (!options || !options.length)) {
+        return alert('선택지를 한 줄에 하나씩 입력하세요.');
+    }
+
+    const body = {
+        label,
+        type,
+        section: document.getElementById('projectFieldSection').value,
+        options,
+        placeholder: document.getElementById('projectFieldPlaceholder').value || null,
+        help_text: document.getElementById('projectFieldHelpText').value || null,
+        is_required: document.getElementById('projectFieldRequired').checked,
+        is_active: document.getElementById('projectFieldActive').checked,
+    };
+
+    const url = id ? `/api/admin/project-fields/${id}` : '/api/admin/project-fields';
+    const method = id ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+        method,
+        headers:{ 'Content-Type':'application/json', 'X-CSRF-TOKEN':CSRF, 'Accept':'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (res.ok) {
+        closeProjectFieldModal();
+        await loadProjectFields();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors || {}).flat().join('\n')));
+    }
+}
+async function deleteProjectFieldFromModal() {
+    if (!confirm('이 필드를 삭제하시겠습니까?\n기존에 입력된 값은 DB에 남아있지만, 폼에서는 더 이상 노출되지 않습니다.')) return;
+    const id = document.getElementById('projectFieldId').value;
+    const res = await fetch(`/api/admin/project-fields/${id}`, { method:'DELETE', headers:{ 'X-CSRF-TOKEN':CSRF } });
+    if (res.ok) {
+        closeProjectFieldModal();
+        await loadProjectFields();
+    } else alert('삭제 실패');
+}
 
 // ── 담당자 관리 ──
 let assigneesAdminList = [];

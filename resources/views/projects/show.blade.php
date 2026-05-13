@@ -158,6 +158,18 @@
     [data-theme="light"] .result-valid       { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .result-invalid     { background:#ffe8e8; color:#c03838; }
     [data-theme="light"] .result-done        { background:#e8eaef; color:#5a6070; }
+
+    /* 동적 필드 (관리자 정의) */
+    .pcf-section { display:flex; flex-direction:column; gap:10px; }
+    .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+    .pcf-field { display:flex; flex-direction:column; gap:4px; }
+    .pcf-label { font-size:11px; color:var(--text-muted); font-weight:600; }
+    .pcf-help { font-size:10px; color:var(--text-muted); opacity:0.7; }
+    .pcf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; }
+    .pcf-input:focus { border-color:var(--accent); }
+    .pcf-radios { display:flex; gap:10px; flex-wrap:wrap; font-size:13px; }
+    .pcf-radios label { display:inline-flex; align-items:center; gap:4px; cursor:pointer; }
+    [data-theme="light"] .pcf-input { background:#fff; border-color:#b8bcc8; }
 </style>
 @endpush
 
@@ -336,6 +348,13 @@
             </div>
             <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '메모 없음' }}</div>
             <textarea id="memoEdit" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
+        </div>
+
+        <!-- 추가 정보 (관리자 정의 동적 필드) -->
+        <div class="info-card full" id="customDataCard" style="display:none;">
+            <div class="card-title">추가 정보</div>
+            <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
+            <div class="text-muted" id="pcfSaveStatus" style="font-size:11px; color:var(--text-muted); margin-top:6px; min-height:14px;"></div>
         </div>
 
         <!-- 상담 이력 -->
@@ -1119,6 +1138,109 @@ async function deleteProjectMemo(id) {
     const el = document.getElementById('pmemo-' + id);
     if (el) el.remove();
 }
+
+// ── 동적 필드(관리자 정의 custom_data) 로드/편집 ──
+const PROJECT_ID = {{ $project->id }};
+const CSRF_PJ = document.querySelector('meta[name="csrf-token"]').content;
+let projectFieldDefs = [];
+let projectCustomData = @json($project->custom_data ?? new \stdClass);
+const PCF_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' };
+
+function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadProjectFieldsForShow() {
+    try {
+        const res = await fetch('/api/project-fields/active', {headers:{'Accept':'application/json'}});
+        if (!res.ok) return;
+        projectFieldDefs = (await res.json()).filter(f => f.is_active);
+        if (!projectFieldDefs.length) return; // 정의된 필드 없으면 카드도 숨김
+        document.getElementById('customDataCard').style.display = '';
+        renderProjectCustomFields();
+    } catch(e) {}
+}
+
+function renderProjectCustomFields() {
+    const wrap = document.getElementById('projectCustomFields');
+    const grouped = {};
+    projectFieldDefs.forEach(f => { (grouped[f.section||'etc'] = grouped[f.section||'etc'] || []).push(f); });
+
+    let html = '';
+    Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
+        if (!grouped[k]) return;
+        html += `<div class="pcf-section"><div class="pcf-sec-title">${pcfEsc(lbl)}</div>`;
+        grouped[k].forEach(f => {
+            const val = projectCustomData[f.key];
+            html += `<div class="pcf-field">
+                <div class="pcf-label">${pcfEsc(f.label)}${f.is_required?' <span style="color:var(--red)">*</span>':''}</div>
+                ${pcfInput(f, val)}
+                ${f.help_text?`<div class="pcf-help">${pcfEsc(f.help_text)}</div>`:''}
+            </div>`;
+        });
+        html += '</div>';
+    });
+    wrap.innerHTML = html;
+}
+
+function pcfInput(f, val) {
+    val = val ?? '';
+    const ph = pcfEsc(f.placeholder || '');
+    switch (f.type) {
+        case 'textarea':
+            return `<textarea class="pcf-input" rows="2" data-key="${f.key}" oninput="pcfChange(this)" placeholder="${ph}">${pcfEsc(val)}</textarea>`;
+        case 'select':
+            const opts = (f.options||[]).map(o => `<option value="${pcfEsc(o)}"${val===o?' selected':''}>${pcfEsc(o)}</option>`).join('');
+            return `<select class="pcf-input" data-key="${f.key}" onchange="pcfChange(this)"><option value="">선택...</option>${opts}</select>`;
+        case 'radio':
+            return `<div class="pcf-radios">${(f.options||[]).map(o => `<label><input type="radio" name="rad_${f.key}" value="${pcfEsc(o)}"${val===o?' checked':''} data-key="${f.key}" onchange="pcfChange(this)"> ${pcfEsc(o)}</label>`).join('')}</div>`;
+        case 'checkbox':
+            const arr = Array.isArray(val) ? val : [];
+            return `<div class="pcf-radios">${(f.options||[]).map(o => `<label><input type="checkbox" name="chk_${f.key}" value="${pcfEsc(o)}"${arr.includes(o)?' checked':''} data-key="${f.key}" data-group="1" onchange="pcfCheckChange(this)"> ${pcfEsc(o)}</label>`).join('')}</div>`;
+        case 'number':
+            return `<input type="number" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" oninput="pcfChange(this)" placeholder="${ph}">`;
+        case 'date':
+            return `<input type="date" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" onchange="pcfChange(this)">`;
+        default:
+            return `<input type="text" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" oninput="pcfChange(this)" placeholder="${ph}">`;
+    }
+}
+
+function pcfChange(el) {
+    projectCustomData[el.dataset.key] = el.value;
+    pcfScheduleSave();
+}
+function pcfCheckChange(el) {
+    const all = [...document.querySelectorAll(`input[name="chk_${el.dataset.key}"]:checked`)].map(x => x.value);
+    projectCustomData[el.dataset.key] = all;
+    pcfScheduleSave();
+}
+
+let pcfSaveTimer = null;
+function pcfScheduleSave() {
+    clearTimeout(pcfSaveTimer);
+    document.getElementById('pcfSaveStatus').textContent = '저장 중...';
+    pcfSaveTimer = setTimeout(pcfSave, 600);
+}
+async function pcfSave() {
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}`, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+            body: JSON.stringify({ custom_data: projectCustomData }),
+        });
+        const el = document.getElementById('pcfSaveStatus');
+        if (res.ok) {
+            el.textContent = '✓ 저장됨';
+            setTimeout(() => { el.textContent = ''; }, 2000);
+        } else {
+            el.textContent = '저장 실패';
+            el.style.color = 'var(--red)';
+        }
+    } catch(e) {
+        document.getElementById('pcfSaveStatus').textContent = '저장 실패';
+    }
+}
+
+loadProjectFieldsForShow();
 
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeConsultModal(); closeEditModal(); closeAlbum(); }

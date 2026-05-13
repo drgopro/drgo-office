@@ -58,6 +58,7 @@ class ProjectController extends Controller
             'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
             'memo' => 'nullable|string',
+            'custom_data' => 'nullable|array',
         ]);
 
         $validated['client_id'] = $client->id;
@@ -147,6 +148,7 @@ class ProjectController extends Controller
             'project_type' => 'sometimes|in:visit,remote,design,inquiry,as,troubleshoot',
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'sometimes|nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
+            'custom_data' => 'nullable|array',
         ]);
 
         $project->update($validated);

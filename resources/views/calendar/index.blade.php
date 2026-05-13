@@ -105,6 +105,8 @@
     /* 한 셀이 동시에 시작·끝(=같은 날) — 단일일과 동일하게 */
     .event-chip.multi-day.day-start.day-end { border-radius:4px; margin:0; }
     .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    /* 제목은 늘어나서 담당자 배지를 우측 끝으로 밀어냄 */
+    .event-chip .chip-title { flex:1 1 auto; }
     .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
     .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
@@ -492,6 +494,17 @@
         .event-chip.single.color-purple { background:var(--chip-purple-bg); }
         .event-chip { pointer-events:none; }
         .more-badge { font-size:13px; padding:2px 4px; pointer-events:none; font-weight:700; }
+
+        /* 모바일에서 다일 일정은 dot이 아닌 가로 막대로 표시 — 셀 padding(3px) 보상 */
+        .event-chip.multi-day {
+            width:auto !important; height:6px !important; min-width:0 !important;
+            border-radius:0 !important; padding:0 !important;
+            flex-basis:100%; align-self:stretch;
+            margin-left:-3px !important; margin-right:-3px !important;
+        }
+        .event-chip.multi-day.day-start         { border-radius:3px 0 0 3px !important; margin-left:0 !important; }
+        .event-chip.multi-day.day-end           { border-radius:0 3px 3px 0 !important; margin-right:0 !important; }
+        .event-chip.multi-day.day-start.day-end { border-radius:3px !important; margin:0 !important; flex-basis:auto; width:auto !important; min-width:10px !important; height:6px !important; }
 
         /* 선택된 날짜 */
         .day-cell.mobile-selected { background:var(--surface2); }
@@ -1293,9 +1306,9 @@ function buildChipHtml(ev){
     // 특수 아이콘
     const specOpts=ev.special_opts||[];
     specOpts.forEach(o=>{if(SPECIAL_ICONS[o]) html+=`<span class="chip-special">${SPECIAL_ICONS[o]}</span>`;});
-    // 제목 (의뢰자 이름은 표시하지 않음)
+    // 제목 (의뢰자 이름은 표시하지 않음). flex:1로 늘어나서 담당자 배지를 우측으로 밀어냄
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
-    html+=`<span>${title}</span>`;
+    html+=`<span class="chip-title">${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
     // 담당자 — chip 우측 정렬 (성/이름 한 글자가 아닌 풀네임)

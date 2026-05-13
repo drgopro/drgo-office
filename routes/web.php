@@ -19,12 +19,14 @@ use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
+use App\Http\Controllers\ProjectFieldDefinitionController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\WikiController;
 use App\Models\ClientFieldDefinition;
+use App\Models\ProjectFieldDefinition;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
@@ -277,6 +279,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/admin/client-fields/{field}', [ClientFieldDefinitionController::class, 'destroy']);
         Route::post('/api/admin/client-fields/reorder', [ClientFieldDefinitionController::class, 'reorder']);
 
+        // 프로젝트 동적 필드 정의 (master/admin 전용)
+        Route::get('/api/admin/project-fields', [ProjectFieldDefinitionController::class, 'index']);
+        Route::post('/api/admin/project-fields', [ProjectFieldDefinitionController::class, 'store']);
+        Route::patch('/api/admin/project-fields/{field}', [ProjectFieldDefinitionController::class, 'update']);
+        Route::delete('/api/admin/project-fields/{field}', [ProjectFieldDefinitionController::class, 'destroy']);
+        Route::post('/api/admin/project-fields/reorder', [ProjectFieldDefinitionController::class, 'reorder']);
+
         // 캘린더 카테고리 (master/admin 전용)
         Route::get('/api/admin/calendar-categories', [CalendarCategoryController::class, 'index']);
         Route::patch('/api/admin/calendar-categories/{category}', [CalendarCategoryController::class, 'update']);
@@ -287,6 +296,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:clients.view')->group(function () {
         Route::get('/api/client-fields/active', function () {
             return ClientFieldDefinition::active()->ordered()->get();
+        });
+    });
+
+    // 프로젝트 페이지에서 활성 필드 정의 조회 (projects.view 권한)
+    Route::middleware('permission:projects.view')->group(function () {
+        Route::get('/api/project-fields/active', function () {
+            return ProjectFieldDefinition::active()->ordered()->get();
         });
     });
 
