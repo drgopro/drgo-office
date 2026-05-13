@@ -23,6 +23,7 @@
     .pipeline-card.p-estimate .pc-accent { background:#8ab4c8; }
     .pipeline-card.p-payment .pc-accent { background:#e8894a; }
     .pipeline-card.p-visit .pc-accent { background:#7ac87a; }
+    .pipeline-card.p-as .pc-accent { background:#c87a7a; }
 
     .info-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; margin-bottom:28px; }
     .info-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
@@ -81,7 +82,7 @@
             <div class="pc-value">{{ $pipeline['consulting'] }}</div>
             <div class="pc-sub">초기 상담 단계</div>
         </div>
-        <div class="pipeline-card p-estimate" onclick="goProjectsByStage('estimate')">
+        <div class="pipeline-card p-estimate" onclick="goProjectsByStage('equipment,proposal,estimate')">
             <div class="pc-accent"></div>
             <div class="pc-label">📝 견적 단계</div>
             <div class="pc-value">{{ $pipeline['estimate'] }}</div>
@@ -97,7 +98,13 @@
             <div class="pc-accent"></div>
             <div class="pc-label">🔧 세팅 진행</div>
             <div class="pc-value">{{ $pipeline['visit'] }}</div>
-            <div class="pc-sub">세팅·AS 진행 중</div>
+            <div class="pc-sub">방문/원격 세팅 진행 중</div>
+        </div>
+        <div class="pipeline-card p-as" onclick="goProjectsByStage('as')">
+            <div class="pc-accent"></div>
+            <div class="pc-label">🛠 세팅 완료 · AS</div>
+            <div class="pc-value">{{ $pipeline['as'] ?? 0 }}</div>
+            <div class="pc-sub">세팅 완료 후 AS 기간</div>
         </div>
     </div>
 
@@ -184,7 +191,8 @@
 
 <script>
 function goProjectsByStage(stage) {
-    const url = '/projects?stage=' + stage;
+    // stage는 단일('visit') 또는 콤마구분('equipment,proposal,estimate') 모두 가능
+    const url = '/projects?stage=' + encodeURIComponent(stage);
     if (window.parent && window.parent.drgoTabs) {
         window.parent.drgoTabs.openNav('projects', url);
     } else {

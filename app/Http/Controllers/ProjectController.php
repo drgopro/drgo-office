@@ -24,14 +24,24 @@ class ProjectController extends Controller
             })->orWhere('name', 'like', "%{$search}%");
         }
 
-        // 단계 필터
+        // 단계 필터 (단일/콤마 구분/배열 모두 지원)
         if ($stage = $request->query('stage')) {
-            $query->where('stage', $stage);
+            $stages = is_array($stage)
+                ? array_values(array_filter($stage))
+                : array_values(array_filter(array_map('trim', explode(',', (string) $stage))));
+            if (! empty($stages)) {
+                $query->whereIn('stage', $stages);
+            }
         }
 
-        // 유형 필터
+        // 유형 필터 (단일/콤마 구분/배열 모두 지원)
         if ($type = $request->query('project_type')) {
-            $query->where('project_type', $type);
+            $types = is_array($type)
+                ? array_values(array_filter($type))
+                : array_values(array_filter(array_map('trim', explode(',', (string) $type))));
+            if (! empty($types)) {
+                $query->whereIn('project_type', $types);
+            }
         }
 
         $projects = $query->orderBy('created_at', 'desc')->paginate(20);

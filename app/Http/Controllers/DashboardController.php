@@ -170,7 +170,8 @@ class DashboardController extends Controller
             'consulting' => Project::where('stage', 'consulting')->count(),
             'estimate' => Project::whereIn('stage', ['equipment', 'proposal', 'estimate'])->count(),
             'payment' => Project::where('stage', 'payment')->count(),
-            'visit' => Project::whereIn('stage', ['visit', 'as'])->count(),
+            'visit' => Project::where('stage', 'visit')->count(),
+            'as' => Project::where('stage', 'as')->count(),
         ];
 
         // 최근 상담 대기/진행중 (우선순위가 높은 항목)
