@@ -804,8 +804,8 @@ function renderClientContent(id) {
             <!-- 동적 필드 (관리자 정의) -->
             ${renderCustomFields(d.custom_data || {}, id)}
 
-            <!-- 장비 정보 요약 (프로젝트의 stage_data.equipment 합산) -->
-            ${renderEquipmentSummary(d.equipment_summary)}
+            <!-- 장비 정보 요약: 최근 프로젝트의 '장비 정보' 동적 필드 + 모든 프로젝트 stage_data 합산 -->
+            ${renderEquipmentSummary(d.equipment_summary, d.last_project_equipment)}
 
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
@@ -1469,42 +1469,71 @@ const SECTION_LABELS = { basic:'기본 정보', equipment:'장비 정보', broad
 function escAttr(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function escText(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-// 의뢰자가 가진 프로젝트들의 장비 파악(stage_data.equipment) 데이터 요약
-function renderEquipmentSummary(eq) {
-    if (!eq || (!eq.summaries?.length && !eq.items?.length)) return '';
-    const count = eq.project_count || 0;
+// 장비 정보 요약: 최근 프로젝트의 '장비 정보' 동적 필드 + 모든 프로젝트의 stage_data.equipment 합산
+function renderEquipmentSummary(eq, latest) {
+    const hasSummary = eq && (eq.summaries?.length || eq.items?.length);
+    const hasLatest = latest && latest.fields?.length;
+    if (!hasSummary && !hasLatest) return '';
+
     let body = '';
-    if (eq.summaries?.length) {
-        body += '<div style="display:flex; flex-direction:column; gap:8px;">';
-        eq.summaries.forEach(s => {
-            body += `<div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">📁 ${escText(s.project_name)}</div>
-                <div style="font-size:13px; color:var(--text); white-space:pre-wrap;">${escText(s.summary)}</div>
+
+    // (1) 최근 프로젝트의 동적 필드 장비 정보 (가장 위에 강조)
+    if (hasLatest) {
+        body += `<div style="background:rgba(212,188,150,0.08); border:1px solid rgba(212,188,150,0.35); border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:11px; font-weight:600; color:var(--accent);">⭐ 최근 프로젝트 장비 정보</div>
+                <a href="/projects/${latest.project_id}" style="font-size:11px; color:var(--text-muted); text-decoration:none;">${escText(latest.project_name)} · ${latest.created_at} →</a>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:6px 14px;">`;
+        latest.fields.forEach(f => {
+            let v = f.value;
+            if (Array.isArray(v)) v = v.join(', ');
+            else if (typeof v === 'boolean') v = v ? '예' : '아니오';
+            body += `<div style="display:flex; gap:8px; font-size:12px; align-items:baseline;">
+                <span style="color:var(--text-muted); flex-shrink:0;">${escText(f.label)}</span>
+                <span style="color:var(--text); flex:1; word-break:break-all;">${escText(v)}</span>
             </div>`;
         });
-        body += '</div>';
+        body += '</div></div>';
     }
-    if (eq.items?.length) {
-        // 프로젝트별로 그룹핑
-        const grouped = {};
-        eq.items.forEach(it => { (grouped[it.project_id] = grouped[it.project_id] || {name:it.project_name, items:[]}).items.push(it); });
-        body += '<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">';
-        Object.entries(grouped).forEach(([pid, g]) => {
-            body += `<div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">📁 ${escText(g.name)}</div>
-                <div style="display:flex; flex-direction:column; gap:3px;">`;
-            g.items.forEach(it => {
-                body += `<div style="display:flex; gap:8px; font-size:12px;">
-                    <span style="flex:1; color:var(--text);">${escText(it.name)}</span>
-                    <span style="color:var(--text-muted);">${escText(it.qty)}${it.note ? ' · '+escText(it.note) : ''}</span>
+
+    // (2) 모든 프로젝트의 stage_data.equipment 요약/항목 — 기존
+    if (hasSummary) {
+        const count = eq.project_count || 0;
+        if (eq.summaries?.length) {
+            body += '<div style="display:flex; flex-direction:column; gap:8px;">';
+            eq.summaries.forEach(s => {
+                body += `<div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">📁 ${escText(s.project_name)}</div>
+                    <div style="font-size:13px; color:var(--text); white-space:pre-wrap;">${escText(s.summary)}</div>
                 </div>`;
             });
-            body += `</div></div>`;
-        });
-        body += '</div>';
+            body += '</div>';
+        }
+        if (eq.items?.length) {
+            const grouped = {};
+            eq.items.forEach(it => { (grouped[it.project_id] = grouped[it.project_id] || {name:it.project_name, items:[]}).items.push(it); });
+            body += '<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">';
+            Object.entries(grouped).forEach(([pid, g]) => {
+                body += `<div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">📁 ${escText(g.name)}</div>
+                    <div style="display:flex; flex-direction:column; gap:3px;">`;
+                g.items.forEach(it => {
+                    body += `<div style="display:flex; gap:8px; font-size:12px;">
+                        <span style="flex:1; color:var(--text);">${escText(it.name)}</span>
+                        <span style="color:var(--text-muted);">${escText(it.qty)}${it.note ? ' · '+escText(it.note) : ''}</span>
+                    </div>`;
+                });
+                body += `</div></div>`;
+            });
+            body += '</div>';
+            body = body; // keep
+        }
     }
+
+    const subtitle = hasSummary ? ` <span style="font-weight:400; font-size:11px; color:var(--text-muted);">(프로젝트 ${eq.project_count || 0}건에서 수집)</span>` : '';
     return `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
-        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보 <span style="font-weight:400; font-size:11px; color:var(--text-muted);">(프로젝트 ${count}건에서 수집)</span></div>
+        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보${subtitle}</div>
         ${body}
     </div>`;
 }

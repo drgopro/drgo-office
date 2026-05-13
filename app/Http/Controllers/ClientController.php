@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\ClientMemo;
+use App\Models\ProjectFieldDefinition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -159,6 +160,39 @@ class ClientController extends Controller
             }
         }
 
+        // 가장 최근 프로젝트의 '장비 정보' 섹션(동적 필드) 요약
+        $lastProjectEquipment = null;
+        $latestProject = $client->projects->sortByDesc('created_at')->first();
+        if ($latestProject) {
+            $eqFields = ProjectFieldDefinition::where('section', 'equipment')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['key', 'label', 'type', 'options']);
+            $custom = $latestProject->custom_data ?? [];
+            $values = [];
+            foreach ($eqFields as $f) {
+                $v = $custom[$f->key] ?? null;
+                if ($v === null || $v === '' || (is_array($v) && empty($v))) {
+                    continue;
+                }
+                $values[] = [
+                    'key' => $f->key,
+                    'label' => $f->label,
+                    'type' => $f->type,
+                    'value' => $v,
+                ];
+            }
+            if (! empty($values)) {
+                $lastProjectEquipment = [
+                    'project_id' => $latestProject->id,
+                    'project_name' => $latestProject->name,
+                    'created_at' => $latestProject->created_at->format('Y.m.d'),
+                    'fields' => $values,
+                ];
+            }
+        }
+
         return response()->json([
             'id' => $client->id,
             'name' => $client->name,
@@ -176,6 +210,7 @@ class ClientController extends Controller
             'client_type' => $client->client_type,
             'custom_data' => $client->custom_data ?? new \stdClass,
             'equipment_summary' => $equipmentSummary,
+            'last_project_equipment' => $lastProjectEquipment,
             'gender' => $client->gender,
             'affiliation' => $client->affiliation,
             'important_memo' => $client->important_memo,
