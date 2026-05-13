@@ -19,6 +19,13 @@
     .filter-chip:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
 
     .sidebar-list { flex:1; overflow-y:auto; padding:6px; }
+    .sidebar-pagination { display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 6px; border-top:1px solid var(--border); background:var(--surface); flex-wrap:wrap; }
+    .sidebar-pagination button { background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; cursor:pointer; min-width:26px; }
+    .sidebar-pagination button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+    .sidebar-pagination button.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; }
+    [data-theme="light"] .sidebar-pagination button.active { color:#fff; }
+    .sidebar-pagination button:disabled { opacity:0.35; cursor:default; }
+    .sidebar-pagination .pg-info { font-size:10px; color:var(--text-muted); margin:0 4px; font-family:"SF Mono",Menlo,monospace; }
     .sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all 0.12s; position:relative; }
     .sidebar-item:hover { background:var(--surface2); }
     .sidebar-item.active { background:var(--surface2); border-left:3px solid var(--accent); }
@@ -195,6 +202,7 @@
             </div>
         </div>
         <div class="sidebar-list" id="clientList"></div>
+        <div class="sidebar-pagination" id="clientPagination"></div>
         <div style="display:flex; gap:6px; margin:8px;">
             <div class="sidebar-add" style="flex:1; margin:0;" onclick="openNewClientModal()">+ 의뢰자 등록</div>
             <div class="sidebar-add" style="flex:0; margin:0; white-space:nowrap;" onclick="openExcelImportModal('clients','의뢰자')">📥 엑셀</div>
@@ -400,42 +408,74 @@ loadClientList().then(async () => {
     }
 });
 
-async function loadClientList() {
-    const res = await fetch('/api/clients/list', { headers:{ 'Accept':'application/json' } });
-    allClients = await res.json();
+// 페이지네이션 상태
+let clientPage = 1;
+let clientLastPage = 1;
+let clientTotal = 0;
+let clientSearchTimer = null;
+
+async function loadClientList(page = 1) {
+    clientPage = page;
+    const search = document.getElementById('clientSearch').value.trim();
+    const params = new URLSearchParams({ page: String(page), per_page: '20' });
+    if (search) params.set('search', search);
+    if (currentGrade) params.set('grade', currentGrade);
+
+    const res = await fetch('/api/clients/list?' + params, { headers:{ 'Accept':'application/json' } });
+    const data = await res.json();
+    // 응답 구조: {data, current_page, last_page, per_page, total}
+    allClients = data.data || [];
+    clientPage = data.current_page || 1;
+    clientLastPage = data.last_page || 1;
+    clientTotal = data.total || 0;
     renderClientList();
+    renderClientPagination();
 }
 
 function filterClients() {
-    renderClientList();
+    // 검색 입력 시 디바운스 후 첫 페이지부터 다시 fetch
+    clearTimeout(clientSearchTimer);
+    clientSearchTimer = setTimeout(() => loadClientList(1), 250);
 }
 
 function setGradeFilter(btn) {
     document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentGrade = btn.dataset.grade;
-    renderClientList();
+    loadClientList(1);
+}
+
+function renderClientPagination() {
+    const wrap = document.getElementById('clientPagination');
+    if (!wrap) return;
+    if (clientTotal === 0 || clientLastPage <= 1) {
+        wrap.innerHTML = clientTotal > 0
+            ? `<span class="pg-info">${clientTotal}명</span>`
+            : '';
+        return;
+    }
+    // 페이지 번호 묶음 (현재 페이지 좌우 2개씩)
+    const start = Math.max(1, clientPage - 2);
+    const end = Math.min(clientLastPage, clientPage + 2);
+    let html = '';
+    html += `<button onclick="loadClientList(1)" ${clientPage === 1 ? 'disabled' : ''}>«</button>`;
+    html += `<button onclick="loadClientList(${clientPage - 1})" ${clientPage === 1 ? 'disabled' : ''}>‹</button>`;
+    for (let p = start; p <= end; p++) {
+        html += `<button class="${p === clientPage ? 'active' : ''}" onclick="loadClientList(${p})">${p}</button>`;
+    }
+    html += `<button onclick="loadClientList(${clientPage + 1})" ${clientPage === clientLastPage ? 'disabled' : ''}>›</button>`;
+    html += `<button onclick="loadClientList(${clientLastPage})" ${clientPage === clientLastPage ? 'disabled' : ''}>»</button>`;
+    html += `<span class="pg-info">${clientPage}/${clientLastPage} · 총 ${clientTotal}</span>`;
+    wrap.innerHTML = html;
 }
 
 function renderClientList() {
-    const search = document.getElementById('clientSearch').value.toLowerCase();
     const list = document.getElementById('clientList');
-    let filtered = allClients;
+    const filtered = allClients;
 
-    if (search) {
-        filtered = filtered.filter(c =>
-            (c.name||'').toLowerCase().includes(search) ||
-            (c.nickname||'').toLowerCase().includes(search) ||
-            (c.phone||'').includes(search)
-        );
-    }
-    if (currentGrade) {
-        filtered = filtered.filter(c => c.grade === currentGrade);
-    }
-
-    // 타이틀 업데이트
+    // 타이틀 업데이트 (현재 페이지에 표시된 수가 아닌 전체)
     const titleEl = document.getElementById('clientListTitle');
-    if (titleEl) titleEl.textContent = `의뢰자 목록 (${allClients.length}명)`;
+    if (titleEl) titleEl.textContent = `의뢰자 목록 (${clientTotal}명)`;
 
     if (!filtered.length) {
         list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">결과 없음</div>';

@@ -243,7 +243,7 @@ class ClientController extends Controller
         return response()->json(['id' => $client->id, 'message' => '등록되었습니다.'], 201);
     }
 
-    // JSON 목록 API
+    // JSON 목록 API (서버사이드 페이지네이션)
     public function listJson(Request $request)
     {
         $query = Client::where('status', '!=', 'blacklist');
@@ -260,10 +260,19 @@ class ClientController extends Controller
             $query->where('grade', $grade);
         }
 
-        return response()->json(
-            $query->orderBy('created_at', 'desc')
-                ->get(['id', 'name', 'nickname', 'phone', 'grade', 'status', 'platforms'])
-        );
+        $perPage = (int) ($request->query('per_page', 20));
+        $perPage = max(1, min($perPage, 100));
+
+        $paginated = $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['id', 'name', 'nickname', 'phone', 'grade', 'status', 'platforms']);
+
+        return response()->json([
+            'data' => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
     }
 
     // 메모 추가

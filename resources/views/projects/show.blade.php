@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-    .page-wrap { padding:24px; max-width:900px; margin:0 auto; }
+    .page-wrap { padding:24px 32px; max-width:1400px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
     .page-header-left { display:flex; align-items:center; gap:12px; }
     .back-btn { color:var(--text-muted); text-decoration:none; font-size:13px; }
@@ -213,20 +213,59 @@
         </div>
     </div>
 
-    <!-- 7단계 프로세스 바 -->
+    <!-- 프로세스 바 (프로젝트 유형별 단계 세트) -->
     @php
-        $stages = [
-            'consulting' => '상담',
-            'equipment'  => '장비파악',
-            'proposal'   => '일정제안',
-            'estimate'   => '견적/계약',
-            'payment'    => '결제/예약',
-            'visit'      => '세팅',
-            'as'         => 'AS',
+        // project_type 별 단계 시퀀스. DB stage enum은 공유하되 라벨/포함 여부만 분기.
+        $stageSets = [
+            'visit' => [
+                'consulting' => '상담',
+                'equipment'  => '장비파악',
+                'proposal'   => '일정제안',
+                'estimate'   => '견적/계약',
+                'payment'    => '결제/예약',
+                'visit'      => '방문 세팅',
+                'as'         => 'AS',
+            ],
+            'remote' => [
+                'consulting' => '상담',
+                'equipment'  => '장비파악',
+                'proposal'   => '일정제안',
+                'estimate'   => '견적/계약',
+                'payment'    => '결제/예약',
+                'visit'      => '원격 세팅',
+                'as'         => 'AS',
+            ],
+            'design' => [
+                'consulting' => '상담',
+                'estimate'   => '견적/계약',
+                'payment'    => '결제',
+                'visit'      => '디자인 작업',
+                'done'       => '납품 완료',
+            ],
+            'inquiry' => [
+                'consulting' => '문의 접수',
+                'visit'      => '처리 중',
+                'done'       => '상담 완료',
+            ],
+            'as' => [
+                'consulting' => 'AS 접수',
+                'equipment'  => '점검',
+                'visit'      => 'AS 진행',
+                'done'       => '처리 완료',
+            ],
+            'troubleshoot' => [
+                'consulting' => '문의 접수',
+                'equipment'  => '진단',
+                'visit'      => '조치 진행',
+                'done'       => '해결 완료',
+            ],
         ];
+        $stages = $stageSets[$project->project_type] ?? $stageSets['visit'];
         $stageKeys = array_keys($stages);
         $currentIdx = array_search($project->stage, $stageKeys);
-        if ($currentIdx === false) $currentIdx = -1;
+        if ($currentIdx === false) {
+            $currentIdx = -1;
+        }
     @endphp
 
     <div class="process-wrap">

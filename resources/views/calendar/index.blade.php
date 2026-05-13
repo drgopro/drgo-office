@@ -94,6 +94,10 @@
 
     /* ── 이벤트 칩 ── */
     .event-chip { border-radius:4px; padding:2px 6px; font-size:12px; white-space:nowrap; overflow:hidden; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; line-height:1.4; height:22px; box-sizing:border-box; min-width:0; }
+    /* 다일 이벤트: 이어진 bar 시각화 */
+    .event-chip.multi-day.day-start { border-radius:4px 0 0 4px; margin-right:-1px; }
+    .event-chip.multi-day.day-cont  { border-radius:0; border-left-color:transparent !important; padding-left:0; padding-right:0; margin-right:-1px; margin-left:-1px; }
+    .event-chip.multi-day.day-end   { border-radius:0 4px 4px 0; border-left-color:transparent !important; padding-left:0; margin-left:-1px; }
     .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
@@ -1385,9 +1389,9 @@ function renderMonth() {
                 const evList=document.createElement('div');
                 evList.className='events-list';
 
-                // 모든 이벤트를 하나의 리스트로 합산 (다일은 시작일에만)
+                // 모든 이벤트를 하나의 리스트로 합산 (다일은 시작일~종료일 모든 셀에 표시)
                 const allChipEvs = [];
-                multiDay.forEach(ev=>{ if(ev.start_date===cell.full) allChipEvs.push(ev); });
+                multiDay.forEach(ev=>allChipEvs.push(ev));
                 singleDay.forEach(ev=>allChipEvs.push(ev));
 
                 const MAX_VISIBLE = 3;
@@ -1396,9 +1400,20 @@ function renderMonth() {
                 const visibleEvs = isExpanded ? allChipEvs : allChipEvs.slice(0, MAX_VISIBLE);
 
                 visibleEvs.forEach(ev=>{
+                    const isMulti = ev.end_date && ev.end_date !== ev.start_date;
+                    const isStart = isMulti && ev.start_date === cell.full;
+                    const isEnd   = isMulti && ev.end_date === cell.full;
                     const chip=document.createElement('div');
-                    chip.className=`event-chip single color-${ev.color}`;
-                    chip.innerHTML=buildChipHtml(ev);
+                    let cls = `event-chip single color-${ev.color}`;
+                    if (isMulti) {
+                        cls += ' multi-day';
+                        if (isStart) cls += ' day-start';
+                        else if (isEnd) cls += ' day-end';
+                        else cls += ' day-cont';
+                    }
+                    chip.className = cls;
+                    // 다일 이벤트는 시작일에만 텍스트, 이후 셀은 빈 bar로 연결
+                    chip.innerHTML = (isMulti && !isStart) ? '' : buildChipHtml(ev);
                     chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
                     chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
                     evList.appendChild(chip);
