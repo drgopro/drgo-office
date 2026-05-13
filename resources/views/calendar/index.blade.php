@@ -116,8 +116,9 @@
     .chip-time { font-size:12px; opacity:0.85; flex-shrink:0; margin-right:3px; }
     .chip-special { font-size:11px; flex-shrink:0; letter-spacing:1px; }
     .sched-icon-badge { flex-shrink:0; font-size:12px; margin-left:3px; display:inline-flex; align-items:center; }
-    .chip-badges { display:flex; align-items:center; flex-shrink:0; gap:2px; margin-left:2px; }
-    .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; letter-spacing:-0.5px; color:var(--text); white-space:nowrap; flex-shrink:0; margin-left:3px; line-height:1; }
+    .chip-badges { display:flex; align-items:center; flex-shrink:0; gap:3px; margin-left:auto; padding-left:6px; }
+    .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; letter-spacing:-0.3px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; line-height:1; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.08); }
+    [data-theme="light"] .ev-assignee-badge { background:rgba(0,0,0,0.06); color:#4a5060; }
 
     /* ── 다일 스판 칩 ── */
     .span-chip-overlay { position:absolute; top:0; left:0; right:0; pointer-events:none; z-index:2; }
@@ -1297,7 +1298,15 @@ function buildChipHtml(ev){
     html+=`<span>${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
-    // 담당자는 chip에 표시하지 않음 (상세 모달에서 확인). 필터링·툴팁용으로만 사용.
+    // 담당자 — chip 우측 정렬 (성/이름 한 글자가 아닌 풀네임)
+    if (ev.assignees && ev.assignees.length) {
+        html += '<span class="chip-badges">';
+        ev.assignees.forEach(a => {
+            const nm = (a.name || '').trim();
+            if (nm) html += `<span class="ev-assignee-badge" title="${nm}">${nm}</span>`;
+        });
+        html += '</span>';
+    }
     return html;
 }
 

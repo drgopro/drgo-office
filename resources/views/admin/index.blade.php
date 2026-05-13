@@ -191,6 +191,7 @@
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="clientFields">의뢰자 필드</button>
+        <button class="tab-btn" data-tab="assignees">담당자 관리</button>
         <button class="tab-btn" data-tab="calendarCategories">캘린더 카테고리</button>
         <button class="tab-btn" data-tab="seller">판매처 설정</button>
     </div>
@@ -389,6 +390,56 @@
         </div>
     </div>
 
+    {{-- 담당자 관리 --}}
+    <div class="tab-panel" id="panel-assignees">
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                일정에 배정할 수 있는 담당자 풀입니다.<br>
+                <span style="opacity:0.7;">시스템 사용자(직원)는 자동 동기화됩니다. <b>외부 담당자</b>(프리랜서/협력사 등)는 여기서 직접 추가하세요.</span>
+            </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openAssigneeModal(null)">+ 외부 담당자 추가</button>
+        </div>
+        <div id="assigneesContainer"></div>
+    </div>
+
+    {{-- 담당자 추가/편집 모달 --}}
+    <div id="assigneeModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeAssigneeModal()">
+        <div class="cf-modal">
+            <h3>
+                <span id="assigneeModalTitle">+ 외부 담당자 추가</span>
+                <button type="button" class="close-btn" onclick="closeAssigneeModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub" id="assigneeModalSub">외부 인력(프리랜서/협력사 등)을 담당자 풀에 추가합니다.</div>
+            <input type="hidden" id="assigneeIdInput">
+            <input type="hidden" id="assigneeIsInternal" value="0">
+
+            <div class="field-group">
+                <div class="field-label">이름 *</div>
+                <input type="text" class="field-input" id="assigneeNameInput" placeholder="예: 황진선">
+            </div>
+
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">표시 순서</div>
+                    <input type="number" class="field-input" id="assigneeOrderInput" value="0">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">상태</div>
+                    <select class="field-input" id="assigneeActiveSel">
+                        <option value="1">활성</option>
+                        <option value="0">비활성</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="cf-modal-actions">
+                <button class="btn-danger-outline" id="assigneeDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteAssigneeFromModal()">삭제</button>
+                <button class="btn-outline" onclick="closeAssigneeModal()">취소</button>
+                <button class="btn-save" onclick="saveAssignee()">저장</button>
+            </div>
+        </div>
+    </div>
+
     {{-- 캘린더 카테고리 --}}
     <div class="tab-panel" id="panel-calendarCategories">
         <div class="cf-toolbar">
@@ -512,9 +563,125 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
         if (tab === 'clientFields') loadClientFields();
+        if (tab === 'assignees') loadAssigneesAdmin();
         if (tab === 'calendarCategories') loadCalendarCategories();
     });
 });
+
+// ── 담당자 관리 ──
+let assigneesAdminList = [];
+async function loadAssigneesAdmin() {
+    const res = await fetch('/api/assignees/manage', { headers:{ 'Accept':'application/json' } });
+    if (!res.ok) { document.getElementById('assigneesContainer').innerHTML = '<div style="padding:30px; text-align:center; color:var(--red);">로드 실패</div>'; return; }
+    assigneesAdminList = await res.json();
+    renderAssigneesAdmin();
+}
+function renderAssigneesAdmin() {
+    const container = document.getElementById('assigneesContainer');
+    if (!assigneesAdminList.length) {
+        container.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted);">등록된 담당자가 없습니다.</div>';
+        return;
+    }
+    const internal = assigneesAdminList.filter(a => !a.is_external);
+    const external = assigneesAdminList.filter(a => a.is_external);
+
+    const row = a => {
+        const badge = a.is_external
+            ? '<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(232,137,74,0.18); color:var(--teal); font-weight:600;">외부</span>'
+            : `<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(138,180,200,0.18); color:var(--blue); font-weight:600;">내부 · ${escAd(a.user?.role||'')}</span>`;
+        const status = a.is_active
+            ? '<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(122,200,122,0.18); color:var(--green); font-weight:600;">활성</span>'
+            : '<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:var(--surface2); color:var(--text-muted); font-weight:600;">비활성</span>';
+        return `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:6px;">
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:600; font-size:13px;">${escAd(a.name)}</div>
+                <div style="display:flex; gap:6px; margin-top:4px; align-items:center; flex-wrap:wrap;">
+                    ${badge}${status}
+                    <span style="font-size:11px; color:var(--text-muted);">순서: ${a.display_order}</span>
+                </div>
+            </div>
+            <button class="btn-outline" style="padding:5px 10px; font-size:11px;" onclick="openAssigneeModal(${a.id})">편집</button>
+        </div>`;
+    };
+
+    let html = '';
+    if (external.length) {
+        html += '<div style="font-size:11px; color:var(--text-muted); margin:8px 0 6px; letter-spacing:0.04em;">외부 담당자 (수동 등록)</div>';
+        html += external.map(row).join('');
+    }
+    if (internal.length) {
+        html += '<div style="font-size:11px; color:var(--text-muted); margin:14px 0 6px; letter-spacing:0.04em;">내부 담당자 (시스템 사용자 자동 동기화)</div>';
+        html += internal.map(row).join('');
+    }
+    container.innerHTML = html;
+}
+function escAd(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function openAssigneeModal(id) {
+    const a = id ? assigneesAdminList.find(x => x.id === id) : null;
+    const isEdit = !!a;
+    const isInternal = isEdit && !a.is_external;
+    document.getElementById('assigneeModalTitle').textContent = isEdit
+        ? (isInternal ? '내부 담당자 편집' : '외부 담당자 편집')
+        : '+ 외부 담당자 추가';
+    document.getElementById('assigneeModalSub').textContent = isInternal
+        ? '내부 담당자(시스템 사용자)는 이름이 사용자 계정과 동기화되므로 표시 순서·활성 여부만 변경할 수 있습니다.'
+        : '외부 인력(프리랜서/협력사 등)을 담당자 풀에 추가합니다.';
+    document.getElementById('assigneeIdInput').value = id || '';
+    document.getElementById('assigneeIsInternal').value = isInternal ? '1' : '0';
+    const nameEl = document.getElementById('assigneeNameInput');
+    nameEl.value = a?.name || '';
+    nameEl.disabled = isInternal;
+    document.getElementById('assigneeOrderInput').value = a?.display_order ?? 0;
+    document.getElementById('assigneeActiveSel').value = a?.is_active === false ? '0' : '1';
+    document.getElementById('assigneeDeleteBtn').style.display = (isEdit && !isInternal) ? 'inline-block' : 'none';
+    document.getElementById('assigneeModalOverlay').classList.add('open');
+}
+function closeAssigneeModal() {
+    document.getElementById('assigneeModalOverlay').classList.remove('open');
+}
+async function saveAssignee() {
+    const id = document.getElementById('assigneeIdInput').value;
+    const isInternal = document.getElementById('assigneeIsInternal').value === '1';
+    const body = {
+        display_order: parseInt(document.getElementById('assigneeOrderInput').value, 10) || 0,
+        is_active: document.getElementById('assigneeActiveSel').value === '1',
+    };
+    if (!isInternal) {
+        const name = document.getElementById('assigneeNameInput').value.trim();
+        if (!name) { alert('이름을 입력하세요.'); return; }
+        body.name = name;
+    }
+    const url = id ? `/api/assignees/${id}` : '/api/assignees';
+    const method = id ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+        method,
+        headers: {'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content},
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        const e = await res.json().catch(()=>({}));
+        alert(e.message || Object.values(e.errors||{}).flat().join('\n') || '저장 실패');
+        return;
+    }
+    closeAssigneeModal();
+    loadAssigneesAdmin();
+}
+async function deleteAssigneeFromModal() {
+    const id = document.getElementById('assigneeIdInput').value;
+    if (!id || !confirm('이 외부 담당자를 삭제하시겠습니까?')) return;
+    const res = await fetch(`/api/assignees/${id}`, {
+        method:'DELETE',
+        headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'},
+    });
+    if (!res.ok) {
+        const e = await res.json().catch(()=>({}));
+        alert(e.message || '삭제 실패');
+        return;
+    }
+    closeAssigneeModal();
+    loadAssigneesAdmin();
+}
 
 // ── 사용자 관리 ──
 async function loadUsers() {

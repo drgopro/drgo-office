@@ -79,6 +79,14 @@ Route::middleware('auth')->group(function () {
 
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
+
+    // 담당자 관리 (master/admin 전용 — 외부 담당자 추가/수정/삭제)
+    Route::middleware('role:master,admin')->group(function () {
+        Route::get('/api/assignees/manage', [AssigneeController::class, 'manage']);
+        Route::post('/api/assignees', [AssigneeController::class, 'store']);
+        Route::patch('/api/assignees/{assignee}', [AssigneeController::class, 'update']);
+        Route::delete('/api/assignees/{assignee}', [AssigneeController::class, 'destroy']);
+    });
     Route::get('/api/activity-logs', [ActivityLogController::class, 'index']);
 
     // 의뢰자 JSON API
