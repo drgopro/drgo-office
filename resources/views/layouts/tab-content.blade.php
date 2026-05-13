@@ -7,6 +7,12 @@ try {
     const saved = localStorage.getItem('drgo_theme');
     if (saved) document.documentElement.setAttribute('data-theme', saved);
 }
+// iframe 내부 표시 — body.in-iframe 클래스 부착 (페이지마다 chrome(헤더+탭바) 영역 만큼 잘리는 현상 방지)
+(function(){
+    function apply(){ if (window !== window.top && document.body) document.body.classList.add('in-iframe'); }
+    if (document.body) apply();
+    else document.addEventListener('DOMContentLoaded', apply, { once:true });
+})();
 </script>
 <style>
 /* tab-content 기본 CSS 변수 */
@@ -40,7 +46,7 @@ try {
 [data-theme="light"] .stage-done { background:#e8eaef; color:#5a6070; }
 
 /* ── dvh 지원 ── */
-:root { --full-h: 100vh; }
+:root { --full-h: 100vh; --chrome-h: 0px; }
 @supports (height: 100dvh) { :root { --full-h: 100dvh; } }
 
 /* ── 모바일 기본 스타일 (iframe 내부 모든 페이지 적용) ── */
