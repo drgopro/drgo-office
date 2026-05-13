@@ -61,6 +61,9 @@
     .client-tab .ct-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.1s; }
     .client-tab:hover .ct-close { opacity:0.5; }
     .client-tab .ct-close:hover { opacity:1; background:var(--border); }
+    .client-tab[draggable="true"] { cursor:grab; }
+    .client-tab.ct-dragging { opacity:0.4; }
+    .client-tab.ct-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
     .client-tab-add { padding:4px 8px; font-size:14px; color:var(--text-muted); cursor:pointer; background:none; border:none; border-radius:4px; }
     .client-tab-add:hover { color:var(--accent); background:var(--surface2); }
 
@@ -589,12 +592,52 @@ function renderClientTabs() {
     bar.innerHTML = openClientTabs.map(t => {
         const cls = t.id === activeClientId ? 'active' : '';
         const initials = (t.nickname || t.name).substring(0, 2);
-        return `<button class="client-tab ${cls}" onclick="activateClientTab(${t.id})">
+        return `<button class="client-tab ${cls}" draggable="true" data-client-id="${t.id}" onclick="activateClientTab(${t.id})">
             <span class="ct-avatar" style="color:${GRADE_COLORS[t.grade]};border-color:${GRADE_COLORS[t.grade]}">${initials}</span>
             ${t.nickname || t.name}
             <span class="ct-close" onclick="closeClientTab(${t.id}, event)">✕</span>
         </button>`;
     }).join('');
+    bindClientTabDrag();
+}
+
+let _clientTabDragId = null;
+function bindClientTabDrag() {
+    const bar = document.getElementById('clientTabBar');
+    bar.querySelectorAll('.client-tab').forEach(el => {
+        el.addEventListener('dragstart', e => {
+            _clientTabDragId = +el.dataset.clientId;
+            el.classList.add('ct-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            try { e.dataTransfer.setData('text/plain', el.dataset.clientId); } catch (_) {}
+        });
+        el.addEventListener('dragend', () => {
+            el.classList.remove('ct-dragging');
+            bar.querySelectorAll('.ct-drag-over').forEach(x => x.classList.remove('ct-drag-over'));
+            _clientTabDragId = null;
+        });
+        el.addEventListener('dragover', e => {
+            if (_clientTabDragId == null || +el.dataset.clientId === _clientTabDragId) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            el.classList.add('ct-drag-over');
+        });
+        el.addEventListener('dragleave', () => el.classList.remove('ct-drag-over'));
+        el.addEventListener('drop', e => {
+            e.preventDefault();
+            el.classList.remove('ct-drag-over');
+            const fromId = _clientTabDragId;
+            const toId = +el.dataset.clientId;
+            if (fromId == null || fromId === toId) return;
+            const fromIdx = openClientTabs.findIndex(t => t.id === fromId);
+            const toIdx = openClientTabs.findIndex(t => t.id === toId);
+            if (fromIdx < 0 || toIdx < 0) return;
+            const [moved] = openClientTabs.splice(fromIdx, 1);
+            openClientTabs.splice(toIdx, 0, moved);
+            renderClientTabs();
+            saveClientTabs();
+        });
+    });
 }
 
 const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',as:'AS',done:'완료',cancelled:'취소'};

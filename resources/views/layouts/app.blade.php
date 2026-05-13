@@ -142,6 +142,9 @@
         .tab-item.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface); }
         .tab-item .tab-icon { font-size:11px; }
         .tab-item .tab-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.12s; margin-left:2px; }
+        .tab-item[draggable="true"] { cursor:grab; }
+        .tab-item.tab-dragging { opacity:0.4; }
+        .tab-item.tab-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
         .tab-item:hover .tab-close { opacity:0.5; }
         .tab-item .tab-close:hover { opacity:1; background:var(--border); }
 
@@ -506,8 +509,49 @@ const drgoTabs = {
             const cls = t.id === this.activeId ? 'active' : '';
             const close = this.tabs.length > 1
                 ? `<span class="tab-close" onclick="event.stopPropagation(); drgoTabs.close('${t.id}')">✕</span>` : '';
-            return `<button class="tab-item ${cls}" onclick="drgoTabs.activate('${t.id}')"><span class="tab-icon">${icon}</span>${label}${close}</button>`;
+            return `<button class="tab-item ${cls}" draggable="true" data-tab-id="${t.id}" onclick="drgoTabs.activate('${t.id}')"><span class="tab-icon">${icon}</span>${label}${close}</button>`;
         }).join('');
+        this._bindTabDrag();
+    },
+
+    _dragId: null,
+    _bindTabDrag() {
+        const strip = document.getElementById('tabStrip');
+        const items = strip.querySelectorAll('.tab-item');
+        items.forEach(el => {
+            el.addEventListener('dragstart', e => {
+                this._dragId = el.dataset.tabId;
+                el.classList.add('tab-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', el.dataset.tabId); } catch (_) {}
+            });
+            el.addEventListener('dragend', () => {
+                el.classList.remove('tab-dragging');
+                strip.querySelectorAll('.tab-drag-over').forEach(x => x.classList.remove('tab-drag-over'));
+                this._dragId = null;
+            });
+            el.addEventListener('dragover', e => {
+                if (!this._dragId || el.dataset.tabId === this._dragId) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                el.classList.add('tab-drag-over');
+            });
+            el.addEventListener('dragleave', () => el.classList.remove('tab-drag-over'));
+            el.addEventListener('drop', e => {
+                e.preventDefault();
+                el.classList.remove('tab-drag-over');
+                const fromId = this._dragId;
+                const toId = el.dataset.tabId;
+                if (!fromId || fromId === toId) return;
+                const fromIdx = this.tabs.findIndex(t => t.id === fromId);
+                const toIdx = this.tabs.findIndex(t => t.id === toId);
+                if (fromIdx < 0 || toIdx < 0) return;
+                const [moved] = this.tabs.splice(fromIdx, 1);
+                this.tabs.splice(toIdx, 0, moved);
+                this.render();
+                this._save();
+            });
+        });
     },
 
     closeMenu() { document.getElementById('tabMenu').classList.remove('open'); },
