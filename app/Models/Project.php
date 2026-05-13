@@ -28,6 +28,7 @@ class Project extends Model
         'cancelled_at',
         'custom_data',
         'payment_info',
+        'stage_data',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Project extends Model
         'cancelled_at' => 'datetime',
         'custom_data' => 'array',
         'payment_info' => 'array',
+        'stage_data' => 'array',
     ];
 
     public function client()

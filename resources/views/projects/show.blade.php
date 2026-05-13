@@ -280,15 +280,27 @@
         }
     @endphp
 
+    @php
+        // 단계별 전용 모달 매핑 — 단계 클릭 시 form submit 대신 해당 JS 함수 호출
+        $stageModals = [
+            'equipment' => 'openEquipmentModal',
+            'proposal' => 'openProposalModal',
+            'estimate' => 'openEstimateInfoModal',
+            'payment' => 'openPaymentModal',
+            'visit' => 'openVisitReportModal',
+        ];
+    @endphp
     <div class="process-wrap">
-        <div class="process-title">진행 단계 — 클릭하여 변경</div>
+        <div class="process-title">진행 단계 — 클릭하여 변경 (단계별 상세 입력 가능)</div>
         <div class="process-steps">
             @foreach($stages as $key => $label)
-            @php $idx = array_search($key, $stageKeys); @endphp
+            @php
+                $idx = array_search($key, $stageKeys);
+                $modalFn = $stageModals[$key] ?? null;
+            @endphp
             <div class="process-step">
-                @if($key === 'payment')
-                    {{-- 결제 단계는 form 대신 모달 호출 --}}
-                    <button type="button" class="step-dot {{ $idx < $currentIdx ? 'done' : ($idx === $currentIdx ? 'active' : '') }}" title="{{ $label }} — 결제 정보 입력" onclick="openPaymentModal()">
+                @if($modalFn)
+                    <button type="button" class="step-dot {{ $idx < $currentIdx ? 'done' : ($idx === $currentIdx ? 'active' : '') }}" title="{{ $label }} — 상세 입력" onclick="{{ $modalFn }}()">
                         {{ $idx < $currentIdx ? '✓' : $idx + 1 }}
                     </button>
                 @else
@@ -357,7 +369,81 @@
             <textarea id="memoEdit" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
         </div>
 
-        @php $payment = $project->payment_info ?? null; @endphp
+        @php
+            $payment = $project->payment_info ?? null;
+            $sdata = $project->stage_data ?? [];
+            $eqData = $sdata['equipment'] ?? null;
+            $proposalData = $sdata['proposal'] ?? null;
+            $estimateData = $sdata['estimate'] ?? null;
+            $visitData = $sdata['visit'] ?? null;
+        @endphp
+
+        <!-- 장비파악 요약 -->
+        @if($eqData && (!empty($eqData['summary']) || !empty($eqData['items'])))
+        <div class="info-card full">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📦 장비 파악 요약</span>
+                <button type="button" onclick="openEquipmentModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+            </div>
+            @if(!empty($eqData['summary']))
+                <div style="font-size:13px; color:var(--text); white-space:pre-wrap; margin-bottom:8px;">{{ $eqData['summary'] }}</div>
+            @endif
+            @if(!empty($eqData['items']))
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                @foreach($eqData['items'] as $it)
+                    <div style="display:flex; gap:8px; font-size:12px;">
+                        <span style="flex:1; color:var(--text);">{{ $it['name'] ?? '-' }}</span>
+                        <span style="color:var(--text-muted);">{{ $it['qty'] ?? '' }}{{ !empty($it['note']) ? ' · '.$it['note'] : '' }}</span>
+                    </div>
+                @endforeach
+                </div>
+            @endif
+        </div>
+        @endif
+
+        <!-- 일정제안 (연결 캘린더 일정) -->
+        @if($proposalData && (!empty($proposalData['schedule_ids']) || !empty($proposalData['note'])))
+        <div class="info-card full">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📅 일정 제안</span>
+                <button type="button" onclick="openProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+            </div>
+            <div id="proposalSummary" data-ids='@json($proposalData['schedule_ids'] ?? [])' style="font-size:13px; color:var(--text-muted);">불러오는 중...</div>
+            @if(!empty($proposalData['note']))
+                <div style="margin-top:8px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $proposalData['note'] }}</div>
+            @endif
+        </div>
+        @endif
+
+        <!-- 견적/계약 (연동 견적서) -->
+        @if($estimateData && (!empty($estimateData['estimate_ids']) || !empty($estimateData['note'])))
+        <div class="info-card full">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📝 견적/계약</span>
+                <button type="button" onclick="openEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
+            @foreach(($estimateData['estimate_ids'] ?? []) as $eid)
+                <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $eid }}</a>
+            @endforeach
+            </div>
+            @if(!empty($estimateData['note']))
+                <div style="margin-top:8px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $estimateData['note'] }}</div>
+            @endif
+        </div>
+        @endif
+
+        <!-- 방문 보고서 -->
+        @if($visitData && !empty($visitData['report']))
+        <div class="info-card full">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>🛠 방문 보고서</span>
+                <button type="button" onclick="openVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+            </div>
+            <div style="font-size:13px; color:var(--text); white-space:pre-wrap; line-height:1.55;">{{ $visitData['report'] }}</div>
+        </div>
+        @endif
+
         <!-- 결제 정보 카드 (입력되어 있을 때만) -->
         @if($payment && (($payment['amount'] ?? 0) > 0 || !empty($payment['estimate_id']) || !empty($payment['items'])))
         <div class="info-card full" id="paymentInfoCard">
@@ -390,6 +476,105 @@
             </div>
         </div>
         @endif
+
+        @php
+            $sdModalStyle = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;';
+            $sdInnerStyle = 'background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:640px; max-height:90vh; overflow-y:auto;';
+            $sdHeadStyle = 'display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);';
+            $sdBodyStyle = 'padding:18px 20px; display:flex; flex-direction:column; gap:14px;';
+            $sdFootStyle = 'display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);';
+            $sdInputStyle = 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box;';
+            $sdLabelStyle = 'font-size:11px;color:var(--text-muted);margin-bottom:4px;';
+        @endphp
+
+        <!-- 장비 파악 모달 -->
+        <div id="equipmentModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeEquipmentModal()">
+            <div class="modal" style="{{ $sdInnerStyle }}">
+                <div style="{{ $sdHeadStyle }}">
+                    <div style="font-size:15px; font-weight:700;">📦 장비 파악</div>
+                    <button type="button" onclick="closeEquipmentModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <div style="{{ $sdBodyStyle }}">
+                    <div>
+                        <div style="{{ $sdLabelStyle }}">요약 / 메모</div>
+                        <textarea id="eqSummary" rows="3" placeholder="장비 파악 결과를 자유롭게 정리하세요." style="{{ $sdInputStyle }} resize:vertical;"></textarea>
+                    </div>
+                    <div>
+                        <div style="{{ $sdLabelStyle }} display:flex; justify-content:space-between; align-items:center;">
+                            <span>수집한 장비 목록</span>
+                            <button type="button" onclick="addEqItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 8px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목</button>
+                        </div>
+                        <div id="eqItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+                </div>
+                <div style="{{ $sdFootStyle }}">
+                    <button type="button" onclick="closeEquipmentModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveStageData('equipment', collectEquipment(), 'equipment')" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 일정제안 모달 -->
+        <div id="proposalModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeProposalModal()">
+            <div class="modal" style="{{ $sdInnerStyle }}">
+                <div style="{{ $sdHeadStyle }}">
+                    <div style="font-size:15px; font-weight:700;">📅 일정 제안 · 캘린더 일정 연동</div>
+                    <button type="button" onclick="closeProposalModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <div style="{{ $sdBodyStyle }}">
+                    <div style="font-size:11px; color:var(--text-muted);">의뢰자 이름과 일치하는 캘린더 일정 후보입니다. 이 프로젝트에 연결할 일정을 체크해 주세요.</div>
+                    <div id="proposalSchedulesList" style="display:flex; flex-direction:column; gap:6px; max-height:380px; overflow-y:auto; padding:4px 2px;"></div>
+                    <div>
+                        <div style="{{ $sdLabelStyle }}">메모</div>
+                        <textarea id="proposalNote" rows="2" placeholder="일정 제안 관련 메모" style="{{ $sdInputStyle }} resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="{{ $sdFootStyle }}">
+                    <button type="button" onclick="closeProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveProposal()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 견적/계약 모달 -->
+        <div id="estimateInfoModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeEstimateInfoModal()">
+            <div class="modal" style="{{ $sdInnerStyle }}">
+                <div style="{{ $sdHeadStyle }}">
+                    <div style="font-size:15px; font-weight:700;">📝 견적/계약 연동</div>
+                    <button type="button" onclick="closeEstimateInfoModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <div style="{{ $sdBodyStyle }}">
+                    <div style="font-size:11px; color:var(--text-muted);">이 의뢰자의 견적서 목록입니다. 이 프로젝트에 연결할 견적서를 체크해 주세요.</div>
+                    <div id="estimateInfoList" style="display:flex; flex-direction:column; gap:6px; max-height:380px; overflow-y:auto; padding:4px 2px;"></div>
+                    <div>
+                        <div style="{{ $sdLabelStyle }}">메모</div>
+                        <textarea id="estimateInfoNote" rows="2" placeholder="견적/계약 관련 메모" style="{{ $sdInputStyle }} resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="{{ $sdFootStyle }}">
+                    <button type="button" onclick="closeEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveEstimateInfo()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 방문 보고서 모달 -->
+        <div id="visitReportModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeVisitReportModal()">
+            <div class="modal" style="{{ $sdInnerStyle }} max-width:820px;">
+                <div style="{{ $sdHeadStyle }}">
+                    <div style="font-size:15px; font-weight:700;">🛠 방문 보고서</div>
+                    <button type="button" onclick="closeVisitReportModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <div style="{{ $sdBodyStyle }}">
+                    <div style="font-size:11px; color:var(--text-muted);">방문 현장 상황, 진행한 작업, 특이사항 등을 자유롭게 작성합니다.</div>
+                    <textarea id="visitReportText" rows="14" placeholder="예:&#10;• 방문 일시: 2026-05-13 14:00&#10;• 동행: 김광래, 황진선&#10;• 작업 내역: 카메라 설치, 음향 세팅 등&#10;• 특이사항: …" style="{{ $sdInputStyle }} resize:vertical; line-height:1.6; min-height:300px;"></textarea>
+                </div>
+                <div style="{{ $sdFootStyle }}">
+                    <button type="button" onclick="closeVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveVisitReport()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
 
         <!-- 결제 정보 모달 -->
         <div id="paymentModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closePaymentModal()">
@@ -1346,6 +1531,182 @@ async function pcfSave() {
 
 loadProjectFieldsForShow();
 
+// ── 단계별 데이터 (stage_data) 공통 ──
+const INITIAL_STAGE_DATA = @json($project->stage_data ?? new \stdClass);
+
+async function saveStageData(key, data, advanceTo = null) {
+    const res = await fetch(`/api/projects/${PROJECT_ID}/stage-data`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+        body: JSON.stringify({ key, data, advance_to: advanceTo }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+        return false;
+    }
+    // 페이지 리로드해 요약 카드와 stage 변경 반영
+    location.reload();
+    return true;
+}
+
+// ── 장비 파악 ──
+function openEquipmentModal() {
+    const eq = INITIAL_STAGE_DATA.equipment || {};
+    document.getElementById('eqSummary').value = eq.summary || '';
+    const wrap = document.getElementById('eqItemsWrap');
+    wrap.innerHTML = '';
+    const items = (eq.items && eq.items.length) ? eq.items : [{name:'', qty:'', note:''}];
+    items.forEach(it => addEqItem(it));
+    document.getElementById('equipmentModalOverlay').style.display = 'flex';
+}
+function closeEquipmentModal() {
+    document.getElementById('equipmentModalOverlay').style.display = 'none';
+}
+function addEqItem(it = {name:'',qty:'',note:''}) {
+    const wrap = document.getElementById('eqItemsWrap');
+    const row = document.createElement('div');
+    row.className = 'eq-item-row';
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="장비명" data-eq="name" style="flex:2;">
+        <input type="text" class="pcf-input" value="${pcfEsc(it.qty||'')}" placeholder="수량" data-eq="qty" style="flex:0.7; max-width:90px;">
+        <input type="text" class="pcf-input" value="${pcfEsc(it.note||'')}" placeholder="비고" data-eq="note" style="flex:2;">
+        <button type="button" onclick="this.parentElement.remove()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;border-radius:5px;font-size:11px;cursor:pointer;">×</button>
+    `;
+    wrap.appendChild(row);
+}
+function collectEquipment() {
+    const items = [];
+    document.querySelectorAll('#eqItemsWrap .eq-item-row').forEach(row => {
+        const name = row.querySelector('[data-eq="name"]').value.trim();
+        const qty = row.querySelector('[data-eq="qty"]').value.trim();
+        const note = row.querySelector('[data-eq="note"]').value.trim();
+        if (name) items.push({name, qty, note});
+    });
+    return {
+        summary: document.getElementById('eqSummary').value.trim(),
+        items,
+    };
+}
+
+// ── 일정제안 ──
+let proposalScheduleCache = [];
+async function openProposalModal() {
+    const wrap = document.getElementById('proposalSchedulesList');
+    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">불러오는 중...</div>';
+    document.getElementById('proposalModalOverlay').style.display = 'flex';
+    const cur = INITIAL_STAGE_DATA.proposal || {};
+    const selectedIds = cur.schedule_ids || [];
+    document.getElementById('proposalNote').value = cur.note || '';
+
+    const res = await fetch(`/api/projects/${PROJECT_ID}/schedules`, {headers:{'Accept':'application/json'}});
+    if (!res.ok) { wrap.innerHTML = '<div style="padding:14px; color:var(--red);">로드 실패</div>'; return; }
+    proposalScheduleCache = await res.json();
+    if (!proposalScheduleCache.length) {
+        wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">의뢰자 이름이 일치하는 캘린더 일정이 없습니다.<br>먼저 캘린더에 일정을 등록해주세요.</div>';
+        return;
+    }
+    wrap.innerHTML = proposalScheduleCache.map(s => {
+        const checked = selectedIds.includes(s.id);
+        const dateLabel = s.start_date + (s.end_date && s.end_date !== s.start_date ? ' ~ '+s.end_date : '');
+        const timeLabel = s.is_all_day ? '종일' : (s.start_time ? s.start_time.slice(0,5)+(s.end_time?'-'+s.end_time.slice(0,5):'') : '');
+        return `<label style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); cursor:pointer;">
+            <input type="checkbox" value="${s.id}" ${checked?'checked':''} class="prop-sch-cb">
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600;">${pcfEsc(s.title||'(제목 없음)')}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel?' · '+timeLabel:''}${s.location?' · '+pcfEsc(s.location):''}</div>
+            </div>
+        </label>`;
+    }).join('');
+}
+function closeProposalModal() {
+    document.getElementById('proposalModalOverlay').style.display = 'none';
+}
+async function saveProposal() {
+    const ids = [...document.querySelectorAll('#proposalSchedulesList .prop-sch-cb:checked')].map(c => parseInt(c.value, 10));
+    await saveStageData('proposal', {
+        schedule_ids: ids,
+        note: document.getElementById('proposalNote').value.trim(),
+    }, 'proposal');
+}
+
+// 페이지 로드 시 일정제안 요약(card)에 일정 제목 채우기
+(async function fillProposalSummary() {
+    const el = document.getElementById('proposalSummary');
+    if (!el) return;
+    const ids = JSON.parse(el.dataset.ids || '[]');
+    if (!ids.length) { el.textContent = '연결된 일정 없음'; return; }
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}/schedules`, {headers:{'Accept':'application/json'}});
+        const all = res.ok ? await res.json() : [];
+        const linked = all.filter(s => ids.includes(s.id));
+        if (!linked.length) { el.textContent = `연결된 일정 ID: ${ids.join(', ')} (캘린더에서 삭제됨)`; return; }
+        el.innerHTML = linked.map(s => {
+            const dateLabel = s.start_date + (s.end_date && s.end_date !== s.start_date ? ' ~ '+s.end_date : '');
+            return `<div style="display:flex; gap:8px; align-items:center; font-size:13px; margin-bottom:3px;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--chip-${s.color||'gold'}-bg);"></span><span>${pcfEsc(s.title||'(제목 없음)')}</span><span style="color:var(--text-muted); font-size:11px;">${dateLabel}</span></div>`;
+        }).join('');
+    } catch { el.textContent = ''; }
+})();
+
+// ── 견적/계약 ──
+let estimateInfoCache = [];
+async function openEstimateInfoModal() {
+    const wrap = document.getElementById('estimateInfoList');
+    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">불러오는 중...</div>';
+    document.getElementById('estimateInfoModalOverlay').style.display = 'flex';
+    const cur = INITIAL_STAGE_DATA.estimate || {};
+    const selectedIds = cur.estimate_ids || [];
+    document.getElementById('estimateInfoNote').value = cur.note || '';
+
+    const res = await fetch(`/api/projects/${PROJECT_ID}/payment-estimates`, {headers:{'Accept':'application/json'}});
+    if (!res.ok) { wrap.innerHTML = '<div style="padding:14px; color:var(--red);">로드 실패</div>'; return; }
+    estimateInfoCache = await res.json();
+    if (!estimateInfoCache.length) {
+        wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">이 의뢰자의 견적서가 없습니다.<br>견적서 페이지에서 먼저 생성해주세요.</div>';
+        return;
+    }
+    const STATUS = {temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류'};
+    wrap.innerHTML = estimateInfoCache.map(e => {
+        const checked = selectedIds.includes(e.id);
+        const status = STATUS[e.status] || e.status;
+        const name = e.client_nickname || e.client_name || '의뢰자';
+        return `<label style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); cursor:pointer;">
+            <input type="checkbox" value="${e.id}" ${checked?'checked':''} class="est-cb">
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600;">#${e.id} · ${pcfEsc(name)} <span style="font-size:11px; color:var(--text-muted); font-weight:400;">${e.is_linked?'★ 연결됨':''}</span></div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${(e.total_amount||0).toLocaleString()}원 · ${status} · ${e.issued_at||e.created_at||'-'} · 상품 ${e.items_summary.products}건/서비스 ${e.items_summary.services}건</div>
+            </div>
+            <a href="/estimates/${e.id}/edit" target="_blank" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; text-decoration:none;" onclick="event.stopPropagation();">열기 ↗</a>
+        </label>`;
+    }).join('');
+}
+function closeEstimateInfoModal() {
+    document.getElementById('estimateInfoModalOverlay').style.display = 'none';
+}
+async function saveEstimateInfo() {
+    const ids = [...document.querySelectorAll('#estimateInfoList .est-cb:checked')].map(c => parseInt(c.value, 10));
+    await saveStageData('estimate', {
+        estimate_ids: ids,
+        note: document.getElementById('estimateInfoNote').value.trim(),
+    }, 'estimate');
+}
+
+// ── 방문 보고서 ──
+function openVisitReportModal() {
+    const v = INITIAL_STAGE_DATA.visit || {};
+    document.getElementById('visitReportText').value = v.report || '';
+    document.getElementById('visitReportModalOverlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('visitReportText').focus(), 50);
+}
+function closeVisitReportModal() {
+    document.getElementById('visitReportModalOverlay').style.display = 'none';
+}
+async function saveVisitReport() {
+    const text = document.getElementById('visitReportText').value.trim();
+    await saveStageData('visit', { report: text }, 'visit');
+}
+
 // ── 결제 정보 모달 ──
 let payEstimatesList = [];
 const initialPayment = @json($project->payment_info ?? new \stdClass);
@@ -1448,7 +1809,10 @@ async function savePayment() {
 }
 
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeConsultModal(); closeEditModal(); closeAlbum(); closePaymentModal(); }
+    if (e.key === 'Escape') {
+        closeConsultModal(); closeEditModal(); closeAlbum(); closePaymentModal();
+        closeEquipmentModal(); closeProposalModal(); closeEstimateInfoModal(); closeVisitReportModal();
+    }
     if (document.getElementById('albumOverlay').classList.contains('open')) {
         if (e.key === 'ArrowLeft') albumNav(-1);
         if (e.key === 'ArrowRight') albumNav(1);

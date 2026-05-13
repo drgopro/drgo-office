@@ -6,6 +6,8 @@ use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectMemo;
+use App\Models\Schedule;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -260,6 +262,81 @@ class ProjectController extends Controller
             'project' => $project->fresh(),
             'payment' => $payment,
         ]);
+    }
+
+    /**
+     * 단계별 데이터 저장 — equipment/proposal/estimate/visit 등
+     *
+     * body: { key: 'equipment', data: {...}, advance_to: 'equipment' (선택) }
+     *   advance_to가 주어지고 현재 stage보다 뒤면 stage를 거기로 진행.
+     */
+    public function saveStageData(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'key' => 'required|string|max:30|alpha_dash',
+            'data' => 'nullable|array',
+            'advance_to' => 'nullable|string',
+        ]);
+
+        $stageData = $project->stage_data ?? [];
+        $stageData[$validated['key']] = array_merge(
+            $validated['data'] ?? [],
+            ['updated_at' => now()->toIso8601String(), 'updated_by' => Auth::id()]
+        );
+
+        $project->update(['stage_data' => $stageData]);
+
+        // stage 자동 진행
+        $stageOrder = ['consulting', 'equipment', 'proposal', 'estimate', 'payment', 'visit', 'as', 'done'];
+        $advance = $validated['advance_to'] ?? null;
+        if ($advance && in_array($advance, $stageOrder, true)) {
+            $curIdx = array_search($project->stage, $stageOrder, true);
+            $tgtIdx = array_search($advance, $stageOrder, true);
+            if ($curIdx === false || $curIdx < $tgtIdx) {
+                $project->update(['stage' => $advance]);
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'stage_data' => $project->stage_data,
+            'stage' => $project->stage,
+        ]);
+    }
+
+    /**
+     * 일정제안 모달용 — 같은 의뢰자(client_name 매칭)의 캘린더 일정 목록.
+     */
+    public function projectSchedules(Project $project): JsonResponse
+    {
+        $client = $project->client;
+        $names = array_filter([$client?->name, $client?->nickname]);
+
+        $q = Schedule::query();
+        if (! empty($names)) {
+            $q->where(function ($qq) use ($names) {
+                foreach ($names as $n) {
+                    $qq->orWhere('client_name', 'like', '%'.$n.'%');
+                }
+            });
+        }
+        $schedules = $q->orderByDesc('start_date')
+            ->limit(100)
+            ->get(['id', 'title', 'client_name', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'location'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'client_name' => $s->client_name,
+                'start_date' => $s->start_date instanceof Carbon ? $s->start_date->format('Y-m-d') : $s->start_date,
+                'end_date' => $s->end_date instanceof Carbon ? $s->end_date->format('Y-m-d') : $s->end_date,
+                'start_time' => $s->start_time,
+                'end_time' => $s->end_time,
+                'is_all_day' => $s->is_all_day,
+                'color' => $s->color,
+                'location' => $s->location,
+            ]);
+
+        return response()->json($schedules);
     }
 
     // 프로젝트 완전 삭제 (soft delete)

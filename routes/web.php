@@ -126,11 +126,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/projects/{project}/memos', [ProjectController::class, 'storeMemo']);
         Route::delete('/api/project-memos/{memo}', [ProjectController::class, 'destroyMemo']);
         Route::post('/api/projects/{project}/payment', [ProjectController::class, 'savePayment'])->name('projects.payment');
+        Route::post('/api/projects/{project}/stage-data', [ProjectController::class, 'saveStageData'])->name('projects.stageData');
     });
     Route::middleware('permission:projects.view')->group(function () {
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
         Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('/api/projects/{project}/payment-estimates', [ProjectController::class, 'paymentEstimates']);
+        Route::get('/api/projects/{project}/schedules', [ProjectController::class, 'projectSchedules']);
     });
 
     // 의뢰자 문서
