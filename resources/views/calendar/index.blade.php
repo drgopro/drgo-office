@@ -72,6 +72,10 @@
     .filter-btn.active.f-purple { background:rgba(180,122,200,0.15); border-color:var(--chip-purple-bg); }
     .filter-btn:not(.active) .filter-dot { opacity:0.25; }
     .filter-btn:not(.active) { opacity:0.55; }
+    .assignee-filter { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:5px 28px 5px 12px; color:var(--text); font-size:12px; outline:none; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat:no-repeat; background-position:right 10px center; }
+    .assignee-filter:focus { border-color:var(--accent); }
+    .assignee-filter.active-filter { border-color:var(--accent); color:var(--accent); }
+    [data-theme="light"] .assignee-filter { background-color:#fff; border-color:#a0a8b4; color:#4a5060; }
 
     /* ── 월간 뷰 ── */
     .calendar-wrap { padding:20px 32px; }
@@ -571,6 +575,9 @@
     @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
     <button class="filter-btn active f-{{ $__k }}" data-filter="{{ $__k }}" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-{{ $__k }}-bg)"></span>{{ $__c['label'] }}</button>
     @endforeach
+    <select class="assignee-filter" id="assigneeFilter" onchange="onAssigneeFilterChange()" title="담당자별 일정 필터">
+        <option value="">담당자 전체</option>
+    </select>
 </div>
 
 <!-- 월간 뷰 -->
@@ -1245,13 +1252,35 @@ function todayStr() { return fmt(new Date()); }
 
 // ── 필터 ──
 let activeFilters = new Set(['gold','teal','blue','red','green','purple','holiday']);
+let activeAssigneeId = null; // null이면 전체, 숫자면 해당 담당자만
 function toggleFilter(btn){
     const f=btn.dataset.filter;
     if(activeFilters.has(f)){activeFilters.delete(f);btn.classList.remove('active');}
     else{activeFilters.add(f);btn.classList.add('active');}
     renderView();
 }
-function isFiltered(ev){ return activeFilters.has(ev.color); }
+function isFiltered(ev){
+    if (!activeFilters.has(ev.color)) return false;
+    if (activeAssigneeId !== null) {
+        if (!Array.isArray(ev.assignees) || !ev.assignees.some(a => a.id === activeAssigneeId)) return false;
+    }
+    return true;
+}
+function populateAssigneeFilter() {
+    const sel = document.getElementById('assigneeFilter');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">담당자 전체</option>'
+        + assignees.map(a => `<option value="${a.id}">${(a.name||'').replace(/[<>&"]/g,'')}</option>`).join('');
+    if (current) sel.value = current;
+}
+function onAssigneeFilterChange() {
+    const sel = document.getElementById('assigneeFilter');
+    const v = sel.value;
+    activeAssigneeId = v ? +v : null;
+    sel.classList.toggle('active-filter', activeAssigneeId !== null);
+    renderView();
+}
 
 // ── 이벤트 칩 생성 헬퍼 ──
 const SPECIAL_ICONS={car:'🚗',brief:'💼',group:'👥',ladder:'▤'};
@@ -1263,8 +1292,8 @@ function buildChipHtml(ev){
     // 특수 아이콘
     const specOpts=ev.special_opts||[];
     specOpts.forEach(o=>{if(SPECIAL_ICONS[o]) html+=`<span class="chip-special">${SPECIAL_ICONS[o]}</span>`;});
-    // 제목
-    const title=isGuestUser?(ev.location||'일정'):((ev.client_name?ev.client_name+' ':'')+ev.title);
+    // 제목 (의뢰자 이름은 표시하지 않음)
+    const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
     html+=`<span>${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
@@ -1343,7 +1372,10 @@ async function loadEvents() {
 
 async function loadAssignees() {
     const res=await fetch('/api/assignees');
-    if(res.ok) assignees=await res.json();
+    if(res.ok) {
+        assignees=await res.json();
+        populateAssigneeFilter();
+    }
 }
 
 // ── 월간 뷰 ─────────────────────────────────────────────────────
@@ -1545,7 +1577,7 @@ function renderTimeline() {
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`;
             chip.style.marginBottom='2px';
-            chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):((ev.client_name?ev.client_name+' ':'')+ev.title);
+            chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):(ev.title||'');
             chip.onclick=()=>openDetailModal(ev);
             cell.appendChild(chip);
         });
@@ -1581,7 +1613,7 @@ function renderTimeline() {
                 const dur=(eh+em/60)-(hour+sm/60);
                 el.style.top=`${(sm/60)*48}px`;
                 el.style.height=`${Math.max(dur*48,20)}px`;
-                el.textContent=(ev.client_name?ev.client_name+' ':'')+ev.title;
+                el.textContent=ev.title||'';
                 el.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 slot.appendChild(el);
             });

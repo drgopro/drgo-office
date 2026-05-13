@@ -317,8 +317,8 @@ function chRender() {
             const colorClass = `color-${c.color}`;
             const marker = c.state === 'completed' ? '✓' : c.state === 'deleted' ? '🗑' : c.state === 'modified' ? '↻' : '';
             const t = (!c.is_all_day && c.start_time) ? String(c.start_time).slice(0,5) : '';
-            // 의뢰자 + 제목을 함께 표기 (메인 캘린더와 동일한 형식)
-            const labelText = (c.client_name ? c.client_name + ' ' : '') + (c.title || '(제목 없음)');
+            // 제목만 표기 (의뢰자 이름은 표시하지 않음 — 메인 캘린더와 동일)
+            const labelText = c.title || '(제목 없음)';
             const tooltipParts = [labelText];
             if (t) tooltipParts.unshift(t);
             const tooltip = (c.is_shadow ? (c.state === 'deleted' ? '삭제된 일정 — ' : '변경 전 위치 — ') : '') + tooltipParts.join(' ');
