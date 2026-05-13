@@ -81,7 +81,7 @@
     .weekday:last-child { color:var(--accent2); }
     .days-grid { border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; gap:1px; background:var(--border); }
     .week-row { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; position:relative; background:var(--border); min-height:110px; }
-    .day-cell { background:var(--surface); min-height:0; padding:6px; position:relative; transition:background 0.15s; cursor:default; overflow:hidden; }
+    .day-cell { background:var(--surface); min-height:0; padding:6px; position:relative; transition:background 0.15s; cursor:default; overflow:visible; }
     .day-cell:hover { background:var(--surface2); }
     .day-cell.other-month { background:#111; }
     .day-cell.today .day-num { background:var(--accent); color:#1a1207 !important; font-weight:700; border-radius:50%; }
@@ -94,10 +94,13 @@
 
     /* ── 이벤트 칩 ── */
     .event-chip { border-radius:4px; padding:2px 6px; font-size:12px; white-space:nowrap; overflow:hidden; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; line-height:1.4; height:22px; box-sizing:border-box; min-width:0; }
-    /* 다일 이벤트: 이어진 bar 시각화 */
-    .event-chip.multi-day.day-start { border-radius:4px 0 0 4px; margin-right:-1px; }
-    .event-chip.multi-day.day-cont  { border-radius:0; border-left-color:transparent !important; padding-left:0; padding-right:0; margin-right:-1px; margin-left:-1px; }
-    .event-chip.multi-day.day-end   { border-radius:0 4px 4px 0; border-left-color:transparent !important; padding-left:0; margin-left:-1px; }
+    /* 다일 이벤트: 셀 padding(6px) + 셀 사이 gap(1px) = 7px를 마이너스 마진으로 보상해 셀 경계 너머까지 이어진 bar로 보이게 */
+    .event-chip.multi-day { position:relative; z-index:2; }
+    .event-chip.multi-day.day-start { border-radius:4px 0 0 4px; margin-right:-7px; }
+    .event-chip.multi-day.day-cont  { border-radius:0; border-left-color:transparent !important; padding-left:0; padding-right:0; margin-left:-7px; margin-right:-7px; }
+    .event-chip.multi-day.day-end   { border-radius:0 4px 4px 0; border-left-color:transparent !important; padding-left:0; margin-left:-7px; }
+    /* 한 셀이 동시에 시작·끝(=같은 날) — 단일일과 동일하게 */
+    .event-chip.multi-day.day-start.day-end { border-radius:4px; margin:0; }
     .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
