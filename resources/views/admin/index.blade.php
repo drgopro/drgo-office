@@ -529,11 +529,55 @@
     <div class="tab-panel" id="panel-calendarCategories">
         <div class="cf-toolbar">
             <div class="cf-hint">
-                캘린더 일정에 사용되는 카테고리의 <b>라벨</b>과 <b>색상</b>을 변경할 수 있습니다.<br>
-                <span style="opacity:0.7;">색상 변경은 페이지를 새로 고침해야 모든 화면에 반영됩니다.</span>
+                캘린더 일정에 사용되는 카테고리의 <b>라벨</b>과 <b>색상</b>을 변경하거나, 새 카테고리를 추가할 수 있습니다.<br>
+                <span style="opacity:0.7;">변경 사항은 페이지를 새로 고침해야 모든 화면에 반영됩니다.</span>
             </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openNewCalendarCategoryModal()">+ 카테고리 추가</button>
         </div>
         <div id="calendarCategoriesContainer"></div>
+    </div>
+
+    {{-- 캘린더 카테고리 추가 모달 --}}
+    <div id="newCatModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeNewCalendarCategoryModal()">
+        <div class="cf-modal" style="max-width:480px;">
+            <h3>
+                <span>+ 카테고리 추가</span>
+                <button type="button" class="close-btn" onclick="closeNewCalendarCategoryModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub">새로운 일정 분류를 추가합니다. 기본 카테고리(방문의뢰·원격·사내업무 등)와 동일한 방식으로 동작합니다.</div>
+
+            <div class="field-group">
+                <div class="field-label">라벨 *</div>
+                <input type="text" class="field-input" id="newCatLabel" placeholder="예: 외부 미팅">
+            </div>
+
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">배경색 *</div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="color" id="newCatColor" value="#7a98c8" oninput="document.getElementById('newCatColorHex').value=this.value; updateNewCatPreview();" style="width:42px; height:34px; padding:0; border-radius:6px; cursor:pointer; border:1px solid var(--border);">
+                        <input type="text" id="newCatColorHex" value="#7a98c8" class="field-input" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('newCatColor').value=this.value;} updateNewCatPreview();" style="flex:1;">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">글자색 *</div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="color" id="newCatTextColor" value="#0a1828" oninput="document.getElementById('newCatTextColorHex').value=this.value; updateNewCatPreview();" style="width:42px; height:34px; padding:0; border-radius:6px; cursor:pointer; border:1px solid var(--border);">
+                        <input type="text" id="newCatTextColorHex" value="#0a1828" class="field-input" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('newCatTextColor').value=this.value;} updateNewCatPreview();" style="flex:1;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">미리보기</div>
+                <div id="newCatPreview" style="display:inline-block; padding:6px 14px; border-radius:6px; font-weight:600; background:#7a98c8; color:#0a1828;">외부 미팅</div>
+            </div>
+
+            <div class="cf-modal-actions">
+                <button class="btn-outline" onclick="closeNewCalendarCategoryModal()">취소</button>
+                <button class="btn-save" onclick="createCalendarCategory()">추가</button>
+            </div>
+        </div>
     </div>
 
     {{-- 판매처 설정 --}}
@@ -1320,7 +1364,10 @@ function renderCalendarCategories() {
         container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📅</div><div class="cf-empty-title">카테고리가 없습니다</div></div>';
         return;
     }
-    container.innerHTML = allCalendarCategories.map(c => `
+    const DEFAULT_KEYS = ['gold','teal','blue','red','green','purple','holiday'];
+    container.innerHTML = allCalendarCategories.map(c => {
+        const isDefault = DEFAULT_KEYS.includes(c.key);
+        return `
         <div class="cat-card" data-id="${c.id}">
             <div class="cat-preview" style="background:${c.color}; color:${c.text_color};" id="catPreview-${c.id}">${escHtml(c.label)}</div>
             <input type="text" id="catLabel-${c.id}" value="${escHtml(c.label)}" placeholder="라벨" oninput="updateCatPreview(${c.id})">
@@ -1333,13 +1380,78 @@ function renderCalendarCategories() {
                 <input type="text" id="catTextColorHex-${c.id}" value="${c.text_color}" oninput="syncCatColor(${c.id},'textHex')">
             </div>
             <div class="cat-actions">
-                <button class="btn-outline" onclick="resetCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;">기본값</button>
+                ${isDefault
+                    ? `<button class="btn-outline" onclick="resetCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;" title="기본 라벨/색으로 되돌림">기본값</button>`
+                    : `<button class="btn-danger-outline" onclick="deleteCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;">삭제</button>`}
             </div>
             <div class="cat-actions">
                 <button class="btn-save" onclick="saveCalendarCategory(${c.id})" style="padding:7px 14px; font-size:12px;">저장</button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
+}
+
+// ── 카테고리 추가 ──
+function openNewCalendarCategoryModal() {
+    document.getElementById('newCatLabel').value = '';
+    document.getElementById('newCatColor').value = '#7a98c8';
+    document.getElementById('newCatColorHex').value = '#7a98c8';
+    document.getElementById('newCatTextColor').value = '#0a1828';
+    document.getElementById('newCatTextColorHex').value = '#0a1828';
+    updateNewCatPreview();
+    document.getElementById('newCatModalOverlay').classList.add('open');
+}
+function closeNewCalendarCategoryModal() {
+    document.getElementById('newCatModalOverlay').classList.remove('open');
+}
+function updateNewCatPreview() {
+    const lbl = document.getElementById('newCatLabel').value.trim() || '미리보기';
+    const bg = document.getElementById('newCatColorHex').value;
+    const fg = document.getElementById('newCatTextColorHex').value;
+    const p = document.getElementById('newCatPreview');
+    p.textContent = lbl;
+    p.style.background = bg;
+    p.style.color = fg;
+}
+document.addEventListener('input', e => {
+    if (e.target && e.target.id === 'newCatLabel') updateNewCatPreview();
+});
+async function createCalendarCategory() {
+    const body = {
+        label: document.getElementById('newCatLabel').value.trim(),
+        color: document.getElementById('newCatColorHex').value.trim(),
+        text_color: document.getElementById('newCatTextColorHex').value.trim(),
+    };
+    if (!body.label) return alert('라벨을 입력하세요.');
+    if (!/^#[0-9A-Fa-f]{6}$/.test(body.color)) return alert('배경색은 #RRGGBB 형식이어야 합니다.');
+    if (!/^#[0-9A-Fa-f]{6}$/.test(body.text_color)) return alert('글자색은 #RRGGBB 형식이어야 합니다.');
+
+    const res = await fetch('/api/admin/calendar-categories', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok) {
+        closeNewCalendarCategoryModal();
+        await loadCalendarCategories();
+        alert('카테고리가 추가되었습니다. 캘린더 화면에서 새로고침하면 적용됩니다.');
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('추가 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+}
+async function deleteCalendarCategory(id) {
+    if (!confirm('이 카테고리를 삭제하시겠습니까?\n해당 카테고리로 분류된 기존 일정은 그대로 남지만, 새로 추가하거나 변경 시 색이 표시되지 않을 수 있습니다.')) return;
+    const res = await fetch(`/api/admin/calendar-categories/${id}`, {
+        method:'DELETE',
+        headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    });
+    if (res.ok) {
+        await loadCalendarCategories();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('삭제 실패: ' + (err.message || '오류'));
+    }
 }
 
 function updateCatPreview(id) {

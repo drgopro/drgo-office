@@ -63,6 +63,14 @@
             --chip-single-bg: #e6e8ee;
         }
 
+        /* ── 동적 카테고리별 chip 색상 (관리자가 추가한 신규 카테고리도 자동 적용) ──
+           기존 calendar/index.blade.php 에 하드코딩된 기본 카테고리 셀렉터가 specificity로 우선하고,
+           새로 추가된 카테고리는 아래 규칙으로 색이 입혀진다. */
+        @foreach($__calCats as $__k => $__c)
+        .event-chip.color-{{ $__k }} { background:{{ $__c['color'] }}38; border-left-color:{{ $__c['color'] }}; }
+        .ch-chip.color-{{ $__k }} { background:{{ $__c['color'] }}38; border-left-color:{{ $__c['color'] }}; }
+        @endforeach
+
         /* ── 라이트모드 글로벌 보정 ── */
         [data-theme="light"] .header { background:#fff; border-bottom-color:#c8ccd4; }
         [data-theme="light"] .logo { color:var(--accent); border-right-color:#c8ccd4; }

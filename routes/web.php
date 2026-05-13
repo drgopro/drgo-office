@@ -288,7 +288,9 @@ Route::middleware('auth')->group(function () {
 
         // 캘린더 카테고리 (master/admin 전용)
         Route::get('/api/admin/calendar-categories', [CalendarCategoryController::class, 'index']);
+        Route::post('/api/admin/calendar-categories', [CalendarCategoryController::class, 'store']);
         Route::patch('/api/admin/calendar-categories/{category}', [CalendarCategoryController::class, 'update']);
+        Route::delete('/api/admin/calendar-categories/{category}', [CalendarCategoryController::class, 'destroy']);
         Route::post('/api/admin/calendar-categories/{category}/reset', [CalendarCategoryController::class, 'reset']);
     });
 
