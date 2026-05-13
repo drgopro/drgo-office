@@ -19,13 +19,15 @@
     .filter-chip:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
 
     .sidebar-list { flex:1; overflow-y:auto; padding:6px; }
-    .sidebar-pagination { display:flex; align-items:center; justify-content:center; gap:4px; padding:8px 6px; border-top:1px solid var(--border); background:var(--surface); flex-wrap:wrap; }
-    .sidebar-pagination button { background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; cursor:pointer; min-width:26px; }
+    .sidebar-pagination { display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px 8px; border-top:1px solid var(--border); background:var(--surface); }
+    .sidebar-pagination .pg-row { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; max-width:100%; overflow-x:auto; scrollbar-width:none; }
+    .sidebar-pagination .pg-row::-webkit-scrollbar { display:none; }
+    .sidebar-pagination button { flex:0 0 auto; background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 0; border-radius:5px; font-size:11px; cursor:pointer; min-width:22px; line-height:1.3; }
     .sidebar-pagination button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
     .sidebar-pagination button.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; }
     [data-theme="light"] .sidebar-pagination button.active { color:#fff; }
     .sidebar-pagination button:disabled { opacity:0.35; cursor:default; }
-    .sidebar-pagination .pg-info { font-size:10px; color:var(--text-muted); margin:0 4px; font-family:"SF Mono",Menlo,monospace; }
+    .sidebar-pagination .pg-info { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
     .sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all 0.12s; position:relative; }
     .sidebar-item:hover { background:var(--surface2); }
     .sidebar-item.active { background:var(--surface2); border-left:3px solid var(--accent); }
@@ -454,19 +456,21 @@ function renderClientPagination() {
             : '';
         return;
     }
-    // 페이지 번호 묶음 (현재 페이지 좌우 2개씩)
-    const start = Math.max(1, clientPage - 2);
-    const end = Math.min(clientLastPage, clientPage + 2);
-    let html = '';
-    html += `<button onclick="loadClientList(1)" ${clientPage === 1 ? 'disabled' : ''}>«</button>`;
-    html += `<button onclick="loadClientList(${clientPage - 1})" ${clientPage === 1 ? 'disabled' : ''}>‹</button>`;
+    // 페이지 번호 묶음 (현재 페이지 좌우 1개씩 — 좁은 사이드바 대응)
+    const start = Math.max(1, clientPage - 1);
+    const end = Math.min(clientLastPage, clientPage + 1);
+    let btns = '';
+    btns += `<button onclick="loadClientList(1)" ${clientPage === 1 ? 'disabled' : ''} title="처음">«</button>`;
+    btns += `<button onclick="loadClientList(${clientPage - 1})" ${clientPage === 1 ? 'disabled' : ''} title="이전">‹</button>`;
     for (let p = start; p <= end; p++) {
-        html += `<button class="${p === clientPage ? 'active' : ''}" onclick="loadClientList(${p})">${p}</button>`;
+        btns += `<button class="${p === clientPage ? 'active' : ''}" onclick="loadClientList(${p})">${p}</button>`;
     }
-    html += `<button onclick="loadClientList(${clientPage + 1})" ${clientPage === clientLastPage ? 'disabled' : ''}>›</button>`;
-    html += `<button onclick="loadClientList(${clientLastPage})" ${clientPage === clientLastPage ? 'disabled' : ''}>»</button>`;
-    html += `<span class="pg-info">${clientPage}/${clientLastPage} · 총 ${clientTotal}</span>`;
-    wrap.innerHTML = html;
+    btns += `<button onclick="loadClientList(${clientPage + 1})" ${clientPage === clientLastPage ? 'disabled' : ''} title="다음">›</button>`;
+    btns += `<button onclick="loadClientList(${clientLastPage})" ${clientPage === clientLastPage ? 'disabled' : ''} title="끝">»</button>`;
+    wrap.innerHTML = `
+        <div class="pg-row">${btns}</div>
+        <span class="pg-info">${clientPage}/${clientLastPage} · 총 ${clientTotal}명</span>
+    `;
 }
 
 function renderClientList() {
