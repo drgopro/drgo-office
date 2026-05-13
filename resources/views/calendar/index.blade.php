@@ -1297,12 +1297,7 @@ function buildChipHtml(ev){
     html+=`<span>${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
-    // 담당자 배지
-    if(ev.assignees&&ev.assignees.length){
-        html+='<span class="chip-badges">';
-        ev.assignees.forEach(a=>{html+=`<span class="ev-assignee-badge" title="${a.name}">${(a.name||'?')[0]}</span>`;});
-        html+='</span>';
-    }
+    // 담당자는 chip에 표시하지 않음 (상세 모달에서 확인). 필터링·툴팁용으로만 사용.
     return html;
 }
 
