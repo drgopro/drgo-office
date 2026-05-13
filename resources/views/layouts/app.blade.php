@@ -387,8 +387,31 @@ const drgoTabs = {
     openNav(type, url) {
         document.getElementById('mainNav').classList.remove('open');
         document.getElementById('navOverlay').classList.remove('open');
+
+        // 1) URL이 정확히 일치하는 탭이 있으면 활성화만 (재로드 없음)
         const existing = this.tabs.find(t => t.url === url);
         if (existing) { this.activate(existing.id); return; }
+
+        // 2) 같은 type의 탭이 이미 있으면 그 탭을 재사용해 URL만 갱신
+        //    (새 탭/iframe을 만들지 않아 깜빡임·"새로고침" 현상 방지)
+        const sameType = this.tabs.find(t => t.type === type);
+        if (sameType) {
+            sameType.url = url;
+            const pane = document.getElementById('pane-' + sameType.id);
+            const iframe = pane?.querySelector('iframe');
+            if (iframe) {
+                // src 직접 갱신 — 새 iframe 생성 없이 같은 영역에서 navigate
+                iframe.src = url;
+            } else if (pane) {
+                sameType.loaded = false;
+                this._load(sameType, pane);
+            }
+            this.activate(sameType.id);
+            this._save();
+            return;
+        }
+
+        // 3) 아무 탭도 없으면 새로 만든다
         const id = 'tab-' + Date.now();
         this.tabs.push({ id, type, url, loaded: false });
         this.activate(id);
