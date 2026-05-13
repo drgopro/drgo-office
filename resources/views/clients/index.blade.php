@@ -397,9 +397,34 @@ async function loadCustomFieldDefs() {
     } catch(e) { customFieldDefs = []; }
 }
 
+// 페이지네이션 상태
+let clientPage = 1;
+let clientLastPage = 1;
+let clientTotal = 0;
+let clientSearchTimer = null;
+
+// 이전 세션 상태 복원 (페이지/검색/등급)
+function __readSavedClientState() {
+    try {
+        const raw = sessionStorage.getItem('drgo_client_tabs');
+        return raw ? (JSON.parse(raw) || {}) : {};
+    } catch { return {}; }
+}
+const __savedClientState = __readSavedClientState();
+if (__savedClientState.search) {
+    const si = document.getElementById('clientSearch');
+    if (si) si.value = __savedClientState.search;
+}
+if (__savedClientState.grade) {
+    currentGrade = __savedClientState.grade;
+    document.querySelectorAll('.filter-chip').forEach(b => {
+        b.classList.toggle('active', b.dataset.grade === __savedClientState.grade);
+    });
+}
+
 // ── 초기화 ──
 loadCustomFieldDefs();
-loadClientList().then(async () => {
+loadClientList(__savedClientState.page || 1).then(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const openId = urlParams.get('open');
     if (openId) {
@@ -409,12 +434,6 @@ loadClientList().then(async () => {
         await restoreClientTabs();
     }
 });
-
-// 페이지네이션 상태
-let clientPage = 1;
-let clientLastPage = 1;
-let clientTotal = 0;
-let clientSearchTimer = null;
 
 async function loadClientList(page = 1) {
     clientPage = page;
@@ -432,6 +451,8 @@ async function loadClientList(page = 1) {
     clientTotal = data.total || 0;
     renderClientList();
     renderClientPagination();
+    // 페이지/검색/등급 상태도 세션에 보존 (탭 전환·뒤로가기 시 복원)
+    saveClientTabs();
 }
 
 function filterClients() {
@@ -1555,7 +1576,10 @@ function showToast(msg) {
 function saveClientTabs() {
     const data = {
         tabs: openClientTabs.map(t => t.id),
-        activeId: activeClientId
+        activeId: activeClientId,
+        page: clientPage,
+        search: document.getElementById('clientSearch')?.value || '',
+        grade: currentGrade,
     };
     sessionStorage.setItem('drgo_client_tabs', JSON.stringify(data));
 }
