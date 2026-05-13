@@ -1311,14 +1311,16 @@ function buildChipHtml(ev){
     html+=`<span class="chip-title">${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
-    // 담당자 — chip 우측 정렬 (성/이름 한 글자가 아닌 풀네임)
+    // 담당자 — chip 우측 정렬. 2명 이상이면 첫 번째 이름 + '+N' (전체 명단은 툴팁)
     if (ev.assignees && ev.assignees.length) {
-        html += '<span class="chip-badges">';
-        ev.assignees.forEach(a => {
-            const nm = (a.name || '').trim();
-            if (nm) html += `<span class="ev-assignee-badge" title="${nm}">${nm}</span>`;
-        });
-        html += '</span>';
+        const names = ev.assignees.map(a => (a.name || '').trim()).filter(Boolean);
+        if (names.length) {
+            const first = names[0];
+            const extra = names.length - 1;
+            const display = extra > 0 ? `${first} +${extra}` : first;
+            const tooltip = names.join(', ').replace(/"/g, '&quot;');
+            html += `<span class="chip-badges"><span class="ev-assignee-badge" title="${tooltip}">${display}</span></span>`;
+        }
     }
     return html;
 }
