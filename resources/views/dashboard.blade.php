@@ -24,6 +24,7 @@
     .pipeline-card.p-payment .pc-accent { background:#e8894a; }
     .pipeline-card.p-visit .pc-accent { background:#7ac87a; }
     .pipeline-card.p-as .pc-accent { background:#c87a7a; }
+    .pipeline-card.p-done .pc-accent { background:#a09890; }
 
     .info-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; margin-bottom:28px; }
     .info-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.15s; }
@@ -105,6 +106,12 @@
             <div class="pc-label">🛠 세팅 완료 · AS</div>
             <div class="pc-value">{{ $pipeline['as'] ?? 0 }}</div>
             <div class="pc-sub">세팅 완료 후 AS 기간</div>
+        </div>
+        <div class="pipeline-card p-done" onclick="goProjectsByStage('done')">
+            <div class="pc-accent"></div>
+            <div class="pc-label">🏁 완료</div>
+            <div class="pc-value">{{ $pipeline['done'] ?? 0 }}</div>
+            <div class="pc-sub">상담 완료 · 세팅 완료 등</div>
         </div>
     </div>
 

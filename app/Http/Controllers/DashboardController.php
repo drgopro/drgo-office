@@ -166,12 +166,15 @@ class DashboardController extends Controller
         }
 
         // ── 진행 상황 (파이프라인, 실시간 스냅샷) ──
+        // 'done'은 project_type에 따라 의미가 다르지만 (상담 완료 / 세팅 완료 / 납품 완료 등)
+        // 종착점이 같으므로 하나의 '완료' 카드로 묶어 보여줌
         $pipeline = [
             'consulting' => Project::where('stage', 'consulting')->count(),
             'estimate' => Project::whereIn('stage', ['equipment', 'proposal', 'estimate'])->count(),
             'payment' => Project::where('stage', 'payment')->count(),
             'visit' => Project::where('stage', 'visit')->count(),
             'as' => Project::where('stage', 'as')->count(),
+            'done' => Project::where('stage', 'done')->count(),
         ];
 
         // 최근 상담 대기/진행중 (우선순위가 높은 항목)
