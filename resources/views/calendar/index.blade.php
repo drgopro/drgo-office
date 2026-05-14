@@ -923,7 +923,7 @@
                         </div>
                     </div>
                     <div class="field-group" style="flex:1;min-width:0;">
-                        <label class="field-label">견적 총액</label>
+                        <label class="field-label">결제된 금액</label>
                         <div style="display:flex;align-items:center;gap:6px;">
                             <input class="field-input" id="g_estimate_amount" placeholder="금액 입력" type="text" style="flex:1;min-width:0;">
                             <button type="button" id="g_estimate_btn" onclick="extractEstimateAmount()" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔍 추출</button>
@@ -1954,7 +1954,7 @@ function renderLockSummary(){
             <div class="ls-section-title">결제 정보</div>
             <div class="ls-amount-row">
                 <div>
-                    <div class="ls-info-label">견적 총액</div>
+                    <div class="ls-info-label">결제된 금액</div>
                     ${amount ? `<div class="ls-amount">${_esc(amount)}원</div>` : `<div class="ls-text-block muted">— 미입력 —</div>`}
                 </div>
                 ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
