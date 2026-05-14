@@ -107,9 +107,14 @@
     .cf-section-count { font-size:11px; color:var(--text-muted); background:var(--surface2); padding:2px 8px; border-radius:10px; }
     .cf-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; }
 
-    .cf-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:13px 14px; cursor:pointer; transition:all 0.15s; display:flex; flex-direction:column; gap:8px; }
+    .cf-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:13px 14px; cursor:pointer; transition:border-color 0.15s, transform 0.15s, opacity 0.15s; display:flex; flex-direction:column; gap:8px; position:relative; }
     .cf-card:hover { border-color:var(--accent); transform:translateY(-1px); }
     .cf-card.inactive { opacity:0.55; }
+    .cf-card[draggable="true"] .cf-drag-handle { position:absolute; top:6px; right:6px; width:18px; height:18px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); opacity:0; cursor:grab; font-size:12px; line-height:1; user-select:none; transition:opacity 0.15s; }
+    .cf-card:hover .cf-drag-handle { opacity:0.7; }
+    .cf-card.dragging { opacity:0.35; }
+    .cf-card.drag-over-top { box-shadow:inset 0 3px 0 var(--accent); }
+    .cf-card.drag-over-bottom { box-shadow:inset 0 -3px 0 var(--accent); }
     .cf-card-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .cf-card-label { font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:6px; line-height:1.3; }
     .cf-required { color:var(--red); font-weight:700; }
@@ -718,6 +723,80 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
     });
 });
 
+// ── 필드 카드 드래그-앤-드롭 정렬 (의뢰자/프로젝트 공용) ──
+// 같은 섹션 안에서만 순서를 바꿀 수 있고, 드롭 후 즉시 /reorder API 호출
+let cfDragSrc = null;
+
+function enableCfDrag(root, kind) {
+    if (!root) return;
+    const apiBase = kind === 'project' ? '/api/admin/project-fields' : '/api/admin/client-fields';
+    const stateArr = kind === 'project' ? () => allProjectFields : () => allFields;
+    const setStateArr = (arr) => {
+        if (kind === 'project') allProjectFields = arr;
+        else allFields = arr;
+    };
+
+    root.querySelectorAll('.cf-card[draggable="true"]').forEach(card => {
+        card.addEventListener('dragstart', (e) => {
+            cfDragSrc = card;
+            card.classList.add('dragging');
+            try { e.dataTransfer.setData('text/plain', card.dataset.id); } catch (err) {}
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            root.querySelectorAll('.cf-card').forEach(c => c.classList.remove('drag-over-top', 'drag-over-bottom'));
+            cfDragSrc = null;
+        });
+        card.addEventListener('dragover', (e) => {
+            if (!cfDragSrc || cfDragSrc === card) return;
+            if (cfDragSrc.dataset.section !== card.dataset.section) return; // 같은 섹션만
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const rect = card.getBoundingClientRect();
+            const before = (e.clientY - rect.top) < rect.height / 2;
+            card.classList.toggle('drag-over-top', before);
+            card.classList.toggle('drag-over-bottom', !before);
+        });
+        card.addEventListener('dragleave', () => {
+            card.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+        card.addEventListener('drop', async (e) => {
+            if (!cfDragSrc || cfDragSrc === card) return;
+            if (cfDragSrc.dataset.section !== card.dataset.section) return;
+            e.preventDefault();
+            const before = card.classList.contains('drag-over-top');
+            card.classList.remove('drag-over-top', 'drag-over-bottom');
+            const parent = card.parentElement;
+            if (before) parent.insertBefore(cfDragSrc, card);
+            else parent.insertBefore(cfDragSrc, card.nextSibling);
+            // 같은 섹션 안 카드 순서 → 새 sort_order 로 직렬화 (섹션 간 충돌 방지 위해 전 섹션 합쳐서 전송)
+            const newIds = [];
+            root.querySelectorAll('.cf-grid').forEach(grid => {
+                grid.querySelectorAll('.cf-card').forEach(c => newIds.push(parseInt(c.dataset.id, 10)));
+            });
+            // 로컬 상태도 새 순서로 갱신
+            const byId = new Map(stateArr().map(f => [f.id, f]));
+            const reordered = newIds.map(id => byId.get(id)).filter(Boolean);
+            setStateArr(reordered);
+
+            try {
+                const res = await fetch(`${apiBase}/reorder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN':CSRF, 'Accept':'application/json' },
+                    body: JSON.stringify({ order: newIds }),
+                });
+                if (!res.ok) throw new Error('reorder failed');
+            } catch (err) {
+                alert('순서 저장 실패 — 다시 시도해 주세요.');
+                // 실패 시 서버 상태로 재동기화
+                if (kind === 'project') await loadProjectFields();
+                else await loadClientFields();
+            }
+        });
+    });
+}
+
 // ── 프로젝트 필드 관리 (의뢰자 필드와 동일 패턴) ──
 let allProjectFields = [];
 const PROJECT_FIELD_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' };
@@ -758,7 +837,8 @@ function renderProjectFields() {
             const optsChip = (f.options && f.options.length) ? `<span class="cf-chip">옵션 ${f.options.length}</span>` : '';
             const statusChip = f.is_active ? '' : '<span class="cf-chip muted">비활성</span>';
             const reqChip = f.is_required ? '<span class="cf-chip" style="color:var(--red); border-color:var(--red);">필수</span>' : '';
-            html += `<div class="cf-card${inactive}" onclick="editProjectField(${f.id})">
+            html += `<div class="cf-card${inactive}" data-id="${f.id}" data-section="${escHtml(key)}" draggable="true" onclick="editProjectField(${f.id})">
+                <span class="cf-drag-handle" title="드래그해서 순서 변경" aria-hidden="true">⋮⋮</span>
                 <div class="cf-card-row">
                     <div class="cf-card-label">${escHtml(f.label)} ${required}</div>
                     <span class="cf-type-badge cf-type-${escHtml(f.type)}">${escHtml(typeLabel)}</span>
@@ -772,6 +852,7 @@ function renderProjectFields() {
         html += `</div></div>`;
     });
     container.innerHTML = html;
+    enableCfDrag(container, 'project');
 }
 function openProjectFieldModal(field) {
     const m = document.getElementById('projectFieldModalOverlay');
@@ -1276,7 +1357,8 @@ function renderClientFields() {
             const optsChip = (f.options && f.options.length) ? `<span class="cf-chip">옵션 ${f.options.length}</span>` : '';
             const statusChip = f.is_active ? '' : '<span class="cf-chip muted">비활성</span>';
             const reqChip = f.is_required ? '<span class="cf-chip" style="color:var(--red); border-color:var(--red);">필수</span>' : '';
-            html += `<div class="cf-card${inactive}" onclick="editField(${f.id})">
+            html += `<div class="cf-card${inactive}" data-id="${f.id}" data-section="${escHtml(key)}" draggable="true" onclick="editField(${f.id})">
+                <span class="cf-drag-handle" title="드래그해서 순서 변경" aria-hidden="true">⋮⋮</span>
                 <div class="cf-card-row">
                     <div class="cf-card-label">${escHtml(f.label)} ${required}</div>
                     <span class="cf-type-badge cf-type-${escHtml(f.type)}">${escHtml(typeLabel)}</span>
@@ -1290,6 +1372,7 @@ function renderClientFields() {
         html += `</div></div>`;
     });
     container.innerHTML = html;
+    enableCfDrag(container, 'client');
 }
 
 function openFieldModal(field) {
