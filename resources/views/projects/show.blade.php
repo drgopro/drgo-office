@@ -1478,7 +1478,35 @@ function renderProjectCustomFields() {
     wrap.innerHTML = html;
 }
 
+// 수량 입력을 지원하는 타입
+const PCF_QTY_TYPES = ['text', 'textarea', 'select', 'radio', 'date'];
+
+// raw value(평문/객체) → {value, qty} 정규화 (has_quantity 필드 전용)
+function pcfGetVQ(v) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+        return { value: v.value ?? '', qty: v.qty ?? '' };
+    }
+    return { value: v ?? '', qty: '' };
+}
+
 function pcfInput(f, val) {
+    const useQty = !!f.has_quantity && PCF_QTY_TYPES.includes(f.type);
+    if (useQty) {
+        const vq = pcfGetVQ(val);
+        const inner = pcfInputCore(f, vq.value);
+        const qtyInput = `<input type="number" class="pcf-input" min="0" step="1" value="${pcfEsc(vq.qty)}" data-qty-key="${f.key}" oninput="pcfQtyChange(this)" placeholder="수량" style="max-width:90px;">`;
+        // textarea/radio 는 세로 배치, 그 외는 한 줄
+        if (f.type === 'textarea' || f.type === 'radio') {
+            return `<div style="display:flex; flex-direction:column; gap:6px;">${inner}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyInput}</div></div>`;
+        }
+        return `<div style="display:grid; grid-template-columns:1fr 90px; gap:6px;">${inner}${qtyInput}</div>`;
+    }
+    return pcfInputCore(f, val);
+}
+
+function pcfInputCore(f, val) {
+    // has_quantity 끈 뒤 잔존하는 {value,qty} 객체도 깨지지 않도록 정규화
+    if (val && typeof val === 'object' && !Array.isArray(val) && 'value' in val) val = val.value;
     val = val ?? '';
     const ph = pcfEsc(f.placeholder || '');
     switch (f.type) {
@@ -1502,7 +1530,26 @@ function pcfInput(f, val) {
 }
 
 function pcfChange(el) {
-    projectCustomData[el.dataset.key] = el.value;
+    const key = el.dataset.key;
+    const f = projectFieldDefs.find(x => x.key === key);
+    if (f && f.has_quantity && PCF_QTY_TYPES.includes(f.type)) {
+        const prev = projectCustomData[key];
+        const cur = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? {...prev} : {};
+        cur.value = el.value;
+        projectCustomData[key] = cur;
+    } else {
+        projectCustomData[key] = el.value;
+    }
+    pcfScheduleSave();
+}
+
+function pcfQtyChange(el) {
+    const key = el.dataset.qtyKey;
+    const prev = projectCustomData[key];
+    const cur = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? {...prev} : { value: prev ?? '' };
+    const num = parseInt(el.value, 10);
+    cur.qty = Number.isFinite(num) && num >= 0 ? num : null;
+    projectCustomData[key] = cur;
     pcfScheduleSave();
 }
 function pcfCheckChange(el) {

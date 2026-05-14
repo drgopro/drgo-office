@@ -1479,15 +1479,26 @@ const SECTION_LABELS = { basic:'기본 정보', equipment:'장비 정보', broad
 function escAttr(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function escText(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+// has_quantity 필드: {value, qty} → 표시용 문자열
+function formatCfDisplay(v) {
+    if (Array.isArray(v)) return v.join(', ');
+    if (v && typeof v === 'object' && !Array.isArray(v) && ('value' in v || 'qty' in v)) {
+        const val = String(v.value ?? '').trim();
+        const qty = v.qty;
+        if (qty === null || qty === undefined || qty === '') return val;
+        return val ? `${val} × ${qty}` : `× ${qty}`;
+    }
+    if (typeof v === 'boolean') return v ? '예' : '아니오';
+    return v;
+}
+
 // 장비 정보 요약: 최근 프로젝트의 '장비 정보' 동적 필드(custom_data) 만 보여줌
 function renderEquipmentSummary(latest) {
     if (!latest || !latest.fields?.length) return '';
 
     let rows = '';
     latest.fields.forEach(f => {
-        let v = f.value;
-        if (Array.isArray(v)) v = v.join(', ');
-        else if (typeof v === 'boolean') v = v ? '예' : '아니오';
+        const v = formatCfDisplay(f.value);
         rows += `<div style="display:flex; gap:8px; font-size:12px; align-items:baseline;">
             <span style="color:var(--text-muted); flex-shrink:0; min-width:80px;">${escText(f.label)}</span>
             <span style="color:var(--text); flex:1; word-break:break-all;">${escText(v)}</span>
@@ -1523,6 +1534,13 @@ function renderCustomFields(customData, clientId) {
         return 2;
     };
 
+    // 수량 입력 지원 타입
+    const CF_QTY_TYPES = ['text', 'textarea', 'select', 'radio', 'date'];
+    const cfGetVQ = (v) => {
+        if (v && typeof v === 'object' && !Array.isArray(v)) return { value: v.value ?? '', qty: v.qty ?? '' };
+        return { value: v ?? '', qty: '' };
+    };
+
     let html = '';
     Object.entries(SECTION_LABELS).forEach(([secKey, secLabel]) => {
         if (!grouped[secKey]) return;
@@ -1530,7 +1548,17 @@ function renderCustomFields(customData, clientId) {
             <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>
             <div class="cf-dyn-grid">`;
         grouped[secKey].forEach(f => {
-            const value = customData[f.key];
+            const rawValue = customData[f.key];
+            const useQty = !!f.has_quantity && CF_QTY_TYPES.includes(f.type);
+            let value = rawValue;
+            let qtyValue = '';
+            if (useQty) {
+                const vq = cfGetVQ(rawValue);
+                value = vq.value;
+                qtyValue = vq.qty;
+            } else if (value && typeof value === 'object' && !Array.isArray(value) && 'value' in value) {
+                value = value.value; // has_quantity 끈 뒤 잔존 객체
+            }
             const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
             const help = f.help_text ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
             const inputId = `cf-${clientId}-${f.key}`;
@@ -1538,14 +1566,16 @@ function renderCustomFields(customData, clientId) {
             const w = resolveWidth(f);
             html += `<div class="field w-${w}"><div class="field-label">${escText(f.label)}${required}</div>`;
 
+            // 메인 입력
+            let mainHtml = '';
             if (f.type === 'text' || f.type === 'number' || f.type === 'date') {
                 const inputType = f.type === 'text' ? 'text' : f.type;
-                html += `<input type="${inputType}" class="field-input" id="${inputId}" value="${escAttr(value ?? '')}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="${f.type}">`;
+                mainHtml = `<input type="${inputType}" class="field-input" id="${inputId}" value="${escAttr(value ?? '')}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="${f.type}">`;
             } else if (f.type === 'textarea') {
-                html += `<textarea class="field-input field-textarea" id="${inputId}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="textarea" rows="3">${escText(value ?? '')}</textarea>`;
+                mainHtml = `<textarea class="field-input field-textarea" id="${inputId}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="textarea" rows="3">${escText(value ?? '')}</textarea>`;
             } else if (f.type === 'select') {
                 const opts = (f.options || []).map(o => `<option value="${escAttr(o)}" ${value === o ? 'selected' : ''}>${escText(o)}</option>`).join('');
-                html += `<select class="field-input field-select" id="${inputId}" data-cf-key="${escAttr(f.key)}" data-cf-type="select">
+                mainHtml = `<select class="field-input field-select" id="${inputId}" data-cf-key="${escAttr(f.key)}" data-cf-type="select">
                     <option value="">선택</option>${opts}
                 </select>`;
             } else if (f.type === 'radio') {
@@ -1553,15 +1583,28 @@ function renderCustomFields(customData, clientId) {
                     <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
                         <input type="radio" name="${inputId}" value="${escAttr(o)}" ${value === o ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="radio"> ${escText(o)}
                     </label>`).join('');
-                html += `<div style="padding:6px 0;">${opts}</div>`;
+                mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
             } else if (f.type === 'checkbox') {
                 const arr = Array.isArray(value) ? value : [];
                 const opts = (f.options || []).map(o => `
                     <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
                         <input type="checkbox" value="${escAttr(o)}" ${arr.includes(o) ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="checkbox"> ${escText(o)}
                     </label>`).join('');
-                html += `<div style="padding:6px 0;">${opts}</div>`;
+                mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
             }
+
+            // 수량 입력 래퍼
+            if (useQty) {
+                const qtyHtml = `<input type="number" class="field-input" min="0" step="1" value="${escAttr(qtyValue ?? '')}" placeholder="수량" data-cf-qty-key="${escAttr(f.key)}" style="max-width:90px;">`;
+                if (f.type === 'textarea' || f.type === 'radio') {
+                    html += `<div style="display:flex; flex-direction:column; gap:6px;">${mainHtml}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyHtml}</div></div>`;
+                } else {
+                    html += `<div style="display:grid; grid-template-columns:1fr 90px; gap:6px;">${mainHtml}${qtyHtml}</div>`;
+                }
+            } else {
+                html += mainHtml;
+            }
+
             html += help + `</div>`;
         });
         html += `</div></div>`;
@@ -1583,6 +1626,24 @@ function collectCustomData(clientId) {
             if (el.checked) data[key] = el.value;
         } else {
             data[key] = el.value || null;
+        }
+    });
+    // has_quantity 후처리 — {value, qty} 객체로 묶어 저장
+    pane.querySelectorAll('[data-cf-qty-key]').forEach(el => {
+        const key = el.dataset.cfQtyKey;
+        const num = parseInt(el.value, 10);
+        const qty = (Number.isFinite(num) && num >= 0) ? num : null;
+        const existing = data[key];
+        let valuePart;
+        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            valuePart = existing.value ?? '';
+        } else {
+            valuePart = existing ?? '';
+        }
+        if ((valuePart && String(valuePart).length) || qty !== null) {
+            data[key] = { value: valuePart || '', qty };
+        } else {
+            data[key] = null;
         }
     });
     return data;

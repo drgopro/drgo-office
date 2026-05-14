@@ -396,6 +396,9 @@
                 <label>
                     <input type="checkbox" id="fieldActive" checked> 활성 (폼에 노출)
                 </label>
+                <label title="값과 함께 수량(개수)을 입력하는 작은 입력칸이 추가됩니다.">
+                    <input type="checkbox" id="fieldHasQuantity"> 수량 입력 활성화
+                </label>
             </div>
 
             <div class="cf-modal-actions">
@@ -489,6 +492,9 @@
                 </label>
                 <label>
                     <input type="checkbox" id="projectFieldActive" checked> 활성 (폼에 노출)
+                </label>
+                <label title="값과 함께 수량(개수)을 입력하는 작은 입력칸이 추가됩니다.">
+                    <input type="checkbox" id="projectFieldHasQuantity"> 수량 입력 활성화
                 </label>
             </div>
 
@@ -868,6 +874,7 @@ function openProjectFieldModal(field) {
     document.getElementById('projectFieldHelpText').value = field?.help_text || '';
     document.getElementById('projectFieldRequired').checked = !!field?.is_required;
     document.getElementById('projectFieldActive').checked = field ? !!field.is_active : true;
+    document.getElementById('projectFieldHasQuantity').checked = !!field?.has_quantity;
     document.getElementById('projectFieldDeleteBtn').style.display = field ? 'inline-block' : 'none';
     onProjectFieldTypeChange();
 }
@@ -903,6 +910,7 @@ async function saveProjectField() {
         help_text: document.getElementById('projectFieldHelpText').value || null,
         is_required: document.getElementById('projectFieldRequired').checked,
         is_active: document.getElementById('projectFieldActive').checked,
+        has_quantity: document.getElementById('projectFieldHasQuantity').checked,
     };
 
     const url = id ? `/api/admin/project-fields/${id}` : '/api/admin/project-fields';
@@ -1389,6 +1397,7 @@ function openFieldModal(field) {
     document.getElementById('fieldHelpText').value = field?.help_text || '';
     document.getElementById('fieldRequired').checked = !!field?.is_required;
     document.getElementById('fieldActive').checked = field ? !!field.is_active : true;
+    document.getElementById('fieldHasQuantity').checked = !!field?.has_quantity;
     document.getElementById('fieldDeleteBtn').style.display = field ? 'inline-block' : 'none';
     onTypeChange();
 }
@@ -1428,6 +1437,7 @@ async function saveField() {
         help_text: document.getElementById('fieldHelpText').value || null,
         is_required: document.getElementById('fieldRequired').checked,
         is_active: document.getElementById('fieldActive').checked,
+        has_quantity: document.getElementById('fieldHasQuantity').checked,
     };
 
     const url = id ? `/api/admin/client-fields/${id}` : '/api/admin/client-fields';
