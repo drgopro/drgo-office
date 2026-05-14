@@ -13,7 +13,7 @@ class ProjectDocumentController extends Controller
     {
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'required|file|max:20480',
+            'files.*' => 'required|file|max:102400', // 100MB / 파일
             'category' => 'required|string|max:50',
             'note' => 'nullable|string|max:300',
         ]);

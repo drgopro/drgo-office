@@ -115,7 +115,7 @@ class WikiController extends Controller
     public function uploadFile(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:20480',
+            'file' => 'required|file|max:102400', // 100MB
             'wiki_id' => 'nullable|integer',
         ]);
 
