@@ -97,6 +97,13 @@
     /* 폼 필드 */
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     .form-grid.full { grid-template-columns:1fr; }
+    /* 동적 추가 정보(4열 기준 width 1~4) */
+    .cf-dyn-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px 16px; }
+    .cf-dyn-grid > .field { grid-column:span 2; min-width:0; }
+    .cf-dyn-grid > .field.w-1 { grid-column:span 1; }
+    .cf-dyn-grid > .field.w-2 { grid-column:span 2; }
+    .cf-dyn-grid > .field.w-3 { grid-column:span 3; }
+    .cf-dyn-grid > .field.w-4 { grid-column:1 / -1; }
     .field { }
     .field-label { font-size:11px; color:var(--text-muted); margin-bottom:5px; }
     .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
@@ -182,6 +189,9 @@
 
         /* 폼/콘텐츠 */
         .form-grid { grid-template-columns:1fr; }
+        .cf-dyn-grid { grid-template-columns:repeat(2, 1fr); }
+        .cf-dyn-grid > .field, .cf-dyn-grid > .field.w-1, .cf-dyn-grid > .field.w-2 { grid-column:span 1; }
+        .cf-dyn-grid > .field.w-3, .cf-dyn-grid > .field.w-4 { grid-column:1 / -1; }
         .client-pane { padding:16px; padding-bottom:60px; }
 
         /* 탭바에 토글 버튼 포함 */
@@ -1505,19 +1515,28 @@ function renderCustomFields(customData, clientId) {
         grouped[sec].push(f);
     });
 
+    const resolveWidth = (f) => {
+        const w = parseInt(f.width, 10);
+        if (w >= 1 && w <= 4) return w;
+        if (f.type === 'textarea') return 4;
+        if (['radio','checkbox'].includes(f.type) && (f.options||[]).length > 3) return 4;
+        return 2;
+    };
+
     let html = '';
     Object.entries(SECTION_LABELS).forEach(([secKey, secLabel]) => {
         if (!grouped[secKey]) return;
         html += `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
             <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>
-            <div class="form-grid">`;
+            <div class="cf-dyn-grid">`;
         grouped[secKey].forEach(f => {
             const value = customData[f.key];
             const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
             const help = f.help_text ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
             const inputId = `cf-${clientId}-${f.key}`;
             const placeholder = escAttr(f.placeholder || '');
-            html += `<div class="field"><div class="field-label">${escText(f.label)}${required}</div>`;
+            const w = resolveWidth(f);
+            html += `<div class="field w-${w}"><div class="field-label">${escText(f.label)}${required}</div>`;
 
             if (f.type === 'text' || f.type === 'number' || f.type === 'date') {
                 const inputType = f.type === 'text' ? 'text' : f.type;

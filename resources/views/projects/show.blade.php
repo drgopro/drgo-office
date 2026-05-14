@@ -162,10 +162,23 @@
     /* 동적 필드 (관리자 정의) */
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
     .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; }
-    .pcf-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; }
+    .pcf-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px 16px; }
+    .pcf-grid .pcf-field { grid-column:span 2; min-width:0; }
+    .pcf-grid .pcf-field.w-1 { grid-column:span 1; }
+    .pcf-grid .pcf-field.w-2 { grid-column:span 2; }
+    .pcf-grid .pcf-field.w-3 { grid-column:span 3; }
+    .pcf-grid .pcf-field.w-4 { grid-column:1 / -1; }
     .pcf-grid .pcf-field.full { grid-column:1 / -1; }
     .pcf-field { display:flex; flex-direction:column; gap:4px; }
-    @media (max-width:768px) { .pcf-grid { grid-template-columns:1fr; } }
+    @media (max-width:900px) {
+        .pcf-grid { grid-template-columns:repeat(2, 1fr); }
+        .pcf-grid .pcf-field.w-1, .pcf-grid .pcf-field.w-2 { grid-column:span 1; }
+        .pcf-grid .pcf-field.w-3, .pcf-grid .pcf-field.w-4 { grid-column:1 / -1; }
+    }
+    @media (max-width:560px) {
+        .pcf-grid { grid-template-columns:1fr; }
+        .pcf-grid .pcf-field, .pcf-grid .pcf-field.w-1, .pcf-grid .pcf-field.w-2, .pcf-grid .pcf-field.w-3, .pcf-grid .pcf-field.w-4 { grid-column:1 / -1; }
+    }
     .pcf-label { font-size:11px; color:var(--text-muted); font-weight:600; }
     .pcf-help { font-size:10px; color:var(--text-muted); opacity:0.7; }
     .pcf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; }
@@ -1436,8 +1449,14 @@ function renderProjectCustomFields() {
     const grouped = {};
     projectFieldDefs.forEach(f => { (grouped[f.section||'etc'] = grouped[f.section||'etc'] || []).push(f); });
 
-    // 풀폭으로 보여줘야 자연스러운 타입 (textarea, 옵션이 많은 checkbox/radio)
-    const isFullWidth = (f) => f.type === 'textarea' || ((['radio','checkbox'].includes(f.type)) && (f.options||[]).length > 3);
+    // width(1~4) 정규화 — textarea 등 풀폭이 자연스러운 타입은 미지정 시 4로 폴백
+    const resolveWidth = (f) => {
+        const w = parseInt(f.width, 10);
+        if (w >= 1 && w <= 4) return w;
+        if (f.type === 'textarea') return 4;
+        if (['radio','checkbox'].includes(f.type) && (f.options||[]).length > 3) return 4;
+        return 2;
+    };
 
     let html = '';
     Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
@@ -1447,8 +1466,8 @@ function renderProjectCustomFields() {
             <div class="pcf-grid">`;
         grouped[k].forEach(f => {
             const val = projectCustomData[f.key];
-            const fullCls = isFullWidth(f) ? ' full' : '';
-            html += `<div class="pcf-field${fullCls}">
+            const w = resolveWidth(f);
+            html += `<div class="pcf-field w-${w}">
                 <div class="pcf-label">${pcfEsc(f.label)}${f.is_required?' <span style="color:var(--red)">*</span>':''}</div>
                 ${pcfInput(f, val)}
                 ${f.help_text?`<div class="pcf-help">${pcfEsc(f.help_text)}</div>`:''}

@@ -10,7 +10,7 @@ class ProjectFieldDefinition extends Model
     use HasFactory;
 
     protected $fillable = [
-        'key', 'label', 'type', 'section', 'options',
+        'key', 'label', 'type', 'section', 'width', 'options',
         'placeholder', 'help_text', 'is_required', 'sort_order', 'is_active',
     ];
 
@@ -19,6 +19,7 @@ class ProjectFieldDefinition extends Model
         'is_required' => 'boolean',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'width' => 'integer',
     ];
 
     public const TYPES = ['text', 'textarea', 'select', 'radio', 'checkbox', 'number', 'date'];

@@ -359,6 +359,16 @@
                 </div>
             </div>
 
+            <div class="field-group">
+                <div class="field-label">필드 너비 (4열 기준)</div>
+                <select class="field-input" id="fieldWidth">
+                    <option value="1">1/4 (한 줄에 4개)</option>
+                    <option value="2" selected>2/4 (한 줄에 2개)</option>
+                    <option value="3">3/4</option>
+                    <option value="4">4/4 (한 줄 전체)</option>
+                </select>
+            </div>
+
             <div class="field-group" id="optionsWrap" style="display:none;">
                 <div class="field-label">선택지 (한 줄에 하나씩) *</div>
                 <textarea class="field-input" id="fieldOptions" rows="5" placeholder="옵션1&#10;옵션2&#10;옵션3"></textarea>
@@ -441,6 +451,16 @@
                         <option value="etc">기타</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">필드 너비 (4열 기준)</div>
+                <select class="field-input" id="projectFieldWidth">
+                    <option value="1">1/4 (한 줄에 4개)</option>
+                    <option value="2" selected>2/4 (한 줄에 2개)</option>
+                    <option value="3">3/4</option>
+                    <option value="4">4/4 (한 줄 전체)</option>
+                </select>
             </div>
 
             <div class="field-group" id="projectOptionsWrap" style="display:none;">
@@ -761,6 +781,7 @@ function openProjectFieldModal(field) {
     document.getElementById('projectFieldLabel').value = field?.label || '';
     document.getElementById('projectFieldType').value = field?.type || 'text';
     document.getElementById('projectFieldSection').value = field?.section || 'basic';
+    document.getElementById('projectFieldWidth').value = String(field?.width || 2);
     document.getElementById('projectFieldOptions').value = (field?.options || []).join('\n');
     document.getElementById('projectFieldPlaceholder').value = field?.placeholder || '';
     document.getElementById('projectFieldHelpText').value = field?.help_text || '';
@@ -795,6 +816,7 @@ async function saveProjectField() {
         label,
         type,
         section: document.getElementById('projectFieldSection').value,
+        width: parseInt(document.getElementById('projectFieldWidth').value, 10) || 2,
         options,
         placeholder: document.getElementById('projectFieldPlaceholder').value || null,
         help_text: document.getElementById('projectFieldHelpText').value || null,
@@ -1278,6 +1300,7 @@ function openFieldModal(field) {
     document.getElementById('fieldLabel').value = field?.label || '';
     document.getElementById('fieldType').value = field?.type || 'text';
     document.getElementById('fieldSection').value = field?.section || 'basic';
+    document.getElementById('fieldWidth').value = String(field?.width || 2);
     document.getElementById('fieldOptions').value = (field?.options || []).join('\n');
     document.getElementById('fieldPlaceholder').value = field?.placeholder || '';
     document.getElementById('fieldHelpText').value = field?.help_text || '';
@@ -1316,6 +1339,7 @@ async function saveField() {
         label,
         type,
         section: document.getElementById('fieldSection').value,
+        width: parseInt(document.getElementById('fieldWidth').value, 10) || 2,
         options,
         placeholder: document.getElementById('fieldPlaceholder').value || null,
         help_text: document.getElementById('fieldHelpText').value || null,
