@@ -291,7 +291,7 @@
 
     /* ── 조건부 필드 ── */
     .conditional-field { overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
-    .conditional-field.visible { max-height:80px; }
+    .conditional-field.visible { max-height:120px; }
 
     /* ── 날짜/시간 ── */
     .datetime-section { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
@@ -1721,8 +1721,13 @@ function handleConditional(gid){
     // 잔금 O → 금액
     if(gid==='g_balance_group'){
         const v=getRadio('g_balance_group');
-        const cond=document.getElementById('g_balance_cond');
+        const cond=document.getElementById('g_balance_amount_wrap');
         if(cond) cond.classList.toggle('visible',v==='O');
+        // X 로 바뀌면 입력값 비우기 (저장 시 잔여 데이터 방지)
+        if(v!=='O'){
+            const amt=document.getElementById('g_balance_amount');
+            if(amt) amt.value='';
+        }
         updateBalanceBanner();
     }
 }
