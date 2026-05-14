@@ -382,6 +382,12 @@
                 </div>
             </div>
 
+            <div class="field-group">
+                <div class="field-label">우선순위 (정렬용)</div>
+                <input type="number" class="field-input" id="fieldPriority" value="0" min="-100" max="100" step="1" style="max-width:140px;">
+                <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
+            </div>
+
             <div class="field-group" id="optionsWrap" style="display:none;">
                 <div class="field-label">선택지 (한 줄에 하나씩) *</div>
                 <textarea class="field-input" id="fieldOptions" rows="5" placeholder="옵션1&#10;옵션2&#10;옵션3"></textarea>
@@ -485,6 +491,12 @@
                         <option value="4">4/4 (한 줄 전체)</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">우선순위 (정렬용)</div>
+                <input type="number" class="field-input" id="projectFieldPriority" value="0" min="-100" max="100" step="1" style="max-width:140px;">
+                <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
             </div>
 
             <div class="field-group" id="projectOptionsWrap" style="display:none;">
@@ -889,6 +901,7 @@ function openProjectFieldModal(field) {
     const pSubDl = document.getElementById('projectFieldSubsectionList');
     pSubDl.innerHTML = [...new Set(allProjectFields.map(x => x.subsection).filter(Boolean))]
         .map(s => `<option value="${escHtml(s)}">`).join('');
+    document.getElementById('projectFieldPriority').value = String(field?.priority ?? 0);
     document.getElementById('projectFieldWidth').value = String(field?.width || 2);
     document.getElementById('projectFieldOptions').value = (field?.options || []).join('\n');
     document.getElementById('projectFieldPlaceholder').value = field?.placeholder || '';
@@ -926,6 +939,7 @@ async function saveProjectField() {
         type,
         section: document.getElementById('projectFieldSection').value,
         subsection: document.getElementById('projectFieldSubsection').value.trim() || null,
+        priority: parseInt(document.getElementById('projectFieldPriority').value, 10) || 0,
         width: parseInt(document.getElementById('projectFieldWidth').value, 10) || 2,
         options,
         placeholder: document.getElementById('projectFieldPlaceholder').value || null,
@@ -1417,6 +1431,7 @@ function openFieldModal(field) {
     const cSubDl = document.getElementById('fieldSubsectionList');
     cSubDl.innerHTML = [...new Set(allFields.map(x => x.subsection).filter(Boolean))]
         .map(s => `<option value="${escHtml(s)}">`).join('');
+    document.getElementById('fieldPriority').value = String(field?.priority ?? 0);
     document.getElementById('fieldWidth').value = String(field?.width || 2);
     document.getElementById('fieldOptions').value = (field?.options || []).join('\n');
     document.getElementById('fieldPlaceholder').value = field?.placeholder || '';
@@ -1458,6 +1473,7 @@ async function saveField() {
         type,
         section: document.getElementById('fieldSection').value,
         subsection: document.getElementById('fieldSubsection').value.trim() || null,
+        priority: parseInt(document.getElementById('fieldPriority').value, 10) || 0,
         width: parseInt(document.getElementById('fieldWidth').value, 10) || 2,
         options,
         placeholder: document.getElementById('fieldPlaceholder').value || null,

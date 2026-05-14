@@ -1519,21 +1519,32 @@ function cfSubIcon(name) {
 function renderEquipmentSummary(latest) {
     if (!latest || !latest.fields?.length) return '';
 
-    // 소분류로 그룹핑
+    // 소분류로 그룹핑 + 소분류별 최대 priority 계산
     const groups = {};
+    const subMaxPrio = {};
     latest.fields.forEach(f => {
         const sub = f.subsection || '';
+        const p = Number.isFinite(parseInt(f.priority, 10)) ? parseInt(f.priority, 10) : 0;
         if (!groups[sub]) groups[sub] = [];
         groups[sub].push(f);
+        if (subMaxPrio[sub] === undefined || p > subMaxPrio[sub]) subMaxPrio[sub] = p;
     });
+
+    // 소분류 정렬: priority DESC → 한글 사전순. 단 빈 소분류('기타')는 마지막.
     const subKeys = Object.keys(groups).sort((a, b) => {
-        if (a === '' || a === '기타') return 1;
+        if (a === '' || a === '기타') {
+            if (b === '' || b === '기타') return 0;
+            return 1;
+        }
         if (b === '' || b === '기타') return -1;
+        const dp = (subMaxPrio[b] || 0) - (subMaxPrio[a] || 0);
+        if (dp !== 0) return dp;
         return a.localeCompare(b, 'ko');
     });
 
     const cardsHtml = subKeys.map(sub => {
-        const fields = groups[sub];
+        // 그룹 내부 필드 정렬: priority DESC → 원래 순서 (서버에서 sort_order 로 이미 정렬됨)
+        const fields = [...groups[sub]].sort((a, b) => (b.priority || 0) - (a.priority || 0));
         const subLabel = sub || '기타';
         const icon = cfSubIcon(sub);
         const rows = fields.map(f => {
@@ -1558,21 +1569,25 @@ function renderEquipmentSummary(latest) {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <a href="/projects/${latest.project_id}" style="font-size:11px; color:var(--text-muted); text-decoration:none;">📁 ${escText(latest.project_name)} · ${latest.created_at} →</a>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">${cardsHtml}</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">${cardsHtml}</div>
         </div>
     </div>`;
 }
 
 function renderCustomFields(customData, clientId) {
     if (!customFieldDefs || !customFieldDefs.length) return '';
-    // section → subsection → fields 2단 그룹핑
+    // section → subsection → fields 2단 그룹핑 + priority 집계
     const grouped = {};
+    const subMaxPrio = {}; // key: `${sec}::${sub}` → max priority
     customFieldDefs.forEach(f => {
         const sec = f.section || 'etc';
         const sub = f.subsection || '';
+        const p = Number.isFinite(parseInt(f.priority, 10)) ? parseInt(f.priority, 10) : 0;
         if (!grouped[sec]) grouped[sec] = {};
         if (!grouped[sec][sub]) grouped[sec][sub] = [];
         grouped[sec][sub].push(f);
+        const k = `${sec}::${sub}`;
+        if (subMaxPrio[k] === undefined || p > subMaxPrio[k]) subMaxPrio[k] = p;
     });
 
     const resolveWidth = (f) => {
@@ -1662,18 +1677,24 @@ function renderCustomFields(customData, clientId) {
             <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>`;
 
         if (!hasSubsections) {
+            const sortedFields = [...(subs[''] || [])].sort((a, b) => (b.priority || 0) - (a.priority || 0));
             html += `<div class="cf-dyn-grid">`;
-            (subs[''] || []).forEach(f => { html += renderOneField(f); });
+            sortedFields.forEach(f => { html += renderOneField(f); });
             html += `</div>`;
         } else {
             const ordered = subKeys.sort((a, b) => {
-                if (a === '' || a === '기타') return 1;
+                if (a === '' || a === '기타') {
+                    if (b === '' || b === '기타') return 0;
+                    return 1;
+                }
                 if (b === '' || b === '기타') return -1;
+                const dp = (subMaxPrio[`${secKey}::${b}`] || 0) - (subMaxPrio[`${secKey}::${a}`] || 0);
+                if (dp !== 0) return dp;
                 return a.localeCompare(b, 'ko');
             });
             html += `<div style="display:flex; flex-direction:column; gap:12px;">`;
             ordered.forEach(sub => {
-                const fields = subs[sub];
+                const fields = [...subs[sub]].sort((a, b) => (b.priority || 0) - (a.priority || 0));
                 const subLabel = sub || '기타';
                 const icon = cfSubIcon(sub);
                 html += `<div style="background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px;">

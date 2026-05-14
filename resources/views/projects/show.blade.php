@@ -1474,14 +1474,18 @@ function pcfSubIcon(name) {
 
 function renderProjectCustomFields() {
     const wrap = document.getElementById('projectCustomFields');
-    // section → subsection → fields 2단 그룹
+    // section → subsection → fields 2단 그룹 + priority 집계
     const grouped = {};
+    const subMaxPrio = {};
     projectFieldDefs.forEach(f => {
         const sec = f.section || 'etc';
         const sub = f.subsection || '';
+        const p = Number.isFinite(parseInt(f.priority, 10)) ? parseInt(f.priority, 10) : 0;
         if (!grouped[sec]) grouped[sec] = {};
         if (!grouped[sec][sub]) grouped[sec][sub] = [];
         grouped[sec][sub].push(f);
+        const k = `${sec}::${sub}`;
+        if (subMaxPrio[k] === undefined || p > subMaxPrio[k]) subMaxPrio[k] = p;
     });
 
     // width(1~4) 정규화 — textarea 등 풀폭이 자연스러운 타입은 미지정 시 4로 폴백
@@ -1513,20 +1517,26 @@ function renderProjectCustomFields() {
         html += `<div class="pcf-section"><div class="pcf-sec-title">${pcfEsc(lbl)}</div>`;
 
         if (!hasSubsections) {
-            // 소분류 없음 → 기존 1-그리드 렌더
+            // 소분류 없음 → 기존 1-그리드 렌더 (priority DESC 정렬)
+            const sortedFields = [...(subs[''] || [])].sort((a, b) => (b.priority || 0) - (a.priority || 0));
             html += `<div class="pcf-grid">`;
-            (subs[''] || []).forEach(f => { html += renderFieldHtml(f); });
+            sortedFields.forEach(f => { html += renderFieldHtml(f); });
             html += `</div>`;
         } else {
-            // 소분류 있음 → 소분류별 서브카드. 소분류 없는 필드는 '기타'로 묶음
+            // 소분류 있음 → 소분류별 서브카드. 소분류 정렬은 그룹 최대 priority DESC, 빈 소분류는 마지막
             const ordered = subKeys.sort((a, b) => {
-                if (a === '' || a === '기타') return 1;
+                if (a === '' || a === '기타') {
+                    if (b === '' || b === '기타') return 0;
+                    return 1;
+                }
                 if (b === '' || b === '기타') return -1;
+                const dp = (subMaxPrio[`${k}::${b}`] || 0) - (subMaxPrio[`${k}::${a}`] || 0);
+                if (dp !== 0) return dp;
                 return a.localeCompare(b, 'ko');
             });
             html += `<div style="display:flex; flex-direction:column; gap:10px;">`;
             ordered.forEach(sub => {
-                const fields = subs[sub];
+                const fields = [...subs[sub]].sort((a, b) => (b.priority || 0) - (a.priority || 0));
                 const subLabel = sub || '기타';
                 const icon = pcfSubIcon(sub);
                 html += `<div class="pcf-subgroup">

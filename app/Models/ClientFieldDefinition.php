@@ -10,7 +10,7 @@ class ClientFieldDefinition extends Model
     use HasFactory;
 
     protected $fillable = [
-        'key', 'label', 'type', 'section', 'subsection', 'width', 'has_quantity', 'options',
+        'key', 'label', 'type', 'section', 'subsection', 'priority', 'width', 'has_quantity', 'options',
         'placeholder', 'help_text', 'is_required', 'sort_order', 'is_active',
     ];
 
@@ -21,6 +21,7 @@ class ClientFieldDefinition extends Model
         'has_quantity' => 'boolean',
         'sort_order' => 'integer',
         'width' => 'integer',
+        'priority' => 'integer',
     ];
 
     public const TYPES = ['text', 'textarea', 'select', 'radio', 'checkbox', 'number', 'date'];
