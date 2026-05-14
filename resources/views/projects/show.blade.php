@@ -162,6 +162,9 @@
     /* 동적 필드 (관리자 정의) */
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
     .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; }
+    .pcf-subgroup { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+    .pcf-sub-title { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+    .pcf-sub-title .pcf-sub-icon { font-size:14px; }
     .pcf-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px 16px; }
     .pcf-grid .pcf-field { grid-column:span 2; min-width:0; }
     .pcf-grid .pcf-field.w-1 { grid-column:span 1; }
@@ -1444,10 +1447,42 @@ async function loadProjectFieldsForShow() {
     } catch(e) {}
 }
 
+// 소분류 라벨 → 아이콘 매핑 (대소문자/공백 무시 매칭)
+const PCF_SUB_ICONS = {
+    'pc': '💻', 'computer': '💻', '컴퓨터': '💻', '데스크탑': '💻',
+    '노트북': '💻', '랩탑': '💻',
+    '카메라': '🎥', 'camera': '🎥', '캠': '🎥',
+    '렌즈': '🔍', 'lens': '🔍',
+    '오디오': '🎙️', 'audio': '🎙️', '마이크': '🎙️', '사운드': '🎙️', '음향': '🎙️',
+    '조명': '💡', 'light': '💡', 'lighting': '💡',
+    '모니터': '🖥️', 'monitor': '🖥️', '디스플레이': '🖥️',
+    '주변기기': '🎛️', '액세서리': '🎛️', '주변장치': '🎛️',
+    '인터넷': '🌐', '네트워크': '🌐', 'network': '🌐',
+    '소프트웨어': '🛠️', 'software': '🛠️',
+    '스튜디오': '🎬', '세트': '🎬',
+};
+function pcfSubIcon(name) {
+    if (!name) return '📦';
+    const k = String(name).trim().toLowerCase();
+    if (PCF_SUB_ICONS[k]) return PCF_SUB_ICONS[k];
+    // 부분 매칭
+    for (const key of Object.keys(PCF_SUB_ICONS)) {
+        if (k.includes(key)) return PCF_SUB_ICONS[key];
+    }
+    return '📦';
+}
+
 function renderProjectCustomFields() {
     const wrap = document.getElementById('projectCustomFields');
+    // section → subsection → fields 2단 그룹
     const grouped = {};
-    projectFieldDefs.forEach(f => { (grouped[f.section||'etc'] = grouped[f.section||'etc'] || []).push(f); });
+    projectFieldDefs.forEach(f => {
+        const sec = f.section || 'etc';
+        const sub = f.subsection || '';
+        if (!grouped[sec]) grouped[sec] = {};
+        if (!grouped[sec][sub]) grouped[sec][sub] = [];
+        grouped[sec][sub].push(f);
+    });
 
     // width(1~4) 정규화 — textarea 등 풀폭이 자연스러운 타입은 미지정 시 4로 폴백
     const resolveWidth = (f) => {
@@ -1458,22 +1493,51 @@ function renderProjectCustomFields() {
         return 2;
     };
 
+    const renderFieldHtml = (f) => {
+        const val = projectCustomData[f.key];
+        const w = resolveWidth(f);
+        return `<div class="pcf-field w-${w}">
+            <div class="pcf-label">${pcfEsc(f.label)}${f.is_required?' <span style="color:var(--red)">*</span>':''}</div>
+            ${pcfInput(f, val)}
+            ${f.help_text?`<div class="pcf-help">${pcfEsc(f.help_text)}</div>`:''}
+        </div>`;
+    };
+
     let html = '';
     Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
         if (!grouped[k]) return;
-        html += `<div class="pcf-section">
-            <div class="pcf-sec-title">${pcfEsc(lbl)}</div>
-            <div class="pcf-grid">`;
-        grouped[k].forEach(f => {
-            const val = projectCustomData[f.key];
-            const w = resolveWidth(f);
-            html += `<div class="pcf-field w-${w}">
-                <div class="pcf-label">${pcfEsc(f.label)}${f.is_required?' <span style="color:var(--red)">*</span>':''}</div>
-                ${pcfInput(f, val)}
-                ${f.help_text?`<div class="pcf-help">${pcfEsc(f.help_text)}</div>`:''}
-            </div>`;
-        });
-        html += `</div></div>`;
+        const subs = grouped[k];
+        const subKeys = Object.keys(subs);
+        const hasSubsections = subKeys.some(s => s !== '');
+
+        html += `<div class="pcf-section"><div class="pcf-sec-title">${pcfEsc(lbl)}</div>`;
+
+        if (!hasSubsections) {
+            // 소분류 없음 → 기존 1-그리드 렌더
+            html += `<div class="pcf-grid">`;
+            (subs[''] || []).forEach(f => { html += renderFieldHtml(f); });
+            html += `</div>`;
+        } else {
+            // 소분류 있음 → 소분류별 서브카드. 소분류 없는 필드는 '기타'로 묶음
+            const ordered = subKeys.sort((a, b) => {
+                if (a === '' || a === '기타') return 1;
+                if (b === '' || b === '기타') return -1;
+                return a.localeCompare(b, 'ko');
+            });
+            html += `<div style="display:flex; flex-direction:column; gap:10px;">`;
+            ordered.forEach(sub => {
+                const fields = subs[sub];
+                const subLabel = sub || '기타';
+                const icon = pcfSubIcon(sub);
+                html += `<div class="pcf-subgroup">
+                    <div class="pcf-sub-title"><span class="pcf-sub-icon">${icon}</span>${pcfEsc(subLabel)}</div>
+                    <div class="pcf-grid">`;
+                fields.forEach(f => { html += renderFieldHtml(f); });
+                html += `</div></div>`;
+            });
+            html += `</div>`;
+        }
+        html += `</div>`;
     });
     wrap.innerHTML = html;
 }

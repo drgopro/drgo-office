@@ -131,9 +131,10 @@ class ClientController extends Controller
         if ($latestProject) {
             $eqFields = ProjectFieldDefinition::where('section', 'equipment')
                 ->where('is_active', true)
+                ->orderBy('subsection')
                 ->orderBy('sort_order')
                 ->orderBy('id')
-                ->get(['key', 'label', 'type', 'options']);
+                ->get(['key', 'label', 'type', 'subsection', 'options']);
             $custom = $latestProject->custom_data ?? [];
             $values = [];
             foreach ($eqFields as $f) {
@@ -145,6 +146,7 @@ class ClientController extends Controller
                     'key' => $f->key,
                     'label' => $f->label,
                     'type' => $f->type,
+                    'subsection' => $f->subsection,
                     'value' => $v,
                 ];
             }

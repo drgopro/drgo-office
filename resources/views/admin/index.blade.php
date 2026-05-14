@@ -364,14 +364,22 @@
                 </div>
             </div>
 
-            <div class="field-group">
-                <div class="field-label">필드 너비 (4열 기준)</div>
-                <select class="field-input" id="fieldWidth">
-                    <option value="1">1/4 (한 줄에 4개)</option>
-                    <option value="2" selected>2/4 (한 줄에 2개)</option>
-                    <option value="3">3/4</option>
-                    <option value="4">4/4 (한 줄 전체)</option>
-                </select>
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">소분류 (선택)</div>
+                    <input type="text" class="field-input" id="fieldSubsection" list="fieldSubsectionList" placeholder="예: PC, 카메라, 오디오, 조명" maxlength="50">
+                    <datalist id="fieldSubsectionList"></datalist>
+                    <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">필드 너비 (4열 기준)</div>
+                    <select class="field-input" id="fieldWidth">
+                        <option value="1">1/4 (한 줄에 4개)</option>
+                        <option value="2" selected>2/4 (한 줄에 2개)</option>
+                        <option value="3">3/4</option>
+                        <option value="4">4/4 (한 줄 전체)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="field-group" id="optionsWrap" style="display:none;">
@@ -461,14 +469,22 @@
                 </div>
             </div>
 
-            <div class="field-group">
-                <div class="field-label">필드 너비 (4열 기준)</div>
-                <select class="field-input" id="projectFieldWidth">
-                    <option value="1">1/4 (한 줄에 4개)</option>
-                    <option value="2" selected>2/4 (한 줄에 2개)</option>
-                    <option value="3">3/4</option>
-                    <option value="4">4/4 (한 줄 전체)</option>
-                </select>
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">소분류 (선택)</div>
+                    <input type="text" class="field-input" id="projectFieldSubsection" list="projectFieldSubsectionList" placeholder="예: PC, 카메라, 오디오, 조명" maxlength="50">
+                    <datalist id="projectFieldSubsectionList"></datalist>
+                    <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">필드 너비 (4열 기준)</div>
+                    <select class="field-input" id="projectFieldWidth">
+                        <option value="1">1/4 (한 줄에 4개)</option>
+                        <option value="2" selected>2/4 (한 줄에 2개)</option>
+                        <option value="3">3/4</option>
+                        <option value="4">4/4 (한 줄 전체)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="field-group" id="projectOptionsWrap" style="display:none;">
@@ -868,6 +884,11 @@ function openProjectFieldModal(field) {
     document.getElementById('projectFieldLabel').value = field?.label || '';
     document.getElementById('projectFieldType').value = field?.type || 'text';
     document.getElementById('projectFieldSection').value = field?.section || 'basic';
+    document.getElementById('projectFieldSubsection').value = field?.subsection || '';
+    // 자동완성 옵션 갱신
+    const pSubDl = document.getElementById('projectFieldSubsectionList');
+    pSubDl.innerHTML = [...new Set(allProjectFields.map(x => x.subsection).filter(Boolean))]
+        .map(s => `<option value="${escHtml(s)}">`).join('');
     document.getElementById('projectFieldWidth').value = String(field?.width || 2);
     document.getElementById('projectFieldOptions').value = (field?.options || []).join('\n');
     document.getElementById('projectFieldPlaceholder').value = field?.placeholder || '';
@@ -904,6 +925,7 @@ async function saveProjectField() {
         label,
         type,
         section: document.getElementById('projectFieldSection').value,
+        subsection: document.getElementById('projectFieldSubsection').value.trim() || null,
         width: parseInt(document.getElementById('projectFieldWidth').value, 10) || 2,
         options,
         placeholder: document.getElementById('projectFieldPlaceholder').value || null,
@@ -1391,6 +1413,10 @@ function openFieldModal(field) {
     document.getElementById('fieldLabel').value = field?.label || '';
     document.getElementById('fieldType').value = field?.type || 'text';
     document.getElementById('fieldSection').value = field?.section || 'basic';
+    document.getElementById('fieldSubsection').value = field?.subsection || '';
+    const cSubDl = document.getElementById('fieldSubsectionList');
+    cSubDl.innerHTML = [...new Set(allFields.map(x => x.subsection).filter(Boolean))]
+        .map(s => `<option value="${escHtml(s)}">`).join('');
     document.getElementById('fieldWidth').value = String(field?.width || 2);
     document.getElementById('fieldOptions').value = (field?.options || []).join('\n');
     document.getElementById('fieldPlaceholder').value = field?.placeholder || '';
@@ -1431,6 +1457,7 @@ async function saveField() {
         label,
         type,
         section: document.getElementById('fieldSection').value,
+        subsection: document.getElementById('fieldSubsection').value.trim() || null,
         width: parseInt(document.getElementById('fieldWidth').value, 10) || 2,
         options,
         placeholder: document.getElementById('fieldPlaceholder').value || null,

@@ -10,7 +10,7 @@ class ClientFieldDefinition extends Model
     use HasFactory;
 
     protected $fillable = [
-        'key', 'label', 'type', 'section', 'width', 'has_quantity', 'options',
+        'key', 'label', 'type', 'section', 'subsection', 'width', 'has_quantity', 'options',
         'placeholder', 'help_text', 'is_required', 'sort_order', 'is_active',
     ];
 

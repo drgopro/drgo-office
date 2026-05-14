@@ -1492,38 +1492,87 @@ function formatCfDisplay(v) {
     return v;
 }
 
+// 소분류 → 아이콘 매핑 (대소문자/부분일치)
+const CF_SUB_ICONS = {
+    'pc':'💻','computer':'💻','컴퓨터':'💻','데스크탑':'💻','노트북':'💻','랩탑':'💻',
+    '카메라':'🎥','camera':'🎥','캠':'🎥',
+    '렌즈':'🔍','lens':'🔍',
+    '오디오':'🎙️','audio':'🎙️','마이크':'🎙️','사운드':'🎙️','음향':'🎙️',
+    '조명':'💡','light':'💡','lighting':'💡',
+    '모니터':'🖥️','monitor':'🖥️','디스플레이':'🖥️',
+    '주변기기':'🎛️','액세서리':'🎛️','주변장치':'🎛️',
+    '인터넷':'🌐','네트워크':'🌐','network':'🌐',
+    '소프트웨어':'🛠️','software':'🛠️',
+    '스튜디오':'🎬','세트':'🎬',
+};
+function cfSubIcon(name) {
+    if (!name) return '📦';
+    const k = String(name).trim().toLowerCase();
+    if (CF_SUB_ICONS[k]) return CF_SUB_ICONS[k];
+    for (const key of Object.keys(CF_SUB_ICONS)) {
+        if (k.includes(key)) return CF_SUB_ICONS[key];
+    }
+    return '📦';
+}
+
 // 장비 정보 요약: 최근 프로젝트의 '장비 정보' 동적 필드(custom_data) 만 보여줌
 function renderEquipmentSummary(latest) {
     if (!latest || !latest.fields?.length) return '';
 
-    let rows = '';
+    // 소분류로 그룹핑
+    const groups = {};
     latest.fields.forEach(f => {
-        const v = formatCfDisplay(f.value);
-        rows += `<div style="display:flex; gap:8px; font-size:12px; align-items:baseline;">
-            <span style="color:var(--text-muted); flex-shrink:0; min-width:80px;">${escText(f.label)}</span>
-            <span style="color:var(--text); flex:1; word-break:break-all;">${escText(v)}</span>
-        </div>`;
+        const sub = f.subsection || '';
+        if (!groups[sub]) groups[sub] = [];
+        groups[sub].push(f);
     });
+    const subKeys = Object.keys(groups).sort((a, b) => {
+        if (a === '' || a === '기타') return 1;
+        if (b === '' || b === '기타') return -1;
+        return a.localeCompare(b, 'ko');
+    });
+
+    const cardsHtml = subKeys.map(sub => {
+        const fields = groups[sub];
+        const subLabel = sub || '기타';
+        const icon = cfSubIcon(sub);
+        const rows = fields.map(f => {
+            const v = formatCfDisplay(f.value);
+            return `<div style="display:flex; gap:10px; font-size:12px; align-items:baseline; padding:3px 0;">
+                <span style="color:var(--text-muted); flex-shrink:0; min-width:90px;">${escText(f.label)}</span>
+                <span style="color:var(--text); flex:1; word-break:break-all; font-weight:500;">${escText(v)}</span>
+            </div>`;
+        }).join('');
+        return `<div style="background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:10px 12px;">
+            <div style="font-size:10px; font-weight:700; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <span style="font-size:14px;">${icon}</span>${escText(subLabel)}
+                <span style="margin-left:auto; font-weight:400; color:var(--text-muted); font-size:10px;">${fields.length}개</span>
+            </div>
+            ${rows}
+        </div>`;
+    }).join('');
 
     return `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
         <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보 <span style="font-weight:400; font-size:11px; color:var(--text-muted);">(최근 프로젝트 기준)</span></div>
-        <div style="background:rgba(212,188,150,0.08); border:1px solid rgba(212,188,150,0.35); border-radius:8px; padding:10px 12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="background:rgba(212,188,150,0.06); border:1px solid rgba(212,188,150,0.25); border-radius:10px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <a href="/projects/${latest.project_id}" style="font-size:11px; color:var(--text-muted); text-decoration:none;">📁 ${escText(latest.project_name)} · ${latest.created_at} →</a>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:6px 14px;">${rows}</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">${cardsHtml}</div>
         </div>
     </div>`;
 }
 
 function renderCustomFields(customData, clientId) {
     if (!customFieldDefs || !customFieldDefs.length) return '';
-    // 섹션별 그룹핑
+    // section → subsection → fields 2단 그룹핑
     const grouped = {};
     customFieldDefs.forEach(f => {
         const sec = f.section || 'etc';
-        if (!grouped[sec]) grouped[sec] = [];
-        grouped[sec].push(f);
+        const sub = f.subsection || '';
+        if (!grouped[sec]) grouped[sec] = {};
+        if (!grouped[sec][sub]) grouped[sec][sub] = [];
+        grouped[sec][sub].push(f);
     });
 
     const resolveWidth = (f) => {
@@ -1541,73 +1590,103 @@ function renderCustomFields(customData, clientId) {
         return { value: v ?? '', qty: '' };
     };
 
+    const renderOneField = (f) => {
+        const rawValue = customData[f.key];
+        const useQty = !!f.has_quantity && CF_QTY_TYPES.includes(f.type);
+        let value = rawValue;
+        let qtyValue = '';
+        if (useQty) {
+            const vq = cfGetVQ(rawValue);
+            value = vq.value;
+            qtyValue = vq.qty;
+        } else if (value && typeof value === 'object' && !Array.isArray(value) && 'value' in value) {
+            value = value.value; // has_quantity 끈 뒤 잔존 객체
+        }
+        const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
+        const help = f.help_text ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
+        const inputId = `cf-${clientId}-${f.key}`;
+        const placeholder = escAttr(f.placeholder || '');
+        const w = resolveWidth(f);
+        let out = `<div class="field w-${w}"><div class="field-label">${escText(f.label)}${required}</div>`;
+
+        // 메인 입력
+        let mainHtml = '';
+        if (f.type === 'text' || f.type === 'number' || f.type === 'date') {
+            const inputType = f.type === 'text' ? 'text' : f.type;
+            mainHtml = `<input type="${inputType}" class="field-input" id="${inputId}" value="${escAttr(value ?? '')}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="${f.type}">`;
+        } else if (f.type === 'textarea') {
+            mainHtml = `<textarea class="field-input field-textarea" id="${inputId}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="textarea" rows="3">${escText(value ?? '')}</textarea>`;
+        } else if (f.type === 'select') {
+            const opts = (f.options || []).map(o => `<option value="${escAttr(o)}" ${value === o ? 'selected' : ''}>${escText(o)}</option>`).join('');
+            mainHtml = `<select class="field-input field-select" id="${inputId}" data-cf-key="${escAttr(f.key)}" data-cf-type="select">
+                <option value="">선택</option>${opts}
+            </select>`;
+        } else if (f.type === 'radio') {
+            const opts = (f.options || []).map((o, i) => `
+                <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
+                    <input type="radio" name="${inputId}" value="${escAttr(o)}" ${value === o ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="radio"> ${escText(o)}
+                </label>`).join('');
+            mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
+        } else if (f.type === 'checkbox') {
+            const arr = Array.isArray(value) ? value : [];
+            const opts = (f.options || []).map(o => `
+                <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
+                    <input type="checkbox" value="${escAttr(o)}" ${arr.includes(o) ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="checkbox"> ${escText(o)}
+                </label>`).join('');
+            mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
+        }
+
+        // 수량 입력 래퍼
+        if (useQty) {
+            const qtyHtml = `<input type="number" class="field-input" min="0" step="1" value="${escAttr(qtyValue ?? '')}" placeholder="수량" data-cf-qty-key="${escAttr(f.key)}" style="max-width:90px;">`;
+            if (f.type === 'textarea' || f.type === 'radio') {
+                out += `<div style="display:flex; flex-direction:column; gap:6px;">${mainHtml}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyHtml}</div></div>`;
+            } else {
+                out += `<div style="display:grid; grid-template-columns:1fr 90px; gap:6px;">${mainHtml}${qtyHtml}</div>`;
+            }
+        } else {
+            out += mainHtml;
+        }
+        out += help + `</div>`;
+        return out;
+    };
+
     let html = '';
     Object.entries(SECTION_LABELS).forEach(([secKey, secLabel]) => {
         if (!grouped[secKey]) return;
+        const subs = grouped[secKey];
+        const subKeys = Object.keys(subs);
+        const hasSubsections = subKeys.some(s => s !== '');
+
         html += `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
-            <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>
-            <div class="cf-dyn-grid">`;
-        grouped[secKey].forEach(f => {
-            const rawValue = customData[f.key];
-            const useQty = !!f.has_quantity && CF_QTY_TYPES.includes(f.type);
-            let value = rawValue;
-            let qtyValue = '';
-            if (useQty) {
-                const vq = cfGetVQ(rawValue);
-                value = vq.value;
-                qtyValue = vq.qty;
-            } else if (value && typeof value === 'object' && !Array.isArray(value) && 'value' in value) {
-                value = value.value; // has_quantity 끈 뒤 잔존 객체
-            }
-            const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
-            const help = f.help_text ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
-            const inputId = `cf-${clientId}-${f.key}`;
-            const placeholder = escAttr(f.placeholder || '');
-            const w = resolveWidth(f);
-            html += `<div class="field w-${w}"><div class="field-label">${escText(f.label)}${required}</div>`;
+            <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>`;
 
-            // 메인 입력
-            let mainHtml = '';
-            if (f.type === 'text' || f.type === 'number' || f.type === 'date') {
-                const inputType = f.type === 'text' ? 'text' : f.type;
-                mainHtml = `<input type="${inputType}" class="field-input" id="${inputId}" value="${escAttr(value ?? '')}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="${f.type}">`;
-            } else if (f.type === 'textarea') {
-                mainHtml = `<textarea class="field-input field-textarea" id="${inputId}" placeholder="${placeholder}" data-cf-key="${escAttr(f.key)}" data-cf-type="textarea" rows="3">${escText(value ?? '')}</textarea>`;
-            } else if (f.type === 'select') {
-                const opts = (f.options || []).map(o => `<option value="${escAttr(o)}" ${value === o ? 'selected' : ''}>${escText(o)}</option>`).join('');
-                mainHtml = `<select class="field-input field-select" id="${inputId}" data-cf-key="${escAttr(f.key)}" data-cf-type="select">
-                    <option value="">선택</option>${opts}
-                </select>`;
-            } else if (f.type === 'radio') {
-                const opts = (f.options || []).map((o, i) => `
-                    <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
-                        <input type="radio" name="${inputId}" value="${escAttr(o)}" ${value === o ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="radio"> ${escText(o)}
-                    </label>`).join('');
-                mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
-            } else if (f.type === 'checkbox') {
-                const arr = Array.isArray(value) ? value : [];
-                const opts = (f.options || []).map(o => `
-                    <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
-                        <input type="checkbox" value="${escAttr(o)}" ${arr.includes(o) ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="checkbox"> ${escText(o)}
-                    </label>`).join('');
-                mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
-            }
-
-            // 수량 입력 래퍼
-            if (useQty) {
-                const qtyHtml = `<input type="number" class="field-input" min="0" step="1" value="${escAttr(qtyValue ?? '')}" placeholder="수량" data-cf-qty-key="${escAttr(f.key)}" style="max-width:90px;">`;
-                if (f.type === 'textarea' || f.type === 'radio') {
-                    html += `<div style="display:flex; flex-direction:column; gap:6px;">${mainHtml}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyHtml}</div></div>`;
-                } else {
-                    html += `<div style="display:grid; grid-template-columns:1fr 90px; gap:6px;">${mainHtml}${qtyHtml}</div>`;
-                }
-            } else {
-                html += mainHtml;
-            }
-
-            html += help + `</div>`;
-        });
-        html += `</div></div>`;
+        if (!hasSubsections) {
+            html += `<div class="cf-dyn-grid">`;
+            (subs[''] || []).forEach(f => { html += renderOneField(f); });
+            html += `</div>`;
+        } else {
+            const ordered = subKeys.sort((a, b) => {
+                if (a === '' || a === '기타') return 1;
+                if (b === '' || b === '기타') return -1;
+                return a.localeCompare(b, 'ko');
+            });
+            html += `<div style="display:flex; flex-direction:column; gap:12px;">`;
+            ordered.forEach(sub => {
+                const fields = subs[sub];
+                const subLabel = sub || '기타';
+                const icon = cfSubIcon(sub);
+                html += `<div style="background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px;">
+                    <div style="font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+                        <span style="font-size:14px;">${icon}</span>${escText(subLabel)}
+                    </div>
+                    <div class="cf-dyn-grid">`;
+                fields.forEach(f => { html += renderOneField(f); });
+                html += `</div></div>`;
+            });
+            html += `</div>`;
+        }
+        html += `</div>`;
     });
     return html;
 }
