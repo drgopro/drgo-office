@@ -375,26 +375,12 @@
         @php
             $payment = $project->payment_info ?? null;
             $sdata = $project->stage_data ?? [];
-            $eqData = $sdata['equipment'] ?? null;
             $proposalData = $sdata['proposal'] ?? null;
             $estimateData = $sdata['estimate'] ?? null;
             $visitData = $sdata['visit'] ?? null;
         @endphp
 
-        <!-- 장비 파악 — 인라인 직접 편집 (모달 없음) -->
-        <div class="info-card full" id="equipmentCard">
-            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>📦 장비 파악</span>
-                <span id="eqSaveStatus" style="font-size:11px; color:var(--text-muted); min-height:14px;"></span>
-            </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">요약 메모</div>
-            <textarea id="eqSummary" rows="3" placeholder="장비 파악 결과를 자유롭게 정리하세요." style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; font-family:inherit; box-sizing:border-box;">{{ $eqData['summary'] ?? '' }}</textarea>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:6px;">
-                <span style="font-size:11px; color:var(--text-muted);">수집한 장비 목록</span>
-                <button type="button" onclick="addEqItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 10px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목 추가</button>
-            </div>
-            <div id="eqItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
-        </div>
+        {{-- 장비 파악 단계의 인라인 카드는 제거됨. 장비 정보는 '추가 정보' 동적 필드(section=equipment)에서 입력. --}}
 
         <!-- 일정제안 (연결 캘린더 일정) -->
         @if($proposalData && (!empty($proposalData['schedule_ids']) || !empty($proposalData['note'])))
@@ -449,6 +435,17 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13px;">
                 <div><span style="font-size:11px; color:var(--text-muted);">결제 금액</span><br><span style="font-size:18px; font-weight:700; color:var(--accent);">{{ number_format($payment['amount'] ?? 0) }}원</span></div>
                 <div><span style="font-size:11px; color:var(--text-muted);">결제일</span><br>{{ $payment['paid_at'] ?? '-' }}{!! !empty($payment['method']) ? ' <span style="color:var(--text-muted);">· '.e($payment['method']).'</span>' : '' !!}</div>
+                <div>
+                    <span style="font-size:11px; color:var(--text-muted);">잔금 여부</span><br>
+                    @if(!empty($payment['has_balance']))
+                        <span style="color:#f59e0b; font-weight:700;">O</span>
+                    @else
+                        <span style="color:var(--text-muted);">X</span>
+                    @endif
+                </div>
+                @if(!empty($payment['has_balance']))
+                <div><span style="font-size:11px; color:var(--text-muted);">잔금 금액</span><br><span style="font-size:16px; font-weight:700; color:#f59e0b;">{{ number_format($payment['balance_amount'] ?? 0) }}원</span></div>
+                @endif
                 @if(!empty($payment['estimate_id']))
                 <div style="grid-column:1 / -1;"><span style="font-size:11px; color:var(--text-muted);">연결 견적서</span><br><a href="/estimates/{{ $payment['estimate_id'] }}/edit" style="color:var(--accent); text-decoration:none;">#{{ $payment['estimate_id'] }} 견적서 보기 →</a></div>
                 @endif
@@ -589,6 +586,24 @@
                             <button type="button" onclick="addPayItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 8px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목</button>
                         </div>
                         <div id="payItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:end;">
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">잔금 여부</div>
+                            <div style="display:flex; gap:6px;">
+                                <label style="display:flex; align-items:center; gap:4px; font-size:13px; cursor:pointer;">
+                                    <input type="radio" name="payHasBalance" value="1" onchange="togglePayBalance()"> O
+                                </label>
+                                <label style="display:flex; align-items:center; gap:4px; font-size:13px; cursor:pointer;">
+                                    <input type="radio" name="payHasBalance" value="0" checked onchange="togglePayBalance()"> X
+                                </label>
+                            </div>
+                        </div>
+                        <div id="payBalanceAmountWrap" style="display:none;">
+                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">잔금 금액 (원)</div>
+                            <input type="number" id="payBalanceAmount" min="0" value="{{ $payment['balance_amount'] ?? '' }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                        </div>
                     </div>
 
                     <div>
@@ -1524,64 +1539,7 @@ async function saveStageData(key, data, advanceTo = null) {
     return true;
 }
 
-// ── 장비 파악 (인라인 직접 편집) ──
-function addEqItem(it = {name:'',qty:'',note:''}) {
-    const wrap = document.getElementById('eqItemsWrap');
-    const row = document.createElement('div');
-    row.className = 'eq-item-row';
-    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
-    row.innerHTML = `
-        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="장비명" data-eq="name" oninput="scheduleEqSave()" style="flex:2;">
-        <input type="text" class="pcf-input" value="${pcfEsc(it.qty||'')}" placeholder="수량" data-eq="qty" oninput="scheduleEqSave()" style="flex:0.7; max-width:90px;">
-        <input type="text" class="pcf-input" value="${pcfEsc(it.note||'')}" placeholder="비고" data-eq="note" oninput="scheduleEqSave()" style="flex:2;">
-        <button type="button" onclick="this.parentElement.remove(); scheduleEqSave();" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;border-radius:5px;font-size:11px;cursor:pointer;">×</button>
-    `;
-    wrap.appendChild(row);
-}
-function collectEquipment() {
-    const items = [];
-    document.querySelectorAll('#eqItemsWrap .eq-item-row').forEach(row => {
-        const name = row.querySelector('[data-eq="name"]').value.trim();
-        const qty = row.querySelector('[data-eq="qty"]').value.trim();
-        const note = row.querySelector('[data-eq="note"]').value.trim();
-        if (name) items.push({name, qty, note});
-    });
-    return {
-        summary: document.getElementById('eqSummary').value.trim(),
-        items,
-    };
-}
-
-let eqSaveTimer = null;
-function scheduleEqSave() {
-    clearTimeout(eqSaveTimer);
-    document.getElementById('eqSaveStatus').textContent = '저장 중...';
-    eqSaveTimer = setTimeout(async () => {
-        const data = collectEquipment();
-        const res = await fetch(`/api/projects/${PROJECT_ID}/stage-data`, {
-            method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
-            body: JSON.stringify({ key:'equipment', data }),
-        });
-        const status = document.getElementById('eqSaveStatus');
-        if (res.ok) {
-            status.textContent = '✓ 저장됨';
-            status.style.color = 'var(--text-muted)';
-            setTimeout(() => { status.textContent = ''; }, 2000);
-        } else {
-            status.textContent = '저장 실패';
-            status.style.color = 'var(--red)';
-        }
-    }, 600);
-}
-
-// 페이지 로드 시 기존 항목 채움 + 요약 textarea 입력 핸들러
-(function initEquipmentCard() {
-    const eq = INITIAL_STAGE_DATA.equipment || {};
-    const items = (eq.items && eq.items.length) ? eq.items : [{name:'',qty:'',note:''}];
-    items.forEach(it => addEqItem(it));
-    document.getElementById('eqSummary')?.addEventListener('input', scheduleEqSave);
-})();
+// 장비 파악 단계 데이터는 제거됨 — 장비 정보는 '추가 정보'(custom_data) 의 동적 필드(section=equipment)에서 관리
 
 // ── 일정제안 ──
 let proposalScheduleCache = [];
@@ -1727,11 +1685,25 @@ async function openPaymentModal() {
     document.getElementById('payPaidAt').value = cur.paid_at || new Date().toISOString().slice(0,10);
     document.getElementById('payMethod').value = cur.method || '';
     document.getElementById('payMemo').value = cur.memo || '';
+    // 잔금 여부/금액 복원
+    const hasBal = !!cur.has_balance;
+    document.querySelectorAll('input[name="payHasBalance"]').forEach(r => {
+        r.checked = (r.value === (hasBal ? '1' : '0'));
+    });
+    document.getElementById('payBalanceAmount').value = cur.balance_amount || '';
+    togglePayBalance();
     renderPayItems(cur.items || []);
     onSelectEstimate(); // 정보 표시
 }
 function closePaymentModal() {
     document.getElementById('paymentModalOverlay').style.display = 'none';
+}
+
+function togglePayBalance() {
+    const checked = document.querySelector('input[name="payHasBalance"]:checked');
+    const has = checked && checked.value === '1';
+    document.getElementById('payBalanceAmountWrap').style.display = has ? '' : 'none';
+    if (!has) document.getElementById('payBalanceAmount').value = '';
 }
 
 function onSelectEstimate() {
@@ -1776,6 +1748,8 @@ function collectPayItems() {
 }
 
 async function savePayment() {
+    const hasBalanceChecked = document.querySelector('input[name="payHasBalance"]:checked');
+    const hasBalance = !!(hasBalanceChecked && hasBalanceChecked.value === '1');
     const body = {
         estimate_id: document.getElementById('payEstimateId').value ? +document.getElementById('payEstimateId').value : null,
         amount: parseInt(document.getElementById('payAmount').value, 10) || 0,
@@ -1784,6 +1758,8 @@ async function savePayment() {
         items: collectPayItems(),
         memo: document.getElementById('payMemo').value.trim() || null,
         mark_estimate_paid: document.getElementById('payMarkPaid').checked,
+        has_balance: hasBalance,
+        balance_amount: hasBalance ? (parseInt(document.getElementById('payBalanceAmount').value, 10) || 0) : 0,
     };
     if (!body.amount && !body.estimate_id && !body.items.length) {
         return alert('결제 금액 또는 견적서, 항목 중 하나는 입력해야 합니다.');

@@ -221,9 +221,11 @@ class ProjectController extends Controller
             'items.*.price' => 'nullable|integer|min:0',
             'memo' => 'nullable|string|max:1000',
             'mark_estimate_paid' => 'nullable|boolean',
+            'has_balance' => 'nullable|boolean',
+            'balance_amount' => 'nullable|integer|min:0',
         ]);
 
-        // payment_info에 저장 (estimate_id, amount, paid_at, method, items, memo, recorded_at)
+        // payment_info에 저장
         $payment = [
             'estimate_id' => $validated['estimate_id'] ?? null,
             'amount' => $validated['amount'] ?? 0,
@@ -231,6 +233,8 @@ class ProjectController extends Controller
             'method' => $validated['method'] ?? null,
             'items' => array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name']))),
             'memo' => $validated['memo'] ?? null,
+            'has_balance' => ! empty($validated['has_balance']),
+            'balance_amount' => ! empty($validated['has_balance']) ? ($validated['balance_amount'] ?? 0) : 0,
             'recorded_at' => now()->toIso8601String(),
             'recorded_by' => Auth::id(),
         ];
