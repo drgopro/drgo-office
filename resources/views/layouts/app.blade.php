@@ -108,10 +108,37 @@
         .header-left { display:flex; align-items:center; gap:0; }
         .logo { font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.15em; text-decoration:none; padding:0 16px 0 0; margin-right:16px; border-right:1px solid var(--border); }
 
-        .nav { display:flex; align-items:center; gap:2px; }
-        .nav a { text-decoration:none; color:var(--text-muted); font-size:13px; padding:6px 12px; border-radius:6px; transition:all 0.15s; }
+        .nav { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; white-space:nowrap; }
+        .nav a { text-decoration:none; color:var(--text-muted); font-size:13px; padding:6px 12px; border-radius:6px; transition:all 0.15s; white-space:nowrap; }
         .nav a:hover { color:var(--text); background:var(--surface2); }
         .nav a.active { color:var(--accent); background:var(--surface2); }
+
+        /* ── 화면이 좁아지면 네비 항목 간격/패딩 축소 (햄버거 전환 전 단계적 압축) ── */
+        @media (max-width: 1280px) {
+            .nav a { font-size:12px; padding:5px 9px; }
+            .nav { gap:1px; }
+        }
+        @media (max-width: 1100px) {
+            .nav a { font-size:12px; padding:5px 7px; }
+            .logo { font-size:12px; padding-right:10px; margin-right:10px; letter-spacing:0.1em; }
+            .header-right { gap:6px; }
+            .header-right .user-role { display:none; }
+        }
+        /* ── 햄버거 전환 ≤ 980px ── */
+        @media (max-width: 980px) {
+            .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:40px; min-height:40px; }
+            .nav { display:none; position:fixed; top:var(--header-h); left:0; right:0; bottom:0; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; }
+            .nav.open { display:flex; }
+            .nav a { font-size:14px; padding:11px 16px; border-radius:8px; min-height:42px; display:flex; align-items:center; }
+            .nav-overlay { display:none; position:fixed; inset:0; top:var(--header-h); background:rgba(0,0,0,0.5); z-index:198; }
+            .nav-overlay.open { display:block; }
+            .nav-mobile-only { display:none; border-top:1px solid var(--border); margin-top:8px; padding-top:12px; }
+            .nav.open .nav-mobile-only { display:block; }
+            .nav-mobile-only a, .nav-mobile-only span { display:block; font-size:13px; padding:8px 16px; color:var(--text-muted); text-decoration:none; border-radius:8px; }
+            .nav-mobile-only a:hover { color:var(--accent); background:var(--surface2); }
+            .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
+            .header-right .admin-link { display:none; }
+        }
 
         .header-right { display:flex; align-items:center; gap:12px; font-size:12px; }
         .user-role { color:var(--text-muted); font-size:11px; }
