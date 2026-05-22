@@ -657,14 +657,14 @@
             </div>
             @if($consultations->count() > 0)
                 <div class="consult-list" id="consultList">
-                    @foreach($consultations->sortByDesc('consulted_at') as $consult)
-                    <div class="consult-item {{ $consult->is_important ? 'important' : '' }}" data-date="{{ $consult->consulted_at->format('Y-m-d') }}" data-id="{{ $consult->id }}">
+                    @foreach($consultations->sortBy([['consulted_at', 'desc'], ['created_at', 'desc']]) as $consult)
+                    <div class="consult-item {{ $consult->is_important ? 'important' : '' }}" data-date="{{ $consult->consulted_at->format('Y-m-d') }}" data-created="{{ $consult->created_at->format('Y-m-d H:i:s') }}" data-id="{{ $consult->id }}">
                         <div class="consult-header">
                             <div class="consult-meta">
                                 @if($consult->is_important)
                                     <span class="important-mark">⭐</span>
                                 @endif
-                                <span class="consult-date">{{ $consult->consulted_at->format('Y.m.d') }}</span>
+                                <span class="consult-date">{{ $consult->consulted_at->format('Y-m-d') }}</span>
                                 <span class="consult-type-badge">
                                     {{ ['kakao'=>'카카오톡','phone'=>'전화','visit'=>'내방상담','field'=>'현장답사'][$consult->consult_type] ?? $consult->consult_type }}
                                 </span>
@@ -690,7 +690,7 @@
                                     · 담당자: {{ $consult->manager_name }}
                                 @endif
                             </span>
-                            <span class="consult-date">{{ $consult->created_at->format('H:i') }}</span>
+                            <span class="consult-date" title="작성 일시">📝 {{ $consult->created_at->format('Y-m-d H:i:s') }}</span>
                         </div>
                     </div>
                     @endforeach
@@ -1028,8 +1028,10 @@ function sortConsultations(order) {
     if (!list) return;
     const items = Array.from(list.children);
     items.sort((a, b) => {
-        const da = a.dataset.date, db = b.dataset.date;
-        return order === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
+        // consulted_at(date) 우선, 동일 날짜는 created_at(datetime)으로 정렬
+        const keyA = (a.dataset.date || '') + ' ' + (a.dataset.created || '');
+        const keyB = (b.dataset.date || '') + ' ' + (b.dataset.created || '');
+        return order === 'desc' ? keyB.localeCompare(keyA) : keyA.localeCompare(keyB);
     });
     items.forEach(el => list.appendChild(el));
 }
