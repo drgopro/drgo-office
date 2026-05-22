@@ -64,10 +64,15 @@
     .stage-done       { background:var(--surface2); color:var(--text-muted); }
 
     .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
-    .pagination { display:flex; gap:4px; justify-content:center; margin-top:20px; }
-    .pagination a, .pagination span { padding:6px 12px; border-radius:6px; font-size:12px; text-decoration:none; border:1px solid var(--border); color:var(--text-muted); }
-    .pagination .active span { background:var(--accent); color:#1a1207; border-color:var(--accent); }
-    [data-theme="light"] .pagination .active span { color:#fff; }
+    .pagination { display:flex; justify-content:center; margin-top:20px; }
+    .pagination > div { display:none; } /* Laravel "Showing X to Y of Z" 텍스트 박스 숨김 */
+    .pagination nav { display:flex !important; align-items:center; gap:2px; flex-wrap:wrap; justify-content:center; }
+    .pagination nav span, .pagination nav a { display:inline-flex !important; align-items:center; justify-content:center; padding:6px 12px; margin:0 2px; border-radius:6px; font-size:12px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; min-width:32px; height:32px; box-sizing:border-box; line-height:1; background:none; }
+    .pagination nav span[aria-current], .pagination nav span[aria-current] *, .pagination nav .active span { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:600; }
+    .pagination nav a:hover { border-color:var(--accent); color:var(--accent); }
+    .pagination nav svg { width:14px !important; height:14px !important; flex-shrink:0; }
+    .pagination nav [aria-disabled="true"] { opacity:0.4; cursor:not-allowed; }
+    [data-theme="light"] .pagination nav span[aria-current] { color:#fff; }
     [data-theme="light"] .badge-visit   { background:#e8f5e8; color:#1a7a2a; }
     [data-theme="light"] .badge-remote  { background:#e0f0ff; color:#1a5a8a; }
     [data-theme="light"] .badge-as      { background:#ffe8e8; color:#a03030; }
