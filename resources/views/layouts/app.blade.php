@@ -217,6 +217,21 @@
         }
     </style>
     <style>
+        /* ── 글로벌 페이지네이션 (vendor.pagination.drgo) ── */
+        .drgo-pager { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center; }
+        .drgo-pager-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:500; text-decoration:none; line-height:1; cursor:pointer; transition:all 0.15s; box-sizing:border-box; }
+        .drgo-pager-btn:hover:not(.disabled):not(.active) { border-color:var(--accent); color:var(--accent); }
+        .drgo-pager-btn.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; cursor:default; }
+        [data-theme="light"] .drgo-pager-btn.active { color:#fff; }
+        .drgo-pager-btn.disabled { opacity:0.35; cursor:not-allowed; }
+        .drgo-pager-dots { color:var(--text-muted); padding:0 4px; font-size:12px; }
+        .drgo-pager-info { font-size:11px; color:var(--text-muted); margin-left:10px; font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
+        @media (max-width: 600px) {
+            .drgo-pager-info { display:none; }
+            .drgo-pager-btn { min-width:28px; height:28px; padding:0 6px; font-size:11px; }
+        }
+    </style>
+    <style>
         /* iframe 내부에서는 내비/탭바 숨김 */
         body.in-iframe .header, body.in-iframe .tab-bar-wrap { display:none !important; }
         body.in-iframe .main { height:var(--full-h, 100vh); }
