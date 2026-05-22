@@ -278,7 +278,7 @@ window.CALENDAR_CATEGORIES = @json($__calCats);
                 <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');">렌탈</a>
                 <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');">방송룸</a>
             @endif
-            @if(Auth::user()->isAdmin())
+            @if(in_array(Auth::user()->role, ['master','admin','member']))
                 <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');">📊 통계</a>
             @endif
             <div class="nav-mobile-only">

@@ -40,8 +40,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
     Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
 
-    // 마케팅 통계 (master/admin 전용)
-    Route::middleware('role:master,admin')->group(function () {
+    // 마케팅 통계 (master/admin/member 접근 가능, guest 차단)
+    Route::middleware('role:master,admin,member')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
     });
 
