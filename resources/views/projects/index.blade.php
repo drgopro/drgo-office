@@ -175,7 +175,7 @@
                 @foreach($projects as $project)
                 <tr>
                     <td>
-                        <a href="{{ route('projects.show', $project) }}" class="project-link">{{ $project->name }}</a>
+                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); if (typeof openTopTab === 'function') openTopTab('projects', '/projects/{{ $project->id }}'); else window.location.href=this.href;">{{ $project->name }}</a>
                     </td>
                     <td>
                         <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="client-link" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">

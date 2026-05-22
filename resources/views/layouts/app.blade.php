@@ -246,6 +246,23 @@
 <script>
 if (window !== window.top) document.body.classList.add('in-iframe');
 window.CALENDAR_CATEGORIES = @json($__calCats);
+
+// 부모(최상위) 탭 시스템으로 라우팅 — iframe 중첩 방지
+window.openTopTab = function(type, url) {
+    try {
+        let w = window;
+        for (let i = 0; i < 5 && w !== w.parent; i++) {
+            if (w.parent && w.parent.drgoTabs && typeof w.parent.drgoTabs.openNav === 'function') {
+                return w.parent.drgoTabs.openNav(type, url);
+            }
+            w = w.parent;
+        }
+    } catch (e) { /* cross-origin 등 */ }
+    if (window.top && window.top !== window) {
+        try { window.top.location.href = url; return; } catch (e) {}
+    }
+    window.location.href = url;
+};
 </script>
 
 {{-- ── 상단 내비게이션 ── --}}
