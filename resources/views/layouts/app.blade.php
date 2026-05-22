@@ -113,10 +113,28 @@
         .nav a:hover { color:var(--text); background:var(--surface2); }
         .nav a.active { color:var(--accent); background:var(--surface2); }
 
+        .header-right { display:flex; align-items:center; gap:12px; font-size:12px; }
+        .user-role { color:var(--text-muted); font-size:11px; }
+        .logout-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.15s; }
+        .logout-btn:hover { border-color:var(--accent); color:var(--accent); }
+        .admin-link { font-size:12px; color:var(--text-muted); text-decoration:none; padding:5px 10px; border:1px solid var(--border); border-radius:6px; transition:all 0.15s; }
+        .admin-link:hover, .admin-link.active { border-color:var(--accent); color:var(--accent); }
+        .theme-toggle { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; transition:all 0.15s; }
+        .qr-fab { background:var(--accent); color:#1a1207; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
+        .qr-fab:hover { filter:brightness(1.1); }
+        [data-theme="light"] .qr-fab { color:#fff; }
+        @keyframes gqrToastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+        .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
+
+        /* 햄버거 / 모바일전용 */
+        .menu-toggle { display:none; background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; padding:6px; }
+        .nav-overlay { display:none; }
+        .nav-mobile-only { display:none; }
+
         /* ── 화면이 좁아지면 네비 항목 간격/패딩 축소 (햄버거 전환 전 단계적 압축) ── */
         @media (max-width: 1280px) {
-            .nav a { font-size:12px; padding:5px 9px; }
             .nav { gap:1px; }
+            .nav a { font-size:12px; padding:5px 9px; }
         }
         @media (max-width: 1100px) {
             .nav a { font-size:12px; padding:5px 7px; }
@@ -139,24 +157,6 @@
             .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
             .header-right .admin-link { display:none; }
         }
-
-        .header-right { display:flex; align-items:center; gap:12px; font-size:12px; }
-        .user-role { color:var(--text-muted); font-size:11px; }
-        .logout-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.15s; }
-        .logout-btn:hover { border-color:var(--accent); color:var(--accent); }
-        .admin-link { font-size:12px; color:var(--text-muted); text-decoration:none; padding:5px 10px; border:1px solid var(--border); border-radius:6px; transition:all 0.15s; }
-        .admin-link:hover, .admin-link.active { border-color:var(--accent); color:var(--accent); }
-        .theme-toggle { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; transition:all 0.15s; }
-        .qr-fab { background:var(--accent); color:#1a1207; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
-        .qr-fab:hover { filter:brightness(1.1); }
-        [data-theme="light"] .qr-fab { color:#fff; }
-        @keyframes gqrToastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-        .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
-
-        /* 햄버거 / 모바일전용 */
-        .menu-toggle { display:none; background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; padding:6px; }
-        .nav-overlay { display:none; }
-        .nav-mobile-only { display:none; }
 
         /* ── 탭 바 ── */
         .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:var(--header-h); z-index:190; }
