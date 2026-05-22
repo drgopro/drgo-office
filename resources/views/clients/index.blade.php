@@ -350,6 +350,25 @@
 @push('scripts')
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+// ── 부모(최상위) 탭 시스템으로 라우팅 (iframe 중첩 방지) ──
+function openTopTab(type, url) {
+    try {
+        let w = window;
+        // 가장 바깥(window.top)의 drgoTabs를 찾음
+        for (let i = 0; i < 5 && w !== w.parent; i++) {
+            if (w.parent && w.parent.drgoTabs && typeof w.parent.drgoTabs.openNav === 'function') {
+                return w.parent.drgoTabs.openNav(type, url);
+            }
+            w = w.parent;
+        }
+    } catch (e) { /* cross-origin 등 */ }
+    // fallback: 직접 이동
+    if (window.top && window.top !== window) {
+        try { window.top.location.href = url; return; } catch (e) {}
+    }
+    window.location.href = url;
+}
 const GRADE_LABELS = { normal:'일반', vip:'VIP', rental:'렌탈' };
 const GRADE_COLORS = { normal:'var(--text-muted)', vip:'var(--accent)', rental:'var(--blue)' };
 
@@ -949,7 +968,7 @@ function renderProjectList(projects, clientId, order) {
         return sortOrder === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
     });
     return sorted.map(p => `
-        <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="if(typeof drgoTabs!=='undefined') drgoTabs.openNav('projects','/projects/${p.id}');">
+        <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
             <div>
                 <div style="font-size:14px; font-weight:600;">${p.name}</div>
                 <div style="font-size:11px; color:var(--text-muted);">${TYPE_LABELS[p.type]||p.type} · 상담 ${p.consultations_count}건 · ${p.created_at}</div>
