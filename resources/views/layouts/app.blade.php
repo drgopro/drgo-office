@@ -404,7 +404,8 @@ document.getElementById('tabAddBtn').addEventListener('click', e => {
 document.addEventListener('click', () => document.getElementById('tabMenu').classList.remove('open'));
 
 // ── 탭 시스템 ──
-const drgoTabs = {
+// window.drgoTabs로도 노출 (iframe → parent 접근용)
+window.drgoTabs = {
     tabs: [],
     activeId: null,
 
