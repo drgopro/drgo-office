@@ -461,9 +461,21 @@
                 </div>
                 <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
                     <div id="refundChargeMeta" style="font-size:12px; color:var(--text-muted); padding:8px 12px; background:var(--surface2); border-radius:8px;"></div>
+
+                    <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; cursor:pointer; user-select:none;">
+                        <input type="checkbox" id="refundManualMode" onchange="toggleRefundManualMode(this.checked)">
+                        <span style="font-size:13px; font-weight:600;">환불금액 수기 입력</span>
+                        <span style="font-size:11px; color:var(--text-muted); margin-left:auto;">항목과 무관하게 금액 직접 지정</span>
+                    </label>
+
                     <div id="refundItemsWrap">
                         <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">환불할 제품 선택 (체크 + 수량 조정)</div>
                         <div id="refundItemsList" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+
+                    <div id="refundManualWrap" style="display:none;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">환불 금액 (원) <span id="refundManualMax" style="color:var(--text-muted);"></span></div>
+                        <input type="number" id="refundManualAmount" placeholder="환불 금액 입력" min="0" oninput="updateRefundPreview()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                     </div>
                     <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:var(--surface2); border-radius:8px;">
                         <span style="font-size:12px; color:var(--text-muted);">환불 금액 (선택 항목 합산):</span>
@@ -1754,7 +1766,7 @@ function openRefundModal(chargeId, type) {
         checked: false,
         source_estimate_item_id: it.source_estimate_item_id || null,
     }));
-    __refundContext = { chargeId, type, charge, refundable, items };
+    __refundContext = { chargeId, type, charge, refundable, items, manualMode: !items.length };
 
     document.getElementById('refundModalTitle').textContent = type === 'cancel' ? '⚠ 결제 취소' : '↩ 환불';
     document.getElementById('refundChargeMeta').innerHTML = `
@@ -1762,10 +1774,42 @@ function openRefundModal(chargeId, type) {
         · 환불 가능 잔여: <b style="color:var(--red);">${_fmtPh(refundable)}원</b>
         ${charge.method ? '· ' + _escPh(charge.method) : ''}
     `;
-    renderRefundItems();
+    // 항목이 없으면 수기 입력 모드만 활성화
+    const hasItems = items.length > 0;
+    const manualCheckbox = document.getElementById('refundManualMode');
+    manualCheckbox.checked = !hasItems;
+    manualCheckbox.disabled = !hasItems; // 항목이 없으면 수기만 가능, 체크박스 비활성화
+    document.getElementById('refundManualMax').textContent = `· 최대 ${_fmtPh(refundable)}원`;
+    document.getElementById('refundManualAmount').max = refundable;
+    document.getElementById('refundManualAmount').value = '';
+    applyRefundModeUI();
+
     document.getElementById('refundReason').value = '';
     document.getElementById('refundMethod').value = charge.method || '';
     document.getElementById('refundModalOverlay').style.display = 'flex';
+}
+
+function toggleRefundManualMode(checked) {
+    if (!__refundContext) return;
+    __refundContext.manualMode = checked;
+    if (!checked) {
+        // 항목 모드로 돌아갈 때 수기 입력값 초기화
+        document.getElementById('refundManualAmount').value = '';
+    } else {
+        // 수기 모드로 전환 시 항목 선택 해제
+        __refundContext.items.forEach(it => it.checked = false);
+    }
+    applyRefundModeUI();
+}
+
+function applyRefundModeUI() {
+    const ctx = __refundContext;
+    if (!ctx) return;
+    const manual = ctx.manualMode;
+    document.getElementById('refundItemsWrap').style.display = manual ? 'none' : '';
+    document.getElementById('refundManualWrap').style.display = manual ? '' : 'none';
+    if (!manual) renderRefundItems();
+    updateRefundPreview();
 }
 function closeRefundModal() {
     document.getElementById('refundModalOverlay').style.display = 'none';
@@ -1777,8 +1821,7 @@ function renderRefundItems() {
     const ctx = __refundContext;
     if (!ctx) return;
     if (!ctx.items.length) {
-        wrap.innerHTML = '<div style="font-size:12px; color:var(--text-muted); padding:8px;">등록된 항목이 없습니다. 직접 환불 금액을 입력해 주세요.</div>'
-            + `<div style="margin-top:6px;"><input type="number" id="refundDirectAmount" placeholder="환불 금액 (원)" min="0" max="${ctx.refundable}" oninput="updateRefundPreview()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></div>`;
+        wrap.innerHTML = '<div style="font-size:12px; color:var(--text-muted); padding:8px;">등록된 항목이 없습니다. 위 \'환불금액 수기 입력\' 옵션을 사용해 주세요.</div>';
         return;
     }
     wrap.innerHTML = ctx.items.map((it, i) => {
@@ -1810,8 +1853,8 @@ function updateRefundPreview() {
     const ctx = __refundContext;
     if (!ctx) return;
     let amount;
-    if (!ctx.items.length) {
-        amount = parseInt(document.getElementById('refundDirectAmount')?.value || 0);
+    if (ctx.manualMode) {
+        amount = parseInt(document.getElementById('refundManualAmount').value || 0);
     } else {
         amount = ctx.items.reduce((s, it) => s + (it.checked ? it.qty * it.price : 0), 0);
     }
@@ -1822,20 +1865,22 @@ function updateRefundPreview() {
 async function submitRefund(type) {
     const ctx = __refundContext;
     if (!ctx) return;
-    const selectedItems = ctx.items.filter(it => it.checked).map(it => ({
+    const isManual = ctx.manualMode;
+    const selectedItems = isManual ? [] : ctx.items.filter(it => it.checked).map(it => ({
         name: it.name, qty: it.qty, price: it.price,
         source_estimate_item_id: it.source_estimate_item_id,
     }));
-    const directAmount = parseInt(document.getElementById('refundDirectAmount')?.value || 0);
+    const directAmount = isManual ? parseInt(document.getElementById('refundManualAmount').value || 0) : 0;
 
-    if (type === 'refund' && !selectedItems.length && !directAmount) {
-        return alert('환불할 항목을 선택하거나 금액을 입력해 주세요.');
+    if (type === 'refund') {
+        if (isManual && !directAmount) return alert('환불 금액을 입력해 주세요.');
+        if (!isManual && !selectedItems.length) return alert('환불할 항목을 선택해 주세요.');
     }
     const body = {
         parent_payment_id: ctx.chargeId,
         type,
         items: selectedItems,
-        amount: !selectedItems.length ? directAmount : null,
+        amount: isManual ? directAmount : null,
         reason: document.getElementById('refundReason').value || null,
         method: document.getElementById('refundMethod').value || null,
     };
