@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectMemo;
+use App\Models\ProjectPayment;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -241,6 +242,20 @@ class ProjectController extends Controller
 
         $project->update(['payment_info' => $payment]);
 
+        // project_payments에 charge 트랜잭션 기록 (history 보관)
+        $items = $payment['items'] ?? [];
+        ProjectPayment::create([
+            'project_id' => $project->id,
+            'type' => 'charge',
+            'estimate_id' => $payment['estimate_id'] ?? null,
+            'amount' => (int) ($payment['amount'] ?? 0),
+            'items' => $items,
+            'method' => $payment['method'] ?? null,
+            'paid_at' => $payment['paid_at'] ?? null,
+            'memo' => $payment['memo'] ?? null,
+            'recorded_by' => Auth::id(),
+        ]);
+
         // 현재 stage가 payment 이전이면 payment로 진행 (이후 단계는 그대로 유지)
         $stageOrder = ['consulting', 'equipment', 'proposal', 'estimate', 'payment', 'visit', 'as', 'done'];
         $curIdx = array_search($project->stage, $stageOrder, true);
@@ -353,5 +368,123 @@ class ProjectController extends Controller
         }
 
         return back()->with('success', '프로젝트가 삭제되었습니다.');
+    }
+
+    /**
+     * 결제 트랜잭션 목록 (charge + refund + cancel)
+     */
+    public function payments(Project $project): JsonResponse
+    {
+        $rows = ProjectPayment::with('recorder', 'refunds')
+            ->where('project_id', $project->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        // charge 항목별 누적 환불액 계산
+        $byCharge = [];
+        foreach ($rows as $r) {
+            if (in_array($r->type, ['refund', 'cancel'], true) && $r->parent_payment_id) {
+                $byCharge[$r->parent_payment_id] = ($byCharge[$r->parent_payment_id] ?? 0) + abs($r->amount);
+            }
+        }
+
+        return response()->json([
+            'payments' => $rows->map(fn ($r) => [
+                'id' => $r->id,
+                'parent_payment_id' => $r->parent_payment_id,
+                'type' => $r->type,
+                'estimate_id' => $r->estimate_id,
+                'amount' => $r->amount,
+                'items' => $r->items ?? [],
+                'method' => $r->method,
+                'paid_at' => $r->paid_at?->format('Y-m-d'),
+                'memo' => $r->memo,
+                'recorder' => $r->recorder?->display_name,
+                'created_at' => $r->created_at->format('Y-m-d H:i'),
+                'refunded_amount' => $r->type === 'charge' ? ($byCharge[$r->id] ?? 0) : 0,
+                'is_fully_refunded' => $r->type === 'charge' && ($byCharge[$r->id] ?? 0) >= $r->amount,
+            ]),
+        ]);
+    }
+
+    /**
+     * 환불 또는 결제 취소
+     *
+     * body:
+     *   parent_payment_id (int) — 환불 대상 charge
+     *   type   (refund|cancel) — refund=부분 환불 가능, cancel=전액 취소
+     *   items  (array nullable) — 환불할 항목 [{name, qty, price}, ...]
+     *   amount (int nullable) — items 미지정 시 직접 금액 지정
+     *   reason (string nullable)
+     *   method (string nullable)
+     */
+    public function refundPayment(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'parent_payment_id' => 'required|integer|exists:project_payments,id',
+            'type' => 'required|in:refund,cancel',
+            'items' => 'nullable|array',
+            'items.*.name' => 'nullable|string|max:200',
+            'items.*.qty' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer|min:0',
+            'amount' => 'nullable|integer|min:0',
+            'reason' => 'nullable|string|max:500',
+            'method' => 'nullable|string|max:30',
+        ]);
+
+        $parent = ProjectPayment::where('project_id', $project->id)
+            ->findOrFail($validated['parent_payment_id']);
+
+        if ($parent->type !== 'charge') {
+            return response()->json(['error' => '결제(charge) 항목에 대해서만 환불할 수 있습니다.'], 422);
+        }
+
+        // 금액 계산: cancel = 잔여 전액, refund = items 합산 또는 amount 직접
+        $alreadyRefunded = ProjectPayment::where('parent_payment_id', $parent->id)
+            ->whereIn('type', ['refund', 'cancel'])
+            ->sum('amount');
+        $refundable = $parent->amount + $alreadyRefunded; // alreadyRefunded는 음수
+        if ($refundable <= 0) {
+            return response()->json(['error' => '이미 전액 환불된 결제입니다.'], 422);
+        }
+
+        $items = array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name'])));
+        if ($validated['type'] === 'cancel') {
+            $amount = $refundable;
+        } else {
+            // refund: items 합산 우선, 없으면 amount 직접
+            if (! empty($items)) {
+                $amount = 0;
+                foreach ($items as $it) {
+                    $amount += ((int) ($it['qty'] ?? 1)) * ((int) ($it['price'] ?? 0));
+                }
+            } else {
+                $amount = (int) ($validated['amount'] ?? 0);
+            }
+        }
+        if ($amount <= 0) {
+            return response()->json(['error' => '환불 금액이 0 이상이어야 합니다.'], 422);
+        }
+        if ($amount > $refundable) {
+            return response()->json(['error' => "환불 가능 금액({$refundable}원)을 초과합니다."], 422);
+        }
+
+        $row = ProjectPayment::create([
+            'project_id' => $project->id,
+            'parent_payment_id' => $parent->id,
+            'type' => $validated['type'],
+            'estimate_id' => $parent->estimate_id,
+            'amount' => -$amount, // 음수로 저장
+            'items' => $items ?: null,
+            'method' => $validated['method'] ?? $parent->method,
+            'paid_at' => now()->toDateString(),
+            'memo' => $validated['reason'] ?? null,
+            'recorded_by' => Auth::id(),
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'payment' => $row->fresh('recorder'),
+        ], 201);
     }
 }

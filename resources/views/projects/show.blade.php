@@ -443,49 +443,50 @@
         </div>
         @endif
 
-        <!-- 결제 정보 카드 (입력되어 있을 때만) -->
-        @if($payment && (($payment['amount'] ?? 0) > 0 || !empty($payment['estimate_id']) || !empty($payment['items'])))
-        <div class="info-card full" id="paymentInfoCard">
+        <!-- 결제 내역 (charge/refund/cancel 트랜잭션) -->
+        <div class="info-card full" id="paymentHistoryCard" style="display:none;">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>💰 결제 정보</span>
-                <button type="button" onclick="openPaymentModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+                <span>💰 결제 내역 <span id="phNetTotal" style="font-size:12px; color:var(--text-muted); margin-left:6px;"></span></span>
+                <button type="button" onclick="openPaymentModal()" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">+ 결제 추가</button>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13px;">
-                <div><span style="font-size:11px; color:var(--text-muted);">결제 금액</span><br><span style="font-size:18px; font-weight:700; color:var(--accent);">{{ number_format($payment['amount'] ?? 0) }}원</span></div>
-                <div><span style="font-size:11px; color:var(--text-muted);">결제일</span><br>{{ $payment['paid_at'] ?? '-' }}{!! !empty($payment['method']) ? ' <span style="color:var(--text-muted);">· '.e($payment['method']).'</span>' : '' !!}</div>
-                <div>
-                    <span style="font-size:11px; color:var(--text-muted);">잔금 여부</span><br>
-                    @if(!empty($payment['has_balance']))
-                        <span style="color:#f59e0b; font-weight:700;">O</span>
-                    @else
-                        <span style="color:var(--text-muted);">X</span>
-                    @endif
+            <div id="paymentHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <!-- 환불 모달 -->
+        <div id="refundModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeRefundModal()">
+            <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
+                    <div style="font-size:15px; font-weight:700;" id="refundModalTitle">↩ 환불</div>
+                    <button type="button" onclick="closeRefundModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
-                @if(!empty($payment['has_balance']))
-                <div><span style="font-size:11px; color:var(--text-muted);">잔금 금액</span><br><span style="font-size:16px; font-weight:700; color:#f59e0b;">{{ number_format($payment['balance_amount'] ?? 0) }}원</span></div>
-                @endif
-                @if(!empty($payment['estimate_id']))
-                <div style="grid-column:1 / -1;"><span style="font-size:11px; color:var(--text-muted);">연결 견적서</span><br><a href="/estimates/{{ $payment['estimate_id'] }}/edit" style="color:var(--accent); text-decoration:none;">#{{ $payment['estimate_id'] }} 견적서 보기 →</a></div>
-                @endif
-                @if(!empty($payment['items']))
-                <div style="grid-column:1 / -1;">
-                    <span style="font-size:11px; color:var(--text-muted);">항목 ({{ count($payment['items']) }}건)</span>
-                    <div style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
-                        @foreach($payment['items'] as $it)
-                        <div style="display:flex; gap:8px; font-size:12px;">
-                            <span style="flex:1;">{{ $it['name'] ?? '-' }}</span>
-                            <span style="color:var(--text-muted);">{{ $it['qty'] ?? 1 }}개 × {{ number_format($it['price'] ?? 0) }}원</span>
-                        </div>
-                        @endforeach
+                <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+                    <div id="refundChargeMeta" style="font-size:12px; color:var(--text-muted); padding:8px 12px; background:var(--surface2); border-radius:8px;"></div>
+                    <div id="refundItemsWrap">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">환불할 제품 선택 (체크 + 수량 조정)</div>
+                        <div id="refundItemsList" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:var(--surface2); border-radius:8px;">
+                        <span style="font-size:12px; color:var(--text-muted);">환불 금액 (선택 항목 합산):</span>
+                        <span id="refundAmountPreview" style="font-size:18px; font-weight:700; color:var(--red); margin-left:auto;">0원</span>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">사유 / 메모</div>
+                        <textarea id="refundReason" rows="2" placeholder="환불 사유" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; resize:vertical;"></textarea>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
+                        <input type="text" id="refundMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
                     </div>
                 </div>
-                @endif
-                @if(!empty($payment['memo']))
-                <div style="grid-column:1 / -1; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $payment['memo'] }}</div>
-                @endif
+                <div style="display:flex; gap:8px; justify-content:space-between; padding:14px 20px; border-top:1px solid var(--border);">
+                    <button type="button" onclick="confirmFullCancel()" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">⚠ 전체 결제 취소</button>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" onclick="closeRefundModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                        <button type="button" onclick="submitRefund('refund')" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">선택 항목 환불</button>
+                    </div>
+                </div>
             </div>
         </div>
-        @endif
 
         @php
             $sdModalStyle = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;';
@@ -1663,6 +1664,201 @@ async function pcfSave() {
 }
 
 loadProjectFieldsForShow();
+
+// ──────────── 결제 내역 (history) ────────────
+let __payments = [];
+let __refundContext = null; // { chargeId, items: [{name,qty,price,maxQty,checked}] }
+
+async function loadPaymentHistory() {
+    try {
+        const res = await fetch(`/api/projects/{{ $project->id }}/payments`, {headers:{'Accept':'application/json'}});
+        if (!res.ok) return;
+        const data = await res.json();
+        __payments = data.payments || [];
+        renderPaymentHistory();
+    } catch(e) {}
+}
+
+function _escPh(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _fmtPh(n){ return Number(n||0).toLocaleString('ko-KR'); }
+
+function renderPaymentHistory() {
+    const card = document.getElementById('paymentHistoryCard');
+    const list = document.getElementById('paymentHistoryList');
+    if (!__payments.length) {
+        card.style.display = 'none';
+        return;
+    }
+    card.style.display = '';
+
+    // 순 결제액 = sum(amount), refund/cancel은 음수로 저장되어 있음
+    const net = __payments.reduce((s, p) => s + (p.amount||0), 0);
+    document.getElementById('phNetTotal').textContent = `· 순 결제액 ${_fmtPh(net)}원`;
+
+    list.innerHTML = __payments.map(p => {
+        const isCharge = p.type === 'charge';
+        const isRefund = p.type === 'refund';
+        const isCancel = p.type === 'cancel';
+        const badge = isCharge ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;border:1px solid rgba(122,200,160,0.35);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">결제</span>'
+            : isRefund ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;border:1px solid rgba(232,137,74,0.35);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">환불</span>'
+            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);border:1px solid rgba(200,80,80,0.35);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">결제 취소</span>';
+        const amount = isCharge ? `+${_fmtPh(p.amount)}원` : `${_fmtPh(p.amount)}원`;
+        const amtColor = isCharge ? 'var(--accent)' : 'var(--red)';
+        const refundInfo = isCharge && p.refunded_amount > 0
+            ? `<span style="font-size:11px; color:var(--text-muted);">· 환불 ${_fmtPh(p.refunded_amount)}원</span>`
+            : '';
+        const fullyRefunded = isCharge && p.is_fully_refunded;
+        const canRefund = isCharge && !fullyRefunded;
+        const itemsHtml = (p.items && p.items.length)
+            ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it => `<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${_escPh(it.name||'-')}</span><span>${it.qty||1}개 × ${_fmtPh(it.price||0)}원</span></div>`).join('')}</div>`
+            : '';
+        return `<div style="padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; ${fullyRefunded ? 'opacity:0.6;' : ''}">
+            <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    ${badge}
+                    <span style="font-size:14px; font-weight:700; color:${amtColor};">${amount}</span>
+                    ${refundInfo}
+                    ${fullyRefunded ? '<span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
+                </div>
+                <div style="display:flex; gap:6px;">
+                    ${canRefund ? `<button onclick="openRefundModal(${p.id}, 'refund')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">환불</button>` : ''}
+                    ${canRefund ? `<button onclick="openRefundModal(${p.id}, 'cancel')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">결제 취소</button>` : ''}
+                </div>
+            </div>
+            <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
+                <span>📅 ${p.paid_at || p.created_at}</span>
+                ${p.method ? `<span>· ${_escPh(p.method)}</span>` : ''}
+                ${p.estimate_id ? `<span>· 견적서 #${p.estimate_id}</span>` : ''}
+                ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
+            </div>
+            ${itemsHtml}
+            ${p.memo ? `<div style="margin-top:6px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 ${_escPh(p.memo)}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function openRefundModal(chargeId, type) {
+    const charge = __payments.find(p => p.id === chargeId);
+    if (!charge) return alert('결제 정보를 찾을 수 없습니다.');
+
+    // 환불 가능 잔여액
+    const refundable = charge.amount - charge.refunded_amount;
+
+    // 환불할 항목 후보 (charge.items 그대로, qty는 환불 가능 max로)
+    // 추후 견적서 연동 시 source_estimate_item_id가 있으면 표기
+    const items = (charge.items || []).map(it => ({
+        name: it.name || '항목',
+        qty: it.qty || 1,
+        price: it.price || 0,
+        maxQty: it.qty || 1,
+        checked: false,
+        source_estimate_item_id: it.source_estimate_item_id || null,
+    }));
+    __refundContext = { chargeId, type, charge, refundable, items };
+
+    document.getElementById('refundModalTitle').textContent = type === 'cancel' ? '⚠ 결제 취소' : '↩ 환불';
+    document.getElementById('refundChargeMeta').innerHTML = `
+        원 결제: <b style="color:var(--accent);">${_fmtPh(charge.amount)}원</b> (${charge.paid_at || charge.created_at})
+        · 환불 가능 잔여: <b style="color:var(--red);">${_fmtPh(refundable)}원</b>
+        ${charge.method ? '· ' + _escPh(charge.method) : ''}
+    `;
+    renderRefundItems();
+    document.getElementById('refundReason').value = '';
+    document.getElementById('refundMethod').value = charge.method || '';
+    document.getElementById('refundModalOverlay').style.display = 'flex';
+}
+function closeRefundModal() {
+    document.getElementById('refundModalOverlay').style.display = 'none';
+    __refundContext = null;
+}
+
+function renderRefundItems() {
+    const wrap = document.getElementById('refundItemsList');
+    const ctx = __refundContext;
+    if (!ctx) return;
+    if (!ctx.items.length) {
+        wrap.innerHTML = '<div style="font-size:12px; color:var(--text-muted); padding:8px;">등록된 항목이 없습니다. 직접 환불 금액을 입력해 주세요.</div>'
+            + `<div style="margin-top:6px;"><input type="number" id="refundDirectAmount" placeholder="환불 금액 (원)" min="0" max="${ctx.refundable}" oninput="updateRefundPreview()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></div>`;
+        return;
+    }
+    wrap.innerHTML = ctx.items.map((it, i) => {
+        return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+            <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
+            <div style="flex:1; font-size:13px;">${_escPh(it.name)}</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
+                <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
+            </div>
+        </label>`;
+    }).join('');
+    updateRefundPreview();
+}
+
+function toggleRefundItem(idx, checked) {
+    if (!__refundContext) return;
+    __refundContext.items[idx].checked = checked;
+    renderRefundItems();
+}
+function changeRefundItemQty(idx, val) {
+    if (!__refundContext) return;
+    const it = __refundContext.items[idx];
+    const q = Math.max(1, Math.min(it.maxQty, parseInt(val||1)));
+    it.qty = q;
+    updateRefundPreview();
+}
+function updateRefundPreview() {
+    const ctx = __refundContext;
+    if (!ctx) return;
+    let amount;
+    if (!ctx.items.length) {
+        amount = parseInt(document.getElementById('refundDirectAmount')?.value || 0);
+    } else {
+        amount = ctx.items.reduce((s, it) => s + (it.checked ? it.qty * it.price : 0), 0);
+    }
+    if (amount > ctx.refundable) amount = ctx.refundable;
+    document.getElementById('refundAmountPreview').textContent = _fmtPh(amount) + '원';
+}
+
+async function submitRefund(type) {
+    const ctx = __refundContext;
+    if (!ctx) return;
+    const selectedItems = ctx.items.filter(it => it.checked).map(it => ({
+        name: it.name, qty: it.qty, price: it.price,
+        source_estimate_item_id: it.source_estimate_item_id,
+    }));
+    const directAmount = parseInt(document.getElementById('refundDirectAmount')?.value || 0);
+
+    if (type === 'refund' && !selectedItems.length && !directAmount) {
+        return alert('환불할 항목을 선택하거나 금액을 입력해 주세요.');
+    }
+    const body = {
+        parent_payment_id: ctx.chargeId,
+        type,
+        items: selectedItems,
+        amount: !selectedItems.length ? directAmount : null,
+        reason: document.getElementById('refundReason').value || null,
+        method: document.getElementById('refundMethod').value || null,
+    };
+    const res = await fetch(`/api/projects/{{ $project->id }}/payments/refund`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok) {
+        closeRefundModal();
+        await loadPaymentHistory();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('실패: ' + (err.error || err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+}
+function confirmFullCancel() {
+    if (!__refundContext) return;
+    if (!confirm('이 결제 전체를 취소 처리하시겠습니까?\n환불 가능 잔여액 전체가 음수로 기록됩니다.')) return;
+    submitRefund('cancel');
+}
+
+loadPaymentHistory();
 
 // ── 단계별 데이터 (stage_data) 공통 ──
 const INITIAL_STAGE_DATA = @json($project->stage_data ?? new \stdClass);
