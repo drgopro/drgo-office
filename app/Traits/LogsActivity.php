@@ -17,8 +17,11 @@ trait LogsActivity
             $changes = [];
             $jsonFields = ['gold_data', 'teal_data', 'special_opts', 'sched_event_opts', 'product_items', 'service_items', 'platforms', 'content_types', 'phones', 'items'];
 
+            // payment_info는 ProjectPayment 모델에서 별도 트랜잭션 단위로 로깅되므로 여기선 스킵
+            $skipKeys = ['updated_at', 'created_at', 'payment_info'];
+
             foreach ($model->getDirty() as $key => $newVal) {
-                if (in_array($key, ['updated_at', 'created_at'])) {
+                if (in_array($key, $skipKeys)) {
                     continue;
                 }
                 $oldVal = $model->getOriginal($key);

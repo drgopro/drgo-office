@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectPayment extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'project_id',
         'parent_payment_id',
@@ -26,6 +29,41 @@ class ProjectPayment extends Model
     ];
 
     public const TYPES = ['charge', 'refund', 'cancel'];
+
+    /**
+     * 로그 표시: '10,000원 결제 / 5,000원 환불 / 3,000원 결제 취소'
+     */
+    protected function getActivityLabel(): string
+    {
+        $typeLabel = [
+            'charge' => '결제',
+            'refund' => '환불',
+            'cancel' => '결제 취소',
+        ][$this->type] ?? $this->type;
+
+        $amountAbs = abs((int) $this->amount);
+        $amountStr = number_format($amountAbs);
+
+        return "[프로젝트 결제] {$amountStr}원 {$typeLabel}";
+    }
+
+    protected function getActivitySummary(string $action): string
+    {
+        $typeLabel = [
+            'charge' => '결제',
+            'refund' => '환불',
+            'cancel' => '결제 취소',
+        ][$this->type] ?? $this->type;
+
+        $amountStr = number_format(abs((int) $this->amount));
+
+        return match ($action) {
+            'create' => "{$amountStr}원 {$typeLabel} 처리",
+            'delete' => "{$amountStr}원 {$typeLabel} 기록 삭제",
+            'update' => "{$amountStr}원 {$typeLabel} 기록 수정",
+            default => parent::getActivitySummary($action),
+        };
+    }
 
     public function project()
     {

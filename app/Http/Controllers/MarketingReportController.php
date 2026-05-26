@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\Estimate;
 use App\Models\Project;
+use App\Models\ProjectPayment;
 use App\Models\RentalContract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -142,14 +143,29 @@ class MarketingReportController extends Controller
         }
 
         // ── 매출 지표 ──
-        $paidEstimates = Estimate::where('status', 'paid')->whereBetween('created_at', [$fromDt, $toDt])->get();
-        $revenueService = $paidEstimates->sum('service_total');
-        $revenueProduct = $paidEstimates->sum('product_total');
-        $revenueTotal = $paidEstimates->sum('total_amount');
+        // 1) 프로젝트 결제 내역 (project_payments) — 환불/취소는 음수로 저장되어 sum이 곧 순매출
+        $projectPaymentRevenue = 0;
+        $linkedEstimateIds = [];
+        if (Schema::hasTable('project_payments')) {
+            $projectPaymentRevenue = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])->sum('amount');
+            $linkedEstimateIds = ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereNotNull('estimate_id')->pluck('estimate_id')->unique()->all();
+        }
 
-        // category_breakdown 합산
+        // 2) Legacy: 견적서 status=paid 중 project_payments에 미연결인 것만 (중복 카운트 방지)
+        $legacyPaidEstimates = Estimate::where('status', 'paid')
+            ->whereBetween('created_at', [$fromDt, $toDt])
+            ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
+            ->get();
+
+        $revenueService = (int) $legacyPaidEstimates->sum('service_total');
+        $revenueProduct = (int) $legacyPaidEstimates->sum('product_total');
+        $revenueLegacy = (int) $legacyPaidEstimates->sum('total_amount');
+        $revenueTotal = $projectPaymentRevenue + $revenueLegacy;
+
+        // category_breakdown 합산 (견적서 기반은 legacy 그대로 사용)
         $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'other' => 0];
-        foreach ($paidEstimates as $e) {
+        foreach ($legacyPaidEstimates as $e) {
             foreach ($e->category_breakdown ?? [] as $key => $val) {
                 if (isset($revenueBreakdown[$key])) {
                     $revenueBreakdown[$key] += (int) $val;
@@ -191,7 +207,16 @@ class MarketingReportController extends Controller
                 'clients' => Client::whereBetween('created_at', [$ms, $me])->count(),
                 'projects' => Project::whereBetween('created_at', [$ms, $me])->count(),
                 'consults' => Consultation::whereBetween('consulted_at', [$ms, $me])->count(),
-                'revenue' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$ms, $me])->sum('total_amount'),
+                'revenue' => (int) (
+                    (Schema::hasTable('project_payments')
+                        ? ProjectPayment::whereBetween('created_at', [$ms, $me])->sum('amount')
+                        : 0)
+                    + Estimate::where('status', 'paid')
+                        ->whereBetween('created_at', [$ms, $me])
+                        ->when(Schema::hasTable('project_payments'),
+                            fn ($q) => $q->whereNotIn('id', ProjectPayment::whereNotNull('estimate_id')->whereBetween('created_at', [$ms, $me])->pluck('estimate_id')))
+                        ->sum('total_amount')
+                ),
             ];
         }
 
