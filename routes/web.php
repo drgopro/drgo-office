@@ -11,6 +11,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDocumentController;
 use App\Http\Controllers\ClientFieldDefinitionController;
 use App\Http\Controllers\ConsultationController;
+use App\Http\Controllers\ConsultationTypeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\ExcelImportController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\WikiController;
 use App\Models\ClientFieldDefinition;
+use App\Models\ConsultationType;
 use App\Models\ProjectFieldDefinition;
 use Illuminate\Support\Facades\Route;
 
@@ -298,6 +300,13 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/admin/calendar-categories/{category}', [CalendarCategoryController::class, 'update']);
         Route::delete('/api/admin/calendar-categories/{category}', [CalendarCategoryController::class, 'destroy']);
         Route::post('/api/admin/calendar-categories/{category}/reset', [CalendarCategoryController::class, 'reset']);
+
+        // 상담 유형 (master/admin 전용)
+        Route::get('/api/admin/consultation-types', [ConsultationTypeController::class, 'index']);
+        Route::post('/api/admin/consultation-types', [ConsultationTypeController::class, 'store']);
+        Route::patch('/api/admin/consultation-types/{type}', [ConsultationTypeController::class, 'update']);
+        Route::delete('/api/admin/consultation-types/{type}', [ConsultationTypeController::class, 'destroy']);
+        Route::post('/api/admin/consultation-types/reorder', [ConsultationTypeController::class, 'reorder']);
     });
 
     // 의뢰자 페이지에서 활성 필드 정의 조회 (clients.view 권한)
@@ -312,6 +321,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/project-fields/active', function () {
             return ProjectFieldDefinition::active()->ordered()->get();
         });
+    });
+
+    // 상담 유형 활성 목록 (조회 전용, 의뢰자/프로젝트 페이지의 드롭다운용)
+    Route::get('/api/consultation-types/active', function () {
+        return ConsultationType::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(['id', 'key', 'label']);
     });
 
 });

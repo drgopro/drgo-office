@@ -199,6 +199,7 @@
         <button class="tab-btn" data-tab="projectFields">프로젝트 필드</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
         <button class="tab-btn" data-tab="calendarCategories">캘린더 카테고리</button>
+        <button class="tab-btn" data-tab="consultationTypes">상담 유형</button>
         <button class="tab-btn" data-tab="seller">판매처 설정</button>
     </div>
 
@@ -596,6 +597,57 @@
         <div id="calendarCategoriesContainer"></div>
     </div>
 
+    {{-- 상담 유형 --}}
+    <div class="tab-panel" id="panel-consultationTypes">
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                의뢰자 페이지에서 새 프로젝트 등록 시 선택하는 <b>상담 유형</b>을 관리합니다.<br>
+                <span style="opacity:0.7;">기본 유형(방문세팅·원격세팅·디자인·단순문의·A/S·문제 해결)은 삭제할 수 없고 비활성화만 가능합니다.</span>
+            </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openConsultTypeModal()">+ 유형 추가</button>
+        </div>
+        <div id="consultTypesContainer"></div>
+    </div>
+
+    {{-- 상담 유형 모달 --}}
+    <div id="consultTypeModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeConsultTypeModal()">
+        <div class="cf-modal">
+            <h3>
+                <span id="consultTypeModalTitle">+ 상담 유형 추가</span>
+                <button type="button" class="close-btn" onclick="closeConsultTypeModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub">상담 유형 정의. key는 비워두면 라벨에서 자동 생성됩니다.</div>
+            <input type="hidden" id="consultTypeId">
+
+            <div class="field-group">
+                <div class="field-label">라벨 (한글) *</div>
+                <input type="text" class="field-input" id="consultTypeLabel" placeholder="예: 라이브 코칭">
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">key (영문, 선택)</div>
+                <input type="text" class="field-input" id="consultTypeKey" placeholder="자동 생성 — 예: live_coaching">
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">정렬 순서</div>
+                <input type="number" class="field-input" id="consultTypeSortOrder" placeholder="작을수록 먼저 표시">
+            </div>
+
+            <div class="cf-toggle-row">
+                <label>
+                    <input type="checkbox" id="consultTypeActive" checked> 활성 (드롭다운에 노출)
+                </label>
+            </div>
+
+            <div class="cf-modal-actions">
+                <button class="btn-danger-outline" id="consultTypeDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteConsultType()">삭제</button>
+                <button class="btn-outline" onclick="closeConsultTypeModal()">취소</button>
+                <button class="btn-save" onclick="saveConsultType()">저장</button>
+            </div>
+        </div>
+    </div>
+
     {{-- 캘린더 카테고리 추가 모달 --}}
     <div id="newCatModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeNewCalendarCategoryModal()">
         <div class="cf-modal" style="max-width:480px;">
@@ -754,6 +806,7 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'projectFields') loadProjectFields();
         if (tab === 'assignees') loadAssigneesAdmin();
         if (tab === 'calendarCategories') loadCalendarCategories();
+        if (tab === 'consultationTypes') loadConsultTypes();
     });
 });
 
@@ -1668,6 +1721,106 @@ async function resetCalendarCategory(id) {
     });
     if (res.ok) await loadCalendarCategories();
     else alert('초기화 실패');
+}
+
+// ─────────────── 상담 유형 ───────────────
+const CONSULT_TYPE_DEFAULTS = ['visit','remote','design','inquiry','as','troubleshoot'];
+let allConsultTypes = [];
+
+async function loadConsultTypes() {
+    const res = await fetch('/api/admin/consultation-types', { headers:{ 'Accept':'application/json' } });
+    allConsultTypes = await res.json();
+    renderConsultTypes();
+}
+
+function renderConsultTypes() {
+    const container = document.getElementById('consultTypesContainer');
+    if (!allConsultTypes.length) {
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">정의된 상담 유형이 없습니다</div></div>';
+        return;
+    }
+    container.innerHTML = `<div class="cf-grid">${allConsultTypes.map(t => {
+        const isDefault = CONSULT_TYPE_DEFAULTS.includes(t.key);
+        const inactive = t.is_active ? '' : ' inactive';
+        return `<div class="cf-card${inactive}" onclick="editConsultType(${t.id})">
+            <div class="cf-card-row">
+                <div class="cf-card-label">${escHtml(t.label)}</div>
+                ${isDefault ? '<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);">기본</span>' : ''}
+            </div>
+            <div class="cf-card-row">
+                <span class="cf-card-key">${escHtml(t.key)}</span>
+                <div class="cf-card-meta">
+                    ${t.is_active ? '' : '<span class="cf-chip muted">비활성</span>'}
+                    <span class="cf-chip">순서 ${t.sort_order ?? 0}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+function openConsultTypeModal(t) {
+    const m = document.getElementById('consultTypeModalOverlay');
+    m.classList.add('open');
+    document.getElementById('consultTypeModalTitle').textContent = t ? '상담 유형 편집' : '+ 상담 유형 추가';
+    document.getElementById('consultTypeId').value = t?.id || '';
+    document.getElementById('consultTypeLabel').value = t?.label || '';
+    document.getElementById('consultTypeKey').value = t?.key || '';
+    document.getElementById('consultTypeSortOrder').value = t?.sort_order ?? '';
+    document.getElementById('consultTypeActive').checked = t ? !!t.is_active : true;
+    // 기본 유형은 key 수정/삭제 비활성화
+    const isDefault = t && CONSULT_TYPE_DEFAULTS.includes(t.key);
+    document.getElementById('consultTypeKey').disabled = !!t; // 편집 시 key 잠금 (FK 영향)
+    document.getElementById('consultTypeDeleteBtn').style.display = (t && !isDefault) ? 'inline-block' : 'none';
+}
+
+function closeConsultTypeModal() { document.getElementById('consultTypeModalOverlay').classList.remove('open'); }
+function editConsultType(id) { const t = allConsultTypes.find(x => x.id === id); if (t) openConsultTypeModal(t); }
+
+async function saveConsultType() {
+    const id = document.getElementById('consultTypeId').value;
+    const label = document.getElementById('consultTypeLabel').value.trim();
+    if (!label) return alert('라벨을 입력하세요.');
+
+    const body = {
+        label,
+        sort_order: parseInt(document.getElementById('consultTypeSortOrder').value || 0),
+        is_active: document.getElementById('consultTypeActive').checked,
+    };
+    if (!id) {
+        const key = document.getElementById('consultTypeKey').value.trim();
+        if (key) body.key = key;
+    }
+
+    const url = id ? `/api/admin/consultation-types/${id}` : '/api/admin/consultation-types';
+    const method = id ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+        method,
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok) {
+        closeConsultTypeModal();
+        await loadConsultTypes();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+}
+
+async function deleteConsultType() {
+    if (!confirm('이 상담 유형을 삭제하시겠습니까?\n사용 중인 프로젝트가 있으면 삭제 대신 비활성화 처리만 가능합니다.')) return;
+    const id = document.getElementById('consultTypeId').value;
+    const res = await fetch(`/api/admin/consultation-types/${id}`, {
+        method:'DELETE',
+        headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    });
+    if (res.ok) {
+        closeConsultTypeModal();
+        await loadConsultTypes();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || '삭제 실패');
+    }
 }
 </script>
 @endpush

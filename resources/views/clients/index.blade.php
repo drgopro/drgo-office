@@ -428,6 +428,19 @@ async function loadCustomFieldDefs() {
     } catch(e) { customFieldDefs = []; }
 }
 
+// 상담 유형 마스터 로드 → window.CONSULTATION_TYPES + TYPE_LABELS 자동 동기화
+window.CONSULTATION_TYPES = window.CONSULTATION_TYPES || [];
+async function loadConsultationTypes() {
+    try {
+        const res = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
+        if (res.ok) {
+            window.CONSULTATION_TYPES = await res.json();
+            // 디스플레이 라벨맵 갱신
+            window.CONSULTATION_TYPES.forEach(t => { window.TYPE_LABELS[t.key] = t.label; });
+        }
+    } catch(e) {}
+}
+
 // 페이지네이션 상태
 let clientPage = 1;
 let clientLastPage = 1;
@@ -455,6 +468,7 @@ if (__savedClientState.grade) {
 
 // ── 초기화 ──
 loadCustomFieldDefs();
+loadConsultationTypes();
 loadClientList(__savedClientState.page || 1).then(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const openId = urlParams.get('open');
@@ -669,7 +683,8 @@ function bindClientTabDrag() {
 }
 
 const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',as:'AS',done:'완료',cancelled:'취소'};
-const TYPE_LABELS = {visit:'방문세팅',remote:'원격세팅',design:'디자인',inquiry:'단순문의',as:'A/S',troubleshoot:'문제 해결'};
+window.TYPE_LABELS = {visit:'방문세팅',remote:'원격세팅',design:'디자인',inquiry:'단순문의',as:'A/S',troubleshoot:'문제 해결'};
+const TYPE_LABELS = window.TYPE_LABELS;
 
 function renderClientContent(id) {
     const tab = openClientTabs.find(t => t.id === id);
@@ -867,14 +882,9 @@ function renderClientContent(id) {
                         <input class="field-input" id="pf-name-${id}">
                     </div>
                     <div class="field">
-                        <div class="field-label">유형 (레거시)</div>
+                        <div class="field-label">상담 유형</div>
                         <select class="field-input field-select" id="pf-type-${id}">
-                            <option value="visit">방문세팅</option>
-                            <option value="remote">원격세팅</option>
-                            <option value="design">디자인</option>
-                            <option value="inquiry">단순문의</option>
-                            <option value="as">A/S</option>
-                            <option value="troubleshoot">문제 해결</option>
+                            ${(window.CONSULTATION_TYPES || []).map(t => `<option value="${t.key}">${t.label}</option>`).join('') || '<option value="visit">방문세팅</option>'}
                         </select>
                     </div>
                 </div>
