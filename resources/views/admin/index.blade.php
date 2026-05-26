@@ -429,11 +429,11 @@
         </div>
     </div>
 
-    {{-- 프로젝트 설정 (필드 정의 + 상담 유형) --}}
+    {{-- 프로젝트 설정 (필드 정의 + 프로젝트 유형) --}}
     <div class="tab-panel" id="panel-projectFields">
         <div class="sub-tab-bar">
             <button class="sub-tab-btn active" data-subtab="fields" onclick="switchProjectSubTab('fields')">필드 정의</button>
-            <button class="sub-tab-btn" data-subtab="types" onclick="switchProjectSubTab('types')">상담 유형</button>
+            <button class="sub-tab-btn" data-subtab="types" onclick="switchProjectSubTab('types')">프로젝트 유형</button>
         </div>
 
         {{-- 필드 정의 --}}
@@ -448,11 +448,11 @@
             <div id="projectFieldsContainer"></div>
         </div>
 
-        {{-- 상담 유형 --}}
+        {{-- 프로젝트 유형 --}}
         <div class="sub-tab-panel" id="subpanel-types">
             <div class="cf-toolbar">
                 <div class="cf-hint">
-                    의뢰자 페이지에서 새 프로젝트 등록 시 선택하는 <b>상담 유형</b>을 관리합니다.<br>
+                    의뢰자 페이지에서 새 프로젝트 등록 시 선택하는 <b>프로젝트 유형</b>을 관리합니다.<br>
                     <span style="opacity:0.7;">기본 유형(방문세팅·원격세팅·디자인·단순문의·A/S·문제 해결)은 삭제할 수 없고 비활성화만 가능합니다.</span>
                 </div>
                 <button class="btn-add" style="margin-bottom:0;" onclick="openConsultTypeModal()">+ 유형 추가</button>
@@ -622,14 +622,14 @@
         <div id="calendarCategoriesContainer"></div>
     </div>
 
-    {{-- 상담 유형 모달 --}}
+    {{-- 프로젝트 유형 모달 --}}
     <div id="consultTypeModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeConsultTypeModal()">
         <div class="cf-modal">
             <h3>
-                <span id="consultTypeModalTitle">+ 상담 유형 추가</span>
+                <span id="consultTypeModalTitle">+ 프로젝트 유형 추가</span>
                 <button type="button" class="close-btn" onclick="closeConsultTypeModal()">✕</button>
             </h3>
-            <div class="cf-modal-sub">상담 유형 정의. key는 비워두면 라벨에서 자동 생성됩니다.</div>
+            <div class="cf-modal-sub">프로젝트 유형 정의. key는 비워두면 라벨에서 자동 생성됩니다.</div>
             <input type="hidden" id="consultTypeId">
 
             <div class="field-group">
@@ -1741,7 +1741,7 @@ async function resetCalendarCategory(id) {
     else alert('초기화 실패');
 }
 
-// ─────────────── 상담 유형 ───────────────
+// ─────────────── 프로젝트 유형 ───────────────
 const CONSULT_TYPE_DEFAULTS = ['visit','remote','design','inquiry','as','troubleshoot'];
 let allConsultTypes = [];
 
@@ -1754,7 +1754,7 @@ async function loadConsultTypes() {
 function renderConsultTypes() {
     const container = document.getElementById('consultTypesContainer');
     if (!allConsultTypes.length) {
-        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">정의된 상담 유형이 없습니다</div></div>';
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">정의된 프로젝트 유형이 없습니다</div></div>';
         return;
     }
     container.innerHTML = `<div class="cf-grid">${allConsultTypes.map(t => {
@@ -1779,7 +1779,7 @@ function renderConsultTypes() {
 function openConsultTypeModal(t) {
     const m = document.getElementById('consultTypeModalOverlay');
     m.classList.add('open');
-    document.getElementById('consultTypeModalTitle').textContent = t ? '상담 유형 편집' : '+ 상담 유형 추가';
+    document.getElementById('consultTypeModalTitle').textContent = t ? '프로젝트 유형 편집' : '+ 프로젝트 유형 추가';
     document.getElementById('consultTypeId').value = t?.id || '';
     document.getElementById('consultTypeLabel').value = t?.label || '';
     document.getElementById('consultTypeKey').value = t?.key || '';
@@ -1826,7 +1826,7 @@ async function saveConsultType() {
 }
 
 async function deleteConsultType() {
-    if (!confirm('이 상담 유형을 삭제하시겠습니까?\n사용 중인 프로젝트가 있으면 삭제 대신 비활성화 처리만 가능합니다.')) return;
+    if (!confirm('이 프로젝트 유형을 삭제하시겠습니까?\n사용 중인 프로젝트가 있으면 삭제 대신 비활성화 처리만 가능합니다.')) return;
     const id = document.getElementById('consultTypeId').value;
     const res = await fetch(`/api/admin/consultation-types/${id}`, {
         method:'DELETE',

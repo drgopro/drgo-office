@@ -428,7 +428,7 @@ async function loadCustomFieldDefs() {
     } catch(e) { customFieldDefs = []; }
 }
 
-// 상담 유형 마스터 로드 → window.CONSULTATION_TYPES + TYPE_LABELS 자동 동기화
+// 프로젝트 유형 마스터 로드 → window.CONSULTATION_TYPES + TYPE_LABELS 자동 동기화
 window.CONSULTATION_TYPES = window.CONSULTATION_TYPES || [];
 async function loadConsultationTypes() {
     try {
@@ -882,7 +882,7 @@ function renderClientContent(id) {
                         <input class="field-input" id="pf-name-${id}">
                     </div>
                     <div class="field">
-                        <div class="field-label">상담 유형</div>
+                        <div class="field-label">프로젝트 유형</div>
                         <select class="field-input field-select" id="pf-type-${id}">
                             ${(window.CONSULTATION_TYPES || []).map(t => `<option value="${t.key}">${t.label}</option>`).join('') || '<option value="visit">방문세팅</option>'}
                         </select>

@@ -59,7 +59,7 @@ class ProjectController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:200',
-            'project_type' => 'required|in:visit,remote,design,inquiry,as,troubleshoot',
+            'project_type' => 'required|string|max:50|exists:consultation_types,key',
             'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
             'memo' => 'nullable|string',
@@ -150,7 +150,7 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:200',
             'memo' => 'nullable|string',
-            'project_type' => 'sometimes|in:visit,remote,design,inquiry,as,troubleshoot',
+            'project_type' => 'sometimes|string|max:50|exists:consultation_types,key',
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'sometimes|nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
             'custom_data' => 'nullable|array',

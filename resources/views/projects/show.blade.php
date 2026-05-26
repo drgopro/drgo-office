@@ -236,6 +236,7 @@
         </div>
         <div style="display:flex;gap:8px;">
             <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
+            <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
             @if($project->stage !== 'cancelled')
                 <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
             @endif
@@ -568,6 +569,47 @@
                 <div style="{{ $sdFootStyle }}">
                     <button type="button" onclick="closeVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
                     <button type="button" onclick="saveVisitReport()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 프로젝트 수정 모달 -->
+        <div id="projectEditModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeProjectEditModal()">
+            <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
+                    <div style="font-size:15px; font-weight:700;">✏️ 프로젝트 수정</div>
+                    <button type="button" onclick="closeProjectEditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+                </div>
+                <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
+                        <input type="text" id="peName" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형</div>
+                        <select id="peProjectType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
+                            <select id="peScale" onchange="updatePeWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                                <option value="">선택</option>
+                                <option value="personal">개인</option>
+                                <option value="studio">스튜디오</option>
+                                <option value="corporate">기업</option>
+                                <option value="rental">렌탈</option>
+                                <option value="broadcast_room">방송룸</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
+                            <select id="peWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
+                    <button type="button" onclick="closeProjectEditModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveProjectEdit()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -1130,6 +1172,66 @@ async function saveMemo() {
     edit.style.display = 'none';
     display.style.display = '';
     btn.textContent = '수정';
+}
+
+// ── 프로젝트 수정 모달 ──
+const CURRENT_PROJECT = {
+    name: @json($project->name),
+    project_type: @json($project->project_type),
+    client_scale: @json($project->client_scale),
+    work_type: @json($project->work_type),
+};
+
+async function openProjectEditModal() {
+    // 프로젝트 유형 옵션 로드
+    try {
+        const res = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
+        const types = res.ok ? await res.json() : [];
+        const sel = document.getElementById('peProjectType');
+        if (types.length) {
+            sel.innerHTML = types.map(t => `<option value="${t.key}" ${CURRENT_PROJECT.project_type === t.key ? 'selected' : ''}>${t.label}</option>`).join('');
+        } else {
+            sel.innerHTML = `<option value="${CURRENT_PROJECT.project_type}">${CURRENT_PROJECT.project_type}</option>`;
+        }
+    } catch(e) {}
+
+    document.getElementById('peName').value = CURRENT_PROJECT.name || '';
+    document.getElementById('peScale').value = CURRENT_PROJECT.client_scale || '';
+    updatePeWorkType();
+    document.getElementById('projectEditModalOverlay').style.display = 'flex';
+}
+function closeProjectEditModal() { document.getElementById('projectEditModalOverlay').style.display = 'none'; }
+
+function updatePeWorkType() {
+    const scale = document.getElementById('peScale').value;
+    const opts = (typeof WORK_TYPES !== 'undefined' && WORK_TYPES[scale]) ? WORK_TYPES[scale] : [];
+    const sel = document.getElementById('peWorkType');
+    sel.innerHTML = `<option value="">선택</option>` + opts.map(([v,l]) => `<option value="${v}" ${CURRENT_PROJECT.work_type === v ? 'selected' : ''}>${l}</option>`).join('');
+}
+
+async function saveProjectEdit() {
+    const name = document.getElementById('peName').value.trim();
+    if (!name) return alert('프로젝트명을 입력하세요.');
+
+    const body = {
+        name,
+        project_type: document.getElementById('peProjectType').value,
+        client_scale: document.getElementById('peScale').value || null,
+        work_type: document.getElementById('peWorkType').value || null,
+    };
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/api/projects/{{ $project->id }}`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+        body:JSON.stringify(body),
+    });
+    if (res.ok) {
+        closeProjectEditModal();
+        location.reload();
+    } else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
 }
 
 // 규모/작업유형 편집
