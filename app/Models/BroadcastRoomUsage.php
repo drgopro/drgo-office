@@ -12,11 +12,13 @@ class BroadcastRoomUsage extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
-        'client_id', 'used_date', 'hours', 'fee', 'memo',
+        'client_id', 'used_date', 'start_at', 'end_at', 'schedule_id', 'hours', 'fee', 'memo',
     ];
 
     protected $casts = [
         'used_date' => 'date:Y-m-d',
+        'start_at' => 'datetime',
+        'end_at' => 'datetime',
         'hours' => 'decimal:2',
         'fee' => 'integer',
     ];
@@ -24,5 +26,10 @@ class BroadcastRoomUsage extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function schedule()
+    {
+        return $this->belongsTo(Schedule::class);
     }
 }

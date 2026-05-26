@@ -176,9 +176,10 @@
             <div id="uSelectedClient" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
         </div>
         <div class="field-row">
-            <div class="field-group"><div class="field-label">이용일 *</div><input type="date" class="field-input" id="uUsedDate"></div>
-            <div class="field-group"><div class="field-label">시간 (시간) *</div><input type="number" class="field-input" id="uHours" min="0" step="0.5"></div>
+            <div class="field-group"><div class="field-label">시작 일시 *</div><input type="datetime-local" class="field-input" id="uStartAt"></div>
+            <div class="field-group"><div class="field-label">종료 일시 *</div><input type="datetime-local" class="field-input" id="uEndAt"></div>
         </div>
+        <div class="field-group" style="font-size:11px; color:var(--text-muted);">⏱ 계산된 이용 시간: <span id="uHoursPreview">—</span> · 📅 등록 시 캘린더에 자동 일정이 생성됩니다 (원격/방송룸 카테고리)</div>
         <div class="field-group"><div class="field-label">금액 (원) *</div><input type="number" class="field-input" id="uFee" min="0" step="1000"></div>
         <div class="field-group"><div class="field-label">메모</div><textarea class="field-input" id="uMemo" rows="2"></textarea></div>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -225,9 +226,12 @@ async function loadUsages() {
     const tbody = document.getElementById('usagesBody');
     if (!allUsages.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">이용 내역이 없습니다.</td></tr>'; return; }
     tbody.innerHTML = allUsages.map(u => {
-        const clientName = u.client_name + (u.client_nickname ? ` (${u.client_nickname})` : '');
+        const clientName = (u.client_name || u.client_nickname || '') + (u.client_name && u.client_nickname ? ` (${u.client_nickname})` : '');
+        const timeRange = u.start_at && u.end_at
+            ? `${u.start_at} ~ ${u.end_at.slice(11)}`
+            : (u.used_date || '');
         return `<tr>
-            <td>${u.used_date}</td><td>${clientName}</td>
+            <td>${timeRange}</td><td>${clientName}</td>
             <td>${u.hours}시간</td>
             <td style="font-weight:600;color:var(--accent);">${Number(u.fee||0).toLocaleString()}원</td>
             <td style="color:var(--text-muted);">${(u.memo||'').substring(0,30)}</td>
@@ -300,6 +304,32 @@ async function deleteContract() {
 }
 
 // ── 시간 대여 ──
+function _toLocalInput(s) {
+    // 'Y-m-d H:i' → 'Y-m-dTH:i' (datetime-local input value)
+    if (!s) return '';
+    return s.replace(' ', 'T').slice(0,16);
+}
+function _defaultStart() {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
+    return d.toISOString().slice(0,16);
+}
+function _addHours(localStr, hours) {
+    const d = new Date(localStr);
+    d.setHours(d.getHours() + hours);
+    return d.toISOString().slice(0,16);
+}
+function updateHoursPreview() {
+    const s = document.getElementById('uStartAt').value;
+    const e = document.getElementById('uEndAt').value;
+    const el = document.getElementById('uHoursPreview');
+    if (!s || !e) { el.textContent = '—'; return; }
+    const diffMin = (new Date(e) - new Date(s)) / 60000;
+    if (diffMin <= 0) { el.textContent = '⚠ 종료가 시작보다 빠릅니다'; el.style.color = 'var(--red)'; return; }
+    el.style.color = 'var(--text-muted)';
+    el.textContent = `${(diffMin/60).toFixed(2)} 시간`;
+}
 function openUsageModal(data) {
     document.getElementById('usageModal').classList.add('open');
     document.getElementById('usageModalTitle').textContent = data ? '시간 대여 편집' : '+ 시간 대여 등록';
@@ -308,11 +338,14 @@ function openUsageModal(data) {
     document.getElementById('uClientSearch').value = data ? (data.client_nickname || data.client_name || '') : '';
     document.getElementById('uSelectedClient').textContent = data ? `✓ ${data.client_name}${data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
     document.getElementById('uSelectedClient').style.display = data ? 'block' : 'none';
-    document.getElementById('uUsedDate').value = data?.used_date || new Date().toISOString().slice(0,10);
-    document.getElementById('uHours').value = data?.hours || '';
+    const start = data?.start_at ? _toLocalInput(data.start_at) : _defaultStart();
+    const end = data?.end_at ? _toLocalInput(data.end_at) : _addHours(start, 1);
+    document.getElementById('uStartAt').value = start;
+    document.getElementById('uEndAt').value = end;
     document.getElementById('uFee').value = data?.fee || '';
     document.getElementById('uMemo').value = data?.memo || '';
     document.getElementById('uDeleteBtn').style.display = data ? 'inline-block' : 'none';
+    updateHoursPreview();
 }
 function closeUsageModal() { document.getElementById('usageModal').classList.remove('open'); }
 function editUsage(id) { const u = allUsages.find(x => x.id === id); if (u) openUsageModal(u); }
@@ -320,17 +353,28 @@ async function saveUsage() {
     const id = document.getElementById('usageId').value;
     const clientId = document.getElementById('uClientId').value;
     if (!clientId) return alert('의뢰자를 선택하세요.');
+    const start = document.getElementById('uStartAt').value;
+    const end = document.getElementById('uEndAt').value;
+    if (!start || !end) return alert('시작/종료 일시를 입력하세요.');
+    if (new Date(end) <= new Date(start)) return alert('종료 일시는 시작 일시보다 뒤여야 합니다.');
     const body = {
         client_id: parseInt(clientId),
-        used_date: document.getElementById('uUsedDate').value,
-        hours: parseFloat(document.getElementById('uHours').value || 0),
+        start_at: start,
+        end_at: end,
         fee: parseInt(document.getElementById('uFee').value || 0),
         memo: document.getElementById('uMemo').value || null,
     };
     const url = id ? `/api/broadcast-room/usages/${id}` : '/api/broadcast-room/usages';
     const res = await fetch(url, { method: id?'PATCH':'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF}, body:JSON.stringify(body) });
-    if (res.ok) location.reload(); else alert('저장 실패');
+    if (res.ok) location.reload();
+    else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
 }
+document.addEventListener('input', e => {
+    if (e.target.id === 'uStartAt' || e.target.id === 'uEndAt') updateHoursPreview();
+});
 async function deleteUsage() {
     if (!confirm('삭제하시겠습니까?')) return;
     const id = document.getElementById('usageId').value;
