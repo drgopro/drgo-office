@@ -58,13 +58,14 @@
 
             <div class="field-row">
                 <div class="field-group">
-                    <div class="field-label">이름 *</div>
-                    <input class="field-input" type="text" name="name" value="{{ old('name', $client?->name) }}" required>
-                    @error('name')<div class="error-msg">{{ $message }}</div>@enderror
+                    <div class="field-label">닉네임 (스트리머명) *</div>
+                    <input class="field-input" type="text" name="nickname" value="{{ old('nickname', $client?->nickname) }}" required>
+                    @error('nickname')<div class="error-msg">{{ $message }}</div>@enderror
                 </div>
                 <div class="field-group">
-                    <div class="field-label">닉네임 (스트리머명)</div>
-                    <input class="field-input" type="text" name="nickname" value="{{ old('nickname', $client?->nickname) }}">
+                    <div class="field-label">이름</div>
+                    <input class="field-input" type="text" name="name" value="{{ old('name', $client?->name) }}">
+                    @error('name')<div class="error-msg">{{ $message }}</div>@enderror
                 </div>
             </div>
 

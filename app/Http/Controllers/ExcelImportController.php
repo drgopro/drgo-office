@@ -165,11 +165,11 @@ class ExcelImportController extends Controller
     {
         $name = trim((string) ($data['이름'] ?? ''));
         $nickname = trim((string) ($data['닉네임'] ?? ''));
-        // 이름이 비어있으면 닉네임으로 대체
-        if ($name === '') {
-            $name = $nickname;
+        // 닉네임이 비어있으면 이름으로 대체 (둘 다 비어있으면 행 건너뜀)
+        if ($nickname === '') {
+            $nickname = $name;
         }
-        if ($name === '') {
+        if ($nickname === '') {
             return false;
         }
 
@@ -192,8 +192,8 @@ class ExcelImportController extends Controller
         $registeredAt = $this->parseDate($data['최초등록일(YYYY-MM-DD)'] ?? null);
 
         $client = new Client([
-            'name' => $name,
-            'nickname' => $nickname !== '' ? $nickname : null,
+            'nickname' => $nickname,
+            'name' => $name !== '' ? $name : null,
             'phone' => $data['전화번호'] ?? null,
             'address' => $data['주소'] ?? null,
             'address_detail' => $data['상세주소'] ?? null,

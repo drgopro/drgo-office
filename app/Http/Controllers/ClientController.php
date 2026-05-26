@@ -53,8 +53,8 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'nickname' => 'nullable|string|max:100',
+            'name' => 'nullable|string|max:100',
+            'nickname' => 'required|string|max:100',
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
@@ -93,8 +93,8 @@ class ClientController extends Controller
     public function update(Request $request, Client $client)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'nickname' => 'nullable|string|max:100',
+            'name' => 'nullable|string|max:100',
+            'nickname' => 'required|string|max:100',
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
@@ -228,8 +228,8 @@ class ClientController extends Controller
     public function updateJson(Request $request, Client $client)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'nickname' => 'nullable|string|max:100',
+            'name' => 'nullable|string|max:100',
+            'nickname' => 'required|string|max:100',
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
@@ -259,8 +259,8 @@ class ClientController extends Controller
     public function storeJson(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'nickname' => 'nullable|string|max:100',
+            'name' => 'nullable|string|max:100',
+            'nickname' => 'required|string|max:100',
             'phone' => 'nullable|string|max:30',
             'grade' => 'required|in:normal,vip,rental',
             'inflow_source' => 'nullable|string|in:search,referral,sns,ad,community,other',

@@ -243,12 +243,12 @@
         <h3>의뢰자 등록</h3>
         <div class="form-grid">
             <div class="field">
-                <div class="field-label">이름 *</div>
-                <input class="field-input" id="ncName">
+                <div class="field-label">닉네임 *</div>
+                <input class="field-input" id="ncNickname">
             </div>
             <div class="field">
-                <div class="field-label">닉네임</div>
-                <input class="field-input" id="ncNickname">
+                <div class="field-label">이름</div>
+                <input class="field-input" id="ncName">
             </div>
             <div class="field">
                 <div class="field-label">연락처</div>
@@ -715,7 +715,7 @@ function renderClientContent(id) {
         <div class="sub-panel active" id="sub-info-${id}">
             <div class="form-grid">
                 <div class="field">
-                    <div class="field-label">닉네임</div>
+                    <div class="field-label">닉네임 *</div>
                     <input class="field-input" id="f-nickname-${id}" value="${d.nickname||''}">
                 </div>
                 <div class="field">
@@ -1426,15 +1426,16 @@ function openNewClientModal() {
 function closeNewClientModal() { document.getElementById('newClientOverlay').classList.remove('open'); }
 
 async function createClient() {
+    const nickname = document.getElementById('ncNickname').value.trim();
+    if (!nickname) return alert('닉네임을 입력하세요.');
     const name = document.getElementById('ncName').value.trim();
-    if (!name) return alert('이름을 입력하세요.');
 
     const p = collectCheckboxGroup('platforms', 'nc');
     const t = collectCheckboxGroup('topics', 'nc');
 
     const body = {
-        name,
-        nickname: document.getElementById('ncNickname').value.trim(),
+        name: name || null,
+        nickname,
         phone: document.getElementById('ncPhone').value.trim(),
         grade: document.getElementById('ncGrade').value,
         inflow_source: document.getElementById('ncInflowSource').value || null,
