@@ -13,6 +13,12 @@
     .tab-btn:not(.active):hover { color:var(--text); background:var(--surface2); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
+    .sub-tab-bar { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:18px; }
+    .sub-tab-btn { padding:10px 18px; font-size:13px; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; }
+    .sub-tab-btn:hover { color:var(--text); }
+    .sub-tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .sub-tab-panel { display:none; }
+    .sub-tab-panel.active { display:block; }
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
@@ -196,10 +202,9 @@
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="clientFields">의뢰자 필드</button>
-        <button class="tab-btn" data-tab="projectFields">프로젝트 필드</button>
+        <button class="tab-btn" data-tab="projectFields">프로젝트 설정</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
         <button class="tab-btn" data-tab="calendarCategories">캘린더 카테고리</button>
-        <button class="tab-btn" data-tab="consultationTypes">상담 유형</button>
         <button class="tab-btn" data-tab="seller">판매처 설정</button>
     </div>
 
@@ -424,16 +429,36 @@
         </div>
     </div>
 
-    {{-- 프로젝트 동적 필드 정의 --}}
+    {{-- 프로젝트 설정 (필드 정의 + 상담 유형) --}}
     <div class="tab-panel" id="panel-projectFields">
-        <div class="cf-toolbar">
-            <div class="cf-hint">
-                관리자가 정의한 필드는 <b>프로젝트 상세 화면</b>에 자동으로 노출됩니다.<br>
-                <span style="opacity:0.7;">예: 작업 인원, 차량 번호, 출고 장비 메모, 견적 금액 등 자유롭게 추가하세요.</span>
-            </div>
-            <button class="btn-add" style="margin-bottom:0;" onclick="openProjectFieldModal()">+ 필드 추가</button>
+        <div class="sub-tab-bar">
+            <button class="sub-tab-btn active" data-subtab="fields" onclick="switchProjectSubTab('fields')">필드 정의</button>
+            <button class="sub-tab-btn" data-subtab="types" onclick="switchProjectSubTab('types')">상담 유형</button>
         </div>
-        <div id="projectFieldsContainer"></div>
+
+        {{-- 필드 정의 --}}
+        <div class="sub-tab-panel active" id="subpanel-fields">
+            <div class="cf-toolbar">
+                <div class="cf-hint">
+                    관리자가 정의한 필드는 <b>프로젝트 상세 화면</b>에 자동으로 노출됩니다.<br>
+                    <span style="opacity:0.7;">예: 작업 인원, 차량 번호, 출고 장비 메모, 견적 금액 등 자유롭게 추가하세요.</span>
+                </div>
+                <button class="btn-add" style="margin-bottom:0;" onclick="openProjectFieldModal()">+ 필드 추가</button>
+            </div>
+            <div id="projectFieldsContainer"></div>
+        </div>
+
+        {{-- 상담 유형 --}}
+        <div class="sub-tab-panel" id="subpanel-types">
+            <div class="cf-toolbar">
+                <div class="cf-hint">
+                    의뢰자 페이지에서 새 프로젝트 등록 시 선택하는 <b>상담 유형</b>을 관리합니다.<br>
+                    <span style="opacity:0.7;">기본 유형(방문세팅·원격세팅·디자인·단순문의·A/S·문제 해결)은 삭제할 수 없고 비활성화만 가능합니다.</span>
+                </div>
+                <button class="btn-add" style="margin-bottom:0;" onclick="openConsultTypeModal()">+ 유형 추가</button>
+            </div>
+            <div id="consultTypesContainer"></div>
+        </div>
     </div>
 
     {{-- 프로젝트 필드 추가/편집 모달 --}}
@@ -595,18 +620,6 @@
             <button class="btn-add" style="margin-bottom:0;" onclick="openNewCalendarCategoryModal()">+ 카테고리 추가</button>
         </div>
         <div id="calendarCategoriesContainer"></div>
-    </div>
-
-    {{-- 상담 유형 --}}
-    <div class="tab-panel" id="panel-consultationTypes">
-        <div class="cf-toolbar">
-            <div class="cf-hint">
-                의뢰자 페이지에서 새 프로젝트 등록 시 선택하는 <b>상담 유형</b>을 관리합니다.<br>
-                <span style="opacity:0.7;">기본 유형(방문세팅·원격세팅·디자인·단순문의·A/S·문제 해결)은 삭제할 수 없고 비활성화만 가능합니다.</span>
-            </div>
-            <button class="btn-add" style="margin-bottom:0;" onclick="openConsultTypeModal()">+ 유형 추가</button>
-        </div>
-        <div id="consultTypesContainer"></div>
     </div>
 
     {{-- 상담 유형 모달 --}}
@@ -803,12 +816,17 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
         if (tab === 'clientFields') loadClientFields();
-        if (tab === 'projectFields') loadProjectFields();
+        if (tab === 'projectFields') { loadProjectFields(); loadConsultTypes(); }
         if (tab === 'assignees') loadAssigneesAdmin();
         if (tab === 'calendarCategories') loadCalendarCategories();
-        if (tab === 'consultationTypes') loadConsultTypes();
     });
 });
+
+// 프로젝트 설정 탭 내부 서브탭 전환
+function switchProjectSubTab(sub) {
+    document.querySelectorAll('#panel-projectFields .sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
+    document.querySelectorAll('#panel-projectFields .sub-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'subpanel-' + sub));
+}
 
 // ── 필드 카드 드래그-앤-드롭 정렬 (의뢰자/프로젝트 공용) ──
 // 같은 섹션 안에서만 순서를 바꿀 수 있고, 드롭 후 즉시 /reorder API 호출
