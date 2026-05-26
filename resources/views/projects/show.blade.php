@@ -256,6 +256,7 @@
                 'payment'    => '결제/예약',
                 'visit'      => '방문 세팅',
                 'as'         => 'AS',
+                'done'       => '완료',
             ],
             'remote' => [
                 'consulting' => '상담',
@@ -265,6 +266,7 @@
                 'payment'    => '결제/예약',
                 'visit'      => '원격 세팅',
                 'as'         => 'AS',
+                'done'       => '완료',
             ],
             'design' => [
                 'consulting' => '상담',
