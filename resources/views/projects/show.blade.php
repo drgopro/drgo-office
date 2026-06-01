@@ -2767,12 +2767,106 @@ if (editorEl) {
         });
     }
 
+    // ── 이미지 라이트박스 (확대/축소) ──
+    window.vrImgLightbox = function() {
+        // 리사이즈 팝업의 activeImg 사용
+        if (!window.__vrActiveImg) return;
+        const src = window.__vrActiveImg.src;
+        const alt = window.__vrActiveImg.alt || '';
+        let zoom = 1;
+        const overlay = document.createElement('div');
+        overlay.id = 'vrLightbox';
+        overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; display:flex; align-items:center; justify-content:center; overflow:auto; user-select:none;';
+        overlay.innerHTML = `
+            <button id="vrLbClose" title="닫기 (Esc)" style="position:fixed; top:20px; right:24px; background:rgba(255,255,255,0.12); border:none; color:#fff; width:42px; height:42px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10001;">✕</button>
+            <div id="vrLbToolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:6px; align-items:center; background:rgba(0,0,0,0.55); backdrop-filter:blur(8px); border-radius:32px; padding:8px 12px; z-index:10001;">
+                <button data-z="-" title="축소 (-)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:18px;cursor:pointer;">−</button>
+                <span id="vrLbLevel" style="min-width:56px;text-align:center;color:#fff;font-size:13px;font-weight:600;">100%</span>
+                <button data-z="+" title="확대 (+)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:18px;cursor:pointer;">+</button>
+                <button data-z="r" title="원본 (1배)" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:11px;cursor:pointer;padding:0 12px;">원본</button>
+                <button data-z="f" title="화면 맞춤" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:11px;cursor:pointer;padding:0 12px;">맞춤</button>
+            </div>
+            <img id="vrLbImg" src="${src}" alt="${alt}" style="max-width:none; max-height:none; transition:transform 0.15s; transform:scale(1); display:block; cursor:grab;">
+        `;
+        document.body.appendChild(overlay);
+
+        const img = overlay.querySelector('#vrLbImg');
+        const level = overlay.querySelector('#vrLbLevel');
+
+        function applyZoom() {
+            img.style.transform = `scale(${zoom})`;
+            level.textContent = Math.round(zoom * 100) + '%';
+        }
+        function fit() {
+            // 화면에 맞도록 자동 계산
+            const vw = window.innerWidth - 80;
+            const vh = window.innerHeight - 120;
+            const iw = img.naturalWidth || vw;
+            const ih = img.naturalHeight || vh;
+            zoom = Math.min(vw/iw, vh/ih, 1);
+            applyZoom();
+        }
+        // 처음엔 맞춤 표시
+        if (img.complete) fit(); else img.addEventListener('load', fit, { once: true });
+
+        overlay.querySelectorAll('[data-z]').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const v = btn.dataset.z;
+                if (v === '+') zoom = Math.min(zoom + 0.25, 8);
+                else if (v === '-') zoom = Math.max(zoom - 0.25, 0.1);
+                else if (v === 'r') zoom = 1;
+                else if (v === 'f') return fit();
+                applyZoom();
+            });
+        });
+
+        // 휠로 줌
+        overlay.addEventListener('wheel', e => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.15 : -0.15;
+            zoom = Math.max(0.1, Math.min(8, zoom + delta));
+            applyZoom();
+        }, { passive: false });
+
+        // 드래그로 패닝
+        let dragging = false, sx = 0, sy = 0, scrollSx = 0, scrollSy = 0;
+        img.addEventListener('mousedown', e => {
+            dragging = true; img.style.cursor = 'grabbing';
+            sx = e.clientX; sy = e.clientY;
+            scrollSx = overlay.scrollLeft; scrollSy = overlay.scrollTop;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            overlay.scrollLeft = scrollSx - (e.clientX - sx);
+            overlay.scrollTop = scrollSy - (e.clientY - sy);
+        });
+        document.addEventListener('mouseup', () => { dragging = false; img.style.cursor = 'grab'; });
+
+        function close() {
+            overlay.remove();
+            document.removeEventListener('keydown', keyHandler);
+        }
+        overlay.querySelector('#vrLbClose').addEventListener('click', close);
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) close();
+        });
+        function keyHandler(e) {
+            if (e.key === 'Escape') close();
+            else if (e.key === '+' || e.key === '=') { zoom = Math.min(zoom + 0.25, 8); applyZoom(); }
+            else if (e.key === '-' || e.key === '_') { zoom = Math.max(zoom - 0.25, 0.1); applyZoom(); }
+            else if (e.key === '0') { zoom = 1; applyZoom(); }
+        }
+        document.addEventListener('keydown', keyHandler);
+    };
+
     // ── 이미지 클릭 → 리사이즈 팝업 (네이버 에디터 스타일) ──
     (function(){
         let popup = null, activeImg = null;
         function removePopup() {
             if (popup) { popup.remove(); popup = null; }
             activeImg = null;
+            window.__vrActiveImg = null;
         }
         function applyImgW(w) {
             if (!activeImg) return;
@@ -2807,6 +2901,7 @@ if (editorEl) {
         function showPopup(img) {
             removePopup();
             activeImg = img;
+            window.__vrActiveImg = img;
             popup = document.createElement('div');
             popup.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:12px;';
             popup.innerHTML = `<span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">크기:</span>
@@ -2817,7 +2912,9 @@ if (editorEl) {
                 <span style="color:var(--text-muted);">|</span>
                 <input type="number" id="vrImgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
                 <span style="color:var(--text-muted);font-size:11px;">px</span>
-                <button onclick="vrImgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>`;
+                <button onclick="vrImgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>
+                <span style="color:var(--text-muted);">|</span>
+                <button onclick="vrImgLightbox()" title="원본 보기 (확대/축소)" style="padding:3px 10px;border:1px solid var(--accent);border-radius:5px;background:none;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;">🔍 원본</button>`;
             document.body.appendChild(popup);
             const rect = img.getBoundingClientRect();
             popup.style.left = Math.max(8, rect.left + (rect.width - popup.offsetWidth)/2) + 'px';
