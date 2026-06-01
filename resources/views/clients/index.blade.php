@@ -351,6 +351,33 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
+// ── 서버 에러 메시지 통합 핸들러 ──
+// 모든 fetch 호출의 실패 응답에서 일관된 형식으로 alert를 띄움.
+// 형식: '[코드 422] 검증 실패\n• name: 이름은 필수입니다'
+async function showFetchError(res, prefix) {
+    let detail = '';
+    let payload = null;
+    try { payload = await res.json(); } catch(e) {}
+
+    if (payload) {
+        if (payload.message) detail += payload.message;
+        if (payload.error) detail += (detail ? '\n' : '') + payload.error;
+        if (payload.errors && typeof payload.errors === 'object') {
+            const lines = [];
+            for (const [field, msgs] of Object.entries(payload.errors)) {
+                const ms = Array.isArray(msgs) ? msgs.join(', ') : String(msgs);
+                lines.push(`• ${field}: ${ms}`);
+            }
+            if (lines.length) detail += (detail ? '\n' : '') + lines.join('\n');
+        }
+        if (payload.exception) detail += (detail ? '\n' : '') + `[예외] ${payload.exception}`;
+    } else {
+        try { detail = await res.text(); } catch(e) {}
+    }
+    if (!detail) detail = '응답 본문 없음';
+    alert(`[${prefix||'요청 실패'} · 코드 ${res.status} ${res.statusText||''}]\n${detail}`.trim());
+}
+
 // ── 부모(최상위) 탭 시스템으로 라우팅 (iframe 중첩 방지) ──
 function openTopTab(type, url) {
     try {
@@ -1108,8 +1135,7 @@ async function createProject(clientId) {
         await refreshClientData(clientId);
         showToast('프로젝트가 생성되었습니다');
     } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.message || '생성 실패');
+        await showFetchError(res, '프로젝트 생성 실패');
     }
 }
 
@@ -1132,7 +1158,7 @@ async function deleteProject(projectId, clientId) {
         await refreshClientData(clientId);
         showToast('프로젝트가 삭제되었습니다');
     } else {
-        alert('삭제 실패');
+        await showFetchError(res, '프로젝트 삭제 실패');
     }
 }
 
@@ -1409,7 +1435,7 @@ async function saveClient(id) {
         // 사이드바 리스트 갱신
         loadClientList();
     } else {
-        showToast('저장 실패');
+        await showFetchError(res, '의뢰자 저장 실패');
     }
 }
 
@@ -1475,8 +1501,7 @@ async function createClient() {
         openClient(data.id);
         showToast('등록되었습니다');
     } else {
-        const err = await res.json();
-        alert(err.message || Object.values(err.errors||{}).flat().join('\n') || '등록 실패');
+        await showFetchError(res, '의뢰자 등록 실패');
     }
 }
 
