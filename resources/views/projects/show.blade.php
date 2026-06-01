@@ -16,6 +16,11 @@
 
     /* ── 방문 보고서 Tiptap 에디터 (위키와 동일 스타일) ── */
     .tiptap-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+    /* 뷰 모드: 툴바 숨김 + 테두리/패딩 살짝 정리 */
+    #visitReportCard[data-mode="view"] .tiptap-toolbar { display:none; }
+    #visitReportCard[data-mode="view"] .tiptap-wrap { background:transparent; border-color:transparent; }
+    #visitReportCard[data-mode="view"] #vrEditor .ProseMirror { padding:0; min-height:auto; cursor:default; }
+    #visitReportCard[data-mode="view"] #vrEditor .ProseMirror img { cursor:zoom-in; }
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
     .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
@@ -356,12 +361,17 @@
         ];
     @endphp
     {{-- 방문 보고서 (stage=done 일 때만 노출) --}}
-    <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};">
+    @php
+        $hasReport = ! empty(trim(strip_tags($project->visit_report ?? '')));
+    @endphp
+    <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <span>📋 방문 보고서</span>
             <div style="display:flex; gap:6px; align-items:center;">
                 <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
-                <button type="button" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">저장</button>
+                <button type="button" id="vrBtnEdit" onclick="vrSetMode('edit')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'inline-flex' : 'none' }};">✏️ 수정</button>
+                <button type="button" id="vrBtnCancel" onclick="vrSetMode('view')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'none' : 'none' }};">취소</button>
+                <button type="button" id="vrBtnSave" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; display:{{ $hasReport ? 'none' : 'inline-flex' }};">저장</button>
             </div>
         </div>
         <div class="tiptap-wrap">
@@ -2468,11 +2478,34 @@ window.saveVisitReportEditor = async function() {
         statusEl.textContent = '✓ 저장됨';
         statusEl.style.color = 'var(--green)';
         setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 2500);
+        // 저장 후 자동으로 읽기 모드로 전환
+        vrSetMode('view');
     } else {
         statusEl.textContent = '저장 실패';
         statusEl.style.color = 'var(--red)';
         await showFetchErrorVR(res, '방문 보고서 저장 실패');
     }
+};
+
+// ── 보고서 모드 전환 (view ↔ edit) ──
+window.vrSetMode = function(mode) {
+    const card = document.getElementById('visitReportCard');
+    if (!card) return;
+    card.dataset.mode = mode;
+    const isView = (mode === 'view');
+    // 버튼 표시 전환
+    const btnEdit = document.getElementById('vrBtnEdit');
+    const btnCancel = document.getElementById('vrBtnCancel');
+    const btnSave = document.getElementById('vrBtnSave');
+    if (btnEdit)   btnEdit.style.display = isView ? 'inline-flex' : 'none';
+    if (btnCancel) btnCancel.style.display = isView ? 'none' : 'inline-flex';
+    if (btnSave)   btnSave.style.display = isView ? 'none' : 'inline-flex';
+    // 에디터 편집 가능 상태 토글
+    if (window.vrEditor) {
+        window.vrEditor.setEditable(!isView);
+    }
+    // 편집 진입 시 포커스
+    if (!isView && window.vrEditor) setTimeout(() => window.vrEditor.commands.focus(), 50);
 };
 
 // 파일 업로드 (이미지/영상) — base64 임베드 (간단 구현). 대용량은 추후 별도 업로드 API로 전환 가능.
@@ -2616,6 +2649,10 @@ if (editorEl) {
         },
         onSelectionUpdate({ editor }) { updateVrToolbar(editor); },
     });
+
+    // 초기 mode에 맞춰 편집 가능 상태 동기화
+    const initMode = document.getElementById('visitReportCard')?.dataset.mode || 'edit';
+    window.vrEditor.setEditable(initMode === 'edit');
 
     // ── 슬래시 메뉴 (위키와 동일) ──
     const SLASH_ITEMS = [
@@ -2926,7 +2963,14 @@ if (editorEl) {
         document.addEventListener('click', function(e){
             if (e.target.tagName === 'IMG' && e.target.closest('#vrEditor .ProseMirror')) {
                 e.preventDefault();
-                showPopup(e.target);
+                const isView = document.getElementById('visitReportCard')?.dataset.mode === 'view';
+                if (isView) {
+                    // 뷰 모드: 리사이즈 팝업 없이 바로 라이트박스
+                    window.__vrActiveImg = e.target;
+                    window.vrImgLightbox();
+                } else {
+                    showPopup(e.target);
+                }
             } else if (popup && !popup.contains(e.target)) {
                 removePopup();
             }
