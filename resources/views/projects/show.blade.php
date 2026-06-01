@@ -2629,9 +2629,44 @@ if (editorEl) {
     let __vrDirty = false;
     const CSRF_VR = document.querySelector('meta[name="csrf-token"]').content;
 
+    // 이미지를 최대 900px 폭으로 리사이즈 (POST 용량 초과 방지)
+    async function vrResizeImage(file, maxW = 900) {
+        if (!file || !file.type || !file.type.startsWith('image/')) return file;
+        // GIF는 애니메이션 손실 우려가 있으므로 패스
+        if (file.type === 'image/gif') return file;
+        try {
+            const bitmap = await createImageBitmap(file);
+            if (bitmap.width <= maxW) { bitmap.close && bitmap.close(); return file; }
+            const ratio = maxW / bitmap.width;
+            const w = maxW;
+            const h = Math.round(bitmap.height * ratio);
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(bitmap, 0, 0, w, h);
+            bitmap.close && bitmap.close();
+            // PNG 원본은 PNG로, 그 외 이미지는 JPEG로 인코딩 (용량 절감)
+            const outType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const quality = outType === 'image/jpeg' ? 0.88 : undefined;
+            const blob = await new Promise(res => canvas.toBlob(res, outType, quality));
+            if (!blob) return file;
+            // 원본보다 작아진 경우에만 사용
+            if (blob.size >= file.size) return file;
+            const ext = outType === 'image/png' ? '.png' : '.jpg';
+            const base = (file.name || 'image').replace(/\.[^.]+$/, '');
+            return new File([blob], `${base}-w${maxW}${ext}`, { type: outType });
+        } catch(e) {
+            console.warn('image resize failed, uploading original', e);
+            return file;
+        }
+    }
+
     // 파일 업로드 — 프로젝트 첨부 문서로도 함께 등록되는 인라인 업로드 엔드포인트
     async function vrUploadAndInsert(file) {
         if (!file) return;
+        // 이미지면 자동 리사이즈 (900px 폭, JPEG 88%)
+        file = await vrResizeImage(file, 900);
         const fd = new FormData();
         fd.append('file', file);
         try {
