@@ -25,6 +25,7 @@
             --text-muted: #a09890;
             --accent: #d4bc96;
             --accent2: #90bcd4;
+            --accent-text: #1a1207;
             --red: #d48888;
             --blue: #8ab4c8;
             --green: #88d488;
@@ -51,6 +52,7 @@
             --text-muted: #5a6070;
             --accent: #3b5ea0;
             --accent2: #2e6a8a;
+            --accent-text: #ffffff;
             --red: #c03838;
             --blue: #2e6a9a;
             --green: #248a38;
@@ -120,7 +122,7 @@
         .admin-link { font-size:12px; color:var(--text-muted); text-decoration:none; padding:5px 10px; border:1px solid var(--border); border-radius:6px; transition:all 0.15s; }
         .admin-link:hover, .admin-link.active { border-color:var(--accent); color:var(--accent); }
         .theme-toggle { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; transition:all 0.15s; }
-        .qr-fab { background:var(--accent); color:#1a1207; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
+        .qr-fab { background:var(--accent); color:var(--accent-text); border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
         .qr-fab:hover { filter:brightness(1.1); }
         [data-theme="light"] .qr-fab { color:#fff; }
         @keyframes gqrToastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
@@ -248,7 +250,7 @@
         .drgo-pager { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center; }
         .drgo-pager-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:500; text-decoration:none; line-height:1; cursor:pointer; transition:all 0.15s; box-sizing:border-box; }
         .drgo-pager-btn:hover:not(.disabled):not(.active) { border-color:var(--accent); color:var(--accent); }
-        .drgo-pager-btn.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; cursor:default; }
+        .drgo-pager-btn.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; cursor:default; }
         [data-theme="light"] .drgo-pager-btn.active { color:#fff; }
         .drgo-pager-btn.disabled { opacity:0.35; cursor:not-allowed; }
         .drgo-pager-dots { color:var(--text-muted); padding:0 4px; font-size:12px; }
@@ -858,7 +860,7 @@ function openExcelImportModal(type, typeName) {
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><div style="font-size:16px;font-weight:700;" id="excelImportTitle">엑셀 가져오기</div><button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button></div>
             <div style="margin-bottom:16px;"><a id="excelTemplateLink" href="#" style="font-size:12px;color:var(--accent);text-decoration:none;">📥 템플릿 다운로드 (.xlsx)</a><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">템플릿을 다운로드하여 데이터를 입력한 후 업로드하세요.</div></div>
             <div style="margin-bottom:16px;"><input type="file" id="excelImportFile" accept=".xlsx,.xls,.csv" style="display:none;"><button onclick="document.getElementById('excelImportFile').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:13px;cursor:pointer;width:100%;text-align:center;">📎 파일 선택 (.xlsx, .csv)</button><div id="excelFileName" style="font-size:12px;color:var(--accent);margin-top:6px;display:none;"></div></div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;"><button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button><button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;"><button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button><button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button></div>
             <div id="excelImportResult" style="display:none;margin-top:16px;padding:12px;border-radius:8px;font-size:12px;"></div></div>`;
         document.body.appendChild(overlay);
         document.getElementById('excelImportFile').addEventListener('change', function() {
@@ -906,7 +908,7 @@ async function submitExcelImport() {
         <div id="globalQrReader" style="width:100%;background:#000;border-radius:12px;overflow:hidden;min-height:280px;"></div>
         <div style="margin-top:10px;display:flex;gap:6px;">
             <input id="globalQrManual" placeholder="rental:ID 또는 staff:ID" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 12px;color:#fff;font-size:13px;outline:none;">
-            <button onclick="globalQrHandle(document.getElementById('globalQrManual').value)" style="background:var(--accent);color:#1a1207;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">확인</button>
+            <button onclick="globalQrHandle(document.getElementById('globalQrManual').value)" style="background:var(--accent);color:var(--accent-text);border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">확인</button>
         </div>
         {{-- 스캔 상태 표시 --}}
         <div id="gqrStatus" style="margin-top:16px;padding:14px;background:rgba(255,255,255,0.08);border-radius:10px;color:#fff;font-size:13px;display:none;"></div>
@@ -1024,7 +1026,7 @@ function hideGqrActions(){ document.getElementById('gqrActions').style.display='
 
 function showGqrToast(msg){
     const el=document.createElement('div');
-    el.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a1207;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,0.4);animation:gqrToastIn 0.3s ease;white-space:nowrap;';
+    el.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-text);padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,0.4);animation:gqrToastIn 0.3s ease;white-space:nowrap;';
     el.textContent=msg;
     document.body.appendChild(el);
     setTimeout(()=>{el.style.transition='opacity 0.3s';el.style.opacity='0';setTimeout(()=>el.remove(),300);},2700);

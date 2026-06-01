@@ -16,7 +16,7 @@
         }
 
         .no-print-bar { position:fixed; top:0; left:0; right:0; background:#222; padding:10px 20px; display:flex; gap:10px; align-items:center; z-index:100; }
-        .no-print-bar button { background:#c8b08a; color:#1a1207; border:none; padding:8px 18px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
+        .no-print-bar button { background:#c8b08a; color:var(--accent-text); border:none; padding:8px 18px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
         .no-print-bar span { color:#aaa; font-size:12px; }
 
         .estimate-wrap { background:#fff; }

@@ -16,7 +16,7 @@
     .toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
     .toolbar input, .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; }
     .toolbar input[type=text] { width:240px; }
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-primary { color:#fff; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }

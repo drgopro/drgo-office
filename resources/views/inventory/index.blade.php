@@ -11,7 +11,7 @@
     /* 탭 */
     .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:20px; }
     .tab-btn { flex:1; padding:10px 0; text-align:center; font-size:13px; font-weight:600; border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:8px; transition:all 0.15s; }
-    .tab-btn.active { background:var(--accent); color:#1a1207; }
+    .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     .tab-btn:not(.active):hover { color:var(--text); background:var(--surface2); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
@@ -21,7 +21,7 @@
     .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:240px; }
     .toolbar input:focus { border-color:var(--accent); }
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
@@ -59,7 +59,7 @@
     .field-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
 
     .order-items { margin-top:10px; }
     .order-item-row { display:flex; gap:6px; align-items:flex-end; margin-bottom:6px; }
@@ -84,7 +84,7 @@
     .cat-add-inline { display:flex; gap:6px; padding:6px 14px; align-items:center; }
     .cat-add-inline input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12px; outline:none; }
     .cat-add-inline input:focus { border-color:var(--accent); }
-    .cat-add-inline button { background:var(--accent); color:#1a1207; border:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
+    .cat-add-inline button { background:var(--accent); color:var(--accent-text); border:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
     .sku-preview { font-size:12px; color:var(--accent); font-weight:600; padding:8px 12px; background:var(--surface2); border-radius:6px; margin-top:4px; }
     [data-theme="light"] .tab-btn.active { color:#fff; }
     [data-theme="light"] .btn-primary { color:#fff; }

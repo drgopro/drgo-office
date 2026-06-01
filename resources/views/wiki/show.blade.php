@@ -52,7 +52,7 @@
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
     .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
-    .tiptap-toolbar button.is-active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    .tiptap-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     [data-theme="light"] .tiptap-toolbar button.is-active { color:#fff; }
     .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
     .tiptap-toolbar .file-label { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; cursor:pointer; color:var(--text-muted); font-size:13px; transition:all 0.12s; }
@@ -186,7 +186,7 @@
 
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
             <button onclick="toggleEdit()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
-            <button onclick="saveWiki()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            <button onclick="saveWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
         </div>
     </div>
 </div>
@@ -448,7 +448,7 @@ window.toggleEdit = function() {
             <span style="color:var(--text-muted);">|</span>
             <input type="number" id="imgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
             <span style="color:var(--text-muted);font-size:11px;">px</span>
-            <button onclick="imgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:#1a1207;font-size:11px;font-weight:600;cursor:pointer;">적용</button>
+            <button onclick="imgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>
         `;
         document.body.appendChild(popup);
 

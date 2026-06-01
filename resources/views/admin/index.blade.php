@@ -9,7 +9,7 @@
 
     .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:20px; }
     .tab-btn { flex:1; padding:10px 0; text-align:center; font-size:13px; font-weight:600; border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:8px; transition:all 0.15s; }
-    .tab-btn.active { background:var(--accent); color:#1a1207; }
+    .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     .tab-btn:not(.active):hover { color:var(--text); background:var(--surface2); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
@@ -34,7 +34,7 @@
 
     .pagination-wrap { display:flex; justify-content:center; margin-top:16px; }
     .pagination-wrap nav span, .pagination-wrap nav a { display:inline-block; padding:6px 12px; margin:0 2px; border-radius:6px; font-size:12px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
-    .pagination-wrap nav span[aria-current] { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    .pagination-wrap nav span[aria-current] { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     .pagination-wrap nav a:hover { border-color:var(--accent); color:var(--accent); }
 
     .settings-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:600px; }
@@ -42,19 +42,19 @@
     .settings-form .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
     .settings-form .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
     .settings-form .field-input:focus { border-color:var(--accent); }
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-save:hover { opacity:0.85; }
     .save-msg { font-size:12px; color:var(--green); margin-left:10px; display:none; }
 
     /* 셀렉트, 인라인 폼 */
     .inline-select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12px; outline:none; }
     .inline-select:focus { border-color:var(--accent); }
-    .btn-sm { background:var(--accent); color:#1a1207; border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
+    .btn-sm { background:var(--accent); color:var(--accent-text); border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
     .btn-sm:hover { opacity:0.85; }
     .btn-danger { background:var(--red); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
     .btn-danger:hover { opacity:0.85; }
     .btn-add { background:none; border:1px solid var(--accent); color:var(--accent); padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:12px; }
-    .btn-add:hover { background:var(--accent); color:#1a1207; }
+    .btn-add:hover { background:var(--accent); color:var(--accent-text); }
 
     /* 팀 카드 */
     .team-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:12px; }

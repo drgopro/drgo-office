@@ -8,7 +8,7 @@
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .page-title { font-size:22px; font-weight:700; }
 
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
@@ -30,7 +30,7 @@
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-primary,
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .field-input,
@@ -51,7 +51,7 @@
     .board-toolbar .spacer { flex:1 1 0; min-width:0; }
     .board-toolbar .tb-btn { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border:1px solid var(--border); background:none; border-radius:7px; color:var(--text-muted); font-size:12px; cursor:pointer; white-space:nowrap; font-family:inherit; }
     .board-toolbar .tb-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .board-toolbar .tb-btn.primary { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; }
+    .board-toolbar .tb-btn.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     [data-theme="light"] .board-toolbar .tb-btn.primary { color:#fff; }
 
     .board-wrap { max-height:calc(100vh - 280px); min-height:420px; overflow:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; -webkit-overflow-scrolling:touch; position:relative; }

@@ -34,7 +34,7 @@
 
     .error-msg { font-size:11px; color:var(--red); margin-top:4px; }
     .form-actions { display:flex; gap:10px; justify-content:flex-end; }
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:10px 24px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; }
     .btn-danger { background:none; border:1px solid var(--red); color:var(--red); padding:10px 24px; border-radius:8px; font-size:13px; cursor:pointer; }
     [data-theme="light"] .btn-primary { color:#fff; }
@@ -84,7 +84,7 @@
                 <div class="field-label">주소</div>
                 <div style="display:flex; gap:8px;">
                     <input class="field-input" type="text" name="address" id="address" value="{{ old('address', $client?->address) }}" placeholder="우편번호 검색 버튼을 눌러주세요" readonly style="flex:1; cursor:pointer;" onclick="searchAddress()">
-                    <button type="button" onclick="searchAddress()" style="background:var(--accent); color:#1a1207; border:none; padding:0 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">주소 검색</button>
+                    <button type="button" onclick="searchAddress()" style="background:var(--accent); color:var(--accent-text); border:none; padding:0 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">주소 검색</button>
                 </div>
             </div>
             <div class="field-group">

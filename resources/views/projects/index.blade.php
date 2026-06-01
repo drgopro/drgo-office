@@ -11,7 +11,7 @@
     .search-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .search-input { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:240px; }
     .search-input:focus { border-color:var(--accent); }
-    .btn-search { background:var(--accent); color:#1a1207; border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-search { background:var(--accent); color:var(--accent-text); border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-search { color:#fff; }
     .btn-search-reset { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
     .btn-search-reset:hover { border-color:var(--accent); color:var(--accent); }
@@ -93,7 +93,7 @@
         <div class="page-title">프로젝트 관리</div>
         <div style="display:flex; gap:8px;">
             @if(Auth::user()->hasPermission('projects.edit'))
-                <button style="background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
+                <button style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
             @endif
             <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')">📥 엑셀 가져오기</button>
         </div>
@@ -266,7 +266,7 @@
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
             <button type="button" onclick="closeNewProjectModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-            <button type="button" onclick="submitNewProject()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">생성</button>
+            <button type="button" onclick="submitNewProject()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">생성</button>
         </div>
     </div>
 </div>

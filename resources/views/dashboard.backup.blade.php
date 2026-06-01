@@ -47,11 +47,11 @@
     .dash-filter select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer; }
 
     .trend-tab { background:none; border:none; color:var(--text-muted); padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:600; transition:all 0.12s; }
-    .trend-tab.active { background:var(--accent); color:#1a1207; }
+    .trend-tab.active { background:var(--accent); color:var(--accent-text); }
     [data-theme="light"] .trend-tab.active { color:#fff; }
     .dm-period { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.12s; }
     .dm-period:hover { border-color:var(--accent); color:var(--accent); }
-    .dm-period.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:600; }
+    .dm-period.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:600; }
     [data-theme="light"] .dm-period.active { color:#fff; }
 
     @media (max-width:768px) {
@@ -253,7 +253,7 @@
                 <input type="date" id="dmFrom" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;" title="시작일">
                 <span style="font-size:11px;color:var(--text-muted);">~</span>
                 <input type="date" id="dmTo" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;" title="종료일">
-                <button onclick="applyCustomRange()" style="background:var(--accent);color:#1a1207;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">조회</button>
+                <button onclick="applyCustomRange()" style="background:var(--accent);color:var(--accent-text);border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">조회</button>
             </div>
         </div>
         <div style="padding:8px 20px 0;font-size:12px;color:var(--text-muted);" id="dashModalInfo"></div>

@@ -15,7 +15,7 @@
     .sidebar-search:focus { border-color:var(--accent); }
     .sidebar-filters { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
     .filter-chip { padding:3px 8px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:none; color:var(--text-muted); transition:all 0.12s; }
-    .filter-chip.active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    .filter-chip.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     .filter-chip:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
 
     .sidebar-list { flex:1; overflow-y:auto; padding:6px; }
@@ -24,7 +24,7 @@
     .sidebar-pagination .pg-row::-webkit-scrollbar { display:none; }
     .sidebar-pagination button { flex:0 0 auto; background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 0; border-radius:5px; font-size:11px; cursor:pointer; min-width:22px; line-height:1.3; }
     .sidebar-pagination button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
-    .sidebar-pagination button.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; }
+    .sidebar-pagination button.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     [data-theme="light"] .sidebar-pagination button.active { color:#fff; }
     .sidebar-pagination button:disabled { opacity:0.35; cursor:default; }
     .sidebar-pagination .pg-info { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
@@ -79,7 +79,7 @@
     .detail-name { font-size:18px; font-weight:700; }
     .detail-meta { font-size:12px; color:var(--text-muted); }
     .detail-actions { display:flex; gap:6px; }
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
     .btn-save:hover { opacity:0.85; }
     .btn-delete { background:none; border:1px solid var(--red); color:var(--red); padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
     .btn-delete:hover { background:var(--red); color:#fff; }
@@ -113,12 +113,12 @@
     .chk-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:12px; cursor:pointer; user-select:none; transition:all 0.12s; }
     .chk-chip:hover { border-color:var(--accent); color:var(--text); }
     .chk-chip input[type=checkbox] { display:none; }
-    .chk-chip.on { background:var(--accent); border-color:var(--accent); color:#1a1207; font-weight:600; }
+    .chk-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
     [data-theme="light"] .chk-chip.on { color:#fff; }
     .field-select { cursor:pointer; }
 
     /* 알림 */
-    .toast { position:fixed; bottom:20px; right:20px; background:var(--accent); color:#1a1207; padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600; z-index:999; display:none; }
+    .toast { position:fixed; bottom:20px; right:20px; background:var(--accent); color:var(--accent-text); padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600; z-index:999; display:none; }
     .toast.show { display:block; }
 
     /* 새 의뢰자 모달 */
@@ -955,7 +955,7 @@ function renderClientContent(id) {
         <div class="sub-panel" id="sub-docs-${id}">
             <div style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--accent); color:#1a1207; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--accent); color:var(--accent-text); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
                         + 파일 추가
                         <input type="file" multiple id="doc-file-${id}" style="display:none;" onchange="docAddFiles(${id}, this)">
                     </label>

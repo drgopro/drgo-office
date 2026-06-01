@@ -9,7 +9,7 @@
     .mk-title { font-size:20px; font-weight:700; }
     .mk-filter { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .mk-filter input, .mk-filter button { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; }
-    .mk-filter button { background:var(--accent); color:#1a1207; border:none; font-weight:600; cursor:pointer; }
+    .mk-filter button { background:var(--accent); color:var(--accent-text); border:none; font-weight:600; cursor:pointer; }
     [data-theme="light"] .mk-filter button { color:#fff; }
 
     .mk-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }

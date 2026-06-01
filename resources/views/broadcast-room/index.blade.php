@@ -15,14 +15,14 @@
 
     .tabs { display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:16px; }
     .tab-btn { flex:1; padding:10px; border:none; background:none; color:var(--text-muted); font-size:13px; font-weight:600; cursor:pointer; border-radius:6px; }
-    .tab-btn.active { background:var(--accent); color:#1a1207; }
+    .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     [data-theme="light"] .tab-btn.active { color:#fff; }
 
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
 
     .toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:flex-end; }
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-primary { color:#fff; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; }
 

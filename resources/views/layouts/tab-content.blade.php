@@ -16,8 +16,8 @@ try {
 </script>
 <style>
 /* tab-content 기본 CSS 변수 */
-:root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --surface3:#333; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
-[data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
+:root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --surface3:#333; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --accent-text:#1a1207; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
+[data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --accent-text:#ffffff; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
 /* 라이트모드 버튼/입력 보정 */
 [data-theme="light"] body { background:var(--bg); color:var(--text); }
 [data-theme="light"] .btn-edit, [data-theme="light"] .btn-outline { border-color:#a0a8b4; color:#4a5060; }
@@ -53,7 +53,7 @@ try {
 .drgo-pager { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center; }
 .drgo-pager-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:500; text-decoration:none; line-height:1; cursor:pointer; transition:all 0.15s; box-sizing:border-box; }
 .drgo-pager-btn:hover:not(.disabled):not(.active) { border-color:var(--accent); color:var(--accent); }
-.drgo-pager-btn.active { background:var(--accent); color:#1a1207; border-color:var(--accent); font-weight:700; cursor:default; }
+.drgo-pager-btn.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; cursor:default; }
 [data-theme="light"] .drgo-pager-btn.active { color:#fff; }
 .drgo-pager-btn.disabled { opacity:0.35; cursor:not-allowed; }
 .drgo-pager-dots { color:var(--text-muted); padding:0 4px; font-size:12px; }
@@ -276,7 +276,7 @@ function openExcelImportModal(type, typeName) {
                 </div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;">
                     <button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
-                    <button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button>
+                    <button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button>
                 </div>
                 <div id="excelImportResult" style="display:none;margin-top:16px;padding:12px;border-radius:8px;font-size:12px;"></div>
             </div>`;

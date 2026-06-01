@@ -17,7 +17,7 @@
     .field-input:disabled { opacity:0.5; cursor:not-allowed; }
     .field-hint { font-size:11px; color:var(--text-muted); margin-top:4px; }
 
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity 0.15s; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity 0.15s; }
     .btn-save:hover { opacity:0.85; }
 
     .alert { padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; }

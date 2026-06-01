@@ -22,14 +22,14 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-s
 .qr-reader { width:100%; max-width:420px; background:#000; border-radius:16px; overflow:hidden; min-height:300px; }
 .qr-manual { width:100%; max-width:420px; margin-top:12px; display:flex; gap:8px; }
 .qr-manual input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; color:var(--text); font-size:14px; outline:none; }
-.qr-manual button { background:var(--accent); color:#1a1207; border:none; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; }
+.qr-manual button { background:var(--accent); color:var(--accent-text); border:none; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; }
 [data-theme="light"] .qr-manual button { color:#fff; }
 .qr-status { width:100%; max-width:420px; margin-top:16px; padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; font-size:14px; line-height:1.6; display:none; }
 .qr-actions { width:100%; max-width:420px; margin-top:12px; display:none; gap:8px; flex-wrap:wrap; }
 .qr-actions button { flex:1; min-width:100px; padding:14px; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; color:#fff; }
 
 /* 플로팅 토스트 */
-.qr-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--accent); color:#1a1207; padding:14px 28px; border-radius:12px; font-size:15px; font-weight:700; z-index:9999; box-shadow:0 6px 24px rgba(0,0,0,0.4); animation:toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards; }
+.qr-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--accent); color:var(--accent-text); padding:14px 28px; border-radius:12px; font-size:15px; font-weight:700; z-index:9999; box-shadow:0 6px 24px rgba(0,0,0,0.4); animation:toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards; }
 [data-theme="light"] .qr-toast { color:#fff; }
 @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
 @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateX(-50%) translateY(-10px); } }

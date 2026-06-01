@@ -7,7 +7,7 @@
     .page-wrap { padding:24px; max-width:1100px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .page-title { font-size:22px; font-weight:700; }
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
 
     .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
     .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:260px; }

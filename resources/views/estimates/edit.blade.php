@@ -18,7 +18,7 @@
         .panel-left-header h3 { font-size:14px; font-weight:700; margin-bottom:10px; }
         .cat-tabs { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
         .cat-tab { padding:4px 10px; font-size:11px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); cursor:pointer; }
-        .cat-tab.active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+        .cat-tab.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
         .search-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; }
         .search-input:focus { border-color:var(--accent); }
         .product-list { flex:1; overflow-y:auto; padding:8px; }
@@ -87,10 +87,10 @@
         .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:none; }
         .btn-save { background:var(--surface2); border:1px solid var(--border); color:var(--text); }
         .btn-save:hover { border-color:var(--accent); }
-        .btn-issue { background:var(--accent); color:#1a1207; }
+        .btn-issue { background:var(--accent); color:var(--accent-text); }
         .btn-delete { background:none; border:1px solid var(--border); color:var(--red); }
         .btn-delete:hover { border-color:var(--red); }
-        .btn-print { background:var(--blue); color:#1a1207; }
+        .btn-print { background:var(--blue); color:var(--accent-text); }
         .save-indicator { font-size:11px; color:var(--text-muted); align-self:center; }
         [data-theme="light"] .cat-tab.active { color:#fff; }
         [data-theme="light"] .btn-issue { color:#fff; }
@@ -177,7 +177,7 @@
         <button class="btn" style="border:1px solid var(--border);color:var(--text-muted);background:none;" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">📋 로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print" onclick="printEstimate()">견적서 출력</button>
-        <button class="btn btn-save" onclick="saveEstimate()" style="background:var(--accent); color:#1a1207; font-weight:700;">저장</button>
+        <button class="btn btn-save" onclick="saveEstimate()" style="background:var(--accent); color:var(--accent-text); font-weight:700;">저장</button>
     </div>
 </div>
 

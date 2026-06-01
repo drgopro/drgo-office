@@ -13,7 +13,7 @@
     .client-nickname { font-size:14px; color:var(--text-muted); margin-top:2px; }
     .btn-edit { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:13px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
     .btn-edit:hover { border-color:var(--accent); color:var(--accent); }
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; }
 
     /* 배지 */
     .badge { display:inline-block; font-size:11px; padding:3px 10px; border-radius:4px; font-weight:600; }
@@ -76,7 +76,7 @@
     .doc-upload-area .field-mini { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
     .doc-upload-area select, .doc-upload-area input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
     .doc-upload-area select:focus, .doc-upload-area input[type="text"]:focus { border-color:var(--accent); }
-    .btn-upload { background:var(--accent); color:#1a1207; border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .btn-upload { background:var(--accent); color:var(--accent-text); border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
     .btn-upload:disabled { opacity:0.4; cursor:default; }
     .btn-choose { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 14px; color:var(--text); font-size:12px; cursor:pointer; white-space:nowrap; }
     .btn-choose:hover { border-color:var(--accent); }
@@ -658,7 +658,7 @@ document.addEventListener('keydown', e => {
             </div>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
                 <button type="button" onclick="closeProjectModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer;">취소</button>
-                <button type="submit" style="background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">생성</button>
+                <button type="submit" style="background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">생성</button>
             </div>
         </form>
     </div>

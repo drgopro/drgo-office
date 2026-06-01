@@ -19,7 +19,7 @@
     .wiki-cat-count { font-size:10px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
     .wiki-cat-item.active .wiki-cat-count { background:rgba(var(--accent),0.15); color:var(--accent); }
     .wiki-sidebar-footer { padding:12px 16px; border-top:1px solid var(--border); }
-    .btn-new { background:var(--accent); color:#1a1207; border:none; padding:8px 0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
+    .btn-new { background:var(--accent); color:var(--accent-text); border:none; padding:8px 0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
     [data-theme="light"] .btn-new { color:#fff; }
 
     /* 우측 문서 목록 */
@@ -51,7 +51,7 @@
     .field-textarea { resize:vertical; min-height:300px; line-height:1.7; font-family:monospace; font-size:13px; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-save { color:#fff; }
     .hidden { display:none !important; }
     .wiki-preview-pane h1 { font-size:22px; font-weight:700; margin:16px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--border); }

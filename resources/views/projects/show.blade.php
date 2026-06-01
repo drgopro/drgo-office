@@ -19,7 +19,7 @@
     .vr-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface); }
     .vr-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); min-width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.12s; padding:0 8px; }
     .vr-toolbar button:hover { background:var(--surface2); border-color:var(--border); color:var(--text); }
-    .vr-toolbar button.is-active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    .vr-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     [data-theme="light"] .vr-toolbar button.is-active { color:#fff; }
     .vr-toolbar .vr-sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
     .vr-upload-btn { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; border:1px solid transparent; border-radius:6px; cursor:pointer; font-size:14px; color:var(--text-muted); transition:all 0.12s; }
@@ -46,7 +46,7 @@
     .process-step:last-child::after { display:none; }
     .step-dot { width:28px; height:28px; border-radius:50%; border:2px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:center; margin:0 auto 6px; font-size:11px; position:relative; z-index:1; cursor:pointer; transition:all 0.2s; color:var(--text-muted); }
     .step-dot:hover { border-color:var(--accent); color:var(--accent); }
-    .step-dot.done { background:var(--accent); border-color:var(--accent); color:#1a1207; }
+    .step-dot.done { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .step-dot.active { border-color:var(--accent); color:var(--accent); background:var(--surface2); }
     .step-label { font-size:10px; color:var(--text-muted); }
     .step-label.active { color:var(--accent); font-weight:600; }
@@ -98,7 +98,7 @@
     .doc-upload-area .field-mini { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
     .doc-upload-area select, .doc-upload-area input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
     .doc-upload-area select:focus, .doc-upload-area input[type="text"]:focus { border-color:var(--accent); }
-    .btn-upload { background:var(--accent); color:#1a1207; border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .btn-upload { background:var(--accent); color:var(--accent-text); border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
     .btn-upload:disabled { opacity:0.4; cursor:default; }
     .btn-choose { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 14px; color:var(--text); font-size:12px; cursor:pointer; white-space:nowrap; }
     .btn-choose:hover { border-color:var(--accent); }
@@ -151,7 +151,7 @@
     .album-media-wrap img.album-media { transition:transform 0.2s; cursor:grab; }
     .album-media-wrap img.album-media.dragging { cursor:grabbing; transition:none; }
 
-    .btn-primary { background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
 
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
     .modal-overlay.open { display:flex; }
@@ -171,7 +171,7 @@
     .check-row input { accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
     .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:#1a1207; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .step-dot.done { color:#fff; }
     [data-theme="light"] .btn-upload { color:#fff; }
     [data-theme="light"] .btn-primary { color:#fff; }
@@ -346,7 +346,7 @@
             <span>📋 방문 보고서</span>
             <div style="display:flex; gap:6px; align-items:center;">
                 <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
-                <button type="button" onclick="saveVisitReportEditor()" style="background:var(--accent); color:#1a1207; border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">저장</button>
+                <button type="button" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">저장</button>
             </div>
         </div>
         <div class="vr-wrap">
@@ -566,7 +566,7 @@
                     <button type="button" onclick="confirmFullCancel()" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">⚠ 전체 결제 취소</button>
                     <div style="display:flex; gap:8px;">
                         <button type="button" onclick="closeRefundModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                        <button type="button" onclick="submitRefund('refund')" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">선택 항목 환불</button>
+                        <button type="button" onclick="submitRefund('refund')" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">선택 항목 환불</button>
                     </div>
                 </div>
             </div>
@@ -599,7 +599,7 @@
                 </div>
                 <div style="{{ $sdFootStyle }}">
                     <button type="button" onclick="closeProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveProposal()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="saveProposal()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -621,7 +621,7 @@
                 </div>
                 <div style="{{ $sdFootStyle }}">
                     <button type="button" onclick="closeEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveEstimateInfo()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="saveEstimateInfo()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -639,7 +639,7 @@
                 </div>
                 <div style="{{ $sdFootStyle }}">
                     <button type="button" onclick="closeVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveVisitReport()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="saveVisitReport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -680,7 +680,7 @@
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
                     <button type="button" onclick="closeProjectEditModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveProjectEdit()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="saveProjectEdit()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -761,7 +761,7 @@
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
                     <button type="button" class="btn-cancel" onclick="closePaymentModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:7px; font-size:13px; cursor:pointer;">취소</button>
-                    <button type="button" class="btn-save" onclick="savePayment()" style="background:var(--accent); color:#1a1207; border:none; padding:8px 18px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;">저장</button>
+                    <button type="button" class="btn-save" onclick="savePayment()" style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 18px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -1095,7 +1095,7 @@
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
             <button onclick="closeScaleEditor()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
-            <button onclick="submitScale()" style="background:var(--accent);color:#1a1207;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            <button onclick="submitScale()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
         </div>
     </div>
 </div>
