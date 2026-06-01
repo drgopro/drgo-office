@@ -332,11 +332,11 @@
     @php
         // 단계별 전용 모달 매핑 — 단계 클릭 시 form submit 대신 해당 JS 함수 호출
         // 장비파악(equipment)은 모달 없이 카드에서 인라인 직접 편집
+        // 'visit' 단계는 모달 없이 단순 단계 전환만 (방문 보고서는 '완료' 후 작성)
         $stageModals = [
             'proposal' => 'openProposalModal',
             'estimate' => 'openEstimateInfoModal',
             'payment' => 'openPaymentModal',
-            'visit' => 'openVisitReportModal',
             'done' => 'confirmDoneStage',
         ];
     @endphp
