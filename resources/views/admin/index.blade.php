@@ -1997,17 +1997,25 @@ function renderReportTemplates() {
         container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">등록된 템플릿이 없습니다</div><div class="cf-empty-sub">+ 템플릿 추가로 시작하세요</div></div>';
         return;
     }
+    // 텍스트 미리보기 — HTML 태그/엔티티를 안전하게 디코딩
+    function _rtTextPreview(html, max = 120) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        const text = (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+        if (!text) return '';
+        return text.length > max ? text.slice(0, max) + '…' : text;
+    }
     container.innerHTML = `<div class="cf-grid">${allReportTemplates.map(t => {
         const star = t.is_default ? '<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);">⭐ 기본</span>' : '';
         const inactive = t.is_active ? '' : ' inactive';
-        const preview = (t.content||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,90);
+        const preview = _rtTextPreview(t.content);
         return `<div class="cf-card${inactive}" onclick="editReportTemplate(${t.id})">
             <div class="cf-card-row">
                 <div class="cf-card-label">${escHtml(t.name)}</div>
                 ${star}
             </div>
             <div class="cf-card-row">
-                <div style="font-size:11px; color:var(--text-muted); flex:1;">${escHtml(preview) || '<em>(빈 본문)</em>'}</div>
+                <div style="font-size:12px; color:var(--text-muted); flex:1; line-height:1.5; max-height:3em; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${preview ? escHtml(preview) : '<em style="opacity:0.6;">(빈 본문)</em>'}</div>
             </div>
             <div class="cf-card-row">
                 <span class="cf-card-key">순서 ${t.sort_order ?? 0}</span>
