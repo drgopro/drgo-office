@@ -760,10 +760,11 @@
         </div>
         <!-- 첨부 문서 -->
         <div class="info-card full">
-            <div class="card-title">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>첨부 문서 ({{ $project->documents->count() }}건)</span>
+                <button type="button" class="btn-primary" onclick="toggleDocUpload()" id="btnToggleDocUpload" style="padding:6px 14px; font-size:12px;">+ 문서 추가</button>
             </div>
-            <form method="POST" action="{{ route('project-documents.store', $project) }}" enctype="multipart/form-data" id="docUploadForm">
+            <form method="POST" action="{{ route('project-documents.store', $project) }}" enctype="multipart/form-data" id="docUploadForm" style="display:{{ $project->documents->count() > 0 ? 'none' : 'block' }};">
                 @csrf
                 <input type="file" id="docFileInput" multiple style="display:none;">
                 <input type="file" name="files[]" id="docFileReal" multiple style="display:none;">
@@ -1068,6 +1069,16 @@
 <script>
 // 상담 모달
 function openConsultModal() { document.getElementById('consultModal').classList.add('open'); }
+
+function toggleDocUpload() {
+    const form = document.getElementById('docUploadForm');
+    const btn = document.getElementById('btnToggleDocUpload');
+    if (!form || !btn) return;
+    const showing = form.style.display !== 'none';
+    form.style.display = showing ? 'none' : 'block';
+    btn.textContent = showing ? '+ 문서 추가' : '× 닫기';
+    if (!showing) form.querySelector('input[type=file], button')?.focus();
+}
 function closeConsultModal() { document.getElementById('consultModal').classList.remove('open'); }
 function openEditModal(id, date, type, result, isImportant, content, managerName) {
     document.getElementById('editForm').action = `/consultations/${id}`;
