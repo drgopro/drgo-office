@@ -21,6 +21,19 @@
     #visitReportCard[data-mode="view"] .tiptap-wrap { background:transparent; border-color:transparent; }
     #visitReportCard[data-mode="view"] #vrEditor .ProseMirror { padding:0; min-height:auto; cursor:default; }
     #visitReportCard[data-mode="view"] #vrEditor .ProseMirror img { cursor:zoom-in; }
+    /* 뷰 모드 + 접힘 상태: 500px 까지만 보이고 페이드 그라데이션 */
+    #visitReportCard[data-mode="view"][data-collapsed="1"] .tiptap-wrap { max-height:500px; overflow:hidden; position:relative; }
+    #visitReportCard[data-mode="view"][data-collapsed="1"] .tiptap-wrap::after {
+        content:''; position:absolute; left:0; right:0; bottom:0; height:64px;
+        background:linear-gradient(to bottom, transparent, var(--surface) 95%);
+        pointer-events:none;
+    }
+    .vr-expand-btn { width:100%; margin-top:8px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+    .vr-expand-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .vr-expand-btn { display:none; }
+    #visitReportCard[data-mode="view"] .vr-expand-btn { display:block; }
+    /* 컨텐츠가 짧을 땐 버튼 자체 숨김 (overflow=visible 상태) */
+    #visitReportCard[data-mode="view"][data-overflow="0"] .vr-expand-btn { display:none; }
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
     .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
@@ -403,6 +416,7 @@
             </div>
             <div id="vrEditor"></div>
         </div>
+        <button type="button" class="vr-expand-btn" id="vrExpandBtn" onclick="vrToggleExpand()">▼ 더 보기</button>
     </div>
 
     <div class="slash-menu" id="vrSlashMenu"></div>
@@ -2504,8 +2518,44 @@ window.vrSetMode = function(mode) {
     if (window.vrEditor) {
         window.vrEditor.setEditable(!isView);
     }
+    if (isView) {
+        // 뷰 모드 진입 시 기본은 접힘 + 오버플로 측정
+        card.dataset.collapsed = '1';
+        setTimeout(vrCheckOverflow, 80);
+    } else {
+        // 편집 모드에서는 펼침
+        card.dataset.collapsed = '0';
+        card.dataset.overflow = '1'; // 버튼은 CSS로 hidden되어 영향 없음
+    }
     // 편집 진입 시 포커스
     if (!isView && window.vrEditor) setTimeout(() => window.vrEditor.commands.focus(), 50);
+};
+
+// 본문이 500px을 넘는지 측정 → '더 보기' 버튼 표시 여부 결정
+window.vrCheckOverflow = function() {
+    const card = document.getElementById('visitReportCard');
+    if (!card) return;
+    const editor = document.getElementById('vrEditor');
+    if (!editor) return;
+    // 펼친 상태로 측정해야 실제 높이를 알 수 있음
+    const wasCollapsed = card.dataset.collapsed === '1';
+    card.dataset.collapsed = '0';
+    const h = editor.scrollHeight;
+    card.dataset.collapsed = wasCollapsed ? '1' : '0';
+    card.dataset.overflow = (h > 500) ? '1' : '0';
+    const btn = document.getElementById('vrExpandBtn');
+    if (btn) btn.textContent = card.dataset.collapsed === '1' ? '▼ 더 보기' : '▲ 접기';
+};
+
+window.vrToggleExpand = function() {
+    const card = document.getElementById('visitReportCard');
+    if (!card) return;
+    const collapsed = card.dataset.collapsed === '1';
+    card.dataset.collapsed = collapsed ? '0' : '1';
+    const btn = document.getElementById('vrExpandBtn');
+    if (btn) btn.textContent = collapsed ? '▲ 접기' : '▼ 더 보기';
+    // 접기 시 카드 상단으로 스크롤
+    if (!collapsed) card.scrollIntoView({ behavior:'smooth', block:'start' });
 };
 
 // 파일 업로드 (이미지/영상) — base64 임베드 (간단 구현). 대용량은 추후 별도 업로드 API로 전환 가능.
@@ -2656,8 +2706,18 @@ if (editorEl) {
     });
 
     // 초기 mode에 맞춰 편집 가능 상태 동기화
-    const initMode = document.getElementById('visitReportCard')?.dataset.mode || 'edit';
+    const __vrInitCard = document.getElementById('visitReportCard');
+    const initMode = __vrInitCard?.dataset.mode || 'edit';
     window.vrEditor.setEditable(initMode === 'edit');
+    if (initMode === 'view' && __vrInitCard) {
+        __vrInitCard.dataset.collapsed = '1';
+        // 이미지 로드 후 정확한 높이로 재측정
+        setTimeout(() => window.vrCheckOverflow && window.vrCheckOverflow(), 150);
+        // 보고서에 이미지가 있으면 마지막 이미지 로드 후에도 재측정
+        document.querySelectorAll('#vrEditor img').forEach(img => {
+            if (!img.complete) img.addEventListener('load', () => window.vrCheckOverflow && window.vrCheckOverflow(), { once: true });
+        });
+    }
 
     // ── 슬래시 메뉴 (위키와 동일) ──
     const SLASH_ITEMS = [
