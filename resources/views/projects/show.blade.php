@@ -760,6 +760,50 @@
             </div>
         </div>
 
+        {{-- 방문 보고서 (stage=done 일 때만 노출 — 추가 정보 영역 상단) --}}
+        <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <span>📋 방문 보고서</span>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
+                    <button type="button" id="vrBtnEdit" onclick="vrSetMode('edit')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'inline-flex' : 'none' }};">✏️ 수정</button>
+                    <button type="button" id="vrBtnCancel" onclick="vrSetMode('view')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:none;">취소</button>
+                    <button type="button" id="vrBtnSave" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; display:{{ $hasReport ? 'none' : 'inline-flex' }};">저장</button>
+                </div>
+            </div>
+            <div class="tiptap-wrap">
+                <div class="tiptap-toolbar" id="vrToolbar">
+                    <button type="button" data-cmd="h1" title="제목 1">H1</button>
+                    <button type="button" data-cmd="h2" title="제목 2">H2</button>
+                    <button type="button" data-cmd="h3" title="제목 3">H3</button>
+                    <div class="sep"></div>
+                    <button type="button" data-cmd="bold" title="굵게"><b>B</b></button>
+                    <button type="button" data-cmd="italic" title="기울임"><i>I</i></button>
+                    <button type="button" data-cmd="strike" title="취소선"><s>S</s></button>
+                    <button type="button" data-cmd="code" title="인라인 코드">&lt;&gt;</button>
+                    <div class="sep"></div>
+                    <button type="button" data-cmd="bulletList" title="글머리 목록">•</button>
+                    <button type="button" data-cmd="orderedList" title="번호 목록">1.</button>
+                    <button type="button" data-cmd="blockquote" title="인용">"</button>
+                    <button type="button" data-cmd="codeBlock" title="코드 블록">{ }</button>
+                    <button type="button" data-cmd="hr" title="구분선">—</button>
+                    <div class="sep"></div>
+                    <button type="button" data-cmd="alignLeft" title="좌측 정렬" style="font-size:11px;">≡←</button>
+                    <button type="button" data-cmd="alignCenter" title="중앙 정렬" style="font-size:11px;">≡</button>
+                    <button type="button" data-cmd="alignRight" title="우측 정렬" style="font-size:11px;">→≡</button>
+                    <div class="sep"></div>
+                    <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:13px;">
+                        📎
+                        <input type="file" style="display:none;" onchange="vrUploadAndInsert(this.files[0]); this.value='';">
+                    </label>
+                    <button type="button" data-cmd="table" class="tool-btn" title="표 삽입" style="font-size:11px;">📊 표</button>
+                </div>
+                <div id="vrEditor"></div>
+            </div>
+            <button type="button" class="vr-expand-btn" id="vrExpandBtn" onclick="vrToggleExpand()">▼ 더 보기</button>
+        </div>
+        <div class="slash-menu" id="vrSlashMenu"></div>
+
         <!-- 추가 정보 (관리자 정의 동적 필드) -->
         <div class="info-card full" id="customDataCard" style="display:none;">
             <div class="card-title">추가 정보</div>
@@ -932,51 +976,6 @@
             @endforelse
         </div>
     </div>
-
-    {{-- 방문 보고서 (stage=done 일 때만 노출, 의뢰자 정보·메모 하단에 위치) --}}
-    <div class="info-card full" id="visitReportCard" style="margin-top:30px; display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <span>📋 방문 보고서</span>
-            <div style="display:flex; gap:6px; align-items:center;">
-                <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
-                <button type="button" id="vrBtnEdit" onclick="vrSetMode('edit')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'inline-flex' : 'none' }};">✏️ 수정</button>
-                <button type="button" id="vrBtnCancel" onclick="vrSetMode('view')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:none;">취소</button>
-                <button type="button" id="vrBtnSave" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; display:{{ $hasReport ? 'none' : 'inline-flex' }};">저장</button>
-            </div>
-        </div>
-        <div class="tiptap-wrap">
-            <div class="tiptap-toolbar" id="vrToolbar">
-                <button type="button" data-cmd="h1" title="제목 1">H1</button>
-                <button type="button" data-cmd="h2" title="제목 2">H2</button>
-                <button type="button" data-cmd="h3" title="제목 3">H3</button>
-                <div class="sep"></div>
-                <button type="button" data-cmd="bold" title="굵게"><b>B</b></button>
-                <button type="button" data-cmd="italic" title="기울임"><i>I</i></button>
-                <button type="button" data-cmd="strike" title="취소선"><s>S</s></button>
-                <button type="button" data-cmd="code" title="인라인 코드">&lt;&gt;</button>
-                <div class="sep"></div>
-                <button type="button" data-cmd="bulletList" title="글머리 목록">•</button>
-                <button type="button" data-cmd="orderedList" title="번호 목록">1.</button>
-                <button type="button" data-cmd="blockquote" title="인용">"</button>
-                <button type="button" data-cmd="codeBlock" title="코드 블록">{ }</button>
-                <button type="button" data-cmd="hr" title="구분선">—</button>
-                <div class="sep"></div>
-                <button type="button" data-cmd="alignLeft" title="좌측 정렬" style="font-size:11px;">≡←</button>
-                <button type="button" data-cmd="alignCenter" title="중앙 정렬" style="font-size:11px;">≡</button>
-                <button type="button" data-cmd="alignRight" title="우측 정렬" style="font-size:11px;">→≡</button>
-                <div class="sep"></div>
-                <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:13px;">
-                    📎
-                    <input type="file" style="display:none;" onchange="vrUploadAndInsert(this.files[0]); this.value='';">
-                </label>
-                <button type="button" data-cmd="table" class="tool-btn" title="표 삽입" style="font-size:11px;">📊 표</button>
-            </div>
-            <div id="vrEditor"></div>
-        </div>
-        <button type="button" class="vr-expand-btn" id="vrExpandBtn" onclick="vrToggleExpand()">▼ 더 보기</button>
-    </div>
-
-    <div class="slash-menu" id="vrSlashMenu"></div>
 </div>
 
 <!-- 상담 등록 모달 -->
