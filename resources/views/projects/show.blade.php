@@ -161,7 +161,11 @@
 
     /* 동적 필드 (관리자 정의) */
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
-    .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; }
+    .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; transition:color 0.12s; }
+    .pcf-sec-title:hover { color:var(--text); }
+    .pcf-sec-toggle { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-size:10px; color:var(--text-muted); transition:transform 0.2s; }
+    .pcf-section.collapsed .pcf-sec-toggle { transform:rotate(-90deg); }
+    .pcf-section.collapsed > :not(.pcf-sec-title) { display:none !important; }
     .pcf-subgroup { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
     .pcf-sub-title { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
     .pcf-sub-title .pcf-sub-icon { font-size:14px; }
@@ -1650,13 +1654,20 @@ function renderProjectCustomFields() {
     };
 
     let html = '';
+    // 섹션 접힘 상태 (localStorage에 영속)
+    const collapsedKey = 'drgo_pcf_collapsed_{{ $project->id }}';
+    const collapsed = (() => { try { return JSON.parse(localStorage.getItem(collapsedKey) || '[]'); } catch(e) { return []; } })();
     Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
         if (!grouped[k]) return;
         const subs = grouped[k];
         const subKeys = Object.keys(subs);
         const hasSubsections = subKeys.some(s => s !== '');
+        const isCollapsed = collapsed.includes(k);
 
-        html += `<div class="pcf-section"><div class="pcf-sec-title">${pcfEsc(lbl)}</div>`;
+        html += `<div class="pcf-section${isCollapsed ? ' collapsed' : ''}" data-section="${k}">
+            <div class="pcf-sec-title" onclick="togglePcfSection('${k}')" title="클릭하여 접기/펼치기">
+                <span class="pcf-sec-toggle">▼</span>${pcfEsc(lbl)}
+            </div>`;
 
         if (!hasSubsections) {
             // 소분류 없음 → 기존 1-그리드 렌더 (priority DESC 정렬)
@@ -1692,6 +1703,22 @@ function renderProjectCustomFields() {
         html += `</div>`;
     });
     wrap.innerHTML = html;
+}
+
+// 추가 정보 섹션 접기/펼치기 (localStorage 영속)
+function togglePcfSection(sectionKey) {
+    const el = document.querySelector(`.pcf-section[data-section="${sectionKey}"]`);
+    if (!el) return;
+    const key = 'drgo_pcf_collapsed_{{ $project->id }}';
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+    const isCollapsed = el.classList.toggle('collapsed');
+    if (isCollapsed) {
+        if (!list.includes(sectionKey)) list.push(sectionKey);
+    } else {
+        list = list.filter(k => k !== sectionKey);
+    }
+    localStorage.setItem(key, JSON.stringify(list));
 }
 
 // 수량 입력을 지원하는 타입
