@@ -2514,6 +2514,9 @@ if (editorEl) {
         },
     });
 
+    let __vrLastSaved = @json($project->visit_report ?? '');
+    let __vrDirty = false;
+
     window.vrEditor = new Editor({
         element: editorEl,
         extensions: [
@@ -2523,15 +2526,77 @@ if (editorEl) {
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Placeholder.configure({ placeholder: '방문/세팅 보고서를 작성하세요.\n현장 상황, 진행한 작업, 특이사항 등' }),
         ],
-        content: @json($project->visit_report ?? ''),
+        content: __vrLastSaved,
         onUpdate({ editor }) {
-            // 툴바 active 상태 갱신
             updateVrToolbar(editor);
+            // 변경 추적 (자동 저장용)
+            const cur = editor.getHTML();
+            __vrDirty = (cur !== __vrLastSaved);
+            if (__vrDirty) {
+                const s = document.getElementById('vrSaveStatus');
+                if (s && !s.dataset.saving) { s.textContent = '● 수정됨'; s.style.color = 'var(--text-muted)'; }
+            }
         },
         onSelectionUpdate({ editor }) {
             updateVrToolbar(editor);
         },
     });
+
+    // ── 1분마다 자동 저장 (변경 있을 때만) ──
+    async function vrAutoSave() {
+        if (!__vrDirty) return;
+        const statusEl = document.getElementById('vrSaveStatus');
+        statusEl.dataset.saving = '1';
+        statusEl.textContent = '자동 저장 중...';
+        statusEl.style.color = 'var(--text-muted)';
+        const html = window.vrEditor.getHTML();
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        try {
+            const res = await fetch(`/api/projects/{{ $project->id }}`, {
+                method: 'PATCH',
+                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+                body: JSON.stringify({ visit_report: html }),
+            });
+            if (res.ok) {
+                __vrLastSaved = html;
+                __vrDirty = false;
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2,'0');
+                const mm = String(now.getMinutes()).padStart(2,'0');
+                statusEl.textContent = `✓ 자동 저장 ${hh}:${mm}`;
+                statusEl.style.color = 'var(--green)';
+            } else {
+                statusEl.textContent = '⚠ 자동 저장 실패';
+                statusEl.style.color = 'var(--red)';
+            }
+        } catch(e) {
+            statusEl.textContent = '⚠ 네트워크 오류';
+            statusEl.style.color = 'var(--red)';
+        }
+        delete statusEl.dataset.saving;
+    }
+    const __vrAutoSaveTimer = setInterval(vrAutoSave, 60000); // 60초
+
+    // 페이지 이탈 시 마지막 저장 시도 (Beacon)
+    window.addEventListener('beforeunload', () => {
+        if (!__vrDirty) return;
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]').content;
+            const data = new Blob([JSON.stringify({ visit_report: window.vrEditor.getHTML(), _token: csrf })], { type:'application/json' });
+            // sendBeacon은 헤더 설정 불가 → 대신 동기 fetch keepalive
+            fetch(`/api/projects/{{ $project->id }}`, {
+                method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body:data, keepalive:true
+            });
+        } catch(e) {}
+    });
+
+    // saveVisitReportEditor도 last-saved 동기화
+    const _origSave = window.saveVisitReportEditor;
+    window.saveVisitReportEditor = async function() {
+        await _origSave();
+        __vrLastSaved = window.vrEditor.getHTML();
+        __vrDirty = false;
+    };
 
     // 툴바 버튼 핸들러
     const cmdMap = {
