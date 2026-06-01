@@ -241,7 +241,6 @@
                 <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
             @endif
             <button class="btn-edit" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="deleteProject()" title="완전 삭제">삭제</button>
-            <button class="btn-primary" onclick="openConsultModal()">+ 상담 등록</button>
         </div>
     </div>
 
@@ -705,12 +704,15 @@
         <!-- 상담 이력 -->
         @php $consultations = $project->consultations->load('authorUser', 'consultant'); @endphp
         <div class="info-card full">
-            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center; gap:8px; flex-wrap:wrap;">
                 <span>상담 이력 ({{ $consultations->count() }}건)</span>
-                <select id="consultSortSelect" onchange="sortConsultations(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-size:12px;cursor:pointer;">
-                    <option value="desc">최근 순</option>
-                    <option value="asc">오래된 순</option>
-                </select>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <select id="consultSortSelect" onchange="sortConsultations(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-size:12px;cursor:pointer;">
+                        <option value="desc">최근 순</option>
+                        <option value="asc">오래된 순</option>
+                    </select>
+                    <button class="btn-primary" onclick="openConsultModal()" style="padding:6px 14px; font-size:12px;">+ 상담 등록</button>
+                </div>
             </div>
             @if($consultations->count() > 0)
                 <div class="consult-list" id="consultList">
