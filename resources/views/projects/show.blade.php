@@ -13,6 +13,32 @@
     .project-meta { font-size:13px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:8px; }
 
     .process-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-bottom:16px; }
+
+    /* ── 방문 보고서 Tiptap 에디터 ── */
+    .vr-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface2); overflow:hidden; }
+    .vr-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface); }
+    .vr-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); min-width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; justify-content:center; transition:all 0.12s; padding:0 8px; }
+    .vr-toolbar button:hover { background:var(--surface2); border-color:var(--border); color:var(--text); }
+    .vr-toolbar button.is-active { background:var(--accent); color:#1a1207; border-color:var(--accent); }
+    [data-theme="light"] .vr-toolbar button.is-active { color:#fff; }
+    .vr-toolbar .vr-sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
+    .vr-upload-btn { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; border:1px solid transparent; border-radius:6px; cursor:pointer; font-size:14px; color:var(--text-muted); transition:all 0.12s; }
+    .vr-upload-btn:hover { background:var(--surface2); border-color:var(--border); color:var(--text); }
+    .vr-editor { padding:14px 18px; min-height:280px; background:var(--surface); color:var(--text); font-size:14px; line-height:1.7; outline:none; }
+    .vr-editor:focus { outline:none; }
+    .vr-editor p { margin:0.4em 0; }
+    .vr-editor h1 { font-size:22px; font-weight:700; margin:0.6em 0 0.3em; }
+    .vr-editor h2 { font-size:18px; font-weight:700; margin:0.5em 0 0.3em; }
+    .vr-editor h3 { font-size:16px; font-weight:700; margin:0.4em 0 0.2em; }
+    .vr-editor ul, .vr-editor ol { padding-left:1.5em; margin:0.4em 0; }
+    .vr-editor blockquote { border-left:3px solid var(--accent); padding-left:12px; color:var(--text-muted); margin:0.5em 0; font-style:italic; }
+    .vr-editor img { max-width:100%; height:auto; border-radius:6px; margin:6px 0; }
+    .vr-editor video { max-width:100%; border-radius:6px; margin:6px 0; }
+    .vr-editor hr { border:none; border-top:1px solid var(--border); margin:1em 0; }
+    .vr-editor.ProseMirror-focused { outline:none; }
+    .vr-editor [data-text-align="center"] { text-align:center; }
+    .vr-editor [data-text-align="right"] { text-align:right; }
+    .vr-editor [data-text-align="justify"] { text-align:justify; }
     .process-title { font-size:12px; color:var(--accent); font-weight:600; margin-bottom:16px; letter-spacing:0.05em; }
     .process-steps { display:flex; align-items:flex-start; }
     .process-step { flex:1; text-align:center; position:relative; }
@@ -259,7 +285,6 @@
                 'estimate'   => '견적/계약',
                 'payment'    => '결제/예약',
                 'visit'      => '방문 세팅',
-                'as'         => 'AS',
                 'done'       => '완료',
             ],
             'remote' => [
@@ -269,7 +294,6 @@
                 'estimate'   => '견적/계약',
                 'payment'    => '결제/예약',
                 'visit'      => '원격 세팅',
-                'as'         => 'AS',
                 'done'       => '완료',
             ],
             'design' => [
@@ -313,8 +337,52 @@
             'estimate' => 'openEstimateInfoModal',
             'payment' => 'openPaymentModal',
             'visit' => 'openVisitReportModal',
+            'done' => 'confirmDoneStage',
         ];
     @endphp
+    {{-- 방문 보고서 (stage=done 일 때만 노출) --}}
+    <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <span>📋 방문 보고서</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
+                <button type="button" onclick="saveVisitReportEditor()" style="background:var(--accent); color:#1a1207; border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">저장</button>
+            </div>
+        </div>
+        <div class="vr-wrap">
+            <div class="vr-toolbar" id="vrToolbar">
+                <button type="button" data-cmd="bold" title="굵게"><b>B</b></button>
+                <button type="button" data-cmd="italic" title="기울임"><i>I</i></button>
+                <button type="button" data-cmd="underline" title="밑줄"><u>U</u></button>
+                <button type="button" data-cmd="strike" title="취소선"><s>S</s></button>
+                <div class="vr-sep"></div>
+                <button type="button" data-cmd="h1" title="제목 1">H1</button>
+                <button type="button" data-cmd="h2" title="제목 2">H2</button>
+                <button type="button" data-cmd="h3" title="제목 3">H3</button>
+                <div class="vr-sep"></div>
+                <button type="button" data-cmd="bulletList" title="글머리 목록">•</button>
+                <button type="button" data-cmd="orderedList" title="번호 목록">1.</button>
+                <button type="button" data-cmd="blockquote" title="인용">"</button>
+                <div class="vr-sep"></div>
+                <button type="button" data-cmd="alignLeft" title="좌측 정렬">≡←</button>
+                <button type="button" data-cmd="alignCenter" title="중앙 정렬">≡</button>
+                <button type="button" data-cmd="alignRight" title="우측 정렬">→≡</button>
+                <button type="button" data-cmd="alignJustify" title="양쪽 정렬">≡≡</button>
+                <div class="vr-sep"></div>
+                <label class="vr-upload-btn" title="이미지 첨부">
+                    🖼
+                    <input type="file" accept="image/*" multiple style="display:none;" onchange="vrUploadFiles(this.files, 'image')">
+                </label>
+                <label class="vr-upload-btn" title="영상 첨부">
+                    🎬
+                    <input type="file" accept="video/*" multiple style="display:none;" onchange="vrUploadFiles(this.files, 'video')">
+                </label>
+                <button type="button" data-cmd="hr" title="구분선">—</button>
+            </div>
+            <div id="vrEditor" class="vr-editor"></div>
+        </div>
+    </div>
+
     <div class="process-wrap">
         <div class="process-title">진행 단계 — 클릭하여 변경 (단계별 상세 입력 가능)</div>
         <div class="process-steps">
@@ -2324,5 +2392,193 @@ document.addEventListener('keydown', e => {
         if (e.key === 'ArrowRight') albumNav(1);
     }
 });
+
+// ──────────────────────────── 방문 보고서 (완료 시) ────────────────────────────
+
+// 완료 단계 클릭 시 확인 다이얼로그
+window.confirmDoneStage = function() {
+    if (!confirm('세팅을 완료합니다.\n보고서를 작성하시겠습니까?\n\n(예: 즉시 작성 / 아니오: 완료만 처리)')) {
+        // '아니오' — 완료만 처리하고 보고서는 비움
+        return advanceToDone(false);
+    }
+    advanceToDone(true);
+};
+
+async function advanceToDone(openEditor) {
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    try {
+        const res = await fetch(`/projects/{{ $project->id }}/stage`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+            body: JSON.stringify({ stage: 'done' }),
+        });
+        if (!res.ok) {
+            await showFetchErrorVR(res, '완료 처리 실패');
+            return;
+        }
+        if (openEditor) {
+            // 카드 노출 + 포커스
+            const card = document.getElementById('visitReportCard');
+            if (card) card.style.display = 'block';
+            setTimeout(() => {
+                if (card) card.scrollIntoView({behavior:'smooth', block:'start'});
+                if (window.vrEditor) window.vrEditor.commands.focus();
+            }, 250);
+        } else {
+            // '아니오' 선택 시 단계 UI 갱신 위해 새로고침
+            location.reload();
+        }
+    } catch(e) {
+        alert('통신 오류: ' + e.message);
+    }
+}
+
+async function showFetchErrorVR(res, prefix) {
+    let detail = '';
+    try { const p = await res.json(); detail = p.message || p.error || JSON.stringify(p.errors || {}); } catch(e) { detail = await res.text().catch(()=>''); }
+    alert(`[${prefix} · 코드 ${res.status}]\n${detail || '응답 본문 없음'}`);
+}
+
+window.saveVisitReportEditor = async function() {
+    if (!window.vrEditor) return;
+    const html = window.vrEditor.getHTML();
+    const statusEl = document.getElementById('vrSaveStatus');
+    statusEl.textContent = '저장 중...';
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/api/projects/{{ $project->id }}`, {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+        body: JSON.stringify({ visit_report: html }),
+    });
+    if (res.ok) {
+        statusEl.textContent = '✓ 저장됨';
+        statusEl.style.color = 'var(--green)';
+        setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 2500);
+    } else {
+        statusEl.textContent = '저장 실패';
+        statusEl.style.color = 'var(--red)';
+        await showFetchErrorVR(res, '방문 보고서 저장 실패');
+    }
+};
+
+// 파일 업로드 (이미지/영상) — base64 임베드 (간단 구현). 대용량은 추후 별도 업로드 API로 전환 가능.
+window.vrUploadFiles = function(files, kind) {
+    if (!window.vrEditor || !files || !files.length) return;
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const src = e.target.result;
+            if (kind === 'image') {
+                window.vrEditor.chain().focus().setImage({ src }).run();
+            } else {
+                // video는 raw HTML 삽입
+                window.vrEditor.chain().focus().insertContent(
+                    `<video src="${src}" controls></video><p></p>`
+                ).run();
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+};
+</script>
+
+{{-- Tiptap 모듈 로딩 + 에디터 초기화 (완료 카드가 표시될 때) --}}
+<script type="importmap">
+{
+    "imports": {
+        "@tiptap/core": "https://esm.sh/@tiptap/core@2.11.5",
+        "@tiptap/starter-kit": "https://esm.sh/@tiptap/starter-kit@2.11.5",
+        "@tiptap/extension-image": "https://esm.sh/@tiptap/extension-image@2.11.5",
+        "@tiptap/extension-underline": "https://esm.sh/@tiptap/extension-underline@2.11.5",
+        "@tiptap/extension-text-align": "https://esm.sh/@tiptap/extension-text-align@2.11.5",
+        "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@2.11.5"
+    }
+}
+</script>
+<script type="module">
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Placeholder from '@tiptap/extension-placeholder';
+
+const editorEl = document.getElementById('vrEditor');
+if (editorEl) {
+    const ResizableImage = Image.extend({
+        addAttributes() {
+            return {
+                ...this.parent?.(),
+                width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px','') || null, renderHTML: attrs => attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;height:auto;` } : {} },
+            };
+        },
+    });
+
+    window.vrEditor = new Editor({
+        element: editorEl,
+        extensions: [
+            StarterKit.configure({ heading: { levels: [1,2,3] } }),
+            Underline,
+            ResizableImage.configure({ inline: false }),
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            Placeholder.configure({ placeholder: '방문/세팅 보고서를 작성하세요.\n현장 상황, 진행한 작업, 특이사항 등' }),
+        ],
+        content: @json($project->visit_report ?? ''),
+        onUpdate({ editor }) {
+            // 툴바 active 상태 갱신
+            updateVrToolbar(editor);
+        },
+        onSelectionUpdate({ editor }) {
+            updateVrToolbar(editor);
+        },
+    });
+
+    // 툴바 버튼 핸들러
+    const cmdMap = {
+        bold:        ed => ed.chain().focus().toggleBold().run(),
+        italic:      ed => ed.chain().focus().toggleItalic().run(),
+        underline:   ed => ed.chain().focus().toggleUnderline().run(),
+        strike:      ed => ed.chain().focus().toggleStrike().run(),
+        h1:          ed => ed.chain().focus().toggleHeading({level:1}).run(),
+        h2:          ed => ed.chain().focus().toggleHeading({level:2}).run(),
+        h3:          ed => ed.chain().focus().toggleHeading({level:3}).run(),
+        bulletList:  ed => ed.chain().focus().toggleBulletList().run(),
+        orderedList: ed => ed.chain().focus().toggleOrderedList().run(),
+        blockquote:  ed => ed.chain().focus().toggleBlockquote().run(),
+        alignLeft:   ed => ed.chain().focus().setTextAlign('left').run(),
+        alignCenter: ed => ed.chain().focus().setTextAlign('center').run(),
+        alignRight:  ed => ed.chain().focus().setTextAlign('right').run(),
+        alignJustify:ed => ed.chain().focus().setTextAlign('justify').run(),
+        hr:          ed => ed.chain().focus().setHorizontalRule().run(),
+    };
+    document.querySelectorAll('#vrToolbar button[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const fn = cmdMap[btn.dataset.cmd];
+            if (fn) fn(window.vrEditor);
+        });
+    });
+
+    function updateVrToolbar(ed) {
+        const checks = {
+            bold: ed.isActive('bold'),
+            italic: ed.isActive('italic'),
+            underline: ed.isActive('underline'),
+            strike: ed.isActive('strike'),
+            h1: ed.isActive('heading',{level:1}),
+            h2: ed.isActive('heading',{level:2}),
+            h3: ed.isActive('heading',{level:3}),
+            bulletList: ed.isActive('bulletList'),
+            orderedList: ed.isActive('orderedList'),
+            blockquote: ed.isActive('blockquote'),
+            alignLeft: ed.isActive({ textAlign: 'left' }),
+            alignCenter: ed.isActive({ textAlign: 'center' }),
+            alignRight: ed.isActive({ textAlign: 'right' }),
+            alignJustify: ed.isActive({ textAlign: 'justify' }),
+        };
+        document.querySelectorAll('#vrToolbar button[data-cmd]').forEach(b => {
+            b.classList.toggle('is-active', !!checks[b.dataset.cmd]);
+        });
+    }
+}
 </script>
 @endpush

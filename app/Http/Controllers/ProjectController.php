@@ -162,6 +162,7 @@ class ProjectController extends Controller
             'project_type' => 'sometimes|string|max:50|exists:consultation_types,key',
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'sometimes|nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
+            'visit_report' => 'sometimes|nullable|string',
             'custom_data' => 'nullable|array',
         ]);
 

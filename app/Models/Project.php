@@ -21,6 +21,7 @@ class Project extends Model
         'status',
         'assigned_user_id',
         'memo',
+        'visit_report',
         'as_deadline',
         'completed_at',
         'cancel_reason',
