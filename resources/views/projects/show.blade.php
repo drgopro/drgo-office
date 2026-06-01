@@ -34,7 +34,11 @@
     #vrEditor .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
     #vrEditor .ProseMirror pre code { background:none; padding:0; }
     #vrEditor .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
-    #vrEditor .ProseMirror img { max-width:100%; border-radius:8px; margin:6px 0; display:block; }
+    #vrEditor .ProseMirror img { max-width:100%; border-radius:8px; margin:6px 0; display:block; cursor:pointer; transition:outline 0.15s; }
+    #vrEditor .ProseMirror img.ProseMirror-selectednode { outline:2px solid var(--accent); outline-offset:2px; }
+    #vrEditor .ProseMirror img[data-align="left"]   { margin-left:0; margin-right:auto; }
+    #vrEditor .ProseMirror img[data-align="center"] { margin-left:auto; margin-right:auto; }
+    #vrEditor .ProseMirror img[data-align="right"]  { margin-left:auto; margin-right:0; }
     #vrEditor .ProseMirror video { max-width:100%; border-radius:8px; margin:6px 0; display:block; }
     #vrEditor .ProseMirror hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
     #vrEditor .ProseMirror table { width:100%; border-collapse:collapse; margin:10px 0; }
@@ -2529,6 +2533,11 @@ if (editorEl) {
                 ...this.parent?.(),
                 width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px','') || null, renderHTML: attrs => attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;height:auto;` } : {} },
                 height: { default: null, renderHTML: () => ({}) },
+                align: {
+                    default: null,
+                    parseHTML: el => el.getAttribute('data-align'),
+                    renderHTML: attrs => attrs.align ? { 'data-align': attrs.align } : {},
+                },
             };
         },
     });
@@ -2717,9 +2726,15 @@ if (editorEl) {
         orderedList: ed => ed.chain().focus().toggleOrderedList().run(),
         blockquote:  ed => ed.chain().focus().toggleBlockquote().run(),
         codeBlock:   ed => ed.chain().focus().toggleCodeBlock().run(),
-        alignLeft:   ed => ed.chain().focus().setTextAlign('left').run(),
-        alignCenter: ed => ed.chain().focus().setTextAlign('center').run(),
-        alignRight:  ed => ed.chain().focus().setTextAlign('right').run(),
+        alignLeft:   ed => ed.isActive('image')
+            ? ed.chain().focus().updateAttributes('image', { align: 'left' }).run()
+            : ed.chain().focus().setTextAlign('left').run(),
+        alignCenter: ed => ed.isActive('image')
+            ? ed.chain().focus().updateAttributes('image', { align: 'center' }).run()
+            : ed.chain().focus().setTextAlign('center').run(),
+        alignRight:  ed => ed.isActive('image')
+            ? ed.chain().focus().updateAttributes('image', { align: 'right' }).run()
+            : ed.chain().focus().setTextAlign('right').run(),
         hr:          ed => ed.chain().focus().setHorizontalRule().run(),
         table:       ed => ed.chain().focus().insertTable({rows:3,cols:3,withHeaderRow:true}).run(),
     };
@@ -2743,9 +2758,9 @@ if (editorEl) {
             orderedList: ed.isActive('orderedList'),
             blockquote: ed.isActive('blockquote'),
             codeBlock: ed.isActive('codeBlock'),
-            alignLeft: ed.isActive({ textAlign: 'left' }),
-            alignCenter: ed.isActive({ textAlign: 'center' }),
-            alignRight: ed.isActive({ textAlign: 'right' }),
+            alignLeft: ed.isActive('image', { align: 'left' }) || (!ed.isActive('image') && ed.isActive({ textAlign: 'left' })),
+            alignCenter: ed.isActive('image', { align: 'center' }) || (!ed.isActive('image') && ed.isActive({ textAlign: 'center' })),
+            alignRight: ed.isActive('image', { align: 'right' }) || (!ed.isActive('image') && ed.isActive({ textAlign: 'right' })),
         };
         document.querySelectorAll('#vrToolbar button[data-cmd]').forEach(b => {
             b.classList.toggle('is-active', !!checks[b.dataset.cmd]);
