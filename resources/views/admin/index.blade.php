@@ -201,11 +201,21 @@
         <button class="tab-btn active" data-tab="logs">로그인 기록</button>
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
-        <button class="tab-btn" data-tab="clientFields">의뢰자 필드</button>
-        <button class="tab-btn" data-tab="projectFields">프로젝트 설정</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
-        <button class="tab-btn" data-tab="calendarCategories">캘린더 카테고리</button>
-        <button class="tab-btn" data-tab="seller">판매처 설정</button>
+        <button class="tab-btn" data-tab="settings">⚙️ 설정</button>
+    </div>
+
+    {{-- 설정 그룹 (의뢰자/프로젝트 필드 + 유형 + 캘린더 + 판매처 + 보고서 템플릿) --}}
+    <div class="tab-panel" id="panel-settings">
+        <div class="sub-tab-bar" id="settingsSubTabBar">
+            <button class="sub-tab-btn active" data-subtab="clientFields" onclick="switchSettingsSubTab('clientFields')">의뢰자 필드</button>
+            <button class="sub-tab-btn" data-subtab="projectFields" onclick="switchSettingsSubTab('projectFields')">프로젝트 필드</button>
+            <button class="sub-tab-btn" data-subtab="projectTypes" onclick="switchSettingsSubTab('projectTypes')">프로젝트 유형</button>
+            <button class="sub-tab-btn" data-subtab="calendarCategories" onclick="switchSettingsSubTab('calendarCategories')">캘린더 카테고리</button>
+            <button class="sub-tab-btn" data-subtab="reportTemplates" onclick="switchSettingsSubTab('reportTemplates')">보고서 템플릿</button>
+            <button class="sub-tab-btn" data-subtab="seller" onclick="switchSettingsSubTab('seller')">판매처 설정</button>
+        </div>
+        <div id="settingsContent"></div>
     </div>
 
     {{-- 로그인 기록 --}}
@@ -431,7 +441,8 @@
 
     {{-- 프로젝트 설정 (필드 정의 + 프로젝트 유형) --}}
     <div class="tab-panel" id="panel-projectFields">
-        <div class="sub-tab-bar">
+        {{-- 설정 그룹의 상위 서브탭에서 직접 진입하므로 내부 서브탭 바는 숨김 --}}
+        <div class="sub-tab-bar" style="display:none;">
             <button class="sub-tab-btn active" data-subtab="fields" onclick="switchProjectSubTab('fields')">필드 정의</button>
             <button class="sub-tab-btn" data-subtab="types" onclick="switchProjectSubTab('types')">프로젝트 유형</button>
         </div>
@@ -704,6 +715,81 @@
         </div>
     </div>
 
+    {{-- 보고서 템플릿 --}}
+    <div class="tab-panel" id="panel-reportTemplates">
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                방문 보고서 작성 시 사용할 <b>템플릿</b>을 관리합니다.<br>
+                <span style="opacity:0.7;">기본 템플릿(★)은 새 보고서 작성 시 자동 불러올 수 있습니다.</span>
+            </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openReportTemplateModal()">+ 템플릿 추가</button>
+        </div>
+        <div id="reportTemplatesContainer"></div>
+    </div>
+
+    {{-- 보고서 템플릿 모달 --}}
+    <div id="rtModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '보고서 템플릿 편집', '📋')">
+        <div class="cf-modal" style="max-width:900px;">
+            <h3>
+                <span id="rtModalTitle">+ 보고서 템플릿</span>
+                <button type="button" class="close-btn" onclick="closeReportTemplateModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub">방문 보고서 작성 시 자동으로 불러올 수 있는 본문 템플릿을 정의합니다.</div>
+            <input type="hidden" id="rtId">
+
+            <div class="field-group">
+                <div class="field-label">템플릿 이름 *</div>
+                <input type="text" class="field-input" id="rtName" placeholder="예: 일반 방문 세팅 보고서">
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">본문 (Tiptap)</div>
+                <div class="tiptap-wrap">
+                    <div class="tiptap-toolbar" id="rtToolbar">
+                        <button type="button" data-rt-cmd="h1" title="제목 1">H1</button>
+                        <button type="button" data-rt-cmd="h2" title="제목 2">H2</button>
+                        <button type="button" data-rt-cmd="h3" title="제목 3">H3</button>
+                        <div class="sep"></div>
+                        <button type="button" data-rt-cmd="bold" title="굵게"><b>B</b></button>
+                        <button type="button" data-rt-cmd="italic" title="기울임"><i>I</i></button>
+                        <button type="button" data-rt-cmd="strike" title="취소선"><s>S</s></button>
+                        <div class="sep"></div>
+                        <button type="button" data-rt-cmd="bulletList" title="글머리 목록">•</button>
+                        <button type="button" data-rt-cmd="orderedList" title="번호 목록">1.</button>
+                        <button type="button" data-rt-cmd="blockquote" title="인용">"</button>
+                        <button type="button" data-rt-cmd="hr" title="구분선">—</button>
+                        <div class="sep"></div>
+                        <button type="button" data-rt-cmd="alignLeft" title="좌측" style="font-size:11px;">≡←</button>
+                        <button type="button" data-rt-cmd="alignCenter" title="중앙" style="font-size:11px;">≡</button>
+                        <button type="button" data-rt-cmd="alignRight" title="우측" style="font-size:11px;">→≡</button>
+                    </div>
+                    <div id="rtEditor" style="padding:14px 18px; min-height:240px; max-height:380px; overflow-y:auto;"></div>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">템플릿에는 이미지를 포함하지 않는 것을 권장합니다 (텍스트 골격 위주).</div>
+            </div>
+
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">정렬 순서</div>
+                    <input type="number" class="field-input" id="rtSortOrder" placeholder="작을수록 먼저">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">기본 / 활성</div>
+                    <div class="cf-toggle-row" style="margin:0; padding:8px 10px;">
+                        <label><input type="checkbox" id="rtIsDefault"> ⭐ 기본 (자동 불러오기)</label>
+                        <label><input type="checkbox" id="rtIsActive" checked> 활성</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cf-modal-actions">
+                <button class="btn-danger-outline" id="rtDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteReportTemplate()">삭제</button>
+                <button class="btn-outline" onclick="closeReportTemplateModal()">취소</button>
+                <button class="btn-save" onclick="saveReportTemplate()">저장</button>
+            </div>
+        </div>
+    </div>
+
     {{-- 판매처 설정 --}}
     <div class="tab-panel" id="panel-seller">
         <div class="settings-form">
@@ -815,17 +901,48 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
-        if (tab === 'clientFields') loadClientFields();
-        if (tab === 'projectFields') { loadProjectFields(); loadConsultTypes(); }
         if (tab === 'assignees') loadAssigneesAdmin();
-        if (tab === 'calendarCategories') loadCalendarCategories();
+        if (tab === 'settings') {
+            const last = sessionStorage.getItem('drgo_admin_setting_subtab') || 'clientFields';
+            switchSettingsSubTab(last);
+        }
     });
 });
 
-// 프로젝트 설정 탭 내부 서브탭 전환
+// 프로젝트 설정 탭 내부 서브탭 전환 (legacy, projectFields 내부 — 호환용)
 function switchProjectSubTab(sub) {
     document.querySelectorAll('#panel-projectFields .sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
     document.querySelectorAll('#panel-projectFields .sub-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'subpanel-' + sub));
+}
+
+// 설정 그룹 서브탭 전환
+const SETTINGS_PANEL_MAP = {
+    clientFields: { panel: 'panel-clientFields', load: () => typeof loadClientFields === 'function' && loadClientFields() },
+    projectFields: { panel: 'panel-projectFields', load: () => { typeof loadProjectFields === 'function' && loadProjectFields(); typeof loadConsultTypes === 'function' && loadConsultTypes(); switchProjectSubTab('fields'); } },
+    projectTypes:  { panel: 'panel-projectFields', load: () => { typeof loadConsultTypes === 'function' && loadConsultTypes(); switchProjectSubTab('types'); } },
+    calendarCategories: { panel: 'panel-calendarCategories', load: () => typeof loadCalendarCategories === 'function' && loadCalendarCategories() },
+    reportTemplates: { panel: 'panel-reportTemplates', load: () => typeof loadReportTemplates === 'function' && loadReportTemplates() },
+    seller: { panel: 'panel-seller', load: () => {} },
+};
+
+function switchSettingsSubTab(sub) {
+    document.querySelectorAll('#settingsSubTabBar .sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
+    const conf = SETTINGS_PANEL_MAP[sub];
+    if (!conf) return;
+    // 설정 그룹에 속한 모든 패널은 hidden, 선택된 panel만 show
+    Object.values(SETTINGS_PANEL_MAP).forEach(c => {
+        const el = document.getElementById(c.panel);
+        if (el) el.classList.remove('active');
+    });
+    const target = document.getElementById(conf.panel);
+    if (target) {
+        target.classList.add('active');
+        // 설정 그룹 컨테이너 안으로 이동(아직 안에 없다면)
+        const settingsContent = document.getElementById('settingsContent');
+        if (settingsContent && target.parentElement !== settingsContent) settingsContent.appendChild(target);
+    }
+    sessionStorage.setItem('drgo_admin_setting_subtab', sub);
+    conf.load();
 }
 
 // ── 필드 카드 드래그-앤-드롭 정렬 (의뢰자/프로젝트 공용) ──
@@ -1839,6 +1956,142 @@ async function deleteConsultType() {
         const err = await res.json().catch(() => ({}));
         alert(err.message || '삭제 실패');
     }
+}
+
+// ─────────────── 보고서 템플릿 ───────────────
+let allReportTemplates = [];
+
+async function loadReportTemplates() {
+    const res = await fetch('/api/admin/visit-report-templates', { headers:{'Accept':'application/json'} });
+    allReportTemplates = await res.json();
+    renderReportTemplates();
+}
+
+function renderReportTemplates() {
+    const container = document.getElementById('reportTemplatesContainer');
+    if (!allReportTemplates.length) {
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">등록된 템플릿이 없습니다</div><div class="cf-empty-sub">+ 템플릿 추가로 시작하세요</div></div>';
+        return;
+    }
+    container.innerHTML = `<div class="cf-grid">${allReportTemplates.map(t => {
+        const star = t.is_default ? '<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);">⭐ 기본</span>' : '';
+        const inactive = t.is_active ? '' : ' inactive';
+        const preview = (t.content||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,90);
+        return `<div class="cf-card${inactive}" onclick="editReportTemplate(${t.id})">
+            <div class="cf-card-row">
+                <div class="cf-card-label">${escHtml(t.name)}</div>
+                ${star}
+            </div>
+            <div class="cf-card-row">
+                <div style="font-size:11px; color:var(--text-muted); flex:1;">${escHtml(preview) || '<em>(빈 본문)</em>'}</div>
+            </div>
+            <div class="cf-card-row">
+                <span class="cf-card-key">순서 ${t.sort_order ?? 0}</span>
+                <div class="cf-card-meta">${t.is_active ? '' : '<span class="cf-chip muted">비활성</span>'}${t.creator ? `<span class="cf-chip">${escHtml(t.creator)}</span>` : ''}</div>
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+window.__rtEditor = null;
+function openReportTemplateModal(t) {
+    document.getElementById('rtModalOverlay').classList.add('open');
+    document.getElementById('rtModalTitle').textContent = t ? '템플릿 편집' : '+ 보고서 템플릿';
+    document.getElementById('rtId').value = t?.id || '';
+    document.getElementById('rtName').value = t?.name || '';
+    document.getElementById('rtSortOrder').value = t?.sort_order ?? '';
+    document.getElementById('rtIsDefault').checked = !!t?.is_default;
+    document.getElementById('rtIsActive').checked = t ? !!t.is_active : true;
+    document.getElementById('rtDeleteBtn').style.display = t ? 'inline-block' : 'none';
+    // 에디터 초기화 또는 초기 콘텐츠 설정
+    if (window.__rtEditor) {
+        window.__rtEditor.commands.setContent(t?.content || '');
+    } else {
+        initRtEditor(t?.content || '');
+    }
+}
+function closeReportTemplateModal() { document.getElementById('rtModalOverlay').classList.remove('open'); }
+function editReportTemplate(id) { const t = allReportTemplates.find(x => x.id === id); if (t) openReportTemplateModal(t); }
+
+async function saveReportTemplate() {
+    const id = document.getElementById('rtId').value;
+    const name = document.getElementById('rtName').value.trim();
+    if (!name) return alert('템플릿 이름을 입력하세요.');
+    const body = {
+        name,
+        content: window.__rtEditor ? window.__rtEditor.getHTML() : '',
+        sort_order: parseInt(document.getElementById('rtSortOrder').value || 0),
+        is_default: document.getElementById('rtIsDefault').checked,
+        is_active: document.getElementById('rtIsActive').checked,
+    };
+    const url = id ? `/api/admin/visit-report-templates/${id}` : '/api/admin/visit-report-templates';
+    const res = await fetch(url, {
+        method: id ? 'PATCH' : 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok) { closeReportTemplateModal(); await loadReportTemplates(); }
+    else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+}
+
+async function deleteReportTemplate() {
+    if (!confirm('이 템플릿을 삭제하시겠습니까?')) return;
+    const id = document.getElementById('rtId').value;
+    const res = await fetch(`/api/admin/visit-report-templates/${id}`, {
+        method: 'DELETE',
+        headers: {'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    });
+    if (res.ok) { closeReportTemplateModal(); await loadReportTemplates(); }
+    else alert('삭제 실패');
+}
+
+// Tiptap 에디터 초기화 (관리자 템플릿용)
+function initRtEditor(initialContent) {
+    if (window.__rtEditor) return;
+    // 이미 로드된 Tiptap 모듈 사용 (admin 페이지에서 별도 import)
+    const ed = document.getElementById('rtEditor');
+    if (!ed) return;
+    // CDN 동적 import
+    import('https://esm.sh/@tiptap/core@2.11.5').then(async ({ Editor }) => {
+        const StarterKit = (await import('https://esm.sh/@tiptap/starter-kit@2.11.5')).default;
+        const Placeholder = (await import('https://esm.sh/@tiptap/extension-placeholder@2.11.5')).default;
+        const TextAlign = (await import('https://esm.sh/@tiptap/extension-text-align@2.11.5')).default;
+
+        window.__rtEditor = new Editor({
+            element: ed,
+            extensions: [
+                StarterKit.configure({ heading: { levels: [1,2,3] } }),
+                Placeholder.configure({ placeholder: '템플릿 본문을 입력하세요. (방문 보고서에서 이 내용이 자동 불러와집니다)' }),
+                TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            ],
+            content: initialContent || '',
+        });
+
+        const rtCmds = {
+            bold: () => __rtEditor.chain().focus().toggleBold().run(),
+            italic: () => __rtEditor.chain().focus().toggleItalic().run(),
+            strike: () => __rtEditor.chain().focus().toggleStrike().run(),
+            h1: () => __rtEditor.chain().focus().toggleHeading({level:1}).run(),
+            h2: () => __rtEditor.chain().focus().toggleHeading({level:2}).run(),
+            h3: () => __rtEditor.chain().focus().toggleHeading({level:3}).run(),
+            bulletList: () => __rtEditor.chain().focus().toggleBulletList().run(),
+            orderedList: () => __rtEditor.chain().focus().toggleOrderedList().run(),
+            blockquote: () => __rtEditor.chain().focus().toggleBlockquote().run(),
+            hr: () => __rtEditor.chain().focus().setHorizontalRule().run(),
+            alignLeft: () => __rtEditor.chain().focus().setTextAlign('left').run(),
+            alignCenter: () => __rtEditor.chain().focus().setTextAlign('center').run(),
+            alignRight: () => __rtEditor.chain().focus().setTextAlign('right').run(),
+        };
+        document.querySelectorAll('#rtToolbar button[data-rt-cmd]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fn = rtCmds[btn.dataset.rtCmd];
+                if (fn) fn();
+            });
+        });
+    }).catch(err => console.error('Tiptap load failed:', err));
 }
 </script>
 @endpush

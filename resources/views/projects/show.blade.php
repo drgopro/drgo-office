@@ -797,6 +797,8 @@
                         <input type="file" style="display:none;" onchange="vrUploadAndInsert(this.files[0]); this.value='';">
                     </label>
                     <button type="button" data-cmd="table" class="tool-btn" title="표 삽입" style="font-size:11px;">📊 표</button>
+                    <div class="sep"></div>
+                    <button type="button" class="tool-btn" title="템플릿 불러오기" onclick="vrOpenTemplatePicker()" style="font-size:11px;">📋 템플릿</button>
                 </div>
                 <div id="vrEditor"></div>
             </div>
@@ -2499,6 +2501,27 @@ window.saveVisitReportEditor = async function() {
         statusEl.style.color = 'var(--red)';
         await showFetchErrorVR(res, '방문 보고서 저장 실패');
     }
+};
+
+// ── 보고서 템플릿 불러오기 ──
+window.vrOpenTemplatePicker = async function() {
+    if (!window.vrEditor) return;
+    let templates = [];
+    try {
+        const res = await fetch('/api/visit-report-templates/active', {headers:{'Accept':'application/json'}});
+        if (res.ok) templates = await res.json();
+    } catch(e) {}
+    if (!templates.length) {
+        return alert('등록된 활성 템플릿이 없습니다.\n관리 → 설정 → 보고서 템플릿에서 추가해 주세요.');
+    }
+    const list = templates.map((t, i) => `${i+1}. ${t.is_default?'⭐ ':''}${t.name}`).join('\n');
+    const pick = prompt(`적용할 템플릿 번호를 입력하세요:\n\n${list}\n\n(현재 내용에 덮어쓰기 됩니다)`, '1');
+    if (pick === null) return;
+    const idx = parseInt(pick) - 1;
+    if (Number.isNaN(idx) || idx < 0 || idx >= templates.length) return alert('잘못된 번호입니다.');
+    const t = templates[idx];
+    if (window.vrEditor.getText().trim() !== '' && !confirm(`현재 작성된 내용이 '${t.name}' 템플릿으로 대체됩니다. 진행할까요?`)) return;
+    window.vrEditor.commands.setContent(t.content || '');
 };
 
 // ── 보고서 모드 전환 (view ↔ edit) ──

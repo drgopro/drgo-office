@@ -25,6 +25,7 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
+use App\Http\Controllers\VisitReportTemplateController;
 use App\Http\Controllers\WikiController;
 use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
@@ -308,6 +309,17 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/admin/consultation-types/{type}', [ConsultationTypeController::class, 'update']);
         Route::delete('/api/admin/consultation-types/{type}', [ConsultationTypeController::class, 'destroy']);
         Route::post('/api/admin/consultation-types/reorder', [ConsultationTypeController::class, 'reorder']);
+
+        // 보고서 템플릿 (master/admin 전용)
+        Route::get('/api/admin/visit-report-templates', [VisitReportTemplateController::class, 'index']);
+        Route::post('/api/admin/visit-report-templates', [VisitReportTemplateController::class, 'store']);
+        Route::patch('/api/admin/visit-report-templates/{template}', [VisitReportTemplateController::class, 'update']);
+        Route::delete('/api/admin/visit-report-templates/{template}', [VisitReportTemplateController::class, 'destroy']);
+    });
+
+    // 보고서 템플릿 활성 목록 (조회 — 보고서 에디터 드롭다운용)
+    Route::middleware('permission:projects.view')->group(function () {
+        Route::get('/api/visit-report-templates/active', [VisitReportTemplateController::class, 'active']);
     });
 
     // 의뢰자 페이지에서 활성 필드 정의 조회 (clients.view 권한)
