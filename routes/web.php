@@ -152,6 +152,7 @@ Route::middleware('auth')->group(function () {
     // 프로젝트 문서
     Route::middleware('permission:documents.edit')->group(function () {
         Route::post('/projects/{project}/documents', [ProjectDocumentController::class, 'store'])->name('project-documents.store');
+        Route::post('/api/projects/{project}/documents/inline', [ProjectDocumentController::class, 'inlineUpload'])->name('project-documents.inline');
         Route::delete('/project-documents/{document}', [ProjectDocumentController::class, 'destroy'])->name('project-documents.destroy');
     });
     Route::middleware('permission:projects.view')->group(function () {

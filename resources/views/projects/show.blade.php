@@ -2579,22 +2579,27 @@ if (editorEl) {
     let __vrDirty = false;
     const CSRF_VR = document.querySelector('meta[name="csrf-token"]').content;
 
-    // 파일 업로드 (위키 업로드 엔드포인트 재사용)
+    // 파일 업로드 — 프로젝트 첨부 문서로도 함께 등록되는 인라인 업로드 엔드포인트
     async function vrUploadAndInsert(file) {
         if (!file) return;
         const fd = new FormData();
         fd.append('file', file);
         try {
-            const res = await fetch('/api/wiki/upload', {
+            const res = await fetch(`/api/projects/{{ $project->id }}/documents/inline`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': CSRF_VR, 'Accept': 'application/json' },
                 body: fd,
             });
-            if (!res.ok) { alert('업로드 실패'); return; }
+            if (!res.ok) {
+                let detail = '';
+                try { const e = await res.json(); detail = e.message || JSON.stringify(e.errors||{}); } catch(_) {}
+                alert(`업로드 실패 [코드 ${res.status}]\n${detail}`);
+                return;
+            }
             const data = await res.json();
             if (data.is_image) {
                 window.vrEditor.chain().focus().setImage({ src: data.url, alt: data.name }).run();
-            } else if ((data.mime_type || '').startsWith('video/') || /\.(mp4|webm|mov|m4v|ogv)$/i.test(data.name || '')) {
+            } else if (data.is_video) {
                 window.vrEditor.chain().focus().insertContent(
                     `<video src="${data.url}" controls></video><p></p>`
                 ).run();
