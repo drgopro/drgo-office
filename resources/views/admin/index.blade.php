@@ -160,6 +160,28 @@
     .btn-danger-outline:hover { background:var(--red); color:#fff; }
     [data-theme="light"] .cf-modal { background:#fff; border-color:#c8ccd4; }
     [data-theme="light"] .cf-modal .field-input { background:#fff; border-color:#b8bcc8; }
+    /* ── 보고서 템플릿 Tiptap 에디터 (위키와 동일) ── */
+    .tiptap-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+    .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); border-radius:10px 10px 0 0; }
+    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
+    .tiptap-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+    .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
+    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
+    #rtEditor .ProseMirror { padding:16px 20px; min-height:260px; max-height:420px; overflow-y:auto; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
+    #rtEditor .ProseMirror p { margin:0 0 10px; }
+    #rtEditor .ProseMirror h1 { font-size:22px; font-weight:700; margin:16px 0 8px; }
+    #rtEditor .ProseMirror h2 { font-size:18px; font-weight:700; margin:14px 0 6px; }
+    #rtEditor .ProseMirror h3 { font-size:15px; font-weight:600; margin:12px 0 4px; }
+    #rtEditor .ProseMirror ul, #rtEditor .ProseMirror ol { margin:0 0 10px; padding-left:24px; }
+    #rtEditor .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
+    #rtEditor .ProseMirror hr { border:none; border-top:1px solid var(--border); margin:14px 0; }
+    #rtEditor .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:13px; }
+    #rtEditor .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
+    #rtEditor .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
+    #rtEditor .ProseMirror [data-text-align="center"] { text-align:center; }
+    #rtEditor .ProseMirror [data-text-align="right"] { text-align:right; }
+
     @media (max-width:600px) {
         .cf-modal-row { grid-template-columns:1fr; }
         .cf-grid { grid-template-columns:1fr; }
@@ -753,17 +775,19 @@
                         <button type="button" data-rt-cmd="bold" title="굵게"><b>B</b></button>
                         <button type="button" data-rt-cmd="italic" title="기울임"><i>I</i></button>
                         <button type="button" data-rt-cmd="strike" title="취소선"><s>S</s></button>
+                        <button type="button" data-rt-cmd="code" title="인라인 코드">&lt;&gt;</button>
                         <div class="sep"></div>
                         <button type="button" data-rt-cmd="bulletList" title="글머리 목록">•</button>
                         <button type="button" data-rt-cmd="orderedList" title="번호 목록">1.</button>
                         <button type="button" data-rt-cmd="blockquote" title="인용">"</button>
+                        <button type="button" data-rt-cmd="codeBlock" title="코드 블록">{ }</button>
                         <button type="button" data-rt-cmd="hr" title="구분선">—</button>
                         <div class="sep"></div>
-                        <button type="button" data-rt-cmd="alignLeft" title="좌측" style="font-size:11px;">≡←</button>
-                        <button type="button" data-rt-cmd="alignCenter" title="중앙" style="font-size:11px;">≡</button>
-                        <button type="button" data-rt-cmd="alignRight" title="우측" style="font-size:11px;">→≡</button>
+                        <button type="button" data-rt-cmd="alignLeft" title="좌측 정렬" style="font-size:11px;">≡←</button>
+                        <button type="button" data-rt-cmd="alignCenter" title="중앙 정렬" style="font-size:11px;">≡</button>
+                        <button type="button" data-rt-cmd="alignRight" title="우측 정렬" style="font-size:11px;">→≡</button>
                     </div>
-                    <div id="rtEditor" style="padding:14px 18px; min-height:240px; max-height:380px; overflow-y:auto;"></div>
+                    <div id="rtEditor"></div>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">템플릿에는 이미지를 포함하지 않는 것을 권장합니다 (텍스트 골격 위주).</div>
             </div>
@@ -2049,13 +2073,15 @@ async function deleteReportTemplate() {
 }
 
 // Tiptap 에디터 초기화 (관리자 템플릿용)
-function initRtEditor(initialContent) {
-    if (window.__rtEditor) return;
-    // 이미 로드된 Tiptap 모듈 사용 (admin 페이지에서 별도 import)
+async function initRtEditor(initialContent) {
+    if (window.__rtEditor) {
+        window.__rtEditor.commands.setContent(initialContent || '');
+        return;
+    }
     const ed = document.getElementById('rtEditor');
     if (!ed) return;
-    // CDN 동적 import
-    import('https://esm.sh/@tiptap/core@2.11.5').then(async ({ Editor }) => {
+    try {
+        const { Editor } = await import('https://esm.sh/@tiptap/core@2.11.5');
         const StarterKit = (await import('https://esm.sh/@tiptap/starter-kit@2.11.5')).default;
         const Placeholder = (await import('https://esm.sh/@tiptap/extension-placeholder@2.11.5')).default;
         const TextAlign = (await import('https://esm.sh/@tiptap/extension-text-align@2.11.5')).default;
@@ -2064,34 +2090,64 @@ function initRtEditor(initialContent) {
             element: ed,
             extensions: [
                 StarterKit.configure({ heading: { levels: [1,2,3] } }),
-                Placeholder.configure({ placeholder: '템플릿 본문을 입력하세요. (방문 보고서에서 이 내용이 자동 불러와집니다)' }),
+                Placeholder.configure({ placeholder: '템플릿 본문을 입력하세요. — 방문 보고서 작성 시 이 내용이 자동 불러와집니다.' }),
                 TextAlign.configure({ types: ['heading', 'paragraph'] }),
             ],
             content: initialContent || '',
+            onUpdate({ editor }) { updateRtToolbar(editor); },
+            onSelectionUpdate({ editor }) { updateRtToolbar(editor); },
         });
 
         const rtCmds = {
-            bold: () => __rtEditor.chain().focus().toggleBold().run(),
-            italic: () => __rtEditor.chain().focus().toggleItalic().run(),
-            strike: () => __rtEditor.chain().focus().toggleStrike().run(),
-            h1: () => __rtEditor.chain().focus().toggleHeading({level:1}).run(),
-            h2: () => __rtEditor.chain().focus().toggleHeading({level:2}).run(),
-            h3: () => __rtEditor.chain().focus().toggleHeading({level:3}).run(),
-            bulletList: () => __rtEditor.chain().focus().toggleBulletList().run(),
-            orderedList: () => __rtEditor.chain().focus().toggleOrderedList().run(),
-            blockquote: () => __rtEditor.chain().focus().toggleBlockquote().run(),
-            hr: () => __rtEditor.chain().focus().setHorizontalRule().run(),
-            alignLeft: () => __rtEditor.chain().focus().setTextAlign('left').run(),
-            alignCenter: () => __rtEditor.chain().focus().setTextAlign('center').run(),
-            alignRight: () => __rtEditor.chain().focus().setTextAlign('right').run(),
+            bold:        ed => ed.chain().focus().toggleBold().run(),
+            italic:      ed => ed.chain().focus().toggleItalic().run(),
+            strike:      ed => ed.chain().focus().toggleStrike().run(),
+            code:        ed => ed.chain().focus().toggleCode().run(),
+            h1:          ed => ed.chain().focus().toggleHeading({level:1}).run(),
+            h2:          ed => ed.chain().focus().toggleHeading({level:2}).run(),
+            h3:          ed => ed.chain().focus().toggleHeading({level:3}).run(),
+            bulletList:  ed => ed.chain().focus().toggleBulletList().run(),
+            orderedList: ed => ed.chain().focus().toggleOrderedList().run(),
+            blockquote:  ed => ed.chain().focus().toggleBlockquote().run(),
+            codeBlock:   ed => ed.chain().focus().toggleCodeBlock().run(),
+            hr:          ed => ed.chain().focus().setHorizontalRule().run(),
+            alignLeft:   ed => ed.chain().focus().setTextAlign('left').run(),
+            alignCenter: ed => ed.chain().focus().setTextAlign('center').run(),
+            alignRight:  ed => ed.chain().focus().setTextAlign('right').run(),
         };
         document.querySelectorAll('#rtToolbar button[data-rt-cmd]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const fn = rtCmds[btn.dataset.rtCmd];
-                if (fn) fn();
+                if (fn) fn(window.__rtEditor);
             });
         });
-    }).catch(err => console.error('Tiptap load failed:', err));
+
+        function updateRtToolbar(ed) {
+            const checks = {
+                bold: ed.isActive('bold'),
+                italic: ed.isActive('italic'),
+                strike: ed.isActive('strike'),
+                code: ed.isActive('code'),
+                h1: ed.isActive('heading',{level:1}),
+                h2: ed.isActive('heading',{level:2}),
+                h3: ed.isActive('heading',{level:3}),
+                bulletList: ed.isActive('bulletList'),
+                orderedList: ed.isActive('orderedList'),
+                blockquote: ed.isActive('blockquote'),
+                codeBlock: ed.isActive('codeBlock'),
+                alignLeft: ed.isActive({ textAlign: 'left' }),
+                alignCenter: ed.isActive({ textAlign: 'center' }),
+                alignRight: ed.isActive({ textAlign: 'right' }),
+            };
+            document.querySelectorAll('#rtToolbar button[data-rt-cmd]').forEach(b => {
+                b.classList.toggle('is-active', !!checks[b.dataset.rtCmd]);
+            });
+        }
+    } catch(err) {
+        console.error('Tiptap load failed:', err);
+        const ed2 = document.getElementById('rtEditor');
+        if (ed2) ed2.innerHTML = '<div style="padding:14px; color:var(--red); font-size:12px;">에디터 로드 실패 — 새로고침 후 다시 시도해 주세요.</div>';
+    }
 }
 </script>
 @endpush
