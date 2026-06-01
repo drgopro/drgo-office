@@ -275,12 +275,12 @@ if (window !== window.top) document.body.classList.add('in-iframe');
 window.CALENDAR_CATEGORIES = @json($__calCats);
 
 // 부모(최상위) 탭 시스템으로 라우팅 — iframe 중첩 방지
-window.openTopTab = function(type, url) {
+window.openTopTab = function(type, url, title) {
     try {
         let w = window;
         for (let i = 0; i < 5 && w !== w.parent; i++) {
             if (w.parent && w.parent.drgoTabs && typeof w.parent.drgoTabs.openNav === 'function') {
-                return w.parent.drgoTabs.openNav(type, url);
+                return w.parent.drgoTabs.openNav(type, url, title);
             }
             w = w.parent;
         }
@@ -454,37 +454,66 @@ window.drgoTabs = {
         this._save();
     },
 
-    openNav(type, url) {
+    /**
+     * 멀티 인스턴스를 허용할 URL 패턴 (각 detail이 독립된 탭으로 열림)
+     */
+    _isMultiInstance(type, url) {
+        // /projects/{id} 형태의 프로젝트 상세는 각각 별도 탭
+        if (type === 'projects' && /^\/projects\/\d+/.test(url)) return true;
+        return false;
+    },
+
+    openNav(type, url, title) {
         document.getElementById('mainNav').classList.remove('open');
         document.getElementById('navOverlay').classList.remove('open');
 
         // 1) URL이 정확히 일치하는 탭이 있으면 활성화만 (재로드 없음)
         const existing = this.tabs.find(t => t.url === url);
-        if (existing) { this.activate(existing.id); return; }
-
-        // 2) 같은 type의 탭이 이미 있으면 그 탭을 재사용해 URL만 갱신
-        //    (새 탭/iframe을 만들지 않아 깜빡임·"새로고침" 현상 방지)
-        const sameType = this.tabs.find(t => t.type === type);
-        if (sameType) {
-            sameType.url = url;
-            const pane = document.getElementById('pane-' + sameType.id);
-            const iframe = pane?.querySelector('iframe');
-            if (iframe) {
-                // src 직접 갱신 — 새 iframe 생성 없이 같은 영역에서 navigate
-                iframe.src = url;
-            } else if (pane) {
-                sameType.loaded = false;
-                this._load(sameType, pane);
-            }
-            this.activate(sameType.id);
-            this._save();
+        if (existing) {
+            if (title) { existing.title = title; this.render(); this._save(); }
+            this.activate(existing.id);
             return;
         }
 
-        // 3) 아무 탭도 없으면 새로 만든다
-        const id = 'tab-' + Date.now();
-        this.tabs.push({ id, type, url, loaded: false });
+        const multi = this._isMultiInstance(type, url);
+
+        // 2) 같은 type의 탭이 이미 있으면 그 탭을 재사용해 URL만 갱신
+        //    (멀티 인스턴스 URL은 예외 — 새 탭 생성)
+        if (!multi) {
+            const sameType = this.tabs.find(t => t.type === type);
+            if (sameType) {
+                sameType.url = url;
+                if (title) sameType.title = title;
+                const pane = document.getElementById('pane-' + sameType.id);
+                const iframe = pane?.querySelector('iframe');
+                if (iframe) {
+                    iframe.src = url;
+                } else if (pane) {
+                    sameType.loaded = false;
+                    this._load(sameType, pane);
+                }
+                this.activate(sameType.id);
+                this._save();
+                return;
+            }
+        }
+
+        // 3) 새 탭 생성
+        const id = 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+        this.tabs.push({ id, type, url, title: title || null, loaded: false });
         this.activate(id);
+    },
+
+    /**
+     * iframe 내부에서 자신의 탭 타이틀을 갱신할 때 호출
+     */
+    setActiveTitle(title) {
+        const tab = this.tabs.find(t => t.id === this.activeId);
+        if (tab) {
+            tab.title = title;
+            this.render();
+            this._save();
+        }
     },
 
     openClientDetail(clientId) {
@@ -564,11 +593,12 @@ window.drgoTabs = {
         const strip = document.getElementById('tabStrip');
         strip.innerHTML = this.tabs.map(t => {
             const icon = this.ICONS[t.type] || '📄';
-            const label = this.LABELS[t.type] || t.type;
+            const label = t.title || this.LABELS[t.type] || t.type;
             const cls = t.id === this.activeId ? 'active' : '';
             const close = this.tabs.length > 1
                 ? `<span class="tab-close" onclick="event.stopPropagation(); drgoTabs.close('${t.id}')">✕</span>` : '';
-            return `<button class="tab-item ${cls}" draggable="true" data-tab-id="${t.id}" onclick="drgoTabs.activate('${t.id}')"><span class="tab-icon">${icon}</span>${label}${close}</button>`;
+            const titleAttr = t.title ? ` title="${String(t.title).replace(/"/g, '&quot;')}"` : '';
+            return `<button class="tab-item ${cls}" draggable="true" data-tab-id="${t.id}"${titleAttr} onclick="drgoTabs.activate('${t.id}')"><span class="tab-icon">${icon}</span>${label}${close}</button>`;
         }).join('');
         this._bindTabDrag();
     },
@@ -642,7 +672,7 @@ window.drgoTabs = {
 
     _save() {
         const data = {
-            tabs: this.tabs.map(t => ({ type: t.type, url: t.url })),
+            tabs: this.tabs.map(t => ({ type: t.type, url: t.url, title: t.title || null })),
             activeUrl: this.tabs.find(t => t.id === this.activeId)?.url
         };
         sessionStorage.setItem('drgo_tabs', JSON.stringify(data));
@@ -664,10 +694,10 @@ window.drgoTabs = {
 
             data.tabs.forEach((t, i) => {
                 if (t.url === currentPath && !initialSet) {
-                    this.tabs.push({ id: 'initial', type: t.type, url: t.url, loaded: true });
+                    this.tabs.push({ id: 'initial', type: t.type, url: t.url, title: t.title || null, loaded: true });
                     initialSet = true;
                 } else {
-                    this.tabs.push({ id: 'tab-r-' + i, type: t.type, url: t.url, loaded: false });
+                    this.tabs.push({ id: 'tab-r-' + i, type: t.type, url: t.url, title: t.title || null, loaded: false });
                 }
             });
 

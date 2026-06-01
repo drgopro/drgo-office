@@ -91,7 +91,12 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">프로젝트 관리</div>
-        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')">📥 엑셀 가져오기</button>
+        <div style="display:flex; gap:8px;">
+            @if(Auth::user()->hasPermission('projects.edit'))
+                <button style="background:var(--accent); color:#1a1207; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
+            @endif
+            <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')">📥 엑셀 가져오기</button>
+        </div>
     </div>
 
     @php
@@ -175,7 +180,7 @@
                 @foreach($projects as $project)
                 <tr>
                     <td>
-                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); if (typeof openTopTab === 'function') openTopTab('projects', '/projects/{{ $project->id }}'); else window.location.href=this.href;">{{ $project->name }}</a>
+                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); if (typeof openTopTab === 'function') openTopTab('projects', '/projects/{{ $project->id }}', '📁 {{ addslashes($project->name) }}'); else window.location.href=this.href;">{{ $project->name }}</a>
                     </td>
                     <td>
                         <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="client-link" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
@@ -210,4 +215,177 @@
         {{ $projects->appends(request()->query())->links() }}
     </div>
 </div>
+
+@if(Auth::user()->hasPermission('projects.edit'))
+{{-- 새 프로젝트 모달 --}}
+<div id="newProjectOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9000; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeNewProjectModal()">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
+            <div style="font-size:15px; font-weight:700;">+ 새 프로젝트</div>
+            <button type="button" onclick="closeNewProjectModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">의뢰자 *</div>
+                <div style="position:relative;">
+                    <input type="text" id="npClientSearch" placeholder="이름/닉네임/전화 검색" autocomplete="off" oninput="searchProjectClients(this.value)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                    <input type="hidden" id="npClientId">
+                    <div id="npClientResults" style="display:none; position:absolute; left:0; right:0; top:100%; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; max-height:240px; overflow-y:auto; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
+                </div>
+                <div id="npClientPicked" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
+            </div>
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
+                <input type="text" id="npName" placeholder="예: 김광래 1차 방문세팅" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+            </div>
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형 *</div>
+                <select id="npType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
+                    <select id="npScale" onchange="updateNpWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        <option value="">선택</option>
+                        <option value="personal">개인</option>
+                        <option value="studio">스튜디오</option>
+                        <option value="corporate">기업</option>
+                        <option value="rental">렌탈</option>
+                        <option value="broadcast_room">방송룸</option>
+                    </select>
+                </div>
+                <div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
+                    <select id="npWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">메모</div>
+                <textarea id="npMemo" rows="2" placeholder="간단한 메모" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
+            <button type="button" onclick="closeNewProjectModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+            <button type="button" onclick="submitNewProject()" style="background:var(--accent);color:#1a1207;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">생성</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF_NP = document.querySelector('meta[name="csrf-token"]').content;
+const NP_WORK_TYPES = {
+    personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
+    studio: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S'],['dispatch','파견']],
+    corporate: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
+    rental: [['monthly','월 계약']],
+    broadcast_room: [['monthly','월 계약'],['hourly','시간 대여']],
+};
+
+async function openNewProjectModal() {
+    document.getElementById('newProjectOverlay').style.display = 'flex';
+    // 프로젝트 유형 로드
+    try {
+        const res = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
+        const types = res.ok ? await res.json() : [];
+        const sel = document.getElementById('npType');
+        sel.innerHTML = types.length
+            ? types.map(t => `<option value="${t.key}">${t.label}</option>`).join('')
+            : '<option value="visit">방문세팅</option>';
+    } catch(e) {}
+    // 초기화
+    document.getElementById('npClientSearch').value = '';
+    document.getElementById('npClientId').value = '';
+    document.getElementById('npClientPicked').style.display = 'none';
+    document.getElementById('npName').value = '';
+    document.getElementById('npScale').value = '';
+    document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>';
+    document.getElementById('npMemo').value = '';
+}
+function closeNewProjectModal() { document.getElementById('newProjectOverlay').style.display = 'none'; }
+
+function updateNpWorkType() {
+    const scale = document.getElementById('npScale').value;
+    const opts = NP_WORK_TYPES[scale] || [];
+    document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>' + opts.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+}
+
+let __npSearchTimer;
+async function searchProjectClients(q) {
+    clearTimeout(__npSearchTimer);
+    const el = document.getElementById('npClientResults');
+    if (!q || q.length < 1) { el.style.display = 'none'; return; }
+    __npSearchTimer = setTimeout(async () => {
+        try {
+            const res = await fetch('/api/clients/search?q=' + encodeURIComponent(q), { headers:{'Accept':'application/json'} });
+            const list = res.ok ? await res.json() : [];
+            if (!list.length) {
+                el.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>';
+            } else {
+                el.innerHTML = list.map(c => {
+                    const display = (c.nickname || c.name || '') + (c.nickname && c.name ? ` (${c.name})` : '') + (c.phone ? ` · ${c.phone}` : '');
+                    return `<div onclick='pickNpClient(${c.id}, ${JSON.stringify(display)})' style="padding:9px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${display}</div>`;
+                }).join('');
+            }
+            el.style.display = 'block';
+        } catch(e) {}
+    }, 200);
+}
+function pickNpClient(id, display) {
+    document.getElementById('npClientId').value = id;
+    document.getElementById('npClientSearch').value = display;
+    document.getElementById('npClientResults').style.display = 'none';
+    document.getElementById('npClientPicked').textContent = '✓ ' + display;
+    document.getElementById('npClientPicked').style.display = 'block';
+}
+
+async function submitNewProject() {
+    const clientId = document.getElementById('npClientId').value;
+    if (!clientId) return alert('의뢰자를 검색하여 선택해 주세요.');
+    const name = document.getElementById('npName').value.trim();
+    if (!name) return alert('프로젝트명을 입력하세요.');
+    const projectType = document.getElementById('npType').value;
+    if (!projectType) return alert('프로젝트 유형을 선택하세요.');
+
+    const body = {
+        name,
+        project_type: projectType,
+        client_scale: document.getElementById('npScale').value || null,
+        work_type: document.getElementById('npWorkType').value || null,
+        memo: document.getElementById('npMemo').value || null,
+    };
+    const res = await fetch(`/clients/${clientId}/projects`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_NP,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok || res.status === 302) {
+        // 응답에서 id 추출 시도; redirect면 location.href에서 추출
+        let projectId = null;
+        try {
+            const data = await res.json();
+            projectId = data?.project?.id || data?.id;
+        } catch(e) {}
+        if (!projectId) {
+            // redirect 응답의 Location 헤더에서 추출 시도
+            const loc = res.headers.get('Location') || '';
+            const m = loc.match(/\/projects\/(\d+)/);
+            if (m) projectId = m[1];
+        }
+        closeNewProjectModal();
+        if (projectId && typeof openTopTab === 'function') {
+            openTopTab('projects', '/projects/' + projectId, '📁 ' + name);
+        } else {
+            location.reload();
+        }
+    } else {
+        let detail = '';
+        try {
+            const err = await res.json();
+            detail = err.message || Object.values(err.errors||{}).flat().join('\n') || '';
+        } catch(e) { detail = await res.text().catch(()=>''); }
+        alert(`[프로젝트 생성 실패 · 코드 ${res.status} ${res.statusText||''}]\n${detail || '응답 본문 없음'}`);
+    }
+}
+</script>
+@endif
 @endsection

@@ -73,6 +73,15 @@ class ProjectController extends Controller
 
         $project = Project::create($validated);
 
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'id' => $project->id,
+                'project' => $project,
+                'redirect' => route('projects.show', $project),
+            ], 201);
+        }
+
         return redirect()->route('projects.show', $project)->with('success', '프로젝트가 생성되었습니다.');
     }
 

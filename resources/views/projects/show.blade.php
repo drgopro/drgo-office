@@ -1093,6 +1093,16 @@ function sortConsultations(order) {
     items.forEach(el => list.appendChild(el));
 }
 
+// 부모 탭 타이틀을 프로젝트명으로 갱신 (멀티 탭 식별)
+(function setParentTabTitle() {
+    try {
+        const title = '📁 ' + @json($project->name);
+        if (window.parent && window.parent.drgoTabs && typeof window.parent.drgoTabs.setActiveTitle === 'function') {
+            window.parent.drgoTabs.setActiveTitle(title);
+        }
+    } catch(e) {}
+})();
+
 // 프로젝트 제목 인라인 수정
 function enableProjectNameEdit() {
     const display = document.getElementById('projectNameDisplay');

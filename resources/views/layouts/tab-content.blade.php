@@ -101,12 +101,12 @@ try {
 
 <script>
 // 부모(최상위) 탭 시스템으로 라우팅 — iframe 중첩 방지
-window.openTopTab = function(type, url) {
+window.openTopTab = function(type, url, title) {
     try {
         let w = window;
         for (let i = 0; i < 5 && w !== w.parent; i++) {
             if (w.parent && w.parent.drgoTabs && typeof w.parent.drgoTabs.openNav === 'function') {
-                return w.parent.drgoTabs.openNav(type, url);
+                return w.parent.drgoTabs.openNav(type, url, title);
             }
             w = w.parent;
         }
