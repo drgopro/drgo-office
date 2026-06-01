@@ -2766,6 +2766,76 @@ if (editorEl) {
             b.classList.toggle('is-active', !!checks[b.dataset.cmd]);
         });
     }
+
+    // ── 이미지 클릭 → 리사이즈 팝업 (네이버 에디터 스타일) ──
+    (function(){
+        let popup = null, activeImg = null;
+        function removePopup() {
+            if (popup) { popup.remove(); popup = null; }
+            activeImg = null;
+        }
+        function applyImgW(w) {
+            if (!activeImg) return;
+            w = Math.max(30, Math.min(2000, w));
+            activeImg.style.width = w + 'px';
+            activeImg.style.height = 'auto';
+            activeImg.setAttribute('width', w);
+            activeImg.removeAttribute('height');
+            if (popup) popup.querySelector('#vrImgWidthInput').value = w;
+            // Tiptap 노드 attr도 동기화 (직렬화/저장에 반영)
+            try {
+                const pos = window.vrEditor.view.posAtDOM(activeImg, 0);
+                if (pos != null) {
+                    const node = window.vrEditor.view.state.doc.nodeAt(pos);
+                    if (node) {
+                        const tr = window.vrEditor.view.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, width: String(w) });
+                        window.vrEditor.view.dispatch(tr);
+                    }
+                }
+            } catch(e) {}
+        }
+        window.vrImgResize = function(ratio) {
+            if (!activeImg) return;
+            const pm = document.querySelector('#vrEditor .ProseMirror');
+            const maxW = (pm?.clientWidth || 800) - 48;
+            applyImgW(Math.round(maxW * ratio));
+        };
+        window.vrImgApplyWidth = function() {
+            if (!activeImg || !popup) return;
+            applyImgW(parseInt(popup.querySelector('#vrImgWidthInput').value) || 200);
+        };
+        function showPopup(img) {
+            removePopup();
+            activeImg = img;
+            popup = document.createElement('div');
+            popup.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:12px;';
+            popup.innerHTML = `<span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">크기:</span>
+                <button onclick="vrImgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">25%</button>
+                <button onclick="vrImgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">50%</button>
+                <button onclick="vrImgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">75%</button>
+                <button onclick="vrImgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">100%</button>
+                <span style="color:var(--text-muted);">|</span>
+                <input type="number" id="vrImgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
+                <span style="color:var(--text-muted);font-size:11px;">px</span>
+                <button onclick="vrImgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>`;
+            document.body.appendChild(popup);
+            const rect = img.getBoundingClientRect();
+            popup.style.left = Math.max(8, rect.left + (rect.width - popup.offsetWidth)/2) + 'px';
+            popup.style.top = Math.max(8, rect.top - popup.offsetHeight - 8) + 'px';
+            if (parseFloat(popup.style.top) < 8) popup.style.top = (rect.bottom + 8) + 'px';
+            popup.querySelector('#vrImgWidthInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); vrImgApplyWidth(); } });
+            popup.addEventListener('mousedown', e => e.stopPropagation());
+        }
+        document.addEventListener('click', function(e){
+            if (e.target.tagName === 'IMG' && e.target.closest('#vrEditor .ProseMirror')) {
+                e.preventDefault();
+                showPopup(e.target);
+            } else if (popup && !popup.contains(e.target)) {
+                removePopup();
+            }
+        });
+        document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && popup) removePopup(); });
+    })();
 }
 </script>
 @endpush
