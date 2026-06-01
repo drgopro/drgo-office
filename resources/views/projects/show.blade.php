@@ -454,7 +454,7 @@
         </div>
 
         <!-- 환불 모달 -->
-        <div id="refundModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeRefundModal()">
+        <div id="refundModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) drgoModalMinimize(this, '↩ 환불 / 결제 취소', '↩')">
             <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto;">
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
                     <div style="font-size:15px; font-weight:700;" id="refundModalTitle">↩ 환불</div>
@@ -512,7 +512,7 @@
         @endphp
 
         <!-- 일정제안 모달 -->
-        <div id="proposalModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeProposalModal()">
+        <div id="proposalModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) drgoModalMinimize(this, '📅 일정 제안', '📅')">
             <div class="modal" style="{{ $sdInnerStyle }}">
                 <div style="{{ $sdHeadStyle }}">
                     <div style="font-size:15px; font-weight:700;">📅 일정 제안 · 캘린더 일정 연동</div>
@@ -534,7 +534,7 @@
         </div>
 
         <!-- 견적/계약 모달 -->
-        <div id="estimateInfoModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeEstimateInfoModal()">
+        <div id="estimateInfoModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) drgoModalMinimize(this, '📝 견적/계약', '📝')">
             <div class="modal" style="{{ $sdInnerStyle }}">
                 <div style="{{ $sdHeadStyle }}">
                     <div style="font-size:15px; font-weight:700;">📝 견적/계약 연동</div>
@@ -556,7 +556,7 @@
         </div>
 
         <!-- 방문 보고서 모달 -->
-        <div id="visitReportModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) closeVisitReportModal()">
+        <div id="visitReportModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) drgoModalMinimize(this, '🛠 방문 보고서', '🛠')">
             <div class="modal" style="{{ $sdInnerStyle }} max-width:820px;">
                 <div style="{{ $sdHeadStyle }}">
                     <div style="font-size:15px; font-weight:700;">🛠 방문 보고서</div>
@@ -574,7 +574,7 @@
         </div>
 
         <!-- 프로젝트 수정 모달 -->
-        <div id="projectEditModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeProjectEditModal()">
+        <div id="projectEditModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) drgoModalMinimize(this, '✏️ 프로젝트 수정', '✏️')">
             <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto;">
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
                     <div style="font-size:15px; font-weight:700;">✏️ 프로젝트 수정</div>
@@ -615,7 +615,7 @@
         </div>
 
         <!-- 결제 정보 모달 -->
-        <div id="paymentModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closePaymentModal()">
+        <div id="paymentModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) drgoModalMinimize(this, '💰 결제 정보 입력', '💰')">
             <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:620px; max-height:90vh; overflow-y:auto;">
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
                     <div style="font-size:15px; font-weight:700;">💰 결제 정보 입력</div>
@@ -998,7 +998,7 @@
     </div>
 </div>
 {{-- 규모/작업유형 편집 모달 --}}
-<div class="modal-overlay" id="scaleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)closeScaleEditor()">
+<div class="modal-overlay" id="scaleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this) drgoModalMinimize(this, '규모/작업유형 수정', '📊')">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:420px;max-width:95vw;padding:24px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <div style="font-size:16px;font-weight:700;">규모 / 작업 유형</div>
@@ -1026,7 +1026,7 @@
 </div>
 
 {{-- 취소 사유 모달 --}}
-<div class="modal-overlay" id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this)closeCancelModal()">
+<div class="modal-overlay" id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);" onclick="if(event.target===this) drgoModalMinimize(this, '프로젝트 취소', '⚠')">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:440px;max-width:95vw;padding:24px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <div style="font-size:16px;font-weight:700;">프로젝트 취소</div>

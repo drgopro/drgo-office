@@ -331,7 +331,7 @@
     </div>
 
     {{-- 의뢰자 필드 추가/편집 모달 --}}
-    <div id="fieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeFieldModal()">
+    <div id="fieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '의뢰자 필드 편집', '📝')">
         <div class="cf-modal">
             <h3>
                 <span id="fieldModalTitle">+ 필드 추가</span>
@@ -462,7 +462,7 @@
     </div>
 
     {{-- 프로젝트 필드 추가/편집 모달 --}}
-    <div id="projectFieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeProjectFieldModal()">
+    <div id="projectFieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '프로젝트 필드 편집', '📝')">
         <div class="cf-modal">
             <h3>
                 <span id="projectFieldModalTitle">+ 필드 추가</span>
@@ -623,7 +623,7 @@
     </div>
 
     {{-- 프로젝트 유형 모달 --}}
-    <div id="consultTypeModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) closeConsultTypeModal()">
+    <div id="consultTypeModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '프로젝트 유형 편집', '🏷')">
         <div class="cf-modal">
             <h3>
                 <span id="consultTypeModalTitle">+ 프로젝트 유형 추가</span>

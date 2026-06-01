@@ -131,7 +131,7 @@
 </div>
 
 {{-- 월 계약 모달 --}}
-<div class="modal-overlay" id="contractModal" onclick="if(event.target===this)closeContractModal()">
+<div class="modal-overlay" id="contractModal" onclick="if(event.target===this) drgoModalMinimize(this, '월 계약 (방송룸)', '🏠')">
     <div class="modal">
         <h3 id="contractModalTitle">+ 월 계약 등록</h3>
         <input type="hidden" id="contractId">
@@ -162,7 +162,7 @@
 </div>
 
 {{-- 시간 대여 모달 --}}
-<div class="modal-overlay" id="usageModal" onclick="if(event.target===this)closeUsageModal()">
+<div class="modal-overlay" id="usageModal" onclick="if(event.target===this) drgoModalMinimize(this, '🎙 방송룸 시간 대여', '🎙')">
     <div class="modal">
         <h3 id="usageModalTitle">+ 시간 대여 등록</h3>
         <input type="hidden" id="usageId">

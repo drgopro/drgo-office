@@ -96,10 +96,90 @@ try {
     .page-wrap { padding: 16px !important; }
     .page-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
 }
+
+/* ── 글로벌 모달 최소화 도크 ── */
+.drgo-modal-dock { position:fixed; bottom:16px; right:16px; display:flex; flex-direction:column-reverse; gap:8px; z-index:9990; pointer-events:none; }
+.drgo-modal-chip { pointer-events:auto; display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface,#1c1c1c); border:1px solid var(--accent,#c8b08a); border-radius:24px; box-shadow:0 4px 14px rgba(0,0,0,0.3); cursor:pointer; max-width:280px; transition:transform 0.12s, box-shadow 0.12s; }
+.drgo-modal-chip:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.4); }
+.drgo-modal-chip-icon { font-size:14px; flex-shrink:0; }
+.drgo-modal-chip-title { font-size:12px; font-weight:600; color:var(--text,#f0ebe2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+.drgo-modal-chip-close { background:none; border:none; color:var(--text-muted,#a09890); cursor:pointer; padding:2px 6px; font-size:14px; line-height:1; flex-shrink:0; border-radius:50%; }
+.drgo-modal-chip-close:hover { background:var(--surface2,#272727); color:var(--red,#d48888); }
+[data-theme="light"] .drgo-modal-chip { background:#fff; }
 </style>
 @stack('styles')
 
+<div class="drgo-modal-dock" id="drgoModalDock" aria-label="최소화된 모달"></div>
+
 <script>
+// ── 모달 최소화 도크 ──
+// 사용법:
+//   <div class="...overlay..." onclick="if(event.target===this) drgoModalMinimize(this, '제목')">
+// 또는 자동 변환:
+//   modal-overlay 클래스에는 자동으로 outside-click → minimize 적용
+window.drgoModalMinimize = function(overlayEl, title, icon) {
+    if (!overlayEl) return;
+    const id = overlayEl.id || ('drgo_modal_' + Date.now());
+    if (!overlayEl.id) overlayEl.id = id;
+
+    // 이미 최소화 상태면 무시
+    if (overlayEl.dataset.minimized === '1') return;
+
+    // 현재 표시 상태 저장
+    const display = overlayEl.style.display || getComputedStyle(overlayEl).display;
+    overlayEl.dataset.prevDisplay = display === 'none' ? 'flex' : display;
+    overlayEl.dataset.minimized = '1';
+    overlayEl.style.display = 'none';
+
+    // 도크에 칩 추가
+    const dock = document.getElementById('drgoModalDock');
+    if (!dock) return;
+    if (dock.querySelector(`[data-target="${id}"]`)) return; // 중복 방지
+
+    const chip = document.createElement('div');
+    chip.className = 'drgo-modal-chip';
+    chip.dataset.target = id;
+    chip.title = '클릭하여 복원';
+    chip.innerHTML = `
+        <span class="drgo-modal-chip-icon">${icon || '🗂'}</span>
+        <span class="drgo-modal-chip-title">${(title || '모달').replace(/[<>"']/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
+        <button class="drgo-modal-chip-close" title="닫기" aria-label="닫기">✕</button>
+    `;
+    chip.addEventListener('click', e => {
+        if (e.target.closest('.drgo-modal-chip-close')) {
+            // 칩의 ✕ → 모달 완전 닫기
+            drgoModalCloseFromChip(id);
+        } else {
+            drgoModalRestore(id);
+        }
+    });
+    dock.appendChild(chip);
+};
+
+window.drgoModalRestore = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = el.dataset.prevDisplay || 'flex';
+    delete el.dataset.minimized;
+    const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
+    if (chip) chip.remove();
+};
+
+window.drgoModalCloseFromChip = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // 일반 닫힘 상태로
+    el.style.display = 'none';
+    delete el.dataset.minimized;
+    delete el.dataset.prevDisplay;
+    const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
+    if (chip) chip.remove();
+    // 폼 리셋이 필요한 경우 close 함수가 따로 처리하도록 hook
+    if (typeof el.dataset.closeHandler === 'string' && typeof window[el.dataset.closeHandler] === 'function') {
+        try { window[el.dataset.closeHandler](); } catch(e) {}
+    }
+};
+
 // 부모(최상위) 탭 시스템으로 라우팅 — iframe 중첩 방지
 window.openTopTab = function(type, url, title) {
     try {

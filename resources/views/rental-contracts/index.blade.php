@@ -109,7 +109,7 @@
 </div>
 
 {{-- 계약 등록/편집 모달 --}}
-<div class="modal-overlay" id="contractModal" onclick="if(event.target===this)closeContractModal()">
+<div class="modal-overlay" id="contractModal" onclick="if(event.target===this) drgoModalMinimize(this, '렌탈 계약', '🏠')">
     <div class="modal">
         <h3 id="modalTitle">+ 계약 등록</h3>
         <input type="hidden" id="contractId">

@@ -238,7 +238,7 @@
 </div>
 
 {{-- 새 의뢰자 모달 --}}
-<div class="new-client-overlay" id="newClientOverlay" onclick="if(event.target===this) closeNewClientModal()">
+<div class="new-client-overlay" id="newClientOverlay" onclick="if(event.target===this) drgoModalMinimize(this, '+ 새 의뢰자', '👤')">
     <div class="new-client-modal">
         <h3>의뢰자 등록</h3>
         <div class="form-grid">

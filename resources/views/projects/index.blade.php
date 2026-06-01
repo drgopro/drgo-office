@@ -218,7 +218,7 @@
 
 @if(Auth::user()->hasPermission('projects.edit'))
 {{-- 새 프로젝트 모달 --}}
-<div id="newProjectOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9000; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeNewProjectModal()">
+<div id="newProjectOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9000; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) drgoModalMinimize(this, '+ 새 프로젝트', '📁')">
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto;">
         <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);">
             <div style="font-size:15px; font-weight:700;">+ 새 프로젝트</div>
