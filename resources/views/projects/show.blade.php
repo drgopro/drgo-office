@@ -449,11 +449,11 @@
 
         <div class="info-card">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>메모</span>
+                <span>프로젝트 개요</span>
                 <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
             </div>
-            <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '메모 없음' }}</div>
-            <textarea id="memoEdit" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
+            <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '프로젝트 개요가 없습니다.' }}</div>
+            <textarea id="memoEdit" placeholder="프로젝트 개요를 입력하세요" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
         </div>
 
         @php
@@ -950,12 +950,12 @@
     </div>
 </div>
 
-<!-- 메모 스레드 -->
+<!-- 피드백 스레드 -->
 <div style="max-width:900px; margin:20px auto 0; padding:0 24px;">
     <div class="section-card" style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
-        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">메모</div>
+        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">피드백</div>
         <div style="display:flex; gap:8px; margin-bottom:14px;">
-            <textarea id="projectMemoInput" class="field-textarea" rows="2" placeholder="메모를 입력하세요..." style="flex:1; resize:none;"></textarea>
+            <textarea id="projectMemoInput" class="field-textarea" rows="2" placeholder="피드백을 입력하세요..." style="flex:1; resize:none;"></textarea>
             <button class="btn-save" onclick="addProjectMemo()" style="align-self:flex-end; white-space:nowrap;">추가</button>
         </div>
         <div id="projectMemoThread">
@@ -974,7 +974,7 @@
                     </div>
                 </div>
             @empty
-                <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;" id="pmemoEmpty">메모가 없습니다.</div>
+                <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;" id="pmemoEmpty">피드백이 없습니다.</div>
             @endforelse
         </div>
     </div>
