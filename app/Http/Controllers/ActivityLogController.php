@@ -6,7 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\ClientDocument;
 use App\Models\ClientMemo;
 use App\Models\ProjectDocument;
-use App\Models\ProjectMemo;
+use App\Models\ProjectFeedback;
 use App\Models\ProjectPayment;
 use App\Models\ScheduleAttachment;
 use Illuminate\Http\Request;
@@ -21,7 +21,7 @@ class ActivityLogController extends Controller
         ],
         'Project' => [
             ['model' => ProjectDocument::class, 'fk' => 'project_id'],
-            ['model' => ProjectMemo::class, 'fk' => 'project_id'],
+            ['model' => ProjectFeedback::class, 'fk' => 'project_id'],
             ['model' => ProjectPayment::class, 'fk' => 'project_id'],
         ],
         'Schedule' => [

@@ -452,8 +452,8 @@
                 <span>프로젝트 개요</span>
                 <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
             </div>
-            <div id="memoDisplay" style="font-size:13px; color:{{ $project->memo ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->memo ?: '프로젝트 개요가 없습니다.' }}</div>
-            <textarea id="memoEdit" placeholder="프로젝트 개요를 입력하세요" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->memo }}</textarea>
+            <div id="memoDisplay" style="font-size:13px; color:{{ $project->overview ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->overview ?: '프로젝트 개요가 없습니다.' }}</div>
+            <textarea id="memoEdit" placeholder="프로젝트 개요를 입력하세요" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->overview }}</textarea>
         </div>
 
         @php
@@ -1293,10 +1293,10 @@ async function saveMemo() {
         const res = await fetch(`/api/projects/{{ $project->id }}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-            body: JSON.stringify({ memo: newMemo }),
+            body: JSON.stringify({ overview: newMemo }),
         });
         if (res.ok) {
-            display.textContent = newMemo || '메모 없음';
+            display.textContent = newMemo || '프로젝트 개요가 없습니다.';
             display.style.color = newMemo ? 'var(--text)' : 'var(--text-muted)';
         } else {
             alert('저장 실패');

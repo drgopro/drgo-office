@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
-use App\Models\ProjectMemo;
+use App\Models\ProjectFeedback;
 use App\Models\ProjectPayment;
 use App\Models\Schedule;
 use Carbon\Carbon;
@@ -62,9 +62,14 @@ class ProjectController extends Controller
             'project_type' => 'required|string|max:50|exists:consultation_types,key',
             'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
-            'memo' => 'nullable|string',
+            'overview' => 'nullable|string',
+            'memo' => 'nullable|string', // 하위 호환 (구버전 클라이언트)
             'custom_data' => 'nullable|array',
         ]);
+        if (isset($validated['memo']) && ! isset($validated['overview'])) {
+            $validated['overview'] = $validated['memo'];
+        }
+        unset($validated['memo']);
 
         $validated['client_id'] = $client->id;
         $validated['assigned_user_id'] = Auth::id();
@@ -93,30 +98,30 @@ class ProjectController extends Controller
         return view('projects.show', compact('project'));
     }
 
-    // 메모 추가
+    // 피드백 추가
     public function storeMemo(Request $request, Project $project)
     {
         $validated = $request->validate([
             'content' => 'required|string|max:2000',
         ]);
 
-        $memo = $project->memos()->create([
+        $feedback = $project->feedbacks()->create([
             'user_id' => Auth::id(),
             'content' => $validated['content'],
         ]);
 
-        $memo->load('user');
+        $feedback->load('user');
 
         return response()->json([
-            'id' => $memo->id,
-            'content' => $memo->content,
-            'user_name' => $memo->user?->display_name,
-            'created_at' => $memo->created_at->format('Y.m.d H:i'),
+            'id' => $feedback->id,
+            'content' => $feedback->content,
+            'user_name' => $feedback->user?->display_name,
+            'created_at' => $feedback->created_at->format('Y.m.d H:i'),
         ], 201);
     }
 
-    // 메모 삭제
-    public function destroyMemo(ProjectMemo $memo)
+    // 피드백 삭제 (라우트 호환을 위해 메서드명/파라미터명 유지)
+    public function destroyMemo(ProjectFeedback $memo)
     {
         $memo->delete();
 
@@ -153,18 +158,25 @@ class ProjectController extends Controller
         return back()->with('success', '단계가 변경되었습니다.');
     }
 
-    // 프로젝트 부분 수정 (이름, 메모 등)
+    // 프로젝트 부분 수정 (이름, 프로젝트 개요 등)
     public function updateJson(Request $request, Project $project)
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:200',
-            'memo' => 'nullable|string',
+            'overview' => 'nullable|string',
+            'memo' => 'nullable|string', // 하위 호환
             'project_type' => 'sometimes|string|max:50|exists:consultation_types,key',
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'sometimes|nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
             'visit_report' => 'sometimes|nullable|string',
             'custom_data' => 'nullable|array',
         ]);
+
+        // 'memo' (legacy) → 'overview' 매핑
+        if (isset($validated['memo']) && ! isset($validated['overview'])) {
+            $validated['overview'] = $validated['memo'];
+        }
+        unset($validated['memo']);
 
         $project->update($validated);
 

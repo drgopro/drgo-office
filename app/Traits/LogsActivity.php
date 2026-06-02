@@ -128,7 +128,8 @@ trait LogsActivity
             'App\\Models\\ProjectDocument' => '프로젝트 첨부파일',
             'App\\Models\\ScheduleAttachment' => '일정 첨부파일',
             'App\\Models\\ClientMemo' => '의뢰자 메모',
-            'App\\Models\\ProjectMemo' => '프로젝트 메모',
+            'App\\Models\\ProjectMemo' => '프로젝트 피드백',
+            'App\\Models\\ProjectFeedback' => '프로젝트 피드백',
         ];
 
         $type = get_class($this);
@@ -144,7 +145,7 @@ trait LogsActivity
             // 공통
             'title' => '제목', 'name' => '이름', 'nickname' => '닉네임', 'phone' => '전화번호',
             'email' => '이메일', 'address' => '주소', 'address_detail' => '상세주소',
-            'memo' => '메모', 'content' => '내용', 'description' => '설명', 'status' => '상태',
+            'memo' => '메모', 'overview' => '프로젝트 개요', 'content' => '내용', 'description' => '설명', 'status' => '상태',
             'note' => '비고', 'is_active' => '활성', 'created_by' => '작성자',
             // 의뢰자
             'grade' => '등급', 'platforms' => '플랫폼', 'content_types' => '콘텐츠유형',

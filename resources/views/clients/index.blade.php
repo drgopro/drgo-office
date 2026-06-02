@@ -938,7 +938,7 @@ function renderClientContent(id) {
                     </div>
                 </div>
                 <div class="field" style="margin-top:10px;">
-                    <div class="field-label">메모</div>
+                    <div class="field-label">프로젝트 개요</div>
                     <textarea class="field-input field-textarea" id="pf-memo-${id}" rows="2"></textarea>
                 </div>
                 <div style="display:flex; gap:6px; margin-top:10px; justify-content:flex-end;">
@@ -1124,7 +1124,7 @@ async function createProject(clientId) {
         project_type: document.getElementById('pf-type-' + clientId).value,
         client_scale: document.getElementById('pf-scale-' + clientId).value,
         work_type: document.getElementById('pf-work_type-' + clientId).value,
-        memo: document.getElementById('pf-memo-' + clientId).value,
+        overview: document.getElementById('pf-memo-' + clientId).value,
     };
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},

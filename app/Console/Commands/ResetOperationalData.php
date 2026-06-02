@@ -41,6 +41,7 @@ class ResetOperationalData extends Command
 
         // 프로젝트/상담
         'consultations',
+        'project_feedbacks',
         'project_memos',
         'project_documents',
         'projects',

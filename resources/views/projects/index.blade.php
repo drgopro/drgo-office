@@ -260,8 +260,8 @@
                 </div>
             </div>
             <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">메모</div>
-                <textarea id="npMemo" rows="2" placeholder="간단한 메모" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
+                <textarea id="npMemo" rows="2" placeholder="간단한 프로젝트 개요" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
             </div>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
@@ -351,7 +351,7 @@ async function submitNewProject() {
         project_type: projectType,
         client_scale: document.getElementById('npScale').value || null,
         work_type: document.getElementById('npWorkType').value || null,
-        memo: document.getElementById('npMemo').value || null,
+        overview: document.getElementById('npMemo').value || null,
     };
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST',

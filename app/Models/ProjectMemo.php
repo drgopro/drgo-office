@@ -2,29 +2,11 @@
 
 namespace App\Models;
 
-use App\Traits\LogsActivity;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-class ProjectMemo extends Model
+/**
+ * 하위 호환 alias — 신규 코드는 ProjectFeedback 사용.
+ * project_memos 테이블이 project_feedbacks로 이전된 후 동일 테이블을 가리키도록 table 지정.
+ */
+class ProjectMemo extends ProjectFeedback
 {
-    use LogsActivity;
-
-    protected $fillable = [
-        'project_id',
-        'user_id',
-        'content',
-    ];
-
-    /** @return BelongsTo<Project, $this> */
-    public function project(): BelongsTo
-    {
-        return $this->belongsTo(Project::class);
-    }
-
-    /** @return BelongsTo<User, $this> */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
+    protected $table = 'project_feedbacks';
 }

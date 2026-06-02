@@ -20,7 +20,7 @@ class Project extends Model
         'stage',
         'status',
         'assigned_user_id',
-        'memo',
+        'overview',
         'visit_report',
         'as_deadline',
         'completed_at',
@@ -61,8 +61,14 @@ class Project extends Model
         return $this->hasMany(ProjectDocument::class);
     }
 
+    public function feedbacks()
+    {
+        return $this->hasMany(ProjectFeedback::class)->orderByDesc('created_at');
+    }
+
+    // 하위 호환 — 기존 코드의 ->memos() 호출 지원
     public function memos()
     {
-        return $this->hasMany(ProjectMemo::class)->orderByDesc('created_at');
+        return $this->feedbacks();
     }
 }
