@@ -870,6 +870,34 @@
                 <div class="empty">상담 이력이 없습니다.</div>
             @endif
         </div>
+        <!-- 피드백 -->
+        <div class="info-card full">
+            <div class="card-title">피드백</div>
+            <div style="display:flex; gap:8px; margin-bottom:14px;">
+                <textarea id="projectMemoInput" class="field-textarea" rows="2" placeholder="피드백을 입력하세요..." style="flex:1; resize:none;"></textarea>
+                <button class="btn-save" onclick="addProjectMemo()" style="align-self:flex-end; white-space:nowrap;">추가</button>
+            </div>
+            <div id="projectMemoThread">
+                @forelse($project->memos as $memo)
+                    <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="pmemo-{{ $memo->id }}">
+                        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <span style="font-size:12px; font-weight:600;">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
+                                    <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
+                                </div>
+                                <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
+                            </div>
+                            <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">{{ $memo->content }}</div>
+                        </div>
+                    </div>
+                @empty
+                    <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;" id="pmemoEmpty">피드백이 없습니다.</div>
+                @endforelse
+            </div>
+        </div>
+
         <!-- 첨부 문서 -->
         <div class="info-card full">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
@@ -946,36 +974,6 @@
             @else
                 <div class="empty">등록된 문서가 없습니다.</div>
             @endif
-        </div>
-    </div>
-</div>
-
-<!-- 피드백 스레드 -->
-<div style="max-width:900px; margin:20px auto 0; padding:0 24px;">
-    <div class="section-card" style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
-        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">피드백</div>
-        <div style="display:flex; gap:8px; margin-bottom:14px;">
-            <textarea id="projectMemoInput" class="field-textarea" rows="2" placeholder="피드백을 입력하세요..." style="flex:1; resize:none;"></textarea>
-            <button class="btn-save" onclick="addProjectMemo()" style="align-self:flex-end; white-space:nowrap;">추가</button>
-        </div>
-        <div id="projectMemoThread">
-            @forelse($project->memos as $memo)
-                <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="pmemo-{{ $memo->id }}">
-                    <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <span style="font-size:12px; font-weight:600;">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
-                                <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
-                            </div>
-                            <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
-                        </div>
-                        <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">{{ $memo->content }}</div>
-                    </div>
-                </div>
-            @empty
-                <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;" id="pmemoEmpty">피드백이 없습니다.</div>
-            @endforelse
         </div>
     </div>
 </div>
