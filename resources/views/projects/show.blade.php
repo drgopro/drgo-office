@@ -761,7 +761,7 @@
         </div>
 
         {{-- 방문 보고서 (stage=done 일 때만 노출 — 추가 정보 영역 상단) --}}
-        <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
+        <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}" data-overflow="1" data-collapsed="{{ $hasReport ? '1' : '0' }}">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <span>📋 방문 보고서</span>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -2553,20 +2553,50 @@ window.vrSetMode = function(mode) {
 };
 
 // 본문이 500px을 넘는지 측정 → '더 보기' 버튼 표시 여부 결정
+// 안정성을 위해 ProseMirror(실제 렌더링된 본문)의 scrollHeight를 기준으로 측정.
+// 이미지가 나중에 로드되어도 ResizeObserver로 자동 재계산.
 window.vrCheckOverflow = function() {
     const card = document.getElementById('visitReportCard');
     if (!card) return;
-    const editor = document.getElementById('vrEditor');
-    if (!editor) return;
-    // 펼친 상태로 측정해야 실제 높이를 알 수 있음
+    // ProseMirror 본문 우선, 없으면 vrEditor 폴백
+    const body = card.querySelector('#vrEditor .ProseMirror') || document.getElementById('vrEditor');
+    if (!body) return;
+    // 펼친 상태로 측정 (overflow:hidden 영향 제거)
     const wasCollapsed = card.dataset.collapsed === '1';
-    card.dataset.collapsed = '0';
-    const h = editor.scrollHeight;
-    card.dataset.collapsed = wasCollapsed ? '1' : '0';
+    if (wasCollapsed) card.dataset.collapsed = '0';
+    // offsetHeight + scrollHeight 둘 중 큰 값 (브라우저별 차이 보정)
+    const h = Math.max(body.scrollHeight || 0, body.offsetHeight || 0);
+    if (wasCollapsed) card.dataset.collapsed = '1';
     card.dataset.overflow = (h > 500) ? '1' : '0';
     const btn = document.getElementById('vrExpandBtn');
     if (btn) btn.textContent = card.dataset.collapsed === '1' ? '▼ 더 보기' : '▲ 접기';
 };
+
+// ResizeObserver — 본문 크기 변할 때마다 자동 재측정 (이미지 로드, 폰트 늦은 적용 등 모두 커버)
+(function setupVrResizeObserver(){
+    if (typeof ResizeObserver === 'undefined') return;
+    const tryAttach = () => {
+        const body = document.querySelector('#vrEditor .ProseMirror');
+        if (!body) { setTimeout(tryAttach, 300); return; }
+        const ro = new ResizeObserver(() => window.vrCheckOverflow && window.vrCheckOverflow());
+        ro.observe(body);
+        // 페이지 안에서 동적으로 src가 바뀌는 이미지가 추가될 때마다 load 리스너 부착
+        const moResolve = () => {
+            body.querySelectorAll('img').forEach(img => {
+                if (img.complete || img.dataset.vrBound) return;
+                img.dataset.vrBound = '1';
+                img.addEventListener('load', () => window.vrCheckOverflow && window.vrCheckOverflow(), { once: true });
+                img.addEventListener('error', () => window.vrCheckOverflow && window.vrCheckOverflow(), { once: true });
+            });
+        };
+        new MutationObserver(moResolve).observe(body, { childList: true, subtree: true });
+        moResolve();
+        // 윈도우 리사이즈도 트리거
+        window.addEventListener('resize', () => window.vrCheckOverflow && window.vrCheckOverflow());
+    };
+    document.addEventListener('DOMContentLoaded', tryAttach);
+    setTimeout(tryAttach, 0);
+})();
 
 window.vrToggleExpand = function() {
     const card = document.getElementById('visitReportCard');
