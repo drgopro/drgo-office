@@ -21,19 +21,23 @@
     #visitReportCard[data-mode="view"] .tiptap-wrap { background:transparent; border-color:transparent; }
     #visitReportCard[data-mode="view"] #vrEditor .ProseMirror { padding:0; min-height:auto; cursor:default; }
     #visitReportCard[data-mode="view"] #vrEditor .ProseMirror img { cursor:zoom-in; }
+    /* 뷰 모드에서는 placeholder(데이터 없는 빈 단락 안내) 숨김 */
+    #visitReportCard[data-mode="view"] #vrEditor .ProseMirror p.is-editor-empty::before,
+    #visitReportCard[data-mode="view"] #vrEditor .ProseMirror p.is-empty::before { content:none !important; }
     /* 뷰 모드 + 접힘 상태: 500px 까지만 보이고 페이드 그라데이션 */
-    #visitReportCard[data-mode="view"][data-collapsed="1"] .tiptap-wrap { max-height:500px; overflow:hidden; position:relative; }
-    #visitReportCard[data-mode="view"][data-collapsed="1"] .tiptap-wrap::after {
-        content:''; position:absolute; left:0; right:0; bottom:0; height:64px;
-        background:linear-gradient(to bottom, transparent, var(--surface) 95%);
+    /* 뷰 모드 접힘: 500px 까지만 노출 + 페이드 그라데이션 */
+    #visitReportCard[data-mode="view"].is-collapsed .tiptap-wrap { max-height:500px; overflow:hidden; position:relative; }
+    #visitReportCard[data-mode="view"].is-collapsed .tiptap-wrap::after {
+        content:''; position:absolute; left:0; right:0; bottom:0; height:80px;
+        background:linear-gradient(to bottom, transparent, var(--surface) 90%);
         pointer-events:none;
     }
-    .vr-expand-btn { width:100%; margin-top:8px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
-    .vr-expand-btn:hover { color:var(--accent); border-color:var(--accent); }
-    .vr-expand-btn { display:none; }
+    /* '더 보기 / 접기' 버튼 — 뷰 모드에서는 무조건 노출 */
+    .vr-expand-btn { display:none; width:100%; margin-top:8px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+    .vr-expand-btn:hover { color:var(--accent); border-color:var(--accent); background:var(--surface); }
     #visitReportCard[data-mode="view"] .vr-expand-btn { display:block; }
-    /* 컨텐츠가 짧을 땐 버튼 자체 숨김 (overflow=visible 상태) */
-    #visitReportCard[data-mode="view"][data-overflow="0"] .vr-expand-btn { display:none; }
+    /* JS에서 측정 후 'is-short' 클래스 부착 시에만 버튼 숨김 */
+    #visitReportCard[data-mode="view"].is-short .vr-expand-btn { display:none; }
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
     .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
@@ -761,7 +765,7 @@
         </div>
 
         {{-- 방문 보고서 (stage=done 일 때만 노출 — 추가 정보 영역 상단) --}}
-        <div class="info-card full" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}" data-overflow="1" data-collapsed="{{ $hasReport ? '1' : '0' }}">
+        <div class="info-card full {{ $hasReport ? 'is-collapsed' : '' }}" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <span>📋 방문 보고서</span>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -2541,35 +2545,38 @@ window.vrSetMode = function(mode) {
     }
     if (isView) {
         // 뷰 모드 진입 시 기본은 접힘 + 오버플로 측정
-        card.dataset.collapsed = '1';
-        setTimeout(vrCheckOverflow, 80);
+        card.classList.add('is-collapsed');
+        card.classList.remove('is-short');
+        setTimeout(() => window.vrCheckOverflow && window.vrCheckOverflow(), 80);
     } else {
         // 편집 모드에서는 펼침
-        card.dataset.collapsed = '0';
-        card.dataset.overflow = '1'; // 버튼은 CSS로 hidden되어 영향 없음
+        card.classList.remove('is-collapsed');
+        card.classList.remove('is-short');
     }
     // 편집 진입 시 포커스
     if (!isView && window.vrEditor) setTimeout(() => window.vrEditor.commands.focus(), 50);
 };
 
-// 본문이 500px을 넘는지 측정 → '더 보기' 버튼 표시 여부 결정
-// 안정성을 위해 ProseMirror(실제 렌더링된 본문)의 scrollHeight를 기준으로 측정.
-// 이미지가 나중에 로드되어도 ResizeObserver로 자동 재계산.
+// 본문 길이 측정 — 500px 넘으면 'is-collapsed' 클래스 유지, 아니면 'is-short' 부착
 window.vrCheckOverflow = function() {
     const card = document.getElementById('visitReportCard');
     if (!card) return;
-    // ProseMirror 본문 우선, 없으면 vrEditor 폴백
     const body = card.querySelector('#vrEditor .ProseMirror') || document.getElementById('vrEditor');
     if (!body) return;
-    // 펼친 상태로 측정 (overflow:hidden 영향 제거)
-    const wasCollapsed = card.dataset.collapsed === '1';
-    if (wasCollapsed) card.dataset.collapsed = '0';
-    // offsetHeight + scrollHeight 둘 중 큰 값 (브라우저별 차이 보정)
+    // 펼친 상태에서 진짜 높이 측정
+    const wasCollapsed = card.classList.contains('is-collapsed');
+    if (wasCollapsed) card.classList.remove('is-collapsed');
     const h = Math.max(body.scrollHeight || 0, body.offsetHeight || 0);
-    if (wasCollapsed) card.dataset.collapsed = '1';
-    card.dataset.overflow = (h > 500) ? '1' : '0';
+    if (wasCollapsed) card.classList.add('is-collapsed');
+    if (h <= 500) {
+        // 500px 미만 — 접기 의미 없으므로 펼친 상태로 + 버튼 숨김
+        card.classList.add('is-short');
+        card.classList.remove('is-collapsed');
+    } else {
+        card.classList.remove('is-short');
+    }
     const btn = document.getElementById('vrExpandBtn');
-    if (btn) btn.textContent = card.dataset.collapsed === '1' ? '▼ 더 보기' : '▲ 접기';
+    if (btn) btn.textContent = card.classList.contains('is-collapsed') ? '▼ 더 보기' : '▲ 접기';
 };
 
 // ResizeObserver — 본문 크기 변할 때마다 자동 재측정 (이미지 로드, 폰트 늦은 적용 등 모두 커버)
@@ -2601,8 +2608,8 @@ window.vrCheckOverflow = function() {
 window.vrToggleExpand = function() {
     const card = document.getElementById('visitReportCard');
     if (!card) return;
-    const collapsed = card.dataset.collapsed === '1';
-    card.dataset.collapsed = collapsed ? '0' : '1';
+    const collapsed = card.classList.contains('is-collapsed');
+    card.classList.toggle('is-collapsed', !collapsed);
     const btn = document.getElementById('vrExpandBtn');
     if (btn) btn.textContent = collapsed ? '▲ 접기' : '▼ 더 보기';
     // 접기 시 카드 상단으로 스크롤
@@ -2796,7 +2803,7 @@ if (editorEl) {
     const initMode = __vrInitCard?.dataset.mode || 'edit';
     window.vrEditor.setEditable(initMode === 'edit');
     if (initMode === 'view' && __vrInitCard) {
-        __vrInitCard.dataset.collapsed = '1';
+        __vrInitCard.classList.add('is-collapsed');
         // 이미지 로드 후 정확한 높이로 재측정
         setTimeout(() => window.vrCheckOverflow && window.vrCheckOverflow(), 150);
         // 보고서에 이미지가 있으면 마지막 이미지 로드 후에도 재측정
