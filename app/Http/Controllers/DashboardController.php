@@ -6,6 +6,7 @@ use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\Client;
 use App\Models\Consultation;
+use App\Models\ConsultationType;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\RentalContract;
@@ -693,18 +694,51 @@ class DashboardController extends Controller
             }
         });
 
-        // Sheet 5: 상담 이력
+        // Sheet 5: 상담 이력 — 프로젝트 컨텍스트 포함
+        $consultProjectTypeL = ConsultationType::pluck('label', 'key')->toArray();
+        $consultScaleL = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
+        $consultWorkTypeL = ['setup' => '세팅', 'remote' => '원격', 'survey' => '답사', 'filming' => '촬영중계', 'design' => '디자인', 'as' => 'A/S', 'dispatch' => '파견', 'monthly' => '월 계약', 'hourly' => '시간 대여'];
+
         $s5 = $spreadsheet->createSheet();
         $s5->setTitle('상담 이력');
-        $s5->fromArray(['의뢰자', '유형', '진행상황', '내용', '담당자', '날짜'], null, 'A1');
-        $bold($s5, 'A1:F1');
+        $s5->fromArray([
+            '의뢰자', '닉네임', '연락처',
+            '프로젝트명', '프로젝트 유형', '규모', '작업 유형', '진행 단계',
+            '상담 유형', '진행상황', '내용', '담당자', '상담일',
+        ], null, 'A1');
+        $bold($s5, 'A1:M1');
         $row = 2;
-        Consultation::with('client', 'consultant')->whereBetween('consulted_at', [$fromDt, $toDt])->orderByDesc('consulted_at')->chunk(200, function ($items) use ($s5, &$row, $consultL, $resultL) {
-            foreach ($items as $c) {
-                $s5->fromArray([$c->client?->name, $consultL[$c->consult_type] ?? $c->consult_type, $resultL[$c->result] ?? $c->result, $c->content, $c->consultant?->display_name, $c->consulted_at->format('Y.m.d')], null, "A{$row}");
-                $row++;
-            }
-        });
+        Consultation::with('client', 'consultant', 'project')
+            ->whereBetween('consulted_at', [$fromDt, $toDt])
+            ->orderByDesc('consulted_at')
+            ->chunk(200, function ($items) use ($s5, &$row, $consultL, $resultL, $stageL, $consultProjectTypeL, $consultScaleL, $consultWorkTypeL) {
+                foreach ($items as $c) {
+                    $client = $c->client;
+                    $project = $c->project;
+                    $s5->fromArray([
+                        $client?->name,
+                        $client?->nickname,
+                        $client?->phone,
+                        $project?->name,
+                        $project ? ($consultProjectTypeL[$project->project_type] ?? $project->project_type) : null,
+                        $project?->client_scale ? ($consultScaleL[$project->client_scale] ?? $project->client_scale) : null,
+                        $project?->work_type ? ($consultWorkTypeL[$project->work_type] ?? $project->work_type) : null,
+                        $project ? ($stageL[$project->stage] ?? $project->stage) : null,
+                        $consultL[$c->consult_type] ?? $c->consult_type,
+                        $resultL[$c->result] ?? $c->result,
+                        $c->content,
+                        $c->consultant?->display_name,
+                        $c->consulted_at?->format('Y-m-d'),
+                    ], null, "A{$row}");
+                    $row++;
+                }
+            });
+        // 열 너비 자동 조정
+        foreach (range('A', 'M') as $col) {
+            $s5->getColumnDimension($col)->setAutoSize(true);
+        }
+        // 내용 셀 줄바꿈 + 상단 정렬
+        $s5->getStyle("K2:K{$row}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
 
         // Sheet 6: 견적서
         $s6 = $spreadsheet->createSheet();
