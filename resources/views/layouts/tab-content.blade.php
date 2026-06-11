@@ -274,6 +274,12 @@ function openExcelImportModal(type, typeName) {
                     <button onclick="document.getElementById('excelImportFile').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:13px;cursor:pointer;width:100%;text-align:center;">📎 파일 선택 (.xlsx, .csv)</button>
                     <div id="excelFileName" style="font-size:12px;color:var(--accent);margin-top:6px;display:none;"></div>
                 </div>
+                <div id="excelProductOpts" style="margin-bottom:16px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; display:none;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+                        <input type="checkbox" id="excelAutoCreateCats" checked> 없는 카테고리 자동 생성 (1·2·3차)
+                    </label>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-left:22px;">체크 해제 시 카테고리가 미리 등록되어 있어야 합니다.</div>
+                </div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;">
                     <button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
                     <button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button>
@@ -295,6 +301,8 @@ function openExcelImportModal(type, typeName) {
     document.getElementById('excelFileName').style.display = 'none';
     document.getElementById('excelImportBtn').disabled = true;
     document.getElementById('excelImportResult').style.display = 'none';
+    const opts = document.getElementById('excelProductOpts');
+    if (opts) opts.style.display = (type === 'products') ? 'block' : 'none';
     overlay.style.display = 'flex';
 }
 
@@ -306,6 +314,9 @@ async function submitExcelImport() {
     const btn = document.getElementById('excelImportBtn');
     btn.disabled = true; btn.textContent = '처리 중...';
     const fd = new FormData(); fd.append('file', file);
+    if (type === 'products') {
+        fd.append('auto_create_categories', document.getElementById('excelAutoCreateCats')?.checked ? '1' : '0');
+    }
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     try {
         const res = await fetch('/api/import/' + type, {

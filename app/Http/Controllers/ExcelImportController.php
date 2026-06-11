@@ -8,6 +8,7 @@ use App\Models\ProductCategory;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -207,7 +208,7 @@ class ExcelImportController extends Controller
 
             try {
                 $result = match ($type) {
-                    'products' => $this->importProduct($data),
+                    'products' => $this->importProduct($data, $request->boolean('auto_create_categories', true)),
                     'clients' => $this->importClient($data),
                     'projects' => $this->importProject($data),
                 };
@@ -231,7 +232,44 @@ class ExcelImportController extends Controller
         ]);
     }
 
-    private function importProduct(array $data): bool
+    /**
+     * 입력값($ref)이 영문/숫자 코드 같으면 code로, 한글 등이면 name으로 간주해 자동 생성.
+     * code가 비어있는 카테고리는 만들 수 없으므로 ref가 name이면 code는 자동 생성(NAMEMD5 등).
+     */
+    private function autoCreateCategory(string $ref, ?int $parentId, int $depth): ProductCategory
+    {
+        $isCodeLike = (bool) preg_match('/^[A-Z0-9_-]+$/i', $ref);
+
+        if ($isCodeLike) {
+            $code = strtoupper($ref);
+            $name = $ref; // 이름 정보가 따로 없으니 일단 코드와 동일하게
+        } else {
+            $name = $ref;
+            // code 자동 생성: 영문/숫자만 추출 후 10자 제한, 충돌 시 suffix
+            $base = strtoupper(preg_replace('/[^A-Z0-9]/i', '', Str::ascii($ref))) ?: 'CAT';
+            $base = substr($base, 0, 7) ?: 'CAT';
+            $code = $base;
+            $i = 1;
+            while (ProductCategory::where('code', $code)->exists()) {
+                $code = $base.$i++;
+                if (strlen($code) > 10) {
+                    $code = substr($base, 0, 8).$i;
+                }
+            }
+        }
+
+        $sortOrder = (int) (ProductCategory::where('parent_id', $parentId)->max('sort_order') ?? 0) + 1;
+
+        return ProductCategory::create([
+            'parent_id' => $parentId,
+            'name' => $name,
+            'code' => substr($code, 0, 10),
+            'depth' => $depth,
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
+    private function importProduct(array $data, bool $autoCreate = true): bool
     {
         $name = $data['제품명'] ?? null;
         $sku = $data['SKU'] ?? null;
@@ -240,7 +278,7 @@ class ExcelImportController extends Controller
         }
 
         // 카테고리 1차→2차→3차 순서로 트리 따라가며 가장 깊은 매치를 사용
-        // 각 컬럼은 'code' 또는 'name' 어느 쪽이든 허용
+        // 각 컬럼은 'code' 또는 'name' 어느 쪽이든 허용. 없으면 자동 생성(autoCreate=true).
         $catRefs = [
             trim((string) ($data['카테고리1차(코드/이름)'] ?? '')),
             trim((string) ($data['카테고리2차(코드/이름)'] ?? '')),
@@ -250,7 +288,7 @@ class ExcelImportController extends Controller
         $categoryId = null;
         $categoryName = null;
         $parentId = null;
-        foreach ($catRefs as $ref) {
+        foreach ($catRefs as $depthIdx => $ref) {
             if ($ref === '') {
                 break;
             }
@@ -259,9 +297,14 @@ class ExcelImportController extends Controller
                     $q->where('code', $ref)->orWhere('name', $ref);
                 })
                 ->first();
+
             if (! $node) {
-                throw new \Exception("카테고리 '{$ref}' 를 ".($parentId ? '하위에서' : '1차에서').' 찾을 수 없습니다.');
+                if (! $autoCreate) {
+                    throw new \Exception("카테고리 '{$ref}' 를 ".($parentId ? '하위에서' : '1차에서').' 찾을 수 없습니다.');
+                }
+                $node = $this->autoCreateCategory($ref, $parentId, $depthIdx + 1);
             }
+
             $categoryId = $node->id;
             $categoryName = $node->name;
             $parentId = $node->id;
