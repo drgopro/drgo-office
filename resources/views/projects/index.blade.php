@@ -84,6 +84,19 @@
         .search-bar { flex-direction:column; }
         .search-input { width:100%; }
     }
+
+    /* ── 토글 스위치 (모달 옵션용) ── */
+    .drgo-toggle-row { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; cursor:pointer; user-select:none; transition:all 0.15s; }
+    .drgo-toggle-row.is-on { border-color:var(--accent); background:rgba(212,188,150,0.08); }
+    [data-theme="light"] .drgo-toggle-row.is-on { background:rgba(59,94,160,0.06); }
+    .drgo-toggle-row input { display:none; }
+    .drgo-toggle-switch { position:relative; width:42px; height:24px; background:var(--surface3, var(--border)); border-radius:12px; flex-shrink:0; transition:background 0.2s; }
+    .drgo-toggle-switch::after { content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; background:#fff; border-radius:50%; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+    .drgo-toggle-row.is-on .drgo-toggle-switch { background:var(--accent); }
+    .drgo-toggle-row.is-on .drgo-toggle-switch::after { left:20px; }
+    .drgo-toggle-label { flex:1; }
+    .drgo-toggle-label .title { font-size:13px; font-weight:600; }
+    .drgo-toggle-label .desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
 </style>
 @endpush
 
@@ -230,12 +243,13 @@
             <button type="button" onclick="closeNewProjectModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
         <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
-            {{-- 단순 결제 토글 --}}
-            <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; cursor:pointer; user-select:none;">
+            {{-- 단순 결제 토글 (스위치 UI) --}}
+            <label class="drgo-toggle-row" id="npPaymentOnlyRow">
                 <input type="checkbox" id="npPaymentOnly" onchange="togglePaymentOnly(this.checked)">
-                <div style="flex:1;">
-                    <div style="font-size:13px; font-weight:600;">💳 단순 결제 프로젝트</div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">상담/단계 없이 결제 내역만 관리합니다.</div>
+                <span class="drgo-toggle-switch"></span>
+                <div class="drgo-toggle-label">
+                    <div class="title">💳 단순 결제 프로젝트</div>
+                    <div class="desc">상담/단계 없이 결제 내역만 관리합니다.</div>
                 </div>
             </label>
 
@@ -328,21 +342,22 @@ async function openNewProjectModal() {
             ? types.map(t => `<option value="${t.key}">${t.label}</option>`).join('')
             : '<option value="visit">방문세팅</option>';
     } catch(e) {}
-    // 초기화
+    // 초기화 — 규모는 '개인' 기본값
     document.getElementById('npClientSearch').value = '';
     document.getElementById('npClientId').value = '';
     document.getElementById('npClientPicked').style.display = 'none';
     document.getElementById('npName').value = '';
-    document.getElementById('npScale').value = '';
-    document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>';
+    document.getElementById('npScale').value = 'personal';
     document.getElementById('npMemo').value = '';
     document.getElementById('npPaymentOnly').checked = false;
     togglePaymentOnly(false);
+    updateNpWorkType(); // 개인 기준 작업유형 옵션 생성
 }
 function closeNewProjectModal() { document.getElementById('newProjectOverlay').style.display = 'none'; }
 
-// 단순 결제 토글 — ON이면 유형/규모/작업유형/메모 숨김
+// 단순 결제 토글 — ON이면 유형/규모/작업유형/메모 숨김 + 스위치 시각 갱신
 function togglePaymentOnly(checked) {
+    document.getElementById('npPaymentOnlyRow')?.classList.toggle('is-on', checked);
     ['npTypeRow', 'npScaleRow', 'npMemoRow'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = checked ? 'none' : (id === 'npScaleRow' ? 'grid' : 'block');
