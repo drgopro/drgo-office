@@ -816,7 +816,12 @@ async function saveProduct() {
     }
 
     if (payload.message) {
-        return alert(`저장 실패 (${res.status})\n\n${payload.message}`);
+        let detail = `저장 실패 (${res.status})\n\n${payload.message}`;
+        if (payload.exception) detail += `\n\n예외: ${payload.exception}`;
+        if (payload.file) detail += `\n위치: ${payload.file}`;
+        if (payload.sku_generated) detail += `\nSKU: ${payload.sku_generated}`;
+        if (payload.category) detail += `\n카테고리: ${JSON.stringify(payload.category)}`;
+        return alert(detail);
     }
 
     alert(`저장 실패: HTTP ${res.status}\n\n응답 본문을 확인할 수 없습니다.`);

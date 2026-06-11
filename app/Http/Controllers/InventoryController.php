@@ -211,24 +211,36 @@ class InventoryController extends Controller
             'show_in_estimate' => 'boolean',
         ]);
 
-        $cat = ProductCategory::findOrFail($validated['category_id']);
-        $sku = $this->generateSku($cat);
+        try {
+            $cat = ProductCategory::findOrFail($validated['category_id']);
+            $sku = $this->generateSku($cat);
 
-        $product = Product::create([
-            ...$validated,
-            'sku' => $sku,
-            'category' => $cat->name,
-            'is_active' => true,
-            'show_in_estimate' => $request->boolean('show_in_estimate'),
-        ]);
+            $product = Product::create([
+                ...$validated,
+                'sku' => $sku,
+                'category' => $cat->name,
+                'is_active' => true,
+                'show_in_estimate' => $request->boolean('show_in_estimate'),
+            ]);
 
-        Inventory::create([
-            'product_id' => $product->id,
-            'quantity' => 0,
-            'last_updated_at' => now(),
-        ]);
+            Inventory::create([
+                'product_id' => $product->id,
+                'quantity' => 0,
+                'last_updated_at' => now(),
+            ]);
 
-        return response()->json($product->load('inventory', 'categoryRelation'), 201);
+            return response()->json($product->load('inventory', 'categoryRelation'), 201);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => '제품 등록 실패: '.$e->getMessage(),
+                'exception' => class_basename($e),
+                'file' => basename($e->getFile()).':'.$e->getLine(),
+                'sku_generated' => $sku ?? null,
+                'category' => $cat ? ['id' => $cat->id, 'code' => $cat->code, 'depth' => $cat->depth] : null,
+            ], 500);
+        }
     }
 
     public function updateProduct(Request $request, Product $product)
@@ -243,18 +255,28 @@ class InventoryController extends Controller
             'show_in_estimate' => 'boolean',
         ]);
 
-        $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
-        $cat = ProductCategory::findOrFail($validated['category_id']);
+        try {
+            $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
+            $cat = ProductCategory::findOrFail($validated['category_id']);
 
-        // 카테고리 변경 시 SKU 재생성
-        if ($product->category_id !== (int) $validated['category_id']) {
-            $validated['sku'] = $this->generateSku($cat);
+            // 카테고리 변경 시 SKU 재생성
+            if ($product->category_id !== (int) $validated['category_id']) {
+                $validated['sku'] = $this->generateSku($cat);
+            }
+
+            $validated['category'] = $cat->name;
+            $product->update($validated);
+
+            return response()->json($product->load('inventory', 'categoryRelation'));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => '제품 수정 실패: '.$e->getMessage(),
+                'exception' => class_basename($e),
+                'file' => basename($e->getFile()).':'.$e->getLine(),
+            ], 500);
         }
-
-        $validated['category'] = $cat->name;
-        $product->update($validated);
-
-        return response()->json($product->load('inventory', 'categoryRelation'));
     }
 
     public function destroyProduct(Product $product)
