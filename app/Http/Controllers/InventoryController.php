@@ -215,8 +215,11 @@ class InventoryController extends Controller
             $cat = ProductCategory::findOrFail($validated['category_id']);
             $sku = $this->generateSku($cat);
 
-            // 매입가 미입력 시 0 기본값 (서버 측 안전망)
-            $validated['purchase_price'] = $validated['purchase_price'] ?? 0;
+            // NOT NULL 컬럼들은 null을 0으로 강제 (DB는 unsignedBigInteger DEFAULT 0)
+            // 입력 누락이든 null이든 0으로 안전 변환
+            $validated['purchase_price'] = (int) ($validated['purchase_price'] ?? 0);
+            $validated['sale_price'] = (int) ($validated['sale_price'] ?? 0);
+            $validated['safety_stock'] = (int) ($validated['safety_stock'] ?? 0);
 
             $product = Product::create([
                 ...$validated,
@@ -261,6 +264,17 @@ class InventoryController extends Controller
         try {
             $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
             $cat = ProductCategory::findOrFail($validated['category_id']);
+
+            // NOT NULL 컬럼들은 null을 0으로 강제 (제공된 키에 한해서만 — sometimes 검증과 일관)
+            if (array_key_exists('purchase_price', $validated)) {
+                $validated['purchase_price'] = (int) ($validated['purchase_price'] ?? 0);
+            }
+            if (array_key_exists('sale_price', $validated)) {
+                $validated['sale_price'] = (int) ($validated['sale_price'] ?? 0);
+            }
+            if (array_key_exists('safety_stock', $validated)) {
+                $validated['safety_stock'] = (int) ($validated['safety_stock'] ?? 0);
+            }
 
             // 카테고리 변경 시 SKU 재생성
             if ($product->category_id !== (int) $validated['category_id']) {
