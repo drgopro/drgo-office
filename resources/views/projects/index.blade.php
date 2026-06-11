@@ -392,7 +392,10 @@ async function submitNewProject() {
         // ConsultationType / WorkType에서 라벨/키 매칭 후 자동 적용
         const consultRes = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
         const consultTypes = consultRes.ok ? await consultRes.json() : [];
-        const ptMatch = consultTypes.find(t => t.label === '상품 문의' || t.label === '상품문의' || t.key === 'product_inquiry' || t.key === 'inquiry');
+        // 우선순위: key='product_inquiry' > label='상품 문의' > key='inquiry'
+        const ptMatch = consultTypes.find(t => t.key === 'product_inquiry')
+            || consultTypes.find(t => t.label === '상품 문의' || t.label === '상품문의')
+            || consultTypes.find(t => t.key === 'inquiry');
         const projectTypeKey = ptMatch?.key || 'inquiry';
 
         await loadNpWorkTypes();

@@ -345,6 +345,12 @@
                 'visit'      => '처리 중',
                 'done'       => '상담 완료',
             ],
+            'product_inquiry' => [
+                'consulting' => '상담 접수',
+                'estimate'   => '견적서 전달',
+                'payment'    => '결제 대기',
+                'done'       => '결제완료',
+            ],
             'as' => [
                 'consulting' => 'AS 접수',
                 'equipment'  => '점검',
@@ -358,7 +364,13 @@
                 'done'       => '해결 완료',
             ],
         ];
-        $stages = $stageSets[$project->project_type] ?? $stageSets['visit'];
+        // '상품 문의' 라벨은 항상 product_inquiry 시퀀스를 사용 (다른 key를 쓰는 경우 폴백)
+        $ptLabel = optional(\App\Models\ConsultationType::where('key', $project->project_type)->first())->label ?? '';
+        if (in_array($ptLabel, ['상품 문의', '상품문의'], true) && isset($stageSets['product_inquiry'])) {
+            $stages = $stageSets['product_inquiry'];
+        } else {
+            $stages = $stageSets[$project->project_type] ?? $stageSets['visit'];
+        }
         $stageKeys = array_keys($stages);
         $currentIdx = array_search($project->stage, $stageKeys);
         if ($currentIdx === false) {
