@@ -750,12 +750,33 @@ function editProduct(id) {
     const p = allProducts.find(x=>x.id===id);
     if (p) openProductModal(p);
 }
+// 필드명 → 한글 라벨 매핑 (서버 validation 오류 메시지 표시용)
+const PRODUCT_FIELD_LABELS = {
+    name: '제품명',
+    category_id: '카테고리',
+    purchase_price: '매입가',
+    sale_price: '판매가',
+    safety_stock: '안전재고',
+    memo: '메모',
+    show_in_estimate: '견적서 노출',
+    sku: 'SKU',
+};
+
 async function saveProduct() {
     const id = document.getElementById('pEditId').value;
     const categoryId = getSelectedCategoryId();
-    if (!categoryId) { alert('카테고리를 선택해주세요.'); return; }
+    const name = document.getElementById('pName').value.trim();
+
+    // 클라이언트 사전 검증 — 어떤 필드가 비었는지 명확히 알려줌
+    const missing = [];
+    if (!name) missing.push('• 제품명');
+    if (!categoryId) missing.push('• 카테고리');
+    if (missing.length) {
+        return alert('다음 필수값이 누락되었습니다:\n\n' + missing.join('\n'));
+    }
+
     const body = {
-        name: document.getElementById('pName').value,
+        name,
         category_id: +categoryId,
         purchase_price: document.getElementById('pPurchase').value || null,
         sale_price: document.getElementById('pSale').value || null,
@@ -765,10 +786,40 @@ async function saveProduct() {
     };
     const url = id ? `/api/inventory/products/${id}` : '/api/inventory/products';
     const method = id ? 'PATCH' : 'POST';
-    const res = await fetch(url, {method, headers:H, body:JSON.stringify(body)});
-    if (!res.ok) { const e = await res.json(); alert(Object.values(e.errors||{}).flat().join('\n')||'오류 발생'); return; }
-    closeModal('productModal');
-    loadProducts();
+
+    let res;
+    try {
+        res = await fetch(url, { method, headers:H, body:JSON.stringify(body) });
+    } catch(networkErr) {
+        return alert('네트워크 오류:\n' + networkErr.message);
+    }
+
+    if (res.ok) {
+        closeModal('productModal');
+        loadProducts();
+        return;
+    }
+
+    // 오류 응답 — 필드별 한글 라벨로 어떤 값이 문제인지 명확히 표시
+    let payload = {};
+    try { payload = await res.json(); } catch(_) {}
+
+    if (payload.errors && typeof payload.errors === 'object') {
+        const lines = Object.entries(payload.errors).map(([field, msgs]) => {
+            const label = PRODUCT_FIELD_LABELS[field] || field;
+            const detail = Array.isArray(msgs) ? msgs.join(', ') : String(msgs);
+            const value = body[field];
+            const valueShown = value === null || value === '' ? '(비어있음)' : JSON.stringify(value);
+            return `• [${label}] ${detail}\n   입력값: ${valueShown}`;
+        });
+        return alert(`저장 실패 (${res.status}) — 다음 값이 잘못되었습니다:\n\n` + lines.join('\n\n'));
+    }
+
+    if (payload.message) {
+        return alert(`저장 실패 (${res.status})\n\n${payload.message}`);
+    }
+
+    alert(`저장 실패: HTTP ${res.status}\n\n응답 본문을 확인할 수 없습니다.`);
 }
 async function deleteProduct(id) {
     if (!confirm('이 제품을 삭제할까요?')) return;
