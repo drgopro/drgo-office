@@ -215,6 +215,22 @@ class ProjectController extends Controller
                     'products' => count($e->product_items ?? []),
                     'services' => count($e->service_items ?? []),
                 ],
+                // 결제 항목 자동 채우기용 — {name, qty, price} 형태로 정규화
+                'payment_items' => collect($e->product_items ?? [])
+                    ->map(fn ($it) => [
+                        'name' => $it['name'] ?? '항목',
+                        'qty' => (int) ($it['qty'] ?? 1),
+                        'price' => (int) ($it['sale_price'] ?? $it['price'] ?? 0),
+                    ])
+                    ->concat(
+                        collect($e->service_items ?? [])->map(fn ($it) => [
+                            'name' => $it['name'] ?? '서비스',
+                            'qty' => (int) ($it['qty'] ?? 1),
+                            'price' => (int) ($it['amount'] ?? $it['price'] ?? 0),
+                        ])
+                    )
+                    ->values()
+                    ->all(),
             ]);
 
         return response()->json($estimates);

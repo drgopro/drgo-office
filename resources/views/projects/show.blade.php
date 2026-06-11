@@ -717,7 +717,7 @@
 
                     <div>
                         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">견적서 연결</div>
-                        <select id="payEstimateId" onchange="onSelectEstimate()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
+                        <select id="payEstimateId" onchange="onSelectEstimate(true)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
                             <option value="">— 견적서 미연결 (수기 입력) —</option>
                         </select>
                         <div id="payEstimateInfo" style="font-size:11px; color:var(--text-muted); margin-top:4px; min-height:14px;"></div>
@@ -2397,8 +2397,9 @@ async function openPaymentModal(prefillPayment) {
             return `<option value="${e.id}">${tag}#${e.id} · ${pcfEsc(name)} · ${(e.total_amount||0).toLocaleString()}원 (${status})</option>`;
         }).join('');
 
-    // 기존 결제 데이터 복원: 수정 모드면 prefillPayment, 신규면 project.payment_info 폴백
-    const cur = (typeof prefillPayment === 'object' && prefillPayment) ? prefillPayment : (initialPayment || {});
+    // 수정 모드: prefillPayment로 복원 / 신규(+결제 추가): 항상 빈 모달 (직전 결제 prefill 금지 — 중복 방지)
+    const isEdit = (typeof prefillPayment === 'object' && prefillPayment);
+    const cur = isEdit ? prefillPayment : {};
     if (cur.estimate_id) sel.value = String(cur.estimate_id);
     document.getElementById('payAmount').value = cur.amount || '';
     document.getElementById('payPaidAt').value = cur.paid_at || new Date().toISOString().slice(0,10);
@@ -2429,16 +2430,35 @@ function togglePayBalance() {
     if (!has) document.getElementById('payBalanceAmount').value = '';
 }
 
-function onSelectEstimate() {
+// userAction=true: 사용자가 드롭다운에서 직접 선택 → 항목/금액을 견적서로 덮어씀
+// userAction=false(기본): 모달 열 때 정보 표시만 (저장된 항목 보존)
+function onSelectEstimate(userAction = false) {
     const id = document.getElementById('payEstimateId').value;
     const info = document.getElementById('payEstimateInfo');
     if (!id) { info.textContent = ''; return; }
     const est = payEstimatesList.find(e => String(e.id) === id);
     if (!est) { info.textContent = ''; return; }
     info.innerHTML = `상품 ${est.items_summary.products}건 · 서비스 ${est.items_summary.services}건 · 합계 <strong style="color:var(--accent);">${(est.total_amount||0).toLocaleString()}원</strong> · 발행 ${est.issued_at || est.created_at || '-'}`;
-    // 결제 금액이 비어 있으면 견적서 합계로 자동 채움
+
     const amountEl = document.getElementById('payAmount');
-    if (!amountEl.value || +amountEl.value === 0) amountEl.value = est.total_amount || 0;
+    if (userAction) {
+        // 견적서 선택 시: 항목 목록을 견적서 항목으로 교체 + 금액을 견적서 합계로 반영
+        const items = est.payment_items || [];
+        if (items.length) {
+            renderPayItems(items);
+            window.payAmountManual = false; // 항목 합산 모드로 전환
+            recalcPayAmount();
+        } else {
+            // 항목 정보가 없으면 합계만 금액에 반영
+            window.payAmountManual = true;
+            amountEl.value = est.total_amount || 0;
+        }
+        const note = document.getElementById('payAmountNote');
+        if (note) note.textContent = '(견적서 금액 반영됨)';
+    } else {
+        // 모달 열 때 복원: 금액이 비어 있을 때만 합계로 채움 (저장된 값 보존)
+        if (!amountEl.value || +amountEl.value === 0) amountEl.value = est.total_amount || 0;
+    }
 }
 
 function renderPayItems(items) {
