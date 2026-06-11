@@ -130,6 +130,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/projects/{project}/memos', [ProjectController::class, 'storeMemo']);
         Route::delete('/api/project-memos/{memo}', [ProjectController::class, 'destroyMemo']);
         Route::post('/api/projects/{project}/payment', [ProjectController::class, 'savePayment'])->name('projects.payment');
+        Route::patch('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'updatePayment']);
+        Route::delete('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'destroyPayment']);
         Route::post('/api/projects/{project}/payments/refund', [ProjectController::class, 'refundPayment'])->name('projects.payments.refund');
         Route::post('/api/projects/{project}/stage-data', [ProjectController::class, 'saveStageData'])->name('projects.stageData');
     });

@@ -726,7 +726,11 @@
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div>
                             <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제 금액 (원) *</div>
-                            <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                            <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" oninput="window.payAmountManual=true; recalcPayAmount();" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                                <span id="payAmountNote" style="font-size:10px; color:var(--text-muted);">(항목 합산 자동 반영)</span>
+                                <button type="button" onclick="window.payAmountManual=false; recalcPayAmount();" style="background:none; border:none; color:var(--accent); font-size:10px; cursor:pointer; padding:0;">↻ 항목 합산으로 재설정</button>
+                            </div>
                         </div>
                         <div>
                             <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제일</div>
@@ -2040,9 +2044,11 @@ function renderPaymentHistory() {
                     ${refundInfo}
                     ${fullyRefunded ? '<span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
                 </div>
-                <div style="display:flex; gap:6px;">
-                    ${canRefund ? `<button onclick="openRefundModal(${p.id}, 'refund')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">환불</button>` : ''}
-                    ${canRefund ? `<button onclick="openRefundModal(${p.id}, 'cancel')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">결제 취소</button>` : ''}
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    ${isCharge ? `<button onclick="editPayment(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>` : ''}
+                    ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'refund')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">환불</button>` : ''}
+                    ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'cancel')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">결제 취소</button>` : ''}
+                    <button onclick="deletePayment(${p.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
                 </div>
             </div>
             <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
@@ -2371,7 +2377,11 @@ async function saveVisitReport() {
 let payEstimatesList = [];
 const initialPayment = @json($project->payment_info ?? new \stdClass);
 
-async function openPaymentModal() {
+async function openPaymentModal(prefillPayment) {
+    // editPayment에서 호출 시에는 prefillPayment를 전달, +결제 추가에서는 인자 없음 → 신규 모드
+    if (prefillPayment === undefined) {
+        window.editingPaymentId = null;
+    }
     document.getElementById('paymentModalOverlay').style.display = 'flex';
     // 견적서 목록 로드
     try {
@@ -2387,8 +2397,8 @@ async function openPaymentModal() {
             return `<option value="${e.id}">${tag}#${e.id} · ${pcfEsc(name)} · ${(e.total_amount||0).toLocaleString()}원 (${status})</option>`;
         }).join('');
 
-    // 기존 payment_info 복원
-    const cur = initialPayment || {};
+    // 기존 결제 데이터 복원: 수정 모드면 prefillPayment, 신규면 project.payment_info 폴백
+    const cur = (typeof prefillPayment === 'object' && prefillPayment) ? prefillPayment : (initialPayment || {});
     if (cur.estimate_id) sel.value = String(cur.estimate_id);
     document.getElementById('payAmount').value = cur.amount || '';
     document.getElementById('payPaidAt').value = cur.paid_at || new Date().toISOString().slice(0,10);
@@ -2401,11 +2411,15 @@ async function openPaymentModal() {
     });
     document.getElementById('payBalanceAmount').value = cur.balance_amount || '';
     togglePayBalance();
+    // 항목/금액 합산 초기화 — 기존 amount가 있으면 수기 모드, 없으면 합산 모드
+    window.payAmountManual = !!cur.amount;
     renderPayItems(cur.items || []);
+    recalcPayAmount();
     onSelectEstimate(); // 정보 표시
 }
 function closePaymentModal() {
     document.getElementById('paymentModalOverlay').style.display = 'none';
+    window.editingPaymentId = null;
 }
 
 function togglePayBalance() {
@@ -2438,12 +2452,34 @@ function addPayItem(it = {name:'', qty:1, price:0}) {
     row.className = 'pay-item-row';
     row.style.cssText = 'display:flex; gap:6px; align-items:center;';
     row.innerHTML = `
-        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;">
-        <input type="number" class="pcf-input" value="${it.qty ?? 1}" min="0" placeholder="수량" data-pi="qty" style="flex:0.6; max-width:80px;">
-        <input type="number" class="pcf-input" value="${it.price ?? 0}" min="0" placeholder="단가" data-pi="price" style="flex:1; max-width:120px;">
-        <button type="button" onclick="this.parentElement.remove()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 8px; border-radius:5px; font-size:11px; cursor:pointer;">×</button>
+        <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;" oninput="recalcPayAmount()">
+        <input type="number" class="pcf-input" value="${it.qty ?? 1}" min="0" placeholder="수량" data-pi="qty" style="flex:0.6; max-width:80px;" oninput="recalcPayAmount()">
+        <input type="number" class="pcf-input" value="${it.price ?? 0}" min="0" placeholder="단가" data-pi="price" style="flex:1; max-width:120px;" oninput="recalcPayAmount()">
+        <button type="button" onclick="this.parentElement.remove(); recalcPayAmount();" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 8px; border-radius:5px; font-size:11px; cursor:pointer;">×</button>
     `;
     wrap.appendChild(row);
+}
+
+/**
+ * 결제 항목 합산 → 금액 자동 갱신
+ * 사용자가 amount를 직접 수정한 적이 있으면(payAmountManual=true) 자동 갱신 안 함
+ */
+window.payAmountManual = false;
+function recalcPayAmount() {
+    const amountInput = document.getElementById('payAmount');
+    if (!amountInput) return;
+    let sum = 0;
+    document.querySelectorAll('#payItemsWrap .pay-item-row').forEach(row => {
+        const name = row.querySelector('[data-pi="name"]').value.trim();
+        const qty = parseInt(row.querySelector('[data-pi="qty"]').value, 10) || 0;
+        const price = parseInt(row.querySelector('[data-pi="price"]').value, 10) || 0;
+        if (name) sum += qty * price;
+    });
+    if (!window.payAmountManual) {
+        amountInput.value = sum;
+    }
+    const note = document.getElementById('payAmountNote');
+    if (note) note.textContent = window.payAmountManual ? '(수기 입력 모드 — 항목 합산 무시됨)' : `(항목 합산 자동 반영)`;
 }
 function collectPayItems() {
     const items = [];
@@ -2454,6 +2490,45 @@ function collectPayItems() {
         if (name) items.push({name, qty, price});
     });
     return items;
+}
+
+// 결제 수정: 모달을 기존 결제 데이터로 채워서 열고, 저장 시 PATCH로 분기
+window.editingPaymentId = null;
+async function editPayment(paymentId) {
+    const p = __payments.find(x => x.id === paymentId);
+    if (!p) return alert('결제 정보를 찾을 수 없습니다.');
+    window.editingPaymentId = paymentId;
+    // openPaymentModal은 항상 새로 초기화하므로 initialPayment 인자가 필요
+    await openPaymentModal({
+        amount: p.amount,
+        paid_at: p.paid_at,
+        method: p.method || '',
+        items: p.items || [],
+        memo: p.memo || '',
+        estimate_id: p.estimate_id || null,
+        has_balance: false,
+        balance_amount: 0,
+    });
+    // 모달 제목 갱신 + 저장 버튼 라벨 변경
+    const title = document.querySelector('#paymentModalOverlay .modal-title, #paymentModalOverlay h3, #paymentModalOverlay [style*="font-weight:700"]');
+}
+
+async function deletePayment(paymentId) {
+    const p = __payments.find(x => x.id === paymentId);
+    if (!p) return;
+    const msg = p.type === 'charge'
+        ? '이 결제를 삭제하시겠습니까?\n연결된 환불/취소 기록도 함께 삭제됩니다.'
+        : '이 환불/취소 기록을 삭제하시겠습니까?';
+    if (!confirm(msg)) return;
+    const res = await fetch(`/api/projects/${PROJECT_ID}/payments/${paymentId}`, {
+        method: 'DELETE',
+        headers: {'X-CSRF-TOKEN':CSRF_PJ, 'Accept':'application/json'},
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return alert('삭제 실패: ' + (err.error || err.message || '알 수 없는 오류'));
+    }
+    location.reload();
 }
 
 async function savePayment() {
@@ -2470,11 +2545,18 @@ async function savePayment() {
         has_balance: hasBalance,
         balance_amount: hasBalance ? (parseInt(document.getElementById('payBalanceAmount').value, 10) || 0) : 0,
     };
-    if (!body.amount && !body.estimate_id && !body.items.length) {
-        return alert('결제 금액 또는 견적서, 항목 중 하나는 입력해야 합니다.');
+    // 0원도 허용. 단, 빈 결제(amount=0, 견적/항목/메모 전부 없음)는 의미가 없어 차단
+    if (!body.amount && !body.estimate_id && !body.items.length && !body.memo) {
+        return alert('결제 금액, 견적서, 항목, 메모 중 하나는 입력해야 합니다.');
     }
-    const res = await fetch(`/api/projects/${PROJECT_ID}/payment`, {
-        method: 'POST',
+    // 수정 모드 (PATCH) — editingPaymentId가 설정되어 있으면 분기
+    const editId = window.editingPaymentId;
+    const url = editId
+        ? `/api/projects/${PROJECT_ID}/payments/${editId}`
+        : `/api/projects/${PROJECT_ID}/payment`;
+    const method = editId ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+        method,
         headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
         body: JSON.stringify(body),
     });

@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
@@ -440,6 +441,82 @@ class ProjectController extends Controller
      *   reason (string nullable)
      *   method (string nullable)
      */
+    /**
+     * 결제 내역 수정 — charge 항목만 허용 (refund/cancel은 부모의 환불 흐름으로만 발생)
+     */
+    public function updatePayment(Request $request, Project $project, ProjectPayment $payment): JsonResponse
+    {
+        if ($payment->project_id !== $project->id) {
+            return response()->json(['error' => '해당 프로젝트의 결제가 아닙니다.'], 404);
+        }
+        if ($payment->type !== 'charge') {
+            return response()->json(['error' => '환불/취소 항목은 수정할 수 없습니다. 삭제 후 재처리하세요.'], 422);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'nullable|integer|min:0',
+            'paid_at' => 'nullable|date',
+            'method' => 'nullable|string|max:50',
+            'items' => 'nullable|array',
+            'items.*.name' => 'nullable|string|max:200',
+            'items.*.qty' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer|min:0',
+            'memo' => 'nullable|string|max:1000',
+            'estimate_id' => 'nullable|integer|exists:estimates,id',
+        ]);
+
+        // items에서 금액 자동 합산 (제공된 경우)
+        if (isset($validated['items'])) {
+            $items = array_values(array_filter($validated['items'], fn ($i) => ! empty($i['name'])));
+            $sum = 0;
+            foreach ($items as $it) {
+                $sum += ((int) ($it['qty'] ?? 1)) * ((int) ($it['price'] ?? 0));
+            }
+            // amount가 명시되지 않았으면 items 합으로 채움
+            if (! isset($validated['amount'])) {
+                $validated['amount'] = $sum;
+            }
+            $validated['items'] = $items;
+        }
+
+        // 환불된 금액 이하로 amount를 내릴 수 없음
+        if (isset($validated['amount'])) {
+            $alreadyRefunded = ProjectPayment::where('parent_payment_id', $payment->id)
+                ->whereIn('type', ['refund', 'cancel'])
+                ->sum('amount'); // 음수
+            $refundedAbs = abs((int) $alreadyRefunded);
+            if ($refundedAbs > 0 && (int) $validated['amount'] < $refundedAbs) {
+                return response()->json([
+                    'error' => "이미 환불된 금액({$refundedAbs}원) 이상으로만 수정할 수 있습니다.",
+                ], 422);
+            }
+        }
+
+        $payment->update($validated);
+
+        return response()->json(['ok' => true, 'payment' => $payment->fresh()]);
+    }
+
+    /**
+     * 결제 내역 삭제 — charge 삭제 시 연결된 환불/취소도 함께 삭제
+     */
+    public function destroyPayment(Project $project, ProjectPayment $payment): JsonResponse
+    {
+        if ($payment->project_id !== $project->id) {
+            return response()->json(['error' => '해당 프로젝트의 결제가 아닙니다.'], 404);
+        }
+
+        DB::transaction(function () use ($payment) {
+            if ($payment->type === 'charge') {
+                // 자식 환불/취소 트랜잭션 함께 삭제
+                ProjectPayment::where('parent_payment_id', $payment->id)->delete();
+            }
+            $payment->delete();
+        });
+
+        return response()->json(['ok' => true]);
+    }
+
     public function refundPayment(Request $request, Project $project): JsonResponse
     {
         $validated = $request->validate([
@@ -466,6 +543,9 @@ class ProjectController extends Controller
             ->whereIn('type', ['refund', 'cancel'])
             ->sum('amount');
         $refundable = $parent->amount + $alreadyRefunded; // alreadyRefunded는 음수
+        if ($parent->amount <= 0) {
+            return response()->json(['error' => '0원 결제는 환불할 금액이 없습니다. 삭제 또는 수정 기능을 사용해 주세요.'], 422);
+        }
         if ($refundable <= 0) {
             return response()->json(['error' => '이미 전액 환불된 결제입니다.'], 422);
         }
