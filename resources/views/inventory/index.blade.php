@@ -29,9 +29,12 @@
     .btn-danger-sm:hover { color:var(--red); }
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .data-table { width:100%; border-collapse:collapse; }
-    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
-    .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); }
+    .data-table { width:100%; border-collapse:collapse; table-layout:auto; }
+    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
+    .data-table td.text-wrap { white-space:normal; word-break:break-word; }
+    .data-table .action-cell { white-space:nowrap; }
+    .data-table .action-cell button { display:inline-flex; align-items:center; vertical-align:middle; }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--surface2); }
     .empty-row { text-align:center; padding:40px !important; color:var(--text-muted); font-size:13px; }
@@ -169,11 +172,11 @@
             <span style="font-size:13px; font-weight:600;">
                 <span id="prodBulkCount">0</span>개 선택됨
             </span>
-            <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; align-items:center;">
                 <button class="btn-outline btn-sm" onclick="bulkSetEstimate(true)">✓ 견적서 노출 ON</button>
                 <button class="btn-outline btn-sm" onclick="bulkSetEstimate(false)">✕ 견적서 노출 OFF</button>
-                <button class="btn-danger-sm" onclick="bulkDeleteProducts()">선택 삭제</button>
                 <button class="btn-outline btn-sm" onclick="clearProdSelection()">선택 해제</button>
+                <button onclick="bulkDeleteProducts()" style="background:var(--red, #dc2626); color:#fff; border:1px solid var(--red, #dc2626); padding:6px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">⚠ 선택 삭제</button>
             </div>
         </div>
         <div class="data-card">
@@ -648,11 +651,14 @@ async function loadProducts() {
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
     tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
-        <td class="text-muted">${p.sku}</td><td>${p.name}</td><td class="text-muted">${p.category||'-'}</td>
-        <td class="text-right">${fmt(p.purchase_price)}</td><td class="text-right">${fmt(p.sale_price)}</td>
+        <td class="text-muted">${p.sku}</td>
+        <td class="text-wrap">${p.name}</td>
+        <td class="text-muted text-wrap">${p.category||'-'}</td>
+        <td class="text-right">${fmt(p.purchase_price)}</td>
+        <td class="text-right">${fmt(p.sale_price)}</td>
         <td class="text-right">${p.safety_stock||'-'}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
-        <td>
+        <td class="action-cell">
             <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${p.name.replace(/'/g,"\\'")} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋</button>
             <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
@@ -708,7 +714,17 @@ async function bulkSetEstimate(show) {
 async function bulkDeleteProducts() {
     if (!prodSelection.size) return;
     const ids = [...prodSelection];
-    if (!confirm(`선택된 ${ids.length}개 제품을 삭제하시겠습니까?\n되돌릴 수 없습니다.`)) return;
+
+    // 1단계: 어떤 제품이 삭제되는지 미리보기 + 1차 확인
+    const names = allProducts.filter(p => prodSelection.has(p.id)).map(p => `• ${p.sku} ${p.name}`).slice(0, 10);
+    const more = prodSelection.size > 10 ? `\n... 외 ${prodSelection.size - 10}개` : '';
+    const preview = names.join('\n') + more;
+
+    if (!confirm(`⚠️ 선택한 ${ids.length}개 제품을 삭제합니다.\n\n${preview}\n\n계속하시겠습니까?`)) return;
+
+    // 2단계: 다시 한 번 확인 (되돌릴 수 없음 강조)
+    if (!confirm(`정말 삭제하시겠습니까?\n\n❌ 삭제된 제품은 복구할 수 없습니다.\n견적서 등에 연결된 기록도 영향을 받을 수 있습니다.`)) return;
+
     const res = await fetch('/api/inventory/products/bulk-delete', {
         method:'POST', headers:H,
         body: JSON.stringify({ ids }),
