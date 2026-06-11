@@ -215,6 +215,9 @@ class InventoryController extends Controller
             $cat = ProductCategory::findOrFail($validated['category_id']);
             $sku = $this->generateSku($cat);
 
+            // 매입가 미입력 시 0 기본값 (서버 측 안전망)
+            $validated['purchase_price'] = $validated['purchase_price'] ?? 0;
+
             $product = Product::create([
                 ...$validated,
                 'sku' => $sku,

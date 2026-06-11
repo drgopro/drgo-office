@@ -263,7 +263,7 @@
         <div class="field-row">
             <div class="field-group">
                 <div class="field-label">매입가</div>
-                <input class="field-input" id="pPurchase" type="number" min="0">
+                <input class="field-input" id="pPurchase" type="number" min="0" placeholder="비워두면 0원으로 저장">
             </div>
             <div class="field-group">
                 <div class="field-label">판매가</div>
@@ -778,7 +778,8 @@ async function saveProduct() {
     const body = {
         name,
         category_id: +categoryId,
-        purchase_price: document.getElementById('pPurchase').value || null,
+        // 매입가는 비워두면 0으로 자동 저장
+        purchase_price: parseInt(document.getElementById('pPurchase').value, 10) || 0,
         sale_price: document.getElementById('pSale').value || null,
         safety_stock: document.getElementById('pSafety').value || null,
         memo: document.getElementById('pMemo').value || null,
