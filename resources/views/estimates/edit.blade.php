@@ -261,7 +261,20 @@ function addToCart(productId) {
     const price = Number(p.sale_price) || 0;
     const existing = cartItems.find(i => i.product_id === productId);
     if (existing) { existing.qty++; existing.subtotal = Number(existing.sale_price) * existing.qty; }
-    else { cartItems.push({ product_id:p.id, category:p.category, name:p.name, sale_price:price, qty:1, time_required:'', subtotal:price }); }
+    else {
+        // 스냅샷: 견적서 작성 시점의 제품 정보를 보존. 이후 제품 정보가 바뀌거나 삭제되어도 견적서는 영향 없음.
+        cartItems.push({
+            product_id: p.id,
+            sku: p.sku,
+            category: p.category,
+            name: p.name,
+            purchase_price: p.purchase_price || 0,
+            sale_price: price,
+            qty: 1,
+            time_required: '',
+            subtotal: price,
+        });
+    }
     renderCart();
 }
 
@@ -291,7 +304,7 @@ function renderCart() {
             html += `<tr>
                 <td>${globalIdx}</td>
                 <td style="font-size:10px; color:var(--text-muted);">${item.category||''}</td>
-                <td>${item.name}</td>
+                <td>${item.name}${item.product_id && !allProds.find(x => x.id === item.product_id) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
                 <td><input value="${item.time_required||''}" onchange="cartItems[${idx}].time_required=this.value" style="width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:11px; outline:none;"></td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>

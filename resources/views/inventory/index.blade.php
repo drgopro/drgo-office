@@ -723,7 +723,7 @@ async function bulkDeleteProducts() {
     if (!confirm(`⚠️ 선택한 ${ids.length}개 제품을 삭제합니다.\n\n${preview}\n\n계속하시겠습니까?`)) return;
 
     // 2단계: 다시 한 번 확인 (되돌릴 수 없음 강조)
-    if (!confirm(`정말 삭제하시겠습니까?\n\n❌ 삭제된 제품은 복구할 수 없습니다.\n견적서 등에 연결된 기록도 영향을 받을 수 있습니다.`)) return;
+    if (!confirm(`정말 삭제하시겠습니까?\n\n❌ 삭제된 제품은 새 견적서에 추가할 수 없습니다.\n✓ 이미 작성된 견적서의 항목 정보(이름·금액)는 그대로 보존됩니다.`)) return;
 
     const res = await fetch('/api/inventory/products/bulk-delete', {
         method:'POST', headers:H,
