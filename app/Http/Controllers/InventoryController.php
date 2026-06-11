@@ -264,6 +264,44 @@ class InventoryController extends Controller
         return response()->json(['message' => '삭제되었습니다.']);
     }
 
+    /**
+     * 선택된 제품들의 show_in_estimate 일괄 변경
+     */
+    public function bulkSetEstimate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:products,id',
+            'show_in_estimate' => 'required|boolean',
+        ]);
+
+        $count = Product::whereIn('id', $validated['ids'])
+            ->update(['show_in_estimate' => $validated['show_in_estimate']]);
+
+        return response()->json([
+            'message' => "{$count}개 제품의 견적서 노출이 변경되었습니다.",
+            'count' => $count,
+        ]);
+    }
+
+    /**
+     * 선택된 제품들 일괄 삭제
+     */
+    public function bulkDeleteProducts(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:products,id',
+        ]);
+
+        $count = Product::whereIn('id', $validated['ids'])->delete();
+
+        return response()->json([
+            'message' => "{$count}개 제품이 삭제되었습니다.",
+            'count' => $count,
+        ]);
+    }
+
     // === 견적서 제품 ===
 
     public function estimateProducts(Request $request)

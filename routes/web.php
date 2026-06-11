@@ -193,6 +193,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/inventory/categories/{category}', [InventoryController::class, 'destroyCategory']);
         Route::post('/api/inventory/products', [InventoryController::class, 'storeProduct']);
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);
+        Route::post('/api/inventory/products/bulk-estimate', [InventoryController::class, 'bulkSetEstimate']);
+        Route::post('/api/inventory/products/bulk-delete', [InventoryController::class, 'bulkDeleteProducts']);
         Route::delete('/api/inventory/products/{product}', [InventoryController::class, 'destroyProduct']);
         Route::post('/api/inventory/movements', [InventoryController::class, 'storeMovement']);
         Route::post('/api/inventory/orders', [PurchaseOrderController::class, 'store']);

@@ -165,10 +165,21 @@
             <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="loadProducts()">
             <button class="btn-primary" onclick="openProductModal()">+ 제품 등록</button>
         </div>
+        <div id="prodBulkBar" style="display:none; align-items:center; gap:10px; padding:10px 14px; background:rgba(212,188,150,0.08); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; flex-wrap:wrap;">
+            <span style="font-size:13px; font-weight:600;">
+                <span id="prodBulkCount">0</span>개 선택됨
+            </span>
+            <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap;">
+                <button class="btn-outline btn-sm" onclick="bulkSetEstimate(true)">✓ 견적서 노출 ON</button>
+                <button class="btn-outline btn-sm" onclick="bulkSetEstimate(false)">✕ 견적서 노출 OFF</button>
+                <button class="btn-danger-sm" onclick="bulkDeleteProducts()">선택 삭제</button>
+                <button class="btn-outline btn-sm" onclick="clearProdSelection()">선택 해제</button>
+            </div>
+        </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
-                <tbody id="productBody"><tr><td colspan="8" class="empty-row">로딩 중...</td></tr></tbody>
+                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
+                <tbody id="productBody"><tr><td colspan="9" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -257,8 +268,8 @@
             </div>
         </div>
         <div class="field-group">
-            <div class="field-label">안전재고 (이하 경고)</div>
-            <input class="field-input" id="pSafety" type="number" min="0">
+            <div class="field-label">안전재고 (선택 · 이하 경고)</div>
+            <input class="field-input" id="pSafety" type="number" min="0" placeholder="비워두면 미사용">
         </div>
         <div class="field-group">
             <div class="field-label">메모</div>
@@ -623,14 +634,20 @@ async function loadStock() {
 }
 
 // === 제품 관리 ===
+const prodSelection = new Set();
+
 async function loadProducts() {
     const search = document.getElementById('productSearch').value;
     const params = search ? '?search='+encodeURIComponent(search) : '';
     const res = await fetch('/api/inventory/products'+params);
     allProducts = await res.json();
     const tb = document.getElementById('productBody');
-    if (!allProducts.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">등록된 제품이 없습니다.</td></tr>'; return; }
-    tb.innerHTML = allProducts.map(p => `<tr>
+    if (!allProducts.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">등록된 제품이 없습니다.</td></tr>'; clearProdSelection(); return; }
+    // 화면에서 사라진 ID는 선택에서 제거
+    const visibleIds = new Set(allProducts.map(p => p.id));
+    [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
+    tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
+        <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
         <td class="text-muted">${p.sku}</td><td>${p.name}</td><td class="text-muted">${p.category||'-'}</td>
         <td class="text-right">${fmt(p.purchase_price)}</td><td class="text-right">${fmt(p.sale_price)}</td>
         <td class="text-right">${p.safety_stock||'-'}</td>
@@ -641,6 +658,64 @@ async function loadProducts() {
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </td>
     </tr>`).join('');
+    updateProdBulkBar();
+}
+
+// === 일괄 선택/액션 ===
+function toggleProductSelection(id, checked) {
+    if (checked) prodSelection.add(id); else prodSelection.delete(id);
+    updateProdBulkBar();
+}
+function toggleSelectAllProducts(checked) {
+    if (checked) allProducts.forEach(p => prodSelection.add(p.id));
+    else prodSelection.clear();
+    document.querySelectorAll('.prod-row-check').forEach(cb => { cb.checked = checked; });
+    updateProdBulkBar();
+}
+function clearProdSelection() {
+    prodSelection.clear();
+    document.querySelectorAll('.prod-row-check').forEach(cb => { cb.checked = false; });
+    const selAll = document.getElementById('prodSelectAll'); if (selAll) selAll.checked = false;
+    updateProdBulkBar();
+}
+function updateProdBulkBar() {
+    const bar = document.getElementById('prodBulkBar');
+    const cnt = document.getElementById('prodBulkCount');
+    if (!bar) return;
+    if (prodSelection.size > 0) {
+        bar.style.display = 'flex';
+        cnt.textContent = prodSelection.size;
+    } else {
+        bar.style.display = 'none';
+    }
+    // 전체 선택 체크박스 상태 동기화
+    const selAll = document.getElementById('prodSelectAll');
+    if (selAll && allProducts.length) {
+        selAll.checked = allProducts.every(p => prodSelection.has(p.id));
+    }
+}
+async function bulkSetEstimate(show) {
+    if (!prodSelection.size) return;
+    const ids = [...prodSelection];
+    if (!confirm(`선택된 ${ids.length}개 제품의 견적서 노출을 ${show?'ON':'OFF'}로 변경합니다.`)) return;
+    const res = await fetch('/api/inventory/products/bulk-estimate', {
+        method:'POST', headers:H,
+        body: JSON.stringify({ ids, show_in_estimate: show }),
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '변경 실패'); return; }
+    await loadProducts();
+}
+async function bulkDeleteProducts() {
+    if (!prodSelection.size) return;
+    const ids = [...prodSelection];
+    if (!confirm(`선택된 ${ids.length}개 제품을 삭제하시겠습니까?\n되돌릴 수 없습니다.`)) return;
+    const res = await fetch('/api/inventory/products/bulk-delete', {
+        method:'POST', headers:H,
+        body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '삭제 실패'); return; }
+    prodSelection.clear();
+    await loadProducts();
 }
 async function openProductModal(p) {
     if (!catData.length) await loadCategories();
