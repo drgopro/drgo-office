@@ -71,26 +71,37 @@ class EstimateController extends Controller
             'client_phone' => 'nullable|string|max:50',
             'product_items' => 'nullable|array',
             'service_items' => 'nullable|array',
-            'status' => 'nullable|in:created,editing,completed,paid,hold',
+            // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
+            'status' => 'nullable|in:temp,created,editing,completed,paid,hold',
             'memo' => 'nullable|string',
         ]);
 
-        $productTotal = (int) collect($validated['product_items'] ?? [])->sum('subtotal');
-        $serviceTotal = (int) collect($validated['service_items'] ?? [])->sum('amount');
+        try {
+            $productTotal = (int) collect($validated['product_items'] ?? [])->sum('subtotal');
+            $serviceTotal = (int) collect($validated['service_items'] ?? [])->sum('amount');
 
-        // temp → created로 자동 전환 (첫 저장 시)
-        if ($estimate->status === 'temp' && ! isset($validated['status'])) {
-            $validated['status'] = 'created';
+            // temp → created로 자동 전환 (첫 저장 시)
+            if ($estimate->status === 'temp' && (! isset($validated['status']) || $validated['status'] === 'temp')) {
+                $validated['status'] = 'created';
+            }
+
+            $estimate->update([
+                ...$validated,
+                'product_total' => $productTotal,
+                'service_total' => $serviceTotal,
+                'total_amount' => $productTotal + $serviceTotal,
+            ]);
+
+            return response()->json($estimate->fresh());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => '견적서 저장 실패: '.$e->getMessage(),
+                'exception' => class_basename($e),
+                'file' => basename($e->getFile()).':'.$e->getLine(),
+            ], 500);
         }
-
-        $estimate->update([
-            ...$validated,
-            'product_total' => $productTotal,
-            'service_total' => $serviceTotal,
-            'total_amount' => $productTotal + $serviceTotal,
-        ]);
-
-        return response()->json($estimate);
     }
 
     public function issue(Estimate $estimate)

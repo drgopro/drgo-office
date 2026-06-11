@@ -179,6 +179,13 @@ class InventoryController extends Controller
 
     public function products(Request $request)
     {
+        // id_only=1 — 가벼운 ID 리스트만 (견적서 편집의 '삭제된 제품' 마커 판정용)
+        if ($request->boolean('id_only')) {
+            return response()->json(
+                Product::query()->where('is_active', true)->get(['id'])
+            );
+        }
+
         $query = Product::with('inventory', 'categoryRelation')
             ->where('is_active', true);
 

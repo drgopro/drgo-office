@@ -192,14 +192,30 @@ function fmt(n) { return Number(n).toLocaleString(); }
 
 // === 제품 로드 ===
 async function loadProducts() {
-    const [prodRes, catRes] = await Promise.all([
+    const [prodRes, catRes, allProdIdsRes] = await Promise.all([
         fetch('/api/inventory/estimate-products'),
-        fetch('/api/inventory/categories')
+        fetch('/api/inventory/categories'),
+        // 모든 활성 제품 ID — '(삭제된 제품)' 마커가 false positive 안 되도록 별도 조회
+        fetch('/api/inventory/products?id_only=1').catch(() => null),
     ]);
     allProds = await prodRes.json();
     catData = await catRes.json();
+    try {
+        if (allProdIdsRes && allProdIdsRes.ok) {
+            const allProductsData = await allProdIdsRes.json();
+            window.__allProdIds = new Set((Array.isArray(allProductsData) ? allProductsData : []).map(p => p.id));
+        }
+    } catch(e) { window.__allProdIds = null; }
     buildCatTabs();
     filterProducts();
+}
+
+// item이 가리키는 제품이 실제로 DB에 없을 때만 true (견적서 노출 OFF는 false positive 방지)
+function isProductMissing(item) {
+    if (!item.product_id) return false;
+    // 전체 제품 ID 목록을 못 받았으면 false (안전한 폴백 — 정상 제품에 마커 안 붙음)
+    if (!window.__allProdIds) return false;
+    return !window.__allProdIds.has(item.product_id);
 }
 
 function buildCatTabs() {
@@ -304,7 +320,7 @@ function renderCart() {
             html += `<tr>
                 <td>${globalIdx}</td>
                 <td style="font-size:10px; color:var(--text-muted);">${item.category||''}</td>
-                <td>${item.name}${item.product_id && !allProds.find(x => x.id === item.product_id) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
+                <td>${item.name}${isProductMissing(item) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
                 <td><input value="${item.time_required||''}" onchange="cartItems[${idx}].time_required=this.value" style="width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:11px; outline:none;"></td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>
@@ -404,9 +420,20 @@ async function saveEstimate() {
     if (res.ok) {
         document.getElementById('saveIndicator').textContent = '저장됨 ' + new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
         if (window.opener) try { window.opener.loadEstimates?.(); } catch(e) {}
-    } else {
-        alert('저장 실패');
+        return;
     }
+    // 실패 — 어떤 필드/예외가 문제인지 표시
+    const err = await res.json().catch(() => ({}));
+    const parts = [];
+    if (err.message) parts.push(err.message);
+    if (err.errors) {
+        Object.entries(err.errors).forEach(([f, msgs]) => {
+            parts.push(`[${f}] ` + (Array.isArray(msgs) ? msgs.join(', ') : msgs));
+        });
+    }
+    if (err.exception) parts.push(`예외: ${err.exception}`);
+    if (err.file) parts.push(`위치: ${err.file}`);
+    alert(`저장 실패 (${res.status})\n\n` + (parts.length ? parts.join('\n') : '(빈 응답)'));
 }
 
 function printEstimate() {
