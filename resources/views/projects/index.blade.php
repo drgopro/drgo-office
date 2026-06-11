@@ -273,17 +273,39 @@
 
 <script>
 const CSRF_NP = document.querySelector('meta[name="csrf-token"]').content;
-const NP_WORK_TYPES = {
+// 폴백용 기본 작업유형 (DB 비어있을 때만 사용)
+const NP_WORK_TYPES_FALLBACK = {
     personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
     studio: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S'],['dispatch','파견']],
     corporate: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
     rental: [['monthly','월 계약']],
     broadcast_room: [['monthly','월 계약'],['hourly','시간 대여']],
 };
+let NP_WORK_TYPES_ACTIVE = null; // {key, label, scale_keys}[]
+
+async function loadNpWorkTypes() {
+    if (NP_WORK_TYPES_ACTIVE) return NP_WORK_TYPES_ACTIVE;
+    try {
+        const res = await fetch('/api/work-types/active', { headers:{ 'Accept':'application/json' } });
+        if (res.ok) NP_WORK_TYPES_ACTIVE = await res.json();
+    } catch(e) {}
+    return NP_WORK_TYPES_ACTIVE || [];
+}
+
+function NP_WORK_TYPES_FOR(scale) {
+    if (!NP_WORK_TYPES_ACTIVE || !NP_WORK_TYPES_ACTIVE.length) {
+        return NP_WORK_TYPES_FALLBACK[scale] || [];
+    }
+    // scale_keys가 비어있으면 모든 규모에 노출, 아니면 해당 규모만
+    return NP_WORK_TYPES_ACTIVE
+        .filter(w => !w.scale_keys || !w.scale_keys.length || (scale && w.scale_keys.includes(scale)))
+        .map(w => [w.key, w.label]);
+}
 
 async function openNewProjectModal() {
     document.getElementById('newProjectOverlay').style.display = 'flex';
-    // 프로젝트 유형 로드
+    // 프로젝트 유형 + 작업 유형 로드
+    await loadNpWorkTypes();
     try {
         const res = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
         const types = res.ok ? await res.json() : [];
@@ -305,7 +327,7 @@ function closeNewProjectModal() { document.getElementById('newProjectOverlay').s
 
 function updateNpWorkType() {
     const scale = document.getElementById('npScale').value;
-    const opts = NP_WORK_TYPES[scale] || [];
+    const opts = NP_WORK_TYPES_FOR(scale);
     document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>' + opts.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
 }
 

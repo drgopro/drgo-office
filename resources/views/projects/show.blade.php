@@ -1320,7 +1320,7 @@ const CURRENT_PROJECT = {
 };
 
 async function openProjectEditModal() {
-    // 프로젝트 유형 옵션 로드
+    // 프로젝트 유형 + 작업 유형 마스터 로드
     try {
         const res = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
         const types = res.ok ? await res.json() : [];
@@ -1331,6 +1331,7 @@ async function openProjectEditModal() {
             sel.innerHTML = `<option value="${CURRENT_PROJECT.project_type}">${CURRENT_PROJECT.project_type}</option>`;
         }
     } catch(e) {}
+    await loadActiveWorkTypes();
 
     document.getElementById('peName').value = CURRENT_PROJECT.name || '';
     document.getElementById('peScale').value = CURRENT_PROJECT.client_scale || '';
@@ -1341,7 +1342,7 @@ function closeProjectEditModal() { document.getElementById('projectEditModalOver
 
 function updatePeWorkType() {
     const scale = document.getElementById('peScale').value;
-    const opts = (typeof WORK_TYPES !== 'undefined' && WORK_TYPES[scale]) ? WORK_TYPES[scale] : [];
+    const opts = WORK_TYPES_FOR(scale);
     const sel = document.getElementById('peWorkType');
     sel.innerHTML = `<option value="">선택</option>` + opts.map(([v,l]) => `<option value="${v}" ${CURRENT_PROJECT.work_type === v ? 'selected' : ''}>${l}</option>`).join('');
 }
@@ -1371,24 +1372,45 @@ async function saveProjectEdit() {
     }
 }
 
-// 규모/작업유형 편집
-const WORK_TYPES = {
+// 규모/작업유형 편집 — 작업 유형은 관리자 정의(work_types)에서 동적 로드, 폴백 보존
+const WORK_TYPES_FALLBACK = {
     personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
     studio: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S'],['dispatch','파견']],
     corporate: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
     rental: [['monthly','월 계약']],
     broadcast_room: [['monthly','월 계약'],['hourly','시간 대여']],
 };
+let WORK_TYPES_ACTIVE = null;
 const CURRENT_WORK_TYPE = @json($project->work_type);
+
+async function loadActiveWorkTypes() {
+    if (WORK_TYPES_ACTIVE) return WORK_TYPES_ACTIVE;
+    try {
+        const res = await fetch('/api/work-types/active', { headers:{ 'Accept':'application/json' } });
+        if (res.ok) WORK_TYPES_ACTIVE = await res.json();
+    } catch(e) {}
+    return WORK_TYPES_ACTIVE || [];
+}
+
+function WORK_TYPES_FOR(scale) {
+    if (!WORK_TYPES_ACTIVE || !WORK_TYPES_ACTIVE.length) return WORK_TYPES_FALLBACK[scale] || [];
+    return WORK_TYPES_ACTIVE
+        .filter(w => !w.scale_keys || !w.scale_keys.length || (scale && w.scale_keys.includes(scale)))
+        .map(w => [w.key, w.label]);
+}
+
+// 'WORK_TYPES'는 다른 코드 호환을 위해 Proxy로 노출 (스칼라 키 접근 시 자동 조회)
+const WORK_TYPES = new Proxy({}, { get: (_, scale) => WORK_TYPES_FOR(scale) });
 
 function updateEditWorkTypes() {
     const scale = document.getElementById('editScale').value;
     const sel = document.getElementById('editWorkType');
-    const opts = WORK_TYPES[scale] || [];
+    const opts = WORK_TYPES_FOR(scale);
     sel.innerHTML = opts.map(([v,l]) => `<option value="${v}" ${CURRENT_WORK_TYPE===v?'selected':''}>${l}</option>`).join('');
 }
 
-function openScaleEditor() {
+async function openScaleEditor() {
+    await loadActiveWorkTypes();
     updateEditWorkTypes();
     document.getElementById('scaleModal').style.display = 'flex';
 }

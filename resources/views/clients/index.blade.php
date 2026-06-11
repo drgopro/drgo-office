@@ -1093,18 +1093,36 @@ function _openPostcode(clientId) {
 }
 
 // ── 프로젝트 CRUD ──
-const WORK_TYPE_OPTIONS = {
+const WORK_TYPE_FALLBACK = {
     personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
     studio: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S'],['dispatch','파견']],
     corporate: [['setup','세팅'],['survey','답사'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
     rental: [['monthly','월 계약']],
     broadcast_room: [['monthly','월 계약'],['hourly','시간 대여']],
 };
+let WORK_TYPES_CACHE = null; // 관리자 정의 작업 유형 캐시
 
-function updateWorkTypeOptions(clientId) {
+async function loadWorkTypesCache() {
+    if (WORK_TYPES_CACHE) return WORK_TYPES_CACHE;
+    try {
+        const res = await fetch('/api/work-types/active', { headers:{ 'Accept':'application/json' } });
+        if (res.ok) WORK_TYPES_CACHE = await res.json();
+    } catch(e) {}
+    return WORK_TYPES_CACHE || [];
+}
+
+function workTypeOptionsFor(scale) {
+    if (!WORK_TYPES_CACHE || !WORK_TYPES_CACHE.length) return WORK_TYPE_FALLBACK[scale] || [];
+    return WORK_TYPES_CACHE
+        .filter(w => !w.scale_keys || !w.scale_keys.length || (scale && w.scale_keys.includes(scale)))
+        .map(w => [w.key, w.label]);
+}
+
+async function updateWorkTypeOptions(clientId) {
+    await loadWorkTypesCache();
     const scale = document.getElementById('pf-scale-' + clientId).value;
     const sel = document.getElementById('pf-work_type-' + clientId);
-    const opts = WORK_TYPE_OPTIONS[scale] || [];
+    const opts = workTypeOptionsFor(scale);
     sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 }
 
