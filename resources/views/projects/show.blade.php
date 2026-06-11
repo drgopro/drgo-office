@@ -717,9 +717,12 @@
 
                     <div>
                         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">견적서 연결</div>
-                        <select id="payEstimateId" onchange="onSelectEstimate(true)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
-                            <option value="">— 견적서 미연결 (수기 입력) —</option>
-                        </select>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="payEstimateId" onchange="onSelectEstimate(true)" style="flex:1; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
+                                <option value="">— 견적서 미연결 (수기 입력) —</option>
+                            </select>
+                            <button type="button" id="payViewEstimateBtn" onclick="viewLinkedEstimate()" style="display:none; white-space:nowrap; background:none; border:1px solid var(--accent); color:var(--accent); padding:9px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📄 견적서 보기</button>
+                        </div>
                         <div id="payEstimateInfo" style="font-size:11px; color:var(--text-muted); margin-top:4px; min-height:14px;"></div>
                     </div>
 
@@ -2059,7 +2062,7 @@ function renderPaymentHistory() {
             <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
                 <span>📅 ${p.paid_at || p.created_at}</span>
                 ${p.method ? `<span>· ${_escPh(p.method)}</span>` : ''}
-                ${p.estimate_id ? `<span>· 견적서 #${p.estimate_id}</span>` : ''}
+                ${p.estimate_id ? `<a href="#" onclick="event.preventDefault(); window.open('/estimates/${p.estimate_id}/print', 'estimate_${p.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">· 📄 견적서 #${p.estimate_id} 보기</a>` : ''}
                 ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
             </div>
             ${itemsHtml}
@@ -2437,9 +2440,18 @@ function togglePayBalance() {
 
 // userAction=true: 사용자가 드롭다운에서 직접 선택 → 항목/금액을 견적서로 덮어씀
 // userAction=false(기본): 모달 열 때 정보 표시만 (저장된 항목 보존)
+// 연결된 견적서를 새 창(인쇄 뷰)으로 열기
+function viewLinkedEstimate() {
+    const id = document.getElementById('payEstimateId').value;
+    if (!id) return;
+    window.open(`/estimates/${id}/print`, `estimate_${id}`, 'width=900,height=800,scrollbars=yes');
+}
+
 function onSelectEstimate(userAction = false) {
     const id = document.getElementById('payEstimateId').value;
     const info = document.getElementById('payEstimateInfo');
+    const viewBtn = document.getElementById('payViewEstimateBtn');
+    if (viewBtn) viewBtn.style.display = id ? 'inline-block' : 'none';
     if (!id) {
         info.textContent = '';
         // 견적서 해제 시: 견적서 출처 항목 제거, 수기 항목만 남김
