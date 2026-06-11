@@ -37,12 +37,33 @@ trait LogsActivity
                     $newArr = $newArr ?: [];
                     $parentLabel = self::fieldLabel($key);
 
-                    // 단순 배열 (["유튜브","인스타"] 등) → 쉼표로 합쳐서 표시
-                    $isSimpleArray = ! empty($oldArr) ? array_is_list($oldArr) : (! empty($newArr) ? array_is_list($newArr) : false);
+                    // 단순 배열(["유튜브","인스타"] 등) — list + 모든 값이 스칼라일 때만
+                    // product_items 같은 객체 배열은 list지만 implode 불가하므로 제외
+                    $isScalarList = function ($arr) {
+                        if (! is_array($arr) || ! array_is_list($arr)) {
+                            return false;
+                        }
+                        foreach ($arr as $v) {
+                            if (is_array($v) || is_object($v)) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    };
+                    $isSimpleArray = ! empty($oldArr) ? $isScalarList($oldArr) : (! empty($newArr) ? $isScalarList($newArr) : false);
                     if ($isSimpleArray) {
                         $changes[$parentLabel] = [
                             'old' => ! empty($oldArr) ? implode(', ', $oldArr) : '—',
                             'new' => ! empty($newArr) ? implode(', ', $newArr) : '—',
+                        ];
+                    } elseif (! empty($oldArr) && array_is_list($oldArr) || ! empty($newArr) && array_is_list($newArr)) {
+                        // 객체 배열(예: product_items) — 개수와 첫 항목 요약만 기록
+                        $oldCount = is_array($oldArr) ? count($oldArr) : 0;
+                        $newCount = is_array($newArr) ? count($newArr) : 0;
+                        $changes[$parentLabel] = [
+                            'old' => "{$oldCount}개 항목",
+                            'new' => "{$newCount}개 항목",
                         ];
                     } else {
                         // 연관 배열 (gold_data 등) → 키별 diff
