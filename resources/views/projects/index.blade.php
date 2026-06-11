@@ -225,6 +225,15 @@
             <button type="button" onclick="closeNewProjectModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
         <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+            {{-- 단순 결제 토글 --}}
+            <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; cursor:pointer; user-select:none;">
+                <input type="checkbox" id="npPaymentOnly" onchange="togglePaymentOnly(this.checked)">
+                <div style="flex:1;">
+                    <div style="font-size:13px; font-weight:600;">💳 단순 결제 프로젝트</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">상담/단계 없이 결제 내역만 관리합니다.</div>
+                </div>
+            </label>
+
             <div>
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">의뢰자 *</div>
                 <div style="position:relative;">
@@ -238,11 +247,11 @@
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
                 <input type="text" id="npName" placeholder="예: 김광래 1차 방문세팅" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
             </div>
-            <div>
+            <div id="npTypeRow">
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형 *</div>
                 <select id="npType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div id="npScaleRow" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div>
                     <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
                     <select id="npScale" onchange="updateNpWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
@@ -259,7 +268,7 @@
                     <select id="npWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
                 </div>
             </div>
-            <div>
+            <div id="npMemoRow">
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
                 <textarea id="npMemo" rows="2" placeholder="간단한 프로젝트 개요" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
             </div>
@@ -322,8 +331,18 @@ async function openNewProjectModal() {
     document.getElementById('npScale').value = '';
     document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>';
     document.getElementById('npMemo').value = '';
+    document.getElementById('npPaymentOnly').checked = false;
+    togglePaymentOnly(false);
 }
 function closeNewProjectModal() { document.getElementById('newProjectOverlay').style.display = 'none'; }
+
+// 단순 결제 토글 — ON이면 유형/규모/작업유형/메모 숨김
+function togglePaymentOnly(checked) {
+    ['npTypeRow', 'npScaleRow', 'npMemoRow'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = checked ? 'none' : (id === 'npScaleRow' ? 'grid' : 'block');
+    });
+}
 
 function updateNpWorkType() {
     const scale = document.getElementById('npScale').value;
@@ -365,16 +384,26 @@ async function submitNewProject() {
     if (!clientId) return alert('의뢰자를 검색하여 선택해 주세요.');
     const name = document.getElementById('npName').value.trim();
     if (!name) return alert('프로젝트명을 입력하세요.');
-    const projectType = document.getElementById('npType').value;
-    if (!projectType) return alert('프로젝트 유형을 선택하세요.');
 
-    const body = {
-        name,
-        project_type: projectType,
-        client_scale: document.getElementById('npScale').value || null,
-        work_type: document.getElementById('npWorkType').value || null,
-        overview: document.getElementById('npMemo').value || null,
-    };
+    const paymentOnly = document.getElementById('npPaymentOnly').checked;
+    let body;
+    if (paymentOnly) {
+        body = {
+            name,
+            is_payment_only: true,
+            project_type: 'visit', // 단순 결제는 유형 무관 (서버가 기본값 처리)
+        };
+    } else {
+        const projectType = document.getElementById('npType').value;
+        if (!projectType) return alert('프로젝트 유형을 선택하세요.');
+        body = {
+            name,
+            project_type: projectType,
+            client_scale: document.getElementById('npScale').value || null,
+            work_type: document.getElementById('npWorkType').value || null,
+            overview: document.getElementById('npMemo').value || null,
+        };
+    }
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_NP,'Accept':'application/json'},

@@ -381,6 +381,15 @@
         $hasReport = ! empty(trim(strip_tags($project->visit_report ?? '')));
     @endphp
 
+    @if($project->is_payment_only)
+        <div style="background:rgba(122,200,160,0.08); border:1px solid rgba(122,200,160,0.30); border-radius:12px; padding:14px 18px; margin-bottom:16px; display:flex; align-items:center; gap:10px;">
+            <span style="font-size:18px;">💳</span>
+            <div style="flex:1;">
+                <div style="font-size:13px; font-weight:700; color:#7ac8a0;">단순 결제 프로젝트</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">상담·진행 단계 없이 결제 내역만 관리합니다.</div>
+            </div>
+        </div>
+    @else
     <div class="process-wrap">
         <div class="process-title">진행 단계 — 클릭하여 변경 (단계별 상세 입력 가능)</div>
         <div class="process-steps">
@@ -408,6 +417,7 @@
             @endforeach
         </div>
     </div>
+    @endif
 
     @if($project->stage === 'cancelled' && $project->cancel_reason)
     <div style="background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;">
@@ -514,12 +524,16 @@
         @endif
 
         <!-- 결제 내역 (charge/refund/cancel 트랜잭션) -->
-        <div class="info-card full" id="paymentHistoryCard" style="display:none;">
+        <div class="info-card full" id="paymentHistoryCard" style="display:{{ $project->is_payment_only ? 'block' : 'none' }};">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>💰 결제 내역 <span id="phNetTotal" style="font-size:12px; color:var(--text-muted); margin-left:6px;"></span></span>
                 <button type="button" onclick="openPaymentModal()" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">+ 결제 추가</button>
             </div>
-            <div id="paymentHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div id="paymentHistoryList" style="display:flex; flex-direction:column; gap:8px;">
+                @if($project->is_payment_only)
+                    <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">결제 내역이 없습니다. <b>+ 결제 추가</b> 버튼을 눌러 첫 결제를 등록하세요.</div>
+                @endif
+            </div>
         </div>
 
         <!-- 환불 모달 -->
@@ -810,6 +824,7 @@
         </div>
         <div class="slash-menu" id="vrSlashMenu"></div>
 
+        @unless($project->is_payment_only)
         <!-- 추가 정보 (관리자 정의 동적 필드) -->
         <div class="info-card full" id="customDataCard" style="display:none;">
             <div class="card-title">추가 정보</div>
@@ -874,6 +889,8 @@
                 <div class="empty">상담 이력이 없습니다.</div>
             @endif
         </div>
+        @endunless
+
         <!-- 피드백 -->
         <div class="info-card full">
             <div class="card-title">피드백</div>

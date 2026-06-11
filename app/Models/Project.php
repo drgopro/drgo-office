@@ -19,6 +19,7 @@ class Project extends Model
         'work_type',
         'stage',
         'status',
+        'is_payment_only',
         'assigned_user_id',
         'overview',
         'visit_report',
@@ -39,6 +40,7 @@ class Project extends Model
         'custom_data' => 'array',
         'payment_info' => 'array',
         'stage_data' => 'array',
+        'is_payment_only' => 'boolean',
     ];
 
     public function client()
