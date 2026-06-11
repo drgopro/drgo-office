@@ -2561,8 +2561,21 @@ async function savePayment() {
         body: JSON.stringify(body),
     });
     if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        return alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+        const err = await res.json().catch(() => ({}));
+        // 모든 가능한 키를 다 검사: message > error > errors[*][*] > 빈 응답
+        const parts = [];
+        if (err.message) parts.push(err.message);
+        if (err.error && err.error !== err.message) parts.push(err.error);
+        if (err.errors) {
+            Object.entries(err.errors).forEach(([field, msgs]) => {
+                const m = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+                parts.push(`[${field}] ${m}`);
+            });
+        }
+        if (err.exception) parts.push(`예외: ${err.exception}`);
+        if (err.file) parts.push(`위치: ${err.file}`);
+        const detail = parts.length ? parts.join('\n') : `(빈 응답 / HTTP ${res.status})`;
+        return alert(`저장 실패 (${res.status})\n\n${detail}`);
     }
     closePaymentModal();
     location.reload();

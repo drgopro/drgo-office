@@ -249,35 +249,45 @@ class ProjectController extends Controller
             'balance_amount' => 'nullable|integer|min:0',
         ]);
 
-        // payment_info에 저장
-        $payment = [
-            'estimate_id' => $validated['estimate_id'] ?? null,
-            'amount' => $validated['amount'] ?? 0,
-            'paid_at' => $validated['paid_at'] ?? now()->format('Y-m-d'),
-            'method' => $validated['method'] ?? null,
-            'items' => array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name']))),
-            'memo' => $validated['memo'] ?? null,
-            'has_balance' => ! empty($validated['has_balance']),
-            'balance_amount' => ! empty($validated['has_balance']) ? ($validated['balance_amount'] ?? 0) : 0,
-            'recorded_at' => now()->toIso8601String(),
-            'recorded_by' => Auth::id(),
-        ];
+        try {
+            // payment_info에 저장
+            $payment = [
+                'estimate_id' => $validated['estimate_id'] ?? null,
+                'amount' => $validated['amount'] ?? 0,
+                'paid_at' => $validated['paid_at'] ?? now()->format('Y-m-d'),
+                'method' => $validated['method'] ?? null,
+                'items' => array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name']))),
+                'memo' => $validated['memo'] ?? null,
+                'has_balance' => ! empty($validated['has_balance']),
+                'balance_amount' => ! empty($validated['has_balance']) ? ($validated['balance_amount'] ?? 0) : 0,
+                'recorded_at' => now()->toIso8601String(),
+                'recorded_by' => Auth::id(),
+            ];
 
-        $project->update(['payment_info' => $payment]);
+            $project->update(['payment_info' => $payment]);
 
-        // project_payments에 charge 트랜잭션 기록 (history 보관)
-        $items = $payment['items'] ?? [];
-        ProjectPayment::create([
-            'project_id' => $project->id,
-            'type' => 'charge',
-            'estimate_id' => $payment['estimate_id'] ?? null,
-            'amount' => (int) ($payment['amount'] ?? 0),
-            'items' => $items,
-            'method' => $payment['method'] ?? null,
-            'paid_at' => $payment['paid_at'] ?? null,
-            'memo' => $payment['memo'] ?? null,
-            'recorded_by' => Auth::id(),
-        ]);
+            // project_payments에 charge 트랜잭션 기록 (history 보관)
+            $items = $payment['items'] ?? [];
+            ProjectPayment::create([
+                'project_id' => $project->id,
+                'type' => 'charge',
+                'estimate_id' => $payment['estimate_id'] ?? null,
+                'amount' => (int) ($payment['amount'] ?? 0),
+                'items' => $items,
+                'method' => $payment['method'] ?? null,
+                'paid_at' => $payment['paid_at'] ?? null,
+                'memo' => $payment['memo'] ?? null,
+                'recorded_by' => Auth::id(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => '결제 저장 실패: '.$e->getMessage(),
+                'exception' => class_basename($e),
+                'file' => basename($e->getFile()).':'.$e->getLine(),
+            ], 500);
+        }
 
         // 현재 stage가 payment 이전이면 payment로 진행 (이후 단계는 그대로 유지)
         $stageOrder = ['consulting', 'equipment', 'proposal', 'estimate', 'payment', 'visit', 'as', 'done'];
@@ -465,36 +475,56 @@ class ProjectController extends Controller
             'estimate_id' => 'nullable|integer|exists:estimates,id',
         ]);
 
-        // items에서 금액 자동 합산 (제공된 경우)
-        if (isset($validated['items'])) {
-            $items = array_values(array_filter($validated['items'], fn ($i) => ! empty($i['name'])));
-            $sum = 0;
-            foreach ($items as $it) {
-                $sum += ((int) ($it['qty'] ?? 1)) * ((int) ($it['price'] ?? 0));
+        try {
+            // items에서 금액 자동 합산 (제공된 경우)
+            if (isset($validated['items'])) {
+                $items = array_values(array_filter($validated['items'], fn ($i) => ! empty($i['name'])));
+                $sum = 0;
+                foreach ($items as $it) {
+                    $sum += ((int) ($it['qty'] ?? 1)) * ((int) ($it['price'] ?? 0));
+                }
+                // amount가 명시되지 않았으면 items 합으로 채움
+                if (! isset($validated['amount'])) {
+                    $validated['amount'] = $sum;
+                }
+                $validated['items'] = $items;
             }
-            // amount가 명시되지 않았으면 items 합으로 채움
-            if (! isset($validated['amount'])) {
-                $validated['amount'] = $sum;
+
+            // 환불된 금액 이하로 amount를 내릴 수 없음
+            if (isset($validated['amount'])) {
+                $alreadyRefunded = ProjectPayment::where('parent_payment_id', $payment->id)
+                    ->whereIn('type', ['refund', 'cancel'])
+                    ->sum('amount'); // 음수
+                $refundedAbs = abs((int) $alreadyRefunded);
+                if ($refundedAbs > 0 && (int) $validated['amount'] < $refundedAbs) {
+                    return response()->json([
+                        'message' => "이미 환불된 금액({$refundedAbs}원) 이상으로만 수정할 수 있습니다.",
+                    ], 422);
+                }
             }
-            $validated['items'] = $items;
+
+            $payment->update($validated);
+
+            // payment_info(project)도 동기화 — 결제 모달이 다시 열릴 때 prefill용
+            $project->update(['payment_info' => array_merge((array) $project->payment_info, [
+                'amount' => $payment->amount,
+                'items' => $payment->items ?? [],
+                'method' => $payment->method,
+                'paid_at' => $payment->paid_at?->format('Y-m-d'),
+                'memo' => $payment->memo,
+                'estimate_id' => $payment->estimate_id,
+            ])]);
+
+            return response()->json(['ok' => true, 'payment' => $payment->fresh()]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => '결제 수정 실패: '.$e->getMessage(),
+                'exception' => class_basename($e),
+                'file' => basename($e->getFile()).':'.$e->getLine(),
+            ], 500);
         }
-
-        // 환불된 금액 이하로 amount를 내릴 수 없음
-        if (isset($validated['amount'])) {
-            $alreadyRefunded = ProjectPayment::where('parent_payment_id', $payment->id)
-                ->whereIn('type', ['refund', 'cancel'])
-                ->sum('amount'); // 음수
-            $refundedAbs = abs((int) $alreadyRefunded);
-            if ($refundedAbs > 0 && (int) $validated['amount'] < $refundedAbs) {
-                return response()->json([
-                    'error' => "이미 환불된 금액({$refundedAbs}원) 이상으로만 수정할 수 있습니다.",
-                ], 422);
-            }
-        }
-
-        $payment->update($validated);
-
-        return response()->json(['ok' => true, 'payment' => $payment->fresh()]);
     }
 
     /**
