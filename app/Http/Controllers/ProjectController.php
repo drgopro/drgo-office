@@ -61,7 +61,7 @@ class ProjectController extends Controller
             'name' => 'required|string|max:200',
             'project_type' => 'required|string|max:50|exists:consultation_types,key',
             'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
-            'work_type' => 'nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
+            'work_type' => 'nullable|string|max:50',
             'overview' => 'nullable|string',
             'memo' => 'nullable|string', // 하위 호환 (구버전 클라이언트)
             'custom_data' => 'nullable|array',
@@ -167,7 +167,7 @@ class ProjectController extends Controller
             'memo' => 'nullable|string', // 하위 호환
             'project_type' => 'sometimes|string|max:50|exists:consultation_types,key',
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
-            'work_type' => 'sometimes|nullable|in:setup,remote,survey,filming,design,as,dispatch,monthly,hourly',
+            'work_type' => 'sometimes|nullable|string|max:50',
             'visit_report' => 'sometimes|nullable|string',
             'custom_data' => 'nullable|array',
         ]);

@@ -233,6 +233,7 @@
             <button class="sub-tab-btn active" data-subtab="clientFields" onclick="switchSettingsSubTab('clientFields')">의뢰자 필드</button>
             <button class="sub-tab-btn" data-subtab="projectFields" onclick="switchSettingsSubTab('projectFields')">프로젝트 필드</button>
             <button class="sub-tab-btn" data-subtab="projectTypes" onclick="switchSettingsSubTab('projectTypes')">프로젝트 유형</button>
+            <button class="sub-tab-btn" data-subtab="workTypes" onclick="switchSettingsSubTab('workTypes')">작업 유형</button>
             <button class="sub-tab-btn" data-subtab="calendarCategories" onclick="switchSettingsSubTab('calendarCategories')">캘린더 카테고리</button>
             <button class="sub-tab-btn" data-subtab="reportTemplates" onclick="switchSettingsSubTab('reportTemplates')">보고서 템플릿</button>
             <button class="sub-tab-btn" data-subtab="seller" onclick="switchSettingsSubTab('seller')">판매처 설정</button>
@@ -737,6 +738,70 @@
         </div>
     </div>
 
+    {{-- 작업 유형 --}}
+    <div class="tab-panel" id="panel-workTypes">
+        <div class="cf-toolbar">
+            <div class="cf-hint">
+                프로젝트의 <b>작업 유형</b>(세팅·원격·답사·촬영중계 등)을 관리합니다.<br>
+                <span style="opacity:0.7;">규모(개인/스튜디오/기업/렌탈/방송룸)별로 노출 여부를 지정할 수 있습니다. 기본 9종은 삭제 불가, 비활성화는 가능합니다.</span>
+            </div>
+            <button class="btn-add" style="margin-bottom:0;" onclick="openWorkTypeModal()">+ 작업 유형 추가</button>
+        </div>
+        <div id="workTypesContainer"></div>
+    </div>
+
+    {{-- 작업 유형 모달 --}}
+    <div id="wtModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '작업 유형 편집', '⚙️')">
+        <div class="cf-modal">
+            <h3>
+                <span id="wtModalTitle">+ 작업 유형</span>
+                <button type="button" class="close-btn" onclick="closeWorkTypeModal()">✕</button>
+            </h3>
+            <div class="cf-modal-sub">새 프로젝트 등록 시 '규모'에 따라 선택할 수 있는 작업 유형을 관리합니다.</div>
+            <input type="hidden" id="wtId">
+
+            <div class="field-group">
+                <div class="field-label">라벨 (한글) *</div>
+                <input type="text" class="field-input" id="wtLabel" placeholder="예: 라이브 송출">
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">key (영문, 선택)</div>
+                <input type="text" class="field-input" id="wtKey" placeholder="자동 생성 — 예: live_streaming">
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">적용 규모 (체크 안 하면 모든 규모에 노출)</div>
+                <div class="cf-toggle-row" style="flex-wrap:wrap; gap:14px;">
+                    <label><input type="checkbox" class="wt-scale-cb" value="personal"> 개인</label>
+                    <label><input type="checkbox" class="wt-scale-cb" value="studio"> 스튜디오</label>
+                    <label><input type="checkbox" class="wt-scale-cb" value="corporate"> 기업</label>
+                    <label><input type="checkbox" class="wt-scale-cb" value="rental"> 렌탈</label>
+                    <label><input type="checkbox" class="wt-scale-cb" value="broadcast_room"> 방송룸</label>
+                </div>
+            </div>
+
+            <div class="cf-modal-row">
+                <div class="field-group">
+                    <div class="field-label">정렬 순서</div>
+                    <input type="number" class="field-input" id="wtSortOrder" placeholder="작을수록 먼저">
+                </div>
+                <div class="field-group">
+                    <div class="field-label">활성</div>
+                    <div class="cf-toggle-row" style="margin:0; padding:8px 10px;">
+                        <label><input type="checkbox" id="wtIsActive" checked> 드롭다운에 노출</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cf-modal-actions">
+                <button class="btn-danger-outline" id="wtDeleteBtn" style="margin-right:auto; display:none;" onclick="deleteWorkType()">삭제</button>
+                <button class="btn-outline" onclick="closeWorkTypeModal()">취소</button>
+                <button class="btn-save" onclick="saveWorkType()">저장</button>
+            </div>
+        </div>
+    </div>
+
     {{-- 보고서 템플릿 --}}
     <div class="tab-panel" id="panel-reportTemplates">
         <div class="cf-toolbar">
@@ -944,6 +1009,7 @@ const SETTINGS_PANEL_MAP = {
     clientFields: { panel: 'panel-clientFields', load: () => typeof loadClientFields === 'function' && loadClientFields() },
     projectFields: { panel: 'panel-projectFields', load: () => { typeof loadProjectFields === 'function' && loadProjectFields(); typeof loadConsultTypes === 'function' && loadConsultTypes(); switchProjectSubTab('fields'); } },
     projectTypes:  { panel: 'panel-projectFields', load: () => { typeof loadConsultTypes === 'function' && loadConsultTypes(); switchProjectSubTab('types'); } },
+    workTypes:     { panel: 'panel-workTypes', load: () => typeof loadWorkTypes === 'function' && loadWorkTypes() },
     calendarCategories: { panel: 'panel-calendarCategories', load: () => typeof loadCalendarCategories === 'function' && loadCalendarCategories() },
     reportTemplates: { panel: 'panel-reportTemplates', load: () => typeof loadReportTemplates === 'function' && loadReportTemplates() },
     seller: { panel: 'panel-seller', load: () => {} },
@@ -2155,6 +2221,107 @@ async function initRtEditor(initialContent) {
         console.error('Tiptap load failed:', err);
         const ed2 = document.getElementById('rtEditor');
         if (ed2) ed2.innerHTML = '<div style="padding:14px; color:var(--red); font-size:12px;">에디터 로드 실패 — 새로고침 후 다시 시도해 주세요.</div>';
+    }
+}
+
+// ─────────────── 작업 유형 ───────────────
+const WORK_TYPE_DEFAULTS = ['setup','remote','survey','filming','design','as','dispatch','monthly','hourly'];
+const SCALE_LABELS = { personal:'개인', studio:'스튜디오', corporate:'기업', rental:'렌탈', broadcast_room:'방송룸' };
+let allWorkTypes = [];
+
+async function loadWorkTypes() {
+    const res = await fetch('/api/admin/work-types', { headers:{'Accept':'application/json'} });
+    allWorkTypes = await res.json();
+    renderWorkTypes();
+}
+
+function renderWorkTypes() {
+    const container = document.getElementById('workTypesContainer');
+    if (!allWorkTypes.length) {
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">⚙️</div><div class="cf-empty-title">정의된 작업 유형이 없습니다</div></div>';
+        return;
+    }
+    container.innerHTML = `<div class="cf-grid">${allWorkTypes.map(t => {
+        const isDefault = WORK_TYPE_DEFAULTS.includes(t.key);
+        const inactive = t.is_active ? '' : ' inactive';
+        const scaleKeys = Array.isArray(t.scale_keys) ? t.scale_keys : [];
+        const scaleChips = scaleKeys.length
+            ? scaleKeys.map(k => `<span class="cf-chip">${SCALE_LABELS[k]||k}</span>`).join('')
+            : '<span class="cf-chip muted">모든 규모</span>';
+        return `<div class="cf-card${inactive}" onclick="editWorkType(${t.id})">
+            <div class="cf-card-row">
+                <div class="cf-card-label">${escHtml(t.label)}</div>
+                ${isDefault ? '<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);">기본</span>' : ''}
+            </div>
+            <div class="cf-card-row">
+                <span class="cf-card-key">${escHtml(t.key)}</span>
+                <div class="cf-card-meta">
+                    ${t.is_active ? '' : '<span class="cf-chip muted">비활성</span>'}
+                    <span class="cf-chip">순서 ${t.sort_order ?? 0}</span>
+                </div>
+            </div>
+            <div class="cf-card-row" style="flex-wrap:wrap; gap:4px;">${scaleChips}</div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+function openWorkTypeModal(t) {
+    document.getElementById('wtModalOverlay').classList.add('open');
+    document.getElementById('wtModalTitle').textContent = t ? '작업 유형 편집' : '+ 작업 유형';
+    document.getElementById('wtId').value = t?.id || '';
+    document.getElementById('wtLabel').value = t?.label || '';
+    document.getElementById('wtKey').value = t?.key || '';
+    document.getElementById('wtKey').disabled = !!t;
+    document.getElementById('wtSortOrder').value = t?.sort_order ?? '';
+    document.getElementById('wtIsActive').checked = t ? !!t.is_active : true;
+    const scaleKeys = Array.isArray(t?.scale_keys) ? t.scale_keys : [];
+    document.querySelectorAll('.wt-scale-cb').forEach(cb => { cb.checked = scaleKeys.includes(cb.value); });
+    const isDefault = t && WORK_TYPE_DEFAULTS.includes(t.key);
+    document.getElementById('wtDeleteBtn').style.display = (t && !isDefault) ? 'inline-block' : 'none';
+}
+
+function closeWorkTypeModal() { document.getElementById('wtModalOverlay').classList.remove('open'); }
+function editWorkType(id) { const t = allWorkTypes.find(x => x.id === id); if (t) openWorkTypeModal(t); }
+
+async function saveWorkType() {
+    const id = document.getElementById('wtId').value;
+    const label = document.getElementById('wtLabel').value.trim();
+    if (!label) return alert('라벨을 입력하세요.');
+    const scaleKeys = Array.from(document.querySelectorAll('.wt-scale-cb:checked')).map(cb => cb.value);
+    const body = {
+        label,
+        scale_keys: scaleKeys.length ? scaleKeys : null,
+        sort_order: parseInt(document.getElementById('wtSortOrder').value || 0),
+        is_active: document.getElementById('wtIsActive').checked,
+    };
+    if (!id) {
+        const key = document.getElementById('wtKey').value.trim();
+        if (key) body.key = key;
+    }
+    const url = id ? `/api/admin/work-types/${id}` : '/api/admin/work-types';
+    const res = await fetch(url, {
+        method: id ? 'PATCH' : 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok) { closeWorkTypeModal(); await loadWorkTypes(); }
+    else {
+        const err = await res.json().catch(() => ({}));
+        alert('저장 실패: ' + (err.message || Object.values(err.errors||{}).flat().join('\n')));
+    }
+}
+
+async function deleteWorkType() {
+    if (!confirm('이 작업 유형을 삭제하시겠습니까?')) return;
+    const id = document.getElementById('wtId').value;
+    const res = await fetch(`/api/admin/work-types/${id}`, {
+        method: 'DELETE',
+        headers: {'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    });
+    if (res.ok) { closeWorkTypeModal(); await loadWorkTypes(); }
+    else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || '삭제 실패');
     }
 }
 </script>
