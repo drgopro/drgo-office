@@ -9,6 +9,7 @@ use App\Models\Consultation;
 use App\Models\ConsultationType;
 use App\Models\Estimate;
 use App\Models\Project;
+use App\Models\ProjectPayment;
 use App\Models\RentalContract;
 use App\Models\Schedule;
 use Carbon\Carbon;
@@ -324,7 +325,21 @@ class DashboardController extends Controller
         $allPaidEstimates = Estimate::where('status', 'paid')->whereBetween('created_at', [$fromDt, $toDt])->get();
         $revenueService = $allPaidEstimates->sum('service_total');
         $revenueProduct = $allPaidEstimates->sum('product_total');
-        $revenueTotal = $allPaidEstimates->sum('total_amount');
+        $revenueEstimates = (int) $allPaidEstimates->sum('total_amount');
+
+        // 단순 결제 매출 (project_payments에서 estimate 미연결분 — 환불/취소는 음수로 자동 차감)
+        $revenuePaymentOnly = 0;
+        $paymentOnlyCount = 0;
+        if (Schema::hasTable('project_payments')) {
+            $revenuePaymentOnly = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereNull('estimate_id')
+                ->sum('amount');
+            $paymentOnlyCount = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereNull('estimate_id')
+                ->where('type', 'charge')
+                ->count();
+        }
+        $revenueTotal = $revenueEstimates + $revenuePaymentOnly;
 
         // 기타 보조 지표
         $newProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->count();
@@ -334,7 +349,8 @@ class DashboardController extends Controller
         // ── 스타일 헬퍼 ──
         $consultDone = $consultationsInPeriod->where('result', 'done')->count();
         $conversionRate = $newProjects > 0 ? round($settingDone / $newProjects * 100, 1).'%' : '—';
-        $avgRevenue = $paidCount > 0 ? number_format((int) ($revenueTotal / $paidCount)).'원' : '—';
+        $totalRevenueTxCount = $paidCount + $paymentOnlyCount;
+        $avgRevenue = $totalRevenueTxCount > 0 ? number_format((int) ($revenueTotal / $totalRevenueTxCount)).'원' : '—';
         $cumulClients = Client::where('created_at', '<=', $toDt)->count();
         $cumulProjects = Project::where('created_at', '<=', $toDt)->count();
 
@@ -534,17 +550,19 @@ class DashboardController extends Controller
         $r++;
 
         $subHeader($s1, $r, ['구분', '지표', '금액', '비고']);
-        $s1->setCellValue("F{$r}", '세팅비 '.number_format($revenueService).'  |  장비판매 '.number_format($revenueProduct));
+        $s1->setCellValue("F{$r}", '세팅비 '.number_format($revenueService).'  |  장비판매 '.number_format($revenueProduct).'  |  단순결제 '.number_format($revenuePaymentOnly));
         $applyStyle($s1, "F{$r}", $white, '666666', false, 9);
         $r++;
 
-        $dataRow($s1, $r, ['매출', '결제 완료 건수', $paidCount > 0 ? number_format($paidCount) : '—', '']);
+        $dataRow($s1, $r, ['매출', '결제 완료 건수', $totalRevenueTxCount > 0 ? number_format($totalRevenueTxCount) : '—', '견적서 결제 + 단순 결제']);
         $r++;
-        $dataRow($s1, $r, ['매출', '총 매출', number_format($revenueTotal).'원', ''], true);
+        $dataRow($s1, $r, ['매출', '총 매출', number_format($revenueTotal).'원', '견적서 + 단순 결제 (환불/취소 차감)'], true);
         $r++;
         $dataRow($s1, $r, ['매출', 'ㄴ 세팅비', number_format($revenueService).'원', 'service_items 합계']);
         $r++;
-        $dataRow($s1, $r, ['매출', 'ㄴ 장비판매', number_format($revenueProduct).'원', 'product_items 합계'], true);
+        $dataRow($s1, $r, ['매출', 'ㄴ 장비판매', number_format($revenueProduct).'원', 'product_items 합계']);
+        $r++;
+        $dataRow($s1, $r, ['매출', 'ㄴ 단순 결제', number_format($revenuePaymentOnly).'원', '견적서 없이 직접 결제'], true);
         $r++;
         $dataRow($s1, $r, ['매출', '건당 평균 매출', $avgRevenue, '']);
         $r += 2;

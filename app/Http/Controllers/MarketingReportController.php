@@ -164,13 +164,19 @@ class MarketingReportController extends Controller
         $revenueTotal = $projectPaymentRevenue + $revenueLegacy;
 
         // category_breakdown 합산 (견적서 기반은 legacy 그대로 사용)
-        $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'other' => 0];
+        // 'payment_only' = 견적서 없이 직접 결제된 ProjectPayment(단순 결제) — 환불/취소 차감 포함
+        $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'payment_only' => 0, 'other' => 0];
         foreach ($legacyPaidEstimates as $e) {
             foreach ($e->category_breakdown ?? [] as $key => $val) {
                 if (isset($revenueBreakdown[$key])) {
                     $revenueBreakdown[$key] += (int) $val;
                 }
             }
+        }
+        if (Schema::hasTable('project_payments')) {
+            $revenueBreakdown['payment_only'] = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereNull('estimate_id')
+                ->sum('amount');
         }
 
         // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──

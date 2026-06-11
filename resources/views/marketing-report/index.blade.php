@@ -56,7 +56,7 @@
     $gradeL = ['normal'=>'일반','vip'=>'VIP','rental'=>'렌탈'];
     $scaleL = ['personal'=>'개인','studio'=>'스튜디오','corporate'=>'기업','rental'=>'렌탈','broadcast_room'=>'방송룸'];
     $workL = ['setup'=>'세팅','remote'=>'원격','survey'=>'답사','filming'=>'촬영중계','design'=>'디자인','as'=>'A/S','dispatch'=>'파견','monthly'=>'월 계약','hourly'=>'시간 대여'];
-    $breakdownL = ['setup'=>'세팅비','product'=>'장비판매','labor'=>'인건비','dispatch'=>'파견비','rush'=>'긴급비','other'=>'기타'];
+    $breakdownL = ['setup'=>'세팅비','product'=>'장비판매','labor'=>'인건비','dispatch'=>'파견비','rush'=>'긴급비','payment_only'=>'단순 결제','other'=>'기타'];
 @endphp
 
 <div class="mk-wrap">
