@@ -23,7 +23,8 @@ class InventoryController extends Controller
 
     public function categories()
     {
-        $categories = ProductCategory::with('children.children')
+        // 4차까지 노출
+        $categories = ProductCategory::with('children.children.children')
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
@@ -43,9 +44,14 @@ class InventoryController extends Controller
         if ($validated['parent_id']) {
             $parent = ProductCategory::findOrFail($validated['parent_id']);
             $depth = $parent->depth + 1;
-            if ($depth > 3) {
-                return response()->json(['message' => '최대 3단계까지 가능합니다.'], 422);
+            if ($depth > 4) {
+                return response()->json(['message' => '최대 4단계까지 가능합니다.'], 422);
             }
+        }
+
+        // 같은 부모 내 code 중복 검증
+        if (ProductCategory::where('parent_id', $validated['parent_id'])->where('code', $validated['code'])->exists()) {
+            return response()->json(['message' => '같은 부모 내에 동일한 코드가 이미 있습니다.'], 422);
         }
 
         $maxSort = ProductCategory::where('parent_id', $validated['parent_id'])->max('sort_order') ?? 0;
@@ -66,9 +72,92 @@ class InventoryController extends Controller
             'code' => 'required|string|max:10|regex:/^[A-Z0-9]+$/',
         ]);
 
+        // 같은 부모 내 code 중복 검증 (자신은 제외)
+        $dup = ProductCategory::where('parent_id', $category->parent_id)
+            ->where('code', $validated['code'])
+            ->where('id', '!=', $category->id)
+            ->exists();
+        if ($dup) {
+            return response()->json(['message' => '같은 부모 내에 동일한 코드가 이미 있습니다.'], 422);
+        }
+
         $category->update($validated);
 
         return response()->json($category);
+    }
+
+    /**
+     * 카테고리 이동 — parent_id 변경. 순환·최대 깊이 검증 후 후손 depth 일괄 재계산.
+     */
+    public function moveCategory(Request $request, ProductCategory $category): JsonResponse
+    {
+        $validated = $request->validate([
+            'new_parent_id' => 'nullable|integer|exists:product_categories,id',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        $newParentId = $validated['new_parent_id'] ?? null;
+
+        // 1) 자기 자신 또는 후손을 부모로 지정 금지
+        if ($newParentId === $category->id) {
+            return response()->json(['message' => '자기 자신을 부모로 지정할 수 없습니다.'], 422);
+        }
+        $descendantIds = $category->descendantIds();
+        if ($newParentId && in_array($newParentId, $descendantIds, true)) {
+            return response()->json(['message' => '후손 카테고리를 부모로 지정할 수 없습니다 (순환 참조).'], 422);
+        }
+
+        // 2) 이동 후 최대 깊이 ≤ 4 검증
+        $newDepth = 1;
+        if ($newParentId) {
+            $newParent = ProductCategory::findOrFail($newParentId);
+            $newDepth = $newParent->depth + 1;
+        }
+        $subtreeMaxDelta = $category->maxDepthInSubtree() - $category->depth;
+        if ($newDepth + $subtreeMaxDelta > 4) {
+            return response()->json(['message' => '이동하면 하위 카테고리가 4차를 넘어갑니다.'], 422);
+        }
+
+        DB::transaction(function () use ($category, $newParentId, $newDepth, $validated) {
+            $category->parent_id = $newParentId;
+            // sort_order: 지정값 우선, 없으면 새 부모 마지막에 추가
+            if (isset($validated['sort_order'])) {
+                $category->sort_order = $validated['sort_order'];
+            } else {
+                $maxSort = ProductCategory::where('parent_id', $newParentId)->max('sort_order') ?? 0;
+                $category->sort_order = $maxSort + 1;
+            }
+            $category->save();
+
+            // 자신 + 후손 depth 일괄 재계산
+            $category->recalculateDepth($newDepth);
+        });
+
+        return response()->json(['message' => '이동되었습니다.', 'category' => $category->fresh()]);
+    }
+
+    /**
+     * 같은 부모 내 형제 카테고리 순서 일괄 갱신 — 드래그 정렬용
+     */
+    public function reorderCategories(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'parent_id' => 'nullable|integer|exists:product_categories,id',
+            'ordered_ids' => 'required|array|min:1',
+            'ordered_ids.*' => 'integer|exists:product_categories,id',
+        ]);
+
+        $parentId = $validated['parent_id'] ?? null;
+
+        DB::transaction(function () use ($parentId, $validated) {
+            foreach ($validated['ordered_ids'] as $idx => $id) {
+                ProductCategory::where('id', $id)
+                    ->where('parent_id', $parentId)
+                    ->update(['sort_order' => $idx + 1]);
+            }
+        });
+
+        return response()->json(['message' => '정렬되었습니다.']);
     }
 
     public function destroyCategory(ProductCategory $category)
@@ -327,9 +416,13 @@ class InventoryController extends Controller
 
     // === 헬퍼 ===
 
+    /**
+     * SKU 자동 생성 — 2차 카테고리의 코드를 베이스로 사용 (정책)
+     * 예: PCSET-001, PCSET-002, ...  (3·4차 카테고리에 속해도 동일하게 PCSET 사용)
+     */
     private function generateSku(ProductCategory $category): string
     {
-        $prefix = $category->getSkuPrefix();
+        $prefix = $category->getSkuBaseCode();
 
         $lastProduct = Product::withTrashed()
             ->where('sku', 'like', "{$prefix}-%")

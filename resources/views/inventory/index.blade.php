@@ -237,9 +237,10 @@
             <div class="field-row-3">
                 <select class="field-select" id="pCat1" onchange="onCat1Change()"><option value="">1차 선택</option></select>
                 <select class="field-select" id="pCat2" onchange="onCat2Change()" disabled><option value="">2차 선택</option></select>
-                <select class="field-select" id="pCat3" disabled><option value="">3차 선택</option></select>
+                <select class="field-select" id="pCat3" onchange="onCat3Change()" disabled><option value="">3차 선택</option></select>
+                <select class="field-select" id="pCat4" disabled><option value="">4차 선택</option></select>
             </div>
-            <div class="sku-preview" id="skuPreview" style="display:none;">SKU: <span id="skuText"></span> (자동 생성)</div>
+            <div class="sku-preview" id="skuPreview" style="display:none;">SKU: <span id="skuText"></span> <span style="color:var(--text-muted); font-size:11px;">(2차 코드 기반 자동 생성)</span></div>
         </div>
         <div class="field-group">
             <div class="field-label">제품명 *</div>
@@ -329,6 +330,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
@@ -360,17 +362,22 @@ async function loadCategories() {
 function renderCatTree() {
     const el = document.getElementById('catTree');
     if (!catData.length) { el.innerHTML = '<div class="empty-row">등록된 카테고리가 없습니다.</div>'; return; }
-    el.innerHTML = catData.map(c => renderCatNode(c, 1)).join('');
+    // 루트 컨테이너에 data-parent-id="" (null)
+    el.innerHTML = `<div class="cat-sortable" data-parent-id="">${catData.map(c => renderCatNode(c, 1)).join('')}</div>`;
+    setupSortables();
 }
 function renderCatNode(cat, depth) {
     const children = cat.children || [];
-    const canAddChild = depth < 3;
-    let html = `<div class="cat-lv1" style="${depth>1?'border:none; border-radius:0;':''}">
+    const canAddChild = depth < 4;
+    // data-id, data-depth — Sortable + 이동 시 사용
+    let html = `<div class="cat-lv1 cat-node" data-id="${cat.id}" data-depth="${depth}" style="${depth>1?'border:none; border-radius:0;':''}">
         <div class="cat-row">
-            <span class="cat-code">${cat.code}</span>
-            <span class="cat-name">${cat.name}</span>
+            <span class="cat-handle" title="드래그하여 이동/정렬" style="cursor:grab; user-select:none; padding:0 4px; color:var(--text-muted);">⋮⋮</span>
+            <span class="cat-code" ondblclick="startEditCat(${cat.id},'code')">${cat.code}</span>
+            <span class="cat-name" ondblclick="startEditCat(${cat.id},'name')">${cat.name}</span>
             <span class="cat-depth">${depth}차</span>
             <div class="cat-actions">
+                <button class="btn-outline btn-sm" onclick="startEditCat(${cat.id},'name')" title="이름/코드 수정">✎</button>
                 ${canAddChild ? `<button class="btn-outline btn-sm" onclick="showAddCat(${cat.id})">+ 하위</button>` : ''}
                 <button class="btn-danger-sm" onclick="deleteCat(${cat.id})">삭제</button>
             </div>
@@ -380,12 +387,80 @@ function renderCatNode(cat, depth) {
             <input id="catCode-${cat.id}" placeholder="코드" style="width:70px; text-transform:uppercase;" maxlength="10">
             <button onclick="saveCat(${cat.id})">추가</button>
             <button onclick="document.getElementById('catAdd-${cat.id}').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">취소</button>
-        </div>`;
-    if (children.length) {
-        html += `<div class="cat-children">${children.map(c => renderCatNode(c, depth+1)).join('')}</div>`;
-    }
-    html += '</div>';
+        </div>
+        <div class="cat-children cat-sortable" data-parent-id="${cat.id}">${children.map(c => renderCatNode(c, depth+1)).join('')}</div>
+    </div>`;
     return html;
+}
+
+// === 인라인 편집 (이름/코드) ===
+function startEditCat(id, field) {
+    const cat = findCatById(id);
+    if (!cat) return;
+    const current = cat[field] || '';
+    const label = field === 'code' ? '코드 (영문/숫자, 최대 10자)' : '카테고리명';
+    const next = prompt(label, current);
+    if (next === null) return;
+    const trimmed = String(next).trim();
+    if (!trimmed) { alert('값을 입력해주세요.'); return; }
+    if (field === 'code' && !/^[A-Z0-9]+$/.test(trimmed.toUpperCase())) { alert('코드는 영문/숫자만 가능합니다.'); return; }
+    const body = { name: cat.name, code: cat.code };
+    body[field] = (field === 'code') ? trimmed.toUpperCase() : trimmed;
+    fetch(`/api/inventory/categories/${id}`, { method:'PATCH', headers:H, body:JSON.stringify(body) })
+        .then(async res => {
+            if (!res.ok) { const e = await res.json(); alert(e.message || '수정 실패'); return; }
+            loadCategories();
+        });
+}
+function findCatById(id, list) {
+    const arr = list || catData;
+    for (const c of arr) {
+        if (c.id === id) return c;
+        const found = findCatById(id, c.children || []);
+        if (found) return found;
+    }
+    return null;
+}
+
+// === 드래그 정렬/이동 (SortableJS) ===
+function setupSortables() {
+    if (typeof Sortable === 'undefined') return;
+    document.querySelectorAll('.cat-sortable').forEach(container => {
+        new Sortable(container, {
+            group: 'categories',         // 모든 .cat-sortable이 같은 그룹 → 부모 간 이동 허용
+            handle: '.cat-handle',
+            animation: 150,
+            fallbackOnBody: true,
+            invertSwap: true,
+            onEnd: handleCatDrop,
+        });
+    });
+}
+async function handleCatDrop(evt) {
+    const movedId = +evt.item.dataset.id;
+    const oldParentId = evt.from.dataset.parentId === '' ? null : +evt.from.dataset.parentId;
+    const newParentId = evt.to.dataset.parentId === '' ? null : +evt.to.dataset.parentId;
+    const newIndex = evt.newIndex;
+
+    try {
+        if (oldParentId !== newParentId) {
+            // 다른 부모로 이동
+            const res = await fetch(`/api/inventory/categories/${movedId}/move`, {
+                method: 'POST', headers: H,
+                body: JSON.stringify({ new_parent_id: newParentId, sort_order: newIndex }),
+            });
+            if (!res.ok) { const e = await res.json(); alert(e.message || '이동 실패'); loadCategories(); return; }
+        }
+        // 새 부모 내 형제 순서 재배치
+        const orderedIds = Array.from(evt.to.children)
+            .filter(el => el.classList.contains('cat-node'))
+            .map(el => +el.dataset.id);
+        await fetch('/api/inventory/categories/reorder', {
+            method: 'POST', headers: H,
+            body: JSON.stringify({ parent_id: newParentId, ordered_ids: orderedIds }),
+        });
+        loadCategories();
+    } catch(e) { alert('네트워크 오류'); loadCategories(); }
 }
 function showAddCat(parentId) {
     if (parentId === null) {
@@ -419,28 +494,34 @@ async function deleteCat(id) {
 
 // === 카테고리 드롭다운 (제품 모달) ===
 function getSelectedCategoryId() {
+    const v4 = document.getElementById('pCat4')?.value;
     const v3 = document.getElementById('pCat3').value;
     const v2 = document.getElementById('pCat2').value;
     const v1 = document.getElementById('pCat1').value;
-    return v3 || v2 || v1 || null;
+    return v4 || v3 || v2 || v1 || null;
 }
 function updateSkuPreview() {
     const catId = getSelectedCategoryId();
     const preview = document.getElementById('skuPreview');
     if (!catId) { preview.style.display = 'none'; return; }
-    const codes = buildCodePath(+catId);
-    if (codes) {
-        document.getElementById('skuText').textContent = codes + '-XXX';
+    // SKU 베이스 = 2차 코드 (없으면 1차 폴백)
+    const base = getSkuBaseCode(+catId);
+    if (base) {
+        document.getElementById('skuText').textContent = base + '-XXX';
         preview.style.display = 'block';
     }
 }
-function buildCodePath(catId) {
+// SKU 베이스 코드 — 항상 2차 카테고리 코드 (1차만 있으면 1차 폴백)
+function getSkuBaseCode(catId) {
     for (const c1 of catData) {
-        if (c1.id === catId) return c1.code;
+        if (c1.id === catId) return c1.code; // 1차 직접 선택
         for (const c2 of (c1.children||[])) {
-            if (c2.id === catId) return c1.code+'-'+c2.code;
+            if (c2.id === catId) return c2.code;
             for (const c3 of (c2.children||[])) {
-                if (c3.id === catId) return c1.code+'-'+c2.code+'-'+c3.code;
+                if (c3.id === catId) return c2.code; // 3차 → 2차 코드
+                for (const c4 of (c3.children||[])) {
+                    if (c4.id === catId) return c2.code; // 4차 → 2차 코드
+                }
             }
         }
     }
@@ -449,19 +530,37 @@ function buildCodePath(catId) {
 function populateCatDropdowns(editCatId) {
     const s1 = document.getElementById('pCat1');
     s1.innerHTML = '<option value="">1차 선택</option>' + catData.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-    document.getElementById('pCat2').innerHTML = '<option value="">2차 선택</option>';
-    document.getElementById('pCat2').disabled = true;
-    document.getElementById('pCat3').innerHTML = '<option value="">3차 선택</option>';
-    document.getElementById('pCat3').disabled = true;
+    ['pCat2','pCat3','pCat4'].forEach((id, idx) => {
+        const sel = document.getElementById(id);
+        if (sel) { sel.innerHTML = `<option value="">${idx+2}차 선택</option>`; sel.disabled = true; }
+    });
     if (editCatId) {
         for (const c1 of catData) {
             if (c1.id === editCatId) { s1.value = c1.id; onCat1Change(); break; }
+            let matched = false;
             for (const c2 of (c1.children||[])) {
-                if (c2.id === editCatId) { s1.value = c1.id; onCat1Change(); document.getElementById('pCat2').value = c2.id; onCat2Change(); break; }
+                if (c2.id === editCatId) { s1.value = c1.id; onCat1Change(); document.getElementById('pCat2').value = c2.id; onCat2Change(); matched = true; break; }
                 for (const c3 of (c2.children||[])) {
-                    if (c3.id === editCatId) { s1.value = c1.id; onCat1Change(); document.getElementById('pCat2').value = c2.id; onCat2Change(); document.getElementById('pCat3').value = c3.id; break; }
+                    if (c3.id === editCatId) {
+                        s1.value = c1.id; onCat1Change();
+                        document.getElementById('pCat2').value = c2.id; onCat2Change();
+                        document.getElementById('pCat3').value = c3.id; onCat3Change();
+                        matched = true; break;
+                    }
+                    for (const c4 of (c3.children||[])) {
+                        if (c4.id === editCatId) {
+                            s1.value = c1.id; onCat1Change();
+                            document.getElementById('pCat2').value = c2.id; onCat2Change();
+                            document.getElementById('pCat3').value = c3.id; onCat3Change();
+                            document.getElementById('pCat4').value = c4.id;
+                            matched = true; break;
+                        }
+                    }
+                    if (matched) break;
                 }
+                if (matched) break;
             }
+            if (matched) break;
         }
     }
     updateSkuPreview();
@@ -470,7 +569,9 @@ function onCat1Change() {
     const c1 = catData.find(c=>c.id===+document.getElementById('pCat1').value);
     const s2 = document.getElementById('pCat2');
     const s3 = document.getElementById('pCat3');
+    const s4 = document.getElementById('pCat4');
     s3.innerHTML = '<option value="">3차 선택</option>'; s3.disabled = true;
+    if (s4) { s4.innerHTML = '<option value="">4차 선택</option>'; s4.disabled = true; }
     if (c1 && c1.children?.length) {
         s2.innerHTML = '<option value="">2차 선택</option>' + c1.children.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
         s2.disabled = false;
@@ -481,10 +582,24 @@ function onCat2Change() {
     const c1 = catData.find(c=>c.id===+document.getElementById('pCat1').value);
     const c2 = c1?.children?.find(c=>c.id===+document.getElementById('pCat2').value);
     const s3 = document.getElementById('pCat3');
+    const s4 = document.getElementById('pCat4');
+    if (s4) { s4.innerHTML = '<option value="">4차 선택</option>'; s4.disabled = true; }
     if (c2 && c2.children?.length) {
         s3.innerHTML = '<option value="">3차 선택</option>' + c2.children.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
         s3.disabled = false;
     } else { s3.innerHTML = '<option value="">3차 없음</option>'; s3.disabled = true; }
+    updateSkuPreview();
+}
+function onCat3Change() {
+    const c1 = catData.find(c=>c.id===+document.getElementById('pCat1').value);
+    const c2 = c1?.children?.find(c=>c.id===+document.getElementById('pCat2').value);
+    const c3 = c2?.children?.find(c=>c.id===+document.getElementById('pCat3').value);
+    const s4 = document.getElementById('pCat4');
+    if (!s4) return;
+    if (c3 && c3.children?.length) {
+        s4.innerHTML = '<option value="">4차 선택</option>' + c3.children.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+        s4.disabled = false;
+    } else { s4.innerHTML = '<option value="">4차 없음</option>'; s4.disabled = true; }
     updateSkuPreview();
 }
 

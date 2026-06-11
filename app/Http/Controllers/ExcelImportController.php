@@ -22,9 +22,10 @@ class ExcelImportController extends Controller
 {
     private const TEMPLATES = [
         'products' => [
-            // 카테고리는 3차까지 가능 — 코드 또는 이름으로 입력 가능, 가장 하위 단계만 채워도 됨
-            'headers' => ['SKU', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '매입가', '판매가', '안전재고', '메모'],
-            'required' => ['SKU', '제품명'],
+            // 카테고리는 4차까지 가능 — 코드 또는 이름으로 입력 가능, 가장 하위 단계만 채워도 됨
+            // SKU 비어있으면 2차 카테고리 코드 기반으로 자동 생성됨
+            'headers' => ['SKU(비우면 자동)', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '카테고리4차(코드/이름)', '매입가', '판매가', '안전재고', '메모'],
+            'required' => ['제품명'],
         ],
         'clients' => [
             'headers' => ['이름', '닉네임', '전화번호', '주소', '상세주소', '등급(일반/VIP/렌탈)', '성별(남/여/기타)', '소속', '플랫폼(쉼표:SOOP,유튜브,치지직,틱톡,팬더티비,기타)', '플랫폼-기타', '방송주제(쉼표:소통,게임,노래,먹방,야외,버추얼,코인,주식,기타,미정)', '방송주제-기타', '방송아이디', '최초등록일(YYYY-MM-DD)', '특이사항', '메모'],
@@ -62,12 +63,13 @@ class ExcelImportController extends Controller
         if ($type === 'products') {
             $this->addProductCategoriesSheet($spreadsheet);
             // 입력 시트 2행에 예시 안내
-            $sheet->setCellValue('A2', '예시: SKU-001');
-            $sheet->setCellValue('B2', '게이밍 PC');
+            $sheet->setCellValue('A2', '(비우면 자동: PCSET-001)');
+            $sheet->setCellValue('B2', '게이밍 PC 본체');
             $sheet->setCellValue('C2', 'PC');
             $sheet->setCellValue('D2', 'PCSET');
             $sheet->setCellValue('E2', 'PCGAME');
-            $sheet->getStyle('A2:I2')->getFont()->setItalic(true)->getColor()->setRGB('999999');
+            $sheet->setCellValue('F2', '');
+            $sheet->getStyle('A2:J2')->getFont()->setItalic(true)->getColor()->setRGB('999999');
         }
 
         $filename = "drgo-{$type}-template.xlsx";
@@ -89,7 +91,7 @@ class ExcelImportController extends Controller
         $catSheet = $spreadsheet->createSheet();
         $catSheet->setTitle('📋 카테고리 목록');
 
-        $headers = ['1차 코드', '1차 이름', '2차 코드', '2차 이름', '3차 코드', '3차 이름', '전체 경로'];
+        $headers = ['1차 코드', '1차 이름', '2차 코드', '2차 이름', '3차 코드', '3차 이름', '4차 코드', '4차 이름', '전체 경로'];
         foreach ($headers as $col => $h) {
             $cell = $catSheet->getCell([$col + 1, 1]);
             $cell->setValue($h);
@@ -125,25 +127,42 @@ class ExcelImportController extends Controller
                     continue;
                 }
                 foreach ($children2 as $r3) {
-                    $catSheet->setCellValue("A{$row}", $r1->code);
-                    $catSheet->setCellValue("B{$row}", $r1->name);
-                    $catSheet->setCellValue("C{$row}", $r2->code);
-                    $catSheet->setCellValue("D{$row}", $r2->name);
-                    $catSheet->setCellValue("E{$row}", $r3->code);
-                    $catSheet->setCellValue("F{$row}", $r3->name);
-                    $catSheet->setCellValue("G{$row}", "{$r1->name} > {$r2->name} > {$r3->name}");
-                    $row++;
+                    $children3 = ProductCategory::where('parent_id', $r3->id)->orderBy('sort_order')->orderBy('id')->get();
+                    if ($children3->isEmpty()) {
+                        $catSheet->setCellValue("A{$row}", $r1->code);
+                        $catSheet->setCellValue("B{$row}", $r1->name);
+                        $catSheet->setCellValue("C{$row}", $r2->code);
+                        $catSheet->setCellValue("D{$row}", $r2->name);
+                        $catSheet->setCellValue("E{$row}", $r3->code);
+                        $catSheet->setCellValue("F{$row}", $r3->name);
+                        $catSheet->setCellValue("I{$row}", "{$r1->name} > {$r2->name} > {$r3->name}");
+                        $row++;
+
+                        continue;
+                    }
+                    foreach ($children3 as $r4) {
+                        $catSheet->setCellValue("A{$row}", $r1->code);
+                        $catSheet->setCellValue("B{$row}", $r1->name);
+                        $catSheet->setCellValue("C{$row}", $r2->code);
+                        $catSheet->setCellValue("D{$row}", $r2->name);
+                        $catSheet->setCellValue("E{$row}", $r3->code);
+                        $catSheet->setCellValue("F{$row}", $r3->name);
+                        $catSheet->setCellValue("G{$row}", $r4->code);
+                        $catSheet->setCellValue("H{$row}", $r4->name);
+                        $catSheet->setCellValue("I{$row}", "{$r1->name} > {$r2->name} > {$r3->name} > {$r4->name}");
+                        $row++;
+                    }
                 }
             }
         }
 
         // 줄무늬 배경 + 테두리
         if ($row > 2) {
-            $range = 'A2:G'.($row - 1);
+            $range = 'A2:I'.($row - 1);
             $catSheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('D0D7DE');
             for ($r = 2; $r < $row; $r++) {
                 if ($r % 2 === 0) {
-                    $catSheet->getStyle("A{$r}:G{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+                    $catSheet->getStyle("A{$r}:I{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
                 }
             }
         }
@@ -152,7 +171,7 @@ class ExcelImportController extends Controller
         $catSheet->setCellValue("A{$row}", '');
         $catSheet->setCellValue('A'.($row + 1), '※ 데이터 입력 시트의 카테고리1/2/3차 컬럼에 위 코드 또는 이름을 그대로 입력하세요.');
         $catSheet->getStyle('A'.($row + 1))->getFont()->setItalic(true)->getColor()->setRGB('666666');
-        $catSheet->mergeCells('A'.($row + 1).':G'.($row + 1));
+        $catSheet->mergeCells('A'.($row + 1).':I'.($row + 1));
     }
 
     public function import(Request $request, string $type)
@@ -272,17 +291,18 @@ class ExcelImportController extends Controller
     private function importProduct(array $data, bool $autoCreate = true): bool
     {
         $name = $data['제품명'] ?? null;
-        $sku = $data['SKU'] ?? null;
-        if (! $name || ! $sku) {
+        $sku = trim((string) ($data['SKU(비우면 자동)'] ?? $data['SKU'] ?? ''));
+        if (! $name) {
             return false;
         }
 
-        // 카테고리 1차→2차→3차 순서로 트리 따라가며 가장 깊은 매치를 사용
+        // 카테고리 1차→2차→3차→4차 순서로 트리 따라가며 가장 깊은 매치를 사용
         // 각 컬럼은 'code' 또는 'name' 어느 쪽이든 허용. 없으면 자동 생성(autoCreate=true).
         $catRefs = [
             trim((string) ($data['카테고리1차(코드/이름)'] ?? '')),
             trim((string) ($data['카테고리2차(코드/이름)'] ?? '')),
             trim((string) ($data['카테고리3차(코드/이름)'] ?? '')),
+            trim((string) ($data['카테고리4차(코드/이름)'] ?? '')),
         ];
 
         $categoryId = null;
@@ -310,6 +330,15 @@ class ExcelImportController extends Controller
             $parentId = $node->id;
         }
 
+        // SKU 비어있으면 2차 카테고리 코드 기반으로 자동 생성
+        if ($sku === '') {
+            if (! $categoryId) {
+                throw new \Exception('카테고리를 지정해야 SKU를 자동 생성할 수 있습니다.');
+            }
+            $cat = ProductCategory::find($categoryId);
+            $sku = $this->autoGenerateSku($cat);
+        }
+
         Product::create([
             'sku' => $sku,
             'name' => $name,
@@ -323,6 +352,22 @@ class ExcelImportController extends Controller
         ]);
 
         return true;
+    }
+
+    /**
+     * 2차 카테고리 코드를 베이스로 한 자동 SKU 생성 (예: PCSET-001)
+     */
+    private function autoGenerateSku(ProductCategory $category): string
+    {
+        $prefix = $category->getSkuBaseCode();
+        $last = Product::withTrashed()
+            ->where('sku', 'like', "{$prefix}-%")
+            ->where('sku', 'regexp', "^{$prefix}-[0-9]+$")
+            ->orderByRaw("CAST(SUBSTRING_INDEX(sku, '-', -1) AS UNSIGNED) DESC")
+            ->first();
+        $next = $last ? ((int) last(explode('-', $last->sku)) + 1) : 1;
+
+        return $prefix.'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 
     private function importClient(array $data): bool

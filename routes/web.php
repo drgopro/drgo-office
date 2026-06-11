@@ -186,6 +186,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:inventory.edit')->group(function () {
         Route::post('/api/inventory/categories', [InventoryController::class, 'storeCategory']);
         Route::patch('/api/inventory/categories/{category}', [InventoryController::class, 'updateCategory']);
+        Route::post('/api/inventory/categories/{category}/move', [InventoryController::class, 'moveCategory']);
+        Route::post('/api/inventory/categories/reorder', [InventoryController::class, 'reorderCategories']);
         Route::delete('/api/inventory/categories/{category}', [InventoryController::class, 'destroyCategory']);
         Route::post('/api/inventory/products', [InventoryController::class, 'storeProduct']);
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);
