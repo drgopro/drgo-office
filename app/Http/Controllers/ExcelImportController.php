@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -17,7 +21,8 @@ class ExcelImportController extends Controller
 {
     private const TEMPLATES = [
         'products' => [
-            'headers' => ['SKU', '제품명', '카테고리', '매입가', '판매가', '안전재고', '메모'],
+            // 카테고리는 3차까지 가능 — 코드 또는 이름으로 입력 가능, 가장 하위 단계만 채워도 됨
+            'headers' => ['SKU', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '매입가', '판매가', '안전재고', '메모'],
             'required' => ['SKU', '제품명'],
         ],
         'clients' => [
@@ -38,6 +43,7 @@ class ExcelImportController extends Controller
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('데이터 입력');
         $headers = self::TEMPLATES[$type]['headers'];
         $required = self::TEMPLATES[$type]['required'];
 
@@ -51,6 +57,18 @@ class ExcelImportController extends Controller
             $sheet->getColumnDimensionByColumn($col + 1)->setAutoSize(true);
         }
 
+        // products 템플릿에는 카테고리 참조 시트 추가
+        if ($type === 'products') {
+            $this->addProductCategoriesSheet($spreadsheet);
+            // 입력 시트 2행에 예시 안내
+            $sheet->setCellValue('A2', '예시: SKU-001');
+            $sheet->setCellValue('B2', '게이밍 PC');
+            $sheet->setCellValue('C2', 'PC');
+            $sheet->setCellValue('D2', 'PCSET');
+            $sheet->setCellValue('E2', 'PCGAME');
+            $sheet->getStyle('A2:I2')->getFont()->setItalic(true)->getColor()->setRGB('999999');
+        }
+
         $filename = "drgo-{$type}-template.xlsx";
 
         return new StreamedResponse(function () use ($spreadsheet) {
@@ -60,6 +78,80 @@ class ExcelImportController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    /**
+     * 두 번째 시트로 등록된 카테고리 트리(코드/이름/경로) 노출 — 사용자 참조용
+     */
+    private function addProductCategoriesSheet(Spreadsheet $spreadsheet): void
+    {
+        $catSheet = $spreadsheet->createSheet();
+        $catSheet->setTitle('📋 카테고리 목록');
+
+        $headers = ['1차 코드', '1차 이름', '2차 코드', '2차 이름', '3차 코드', '3차 이름', '전체 경로'];
+        foreach ($headers as $col => $h) {
+            $cell = $catSheet->getCell([$col + 1, 1]);
+            $cell->setValue($h);
+            $cell->getStyle()->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $cell->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('2563EB');
+            $cell->getStyle()->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $catSheet->getColumnDimensionByColumn($col + 1)->setAutoSize(true);
+        }
+
+        // 모든 카테고리 트리 평탄화
+        $roots = ProductCategory::whereNull('parent_id')->orderBy('sort_order')->orderBy('id')->get();
+        $row = 2;
+        foreach ($roots as $r1) {
+            $children1 = ProductCategory::where('parent_id', $r1->id)->orderBy('sort_order')->orderBy('id')->get();
+            if ($children1->isEmpty()) {
+                $catSheet->setCellValue("A{$row}", $r1->code);
+                $catSheet->setCellValue("B{$row}", $r1->name);
+                $catSheet->setCellValue("G{$row}", $r1->name);
+                $row++;
+
+                continue;
+            }
+            foreach ($children1 as $r2) {
+                $children2 = ProductCategory::where('parent_id', $r2->id)->orderBy('sort_order')->orderBy('id')->get();
+                if ($children2->isEmpty()) {
+                    $catSheet->setCellValue("A{$row}", $r1->code);
+                    $catSheet->setCellValue("B{$row}", $r1->name);
+                    $catSheet->setCellValue("C{$row}", $r2->code);
+                    $catSheet->setCellValue("D{$row}", $r2->name);
+                    $catSheet->setCellValue("G{$row}", "{$r1->name} > {$r2->name}");
+                    $row++;
+
+                    continue;
+                }
+                foreach ($children2 as $r3) {
+                    $catSheet->setCellValue("A{$row}", $r1->code);
+                    $catSheet->setCellValue("B{$row}", $r1->name);
+                    $catSheet->setCellValue("C{$row}", $r2->code);
+                    $catSheet->setCellValue("D{$row}", $r2->name);
+                    $catSheet->setCellValue("E{$row}", $r3->code);
+                    $catSheet->setCellValue("F{$row}", $r3->name);
+                    $catSheet->setCellValue("G{$row}", "{$r1->name} > {$r2->name} > {$r3->name}");
+                    $row++;
+                }
+            }
+        }
+
+        // 줄무늬 배경 + 테두리
+        if ($row > 2) {
+            $range = 'A2:G'.($row - 1);
+            $catSheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('D0D7DE');
+            for ($r = 2; $r < $row; $r++) {
+                if ($r % 2 === 0) {
+                    $catSheet->getStyle("A{$r}:G{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+                }
+            }
+        }
+
+        // 안내 메시지
+        $catSheet->setCellValue("A{$row}", '');
+        $catSheet->setCellValue('A'.($row + 1), '※ 데이터 입력 시트의 카테고리1/2/3차 컬럼에 위 코드 또는 이름을 그대로 입력하세요.');
+        $catSheet->getStyle('A'.($row + 1))->getFont()->setItalic(true)->getColor()->setRGB('666666');
+        $catSheet->mergeCells('A'.($row + 1).':G'.($row + 1));
     }
 
     public function import(Request $request, string $type)
@@ -147,10 +239,39 @@ class ExcelImportController extends Controller
             return false;
         }
 
+        // 카테고리 1차→2차→3차 순서로 트리 따라가며 가장 깊은 매치를 사용
+        // 각 컬럼은 'code' 또는 'name' 어느 쪽이든 허용
+        $catRefs = [
+            trim((string) ($data['카테고리1차(코드/이름)'] ?? '')),
+            trim((string) ($data['카테고리2차(코드/이름)'] ?? '')),
+            trim((string) ($data['카테고리3차(코드/이름)'] ?? '')),
+        ];
+
+        $categoryId = null;
+        $categoryName = null;
+        $parentId = null;
+        foreach ($catRefs as $ref) {
+            if ($ref === '') {
+                break;
+            }
+            $node = ProductCategory::where('parent_id', $parentId)
+                ->where(function ($q) use ($ref) {
+                    $q->where('code', $ref)->orWhere('name', $ref);
+                })
+                ->first();
+            if (! $node) {
+                throw new \Exception("카테고리 '{$ref}' 를 ".($parentId ? '하위에서' : '1차에서').' 찾을 수 없습니다.');
+            }
+            $categoryId = $node->id;
+            $categoryName = $node->name;
+            $parentId = $node->id;
+        }
+
         Product::create([
             'sku' => $sku,
             'name' => $name,
-            'category' => $data['카테고리'] ?? null,
+            'category_id' => $categoryId,
+            'category' => $categoryName,
             'purchase_price' => (int) ($data['매입가'] ?? 0),
             'sale_price' => (int) ($data['판매가'] ?? 0),
             'safety_stock' => (int) ($data['안전재고'] ?? 0),
