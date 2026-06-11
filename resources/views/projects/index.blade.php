@@ -177,6 +177,11 @@
                 </tr>
             </thead>
             <tbody>
+            @php
+                // 동적 라벨 매핑 — 한 번만 로드해서 foreach에서 사용 (N+1 방지)
+                $ptDefaults = ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'];
+                $ptLabelMap = \App\Models\ConsultationType::pluck('label', 'key')->toArray();
+            @endphp
                 @foreach($projects as $project)
                 <tr>
                     <td>
@@ -192,7 +197,7 @@
                     </td>
                     <td>
                         <span class="badge badge-{{ $project->project_type }}">
-                            {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
+                            {{ $ptLabelMap[$project->project_type] ?? ($ptDefaults[$project->project_type] ?? $project->project_type) }}
                         </span>
                     </td>
                     <td>

@@ -330,13 +330,17 @@
                 <span>프로젝트 ({{ $client->projects->count() }}건)</span>
             </div>
             @if($client->projects->count() > 0)
+                @php
+                    $ptDefaults = ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'];
+                    $ptLabelMap = \App\Models\ConsultationType::pluck('label', 'key')->toArray();
+                @endphp
                 <div class="project-list">
                     @foreach($client->projects as $project)
                     <a href="{{ route('projects.show', $project) }}" class="project-item">
                         <div>
                             <div class="project-name">{{ $project->name }}</div>
                             <div class="project-meta">
-                                {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
+                                {{ $ptLabelMap[$project->project_type] ?? ($ptDefaults[$project->project_type] ?? $project->project_type) }}
                                 · {{ $project->created_at->format('Y.m.d') }}
                             </div>
                         </div>

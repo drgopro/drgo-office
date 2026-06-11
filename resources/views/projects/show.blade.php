@@ -280,18 +280,29 @@
             <div>
                 <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
                 <input id="projectNameEdit" type="text" value="{{ $project->name }}" style="display:none;font-size:22px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);width:100%;outline:none;" onblur="saveProjectName()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.value='{{ addslashes($project->name) }}';this.blur();}">
+                @php
+                    // 동적 라벨 매핑 — 관리자 정의(consultation_types/work_types)에서 라벨 우선, 폴백은 하드코딩 기본 셋
+                    $ptDefaults = ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'];
+                    $ptLabelMap = \App\Models\ConsultationType::pluck('label', 'key')->toArray();
+                    $projectTypeLabel = $ptLabelMap[$project->project_type] ?? ($ptDefaults[$project->project_type] ?? $project->project_type);
+
+                    $scaleL = ['personal'=>'개인','studio'=>'스튜디오','corporate'=>'기업','rental'=>'렌탈','broadcast_room'=>'방송룸'];
+                    $workDefaults = ['setup'=>'세팅','remote'=>'원격','survey'=>'답사','filming'=>'촬영중계','design'=>'디자인','as'=>'A/S','dispatch'=>'파견','monthly'=>'월 계약','hourly'=>'시간 대여'];
+                    $workLabelMap = class_exists(\App\Models\WorkType::class) ? \App\Models\WorkType::pluck('label', 'key')->toArray() : [];
+                    $workTypeLabel = $project->work_type ? ($workLabelMap[$project->work_type] ?? ($workDefaults[$project->work_type] ?? $project->work_type)) : null;
+                @endphp
                 <div class="project-meta">
                     <span class="badge badge-{{ $project->project_type }}">
-                        {{ ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'][$project->project_type] ?? $project->project_type }}
+                        {{ $projectTypeLabel }}
                     </span>
                     @if($project->client_scale)
-                        @php
-                            $scaleL = ['personal'=>'개인','studio'=>'스튜디오','corporate'=>'기업','rental'=>'렌탈','broadcast_room'=>'방송룸'];
-                            $workL = ['setup'=>'세팅','remote'=>'원격','survey'=>'답사','filming'=>'촬영중계','design'=>'디자인','as'=>'A/S','dispatch'=>'파견','monthly'=>'월 계약','hourly'=>'시간 대여'];
-                        @endphp
                         <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
                             {{ $scaleL[$project->client_scale] ?? $project->client_scale }}
-                            @if($project->work_type) · {{ $workL[$project->work_type] ?? $project->work_type }} @endif
+                            @if($workTypeLabel) · {{ $workTypeLabel }} @endif
+                        </span>
+                    @elseif($workTypeLabel)
+                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
+                            {{ $workTypeLabel }}
                         </span>
                     @else
                         <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text-muted);cursor:pointer;border:1px dashed var(--border);" onclick="openScaleEditor()">+ 규모 지정</span>
