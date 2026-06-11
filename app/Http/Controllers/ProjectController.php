@@ -259,6 +259,7 @@ class ProjectController extends Controller
             'items.*.name' => 'nullable|string|max:200',
             'items.*.qty' => 'nullable|integer|min:0',
             'items.*.price' => 'nullable|integer|min:0',
+            'items.*.source' => 'nullable|string|max:20',
             'memo' => 'nullable|string|max:1000',
             'mark_estimate_paid' => 'nullable|boolean',
             'has_balance' => 'nullable|boolean',
@@ -487,6 +488,7 @@ class ProjectController extends Controller
             'items.*.name' => 'nullable|string|max:200',
             'items.*.qty' => 'nullable|integer|min:0',
             'items.*.price' => 'nullable|integer|min:0',
+            'items.*.source' => 'nullable|string|max:20',
             'memo' => 'nullable|string|max:1000',
             'estimate_id' => 'nullable|integer|exists:estimates,id',
         ]);

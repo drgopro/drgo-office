@@ -2034,7 +2034,12 @@ function renderPaymentHistory() {
         const fullyRefunded = isCharge && p.is_fully_refunded;
         const canRefund = isCharge && !fullyRefunded;
         const itemsHtml = (p.items && p.items.length)
-            ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it => `<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${_escPh(it.name||'-')}</span><span>${it.qty||1}개 × ${_fmtPh(it.price||0)}원</span></div>`).join('')}</div>`
+            ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it => {
+                const srcBadge = it.source === 'estimate'
+                    ? '<span style="font-size:9px; color:var(--accent); border:1px solid var(--accent); border-radius:3px; padding:0 4px; margin-right:4px;">견적</span>'
+                    : (it.source === 'manual' ? '<span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px; margin-right:4px;">수기</span>' : '');
+                return `<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${srcBadge}${_escPh(it.name||'-')}</span><span>${it.qty||1}개 × ${_fmtPh(it.price||0)}원</span></div>`;
+            }).join('')}</div>`
             : '';
         return `<div style="padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; ${fullyRefunded ? 'opacity:0.6;' : ''}">
             <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
@@ -2435,26 +2440,42 @@ function togglePayBalance() {
 function onSelectEstimate(userAction = false) {
     const id = document.getElementById('payEstimateId').value;
     const info = document.getElementById('payEstimateInfo');
-    if (!id) { info.textContent = ''; return; }
+    if (!id) {
+        info.textContent = '';
+        // 견적서 해제 시: 견적서 출처 항목 제거, 수기 항목만 남김
+        if (userAction) {
+            const manualItems = collectPayItems().filter(it => it.source === 'manual');
+            const wrap = document.getElementById('payItemsWrap');
+            wrap.innerHTML = '';
+            (manualItems.length ? manualItems : [{name:'', qty:1, price:0}]).forEach(it => addPayItem(it));
+            window.payAmountManual = false;
+            recalcPayAmount();
+        }
+        return;
+    }
     const est = payEstimatesList.find(e => String(e.id) === id);
     if (!est) { info.textContent = ''; return; }
     info.innerHTML = `상품 ${est.items_summary.products}건 · 서비스 ${est.items_summary.services}건 · 합계 <strong style="color:var(--accent);">${(est.total_amount||0).toLocaleString()}원</strong> · 발행 ${est.issued_at || est.created_at || '-'}`;
 
     const amountEl = document.getElementById('payAmount');
     if (userAction) {
-        // 견적서 선택 시: 항목 목록을 견적서 항목으로 교체 + 금액을 견적서 합계로 반영
-        const items = est.payment_items || [];
-        if (items.length) {
-            renderPayItems(items);
-            window.payAmountManual = false; // 항목 합산 모드로 전환
-            recalcPayAmount();
+        // 견적서 선택 시: 기존 견적서 항목만 제거하고 새 견적서 항목으로 교체.
+        // 수기 항목은 그대로 보존 → 견적서 금액 + 수기 금액 합산.
+        const manualItems = collectPayItems().filter(it => it.source === 'manual');
+        const estItems = (est.payment_items || []).map(it => ({...it, source: 'estimate'}));
+        const merged = [...estItems, ...manualItems];
+
+        const wrap = document.getElementById('payItemsWrap');
+        wrap.innerHTML = '';
+        if (merged.length) {
+            merged.forEach(it => addPayItem(it));
         } else {
-            // 항목 정보가 없으면 합계만 금액에 반영
-            window.payAmountManual = true;
-            amountEl.value = est.total_amount || 0;
+            addPayItem(); // 빈 수기 항목 1줄
         }
+        window.payAmountManual = false; // 항목 합산 모드 — 견적서+수기 자동 합산
+        recalcPayAmount();
         const note = document.getElementById('payAmountNote');
-        if (note) note.textContent = '(견적서 금액 반영됨)';
+        if (note) note.textContent = '(견적서 + 수기 항목 합산)';
     } else {
         // 모달 열 때 복원: 금액이 비어 있을 때만 합계로 채움 (저장된 값 보존)
         if (!amountEl.value || +amountEl.value === 0) amountEl.value = est.total_amount || 0;
@@ -2469,9 +2490,15 @@ function renderPayItems(items) {
 function addPayItem(it = {name:'', qty:1, price:0}) {
     const wrap = document.getElementById('payItemsWrap');
     const row = document.createElement('div');
+    const isEst = it.source === 'estimate';
     row.className = 'pay-item-row';
+    row.dataset.source = isEst ? 'estimate' : 'manual';
     row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    const badge = isEst
+        ? '<span title="견적서 항목" style="font-size:10px; color:var(--accent); border:1px solid var(--accent); border-radius:4px; padding:1px 5px; white-space:nowrap;">견적</span>'
+        : '<span title="수기 항목" style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 5px; white-space:nowrap;">수기</span>';
     row.innerHTML = `
+        ${badge}
         <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;" oninput="recalcPayAmount()">
         <input type="number" class="pcf-input" value="${it.qty ?? 1}" min="0" placeholder="수량" data-pi="qty" style="flex:0.6; max-width:80px;" oninput="recalcPayAmount()">
         <input type="number" class="pcf-input" value="${it.price ?? 0}" min="0" placeholder="단가" data-pi="price" style="flex:1; max-width:120px;" oninput="recalcPayAmount()">
@@ -2507,7 +2534,8 @@ function collectPayItems() {
         const name = row.querySelector('[data-pi="name"]').value.trim();
         const qty = parseInt(row.querySelector('[data-pi="qty"]').value, 10) || 0;
         const price = parseInt(row.querySelector('[data-pi="price"]').value, 10) || 0;
-        if (name) items.push({name, qty, price});
+        const source = row.dataset.source === 'estimate' ? 'estimate' : 'manual';
+        if (name) items.push({name, qty, price, source});
     });
     return items;
 }
