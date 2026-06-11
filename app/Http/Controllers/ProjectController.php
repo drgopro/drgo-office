@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
-use App\Models\ConsultationType;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectFeedback;
@@ -60,12 +59,11 @@ class ProjectController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:200',
-            'project_type' => 'nullable|string|max:50',
+            'project_type' => 'required|string|max:50|exists:consultation_types,key',
             'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'nullable|string|max:50',
             'overview' => 'nullable|string',
             'memo' => 'nullable|string', // 하위 호환 (구버전 클라이언트)
-            'is_payment_only' => 'sometimes|boolean',
             'custom_data' => 'nullable|array',
         ]);
         if (isset($validated['memo']) && ! isset($validated['overview'])) {
@@ -73,24 +71,9 @@ class ProjectController extends Controller
         }
         unset($validated['memo']);
 
-        // 단순 결제 프로젝트는 project_type 강제 (DB enum 호환). 일반 프로젝트는 필수
-        $isPaymentOnly = ! empty($validated['is_payment_only']);
-        if ($isPaymentOnly) {
-            $validated['project_type'] = $validated['project_type'] ?: 'visit';
-        } else {
-            if (empty($validated['project_type'])) {
-                return response()->json(['errors' => ['project_type' => ['프로젝트 유형은 필수입니다.']]], 422);
-            }
-            // 일반 프로젝트만 consultation_types exists 검증
-            if (! ConsultationType::where('key', $validated['project_type'])->exists()) {
-                return response()->json(['errors' => ['project_type' => ['유효하지 않은 프로젝트 유형입니다.']]], 422);
-            }
-        }
-
         $validated['client_id'] = $client->id;
         $validated['assigned_user_id'] = Auth::id();
-        // 단순 결제 프로젝트는 바로 'payment' 단계로 시작
-        $validated['stage'] = $isPaymentOnly ? 'payment' : 'consulting';
+        $validated['stage'] = 'consulting';
         $validated['status'] = 'active';
 
         $project = Project::create($validated);

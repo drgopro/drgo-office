@@ -388,10 +388,21 @@ async function submitNewProject() {
     const paymentOnly = document.getElementById('npPaymentOnly').checked;
     let body;
     if (paymentOnly) {
+        // 단순 결제: project_type='상품 문의', work_type='단순 결제' (라벨 매칭으로 키 찾음)
+        // ConsultationType / WorkType에서 라벨/키 매칭 후 자동 적용
+        const consultRes = await fetch('/api/consultation-types/active', { headers:{ 'Accept':'application/json' } });
+        const consultTypes = consultRes.ok ? await consultRes.json() : [];
+        const ptMatch = consultTypes.find(t => t.label === '상품 문의' || t.label === '상품문의' || t.key === 'product_inquiry' || t.key === 'inquiry');
+        const projectTypeKey = ptMatch?.key || 'inquiry';
+
+        await loadNpWorkTypes();
+        const wtMatch = (NP_WORK_TYPES_ACTIVE || []).find(w => w.label === '단순 결제' || w.label === '단순결제' || w.key === 'paid');
+        const workTypeKey = wtMatch?.key || null;
+
         body = {
             name,
-            is_payment_only: true,
-            project_type: 'visit', // 단순 결제는 유형 무관 (서버가 기본값 처리)
+            project_type: projectTypeKey,
+            work_type: workTypeKey,
         };
     } else {
         const projectType = document.getElementById('npType').value;
@@ -423,10 +434,12 @@ async function submitNewProject() {
             if (m) projectId = m[1];
         }
         closeNewProjectModal();
+        // 단순 결제는 결제 모달 자동 오픈 hash 부착
+        const hash = paymentOnly ? '#openPayment' : '';
         if (projectId && typeof openTopTab === 'function') {
-            openTopTab('projects', '/projects/' + projectId, '📁 ' + name);
+            openTopTab('projects', '/projects/' + projectId + hash, '📁 ' + name);
         } else {
-            location.reload();
+            location.href = '/projects/' + projectId + hash;
         }
     } else {
         let detail = '';
