@@ -332,7 +332,7 @@
             @if($client->projects->count() > 0)
                 @php
                     $ptDefaults = ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'];
-                    $ptLabelMap = \App\Models\ConsultationType::pluck('label', 'key')->toArray();
+                    $ptLabelMap = rescue(fn () => \App\Models\ConsultationType::pluck('label', 'key')->toArray(), [], false);
                 @endphp
                 <div class="project-list">
                     @foreach($client->projects as $project)

@@ -283,12 +283,12 @@
                 @php
                     // 동적 라벨 매핑 — 관리자 정의(consultation_types/work_types)에서 라벨 우선, 폴백은 하드코딩 기본 셋
                     $ptDefaults = ['visit'=>'방문세팅','remote'=>'원격세팅','design'=>'디자인','inquiry'=>'단순문의','as'=>'A/S','troubleshoot'=>'문제 해결'];
-                    $ptLabelMap = \App\Models\ConsultationType::pluck('label', 'key')->toArray();
+                    $ptLabelMap = rescue(fn () => \App\Models\ConsultationType::pluck('label', 'key')->toArray(), [], false);
                     $projectTypeLabel = $ptLabelMap[$project->project_type] ?? ($ptDefaults[$project->project_type] ?? $project->project_type);
 
                     $scaleL = ['personal'=>'개인','studio'=>'스튜디오','corporate'=>'기업','rental'=>'렌탈','broadcast_room'=>'방송룸'];
                     $workDefaults = ['setup'=>'세팅','remote'=>'원격','survey'=>'답사','filming'=>'촬영중계','design'=>'디자인','as'=>'A/S','dispatch'=>'파견','monthly'=>'월 계약','hourly'=>'시간 대여'];
-                    $workLabelMap = class_exists(\App\Models\WorkType::class) ? \App\Models\WorkType::pluck('label', 'key')->toArray() : [];
+                    $workLabelMap = rescue(fn () => \App\Models\WorkType::pluck('label', 'key')->toArray(), [], false);
                     $workTypeLabel = $project->work_type ? ($workLabelMap[$project->work_type] ?? ($workDefaults[$project->work_type] ?? $project->work_type)) : null;
                 @endphp
                 <div class="project-meta">
@@ -376,7 +376,7 @@
             ],
         ];
         // '상품 문의' 라벨은 항상 product_inquiry 시퀀스를 사용 (다른 key를 쓰는 경우 폴백)
-        $ptLabel = optional(\App\Models\ConsultationType::where('key', $project->project_type)->first())->label ?? '';
+        $ptLabel = rescue(fn () => optional(\App\Models\ConsultationType::where('key', $project->project_type)->first())->label, '', false) ?? '';
         if (in_array($ptLabel, ['상품 문의', '상품문의'], true) && isset($stageSets['product_inquiry'])) {
             $stages = $stageSets['product_inquiry'];
         } else {
