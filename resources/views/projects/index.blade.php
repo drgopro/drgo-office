@@ -201,12 +201,16 @@
                         <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); if (typeof openTopTab === 'function') openTopTab('projects', '/projects/{{ $project->id }}', '📁 {{ addslashes($project->name) }}'); else window.location.href=this.href;">{{ $project->name }}</a>
                     </td>
                     <td>
-                        <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="client-link" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
-                            {{ $project->client->name }}
-                            @if($project->client->nickname)
-                                ({{ $project->client->nickname }})
-                            @endif
-                        </a>
+                        @if($project->client)
+                            <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="client-link" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
+                                {{ $project->client->name }}
+                                @if($project->client->nickname)
+                                    ({{ $project->client->nickname }})
+                                @endif
+                            </a>
+                        @else
+                            <span class="text-muted" style="color:var(--text-muted);">(의뢰자 없음)</span>
+                        @endif
                     </td>
                     <td>
                         <span class="badge badge-{{ $project->project_type }}">

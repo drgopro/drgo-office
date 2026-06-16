@@ -276,7 +276,11 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">← {{ $project->client->name }}</a>
+            @if($project->client)
+                <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">← {{ $project->client->name }}</a>
+            @else
+                <span class="back-btn" style="color:var(--text-muted);">← (의뢰자 없음)</span>
+            @endif
             <div>
                 <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
                 <input id="projectNameEdit" type="text" value="{{ $project->name }}" style="display:none;font-size:22px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);width:100%;outline:none;" onblur="saveProjectName()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.value='{{ addslashes($project->name) }}';this.blur();}">
@@ -448,6 +452,7 @@
     <div class="info-grid">
         <div class="info-card">
             <div class="card-title">의뢰자 정보</div>
+            @if($project->client)
             <div class="info-row">
                 <div class="info-label">이름</div>
                 <div>
@@ -471,6 +476,9 @@
             <div class="important-memo-box" style="margin-top:10px; border-radius:6px; padding:8px 12px; font-size:12px;">
                 ⚠ {{ $project->client->important_memo }}
             </div>
+            @endif
+            @else
+            <div class="text-muted" style="color:var(--text-muted); font-size:13px; padding:8px 0;">연결된 의뢰자가 없습니다.</div>
             @endif
         </div>
 
