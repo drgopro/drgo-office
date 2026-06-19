@@ -2222,11 +2222,11 @@ async function uploadPendingAttachments(scheduleId){
             if(!res.ok){
                 const err=await res.json().catch(()=>({}));
                 console.error(`첨부파일 업로드 실패 (${type}):`, res.status, err);
-                failedTypes.push(TYPE_LABEL[type]||type);
+                failedTypes.push((TYPE_LABEL[type]||type)+(err.message?` (${err.message})`:''));
             }
         }catch(e){ console.error(`첨부파일 업로드 오류 (${type}):`,e); failedTypes.push(TYPE_LABEL[type]||type); }
     }
-    if(failedTypes.length) showCalToast('⚠ '+failedTypes.join(', ')+' 업로드 실패 — 권한을 확인하세요');
+    if(failedTypes.length) showCalToast('⚠ '+failedTypes.join(', ')+' 업로드 실패');
 }
 async function loadExistingAttachments(scheduleId){
     existingAttachments={quote:[],reference:[],room:[],general:[]};

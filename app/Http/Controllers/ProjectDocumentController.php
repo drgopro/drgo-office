@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Project;
 use App\Models\ProjectDocument;
 use Illuminate\Http\Request;
@@ -9,8 +10,15 @@ use Illuminate\Support\Facades\Storage;
 
 class ProjectDocumentController extends Controller
 {
+    use HandlesFileUploads;
+
     public function store(Request $request, Project $project)
     {
+        // post_max_size 초과로 본문이 폐기된 경우 — 명확한 안내
+        if ($this->postBodyWasDropped($request)) {
+            return $this->uploadLimitResponse($request);
+        }
+
         $request->validate([
             'files' => 'required|array|min:1',
             'files.*' => 'required|file|max:102400', // 100MB / 파일
@@ -23,21 +31,64 @@ class ProjectDocumentController extends Controller
             ($request->note ? ' - '.$request->note : '')
         );
 
-        foreach ($request->file('files') as $file) {
-            $path = $file->store("projects/{$project->id}");
+        $result = $this->storeUploadedFiles(
+            $request->file('files'),
+            "projects/{$project->id}",
+            function ($file, $path) use ($project, $noteText) {
+                $project->documents()->create([
+                    'file_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                    'file_path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'note' => $noteText,
+                ]);
+            }
+        );
 
-            $project->documents()->create([
-                'file_name' => $file->getClientOriginalName(),
-                'file_path' => $path,
-                'mime_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-                'note' => $noteText,
-            ]);
+        return $this->uploadResultResponse($request, $result);
+    }
+
+    /**
+     * post_max_size 초과 응답.
+     */
+    private function uploadLimitResponse(Request $request)
+    {
+        $msg = $this->uploadLimitMessage();
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $msg], 422);
         }
 
-        $count = count($request->file('files'));
+        return back()->withErrors(['files' => $msg]);
+    }
 
-        return back()->with('success', "{$count}개 파일이 업로드되었습니다.");
+    /**
+     * 저장 결과(일부 실패 포함) 응답.
+     *
+     * @param  array{saved:int, failed:array<string>}  $result
+     */
+    private function uploadResultResponse(Request $request, array $result)
+    {
+        $saved = $result['saved'];
+        $failed = $result['failed'];
+        $msg = "{$saved}개 파일이 업로드되었습니다.";
+        if (! empty($failed)) {
+            $msg .= ' / 실패 '.count($failed).'건: '.implode(' | ', $failed);
+        }
+
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'success' => $saved > 0,
+                'saved' => $saved,
+                'failed' => $failed,
+                'message' => $msg,
+            ], $saved > 0 ? 200 : 422);
+        }
+
+        if ($saved === 0 && ! empty($failed)) {
+            return back()->withErrors(['files' => $msg]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**
@@ -46,19 +97,33 @@ class ProjectDocumentController extends Controller
      */
     public function inlineUpload(Request $request, Project $project)
     {
+        if ($this->postBodyWasDropped($request)) {
+            return response()->json(['error' => $this->uploadLimitMessage()], 422);
+        }
+
         $request->validate([
             'file' => 'required|file|max:102400', // 100MB
         ]);
 
         $file = $request->file('file');
-        $path = $file->store("projects/{$project->id}");
+        if (! $file->isValid()) {
+            return response()->json(['error' => $this->uploadErrorReason($file)], 422);
+        }
+
+        try {
+            $path = $file->store("projects/{$project->id}");
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['error' => '파일 저장 중 오류: '.$e->getMessage()], 500);
+        }
 
         $mime = $file->getMimeType() ?? '';
         $isImage = str_starts_with($mime, 'image/');
         $isVideo = str_starts_with($mime, 'video/');
 
         $document = $project->documents()->create([
-            'file_name' => $file->getClientOriginalName(),
+            'file_name' => mb_substr($file->getClientOriginalName(), 0, 255),
             'file_path' => $path,
             'mime_type' => $mime,
             'file_size' => $file->getSize(),

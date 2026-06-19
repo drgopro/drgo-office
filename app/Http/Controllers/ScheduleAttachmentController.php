@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Schedule;
 use App\Models\ScheduleAttachment;
 use Illuminate\Http\Request;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ScheduleAttachmentController extends Controller
 {
+    use HandlesFileUploads;
+
     public function index(Schedule $schedule)
     {
         return response()->json(
@@ -25,6 +28,10 @@ class ScheduleAttachmentController extends Controller
 
     public function store(Request $request, Schedule $schedule)
     {
+        if ($this->postBodyWasDropped($request)) {
+            return response()->json(['message' => $this->uploadLimitMessage()], 422);
+        }
+
         $request->validate([
             'files' => 'required|array|min:1',
             'files.*' => 'required|file|max:102400', // 100MB / 파일
@@ -32,20 +39,32 @@ class ScheduleAttachmentController extends Controller
         ]);
 
         $attachments = [];
+        $result = $this->storeUploadedFiles(
+            $request->file('files'),
+            "schedules/{$schedule->id}",
+            function ($file, $path) use ($schedule, $request, &$attachments) {
+                $attachments[] = $schedule->attachments()->create([
+                    'attachment_type' => $request->attachment_type,
+                    'file_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                    'file_path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        );
 
-        foreach ($request->file('files') as $file) {
-            $path = $file->store("schedules/{$schedule->id}");
-
-            $attachments[] = $schedule->attachments()->create([
-                'attachment_type' => $request->attachment_type,
-                'file_name' => $file->getClientOriginalName(),
-                'file_path' => $path,
-                'mime_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-            ]);
+        if ($result['saved'] === 0 && ! empty($result['failed'])) {
+            return response()->json([
+                'message' => '업로드 실패: '.implode(' | ', $result['failed']),
+                'failed' => $result['failed'],
+            ], 422);
         }
 
-        return response()->json($attachments, 201);
+        return response()->json([
+            'attachments' => $attachments,
+            'saved' => $result['saved'],
+            'failed' => $result['failed'],
+        ], 201);
     }
 
     public function destroy(ScheduleAttachment $attachment)
