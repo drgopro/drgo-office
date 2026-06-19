@@ -757,17 +757,13 @@
                     <textarea class="field-textarea" id="commonDesc" placeholder="상세 내용을 입력하세요"></textarea>
                 </div>
                 <div class="field-group">
-                    <label class="field-label">특이사항</label>
-                    <textarea class="field-textarea" id="commonSpecialNote" placeholder="특이사항을 입력하세요" style="min-height:60px;"></textarea>
-                </div>
-                <div class="field-group">
                     <label class="field-label">전달사항</label>
                     <textarea class="field-textarea" id="commonHandoverNote" placeholder="전달사항을 입력하세요" style="min-height:60px;"></textarea>
                 </div>
             </div>
 
-            {{-- 의뢰자 검색/연결 (모든 유형 공통) --}}
-            <div class="field-section">
+            {{-- 의뢰자 검색/연결 (사내업무/휴가 제외) --}}
+            <div class="field-section" id="clientLinkSection">
             <div class="section-heading" style="margin-bottom:4px;">의뢰자 / 프로젝트</div>
             <div class="field-group">
                 <label class="field-label">의뢰자 검색</label>
@@ -1969,6 +1965,9 @@ function setColor(c){
     document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'flex':'none');
     document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
     document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'flex':'none');
+    // 사내업무(blue)/휴가·개인(red)은 의뢰자 검색 불필요 → 섹션 숨김
+    const clientSec=document.getElementById('clientLinkSection');
+    if(clientSec) clientSec.style.display=(c==='blue'||c==='red')?'none':'';
     // gold 전용 날짜 행
     document.getElementById('standardDtRows').style.display=c==='gold'?'none':'';
     document.getElementById('goldDtRow').style.display=c==='gold'?'flex':'none';
@@ -2188,8 +2187,6 @@ function renderLockSummary(){
     if (color !== 'gold' && color !== 'teal') {
         const desc = _val('commonDesc');
         if (desc) html += `<div class="ls-section"><div class="ls-section-title">상세 설명</div><div class="ls-text-block">${_esc(desc)}</div></div>`;
-        const sNote = _val('commonSpecialNote');
-        if (sNote) html += `<div class="ls-section"><div class="ls-section-title">특이사항</div><div class="ls-text-block">${_esc(sNote)}</div></div>`;
         const hNote = _val('commonHandoverNote');
         if (hNote) html += `<div class="ls-section"><div class="ls-section-title">전달사항</div><div class="ls-text-block">${_esc(hNote)}</div></div>`;
     }
@@ -2562,7 +2559,7 @@ function resetModalForm(){
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
     document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
-    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonSpecialNote','commonHandoverNote','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
@@ -2856,7 +2853,6 @@ function openEditModal(ev){
     if(ev.sched_after_reason) document.getElementById('schedAfterReason').value=ev.sched_after_reason;
     // 공통 필드
     document.getElementById('commonDesc').value=ev.description||'';
-    const _cs=document.getElementById('commonSpecialNote'); if(_cs) _cs.value=ev.special_note||'';
     const _ch=document.getElementById('commonHandoverNote'); if(_ch) _ch.value=ev.handover_note||'';
     // gold_data 복원 (Firebase 데이터 구조 호환)
     const g=ev.gold_data||{};
@@ -3052,8 +3048,7 @@ async function saveEvent(){
         address:document.getElementById('modalAddress').value.trim(),
         location:document.getElementById('modalLocation').value.trim(),
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
-        // 특이사항/전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
-        special_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonSpecialNote')?.value.trim()||null),
+        // 전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),
         assignees:selectedAssignees,
         notif_minutes:document.getElementById('notifSelect').value||null,
