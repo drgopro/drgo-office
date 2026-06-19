@@ -1936,7 +1936,7 @@ function setColor(c){
     // 템플릿 토글
     document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'flex':'none');
     document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
-    document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'':'none');
+    document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'flex':'none');
     // gold 전용 날짜 행
     document.getElementById('standardDtRows').style.display=c==='gold'?'none':'';
     document.getElementById('goldDtRow').style.display=c==='gold'?'flex':'none';
