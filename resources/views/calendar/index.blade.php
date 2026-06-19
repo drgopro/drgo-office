@@ -122,6 +122,8 @@
     .event-chip.multi-day.day-end   { border-radius:0 4px 4px 0; border-left-color:transparent !important; padding-left:0; margin-left:-6px; }
     /* 한 셀이 동시에 시작·끝(=같은 날) — 단일일과 동일하게 */
     .event-chip.multi-day.day-start.day-end { border-radius:4px; margin:0; }
+    /* 다일 일정 레인 정렬용 빈 자리 (보이지 않지만 높이 차지) */
+    .lane-spacer { height:22px; visibility:hidden; }
     .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     /* 제목은 늘어나서 담당자 배지를 우측 끝으로 밀어냄 */
     .event-chip .chip-title { flex:1 1 auto; }
@@ -1525,89 +1527,106 @@ function renderMonth() {
     const prevLast=new Date(currentYear,currentMonth,0).getDate();
     const ts=todayStr();
 
-    // 셀 데이터 생성
+    // 셀 데이터 생성 — 모든 셀에 실제 날짜 부여(다른 달 포함) → 다일 바가 월 경계에서도 이어짐
+    const gridStart=new Date(currentYear,currentMonth,1);
+    gridStart.setDate(gridStart.getDate()-firstDay);
+    const monthStart=fmt(new Date(currentYear,currentMonth,1));
     let cells=[];
-    for(let i=firstDay-1;i>=0;i--) cells.push({date:prevLast-i,month:'prev',full:null});
-    for(let d=1;d<=lastDate;d++){
-        const full=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        cells.push({date:d,month:'cur',full});
+    for(let i=0;i<42;i++){
+        const dt=new Date(gridStart); dt.setDate(gridStart.getDate()+i);
+        const full=fmt(dt);
+        const month=dt.getMonth()===currentMonth?'cur':(full<monthStart?'prev':'next');
+        cells.push({date:dt.getDate(), month, full});
     }
-    const rem=42-cells.length;
-    for(let d=1;d<=rem;d++) cells.push({date:d,month:'next',full:null});
+
+    const MAX_VISIBLE = 3;
 
     // 주 단위로 렌더링
     for(let w=0;w<6;w++){
+        const weekCells=cells.slice(w*7, w*7+7);
+        const weekStart=weekCells[0].full, weekEnd=weekCells[6].full;
+
+        // ── 이 주에 걸친 다일 일정에 고정 레인 배정 (셀마다 같은 줄 → 연속 bar) ──
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&ev.end_date&&ev.end_date!==ev.start_date&&ev.start_date<=weekEnd&&ev.end_date>=weekStart);
+        weekMulti.sort((a,b)=> a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
+        const laneOf={};
+        const lanes=[]; // lanes[i] = [{s,e}...]
+        weekMulti.forEach(ev=>{
+            let lane=0;
+            while((lanes[lane]||[]).some(r=> !(ev.end_date<r.s||ev.start_date>r.e))) lane++;
+            (lanes[lane]=lanes[lane]||[]).push({s:ev.start_date,e:ev.end_date});
+            laneOf[ev.id]=lane;
+        });
+        const maxLane=lanes.length;
+
         const weekRow=document.createElement('div');
         weekRow.className='week-row';
         for(let d=0;d<7;d++){
-            const idx=w*7+d;
-            const cell=cells[idx];
+            const cell=weekCells[d];
             const div=document.createElement('div');
             div.className='day-cell'+(cell.month!=='cur'?' other-month':'');
-            if(cell.full) div.dataset.date=cell.full;
+            div.dataset.date=cell.full;
             if(cell.full===ts) div.classList.add('today');
             const holiday=getHoliday(cell.full);
             const nc=d===0||holiday?'sun':d===6?'sat':'';
             const holidayHtml=holiday?`<span class="holiday-label">${holiday}</span>`:'';
             div.innerHTML=`<div class="day-num-row"><span class="day-num ${nc}">${cell.date}</span>${holidayHtml}</div>`;
 
-            if(cell.full){
-                // 필터 적용된 이벤트
-                const dayEvs=events.filter(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
-                // 다일 이벤트와 단일 이벤트 분리
-                const multiDay=dayEvs.filter(ev=>ev.end_date&&ev.end_date!==ev.start_date);
-                const singleDay=dayEvs.filter(ev=>!ev.end_date||ev.end_date===ev.start_date);
+            const evList=document.createElement('div');
+            evList.className='events-list';
 
-                const evList=document.createElement('div');
-                evList.className='events-list';
+            // 1) 다일 레인: 각 레인을 고정 행으로 렌더(해당 날짜에 일정 없으면 빈 spacer)
+            const cellLaneEv=new Array(maxLane).fill(null);
+            weekMulti.forEach(ev=>{ if(ev.start_date<=cell.full&&ev.end_date>=cell.full) cellLaneEv[laneOf[ev.id]]=ev; });
+            cellLaneEv.forEach(ev=>{
+                if(!ev){ const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp); return; }
+                const isStart = ev.start_date===cell.full || d===0; // 주 시작 셀에서도 텍스트 표시
+                const isEnd   = ev.end_date===cell.full;
+                let cls=`event-chip single color-${ev.color} multi-day`;
+                cls += isStart && isEnd ? ' day-start day-end' : isStart ? ' day-start' : isEnd ? ' day-end' : ' day-cont';
+                const chip=document.createElement('div');
+                chip.className=cls;
+                chip.innerHTML = isStart ? buildChipHtml(ev) : '';
+                chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
+                chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
+                evList.appendChild(chip);
+            });
 
-                // 다일 이벤트 먼저(상단 bar), 그 다음 단일 이벤트는 시간순 정렬
-                const allChipEvs = [...multiDay, ...sortByTime(singleDay)];
+            // 2) 단일 일정(시간순) — 현재 달 셀에만, 남은 자리만큼 표시
+            const singles=(cell.month==='cur')
+                ? sortByTime(events.filter(ev=>isFiltered(ev)&&(!ev.end_date||ev.end_date===ev.start_date)&&ev.start_date===cell.full))
+                : [];
+            const isExpanded=expandedDays.has(cell.full);
+            if(isExpanded) div.classList.add('expanded');
+            const singleSlots=isExpanded?singles.length:Math.max(maxLane>=MAX_VISIBLE?0:1, MAX_VISIBLE-maxLane);
+            const visibleSingles=singles.slice(0, singleSlots);
+            visibleSingles.forEach(ev=>{
+                const chip=document.createElement('div');
+                chip.className=`event-chip single color-${ev.color}`;
+                chip.innerHTML=buildChipHtml(ev);
+                chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
+                chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
+                evList.appendChild(chip);
+            });
 
-                const MAX_VISIBLE = 3;
-                const isExpanded = expandedDays.has(cell.full);
-                if(isExpanded) div.classList.add('expanded');
-                const visibleEvs = isExpanded ? allChipEvs : allChipEvs.slice(0, MAX_VISIBLE);
-
-                visibleEvs.forEach(ev=>{
-                    const isMulti = ev.end_date && ev.end_date !== ev.start_date;
-                    const isStart = isMulti && ev.start_date === cell.full;
-                    const isEnd   = isMulti && ev.end_date === cell.full;
-                    const chip=document.createElement('div');
-                    let cls = `event-chip single color-${ev.color}`;
-                    if (isMulti) {
-                        cls += ' multi-day';
-                        if (isStart) cls += ' day-start';
-                        else if (isEnd) cls += ' day-end';
-                        else cls += ' day-cont';
-                    }
-                    chip.className = cls;
-                    // 다일 이벤트는 시작일에만 텍스트, 이후 셀은 빈 bar로 연결
-                    chip.innerHTML = (isMulti && !isStart) ? '' : buildChipHtml(ev);
-                    chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
-                    chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
-                    evList.appendChild(chip);
-                });
-
-                if(allChipEvs.length > MAX_VISIBLE){
-                    const more=document.createElement('div');
-                    more.className='more-badge';
-                    more.textContent=`+${allChipEvs.length - MAX_VISIBLE}건 더보기`;
-                    // 칸을 늘리지 않고, 그 날 전체 일정을 읽기 좋은 팝오버로 표시
-                    more.onclick=e=>{e.stopPropagation(); openDayPopover(cell.full, div);};
-                    evList.appendChild(more);
-                }
-
-                div.appendChild(evList);
-                div.addEventListener('click',e=>{
-                    if(window.innerWidth<=768){
-                        selectMobileDay(cell.full);
-                    } else {
-                        if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return;
-                        if(canEditCalendar&&(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))) openNewModal(cell.full);
-                    }
-                });
+            const hiddenCount=singles.length-visibleSingles.length;
+            if(hiddenCount>0){
+                const more=document.createElement('div');
+                more.className='more-badge';
+                more.textContent=`+${hiddenCount}건 더보기`;
+                more.onclick=e=>{e.stopPropagation(); openDayPopover(cell.full, div);};
+                evList.appendChild(more);
             }
+
+            div.appendChild(evList);
+            div.addEventListener('click',e=>{
+                if(window.innerWidth<=768){
+                    selectMobileDay(cell.full);
+                } else {
+                    if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return;
+                    if(canEditCalendar&&(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))) openNewModal(cell.full);
+                }
+            });
             weekRow.appendChild(div);
         }
         grid.appendChild(weekRow);
