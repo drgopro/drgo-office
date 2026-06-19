@@ -1581,9 +1581,20 @@ function renderMonth() {
             const evList=document.createElement('div');
             evList.className='events-list';
 
-            // 1) 다일 레인 자리만 확보(빈 spacer, 최대 LANE_CAP). 실제 바는 주 행 위 overlay로 그림.
+            // 1) 다일 레인: 셀 안에 조각으로 그림(셀에 딱 맞춤, 좌우 음수 마진으로 연결). 빈 레인은 spacer.
             for(let L=0;L<shownLanes;L++){
-                const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp);
+                const ev=weekMulti.find(e=>laneOf[e.id]===L&&e.start_date<=cell.full&&e.end_date>=cell.full);
+                if(!ev){ const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp); continue; }
+                const isStart = ev.start_date===cell.full || d===0; // 주 시작 셀에서도 제목 표시
+                const isEnd   = ev.end_date===cell.full;
+                let cls=`event-chip single color-${ev.color} multi-day`;
+                cls += isStart&&isEnd?' day-start day-end': isStart?' day-start': isEnd?' day-end':' day-cont';
+                const chip=document.createElement('div');
+                chip.className=cls;
+                chip.innerHTML = isStart ? buildChipHtml(ev) : '';
+                chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
+                chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
+                evList.appendChild(chip);
             }
 
             // 2) 단일 일정(시간순) — 현재 달 셀에만, 남은 자리만큼 표시
@@ -1628,44 +1639,6 @@ function renderMonth() {
             weekRow.appendChild(div);
         }
         grid.appendChild(weekRow);
-
-        // ── 다일 일정: 셀 위에 연속된 bar로 그림(칸마다 잘리지 않음) ──
-        if(shownLanes>0 && weekMulti.length){
-            const wrRect=weekRow.getBoundingClientRect();
-            const cellEls=[...weekRow.children]; // 7개 day-cell
-            const firstEvList=cellEls[0].querySelector('.events-list');
-            const baseTop=firstEvList ? (firstEvList.getBoundingClientRect().top - wrRect.top) : 30;
-            const LANE_H=24; // 22px + gap 2px
-
-            weekMulti.forEach(ev=>{
-                if(laneOf[ev.id]>=shownLanes) return; // 표시 한도 초과 레인은 '+N 더보기'로
-                // 이 주 안에서의 시작/끝 컬럼
-                let startCol=weekCells.findIndex(c=>c.full>=ev.start_date);
-                if(startCol<0) startCol=0;
-                let endCol=6; for(let i=6;i>=0;i--){ if(weekCells[i].full<=ev.end_date){ endCol=i; break; } }
-                if(endCol<startCol) return;
-
-                const sRect=cellEls[startCol].getBoundingClientRect();
-                const eRect=cellEls[endCol].getBoundingClientRect();
-                const left=sRect.left - wrRect.left;
-                const width=(eRect.right - wrRect.left) - left;
-                const top=baseTop + laneOf[ev.id]*LANE_H;
-
-                const roundL = ev.start_date>=weekStart; // 이번 주에서 실제 시작
-                const roundR = ev.end_date<=weekEnd;     // 이번 주에서 실제 종료
-
-                const bar=document.createElement('div');
-                bar.className=`mday-bar color-${ev.color}`;
-                bar.style.cssText=`position:absolute;left:${left+1}px;width:${width-2}px;top:${top}px;height:22px;`
-                    +`border-radius:${roundL?'4px':'0'} ${roundR?'4px':'0'} ${roundR?'4px':'0'} ${roundL?'4px':'0'};`;
-                const label=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
-                bar.innerHTML=`<span class="mday-bar-label">${roundL?'':'… '}${_esc(label)}</span>`;
-                bar.title=label;
-                bar.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
-                bar.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
-                weekRow.appendChild(bar);
-            });
-        }
     }
     // 모바일: 오늘 날짜 자동 선택
     if(window.innerWidth<=768){
