@@ -248,9 +248,28 @@
         </div>
 
         <!-- 문서 관리 -->
-        <div class="info-card full">
+        @php
+            $toBytes = function ($v) {
+                $v = trim((string) $v);
+                $unit = strtolower(substr($v, -1));
+                $num = (int) $v;
+                return match ($unit) {
+                    'g' => $num * 1024 * 1024 * 1024,
+                    'm' => $num * 1024 * 1024,
+                    'k' => $num * 1024,
+                    default => $num,
+                };
+            };
+            $uploadMaxBytes = $toBytes(ini_get('upload_max_filesize'));
+            $postMaxBytes = $toBytes(ini_get('post_max_size'));
+            $effectiveMaxBytes = min($uploadMaxBytes ?: PHP_INT_MAX, $postMaxBytes ?: PHP_INT_MAX);
+            $effectiveMaxMb = round($effectiveMaxBytes / 1048576, 1);
+        @endphp
+        <div class="info-card full" data-upload-max-bytes="{{ $effectiveMaxBytes }}" data-upload-max-mb="{{ $effectiveMaxMb }}">
             <div class="card-title" style="display:flex; justify-content:space-between;">
-                <span>문서 ({{ $client->documents->count() }}건)</span>
+                <span>문서 ({{ $client->documents->count() }}건)
+                    <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:6px;">· 파일당 최대 {{ $effectiveMaxMb }}MB</span>
+                </span>
             </div>
             <form method="POST" action="{{ route('documents.store', $client) }}" enctype="multipart/form-data" id="docUploadForm">
                 @csrf
@@ -259,7 +278,7 @@
                 <div class="doc-upload-area">
                     <div class="doc-upload-row">
                         <div>
-                            <div class="field-mini">파일 *</div>
+                            <div class="field-mini">파일 * <span style="color:var(--text-muted); font-weight:400;">(최대 {{ $effectiveMaxMb }}MB)</span></div>
                             <button type="button" class="btn-choose" onclick="document.getElementById('docFileInput').click()">파일 선택 (여러 개 가능)</button>
                         </div>
                         <div>
@@ -609,14 +628,57 @@ document.addEventListener('mouseup', () => {
         fileReal.files = dt.files;
         renderPreviews();
     }
+    const card = form.closest('.info-card');
+    const MAX_BYTES = card ? parseInt(card.dataset.uploadMaxBytes || '0', 10) : 0;
+    const MAX_MB = card ? (card.dataset.uploadMaxMb || '') : '';
+
     fileInput.addEventListener('change', () => {
         for (const f of fileInput.files) selectedFiles.push(f);
         fileInput.value = '';
+        if (MAX_BYTES > 0) {
+            const tooBig = selectedFiles.filter(f => f.size > MAX_BYTES);
+            if (tooBig.length) {
+                alert('다음 파일이 최대 허용 용량(' + MAX_MB + 'MB)을 초과합니다:\n\n'
+                    + tooBig.map(f => `• ${f.name} (${formatSize(f.size)})`).join('\n'));
+                selectedFiles = selectedFiles.filter(f => f.size <= MAX_BYTES);
+            }
+        }
         syncAndRender();
     });
-    form.addEventListener('submit', (e) => {
-        if (selectedFiles.length === 0) { e.preventDefault(); return; }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (selectedFiles.length === 0) return;
         syncAndRender();
+        btnUpload.disabled = true;
+        const orig = btnUpload.textContent;
+        btnUpload.textContent = '업로드 중...';
+        const fd = new FormData(form);
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        try {
+            const res = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+                body: fd,
+            });
+            if (res.status === 413) { alert('업로드 실패: 파일이 서버 허용 용량(' + MAX_MB + 'MB)을 초과했습니다.'); btnUpload.disabled=false; btnUpload.textContent=orig; return; }
+            if (res.status === 419) { alert('세션이 만료되었습니다. 새로고침 후 다시 시도해 주세요.'); btnUpload.disabled=false; btnUpload.textContent=orig; return; }
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success !== false) { location.reload(); return; }
+            let msg = data.message || '업로드에 실패했습니다.';
+            if (data.failed && data.failed.length) {
+                msg = (data.count ? `${data.count}개 성공, ` : '') + `실패 ${data.failed.length}건:\n\n` + data.failed.join('\n');
+            } else if (data.errors) {
+                msg = Object.values(data.errors).flat().join('\n');
+            }
+            alert('업로드 실패\n\n' + msg);
+            if (data.count && data.count > 0) location.reload();
+        } catch (err) {
+            alert('업로드 중 네트워크 오류: ' + err.message);
+        } finally {
+            btnUpload.disabled = false;
+            btnUpload.textContent = orig;
+        }
     });
 })();
 
