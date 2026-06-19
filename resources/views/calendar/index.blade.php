@@ -1561,6 +1561,9 @@ function renderMonth() {
             laneOf[ev.id]=lane;
         });
         const maxLane=lanes.length;
+        // 표시할 다일 레인 최대 개수 — 셀이 과도하게 길어지지 않게 제한, 초과분은 '+N 더보기'로
+        const LANE_CAP=3;
+        const shownLanes=Math.min(maxLane, LANE_CAP);
 
         const weekRow=document.createElement('div');
         weekRow.className='week-row';
@@ -1578,8 +1581,8 @@ function renderMonth() {
             const evList=document.createElement('div');
             evList.className='events-list';
 
-            // 1) 다일 레인 자리만 확보(빈 spacer). 실제 바는 아래에서 주 행 위에 연속 overlay로 그림.
-            for(let L=0;L<maxLane;L++){
+            // 1) 다일 레인 자리만 확보(빈 spacer, 최대 LANE_CAP). 실제 바는 주 행 위 overlay로 그림.
+            for(let L=0;L<shownLanes;L++){
                 const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp);
             }
 
@@ -1589,7 +1592,9 @@ function renderMonth() {
                 : [];
             const isExpanded=expandedDays.has(cell.full);
             if(isExpanded) div.classList.add('expanded');
-            const singleSlots=isExpanded?singles.length:Math.max(maxLane>=MAX_VISIBLE?0:1, MAX_VISIBLE-maxLane);
+            // 셀당 표시 행을 일정하게: 다일 레인 + 단일 = 최대 4행
+            const TARGET_ROWS=4;
+            const singleSlots=isExpanded?singles.length:Math.max(0, TARGET_ROWS-shownLanes);
             const visibleSingles=singles.slice(0, singleSlots);
             visibleSingles.forEach(ev=>{
                 const chip=document.createElement('div');
@@ -1600,7 +1605,9 @@ function renderMonth() {
                 evList.appendChild(chip);
             });
 
-            const hiddenCount=singles.length-visibleSingles.length;
+            // 숨겨진 단일 + (LANE_CAP 초과로 못 그린) 이 날짜를 덮는 다일 = 더보기 개수
+            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=shownLanes&&ev.start_date<=cell.full&&ev.end_date>=cell.full).length;
+            const hiddenCount=(singles.length-visibleSingles.length)+hiddenMultiHere;
             if(hiddenCount>0){
                 const more=document.createElement('div');
                 more.className='more-badge';
@@ -1623,7 +1630,7 @@ function renderMonth() {
         grid.appendChild(weekRow);
 
         // ── 다일 일정: 셀 위에 연속된 bar로 그림(칸마다 잘리지 않음) ──
-        if(maxLane>0 && weekMulti.length){
+        if(shownLanes>0 && weekMulti.length){
             const wrRect=weekRow.getBoundingClientRect();
             const cellEls=[...weekRow.children]; // 7개 day-cell
             const firstEvList=cellEls[0].querySelector('.events-list');
@@ -1631,6 +1638,7 @@ function renderMonth() {
             const LANE_H=24; // 22px + gap 2px
 
             weekMulti.forEach(ev=>{
+                if(laneOf[ev.id]>=shownLanes) return; // 표시 한도 초과 레인은 '+N 더보기'로
                 // 이 주 안에서의 시작/끝 컬럼
                 let startCol=weekCells.findIndex(c=>c.full>=ev.start_date);
                 if(startCol<0) startCol=0;
