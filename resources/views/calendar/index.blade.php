@@ -2098,6 +2098,19 @@ async function loadRecentClients(){
     }catch(e){results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:12px;">로드 실패</div>';}
 }
 
+// 기존 일정 복원 시 client_id만 있고 이름이 없을 때, API로 닉네임/이름 조회해 표시 갱신
+async function restoreLinkedClientName(id){
+    try{
+        const res=await fetch(`/api/clients/${id}/detail`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        const c=await res.json();
+        const label=(c.nickname||c.name)?((c.nickname||c.name)+(c.nickname&&c.name?' ('+c.name+')':'')):`의뢰자 #${id}`;
+        const el=document.getElementById('linkedClientName');
+        // 현재 표시 중인 대상이 여전히 같은 의뢰자일 때만 갱신
+        if(el && linkedClientId===id) el.textContent=label;
+    }catch(e){}
+}
+
 async function selectClient(id,nickname,name,phone){
     linkedClientId=id;
     document.getElementById('clientSearchResults').style.display='none';
@@ -2698,15 +2711,17 @@ function openEditModal(ev){
         document.getElementById('linkedClientLink').href='/clients/'+g.client_id;
         linkedProjectId=g.project_id||null;
         loadClientProjects(g.client_id);
+        if(!(g.nickname||g.name)) restoreLinkedClientName(g.client_id);
     }
     // 비-gold에서도 gold_data에 저장된 의뢰자 연결 복원
     if(!g.client_id && ev.gold_data && ev.gold_data.client_id){
         linkedClientId=ev.gold_data.client_id;
-        document.getElementById('linkedClientName').textContent=`의뢰자 #${ev.gold_data.client_id}`;
+        document.getElementById('linkedClientName').textContent=ev.gold_data.nickname||ev.gold_data.name||`의뢰자 #${ev.gold_data.client_id}`;
         document.getElementById('linkedClientInfo').style.display='';
         document.getElementById('linkedClientLink').href='/clients/'+ev.gold_data.client_id;
         linkedProjectId=ev.gold_data.project_id||null;
         loadClientProjects(ev.gold_data.client_id);
+        if(!(ev.gold_data.nickname||ev.gold_data.name)) restoreLinkedClientName(ev.gold_data.client_id);
     }
     // teal_data 복원
     const t=ev.teal_data||{};
