@@ -23,6 +23,8 @@ class Schedule extends Model
         'address',
         'location',
         'description',
+        'special_note',
+        'handover_note',
         'notif_minutes',
         'is_locked',
         'is_private',

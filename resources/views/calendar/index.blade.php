@@ -745,6 +745,14 @@
                     <label class="field-label">상세 설명</label>
                     <textarea class="field-textarea" id="commonDesc" placeholder="상세 내용을 입력하세요"></textarea>
                 </div>
+                <div class="field-group">
+                    <label class="field-label">특이사항</label>
+                    <textarea class="field-textarea" id="commonSpecialNote" placeholder="특이사항을 입력하세요" style="min-height:60px;"></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">전달사항</label>
+                    <textarea class="field-textarea" id="commonHandoverNote" placeholder="전달사항을 입력하세요" style="min-height:60px;"></textarea>
+                </div>
             </div>
 
             {{-- 의뢰자 검색/연결 (모든 유형 공통) --}}
@@ -2078,6 +2086,10 @@ function renderLockSummary(){
     if (color !== 'gold' && color !== 'teal') {
         const desc = _val('commonDesc');
         if (desc) html += `<div class="ls-section"><div class="ls-section-title">상세 설명</div><div class="ls-text-block">${_esc(desc)}</div></div>`;
+        const sNote = _val('commonSpecialNote');
+        if (sNote) html += `<div class="ls-section"><div class="ls-section-title">특이사항</div><div class="ls-text-block">${_esc(sNote)}</div></div>`;
+        const hNote = _val('commonHandoverNote');
+        if (hNote) html += `<div class="ls-section"><div class="ls-section-title">전달사항</div><div class="ls-text-block">${_esc(hNote)}</div></div>`;
     }
 
     // 첨부 이미지 (모든 카테고리 공통, 비어있어도 영역 표시)
@@ -2451,7 +2463,7 @@ function resetModalForm(){
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
     document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
-    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonName','commonDesc','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonName','commonDesc','commonSpecialNote','commonHandoverNote','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
@@ -2511,7 +2523,7 @@ const COLOR_LABELS = (function(){
     Object.keys(cats).forEach(k => { o[k] = cats[k].label; });
     return o;
 })();
-const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'특이사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',completed_at:'완료시각'};
+const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'상세설명',special_note:'특이사항',handover_note:'전달사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',completed_at:'완료시각'};
 
 // 변경 로그 값을 사람이 읽기 좋게 변환
 function fmtLogValue(key, val) {
@@ -2746,6 +2758,8 @@ function openEditModal(ev){
     // 공통 필드
     document.getElementById('commonName').value=ev.client_name||'';
     document.getElementById('commonDesc').value=ev.description||'';
+    const _cs=document.getElementById('commonSpecialNote'); if(_cs) _cs.value=ev.special_note||'';
+    const _ch=document.getElementById('commonHandoverNote'); if(_ch) _ch.value=ev.handover_note||'';
     // gold_data 복원 (Firebase 데이터 구조 호환)
     const g=ev.gold_data||{};
     document.getElementById('g_nickname').value=g.nickname||ev.client_name||'';
@@ -2939,6 +2953,9 @@ async function saveEvent(){
         address:document.getElementById('modalAddress').value.trim(),
         location:document.getElementById('modalLocation').value.trim(),
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
+        // 특이사항/전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
+        special_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonSpecialNote')?.value.trim()||null),
+        handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),
         assignees:selectedAssignees,
         notif_minutes:document.getElementById('notifSelect').value||null,
         is_locked:isLocked,
