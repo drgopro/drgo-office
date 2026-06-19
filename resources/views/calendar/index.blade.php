@@ -79,6 +79,20 @@
     .af-chip { display:inline-flex; align-items:center; gap:5px; background:var(--accent); color:var(--accent-text); border-radius:20px; padding:4px 8px 4px 12px; font-size:12px; font-weight:600; line-height:1; }
     .af-chip button { background:rgba(0,0,0,0.18); color:inherit; border:none; width:16px; height:16px; border-radius:50%; cursor:pointer; font-size:11px; line-height:1; display:inline-flex; align-items:center; justify-content:center; padding:0; }
     .af-chip button:hover { background:rgba(0,0,0,0.35); }
+    /* ── 하루 일정 팝오버 ── */
+    .day-popover-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:500; }
+    .day-popover-overlay.open { display:block; }
+    .day-popover { position:fixed; z-index:501; width:300px; max-height:60vh; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.4); padding:14px; }
+    .day-popover .dp-header { display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:700; margin-bottom:10px; position:sticky; top:0; background:var(--surface); }
+    .day-popover .dp-close { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:0 4px; }
+    .day-popover .dp-list { display:flex; flex-direction:column; gap:6px; }
+    .day-popover .dp-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:background 0.12s; }
+    .day-popover .dp-item:hover { background:var(--surface2); }
+    .day-popover .dp-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .day-popover .dp-info { flex:1; min-width:0; }
+    .day-popover .dp-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .day-popover .dp-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .day-popover .dp-time { font-size:11px; font-weight:600; color:var(--text-muted); flex-shrink:0; min-width:38px; }
     [data-theme="light"] .assignee-filter { background-color:#fff; border-color:#a0a8b4; color:#4a5060; }
 
     /* ── 월간 뷰 ── */
@@ -609,6 +623,16 @@
         <div class="days-grid" id="daysGrid"></div>
         <div class="mobile-day-events" id="mobileDayEvents"></div>
     </div>
+</div>
+
+{{-- 하루 일정 전체 보기 팝오버 (데스크탑 '+N건 더보기') --}}
+<div id="dayPopoverOverlay" class="day-popover-overlay" onclick="closeDayPopover()"></div>
+<div id="dayPopover" class="day-popover" style="display:none;">
+    <div class="dp-header">
+        <span id="dpTitle"></span>
+        <button type="button" class="dp-close" onclick="closeDayPopover()">✕</button>
+    </div>
+    <div id="dpList" class="dp-list"></div>
 </div>
 
 <!-- 주간/일간 뷰 -->
@@ -1423,6 +1447,61 @@ async function loadAssignees() {
     }
 }
 
+// 종일 먼저 → 시작시간 오름차순 정렬 (월간 셀·팝오버·모바일 공용)
+function sortByTime(list){
+    return [...list].sort((a,b)=>{
+        const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
+        if(aAll!==bAll) return aAll-bAll;
+        return (a.start_time||'99:99').localeCompare(b.start_time||'99:99');
+    });
+}
+
+// ── 하루 일정 전체 보기 팝오버 ───────────────────────────────────
+function openDayPopover(dateStr, anchorEl){
+    const pop=document.getElementById('dayPopover');
+    const overlay=document.getElementById('dayPopoverOverlay');
+    if(!pop||!overlay) return;
+
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=dateStr&&(ev.end_date||ev.start_date)>=dateStr));
+    const d=new Date(dateStr+'T00:00:00');
+    const DAYS=['일','월','화','수','목','금','토'];
+    document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`;
+
+    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
+    document.getElementById('dpList').innerHTML=dayEvs.map(ev=>{
+        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'—');
+        const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
+        const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
+        const meta=[ev.location, assignees].filter(Boolean).join(' · ');
+        return `<div class="dp-item" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
+            <span class="dp-time">${time}</span>
+            <span class="dp-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></span>
+            <div class="dp-info">
+                <div class="dp-title">${_esc(title)}</div>
+                ${meta?`<div class="dp-meta">${_esc(meta)}</div>`:''}
+            </div>
+        </div>`;
+    }).join('');
+
+    // 위치: 앵커 셀 근처, 화면 밖으로 안 나가게 보정
+    overlay.classList.add('open');
+    pop.style.display='block';
+    const r=anchorEl.getBoundingClientRect();
+    const pw=300, ph=pop.offsetHeight;
+    let left=r.left, top=r.top;
+    if(left+pw>window.innerWidth-12) left=window.innerWidth-pw-12;
+    if(left<12) left=12;
+    if(top+ph>window.innerHeight-12) top=Math.max(12, window.innerHeight-ph-12);
+    pop.style.left=left+'px';
+    pop.style.top=top+'px';
+}
+function closeDayPopover(){
+    const pop=document.getElementById('dayPopover');
+    const overlay=document.getElementById('dayPopoverOverlay');
+    if(pop) pop.style.display='none';
+    if(overlay) overlay.classList.remove('open');
+}
+
 // ── 월간 뷰 ─────────────────────────────────────────────────────
 function renderMonth() {
     document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
@@ -1468,10 +1547,8 @@ function renderMonth() {
                 const evList=document.createElement('div');
                 evList.className='events-list';
 
-                // 모든 이벤트를 하나의 리스트로 합산 (다일은 시작일~종료일 모든 셀에 표시)
-                const allChipEvs = [];
-                multiDay.forEach(ev=>allChipEvs.push(ev));
-                singleDay.forEach(ev=>allChipEvs.push(ev));
+                // 다일 이벤트 먼저(상단 bar), 그 다음 단일 이벤트는 시간순 정렬
+                const allChipEvs = [...multiDay, ...sortByTime(singleDay)];
 
                 const MAX_VISIBLE = 3;
                 const isExpanded = expandedDays.has(cell.full);
@@ -1501,13 +1578,9 @@ function renderMonth() {
                 if(allChipEvs.length > MAX_VISIBLE){
                     const more=document.createElement('div');
                     more.className='more-badge';
-                    if(isExpanded){
-                        more.textContent='접기';
-                        more.onclick=e=>{e.stopPropagation(); expandedDays.delete(cell.full); renderMonth();};
-                    } else {
-                        more.textContent=`+${allChipEvs.length - MAX_VISIBLE}`;
-                        more.onclick=e=>{e.stopPropagation(); expandedDays.add(cell.full); renderMonth();};
-                    }
+                    more.textContent=`+${allChipEvs.length - MAX_VISIBLE}건 더보기`;
+                    // 칸을 늘리지 않고, 그 날 전체 일정을 읽기 좋은 팝오버로 표시
+                    more.onclick=e=>{e.stopPropagation(); openDayPopover(cell.full, div);};
                     evList.appendChild(more);
                 }
 
