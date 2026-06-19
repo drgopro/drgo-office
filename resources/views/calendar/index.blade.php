@@ -124,6 +124,17 @@
     .event-chip.multi-day.day-start.day-end { border-radius:4px; margin:0; }
     /* 다일 일정 레인 정렬용 빈 자리 (보이지 않지만 높이 차지) */
     .lane-spacer { height:22px; visibility:hidden; }
+    /* 다일 일정 연속 bar (셀 위에 떠서 칸을 가로질러 이어짐) */
+    .mday-bar { z-index:5; padding:2px 8px; font-size:12px; line-height:1.4; overflow:hidden; cursor:pointer; box-sizing:border-box; display:flex; align-items:center; transition:filter .12s; color:var(--accent-text); }
+    .mday-bar:hover { filter:brightness(1.12); }
+    .mday-bar .mday-bar-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; font-weight:500; }
+    .mday-bar.color-gold   { background:var(--chip-gold-bg); }
+    .mday-bar.color-teal   { background:var(--chip-teal-bg); }
+    .mday-bar.color-blue   { background:var(--chip-blue-bg); }
+    .mday-bar.color-red    { background:var(--chip-red-bg); color:#fff; }
+    .mday-bar.color-green  { background:var(--chip-green-bg); }
+    .mday-bar.color-purple { background:var(--chip-purple-bg); color:#fff; }
+    .mday-bar.color-holiday{ background:var(--chip-red-bg); color:#fff; }
     .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     /* 제목은 늘어나서 담당자 배지를 우측 끝으로 밀어냄 */
     .event-chip .chip-title { flex:1 1 auto; }
@@ -1571,22 +1582,10 @@ function renderMonth() {
             const evList=document.createElement('div');
             evList.className='events-list';
 
-            // 1) 다일 레인: 각 레인을 고정 행으로 렌더(해당 날짜에 일정 없으면 빈 spacer)
-            const cellLaneEv=new Array(maxLane).fill(null);
-            weekMulti.forEach(ev=>{ if(ev.start_date<=cell.full&&ev.end_date>=cell.full) cellLaneEv[laneOf[ev.id]]=ev; });
-            cellLaneEv.forEach(ev=>{
-                if(!ev){ const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp); return; }
-                const isStart = ev.start_date===cell.full || d===0; // 주 시작 셀에서도 텍스트 표시
-                const isEnd   = ev.end_date===cell.full;
-                let cls=`event-chip single color-${ev.color} multi-day`;
-                cls += isStart && isEnd ? ' day-start day-end' : isStart ? ' day-start' : isEnd ? ' day-end' : ' day-cont';
-                const chip=document.createElement('div');
-                chip.className=cls;
-                chip.innerHTML = isStart ? buildChipHtml(ev) : '';
-                chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
-                chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
-                evList.appendChild(chip);
-            });
+            // 1) 다일 레인 자리만 확보(빈 spacer). 실제 바는 아래에서 주 행 위에 연속 overlay로 그림.
+            for(let L=0;L<maxLane;L++){
+                const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp);
+            }
 
             // 2) 단일 일정(시간순) — 현재 달 셀에만, 남은 자리만큼 표시
             const singles=(cell.month==='cur')
@@ -1626,6 +1625,43 @@ function renderMonth() {
             weekRow.appendChild(div);
         }
         grid.appendChild(weekRow);
+
+        // ── 다일 일정: 셀 위에 연속된 bar로 그림(칸마다 잘리지 않음) ──
+        if(maxLane>0 && weekMulti.length){
+            const wrRect=weekRow.getBoundingClientRect();
+            const cellEls=[...weekRow.children]; // 7개 day-cell
+            const firstEvList=cellEls[0].querySelector('.events-list');
+            const baseTop=firstEvList ? (firstEvList.getBoundingClientRect().top - wrRect.top) : 30;
+            const LANE_H=24; // 22px + gap 2px
+
+            weekMulti.forEach(ev=>{
+                // 이 주 안에서의 시작/끝 컬럼
+                let startCol=weekCells.findIndex(c=>c.full>=ev.start_date);
+                if(startCol<0) startCol=0;
+                let endCol=6; for(let i=6;i>=0;i--){ if(weekCells[i].full<=ev.end_date){ endCol=i; break; } }
+                if(endCol<startCol) return;
+
+                const sRect=cellEls[startCol].getBoundingClientRect();
+                const eRect=cellEls[endCol].getBoundingClientRect();
+                const left=sRect.left - wrRect.left;
+                const width=(eRect.right - wrRect.left) - left;
+                const top=baseTop + laneOf[ev.id]*LANE_H;
+
+                const roundL = ev.start_date>=weekStart; // 이번 주에서 실제 시작
+                const roundR = ev.end_date<=weekEnd;     // 이번 주에서 실제 종료
+
+                const bar=document.createElement('div');
+                bar.className=`mday-bar color-${ev.color}`;
+                bar.style.cssText=`position:absolute;left:${left+1}px;width:${width-2}px;top:${top}px;height:22px;`
+                    +`border-radius:${roundL?'4px':'0'} ${roundR?'4px':'0'} ${roundR?'4px':'0'} ${roundL?'4px':'0'};`;
+                const label=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
+                bar.innerHTML=`<span class="mday-bar-label">${roundL?'':'… '}${_esc(label)}</span>`;
+                bar.title=label;
+                bar.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
+                bar.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
+                weekRow.appendChild(bar);
+            });
+        }
     }
     // 모바일: 오늘 날짜 자동 선택
     if(window.innerWidth<=768){
@@ -3137,6 +3173,12 @@ function initAllRadioGroups(){
 // init 시 호출
 setTimeout(initAllRadioGroups,0);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDetail();document.getElementById('historyOverlay').style.display='none';}});
+// 창 크기 변경 시 월간 다일 bar 위치 재계산(px 기반 overlay)
+let __calResizeTimer;
+window.addEventListener('resize',()=>{
+    clearTimeout(__calResizeTimer);
+    __calResizeTimer=setTimeout(()=>{ if(currentView==='month') renderMonth(); },150);
+});
 
 // ── 라이트박스 (이미지 뷰어 + 줌/팬) ──
 let lightboxImages=[], lightboxIdx=0;
