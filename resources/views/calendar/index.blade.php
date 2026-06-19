@@ -75,6 +75,10 @@
     .assignee-filter { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:5px 28px 5px 12px; color:var(--text); font-size:12px; outline:none; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat:no-repeat; background-position:right 10px center; }
     .assignee-filter:focus { border-color:var(--accent); }
     .assignee-filter.active-filter { border-color:var(--accent); color:var(--accent); }
+    .assignee-filter-chips { display:inline-flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .af-chip { display:inline-flex; align-items:center; gap:5px; background:var(--accent); color:var(--accent-text); border-radius:20px; padding:4px 8px 4px 12px; font-size:12px; font-weight:600; line-height:1; }
+    .af-chip button { background:rgba(0,0,0,0.18); color:inherit; border:none; width:16px; height:16px; border-radius:50%; cursor:pointer; font-size:11px; line-height:1; display:inline-flex; align-items:center; justify-content:center; padding:0; }
+    .af-chip button:hover { background:rgba(0,0,0,0.35); }
     [data-theme="light"] .assignee-filter { background-color:#fff; border-color:#a0a8b4; color:#4a5060; }
 
     /* ── 월간 뷰 ── */
@@ -589,9 +593,10 @@
     @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
     <button class="filter-btn active f-{{ $__k }}" data-filter="{{ $__k }}" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-{{ $__k }}-bg)"></span>{{ $__c['label'] }}</button>
     @endforeach
-    <select class="assignee-filter" id="assigneeFilter" onchange="onAssigneeFilterChange()" title="담당자별 일정 필터">
-        <option value="">담당자 전체</option>
+    <select class="assignee-filter" id="assigneeFilter" onchange="onAssigneeFilterChange()" title="담당자 추가 (여러 명 선택 가능)">
+        <option value="">담당자 추가…</option>
     </select>
+    <div id="assigneeFilterChips" class="assignee-filter-chips"></div>
 </div>
 
 <!-- 월간 뷰 -->
@@ -1266,7 +1271,7 @@ function todayStr() { return fmt(new Date()); }
 
 // ── 필터 ──
 let activeFilters = new Set(['gold','teal','blue','red','green','purple','holiday']);
-let activeAssigneeId = null; // null이면 전체, 숫자면 해당 담당자만
+let activeAssigneeIds = new Set(); // 비어있으면 전체, 값이 있으면 해당 담당자들(OR) 만
 function toggleFilter(btn){
     const f=btn.dataset.filter;
     if(activeFilters.has(f)){activeFilters.delete(f);btn.classList.remove('active');}
@@ -1275,24 +1280,45 @@ function toggleFilter(btn){
 }
 function isFiltered(ev){
     if (!activeFilters.has(ev.color)) return false;
-    if (activeAssigneeId !== null) {
-        if (!Array.isArray(ev.assignees) || !ev.assignees.some(a => a.id === activeAssigneeId)) return false;
+    if (activeAssigneeIds.size > 0) {
+        if (!Array.isArray(ev.assignees) || !ev.assignees.some(a => activeAssigneeIds.has(a.id))) return false;
     }
     return true;
 }
 function populateAssigneeFilter() {
     const sel = document.getElementById('assigneeFilter');
     if (!sel) return;
-    const current = sel.value;
-    sel.innerHTML = '<option value="">담당자 전체</option>'
-        + assignees.map(a => `<option value="${a.id}">${(a.name||'').replace(/[<>&"]/g,'')}</option>`).join('');
-    if (current) sel.value = current;
+    // 이미 선택된 담당자는 드롭다운에서 제외
+    sel.innerHTML = '<option value="">담당자 추가…</option>'
+        + assignees
+            .filter(a => !activeAssigneeIds.has(a.id))
+            .map(a => `<option value="${a.id}">${(a.name||'').replace(/[<>&"]/g,'')}</option>`).join('');
+    renderAssigneeChips();
+}
+function renderAssigneeChips() {
+    const wrap = document.getElementById('assigneeFilterChips');
+    if (!wrap) return;
+    wrap.innerHTML = [...activeAssigneeIds].map(id => {
+        const a = assignees.find(x => x.id === id);
+        const name = a ? (a.name || `#${id}`) : `#${id}`;
+        return `<span class="af-chip">${name.replace(/[<>&"]/g,'')}<button type="button" title="필터 해제" onclick="removeAssigneeFilter(${id})">✕</button></span>`;
+    }).join('');
+    const sel = document.getElementById('assigneeFilter');
+    if (sel) sel.classList.toggle('active-filter', activeAssigneeIds.size > 0);
 }
 function onAssigneeFilterChange() {
     const sel = document.getElementById('assigneeFilter');
     const v = sel.value;
-    activeAssigneeId = v ? +v : null;
-    sel.classList.toggle('active-filter', activeAssigneeId !== null);
+    if (v) {
+        activeAssigneeIds.add(+v);
+        populateAssigneeFilter(); // 선택된 항목을 드롭다운에서 제거 + 칩 갱신
+        sel.value = '';
+        renderView();
+    }
+}
+function removeAssigneeFilter(id) {
+    activeAssigneeIds.delete(id);
+    populateAssigneeFilter();
     renderView();
 }
 
@@ -1520,7 +1546,14 @@ function selectMobileDay(dateStr){
 function renderMobileDayEvents(dateStr){
     const container=document.getElementById('mobileDayEvents');
     if(!container) return;
-    const dayEvs=events.filter(ev=>isFiltered(ev)&&ev.start_date<=dateStr&&(ev.end_date||ev.start_date)>=dateStr);
+    const dayEvs=events.filter(ev=>isFiltered(ev)&&ev.start_date<=dateStr&&(ev.end_date||ev.start_date)>=dateStr)
+        // 카테고리 순이 아니라 시간순 정렬: 종일 먼저, 그 다음 시작시간 오름차순
+        .sort((a,b)=>{
+            const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
+            if(aAll!==bAll) return aAll-bAll;
+            const at=(a.start_time||'99:99'), bt=(b.start_time||'99:99');
+            return at.localeCompare(bt);
+        });
     const d=new Date(dateStr+'T00:00:00');
     const DAYS_KO_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
     const header=`${d.getMonth()+1}월 ${d.getDate()}일 ${DAYS_KO_FULL[d.getDay()]}`;
@@ -1531,7 +1564,7 @@ function renderMobileDayEvents(dateStr){
         return;
     }
     const items=dayEvs.map(ev=>{
-        const time=ev.is_allday?'종일':(ev.start_time||'').substring(0,5);
+        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'시간 미정');
         const title=ev.title||'(제목 없음)';
         return `<div class="mde-item" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
             <div class="mde-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
@@ -1592,7 +1625,7 @@ function renderTimeline() {
         const isToday=ds===ts;
         const cell=document.createElement('div');
         cell.className='tl-allday-cell'+(isToday?' today-col':'');
-        events.filter(ev=>ev.is_all_day&&ev.start_date<=ds&&(ev.end_date||ev.start_date)>=ds).forEach(ev=>{
+        events.filter(ev=>isFiltered(ev)&&ev.is_all_day&&ev.start_date<=ds&&(ev.end_date||ev.start_date)>=ds).forEach(ev=>{
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`;
             chip.style.marginBottom='2px';
@@ -1619,6 +1652,7 @@ function renderTimeline() {
             const slot=document.createElement('div');
             slot.className='tl-slot'+(isToday?' today-col':'');
             events.filter(ev=>{
+                if(!isFiltered(ev)) return false;
                 if(ev.is_all_day) return false;
                 if(ev.start_date!==ds) return false;
                 const h=ev.start_time?parseInt(ev.start_time.split(':')[0]):null;
