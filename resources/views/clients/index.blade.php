@@ -734,8 +734,8 @@ function renderClientContent(id) {
             <div class="detail-identity">
                 <div class="detail-avatar" style="color:${GRADE_COLORS[d.grade]};border-color:${GRADE_COLORS[d.grade]}">${initials}</div>
                 <div>
-                    <div class="detail-name">${d.nickname || d.name}</div>
-                    <div class="detail-meta">${d.name} · ${GRADE_LABELS[d.grade]} · ${d.assigned_user||''}</div>
+                    <div class="detail-name">${d.nickname || d.name || '(이름 없음)'}</div>
+                    <div class="detail-meta">${[d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · ')}</div>
                 </div>
             </div>
             <div class="detail-actions">
