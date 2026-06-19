@@ -692,9 +692,11 @@
                 <div class="field-group">
                     <label class="field-label" for="modalLocation">장소 <span class="req">*</span></label>
                     <div class="location-input-wrap">
-                        <textarea class="field-input field-textarea" id="modalLocation" placeholder="장소를 입력하세요" autocomplete="off" rows="2" style="min-height:40px;resize:none;"></textarea>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <textarea class="field-input field-textarea" id="modalLocation" placeholder="주소 검색 버튼으로 입력하세요" autocomplete="off" rows="2" readonly onclick="searchCalAddr()" style="min-height:40px;resize:none;cursor:pointer;background:var(--surface2);"></textarea>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                             <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색">🔍 주소 검색</button>
+                            <button type="button" class="addr-search-btn" onclick="clearCalAddr()" title="주소 지우기">✕ 지우기</button>
+                            <span style="font-size:11px;color:var(--text-muted);">직접 입력은 불가하며 검색된 주소만 등록됩니다.</span>
                         </div>
                     </div>
                     <input type="hidden" id="modalAddress" value="">
@@ -3085,12 +3087,18 @@ async function confirmDeleteEvent(){
 }
 
 function searchCalAddr(){
+    if (typeof isLocked !== 'undefined' && isLocked) return; // 잠금 상태에선 변경 불가
     new daum.Postcode({oncomplete:function(data){
+        // 직접 입력 차단 — 검색된 주소(도로명 우선)로 교체
         const addr=data.roadAddress||data.jibunAddress;
         document.getElementById('modalAddress').value=addr;
-        const loc=document.getElementById('modalLocation');
-        loc.value=loc.value?loc.value+'\n'+addr:addr;
+        document.getElementById('modalLocation').value=addr;
     }}).open();
+}
+function clearCalAddr(){
+    if (typeof isLocked !== 'undefined' && isLocked) return;
+    document.getElementById('modalAddress').value='';
+    document.getElementById('modalLocation').value='';
 }
 
 // ── 라디오 그룹 초기화 ──
