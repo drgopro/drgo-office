@@ -742,10 +742,6 @@
             {{-- 공통 필드 (비-gold/비-teal) --}}
             <div class="common-only field-section">
                 <div class="field-group">
-                    <label class="field-label">이름 / 담당자 <span class="req">*</span></label>
-                    <input class="field-input" id="commonName" placeholder="이름을 입력하세요">
-                </div>
-                <div class="field-group">
                     <label class="field-label">상세 설명</label>
                     <textarea class="field-textarea" id="commonDesc" placeholder="상세 내용을 입력하세요"></textarea>
                 </div>
@@ -2318,10 +2314,7 @@ async function selectClient(id,nickname,name,phone){
     if(gNick) gNick.value=nickname||'';
     if(gName) gName.value=name||'';
     if(gPhone) gPhone.value=phone||'';
-    // 공통 이름 필드도 채움
-    const commonName=document.getElementById('commonName');
-    if(commonName&&!commonName.value) commonName.value=nickname||name||'';
-    // client_name도 채움
+    // 제목 비어있으면 의뢰자명으로 보조 채움
     document.getElementById('modalTitle').value=document.getElementById('modalTitle').value||(nickname||name);
     // 프로젝트 목록 로드
     await loadClientProjects(id);
@@ -2533,7 +2526,7 @@ function resetModalForm(){
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
     document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
-    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonName','commonDesc','commonSpecialNote','commonHandoverNote','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonSpecialNote','commonHandoverNote','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
@@ -2826,7 +2819,6 @@ function openEditModal(ev){
     if(ev.special_opts){const opts=Array.isArray(ev.special_opts)?ev.special_opts:[];opts.forEach(v=>{const b=document.querySelector(`#specialOpts [data-opt="${v}"]`);if(b)b.classList.add('active');});}
     if(ev.sched_after_reason) document.getElementById('schedAfterReason').value=ev.sched_after_reason;
     // 공통 필드
-    document.getElementById('commonName').value=ev.client_name||'';
     document.getElementById('commonDesc').value=ev.description||'';
     const _cs=document.getElementById('commonSpecialNote'); if(_cs) _cs.value=ev.special_note||'';
     const _ch=document.getElementById('commonHandoverNote'); if(_ch) _ch.value=ev.handover_note||'';
@@ -3019,7 +3011,8 @@ async function saveEvent(){
         title:document.getElementById('modalTitle').value.trim()||'(제목 없음)',
         start_date:sd, end_date:ed||sd, start_time:isAllDay?null:st, end_time:isAllDay?null:et,
         is_all_day:isAllDay, color:currentColor,
-        client_name:isGold?document.getElementById('g_nickname').value.trim():document.getElementById('commonName').value.trim(),
+        // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
+        client_name:isGold?document.getElementById('g_nickname').value.trim():(document.getElementById('linkedClientName')?.textContent.trim()||''),
         address:document.getElementById('modalAddress').value.trim(),
         location:document.getElementById('modalLocation').value.trim(),
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
