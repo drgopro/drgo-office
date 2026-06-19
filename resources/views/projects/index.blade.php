@@ -198,7 +198,7 @@
                 @foreach($projects as $project)
                 <tr>
                     <td>
-                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); if (typeof openTopTab === 'function') openTopTab('projects', '/projects/{{ $project->id }}', '📁 {{ addslashes($project->name) }}'); else window.location.href=this.href;">{{ $project->name }}</a>
+                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '📁 {{ addslashes($project->name) }}');">{{ $project->name }}</a>
                     </td>
                     <td>
                         @if($project->client)
@@ -305,6 +305,16 @@
 
 <script>
 const CSRF_NP = document.querySelector('meta[name="csrf-token"]').content;
+
+// 프로젝트 상세로 — 같은 프로젝트 탭 안에서 이동(새 탭 생성 안 함)
+function goProjectDetail(id, title) {
+    const url = '/projects/' + id;
+    if (window.parent && window.parent !== window && window.parent.drgoTabs && typeof window.parent.drgoTabs.navigateActive === 'function') {
+        window.parent.drgoTabs.navigateActive(url, title || '프로젝트');
+    } else {
+        window.location.href = url;
+    }
+}
 // 폴백용 기본 작업유형 (DB 비어있을 때만 사용)
 const NP_WORK_TYPES_FALLBACK = {
     personal: [['setup','세팅'],['remote','원격'],['filming','촬영중계'],['design','디자인'],['as','A/S']],
@@ -463,8 +473,8 @@ async function submitNewProject() {
         closeNewProjectModal();
         // 단순 결제는 결제 모달 자동 오픈 hash 부착
         const hash = paymentOnly ? '#openPayment' : '';
-        if (projectId && typeof openTopTab === 'function') {
-            openTopTab('projects', '/projects/' + projectId + hash, '📁 ' + name);
+        if (projectId && window.parent && window.parent !== window && window.parent.drgoTabs && typeof window.parent.drgoTabs.navigateActive === 'function') {
+            window.parent.drgoTabs.navigateActive('/projects/' + projectId + hash, '📁 ' + name);
         } else {
             location.href = '/projects/' + projectId + hash;
         }

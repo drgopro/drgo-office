@@ -276,11 +276,14 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            @if($project->client)
-                <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">← {{ $project->client->name }}</a>
-            @else
-                <span class="back-btn" style="color:var(--text-muted);">← (의뢰자 없음)</span>
-            @endif
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                {{-- 같은 탭에서 프로젝트 목록으로 (새 탭 생성 안 함) --}}
+                <a href="{{ route('projects.index') }}" class="back-btn" onclick="event.preventDefault(); goProjectList();">← 프로젝트 목록</a>
+                @if($project->client)
+                    {{-- 의뢰자 이름 클릭 → 의뢰자 상세 --}}
+                    <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
+                @endif
+            </div>
             <div>
                 <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
                 <input id="projectNameEdit" type="text" value="{{ $project->name }}" style="display:none;font-size:22px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);width:100%;outline:none;" onblur="saveProjectName()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.value='{{ addslashes($project->name) }}';this.blur();}">
@@ -1240,6 +1243,15 @@
 
 @push('scripts')
 <script>
+// 프로젝트 목록으로 — 같은 탭 안에서 이동(새 탭 생성 안 함)
+function goProjectList() {
+    if (window.parent && window.parent !== window && window.parent.drgoTabs && typeof window.parent.drgoTabs.navigateActive === 'function') {
+        window.parent.drgoTabs.navigateActive('/projects', '프로젝트');
+    } else {
+        window.location.href = '/projects';
+    }
+}
+
 // 상담 모달
 function openConsultModal() { document.getElementById('consultModal').classList.add('open'); }
 

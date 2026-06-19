@@ -568,6 +568,28 @@ window.drgoTabs = {
     },
 
     /**
+     * 현재 활성 탭 안에서 페이지 이동 (새 탭 생성하지 않음).
+     * 같은 구역의 목록↔상세 왕복에 사용. iframe src를 바꿔 iframe 히스토리에도 쌓임.
+     */
+    navigateActive(url, title) {
+        const tab = this.tabs.find(t => t.id === this.activeId);
+        if (!tab) return false;
+        tab.url = url;
+        tab.title = title || null;
+        const iframe = document.querySelector('#pane-' + this.activeId + ' iframe');
+        if (iframe) {
+            iframe.src = url;
+        } else {
+            tab.loaded = false;
+            const pane = document.getElementById('pane-' + this.activeId);
+            if (pane) this._load(tab, pane);
+        }
+        this.render();
+        this._save();
+        return true;
+    },
+
+    /**
      * iframe 내부에서 자신의 탭 타이틀을 갱신할 때 호출
      */
     setActiveTitle(title) {
