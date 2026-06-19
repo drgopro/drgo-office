@@ -1468,13 +1468,17 @@ function openDayPopover(dateStr, anchorEl){
     document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`;
 
     const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
+    // 주소를 도로명까지만 (상세주소·동/호수 등 쉼표 뒷부분 제거)
+    const roadOnly=(addr)=>{
+        if(!addr) return '';
+        return String(addr).split(',')[0].trim();
+    };
     document.getElementById('dpList').innerHTML=dayEvs.map(ev=>{
-        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'—');
         const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
         const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
-        const meta=[ev.location, assignees].filter(Boolean).join(' · ');
+        // 간략 표기: 주소(도로명까지) · 담당자
+        const meta=[roadOnly(ev.location), assignees].filter(Boolean).join(' · ');
         return `<div class="dp-item" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
-            <span class="dp-time">${time}</span>
             <span class="dp-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></span>
             <div class="dp-info">
                 <div class="dp-title">${_esc(title)}</div>
