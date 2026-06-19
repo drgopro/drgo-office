@@ -191,8 +191,8 @@
     .tl-slot:hover { background:var(--surface2); }
     .tl-slot.today-col { background:rgba(200,176,138,0.04); }
 
-    .tl-event { position:absolute; left:2px; right:2px; border-radius:4px; padding:2px 5px; font-size:11px; overflow:hidden; cursor:pointer; z-index:1; transition:filter 0.1s; line-height:1.3; }
-    .tl-event:hover { filter:brightness(1.15); z-index:2; }
+    .tl-event { position:absolute; left:2px; right:2px; border-radius:4px; padding:2px 5px; font-size:11px; overflow:hidden; cursor:pointer; z-index:1; transition:filter 0.1s, opacity 0.1s; line-height:1.3; opacity:0.8; }
+    .tl-event:hover { filter:brightness(1.15); opacity:1; z-index:3; }
     .tl-event.color-gold   { background:var(--gold); color:var(--accent-text); }
     .tl-event.color-teal   { background:var(--teal); color:var(--accent-text); }
     .tl-event.color-blue   { background:var(--blue); color:var(--accent-text); }
@@ -1724,6 +1724,46 @@ function renderTimeline() {
     grid.appendChild(alldayRow);
 
     // 시간 슬롯
+    // 날짜별로 시간 일정의 겹침을 계산해 컬럼(좌우 분할) 배치를 미리 구한다.
+    // id → { col, total } (col: 0부터, total: 그 겹침 묶음의 컬럼 수)
+    const dayLayouts = {};
+    cols.forEach(d=>{
+        const ds=fmt(d);
+        const items = events
+            .filter(ev=>isFiltered(ev) && !ev.is_all_day && ev.start_date===ds && ev.start_time)
+            .map(ev=>{
+                const [sh,sm]=ev.start_time.split(':').map(Number);
+                let eh, em;
+                if(ev.end_time){ [eh,em]=ev.end_time.split(':').map(Number); }
+                else { eh=sh+1; em=sm; }
+                let start=sh*60+sm, end=eh*60+em;
+                if(end<=start) end=start+30; // 종료<=시작이면 최소 30분
+                return { ev, start, end, col:0, total:1 };
+            })
+            .sort((a,b)=> a.start-b.start || a.end-b.end);
+
+        const layout={};
+        let cluster=[], clusterEnd=-1;
+        const flush=(grp)=>{
+            const lanes=[]; // 각 레인의 마지막 종료시각
+            grp.forEach(it=>{
+                let placed=false;
+                for(let i=0;i<lanes.length;i++){
+                    if(lanes[i]<=it.start){ lanes[i]=it.end; it.col=i; placed=true; break; }
+                }
+                if(!placed){ it.col=lanes.length; lanes.push(it.end); }
+            });
+            const total=lanes.length||1;
+            grp.forEach(it=> layout[it.ev.id]={col:it.col, total});
+        };
+        items.forEach(it=>{
+            if(cluster.length && it.start>=clusterEnd){ flush(cluster); cluster=[]; clusterEnd=-1; }
+            cluster.push(it); clusterEnd=Math.max(clusterEnd, it.end);
+        });
+        if(cluster.length) flush(cluster);
+        dayLayouts[ds]=layout;
+    });
+
     HOURS.forEach(hour=>{
         const row=document.createElement('div');
         row.className='tl-row';
@@ -1751,6 +1791,15 @@ function renderTimeline() {
                 const dur=(eh+em/60)-(hour+sm/60);
                 el.style.top=`${(sm/60)*48}px`;
                 el.style.height=`${Math.max(dur*48,20)}px`;
+                // 겹치는 일정은 셀을 좌우로 분할해 서로 덮지 않게
+                const lo=(dayLayouts[ds]||{})[ev.id];
+                if(lo && lo.total>1){
+                    const gap=2; // px
+                    const widthPct=100/lo.total;
+                    el.style.left=`calc(${widthPct*lo.col}% + ${gap}px)`;
+                    el.style.width=`calc(${widthPct}% - ${gap*2}px)`;
+                    el.style.right='auto';
+                }
                 el.textContent=ev.title||'';
                 el.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 slot.appendChild(el);
