@@ -1309,7 +1309,12 @@ function fmt(d) {
 function todayStr() { return fmt(new Date()); }
 
 // ── 필터 ──
-let activeFilters = new Set(['gold','teal','blue','red','green','purple','holiday']);
+// 실제 렌더된 카테고리 칩(.filter-btn.active)에서 초기화 — 커스텀 카테고리도 누락 없이 매칭
+let activeFilters = (function(){
+    const keys=[...document.querySelectorAll('#filterBar .filter-btn')].map(b=>b.dataset.filter).filter(Boolean);
+    keys.push('holiday'); // 공휴일은 칩이 없어도 항상 포함
+    return new Set(keys.length?keys:['gold','teal','blue','red','green','purple','holiday']);
+})();
 let activeAssigneeIds = new Set(); // 비어있으면 전체, 값이 있으면 해당 담당자들(OR) 만
 function toggleFilter(btn){
     const f=btn.dataset.filter;
