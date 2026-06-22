@@ -60,6 +60,17 @@
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
     /* ── 목록(아젠다) 뷰 ── */
+    .agenda-strip { display:flex; gap:6px; max-width:760px; margin:0 auto; padding:12px 16px 4px; }
+    .agenda-day-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px; border-radius:12px; border:1px solid var(--border); background:var(--surface); cursor:pointer; transition:all .15s; position:relative; }
+    .agenda-day-btn:hover { border-color:var(--accent); }
+    .agenda-day-btn.active { background:var(--accent); border-color:var(--accent); }
+    .agenda-day-btn.active .adb-dow, .agenda-day-btn.active .adb-num { color:var(--accent-text); }
+    .agenda-day-btn .adb-dow { font-size:11px; color:var(--text-muted); }
+    .agenda-day-btn .adb-num { font-size:16px; font-weight:700; }
+    .agenda-day-btn .adb-dow.sun, .agenda-day-btn .adb-num.sun { color:var(--red); }
+    .agenda-day-btn .adb-dow.sat, .agenda-day-btn .adb-num.sat { color:#5b8def; }
+    .agenda-day-btn .adb-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); position:absolute; bottom:4px; }
+    .agenda-day-btn.active .adb-dot { background:var(--accent-text); }
     .agenda-wrap { max-width:760px; margin:0 auto; padding:8px 16px 40px; }
     .agenda-day { margin-top:14px; }
     .agenda-day:first-child { margin-top:4px; }
@@ -525,9 +536,11 @@
         .view-toggle-btn { padding:6px 12px; min-height:36px; font-size:11px; }
         .add-btn { padding:8px 14px; font-size:12px; }
 
-        /* 필터바 컴팩트 */
-        .legend { padding:8px 12px; gap:6px; }
-        .filter-btn { padding:6px 10px; min-height:36px; font-size:11px; }
+        /* 필터바 — 카테고리 칩이 한눈에 보이도록 중앙 정렬 + 줄바꿈 */
+        .legend { padding:10px 12px; gap:6px 8px; justify-content:center; flex-wrap:wrap; }
+        .filter-btn { padding:6px 11px; min-height:34px; font-size:11.5px; flex:0 0 auto; border-radius:16px; }
+        .assignee-filter { font-size:11px; }
+        .assignee-filter-chips { width:100%; justify-content:center; }
 
         /* 월간 그리드 컴팩트 */
         .calendar-wrap { padding:8px 12px; }
@@ -683,6 +696,7 @@
 
 <!-- 목록(아젠다) 뷰 -->
 <div id="listView" style="display:none;">
+    <div class="agenda-strip" id="agendaStrip"></div>
     <div class="agenda-wrap" id="agendaWrap"></div>
 </div>
 
@@ -1478,8 +1492,11 @@ function renderView() {
 async function loadEvents() {
     expandedDays.clear();
     let start, end;
-    if (currentView==='month' || currentView==='list') {
-        // 목록 뷰도 현재 달 기준
+    if (currentView==='list') {
+        // 목록 뷰: 오늘부터 7일 (+ 다일 일정 겹침 위해 약간 여유)
+        const wk=agendaWeekDates();
+        start=wk[0]; end=wk[wk.length-1];
+    } else if (currentView==='month') {
         start=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`;
         const last=new Date(currentYear,currentMonth+1,0).getDate();
         end=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${last}`;
@@ -1562,29 +1579,54 @@ function closeDayPopover(){
 }
 
 // ── 목록(아젠다) 뷰 ─────────────────────────────────────────────
+// 오늘 기준 7일 스트립에서 날짜를 고르고, 선택한 날의 일정을 시간순으로 표시
+let agendaSelectedDate = null; // 'YYYY-MM-DD'
+const AGENDA_DOW=['일','월','화','수','목','금','토'];
+
+function agendaWeekDates(){
+    // 오늘부터 7일
+    const base=new Date(); base.setHours(0,0,0,0);
+    const arr=[];
+    for(let i=0;i<7;i++){ const d=new Date(base); d.setDate(base.getDate()+i); arr.push(fmt(d)); }
+    return arr;
+}
 function renderAgenda(){
-    document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
+    const ts=todayStr();
+    const week=agendaWeekDates();
+    if(!agendaSelectedDate || !week.includes(agendaSelectedDate)) agendaSelectedDate=ts;
+    document.getElementById('periodTitle').textContent='다가오는 일정';
+
+    // 상단 7일 스트립
+    const strip=document.getElementById('agendaStrip');
+    if(strip){
+        strip.innerHTML=week.map(full=>{
+            const d=new Date(full+'T00:00:00'); const dow=d.getDay();
+            const cls=dow===0?'sun':dow===6?'sat':'';
+            const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full);
+            return `<button class="agenda-day-btn ${full===agendaSelectedDate?'active':''}" onclick="selectAgendaDate('${full}')">
+                <span class="adb-dow ${cls}">${AGENDA_DOW[dow]}</span>
+                <span class="adb-num ${cls}">${d.getDate()}</span>
+                ${hasEv?'<span class="adb-dot"></span>':''}
+            </button>`;
+        }).join('');
+    }
+
+    // 선택일 일정
     const wrap=document.getElementById('agendaWrap');
     if(!wrap) return;
-    const ts=todayStr();
-    const lastDate=new Date(currentYear,currentMonth+1,0).getDate();
-    const DOW=['일','월','화','수','목','금','토'];
     const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)',holiday:'var(--chip-red-bg)'};
+    const full=agendaSelectedDate;
+    const d=new Date(full+'T00:00:00');
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full));
+    const dowCls=full===ts?'ad-today':d.getDay()===0?'ad-sun':d.getDay()===6?'ad-sat':'';
 
-    let html='', anyEvent=false;
-    for(let dnum=1;dnum<=lastDate;dnum++){
-        const full=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
-        // 해당 날짜를 덮는 이벤트(다일 포함), 필터 적용, 시간순
-        const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full));
-        if(!dayEvs.length) continue;
-        anyEvent=true;
-        const d=new Date(full+'T00:00:00');
-        const dow=d.getDay();
-        const dowCls=full===ts?'ad-today':dow===0?'ad-sun':dow===6?'ad-sat':'';
-        html+=`<div class="agenda-day"><div class="agenda-date-head">
-            <span class="ad-d ${dowCls}">${dnum}</span>
-            <span class="ad-dow ${dowCls}">${DOW[dow]}요일${full===ts?' · 오늘':''}</span>
-        </div>`;
+    let html=`<div class="agenda-day"><div class="agenda-date-head">
+        <span class="ad-d ${dowCls}">${d.getMonth()+1}.${d.getDate()}</span>
+        <span class="ad-dow ${dowCls}">${AGENDA_DOW[d.getDay()]}요일${full===ts?' · 오늘':''}</span>
+    </div>`;
+    if(!dayEvs.length){
+        html+='<div class="agenda-empty">일정이 없습니다.</div>';
+    } else {
         dayEvs.forEach(ev=>{
             const isMulti=ev.end_date&&ev.end_date!==ev.start_date;
             const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
@@ -1603,10 +1645,11 @@ function renderAgenda(){
                 </div>
             </div>`;
         });
-        html+='</div>';
     }
-    wrap.innerHTML = anyEvent ? html : '<div class="agenda-empty">이 달에 표시할 일정이 없습니다.</div>';
+    html+='</div>';
+    wrap.innerHTML=html;
 }
+function selectAgendaDate(full){ agendaSelectedDate=full; renderAgenda(); }
 
 // ── 월간 뷰 ─────────────────────────────────────────────────────
 function renderMonth() {
