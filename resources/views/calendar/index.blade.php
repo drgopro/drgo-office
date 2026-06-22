@@ -60,17 +60,17 @@
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
     /* ── 목록(아젠다) 뷰 ── */
-    .agenda-strip { display:flex; gap:6px; max-width:760px; margin:0 auto; padding:12px 16px 4px; }
-    .agenda-day-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px; border-radius:12px; border:1px solid var(--border); background:var(--surface); cursor:pointer; transition:all .15s; position:relative; }
-    .agenda-day-btn:hover { border-color:var(--accent); }
-    .agenda-day-btn.active { background:var(--accent); border-color:var(--accent); }
-    .agenda-day-btn.active .adb-dow, .agenda-day-btn.active .adb-num { color:var(--accent-text); }
+    .agenda-strip { display:flex; gap:4px; max-width:760px; margin:0 auto; padding:12px 12px 6px; }
+    .agenda-day-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; padding:4px 0 16px; border:none; background:none; cursor:pointer; position:relative; }
     .agenda-day-btn .adb-dow { font-size:11px; color:var(--text-muted); }
-    .agenda-day-btn .adb-num { font-size:16px; font-weight:700; }
+    /* 날짜는 동그란 칸 */
+    .agenda-day-btn .adb-num { font-size:15px; font-weight:700; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:background .15s, color .15s; }
+    .agenda-day-btn:hover .adb-num { background:var(--surface2); }
+    .agenda-day-btn.active .adb-num { background:var(--accent); color:var(--accent-text); }
     .agenda-day-btn .adb-dow.sun, .agenda-day-btn .adb-num.sun { color:var(--red); }
     .agenda-day-btn .adb-dow.sat, .agenda-day-btn .adb-num.sat { color:#5b8def; }
-    .agenda-day-btn .adb-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); position:absolute; bottom:4px; }
-    .agenda-day-btn.active .adb-dot { background:var(--accent-text); }
+    .agenda-day-btn.active .adb-num.sun, .agenda-day-btn.active .adb-num.sat { color:var(--accent-text); }
+    .agenda-day-btn .adb-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); position:absolute; bottom:5px; }
     .agenda-wrap { max-width:760px; margin:0 auto; padding:8px 16px 40px; }
     .agenda-day { margin-top:14px; }
     .agenda-day:first-child { margin-top:4px; }
