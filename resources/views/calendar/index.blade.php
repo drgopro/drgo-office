@@ -1458,7 +1458,11 @@ function changeYear(dir) {
 }
 
 function changePeriod(dir) {
-    if (currentView==='month' || currentView==='list') {
+    if (currentView==='list') {
+        moveAgendaWeek(dir); // 목록 뷰: 7일 주 이동
+        return;
+    }
+    if (currentView==='month') {
         currentMonth += dir;
         if (currentMonth>11){currentMonth=0;currentYear++;}
         if (currentMonth<0) {currentMonth=11;currentYear--;}
@@ -1477,6 +1481,7 @@ function goToday() {
     currentYear=now.getFullYear(); currentMonth=now.getMonth();
     currentWeekStart=getWeekStart(now);
     currentDay=new Date(now); currentDay.setHours(0,0,0,0);
+    agendaWeekStart=null; agendaSelectedDate=todayStr(); // 목록 뷰도 오늘 기준으로 복귀
     renderView(); loadEvents();
 }
 
@@ -1580,19 +1585,29 @@ function closeDayPopover(){
 // 오늘 기준 7일 스트립에서 날짜를 고르고, 선택한 날의 일정을 시간순으로 표시
 let agendaSelectedDate = null; // 'YYYY-MM-DD'
 const AGENDA_DOW=['일','월','화','수','목','금','토'];
+let agendaWeekStart=null; // 7일 스트립의 시작 날짜(Date). null이면 오늘부터.
 
 function agendaWeekDates(){
-    // 오늘부터 7일
-    const base=new Date(); base.setHours(0,0,0,0);
+    const base = agendaWeekStart ? new Date(agendaWeekStart) : (()=>{const d=new Date();d.setHours(0,0,0,0);return d;})();
+    base.setHours(0,0,0,0);
     const arr=[];
     for(let i=0;i<7;i++){ const d=new Date(base); d.setDate(base.getDate()+i); arr.push(fmt(d)); }
     return arr;
 }
+// 스와이프/화살표로 7일 주 이동
+function moveAgendaWeek(dir){
+    const base = agendaWeekStart ? new Date(agendaWeekStart) : (()=>{const d=new Date();d.setHours(0,0,0,0);return d;})();
+    base.setDate(base.getDate()+dir*7);
+    agendaWeekStart=base;
+    agendaSelectedDate=fmt(base); // 이동한 주의 첫 날 선택
+    loadEvents(); // 새 주 범위 로드 후 renderAgenda
+}
 function renderAgenda(){
     const ts=todayStr();
     const week=agendaWeekDates();
-    if(!agendaSelectedDate || !week.includes(agendaSelectedDate)) agendaSelectedDate=ts;
-    document.getElementById('periodTitle').textContent='다가오는 일정';
+    if(!agendaSelectedDate || !week.includes(agendaSelectedDate)) agendaSelectedDate=week.includes(ts)?ts:week[0];
+    const ws=new Date(week[0]+'T00:00:00');
+    document.getElementById('periodTitle').textContent=`${ws.getMonth()+1}월 ${ws.getDate()}일 ~`;
 
     // 상단 7일 스트립
     const strip=document.getElementById('agendaStrip');
@@ -3298,6 +3313,26 @@ window.addEventListener('resize',()=>{
     clearTimeout(__calResizeTimer);
     __calResizeTimer=setTimeout(()=>{ if(currentView==='month') renderMonth(); },150);
 });
+
+// 목록(아젠다) 뷰: 좌우 스와이프로 주 이동
+(function(){
+    const lv=document.getElementById('listView');
+    if(!lv) return;
+    let sx=0, sy=0, tracking=false;
+    lv.addEventListener('touchstart',e=>{
+        if(e.touches.length!==1){tracking=false;return;}
+        sx=e.touches[0].clientX; sy=e.touches[0].clientY; tracking=true;
+    },{passive:true});
+    lv.addEventListener('touchend',e=>{
+        if(!tracking) return; tracking=false;
+        const t=e.changedTouches[0];
+        const dx=t.clientX-sx, dy=t.clientY-sy;
+        // 가로 스와이프가 충분하고 세로 이동보다 클 때만
+        if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5){
+            moveAgendaWeek(dx<0?1:-1); // 왼쪽으로 밀면 다음 주
+        }
+    },{passive:true});
+})();
 
 // ── 라이트박스 (이미지 뷰어 + 줌/팬) ──
 let lightboxImages=[], lightboxIdx=0;
