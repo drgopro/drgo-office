@@ -545,35 +545,33 @@
         /* 월간 그리드 컴팩트 */
         .calendar-wrap { padding:8px 12px; }
         .weekday { font-size:11px; padding:6px 0; }
-        .week-row { min-height:70px; }
-        .day-cell { padding:6px 3px; }
-        .day-num { font-size:16px; width:28px; height:28px; font-weight:700; }
-        .day-cell.today .day-num { width:28px; height:28px; }
+        .week-row { min-height:84px; }
+        .day-cell { padding:4px 3px; }
+        .day-num { font-size:13px; width:22px; height:22px; font-weight:700; }
+        .day-cell.today .day-num { width:22px; height:22px; }
+        .day-num-row { margin-bottom:2px; }
 
-        /* 이벤트 칩 → dot 표시 (월간 그리드 셀에만 적용 — 타임라인/목록 칩 제외) */
-        .day-cell .events-list { flex-direction:row; gap:2px; justify-content:center; flex-wrap:wrap; }
-        .day-cell .event-chip { width:10px; height:10px; min-width:10px; border-radius:50%; padding:0; overflow:hidden; border:none !important; pointer-events:none; }
-        .day-cell .event-chip span, .day-cell .event-chip .chip-time, .day-cell .event-chip .chip-special,
-        .day-cell .event-chip .chip-badges, .day-cell .event-chip .sched-icon-badge, .day-cell .event-chip .ev-assignee-badge { display:none; }
-        .day-cell .event-chip.single { border-left:none; }
-        .day-cell .event-chip.single.color-gold   { background:var(--chip-gold-bg); }
-        .day-cell .event-chip.single.color-teal   { background:var(--chip-teal-bg); }
-        .day-cell .event-chip.single.color-blue   { background:var(--chip-blue-bg); }
-        .day-cell .event-chip.single.color-red    { background:var(--chip-red-bg); }
-        .day-cell .event-chip.single.color-green  { background:var(--chip-green-bg); }
-        .day-cell .event-chip.single.color-purple { background:var(--chip-purple-bg); }
-        .more-badge { font-size:13px; padding:2px 4px; pointer-events:none; font-weight:700; }
+        /* 이벤트 칩 → TickTick 스타일 작은 텍스트 바 (월간 그리드 셀에만) */
+        .day-cell .events-list { flex-direction:column; gap:1px; align-items:stretch; }
+        .day-cell .event-chip { width:100%; min-width:0; height:auto; min-height:0; border-radius:3px; padding:0 3px; font-size:9px; line-height:1.6; display:flex; align-items:center; gap:2px; overflow:hidden; pointer-events:none; border:none !important; }
+        .day-cell .event-chip .chip-title { display:inline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+        .day-cell .event-chip .chip-time { display:inline; font-size:8px; opacity:0.8; flex-shrink:0; }
+        .day-cell .event-chip .chip-special, .day-cell .event-chip .chip-badges,
+        .day-cell .event-chip .sched-icon-badge, .day-cell .event-chip .ev-assignee-badge { display:none; }
+        .day-cell .event-chip.single { border-left:none; color:var(--text); }
+        .day-cell .event-chip.single.color-gold   { background:var(--chip-gold-bg);   color:var(--accent-text); }
+        .day-cell .event-chip.single.color-teal   { background:var(--chip-teal-bg);   color:var(--accent-text); }
+        .day-cell .event-chip.single.color-blue   { background:var(--chip-blue-bg);   color:var(--accent-text); }
+        .day-cell .event-chip.single.color-red    { background:var(--chip-red-bg);    color:#fff; }
+        .day-cell .event-chip.single.color-green  { background:var(--chip-green-bg);  color:var(--accent-text); }
+        .day-cell .event-chip.single.color-purple { background:var(--chip-purple-bg); color:#fff; }
+        .more-badge { font-size:9px; padding:0 3px; pointer-events:none; font-weight:600; color:var(--text-muted); text-align:left; }
 
-        /* 모바일에서 다일 일정은 dot이 아닌 가로 막대로 표시 — 셀 padding(3px) 보상 */
-        .day-cell .event-chip.multi-day {
-            width:auto !important; height:6px !important; min-width:0 !important;
-            border-radius:0 !important; padding:0 !important;
-            flex-basis:100%; align-self:stretch;
-            margin-left:-3px !important; margin-right:-3px !important;
-        }
-        .day-cell .event-chip.multi-day.day-start         { border-radius:3px 0 0 3px !important; margin-left:0 !important; }
-        .day-cell .event-chip.multi-day.day-end           { border-radius:0 3px 3px 0 !important; margin-right:0 !important; }
-        .day-cell .event-chip.multi-day.day-start.day-end { border-radius:3px !important; margin:0 !important; flex-basis:auto; width:auto !important; min-width:10px !important; height:6px !important; }
+        /* 다일 일정: 텍스트 바, 셀 경계까지 연결(padding 3px 보상) */
+        .day-cell .event-chip.multi-day { flex-basis:100%; align-self:stretch; margin-left:-3px; margin-right:-3px; border-radius:0; }
+        .day-cell .event-chip.multi-day.day-start         { border-radius:3px 0 0 3px; margin-left:0; }
+        .day-cell .event-chip.multi-day.day-end           { border-radius:0 3px 3px 0; margin-right:0; }
+        .day-cell .event-chip.multi-day.day-start.day-end { border-radius:3px; margin:0; }
 
         /* 선택된 날짜 */
         .day-cell.mobile-selected { background:var(--surface2); }
