@@ -2705,11 +2705,20 @@ function openDetailModal(ev) {
     viewMode = true;
     openEditModal(ev);
     // 읽기전용 UI 적용
-    setTimeout(()=>setViewModeUI(),0);
+    setTimeout(()=>{
+        setViewModeUI();
+        // 모바일: 수정 폼이 아니라 자물쇠(읽기 전용 요약) 뷰로 표시
+        if(window.innerWidth<=768){
+            renderLockSummary();
+            document.querySelector('#modalOverlay .modal-body')?.classList.add('is-locked');
+        }
+    },0);
 }
 
 function switchToEditMode() {
     viewMode = false;
+    // 모바일 잠금(읽기전용) 요약 뷰 해제 → 편집 폼 노출
+    document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     setEditModeUI();
 }
 
