@@ -2169,6 +2169,13 @@ function applyLockUI(){
 }
 
 function _esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// 금액 포맷: 숫자면 천단위 콤마, 아니면 원문 그대로
+function _fmtAmt(v){
+    if(v===null||v===undefined) return '';
+    const s=String(v).replace(/,/g,'').trim();
+    if(s==='') return '';
+    return /^\d+$/.test(s) ? Number(s).toLocaleString() : String(v);
+}
 function _val(id){ const el=document.getElementById(id); return el ? (el.value||'').trim() : ''; }
 function _radio(gid){
     const g=document.getElementById(gid); if(!g) return '';
@@ -2299,11 +2306,11 @@ function renderLockSummary(){
             <div class="ls-amount-row">
                 <div>
                     <div class="ls-info-label">결제된 금액</div>
-                    ${amount ? `<div class="ls-amount">${_esc(amount)}원</div>` : `<div class="ls-text-block muted">— 미입력 —</div>`}
+                    ${amount ? `<div class="ls-amount">${_esc(_fmtAmt(amount))}원</div>` : `<div class="ls-text-block muted">— 미입력 —</div>`}
                 </div>
                 ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
             </div>
-            ${balanceAmount ? `<div style="margin-top:6px;"><div class="ls-info-label">잔금 금액</div><div class="ls-text-block">${_esc(balanceAmount)}원</div></div>` : ''}
+            ${balanceAmount ? `<div style="margin-top:6px;"><div class="ls-info-label">잔금 금액</div><div class="ls-text-block">${_esc(_fmtAmt(balanceAmount))}원</div></div>` : ''}
         </div>`;
     }
 
@@ -3055,11 +3062,11 @@ function openEditModal(ev){
     document.getElementById('g_special').value=g.special||'';
     if(g.specialReason) document.getElementById('specialReason').value=g.specialReason;
     if(g.paid) setRadio('g_paid_group',g.paid);
-    document.getElementById('g_estimate_amount').value=g.estimate_amount||'';
+    document.getElementById('g_estimate_amount').value=_fmtAmt(g.estimate_amount||'');
     if(g.order){setRadio('g_order_group',g.order);if(g.order==='O')document.getElementById('g_delivery_wrap').style.display='';handleConditional('g_order_group');}
     if(g.delivery) setRadio('g_delivery_group',g.delivery);
     if(g.balance){setRadio('g_balance_group',g.balance);handleConditional('g_balance_group');}
-    document.getElementById('g_balance_amount').value=g.balance_amount||'';
+    document.getElementById('g_balance_amount').value=_fmtAmt(g.balance_amount||'');
     if(g.estimate_id){linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';}
     // 의뢰자/프로젝트 연결 복원
     if(g.client_id){
