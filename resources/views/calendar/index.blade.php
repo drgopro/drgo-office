@@ -45,8 +45,12 @@
     [data-theme="light"] .assignee-chip.selected { color:#fff; }
     [data-theme="light"] .radio-btn.active-green { color:#fff; }
 
-    .cal-header { padding:20px 32px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
-    .cal-header-left { display:flex; align-items:center; gap:16px; }
+    .cal-header { padding:16px 24px; display:flex; justify-content:space-between; align-items:center; gap:12px 16px; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
+    .cal-header-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .cal-header-right { flex-wrap:wrap; }
+    /* 헤더 버튼: 절대 줄바꿈/찌그러짐 없이 한 줄 유지, 공간 부족 시 그룹 단위로 다음 줄로 래핑 */
+    .cal-header .nav-btn, .cal-header .add-btn, .cal-header .view-toggle-btn, .cal-header .month-label { white-space:nowrap; flex-shrink:0; }
+    .view-toggle-group { flex-shrink:0; }
     .app-title { font-size:13px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; }
     .nav-btn { background:none; border:1px solid var(--border); color:var(--text-muted); cursor:pointer; width:32px; height:32px; border-radius:6px; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
     .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
@@ -613,7 +617,7 @@
             <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
         </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">📋 캘린더 이력</button>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;">🗑 휴지통</button>
