@@ -55,6 +55,25 @@
     .view-toggle-group { display:flex; background:var(--surface2); border-radius:8px; padding:2px; gap:2px; }
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
+    /* ── 목록(아젠다) 뷰 ── */
+    .agenda-wrap { max-width:760px; margin:0 auto; padding:8px 16px 40px; }
+    .agenda-day { margin-top:14px; }
+    .agenda-day:first-child { margin-top:4px; }
+    .agenda-date-head { display:flex; align-items:baseline; gap:8px; padding:8px 4px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg); z-index:2; }
+    .agenda-date-head .ad-d { font-size:18px; font-weight:700; }
+    .agenda-date-head .ad-dow { font-size:12px; color:var(--text-muted); }
+    .agenda-date-head .ad-today { color:var(--accent); }
+    .agenda-date-head .ad-sun { color:var(--red); } .agenda-date-head .ad-sat { color:#5b8def; }
+    .agenda-item { display:flex; align-items:center; gap:12px; padding:12px 6px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .12s; }
+    .agenda-item:hover { background:var(--surface2); }
+    .agenda-stripe { width:4px; align-self:stretch; border-radius:2px; flex-shrink:0; min-height:34px; }
+    .agenda-main { flex:1; min-width:0; }
+    .agenda-title { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .agenda-sub { font-size:12px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .agenda-right { text-align:right; flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+    .agenda-time { font-size:12px; font-weight:600; color:var(--text-muted); }
+    .agenda-assignee { font-size:11px; color:var(--text-muted); max-width:90px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .agenda-empty { text-align:center; color:var(--text-muted); padding:60px 20px; font-size:14px; }
 
     .add-btn { background:var(--accent); color:var(--accent-text); border:none; padding:8px 20px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; }
     .add-btn:hover { background:#d4c09a; transform:translateY(-1px); }
@@ -591,6 +610,7 @@
             <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월간</button>
             <button class="view-toggle-btn"        id="tabWeek"  onclick="switchView('week')">주간</button>
             <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일간</button>
+            <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
         </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -653,6 +673,11 @@
     <div class="timeline-wrap">
         <div class="timeline-grid" id="timelineGrid"></div>
     </div>
+</div>
+
+<!-- 목록(아젠다) 뷰 -->
+<div id="listView" style="display:none;">
+    <div class="agenda-wrap" id="agendaWrap"></div>
 </div>
 
 <!-- 일정 모달 -->
@@ -1398,9 +1423,11 @@ function buildChipHtml(ev){
 // ── 뷰 전환 ─────────────────────────────────────────────────────
 function switchView(view) {
     currentView = view;
-    document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.includes(view==='month'?'월간':view==='week'?'주간':'일간')));
+    const LABEL={month:'월간',week:'주간',day:'일간',list:'목록'};
+    document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===LABEL[view]));
     document.getElementById('monthView').style.display    = view==='month' ? '' : 'none';
-    document.getElementById('timelineView').style.display = view!=='month' ? '' : 'none';
+    document.getElementById('timelineView').style.display = (view==='week'||view==='day') ? '' : 'none';
+    document.getElementById('listView').style.display     = view==='list' ? '' : 'none';
     renderView();
     loadEvents();
 }
@@ -1413,7 +1440,7 @@ function changeYear(dir) {
 }
 
 function changePeriod(dir) {
-    if (currentView==='month') {
+    if (currentView==='month' || currentView==='list') {
         currentMonth += dir;
         if (currentMonth>11){currentMonth=0;currentYear++;}
         if (currentMonth<0) {currentMonth=11;currentYear--;}
@@ -1437,6 +1464,7 @@ function goToday() {
 
 function renderView() {
     if (currentView==='month') renderMonth();
+    else if (currentView==='list') renderAgenda();
     else renderTimeline();
 }
 
@@ -1444,7 +1472,8 @@ function renderView() {
 async function loadEvents() {
     expandedDays.clear();
     let start, end;
-    if (currentView==='month') {
+    if (currentView==='month' || currentView==='list') {
+        // 목록 뷰도 현재 달 기준
         start=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`;
         const last=new Date(currentYear,currentMonth+1,0).getDate();
         end=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${last}`;
@@ -1524,6 +1553,53 @@ function closeDayPopover(){
     const overlay=document.getElementById('dayPopoverOverlay');
     if(pop) pop.style.display='none';
     if(overlay) overlay.classList.remove('open');
+}
+
+// ── 목록(아젠다) 뷰 ─────────────────────────────────────────────
+function renderAgenda(){
+    document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
+    const wrap=document.getElementById('agendaWrap');
+    if(!wrap) return;
+    const ts=todayStr();
+    const lastDate=new Date(currentYear,currentMonth+1,0).getDate();
+    const DOW=['일','월','화','수','목','금','토'];
+    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)',holiday:'var(--chip-red-bg)'};
+
+    let html='', anyEvent=false;
+    for(let dnum=1;dnum<=lastDate;dnum++){
+        const full=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
+        // 해당 날짜를 덮는 이벤트(다일 포함), 필터 적용, 시간순
+        const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full));
+        if(!dayEvs.length) continue;
+        anyEvent=true;
+        const d=new Date(full+'T00:00:00');
+        const dow=d.getDay();
+        const dowCls=full===ts?'ad-today':dow===0?'ad-sun':dow===6?'ad-sat':'';
+        html+=`<div class="agenda-day"><div class="agenda-date-head">
+            <span class="ad-d ${dowCls}">${dnum}</span>
+            <span class="ad-dow ${dowCls}">${DOW[dow]}요일${full===ts?' · 오늘':''}</span>
+        </div>`;
+        dayEvs.forEach(ev=>{
+            const isMulti=ev.end_date&&ev.end_date!==ev.start_date;
+            const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
+            const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
+            const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
+            const sub=[ (isMulti?`${ev.start_date.slice(5).replace('-','/')}~${ev.end_date.slice(5).replace('-','/')}`:''), ev.location ].filter(Boolean).join(' · ');
+            html+=`<div class="agenda-item" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
+                <div class="agenda-stripe" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
+                <div class="agenda-main">
+                    <div class="agenda-title">${_esc(title)}</div>
+                    ${sub?`<div class="agenda-sub">${_esc(sub)}</div>`:''}
+                </div>
+                <div class="agenda-right">
+                    <span class="agenda-time">${timeLabel}</span>
+                    ${assignees?`<span class="agenda-assignee">${_esc(assignees)}</span>`:''}
+                </div>
+            </div>`;
+        });
+        html+='</div>';
+    }
+    wrap.innerHTML = anyEvent ? html : '<div class="agenda-empty">이 달에 표시할 일정이 없습니다.</div>';
 }
 
 // ── 월간 뷰 ─────────────────────────────────────────────────────
