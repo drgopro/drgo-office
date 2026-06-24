@@ -752,8 +752,9 @@
                         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                             <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색">🔍 주소 검색</button>
                             <button type="button" class="addr-search-btn" onclick="clearCalAddr()" title="주소 지우기">✕ 지우기</button>
-                            <span style="font-size:11px;color:var(--text-muted);">직접 입력은 불가하며 검색된 주소만 등록됩니다.</span>
+                            <span style="font-size:11px;color:var(--text-muted);">도로명은 검색으로만, 상세주소는 아래 직접 입력</span>
                         </div>
+                        <input class="field-input" id="modalLocationDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">
                     </div>
                     <input type="hidden" id="modalAddress" value="">
                 </div>
@@ -2190,7 +2191,7 @@ function renderLockSummary(){
     const container = document.getElementById('lockSummary');
     if (!container) return;
     const color = currentColor || 'gold';
-    const location = _val('modalLocation');
+    const location = [_val('modalLocation'), _val('modalLocationDetail')].filter(Boolean).join(' ');
     const addr = document.getElementById('modalAddress')?.value || '';
     const isAll = isAllDay;
     const sDate = _val(color==='gold'?'goldStartDate':'startDate');
@@ -2690,7 +2691,7 @@ function resetModalForm(){
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
     document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
-    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
@@ -2983,8 +2984,17 @@ function openEditModal(ev){
     document.getElementById('goldEndTime').value=et;document.getElementById('goldEndTimeTrigger').textContent=et.substring(0,5);
     if(ev.is_all_day){isAllDay=true;document.getElementById('alldayTrack').classList.add('on');document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='none');}
     // 장소
-    document.getElementById('modalLocation').value=ev.location||'';
-    document.getElementById('modalAddress').value=ev.address||'';
+    // address=도로명, location=도로명+상세. 상세주소 분리 복원
+    {
+        const road = ev.address || ev.location || '';
+        let detail = '';
+        if (ev.address && ev.location && ev.location.startsWith(ev.address)) {
+            detail = ev.location.slice(ev.address.length).trim();
+        }
+        document.getElementById('modalLocation').value = road;
+        document.getElementById('modalAddress').value = ev.address || road;
+        const det=document.getElementById('modalLocationDetail'); if(det) det.value = detail;
+    }
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
     // 잠금
@@ -3191,8 +3201,9 @@ async function saveEvent(){
         is_all_day:isAllDay, color:currentColor,
         // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
         client_name:isGold?document.getElementById('g_nickname').value.trim():(document.getElementById('linkedClientName')?.textContent.trim()||''),
-        address:document.getElementById('modalAddress').value.trim(),
-        location:document.getElementById('modalLocation').value.trim(),
+        // address=도로명(검색), location=도로명+상세주소(표시용)
+        address:document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim(),
+        location:[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
         // 전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),
