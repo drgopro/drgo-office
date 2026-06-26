@@ -1,6 +1,9 @@
 @extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
 
 @section('title', '캘린더 - 닥터고블린 오피스')
+{{-- 캘린더 전용 PWA — 홈 화면에 추가 시 캘린더로 시작 --}}
+@section('pwa_manifest', '/manifest-calendar.json')
+@section('pwa_title', '닥터고블린 캘린더')
 
 @push('styles')
 <style>
