@@ -182,9 +182,11 @@
     /* 다일 레인 정렬용 빈 자리 (보이지 않지만 칩 1행과 동일한 높이) — 채울 단일이 없을 때만 사용 */
     .lane-spacer { height:calc(22px * var(--cal-fz,1)); visibility:hidden; }
     /* 다일 일정 제목 — 바 전체 폭에 걸쳐 셀 경계를 넘어 흐르는 오버레이 (날짜별로 끊지 않음) */
-    .mday-title-overlay { position:absolute; z-index:6; pointer-events:none; display:flex; align-items:center;
+    .mday-title-overlay { position:absolute; z-index:6; pointer-events:none; display:flex; align-items:center; gap:4px;
         padding:0 8px; box-sizing:border-box; font-size:calc(12px * var(--cal-fz,1)); font-weight:500; color:var(--text);
-        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        white-space:nowrap; overflow:hidden; }
+    .mday-title-overlay .chip-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mday-title-overlay .chip-badges { margin-left:auto; flex-shrink:0; }
     .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
     .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
     .event-chip.single.color-blue   { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
@@ -1863,7 +1865,7 @@ function renderMonth() {
                 ov.style.height=chipRect.height+'px';
                 ov.style.left=(chipRect.left-wrRect.left)+'px';
                 ov.style.width=Math.max(0, (endRect.right-6)-chipRect.left)+'px';
-                ov.textContent=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
+                ov.innerHTML=buildChipHtml(ev); // 제목 + 담당자 배지 등(연속 일정도 담당자 표기)
                 weekRow.appendChild(ov);
             });
         }
