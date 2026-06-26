@@ -177,6 +177,10 @@
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
     /* 다일 레인 정렬용 빈 자리 (보이지 않지만 칩 1행과 동일한 높이) — 채울 단일이 없을 때만 사용 */
     .lane-spacer { height:22px; visibility:hidden; }
+    /* 다일 일정 제목 — 바 전체 폭에 걸쳐 셀 경계를 넘어 흐르는 오버레이 (날짜별로 끊지 않음) */
+    .mday-title-overlay { position:absolute; z-index:6; pointer-events:none; display:flex; align-items:center;
+        padding:0 8px; box-sizing:border-box; font-size:12px; font-weight:500; color:var(--text);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
     .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
     .event-chip.single.color-blue   { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
@@ -605,6 +609,7 @@
         /* 다일 스판 칩 숨김 (모바일에서는 dot으로 대체) */
         .span-chip-overlay { display:none; }
         .lane-spacer { display:none; }
+        .mday-title-overlay { display:none; }
 
         /* 모달 모바일 */
         .modal { max-width:95vw; border-radius:12px; }
@@ -1778,7 +1783,8 @@ function renderMonth() {
                     let cls=`event-chip single color-${ev.color} multi-day`;
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
                     chip.className=cls;
-                    chip.innerHTML=isStart?buildChipHtml(ev):'';
+                    chip.innerHTML=''; // 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
+                    chip.dataset.mev=ev.id; // 오버레이 위치 측정용
                 } else {
                     chip.className=`event-chip single color-${ev.color}`;
                     chip.innerHTML=buildChipHtml(ev);
@@ -1811,6 +1817,30 @@ function renderMonth() {
             weekRow.appendChild(div);
         }
         grid.appendChild(weekRow);
+
+        // ── 다일 일정 제목 오버레이: 바 전체 폭에 걸쳐 한 번만 출력(셀 경계 넘어 흐름). 주마다 시작 칸에서 다시 출력 ──
+        if(window.innerWidth>768){
+            const wrRect=weekRow.getBoundingClientRect();
+            weekMulti.forEach(ev=>{
+                if(laneOf[ev.id]>=LANE_CAP) return;
+                let c1=-1,c2=-1;
+                for(let d=0;d<7;d++){ const f=weekCells[d].full; if(f>=ev.start_date&&f<=ev.end_date){ if(c1<0)c1=d; c2=d; } }
+                if(c1<0) return;
+                const startCell=weekRow.children[c1];
+                const chip=startCell&&startCell.querySelector(`.event-chip.multi-day[data-mev="${ev.id}"]`);
+                if(!chip) return;
+                const chipRect=chip.getBoundingClientRect();
+                const endRect=weekRow.children[c2].getBoundingClientRect();
+                const ov=document.createElement('div');
+                ov.className='mday-title-overlay';
+                ov.style.top=(chipRect.top-wrRect.top)+'px';
+                ov.style.height=chipRect.height+'px';
+                ov.style.left=(chipRect.left-wrRect.left)+'px';
+                ov.style.width=Math.max(0, (endRect.right-6)-chipRect.left)+'px';
+                ov.textContent=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
+                weekRow.appendChild(ov);
+            });
+        }
     }
     // 모바일: 오늘 날짜 자동 선택
     if(window.innerWidth<=768){
