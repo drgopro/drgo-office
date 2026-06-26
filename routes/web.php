@@ -51,6 +51,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/crm-demo/projects/{project}/cancel', [CrmDemoController::class, 'cancel']);
     Route::post('/api/crm-demo/projects/{project}/billing', [CrmDemoController::class, 'saveBilling']);
     Route::delete('/api/crm-demo/projects/{project}', [CrmDemoController::class, 'destroy']);
+    Route::get('/crm-demo/{project}', [CrmDemoController::class, 'show'])->name('crm-demo.show');
+    Route::patch('/api/crm-demo/projects/{project}/overview', [CrmDemoController::class, 'saveOverview']);
+    Route::post('/api/crm-demo/projects/{project}/consultations', [CrmDemoController::class, 'addConsultation']);
+    Route::delete('/api/crm-demo/projects/{project}/consultations/{cid}', [CrmDemoController::class, 'deleteConsultation']);
+    Route::post('/api/crm-demo/projects/{project}/feedbacks', [CrmDemoController::class, 'addFeedback']);
+    Route::delete('/api/crm-demo/projects/{project}/feedbacks/{fid}', [CrmDemoController::class, 'deleteFeedback']);
     Route::get('/api/crm-demo/tags', [CrmDemoController::class, 'tags']);
     Route::post('/api/crm-demo/tags', [CrmDemoController::class, 'storeTag']);
     Route::delete('/api/crm-demo/tags/{id}', [CrmDemoController::class, 'destroyTag']);

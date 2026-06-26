@@ -15,6 +15,62 @@ class CrmDemoController extends Controller
         return view('crm-demo.index', ['crm' => config('crm')]);
     }
 
+    public function show(DemoProject $project)
+    {
+        $project->load('consultations', 'feedbacks');
+
+        return view('crm-demo.show', ['crm' => config('crm'), 'p' => $project]);
+    }
+
+    public function saveOverview(Request $request, DemoProject $project): JsonResponse
+    {
+        $v = $request->validate(['overview' => 'nullable|string|max:2000']);
+        $project->update(['overview' => $v['overview'] ?? null]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function addConsultation(Request $request, DemoProject $project): JsonResponse
+    {
+        $v = $request->validate([
+            'content' => 'required|string|max:2000',
+            'consult_type' => 'nullable|string|max:30',
+            'result' => 'nullable|string|max:30',
+            'consulted_at' => 'nullable|date',
+        ]);
+        $c = $project->consultations()->create([
+            'content' => $v['content'],
+            'consult_type' => $v['consult_type'] ?? null,
+            'result' => $v['result'] ?? null,
+            'consulted_at' => $v['consulted_at'] ?? now()->format('Y-m-d'),
+            'created_by' => Auth::id(),
+        ]);
+
+        return response()->json(['ok' => true, 'id' => $c->id], 201);
+    }
+
+    public function deleteConsultation(DemoProject $project, $cid): JsonResponse
+    {
+        $project->consultations()->where('id', $cid)->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function addFeedback(Request $request, DemoProject $project): JsonResponse
+    {
+        $v = $request->validate(['content' => 'required|string|max:2000']);
+        $f = $project->feedbacks()->create(['content' => $v['content'], 'created_by' => Auth::id()]);
+
+        return response()->json(['ok' => true, 'id' => $f->id], 201);
+    }
+
+    public function deleteFeedback(DemoProject $project, $fid): JsonResponse
+    {
+        $project->feedbacks()->where('id', $fid)->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     /** 프로젝트 목록 */
     public function projects(Request $request): JsonResponse
     {
@@ -43,12 +99,15 @@ class CrmDemoController extends Controller
         $validated = $request->validate([
             'client_name' => 'nullable|string|max:100',
             'client_id' => 'nullable|integer',
+            'client_phone' => 'nullable|string|max:50',
+            'client_address' => 'nullable|string|max:300',
             'requester_type' => ['nullable', 'string', 'in:'.implode(',', array_keys($crm['requester_types']))],
             'project_type' => ['required', 'string', 'in:'.implode(',', array_keys($crm['project_types']))],
             'work_type' => 'nullable|string|max:60',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:60',
             'free_name' => 'nullable|string|max:200',
+            'overview' => 'nullable|string|max:2000',
         ]);
 
         if (empty($validated['tags'])) {
@@ -73,12 +132,15 @@ class CrmDemoController extends Controller
         $validated = $request->validate([
             'client_name' => 'nullable|string|max:100',
             'client_id' => 'nullable|integer',
+            'client_phone' => 'nullable|string|max:50',
+            'client_address' => 'nullable|string|max:300',
             'requester_type' => ['nullable', 'string', 'in:'.implode(',', array_keys($crm['requester_types']))],
             'project_type' => ['required', 'string', 'in:'.implode(',', array_keys($crm['project_types']))],
             'work_type' => 'nullable|string|max:60',
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:60',
             'free_name' => 'nullable|string|max:200',
+            'overview' => 'nullable|string|max:2000',
         ]);
         if (empty($validated['tags'])) {
             return response()->json(['message' => '대주제 태그를 1개 이상 선택하세요.'], 422);
@@ -182,6 +244,9 @@ class CrmDemoController extends Controller
             'id' => $p->id,
             'client_name' => $p->client_name,
             'client_id' => $p->client_id,
+            'client_phone' => $p->client_phone,
+            'client_address' => $p->client_address,
+            'overview' => $p->overview,
             'requester_type' => $p->requester_type,
             'requester_type_label' => $crm['requester_types'][$p->requester_type]['label'] ?? null,
             'project_type' => $p->project_type,

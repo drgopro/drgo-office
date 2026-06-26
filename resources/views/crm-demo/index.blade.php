@@ -57,6 +57,7 @@
     .pj-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
     .pj-mini { font-size:11px; padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; }
     .pj-mini.danger { border-color:var(--red); color:var(--red); }
+    .pj-mini.detail { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; text-decoration:none; }
     .pj-bill { margin-top:10px; padding:10px; background:var(--surface2); border-radius:8px; font-size:12px; }
     .pj-bill .bill-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
     .pj-bill input { width:110px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); font-size:12px; }
@@ -240,6 +241,7 @@ function renderRow(p){
         <div class="pj-pipe">${pipe}</div>
         ${renderBilling(p)}
         <div class="pj-actions">
+            <a class="pj-mini detail" href="/crm-demo/${p.id}" onclick="event.stopPropagation();">🔍 상세 보기 / 보고·수정</a>
             <button class="pj-mini" onclick="openEdit(projectsById[${p.id}])">✎ 수정</button>
             <button class="pj-mini" onclick="toggleBilling(${p.id})">💰 청구/잔금</button>
             ${!cancelled?`<button class="pj-mini danger" onclick="openCancel(${p.id})">취소</button>`:''}
