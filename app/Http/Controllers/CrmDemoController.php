@@ -67,6 +67,34 @@ class CrmDemoController extends Controller
         return response()->json($this->serialize($p), 201);
     }
 
+    public function update(Request $request, DemoProject $project): JsonResponse
+    {
+        $crm = config('crm');
+        $validated = $request->validate([
+            'client_name' => 'nullable|string|max:100',
+            'client_id' => 'nullable|integer',
+            'requester_type' => ['nullable', 'string', 'in:'.implode(',', array_keys($crm['requester_types']))],
+            'project_type' => ['required', 'string', 'in:'.implode(',', array_keys($crm['project_types']))],
+            'work_type' => 'nullable|string|max:60',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:60',
+            'free_name' => 'nullable|string|max:200',
+        ]);
+        if (empty($validated['tags'])) {
+            return response()->json(['message' => '대주제 태그를 1개 이상 선택하세요.'], 422);
+        }
+
+        // 유형이 바뀌어 현재 stage가 새 파이프라인에 없으면 첫 단계로 보정
+        $stages = collect($crm['project_types'][$validated['project_type']]['pipeline'] ?? [])->pluck('key')->all();
+        if (! in_array($project->stage, $stages, true)) {
+            $validated['stage'] = $stages[0] ?? 'consult';
+        }
+
+        $project->update($validated);
+
+        return response()->json($this->serialize($project->fresh()));
+    }
+
     public function updateStage(Request $request, DemoProject $project): JsonResponse
     {
         $validated = $request->validate(['stage' => 'required|string|max:30']);

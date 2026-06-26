@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/crm-demo', [CrmDemoController::class, 'index'])->name('crm-demo');
     Route::get('/api/crm-demo/projects', [CrmDemoController::class, 'projects']);
     Route::post('/api/crm-demo/projects', [CrmDemoController::class, 'store']);
+    Route::patch('/api/crm-demo/projects/{project}', [CrmDemoController::class, 'update']);
     Route::patch('/api/crm-demo/projects/{project}/stage', [CrmDemoController::class, 'updateStage']);
     Route::post('/api/crm-demo/projects/{project}/cancel', [CrmDemoController::class, 'cancel']);
     Route::post('/api/crm-demo/projects/{project}/billing', [CrmDemoController::class, 'saveBilling']);
