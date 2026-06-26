@@ -29,6 +29,18 @@
     /* 태그 필터: 대분류 붉은 점 / 소분류 회색 점 */
     .chip-toggle .chip.chip-tag-major::before { background:#c0392b; opacity:0.65; }
     .chip-toggle input:checked + .chip.chip-tag-major::before { background:#c0392b; opacity:1; }
+    /* 접이식 태그 필터 */
+    .tag-filter { border:1px solid var(--border); border-radius:10px; margin-top:4px; background:var(--surface); }
+    .tag-filter-toggle { display:flex; align-items:center; gap:8px; width:100%; background:none; border:none; padding:9px 14px; cursor:pointer; color:var(--text); font-size:13px; }
+    .tag-filter-caret { display:inline-block; transition:transform .15s; color:var(--text-muted); font-size:11px; }
+    .tag-filter.open .tag-filter-caret { transform:rotate(90deg); }
+    .tag-filter-count { background:var(--accent); color:var(--accent-text); font-size:11px; font-weight:700; border-radius:10px; padding:1px 8px; }
+    .tag-filter-body { display:none; padding:4px 14px 14px; }
+    .tag-filter.open .tag-filter-body { display:block; }
+    .tag-section { padding:8px 0; }
+    .tag-section + .tag-section { border-top:1px dashed var(--border); }
+    .tag-section-label { font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:7px; }
+    .tag-section-chips { display:flex; flex-wrap:wrap; gap:6px; }
     /* stage별 컬러 dot */
     .chip-toggle[data-stage="consulting"] input:checked + .chip::before { background:#c8b08a; }
     .chip-toggle[data-stage="equipment"] input:checked + .chip::before,
@@ -185,20 +197,40 @@
             @endforeach
         </div>
         @if(!empty($tagOptions['major']) || !empty($tagOptions['minor']))
-        <div class="filter-group">
-            <span class="filter-label">태그</span>
-            @foreach($tagOptions['major'] as $t)
-                <label class="chip-toggle">
-                    <input type="checkbox" name="tag[]" value="{{ $t }}" {{ in_array($t, $selectedTags, true) ? 'checked' : '' }}>
-                    <span class="chip chip-tag-major">{{ $t }}</span>
-                </label>
-            @endforeach
-            @foreach($tagOptions['minor'] as $t)
-                <label class="chip-toggle">
-                    <input type="checkbox" name="tag[]" value="{{ $t }}" {{ in_array($t, $selectedTags, true) ? 'checked' : '' }}>
-                    <span class="chip chip-tag-minor">{{ $t }}</span>
-                </label>
-            @endforeach
+        <div class="tag-filter {{ !empty($selectedTags) ? 'open' : '' }}" id="tagFilter">
+            <button type="button" class="tag-filter-toggle" onclick="document.getElementById('tagFilter').classList.toggle('open')">
+                <span class="tag-filter-caret">▸</span>
+                <span class="filter-label" style="margin:0;">태그 필터</span>
+                @if(!empty($selectedTags))<span class="tag-filter-count">{{ count($selectedTags) }}</span>@endif
+            </button>
+            <div class="tag-filter-body">
+                @if(!empty($tagOptions['major']))
+                <div class="tag-section">
+                    <div class="tag-section-label">대분류</div>
+                    <div class="tag-section-chips">
+                        @foreach($tagOptions['major'] as $t)
+                            <label class="chip-toggle">
+                                <input type="checkbox" name="tag[]" value="{{ $t }}" {{ in_array($t, $selectedTags, true) ? 'checked' : '' }}>
+                                <span class="chip chip-tag-major">{{ $t }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+                @if(!empty($tagOptions['minor']))
+                <div class="tag-section">
+                    <div class="tag-section-label">소분류</div>
+                    <div class="tag-section-chips">
+                        @foreach($tagOptions['minor'] as $t)
+                            <label class="chip-toggle">
+                                <input type="checkbox" name="tag[]" value="{{ $t }}" {{ in_array($t, $selectedTags, true) ? 'checked' : '' }}>
+                                <span class="chip chip-tag-minor">{{ $t }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
         </div>
         @endif
     </form>
