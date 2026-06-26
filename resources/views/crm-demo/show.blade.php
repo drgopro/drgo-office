@@ -82,7 +82,7 @@
             </div>
             <div class="d-meta">
                 <span class="d-badge">{{ $typeDef['label'] ?? $p->project_type }}</span>
-                @if($p->requester_type){<span>{{ $crm['requester_types'][$p->requester_type]['label'] ?? '' }}</span>}@endif
+                @if($p->requester_type)<span>{{ $crm['requester_types'][$p->requester_type]['label'] ?? '' }}</span>@endif
                 @if($p->work_type)<span>· {{ $p->work_type }}</span>@endif
                 <span>· {{ $p->created_at?->format('Y.m.d') }} 시작</span>
                 <span>· 담당: {{ $crm['departments'][$typeDef['department'] ?? ''] ?? '-' }}</span>
