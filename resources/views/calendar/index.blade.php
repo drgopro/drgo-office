@@ -1549,9 +1549,11 @@ async function loadEvents() {
         const wk=agendaWeekDates();
         start=wk[0]; end=wk[wk.length-1];
     } else if (currentView==='month') {
-        start=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`;
-        const last=new Date(currentYear,currentMonth+1,0).getDate();
-        end=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${last}`;
+        // 그리드에 보이는 앞뒤 다른 달 날짜까지 포함(42칸 전체)
+        const first=new Date(currentYear,currentMonth,1);
+        const gs=new Date(first); gs.setDate(gs.getDate()-first.getDay());
+        const ge=new Date(gs); ge.setDate(ge.getDate()+41);
+        start=fmt(gs); end=fmt(ge);
     } else if (currentView==='week') {
         start=fmt(currentWeekStart);
         const we=new Date(currentWeekStart); we.setDate(we.getDate()+6); end=fmt(we);
@@ -1783,10 +1785,8 @@ function renderMonth() {
             // 캡 초과로 못 그리는 다일(더보기로)
             const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&ev.start_date<=cell.full&&ev.end_date>=cell.full).length;
 
-            // 단일 일정(시간순) — 현재 달 셀에만
-            const singles=(cell.month==='cur')
-                ? sortByTime(events.filter(ev=>isFiltered(ev)&&(!ev.end_date||ev.end_date===ev.start_date)&&ev.start_date===cell.full))
-                : [];
+            // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시
+            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&(!ev.end_date||ev.end_date===ev.start_date)&&ev.start_date===cell.full));
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
