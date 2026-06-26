@@ -2211,8 +2211,8 @@ function renderLockSummary(){
     const isAll = isAllDay;
     const sDate = _val(color==='gold'?'goldStartDate':'startDate');
     const eDate = _val(color==='gold'?'goldStartDate':'endDate');
-    const sTime = _val(color==='gold'?'goldStartTime':'startTime');
-    const eTime = _val(color==='gold'?'goldEndTime':'endTime');
+    const sTime = _val(color==='gold'?'goldStartTime':'startTime').substring(0,5);
+    const eTime = _val(color==='gold'?'goldEndTime':'endTime').substring(0,5);
     const typeLabel = (window.CALENDAR_CATEGORIES?.[color]?.label) || color;
 
     const linkedClientName = document.getElementById('linkedClientName')?.textContent?.trim() || '';
@@ -2809,8 +2809,8 @@ function setViewModeUI(){
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='none';});
     document.querySelectorAll('#modalOverlay .radio-btn:not([data-always-active])').forEach(b=>{b.style.pointerEvents='none';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='none';});
-    // 읽기 모드: 카테고리는 선택된 것만 표시(나머지 숨김) + 공휴일 지정 버튼 숨김
-    document.querySelectorAll('#colorRow .color-dot').forEach(d=>{ d.style.display = d.classList.contains('active') ? '' : 'none'; });
+    // 읽기 모드: 카테고리는 상단 배지(typeBadge)로 이미 표시되므로 선택 칩 줄 전체 숨김(중복 방지) + 공휴일 지정 버튼 숨김
+    const crow=document.getElementById('colorRow'); if(crow) crow.style.display='none';
     const hwrap=document.querySelector('#modalOverlay .holiday-btn-wrap'); if(hwrap) hwrap.style.display='none';
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='none';});
     // 보기/해제 버튼은 항상 활성화
@@ -2849,7 +2849,8 @@ function setEditModeUI(){
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='';});
     document.querySelectorAll('#modalOverlay .radio-btn').forEach(b=>{b.style.pointerEvents='';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='';});
-    // 편집 모드: 카테고리 칩 전체 다시 표시 + 공휴일 지정 버튼 복원
+    // 편집 모드: 카테고리 선택 줄/칩 전체 다시 표시 + 공휴일 지정 버튼 복원
+    const crow2=document.getElementById('colorRow'); if(crow2) crow2.style.display='';
     document.querySelectorAll('#colorRow .color-dot').forEach(d=>{ d.style.display=''; });
     const hwrap2=document.querySelector('#modalOverlay .holiday-btn-wrap'); if(hwrap2) hwrap2.style.display='';
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='';});
