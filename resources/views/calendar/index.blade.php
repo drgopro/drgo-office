@@ -411,6 +411,7 @@
     .img-item { position:relative; border-radius:8px; overflow:visible; border:1px solid var(--border); background:var(--surface2); display:flex; flex-direction:column; }
     .img-item .img-thumb-wrap { position:relative; aspect-ratio:1; overflow:hidden; border-radius:8px 8px 0 0; }
     .img-item img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; display:block; }
+    .img-item .img-fileicon { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px; text-decoration:none; background:var(--surface2); }
     .img-item .img-filename { font-size:10px; color:var(--text-muted); padding:3px 7px 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid var(--border); }
     .img-item .img-note { font-size:11px; padding:3px 6px 5px; background:transparent; border:none; border-top:1px solid var(--border); color:var(--text); width:100%; box-sizing:border-box; resize:none; line-height:1.4; min-height:30px; outline:none; border-radius:0 0 8px 8px; }
     .img-item .img-note::placeholder { color:var(--text-muted); }
@@ -2553,30 +2554,53 @@ function handleImgFiles(type,files){
     const input=document.getElementById(FILE_MAP[type]); if(input) input.value='';
 }
 
+// 공통 유형의 '첨부 파일' 섹션(generalAttachSection) 핸들러 — general 타입으로 적재
+function handleGeneralFiles(files){
+    if(!files||!files.length) return;
+    Array.from(files).forEach(f=>pendingAttachments.general.push({file:f,note:''}));
+    renderImgGrid('general');
+    const inp=document.getElementById('generalFileInput'); if(inp) inp.value='';
+}
+
+// general은 두 곳(이미지 그룹 generalGrid + 공통 generalAttachGrid)에 모두 그릴 수 있음
+function gridIdsFor(type){
+    return type==='general' ? ['generalGrid','generalAttachGrid'] : [GRID_MAP[type]];
+}
 function renderImgGrid(type){
-    const grid=document.getElementById(GRID_MAP[type]); if(!grid) return;
-    grid.innerHTML='';
-    // 기존
-    existingAttachments[type].forEach((a,i)=>{
-        grid.innerHTML+=`<div class="img-item"><div class="img-thumb-wrap"><img src="${a.url}" alt="${a.file_name||''}"><button class="img-remove" onclick="removeExistingAttach('${type}',${i},${a.id})">✕</button></div><div class="img-filename">${a.file_name||''}</div></div>`;
-    });
-    // 새로 추가된
-    pendingAttachments[type].forEach((item,i)=>{
-        const div=document.createElement('div');div.className='img-item';
-        const wrap=document.createElement('div');wrap.className='img-thumb-wrap';
-        const img=document.createElement('img');img.src=URL.createObjectURL(item.file);img.alt=item.file.name;wrap.appendChild(img);
-        const rm=document.createElement('button');rm.className='img-remove';rm.textContent='✕';
-        rm.onclick=()=>{pendingAttachments[type].splice(i,1);renderImgGrid(type);};
-        wrap.appendChild(rm);div.appendChild(wrap);
-        const fn=document.createElement('div');fn.className='img-filename';fn.textContent=item.file.name;div.appendChild(fn);
-        const note=document.createElement('textarea');note.className='img-note';note.placeholder='주석 입력';note.rows=1;
-        note.value=item.note||'';note.oninput=()=>{item.note=note.value;};
-        div.appendChild(note);grid.appendChild(div);
+    const isImage = type!=='general'; // general은 이미지가 아닐 수 있어 미리보기 대신 파일명 위주
+    gridIdsFor(type).forEach(gid=>{
+        const grid=document.getElementById(gid); if(!grid) return;
+        grid.innerHTML='';
+        // 기존
+        existingAttachments[type].forEach((a,i)=>{
+            const isImg=(a.mime_type||'').startsWith('image/');
+            const thumb = isImg
+                ? `<img src="${a.url}" alt="${a.file_name||''}">`
+                : `<a href="${a.url}" target="_blank" class="img-fileicon">📄</a>`;
+            grid.innerHTML+=`<div class="img-item"><div class="img-thumb-wrap">${thumb}<button class="img-remove" onclick="removeExistingAttach('${type}',${i},${a.id})">✕</button></div><div class="img-filename">${a.file_name||''}</div></div>`;
+        });
+        // 새로 추가된
+        pendingAttachments[type].forEach((item,i)=>{
+            const div=document.createElement('div');div.className='img-item';
+            const wrap=document.createElement('div');wrap.className='img-thumb-wrap';
+            if(item.file.type.startsWith('image/')){
+                const img=document.createElement('img');img.src=URL.createObjectURL(item.file);img.alt=item.file.name;wrap.appendChild(img);
+            } else {
+                const ic=document.createElement('div');ic.className='img-fileicon';ic.textContent='📄';wrap.appendChild(ic);
+            }
+            const rm=document.createElement('button');rm.className='img-remove';rm.textContent='✕';
+            rm.onclick=()=>{pendingAttachments[type].splice(i,1);renderImgGrid(type);};
+            wrap.appendChild(rm);div.appendChild(wrap);
+            const fn=document.createElement('div');fn.className='img-filename';fn.textContent=item.file.name;div.appendChild(fn);
+            const note=document.createElement('textarea');note.className='img-note';note.placeholder='주석 입력';note.rows=1;
+            note.value=item.note||'';note.oninput=()=>{item.note=note.value;};
+            div.appendChild(note);grid.appendChild(div);
+        });
     });
 }
 
 // 드래그 드롭
-[['quoteZone','quote'],['refZone','reference'],['roomZone','room'],['generalZone','general']].forEach(([zid,type])=>{
+[['quoteZone','quote'],['refZone','reference'],['roomZone','room'],['generalZone','general'],['uploadZone','general']].forEach(([zid,type])=>{
     const zone=document.getElementById(zid); if(!zone) return;
     zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
     zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
@@ -2591,7 +2615,7 @@ async function removeExistingAttach(type,idx,id){
 async function uploadPendingAttachments(scheduleId){
     const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진',general:'첨부 파일'};
     let failedTypes=[];
-    for(const type of ['quote','reference','room']){
+    for(const type of ['quote','reference','room','general']){
         if(!pendingAttachments[type].length) continue;
         const fd=new FormData();fd.append('attachment_type',type);
         pendingAttachments[type].forEach(item=>fd.append('files[]',item.file));
@@ -2609,11 +2633,11 @@ async function uploadPendingAttachments(scheduleId){
 async function loadExistingAttachments(scheduleId){
     existingAttachments={quote:[],reference:[],room:[],general:[]};
     try{const res=await fetch(`/api/schedules/${scheduleId}/attachments`);if(res.ok){const list=await res.json();list.forEach(a=>{if(existingAttachments[a.attachment_type])existingAttachments[a.attachment_type].push(a);});}}catch(e){}
-    ['quote','reference','room'].forEach(t=>renderImgGrid(t));
+    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
 }
 function resetAttachments(){
     pendingAttachments={quote:[],reference:[],room:[],general:[]};existingAttachments={quote:[],reference:[],room:[],general:[]};
-    ['quote','reference','room'].forEach(t=>renderImgGrid(t));
+    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
 }
 
 // ── 견적서 연동 ──
