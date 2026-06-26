@@ -7,6 +7,7 @@ use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectFeedback;
 use App\Models\ProjectPayment;
+use App\Models\ProjectSubtag;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -50,9 +51,30 @@ class ProjectController extends Controller
             }
         }
 
+        // 태그 필터 — 선택한 태그 중 하나라도 대분류/소분류에 포함되면 매칭 (OR, 다른 필터와 동일)
+        if ($tag = $request->query('tag')) {
+            $tags = is_array($tag)
+                ? array_values(array_filter($tag))
+                : array_values(array_filter(array_map('trim', explode(',', (string) $tag))));
+            if (! empty($tags)) {
+                $query->where(function ($q) use ($tags) {
+                    foreach ($tags as $t) {
+                        $q->orWhereJsonContains('tags->major', $t)
+                            ->orWhereJsonContains('tags->minor', $t);
+                    }
+                });
+            }
+        }
+
         $projects = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('projects.index', compact('projects'));
+        // 필터 드롭다운용 태그 목록
+        $tagOptions = [
+            'major' => config('crm.major_tags', []),
+            'minor' => ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name')->all(),
+        ];
+
+        return view('projects.index', compact('projects', 'tagOptions'));
     }
 
     // 등록

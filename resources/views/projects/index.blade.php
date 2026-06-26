@@ -26,6 +26,9 @@
     .chip-toggle:hover .chip { border-color:var(--accent); color:var(--text); }
     .chip-toggle input:checked + .chip { color:var(--text); border-color:var(--accent); background:var(--surface2); }
     .chip-toggle input:checked + .chip::before { background:var(--accent); opacity:1; }
+    /* 태그 필터: 대분류 붉은 점 / 소분류 회색 점 */
+    .chip-toggle .chip.chip-tag-major::before { background:#c0392b; opacity:0.65; }
+    .chip-toggle input:checked + .chip.chip-tag-major::before { background:#c0392b; opacity:1; }
     /* stage별 컬러 dot */
     .chip-toggle[data-stage="consulting"] input:checked + .chip::before { background:#c8b08a; }
     .chip-toggle[data-stage="equipment"] input:checked + .chip::before,
@@ -130,6 +133,10 @@
         $selectedTypes = is_array($rawType)
             ? array_filter($rawType)
             : array_filter(array_map('trim', explode(',', (string) $rawType)));
+        $rawTag = request('tag');
+        $selectedTags = is_array($rawTag)
+            ? array_filter($rawTag)
+            : array_filter(array_map('trim', explode(',', (string) $rawTag)));
 
         $stageOptions = [
             'consulting' => '상담',
@@ -155,7 +162,7 @@
         <div class="search-row">
             <input class="search-input" type="text" name="search" placeholder="의뢰자명, 프로젝트명 검색" value="{{ request('search') }}">
             <button type="submit" class="btn-search">검색</button>
-            @if(!empty($selectedStages) || !empty($selectedTypes) || request('search'))
+            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search'))
                 <a href="{{ route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
@@ -177,6 +184,23 @@
                 </label>
             @endforeach
         </div>
+        @if(!empty($tagOptions['major']) || !empty($tagOptions['minor']))
+        <div class="filter-group">
+            <span class="filter-label">태그</span>
+            @foreach($tagOptions['major'] as $t)
+                <label class="chip-toggle">
+                    <input type="checkbox" name="tag[]" value="{{ $t }}" {{ in_array($t, $selectedTags, true) ? 'checked' : '' }}>
+                    <span class="chip chip-tag-major">{{ $t }}</span>
+                </label>
+            @endforeach
+            @foreach($tagOptions['minor'] as $t)
+                <label class="chip-toggle">
+                    <input type="checkbox" name="tag[]" value="{{ $t }}" {{ in_array($t, $selectedTags, true) ? 'checked' : '' }}>
+                    <span class="chip chip-tag-minor">{{ $t }}</span>
+                </label>
+            @endforeach
+        </div>
+        @endif
     </form>
     <script>
         // 체크박스 변경 시 자동 폼 제출 (UX 개선)
