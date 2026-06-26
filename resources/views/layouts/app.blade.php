@@ -14,7 +14,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="@yield('pwa_title', '닥터고블린 오피스')">
     <link rel="manifest" href="@yield('pwa_manifest', '/manifest.json')">
-    <link rel="apple-touch-icon" href="/icon-192.svg">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
     <title>닥터고블린 오피스</title>
     <style>
         /* ── 다크 모드 (기본) ── */
