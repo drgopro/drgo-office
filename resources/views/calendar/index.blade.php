@@ -545,6 +545,17 @@
         .assignee-filter { font-size:11px; }
         .assignee-filter-chips { width:100%; justify-content:center; }
 
+        /* 주간/일간 타임라인: 가로 스크롤 없이 한 화면에 맞춤 */
+        .timeline-wrap { padding:0 6px 16px; overflow-x:hidden; }
+        .timeline-grid { min-width:0; }
+        .tl-time-col, .tl-allday-label, .tl-time-label { width:32px !important; font-size:9px; padding-left:2px; padding-right:2px; }
+        .tl-day-col, .tl-allday-cell, .tl-slot { min-width:0 !important; }
+        .tl-day-col { padding:6px 1px; }
+        .tl-day-name { font-size:10px; }
+        .tl-day-num { font-size:14px; }
+        .tl-event { font-size:9px; padding:1px 2px; left:1px; right:1px; line-height:1.2; }
+        .tl-allday-cell .event-chip { font-size:9px; }
+
         /* 월간 그리드 컴팩트 */
         .calendar-wrap { padding:8px 12px; }
         .weekday { font-size:11px; padding:6px 0; }
