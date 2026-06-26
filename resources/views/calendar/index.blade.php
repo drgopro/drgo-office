@@ -1592,18 +1592,18 @@ const AGENDA_DOW=['일','월','화','수','목','금','토'];
 let agendaWeekStart=null; // 7일 스트립의 시작 날짜(Date). null이면 오늘부터.
 
 function agendaWeekDates(){
-    const base = agendaWeekStart ? new Date(agendaWeekStart) : (()=>{const d=new Date();d.setHours(0,0,0,0);return d;})();
-    base.setHours(0,0,0,0);
+    // 기준일이 속한 주의 일요일~토요일
+    const base = getWeekStart(agendaWeekStart ? new Date(agendaWeekStart) : new Date());
     const arr=[];
     for(let i=0;i<7;i++){ const d=new Date(base); d.setDate(base.getDate()+i); arr.push(fmt(d)); }
     return arr;
 }
-// 스와이프/화살표로 7일 주 이동
+// 스와이프/화살표로 한 주(일~토) 이동
 function moveAgendaWeek(dir){
-    const base = agendaWeekStart ? new Date(agendaWeekStart) : (()=>{const d=new Date();d.setHours(0,0,0,0);return d;})();
+    const base = getWeekStart(agendaWeekStart ? new Date(agendaWeekStart) : new Date());
     base.setDate(base.getDate()+dir*7);
     agendaWeekStart=base;
-    agendaSelectedDate=fmt(base); // 이동한 주의 첫 날 선택
+    agendaSelectedDate=fmt(base); // 이동한 주의 일요일 선택
     loadEvents(); // 새 주 범위 로드 후 renderAgenda
 }
 function renderAgenda(){
@@ -1611,7 +1611,8 @@ function renderAgenda(){
     const week=agendaWeekDates();
     if(!agendaSelectedDate || !week.includes(agendaSelectedDate)) agendaSelectedDate=week.includes(ts)?ts:week[0];
     const ws=new Date(week[0]+'T00:00:00');
-    document.getElementById('periodTitle').textContent=`${ws.getMonth()+1}월 ${ws.getDate()}일 ~`;
+    const we=new Date(week[6]+'T00:00:00');
+    document.getElementById('periodTitle').textContent=`${ws.getMonth()+1}.${ws.getDate()} ~ ${we.getMonth()+1}.${we.getDate()}`;
 
     // 상단 7일 스트립
     const strip=document.getElementById('agendaStrip');
