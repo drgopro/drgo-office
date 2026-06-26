@@ -59,6 +59,10 @@
     .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
     .month-label { font-size:18px; font-weight:500; letter-spacing:0.05em; min-width:180px; text-align:center; }
 
+    .cal-fontsize { display:flex; align-items:center; gap:2px; background:var(--surface2); border-radius:8px; padding:2px; }
+    .cal-fz-btn { border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:6px; padding:4px 9px; font-size:13px; font-weight:700; line-height:1; }
+    .cal-fz-btn:hover { background:var(--surface); color:var(--accent); }
+    .cal-fontsize #calFontLabel { font-size:11px; color:var(--text-muted); min-width:36px; text-align:center; }
     .view-toggle-group { display:flex; background:var(--surface2); border-radius:8px; padding:2px; gap:2px; }
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
@@ -135,24 +139,24 @@
     /* ── 월간 뷰 ── */
     .calendar-wrap { padding:20px 32px; }
     .weekdays { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:4px; }
-    .weekday { text-align:center; font-size:13px; letter-spacing:0.12em; color:var(--text-muted); padding:8px 0; }
+    .weekday { text-align:center; font-size:calc(13px * var(--cal-fz,1)); letter-spacing:0.12em; color:var(--text-muted); padding:8px 0; }
     .weekday:first-child { color:var(--red); }
     .weekday:last-child { color:var(--accent2); }
     .days-grid { border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; gap:1px; background:var(--border); }
-    .week-row { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; position:relative; background:var(--border); min-height:110px; }
+    .week-row { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; position:relative; background:var(--border); min-height:calc(110px * var(--cal-fz,1)); }
     .day-cell { background:var(--surface); min-height:0; padding:6px; position:relative; transition:background 0.15s; cursor:default; overflow:hidden; }
     .day-cell:hover { background:var(--surface2); }
     .day-cell.other-month { background:#111; }
     .day-cell.today .day-num { background:var(--accent); color:var(--accent-text) !important; font-weight:700; border-radius:50%; }
     .day-num-row { display:flex; align-items:center; gap:4px; margin-bottom:2px; min-width:0; }
-    .day-num { font-size:13px; color:var(--text-muted); position:relative; z-index:1; width:24px; height:24px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .day-num { font-size:calc(13px * var(--cal-fz,1)); color:var(--text-muted); position:relative; z-index:1; width:calc(24px * var(--cal-fz,1)); height:calc(24px * var(--cal-fz,1)); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .day-num.sun { color:var(--red); }
     .day-num.sat { color:var(--accent2); }
-    .holiday-label { font-size:11px; color:var(--red); opacity:0.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; letter-spacing:0.02em; line-height:1; }
+    .holiday-label { font-size:calc(11px * var(--cal-fz,1)); color:var(--red); opacity:0.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; letter-spacing:0.02em; line-height:1; }
     .events-list { display:flex; flex-direction:column; gap:2px; }
 
     /* ── 이벤트 칩 ── */
-    .event-chip { border-radius:4px; padding:2px 6px; font-size:12px; white-space:nowrap; overflow:hidden; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; line-height:1.4; height:22px; box-sizing:border-box; min-width:0; }
+    .event-chip { border-radius:4px; padding:2px 6px; font-size:calc(12px * var(--cal-fz,1)); white-space:nowrap; overflow:hidden; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; line-height:1.4; height:calc(22px * var(--cal-fz,1)); box-sizing:border-box; min-width:0; }
     /* 다일 이벤트: 셀 padding(6px) 만큼만 보상해 셀 가장자리까지 닿게. 셀 경계 너머는 침범하지 않음 (overflow:hidden 보호) */
     .event-chip.multi-day.day-start { border-radius:4px 0 0 4px; margin-right:-6px; }
     .event-chip.multi-day.day-cont  { border-radius:0; border-left-color:transparent !important; padding-left:0; padding-right:0; margin-left:-6px; margin-right:-6px; }
@@ -176,10 +180,10 @@
     .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
     /* 다일 레인 정렬용 빈 자리 (보이지 않지만 칩 1행과 동일한 높이) — 채울 단일이 없을 때만 사용 */
-    .lane-spacer { height:22px; visibility:hidden; }
+    .lane-spacer { height:calc(22px * var(--cal-fz,1)); visibility:hidden; }
     /* 다일 일정 제목 — 바 전체 폭에 걸쳐 셀 경계를 넘어 흐르는 오버레이 (날짜별로 끊지 않음) */
     .mday-title-overlay { position:absolute; z-index:6; pointer-events:none; display:flex; align-items:center;
-        padding:0 8px; box-sizing:border-box; font-size:12px; font-weight:500; color:var(--text);
+        padding:0 8px; box-sizing:border-box; font-size:calc(12px * var(--cal-fz,1)); font-weight:500; color:var(--text);
         white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
     .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
@@ -187,11 +191,11 @@
     .event-chip.single.color-red    { background:rgba(200,122,122,0.22); border-left-color:var(--chip-red-bg); }
     .event-chip.single.color-green  { background:rgba(122,200,122,0.22); border-left-color:var(--chip-green-bg); }
     .event-chip.single.color-purple { background:rgba(155,112,200,0.22); border-left-color:var(--chip-purple-bg); }
-    .chip-time { font-size:12px; opacity:0.85; flex-shrink:0; margin-right:3px; }
-    .chip-special { font-size:11px; flex-shrink:0; letter-spacing:1px; }
+    .chip-time { font-size:calc(12px * var(--cal-fz,1)); opacity:0.85; flex-shrink:0; margin-right:3px; }
+    .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
     .sched-icon-badge { flex-shrink:0; font-size:12px; margin-left:3px; display:inline-flex; align-items:center; }
     .chip-badges { display:flex; align-items:center; flex-shrink:0; gap:3px; margin-left:auto; padding-left:6px; }
-    .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; letter-spacing:-0.3px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; line-height:1; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.08); }
+    .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:calc(10px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.3px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; line-height:1; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.08); }
     [data-theme="light"] .ev-assignee-badge { background:rgba(0,0,0,0.06); color:#4a5060; }
 
     /* ── 다일 스판 칩 ── */
@@ -208,7 +212,7 @@
     .span-chip.is-end { border-radius:0 4px 4px 0; }
     .span-chip.is-solo { border-radius:4px; }
 
-    .more-badge { font-size:11px; color:var(--accent); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; font-weight:600; }
+    .more-badge { font-size:calc(11px * var(--cal-fz,1)); color:var(--accent); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; font-weight:600; }
     .more-badge:hover { background:rgba(200,176,138,0.15); }
     .day-cell.expanded { overflow:visible; z-index:10; position:relative; }
     .day-cell.expanded .events-list { position:absolute; top:30px; left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px; box-shadow:0 6px 24px rgba(0,0,0,0.35); max-height:200px; overflow-y:auto; z-index:11; }
@@ -650,6 +654,11 @@
         </div>
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
+        <div class="cal-fontsize" title="글자 크기 조절">
+            <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
+            <span id="calFontLabel">100%</span>
+            <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
+        </div>
         <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">📋 캘린더 이력</button>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;">🗑 휴지통</button>
@@ -671,6 +680,8 @@
         @endif
     </div>
 </div>
+
+<script>(function(){var s=parseFloat(localStorage.getItem('calFontScale')||'1')||1;document.documentElement.style.setProperty('--cal-fz',s);})();</script>
 
 <div class="legend" id="filterBar">
     @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
@@ -1359,6 +1370,7 @@ function init() {
     currentWeekStart = getWeekStart(now);
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
+    applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
     renderView();
     loadEvents();
 }
@@ -1459,6 +1471,20 @@ function buildChipHtml(ev){
 }
 
 // ── 뷰 전환 ─────────────────────────────────────────────────────
+// ── 캘린더 글자 크기 조절 (노안 대응) ──
+const CAL_FZ_KEY='calFontScale';
+let calFzScale=parseFloat(localStorage.getItem(CAL_FZ_KEY)||'1')||1;
+function applyCalFz(){
+    document.documentElement.style.setProperty('--cal-fz', calFzScale);
+    const el=document.getElementById('calFontLabel'); if(el) el.textContent=Math.round(calFzScale*100)+'%';
+}
+function calFont(dir){
+    calFzScale=Math.min(2.0, Math.max(0.9, Math.round((calFzScale+dir*0.1)*10)/10));
+    localStorage.setItem(CAL_FZ_KEY, calFzScale);
+    applyCalFz();
+    if(typeof renderView==='function') renderView(); // 다일 제목 오버레이/행 높이 재계산
+}
+
 function switchView(view) {
     currentView = view;
     const LABEL={month:'월간',week:'주간',day:'일간',list:'목록'};
