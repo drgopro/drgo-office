@@ -704,8 +704,8 @@
 <div id="monthView">
     <div class="calendar-wrap">
         <div class="weekdays">
-            <div class="weekday">SUN</div><div class="weekday">MON</div><div class="weekday">TUE</div>
-            <div class="weekday">WED</div><div class="weekday">THU</div><div class="weekday">FRI</div><div class="weekday">SAT</div>
+            <div class="weekday">일</div><div class="weekday">월</div><div class="weekday">화</div>
+            <div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday">토</div>
         </div>
         <div class="days-grid" id="daysGrid"></div>
         <div class="mobile-day-events" id="mobileDayEvents"></div>
