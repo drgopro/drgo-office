@@ -117,13 +117,8 @@
     <div class="crm-modal">
         <h3><span id="createTitle">새 프로젝트</span> <button class="pj-mini" onclick="closeModal('createModal')">✕</button></h3>
         <div class="fld">
-            <label>의뢰자</label>
-            <div style="position:relative;">
-                <input id="cClientSearch" placeholder="이름/닉네임/전화 검색" autocomplete="off" oninput="searchDemoClients(this.value)">
-                <input type="hidden" id="cClientId">
-                <div id="cClientResults" style="display:none; position:absolute; left:0; right:0; top:100%; z-index:30; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; max-height:220px; overflow-y:auto; box-shadow:0 6px 16px rgba(0,0,0,0.15);"></div>
-            </div>
-            <div id="cClientPicked" style="font-size:12px; color:var(--accent); margin-top:5px; display:none;"></div>
+            <label>의뢰자 <span style="font-weight:400; color:var(--text-muted);">(데모 전용 · 직접 입력)</span></label>
+            <input id="cClientSearch" placeholder="의뢰자명 직접 입력" autocomplete="off">
         </div>
         <div class="fld">
             <label>의뢰자 유형</label>
@@ -318,9 +313,6 @@ function fillTypeSelects(){
 }
 function clearClientPick(){
     document.getElementById('cClientSearch').value='';
-    document.getElementById('cClientId').value='';
-    document.getElementById('cClientResults').style.display='none';
-    document.getElementById('cClientPicked').style.display='none';
 }
 function openCreate(){
     editingId=null;
@@ -338,7 +330,7 @@ function openEdit(p){
     document.getElementById('createTitle').textContent='프로젝트 수정';
     fillTypeSelects();
     clearClientPick();
-    if(p.client_name){ document.getElementById('cClientSearch').value=p.client_name; document.getElementById('cClientId').value=p.client_id||''; }
+    if(p.client_name){ document.getElementById('cClientSearch').value=p.client_name; }
     document.getElementById('cReqType').value=p.requester_type||'';
     document.getElementById('cProjType').value=p.project_type;
     onProjTypeChange();
@@ -346,30 +338,6 @@ function openEdit(p){
     document.getElementById('cFreeName').value=p.free_name||'';
     renderTagPick(p.tags||[]);
     document.getElementById('createModal').classList.add('open');
-}
-// 의뢰자 검색 (기존 운영 API 재사용)
-let __demoSearchTimer;
-function searchDemoClients(q){
-    clearTimeout(__demoSearchTimer);
-    const box=document.getElementById('cClientResults');
-    if(!q || q.length<1){ box.style.display='none'; return; }
-    __demoSearchTimer=setTimeout(async ()=>{
-        try{
-            const res=await fetch('/api/clients/search?q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
-            const list=res.ok?await res.json():[];
-            box.innerHTML = list.length
-                ? list.map(c=>{ const disp=(c.nickname||c.name||'')+(c.nickname&&c.name?` (${c.name})`:'')+(c.phone?` · ${c.phone}`:''); return `<div style="padding:9px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" onclick='pickDemoClient(${c.id}, ${JSON.stringify(disp)}, ${JSON.stringify(c.nickname||c.name||"")})'>${esc(disp)}</div>`; }).join('')
-                : '<div style="padding:10px 12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>';
-            box.style.display='block';
-        }catch(e){}
-    },200);
-}
-function pickDemoClient(id, disp, nameOnly){
-    document.getElementById('cClientId').value=id;
-    document.getElementById('cClientSearch').value=nameOnly;
-    document.getElementById('cClientResults').style.display='none';
-    const picked=document.getElementById('cClientPicked');
-    picked.textContent='✓ '+disp; picked.style.display='block';
 }
 function onProjTypeChange(){
     const k=document.getElementById('cProjType').value;
@@ -409,7 +377,7 @@ async function submitCreate(){
     if(!document.getElementById('cProjType').value) return alert('프로젝트 유형을 선택하세요.');
     const body={
         client_name:document.getElementById('cClientSearch').value.trim()||null,
-        client_id:document.getElementById('cClientId').value?+document.getElementById('cClientId').value:null,
+        client_id:null, // 데모 전용 — 실제 의뢰자 데이터와 연동하지 않음
         requester_type:document.getElementById('cReqType').value||null,
         project_type:document.getElementById('cProjType').value,
         work_type:document.getElementById('cWorkType').value||null,
