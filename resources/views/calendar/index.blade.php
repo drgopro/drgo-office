@@ -1705,18 +1705,10 @@ function renderMonth() {
         const weekCells=cells.slice(w*7, w*7+7);
         const weekStart=weekCells[0].full, weekEnd=weekCells[6].full;
 
-        // ── 이 주에 걸친 다일 일정에 고정 레인 배정 (셀마다 같은 줄 → 연속 bar) ──
+        // ── 이 주에 걸친 다일 일정 — 길게/먼저 시작한 일정이 위로 오도록 정렬(연속 일정 우선 최상단) ──
         const weekMulti=events.filter(ev=>isFiltered(ev)&&ev.end_date&&ev.end_date!==ev.start_date&&ev.start_date<=weekEnd&&ev.end_date>=weekStart);
         weekMulti.sort((a,b)=> a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
-        const laneOf={};
-        const lanes=[]; // lanes[i] = [{s,e}...]
-        weekMulti.forEach(ev=>{
-            let lane=0;
-            while((lanes[lane]||[]).some(r=> !(ev.end_date<r.s||ev.start_date>r.e))) lane++;
-            (lanes[lane]=lanes[lane]||[]).push({s:ev.start_date,e:ev.end_date});
-            laneOf[ev.id]=lane;
-        });
-        const LANE_CAP=3; // 셀당 표시할 다일 레인 상한 (초과분은 '+N 더보기')
+        const MULTI_CAP=3; // 셀당 표시할 다일 바 상한 (초과분은 '+N 더보기')
 
         const weekRow=document.createElement('div');
         weekRow.className='week-row';
@@ -1734,12 +1726,11 @@ function renderMonth() {
             const evList=document.createElement('div');
             evList.className='events-list';
 
-            // 1) 다일 일정: 이 날짜를 덮는 것만 레인 순서대로 '빈틈없이' 위에서부터 채움(빈 레인/스페이서 없음).
-            //    → 앞 일정 때문에 맨 위가 비는 일이 없음. 연속 일정은 제목을 시작 셀에만 표시하고 이어지는 bar로 표현.
-            const coveringMulti=weekMulti
-                .filter(ev=>laneOf[ev.id]<LANE_CAP && ev.start_date<=cell.full && ev.end_date>=cell.full)
-                .sort((a,b)=>laneOf[a.id]-laneOf[b.id]);
-            coveringMulti.forEach(ev=>{
+            // 1) 다일 일정: 이 날짜를 덮는 것만 '위에서부터 빈틈없이' 채움(빈 레인/스페이서 없음).
+            //    weekMulti가 길이·시작 순으로 정렬돼 있어 가장 길게 이어지는 연속 일정이 항상 맨 위에 고정됨.
+            const coveringMulti=weekMulti.filter(ev=>ev.start_date<=cell.full&&ev.end_date>=cell.full);
+            const shownMulti=coveringMulti.slice(0, MULTI_CAP);
+            shownMulti.forEach(ev=>{
                 const isStart = ev.start_date===cell.full || d===0; // 주 시작 셀에서도 제목 표시
                 const isEnd   = ev.end_date===cell.full;
                 let cls=`event-chip single color-${ev.color} multi-day`;
@@ -1751,7 +1742,7 @@ function renderMonth() {
                 chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
                 evList.appendChild(chip);
             });
-            const multiRows=coveringMulti.length;
+            const multiRows=shownMulti.length;
 
             // 2) 단일 일정(시간순) — 현재 달 셀에만, 남은 자리만큼 표시
             const singles=(cell.month==='cur')
@@ -1771,8 +1762,8 @@ function renderMonth() {
                 evList.appendChild(chip);
             });
 
-            // 숨겨진 단일 + (LANE_CAP 초과로 못 그린) 이 날짜를 덮는 다일 = 더보기 개수
-            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&ev.start_date<=cell.full&&ev.end_date>=cell.full).length;
+            // 숨겨진 단일 + (MULTI_CAP 초과로 못 그린) 이 날짜를 덮는 다일 = 더보기 개수
+            const hiddenMultiHere=coveringMulti.length-shownMulti.length;
             const hiddenCount=(singles.length-visibleSingles.length)+hiddenMultiHere;
             if(hiddenCount>0){
                 const more=document.createElement('div');
