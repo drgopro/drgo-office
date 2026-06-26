@@ -50,10 +50,20 @@
     .crm-modal .fld { margin-bottom:13px; }
     .crm-modal .fld label { display:block; font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:5px; }
     .crm-modal .fld input, .crm-modal .fld select, .crm-modal .fld textarea { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text); font-size:13px; box-sizing:border-box; }
-    .tag-pick { display:flex; gap:6px; flex-wrap:wrap; }
-    .tag-opt { font-size:12px; padding:5px 11px; border-radius:14px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; color:var(--text-muted); }
-    .tag-opt.sel { background:#fdf2f8; border-color:#fbcfe8; color:#9d174d; font-weight:700; }
-    [data-theme="light"] .tag-opt.sel { background:#fdf2f8; }
+    /* 대주제 태그 드롭다운 */
+    .tag-dd { position:relative; }
+    .tag-dd-control { display:flex; align-items:center; gap:6px; flex-wrap:wrap; border:1px solid var(--accent); border-radius:8px; background:var(--surface2); padding:8px 11px; min-height:42px; cursor:pointer; }
+    .tag-dd-chips { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+    .tag-dd-ph { font-size:13px; color:var(--text-muted); }
+    .tag-dd-chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#9d174d; background:#fdf2f8; border:1px solid #fbcfe8; border-radius:14px; padding:3px 6px 3px 10px; }
+    .tag-dd-chip .x { width:15px; height:15px; border-radius:50%; background:#f8d4e4; color:#9d174d; font-size:10px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; cursor:pointer; }
+    .tag-dd-caret { color:var(--accent); margin-left:auto; }
+    .tag-dd-menu { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.15); overflow:hidden; max-height:240px; overflow-y:auto; }
+    .tag-dd-opt { font-size:13px; padding:9px 13px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); cursor:pointer; }
+    .tag-dd-opt:first-child { border-top:none; }
+    .tag-dd-opt:hover { background:var(--surface2); }
+    .tag-dd-opt.sel { background:#fdf2f8; color:#9d174d; font-weight:700; }
+    .tag-dd-opt.manage { color:var(--accent); font-weight:700; background:var(--surface2); }
     .crm-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
     .empty { text-align:center; color:var(--text-muted); padding:40px; font-size:13px; }
 </style>
@@ -102,8 +112,14 @@
             <select id="cWorkType"></select>
         </div>
         <div class="fld">
-            <label>대주제 태그 * <span style="font-weight:400; color:var(--text-muted);">(복수 선택)</span></label>
-            <div class="tag-pick" id="cTagPick"></div>
+            <label>대주제 태그 * <span style="font-weight:400; color:var(--text-muted);">(드롭다운 · 복수)</span></label>
+            <div class="tag-dd" id="cTagDd">
+                <div class="tag-dd-control" onclick="toggleTagMenu(event)">
+                    <span class="tag-dd-chips" id="cTagChips"></span>
+                    <span class="tag-dd-caret">▾</span>
+                </div>
+                <div class="tag-dd-menu" id="cTagMenu" style="display:none;"></div>
+            </div>
         </div>
         <div class="fld">
             <label>주관식 (식별용 메모)</label>
@@ -265,13 +281,31 @@ function onProjTypeChange(){
 let pickedTags=[];
 function renderTagPick(sel){
     pickedTags=[...sel];
-    document.getElementById('cTagPick').innerHTML=allTags.map(t=>`<span class="tag-opt ${pickedTags.includes(t.name)?'sel':''}" onclick="toggleTagPick('${esc(t.name)}')">${esc(t.name)}</span>`).join('') || '<span style="font-size:12px;color:var(--text-muted);">태그 없음 — 태그 관리에서 추가</span>';
+    // 선택 칩 (컨트롤 안)
+    const chips=document.getElementById('cTagChips');
+    chips.innerHTML = pickedTags.length
+        ? pickedTags.map(n=>`<span class="tag-dd-chip">${esc(n)}<span class="x" onclick="event.stopPropagation(); toggleTagPick('${esc(n)}')">×</span></span>`).join('')
+        : '<span class="tag-dd-ph">태그 선택…</span>';
+    // 메뉴 옵션
+    const menu=document.getElementById('cTagMenu');
+    menu.innerHTML = (allTags.length
+        ? allTags.map(t=>`<div class="tag-dd-opt ${pickedTags.includes(t.name)?'sel':''}" onclick="event.stopPropagation(); toggleTagPick('${esc(t.name)}')">${esc(t.name)}${pickedTags.includes(t.name)?'<span>✓</span>':''}</div>`).join('')
+        : '<div class="tag-dd-opt" style="color:var(--text-muted);">태그 없음</div>')
+        + `<div class="tag-dd-opt manage" onclick="event.stopPropagation(); closeTagMenu(); openTagManage();">+ 태그 추가 / 삭제 (관리)</div>`;
 }
 function toggleTagPick(name){
     const i=pickedTags.indexOf(name);
     if(i>=0)pickedTags.splice(i,1); else pickedTags.push(name);
     renderTagPick(pickedTags);
 }
+function toggleTagMenu(e){
+    if(e) e.stopPropagation();
+    const menu=document.getElementById('cTagMenu');
+    menu.style.display = menu.style.display==='none' ? 'block' : 'none';
+}
+function closeTagMenu(){ const m=document.getElementById('cTagMenu'); if(m) m.style.display='none'; }
+// 바깥 클릭 시 메뉴 닫기
+document.addEventListener('click', e=>{ const dd=document.getElementById('cTagDd'); if(dd && !dd.contains(e.target)) closeTagMenu(); });
 async function submitCreate(){
     const body={
         client_name:document.getElementById('cClient').value.trim()||null,
@@ -308,13 +342,16 @@ async function addTag(){
     const name=document.getElementById('newTagName').value.trim();
     if(!name) return;
     const res=await fetch('/api/crm-demo/tags',{method:'POST',headers:H,body:JSON.stringify({name})});
-    if(res.ok){ document.getElementById('newTagName').value=''; await loadTags(); renderTagManage(); }
+    if(res.ok){ document.getElementById('newTagName').value=''; await loadTags(); renderTagManage(); refreshTagPickIfOpen(); }
     else { const e=await res.json().catch(()=>({})); alert(e.message||Object.values(e.errors||{}).flat().join('\n')||'추가 실패'); }
 }
 async function delTag(id){
     if(!confirm('태그를 삭제할까요? (기존 프로젝트 태그 이름은 유지됨)')) return;
     await fetch('/api/crm-demo/tags/'+id,{method:'DELETE',headers:H});
-    await loadTags(); renderTagManage();
+    await loadTags(); renderTagManage(); refreshTagPickIfOpen();
+}
+function refreshTagPickIfOpen(){
+    if(document.getElementById('createModal').classList.contains('open')) renderTagPick(pickedTags.filter(n=>allTags.some(t=>t.name===n)));
 }
 
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
