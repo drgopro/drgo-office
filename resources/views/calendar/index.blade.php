@@ -276,6 +276,9 @@
     .modal-external-close:hover { border-color:var(--red); color:var(--red); background:var(--surface2); }
     .modal-external-action { background:var(--accent); color:var(--accent-text); border:none; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.3); letter-spacing:-0.5px; }
     .modal-external-action:hover { filter:brightness(1.1); }
+    .modal-external-complete { background:var(--surface); border:1px solid rgba(122,200,160,0.6); color:#2f8f5b; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.3); letter-spacing:-0.5px; }
+    .modal-external-complete:hover { background:rgba(122,200,160,0.15); }
+    .modal-external-complete.done { background:rgba(122,200,160,0.9); color:#fff; border-color:transparent; }
     @media (max-width:720px) { .modal-external-btns { display:none; } }
     @keyframes modalIn { from{opacity:0;transform:translateY(18px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
 
@@ -1222,6 +1225,7 @@
     <div class="modal-external-btns">
         <button class="modal-external-close" onclick="closeModal()" title="닫기">✕</button>
         <button class="modal-external-action" id="modalExternalAction" onclick="saveEvent()" title="저장">저장</button>
+        <button class="modal-external-complete" id="extCompleteBtn" style="display:none" onclick="toggleCompleteFromDetail()" title="완료">완료</button>
     </div>
     </div>{{-- modal-wrapper end --}}
 </div>
@@ -2904,6 +2908,25 @@ let detailEvent = null;
 
 let viewMode = false; // true: 상세보기(읽기전용), false: 편집
 
+// 완료 버튼(푸터 + 모달 옆 외부) 상태 갱신. showFooter=true면 푸터 버튼도 노출(보기 모드).
+function updateCompleteUI(showFooter){
+    const existing=!!editingId;
+    const done=!!(detailEvent&&detailEvent.completed_at);
+    const f=document.getElementById('btnComplete');
+    if(f){
+        f.style.display=(showFooter&&existing)?'':'none';
+        f.textContent=done?'✓ 완료됨 (해제)':'✓ 완료';
+        f.classList.toggle('done',done);
+    }
+    const ext=document.getElementById('extCompleteBtn');
+    if(ext){
+        ext.style.display=existing?'flex':'none'; // 보기/편집 모드 모두 노출(기존 일정만)
+        ext.textContent=done?'✓':'완료';
+        ext.title=done?'완료됨 — 클릭 시 해제':'완료 처리';
+        ext.classList.toggle('done',done);
+    }
+}
+
 function setViewModeUI(){
     // 모든 입력 비활성화
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input, #modalOverlay select').forEach(el=>{el.disabled=true;});
@@ -2930,14 +2953,7 @@ function setViewModeUI(){
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
     document.getElementById('btnLog').style.display='';
-    // 완료 토글 버튼 — 보기 모드에서만 노출, 현재 완료 상태에 맞춰 라벨 표시
-    const cBtn=document.getElementById('btnComplete');
-    if(cBtn){
-        const done=!!(detailEvent&&detailEvent.completed_at);
-        cBtn.style.display='';
-        cBtn.textContent=done?'✓ 완료됨 (해제)':'✓ 완료';
-        cBtn.classList.toggle('done', done);
-    }
+    updateCompleteUI(true); // 푸터 완료 버튼 노출(보기 모드)
     // 외부 버튼을 수정으로
     const extBtn=document.getElementById('modalExternalAction');
     extBtn.textContent='수정';
@@ -2968,7 +2984,7 @@ function setEditModeUI(){
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='';});
     // 버튼 복원
     document.getElementById('lockBtn').style.display='';
-    const cBtn=document.getElementById('btnComplete'); if(cBtn) cBtn.style.display='none';
+    updateCompleteUI(false); // 편집 모드: 푸터 완료 버튼 숨김(외부 완료 버튼은 유지)
     document.querySelector('.btn-save-top').style.display='';
     // 외부 버튼을 저장으로
     const extBtn=document.getElementById('modalExternalAction');
@@ -3813,7 +3829,7 @@ async function toggleCompleteFromDetail() {
     const res = await fetch(url, {method:'POST', headers:{'X-CSRF-TOKEN':CSRF, 'Accept':'application/json'}});
     if (!res.ok) { showCalToast('실패'); return; }
     showCalToast(isCompleted ? '완료 해제' : '완료 처리');
-    closeDetail();
+    viewMode=false; closeModal(); detailEvent=null; // 보기/편집 모드 공통으로 편집 모달 닫기
     loadEvents();
 }
 
