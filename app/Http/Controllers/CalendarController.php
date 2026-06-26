@@ -48,6 +48,7 @@ class CalendarController extends Controller
                 'is_all_day' => $e->is_all_day,
                 'location' => $e->location,
                 'color' => $e->color,
+                'completed_at' => $e->completed_at,
             ]);
         }
 

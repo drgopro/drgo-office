@@ -178,6 +178,10 @@
     /* 제목은 늘어나서 담당자 배지를 우측 끝으로 밀어냄 */
     .event-chip .chip-title { flex:1 1 auto; }
     .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
+    /* 완료된 일정 — 흐리게 표시 */
+    .event-chip.is-completed, .mday-title-overlay.is-completed, .tl-event.is-completed,
+    .agenda-item.is-completed, .dp-item.is-completed, .mde-item.is-completed { opacity:0.4; }
+    .agenda-item.is-completed .agenda-title, .dp-item.is-completed .dp-title { text-decoration:line-through; }
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
     /* 다일 레인 정렬용 빈 자리 (보이지 않지만 칩 1행과 동일한 높이) — 채울 단일이 없을 때만 사용 */
     .lane-spacer { height:calc(22px * var(--cal-fz,1)); visibility:hidden; }
@@ -1604,7 +1608,7 @@ function openDayPopover(dateStr, anchorEl){
         const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
         // 간략 표기: 주소(도로명까지) · 담당자
         const meta=[roadOnly(ev.location), assignees].filter(Boolean).join(' · ');
-        return `<div class="dp-item" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
+        return `<div class="dp-item${ev.completed_at?' is-completed':''}" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
             <span class="dp-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></span>
             <div class="dp-info">
                 <div class="dp-title">${_esc(title)}</div>
@@ -1698,7 +1702,7 @@ function renderAgenda(){
             const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
             const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
             const sub=[ (isMulti?`${ev.start_date.slice(5).replace('-','/')}~${ev.end_date.slice(5).replace('-','/')}`:''), ev.location ].filter(Boolean).join(' · ');
-            html+=`<div class="agenda-item" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
+            html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
                 <div class="agenda-stripe" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
                 <div class="agenda-main">
                     <div class="agenda-title">${_esc(title)}</div>
@@ -1811,11 +1815,12 @@ function renderMonth() {
                     const isEnd=ev.end_date===cell.full;
                     let cls=`event-chip single color-${ev.color} multi-day`;
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
+                    if(ev.completed_at) cls+=' is-completed';
                     chip.className=cls;
                     chip.innerHTML=''; // 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
                 } else {
-                    chip.className=`event-chip single color-${ev.color}`;
+                    chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'');
                     chip.innerHTML=buildChipHtml(ev);
                 }
                 chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
@@ -1861,7 +1866,7 @@ function renderMonth() {
                 const chipRect=chip.getBoundingClientRect();
                 const endRect=weekRow.children[c2].getBoundingClientRect();
                 const ov=document.createElement('div');
-                ov.className='mday-title-overlay';
+                ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'');
                 ov.style.top=(chipRect.top-wrRect.top)+'px';
                 ov.style.height=chipRect.height+'px';
                 ov.style.left=(chipRect.left-wrRect.left)+'px';
@@ -1912,7 +1917,7 @@ function renderMobileDayEvents(dateStr){
     const items=dayEvs.map(ev=>{
         const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'시간 미정');
         const title=ev.title||'(제목 없음)';
-        return `<div class="mde-item" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
+        return `<div class="mde-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
             <div class="mde-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
             <div class="mde-info">
                 <div class="mde-title">${title}</div>
@@ -1973,7 +1978,7 @@ function renderTimeline() {
         cell.className='tl-allday-cell'+(isToday?' today-col':'');
         events.filter(ev=>isFiltered(ev)&&ev.is_all_day&&ev.start_date<=ds&&(ev.end_date||ev.start_date)>=ds).forEach(ev=>{
             const chip=document.createElement('div');
-            chip.className=`event-chip color-${ev.color}`;
+            chip.className=`event-chip color-${ev.color}`+(ev.completed_at?' is-completed':'');
             chip.style.marginBottom='2px';
             chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):(ev.title||'');
             chip.onclick=()=>openDetailModal(ev);
@@ -2045,7 +2050,7 @@ function renderTimeline() {
                 return h===hour;
             }).forEach(ev=>{
                 const el=document.createElement('div');
-                el.className=`tl-event color-${ev.color}`;
+                el.className=`tl-event color-${ev.color}`+(ev.completed_at?' is-completed':'');
                 const sm=ev.start_time?parseInt(ev.start_time.split(':')[1]):0;
                 const eh=ev.end_time?parseInt(ev.end_time.split(':')[0]):hour+1;
                 const em=ev.end_time?parseInt(ev.end_time.split(':')[1]):0;
