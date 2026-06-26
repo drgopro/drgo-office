@@ -315,6 +315,9 @@
     .btn-save:hover { filter:brightness(1.1); }
     .btn-log { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; transition:all 0.2s; }
     .btn-log:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-complete { background:none; border:1px solid rgba(122,200,160,0.5); color:#2f8f5b; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+    .btn-complete:hover { background:rgba(122,200,160,0.12); }
+    .btn-complete.done { background:rgba(122,200,160,0.18); border-color:rgba(122,200,160,0.7); }
 
     /* ── 섹션/필드 ── */
     .section-heading { font-size:10px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-muted); display:flex; align-items:center; gap:10px; margin-bottom:2px; }
@@ -1211,6 +1214,7 @@
             <button class="btn-delete" id="btnDelete" style="display:none" onclick="deleteEvent()">일정 삭제</button>
             <div style="display:flex;gap:8px;align-items:center;">
                 <button class="btn-log" id="btnLog" style="display:none" onclick="openHistoryFromEdit()">📋 <span>변경 로그</span></button>
+                <button class="btn-complete" id="btnComplete" style="display:none" onclick="toggleCompleteFromDetail()">✓ 완료</button>
                 <button class="btn-save" onclick="saveEvent()">저장</button>
             </div>
         </div>
@@ -2926,6 +2930,14 @@ function setViewModeUI(){
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
     document.getElementById('btnLog').style.display='';
+    // 완료 토글 버튼 — 보기 모드에서만 노출, 현재 완료 상태에 맞춰 라벨 표시
+    const cBtn=document.getElementById('btnComplete');
+    if(cBtn){
+        const done=!!(detailEvent&&detailEvent.completed_at);
+        cBtn.style.display='';
+        cBtn.textContent=done?'✓ 완료됨 (해제)':'✓ 완료';
+        cBtn.classList.toggle('done', done);
+    }
     // 외부 버튼을 수정으로
     const extBtn=document.getElementById('modalExternalAction');
     extBtn.textContent='수정';
@@ -2956,6 +2968,7 @@ function setEditModeUI(){
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='';});
     // 버튼 복원
     document.getElementById('lockBtn').style.display='';
+    const cBtn=document.getElementById('btnComplete'); if(cBtn) cBtn.style.display='none';
     document.querySelector('.btn-save-top').style.display='';
     // 외부 버튼을 저장으로
     const extBtn=document.getElementById('modalExternalAction');
