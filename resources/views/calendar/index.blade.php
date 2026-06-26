@@ -175,8 +175,6 @@
     .event-chip .chip-title { flex:1 1 auto; }
     .event-chip:hover { filter:brightness(1.12); transform:translateX(1px); }
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
-    /* 다일 일정 레인 정렬용 빈 자리 (보이지 않지만 칩 1행과 동일한 높이 차지 → 바 정렬) */
-    .lane-spacer { height:22px; visibility:hidden; }
     .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
     .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
     .event-chip.single.color-blue   { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
@@ -604,7 +602,6 @@
 
         /* 다일 스판 칩 숨김 (모바일에서는 dot으로 대체) */
         .span-chip-overlay { display:none; }
-        .lane-spacer { display:none; }
 
         /* 모달 모바일 */
         .modal { max-width:95vw; border-radius:12px; }
@@ -1737,20 +1734,12 @@ function renderMonth() {
             const evList=document.createElement('div');
             evList.className='events-list';
 
-            // 1) 다일 레인: '이 날짜를 실제로 덮는' 일정의 최대 레인까지만 그림(그 아래 빈 레인만 spacer로 정렬).
-            //    → 연속 일정이 지나가지 않는 날엔 레인을 예약하지 않아 단일 일정이 맨 위부터 채워짐(틱틱 방식).
-            const coveringByLane={};
-            let cellMaxLane=-1;
-            weekMulti.forEach(ev=>{
-                if(ev.start_date<=cell.full&&ev.end_date>=cell.full){
-                    const l=laneOf[ev.id];
-                    if(l<LANE_CAP){ coveringByLane[l]=ev; if(l>cellMaxLane) cellMaxLane=l; }
-                }
-            });
-            const laneRows=cellMaxLane+1; // 이 셀에서 차지하는 다일 행 수
-            for(let L=0;L<laneRows;L++){
-                const ev=coveringByLane[L];
-                if(!ev){ const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp); continue; }
+            // 1) 다일 일정: 이 날짜를 덮는 것만 레인 순서대로 '빈틈없이' 위에서부터 채움(빈 레인/스페이서 없음).
+            //    → 앞 일정 때문에 맨 위가 비는 일이 없음. 연속 일정은 제목을 시작 셀에만 표시하고 이어지는 bar로 표현.
+            const coveringMulti=weekMulti
+                .filter(ev=>laneOf[ev.id]<LANE_CAP && ev.start_date<=cell.full && ev.end_date>=cell.full)
+                .sort((a,b)=>laneOf[a.id]-laneOf[b.id]);
+            coveringMulti.forEach(ev=>{
                 const isStart = ev.start_date===cell.full || d===0; // 주 시작 셀에서도 제목 표시
                 const isEnd   = ev.end_date===cell.full;
                 let cls=`event-chip single color-${ev.color} multi-day`;
@@ -1761,7 +1750,8 @@ function renderMonth() {
                 chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
                 chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
                 evList.appendChild(chip);
-            }
+            });
+            const multiRows=coveringMulti.length;
 
             // 2) 단일 일정(시간순) — 현재 달 셀에만, 남은 자리만큼 표시
             const singles=(cell.month==='cur')
@@ -1769,8 +1759,8 @@ function renderMonth() {
                 : [];
             const isExpanded=expandedDays.has(cell.full);
             if(isExpanded) div.classList.add('expanded');
-            const TARGET_ROWS=4; // 다일 레인 + 단일 합쳐 표시할 최대 행
-            const singleSlots=isExpanded?singles.length:Math.max(0, TARGET_ROWS-laneRows);
+            const TARGET_ROWS=4; // 다일 + 단일 합쳐 표시할 최대 행
+            const singleSlots=isExpanded?singles.length:Math.max(0, TARGET_ROWS-multiRows);
             const visibleSingles=singles.slice(0, singleSlots);
             visibleSingles.forEach(ev=>{
                 const chip=document.createElement('div');
