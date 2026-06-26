@@ -1,12 +1,6 @@
 <script>
-// 부모 테마 동기화 (iframe 로드 시)
-try {
-    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
-    if (parentTheme) document.documentElement.setAttribute('data-theme', parentTheme);
-} catch(e) {
-    const saved = localStorage.getItem('drgo_theme');
-    if (saved) document.documentElement.setAttribute('data-theme', saved);
-}
+// 라이트 모드 고정 (다크모드 제거)
+document.documentElement.setAttribute('data-theme', 'light');
 // iframe 내부 표시 — body.in-iframe 클래스 부착 (페이지마다 chrome(헤더+탭바) 영역 만큼 잘리는 현상 방지)
 (function(){
     function apply(){ if (window !== window.top && document.body) document.body.classList.add('in-iframe'); }

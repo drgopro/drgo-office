@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="dark">
+<html lang="ko" data-theme="light">
 <head>
 <script>
-(function(){var t=localStorage.getItem('drgo_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+/* 라이트 모드 고정 (다크모드 제거) */
+(function(){try{localStorage.removeItem('drgo_theme');}catch(e){}document.documentElement.setAttribute('data-theme','light');})();
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -407,7 +408,6 @@ window.openTopTab = function(type, url, title) {
         @if(Auth::user()->isAdmin())
             <a href="#" class="admin-link {{ request()->is('admin*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('admin','/admin');">관리</a>
         @endif
-        <button class="theme-toggle" id="themeToggle" title="다크/라이트 모드">🌙</button>
         <a href="#" class="admin-link {{ request()->is('profile*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('profile','/profile');">{{ Auth::user()->display_name }}</a>
         <span class="user-role">{{ Auth::user()->role }}</span>
         <form method="POST" action="{{ route('logout') }}" style="margin:0;">
@@ -462,23 +462,8 @@ window.openTopTab = function(type, url, title) {
 </div>
 
 <script>
-// ── 테마 ──
-const savedTheme = localStorage.getItem('drgo_theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
-document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
-document.getElementById('themeToggle').addEventListener('click', function() {
-    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('drgo_theme', next);
-    this.textContent = next === 'dark' ? '🌙' : '☀️';
-    // iframe 내부에도 테마 전파
-    document.querySelectorAll('iframe').forEach(iframe => {
-        try {
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            doc.documentElement.setAttribute('data-theme', next);
-        } catch(e) {}
-    });
-});
+// ── 테마: 라이트 모드 고정 (다크모드 제거) ──
+document.documentElement.setAttribute('data-theme', 'light');
 
 // ── 모바일 네비 ──
 function toggleNav() {
