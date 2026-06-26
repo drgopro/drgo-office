@@ -22,6 +22,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\ProjectFieldDefinitionController;
+use App\Http\Controllers\ProjectTagController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
@@ -158,8 +159,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'destroyPayment']);
         Route::post('/api/projects/{project}/payments/refund', [ProjectController::class, 'refundPayment'])->name('projects.payments.refund');
         Route::post('/api/projects/{project}/stage-data', [ProjectController::class, 'saveStageData'])->name('projects.stageData');
+        // 소분류 태그 관리 (추가/삭제) — 컨트롤러에서 tags.manage 권한 재확인
+        Route::post('/api/project-subtags', [ProjectTagController::class, 'storeSubtag']);
+        Route::delete('/api/project-subtags/{subtag}', [ProjectTagController::class, 'destroySubtag']);
     });
     Route::middleware('permission:projects.view')->group(function () {
+        Route::get('/api/project-tags', [ProjectTagController::class, 'index']);
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
         Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('/api/projects/{project}/payment-estimates', [ProjectController::class, 'paymentEstimates']);

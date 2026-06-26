@@ -44,6 +44,10 @@
     tr:last-child td { border-bottom:none; }
     tr:hover td { background:var(--surface2); }
     .project-link { font-weight:600; color:var(--text); text-decoration:none; }
+    .pj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+    .pj-tag { font-size:10px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
+    .pj-tag-major { background:rgba(36,138,56,0.12); color:#248a38; border:1px solid rgba(36,138,56,0.35); }
+    .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .project-link:hover { color:var(--accent); }
     .client-link { color:var(--text-muted); font-size:12px; text-decoration:none; }
     .client-link:hover { color:var(--accent); }
@@ -199,6 +203,13 @@
                 <tr>
                     <td>
                         <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '📁 {{ addslashes($project->name) }}');">{{ $project->name }}</a>
+                        @php $__tags = $project->tags ?? []; $__maj = $__tags['major'] ?? []; $__min = $__tags['minor'] ?? []; @endphp
+                        @if(!empty($__maj) || !empty($__min))
+                            <div class="pj-tags">
+                                @foreach($__maj as $__t)<span class="pj-tag pj-tag-major">{{ $__t }}</span>@endforeach
+                                @foreach($__min as $__t)<span class="pj-tag pj-tag-minor">{{ $__t }}</span>@endforeach
+                            </div>
+                        @endif
                     </td>
                     <td>
                         @if($project->client)

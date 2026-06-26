@@ -17,6 +17,7 @@ class Project extends Model
         'project_type',
         'client_scale',
         'work_type',
+        'tags',
         'stage',
         'status',
         'is_payment_only',
@@ -41,6 +42,7 @@ class Project extends Model
         'payment_info' => 'array',
         'stage_data' => 'array',
         'is_payment_only' => 'boolean',
+        'tags' => 'array',
     ];
 
     public function client()

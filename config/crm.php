@@ -12,18 +12,21 @@
 
 return [
 
+    // 0) 대분류 태그 (고정) — 운영 프로젝트 태그의 대분류. 소분류는 project_subtags 테이블에서 관리.
+    'major_tags' => ['이사세팅', '스튜디오세팅', '처음세팅', '세팅개선'],
+
     // 1) 의뢰자 유형 (4종)
     'requester_types' => [
         'personal' => ['label' => '개인',    'desc' => '개인 단위 의뢰자'],
-        'studio'   => ['label' => '스튜디오', 'desc' => '스튜디오 운영 및 관련 의뢰자'],
-        'enter'    => ['label' => '엔터',    'desc' => '엔터·에이전시 소속 (MCN 아님)'],
-        'company'  => ['label' => '기업',    'desc' => '광고대행사·게임사 등 기업 단위'],
+        'studio' => ['label' => '스튜디오', 'desc' => '스튜디오 운영 및 관련 의뢰자'],
+        'enter' => ['label' => '엔터',    'desc' => '엔터·에이전시 소속 (MCN 아님)'],
+        'company' => ['label' => '기업',    'desc' => '광고대행사·게임사 등 기업 단위'],
     ],
 
     // 2) 프로젝트 유형 9종 → 작업 유형(종속) + 진행 단계 파이프라인 + 담당 부서
     //    department: sales(물류·세일즈) / counsel(상담) / remote(원격)
     'project_types' => [
-        'inquiry'   => [
+        'inquiry' => [
             'label' => '문의', 'department' => 'counsel',
             'work_types' => ['단순'],
             'pipeline' => [
@@ -31,7 +34,7 @@ return [
                 ['key' => 'done',    'label' => '완료'],
             ],
         ],
-        'remote'    => [
+        'remote' => [
             'label' => '원격', 'department' => 'remote',
             'work_types' => ['문제해결', 'AS'],
             'pipeline' => [
@@ -43,7 +46,7 @@ return [
                 ['key' => 'done',     'label' => '완료'],
             ],
         ],
-        'visit'     => [
+        'visit' => [
             'label' => '방문', 'department' => 'counsel',
             'work_types' => ['일반', '재방문', '급행', '사전답사'],
             'pipeline' => [
@@ -55,7 +58,7 @@ return [
                 ['key' => 'done',     'label' => '완료'],
             ],
         ],
-        'onsite'    => [
+        'onsite' => [
             'label' => '내방', 'department' => 'counsel',
             'work_types' => ['야외방송 세팅(1차)', '교육·컨설팅'],
             'pipeline' => [
@@ -66,7 +69,7 @@ return [
                 ['key' => 'done',    'label' => '완료'],
             ],
         ],
-        'filming'   => [
+        'filming' => [
             'label' => '촬영', 'department' => 'counsel',
             'work_types' => ['중계', '야외'],
             'pipeline' => [
@@ -91,7 +94,7 @@ return [
                 ['key' => 'done',     'label' => '완료'],
             ],
         ],
-        'rental'    => [
+        'rental' => [
             'label' => '렌탈', 'department' => 'sales',
             'work_types' => ['렌탈', '장비(단품)'],
             'pipeline' => [
@@ -112,7 +115,7 @@ return [
                 ['key' => 'done',     'label' => '완료'],
             ],
         ],
-        'goods'     => [
+        'goods' => [
             'label' => '상품', 'department' => 'sales',
             'work_types' => ['쇼핑몰'],
             'pipeline' => [
@@ -134,8 +137,8 @@ return [
 
     // 6) 담당 부서 라벨
     'departments' => [
-        'sales'   => '물류·세일즈',
+        'sales' => '물류·세일즈',
         'counsel' => '상담',
-        'remote'  => '원격',
+        'remote' => '원격',
     ],
 ];

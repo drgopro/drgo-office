@@ -66,7 +66,13 @@ class ProjectController extends Controller
             'overview' => 'nullable|string',
             'memo' => 'nullable|string', // 하위 호환 (구버전 클라이언트)
             'custom_data' => 'nullable|array',
+            'tags' => 'nullable|array',
+            'tags.major' => 'nullable|array',
+            'tags.major.*' => 'string|max:60',
+            'tags.minor' => 'nullable|array',
+            'tags.minor.*' => 'string|max:60',
         ]);
+        $validated['tags'] = $this->normalizeTags($request->input('tags'));
         if (isset($validated['memo']) && ! isset($validated['overview'])) {
             $validated['overview'] = $validated['memo'];
         }
@@ -89,6 +95,31 @@ class ProjectController extends Controller
         }
 
         return redirect()->route('projects.show', $project)->with('success', '프로젝트가 생성되었습니다.');
+    }
+
+    /**
+     * 태그 입력 정규화 → ['major'=>[], 'minor'=>[]] 또는 null.
+     *
+     * @return array{major: array<int,string>, minor: array<int,string>}|null
+     */
+    private function normalizeTags(mixed $tags): ?array
+    {
+        if (! is_array($tags)) {
+            return null;
+        }
+        $clean = function ($list) {
+            return array_values(array_filter(
+                array_map(fn ($t) => trim((string) $t), (array) $list),
+                fn ($t) => $t !== ''
+            ));
+        };
+        $major = $clean($tags['major'] ?? []);
+        $minor = $clean($tags['minor'] ?? []);
+        if (empty($major) && empty($minor)) {
+            return null;
+        }
+
+        return ['major' => $major, 'minor' => $minor];
     }
 
     // 상세
@@ -171,6 +202,11 @@ class ProjectController extends Controller
             'work_type' => 'sometimes|nullable|string|max:50',
             'visit_report' => 'sometimes|nullable|string',
             'custom_data' => 'nullable|array',
+            'tags' => 'sometimes|nullable|array',
+            'tags.major' => 'nullable|array',
+            'tags.major.*' => 'string|max:60',
+            'tags.minor' => 'nullable|array',
+            'tags.minor.*' => 'string|max:60',
         ]);
 
         // 'memo' (legacy) → 'overview' 매핑
@@ -178,6 +214,10 @@ class ProjectController extends Controller
             $validated['overview'] = $validated['memo'];
         }
         unset($validated['memo']);
+
+        if ($request->has('tags')) {
+            $validated['tags'] = $this->normalizeTags($request->input('tags'));
+        }
 
         $project->update($validated);
 
