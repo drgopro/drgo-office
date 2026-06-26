@@ -2756,6 +2756,7 @@ function openNewModal(dateStr,timeStr){
     updateAssigneeBtn();
     renderAssigneeList();
     document.getElementById('modalOverlay').classList.add('open');
+    pushCalModalHistory();
     setTimeout(()=>document.getElementById('modalTitle').focus(),50);
 }
 
@@ -3132,10 +3133,26 @@ function openEditModal(ev){
     updateAssigneeBtn();updateBalanceBanner();
     renderAssigneeList();
     document.getElementById('modalOverlay').classList.add('open');
+    pushCalModalHistory();
 }
+
+// ── 모달이 열렸을 때 브라우저 뒤로가기 → 모달 닫기 ──
+let __calModalHistory=false;
+function pushCalModalHistory(){
+    if(!__calModalHistory){ try{ history.pushState({calModal:1},''); }catch(e){} __calModalHistory=true; }
+}
+window.addEventListener('popstate',function(){
+    const ov=document.getElementById('modalOverlay');
+    if(ov && ov.classList.contains('open')){
+        __calModalHistory=false; // 이 history 항목은 이미 pop됨
+        closeModal();            // 페이지 이동 대신 모달만 닫음
+    }
+});
 
 function closeModal(){
     document.getElementById('modalOverlay').classList.remove('open');editingId=null;
+    // UI로 닫을 때(뒤로가기 아님) push했던 history 항목 소비
+    if(__calModalHistory){ __calModalHistory=false; try{ history.back(); }catch(e){} }
     document.querySelectorAll('.time-picker-popup').forEach(p=>p.remove());
     const rf=document.getElementById('reasonField'); if (rf) rf.style.display='none';
     const rm=document.getElementById('modalReason'); if (rm) rm.value='';
