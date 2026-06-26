@@ -12,6 +12,7 @@ use App\Http\Controllers\ClientDocumentController;
 use App\Http\Controllers\ClientFieldDefinitionController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\ConsultationTypeController;
+use App\Http\Controllers\CrmDemoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\ExcelImportController;
@@ -42,7 +43,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/qr-scan', fn () => view('qr-scan'))->name('qr-scan');
     // CRM 개편 데모 (운영 무영향, 검증용)
-    Route::get('/crm-demo', fn () => view('crm-demo.index'))->name('crm-demo');
+    Route::get('/crm-demo', [CrmDemoController::class, 'index'])->name('crm-demo');
+    Route::get('/api/crm-demo/projects', [CrmDemoController::class, 'projects']);
+    Route::post('/api/crm-demo/projects', [CrmDemoController::class, 'store']);
+    Route::patch('/api/crm-demo/projects/{project}/stage', [CrmDemoController::class, 'updateStage']);
+    Route::post('/api/crm-demo/projects/{project}/cancel', [CrmDemoController::class, 'cancel']);
+    Route::post('/api/crm-demo/projects/{project}/billing', [CrmDemoController::class, 'saveBilling']);
+    Route::delete('/api/crm-demo/projects/{project}', [CrmDemoController::class, 'destroy']);
+    Route::get('/api/crm-demo/tags', [CrmDemoController::class, 'tags']);
+    Route::post('/api/crm-demo/tags', [CrmDemoController::class, 'storeTag']);
+    Route::delete('/api/crm-demo/tags/{id}', [CrmDemoController::class, 'destroyTag']);
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
     Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
 
