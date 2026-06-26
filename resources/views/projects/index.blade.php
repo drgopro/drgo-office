@@ -48,6 +48,11 @@
     .pj-tag { font-size:10px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
     .pj-tag-major { background:rgba(36,138,56,0.12); color:#248a38; border:1px solid rgba(36,138,56,0.35); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
+    .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
+    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
+    .tag-chip-pick input { display:none; }
+    .tag-chip-pick:has(input:checked) { background:rgba(36,138,56,0.14); border-color:#248a38; color:#248a38; font-weight:600; }
+    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:11px; cursor:pointer; }
     .project-link:hover { color:var(--accent); }
     .client-link { color:var(--text-muted); font-size:12px; text-decoration:none; }
     .client-link:hover { color:var(--accent); }
@@ -306,6 +311,29 @@
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
                 <textarea id="npMemo" rows="2" placeholder="간단한 프로젝트 개요" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
             </div>
+            @php
+                $__majorTags = config('crm.major_tags', []);
+                $__minorTags = \App\Models\ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name')->all();
+                $__canManageTags = auth()->user()?->hasPermission('tags.manage');
+            @endphp
+            <div id="npTagRow">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">대분류 태그</div>
+                <div class="tag-pick" id="npMajorPick">
+                    @foreach($__majorTags as $__t)
+                        <label class="tag-chip-pick"><input type="checkbox" value="{{ $__t }}"><span>{{ $__t }}</span></label>
+                    @endforeach
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin:12px 0 4px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>소분류 태그</span>
+                    @if($__canManageTags)<button type="button" class="tag-add-btn" onclick="addSubtagNp()">+ 추가</button>@endif
+                </div>
+                <div class="tag-pick" id="npMinorPick">
+                    @foreach($__minorTags as $__t)
+                        <label class="tag-chip-pick"><input type="checkbox" value="{{ $__t }}"><span>{{ $__t }}</span></label>
+                    @endforeach
+                    @if(empty($__minorTags))<span style="font-size:11px;color:var(--text-muted);">등록된 소분류 태그가 없습니다.</span>@endif
+                </div>
+            </div>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
             <button type="button" onclick="closeNewProjectModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
@@ -424,6 +452,23 @@ function pickNpClient(id, display) {
     document.getElementById('npClientPicked').style.display = 'block';
 }
 
+async function addSubtagNp() {
+    const name = (prompt('추가할 소분류 태그 이름을 입력하세요.') || '').trim();
+    if (!name) return;
+    const res = await fetch('/api/project-subtags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_NP, 'Accept': 'application/json' },
+        body: JSON.stringify({ name }),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '추가 실패'); return; }
+    const wrap = document.getElementById('npMinorPick');
+    const empty = wrap.querySelector('span'); if (empty) empty.remove();
+    const label = document.createElement('label');
+    label.className = 'tag-chip-pick';
+    label.innerHTML = `<input type="checkbox" value="${name.replace(/"/g,'&quot;')}" checked><span>${name.replace(/</g,'&lt;')}</span>`;
+    wrap.appendChild(label);
+}
+
 async function submitNewProject() {
     const clientId = document.getElementById('npClientId').value;
     if (!clientId) return alert('의뢰자를 검색하여 선택해 주세요.');
@@ -463,6 +508,11 @@ async function submitNewProject() {
             overview: document.getElementById('npMemo').value || null,
         };
     }
+    // 태그(대분류/소분류) 포함
+    body.tags = {
+        major: [...document.querySelectorAll('#npMajorPick input:checked')].map(i => i.value),
+        minor: [...document.querySelectorAll('#npMinorPick input:checked')].map(i => i.value),
+    };
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_NP,'Accept':'application/json'},

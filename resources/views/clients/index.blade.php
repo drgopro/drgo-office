@@ -106,6 +106,11 @@
     .cf-dyn-grid > .field.w-4 { grid-column:1 / -1; }
     .field { }
     .field-label { font-size:11px; color:var(--text-muted); margin-bottom:5px; }
+    .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
+    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
+    .tag-chip-pick input { display:none; }
+    .tag-chip-pick:has(input:checked) { background:rgba(36,138,56,0.14); border-color:#248a38; color:#248a38; font-weight:600; }
+    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:11px; cursor:pointer; }
     .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
     .field-input:focus { border-color:var(--accent); }
     .field-textarea { min-height:60px; resize:vertical; }
@@ -350,6 +355,36 @@
 @push('scripts')
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+// 프로젝트 태그(대분류 고정 / 소분류 DB)
+const MAJOR_TAGS = @json(config('crm.major_tags', []));
+let MINOR_TAGS = @json(\App\Models\ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name'));
+const CAN_MANAGE_TAGS = @json((bool) auth()->user()?->hasPermission('tags.manage'));
+function tagChipPickHtml(scope, id, list){
+    return list.map(t => `<label class="tag-chip-pick"><input type="checkbox" data-tag="${scope}-${id}" value="${String(t).replace(/"/g,'&quot;')}"><span>${String(t).replace(/</g,'&lt;')}</span></label>`).join('');
+}
+function renderTagPicker(id){
+    return `<div class="field" style="margin-top:10px;">
+        <div class="field-label">대분류 태그</div>
+        <div class="tag-pick" id="pf-major-${id}">${tagChipPickHtml('major', id, MAJOR_TAGS)}</div>
+    </div>
+    <div class="field" style="margin-top:10px;">
+        <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;"><span>소분류 태그</span>${CAN_MANAGE_TAGS ? `<button type="button" class="tag-add-btn" onclick="addSubtagClient(${id})">+ 추가</button>` : ''}</div>
+        <div class="tag-pick" id="pf-minor-${id}">${MINOR_TAGS.length ? tagChipPickHtml('minor', id, MINOR_TAGS) : '<span style="font-size:11px;color:var(--text-muted);">등록된 소분류 태그가 없습니다.</span>'}</div>
+    </div>`;
+}
+async function addSubtagClient(id){
+    const name = (prompt('추가할 소분류 태그 이름을 입력하세요.') || '').trim();
+    if (!name) return;
+    const res = await fetch('/api/project-subtags', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:JSON.stringify({name})});
+    if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '추가 실패'); return; }
+    if (!MINOR_TAGS.includes(name)) MINOR_TAGS.push(name);
+    const wrap = document.getElementById('pf-minor-' + id);
+    const empty = wrap.querySelector('span'); if (empty) empty.remove();
+    const label = document.createElement('label');
+    label.className = 'tag-chip-pick';
+    label.innerHTML = `<input type="checkbox" data-tag="minor-${id}" value="${name.replace(/"/g,'&quot;')}" checked><span>${name.replace(/</g,'&lt;')}</span>`;
+    wrap.appendChild(label);
+}
 
 // ── 서버 에러 메시지 통합 핸들러 ──
 // 모든 fetch 호출의 실패 응답에서 일관된 형식으로 alert를 띄움.
@@ -941,6 +976,7 @@ function renderClientContent(id) {
                     <div class="field-label">프로젝트 개요</div>
                     <textarea class="field-input field-textarea" id="pf-memo-${id}" rows="2"></textarea>
                 </div>
+                ${renderTagPicker(id)}
                 <div style="display:flex; gap:6px; margin-top:10px; justify-content:flex-end;">
                     <button class="btn-delete" onclick="document.getElementById('project-form-${id}').style.display='none'" style="border-color:var(--border); color:var(--text-muted);">취소</button>
                     <button class="btn-save" onclick="createProject(${id})">생성</button>
@@ -1143,6 +1179,10 @@ async function createProject(clientId) {
         client_scale: document.getElementById('pf-scale-' + clientId).value,
         work_type: document.getElementById('pf-work_type-' + clientId).value,
         overview: document.getElementById('pf-memo-' + clientId).value,
+        tags: {
+            major: [...document.querySelectorAll(`[data-tag="major-${clientId}"]:checked`)].map(i => i.value),
+            minor: [...document.querySelectorAll(`[data-tag="minor-${clientId}"]:checked`)].map(i => i.value),
+        },
     };
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
