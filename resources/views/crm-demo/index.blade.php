@@ -218,7 +218,7 @@ function renderRow(p){
     const expanded = expandedRows.has(p.id);
     const tags = (p.tags||[]).map(t=>`<span class="pj-tag">${esc(t)}</span>`).join('') || '<span class="pj-cell-muted">태그 없음</span>';
     const curStep = p.pipeline.find(s=>s.key===p.stage);
-    const billing = (p.billing_outstanding>0) ? ` <span class="pj-cell-muted">· 잔금 ${(p.billing_outstanding).toLocaleString()}</span>` : '';
+    const billing = (p.balance_outstanding>0) ? ` <span class="pj-cell-muted">· 잔금 ${(p.balance_outstanding).toLocaleString()}</span>` : '';
     const main = `<tr class="row-main ${cancelled?'cancelled':''} ${expanded?'expanded':''}" onclick="toggleRow(${p.id})">
         <td><span class="caret-mini">▶</span> ${esc(p.client_name||'-')}${p.requester_type_label?` <span class="pj-cell-muted">${esc(p.requester_type_label)}</span>`:''}</td>
         <td><div class="pj-tags-cell">${tags}${cancelled?'<span class="pj-cancel-badge">취소</span>':''}</div></td>
@@ -239,11 +239,10 @@ function renderRow(p){
         ${cancelled?`<div class="pj-free" style="color:#b91c1c;">⛔ 취소 사유: ${esc(p.cancel_reason||'-')}</div>`:''}
         <div class="pj-cell-muted" style="margin-bottom:8px;">${p.work_type?'작업유형: '+esc(p.work_type)+' · ':''}생성 ${p.created_at||''}</div>
         <div class="pj-pipe">${pipe}</div>
-        ${renderBilling(p)}
+        <div class="pj-cell-muted" style="margin:8px 0;">💰 순 결제액 ${(p.payment_net||0).toLocaleString()}원${p.balance_outstanding>0?` · <span style="color:#b91c1c;">잔금 ${(p.balance_outstanding).toLocaleString()}원</span>`:''} <span style="opacity:0.7;">— 결제 관리는 상세 보기에서</span></div>
         <div class="pj-actions">
             <a class="pj-mini detail" href="/crm-demo/${p.id}" onclick="event.stopPropagation();">🔍 상세 보기 / 보고·수정</a>
             <button class="pj-mini" onclick="openEdit(projectsById[${p.id}])">✎ 수정</button>
-            <button class="pj-mini" onclick="toggleBilling(${p.id})">💰 청구/잔금</button>
             ${!cancelled?`<button class="pj-mini danger" onclick="openCancel(${p.id})">취소</button>`:''}
             <button class="pj-mini danger" onclick="delProject(${p.id})">삭제</button>
         </div>
@@ -254,48 +253,6 @@ function toggleRow(id){
     if(expandedRows.has(id)) expandedRows.delete(id); else expandedRows.add(id);
     loadProjects();
 }
-function renderBilling(p){
-    if(!p.billing || !p.billing.length) return `<div class="pj-bill" id="bill-${p.id}" style="display:none;"></div>`;
-    const rows = p.billing.map((b,i)=>billRow(p.id,i,b)).join('');
-    return `<div class="pj-bill" id="bill-${p.id}">
-        ${rows}
-        <div class="bill-row"><button class="pj-mini" onclick="addBillRow(${p.id})">+ 항목</button>
-        <span style="margin-left:auto;">청구 <span class="bill-sum">${(p.billing_charged||0).toLocaleString()}</span> · 입금 ${(p.billing_paid||0).toLocaleString()} · 잔금 <span class="bill-out">${(p.billing_outstanding||0).toLocaleString()}</span>원</span></div>
-        <div class="bill-row"><button class="pj-mini" onclick="saveBilling(${p.id})">저장</button></div>
-    </div>`;
-}
-function billRow(pid,i,b){
-    return `<div class="bill-row" data-bill="${pid}">
-        <input placeholder="항목" value="${esc(b.label||'')}" data-bk="label">
-        <input type="number" placeholder="청구액" value="${b.amount||''}" data-bk="amount">
-        <input type="number" placeholder="입금액" value="${b.paid||''}" data-bk="paid">
-        <input placeholder="입금일" value="${esc(b.paid_at||'')}" data-bk="paid_at" style="width:90px;">
-    </div>`;
-}
-function toggleBilling(pid){
-    const el=document.getElementById('bill-'+pid);
-    if(!el) return;
-    if(el.style.display==='none'||!el.innerHTML.trim()){
-        // 비어있으면 한 줄 추가
-        if(!el.innerHTML.trim()){ el.innerHTML = billRow(pid,0,{}) + `<div class="bill-row"><button class="pj-mini" onclick="addBillRow(${pid})">+ 항목</button></div><div class="bill-row"><button class="pj-mini" onclick="saveBilling(${pid})">저장</button></div>`; }
-        el.style.display='block';
-    } else { el.style.display='none'; }
-}
-function addBillRow(pid){
-    const el=document.getElementById('bill-'+pid);
-    const tmp=document.createElement('div'); tmp.innerHTML=billRow(pid,0,{});
-    el.insertBefore(tmp.firstElementChild, el.querySelector('.bill-row:nth-last-child(2)')||null);
-}
-async function saveBilling(pid){
-    const el=document.getElementById('bill-'+pid);
-    const billing=[...el.querySelectorAll('.bill-row[data-bill]')].map(r=>{
-        const o={}; r.querySelectorAll('[data-bk]').forEach(inp=>{ o[inp.dataset.bk]= inp.dataset.bk==='label'||inp.dataset.bk==='paid_at'? inp.value.trim() : (parseInt(inp.value,10)||0); });
-        return o;
-    }).filter(o=>o.label||o.amount||o.paid);
-    const res=await fetch(`/api/crm-demo/projects/${pid}/billing`,{method:'POST',headers:H,body:JSON.stringify({billing})});
-    if(res.ok) loadProjects(); else alert('저장 실패');
-}
-
 async function setStage(pid,stage){
     const res=await fetch(`/api/crm-demo/projects/${pid}/stage`,{method:'PATCH',headers:H,body:JSON.stringify({stage})});
     if(res.ok) loadProjects();

@@ -65,6 +65,17 @@
     .mini { font-size:11px; border:1px solid var(--border); background:none; color:var(--text-muted); border-radius:6px; padding:4px 9px; cursor:pointer; }
     .mini.danger { border-color:var(--red); color:var(--red); }
     .save-btn { background:var(--accent); color:var(--accent-text); border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+
+    .pay-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+    .pay-badge.charge { background:rgba(122,200,160,0.15); color:#2f8f5b; border:1px solid rgba(122,200,160,0.45); }
+    .pay-badge.refund { background:rgba(232,137,74,0.15); color:#c2691f; border:1px solid rgba(232,137,74,0.45); }
+    .pay-badge.cancel { background:rgba(200,80,80,0.15); color:var(--red); border:1px solid rgba(200,80,80,0.45); }
+    .pay-ov { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; display:flex; align-items:center; justify-content:center; padding:18px; }
+    .pay-modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; }
+    .pay-modal-head { display:flex; justify-content:space-between; align-items:center; padding:15px 18px; border-bottom:1px solid var(--border); font-size:15px; font-weight:800; }
+    .pay-modal-body { padding:16px 18px; display:flex; flex-direction:column; gap:13px; }
+    .pay-modal-foot { display:flex; gap:8px; justify-content:flex-end; padding:13px 18px; border-top:1px solid var(--border); }
+    .pl { display:block; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
 </style>
 @endpush
 
@@ -123,7 +134,7 @@
         </div>
         {{-- 프로젝트 개요 --}}
         <div class="d-card">
-            <div class="d-card-title">프로젝트 개요 <button class="mini" onclick="toggleOverviewEdit()">수정</button></div>
+            <div class="d-card-title"><span>프로젝트 개요</span> <button class="mini" onclick="toggleOverviewEdit()">수정</button></div>
             <div id="ovView" class="d-empty">{{ $p->overview ?: '프로젝트 개요가 없습니다.' }}</div>
             <div id="ovEdit" style="display:none;">
                 <textarea class="ta" id="ovInput" rows="4">{{ $p->overview }}</textarea>
@@ -132,19 +143,19 @@
         </div>
     </div>
 
-    {{-- 결제 내역 (청구) --}}
+    {{-- 결제 내역 (운영 동일: 결제/환불/취소 트랜잭션) --}}
     <div class="d-card">
-        <div class="d-card-title">💰 결제 내역 <button class="mini" onclick="addBillRow()">+ 항목 추가</button></div>
-        <div id="billRows"></div>
-        <div style="text-align:right; margin-top:8px;">
-            <span id="billSum" style="font-size:12px; color:var(--text-muted); margin-right:10px;"></span>
-            <button class="save-btn" onclick="saveBilling()">청구 저장</button>
+        <div class="d-card-title">
+            <span>💰 결제 내역 <span id="phNetTotal" style="font-size:12px; color:var(--text-muted); margin-left:4px; font-weight:600;"></span></span>
+            <button class="mini" onclick="openPayModal()">+ 결제 추가</button>
         </div>
+        <div id="payList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="payBalanceLine" style="display:none; margin-top:10px; font-size:13px; color:var(--red); font-weight:700;"></div>
     </div>
 
     {{-- 상담 이력 --}}
     <div class="d-card">
-        <div class="d-card-title">상담 이력 (<span id="csCount">{{ $p->consultations->count() }}</span>건) <button class="mini" onclick="document.getElementById('csForm').style.display='block'">+ 상담 등록</button></div>
+        <div class="d-card-title"><span>상담 이력 (<span id="csCount">{{ $p->consultations->count() }}</span>건)</span> <button class="mini" onclick="document.getElementById('csForm').style.display='block'">+ 상담 등록</button></div>
         <div id="csForm" style="display:none; margin-bottom:12px;">
             <textarea class="ta" id="csContent" rows="2" placeholder="상담 내용"></textarea>
             <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
@@ -180,6 +191,52 @@
         <div style="text-align:right; display:flex; gap:8px; justify-content:flex-end;"><button class="mini" onclick="document.getElementById('editOv').style.display='none'">닫기</button><button class="save-btn" onclick="saveEditDemo()">저장</button></div>
     </div>
 </div>
+
+{{-- 결제 정보 모달 --}}
+<div id="payModal" class="pay-ov" style="display:none;">
+    <div class="pay-modal">
+        <div class="pay-modal-head"><span id="payModalTitle">💰 결제 정보 입력</span><button class="mini" onclick="closePayModal()">✕</button></div>
+        <div class="pay-modal-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label class="pl">결제 금액 (원) *</label><input type="number" id="payAmount" class="ta" min="0"></div>
+                <div><label class="pl">결제일</label><input type="date" id="payPaidAt" class="ta"></div>
+            </div>
+            <div><label class="pl">결제 수단</label>
+                <select id="payMethod" class="ta">
+                    <option value="">선택...</option><option value="카드">카드</option><option value="현금">현금</option><option value="계좌이체">계좌이체</option><option value="기타">기타</option>
+                </select>
+            </div>
+            <div>
+                <label class="pl" style="display:flex; justify-content:space-between; align-items:center;"><span>결제 항목 (수기 입력)</span><button class="mini" onclick="addPayItem()">+ 항목</button></label>
+                <div id="payItems" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">항목 입력 시 금액이 자동 합산됩니다.</div>
+            </div>
+            <div id="payBalanceFields">
+                <label class="pl">잔금 여부</label>
+                <div style="display:flex; gap:14px; align-items:center;">
+                    <label style="display:flex; gap:4px; align-items:center; font-size:13px;"><input type="radio" name="payHasBalance" value="1" onchange="togglePayBalance()"> 있음</label>
+                    <label style="display:flex; gap:4px; align-items:center; font-size:13px;"><input type="radio" name="payHasBalance" value="0" checked onchange="togglePayBalance()"> 없음</label>
+                    <div id="payBalanceWrap" style="display:none; flex:1;"><input type="number" id="payBalanceAmount" class="ta" placeholder="잔금 금액 (원)" min="0"></div>
+                </div>
+            </div>
+            <div><label class="pl">메모</label><textarea id="payMemo" class="ta" rows="2"></textarea></div>
+        </div>
+        <div class="pay-modal-foot"><button class="mini" onclick="closePayModal()">취소</button><button class="save-btn" onclick="savePay()">저장</button></div>
+    </div>
+</div>
+
+{{-- 환불 / 취소 모달 --}}
+<div id="refundModal" class="pay-ov" style="display:none;">
+    <div class="pay-modal" style="max-width:460px;">
+        <div class="pay-modal-head"><span id="refundTitle">↩ 환불</span><button class="mini" onclick="closeRefund()">✕</button></div>
+        <div class="pay-modal-body">
+            <div id="refundMeta" style="font-size:12px; color:var(--text-muted);"></div>
+            <div id="refundAmountWrap"><label class="pl">환불 금액 (원)</label><input type="number" id="refundAmount" class="ta" min="0"></div>
+            <div><label class="pl">사유 (선택)</label><textarea id="refundReason" class="ta" rows="2"></textarea></div>
+        </div>
+        <div class="pay-modal-foot"><button class="mini" onclick="closeRefund()">닫기</button><button class="save-btn" onclick="submitRefund()">처리</button></div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -202,28 +259,157 @@ async function saveOverview(){
     const res=await fetch(`/api/crm-demo/projects/${PID}/overview`,{method:'PATCH',headers:H,body:JSON.stringify({overview:v})});
     if(res.ok) location.reload();
 }
-// 결제(청구)
-let billing = (P.billing||[]).slice();
-function renderBilling(){
-    const wrap=document.getElementById('billRows');
-    wrap.innerHTML = billing.map((b,i)=>`<div class="bi" data-i="${i}">
-        <input placeholder="항목" value="${esc(b.label||'')}" data-k="label" style="flex:1; min-width:120px;">
-        <input type="number" placeholder="청구액" value="${b.amount||''}" data-k="amount" style="width:110px;">
-        <input type="number" placeholder="입금액" value="${b.paid||''}" data-k="paid" style="width:110px;">
-        <input placeholder="입금일" value="${esc(b.paid_at||'')}" data-k="paid_at" style="width:100px;">
-        <button class="mini danger" onclick="rmBill(${i})">×</button>
-    </div>`).join('') || '<div class="d-empty">결제(청구) 항목이 없습니다. + 항목 추가</div>';
-    const charged=billing.reduce((s,b)=>s+(+b.amount||0),0), paid=billing.reduce((s,b)=>s+(+b.paid||0),0);
-    document.getElementById('billSum').innerHTML=`청구 <b>${charged.toLocaleString()}</b> · 입금 ${paid.toLocaleString()} · 잔금 <b style="color:var(--red)">${Math.max(0,charged-paid).toLocaleString()}</b>원`;
+// ── 결제 내역 (운영 동일: charge/refund/cancel) ──
+let __payments = [];
+let __payEditId = null;          // 수정 중인 charge id (null=신규)
+let __refundCtx = null;          // {chargeId, type, refundable}
+const fmt = n => Number(n||0).toLocaleString('ko-KR');
+
+async function loadPayments(){
+    const res = await fetch(`/api/crm-demo/projects/${PID}/payments`, {headers:H});
+    if(!res.ok) return;
+    const data = await res.json();
+    __payments = data.payments || [];
+    renderPayments(data);
 }
-function collectBill(){ billing=[...document.querySelectorAll('#billRows .bi')].map(r=>{const o={};r.querySelectorAll('[data-k]').forEach(inp=>{o[inp.dataset.k]=inp.dataset.k==='label'||inp.dataset.k==='paid_at'?inp.value.trim():(parseInt(inp.value,10)||0);});return o;}); }
-function addBillRow(){ collectBill(); billing.push({label:'',amount:0,paid:0,paid_at:''}); renderBilling(); }
-function rmBill(i){ collectBill(); billing.splice(i,1); renderBilling(); }
-async function saveBilling(){
-    collectBill();
-    const clean=billing.filter(b=>b.label||b.amount||b.paid);
-    const res=await fetch(`/api/crm-demo/projects/${PID}/billing`,{method:'POST',headers:H,body:JSON.stringify({billing:clean})});
-    if(res.ok) location.reload(); else alert('저장 실패');
+function renderPayments(data){
+    const list = document.getElementById('payList');
+    const net = __payments.reduce((s,p)=>s+(p.amount||0),0);
+    document.getElementById('phNetTotal').textContent = `· 순 결제액 ${fmt(net)}원`;
+
+    const balLine = document.getElementById('payBalanceLine');
+    if(data && data.has_balance && data.balance_amount>0){
+        balLine.style.display='block';
+        balLine.textContent = `미수 잔금 ${fmt(data.balance_amount)}원`;
+    } else { balLine.style.display='none'; }
+
+    if(!__payments.length){ list.innerHTML='<div class="d-empty">결제 내역이 없습니다. + 결제 추가</div>'; return; }
+    list.innerHTML = __payments.map(p=>{
+        const isCharge=p.type==='charge', isRefund=p.type==='refund';
+        const badge = isCharge ? '<span class="pay-badge charge">결제</span>'
+            : isRefund ? '<span class="pay-badge refund">환불</span>'
+            : '<span class="pay-badge cancel">결제 취소</span>';
+        const amount = isCharge ? `+${fmt(p.amount)}원` : `${fmt(p.amount)}원`;
+        const amtColor = isCharge ? 'var(--accent)' : 'var(--red)';
+        const refundInfo = isCharge && p.refunded_amount>0 ? `<span style="font-size:11px; color:var(--text-muted);">· 환불 ${fmt(p.refunded_amount)}원</span>` : '';
+        const fully = isCharge && p.is_fully_refunded;
+        const canRefund = isCharge && !fully && p.amount>0;
+        const items = (p.items&&p.items.length) ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it=>`<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${esc(it.name||'-')}</span><span>${it.qty||1}개 × ${fmt(it.price||0)}원</span></div>`).join('')}</div>` : '';
+        return `<div style="padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; ${fully?'opacity:0.6;':''}">
+            <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    ${badge}<span style="font-size:14px; font-weight:800; color:${amtColor};">${amount}</span>${refundInfo}
+                    ${fully?'<span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>':''}
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    ${isCharge?`<button class="mini" onclick="editPay(${p.id})">수정</button>`:''}
+                    ${canRefund?`<button class="mini" onclick="openRefund(${p.id},'refund')">환불</button>`:''}
+                    ${canRefund?`<button class="mini danger" onclick="openRefund(${p.id},'cancel')">결제 취소</button>`:''}
+                    <button class="mini danger" onclick="delPay(${p.id})">삭제</button>
+                </div>
+            </div>
+            <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
+                <span>📅 ${p.paid_at||p.created_at}</span>${p.method?`<span>· ${esc(p.method)}</span>`:''}
+            </div>
+            ${items}
+            ${p.memo?`<div style="margin-top:6px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 ${esc(p.memo)}</div>`:''}
+        </div>`;
+    }).join('');
+}
+
+// 결제 추가/수정 모달
+function openPayModal(){
+    __payEditId=null;
+    document.getElementById('payModalTitle').textContent='💰 결제 정보 입력';
+    document.getElementById('payAmount').value='';
+    document.getElementById('payPaidAt').value='{{ now()->format('Y-m-d') }}';
+    document.getElementById('payMethod').value='';
+    document.getElementById('payMemo').value='';
+    payItems=[]; renderPayItems();
+    setBalance(false, '');
+    document.getElementById('payBalanceFields').style.display='';
+    document.getElementById('payModal').style.display='flex';
+}
+function editPay(id){
+    const p=__payments.find(x=>x.id===id); if(!p) return;
+    __payEditId=id;
+    document.getElementById('payModalTitle').textContent='💰 결제 수정';
+    document.getElementById('payAmount').value=p.amount||'';
+    document.getElementById('payPaidAt').value=p.paid_at||'';
+    document.getElementById('payMethod').value=p.method||'';
+    document.getElementById('payMemo').value=p.memo||'';
+    payItems=(p.items||[]).map(it=>({name:it.name||'',qty:it.qty||1,price:it.price||0})); renderPayItems();
+    document.getElementById('payBalanceFields').style.display='none'; // 잔금은 신규 등록 시에만
+    document.getElementById('payModal').style.display='flex';
+}
+function closePayModal(){ document.getElementById('payModal').style.display='none'; }
+
+var payItems=[];
+function renderPayItems(){
+    const wrap=document.getElementById('payItems');
+    wrap.innerHTML = payItems.map((it,i)=>`<div style="display:flex; gap:6px; align-items:center;">
+        <input placeholder="항목명" value="${esc(it.name||'')}" oninput="payItems[${i}].name=this.value" class="ta" style="flex:1;">
+        <input type="number" placeholder="수량" value="${it.qty||1}" oninput="payItems[${i}].qty=parseInt(this.value)||0; syncPayAmount()" class="ta" style="width:70px;">
+        <input type="number" placeholder="단가" value="${it.price||0}" oninput="payItems[${i}].price=parseInt(this.value)||0; syncPayAmount()" class="ta" style="width:100px;">
+        <button class="mini danger" onclick="payItems.splice(${i},1); renderPayItems(); syncPayAmount()">×</button>
+    </div>`).join('');
+}
+function addPayItem(){ payItems.push({name:'',qty:1,price:0}); renderPayItems(); }
+function syncPayAmount(){
+    const sum=payItems.reduce((s,it)=>s+((it.qty||0)*(it.price||0)),0);
+    if(sum>0) document.getElementById('payAmount').value=sum;
+}
+function setBalance(on, amt){
+    document.querySelector(`input[name=payHasBalance][value="${on?1:0}"]`).checked=true;
+    document.getElementById('payBalanceAmount').value=amt;
+    document.getElementById('payBalanceWrap').style.display=on?'':'none';
+}
+function togglePayBalance(){
+    const on=document.querySelector('input[name=payHasBalance]:checked').value==='1';
+    document.getElementById('payBalanceWrap').style.display=on?'':'none';
+}
+async function savePay(){
+    const items=payItems.filter(it=>it.name&&it.name.trim());
+    const hasBalance=document.querySelector('input[name=payHasBalance]:checked')?.value==='1';
+    const body={
+        amount: parseInt(document.getElementById('payAmount').value,10)||0,
+        paid_at: document.getElementById('payPaidAt').value||null,
+        method: document.getElementById('payMethod').value||null,
+        items, memo: document.getElementById('payMemo').value.trim()||null,
+        has_balance: hasBalance,
+        balance_amount: hasBalance ? (parseInt(document.getElementById('payBalanceAmount').value,10)||0) : 0,
+    };
+    const url = __payEditId ? `/api/crm-demo/projects/${PID}/payments/${__payEditId}` : `/api/crm-demo/projects/${PID}/payment`;
+    const res = await fetch(url, {method: __payEditId?'PATCH':'POST', headers:H, body:JSON.stringify(body)});
+    if(res.ok){ closePayModal(); loadPayments(); } else { const e=await res.json().catch(()=>({})); alert(e.message||e.error||'저장 실패'); }
+}
+async function delPay(id){ if(!confirm('이 결제 기록을 삭제할까요? (연결된 환불/취소도 함께 삭제)'))return; await fetch(`/api/crm-demo/projects/${PID}/payments/${id}`,{method:'DELETE',headers:H}); loadPayments(); }
+
+// 환불 / 취소
+function openRefund(chargeId, type){
+    const c=__payments.find(p=>p.id===chargeId); if(!c) return;
+    const refundable=c.amount-(c.refunded_amount||0);
+    __refundCtx={chargeId, type, refundable};
+    document.getElementById('refundTitle').textContent = type==='cancel'?'⚠ 결제 취소':'↩ 환불';
+    document.getElementById('refundMeta').innerHTML = `원 결제 <b style="color:var(--accent)">${fmt(c.amount)}원</b> · 환불 가능 <b style="color:var(--red)">${fmt(refundable)}원</b>`;
+    const amtWrap=document.getElementById('refundAmountWrap');
+    amtWrap.style.display = type==='cancel' ? 'none' : '';   // 취소는 잔여 전액
+    document.getElementById('refundAmount').value='';
+    document.getElementById('refundAmount').max=refundable;
+    document.getElementById('refundReason').value='';
+    document.getElementById('refundModal').style.display='flex';
+}
+function closeRefund(){ document.getElementById('refundModal').style.display='none'; }
+async function submitRefund(){
+    if(!__refundCtx) return;
+    const body={ parent_payment_id:__refundCtx.chargeId, type:__refundCtx.type, reason:document.getElementById('refundReason').value.trim()||null };
+    if(__refundCtx.type==='refund'){
+        const amt=parseInt(document.getElementById('refundAmount').value,10)||0;
+        if(amt<=0) return alert('환불 금액을 입력하세요.');
+        body.amount=amt;
+    }
+    const res=await fetch(`/api/crm-demo/projects/${PID}/payments/refund`,{method:'POST',headers:H,body:JSON.stringify(body)});
+    if(res.ok){ closeRefund(); loadPayments(); } else { const e=await res.json().catch(()=>({})); alert(e.error||e.message||'처리 실패'); }
 }
 // 상담 이력
 function renderConsults(){
@@ -295,6 +481,6 @@ async function saveEditDemo(){
     if(res.ok) location.reload(); else { const e=await res.json().catch(()=>({})); alert(e.message||'저장 실패'); }
 }
 
-renderBilling(); renderConsults(); renderFeedbacks();
+loadPayments(); renderConsults(); renderFeedbacks();
 </script>
 @endpush

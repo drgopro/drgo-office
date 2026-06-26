@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DemoPayment;
 use App\Models\DemoProject;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,20 +75,18 @@ class CrmDemoController extends Controller
     /** 프로젝트 목록 */
     public function projects(Request $request): JsonResponse
     {
-        $q = DemoProject::query()->orderByDesc('id');
+        $q = DemoProject::query()
+            ->withSum('payments as payments_net', 'amount')
+            ->orderByDesc('id');
         if ($type = $request->query('project_type')) {
             $q->where('project_type', $type);
-        }
-        if ($request->boolean('billing_only')) {
-            // 잔금 남은 건만
-            $q->whereNotNull('billing');
         }
 
         $rows = $q->limit(200)->get()->map(fn ($p) => $this->serialize($p));
 
-        // 잔금 필터는 직렬화 후 적용(계산 기반)
+        // 잔금 필터: 미수 잔금(has_balance)이 남은 건만
         if ($request->boolean('billing_only')) {
-            $rows = $rows->filter(fn ($r) => $r['billing_outstanding'] > 0)->values();
+            $rows = $rows->filter(fn ($r) => $r['balance_outstanding'] > 0)->values();
         }
 
         return response()->json($rows);
@@ -189,19 +188,192 @@ class CrmDemoController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    /** 청구/입금 갱신 — billing: [{label, amount, paid}] */
-    public function saveBilling(Request $request, DemoProject $project): JsonResponse
+    // ── 결제 내역 (운영 동일: charge/refund/cancel 트랜잭션) ──
+
+    /** 결제 트랜잭션 목록 + charge별 누적 환불액 */
+    public function payments(DemoProject $project): JsonResponse
+    {
+        $rows = $project->payments()->orderByDesc('created_at')->orderByDesc('id')->get();
+
+        $byCharge = [];
+        foreach ($rows as $r) {
+            if (in_array($r->type, ['refund', 'cancel'], true) && $r->parent_payment_id) {
+                $byCharge[$r->parent_payment_id] = ($byCharge[$r->parent_payment_id] ?? 0) + abs($r->amount);
+            }
+        }
+
+        return response()->json([
+            'has_balance' => (bool) $project->has_balance,
+            'balance_amount' => (int) $project->balance_amount,
+            'payments' => $rows->map(fn ($r) => [
+                'id' => $r->id,
+                'parent_payment_id' => $r->parent_payment_id,
+                'type' => $r->type,
+                'amount' => $r->amount,
+                'items' => $r->items ?? [],
+                'method' => $r->method,
+                'paid_at' => $r->paid_at?->format('Y-m-d'),
+                'memo' => $r->memo,
+                'created_at' => $r->created_at->format('Y-m-d H:i'),
+                'refunded_amount' => $r->type === 'charge' ? ($byCharge[$r->id] ?? 0) : 0,
+                'is_fully_refunded' => $r->type === 'charge' && ($byCharge[$r->id] ?? 0) >= $r->amount,
+            ])->values(),
+        ]);
+    }
+
+    /** 결제(charge) 등록 */
+    public function savePayment(Request $request, DemoProject $project): JsonResponse
     {
         $validated = $request->validate([
-            'billing' => 'nullable|array',
-            'billing.*.label' => 'nullable|string|max:100',
-            'billing.*.amount' => 'nullable|integer|min:0',
-            'billing.*.paid' => 'nullable|integer|min:0',
-            'billing.*.paid_at' => 'nullable|string|max:20',
+            'amount' => 'nullable|integer|min:0',
+            'paid_at' => 'nullable|date',
+            'method' => 'nullable|string|max:30',
+            'items' => 'nullable|array',
+            'items.*.name' => 'nullable|string|max:200',
+            'items.*.qty' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer|min:0',
+            'memo' => 'nullable|string|max:1000',
+            'has_balance' => 'nullable|boolean',
+            'balance_amount' => 'nullable|integer|min:0',
         ]);
-        $project->update(['billing' => array_values($validated['billing'] ?? [])]);
 
-        return response()->json($this->serialize($project->fresh()));
+        $items = array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name'])));
+
+        $project->payments()->create([
+            'type' => 'charge',
+            'amount' => (int) ($validated['amount'] ?? 0),
+            'items' => $items,
+            'method' => $validated['method'] ?? null,
+            'paid_at' => $validated['paid_at'] ?? now()->format('Y-m-d'),
+            'memo' => $validated['memo'] ?? null,
+            'recorded_by' => Auth::id(),
+        ]);
+
+        $project->update([
+            'has_balance' => ! empty($validated['has_balance']),
+            'balance_amount' => ! empty($validated['has_balance']) ? ($validated['balance_amount'] ?? 0) : 0,
+        ]);
+
+        return response()->json(['ok' => true], 201);
+    }
+
+    /** 결제(charge) 수정 — charge만 허용 */
+    public function updatePayment(Request $request, DemoProject $project, DemoPayment $payment): JsonResponse
+    {
+        if ($payment->demo_project_id !== $project->id) {
+            return response()->json(['error' => '해당 프로젝트의 결제가 아닙니다.'], 404);
+        }
+        if ($payment->type !== 'charge') {
+            return response()->json(['error' => '환불/취소 항목은 수정할 수 없습니다. 삭제 후 재처리하세요.'], 422);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'nullable|integer|min:0',
+            'paid_at' => 'nullable|date',
+            'method' => 'nullable|string|max:30',
+            'items' => 'nullable|array',
+            'items.*.name' => 'nullable|string|max:200',
+            'items.*.qty' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer|min:0',
+            'memo' => 'nullable|string|max:1000',
+        ]);
+
+        if (isset($validated['items'])) {
+            $items = array_values(array_filter($validated['items'], fn ($i) => ! empty($i['name'])));
+            if (! isset($validated['amount'])) {
+                $validated['amount'] = array_sum(array_map(fn ($it) => ((int) ($it['qty'] ?? 1)) * ((int) ($it['price'] ?? 0)), $items));
+            }
+            $validated['items'] = $items;
+        }
+
+        if (isset($validated['amount'])) {
+            $refundedAbs = abs((int) $project->payments()->where('parent_payment_id', $payment->id)
+                ->whereIn('type', ['refund', 'cancel'])->sum('amount'));
+            if ($refundedAbs > 0 && (int) $validated['amount'] < $refundedAbs) {
+                return response()->json(['message' => "이미 환불된 금액({$refundedAbs}원) 이상으로만 수정할 수 있습니다."], 422);
+            }
+        }
+
+        $payment->update($validated);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** 결제 내역 삭제 — charge 삭제 시 연결된 환불/취소도 함께 삭제 */
+    public function destroyPayment(DemoProject $project, DemoPayment $payment): JsonResponse
+    {
+        if ($payment->demo_project_id !== $project->id) {
+            return response()->json(['error' => '해당 프로젝트의 결제가 아닙니다.'], 404);
+        }
+
+        DB::transaction(function () use ($project, $payment) {
+            if ($payment->type === 'charge') {
+                $project->payments()->where('parent_payment_id', $payment->id)->delete();
+            }
+            $payment->delete();
+        });
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** 환불 / 결제 취소 */
+    public function refundPayment(Request $request, DemoProject $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'parent_payment_id' => 'required|integer',
+            'type' => 'required|in:refund,cancel',
+            'items' => 'nullable|array',
+            'items.*.name' => 'nullable|string|max:200',
+            'items.*.qty' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer|min:0',
+            'amount' => 'nullable|integer|min:0',
+            'reason' => 'nullable|string|max:500',
+            'method' => 'nullable|string|max:30',
+        ]);
+
+        $parent = $project->payments()->findOrFail($validated['parent_payment_id']);
+        if ($parent->type !== 'charge') {
+            return response()->json(['error' => '결제(charge) 항목에 대해서만 환불할 수 있습니다.'], 422);
+        }
+
+        $alreadyRefunded = $project->payments()->where('parent_payment_id', $parent->id)
+            ->whereIn('type', ['refund', 'cancel'])->sum('amount');
+        $refundable = $parent->amount + $alreadyRefunded; // alreadyRefunded는 음수
+        if ($parent->amount <= 0) {
+            return response()->json(['error' => '0원 결제는 환불할 금액이 없습니다. 삭제 또는 수정 기능을 사용하세요.'], 422);
+        }
+        if ($refundable <= 0) {
+            return response()->json(['error' => '이미 전액 환불된 결제입니다.'], 422);
+        }
+
+        $items = array_values(array_filter($validated['items'] ?? [], fn ($i) => ! empty($i['name'])));
+        if ($validated['type'] === 'cancel') {
+            $amount = $refundable;
+        } elseif (! empty($items)) {
+            $amount = array_sum(array_map(fn ($it) => ((int) ($it['qty'] ?? 1)) * ((int) ($it['price'] ?? 0)), $items));
+        } else {
+            $amount = (int) ($validated['amount'] ?? 0);
+        }
+
+        if ($amount <= 0) {
+            return response()->json(['error' => '환불 금액이 0 이상이어야 합니다.'], 422);
+        }
+        if ($amount > $refundable) {
+            return response()->json(['error' => "환불 가능 금액({$refundable}원)을 초과합니다."], 422);
+        }
+
+        $project->payments()->create([
+            'parent_payment_id' => $parent->id,
+            'type' => $validated['type'],
+            'amount' => -$amount,
+            'items' => $items ?: null,
+            'method' => $validated['method'] ?? $parent->method,
+            'paid_at' => now()->toDateString(),
+            'memo' => $validated['reason'] ?? null,
+            'recorded_by' => Auth::id(),
+        ]);
+
+        return response()->json(['ok' => true], 201);
     }
 
     // ── 태그 관리 ──
@@ -236,9 +408,9 @@ class CrmDemoController extends Controller
         $pipeline = $typeDef['pipeline'] ?? [];
         $stageLabels = collect($pipeline)->pluck('label', 'key')->all();
 
-        $billing = $p->billing ?? [];
-        $charged = array_sum(array_map(fn ($b) => (int) ($b['amount'] ?? 0), $billing));
-        $paid = array_sum(array_map(fn ($b) => (int) ($b['paid'] ?? 0), $billing));
+        // 순 결제액 = 결제(charge) 합 - 환불/취소 합 (환불/취소는 음수 저장)
+        $paymentNet = (int) ($p->payments_net ?? $p->payments()->sum('amount'));
+        $balanceOutstanding = $p->has_balance ? (int) $p->balance_amount : 0;
 
         return [
             'id' => $p->id,
@@ -260,10 +432,9 @@ class CrmDemoController extends Controller
             'status' => $p->status,
             'cancel_reason' => $p->cancel_reason,
             'department' => $crm['departments'][$typeDef['department'] ?? ''] ?? null,
-            'billing' => $billing,
-            'billing_charged' => $charged,
-            'billing_paid' => $paid,
-            'billing_outstanding' => max(0, $charged - $paid),
+            'payment_net' => $paymentNet,
+            'has_balance' => (bool) $p->has_balance,
+            'balance_outstanding' => $balanceOutstanding,
             'created_at' => $p->created_at?->format('Y-m-d'),
         ];
     }

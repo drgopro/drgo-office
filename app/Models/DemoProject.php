@@ -11,13 +11,21 @@ class DemoProject extends Model
         'requester_type', 'project_type', 'work_type',
         'tags', 'free_name', 'overview', 'stage', 'status', 'cancel_reason',
         'billing', 'stage_data', 'created_by',
+        'has_balance', 'balance_amount',
     ];
 
     protected $casts = [
         'tags' => 'array',
         'billing' => 'array',
         'stage_data' => 'array',
+        'has_balance' => 'boolean',
+        'balance_amount' => 'integer',
     ];
+
+    public function payments()
+    {
+        return $this->hasMany(DemoPayment::class, 'demo_project_id');
+    }
 
     public function consultations()
     {

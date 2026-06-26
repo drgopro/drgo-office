@@ -49,8 +49,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api/crm-demo/projects/{project}', [CrmDemoController::class, 'update']);
     Route::patch('/api/crm-demo/projects/{project}/stage', [CrmDemoController::class, 'updateStage']);
     Route::post('/api/crm-demo/projects/{project}/cancel', [CrmDemoController::class, 'cancel']);
-    Route::post('/api/crm-demo/projects/{project}/billing', [CrmDemoController::class, 'saveBilling']);
     Route::delete('/api/crm-demo/projects/{project}', [CrmDemoController::class, 'destroy']);
+    // 결제 내역 (운영 동일)
+    Route::get('/api/crm-demo/projects/{project}/payments', [CrmDemoController::class, 'payments']);
+    Route::post('/api/crm-demo/projects/{project}/payment', [CrmDemoController::class, 'savePayment']);
+    Route::patch('/api/crm-demo/projects/{project}/payments/{payment}', [CrmDemoController::class, 'updatePayment']);
+    Route::delete('/api/crm-demo/projects/{project}/payments/{payment}', [CrmDemoController::class, 'destroyPayment']);
+    Route::post('/api/crm-demo/projects/{project}/payments/refund', [CrmDemoController::class, 'refundPayment']);
     Route::get('/crm-demo/{project}', [CrmDemoController::class, 'show'])->name('crm-demo.show');
     Route::patch('/api/crm-demo/projects/{project}/overview', [CrmDemoController::class, 'saveOverview']);
     Route::post('/api/crm-demo/projects/{project}/consultations', [CrmDemoController::class, 'addConsultation']);
