@@ -7,8 +7,11 @@
     .crm-tagpick .ctp-inputwrap { position:relative; }
     .crm-tagpick .ctp-minor-input { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
     .crm-tagpick .ctp-suggest { position:absolute; left:0; right:0; top:100%; z-index:50; background:var(--surface); border:1px solid var(--border); border-radius:0 0 8px 8px; max-height:190px; overflow-y:auto; box-shadow:0 6px 18px rgba(0,0,0,0.25); }
-    .crm-tagpick .ctp-sug-item { padding:8px 11px; font-size:13px; cursor:pointer; }
+    .crm-tagpick .ctp-sug-item { padding:8px 11px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .crm-tagpick .ctp-sug-item:hover, .crm-tagpick .ctp-sug-item.active { background:var(--surface2); }
+    .crm-tagpick .ctp-sug-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .crm-tagpick .ctp-sug-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:15px; line-height:1; padding:0 4px; opacity:0.55; flex-shrink:0; }
+    .crm-tagpick .ctp-sug-del:hover { color:var(--red); opacity:1; }
     .crm-tagpick .ctp-sug-new { color:var(--accent); font-weight:600; }
     .crm-tagpick .ctp-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
     .crm-tagpick .ctp-chip { display:inline-flex; align-items:center; gap:3px; font-size:12px; font-weight:600; padding:3px 5px 3px 10px; border-radius:13px; line-height:1.5; }
@@ -20,7 +23,7 @@
 </style>
 <script>
 window.CRM_MAJOR_TAGS = @json(config('crm.major_tags', []));
-window.CRM_MINOR_TAGS = @json(\App\Models\ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name'));
+window.CRM_MINOR_TAGS = @json(\App\Models\ProjectSubtag::orderBy('sort_order')->orderBy('id')->get(['id', 'name']));
 window.CRM_CAN_MANAGE_TAGS = @json((bool) auth()->user()?->hasPermission('tags.manage'));
 
 window.CrmTagPicker = (function () {
@@ -92,33 +95,54 @@ window.CrmTagPicker = (function () {
         const suggest = root.querySelector('.ctp-suggest');
         const st = state[key];
         const qq = (q || '').trim().toLowerCase();
-        const opts = (window.CRM_MINOR_TAGS || []).filter(t => !st.minor.includes(t) && (!qq || t.toLowerCase().includes(qq)));
-        let html = opts.map(t => `<div class="ctp-sug-item" data-val="${esc(t)}">${esc(t)}</div>`).join('');
-        const exact = (window.CRM_MINOR_TAGS || []).some(t => t.toLowerCase() === qq);
+        const opts = (window.CRM_MINOR_TAGS || []).filter(o => !st.minor.includes(o.name) && (!qq || o.name.toLowerCase().includes(qq)));
+        let html = opts.map(o => `<div class="ctp-sug-item" data-val="${esc(o.name)}">
+            <span class="ctp-sug-name">${esc(o.name)}</span>
+            ${window.CRM_CAN_MANAGE_TAGS ? `<button type="button" class="ctp-sug-del" data-id="${o.id}" data-name="${esc(o.name)}" title="이 태그를 목록에서 삭제">×</button>` : ''}
+        </div>`).join('');
+        const exact = (window.CRM_MINOR_TAGS || []).some(o => o.name.toLowerCase() === qq);
         if (qq && !exact && window.CRM_CAN_MANAGE_TAGS) {
             html += `<div class="ctp-sug-item ctp-sug-new" data-new="${esc(q.trim())}">+ "${esc(q.trim())}" 새 태그 추가</div>`;
         }
         if (!html) { suggest.style.display = 'none'; return; }
         suggest.innerHTML = html;
         suggest.style.display = 'block';
+        suggest.querySelectorAll('.ctp-sug-del').forEach(b => b.onclick = async (e) => {
+            e.stopPropagation();
+            await deleteSubtag(key, root, parseInt(b.dataset.id, 10), b.dataset.name);
+        });
         suggest.querySelectorAll('.ctp-sug-item').forEach(it => it.onclick = async () => {
             if (it.dataset.new !== undefined) { await commitMinor(key, root, it.dataset.new); }
             else { add(key, 'minor', it.dataset.val); root.querySelector('.ctp-minor-input').value = ''; suggest.style.display = 'none'; render(key, root); }
         });
     }
 
+    async function deleteSubtag(key, root, id, name) {
+        if (!confirm(`'${name}' 소분류 태그를 목록에서 삭제할까요?`)) return;
+        try {
+            const res = await fetch(`/api/project-subtags/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' } });
+            if (!res.ok) { const er = await res.json().catch(() => ({})); alert(er.message || '삭제 실패'); return; }
+            window.CRM_MINOR_TAGS = (window.CRM_MINOR_TAGS || []).filter(o => o.id !== id);
+            state[key].minor = state[key].minor.filter(v => v !== name); // 선택돼 있으면 해제
+            render(key, root);
+            showSuggest(key, root, root.querySelector('.ctp-minor-input').value);
+        } catch (e) { alert('삭제 실패'); }
+    }
+
     async function commitMinor(key, root, raw) {
         const val = (raw || '').trim(); if (!val) return;
         const input = root.querySelector('.ctp-minor-input');
         const suggest = root.querySelector('.ctp-suggest');
-        const existing = (window.CRM_MINOR_TAGS || []).find(t => t.toLowerCase() === val.toLowerCase());
-        if (existing) { add(key, 'minor', existing); input.value = ''; suggest.style.display = 'none'; render(key, root); return; }
+        const existing = (window.CRM_MINOR_TAGS || []).find(o => o.name.toLowerCase() === val.toLowerCase());
+        if (existing) { add(key, 'minor', existing.name); input.value = ''; suggest.style.display = 'none'; render(key, root); return; }
         if (!window.CRM_CAN_MANAGE_TAGS) { alert('새 소분류 태그를 추가할 권한이 없습니다. 목록에서 선택해 주세요.'); return; }
         try {
             const res = await fetch('/api/project-subtags', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' }, body: JSON.stringify({ name: val }) });
             if (!res.ok) { const er = await res.json().catch(() => ({})); alert(er.message || '태그 추가 실패'); return; }
-            if (!(window.CRM_MINOR_TAGS || []).includes(val)) window.CRM_MINOR_TAGS.push(val);
-            add(key, 'minor', val); input.value = ''; suggest.style.display = 'none'; render(key, root);
+            const data = await res.json().catch(() => ({ name: val }));
+            const nm = data.name || val;
+            if (!(window.CRM_MINOR_TAGS || []).some(o => o.name === nm)) window.CRM_MINOR_TAGS.push({ id: data.id, name: nm });
+            add(key, 'minor', nm); input.value = ''; suggest.style.display = 'none'; render(key, root);
         } catch (e) { alert('태그 추가 실패'); }
     }
 
