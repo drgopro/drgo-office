@@ -185,8 +185,9 @@
     .mday-title-overlay { position:absolute; z-index:6; pointer-events:none; display:flex; align-items:center; gap:4px;
         padding:0 8px; box-sizing:border-box; font-size:calc(12px * var(--cal-fz,1)); font-weight:500; color:var(--text);
         white-space:nowrap; overflow:hidden; }
-    .mday-title-overlay .chip-title { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .mday-title-overlay .chip-badges { margin-left:auto; flex-shrink:0; }
+    /* 연속 일정: 담당자 배지를 제목이 끝나는 지점 바로 뒤에 표시(바 끝으로 밀지 않음) */
+    .mday-title-overlay .chip-title { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mday-title-overlay .chip-badges { margin-left:0; flex-shrink:0; }
     .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
     .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
     .event-chip.single.color-blue   { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
