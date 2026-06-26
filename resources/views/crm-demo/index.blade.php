@@ -16,6 +16,27 @@
     .crm-fbtn { font-size:12px; padding:6px 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; }
     .crm-fbtn.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
 
+    /* 운영 목록과 동일한 테이블 형식 */
+    .pj-table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    table.pj-table { width:100%; border-collapse:collapse; }
+    table.pj-table thead { background:var(--surface2); }
+    table.pj-table th { padding:11px 16px; text-align:left; font-size:11px; color:var(--text-muted); font-weight:600; letter-spacing:.05em; border-bottom:1px solid var(--border); white-space:nowrap; }
+    table.pj-table td { padding:12px 16px; font-size:13px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    table.pj-table tr.row-main { cursor:pointer; }
+    table.pj-table tr.row-main:hover td { background:var(--surface2); }
+    table.pj-table tr.row-main.cancelled td { background:rgba(220,38,38,0.06); }
+    .pj-tags-cell { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+    .pj-type-badge { font-size:10px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:2px 8px; white-space:nowrap; }
+    .pj-stage-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:5px; background:var(--surface2); border:1px solid var(--border); white-space:nowrap; }
+    .pj-stage-badge.billing { background:rgba(36,138,56,0.12); border-color:#86efac; color:#248a38; }
+    .pj-stage-badge.done { color:var(--text-muted); }
+    .pj-cell-muted { color:var(--text-muted); font-size:12px; }
+    .pj-detail-td { padding:0 !important; background:var(--surface2); }
+    .pj-detail-inner { padding:14px 18px; }
+    .pj-free { font-size:13px; color:var(--text); margin-bottom:8px; }
+    .caret-mini { color:var(--text-muted); font-size:11px; transition:transform .15s; display:inline-block; }
+    tr.row-main.expanded .caret-mini { transform:rotate(90deg); }
+
     .pj-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
     .pj-card.cancelled { background:rgba(220,38,38,0.06); border-color:rgba(220,38,38,0.3); }
     .pj-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -171,45 +192,62 @@ let cancelTargetId = null;
 function reqTypeLabel(k){ return CRM.requester_types[k]?.label || ''; }
 
 // ── 목록 ──
+let expandedRows = new Set();
 async function loadProjects(){
     const params = curFilter==='billing' ? '?billing_only=1' : '';
     const res = await fetch('/api/crm-demo/projects'+params, {headers:{'Accept':'application/json'}});
     const list = await res.json();
     const el = document.getElementById('pjList');
     if(!list.length){ el.innerHTML='<div class="empty">프로젝트가 없습니다. + 새 프로젝트로 추가하세요.</div>'; return; }
-    el.innerHTML = list.map(renderCard).join('');
+    el.innerHTML = `<div class="pj-table-wrap"><table class="pj-table">
+        <thead><tr>
+            <th style="width:24%;">의뢰자</th>
+            <th>프로젝트명 (대주제 태그)</th>
+            <th style="width:90px;">유형</th>
+            <th style="width:110px;">단계</th>
+            <th style="width:90px;">담당</th>
+        </tr></thead>
+        <tbody>${list.map(renderRow).join('')}</tbody>
+    </table></div>`;
 }
-function renderCard(p){
+function renderRow(p){
     const cancelled = p.status==='cancelled';
-    const tags = (p.tags||[]).map(t=>`<span class="pj-tag">${esc(t)}</span>`).join('');
+    const expanded = expandedRows.has(p.id);
+    const tags = (p.tags||[]).map(t=>`<span class="pj-tag">${esc(t)}</span>`).join('') || '<span class="pj-cell-muted">태그 없음</span>';
+    const curStep = p.pipeline.find(s=>s.key===p.stage);
+    const billing = (p.billing_outstanding>0) ? ` <span class="pj-cell-muted">· 잔금 ${(p.billing_outstanding).toLocaleString()}</span>` : '';
+    const main = `<tr class="row-main ${cancelled?'cancelled':''} ${expanded?'expanded':''}" onclick="toggleRow(${p.id})">
+        <td><span class="caret-mini">▶</span> ${esc(p.client_name||'-')}${p.requester_type_label?` <span class="pj-cell-muted">${esc(p.requester_type_label)}</span>`:''}</td>
+        <td><div class="pj-tags-cell">${tags}${cancelled?'<span class="pj-cancel-badge">취소</span>':''}</div></td>
+        <td><span class="pj-type-badge">${esc(p.project_type_label)}</span></td>
+        <td><span class="pj-stage-badge ${(curStep&&curStep.billing)?'billing':''} ${p.status==='done'?'done':''}">${esc(p.stage_label)}</span>${billing}</td>
+        <td class="pj-cell-muted">${esc(p.department||'-')}</td>
+    </tr>`;
+    if(!expanded) return main;
+    // 펼침 상세
     const curIdx = p.pipeline.findIndex(s=>s.key===p.stage);
     const pipe = p.pipeline.map((s,i)=>{
         let cls='pj-step'; if(s.billing)cls+=' billing';
         if(s.key===p.stage)cls+=' cur'; else if(i<curIdx)cls+=' done';
         return (i>0?'<span class="pj-sep">→</span>':'')+`<span class="${cls}" onclick="setStage(${p.id},'${s.key}')">${esc(s.label)}</span>`;
     }).join('');
-    const billHtml = renderBilling(p);
-    return `<div class="pj-card ${cancelled?'cancelled':''}">
-        <div class="pj-head">
-            ${tags}
-            <span class="pj-name">${esc(p.free_name||'(제목 없음)')}</span>
-            ${cancelled?`<span class="pj-cancel-badge">취소</span><span class="pj-reason">${esc(p.cancel_reason||'')}</span>`:''}
-        </div>
-        <div class="pj-meta">
-            <span>👤 ${esc(p.client_name||'-')}${p.requester_type_label?' · '+p.requester_type_label:''}</span>
-            <span class="pj-type">${esc(p.project_type_label)}</span>
-            ${p.work_type?`<span class="pj-work">${esc(p.work_type)}</span>`:''}
-            <span>· ${esc(p.department||'')}</span>
-            <span>· ${p.created_at||''}</span>
-        </div>
+    const detail = `<tr class="row-detail"><td class="pj-detail-td" colspan="5"><div class="pj-detail-inner">
+        ${p.free_name?`<div class="pj-free">📝 ${esc(p.free_name)}</div>`:''}
+        ${cancelled?`<div class="pj-free" style="color:#b91c1c;">⛔ 취소 사유: ${esc(p.cancel_reason||'-')}</div>`:''}
+        <div class="pj-cell-muted" style="margin-bottom:8px;">${p.work_type?'작업유형: '+esc(p.work_type)+' · ':''}생성 ${p.created_at||''}</div>
         <div class="pj-pipe">${pipe}</div>
-        ${billHtml}
+        ${renderBilling(p)}
         <div class="pj-actions">
             <button class="pj-mini" onclick="toggleBilling(${p.id})">💰 청구/잔금</button>
             ${!cancelled?`<button class="pj-mini danger" onclick="openCancel(${p.id})">취소</button>`:''}
             <button class="pj-mini danger" onclick="delProject(${p.id})">삭제</button>
         </div>
-    </div>`;
+    </div></td></tr>`;
+    return main + detail;
+}
+function toggleRow(id){
+    if(expandedRows.has(id)) expandedRows.delete(id); else expandedRows.add(id);
+    loadProjects();
 }
 function renderBilling(p){
     if(!p.billing || !p.billing.length) return `<div class="pj-bill" id="bill-${p.id}" style="display:none;"></div>`;
