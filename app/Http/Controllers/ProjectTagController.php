@@ -25,9 +25,14 @@ class ProjectTagController extends Controller
         if (! Auth::user()?->hasPermission('tags.manage')) {
             return response()->json(['message' => '태그 수정 권한이 없습니다.'], 403);
         }
-        $v = $request->validate(['name' => 'required|string|max:60|unique:project_subtags,name']);
-        $order = (int) ProjectSubtag::max('sort_order') + 1;
-        $tag = ProjectSubtag::create(['name' => $v['name'], 'sort_order' => $order]);
+        $v = $request->validate(['name' => 'required|string|max:60']);
+        $name = trim($v['name']);
+
+        // 이미 있으면 기존 태그 반환(중복 INSERT 방지), 없으면 생성
+        $tag = ProjectSubtag::firstOrCreate(
+            ['name' => $name],
+            ['sort_order' => (int) ProjectSubtag::max('sort_order') + 1]
+        );
 
         return response()->json(['id' => $tag->id, 'name' => $tag->name], 201);
     }
