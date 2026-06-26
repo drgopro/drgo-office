@@ -39,7 +39,7 @@
     .project-item:hover { border-color:var(--accent); }
     .pj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
     .pj-tag { font-size:10px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
-    .pj-tag-major { background:rgba(36,138,56,0.12); color:#248a38; border:1px solid rgba(36,138,56,0.35); }
+    .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
     .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
@@ -469,24 +469,6 @@ const projectModal = document.getElementById('projectModal');
 function openProjectModal() { projectModal.style.display = 'flex'; }
 function closeProjectModal() { projectModal.style.display = 'none'; }
 
-// 소분류 태그 추가 (권한자 전용) — 생성 후 체크박스로 추가
-async function addSubtag() {
-    const name = (prompt('추가할 소분류 태그 이름을 입력하세요.') || '').trim();
-    if (!name) return;
-    const csrf = document.querySelector('meta[name="csrf-token"]').content;
-    const res = await fetch('/api/project-subtags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-        body: JSON.stringify({ name }),
-    });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '추가 실패'); return; }
-    const wrap = document.getElementById('minorTagPick');
-    const empty = wrap.querySelector('span'); if (empty) empty.remove();
-    const label = document.createElement('label');
-    label.className = 'tag-chip-pick';
-    label.innerHTML = `<input type="checkbox" name="tags[minor][]" value="${name.replace(/"/g,'&quot;')}" checked><span>${name.replace(/</g,'&lt;')}</span>`;
-    wrap.appendChild(label);
-}
 
 // 앨범 뷰어 + 줌/드래그
 const albumDocs = @json($clientDocs);
@@ -752,30 +734,8 @@ document.addEventListener('keydown', e => {
                     <option value="troubleshoot">문제 해결</option>
                 </select>
             </div>
-            @php
-                $__majorTags = config('crm.major_tags', []);
-                $__minorTags = \App\Models\ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name')->all();
-                $__canManageTags = auth()->user()?->hasPermission('tags.manage');
-            @endphp
             <div style="margin-bottom:14px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">대분류 태그</div>
-                <div class="tag-pick">
-                    @foreach($__majorTags as $__t)
-                        <label class="tag-chip-pick"><input type="checkbox" name="tags[major][]" value="{{ $__t }}"><span>{{ $__t }}</span></label>
-                    @endforeach
-                </div>
-            </div>
-            <div style="margin-bottom:14px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>소분류 태그</span>
-                    @if($__canManageTags)<button type="button" class="tag-add-btn" onclick="addSubtag()">+ 추가</button>@endif
-                </div>
-                <div class="tag-pick" id="minorTagPick">
-                    @foreach($__minorTags as $__t)
-                        <label class="tag-chip-pick"><input type="checkbox" name="tags[minor][]" value="{{ $__t }}"><span>{{ $__t }}</span></label>
-                    @endforeach
-                    @if(empty($__minorTags))<span style="font-size:11px; color:var(--text-muted);">등록된 소분류 태그가 없습니다.</span>@endif
-                </div>
+                @include('partials.tag-picker', ['key' => 'client-show'])
             </div>
             <div style="margin-bottom:20px;">
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">메모</div>

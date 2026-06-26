@@ -93,7 +93,7 @@
     .info-card.full { grid-column:1/-1; }
     .pj-tags { display:flex; flex-wrap:wrap; gap:5px; }
     .pj-tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:12px; line-height:1.5; }
-    .pj-tag-major { background:rgba(36,138,56,0.12); color:#248a38; border:1px solid rgba(36,138,56,0.35); }
+    .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
     .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
@@ -528,22 +528,7 @@
                 @endif
             </div>
             <div id="tagEdit" style="display:none;">
-                <div style="font-size:11px;color:var(--text-muted);margin:8px 0 4px;">대분류</div>
-                <div class="tag-pick" id="tagMajorPick">
-                    @foreach($__majorTags as $__t)
-                        <label class="tag-chip-pick"><input type="checkbox" value="{{ $__t }}" {{ in_array($__t, $__curMajor) ? 'checked' : '' }}><span>{{ $__t }}</span></label>
-                    @endforeach
-                </div>
-                <div style="font-size:11px;color:var(--text-muted);margin:12px 0 4px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>소분류</span>
-                    @if($__canManageTags)<button type="button" class="tag-add-btn" onclick="addSubtag()">+ 추가</button>@endif
-                </div>
-                <div class="tag-pick" id="tagMinorPick">
-                    @foreach($__minorAll as $__t)
-                        <label class="tag-chip-pick"><input type="checkbox" value="{{ $__t }}" {{ in_array($__t, $__curMinor) ? 'checked' : '' }}><span>{{ $__t }}</span></label>
-                    @endforeach
-                    @if(empty($__minorAll))<span style="font-size:11px;color:var(--text-muted);">등록된 소분류 태그가 없습니다.</span>@endif
-                </div>
+                @include('partials.tag-picker', ['key' => 'project-show', 'preMajor' => $__curMajor, 'preMinor' => $__curMinor])
                 <div style="text-align:right;margin-top:12px;">
                     <button onclick="saveTags()" style="background:var(--accent);color:var(--accent-text);border:none;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
@@ -1410,8 +1395,7 @@ function toggleTagEdit() {
     }
 }
 async function saveTags() {
-    const major = [...document.querySelectorAll('#tagMajorPick input:checked')].map(i => i.value);
-    const minor = [...document.querySelectorAll('#tagMinorPick input:checked')].map(i => i.value);
+    const { major, minor } = CrmTagPicker.value('project-show');
     try {
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
         const res = await fetch(`/api/projects/{{ $project->id }}`, {
@@ -1423,24 +1407,6 @@ async function saveTags() {
         location.reload();
     } catch (e) { alert('태그 저장 실패'); }
 }
-async function addSubtag() {
-    const name = (prompt('추가할 소분류 태그 이름을 입력하세요.') || '').trim();
-    if (!name) return;
-    const csrf = document.querySelector('meta[name="csrf-token"]').content;
-    const res = await fetch('/api/project-subtags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-        body: JSON.stringify({ name }),
-    });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '추가 실패'); return; }
-    const wrap = document.getElementById('tagMinorPick');
-    const empty = wrap.querySelector('span'); if (empty) empty.remove();
-    const label = document.createElement('label');
-    label.className = 'tag-chip-pick';
-    label.innerHTML = `<input type="checkbox" value="${name.replace(/"/g,'&quot;')}" checked><span>${name.replace(/</g,'&lt;')}</span>`;
-    wrap.appendChild(label);
-}
-
 // 프로젝트 메모 인라인 수정
 function toggleMemoEdit() {
     const display = document.getElementById('memoDisplay');
