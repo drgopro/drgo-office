@@ -203,7 +203,6 @@
     .span-chip.is-start { border-radius:4px 0 0 4px; }
     .span-chip.is-end { border-radius:0 4px 4px 0; }
     .span-chip.is-solo { border-radius:4px; }
-    .lane-spacer { height:24px; margin-bottom:2px; flex-shrink:0; }
 
     .more-badge { font-size:11px; color:var(--accent); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; font-weight:600; }
     .more-badge:hover { background:rgba(200,176,138,0.15); }
