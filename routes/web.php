@@ -41,6 +41,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/qr-scan', fn () => view('qr-scan'))->name('qr-scan');
+    // CRM 개편 데모 (운영 무영향, 검증용)
+    Route::get('/crm-demo', fn () => view('crm-demo.index'))->name('crm-demo');
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
     Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
 
