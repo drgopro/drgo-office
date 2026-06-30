@@ -12,13 +12,13 @@
     .wiki-sidebar-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; }
     .wiki-sidebar-search { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; width:100%; }
     .wiki-sidebar-search:focus { border-color:var(--accent); }
-    .wiki-cat-list { flex:1; overflow-y:auto; padding:8px 0; }
+    .wiki-cat-list { flex:1; display:block; overflow-y:auto; padding:6px 0; min-height:0; }
     .wiki-cat-item { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; font-size:13px; cursor:pointer; color:var(--text-muted); transition:all 0.12s; border-left:3px solid transparent; }
     .wiki-cat-item:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-item.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
     .wiki-cat-count { font-size:10px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
     /* 계층 트리 */
-    .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:7px 10px 7px 0; font-size:13px; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
+    .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:5px 10px 5px 4px; font-size:13px; line-height:1.3; min-height:0; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
     .wiki-cat-row:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-row.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
     .wiki-cat-caret { flex-shrink:0; width:16px; text-align:center; font-size:10px; color:var(--text-muted); transition:transform .12s; cursor:pointer; }
@@ -121,6 +121,19 @@
         }
     };
     $walkCat(null, 1);
+
+    // category_id → 계층 경로(이름 배열)
+    $catById = $tree->keyBy('id');
+    $wikiCatPath = function ($categoryId) use ($catById) {
+        $path = [];
+        $node = $categoryId ? $catById->get($categoryId) : null;
+        while ($node) {
+            array_unshift($path, $node->name);
+            $node = $node->parent_id ? $catById->get($node->parent_id) : null;
+        }
+
+        return $path;
+    };
 @endphp
 
 <div class="wiki-layout">
@@ -162,7 +175,8 @@
                         <div class="wiki-title">{{ $wiki->title }}</div>
                     </div>
                     <div class="wiki-meta">
-                        <span class="wiki-cat-badge">{{ $wiki->category }}</span>
+                        @php $wp = $wikiCatPath($wiki->category_id); @endphp
+                        <span class="wiki-cat-badge">{{ !empty($wp) ? implode(' › ', $wp) : ($wiki->category ?: '미분류') }}</span>
                         <span>{{ $wiki->creator?->display_name ?? '알 수 없음' }}</span>
                         <span>{{ $wiki->updated_at->format('Y.m.d H:i') }}</span>
                     </div>
@@ -316,6 +330,16 @@ function filterCatId(id) {
     window.location.search = params.toString();
 }
 renderWikiTree();
+
+// 레이아웃 높이를 실제 가용 공간에 맞춤(하단 잘림 방지)
+function fitWikiLayout() {
+    const el = document.querySelector('.wiki-layout');
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    el.style.height = Math.max(320, window.innerHeight - top) + 'px';
+}
+fitWikiLayout();
+window.addEventListener('resize', fitWikiLayout);
 
 function filterCat(cat) {
     document.getElementById('catInput').value = cat;
