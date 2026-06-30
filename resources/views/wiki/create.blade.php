@@ -51,7 +51,13 @@
 @section('content')
 <div class="wiki-wrap">
     <a href="{{ route('wiki.index') }}" class="wiki-back">← 위키 목록</a>
-    <h1 style="font-size:20px;font-weight:700;margin:8px 0 20px;">새 문서 작성</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 20px;">
+        <h1 style="font-size:20px;font-weight:700;margin:0;">새 문서 작성</h1>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
+            <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+        </div>
+    </div>
 
     <div style="display:flex;gap:12px;margin-bottom:14px;">
         <div class="field-group" style="flex:1;margin:0;">
@@ -243,25 +249,46 @@ window.uploadAndInsert=async function(file){
     else editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank">${data.name}</a>`).run();
 };
 
-// 저장
-window.saveNewWiki=async function(){
+// 저장 — 최초 저장은 생성(POST), 이후(자동저장 포함)는 수정(PATCH). silent=자동저장
+let WIKI_CREATED_ID = null;
+let WIKI_SAVING = false;
+function setAutosaveStatus(msg){ const el=document.getElementById('autosaveStatus'); if(el) el.textContent=msg; }
+async function doSaveWiki(silent){
     const title=document.getElementById('wikiTitle').value.trim();
     const categoryId=document.getElementById('wikiCategoryId').value || null;
     const html=editor.getHTML();
     const isPinned=document.getElementById('wikiPinned').checked;
-    // 필수값 검증
-    if(!title){alert('제목을 입력해주세요.');document.getElementById('wikiTitle').focus();return;}
-    if(!html||html==='<p></p>'){alert('내용을 입력해주세요.');editor.commands.focus();return;}
-    const res=await fetch('{{ route("wiki.store") }}',{
-        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({title,category_id:categoryId,content:html,is_pinned:isPinned?1:0}),
-    });
-    if(res.ok){const data=await res.json();location.href='/wiki/'+data.id;}
-    else{
-        try{const err=await res.json();const msgs=err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패');alert(msgs);}
-        catch(e){alert('저장 실패');}
-    }
-};
+    if(!title){ if(!silent){alert('제목을 입력해주세요.');document.getElementById('wikiTitle').focus();} return; }
+    if(!html||html==='<p></p>'){ if(!silent){alert('내용을 입력해주세요.');editor.commands.focus();} return; }
+    if(WIKI_SAVING) return;
+    WIKI_SAVING=true;
+    if(silent) setAutosaveStatus('저장 중…');
+    try{
+        const body=JSON.stringify({title,category_id:categoryId,content:html,is_pinned:isPinned?1:0});
+        let res;
+        if(!WIKI_CREATED_ID){
+            res=await fetch('{{ route("wiki.store") }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body});
+            if(res.ok){ const data=await res.json(); WIKI_CREATED_ID=data.id; history.replaceState(null,'','/wiki/'+data.id); }
+        } else {
+            res=await fetch('/wiki/'+WIKI_CREATED_ID,{method:'PATCH',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body});
+        }
+        if(!res.ok){
+            if(!silent){ try{const err=await res.json();alert(err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패'));}catch(e){alert('저장 실패');} }
+            else setAutosaveStatus('자동 저장 실패');
+            return;
+        }
+        const now=new Date(); const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        if(silent){ setAutosaveStatus('✓ '+t+' 자동 저장됨'); }
+        else { location.href='/wiki/'+WIKI_CREATED_ID; }
+    } finally { WIKI_SAVING=false; }
+}
+window.saveNewWiki=function(){ doSaveWiki(false); };
+// 1분마다 자동 저장 (제목·내용이 있을 때만)
+setInterval(()=>{
+    const title=document.getElementById('wikiTitle').value.trim();
+    const html=editor?.getHTML?.()||'';
+    if(title && html && html!=='<p></p>') doSaveWiki(true);
+}, 60000);
 
 // 이미지 리사이즈 — 네이버 에디터 스타일
 (function(){

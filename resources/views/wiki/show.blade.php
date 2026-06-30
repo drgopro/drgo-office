@@ -11,6 +11,9 @@
     .wiki-title-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
     .wiki-title-text { font-size:22px; font-weight:700; }
     .wiki-cat { font-size:10px; padding:3px 10px; border-radius:12px; background:var(--surface2); color:var(--accent); font-weight:600; border:1px solid var(--border); }
+    .wiki-cat-path { font-size:12px; color:var(--text-muted); margin-bottom:6px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+    .wiki-cat-path .wcp-seg { color:var(--accent); font-weight:600; }
+    .wiki-cat-path .wcp-sep { color:var(--text-muted); opacity:0.6; }
     .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .wiki-actions { display:flex; gap:6px; flex-shrink:0; }
     .wiki-actions button, .wiki-actions a { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
@@ -108,7 +111,24 @@
             <div class="wiki-title-row" id="viewTitle">
                 @if($wiki->is_pinned)<span style="font-size:14px;">📌</span>@endif
                 <span class="wiki-title-text">{{ $wiki->title }}</span>
-                <span class="wiki-cat">{{ $wiki->category }}</span>
+            </div>
+            @php
+                $catPath = [];
+                if ($wiki->category_id) {
+                    $byId = $tree->keyBy('id');
+                    $node = $byId->get($wiki->category_id);
+                    while ($node) {
+                        array_unshift($catPath, $node->name);
+                        $node = $node->parent_id ? $byId->get($node->parent_id) : null;
+                    }
+                }
+            @endphp
+            <div class="wiki-cat-path">
+                @if(!empty($catPath))
+                    🗂 @foreach($catPath as $i => $seg)<span class="wcp-seg">{{ $seg }}</span>@if($i < count($catPath) - 1)<span class="wcp-sep">›</span>@endif @endforeach
+                @else
+                    <span style="color:var(--text-muted);">🗂 {{ $wiki->category ?: '미분류' }}</span>
+                @endif
             </div>
             <div class="wiki-meta">
                 <span>작성: {{ $wiki->creator?->display_name ?? '알 수 없음' }} · {{ $wiki->created_at->format('Y.m.d H:i') }}</span>
@@ -136,6 +156,13 @@
 
     <!-- 수정 모드 -->
     <div class="edit-form" id="editForm">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:700;">문서 수정</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                <button onclick="saveWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            </div>
+        </div>
         <div style="display:flex;gap:12px;margin-bottom:14px;">
             <div class="field-group" style="flex:1;margin:0;">
                 <div class="field-label">제목</div>
@@ -404,26 +431,44 @@ async function uploadAndInsertToEditor(file) {
 }
 
 // 저장 — HTML을 마크다운으로 변환하지 않고 HTML로 저장 (서버에서 처리)
-window.saveWiki = async function() {
+let WIKI_SAVING = false;
+function setAutosaveStatus(msg){ const el=document.getElementById('autosaveStatus'); if(el) el.textContent=msg; }
+async function doSaveWiki(silent) {
     const html = editor.getHTML();
     const title = document.getElementById('editTitle').value.trim();
     const categoryId = document.getElementById('editCategoryId').value || null;
     const isPinned = document.getElementById('editPinned').checked;
-    if (!title) { alert('제목을 입력해주세요.'); return; }
-    if (!html || html==='<p></p>') { alert('내용을 입력해주세요.'); return; }
-
-    const res = await fetch('{{ route("wiki.update", $wiki) }}', {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({ title, category_id:categoryId, content:html, is_pinned:isPinned?1:0 }),
-    });
-    if (res.ok) {
-        location.reload();
-    } else {
-        try { const err=await res.json(); const msgs=err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패'); alert(msgs); }
-        catch(e) { alert('저장 실패'); }
-    }
-};
+    if (!title) { if(!silent){alert('제목을 입력해주세요.');} return; }
+    if (!html || html==='<p></p>') { if(!silent){alert('내용을 입력해주세요.');} return; }
+    if (WIKI_SAVING) return;
+    WIKI_SAVING = true;
+    if (silent) setAutosaveStatus('저장 중…');
+    try {
+        const res = await fetch('{{ route("wiki.update", $wiki) }}', {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+            body:JSON.stringify({ title, category_id:categoryId, content:html, is_pinned:isPinned?1:0 }),
+        });
+        if (!res.ok) {
+            if(!silent){ try { const err=await res.json(); alert(err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패')); } catch(e) { alert('저장 실패'); } }
+            else setAutosaveStatus('자동 저장 실패');
+            return;
+        }
+        if (silent) {
+            const now=new Date(); setAutosaveStatus(`✓ ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} 자동 저장됨`);
+        } else {
+            location.reload();
+        }
+    } finally { WIKI_SAVING = false; }
+}
+window.saveWiki = function() { doSaveWiki(false); };
+// 1분마다 자동 저장 (수정 모드에서 제목·내용이 있을 때만)
+setInterval(() => {
+    if (!document.getElementById('editForm').classList.contains('active')) return;
+    const title = document.getElementById('editTitle').value.trim();
+    const html = editor?.getHTML?.() || '';
+    if (title && html && html !== '<p></p>') doSaveWiki(true);
+}, 60000);
 
 // 수정 모드 토글
 window.toggleEdit = function() {
