@@ -29,6 +29,11 @@
     .wiki-cat-caret.empty { visibility:hidden; }
     .wiki-cat-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .wiki-cat-children.collapsed { display:none; }
+    /* 강제 컴팩트 — 외부 규칙으로 행이 부풀어도 덮어쓰기 */
+    #wikiCatTree { display:block !important; }
+    #wikiCatTree .wiki-cat-row { min-height:0 !important; height:auto !important; margin:0 !important; padding:5px 10px 5px 4px !important; line-height:1.3 !important; flex:0 0 auto !important; }
+    #wikiCatTree .wiki-cat-children { margin:0 !important; padding:0 !important; display:block; }
+    #wikiCatTree .wiki-cat-children.collapsed { display:none !important; }
     .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
     .wiki-cat-edit-btn:hover { border-color:var(--accent); color:var(--accent); }
     /* 카테고리 편집 모달 */
