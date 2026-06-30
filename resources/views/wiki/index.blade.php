@@ -31,6 +31,9 @@
     .wiki-cat-children.collapsed { display:none; }
     /* 하위 계층: 중첩 컨테이너마다 들여쓰기 + 점선 가이드 라인 */
     #wikiCatTree .wiki-cat-children { margin-left:16px; border-left:1px dashed var(--border); }
+    /* 계층별 타이포: 최상단 굵게·크게 / 하위 보통·작게 */
+    #wikiCatTree .wiki-cat-row { font-size:12px; font-weight:400; }
+    #wikiCatTree .wiki-cat-row.cat-top { font-size:14px; font-weight:700; }
     .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
     .wiki-cat-edit-btn:hover { border-color:var(--accent); color:var(--accent); }
     /* 카테고리 편집 모달 */
@@ -294,7 +297,7 @@ function renderWikiTree() {
     const collapsed = wikiCollapsedSet();
     const total = WIKI_TREE_DATA.reduce((s, c) => s + (WIKI_CAT_COUNTS[c.id] || 0), 0) + WIKI_UNCAT;
 
-    let html = `<div class="wiki-cat-row ${!WIKI_CUR_CAT ? 'active' : ''}" onclick="filterCatId('')">
+    let html = `<div class="wiki-cat-row cat-top ${!WIKI_CUR_CAT ? 'active' : ''}" onclick="filterCatId('')">
         <span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">전체</span><span class="wiki-cat-count">${total}</span></div>`;
 
     function node(c, depth) {
@@ -304,7 +307,7 @@ function renderWikiTree() {
         const caret = kids.length
             ? `<span class="wiki-cat-caret ${isCollapsed ? '' : 'open'}" onclick="event.stopPropagation();toggleWikiCat(${c.id})">▸</span>`
             : `<span class="wiki-cat-caret blank"></span>`;
-        let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" onclick="onCatRowClick(${c.id}, ${canCollapse ? 1 : 0})">
+        let h = `<div class="wiki-cat-row ${depth === 1 ? 'cat-top' : ''} ${WIKI_CUR_CAT === c.id ? 'active' : ''}" onclick="onCatRowClick(${c.id}, ${canCollapse ? 1 : 0})">
             ${canCollapse ? caret : `<span class="wiki-cat-caret blank"></span>`}
             <span class="wiki-cat-name">${wikiEsc(c.name)}</span>
             <span class="wiki-cat-count">${wikiTotalCount(c.id, childMap)}</span></div>`;
