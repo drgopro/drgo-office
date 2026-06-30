@@ -81,6 +81,16 @@
 
     /* 슬래시 메뉴 */
     .slash-menu { position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:200px; box-shadow:0 4px 20px rgba(0,0,0,0.2); display:none; }
+    /* 선택 영역 색상 팝업 */
+    .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
+    .fmt-bubble.show { display:flex; }
+    .fmt-bubble .fb-label { font-size:10px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
+    .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+    .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
+    .fmt-bubble .fb-h { width:22px; height:22px; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+    .fmt-bubble .fb-reset { background:var(--surface2); color:var(--text-muted); font-weight:600; font-size:11px; }
+    .ProseMirror mark { border-radius:3px; padding:0 2px; }
     .slash-menu.visible { display:block; }
     .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); transition:background 0.1s; }
     .slash-item:hover, .slash-item.selected { background:var(--surface2); }
@@ -233,6 +243,27 @@
 
 <div class="slash-menu" id="slashMenu"></div>
 
+{{-- 선택 영역 색상 팝업 (노션식) --}}
+<div class="fmt-bubble" id="fmtBubble">
+    <span class="fb-label">글자</span>
+    <button type="button" class="fb-c" data-color="#e03131" style="color:#e03131">A</button>
+    <button type="button" class="fb-c" data-color="#f08c00" style="color:#f08c00">A</button>
+    <button type="button" class="fb-c" data-color="#2f9e44" style="color:#2f9e44">A</button>
+    <button type="button" class="fb-c" data-color="#1971c2" style="color:#1971c2">A</button>
+    <button type="button" class="fb-c" data-color="#9c36b5" style="color:#9c36b5">A</button>
+    <button type="button" class="fb-c" data-color="#868e96" style="color:#868e96">A</button>
+    <button type="button" class="fb-c fb-reset" data-color="" title="글자색 해제">A⨯</button>
+    <span class="fb-sep"></span>
+    <span class="fb-label">배경</span>
+    <button type="button" class="fb-h" data-hl="#ffec99" style="background:#ffec99"></button>
+    <button type="button" class="fb-h" data-hl="#ffd8a8" style="background:#ffd8a8"></button>
+    <button type="button" class="fb-h" data-hl="#b2f2bb" style="background:#b2f2bb"></button>
+    <button type="button" class="fb-h" data-hl="#a5d8ff" style="background:#a5d8ff"></button>
+    <button type="button" class="fb-h" data-hl="#eebefa" style="background:#eebefa"></button>
+    <button type="button" class="fb-h" data-hl="#dee2e6" style="background:#dee2e6"></button>
+    <button type="button" class="fb-h fb-reset" data-hl="" title="배경색 해제">⨯</button>
+</div>
+
 <!-- 이미지 뷰어 모달 -->
 <div class="img-viewer" id="imgViewer">
     <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
@@ -262,7 +293,10 @@
         "@tiptap/extension-table-row": "https://esm.sh/@tiptap/extension-table-row@2.11.5",
         "@tiptap/extension-table-cell": "https://esm.sh/@tiptap/extension-table-cell@2.11.5",
         "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5",
-        "@tiptap/extension-text-align": "https://esm.sh/@tiptap/extension-text-align@2.11.5"
+        "@tiptap/extension-text-align": "https://esm.sh/@tiptap/extension-text-align@2.11.5",
+        "@tiptap/extension-text-style": "https://esm.sh/@tiptap/extension-text-style@2.11.5",
+        "@tiptap/extension-color": "https://esm.sh/@tiptap/extension-color@2.11.5",
+        "@tiptap/extension-highlight": "https://esm.sh/@tiptap/extension-highlight@2.11.5"
     }
 }
 </script>
@@ -277,6 +311,9 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 
 // Image 확장 커스텀 — width/height 속성 보존
 const ResizableImage = Image.extend({
@@ -303,6 +340,9 @@ window.editor = new Editor({
         TableCell,
         TableHeader,
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        TextStyle,
+        Color,
+        Highlight.configure({ multicolor: true }),
     ],
     content: wikiContent,
     editorProps: {
@@ -358,6 +398,40 @@ function updateToolbar(e) {
     if (e.isActive('blockquote')) tb.children[11].classList.add('is-active');
     if (e.isActive('codeBlock')) tb.children[12].classList.add('is-active');
 }
+
+// ── 선택 영역 색상 팝업 (노션식) ──
+(function(){
+    const bubble = document.getElementById('fmtBubble');
+    if (!bubble) return;
+    function updateFmtBubble(){
+        if (!window.editor || !editor.isEditable) { bubble.classList.remove('show'); return; }
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount===0 || sel.isCollapsed || editor.state.selection.empty) { bubble.classList.remove('show'); return; }
+        const rect = sel.getRangeAt(0).getBoundingClientRect();
+        if (!rect || (rect.width===0 && rect.height===0)) { bubble.classList.remove('show'); return; }
+        bubble.classList.add('show');
+        const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+        let left = rect.left + rect.width/2 - bw/2;
+        left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+        let top = rect.top - bh - 8;
+        if (top < 8) top = rect.bottom + 8;
+        bubble.style.left = left + 'px'; bubble.style.top = top + 'px';
+    }
+    bubble.addEventListener('mousedown', e => e.preventDefault());
+    bubble.querySelectorAll('.fb-c').forEach(b => b.addEventListener('click', () => {
+        const c = b.dataset.color;
+        c ? editor.chain().focus().setColor(c).run() : editor.chain().focus().unsetColor().run();
+        updateFmtBubble();
+    }));
+    bubble.querySelectorAll('.fb-h').forEach(b => b.addEventListener('click', () => {
+        const c = b.dataset.hl;
+        c ? editor.chain().focus().setHighlight({ color: c }).run() : editor.chain().focus().unsetHighlight().run();
+        updateFmtBubble();
+    }));
+    editor.on('selectionUpdate', updateFmtBubble);
+    editor.on('blur', () => setTimeout(() => { if (!bubble.matches(':hover')) bubble.classList.remove('show'); }, 150));
+    window.addEventListener('scroll', () => { if (bubble.classList.contains('show')) updateFmtBubble(); }, true);
+})();
 
 // 슬래시 메뉴
 const SLASH_ITEMS = [
