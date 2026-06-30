@@ -35,6 +35,9 @@
     .ce-head { display:flex; justify-content:space-between; align-items:center; padding:15px 18px; border-bottom:1px solid var(--border); font-size:15px; font-weight:800; }
     .ce-body { padding:14px 18px; overflow-y:auto; }
     .ce-row { display:flex; align-items:center; gap:6px; padding:5px 0; }
+    .ce-handle { cursor:grab; color:var(--text-muted); font-size:13px; flex-shrink:0; user-select:none; opacity:0.5; }
+    .ce-handle:active { cursor:grabbing; }
+    .ce-row:hover .ce-handle { opacity:1; }
     .ce-row .ce-name { flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .ce-row input.ce-edit { flex:1; padding:5px 8px; border:1px solid var(--accent); border-radius:6px; background:var(--surface2); color:var(--text); font-size:13px; }
     .ce-mini { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:3px 8px; font-size:11px; cursor:pointer; flex-shrink:0; }
@@ -336,7 +339,8 @@ function ceRender() {
     const map = {}; CE_DATA.forEach(c => { (map[c.parent_id] = map[c.parent_id] || []).push(c); });
     function node(c, depth) {
         const kids = map[c.id] || [];
-        let h = `<div class="ce-row" style="padding-left:${(depth - 1) * 16}px" data-id="${c.id}">
+        let h = `<div class="ce-row" draggable="true" style="padding-left:${(depth - 1) * 16}px" data-id="${c.id}" data-parent="${c.parent_id ?? ''}">
+            <span class="ce-handle" title="드래그하여 순서 변경">⠿</span>
             <span class="ce-name">${wikiEsc(c.name)}</span>
             <button class="ce-mini" onclick="ceRenameStart(${c.id})" title="이름 변경">✎</button>
             ${depth < 5 ? `<button class="ce-mini" onclick="ceAddChild(${c.id})">+ 하위</button>` : ''}
@@ -347,6 +351,42 @@ function ceRender() {
     }
     document.getElementById('ceTree').innerHTML = (map[null] || []).map(c => node(c, 1)).join('')
         || '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">카테고리가 없습니다. 위에서 추가하세요.</div>';
+    ceAttachDnD();
+}
+let CE_DRAG_ID = null;
+function ceAttachDnD() {
+    document.querySelectorAll('#ceTree .ce-row').forEach(row => {
+        row.ondragstart = e => { CE_DRAG_ID = parseInt(row.dataset.id, 10); e.dataTransfer.effectAllowed = 'move'; };
+        row.ondragend = () => { CE_DRAG_ID = null; document.querySelectorAll('#ceTree .ce-row').forEach(r => { r.style.borderTop = ''; r.style.borderBottom = ''; }); };
+        const sameParent = row => { const d = CE_DATA.find(c => c.id === CE_DRAG_ID); const t = CE_DATA.find(c => c.id === parseInt(row.dataset.id, 10)); return d && t && d.id !== t.id && (d.parent_id ?? null) === (t.parent_id ?? null); };
+        row.ondragover = e => {
+            if (!sameParent(row)) return;
+            e.preventDefault();
+            const rect = row.getBoundingClientRect(); const after = (e.clientY - rect.top) > rect.height / 2;
+            row.style.borderTop = after ? '' : '2px solid var(--accent)';
+            row.style.borderBottom = after ? '2px solid var(--accent)' : '';
+        };
+        row.ondragleave = () => { row.style.borderTop = ''; row.style.borderBottom = ''; };
+        row.ondrop = async e => {
+            row.style.borderTop = ''; row.style.borderBottom = '';
+            if (!sameParent(row)) return;
+            e.preventDefault();
+            const drag = CE_DATA.find(c => c.id === CE_DRAG_ID);
+            const tgt = CE_DATA.find(c => c.id === parseInt(row.dataset.id, 10));
+            const rect = row.getBoundingClientRect(); const after = (e.clientY - rect.top) > rect.height / 2;
+            let sibs = CE_DATA.filter(c => (c.parent_id ?? null) === (drag.parent_id ?? null))
+                .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+                .filter(c => c.id !== drag.id);
+            const idx = sibs.findIndex(c => c.id === tgt.id);
+            sibs.splice(after ? idx + 1 : idx, 0, drag);
+            await ceReorder(sibs.map((c, i) => ({ id: c.id, sort_order: i })));
+        };
+    });
+}
+async function ceReorder(items) {
+    const res = await fetch('/api/wiki-categories/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ items }) });
+    if (!res.ok) { alert('순서 변경 실패'); return; }
+    CE_DIRTY = true; await ceFetch();
 }
 let CE_BUSY = false;
 async function ceAdd(parentId, inputEl) {

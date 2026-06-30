@@ -52,6 +52,21 @@ class WikiCategoryController extends Controller
         return response()->json(['ok' => true, 'name' => $category->name]);
     }
 
+    /** 형제 순서 변경 (드래그) — items: [{id, sort_order}] */
+    public function reorder(Request $request): JsonResponse
+    {
+        $v = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer|exists:wiki_categories,id',
+            'items.*.sort_order' => 'required|integer',
+        ]);
+        foreach ($v['items'] as $it) {
+            WikiCategory::where('id', $it['id'])->update(['sort_order' => $it['sort_order']]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     /** 삭제 — 하위는 부모로 끌어올리고, 연결된 위키는 부모(또는 미분류)로 이동 */
     public function destroy(WikiCategory $category): JsonResponse
     {

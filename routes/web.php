@@ -304,6 +304,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/wiki-categories', [WikiCategoryController::class, 'index']);
     Route::middleware('role:master,admin')->group(function () {
         Route::post('/api/wiki-categories', [WikiCategoryController::class, 'store']);
+        Route::post('/api/wiki-categories/reorder', [WikiCategoryController::class, 'reorder']);
         Route::patch('/api/wiki-categories/{category}', [WikiCategoryController::class, 'update']);
         Route::delete('/api/wiki-categories/{category}', [WikiCategoryController::class, 'destroy']);
     });
