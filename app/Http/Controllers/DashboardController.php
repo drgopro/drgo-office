@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
 use App\Models\Schedule;
+use App\Models\Wiki;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -194,7 +195,13 @@ class DashboardController extends Controller
                 'date' => $c->consulted_at?->format('m.d'),
             ]);
 
+        // 위키 위젯 — 전체 문서(고정 우선, 최대 5), 최신 등록 문서(최대 3)
+        $wikiTotal = Wiki::count();
+        $wikiAll = Wiki::orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
+        $wikiRecent = Wiki::orderByDesc('created_at')->limit(3)->get(['id', 'title', 'created_at']);
+
         return view('dashboard', compact(
+            'wikiTotal', 'wikiAll', 'wikiRecent',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',

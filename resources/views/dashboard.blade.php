@@ -51,6 +51,19 @@
     .shortcut-card .sc-icon { font-size:22px; margin-bottom:4px; }
     .shortcut-card .sc-label { font-size:12px; font-weight:600; }
     .shortcut-card .sc-sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
+    /* 위키 위젯 */
+    .wiki-widget-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px; }
+    .wiki-widget { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+    .ww-head { font-size:12px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+    .ww-head .ww-sub { font-size:10px; color:var(--text-muted); font-weight:400; margin-left:auto; }
+    .ww-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); text-decoration:none; color:var(--text); font-size:13px; }
+    .ww-item:last-child { border-bottom:none; }
+    .ww-item:hover .ww-title { color:var(--accent); }
+    .ww-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ww-date { font-size:11px; color:var(--text-muted); flex-shrink:0; }
+    .ww-empty { font-size:12px; color:var(--text-muted); padding:12px 0; text-align:center; }
+    .ww-more { display:block; text-align:right; font-size:11px; color:var(--accent); text-decoration:none; margin-top:8px; }
+    @media (max-width:768px) { .wiki-widget-grid { grid-template-columns:1fr; } }
 
     @media (max-width:768px) {
         .pipeline-grid { grid-template-columns:1fr 1fr; }
@@ -161,6 +174,36 @@
         @else
             <div class="consult-empty">대기/진행중 상담이 없습니다</div>
         @endif
+    </div>
+
+    {{-- 위키 --}}
+    <div class="section-title" style="margin-top:28px;">📖 위키</div>
+    <div class="wiki-widget-grid">
+        <div class="wiki-widget">
+            <div class="ww-head">🆕 최신 등록 문서 <span class="ww-sub">최근 3건</span></div>
+            @forelse($wikiRecent as $w)
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','📖 {{ addslashes($w->title) }}'); else location.href=this.href;">
+                    <span class="ww-title">{{ $w->title }}</span>
+                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
+                </a>
+            @empty
+                <div class="ww-empty">등록된 문서가 없습니다</div>
+            @endforelse
+        </div>
+        <div class="wiki-widget">
+            <div class="ww-head">📚 전체 문서 <span class="ww-sub">총 {{ $wikiTotal }}건</span></div>
+            @forelse($wikiAll as $w)
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','📖 {{ addslashes($w->title) }}'); else location.href=this.href;">
+                    <span class="ww-title">{{ $w->is_pinned ? '📌 ' : '' }}{{ $w->title }}</span>
+                    <span class="ww-date">{{ $w->updated_at->format('m.d') }}</span>
+                </a>
+            @empty
+                <div class="ww-empty">등록된 문서가 없습니다</div>
+            @endforelse
+            @if($wikiTotal > 5)
+                <a class="ww-more" href="/wiki" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki','📖 위키'); else location.href=this.href;">전체 보기 →</a>
+            @endif
+        </div>
     </div>
 
     {{-- 빠른 이동 --}}
