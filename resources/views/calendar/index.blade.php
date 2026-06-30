@@ -771,12 +771,12 @@
             </div>
             <div class="modal-header-btns">
                 <span id="privateModeBadge" style="display:none;font-size:11px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa55;border-radius:6px;padding:2px 8px;font-weight:600;">🔒 개인</span>
-                <button class="icon-btn" id="lockBtn" onclick="toggleLock()" title="내용 고정">🔓</button>
+                <button class="icon-btn" id="lockBtn" onclick="toggleLock()" title="요약 보기" style="width:auto;padding:0 10px;font-size:12px;white-space:nowrap;">☐ 요약</button>
                 <button class="btn-save-top" onclick="saveEvent()">저장</button>
                 <button class="icon-btn close-btn" onclick="closeModal()">✕</button>
             </div>
         </div>
-        <div class="locked-banner" id="lockedBanner">🔒&nbsp; 이 일정은 고정되어 있습니다 — 수정하려면 자물쇠를 해제하세요</div>
+        <div class="locked-banner" id="lockedBanner">📄&nbsp; 요약 보기 상태입니다 — 전체 내용을 보거나 수정하려면 '요약'을 해제하세요</div>
         <div id="balanceBanner" style="display:none;align-items:center;gap:8px;background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.35);border-radius:8px;padding:8px 14px;font-size:12px;letter-spacing:0.05em;color:#e07070;margin:10px 28px 0;">
             <span style="font-size:15px;">💰</span>
             <span id="balanceBannerText">잔금 있음</span>
@@ -2250,15 +2250,12 @@ function toggleLock(){
     applyLockUI();
 }
 
+// '요약' 토글 — 읽기 요약 뷰 표시만 제어(필드 활성/비활성은 보기/편집 모드가 담당)
 function applyLockUI(){
     const btn=document.getElementById('lockBtn');
-    btn.textContent=isLocked?'🔒':'🔓';
+    btn.textContent=isLocked?'☑ 요약':'☐ 요약';
     btn.classList.toggle('locked',isLocked);
     document.getElementById('lockedBanner').classList.toggle('visible',isLocked);
-    // 모든 입력 disable/enable
-    document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=isLocked;});
-    document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display=isLocked?'none':'';});
-    // 요약 뷰 토글
     const body = document.querySelector('#modalOverlay .modal-body');
     if (!body) return;
     if (isLocked) {
@@ -2822,7 +2819,7 @@ function resetModalForm(){
     document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
-    isLocked=false; document.getElementById('lockBtn').textContent='🔓'; document.getElementById('lockBtn').classList.remove('locked');
+    isLocked=false; document.getElementById('lockBtn').textContent='☐ 요약'; document.getElementById('lockBtn').classList.remove('locked');
     document.getElementById('lockedBanner').classList.remove('visible');
     document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     document.getElementById('balanceBanner').classList.remove('visible');
@@ -2942,14 +2939,9 @@ function setViewModeUI(){
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='none';});
     // 보기/해제 버튼은 항상 활성화
     document.querySelectorAll('#modalOverlay [data-always-active]').forEach(b=>{b.style.pointerEvents='auto';});
-    // 잠금 배너 숨기기
-    document.getElementById('lockedBanner').classList.remove('visible');
-    document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
-    isLocked=false;
-    document.getElementById('lockBtn').textContent='🔓';
-    document.getElementById('lockBtn').classList.remove('locked');
-    // 버튼 전환 (자물쇠는 view 모드에서도 항상 노출)
+    // 보기 모드: '요약'(읽기 요약 뷰)을 기본 ON으로 표시 — 요약 버튼은 항상 노출
     document.getElementById('lockBtn').style.display='';
+    applyLockUI();
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
     document.getElementById('btnLog').style.display='';
@@ -2982,6 +2974,8 @@ function setEditModeUI(){
     document.querySelectorAll('#colorRow .color-dot').forEach(d=>{ d.style.display=''; });
     const hwrap2=document.querySelector('#modalOverlay .holiday-btn-wrap'); if(hwrap2) hwrap2.style.display='';
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='';});
+    // 편집 모드: 요약 해제하여 전체 폼 표시
+    isLocked=false; applyLockUI();
     // 버튼 복원
     document.getElementById('lockBtn').style.display='';
     updateCompleteUI(false); // 편집 모드: 푸터 완료 버튼 숨김(외부 완료 버튼은 유지)
@@ -3143,8 +3137,8 @@ function openEditModal(ev){
     }
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
-    // 잠금
-    if(ev.is_locked){isLocked=true;document.getElementById('lockBtn').textContent='🔒';document.getElementById('lockBtn').classList.add('locked');document.getElementById('lockedBanner').classList.add('visible');setTimeout(applyLockUI,0);}
+    // 요약: 등록된 일정은 기본적으로 '요약'(읽기 요약 뷰) ON
+    if(ev && ev.id){ isLocked=true; setTimeout(applyLockUI,0); }
     // 날짜 배지
     const d=sd?new Date(sd):new Date();
     document.getElementById('modalDateBadge').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]})`;
