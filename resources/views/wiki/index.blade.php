@@ -144,6 +144,17 @@
 
         return $path;
     };
+
+    // 문서 목록(클라이언트 렌더용) — @json 디렉티브 멀티라인 파싱 문제 회피 위해 여기서 구성
+    $wikiDocs = $wikis->map(fn ($w) => [
+        'id' => $w->id,
+        'title' => $w->title,
+        'category_id' => $w->category_id,
+        'is_pinned' => (bool) $w->is_pinned,
+        'creator' => $w->creator?->display_name ?? '알 수 없음',
+        'updated' => $w->updated_at->format('Y.m.d H:i'),
+        'preview' => \Illuminate\Support\Str::limit(strip_tags($w->content ?? ''), 120),
+    ])->values();
 @endphp
 
 <div class="wiki-layout">
@@ -259,15 +270,7 @@ const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' 
 const WIKI_CAT_COUNTS = @json($catCounts);
 const WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
-const WIKI_DOCS = @json($wikis->map(fn ($w) => [
-    'id' => $w->id,
-    'title' => $w->title,
-    'category_id' => $w->category_id,
-    'is_pinned' => (bool) $w->is_pinned,
-    'creator' => $w->creator?->display_name ?? '알 수 없음',
-    'updated' => $w->updated_at->format('Y.m.d H:i'),
-    'preview' => \Illuminate\Support\Str::limit(strip_tags($w->content), 120),
-])->values());
+const WIKI_DOCS = @json($wikiDocs);
 const WIKI_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
 const WIKI_COLLAPSE_KEY = 'wikiCatCollapsed';
 
