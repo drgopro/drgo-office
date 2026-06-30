@@ -338,6 +338,8 @@
     .field-input:focus, .field-textarea:focus { border-color:var(--accent); }
     .field-input::placeholder, .field-textarea::placeholder { color:var(--text-muted); }
     .field-textarea { resize:none; min-height:80px; line-height:1.7; }
+    /* 내용 길이만큼 자동 확장(최대 400px 후 스크롤) */
+    .field-textarea.autogrow { resize:none; max-height:400px; overflow-y:hidden; }
     .field-input:disabled, .field-textarea:disabled { opacity:0.55; cursor:not-allowed; background:var(--surface); }
 
     /* ── 라디오 버튼 (pill) ── */
@@ -2861,6 +2863,7 @@ function openNewModal(dateStr,timeStr){
     updateAssigneeBtn();
     renderAssigneeList();
     document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(calRefreshAutoGrow, 0); // 상세 내용 높이 자동 맞춤
     pushCalModalHistory();
     setTimeout(()=>document.getElementById('modalTitle').focus(),50);
 }
@@ -3257,6 +3260,7 @@ function openEditModal(ev){
     updateAssigneeBtn();updateBalanceBanner();
     renderAssigneeList();
     document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(calRefreshAutoGrow, 0); // 상세 내용 높이 자동 맞춤
     pushCalModalHistory();
 }
 
@@ -3826,6 +3830,21 @@ async function toggleCompleteFromDetail() {
     viewMode=false; closeModal(); detailEvent=null; // 보기/편집 모드 공통으로 편집 모달 닫기
     loadEvents();
 }
+
+// ── 상세 내용 자동 높이(최대 400px, 초과 시 스크롤) ──
+const CAL_AUTOGROW_IDS = ['commonDesc', 'commonHandoverNote', 't_desc', 't_remote_content', 't_studio_content', 'g_req_detail', 'g_special'];
+function calAutoGrow(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    const h = Math.min(el.scrollHeight, 400);
+    el.style.height = h + 'px';
+    el.style.overflowY = el.scrollHeight > 400 ? 'auto' : 'hidden';
+}
+function calRefreshAutoGrow() { CAL_AUTOGROW_IDS.forEach(id => calAutoGrow(document.getElementById(id))); }
+CAL_AUTOGROW_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('autogrow'); el.addEventListener('input', () => calAutoGrow(el)); }
+});
 
 init();
 </script>
