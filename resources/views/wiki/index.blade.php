@@ -17,6 +17,32 @@
     .wiki-cat-item:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-item.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
     .wiki-cat-count { font-size:10px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
+    /* 계층 트리 */
+    .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:7px 10px 7px 0; font-size:13px; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
+    .wiki-cat-row:hover { color:var(--text); background:var(--surface2); }
+    .wiki-cat-row.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
+    .wiki-cat-caret { flex-shrink:0; width:16px; text-align:center; font-size:10px; color:var(--text-muted); transition:transform .12s; cursor:pointer; }
+    .wiki-cat-caret.open { transform:rotate(90deg); }
+    .wiki-cat-caret.empty { visibility:hidden; }
+    .wiki-cat-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .wiki-cat-children.collapsed { display:none; }
+    .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
+    .wiki-cat-edit-btn:hover { border-color:var(--accent); color:var(--accent); }
+    /* 카테고리 편집 모달 */
+    .ce-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px; }
+    .ce-overlay.open { display:flex; }
+    .ce-modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:560px; max-height:88vh; display:flex; flex-direction:column; }
+    .ce-head { display:flex; justify-content:space-between; align-items:center; padding:15px 18px; border-bottom:1px solid var(--border); font-size:15px; font-weight:800; }
+    .ce-body { padding:14px 18px; overflow-y:auto; }
+    .ce-row { display:flex; align-items:center; gap:6px; padding:5px 0; }
+    .ce-row .ce-name { flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ce-row input.ce-edit { flex:1; padding:5px 8px; border:1px solid var(--accent); border-radius:6px; background:var(--surface2); color:var(--text); font-size:13px; }
+    .ce-mini { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:3px 8px; font-size:11px; cursor:pointer; flex-shrink:0; }
+    .ce-mini:hover { border-color:var(--accent); color:var(--accent); }
+    .ce-mini.del:hover { border-color:var(--red); color:var(--red); }
+    .ce-addtop { display:flex; gap:6px; margin-bottom:12px; }
+    .ce-addtop input { flex:1; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text); font-size:13px; }
+    .ce-foot { padding:12px 18px; border-top:1px solid var(--border); text-align:right; }
     .wiki-cat-item.active .wiki-cat-count { background:rgba(var(--accent),0.15); color:var(--accent); }
     .wiki-sidebar-footer { padding:12px 16px; border-top:1px solid var(--border); }
     .btn-new { background:var(--accent); color:var(--accent-text); border:none; padding:8px 0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
@@ -83,6 +109,16 @@
     $currentCat = request('category');
     $grouped = $wikis->groupBy('category');
     $allCats = $categories->count() ? $categories : collect(['일반']);
+
+    // 트리를 들여쓰기된 평면 목록으로 (select 옵션용)
+    $catFlat = [];
+    $walkCat = function ($parentId, $depth) use (&$walkCat, $tree, &$catFlat) {
+        foreach ($tree->where('parent_id', $parentId) as $c) {
+            $catFlat[] = ['id' => $c->id, 'name' => str_repeat('— ', $depth - 1).$c->name];
+            $walkCat($c->id, $depth + 1);
+        }
+    };
+    $walkCat(null, 1);
 @endphp
 
 <div class="wiki-layout">
@@ -93,20 +129,10 @@
             <form method="GET" action="{{ route('wiki.index') }}" id="wikiSearchForm">
                 <input class="wiki-sidebar-search" type="text" name="search" placeholder="문서 검색..." value="{{ request('search') }}">
                 <input type="hidden" name="category" id="catInput" value="{{ $currentCat }}">
+                <input type="hidden" name="cat" value="{{ request('cat') }}">
             </form>
         </div>
-        <div class="wiki-cat-list">
-            <div class="wiki-cat-item {{ !$currentCat ? 'active' : '' }}" onclick="filterCat('')">
-                <span>전체</span>
-                <span class="wiki-cat-count">{{ $wikis->count() }}</span>
-            </div>
-            @foreach($allCats as $cat)
-                <div class="wiki-cat-item {{ $currentCat === $cat ? 'active' : '' }}" onclick="filterCat('{{ $cat }}')">
-                    <span>{{ $cat }}</span>
-                    <span class="wiki-cat-count">{{ $grouped->get($cat)?->count() ?? 0 }}</span>
-                </div>
-            @endforeach
-        </div>
+        <div class="wiki-cat-list" id="wikiCatTree"></div>
         <div class="wiki-sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
             <a href="{{ route('wiki.create') }}" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
             <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')">🎛️ 연결도 에디터</button>
@@ -117,7 +143,12 @@
     <div class="wiki-main">
         <div class="wiki-main-header">
             <div class="wiki-main-title">{{ $currentCat ?: '전체 문서' }}</div>
-            <div class="wiki-main-count">{{ $wikis->count() }}건</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="wiki-main-count">{{ $wikis->count() }}건</div>
+                @if(auth()->user()->isAdmin())
+                    <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()">🗂 카테고리 편집</button>
+                @endif
+            </div>
         </div>
 
         @if($wikis->count() > 0)
@@ -154,18 +185,14 @@
                     <div class="field-label">제목 *</div>
                     <input class="field-input" name="title" required placeholder="문서 제목">
                 </div>
-                <div class="field-group" style="width:160px;">
-                    <div class="field-label">카테고리 *</div>
-                    <input class="field-input" name="category" required placeholder="예: 기술매뉴얼" list="catList">
-                    <datalist id="catList">
-                        @foreach($allCats as $cat)
-                            <option value="{{ $cat }}">
+                <div class="field-group" style="width:200px;">
+                    <div class="field-label">카테고리</div>
+                    <select class="field-input" name="category_id">
+                        <option value="">(미분류)</option>
+                        @foreach($catFlat as $cf)
+                            <option value="{{ $cf['id'] }}">{{ $cf['name'] }}</option>
                         @endforeach
-                        <option value="기술매뉴얼">
-                        <option value="업무가이드">
-                        <option value="장비매뉴얼">
-                        <option value="일반">
-                    </datalist>
+                    </select>
                 </div>
             </div>
             <div class="field-group">
@@ -197,14 +224,173 @@
         </form>
     </div>
 </div>
+
+@if(auth()->user()->isAdmin())
+<!-- 카테고리 편집 모달 -->
+<div class="ce-overlay" id="catEditModal">
+    <div class="ce-modal">
+        <div class="ce-head"><span>🗂 카테고리 편집</span><button class="ce-mini" onclick="closeCatEditor()">✕</button></div>
+        <div class="ce-body">
+            <div class="ce-addtop">
+                <input type="text" id="ceTopInput" placeholder="새 최상위 카테고리 이름" onkeydown="if(event.key==='Enter'){event.preventDefault();ceAdd(null,this);}">
+                <button class="ce-mini" onclick="ceAdd(null, document.getElementById('ceTopInput'))">+ 추가</button>
+            </div>
+            <div id="ceTree"></div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">· 대분류 포함 최대 5단계까지 추가할 수 있습니다. · 삭제 시 하위 카테고리는 상위로 이동합니다.</div>
+        </div>
+        <div class="ce-foot"><button class="ce-mini" onclick="closeCatEditor()">닫기</button></div>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
 <script>
+const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' => $c->parent_id, 'name' => $c->name])->values());
+const WIKI_CAT_COUNTS = @json($catCounts);
+const WIKI_UNCAT = {{ (int) $uncategorized }};
+const WIKI_CUR_CAT = {{ (int) request('cat') }};
+const WIKI_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+const WIKI_COLLAPSE_KEY = 'wikiCatCollapsed';
+
+function wikiCollapsedSet() { try { return new Set(JSON.parse(localStorage.getItem(WIKI_COLLAPSE_KEY) || '[]')); } catch (e) { return new Set(); } }
+function wikiSaveCollapsed(set) { localStorage.setItem(WIKI_COLLAPSE_KEY, JSON.stringify([...set])); }
+function wikiEsc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function wikiChildrenMap(data) {
+    const m = {};
+    data.forEach(c => { (m[c.parent_id] = m[c.parent_id] || []).push(c); });
+    return m;
+}
+// 노드 + 하위 전체 문서 수
+function wikiTotalCount(id, childMap) {
+    let n = WIKI_CAT_COUNTS[id] || 0;
+    (childMap[id] || []).forEach(ch => { n += wikiTotalCount(ch.id, childMap); });
+    return n;
+}
+
+function renderWikiTree() {
+    const wrap = document.getElementById('wikiCatTree');
+    if (!wrap) return;
+    const childMap = wikiChildrenMap(WIKI_TREE_DATA);
+    const collapsed = wikiCollapsedSet();
+    const total = WIKI_TREE_DATA.reduce((s, c) => s + (WIKI_CAT_COUNTS[c.id] || 0), 0) + WIKI_UNCAT;
+
+    let html = `<div class="wiki-cat-row ${!WIKI_CUR_CAT ? 'active' : ''}" onclick="filterCatId('')">
+        <span class="wiki-cat-caret empty"></span><span class="wiki-cat-name">전체</span><span class="wiki-cat-count">${total}</span></div>`;
+
+    function node(c, depth) {
+        const kids = childMap[c.id] || [];
+        const canCollapse = kids.length && depth <= 3; // 3단계까지만 접기 토글
+        const isCollapsed = collapsed.has(c.id);
+        const caret = kids.length
+            ? `<span class="wiki-cat-caret ${isCollapsed ? '' : 'open'}" onclick="event.stopPropagation();toggleWikiCat(${c.id})">▸</span>`
+            : `<span class="wiki-cat-caret empty"></span>`;
+        let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" style="padding-left:${depth * 14}px" onclick="filterCatId(${c.id})">
+            ${canCollapse ? caret : `<span class="wiki-cat-caret empty"></span>`}
+            <span class="wiki-cat-name">${wikiEsc(c.name)}</span>
+            <span class="wiki-cat-count">${wikiTotalCount(c.id, childMap)}</span></div>`;
+        if (kids.length) {
+            h += `<div class="wiki-cat-children ${(canCollapse && isCollapsed) ? 'collapsed' : ''}">` + kids.map(k => node(k, depth + 1)).join('') + `</div>`;
+        }
+        return h;
+    }
+    html += (childMap[null] || []).map(c => node(c, 1)).join('');
+    if (WIKI_UNCAT > 0) {
+        html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret empty"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
+    }
+    wrap.innerHTML = html;
+}
+function toggleWikiCat(id) {
+    const set = wikiCollapsedSet();
+    set.has(id) ? set.delete(id) : set.add(id);
+    wikiSaveCollapsed(set);
+    renderWikiTree();
+}
+function filterCatId(id) {
+    const params = new URLSearchParams(window.location.search);
+    if (id) { params.set('cat', id); } else { params.delete('cat'); }
+    params.delete('category');
+    window.location.search = params.toString();
+}
+renderWikiTree();
+
 function filterCat(cat) {
     document.getElementById('catInput').value = cat;
     document.getElementById('wikiSearchForm').submit();
 }
+
+// ── 카테고리 편집 ──
+let CE_DATA = [];
+let CE_DIRTY = false;
+async function openCatEditor() { await ceFetch(); document.getElementById('catEditModal').classList.add('open'); }
+function closeCatEditor() {
+    document.getElementById('catEditModal').classList.remove('open');
+    if (CE_DIRTY) { CE_DIRTY = false; location.reload(); }
+}
+async function ceFetch() {
+    const res = await fetch('/api/wiki-categories', { headers: { 'Accept': 'application/json' } });
+    CE_DATA = res.ok ? await res.json() : [];
+    ceRender();
+}
+function ceRender() {
+    const map = {}; CE_DATA.forEach(c => { (map[c.parent_id] = map[c.parent_id] || []).push(c); });
+    function node(c, depth) {
+        const kids = map[c.id] || [];
+        let h = `<div class="ce-row" style="padding-left:${(depth - 1) * 16}px" data-id="${c.id}">
+            <span class="ce-name">${wikiEsc(c.name)}</span>
+            <button class="ce-mini" onclick="ceRenameStart(${c.id})" title="이름 변경">✎</button>
+            ${depth < 5 ? `<button class="ce-mini" onclick="ceAddChild(${c.id})">+ 하위</button>` : ''}
+            <button class="ce-mini del" onclick="ceDelete(${c.id})" title="삭제">🗑</button>
+        </div>`;
+        if (kids.length) h += kids.map(k => node(k, depth + 1)).join('');
+        return h;
+    }
+    document.getElementById('ceTree').innerHTML = (map[null] || []).map(c => node(c, 1)).join('')
+        || '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">카테고리가 없습니다. 위에서 추가하세요.</div>';
+}
+async function ceAdd(parentId, inputEl) {
+    const name = (inputEl.value || '').trim(); if (!name) return;
+    const res = await fetch('/api/wiki-categories', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ name, parent_id: parentId }) });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '추가 실패'); return; }
+    inputEl.value = ''; CE_DIRTY = true; await ceFetch();
+}
+function ceAddChild(id) {
+    const row = document.querySelector(`.ce-row[data-id="${id}"]`); if (!row) return;
+    if (row.nextElementSibling && row.nextElementSibling.classList.contains('ce-addrow')) { row.nextElementSibling.querySelector('input').focus(); return; }
+    const div = document.createElement('div');
+    div.className = 'ce-row ce-addrow';
+    div.style.paddingLeft = (parseInt(row.style.paddingLeft || '0', 10) + 16) + 'px';
+    div.innerHTML = `<input class="ce-edit" placeholder="하위 카테고리 이름">`;
+    const inp = div.querySelector('input');
+    inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); ceAdd(id, inp); } else if (e.key === 'Escape') { div.remove(); } };
+    inp.onblur = () => { if (!inp.value.trim()) div.remove(); };
+    row.after(div); inp.focus();
+}
+function ceRenameStart(id) {
+    const row = document.querySelector(`.ce-row[data-id="${id}"]`); if (!row) return;
+    const span = row.querySelector('.ce-name'); const cur = span.textContent;
+    const inp = document.createElement('input'); inp.className = 'ce-edit'; inp.value = cur;
+    let done = false;
+    const finish = async (save) => { if (done) return; done = true; inp.onblur = null;
+        if (save && inp.value.trim() && inp.value.trim() !== cur) { await ceRename(id, inp.value.trim()); } else { ceRender(); } };
+    span.replaceWith(inp); inp.focus(); inp.select();
+    inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { finish(false); } };
+    inp.onblur = () => finish(true);
+}
+async function ceRename(id, name) {
+    const res = await fetch(`/api/wiki-categories/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ name }) });
+    if (!res.ok) { alert('이름 변경 실패'); ceRender(); return; }
+    CE_DIRTY = true; await ceFetch();
+}
+async function ceDelete(id) {
+    if (!confirm('이 카테고리를 삭제할까요?\n하위 카테고리는 상위로 이동하고, 연결된 문서는 상위(또는 미분류)로 이동합니다.')) return;
+    const res = await fetch(`/api/wiki-categories/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' } });
+    if (!res.ok) { alert('삭제 실패'); return; }
+    CE_DIRTY = true; await ceFetch();
+}
+document.getElementById('catEditModal')?.addEventListener('click', e => { if (e.target.id === 'catEditModal') closeCatEditor(); });
+
 function openWikiModal() { document.getElementById('wikiModal').classList.add('open'); }
 function closeWikiModal() { document.getElementById('wikiModal').classList.remove('open'); }
 document.getElementById('wikiModal').addEventListener('click', e => { if (e.target === document.getElementById('wikiModal')) closeWikiModal(); });

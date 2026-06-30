@@ -141,9 +141,22 @@
                 <div class="field-label">제목</div>
                 <input class="field-input" id="editTitle" value="{{ $wiki->title }}" required>
             </div>
-            <div class="field-group" style="width:160px;margin:0;">
+            <div class="field-group" style="width:220px;margin:0;">
                 <div class="field-label">카테고리</div>
-                <input class="field-input" id="editCategory" value="{{ $wiki->category }}" required>
+                @php
+                    $catFlat = [];
+                    $walkCat = function ($parentId, $depth) use (&$walkCat, $tree, &$catFlat) {
+                        foreach ($tree->where('parent_id', $parentId) as $c) {
+                            $catFlat[] = ['id' => $c->id, 'name' => str_repeat('— ', $depth - 1).$c->name];
+                            $walkCat($c->id, $depth + 1);
+                        }
+                    };
+                    $walkCat(null, 1);
+                @endphp
+                <select class="field-input" id="editCategoryId">
+                    <option value="">(미분류)</option>
+                    @foreach($catFlat as $cf)<option value="{{ $cf['id'] }}" {{ (int) $wiki->category_id === $cf['id'] ? 'selected' : '' }}>{{ $cf['name'] }}</option>@endforeach
+                </select>
             </div>
             <div class="field-group" style="width:auto;margin:0;">
                 <div class="field-label">고정</div>
@@ -394,16 +407,15 @@ async function uploadAndInsertToEditor(file) {
 window.saveWiki = async function() {
     const html = editor.getHTML();
     const title = document.getElementById('editTitle').value.trim();
-    const category = document.getElementById('editCategory').value.trim();
+    const categoryId = document.getElementById('editCategoryId').value || null;
     const isPinned = document.getElementById('editPinned').checked;
     if (!title) { alert('제목을 입력해주세요.'); return; }
-    if (!category) { alert('카테고리를 선택해주세요.'); return; }
     if (!html || html==='<p></p>') { alert('내용을 입력해주세요.'); return; }
 
     const res = await fetch('{{ route("wiki.update", $wiki) }}', {
         method:'PATCH',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({ title, category, content:html, is_pinned:isPinned?1:0 }),
+        body:JSON.stringify({ title, category_id:categoryId, content:html, is_pinned:isPinned?1:0 }),
     });
     if (res.ok) {
         location.reload();

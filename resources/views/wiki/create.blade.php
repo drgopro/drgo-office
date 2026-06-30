@@ -58,13 +58,22 @@
             <div class="field-label">제목 *</div>
             <input class="field-input" id="wikiTitle" required placeholder="문서 제목">
         </div>
-        <div class="field-group" style="width:160px;margin:0;">
-            <div class="field-label">카테고리 *</div>
-            <input class="field-input" id="wikiCategory" required placeholder="예: 기술매뉴얼" list="catList">
-            <datalist id="catList">
-                @foreach($categories as $cat)<option value="{{ $cat }}">@endforeach
-                <option value="기술매뉴얼"><option value="업무가이드"><option value="장비매뉴얼"><option value="일반">
-            </datalist>
+        <div class="field-group" style="width:220px;margin:0;">
+            <div class="field-label">카테고리</div>
+            @php
+                $catFlat = [];
+                $walkCat = function ($parentId, $depth) use (&$walkCat, $tree, &$catFlat) {
+                    foreach ($tree->where('parent_id', $parentId) as $c) {
+                        $catFlat[] = ['id' => $c->id, 'name' => str_repeat('— ', $depth - 1).$c->name];
+                        $walkCat($c->id, $depth + 1);
+                    }
+                };
+                $walkCat(null, 1);
+            @endphp
+            <select class="field-input" id="wikiCategoryId">
+                <option value="">(미분류)</option>
+                @foreach($catFlat as $cf)<option value="{{ $cf['id'] }}">{{ $cf['name'] }}</option>@endforeach
+            </select>
         </div>
         <div class="field-group" style="width:auto;margin:0;">
             <div class="field-label">고정</div>
@@ -237,16 +246,15 @@ window.uploadAndInsert=async function(file){
 // 저장
 window.saveNewWiki=async function(){
     const title=document.getElementById('wikiTitle').value.trim();
-    const category=document.getElementById('wikiCategory').value.trim();
+    const categoryId=document.getElementById('wikiCategoryId').value || null;
     const html=editor.getHTML();
     const isPinned=document.getElementById('wikiPinned').checked;
     // 필수값 검증
     if(!title){alert('제목을 입력해주세요.');document.getElementById('wikiTitle').focus();return;}
-    if(!category){alert('카테고리를 선택해주세요.');document.getElementById('wikiCategory').focus();return;}
     if(!html||html==='<p></p>'){alert('내용을 입력해주세요.');editor.commands.focus();return;}
     const res=await fetch('{{ route("wiki.store") }}',{
         method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({title,category,content:html,is_pinned:isPinned?1:0}),
+        body:JSON.stringify({title,category_id:categoryId,content:html,is_pinned:isPinned?1:0}),
     });
     if(res.ok){const data=await res.json();location.href='/wiki/'+data.id;}
     else{

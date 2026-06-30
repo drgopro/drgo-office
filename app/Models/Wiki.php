@@ -12,6 +12,7 @@ class Wiki extends Model
     protected $fillable = [
         'title',
         'category',
+        'category_id',
         'content',
         'diagram_data',
         'is_pinned',
@@ -37,5 +38,10 @@ class Wiki extends Model
     public function attachments()
     {
         return $this->hasMany(WikiAttachment::class)->orderByDesc('created_at');
+    }
+
+    public function categoryNode()
+    {
+        return $this->belongsTo(WikiCategory::class, 'category_id');
     }
 }

@@ -28,6 +28,7 @@ use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\VisitReportTemplateController;
+use App\Http\Controllers\WikiCategoryController;
 use App\Http\Controllers\WikiController;
 use App\Http\Controllers\WorkTypeController;
 use App\Models\ClientFieldDefinition;
@@ -299,6 +300,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
+    // 위키 카테고리 (계층) — 조회는 위키 사용자, 편집은 master/admin
+    Route::get('/api/wiki-categories', [WikiCategoryController::class, 'index']);
+    Route::middleware('role:master,admin')->group(function () {
+        Route::post('/api/wiki-categories', [WikiCategoryController::class, 'store']);
+        Route::patch('/api/wiki-categories/{category}', [WikiCategoryController::class, 'update']);
+        Route::delete('/api/wiki-categories/{category}', [WikiCategoryController::class, 'destroy']);
+    });
 
     // 관리자 (master, admin만)
     // 엑셀 가져오기

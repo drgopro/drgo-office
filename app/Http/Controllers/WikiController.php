@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Wiki;
 use App\Models\WikiAttachment;
+use App\Models\WikiCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -19,39 +20,85 @@ class WikiController extends Controller
                 ->orWhere('title', 'like', "%{$search}%");
         }
 
-        if ($category = $request->query('category')) {
-            $query->where('category', $category);
+        // 카테고리 트리 (계층). cat=category_id 선택 시 해당 노드 + 하위 전체 필터.
+        $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
+        if ($catId = $request->query('cat')) {
+            $ids = $this->descendantIds((int) $catId, $tree);
+            $query->whereIn('category_id', $ids);
+        } elseif ($category = $request->query('category')) {
+            $query->where('category', $category); // 하위 호환 (문자열 카테고리)
         }
 
         $wikis = $query->orderByDesc('is_pinned')->orderByDesc('updated_at')->get();
         $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
+        // 카테고리별 직접 문서 수 (트리 배지용)
+        $catCounts = Wiki::whereNotNull('category_id')->selectRaw('category_id, count(*) as c')
+            ->groupBy('category_id')->pluck('c', 'category_id');
+        $uncategorized = Wiki::whereNull('category_id')->count();
 
-        return view('wiki.index', compact('wikis', 'categories'));
+        return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized'));
+    }
+
+    /** 카테고리 id + 모든 하위 id (flat 트리에서 계산) */
+    private function descendantIds(int $rootId, $tree): array
+    {
+        $byParent = [];
+        foreach ($tree as $c) {
+            $byParent[$c->parent_id][] = $c->id;
+        }
+        $ids = [$rootId];
+        $stack = [$rootId];
+        while ($stack) {
+            $cur = array_pop($stack);
+            foreach ($byParent[$cur] ?? [] as $child) {
+                $ids[] = $child;
+                $stack[] = $child;
+            }
+        }
+
+        return $ids;
     }
 
     public function create()
     {
         $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
+        $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
 
-        return view('wiki.create', compact('categories'));
+        return view('wiki.create', compact('categories', 'tree'));
+    }
+
+    /** category_id가 있으면 노드명으로 category 문자열 동기화(하위 호환·풀텍스트용) */
+    private function syncCategoryName(array &$validated): void
+    {
+        if (! empty($validated['category_id'])) {
+            $node = WikiCategory::find($validated['category_id']);
+            if ($node) {
+                $validated['category'] = mb_substr($node->name, 0, 50);
+            }
+        } elseif (array_key_exists('category_id', $validated) && empty($validated['category'])) {
+            $validated['category'] = '미분류';
+        }
     }
 
     public function show(Wiki $wiki)
     {
         $wiki->load('creator', 'updater');
+        $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
 
-        return view('wiki.show', compact('wiki'));
+        return view('wiki.show', compact('wiki', 'tree'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'title' => 'required|string|max:200',
-            'category' => 'required|string|max:50',
+            'category' => 'nullable|string|max:50',
+            'category_id' => 'nullable|integer|exists:wiki_categories,id',
             'content' => 'required|string',
             'is_pinned' => 'boolean',
         ]);
 
+        $this->syncCategoryName($validated);
         $validated['created_by'] = Auth::id();
         $validated['updated_by'] = Auth::id();
 
@@ -68,11 +115,13 @@ class WikiController extends Controller
     {
         $validated = $request->validate([
             'title' => 'sometimes|string|max:200',
-            'category' => 'sometimes|string|max:50',
+            'category' => 'sometimes|nullable|string|max:50',
+            'category_id' => 'sometimes|nullable|integer|exists:wiki_categories,id',
             'content' => 'sometimes|string',
             'is_pinned' => 'boolean',
         ]);
 
+        $this->syncCategoryName($validated);
         $validated['updated_by'] = Auth::id();
         $wiki->update($validated);
 
