@@ -322,9 +322,14 @@ function renderWikiTree() {
     }
     wrap.innerHTML = html;
 }
-// 행 클릭: 하위가 있어 접기 가능하면 펼치기/접기, 아니면(말단) 해당 카테고리로 필터
+// 행 클릭: 하위가 있으면 펼치기/접기 토글 + 해당 카테고리 필터를 동시에 처리
 function onCatRowClick(id, collapsible) {
-    if (collapsible) { toggleWikiCat(id); } else { filterCatId(id); }
+    if (collapsible) {
+        const set = wikiCollapsedSet();
+        set.has(id) ? set.delete(id) : set.add(id);
+        wikiSaveCollapsed(set);
+    }
+    filterCatId(id); // 현재 카테고리 설정 + 트리/문서목록 즉시 갱신
 }
 function toggleWikiCat(id) {
     const set = wikiCollapsedSet();
