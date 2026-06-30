@@ -9,7 +9,10 @@
     /* 좌측 사이드바 */
     .wiki-sidebar { width:240px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
     .wiki-sidebar-header { padding:16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
-    .wiki-sidebar-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; }
+    .wiki-sidebar-title { font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+    .wiki-cat-mtoggle { display:none; align-items:center; gap:5px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+    .wiki-cat-mtoggle .wcm-caret { font-size:10px; color:var(--text-muted); transition:transform .15s; }
+    .wiki-sidebar.cat-open .wiki-cat-mtoggle .wcm-caret { transform:rotate(180deg); }
     .wiki-sidebar-search { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; width:100%; }
     .wiki-sidebar-search:focus { border-color:var(--accent); }
     .wiki-cat-list { flex:1; display:block; overflow-y:auto; padding:6px 0; min-height:0; }
@@ -98,10 +101,12 @@
     .wiki-preview-pane img { max-width:100%; border-radius:6px; }
 
     @media (max-width:768px) {
-        .wiki-layout { flex-direction:column; height:calc(var(--full-h, 100vh) - var(--chrome-h, 120px)); }
-        .wiki-sidebar { width:100%; border-right:none; border-bottom:1px solid var(--border); max-height:38vh; flex-shrink:0; }
-        /* 계층 트리는 모바일에서도 세로 목록 유지(가로 칩 X) */
-        .wiki-cat-list { display:block; overflow-y:auto; padding:6px 0; }
+        .wiki-layout { flex-direction:column; }
+        .wiki-sidebar { width:100%; border-right:none; border-bottom:1px solid var(--border); flex-shrink:0; max-height:none; }
+        .wiki-cat-mtoggle { display:inline-flex; }
+        /* 모바일: 카테고리 목록은 기본 접힘 → 토글로 펼침(세로 목록) */
+        .wiki-cat-list { display:none; max-height:50vh; overflow-y:auto; padding:6px 0; }
+        .wiki-sidebar.cat-open .wiki-cat-list { display:block; }
     }
 </style>
 @endpush
@@ -138,9 +143,12 @@
 
 <div class="wiki-layout">
     <!-- 좌측: 카테고리 사이드바 -->
-    <div class="wiki-sidebar">
+    <div class="wiki-sidebar" id="wikiSidebar">
         <div class="wiki-sidebar-header">
-            <div class="wiki-sidebar-title">📖 위키</div>
+            <div class="wiki-sidebar-title">
+                <span>📖 위키</span>
+                <button type="button" class="wiki-cat-mtoggle" onclick="document.getElementById('wikiSidebar').classList.toggle('cat-open')">카테고리 <span class="wcm-caret">▾</span></button>
+            </div>
             <form method="GET" action="{{ route('wiki.index') }}" id="wikiSearchForm">
                 <input class="wiki-sidebar-search" type="text" name="search" placeholder="문서 검색..." value="{{ request('search') }}">
                 <input type="hidden" name="category" id="catInput" value="{{ $currentCat }}">
