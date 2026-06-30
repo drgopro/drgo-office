@@ -315,7 +315,7 @@ function renderWikiTree() {
         const caret = kids.length
             ? `<span class="wiki-cat-caret ${isCollapsed ? '' : 'open'}" onclick="event.stopPropagation();toggleWikiCat(${c.id})">▸</span>`
             : `<span class="wiki-cat-caret blank"></span>`;
-        let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" style="padding-left:${depth * 14}px" onclick="filterCatId(${c.id})">
+        let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" style="padding-left:${depth * 14}px" onclick="onCatRowClick(${c.id}, ${canCollapse ? 1 : 0})">
             ${canCollapse ? caret : `<span class="wiki-cat-caret blank"></span>`}
             <span class="wiki-cat-name">${wikiEsc(c.name)}</span>
             <span class="wiki-cat-count">${wikiTotalCount(c.id, childMap)}</span></div>`;
@@ -329,6 +329,10 @@ function renderWikiTree() {
         html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
     }
     wrap.innerHTML = html;
+}
+// 행 클릭: 하위가 있어 접기 가능하면 펼치기/접기, 아니면(말단) 해당 카테고리로 필터
+function onCatRowClick(id, collapsible) {
+    if (collapsible) { toggleWikiCat(id); } else { filterCatId(id); }
 }
 function toggleWikiCat(id) {
     const set = wikiCollapsedSet();
