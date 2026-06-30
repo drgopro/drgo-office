@@ -26,7 +26,7 @@
     .wiki-cat-row.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
     .wiki-cat-caret { flex-shrink:0; width:16px; text-align:center; font-size:10px; color:var(--text-muted); transition:transform .12s; cursor:pointer; }
     .wiki-cat-caret.open { transform:rotate(90deg); }
-    .wiki-cat-caret.empty { visibility:hidden; }
+    .wiki-cat-caret.blank { visibility:hidden; }
     .wiki-cat-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .wiki-cat-children.collapsed { display:none; }
     /* 강제 컴팩트 — 외부 규칙으로 행이 부풀어도 덮어쓰기 */
@@ -306,7 +306,7 @@ function renderWikiTree() {
     const total = WIKI_TREE_DATA.reduce((s, c) => s + (WIKI_CAT_COUNTS[c.id] || 0), 0) + WIKI_UNCAT;
 
     let html = `<div class="wiki-cat-row ${!WIKI_CUR_CAT ? 'active' : ''}" onclick="filterCatId('')">
-        <span class="wiki-cat-caret empty"></span><span class="wiki-cat-name">전체</span><span class="wiki-cat-count">${total}</span></div>`;
+        <span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">전체</span><span class="wiki-cat-count">${total}</span></div>`;
 
     function node(c, depth) {
         const kids = childMap[c.id] || [];
@@ -314,9 +314,9 @@ function renderWikiTree() {
         const isCollapsed = collapsed.has(c.id);
         const caret = kids.length
             ? `<span class="wiki-cat-caret ${isCollapsed ? '' : 'open'}" onclick="event.stopPropagation();toggleWikiCat(${c.id})">▸</span>`
-            : `<span class="wiki-cat-caret empty"></span>`;
+            : `<span class="wiki-cat-caret blank"></span>`;
         let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" style="padding-left:${depth * 14}px" onclick="filterCatId(${c.id})">
-            ${canCollapse ? caret : `<span class="wiki-cat-caret empty"></span>`}
+            ${canCollapse ? caret : `<span class="wiki-cat-caret blank"></span>`}
             <span class="wiki-cat-name">${wikiEsc(c.name)}</span>
             <span class="wiki-cat-count">${wikiTotalCount(c.id, childMap)}</span></div>`;
         if (kids.length) {
@@ -326,7 +326,7 @@ function renderWikiTree() {
     }
     html += (childMap[null] || []).map(c => node(c, 1)).join('');
     if (WIKI_UNCAT > 0) {
-        html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret empty"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
+        html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
     }
     wrap.innerHTML = html;
 }
