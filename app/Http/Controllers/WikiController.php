@@ -20,14 +20,8 @@ class WikiController extends Controller
                 ->orWhere('title', 'like', "%{$search}%");
         }
 
-        // 카테고리 트리 (계층). cat=category_id 선택 시 해당 노드 + 하위 전체 필터.
+        // 카테고리 트리 (계층). 카테고리 필터는 클라이언트에서 즉시 처리(새로고침 없음).
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
-        if ($catId = $request->query('cat')) {
-            $ids = $this->descendantIds((int) $catId, $tree);
-            $query->whereIn('category_id', $ids);
-        } elseif ($category = $request->query('category')) {
-            $query->where('category', $category); // 하위 호환 (문자열 카테고리)
-        }
 
         $wikis = $query->orderByDesc('is_pinned')->orderByDesc('updated_at')->get();
         $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');

@@ -170,36 +170,16 @@
     <!-- 우측: 문서 목록 -->
     <div class="wiki-main">
         <div class="wiki-main-header">
-            <div class="wiki-main-title">{{ $currentCat ?: '전체 문서' }}</div>
+            <div class="wiki-main-title" id="wikiMainTitle">전체 문서</div>
             <div style="display:flex; align-items:center; gap:12px;">
-                <div class="wiki-main-count">{{ $wikis->count() }}건</div>
+                <div class="wiki-main-count" id="wikiMainCount">{{ $wikis->count() }}건</div>
                 @if(auth()->user()->isAdmin())
                     <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()">🗂 카테고리 편집</button>
                 @endif
             </div>
         </div>
 
-        @if($wikis->count() > 0)
-            <div class="wiki-list">
-                @foreach($wikis as $wiki)
-                <div class="wiki-item {{ $wiki->is_pinned ? 'pinned' : '' }}" onclick="location.href='{{ route('wiki.show', $wiki) }}'">
-                    <div class="wiki-item-header">
-                        @if($wiki->is_pinned)<span class="wiki-pin">📌</span>@endif
-                        <div class="wiki-title">{{ $wiki->title }}</div>
-                    </div>
-                    <div class="wiki-meta">
-                        @php $wp = $wikiCatPath($wiki->category_id); @endphp
-                        <span class="wiki-cat-badge">{{ !empty($wp) ? implode(' › ', $wp) : ($wiki->category ?: '미분류') }}</span>
-                        <span>{{ $wiki->creator?->display_name ?? '알 수 없음' }}</span>
-                        <span>{{ $wiki->updated_at->format('Y.m.d H:i') }}</span>
-                    </div>
-                    <div class="wiki-preview">{{ Str::limit(strip_tags($wiki->content), 120) }}</div>
-                </div>
-                @endforeach
-            </div>
-        @else
-            <div class="empty">{{ $currentCat ? $currentCat.' 카테고리에 문서가 없습니다.' : '등록된 문서가 없습니다.' }}</div>
-        @endif
+        <div class="wiki-list" id="wikiDocList"></div>
     </div>
 </div>
 
@@ -278,7 +258,16 @@
 const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' => $c->parent_id, 'name' => $c->name])->values());
 const WIKI_CAT_COUNTS = @json($catCounts);
 const WIKI_UNCAT = {{ (int) $uncategorized }};
-const WIKI_CUR_CAT = {{ (int) request('cat') }};
+let WIKI_CUR_CAT = {{ (int) request('cat') }};
+const WIKI_DOCS = @json($wikis->map(fn ($w) => [
+    'id' => $w->id,
+    'title' => $w->title,
+    'category_id' => $w->category_id,
+    'is_pinned' => (bool) $w->is_pinned,
+    'creator' => $w->creator?->display_name ?? '알 수 없음',
+    'updated' => $w->updated_at->format('Y.m.d H:i'),
+    'preview' => \Illuminate\Support\Str::limit(strip_tags($w->content), 120),
+])->values());
 const WIKI_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
 const WIKI_COLLAPSE_KEY = 'wikiCatCollapsed';
 
@@ -340,13 +329,49 @@ function toggleWikiCat(id) {
     wikiSaveCollapsed(set);
     renderWikiTree();
 }
+// 카테고리 필터 — 새로고침 없이 즉시 목록 갱신
 function filterCatId(id) {
+    WIKI_CUR_CAT = id ? parseInt(id, 10) : 0;
     const params = new URLSearchParams(window.location.search);
-    if (id) { params.set('cat', id); } else { params.delete('cat'); }
+    if (WIKI_CUR_CAT) { params.set('cat', WIKI_CUR_CAT); } else { params.delete('cat'); }
     params.delete('category');
-    window.location.search = params.toString();
+    history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : ''));
+    renderWikiTree();
+    renderDocList();
+}
+// 해당 카테고리 + 하위 전체 id 집합
+function wikiDescendantSet(rootId) {
+    const childMap = wikiChildrenMap(WIKI_TREE_DATA);
+    const ids = new Set([rootId]); const stack = [rootId];
+    while (stack.length) { const cur = stack.pop(); (childMap[cur] || []).forEach(ch => { ids.add(ch.id); stack.push(ch.id); }); }
+    return ids;
+}
+function wikiCatName(id) { const c = WIKI_TREE_DATA.find(x => x.id === id); return c ? c.name : '전체 문서'; }
+function wikiCatPathStr(id) {
+    if (!id) return '미분류';
+    const byId = {}; WIKI_TREE_DATA.forEach(c => byId[c.id] = c);
+    const p = []; let n = byId[id];
+    while (n) { p.unshift(n.name); n = n.parent_id ? byId[n.parent_id] : null; }
+    return p.length ? p.join(' › ') : '미분류';
+}
+function renderDocList() {
+    const list = document.getElementById('wikiDocList');
+    let docs = WIKI_DOCS;
+    if (WIKI_CUR_CAT) { const ids = wikiDescendantSet(WIKI_CUR_CAT); docs = WIKI_DOCS.filter(d => ids.has(d.category_id)); }
+    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서';
+    document.getElementById('wikiMainCount').textContent = docs.length + '건';
+    if (!docs.length) { list.innerHTML = '<div class="empty">해당 카테고리에 문서가 없습니다.</div>'; return; }
+    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''}" onclick="location.href='/wiki/${d.id}'">
+        <div class="wiki-item-header">${d.is_pinned ? '<span class="wiki-pin">📌</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
+        <div class="wiki-meta">
+            <span class="wiki-cat-badge">${wikiEsc(wikiCatPathStr(d.category_id))}</span>
+            <span>${wikiEsc(d.creator)}</span><span>${d.updated}</span>
+        </div>
+        <div class="wiki-preview">${wikiEsc(d.preview)}</div>
+    </div>`).join('');
 }
 renderWikiTree();
+renderDocList();
 
 // 레이아웃 높이를 실제 가용 공간에 맞춤(하단 잘림 방지)
 function fitWikiLayout() {
