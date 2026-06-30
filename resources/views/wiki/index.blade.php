@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-    .wiki-layout { display:flex; height:calc(100vh - 120px); overflow:hidden; }
+    .wiki-layout { display:flex; height:calc(var(--full-h, 100vh) - var(--chrome-h, 120px)); overflow:hidden; }
 
     /* 좌측 사이드바 */
     .wiki-sidebar { width:240px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
@@ -95,11 +95,10 @@
     .wiki-preview-pane img { max-width:100%; border-radius:6px; }
 
     @media (max-width:768px) {
-        .wiki-layout { flex-direction:column; height:auto; }
-        .wiki-sidebar { width:100%; border-right:none; border-bottom:1px solid var(--border); max-height:200px; }
-        .wiki-cat-list { display:flex; flex-wrap:wrap; gap:4px; padding:8px 16px; overflow-x:auto; overflow-y:hidden; }
-        .wiki-cat-item { padding:5px 12px; border-left:none; border-radius:20px; border:1px solid var(--border); white-space:nowrap; }
-        .wiki-cat-item.active { border-color:var(--accent); }
+        .wiki-layout { flex-direction:column; height:calc(var(--full-h, 100vh) - var(--chrome-h, 120px)); }
+        .wiki-sidebar { width:100%; border-right:none; border-bottom:1px solid var(--border); max-height:38vh; flex-shrink:0; }
+        /* 계층 트리는 모바일에서도 세로 목록 유지(가로 칩 X) */
+        .wiki-cat-list { display:block; overflow-y:auto; padding:6px 0; }
     }
 </style>
 @endpush
@@ -232,7 +231,7 @@
         <div class="ce-head"><span>🗂 카테고리 편집</span><button class="ce-mini" onclick="closeCatEditor()">✕</button></div>
         <div class="ce-body">
             <div class="ce-addtop">
-                <input type="text" id="ceTopInput" placeholder="새 최상위 카테고리 이름" onkeydown="if(event.key==='Enter'){event.preventDefault();ceAdd(null,this);}">
+                <input type="text" id="ceTopInput" placeholder="새 최상위 카테고리 이름" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();ceAdd(null,this);}">
                 <button class="ce-mini" onclick="ceAdd(null, document.getElementById('ceTopInput'))">+ 추가</button>
             </div>
             <div id="ceTree"></div>
@@ -349,11 +348,15 @@ function ceRender() {
     document.getElementById('ceTree').innerHTML = (map[null] || []).map(c => node(c, 1)).join('')
         || '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">카테고리가 없습니다. 위에서 추가하세요.</div>';
 }
+let CE_BUSY = false;
 async function ceAdd(parentId, inputEl) {
-    const name = (inputEl.value || '').trim(); if (!name) return;
-    const res = await fetch('/api/wiki-categories', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ name, parent_id: parentId }) });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '추가 실패'); return; }
-    inputEl.value = ''; CE_DIRTY = true; await ceFetch();
+    const name = (inputEl.value || '').trim(); if (!name || CE_BUSY) return;
+    CE_BUSY = true; inputEl.disabled = true;
+    try {
+        const res = await fetch('/api/wiki-categories', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ name, parent_id: parentId }) });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '추가 실패'); return; }
+        inputEl.value = ''; CE_DIRTY = true; await ceFetch();
+    } finally { CE_BUSY = false; inputEl.disabled = false; }
 }
 function ceAddChild(id) {
     const row = document.querySelector(`.ce-row[data-id="${id}"]`); if (!row) return;
@@ -363,7 +366,7 @@ function ceAddChild(id) {
     div.style.paddingLeft = (parseInt(row.style.paddingLeft || '0', 10) + 16) + 'px';
     div.innerHTML = `<input class="ce-edit" placeholder="하위 카테고리 이름">`;
     const inp = div.querySelector('input');
-    inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); ceAdd(id, inp); } else if (e.key === 'Escape') { div.remove(); } };
+    inp.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); ceAdd(id, inp); } else if (e.key === 'Escape') { div.remove(); } };
     inp.onblur = () => { if (!inp.value.trim()) div.remove(); };
     row.after(div); inp.focus();
 }
@@ -375,7 +378,7 @@ function ceRenameStart(id) {
     const finish = async (save) => { if (done) return; done = true; inp.onblur = null;
         if (save && inp.value.trim() && inp.value.trim() !== cur) { await ceRename(id, inp.value.trim()); } else { ceRender(); } };
     span.replaceWith(inp); inp.focus(); inp.select();
-    inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { finish(false); } };
+    inp.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { finish(false); } };
     inp.onblur = () => finish(true);
 }
 async function ceRename(id, name) {
