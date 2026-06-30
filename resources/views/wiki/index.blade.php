@@ -29,11 +29,8 @@
     .wiki-cat-caret.blank { visibility:hidden; }
     .wiki-cat-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .wiki-cat-children.collapsed { display:none; }
-    /* 강제 컴팩트 — 외부 규칙으로 행이 부풀어도 덮어쓰기 */
-    #wikiCatTree { display:block !important; }
-    #wikiCatTree .wiki-cat-row { min-height:0 !important; height:auto !important; margin:0 !important; padding:5px 10px 5px 4px !important; line-height:1.3 !important; flex:0 0 auto !important; }
-    #wikiCatTree .wiki-cat-children { margin:0 !important; padding:0 !important; display:block; }
-    #wikiCatTree .wiki-cat-children.collapsed { display:none !important; }
+    /* 하위 계층: 중첩 컨테이너마다 들여쓰기 + 점선 가이드 라인 */
+    #wikiCatTree .wiki-cat-children { margin-left:16px; border-left:1px dashed var(--border); }
     .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
     .wiki-cat-edit-btn:hover { border-color:var(--accent); color:var(--accent); }
     /* 카테고리 편집 모달 */
@@ -307,7 +304,7 @@ function renderWikiTree() {
         const caret = kids.length
             ? `<span class="wiki-cat-caret ${isCollapsed ? '' : 'open'}" onclick="event.stopPropagation();toggleWikiCat(${c.id})">▸</span>`
             : `<span class="wiki-cat-caret blank"></span>`;
-        let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" style="padding-left:${depth * 14}px" onclick="onCatRowClick(${c.id}, ${canCollapse ? 1 : 0})">
+        let h = `<div class="wiki-cat-row ${WIKI_CUR_CAT === c.id ? 'active' : ''}" onclick="onCatRowClick(${c.id}, ${canCollapse ? 1 : 0})">
             ${canCollapse ? caret : `<span class="wiki-cat-caret blank"></span>`}
             <span class="wiki-cat-name">${wikiEsc(c.name)}</span>
             <span class="wiki-cat-count">${wikiTotalCount(c.id, childMap)}</span></div>`;
