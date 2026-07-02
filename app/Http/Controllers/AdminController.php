@@ -22,6 +22,7 @@ class AdminController extends Controller
         $sellerSettings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
+            'calendar_visit_options',
         ]);
 
         return view('admin.index', compact('logs', 'sellerSettings'));
@@ -32,12 +33,13 @@ class AdminController extends Controller
         return response()->json(Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
+            'calendar_visit_options',
         ]));
     }
 
     public function updateSettings(Request $request)
     {
-        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone'];
+        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options'];
 
         foreach ($keys as $key) {
             if ($request->has($key)) {

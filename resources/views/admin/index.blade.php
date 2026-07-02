@@ -236,6 +236,7 @@
             <button class="sub-tab-btn" data-subtab="workTypes" onclick="switchSettingsSubTab('workTypes')">작업 유형</button>
             <button class="sub-tab-btn" data-subtab="calendarCategories" onclick="switchSettingsSubTab('calendarCategories')">캘린더 카테고리</button>
             <button class="sub-tab-btn" data-subtab="reportTemplates" onclick="switchSettingsSubTab('reportTemplates')">보고서 템플릿</button>
+            <button class="sub-tab-btn" data-subtab="visitOptions" onclick="switchSettingsSubTab('visitOptions')">내방 옵션</button>
             <button class="sub-tab-btn" data-subtab="seller" onclick="switchSettingsSubTab('seller')">판매처 설정</button>
         </div>
         <div id="settingsContent"></div>
@@ -879,6 +880,24 @@
         </div>
     </div>
 
+    {{-- 내방 옵션 (미팅/내방 카테고리 체크박스) --}}
+    <div class="tab-panel" id="panel-visitOptions">
+        <div class="settings-form">
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
+                캘린더에서 <b>미팅/내방</b> 카테고리를 선택하면 주소 검색 위에 나타나는 <b>체크박스 선택지</b>를 관리합니다.<br>
+                한 줄에 하나씩 입력하세요. (체크 시 주소 검색은 숨겨집니다)
+            </div>
+            <div class="field-group">
+                <div class="field-label">내방 옵션 (한 줄에 하나)</div>
+                <textarea class="field-input" id="visitOptionsText" rows="7" placeholder="예:&#10;사무실 방문&#10;화상 미팅&#10;외부 미팅" style="resize:vertical; line-height:1.7; font-family:inherit;">{{ $sellerSettings['calendar_visit_options'] ?? '' }}</textarea>
+            </div>
+            <div style="display:flex; align-items:center;">
+                <button class="btn-save" onclick="saveVisitOptions()">저장</button>
+                <span class="save-msg" id="visitOptionsSaveMsg">저장되었습니다.</span>
+            </div>
+        </div>
+    </div>
+
     {{-- 판매처 설정 --}}
     <div class="tab-panel" id="panel-seller">
         <div class="settings-form">
@@ -1013,6 +1032,7 @@ const SETTINGS_PANEL_MAP = {
     workTypes:     { panel: 'panel-workTypes', load: () => typeof loadWorkTypes === 'function' && loadWorkTypes() },
     calendarCategories: { panel: 'panel-calendarCategories', load: () => typeof loadCalendarCategories === 'function' && loadCalendarCategories() },
     reportTemplates: { panel: 'panel-reportTemplates', load: () => typeof loadReportTemplates === 'function' && loadReportTemplates() },
+    visitOptions: { panel: 'panel-visitOptions', load: () => {} },
     seller: { panel: 'panel-seller', load: () => {} },
 };
 
@@ -1631,6 +1651,18 @@ async function saveSellerSettings() {
         body: JSON.stringify(body)
     });
     const msg = document.getElementById('sellerSaveMsg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+// ── 내방 옵션 ──
+async function saveVisitOptions() {
+    await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ calendar_visit_options: document.getElementById('visitOptionsText').value })
+    });
+    const msg = document.getElementById('visitOptionsSaveMsg');
     msg.style.display = 'inline';
     setTimeout(() => msg.style.display = 'none', 2000);
 }

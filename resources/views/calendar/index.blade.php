@@ -371,6 +371,10 @@
     .special-opts { display:flex; gap:7px; flex-wrap:wrap; margin-top:4px; }
     .special-opt-btn { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:8px; cursor:pointer; border:1.5px solid var(--border); background:var(--surface2); font-size:12px; transition:all 0.15s; user-select:none; color:var(--text-muted); white-space:nowrap; }
     .special-opt-btn .opt-icon { font-size:15px; flex-shrink:0; }
+    .visit-opts { display:flex; flex-wrap:wrap; gap:8px; }
+    .visit-opts .visit-opt { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface2); font-size:13px; cursor:pointer; color:var(--text); user-select:none; }
+    .visit-opts .visit-opt:has(input:checked) { border-color:var(--accent); background:rgba(200,176,138,0.18); color:var(--accent); font-weight:600; }
+    .visit-opts .visit-opt input { cursor:pointer; }
     .special-opt-btn:hover { border-color:var(--accent); background:rgba(200,176,138,0.1); color:var(--text); }
     .special-opt-btn.active { border-color:var(--accent); background:rgba(200,176,138,0.18); color:var(--accent); box-shadow:0 0 0 2px rgba(200,176,138,0.2); }
 
@@ -792,8 +796,16 @@
             {{-- 잠금 요약 뷰 (isLocked=true 일 때 표시) --}}
             <div id="lockSummary" class="lock-summary"></div>
 
+            {{-- 미팅/내방 옵션 (미팅/내방 카테고리 전용) --}}
+            <div class="field-section" id="visitOptsSection" style="display:none;">
+                <div class="field-group">
+                    <label class="field-label">내방 옵션</label>
+                    <div class="visit-opts" id="visitOptsList"></div>
+                </div>
+            </div>
+
             {{-- 장소 --}}
-            <div class="field-section">
+            <div class="field-section" id="addressBlock">
                 <div class="field-group">
                     <label class="field-label" for="modalLocation">장소 <span class="req">*</span></label>
                     <div class="location-input-wrap">
@@ -1377,6 +1389,7 @@ function getHoliday(dateStr) {
 const canEditCalendar = @json(Auth::user()->hasPermission('calendar.edit'));
 const isGuestUser = @json(Auth::user()->isGuest());
 const CAL_USER_ID = @json(Auth::id());
+const CAL_VISIT_OPTIONS = @json(collect(explode("\n", (string) \App\Models\Setting::get('calendar_visit_options', '')))->map(fn ($s) => trim($s))->filter()->values());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;
@@ -2205,6 +2218,30 @@ function setColor(c){
     document.getElementById('standardDtRows').style.display=c==='gold'?'none':'';
     document.getElementById('goldDtRow').style.display=c==='gold'?'flex':'none';
     updateBalanceBanner();
+    applyVisitOptsUI();
+}
+
+// ── 미팅/내방 옵션 ──
+function renderVisitOpts(){
+    const list=document.getElementById('visitOptsList');
+    if(!list) return;
+    list.innerHTML=(CAL_VISIT_OPTIONS||[]).map(opt=>{
+        const v=String(opt).replace(/"/g,'&quot;'); const t=String(opt).replace(/</g,'&lt;');
+        return `<label class="visit-opt"><input type="checkbox" value="${v}" onchange="onVisitOptChange()">${t}</label>`;
+    }).join('') || '<span style="font-size:12px;color:var(--text-muted);">관리 → 설정에서 내방 옵션을 추가하세요.</span>';
+}
+function applyVisitOptsUI(){
+    const sec=document.getElementById('visitOptsSection');
+    const addr=document.getElementById('addressBlock');
+    if(!sec||!addr) return;
+    if(currentColor==='purple'){ sec.style.display=''; onVisitOptChange(); }
+    else { sec.style.display='none'; addr.style.display=''; }
+}
+function onVisitOptChange(){
+    const addr=document.getElementById('addressBlock');
+    if(!addr) return;
+    const anyChecked=[...document.querySelectorAll('#visitOptsList input:checked')].length>0;
+    addr.style.display=(currentColor==='purple' && anyChecked) ? 'none' : '';
 }
 
 // ── 담당자 ──
@@ -2820,6 +2857,8 @@ function openHistoryFromEdit(){
 
 // ── 폼 초기화 ──
 function resetModalForm(){
+    // 미팅/내방 옵션 체크 초기화
+    document.querySelectorAll('#visitOptsList input:checked').forEach(cb=>cb.checked=false);
     // 라디오 그룹 초기화
     ['g_platform_group','g_career_group','g_source_group','g_topic_group','g_budget_group','g_req_topic_group','g_paid_group','g_order_group','g_delivery_group','g_balance_group','teal_mode_group'].forEach(id=>clearRadio(id));
     // 기본값 세팅
@@ -3171,7 +3210,11 @@ function openEditModal(ev){
     // 일정옵션
     if(ev.sched_event_opts){const opts=Array.isArray(ev.sched_event_opts)?ev.sched_event_opts:[];opts.forEach(v=>{const b=document.querySelector(`#schedEventOpts [data-seopt="${v}"]`);if(b)b.classList.add('active');});if(opts.includes('after'))document.getElementById('schedReasonWrap').style.display='';}
     if(ev.sched_opt){const b=document.querySelector(`#scheduleOpts [data-sopt="${ev.sched_opt}"]`);if(b)b.classList.add('active');}
-    if(ev.special_opts){const opts=Array.isArray(ev.special_opts)?ev.special_opts:[];opts.forEach(v=>{const b=document.querySelector(`#specialOpts [data-opt="${v}"]`);if(b)b.classList.add('active');});}
+    if(ev.special_opts){const opts=Array.isArray(ev.special_opts)?ev.special_opts:[];opts.forEach(v=>{const b=document.querySelector(`#specialOpts [data-opt="${v}"]`);if(b)b.classList.add('active');});
+        // 미팅/내방 옵션 체크 복원
+        document.querySelectorAll('#visitOptsList input').forEach(cb=>{ cb.checked=opts.includes(cb.value); });
+        applyVisitOptsUI();
+    }
     if(ev.sched_after_reason) document.getElementById('schedAfterReason').value=ev.sched_after_reason;
     // 공통 필드
     document.getElementById('commonDesc').value=ev.description||'';
@@ -3376,7 +3419,9 @@ async function saveEvent(){
     // schedEventOpts 수집
     const schedEventOpts=[...document.querySelectorAll('#schedEventOpts .special-opt-btn.active')].map(b=>b.dataset.seopt);
     const schedOpt=(()=>{const a=document.querySelector('#scheduleOpts .sched-opt-btn.active');return a?a.dataset.sopt:null;})();
-    const specialOpts=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')].map(b=>b.dataset.opt);
+    let specialOpts=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')].map(b=>b.dataset.opt);
+    // 미팅/내방 옵션(체크박스)도 special_opts에 함께 저장
+    if(currentColor==='purple'){ specialOpts=specialOpts.concat([...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value)); }
 
     const data={
         title:document.getElementById('modalTitle').value.trim()||'(제목 없음)',
@@ -3869,6 +3914,7 @@ CAL_AUTOGROW_IDS.forEach(id => {
     if (el) { el.classList.add('autogrow'); el.addEventListener('input', () => calAutoGrow(el)); }
 });
 
+renderVisitOpts();
 init();
 </script>
 @endpush
