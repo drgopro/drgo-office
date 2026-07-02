@@ -2912,10 +2912,11 @@ function openNewModal(dateStr,timeStr){
     setEditModeUI();
     setColor('gold');
     document.getElementById('modalTitle').value='';
-    // 날짜
-    document.getElementById('startDate').value=dateStr||'';
-    document.getElementById('endDate').value=dateStr||'';
-    document.getElementById('goldStartDate').value=dateStr||'';
+    // 날짜 — 미지정 시 오늘로 기본 지정
+    const ds=dateStr||todayStr();
+    document.getElementById('startDate').value=ds;
+    document.getElementById('endDate').value=ds;
+    document.getElementById('goldStartDate').value=ds;
     // 시간
     const st=timeStr||'13:00';
     const etH=String(Math.min(parseInt(st)+1,23)).padStart(2,'0');
