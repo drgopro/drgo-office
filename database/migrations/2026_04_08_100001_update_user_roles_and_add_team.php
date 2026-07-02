@@ -13,8 +13,14 @@ return new class extends Migration
         DB::table('users')->where('role', 'sales')->update(['role' => 'member']);
         DB::table('users')->where('role', 'freelance')->update(['role' => 'member']);
 
-        // enum 변경
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('master','admin','member','guest') NOT NULL DEFAULT 'member'");
+        // enum 변경 (sqlite 테스트 환경은 enum CHECK 해제를 위해 string으로)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('master','admin','member','guest') NOT NULL DEFAULT 'member'");
+        } else {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('role', 20)->default('member')->change();
+            });
+        }
 
         // team_id FK 추가
         Schema::table('users', function (Blueprint $table) {
@@ -28,6 +34,8 @@ return new class extends Migration
             $table->dropConstrainedForeignId('team_id');
         });
 
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('master','admin','sales','member','freelance') NOT NULL DEFAULT 'member'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('master','admin','sales','member','freelance') NOT NULL DEFAULT 'member'");
+        }
     }
 };

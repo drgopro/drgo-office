@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -16,7 +17,13 @@ return new class extends Migration
             return;
         }
         // doctrine/dbal 없이도 동작하도록 raw SQL 사용 (MySQL/MariaDB 호환)
-        DB::statement("ALTER TABLE schedules MODIFY color VARCHAR(30) NOT NULL DEFAULT 'gold'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE schedules MODIFY color VARCHAR(30) NOT NULL DEFAULT 'gold'");
+        } else {
+            Schema::table('schedules', function (Blueprint $table) {
+                $table->string('color', 30)->default('gold')->change();
+            });
+        }
     }
 
     public function down(): void
@@ -25,7 +32,9 @@ return new class extends Migration
             return;
         }
         // 기본 enum으로 되돌림. 새 카테고리 값이 있으면 'gold'로 강제됨.
-        DB::statement("UPDATE schedules SET color='gold' WHERE color NOT IN ('gold','teal','blue','red','green','purple','holiday')");
-        DB::statement("ALTER TABLE schedules MODIFY color ENUM('gold','teal','blue','red','green','purple','holiday') NOT NULL DEFAULT 'gold'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("UPDATE schedules SET color='gold' WHERE color NOT IN ('gold','teal','blue','red','green','purple','holiday')");
+            DB::statement("ALTER TABLE schedules MODIFY color ENUM('gold','teal','blue','red','green','purple','holiday') NOT NULL DEFAULT 'gold'");
+        }
     }
 };

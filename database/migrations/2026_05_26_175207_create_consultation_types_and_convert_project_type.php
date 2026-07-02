@@ -38,13 +38,19 @@ return new class extends Migration
 
         // 2) projects.project_type ENUM → VARCHAR (관리자가 새 key 추가 가능하도록)
         if (Schema::hasColumn('projects', 'project_type')) {
-            DB::statement("ALTER TABLE projects MODIFY COLUMN project_type VARCHAR(50) NOT NULL DEFAULT 'visit'");
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE projects MODIFY COLUMN project_type VARCHAR(50) NOT NULL DEFAULT 'visit'");
+            } else {
+                Schema::table('projects', function (Blueprint $table) {
+                    $table->string('project_type', 50)->default('visit')->change();
+                });
+            }
         }
     }
 
     public function down(): void
     {
-        if (Schema::hasColumn('projects', 'project_type')) {
+        if (Schema::hasColumn('projects', 'project_type') && DB::getDriverName() === 'mysql') {
             DB::statement("UPDATE projects SET project_type='visit' WHERE project_type NOT IN ('visit','remote','design','inquiry','as','troubleshoot')");
             DB::statement("ALTER TABLE projects MODIFY COLUMN project_type ENUM('visit','remote','design','inquiry','as','troubleshoot') NOT NULL DEFAULT 'visit'");
         }

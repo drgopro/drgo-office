@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignee;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,28 +10,7 @@ class AssigneeController extends Controller
 {
     public function index(): JsonResponse
     {
-        // master/admin/member 역할의 활성 사용자를 Assignee에 자동 등록
-        $users = User::where('is_active', true)
-            ->whereIn('role', ['master', 'admin', 'member'])
-            ->get();
-
-        foreach ($users as $user) {
-            Assignee::firstOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'name' => $user->display_name ?? $user->username,
-                    'is_active' => true,
-                    'display_order' => 0,
-                ]
-            );
-        }
-
-        // 시스템 사용자가 비활성/삭제되면 그에 연결된 Assignee도 비활성화 (외부 Assignee는 손대지 않음)
-        $activeUserIds = $users->pluck('id')->toArray();
-        Assignee::whereNotNull('user_id')
-            ->whereNotIn('user_id', $activeUserIds)
-            ->update(['is_active' => false]);
-
+        // 사용자↔Assignee 동기화는 User::saved 이벤트에서 처리 (User::syncAssignee)
         // 활성 Assignee 반환 (외부 담당자 포함) — user_id 포함(본인 식별용)
         $assignees = Assignee::where('is_active', true)
             ->orderBy('display_order')

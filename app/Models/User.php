@@ -37,6 +37,42 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        // 사용자 생성/수정 시 캘린더 담당자(Assignee) 동기화 — 매 조회마다 하던 것을 저장 시점으로 이동
+        static::saved(function (User $user) {
+            $user->syncAssignee();
+        });
+    }
+
+    /**
+     * 캘린더 담당자 풀과 동기화.
+     * master/admin/member 활성 사용자는 Assignee 활성, 그 외(비활성/guest)는 비활성 처리.
+     */
+    public function syncAssignee(): void
+    {
+        $eligible = $this->is_active && in_array($this->role, ['master', 'admin', 'member'], true);
+
+        $assignee = Assignee::firstWhere('user_id', $this->id);
+
+        if (! $eligible) {
+            $assignee?->update(['is_active' => false]);
+
+            return;
+        }
+
+        if ($assignee) {
+            $assignee->update(['is_active' => true]);
+        } else {
+            Assignee::create([
+                'user_id' => $this->id,
+                'name' => $this->display_name ?? $this->username,
+                'is_active' => true,
+                'display_order' => 0,
+            ]);
+        }
+    }
+
     /** @return BelongsTo<Team, $this> */
     public function team(): BelongsTo
     {
