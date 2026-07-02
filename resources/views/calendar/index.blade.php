@@ -847,11 +847,12 @@
                         <div class="time-picker-trigger dt-input" id="endTimeTrigger" onclick="openTimePicker(this,'endTime')">14:00</div>
                     </div>
                 </div>
-                <div id="goldDtRow" style="display:none;align-items:center;gap:6px;flex-wrap:nowrap;width:100%;">
+                <div id="goldDtRow" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;width:100%;">
                     <input class="dt-input" type="date" id="goldStartDate" style="flex:2;min-width:0;">
                     <input type="hidden" id="goldStartTime" value="13:00">
                     <div class="time-picker-trigger dt-input" id="goldStartTimeTrigger" onclick="openTimePicker(this,'goldStartTime')" style="flex:1;min-width:0;">13:00</div>
                     <span style="color:var(--text-muted);font-size:13px;flex-shrink:0;">~</span>
+                    <input class="dt-input" type="date" id="goldEndDate" style="flex:2;min-width:0;">
                     <input type="hidden" id="goldEndTime" value="14:00">
                     <div class="time-picker-trigger dt-input" id="goldEndTimeTrigger" onclick="openTimePicker(this,'goldEndTime')" style="flex:1;min-width:0;">14:00</div>
                 </div>
@@ -2362,7 +2363,7 @@ function renderLockSummary(){
     const addr = document.getElementById('modalAddress')?.value || '';
     const isAll = isAllDay;
     const sDate = _val(color==='gold'?'goldStartDate':'startDate');
-    const eDate = _val(color==='gold'?'goldStartDate':'endDate');
+    const eDate = _val(color==='gold'?'goldEndDate':'endDate');
     const sTime = _val(color==='gold'?'goldStartTime':'startTime').substring(0,5);
     const eTime = _val(color==='gold'?'goldEndTime':'endTime').substring(0,5);
     const typeLabel = (window.CALENDAR_CATEGORIES?.[color]?.label) || color;
@@ -2921,6 +2922,7 @@ function openNewModal(dateStr,timeStr,endStr){
     document.getElementById('startDate').value=ds;
     document.getElementById('endDate').value=de;
     document.getElementById('goldStartDate').value=ds;
+    document.getElementById('goldEndDate').value=de;
     // 시간
     const st=timeStr||'13:00';
     const etH=String(Math.min(parseInt(st)+1,23)).padStart(2,'0');
@@ -3194,7 +3196,7 @@ function openEditModal(ev){
     const sd=(ev.start_date||'').substring(0,10), ed=(ev.end_date||'').substring(0,10);
     const st=ev.start_time||'13:00', et=ev.end_time||'14:00';
     document.getElementById('startDate').value=sd;document.getElementById('endDate').value=ed;
-    document.getElementById('goldStartDate').value=sd;
+    document.getElementById('goldStartDate').value=sd;document.getElementById('goldEndDate').value=ed||sd;
     document.getElementById('startTime').value=st;document.getElementById('startTimeTrigger').textContent=st.substring(0,5);
     document.getElementById('endTime').value=et;document.getElementById('endTimeTrigger').textContent=et.substring(0,5);
     document.getElementById('goldStartTime').value=st;document.getElementById('goldStartTimeTrigger').textContent=st.substring(0,5);
@@ -3423,7 +3425,7 @@ function collectTealFields(){
 async function saveEvent(){
     const isGold=currentColor==='gold';
     const sd=isGold?document.getElementById('goldStartDate').value:document.getElementById('startDate').value;
-    const ed=isGold?document.getElementById('goldStartDate').value:document.getElementById('endDate').value;
+    const ed=isGold?(document.getElementById('goldEndDate').value||document.getElementById('goldStartDate').value):document.getElementById('endDate').value;
     const st=isGold?document.getElementById('goldStartTime').value:document.getElementById('startTime').value;
     const et=isGold?document.getElementById('goldEndTime').value:document.getElementById('endTime').value;
     if(!sd){alert('시작일을 입력하세요.');return;}
