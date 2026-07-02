@@ -554,7 +554,15 @@
     /* ── 드래그앤드롭 ── */
     .drag-ghost { position:fixed; pointer-events:none; z-index:1000; opacity:0.85; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.4); max-width:200px; overflow:hidden; text-overflow:ellipsis; }
     .day-cell.drop-target { background:rgba(212,188,150,0.15) !important; box-shadow:inset 0 0 0 2px var(--accent); }
-    .day-cell.range-sel { background:rgba(212,188,150,0.22) !important; box-shadow:inset 0 0 0 1px var(--accent); }
+    /* 드래그 기간 선택 — 텍스트 선택처럼 부드러운 밴드(양 끝만 둥글게, 내부 세로선 없음) */
+    .day-cell.range-sel { background:color-mix(in srgb, var(--accent) 14%, transparent) !important; transition:background .12s ease;
+        box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 38%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--accent) 38%, transparent); }
+    .day-cell.range-sel.range-start { border-radius:12px 0 0 12px;
+        box-shadow: inset 1px 0 0 color-mix(in srgb, var(--accent) 38%, transparent), inset 0 1px 0 color-mix(in srgb, var(--accent) 38%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--accent) 38%, transparent); }
+    .day-cell.range-sel.range-end { border-radius:0 12px 12px 0;
+        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--accent) 38%, transparent), inset 0 1px 0 color-mix(in srgb, var(--accent) 38%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--accent) 38%, transparent); }
+    .day-cell.range-sel.range-start.range-end { border-radius:12px;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent); }
     body.range-dragging { user-select:none; cursor:cell; }
     body.dragging { cursor:grabbing !important; user-select:none; }
     body.dragging .event-chip { cursor:grabbing; }
@@ -3855,9 +3863,12 @@ function calRangeCells(){ return [...document.querySelectorAll('#daysGrid .day-c
 function highlightRange(){
     if(!rangeStartDate||!rangeEndDate) return;
     const [a,b]=[rangeStartDate,rangeEndDate].sort();
-    calRangeCells().forEach(c=>{ const d=c.dataset.date; c.classList.toggle('range-sel', d>=a && d<=b); });
+    calRangeCells().forEach(c=>{ const d=c.dataset.date; const inR=d>=a && d<=b;
+        c.classList.toggle('range-sel', inR);
+        c.classList.toggle('range-start', inR && d===a);
+        c.classList.toggle('range-end', inR && d===b); });
 }
-function clearRangeHighlight(){ calRangeCells().forEach(c=>c.classList.remove('range-sel')); }
+function clearRangeHighlight(){ calRangeCells().forEach(c=>c.classList.remove('range-sel','range-start','range-end')); }
 document.addEventListener('mousedown', e=>{
     if(window.innerWidth<=768 || !canEditCalendar || e.button!==0) return;
     if(dragEvent) return; // 일정 이동 중이면 제외
