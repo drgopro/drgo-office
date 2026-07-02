@@ -3770,14 +3770,14 @@ document.addEventListener('mouseup',async e=>{
     const newStart=shiftDate(ev.start_date, diff);
     const newEnd=ev.end_date?shiftDate(ev.end_date, diff):newStart;
     dragEvent=null;
-    // API 호출
+    // API 호출 — 변경 사유 필수이므로 드래그 이동 사유를 자동 첨부
     const res=await fetch(`/api/events/${ev.id}`,{
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({...buildEventPayload(ev), start_date:newStart, end_date:newEnd})
+        body:JSON.stringify({...buildEventPayload(ev), start_date:newStart, end_date:newEnd, reason:`드래그 이동: ${dragStartDate} → ${targetDate}`})
     });
     if(res.ok){ showCalToast('일정이 이동되었습니다'); loadEvents(); }
-    else showCalToast('이동 실패');
+    else { const er=await res.json().catch(()=>({})); showCalToast(er.message||'이동 실패'); }
 });
 
 function shiftDate(dateStr, days){
