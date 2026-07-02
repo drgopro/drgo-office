@@ -3765,7 +3765,7 @@ document.addEventListener('mouseup',async e=>{
     const targetDate=cell?.dataset.date;
     if(!targetDate||targetDate===dragStartDate){ dragEvent=null; return; }
     // 날짜 차이 계산 (다일 이벤트 대응)
-    const diff=(new Date(targetDate)-new Date(dragStartDate))/(1000*60*60*24);
+    const diff=Math.round((new Date(targetDate+'T00:00:00')-new Date(dragStartDate+'T00:00:00'))/(1000*60*60*24));
     const ev=dragEvent;
     const newStart=shiftDate(ev.start_date, diff);
     const newEnd=ev.end_date?shiftDate(ev.end_date, diff):newStart;
@@ -3783,7 +3783,7 @@ document.addEventListener('mouseup',async e=>{
 function shiftDate(dateStr, days){
     const d=new Date(dateStr+'T00:00:00');
     d.setDate(d.getDate()+days);
-    return d.toISOString().slice(0,10);
+    return fmt(d); // 로컬 기준 YYYY-MM-DD (toISOString 사용 시 UTC로 하루 밀림)
 }
 
 function buildEventPayload(ev){
