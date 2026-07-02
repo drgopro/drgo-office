@@ -131,7 +131,9 @@
     .day-popover .dp-item:hover { background:var(--surface2); }
     .day-popover .dp-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
     .day-popover .dp-info { flex:1; min-width:0; }
-    .day-popover .dp-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .day-popover .dp-title-row { display:flex; align-items:center; gap:8px; }
+    .day-popover .dp-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .day-popover .dp-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .day-popover .dp-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
     .day-popover .dp-time { font-size:11px; font-weight:600; color:var(--text-muted); flex-shrink:0; min-width:38px; }
     [data-theme="light"] .assignee-filter { background-color:#fff; border-color:#a0a8b4; color:#4a5060; }
@@ -1635,12 +1637,15 @@ function openDayPopover(dateStr, anchorEl){
         const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
         const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
         const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)+((ev.end_time)?'~'+ev.end_time.substring(0,5):''));
-        // 간략 표기: 시간 · 주소(도로명까지) · 담당자
-        const meta=[time, roadOnly(ev.location), assignees].filter(Boolean).join(' · ');
+        // 담당자는 제목 우측에, 나머지(시간·주소)는 하단 메타에
+        const meta=[time, roadOnly(ev.location)].filter(Boolean).join(' · ');
         return `<div class="dp-item${ev.completed_at?' is-completed':''}" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
             <span class="dp-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></span>
             <div class="dp-info">
-                <div class="dp-title">${_esc(title)}</div>
+                <div class="dp-title-row">
+                    <span class="dp-title">${_esc(title)}</span>
+                    ${assignees?`<span class="dp-assignee">${_esc(assignees)}</span>`:''}
+                </div>
                 ${meta?`<div class="dp-meta">${_esc(meta)}</div>`:''}
             </div>
         </div>`;
