@@ -33,11 +33,11 @@ class AssigneeController extends Controller
             ->whereNotIn('user_id', $activeUserIds)
             ->update(['is_active' => false]);
 
-        // 활성 Assignee 반환 (외부 담당자 포함)
+        // 활성 Assignee 반환 (외부 담당자 포함) — user_id 포함(본인 식별용)
         $assignees = Assignee::where('is_active', true)
             ->orderBy('display_order')
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'user_id']);
 
         return response()->json($assignees);
     }

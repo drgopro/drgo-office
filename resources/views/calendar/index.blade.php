@@ -496,6 +496,10 @@
     .assignee-chip { padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:12px; cursor:pointer; color:var(--text-muted); transition:all 0.15s; }
     .assignee-chip.selected { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:600; }
     .assignee-chip:hover { border-color:var(--accent); }
+    .assignee-chip.self { border-color:rgba(100,160,240,.5); color:var(--accent); }
+    .assignee-chip.self.selected { color:var(--accent-text); }
+    .assignee-more { padding:4px 10px; border-radius:20px; border:1px dashed var(--border); background:none; font-size:11px; cursor:pointer; color:var(--text-muted); }
+    .assignee-more:hover { border-color:var(--accent); color:var(--accent); }
 
     /* ── 장소/주소 ── */
     .location-input-wrap { display:flex; flex-direction:column; gap:6px; }
@@ -1372,6 +1376,7 @@ function getHoliday(dateStr) {
 
 const canEditCalendar = @json(Auth::user()->hasPermission('calendar.edit'));
 const isGuestUser = @json(Auth::user()->isGuest());
+const CAL_USER_ID = @json(Auth::id());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;
@@ -1616,8 +1621,9 @@ function openDayPopover(dateStr, anchorEl){
     document.getElementById('dpList').innerHTML=dayEvs.map(ev=>{
         const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
         const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
-        // 간략 표기: 주소(도로명까지) · 담당자
-        const meta=[roadOnly(ev.location), assignees].filter(Boolean).join(' · ');
+        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)+((ev.end_time)?'~'+ev.end_time.substring(0,5):''));
+        // 간략 표기: 시간 · 주소(도로명까지) · 담당자
+        const meta=[time, roadOnly(ev.location), assignees].filter(Boolean).join(' · ');
         return `<div class="dp-item${ev.completed_at?' is-completed':''}" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
             <span class="dp-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></span>
             <div class="dp-info">
@@ -2203,10 +2209,11 @@ function setColor(c){
 
 // ── 담당자 ──
 let assigneePanelOpen=false;
+let assigneeShowAll=false; // 본인 외 나머지 펼침 여부
 function toggleAssigneePanel(){
     assigneePanelOpen=!assigneePanelOpen;
     document.getElementById('assigneeList').style.display=assigneePanelOpen?'flex':'none';
-    if(assigneePanelOpen) renderAssigneeList();
+    if(assigneePanelOpen){ assigneeShowAll=false; renderAssigneeList(); }
 }
 function updateAssigneeBtn(){
     const btn=document.getElementById('assigneeBtn');
@@ -2223,19 +2230,35 @@ function updateAssigneeBtn(){
 function renderAssigneeList(){
     const c=document.getElementById('assigneeList');
     if(!assignees.length){c.innerHTML='<div style="font-size:12px;color:var(--text-muted);">등록된 담당자 없음</div>';return;}
+    // 로그인 본인을 맨 앞으로 정렬
+    const ordered=[...assignees].sort((a,b)=>((a.user_id===CAL_USER_ID)?0:1)-((b.user_id===CAL_USER_ID)?0:1));
     c.innerHTML='';
-    assignees.forEach(a=>{
+    let hidden=0;
+    ordered.forEach(a=>{
+        const isSelf=a.user_id===CAL_USER_ID;
+        const isSel=selectedAssignees.includes(a.id);
         const chip=document.createElement('div');
-        chip.className='assignee-chip'+(selectedAssignees.includes(a.id)?' selected':'');
-        chip.textContent=a.name; chip.dataset.id=a.id;
+        chip.className='assignee-chip'+(isSel?' selected':'')+(isSelf?' self':'');
+        chip.textContent=a.name+(isSelf?' (나)':''); chip.dataset.id=a.id;
+        // 접힘 상태: 본인/이미 선택된 담당자만 노출, 나머지는 숨김
+        if(!assigneeShowAll && !isSelf && !isSel){ chip.style.display='none'; hidden++; }
         chip.onclick=()=>{
             if(isLocked) return;
-            if(selectedAssignees.includes(a.id)){selectedAssignees=selectedAssignees.filter(id=>id!==a.id);chip.classList.remove('selected');}
-            else{selectedAssignees.push(a.id);chip.classList.add('selected');}
-            updateAssigneeBtn();
+            if(selectedAssignees.includes(a.id)){selectedAssignees=selectedAssignees.filter(id=>id!==a.id);}
+            else{selectedAssignees.push(a.id);}
+            updateAssigneeBtn(); renderAssigneeList();
         };
         c.appendChild(chip);
     });
+    // 더보기/접기
+    const remaining=ordered.filter(a=>a.user_id!==CAL_USER_ID && !selectedAssignees.includes(a.id)).length;
+    if(remaining>0 || assigneeShowAll){
+        const more=document.createElement('button');
+        more.type='button'; more.className='assignee-more';
+        more.textContent=assigneeShowAll?'접기 ▲':`+${remaining}명 더보기 ▼`;
+        more.onclick=(e)=>{ e.stopPropagation(); assigneeShowAll=!assigneeShowAll; renderAssigneeList(); };
+        c.appendChild(more);
+    }
 }
 
 // ── 종일 토글 ──
