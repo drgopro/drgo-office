@@ -554,6 +554,8 @@
     /* ── 드래그앤드롭 ── */
     .drag-ghost { position:fixed; pointer-events:none; z-index:1000; opacity:0.85; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.4); max-width:200px; overflow:hidden; text-overflow:ellipsis; }
     .day-cell.drop-target { background:rgba(212,188,150,0.15) !important; box-shadow:inset 0 0 0 2px var(--accent); }
+    .day-cell.range-sel { background:rgba(212,188,150,0.22) !important; box-shadow:inset 0 0 0 1px var(--accent); }
+    body.range-dragging { user-select:none; cursor:cell; }
     body.dragging { cursor:grabbing !important; user-select:none; }
     body.dragging .event-chip { cursor:grabbing; }
     .event-chip { cursor:grab; }
@@ -1875,6 +1877,7 @@ function renderMonth() {
 
             div.appendChild(evList);
             div.addEventListener('click',e=>{
+                if(suppressCellClick){ suppressCellClick=false; return; } // 범위 드래그 직후 클릭 무시
                 if(window.innerWidth<=768){
                     selectMobileDay(cell.full);
                 } else {
@@ -2906,16 +2909,17 @@ function resetModalForm(){
 }
 
 // ── 모달 열기 ──
-function openNewModal(dateStr,timeStr){
+function openNewModal(dateStr,timeStr,endStr){
     editingId=null; selectedAssignees=[]; viewMode=false;
     resetModalForm();
     setEditModeUI();
     setColor('gold');
     document.getElementById('modalTitle').value='';
-    // 날짜 — 미지정 시 오늘로 기본 지정
+    // 날짜 — 미지정 시 오늘로 기본 지정 (범위 선택 시 endStr로 종료일 프리필)
     const ds=dateStr||todayStr();
+    const de=endStr||ds;
     document.getElementById('startDate').value=ds;
-    document.getElementById('endDate').value=ds;
+    document.getElementById('endDate').value=de;
     document.getElementById('goldStartDate').value=ds;
     // 시간
     const st=timeStr||'13:00';
@@ -3785,6 +3789,44 @@ function shiftDate(dateStr, days){
     d.setDate(d.getDate()+days);
     return fmt(d); // 로컬 기준 YYYY-MM-DD (toISOString 사용 시 UTC로 하루 밀림)
 }
+
+// ── 월간 뷰: 빈 셀 드래그로 기간 선택 → 새 일정(기간) 생성 ──
+let rangeSelecting=false, rangeStartDate=null, rangeEndDate=null, rangeMoved=false, suppressCellClick=false;
+function calRangeCells(){ return [...document.querySelectorAll('#daysGrid .day-cell[data-date]')]; }
+function highlightRange(){
+    if(!rangeStartDate||!rangeEndDate) return;
+    const [a,b]=[rangeStartDate,rangeEndDate].sort();
+    calRangeCells().forEach(c=>{ const d=c.dataset.date; c.classList.toggle('range-sel', d>=a && d<=b); });
+}
+function clearRangeHighlight(){ calRangeCells().forEach(c=>c.classList.remove('range-sel')); }
+document.addEventListener('mousedown', e=>{
+    if(window.innerWidth<=768 || !canEditCalendar || e.button!==0) return;
+    if(dragEvent) return; // 일정 이동 중이면 제외
+    if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return; // 칩/더보기 제외
+    if(e.target.closest('.mday-title-overlay')) return;
+    const cell=e.target.closest('#daysGrid .day-cell[data-date]');
+    if(!cell) return;
+    rangeSelecting=true; rangeMoved=false;
+    rangeStartDate=cell.dataset.date; rangeEndDate=cell.dataset.date;
+});
+document.addEventListener('mousemove', e=>{
+    if(!rangeSelecting) return;
+    const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest('#daysGrid .day-cell[data-date]');
+    if(!cell) return;
+    if(cell.dataset.date!==rangeEndDate){ rangeEndDate=cell.dataset.date; rangeMoved=true; }
+    document.body.classList.add('range-dragging');
+    highlightRange();
+});
+document.addEventListener('mouseup', ()=>{
+    if(!rangeSelecting) return;
+    rangeSelecting=false;
+    document.body.classList.remove('range-dragging');
+    clearRangeHighlight();
+    if(!rangeMoved) return; // 드래그 안 함 → 기존 클릭(단일일) 처리에 맡김
+    const [a,b]=[rangeStartDate,rangeEndDate].sort();
+    suppressCellClick=true;
+    openNewModal(a, null, b);
+});
 
 function buildEventPayload(ev){
     return {
