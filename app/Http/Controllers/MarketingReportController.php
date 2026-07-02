@@ -23,8 +23,9 @@ class MarketingReportController extends Controller
             return response()->view('marketing-report.needs-migration', [], 503);
         }
 
-        $from = $request->query('from', now()->subMonths(2)->startOfMonth()->format('Y-m-d'));
-        $to = $request->query('to', now()->format('Y-m-d'));
+        // 기본 기간 = 이번 달 1일 ~ 말일 (1개월 단위)
+        $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
+        $to = $request->query('to', now()->endOfMonth()->format('Y-m-d'));
         $fromDt = $from.' 00:00:00';
         $toDt = $to.' 23:59:59';
 
@@ -57,6 +58,8 @@ class MarketingReportController extends Controller
         }
         arsort($platformCounts);
         arsort($contentCounts);
+        // 플랫폼 % 산출 기준(기간 내 의뢰자 수)
+        $platformTotal = $allClients->count();
 
         // ── 상담 지표 ──
         $totalConsults = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])->count();
@@ -228,7 +231,7 @@ class MarketingReportController extends Controller
 
         return view('marketing-report.index', compact(
             'from', 'to',
-            'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'contentCounts',
+            'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
             'totalConsults', 'reConsultCount',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
             'newProjects', 'settingDone', 'cancelled', 'cancelReasons',

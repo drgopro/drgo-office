@@ -11,6 +11,12 @@
     .mk-filter input, .mk-filter button { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; }
     .mk-filter button { background:var(--accent); color:var(--accent-text); border:none; font-weight:600; cursor:pointer; }
     [data-theme="light"] .mk-filter button { color:#fff; }
+    .mk-filter .mk-navbtn { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:700; padding:6px 10px; }
+    .mk-filter .mk-navbtn:hover { border-color:var(--accent); color:var(--accent); }
+    .mk-presets { display:flex; gap:6px; flex-basis:100%; margin-top:8px; }
+    .mk-presets button { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:600; padding:5px 14px; border-radius:16px; font-size:12px; cursor:pointer; }
+    .mk-presets button:hover { border-color:var(--accent); color:var(--accent); }
+    [data-theme="light"] .mk-filter .mk-navbtn, [data-theme="light"] .mk-presets button { color:var(--text-muted); }
 
     .mk-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
     .mk-section-title { font-size:14px; font-weight:700; color:var(--accent); margin-bottom:16px; display:flex; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--border); }
@@ -63,20 +69,26 @@
     <div class="mk-header">
         <div>
             <div class="mk-title">📊 마케팅 통계</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">조회 기간: {{ $from }} ~ {{ $to }}</div>
         </div>
-        <form method="GET" class="mk-filter">
-            <input type="date" name="from" value="{{ $from }}">
+        <form method="GET" class="mk-filter" id="mkFilter">
+            <button type="button" class="mk-navbtn" onclick="mkMonthNav(-1)" title="이전 달">◀</button>
+            <input type="date" name="from" id="mkFrom" value="{{ $from }}">
             <span style="color:var(--text-muted);">~</span>
-            <input type="date" name="to" value="{{ $to }}">
+            <input type="date" name="to" id="mkTo" value="{{ $to }}">
+            <button type="button" class="mk-navbtn" onclick="mkMonthNav(1)" title="다음 달">▶</button>
             <button type="submit">조회</button>
             <a href="/api/dashboard-export/excel?from={{ $from }}&to={{ $to }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;">📥 엑셀</a>
+            <div class="mk-presets">
+                <button type="button" onclick="mkPreset(1)">1개월</button>
+                <button type="button" onclick="mkPreset(3)">3개월</button>
+                <button type="button" onclick="mkPreset(6)">6개월</button>
+            </div>
         </form>
     </div>
 
     {{-- 섹션 1: 마케팅 지표 --}}
     <div class="mk-section">
-        <div class="mk-section-title">📢 마케팅 지표</div>
+        <div class="mk-section-title">📢 마케팅 지표 <span style="margin-left:auto; font-size:12px; font-weight:400; color:var(--text-muted);">📅 {{ $from }} ~ {{ $to }}</span></div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card">
@@ -114,10 +126,11 @@
                     <div class="mk-list">
                         @php $max = max($platformCounts); @endphp
                         @foreach($platformCounts as $platform => $cnt)
+                            @php $pct = $platformTotal > 0 ? round($cnt / $platformTotal * 100) : 0; @endphp
                             <div class="mk-bar">
                                 <div class="mk-bar-fill" style="width:{{ ($cnt / $max) * 100 }}%;"></div>
                                 <span class="mk-bar-label">{{ $platform }}</span>
-                                <span class="mk-bar-value">{{ $cnt }}명</span>
+                                <span class="mk-bar-value">{{ $cnt }}명 <span style="color:var(--text-muted); font-weight:400;">({{ $pct }}%)</span></span>
                             </div>
                         @endforeach
                     </div>
@@ -457,5 +470,28 @@ new Chart(document.getElementById('chartMonthlyTrend'), {
         }
     }
 });
+
+// ── 기간 프리셋 / 월 이동 ──
+function mkPad(n){ return String(n).padStart(2,'0'); }
+function mkYmd(d){ return d.getFullYear()+'-'+mkPad(d.getMonth()+1)+'-'+mkPad(d.getDate()); }
+function mkSubmit(from, to){
+    document.getElementById('mkFrom').value = from;
+    document.getElementById('mkTo').value = to;
+    document.getElementById('mkFilter').submit();
+}
+// 현재 from 기준 이전/다음 달로 이동 (해당 월 1일~말일)
+function mkMonthNav(dir){
+    const f = document.getElementById('mkFrom').value;
+    const base = f ? new Date(f + 'T00:00:00') : new Date();
+    const first = new Date(base.getFullYear(), base.getMonth() + dir, 1);
+    const last = new Date(base.getFullYear(), base.getMonth() + dir + 1, 0);
+    mkSubmit(mkYmd(first), mkYmd(last));
+}
+// 프리셋: N개월 (이번 달 포함 최근 N개월 1일 ~ 오늘)
+function mkPreset(months){
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+    mkSubmit(mkYmd(first), mkYmd(now));
+}
 </script>
 @endpush
