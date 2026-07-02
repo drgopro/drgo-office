@@ -324,6 +324,14 @@ window.uploadAndInsert=async function(file){
     else editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank">${data.name}</a>`).run();
 };
 
+// 목록에서 카테고리 선택 상태로 진입 시(?cat=) 해당 카테고리 프리셀렉트
+(function(){
+    const cat = new URLSearchParams(window.location.search).get('cat');
+    if (!cat) return;
+    const sel = document.getElementById('wikiCategoryId');
+    if (sel && [...sel.options].some(o => o.value === cat)) sel.value = cat;
+})();
+
 // 저장 — 최초 저장은 생성(POST), 이후(자동저장 포함)는 수정(PATCH). silent=자동저장
 let WIKI_CREATED_ID = null;
 let WIKI_SAVING = false;

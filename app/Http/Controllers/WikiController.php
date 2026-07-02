@@ -126,6 +126,29 @@ class WikiController extends Controller
         return redirect()->route('wiki.show', $wiki)->with('success', '문서가 수정되었습니다.');
     }
 
+    /** 선택한 문서들의 카테고리 일괄 이동 */
+    public function bulkCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:wikis,id',
+            'category_id' => 'nullable|integer|exists:wiki_categories,id',
+        ]);
+
+        $categoryId = $validated['category_id'] ?? null;
+        $categoryName = $categoryId
+            ? mb_substr(WikiCategory::find($categoryId)->name, 0, 50)
+            : '미분류';
+
+        $moved = Wiki::whereIn('id', $validated['ids'])->update([
+            'category_id' => $categoryId,
+            'category' => $categoryName,
+            'updated_by' => Auth::id(),
+        ]);
+
+        return response()->json(['ok' => true, 'moved' => $moved]);
+    }
+
     public function destroy(Request $request, Wiki $wiki)
     {
         $wiki->delete();

@@ -36,6 +36,18 @@
     #wikiCatTree .wiki-cat-row.cat-top { font-size:14px; font-weight:700; }
     .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
     .wiki-cat-edit-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .wiki-cat-edit-btn.active { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+    /* 게시물 선택 모드 액션 바 */
+    .wiki-selbar { display:none; align-items:center; gap:8px; padding:8px 12px; margin-bottom:10px; border:1px solid var(--accent); border-radius:10px; background:color-mix(in srgb, var(--accent) 8%, transparent); flex-wrap:wrap; }
+    .wiki-selbar.open { display:flex; }
+    .wiki-selbar-count { font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; }
+    .wiki-selbar-arrow { color:var(--text-muted); font-size:12px; }
+    .wiki-selbar-target { flex:1; min-width:140px; max-width:280px; padding:6px 10px; font-size:12px; }
+    .wiki-selbar-move { background:var(--accent); color:var(--accent-text); border:none; border-radius:7px; padding:6px 16px; font-size:12px; font-weight:700; cursor:pointer; }
+    .wiki-selbar-move:disabled { opacity:0.45; cursor:default; }
+    .wiki-selbar-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; }
+    .wiki-sel-cb { width:15px; height:15px; flex-shrink:0; pointer-events:none; accent-color:var(--accent); }
+    .wiki-item.sel-on { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, transparent); }
     /* 카테고리 편집 모달 */
     .ce-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px; }
     .ce-overlay.open { display:flex; }
@@ -173,7 +185,7 @@
         </div>
         <div class="wiki-cat-list" id="wikiCatTree"></div>
         <div class="wiki-sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
-            <a href="{{ route('wiki.create') }}" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
+            <a href="{{ route('wiki.create') }}{{ request('cat') ? '?cat='.(int) request('cat') : '' }}" id="wikiNewBtn" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
             <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')">🎛️ 연결도 에디터</button>
         </div>
     </div>
@@ -184,10 +196,20 @@
             <div class="wiki-main-title" id="wikiMainTitle">전체 문서</div>
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="wiki-main-count" id="wikiMainCount">{{ $wikis->count() }}건</div>
+                <button type="button" class="wiki-cat-edit-btn" id="wikiSelToggle" onclick="toggleSelMode()">☑ 게시물 편집</button>
                 @if(auth()->user()->isAdmin())
                     <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()">🗂 카테고리 편집</button>
                 @endif
             </div>
+        </div>
+
+        <!-- 게시물 선택 모드 액션 바 -->
+        <div class="wiki-selbar" id="wikiSelBar">
+            <span class="wiki-selbar-count" id="wikiSelCount">0개 선택</span>
+            <span class="wiki-selbar-arrow">→</span>
+            <select class="field-input wiki-selbar-target" id="wikiSelTarget"></select>
+            <button type="button" class="wiki-selbar-move" id="wikiSelMoveBtn" onclick="bulkMoveCategory()">이동</button>
+            <button type="button" class="wiki-selbar-cancel" onclick="toggleSelMode()">취소</button>
         </div>
 
         <div class="wiki-list" id="wikiDocList"></div>
@@ -267,8 +289,8 @@
 @push('scripts')
 <script>
 const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' => $c->parent_id, 'name' => $c->name])->values());
-const WIKI_CAT_COUNTS = @json($catCounts);
-const WIKI_UNCAT = {{ (int) $uncategorized }};
+let WIKI_CAT_COUNTS = @json($catCounts);
+let WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
 const WIKI_DOCS = @json($wikiDocs);
 const WIKI_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
@@ -344,6 +366,9 @@ function filterCatId(id) {
     if (WIKI_CUR_CAT) { params.set('cat', WIKI_CUR_CAT); } else { params.delete('cat'); }
     params.delete('category');
     history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : ''));
+    // 새 문서 버튼에 현재 카테고리 반영 (선택된 카테고리에서 바로 작성)
+    const newBtn = document.getElementById('wikiNewBtn');
+    if (newBtn) newBtn.href = '/wiki/create' + (WIKI_CUR_CAT ? '?cat=' + WIKI_CUR_CAT : '');
     renderWikiTree();
     renderDocList();
 }
@@ -369,14 +394,72 @@ function renderDocList() {
     document.getElementById('wikiMainTitle').textContent = WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서';
     document.getElementById('wikiMainCount').textContent = docs.length + '건';
     if (!docs.length) { list.innerHTML = '<div class="empty">해당 카테고리에 문서가 없습니다.</div>'; return; }
-    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''}" onclick="location.href='/wiki/${d.id}'">
-        <div class="wiki-item-header">${d.is_pinned ? '<span class="wiki-pin">📌</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
+    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}" onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
+        <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin">📌</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
         <div class="wiki-meta">
             <span class="wiki-cat-badge">${wikiEsc(wikiCatPathStr(d.category_id))}</span>
             <span>${wikiEsc(d.creator)}</span><span>${d.updated}</span>
         </div>
         <div class="wiki-preview">${wikiEsc(d.preview)}</div>
     </div>`).join('');
+}
+
+// ── 게시물 편집 (선택 → 카테고리 일괄 이동) ──
+let WIKI_SEL_MODE = false;
+const WIKI_SEL = new Set();
+function toggleSelMode() {
+    WIKI_SEL_MODE = !WIKI_SEL_MODE;
+    WIKI_SEL.clear();
+    document.getElementById('wikiSelBar').classList.toggle('open', WIKI_SEL_MODE);
+    document.getElementById('wikiSelToggle').classList.toggle('active', WIKI_SEL_MODE);
+    if (WIKI_SEL_MODE) buildSelTargetOptions();
+    updateSelCount();
+    renderDocList();
+}
+function toggleDocSel(id) {
+    WIKI_SEL.has(id) ? WIKI_SEL.delete(id) : WIKI_SEL.add(id);
+    updateSelCount();
+    renderDocList();
+}
+function updateSelCount() {
+    const el = document.getElementById('wikiSelCount');
+    if (el) el.textContent = WIKI_SEL.size + '개 선택';
+    const btn = document.getElementById('wikiSelMoveBtn');
+    if (btn) btn.disabled = WIKI_SEL.size === 0;
+}
+// 이동 대상 카테고리 옵션 (계층 순서 + 들여쓰기)
+function buildSelTargetOptions() {
+    const sel = document.getElementById('wikiSelTarget');
+    const childMap = wikiChildrenMap(WIKI_TREE_DATA);
+    let opts = '<option value="">(미분류)</option>';
+    function walk(parentId, depth) {
+        (childMap[parentId] || []).forEach(c => {
+            opts += `<option value="${c.id}">${'— '.repeat(depth)}${wikiEsc(c.name)}</option>`;
+            walk(c.id, depth + 1);
+        });
+    }
+    walk(null, 0);
+    sel.innerHTML = opts;
+}
+async function bulkMoveCategory() {
+    if (!WIKI_SEL.size) return;
+    const targetVal = document.getElementById('wikiSelTarget').value;
+    const targetId = targetVal ? parseInt(targetVal, 10) : null;
+    const res = await fetch('/api/wiki/bulk-category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ ids: [...WIKI_SEL], category_id: targetId }),
+    });
+    if (!res.ok) { alert('이동에 실패했습니다.'); return; }
+    // 로컬 데이터 갱신 후 목록/트리 즉시 반영
+    WIKI_DOCS.forEach(d => { if (WIKI_SEL.has(d.id)) d.category_id = targetId; });
+    WIKI_CAT_COUNTS = {}; WIKI_UNCAT = 0;
+    WIKI_DOCS.forEach(d => {
+        if (d.category_id) WIKI_CAT_COUNTS[d.category_id] = (WIKI_CAT_COUNTS[d.category_id] || 0) + 1;
+        else WIKI_UNCAT++;
+    });
+    toggleSelMode(); // 선택 모드 종료 (renderDocList 포함)
+    renderWikiTree();
 }
 renderWikiTree();
 renderDocList();

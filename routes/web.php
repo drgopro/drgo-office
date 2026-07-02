@@ -298,6 +298,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/wiki/{wiki}/diagram', [WikiController::class, 'getDiagram']);
     Route::post('/api/wiki/{wiki}/diagram', [WikiController::class, 'saveDiagram']);
     Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');
+    Route::post('/api/wiki/bulk-category', [WikiController::class, 'bulkCategory'])->name('wiki.bulk-category');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
     // 위키 카테고리 (계층) — 조회는 위키 사용자, 편집은 master/admin
