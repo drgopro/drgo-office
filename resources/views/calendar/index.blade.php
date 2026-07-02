@@ -2778,6 +2778,8 @@ async function loadExistingAttachments(scheduleId){
     existingAttachments={quote:[],reference:[],room:[],general:[]};
     try{const res=await fetch(`/api/schedules/${scheduleId}/attachments`);if(res.ok){const list=await res.json();list.forEach(a=>{if(existingAttachments[a.attachment_type])existingAttachments[a.attachment_type].push(a);});}}catch(e){}
     ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
+    // 요약 뷰가 켜진 상태라면 첨부 로딩 완료 후 요약을 다시 렌더(비동기로 늦게 도착한 이미지 반영)
+    if(isLocked) renderLockSummary();
 }
 function resetAttachments(){
     pendingAttachments={quote:[],reference:[],room:[],general:[]};existingAttachments={quote:[],reference:[],room:[],general:[]};
