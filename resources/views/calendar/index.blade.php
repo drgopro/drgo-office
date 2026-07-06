@@ -3001,7 +3001,7 @@ async function loadClientProjects(clientId){
             const opt=document.createElement('option');
             opt.value=p.id;
             const tags=[...((p.tags&&p.tags.major)||[]),...((p.tags&&p.tags.minor)||[])];
-            opt.textContent=`${p.name} (${p.stage||p.type||''})`+(tags.length?` — #${tags.join(' #')}`:'');
+            opt.textContent=`${p.name} (${p.stage||p.type||''})`+(p.created_at?` · ${p.created_at}`:'')+(tags.length?` — #${tags.join(' #')}`:'');
             sel.appendChild(opt);
         });
         // 이전에 연결된 프로젝트가 있으면 선택
