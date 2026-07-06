@@ -2188,6 +2188,8 @@ function renderMonth() {
                 const endRect=weekRow.children[c2].getBoundingClientRect();
                 const ov=document.createElement('div');
                 ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'');
+                // 제목 글자색도 카테고리 설정(text_color)과 연동
+                if(window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[ev.color]) ov.style.color=`var(--chip-${ev.color}-text)`;
                 ov.style.top=(chipRect.top-wrRect.top)+'px';
                 ov.style.height=chipRect.height+'px';
                 ov.style.left=(chipRect.left-wrRect.left)+'px';
