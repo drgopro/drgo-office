@@ -639,7 +639,7 @@
 
         /* 이벤트 칩 → TickTick 스타일 작은 텍스트 바 (월간 그리드 셀에만) */
         .day-cell .events-list { flex-direction:column; gap:1px; align-items:stretch; }
-        .day-cell .event-chip { width:100%; min-width:0; height:auto; min-height:0; border-radius:3px; padding:0 3px; font-size:9px; line-height:1.6; display:flex; align-items:center; gap:2px; overflow:hidden; pointer-events:none; border:none !important; }
+        .day-cell .event-chip { width:100%; min-width:0; height:auto; min-height:14px; border-radius:3px; padding:0 3px; font-size:9px; line-height:1.6; display:flex; align-items:center; gap:2px; overflow:hidden; pointer-events:none; border:none !important; }
         .day-cell .event-chip .chip-title { display:inline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
         .day-cell .event-chip .chip-time { display:inline; font-size:8px; opacity:0.8; flex-shrink:0; }
         .day-cell .event-chip .chip-special, .day-cell .event-chip .chip-badges,
@@ -2158,7 +2158,11 @@ function renderMonth() {
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
                     if(ev.completed_at) cls+=' is-completed';
                     chip.className=cls;
-                    chip.innerHTML=''; // 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
+                    // 데스크톱: 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
+                    // 모바일: 오버레이가 숨겨지므로 칩에 제목 직접 표시 (빈 칩=높이 0으로 안 보이는 문제 방지)
+                    chip.innerHTML=window.innerWidth<=768
+                        ? `<span class="chip-title">${_esc(isGuestUser?(ev.location||'일정'):(ev.title||''))}</span>`
+                        : '';
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
                     // 오버레이는 pointer-events:none — 담당자 툴팁은 바 조각에서 hover
                     const mnames=assigneeNamesOf(ev);
