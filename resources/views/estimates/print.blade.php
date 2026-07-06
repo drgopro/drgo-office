@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>견적서 #{{ $estimate->id }}</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Malgun Gothic','Apple SD Gothic Neo',-apple-system,sans-serif; background:#fff; color:#222; font-size:13px; }
+        body { font-family:"Pretendard Variable",Pretendard,'Malgun Gothic','Apple SD Gothic Neo',-apple-system,sans-serif; background:#fff; color:#222; font-size:13px; }
         @media print {
             body { padding:0; }
             .no-print { display:none !important; }

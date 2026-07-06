@@ -8,9 +8,12 @@ document.documentElement.setAttribute('data-theme', 'light');
     else document.addEventListener('DOMContentLoaded', apply, { once:true });
 })();
 </script>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 /* tab-content 기본 CSS 변수 */
 :root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --surface3:#333; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --accent-text:#1a1207; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
+body { font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; }
+input, button, textarea, select { font-family:inherit; }
 [data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --accent-text:#ffffff; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
 /* 라이트모드 버튼/입력 보정 */
 [data-theme="light"] body { background:var(--bg); color:var(--text); }

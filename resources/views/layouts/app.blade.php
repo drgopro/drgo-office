@@ -18,6 +18,7 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
     <title>닥터고블린 오피스</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         /* ── 다크 모드 (기본) ── */
         :root, [data-theme="dark"] {
@@ -108,7 +109,8 @@
         ::-webkit-scrollbar-corner { background:var(--surface); }
         * { scrollbar-width:thin; scrollbar-color:var(--border) var(--surface); }
 
-        body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
+        body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
+        input, button, textarea, select { font-family:inherit; }
 
         /* ── 상단 내비게이션 ── */
         .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; padding-top:env(safe-area-inset-top, 0px); display:flex; justify-content:space-between; align-items:center; height:calc(var(--header-h) + env(safe-area-inset-top, 0px)); position:sticky; top:0; z-index:200; }

@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>닥터고블린 오피스</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0f0f0f; color: #f0e8d8; font-family: -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        body { background: #0f0f0f; color: #f0e8d8; font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        input, button, textarea, select { font-family: inherit; }
         .login-box { width: 360px; padding: 40px; background: #1a1a1a; border-radius: 16px; border: 1px solid #2a2a2a; }
         .logo { text-align: center; margin-bottom: 32px; }
         .logo h1 { font-size: 18px; font-weight: 700; color: #c8b08a; letter-spacing: 0.1em; }
