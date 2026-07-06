@@ -191,6 +191,36 @@
         .tab-menu-item { display:flex; align-items:center; gap:7px; padding:6px 10px; border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; border:none; background:none; width:100%; text-align:left; }
         .tab-menu-item:hover { color:var(--text); background:var(--surface2); }
 
+        /* ══════════════════════════════════════════════
+           데스크톱 세로 사이드바 — 기존 가로 헤더를 좌측 세로 배치로 전환
+           (마크업/JS 변경 없음, CSS 전용. 모바일 ≤980px는 기존 햄버거 유지)
+           ══════════════════════════════════════════════ */
+        @media (min-width: 981px) {
+            :root { --sidebar-w: 200px; --chrome-h: calc(var(--tab-h) + 2px); }
+            .header {
+                position:fixed; left:0; top:0; bottom:0; width:var(--sidebar-w); height:100vh;
+                flex-direction:column; align-items:stretch; justify-content:flex-start;
+                border-right:1px solid var(--border); border-bottom:none;
+                padding:16px 12px 14px; gap:12px;
+            }
+            .header-left { flex-direction:column; align-items:stretch; gap:2px; flex:1; min-height:0; overflow:hidden; }
+            .logo { border-right:none; border-bottom:1px solid var(--border); padding:0 6px 14px; margin:0 0 10px; font-size:14px; }
+            .nav { flex-direction:column; align-items:stretch; gap:2px; overflow-y:auto; white-space:normal; }
+            .nav a { font-size:13px; padding:9px 12px; border-radius:8px; }
+            /* 하단 사용자 영역 */
+            .header-right { flex-direction:column; align-items:stretch; gap:8px; border-top:1px solid var(--border); padding-top:12px; }
+            .header-right .qr-fab { width:100%; padding:8px 0; }
+            .header-right .admin-link { text-align:center; }
+            .header-right .user-role { text-align:center; }
+            .header-right form { width:100%; }
+            .header-right .logout-btn { width:100%; padding:7px 0; }
+            /* 탭바/콘텐츠는 사이드바 폭만큼 밀기 */
+            .tab-bar-wrap { margin-left:var(--sidebar-w); top:0; }
+            .main { margin-left:var(--sidebar-w); }
+        }
+        /* iframe 내부에서는 사이드바가 숨겨지므로 들여쓰기 제거 */
+        body.in-iframe .tab-bar-wrap, body.in-iframe .main { margin-left:0 !important; }
+
         /* ── 콘텐츠 영역 ── */
         .main { flex:1; position:relative; }
         .tab-pane { display:none; height:100%; }
