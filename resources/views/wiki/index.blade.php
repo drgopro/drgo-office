@@ -157,6 +157,16 @@
         return $path;
     };
 
+    // 에디터 HTML → 미리보기 평문: 태그 제거 + HTML 엔티티(&nbsp; 등) 디코드 + 공백 정리
+    $htmlPreview = function (?string $html, int $limit = 120): string {
+        $text = preg_replace('/<[^>]+>/u', ' ', $html ?? '');           // 태그 → 공백 (단어 붙음 방지)
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace("\u{00A0}", ' ', $text);                     // &nbsp; 잔여 문자
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+
+        return \Illuminate\Support\Str::limit($text, $limit);
+    };
+
     // 문서 목록(클라이언트 렌더용) — @json 디렉티브 멀티라인 파싱 문제 회피 위해 여기서 구성
     $wikiDocs = $wikis->map(fn ($w) => [
         'id' => $w->id,
@@ -165,7 +175,7 @@
         'is_pinned' => (bool) $w->is_pinned,
         'creator' => $w->creator?->display_name ?? '알 수 없음',
         'updated' => $w->updated_at->format('Y.m.d H:i'),
-        'preview' => \Illuminate\Support\Str::limit(strip_tags($w->content ?? ''), 120),
+        'preview' => $htmlPreview($w->content),
     ])->values();
 @endphp
 
