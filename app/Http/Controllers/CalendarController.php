@@ -72,6 +72,8 @@ class CalendarController extends Controller
             return response()->json([]);
         }
 
+        $limit = max(1, min((int) $request->query('limit', 30), 100));
+
         $like = '%'.$q.'%';
         $events = Schedule::where(function ($w) use ($like) {
             $w->where('title', 'like', $like)
@@ -84,8 +86,8 @@ class CalendarController extends Controller
                     ->orWhere('created_by', Auth::id());
             })
             ->orderByDesc('start_date')
-            ->limit(30)
-            ->get(['id', 'title', 'start_date', 'end_date', 'color', 'client_name', 'location', 'completed_at']);
+            ->limit($limit)
+            ->get(['id', 'title', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'client_name', 'location', 'completed_at']);
 
         return response()->json($events);
     }
@@ -169,23 +171,27 @@ class CalendarController extends Controller
         $reason = $validated['reason'] ?? null;
         unset($validated['reason']);
 
-        // 변경 이력 기록
+        // 변경 이력 기록 (날짜/시간은 포맷 차이로 인한 오탐 방지를 위해 정규화 후 비교)
         $diff = [];
         foreach ($validated as $key => $newVal) {
             if ($key === 'assignees') {
                 continue;
             }
             $oldVal = $schedule->getOriginal($key);
-            if (json_encode($oldVal) !== json_encode($newVal)) {
+            if ($this->normalizeForDiff($key, $oldVal) !== $this->normalizeForDiff($key, $newVal)) {
                 $diff[$key] = ['old' => $oldVal, 'new' => $newVal];
             }
         }
         if (! empty($diff)) {
-            // 실제 변경이 있을 때만 사유를 필수로 받음
-            if (empty(trim((string) $reason))) {
+            // 변경 사유: 방문의뢰(gold)·원격/방송룸(teal)에서 날짜/시간이 바뀔 때만 필수
+            $dtKeys = ['start_date', 'end_date', 'start_time', 'end_time', 'is_all_day'];
+            $reasonColor = $validated['color'] ?? $schedule->color;
+            $needsReason = in_array($reasonColor, ['gold', 'teal'], true)
+                && array_intersect($dtKeys, array_keys($diff)) !== [];
+            if ($needsReason && empty(trim((string) $reason))) {
                 return response()->json([
-                    'message' => '변경 사유를 입력해주세요.',
-                    'errors' => ['reason' => ['변경 사유는 필수입니다.']],
+                    'message' => '일정(날짜/시간) 변경 사유를 입력해주세요.',
+                    'errors' => ['reason' => ['날짜/시간 변경 시 사유는 필수입니다.']],
                 ], 422);
             }
             ScheduleChange::create([
@@ -193,7 +199,7 @@ class CalendarController extends Controller
                 'user_id' => Auth::id(),
                 'action' => 'update',
                 'changes' => $diff,
-                'reason' => $reason,
+                'reason' => trim((string) $reason) ?: null,
             ]);
         }
 
@@ -477,6 +483,28 @@ class CalendarController extends Controller
             ->values();
 
         return response()->json($filtered);
+    }
+
+    /**
+     * 변경 비교용 정규화 — 날짜(Y-m-d)/시간(H:i)/불리언 포맷 차이로 인한 오탐 방지.
+     */
+    private function normalizeForDiff(string $key, mixed $val): mixed
+    {
+        if (in_array($key, ['start_date', 'end_date', 'sched_after_date'], true)) {
+            if (! $val) {
+                return null;
+            }
+
+            return $val instanceof \DateTimeInterface ? $val->format('Y-m-d') : substr((string) $val, 0, 10);
+        }
+        if (in_array($key, ['start_time', 'end_time'], true)) {
+            return $val ? substr((string) $val, 0, 5) : null;
+        }
+        if (in_array($key, ['is_all_day', 'is_locked', 'is_private'], true)) {
+            return (bool) $val;
+        }
+
+        return json_encode($val);
     }
 
     /**

@@ -72,6 +72,7 @@
     .cal-sr-item.is-completed .cal-sr-title { text-decoration:line-through; opacity:0.55; }
     .cal-sr-sub { font-size:11px; color:var(--text-muted); flex-shrink:0; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .cal-sr-empty { padding:14px; text-align:center; font-size:12px; color:var(--text-muted); }
+    .agenda-search-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--border); font-size:13px; }
     .cal-fontsize { display:flex; align-items:center; gap:2px; background:var(--surface2); border-radius:8px; padding:2px; }
     .cal-fz-btn { border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:6px; padding:4px 9px; font-size:13px; font-weight:700; line-height:1; }
     .cal-fz-btn:hover { background:var(--surface); color:var(--accent); }
@@ -790,7 +791,7 @@
         <div class="cal-search-wrap" id="calSearchWrap">
             <input class="cal-search-input" id="calSearchInput" placeholder="🔍 일정 검색" autocomplete="off"
                 oninput="onCalSearchInput()" onfocus="onCalSearchInput()"
-                onkeydown="if(event.key==='Escape')closeCalSearch();">
+                onkeydown="if(event.key==='Escape'){closeCalSearch();}else if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
             <div class="cal-search-results" id="calSearchResults" style="display:none;"></div>
         </div>
         @endif
@@ -1362,7 +1363,7 @@
         </div>{{-- modal-body end --}}
 
         <div id="reasonField" style="display:none; padding:0 28px 12px;">
-            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">변경 사유 <span style="color:var(--red);">*</span></div>
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">일정 변경 사유 <span style="color:var(--red);">* 날짜/시간 변경 시 필수</span></div>
             <textarea id="modalReason" rows="2" placeholder="예: 의뢰자 요청으로 일정 변경" style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
         </div>
 
@@ -1530,6 +1531,7 @@ const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 let currentYear, currentMonth, currentWeekStart, currentDay;
 let events = [], assignees = [], selectedAssignees = [];
 let editingId = null, currentColor = 'gold', currentView = 'month';
+let editingOrigDT = null; // 편집 중 일정의 원본 날짜/시간 (변경 사유 필수 판정용)
 let expandedDays = new Set();
 
 // ── 초기화 ──────────────────────────────────────────────────────
@@ -1725,6 +1727,78 @@ function closeCalSearch(){
     const box=document.getElementById('calSearchResults');
     if(box) box.style.display='none';
 }
+// Enter → 검색 결과를 목록 뷰로 표시
+let agendaSearchQuery=null, agendaSearchResults=[];
+async function openSearchListView(){
+    const q=document.getElementById('calSearchInput').value.trim();
+    if(!q) return;
+    closeCalSearch();
+    document.getElementById('calSearchInput').blur();
+    try{
+        const res=await fetch(`/api/events/search?q=${encodeURIComponent(q)}&limit=100`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        agendaSearchResults=await res.json();
+    }catch(e){ return; }
+    if(currentView!=='list') switchView('list'); // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
+    agendaSearchQuery=q;
+    renderAgenda();
+}
+function clearAgendaSearch(){
+    agendaSearchQuery=null; agendaSearchResults=[];
+    const inp=document.getElementById('calSearchInput'); if(inp) inp.value='';
+    renderView(); loadEvents();
+}
+// 검색 결과 항목 클릭 → 상세 API로 전체 데이터 로드 후 모달 오픈
+async function openSearchResultDetail(id){
+    try{
+        const res=await fetch(`/api/events/${id}/detail`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        openDetailModal(await res.json());
+    }catch(e){}
+}
+function renderAgendaSearch(){
+    const strip=document.getElementById('agendaStrip');
+    if(strip) strip.style.display='none';
+    document.getElementById('periodTitle').textContent=`검색: "${agendaSearchQuery}"`;
+    const wrap=document.getElementById('agendaWrap');
+    if(!wrap) return;
+    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
+    const list=agendaSearchResults;
+    let html=`<div class="agenda-search-head">
+        <span>🔍 <b>"${_esc(agendaSearchQuery)}"</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
+        <button type="button" class="ship-mini-btn" onclick="clearAgendaSearch()">✕ 검색 해제</button>
+    </div>`;
+    if(!list.length){
+        html+='<div class="agenda-empty">검색 결과가 없습니다.</div>';
+        wrap.innerHTML=html; return;
+    }
+    let lastDate=null;
+    list.forEach(ev=>{
+        const sd=(ev.start_date||'').substring(0,10);
+        if(sd!==lastDate){
+            lastDate=sd;
+            const d=new Date(sd+'T00:00:00');
+            const dowCls=d.getDay()===0?'ad-sun':d.getDay()===6?'ad-sat':'';
+            html+=`<div class="agenda-date-head" style="margin-top:6px;">
+                <span class="ad-d ${dowCls}">${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}</span>
+                <span class="ad-dow ${dowCls}">${AGENDA_DOW[d.getDay()]}요일</span>
+            </div>`;
+        }
+        const ed=(ev.end_date||'').substring(0,10);
+        const isMulti=ed&&ed!==sd;
+        const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
+        const sub=[(isMulti?`${sd.slice(5).replace('-','/')}~${ed.slice(5).replace('-','/')}`:''), ev.client_name, ev.location].filter(Boolean).join(' · ');
+        html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openSearchResultDetail(${ev.id})">
+            <div class="agenda-stripe" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
+            <div style="flex:1;min-width:0;">
+                <div class="agenda-title">${_esc(ev.title||'(제목 없음)')}</div>
+                ${sub?`<div class="agenda-sub">${_esc(sub)}</div>`:''}
+            </div>
+            <div class="agenda-time">${timeLabel}</div>
+        </div>`;
+    });
+    wrap.innerHTML=html;
+}
 async function goToSearchResult(id,dateStr){
     closeCalSearch();
     const inp=document.getElementById('calSearchInput'); if(inp) inp.blur();
@@ -1742,6 +1816,7 @@ document.addEventListener('click',e=>{
 });
 
 function switchView(view) {
+    agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
     currentView = view;
     const LABEL={month:'월간',week:'주간',day:'일간',list:'목록'};
     document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===LABEL[view]));
@@ -1913,6 +1988,10 @@ function moveAgendaWeek(dir){
     loadEvents(); // 새 주 범위 로드 후 renderAgenda
 }
 function renderAgenda(){
+    // 검색 결과 모드
+    if(agendaSearchQuery){ renderAgendaSearch(); return; }
+    const stripEl=document.getElementById('agendaStrip');
+    if(stripEl) stripEl.style.display='';
     const ts=todayStr();
     const week=agendaWeekDates();
     if(!agendaSelectedDate || !week.includes(agendaSelectedDate)) agendaSelectedDate=week.includes(ts)?ts:week[0];
@@ -2459,6 +2538,7 @@ function setColor(c){
     updateBalanceBanner();
     applyVisitOptsUI();
     updateShipmentSectionVisibility();
+    if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
 }
 
 // ── 미팅/내방 옵션 ──
@@ -3419,12 +3499,18 @@ function setEditModeUI(){
     const saveBtn=document.querySelector('.modal-footer .btn-save');
     saveBtn.textContent='저장';
     saveBtn.onclick=()=>{saveEvent();};
-    // 변경 사유 필드: 수정 모드(editingId 있음)일 때만 표시. 새 일정은 숨김
+    // 변경 사유 필드: 수정 모드 + 방문의뢰/원격·방송룸 카테고리만 표시
+    updateReasonFieldVisibility();
+}
+
+// 변경 사유는 gold(방문의뢰)/teal(원격·방송룸)에서 날짜/시간 변경 시에만 필수
+const REASON_COLORS=['gold','teal'];
+function updateReasonFieldVisibility(){
     const reasonField=document.getElementById('reasonField');
-    if (reasonField) {
-        reasonField.style.display = editingId ? '' : 'none';
-        if (!editingId) document.getElementById('modalReason').value='';
-    }
+    if(!reasonField) return;
+    const show=!!editingId && !viewMode && REASON_COLORS.includes(currentColor);
+    reasonField.style.display=show?'':'none';
+    if(!editingId) document.getElementById('modalReason').value='';
 }
 
 function openDetailModal(ev) {
@@ -3541,6 +3627,14 @@ async function openHistoryModal() {
 function openEditModal(ev){
     if(isGuestUser) return;
     editingId=ev.id; selectedAssignees=ev.assignees?ev.assignees.map(a=>a.id):[];
+    // 날짜/시간 원본 스냅샷 — 변경 사유 필수 여부 판정용
+    editingOrigDT={
+        sd:(ev.start_date||'').substring(0,10),
+        ed:((ev.end_date||ev.start_date)||'').substring(0,10),
+        st:(ev.start_time||'').substring(0,5),
+        et:(ev.end_time||'').substring(0,5),
+        allday:!!ev.is_all_day,
+    };
     resetModalForm();
     setColor(ev.color);
     document.getElementById('modalTitle').value=ev.title||'';
@@ -3829,21 +3923,27 @@ async function doSaveEvent(){
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
 
-    // 수정 시 변경 사유 필수 (실제 변경이 있는지 백엔드에서 판정)
+    // 변경 사유: 방문의뢰/원격·방송룸에서 날짜/시간이 바뀔 때만 필수 (백엔드에서도 동일 판정)
     if (editingId) {
         const reasonEl = document.getElementById('modalReason');
         const reasonVal = (reasonEl?.value || '').trim();
-        if (!reasonVal) {
+        const dtChanged = !editingOrigDT
+            || sd !== editingOrigDT.sd
+            || (ed||sd) !== editingOrigDT.ed
+            || isAllDay !== editingOrigDT.allday
+            || (!isAllDay && ((st||'').substring(0,5) !== editingOrigDT.st || (et||'').substring(0,5) !== editingOrigDT.et));
+        const needsReason = REASON_COLORS.includes(currentColor) && dtChanged;
+        if (needsReason && !reasonVal) {
             if (reasonEl) {
                 reasonEl.style.borderColor = 'var(--red)';
                 reasonEl.scrollIntoView({behavior:'smooth', block:'center'});
                 reasonEl.focus();
                 setTimeout(()=>{ reasonEl.style.borderColor=''; }, 3000);
             }
-            showCalToast('변경 사유를 입력해주세요.');
+            showCalToast('일정(날짜/시간) 변경 사유를 입력해주세요.');
             return;
         }
-        data.reason = reasonVal;
+        if (reasonVal) data.reason = reasonVal;
     }
 
     const url=editingId?`/api/events/${editingId}`:'/api/events';
