@@ -3005,7 +3005,8 @@ async function loadClientProjects(clientId){
         projects.forEach(p=>{
             const opt=document.createElement('option');
             opt.value=p.id;
-            opt.textContent=`${p.name} (${p.stage||p.type||''})`;
+            const tags=[...((p.tags&&p.tags.major)||[]),...((p.tags&&p.tags.minor)||[])];
+            opt.textContent=`${p.name} (${p.stage||p.type||''})`+(tags.length?` — #${tags.join(' #')}`:'');
             sel.appendChild(opt);
         });
         // 이전에 연결된 프로젝트가 있으면 선택
