@@ -131,8 +131,9 @@
     .day-popover .dp-item:hover { background:var(--surface2); }
     .day-popover .dp-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
     .day-popover .dp-info { flex:1; min-width:0; }
-    .day-popover .dp-title-row { display:flex; align-items:center; gap:8px; }
-    .day-popover .dp-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .day-popover .dp-title-row { display:flex; align-items:flex-start; gap:8px; }
+    /* 제목: 한 줄 말줄임 대신 폰트 축소 + 2줄까지 줄바꿈 표시 */
+    .day-popover .dp-title { font-size:12px; font-weight:500; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
     .day-popover .dp-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .day-popover .dp-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
     .day-popover .dp-time { font-size:11px; font-weight:600; color:var(--text-muted); flex-shrink:0; min-width:38px; }
@@ -207,8 +208,11 @@
     .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:calc(10px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.3px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; line-height:1; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.08); }
     [data-theme="light"] .ev-assignee-badge { background:rgba(0,0,0,0.06); color:#4a5060; }
     /* 담당자 전체 명단 hover 툴팁 */
-    #calNamesTip { position:fixed; z-index:600; display:none; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 12px; font-size:12px; line-height:1.8; color:var(--text); box-shadow:0 8px 24px rgba(0,0,0,0.25); pointer-events:none; white-space:nowrap; }
-    #calNamesTip.show { display:block; }
+    #calNamesTip { position:fixed; z-index:600; display:none; align-items:center; gap:6px; max-width:calc(100vw - 16px); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 12px; font-size:12px; line-height:1.5; color:var(--text); box-shadow:0 8px 24px rgba(0,0,0,0.25); pointer-events:none; white-space:nowrap; }
+    #calNamesTip.show { display:flex; }
+    #calNamesTip .cnt-t { font-weight:700; }
+    #calNamesTip .cnt-sep { color:var(--text-muted); }
+    #calNamesTip .cnt-n { color:var(--text-muted); }
     /* 날짜 숫자 클릭으로 일별 팝업 열림 */
     .day-num-row { cursor:pointer; }
 
@@ -1573,7 +1577,8 @@ function buildChipHtml(ev){
             const first = names[0];
             const extra = names.length - 1;
             const display = extra > 0 ? `${first} +${extra}` : first;
-            const anames = extra > 0 ? ` data-anames="${names.join('|').replace(/"/g, '&quot;').replace(/</g, '&lt;')}"` : '';
+            const attrEsc = s => s.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+            const anames = extra > 0 ? ` data-anames="${attrEsc(names.join('|'))}" data-atitle="${attrEsc(title)}"` : '';
             html += `<span class="chip-badges"><span class="ev-assignee-badge"${anames}>${display}</span></span>`;
         }
     }
@@ -1588,7 +1593,10 @@ document.body.appendChild(calNamesTip);
 document.addEventListener('mouseover',e=>{
     const t=e.target.closest&&e.target.closest('[data-anames]');
     if(!t){ calNamesTip.classList.remove('show'); return; }
-    calNamesTip.innerHTML=t.dataset.anames.split('|').map(n=>`<div>${_esc(n)}</div>`).join('');
+    // 제목 + 담당자 전체를 가로 한 줄로
+    const tipTitle=t.dataset.atitle||'';
+    const tipNames=t.dataset.anames.split('|').join(', ');
+    calNamesTip.innerHTML=(tipTitle?`<span class="cnt-t">${_esc(tipTitle)}</span><span class="cnt-sep">·</span>`:'')+`<span class="cnt-n">${_esc(tipNames)}</span>`;
     calNamesTip.classList.add('show');
     const r=t.getBoundingClientRect();
     const tw=calNamesTip.offsetWidth, th=calNamesTip.offsetHeight;
@@ -1949,7 +1957,7 @@ function renderMonth() {
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
                     // 오버레이는 pointer-events:none — 담당자 툴팁은 바 조각에서 hover
                     const mnames=assigneeNamesOf(ev);
-                    if(mnames.length>1) chip.dataset.anames=mnames.join('|');
+                    if(mnames.length>1){ chip.dataset.anames=mnames.join('|'); chip.dataset.atitle=isGuestUser?(ev.location||'일정'):(ev.title||''); }
                 } else {
                     chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'');
                     chip.innerHTML=buildChipHtml(ev);
