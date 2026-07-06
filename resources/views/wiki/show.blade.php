@@ -27,6 +27,8 @@
     .wiki-content h2 { font-size:20px; font-weight:700; margin:20px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
     .wiki-content h3 { font-size:16px; font-weight:600; margin:16px 0 8px; }
     .wiki-content p { margin:0 0 12px; }
+    /* 에디터의 빈 줄(<p></p>)이 조회 화면에서 높이 0으로 사라지지 않도록 보존 */
+    .wiki-content p:empty::after { content:'\00a0'; }
     .wiki-content ul, .wiki-content ol { margin:0 0 12px; padding-left:24px; }
     .wiki-content li { margin:4px 0; }
     .wiki-content code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-size:13px; font-family:monospace; }
