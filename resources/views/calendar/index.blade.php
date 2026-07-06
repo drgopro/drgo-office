@@ -493,11 +493,13 @@
     .ls-chip-icon { opacity:0.95; }
     .ls-chip-key { color:var(--text-muted); font-weight:400; margin-right:2px; }
     .ls-chip-val { color:var(--text); font-weight:600; }
-    .ls-info-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:18px 24px; }
+    .ls-info-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px 12px; }
+    .ls-info-cell { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
     .ls-info-cell .ls-info-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; letter-spacing:0.04em; }
     .ls-info-cell .ls-info-val { font-size:15px; color:var(--text); font-weight:500; line-height:1.4; word-break:break-all; }
     .ls-info-cell .ls-info-val.ls-empty { color:var(--text-muted); opacity:0.5; font-weight:400; }
-    .ls-text-block { font-size:14px; color:var(--text); line-height:1.7; white-space:pre-wrap; word-break:break-word; padding:6px 0; }
+    /* 내용 블록: 라벨 아래 박스로 구분감 부여 */
+    .ls-text-block { font-size:14px; color:var(--text); line-height:1.7; white-space:pre-wrap; word-break:break-word; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-top:4px; }
     .ls-text-block.muted { color:var(--text-muted); font-style:italic; }
     .ls-amount { font-size:26px; font-weight:700; color:var(--text); line-height:1.2; }
     .ls-amount-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
