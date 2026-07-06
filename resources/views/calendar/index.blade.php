@@ -216,6 +216,13 @@
     .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
     /* 배송 상태 아이콘 (✕ 미배송 / △ 일부 완료 / ○ 전부 완료) */
     .chip-ship { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:800; line-height:1; }
+    /* 리스트 제목 옆 배송 아이콘 (담당자보다 앞) */
+    .agenda-title .chip-ship, .dp-title .chip-ship, .mde-title .chip-ship { margin-left:6px; font-size:13px; }
+    /* 이사세팅 출발/도착 2줄 */
+    .agenda-move { display:flex; flex-direction:column; gap:1px; font-size:12px; color:var(--text-muted); margin-top:3px; }
+    .agenda-move span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dp-info .agenda-move { margin-top:4px; }
+    .mde-info .agenda-move { margin-top:3px; }
     .chip-ship.s-none { color:var(--red); }
     .chip-ship.s-part { color:#d78a2e; }
     .chip-ship.s-all { color:var(--green); }
@@ -1553,6 +1560,27 @@ function chipColor(c){
     if(c==='holiday') return 'var(--chip-red-bg)';
     return (window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[c])?`var(--chip-${c}-bg)`:'var(--accent)';
 }
+// 배송 상태 인라인 아이콘 (송장 없으면 빈 문자열) — 리스트/팝오버 공용
+function shipStatusIcon(ev){
+    if(!ev || !ev.shipments_count) return '';
+    const d=ev.shipments_delivered_count||0, t=ev.shipments_count;
+    const [ico,cls]=d===0?['✕','s-none']:(d<t?['△','s-part']:['○','s-all']);
+    return `<span class="chip-ship ${cls}" title="배송 ${d}/${t}건 완료">${ico}</span>`;
+}
+// 이사세팅 여부
+function isMoveSetting(ev){
+    if(!ev || ev.color!=='gold') return false;
+    const rt=(ev.gold_data&&ev.gold_data.req_topic)||'';
+    return rt.split(',').map(s=>s.trim()).includes('이사세팅');
+}
+// 이사세팅 출발/도착 2줄 HTML (리스트용) — 이사세팅 아닐 땐 빈 문자열
+function moveAddrLinesHtml(ev){
+    if(!isMoveSetting(ev)) return '';
+    const g=ev.gold_data||{};
+    const from = g.move_no_from ? '없음' : (g.move_from_location||g.move_from_address||'—');
+    const to = ev.location||ev.address||'—';
+    return `<div class="agenda-move"><span>출발: ${_esc(from)}</span><span>도착: ${_esc(to)}</span></div>`;
+}
 let expandedDays = new Set();
 
 // ── 초기화 ──────────────────────────────────────────────────────
@@ -1958,15 +1986,17 @@ function openDayPopover(dateStr, anchorEl){
         const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
         const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)+((ev.end_time)?'~'+ev.end_time.substring(0,5):''));
         // 담당자는 제목 우측에, 나머지(시간·주소)는 하단 메타에
-        const meta=[time, roadOnly(ev.location)].filter(Boolean).join(' · ');
+        const moveHtml=moveAddrLinesHtml(ev);
+        const meta=[time, moveHtml?'':roadOnly(ev.location)].filter(Boolean).join(' · ');
         return `<div class="dp-item${ev.completed_at?' is-completed':''}" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
             <span class="dp-dot" style="background:${chipColor(ev.color)}"></span>
             <div class="dp-info">
                 <div class="dp-title-row">
-                    <span class="dp-title">${_esc(title)}</span>
+                    <span class="dp-title">${_esc(title)}${shipStatusIcon(ev)}</span>
                     ${assignees?`<span class="dp-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 ${meta?`<div class="dp-meta">${_esc(meta)}</div>`:''}
+                ${moveHtml}
             </div>
         </div>`;
     }).join('');
@@ -2058,12 +2088,14 @@ function renderAgenda(){
             const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
             const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
             const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
+            const moveHtml=moveAddrLinesHtml(ev);
             const sub=[ (isMulti?`${ev.start_date.slice(5).replace('-','/')}~${ev.end_date.slice(5).replace('-','/')}`:''), ev.location ].filter(Boolean).join(' · ');
+            const subHtml=moveHtml || (sub?`<div class="agenda-sub">${_esc(sub)}</div>`:'');
             html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
                 <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
                 <div class="agenda-main">
-                    <div class="agenda-title">${_esc(title)}</div>
-                    ${sub?`<div class="agenda-sub">${_esc(sub)}</div>`:''}
+                    <div class="agenda-title">${_esc(title)}${shipStatusIcon(ev)}</div>
+                    ${subHtml}
                 </div>
                 <div class="agenda-right">
                     <span class="agenda-time">${timeLabel}</span>
@@ -2295,14 +2327,16 @@ function renderMobileDayEvents(dateStr){
         const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'시간 미정');
         const title=ev.title||'(제목 없음)';
         const assignees=assigneeNamesOf(ev).join(', ');
+        const moveHtml=moveAddrLinesHtml(ev);
         return `<div class="mde-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
             <div class="mde-dot" style="background:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
-                    <div class="mde-title">${_esc(title)}</div>
+                    <div class="mde-title">${_esc(title)}${shipStatusIcon(ev)}</div>
                     ${assignees?`<span class="mde-assignee">${_esc(assignees)}</span>`:''}
                 </div>
-                <div class="mde-meta">${time}${ev.location?' · '+_esc(ev.location):''}</div>
+                <div class="mde-meta">${time}${(!moveHtml&&ev.location)?' · '+_esc(ev.location):''}</div>
+                ${moveHtml}
             </div>
         </div>`;
     }).join('');
