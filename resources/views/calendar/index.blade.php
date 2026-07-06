@@ -645,8 +645,9 @@
         .day-cell .event-chip .chip-special, .day-cell .event-chip .chip-badges,
         .day-cell .event-chip .sched-icon-badge, .day-cell .event-chip .ev-assignee-badge { display:none; }
         .day-cell .event-chip.single { border-left:none; color:var(--text); }
+        {{-- 모바일 칩: PC처럼 연한 틴트로 (원색 배경은 가독성 저하) --}}
         @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
-        .day-cell .event-chip.single.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); }
+        .day-cell .event-chip.single.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 32%, transparent); color:var(--text); }
         @endforeach
         .more-badge { font-size:9px; padding:0 3px; pointer-events:none; font-weight:600; color:var(--text-muted); text-align:left; }
 
