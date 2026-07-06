@@ -651,8 +651,9 @@
         @endforeach
         .more-badge { font-size:9px; padding:0 3px; pointer-events:none; font-weight:600; color:var(--text-muted); text-align:left; }
 
-        /* 다일 일정: 텍스트 바, 셀 경계까지 연결(padding 3px 보상) */
-        .day-cell .event-chip.multi-day { flex-basis:100%; align-self:stretch; margin-left:-3px; margin-right:-3px; border-radius:0; }
+        /* 다일 일정: 텍스트 바, 셀 경계까지 연결(padding 3px 보상)
+           width:100%면 음수 마진이 오른쪽 끝을 못 당겨 끊겨 보임 → width:auto로 스트레치 */
+        .day-cell .event-chip.multi-day { width:auto; flex-basis:auto; align-self:stretch; margin-left:-3px; margin-right:-3px; border-radius:0; }
         .day-cell .event-chip.multi-day.day-start         { border-radius:3px 0 0 3px; margin-left:0; }
         .day-cell .event-chip.multi-day.day-end           { border-radius:0 3px 3px 0; margin-right:0; }
         .day-cell .event-chip.multi-day.day-start.day-end { border-radius:3px; margin:0; }
@@ -675,10 +676,13 @@
         .mobile-day-events .mde-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
         .mobile-day-events .mde-empty { text-align:center; padding:20px; color:var(--text-muted); font-size:13px; }
 
-        /* 다일 스판 칩 숨김 (모바일에서는 dot으로 대체) */
+        /* 다일 스판 칩 숨김 */
         .span-chip-overlay { display:none; }
         .lane-spacer { display:none; }
-        .mday-title-overlay { display:none; }
+        /* 다일 제목 오버레이: 모바일에서도 바 전체 폭으로 흐르게 (크기만 축소) */
+        .mday-title-overlay { font-size:9px; padding:0 4px; gap:2px; }
+        .mday-title-overlay .chip-badges, .mday-title-overlay .ev-assignee-badge,
+        .mday-title-overlay .sched-icon-badge, .mday-title-overlay .chip-special { display:none; }
 
         /* 모달 모바일 */
         .modal { max-width:95vw; border-radius:12px; }
@@ -2158,11 +2162,7 @@ function renderMonth() {
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
                     if(ev.completed_at) cls+=' is-completed';
                     chip.className=cls;
-                    // 데스크톱: 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
-                    // 모바일: 오버레이가 숨겨지므로 시작 칸(주 시작 포함)에만 제목 표시, 나머지는 빈 바로 이어짐
-                    chip.innerHTML=(window.innerWidth<=768&&isStart)
-                        ? `<span class="chip-title">${_esc(isGuestUser?(ev.location||'일정'):(ev.title||''))}</span>`
-                        : '';
+                    chip.innerHTML=''; // 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림 (PC/모바일 공통)
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
                     // 오버레이는 pointer-events:none — 담당자 툴팁은 바 조각에서 hover
                     const mnames=assigneeNamesOf(ev);
@@ -2206,8 +2206,8 @@ function renderMonth() {
         }
         grid.appendChild(weekRow);
 
-        // ── 다일 일정 제목 오버레이: 바 전체 폭에 걸쳐 한 번만 출력(셀 경계 넘어 흐름). 주마다 시작 칸에서 다시 출력 ──
-        if(window.innerWidth>768){
+        // ── 다일 일정 제목 오버레이: 바 전체 폭에 걸쳐 한 번만 출력(셀 경계 넘어 흐름). 주마다 시작 칸에서 다시 출력 (PC/모바일 공통) ──
+        {
             const wrRect=weekRow.getBoundingClientRect();
             weekMulti.forEach(ev=>{
                 if(laneOf[ev.id]>=LANE_CAP) return;
