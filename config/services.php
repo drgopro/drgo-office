@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // 셀프호스팅 delivery-tracker (배송 추적)
+    'delivery_tracker' => [
+        'url' => env('DELIVERY_TRACKER_URL'), // 예: http://127.0.0.1:8150
+    ],
+
 ];

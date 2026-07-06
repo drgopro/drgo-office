@@ -27,6 +27,7 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
+use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\VisitReportTemplateController;
 use App\Http\Controllers\WikiCategoryController;
 use App\Http\Controllers\WikiController;
@@ -106,6 +107,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/schedules/{schedule}/attachments', [ScheduleAttachmentController::class, 'index']);
         Route::post('/api/schedules/{schedule}/attachments', [ScheduleAttachmentController::class, 'store']);
         Route::delete('/api/schedule-attachments/{attachment}', [ScheduleAttachmentController::class, 'destroy']);
+        // 배송 송장 (delivery-tracker 추적)
+        Route::get('/api/schedules/{schedule}/shipments', [ShipmentController::class, 'index']);
+        Route::post('/api/schedules/{schedule}/shipments', [ShipmentController::class, 'store']);
+        Route::post('/api/schedules/{schedule}/shipments/refresh', [ShipmentController::class, 'refresh']);
+        Route::delete('/api/schedule-shipments/{shipment}', [ShipmentController::class, 'destroy']);
     });
     Route::get('/schedule-attachments/{attachment}/view', [ScheduleAttachmentController::class, 'serve'])->name('schedule-attachments.serve');
 

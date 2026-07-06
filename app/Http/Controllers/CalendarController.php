@@ -23,6 +23,10 @@ class CalendarController extends Controller
         $end = $request->query('end');   // YYYY-MM-DD
 
         $events = Schedule::with('assignees')
+            ->withCount([
+                'shipments',
+                'shipments as shipments_delivered_count' => fn ($q) => $q->where('status', 'delivered'),
+            ])
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('start_date', [$start, $end])
                     ->orWhereBetween('end_date', [$start, $end])

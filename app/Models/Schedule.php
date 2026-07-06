@@ -78,4 +78,9 @@ class Schedule extends Model
     {
         return $this->hasMany(ScheduleAttachment::class)->orderBy('sort_order');
     }
+
+    public function shipments()
+    {
+        return $this->hasMany(ScheduleShipment::class);
+    }
 }

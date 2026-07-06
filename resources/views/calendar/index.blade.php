@@ -198,6 +198,26 @@
     .event-chip.single.color-purple { background:rgba(155,112,200,0.22); border-left-color:var(--chip-purple-bg); }
     .chip-time { font-size:calc(12px * var(--cal-fz,1)); opacity:0.85; flex-shrink:0; margin-right:3px; }
     .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
+    /* 배송 상태 아이콘 (✕ 미배송 / △ 일부 완료 / ○ 전부 완료) */
+    .chip-ship { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:800; line-height:1; }
+    .chip-ship.s-none { color:var(--red); }
+    .chip-ship.s-part { color:#d78a2e; }
+    .chip-ship.s-all { color:var(--green); }
+    /* 배송 현황 섹션 */
+    .ship-add-row { display:flex; gap:6px; margin-top:8px; align-items:center; }
+    .ship-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
+    .ship-input:focus { border-color:var(--accent); }
+    .ship-mini-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+    .ship-mini-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .ship-mini-btn.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
+    .ship-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; background:var(--surface); flex-wrap:wrap; }
+    .ship-item .ship-status-ico { font-weight:800; font-size:13px; flex-shrink:0; }
+    .ship-item .ship-carrier { font-size:12px; font-weight:700; flex-shrink:0; }
+    .ship-item .ship-no { font-size:12px; font-family:ui-monospace,Menlo,monospace; color:var(--text-muted); flex-shrink:0; }
+    .ship-item .ship-event { font-size:12px; color:var(--text-muted); flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ship-item .ship-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 4px; flex-shrink:0; }
+    .ship-item .ship-del:hover { color:var(--red); }
+    .ship-empty { font-size:12px; color:var(--text-muted); padding:6px 2px; }
     .sched-icon-badge { flex-shrink:0; font-size:12px; margin-left:3px; display:inline-flex; align-items:center; }
     .chip-badges { display:flex; align-items:center; flex-shrink:0; gap:3px; margin-left:auto; padding-left:6px; }
     .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:calc(10px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.3px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; line-height:1; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.08); }
@@ -930,6 +950,22 @@
                 </div>
             </div>
 
+            {{-- 배송 현황 (방문의뢰·촬영/스튜디오, 저장된 일정만) --}}
+            <div class="field-section" id="shipmentSection" style="display:none;">
+                <div class="field-group">
+                    <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
+                        <button type="button" class="ship-mini-btn" onclick="refreshShipments()" title="배송상태 새로고침">🔄 새로고침</button>
+                    </label>
+                    <div id="shipmentList"></div>
+                    <div class="ship-add-row">
+                        <select class="ship-input" id="shipCarrier" style="flex:0 0 130px;"></select>
+                        <input class="ship-input" id="shipTrackingNo" placeholder="송장번호" inputmode="numeric" style="flex:1;min-width:0;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addShipment();}">
+                        <button type="button" class="ship-mini-btn primary" onclick="addShipment()">+ 등록</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="divider"></div>
 
             {{-- 공통 필드 (비-gold/비-teal) --}}
@@ -1570,6 +1606,13 @@ function buildChipHtml(ev){
     html+=`<span class="chip-title">${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
+    // 배송 상태: 등록만 ✕ / 일부 완료 △ / 전부 완료 ○
+    if(ev.shipments_count>0){
+        const shD=ev.shipments_delivered_count||0, shT=ev.shipments_count;
+        const shCls=shD===0?'s-none':(shD<shT?'s-part':'s-all');
+        const shIco=shD===0?'✕':(shD<shT?'△':'○');
+        html+=`<span class="chip-ship ${shCls}" title="배송 ${shD}/${shT}건 완료">${shIco}</span>`;
+    }
     // 담당자 — chip 우측 정렬. 2명 이상이면 첫 번째 이름 + '+N' (전체 명단은 hover 즉시 툴팁)
     if (ev.assignees && ev.assignees.length) {
         const names = ev.assignees.map(a => (a.name || '').trim()).filter(Boolean);
@@ -2341,6 +2384,7 @@ function setColor(c){
     document.getElementById('goldDtRow').style.display=c==='gold'?'flex':'none';
     updateBalanceBanner();
     applyVisitOptsUI();
+    updateShipmentSectionVisibility();
 }
 
 // ── 미팅/내방 옵션 ──
@@ -2513,6 +2557,16 @@ function renderLockSummary(){
         <div><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}</div>
         ${specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${specialPills}</div>`:''}
     </div>`;
+
+    // 배송 현황 (gold/green, 송장 있을 때만)
+    const lsShips=(SHIP_COLORS.includes(color)?(shipCache.shipments||[]):[]);
+    if (lsShips.length) {
+        const lsDone=lsShips.filter(s=>s.status==='delivered').length;
+        html += `<div class="ls-section">
+            <div class="ls-section-title">📦 배송 현황 (${lsDone}/${lsShips.length} 완료)</div>
+            ${lsShips.map(shipRowHtml).join('')}
+        </div>`;
+    }
 
     // Gold 전용 상세 칩 + 섹션
     if (color === 'gold') {
@@ -2941,6 +2995,73 @@ async function loadExistingAttachments(scheduleId){
     // 요약 뷰가 켜진 상태라면 첨부 로딩 완료 후 요약을 다시 렌더(비동기로 늦게 도착한 이미지 반영)
     if(isLocked) renderLockSummary();
 }
+// ── 배송 현황 (송장 추적) — 방문의뢰(gold)·촬영/스튜디오(green), 저장된 일정만 ──
+const SHIP_COLORS=['gold','green'];
+let shipCache={shipments:[],carriers:{}};
+function updateShipmentSectionVisibility(){
+    const sec=document.getElementById('shipmentSection');
+    if(sec) sec.style.display=(editingId&&SHIP_COLORS.includes(currentColor))?'':'none';
+}
+async function loadShipments(){
+    if(!editingId||!SHIP_COLORS.includes(currentColor)) return;
+    try{
+        const res=await fetch(`/api/schedules/${editingId}/shipments`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        shipCache=await res.json();
+        renderShipments();
+        if(isLocked) renderLockSummary(); // 요약 뷰에 배송 현황 반영
+    }catch(e){}
+}
+function shipRowHtml(s){
+    const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:['✕','var(--red)']);
+    const evTxt=s.status==='delivered'?`배송완료${s.delivered_at?' · '+s.delivered_at:''}`:(s.last_event||'조회 대기');
+    return `<div class="ship-item">
+        <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
+        <span class="ship-carrier">${_esc(s.carrier_label)}</span>
+        <span class="ship-no">${_esc(s.tracking_no)}</span>
+        <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
+        <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
+    </div>`;
+}
+function renderShipments(){
+    const list=document.getElementById('shipmentList');
+    const sel=document.getElementById('shipCarrier');
+    const badge=document.getElementById('shipSummaryBadge');
+    if(!list) return;
+    if(sel) sel.innerHTML=Object.entries(shipCache.carriers||{}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    const ships=shipCache.shipments||[];
+    const done=ships.filter(s=>s.status==='delivered').length;
+    if(badge) badge.textContent=ships.length?`(${done}/${ships.length} 완료)`:'';
+    list.innerHTML=ships.length?ships.map(shipRowHtml).join(''):'<div class="ship-empty">등록된 송장이 없습니다. 택배사와 송장번호를 입력해 추가하세요.</div>';
+}
+async function addShipment(){
+    if(!editingId) return;
+    const carrier=document.getElementById('shipCarrier').value;
+    const no=document.getElementById('shipTrackingNo').value.trim();
+    if(!no){alert('송장번호를 입력하세요.');return;}
+    const res=await fetch(`/api/schedules/${editingId}/shipments`,{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify({carrier,tracking_no:no}),
+    });
+    const data=await res.json().catch(()=>null);
+    if(!res.ok){alert((data&&data.message)||(data&&data.errors&&Object.values(data.errors).flat().join('\n'))||'등록 실패');return;}
+    document.getElementById('shipTrackingNo').value='';
+    shipCache=data; renderShipments(); loadEvents(); // 칩 아이콘 갱신
+}
+async function deleteShipment(id){
+    if(!confirm('이 송장을 삭제하시겠습니까?')) return;
+    const res=await fetch(`/api/schedule-shipments/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(!res.ok){alert('삭제 실패');return;}
+    shipCache=await res.json(); renderShipments(); loadEvents();
+}
+async function refreshShipments(){
+    if(!editingId) return;
+    const res=await fetch(`/api/schedules/${editingId}/shipments/refresh`,{method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(!res.ok){alert('배송상태 갱신 실패');return;}
+    shipCache=await res.json(); renderShipments(); loadEvents();
+    if(isLocked) renderLockSummary();
+}
+
 function resetAttachments(){
     pendingAttachments={quote:[],reference:[],room:[],general:[]};existingAttachments={quote:[],reference:[],room:[],general:[]};
     ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
@@ -3057,6 +3178,11 @@ function resetModalForm(){
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=false;});
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='';});
     resetAttachments();
+    // 배송 현황 초기화 (편집 진입 시 loadShipments가 다시 채움)
+    shipCache={shipments:[],carriers:{}};
+    const shipList=document.getElementById('shipmentList'); if(shipList) shipList.innerHTML='';
+    const shipBadge=document.getElementById('shipSummaryBadge'); if(shipBadge) shipBadge.textContent='';
+    updateShipmentSectionVisibility();
     assigneePanelOpen=false;
     document.getElementById('assigneeList').style.display='none';
 }
@@ -3486,6 +3612,9 @@ function openEditModal(ev){
     // 첨부파일
     pendingAttachments={quote:[],reference:[],room:[],general:[]};
     loadExistingAttachments(ev.id);
+    // 배송 현황 (gold/green) — editingId 설정 후이므로 섹션 노출 + 목록 로드
+    updateShipmentSectionVisibility();
+    loadShipments();
     // UI
     document.getElementById('btnDelete').style.display='';
     document.getElementById('btnLog').style.display='';
