@@ -179,12 +179,10 @@
     .mday-bar { z-index:5; padding:2px 8px; font-size:12px; line-height:1.4; overflow:hidden; cursor:pointer; box-sizing:border-box; display:flex; align-items:center; transition:filter .12s; color:var(--accent-text); }
     .mday-bar:hover { filter:brightness(1.12); }
     .mday-bar .mday-bar-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; font-weight:500; }
-    .mday-bar.color-gold   { background:var(--chip-gold-bg); }
-    .mday-bar.color-teal   { background:var(--chip-teal-bg); }
-    .mday-bar.color-blue   { background:var(--chip-blue-bg); }
-    .mday-bar.color-red    { background:var(--chip-red-bg); color:#fff; }
-    .mday-bar.color-green  { background:var(--chip-green-bg); }
-    .mday-bar.color-purple { background:var(--chip-purple-bg); color:#fff; }
+    /* 카테고리별 바 색 — 관리 설정(라벨/색상)과 자동 연동 (커스텀 카테고리 포함) */
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .mday-bar.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); }
+    @endforeach
     .mday-bar.color-holiday{ background:var(--chip-red-bg); color:#fff; }
     .event-chip span { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     /* 제목은 늘어나서 담당자 배지를 우측 끝으로 밀어냄 */
@@ -204,12 +202,10 @@
     /* 연속 일정: 담당자 배지를 제목이 끝나는 지점 바로 뒤에 표시(바 끝으로 밀지 않음) */
     .mday-title-overlay .chip-title { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .mday-title-overlay .chip-badges { margin-left:0; flex-shrink:0; }
-    .event-chip.single.color-gold   { background:rgba(200,176,138,0.22); border-left-color:var(--chip-gold-bg); }
-    .event-chip.single.color-teal   { background:rgba(232,137,74,0.22); border-left-color:var(--chip-teal-bg); }
-    .event-chip.single.color-blue   { background:rgba(138,180,200,0.22); border-left-color:var(--chip-blue-bg); }
-    .event-chip.single.color-red    { background:rgba(200,122,122,0.22); border-left-color:var(--chip-red-bg); }
-    .event-chip.single.color-green  { background:rgba(122,200,122,0.22); border-left-color:var(--chip-green-bg); }
-    .event-chip.single.color-purple { background:rgba(155,112,200,0.22); border-left-color:var(--chip-purple-bg); }
+    /* 단일 칩 틴트 — 카테고리 색에서 자동 계산 (커스텀 포함) */
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .event-chip.single.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
+    @endforeach
     .chip-time { font-size:calc(12px * var(--cal-fz,1)); opacity:0.85; flex-shrink:0; margin-right:3px; }
     .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
     /* 배송 상태 아이콘 (✕ 미배송 / △ 일부 완료 / ○ 전부 완료) */
@@ -249,12 +245,9 @@
     .span-chip-overlay { position:absolute; top:0; left:0; right:0; pointer-events:none; z-index:2; }
     .span-chip { position:absolute; height:22px; font-size:12px; font-weight:500; color:#111; display:flex; align-items:center; overflow:hidden; white-space:nowrap; cursor:pointer; pointer-events:all; box-sizing:border-box; padding:0 7px; transition:filter 0.15s; min-width:0; }
     .span-chip:hover { filter:brightness(1.12); }
-    .span-chip.color-gold   { background:var(--chip-gold-bg); color:var(--chip-gold-text); font-weight:600; }
-    .span-chip.color-teal   { background:var(--chip-teal-bg); color:var(--chip-teal-text); font-weight:600; }
-    .span-chip.color-blue   { background:var(--chip-blue-bg); color:var(--chip-blue-text); font-weight:600; }
-    .span-chip.color-red    { background:var(--chip-red-bg); color:var(--chip-red-text); font-weight:600; }
-    .span-chip.color-green  { background:var(--chip-green-bg); color:var(--chip-green-text); font-weight:600; }
-    .span-chip.color-purple { background:var(--chip-purple-bg); color:var(--chip-purple-text); font-weight:600; }
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .span-chip.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); font-weight:600; }
+    @endforeach
     .span-chip.is-start { border-radius:4px 0 0 4px; }
     .span-chip.is-end { border-radius:0 4px 4px 0; }
     .span-chip.is-solo { border-radius:4px; }
@@ -299,12 +292,9 @@
 
     .tl-event { position:absolute; left:2px; right:2px; border-radius:4px; padding:2px 5px; font-size:11px; overflow:hidden; cursor:pointer; z-index:1; transition:filter 0.1s, opacity 0.1s; line-height:1.3; opacity:0.8; }
     .tl-event:hover { filter:brightness(1.15); opacity:1; z-index:3; }
-    .tl-event.color-gold   { background:var(--gold); color:var(--accent-text); }
-    .tl-event.color-teal   { background:var(--teal); color:var(--accent-text); }
-    .tl-event.color-blue   { background:var(--blue); color:var(--accent-text); }
-    .tl-event.color-red    { background:var(--red); color:#fff; }
-    .tl-event.color-green  { background:var(--green); color:var(--accent-text); }
-    .tl-event.color-purple { background:var(--purple); color:#fff; }
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .tl-event.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); }
+    @endforeach
 
     /* ── 모달 ── */
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:200; backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
@@ -323,11 +313,9 @@
     @keyframes modalIn { from{opacity:0;transform:translateY(18px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
 
     .modal-strip { height:4px; border-radius:16px 16px 0 0; background:var(--accent); transition:background 0.3s; }
-    .modal-strip.color-teal { background:var(--teal); }
-    .modal-strip.color-blue { background:var(--blue); }
-    .modal-strip.color-red { background:var(--red); }
-    .modal-strip.color-green { background:var(--green); }
-    .modal-strip.color-purple { background:var(--purple); }
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .modal-strip.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); }
+    @endforeach
     .modal-strip.color-holiday { background:var(--red); }
 
     .type-badge { display:inline-flex; align-items:center; gap:5px; font-size:10px; letter-spacing:0.12em; padding:3px 8px; border-radius:4px; border:1px solid; }
@@ -654,12 +642,9 @@
         .day-cell .event-chip .chip-special, .day-cell .event-chip .chip-badges,
         .day-cell .event-chip .sched-icon-badge, .day-cell .event-chip .ev-assignee-badge { display:none; }
         .day-cell .event-chip.single { border-left:none; color:var(--text); }
-        .day-cell .event-chip.single.color-gold   { background:var(--chip-gold-bg);   color:var(--accent-text); }
-        .day-cell .event-chip.single.color-teal   { background:var(--chip-teal-bg);   color:var(--accent-text); }
-        .day-cell .event-chip.single.color-blue   { background:var(--chip-blue-bg);   color:var(--accent-text); }
-        .day-cell .event-chip.single.color-red    { background:var(--chip-red-bg);    color:#fff; }
-        .day-cell .event-chip.single.color-green  { background:var(--chip-green-bg);  color:var(--accent-text); }
-        .day-cell .event-chip.single.color-purple { background:var(--chip-purple-bg); color:#fff; }
+        @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+        .day-cell .event-chip.single.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); }
+        @endforeach
         .more-badge { font-size:9px; padding:0 3px; pointer-events:none; font-weight:600; color:var(--text-muted); text-align:left; }
 
         /* 다일 일정: 텍스트 바, 셀 경계까지 연결(padding 3px 보상) */
@@ -1532,6 +1517,11 @@ let currentYear, currentMonth, currentWeekStart, currentDay;
 let events = [], assignees = [], selectedAssignees = [];
 let editingId = null, currentColor = 'gold', currentView = 'month';
 let editingOrigDT = null; // 편집 중 일정의 원본 날짜/시간 (변경 사유 필수 판정용)
+// 카테고리 색 — 관리 설정과 연동된 CSS 변수 반환 (커스텀 카테고리 포함)
+function chipColor(c){
+    if(c==='holiday') return 'var(--chip-red-bg)';
+    return (window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[c])?`var(--chip-${c}-bg)`:'var(--accent)';
+}
 let expandedDays = new Set();
 
 // ── 초기화 ──────────────────────────────────────────────────────
@@ -1709,13 +1699,12 @@ async function runCalSearch(q){
 function renderCalSearchResults(list){
     const box=document.getElementById('calSearchResults');
     if(!box) return;
-    const CMAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
     if(!list.length){ box.innerHTML='<div class="cal-sr-empty">검색 결과가 없습니다</div>'; box.style.display=''; return; }
     box.innerHTML=list.map(ev=>{
         const d=(ev.start_date||'').substring(0,10);
         const sub=ev.client_name||ev.location||'';
         return `<div class="cal-sr-item${ev.completed_at?' is-completed':''}" onclick="goToSearchResult(${ev.id},'${d}')">
-            <span class="cal-sr-dot" style="background:${CMAP[ev.color]||'var(--accent)'}"></span>
+            <span class="cal-sr-dot" style="background:${chipColor(ev.color)}"></span>
             <span class="cal-sr-date">${d}</span>
             <span class="cal-sr-title">${_esc(ev.title||'(제목 없음)')}</span>
             ${sub?`<span class="cal-sr-sub">${_esc(sub)}</span>`:''}
@@ -1762,7 +1751,6 @@ function renderAgendaSearch(){
     document.getElementById('periodTitle').textContent=`검색: "${agendaSearchQuery}"`;
     const wrap=document.getElementById('agendaWrap');
     if(!wrap) return;
-    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
     const list=agendaSearchResults;
     let html=`<div class="agenda-search-head">
         <span>🔍 <b>"${_esc(agendaSearchQuery)}"</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
@@ -1789,7 +1777,7 @@ function renderAgendaSearch(){
         const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
         const sub=[(isMulti?`${sd.slice(5).replace('-','/')}~${ed.slice(5).replace('-','/')}`:''), ev.client_name, ev.location].filter(Boolean).join(' · ');
         html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openSearchResultDetail(${ev.id})">
-            <div class="agenda-stripe" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
+            <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
             <div style="flex:1;min-width:0;">
                 <div class="agenda-title">${_esc(ev.title||'(제목 없음)')}</div>
                 ${sub?`<div class="agenda-sub">${_esc(sub)}</div>`:''}
@@ -1922,8 +1910,6 @@ function openDayPopover(dateStr, anchorEl){
     const d=new Date(dateStr+'T00:00:00');
     const DAYS=['일','월','화','수','목','금','토'];
     document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`;
-
-    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
     // 주소를 도로명까지만 (상세주소·동/호수 등 쉼표 뒷부분 제거)
     const roadOnly=(addr)=>{
         if(!addr) return '';
@@ -1936,7 +1922,7 @@ function openDayPopover(dateStr, anchorEl){
         // 담당자는 제목 우측에, 나머지(시간·주소)는 하단 메타에
         const meta=[time, roadOnly(ev.location)].filter(Boolean).join(' · ');
         return `<div class="dp-item${ev.completed_at?' is-completed':''}" onclick="closeDayPopover(); openDetailModal(events.find(e=>e.id===${ev.id}))">
-            <span class="dp-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></span>
+            <span class="dp-dot" style="background:${chipColor(ev.color)}"></span>
             <div class="dp-info">
                 <div class="dp-title-row">
                     <span class="dp-title">${_esc(title)}</span>
@@ -2017,7 +2003,6 @@ function renderAgenda(){
     // 선택일 일정
     const wrap=document.getElementById('agendaWrap');
     if(!wrap) return;
-    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)',holiday:'var(--chip-red-bg)'};
     const full=agendaSelectedDate;
     const d=new Date(full+'T00:00:00');
     const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full));
@@ -2037,7 +2022,7 @@ function renderAgenda(){
             const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
             const sub=[ (isMulti?`${ev.start_date.slice(5).replace('-','/')}~${ev.end_date.slice(5).replace('-','/')}`:''), ev.location ].filter(Boolean).join(' · ');
             html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
-                <div class="agenda-stripe" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
+                <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
                 <div class="agenda-main">
                     <div class="agenda-title">${_esc(title)}</div>
                     ${sub?`<div class="agenda-sub">${_esc(sub)}</div>`:''}
@@ -2251,7 +2236,6 @@ function renderMobileDayEvents(dateStr){
     const d=new Date(dateStr+'T00:00:00');
     const DAYS_KO_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
     const header=`${d.getMonth()+1}월 ${d.getDate()}일 ${DAYS_KO_FULL[d.getDay()]}`;
-    const COLOR_MAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
 
     if(!dayEvs.length){
         container.innerHTML=`<div class="mde-header">${header}</div><div class="mde-empty">일정이 없습니다</div>`;
@@ -2262,7 +2246,7 @@ function renderMobileDayEvents(dateStr){
         const title=ev.title||'(제목 없음)';
         const assignees=assigneeNamesOf(ev).join(', ');
         return `<div class="mde-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
-            <div class="mde-dot" style="background:${COLOR_MAP[ev.color]||'var(--accent)'}"></div>
+            <div class="mde-dot" style="background:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
                     <div class="mde-title">${_esc(title)}</div>
@@ -3681,7 +3665,8 @@ function openEditModal(ev){
     const _ch=document.getElementById('commonHandoverNote'); if(_ch) _ch.value=ev.handover_note||'';
     // gold_data 복원 (Firebase 데이터 구조 호환)
     const g=ev.gold_data||{};
-    document.getElementById('g_nickname').value=g.nickname||ev.client_name||'';
+    // client_name 폴백은 방문의뢰(gold)일 때만 — 과거 누수로 오염된 비-gold 일정의 의뢰자명이 폼에 부활하는 것 방지
+    document.getElementById('g_nickname').value=g.nickname||(ev.color==='gold'?(ev.client_name||''):'');
     document.getElementById('g_name').value=g.name||'';
     document.getElementById('g_phone').value=g.phone||'';
     // 플랫폼: "SOOP, 유튜브, 직접입력값" → pill 선택 + 기타 입력
