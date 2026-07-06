@@ -81,7 +81,7 @@
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
     /* ── 목록(아젠다) 뷰 ── */
-    .agenda-strip { display:flex; gap:4px; max-width:760px; margin:0 auto; padding:12px 12px 6px; }
+    .agenda-strip { display:flex; gap:4px; max-width:900px; margin:0 auto; padding:12px 12px 6px; }
     .agenda-day-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; padding:4px 0 16px; border:none; background:none; cursor:pointer; position:relative; }
     .agenda-day-btn .adb-dow { font-size:11px; color:var(--text-muted); }
     /* 날짜는 동그란 칸 */
@@ -92,7 +92,7 @@
     .agenda-day-btn .adb-dow.sat, .agenda-day-btn .adb-num.sat { color:#5b8def; }
     .agenda-day-btn.active .adb-num.sun, .agenda-day-btn.active .adb-num.sat { color:var(--accent-text); }
     .agenda-day-btn .adb-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); position:absolute; bottom:5px; }
-    .agenda-wrap { max-width:760px; margin:0 auto; padding:8px 16px 40px; }
+    .agenda-wrap { max-width:900px; margin:0 auto; padding:8px 16px 40px; }
     .agenda-day { margin-top:14px; }
     .agenda-day:first-child { margin-top:4px; }
     .agenda-date-head { display:flex; align-items:baseline; gap:8px; padding:8px 4px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg); z-index:2; }
@@ -150,6 +150,12 @@
 
     /* ── 월간 뷰 ── */
     .calendar-wrap { padding:20px 32px; }
+    /* 좁은 데스크톱: 여백 축소로 그리드 최대화 */
+    @media (min-width:769px) and (max-width:1280px) {
+        .calendar-wrap { padding:12px 16px; }
+        .legend { padding:8px 16px; }
+        .timeline-wrap { padding:0 12px 16px; }
+    }
     .weekdays { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:4px; }
     .weekday { text-align:center; font-size:calc(13px * var(--cal-fz,1)); letter-spacing:0.12em; color:var(--text-muted); padding:8px 0; }
     .weekday:first-child { color:var(--red); }
@@ -286,8 +292,8 @@
     /* 시간 슬롯 */
     .tl-body { position:relative; }
     .tl-row { display:flex; }
-    .tl-time-label { width:60px; flex-shrink:0; border-right:1px solid var(--border); padding:0 6px; font-size:10px; color:var(--text-muted); text-align:right; height:48px; display:flex; align-items:flex-start; padding-top:4px; background:var(--surface); }
-    .tl-slot { flex:1; border-right:1px solid var(--border); border-bottom:1px solid var(--border); height:48px; position:relative; cursor:pointer; background:var(--bg); transition:background 0.1s; min-width:80px; }
+    .tl-time-label { width:60px; flex-shrink:0; border-right:1px solid var(--border); padding:0 6px; font-size:10px; color:var(--text-muted); text-align:right; height:var(--tl-hh,48px); display:flex; align-items:flex-start; padding-top:4px; background:var(--surface); }
+    .tl-slot { flex:1; border-right:1px solid var(--border); border-bottom:1px solid var(--border); height:var(--tl-hh,48px); position:relative; cursor:pointer; background:var(--bg); transition:background 0.1s; min-width:80px; }
     .tl-slot:last-child { border-right:none; }
     .tl-slot:hover { background:var(--surface2); }
     .tl-slot.today-col { background:rgba(200,176,138,0.04); }
@@ -1799,6 +1805,13 @@ document.addEventListener('click',e=>{
     if(!e.target.closest||!e.target.closest('#calSearchWrap')) closeCalSearch();
 });
 
+// 창 크기 변경 시 그리드 재계산 (행 높이·연속 바 위치)
+let calResizeTimer=null;
+window.addEventListener('resize',()=>{
+    clearTimeout(calResizeTimer);
+    calResizeTimer=setTimeout(()=>renderView(),150);
+});
+
 function switchView(view) {
     agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
     currentView = view;
@@ -2056,7 +2069,16 @@ function renderMonth() {
         cells.push({date:dt.getDate(), month, full});
     }
 
-    const MAX_VISIBLE = 3;
+    // ── 반응형: 그리드가 화면 높이를 꽉 채우도록 주 행 높이 계산 (110px*배율은 하한) ──
+    let rowMin=Math.round(110*calFzScale);
+    if(window.innerWidth>768){
+        const gTop=grid.getBoundingClientRect().top;
+        const avail=window.innerHeight-gTop-24; // 하단 여백
+        rowMin=Math.max(rowMin, Math.floor((avail-7)/6)); // 6주 + 1px 경계선
+    }
+    // 셀 높이에 들어가는 만큼 일정 칩 표시 (기존 고정 3개 → 동적, 최소 3개 보장)
+    const chipH=22*calFzScale+2, headH=12+28*calFzScale, badgeH=18;
+    const MAX_VISIBLE=Math.max(3, Math.floor((rowMin-headH-badgeH)/chipH));
 
     // 주 단위로 렌더링
     for(let w=0;w<6;w++){
@@ -2078,6 +2100,7 @@ function renderMonth() {
 
         const weekRow=document.createElement('div');
         weekRow.className='week-row';
+        weekRow.style.minHeight=rowMin+'px';
         for(let d=0;d<7;d++){
             const cell=weekCells[d];
             const div=document.createElement('div');
@@ -2359,6 +2382,15 @@ function renderTimeline() {
         dayLayouts[ds]=layout;
     });
 
+    // ── 반응형: 시간대 행 높이를 화면에 맞게 늘림 (48px 하한) ──
+    let TL_HH=48;
+    if(window.innerWidth>768){
+        const gTop=grid.getBoundingClientRect().top;
+        const used=grid.offsetHeight; // 헤더 + 종일 행
+        TL_HH=Math.max(48, Math.floor((window.innerHeight-gTop-used-28)/HOURS.length));
+    }
+    grid.style.setProperty('--tl-hh', TL_HH+'px');
+
     HOURS.forEach(hour=>{
         const row=document.createElement('div');
         row.className='tl-row';
@@ -2384,8 +2416,8 @@ function renderTimeline() {
                 const eh=ev.end_time?parseInt(ev.end_time.split(':')[0]):hour+1;
                 const em=ev.end_time?parseInt(ev.end_time.split(':')[1]):0;
                 const dur=(eh+em/60)-(hour+sm/60);
-                el.style.top=`${(sm/60)*48}px`;
-                el.style.height=`${Math.max(dur*48,20)}px`;
+                el.style.top=`${(sm/60)*TL_HH}px`;
+                el.style.height=`${Math.max(dur*TL_HH,20)}px`;
                 // 겹치는 일정은 셀을 좌우로 분할해 서로 덮지 않게
                 const lo=(dayLayouts[ds]||{})[ev.id];
                 if(lo && lo.total>1){
