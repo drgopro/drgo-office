@@ -206,6 +206,11 @@
     .chip-badges { display:flex; align-items:center; flex-shrink:0; gap:3px; margin-left:auto; padding-left:6px; }
     .ev-assignee-badge { display:inline-flex; align-items:center; justify-content:center; font-size:calc(10px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.3px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; line-height:1; padding:1px 5px; border-radius:4px; background:rgba(255,255,255,0.08); }
     [data-theme="light"] .ev-assignee-badge { background:rgba(0,0,0,0.06); color:#4a5060; }
+    /* 담당자 전체 명단 hover 툴팁 */
+    #calNamesTip { position:fixed; z-index:600; display:none; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:7px 12px; font-size:12px; line-height:1.8; color:var(--text); box-shadow:0 8px 24px rgba(0,0,0,0.25); pointer-events:none; white-space:nowrap; }
+    #calNamesTip.show { display:block; }
+    /* 날짜 숫자 클릭으로 일별 팝업 열림 */
+    .day-num-row { cursor:pointer; }
 
     /* ── 다일 스판 칩 ── */
     .span-chip-overlay { position:absolute; top:0; left:0; right:0; pointer-events:none; z-index:2; }
@@ -1561,19 +1566,40 @@ function buildChipHtml(ev){
     html+=`<span class="chip-title">${title}</span>`;
     // 일정 관련 아이콘
     if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
-    // 담당자 — chip 우측 정렬. 2명 이상이면 첫 번째 이름 + '+N' (전체 명단은 툴팁)
+    // 담당자 — chip 우측 정렬. 2명 이상이면 첫 번째 이름 + '+N' (전체 명단은 hover 즉시 툴팁)
     if (ev.assignees && ev.assignees.length) {
         const names = ev.assignees.map(a => (a.name || '').trim()).filter(Boolean);
         if (names.length) {
             const first = names[0];
             const extra = names.length - 1;
             const display = extra > 0 ? `${first} +${extra}` : first;
-            const tooltip = names.join(', ').replace(/"/g, '&quot;');
-            html += `<span class="chip-badges"><span class="ev-assignee-badge" title="${tooltip}">${display}</span></span>`;
+            const anames = extra > 0 ? ` data-anames="${names.join('|').replace(/"/g, '&quot;').replace(/</g, '&lt;')}"` : '';
+            html += `<span class="chip-badges"><span class="ev-assignee-badge"${anames}>${display}</span></span>`;
         }
     }
     return html;
 }
+
+// ── 담당자 전체 명단 툴팁 (hover 즉시 표시) ──
+function assigneeNamesOf(ev){ return (ev.assignees||[]).map(a=>(a.name||'').trim()).filter(Boolean); }
+const calNamesTip=document.createElement('div');
+calNamesTip.id='calNamesTip';
+document.body.appendChild(calNamesTip);
+document.addEventListener('mouseover',e=>{
+    const t=e.target.closest&&e.target.closest('[data-anames]');
+    if(!t){ calNamesTip.classList.remove('show'); return; }
+    calNamesTip.innerHTML=t.dataset.anames.split('|').map(n=>`<div>${_esc(n)}</div>`).join('');
+    calNamesTip.classList.add('show');
+    const r=t.getBoundingClientRect();
+    const tw=calNamesTip.offsetWidth, th=calNamesTip.offsetHeight;
+    let left=r.left+r.width/2-tw/2, top=r.top-th-8;
+    if(left<8)left=8;
+    if(left+tw>window.innerWidth-8)left=window.innerWidth-tw-8;
+    if(top<8)top=r.bottom+8;
+    calNamesTip.style.left=left+'px';
+    calNamesTip.style.top=top+'px';
+});
+window.addEventListener('scroll',()=>calNamesTip.classList.remove('show'),true);
 
 // ── 뷰 전환 ─────────────────────────────────────────────────────
 // ── 캘린더 글자 크기 조절 (노안 대응) ──
@@ -1921,6 +1947,9 @@ function renderMonth() {
                     chip.className=cls;
                     chip.innerHTML=''; // 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
+                    // 오버레이는 pointer-events:none — 담당자 툴팁은 바 조각에서 hover
+                    const mnames=assigneeNamesOf(ev);
+                    if(mnames.length>1) chip.dataset.anames=mnames.join('|');
                 } else {
                     chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'');
                     chip.innerHTML=buildChipHtml(ev);
@@ -1948,6 +1977,11 @@ function renderMonth() {
                     selectMobileDay(cell.full);
                 } else {
                     if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return;
+                    // 날짜 숫자 클릭: 일정이 있으면 더보기 없이도 그 날 팝업 열기
+                    if(e.target.closest('.day-num-row')){
+                        const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
+                        if(hasEv){ openDayPopover(cell.full, div); return; }
+                    }
                     if(canEditCalendar&&(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))) openNewModal(cell.full);
                 }
             });
