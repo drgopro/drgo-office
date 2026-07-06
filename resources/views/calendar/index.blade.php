@@ -916,10 +916,32 @@
                 </div>
             </div>
 
-            {{-- 장소 --}}
+            {{-- 이사세팅 출발지 (방문의뢰 + 의뢰주제=이사세팅 시 노출) --}}
+            <div class="field-section" id="moveFromBlock" style="display:none;">
+                <div class="field-group">
+                    <label class="field-label" for="moveFromLocation" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                        <span>🚚 출발지 <span style="font-weight:400;color:var(--text-muted);">(이사 전 장소)</span></span>
+                        <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;font-size:12px;color:var(--text-muted);cursor:pointer;">
+                            <input type="checkbox" id="moveNoFrom" onchange="onMoveNoFromToggle()"> 출발지 없음
+                        </label>
+                    </label>
+                    <div class="location-input-wrap" id="moveFromInputWrap">
+                        <textarea class="field-input field-textarea" id="moveFromLocation" placeholder="주소 검색 버튼으로 입력하세요" autocomplete="off" rows="2" readonly onclick="searchMoveFrom()" style="min-height:40px;resize:none;cursor:pointer;background:var(--surface2);"></textarea>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                            <button type="button" class="addr-search-btn" onclick="searchMoveFrom()" title="주소 검색">🔍 주소 검색</button>
+                            <button type="button" class="addr-search-btn" onclick="clearMoveFrom()" title="주소 지우기">✕ 지우기</button>
+                        </div>
+                        <input class="field-input" id="moveFromDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">
+                    </div>
+                    <div id="moveNoFromNote" style="display:none;font-size:12px;color:var(--text-muted);padding:4px 2px;">출발지 없이 도착지(이사 후 장소)만 저장됩니다.</div>
+                    <input type="hidden" id="moveFromAddress" value="">
+                </div>
+            </div>
+
+            {{-- 장소 (이사세팅 시 '도착지'로 라벨 전환) --}}
             <div class="field-section" id="addressBlock">
                 <div class="field-group">
-                    <label class="field-label" for="modalLocation">장소 <span class="req">*</span></label>
+                    <label class="field-label" for="modalLocation"><span id="addrBlockLabel">장소</span> <span class="req">*</span></label>
                     <div class="location-input-wrap">
                         <textarea class="field-input field-textarea" id="modalLocation" placeholder="주소 검색 버튼으로 입력하세요" autocomplete="off" rows="2" readonly onclick="searchCalAddr()" style="min-height:40px;resize:none;cursor:pointer;background:var(--surface2);"></textarea>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -2515,6 +2537,10 @@ function handleConditional(gid){
         const hasMatch=[...g.querySelectorAll('.radio-btn.active')].some(b=>triggerVals.includes(b.dataset.val));
         wrap.classList.toggle('visible',hasMatch);
     }
+    // 의뢰주제 이사세팅 → 출발지/도착지 UI
+    if(gid==='g_req_topic_group'){
+        updateMoveSettingUI();
+    }
     // 주문제품 O → 배송완료
     if(gid==='g_order_group'){
         const v=getRadio('g_order_group');
@@ -2559,6 +2585,7 @@ function setColor(c){
     updateBalanceBanner();
     applyVisitOptsUI();
     updateShipmentSectionVisibility();
+    if(typeof updateMoveSettingUI==='function') updateMoveSettingUI();
     if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
 }
 
@@ -2710,9 +2737,30 @@ function renderLockSummary(){
         ? `${sDate} (종일)`
         : `${sDate}${eDate&&eDate!==sDate?' ~ '+eDate:''}  ${sTime} ~ ${eTime}`;
 
+    // 이사세팅 출발지
+    const isMove = color==='gold' && getMultiRadio('g_req_topic_group').includes('이사세팅');
+    const mfLoc = [_val('moveFromLocation'), _val('moveFromDetail')].filter(Boolean).join(' ');
+    const mfAddr = document.getElementById('moveFromAddress')?.value || '';
+
     let html = '';
-    // 장소
-    if (location || addr) {
+    // 장소 (이사세팅이면 출발지 → 도착지 + 출발→도착 동선 검색)
+    if (isMove && (mfLoc || location || mfAddr || addr)) {
+        html += `<div class="ls-section">
+            <div class="ls-section-title">이사 이동 경로</div>
+            <div><div class="ls-info-label">🚚 출발지 (이사 전)</div>
+                <div class="ls-location">${document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>')}</div>
+            </div>
+            <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
+                <div class="ls-location">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div>
+            </div>
+            <div class="ls-actions" style="margin-top:8px;">
+                ${mfAddr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(mfAddr)}" target="_blank">🔍 출발지</a>` : ''}
+                ${addr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 도착지</a>` : ''}
+                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="https://map.kakao.com/?sName=${encodeURIComponent(mfAddr)}&eName=${encodeURIComponent(addr)}" target="_blank">🗺 출발→도착 동선</a>` : ''}
+            </div>
+        </div>`;
+    } else if (location || addr) {
+        // 일반 장소
         html += `<div class="ls-section">
             <div class="ls-section-title">장소</div>
             <div class="ls-location">${_esc(location)}</div>
@@ -3361,7 +3409,7 @@ function resetModalForm(){
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
     document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
-    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalAddress','moveFromLocation','moveFromDetail','moveFromAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
@@ -3375,6 +3423,8 @@ function resetModalForm(){
     document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     document.getElementById('balanceBanner').classList.remove('visible');
     isAllDay=false; document.getElementById('alldayTrack').classList.remove('on');
+    // 이사세팅 출발지 상태 초기화
+    { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle(); }
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
     document.getElementById('notifSelect').value='60';
     // 입력 재활성화
@@ -3789,6 +3839,20 @@ function openEditModal(ev){
         handleConditional('g_req_topic_group');
     }
     document.getElementById('g_req_detail').value=g.req_detail||'';
+    // 이사세팅 출발지 복원 (address=도로명, location=도로명+상세)
+    {
+        const mfRoad=g.move_from_address||'';
+        const mfLoc=g.move_from_location||'';
+        let mfDetail='';
+        if(mfRoad && mfLoc && mfLoc.startsWith(mfRoad)) mfDetail=mfLoc.slice(mfRoad.length).trim();
+        const mfl=document.getElementById('moveFromLocation'); if(mfl) mfl.value=mfRoad||mfLoc;
+        const mfa=document.getElementById('moveFromAddress'); if(mfa) mfa.value=mfRoad;
+        const mfd=document.getElementById('moveFromDetail'); if(mfd) mfd.value=mfDetail;
+        const noFrom=document.getElementById('moveNoFrom');
+        if(noFrom){ noFrom.checked = !!g.move_no_from; }
+        onMoveNoFromToggle();
+    }
+    updateMoveSettingUI();
     document.getElementById('g_special').value=g.special||'';
     if(g.specialReason) document.getElementById('specialReason').value=g.specialReason;
     if(g.paid) setRadio('g_paid_group',g.paid);
@@ -3911,6 +3975,10 @@ function collectGoldFields(){
         estimate_id:linkedEstimateId,
         client_id:linkedClientId,
         project_id:document.getElementById('projectSelect')?.value||null,
+        // 이사세팅 출발지 (도착지는 기존 address/location 사용). '출발지 없음' 체크 시 빈 값
+        move_no_from:document.getElementById('moveNoFrom')?.checked||false,
+        move_from_address:document.getElementById('moveNoFrom')?.checked?'':(document.getElementById('moveFromAddress')?.value.trim()||''),
+        move_from_location:document.getElementById('moveNoFrom')?.checked?'':[document.getElementById('moveFromLocation')?.value.trim(),document.getElementById('moveFromDetail')?.value.trim()].filter(Boolean).join(' '),
     };
 }
 function collectTealFields(){
@@ -4061,6 +4129,41 @@ function clearCalAddr(){
     if (typeof isLocked !== 'undefined' && isLocked) return;
     document.getElementById('modalAddress').value='';
     document.getElementById('modalLocation').value='';
+}
+// 이사세팅 출발지 주소 검색/지우기
+function searchMoveFrom(){
+    if (typeof isLocked !== 'undefined' && isLocked) return;
+    new daum.Postcode({oncomplete:function(data){
+        const addr=data.roadAddress||data.jibunAddress;
+        document.getElementById('moveFromAddress').value=addr;
+        document.getElementById('moveFromLocation').value=addr;
+    }}).open();
+}
+function clearMoveFrom(){
+    if (typeof isLocked !== 'undefined' && isLocked) return;
+    document.getElementById('moveFromAddress').value='';
+    document.getElementById('moveFromLocation').value='';
+}
+// '출발지 없음' 토글 — 출발지 입력 숨김/비움, 도착지 라벨은 유지
+function onMoveNoFromToggle(){
+    if (typeof isLocked !== 'undefined' && isLocked) return;
+    const none=document.getElementById('moveNoFrom')?.checked;
+    const wrap=document.getElementById('moveFromInputWrap');
+    const note=document.getElementById('moveNoFromNote');
+    if(wrap) wrap.style.display=none?'none':'';
+    if(note) note.style.display=none?'':'none';
+    if(none){ // 입력값 비움
+        ['moveFromLocation','moveFromDetail','moveFromAddress'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    }
+}
+// 의뢰주제=이사세팅 → 출발지 블록 노출 + 기존 주소 라벨을 '도착지'로
+function updateMoveSettingUI(){
+    const isMove = currentColor==='gold' && getMultiRadio('g_req_topic_group').includes('이사세팅');
+    const mb=document.getElementById('moveFromBlock');
+    const lbl=document.getElementById('addrBlockLabel');
+    if(mb) mb.style.display=isMove?'':'none';
+    // 이사세팅이면 항상 '도착지 (이사 후 장소)' — 출발지 유무와 무관
+    if(lbl) lbl.textContent=isMove?'도착지 (이사 후 장소)':'장소';
 }
 
 // ── 라디오 그룹 초기화 ──
