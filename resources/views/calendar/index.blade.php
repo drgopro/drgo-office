@@ -1631,6 +1631,8 @@ function switchView(view) {
     document.getElementById('monthView').style.display    = view==='month' ? '' : 'none';
     document.getElementById('timelineView').style.display = (view==='week'||view==='day') ? '' : 'none';
     document.getElementById('listView').style.display     = view==='list' ? '' : 'none';
+    // 글자 크기 조절은 월간 뷰에만 적용되므로 그 외 뷰에서는 버튼 숨김
+    const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display = view==='month' ? '' : 'none';
     renderView();
     loadEvents();
 }
@@ -2824,6 +2826,7 @@ async function loadClientProjects(clientId){
 function unlinkClient(){
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
+    document.getElementById('linkedClientName').textContent=''; // 잔여 텍스트가 저장 시 client_name으로 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
     document.getElementById('g_nickname').value='';
     document.getElementById('g_name').value='';
@@ -2924,6 +2927,8 @@ async function uploadPendingAttachments(scheduleId){
                 const err=await res.json().catch(()=>({}));
                 console.error(`첨부파일 업로드 실패 (${type}):`, res.status, err);
                 failedTypes.push((TYPE_LABEL[type]||type)+(err.message?` (${err.message})`:''));
+            }else{
+                pendingAttachments[type]=[]; // 성공한 타입은 대기열 비움 (재시도/재저장 시 중복 업로드 방지)
             }
         }catch(e){ console.error(`첨부파일 업로드 오류 (${type}):`,e); failedTypes.push(TYPE_LABEL[type]||type); }
     }
@@ -3036,6 +3041,7 @@ function resetModalForm(){
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
     document.getElementById('linkedClientInfo').style.display='none';
+    document.getElementById('linkedClientName').textContent=''; // 이전 일정의 의뢰자명이 다음 일정에 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
     document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
@@ -3568,7 +3574,21 @@ function collectTealFields(){
     return data;
 }
 
+let saveInFlight=false;
 async function saveEvent(){
+    // 중복 클릭 방지 — 저장 완료 전 재클릭 시 무시 (일정·첨부 중복 등록 방지)
+    if(saveInFlight) return;
+    saveInFlight=true;
+    const saveBtns=document.querySelectorAll('#modalOverlay .btn-save, #modalOverlay .btn-save-top, #modalExternalAction');
+    saveBtns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';});
+    try{
+        await doSaveEvent();
+    }finally{
+        saveInFlight=false;
+        saveBtns.forEach(b=>{b.disabled=false;b.style.opacity='';});
+    }
+}
+async function doSaveEvent(){
     const isGold=currentColor==='gold';
     const sd=isGold?document.getElementById('goldStartDate').value:document.getElementById('startDate').value;
     const ed=isGold?(document.getElementById('goldEndDate').value||document.getElementById('goldStartDate').value):document.getElementById('endDate').value;
@@ -3588,7 +3608,7 @@ async function saveEvent(){
         start_date:sd, end_date:ed||sd, start_time:isAllDay?null:st, end_time:isAllDay?null:et,
         is_all_day:isAllDay, color:currentColor,
         // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
-        client_name:isGold?document.getElementById('g_nickname').value.trim():(document.getElementById('linkedClientName')?.textContent.trim()||''),
+        client_name:isGold?document.getElementById('g_nickname').value.trim():(linkedClientId?(document.getElementById('linkedClientName')?.textContent.trim()||''):''),
         // address=도로명(검색), location=도로명+상세주소(표시용)
         address:document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim(),
         location:[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
