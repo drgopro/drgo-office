@@ -224,6 +224,8 @@
     .ship-item .ship-status-ico { font-weight:800; font-size:13px; flex-shrink:0; }
     .ship-item .ship-carrier { font-size:12px; font-weight:700; flex-shrink:0; }
     .ship-item .ship-no { font-size:12px; font-family:ui-monospace,Menlo,monospace; color:var(--text-muted); flex-shrink:0; }
+    .ship-item .ship-no-link { text-decoration:none; color:var(--accent); cursor:pointer; }
+    .ship-item .ship-no-link:hover { text-decoration:underline; }
     .ship-item .ship-event { font-size:12px; color:var(--text-muted); flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .ship-item .ship-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 4px; flex-shrink:0; }
     .ship-item .ship-del:hover { color:var(--red); }
@@ -866,8 +868,9 @@
                 <div class="holiday-btn-wrap" style="margin-bottom:4px;">
                     <span class="holiday-dot" id="holidayDot" style="font-size:12px;color:var(--text-muted);cursor:pointer;">📅 공휴일로 지정</span>
                 </div>
-                <div class="title-wrap">
-                    <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요 *" rows="1"></textarea>
+                <div class="title-wrap" style="display:flex;align-items:flex-start;gap:8px;">
+                    <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요 *" rows="1" style="flex:1;min-width:0;"></textarea>
+                    <span id="modalShipBadge" style="display:none;flex-shrink:0;font-size:16px;font-weight:800;line-height:1.6;" title=""></span>
                 </div>
                 <button class="assignee-btn" id="assigneeBtn" onclick="toggleAssigneePanel()" title="담당자 지정">
                     <span id="assigneeBtnIcon">👤</span>
@@ -3146,16 +3149,42 @@ async function loadShipments(){
         if(isLocked) renderLockSummary(); // 요약 뷰에 배송 현황 반영
     }catch(e){}
 }
+// 택배사별 실시간 조회 페이지 (송장번호 클릭 시 새 창)
+const CARRIER_TRACK_URLS={
+    'kr.cjlogistics':'https://trace.cjlogistics.com/next/tracking.html?wblNo=',
+    'kr.lotte':'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo=',
+    'kr.hanjin':'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2=',
+    'kr.logen':'https://www.ilogen.com/web/personal/trace/',
+    'kr.epost':'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1=',
+    'kr.kdexp':'https://kdexp.com/service/delivery/etc/delivery.do?barcode=',
+};
 function shipRowHtml(s){
     const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:['✕','var(--red)']);
     const evTxt=s.status==='delivered'?`배송완료${s.delivered_at?' · '+s.delivered_at:''}`:(s.last_event||'조회 대기');
+    const trackUrl=CARRIER_TRACK_URLS[s.carrier];
+    const noHtml=trackUrl
+        ? `<a class="ship-no ship-no-link" href="${trackUrl}${encodeURIComponent(s.tracking_no)}" target="_blank" rel="noopener" title="택배사 실시간 조회 열기" onclick="event.stopPropagation()">${_esc(s.tracking_no)} ↗</a>`
+        : `<span class="ship-no">${_esc(s.tracking_no)}</span>`;
     return `<div class="ship-item">
         <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
         <span class="ship-carrier">${_esc(s.carrier_label)}</span>
-        <span class="ship-no">${_esc(s.tracking_no)}</span>
+        ${noHtml}
         <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
         <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
     </div>`;
+}
+// 모달 제목 옆 배송 상태 아이콘 (송장 없으면 미표시)
+function updateModalShipBadge(){
+    const badge=document.getElementById('modalShipBadge');
+    if(!badge) return;
+    const ships=shipCache.shipments||[];
+    if(!ships.length){ badge.style.display='none'; badge.textContent=''; return; }
+    const done=ships.filter(s=>s.status==='delivered').length;
+    const [ico,color]=done===0?['✕','var(--red)']:(done<ships.length?['△','#d78a2e']:['○','var(--green)']);
+    badge.textContent=ico;
+    badge.style.color=color;
+    badge.title=`배송 ${done}/${ships.length}건 완료`;
+    badge.style.display='';
 }
 function renderShipments(){
     const list=document.getElementById('shipmentList');
@@ -3167,6 +3196,7 @@ function renderShipments(){
     const done=ships.filter(s=>s.status==='delivered').length;
     if(badge) badge.textContent=ships.length?`(${done}/${ships.length} 완료)`:'';
     list.innerHTML=ships.length?ships.map(shipRowHtml).join(''):'<div class="ship-empty">등록된 송장이 없습니다. 택배사와 송장번호를 입력해 추가하세요.</div>';
+    updateModalShipBadge();
 }
 async function addShipment(){
     if(!editingId) return;
@@ -3317,6 +3347,7 @@ function resetModalForm(){
     const shipList=document.getElementById('shipmentList'); if(shipList) shipList.innerHTML='';
     const shipBadge=document.getElementById('shipSummaryBadge'); if(shipBadge) shipBadge.textContent='';
     updateShipmentSectionVisibility();
+    updateModalShipBadge();
     assigneePanelOpen=false;
     document.getElementById('assigneeList').style.display='none';
 }
