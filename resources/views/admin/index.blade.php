@@ -188,7 +188,11 @@
     }
 
     /* 캘린더 카테고리 */
-    .cat-card { display:grid; grid-template-columns:64px 1fr 130px 130px auto auto; gap:12px; align-items:center; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
+    .cat-card { display:grid; grid-template-columns:26px 64px 1fr 130px 130px auto auto; gap:12px; align-items:center; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
+    .cat-order-btns { display:flex; flex-direction:column; gap:2px; }
+    .cat-order-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; font-size:9px; line-height:1; padding:4px 0; width:26px; cursor:pointer; }
+    .cat-order-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+    .cat-order-btn:disabled { opacity:0.3; cursor:default; }
     .cat-preview { padding:10px 14px; border-radius:8px; text-align:center; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .cat-card input[type=text] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; width:100%; }
     .cat-card input[type=text]:focus { border-color:var(--accent); }
@@ -1836,10 +1840,14 @@ function renderCalendarCategories() {
         return;
     }
     const DEFAULT_KEYS = ['gold','teal','blue','red','green','purple','holiday'];
-    container.innerHTML = allCalendarCategories.map(c => {
+    container.innerHTML = allCalendarCategories.map((c, idx) => {
         const isDefault = DEFAULT_KEYS.includes(c.key);
         return `
         <div class="cat-card" data-id="${c.id}">
+            <div class="cat-order-btns">
+                <button class="cat-order-btn" onclick="moveCalendarCategory(${c.id},-1)" ${idx===0?'disabled':''} title="위로">▲</button>
+                <button class="cat-order-btn" onclick="moveCalendarCategory(${c.id},1)" ${idx===allCalendarCategories.length-1?'disabled':''} title="아래로">▼</button>
+            </div>
             <div class="cat-preview" style="background:${c.color}; color:${c.text_color};" id="catPreview-${c.id}">${escHtml(c.label)}</div>
             <input type="text" id="catLabel-${c.id}" value="${escHtml(c.label)}" placeholder="라벨" oninput="updateCatPreview(${c.id})">
             <div class="cat-color-wrap">
@@ -1860,6 +1868,21 @@ function renderCalendarCategories() {
             </div>
         </div>`;
     }).join('');
+}
+
+// ── 카테고리 순서 이동 ──
+async function moveCalendarCategory(id, dir) {
+    const idx = allCalendarCategories.findIndex(c => c.id === id);
+    const to = idx + dir;
+    if (idx < 0 || to < 0 || to >= allCalendarCategories.length) return;
+    [allCalendarCategories[idx], allCalendarCategories[to]] = [allCalendarCategories[to], allCalendarCategories[idx]];
+    renderCalendarCategories();
+    const res = await fetch('/api/admin/calendar-categories/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ order: allCalendarCategories.map(c => c.id) }),
+    });
+    if (!res.ok) { alert('순서 저장에 실패했습니다.'); loadCalendarCategories(); }
 }
 
 // ── 카테고리 추가 ──

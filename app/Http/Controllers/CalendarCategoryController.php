@@ -63,6 +63,21 @@ class CalendarCategoryController extends Controller
         return response()->json($category);
     }
 
+    /** 전체 카테고리 순서 일괄 변경 (id 배열 순서대로 sort_order 재부여) */
+    public function reorder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'order' => 'required|array|min:1',
+            'order.*' => 'integer|exists:calendar_categories,id',
+        ]);
+
+        foreach ($validated['order'] as $i => $id) {
+            CalendarCategory::where('id', $id)->update(['sort_order' => $i + 1]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     public function destroy(CalendarCategory $category): JsonResponse
     {
         // 기본 카테고리(DEFAULTS 정의된 key)는 삭제 불가 — 기존 일정에 영향

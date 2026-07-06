@@ -104,13 +104,8 @@
     .filter-btn { display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:none; font-size:12px; letter-spacing:0.06em; color:var(--text-muted); transition:all 0.18s; user-select:none; flex-shrink:0; }
     .filter-btn:hover { border-color:var(--accent); color:var(--text); }
     .filter-btn .filter-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; transition:all 0.18s; }
-    .filter-btn.active { color:var(--text); }
-    .filter-btn.active.f-gold   { background:rgba(200,176,138,0.15); border-color:var(--chip-gold-bg); }
-    .filter-btn.active.f-teal   { background:rgba(232,137,74,0.15); border-color:var(--chip-teal-bg); }
-    .filter-btn.active.f-blue   { background:rgba(138,180,200,0.15); border-color:var(--chip-blue-bg); }
-    .filter-btn.active.f-red    { background:rgba(200,122,122,0.15); border-color:var(--chip-red-bg); }
-    .filter-btn.active.f-green  { background:rgba(122,200,122,0.15); border-color:var(--chip-green-bg); }
-    .filter-btn.active.f-purple { background:rgba(180,122,200,0.15); border-color:var(--chip-purple-bg); }
+    /* 카테고리 색 기반 틴트 — 커스텀 카테고리 포함 모두 동일 적용 */
+    .filter-btn.active { color:var(--text); background:color-mix(in srgb, var(--fbtn, var(--accent)) 15%, transparent); border-color:var(--fbtn, var(--accent)); }
     .filter-btn:not(.active) .filter-dot { opacity:0.25; }
     .filter-btn:not(.active) { opacity:0.55; }
     .assignee-filter { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:5px 28px 5px 12px; color:var(--text); font-size:12px; outline:none; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23a09890' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat:no-repeat; background-position:right 10px center; }
@@ -789,7 +784,7 @@
 
 <div class="legend" id="filterBar">
     @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
-    <button class="filter-btn active f-{{ $__k }}" data-filter="{{ $__k }}" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-{{ $__k }}-bg)"></span>{{ $__c['label'] }}</button>
+    <button class="filter-btn active f-{{ $__k }}" data-filter="{{ $__k }}" style="--fbtn:var(--chip-{{ $__k }}-bg)" onclick="toggleFilter(this)"><span class="filter-dot" style="background:var(--chip-{{ $__k }}-bg)"></span>{{ $__c['label'] }}</button>
     @endforeach
     <select class="assignee-filter" id="assigneeFilter" onchange="onAssigneeFilterChange()" title="담당자 추가 (여러 명 선택 가능)">
         <option value="">담당자 추가…</option>
@@ -1111,6 +1106,7 @@
                         <div class="special-opt-btn" data-opt="brief"><span class="opt-icon">💼</span>들고 갈 제품 있음</div>
                         <div class="special-opt-btn" data-opt="group"><span class="opt-icon">👥</span>2인필수 작업</div>
                         <div class="special-opt-btn" data-opt="ladder"><span class="opt-icon">▤</span>사다리 필요</div>
+                        <div class="special-opt-btn" data-opt="pet"><span class="opt-icon">🐾</span>반려동물 있음</div>
                     </div>
                     <div id="specialReasonWrap" style="display:none;margin-top:6px;">
                         <input class="field-input" id="specialReason" placeholder="특수옵션 사유 (선택)" style="font-size:13px;">
@@ -1559,7 +1555,8 @@ function removeAssigneeFilter(id) {
 }
 
 // ── 이벤트 칩 생성 헬퍼 ──
-const SPECIAL_ICONS={car:'🚗',brief:'💼',group:'👥',ladder:'▤'};
+const SPECIAL_ICONS={car:'🚗',brief:'💼',group:'👥',ladder:'▤',pet:'🐾'};
+const SPECIAL_OPT_LABELS={car:'차량 이용 필요',brief:'들고 갈 제품 있음',group:'2인필수 작업',ladder:'사다리 필요',pet:'반려동물 있음'};
 const SCHED_ICONS={suggest:'💬',hope:'🙏',target:'🎯'};
 function buildChipHtml(ev){
     let html='';
@@ -2505,10 +2502,14 @@ function renderLockSummary(){
         </div>`;
     }
 
-    // 시간 + 카테고리 핀
+    // 시간 + 카테고리 핀 + 특수 옵션(반려동물 등)
+    const specialSel=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')]
+        .map(b=>b.dataset.opt).filter(o=>SPECIAL_OPT_LABELS[o]);
+    const specialPills=specialSel.map(o=>`<span class="ls-type-pill">${SPECIAL_ICONS[o]||''} ${_esc(SPECIAL_OPT_LABELS[o])}</span>`).join('');
     html += `<div class="ls-section">
         <div class="ls-time"><span class="ls-time-icon">⏰</span><span>${_esc(timeStr)}</span></div>
         <div><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}</div>
+        ${specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${specialPills}</div>`:''}
     </div>`;
 
     // Gold 전용 상세 칩 + 섹션
