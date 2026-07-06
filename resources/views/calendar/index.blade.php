@@ -2764,8 +2764,38 @@ async function selectClient(id,nickname,name,phone){
     if(gPhone) gPhone.value=phone||'';
     // 제목 비어있으면 의뢰자명으로 보조 채움
     document.getElementById('modalTitle').value=document.getElementById('modalTitle').value||(nickname||name);
-    // 프로젝트 목록 로드
-    await loadClientProjects(id);
+    // 프로젝트 목록 로드 + 상세정보(주소/연락처/플랫폼) 연동
+    const detail=await loadClientProjects(id);
+    applyClientDetail(detail);
+}
+
+// 의뢰자 상세 → 일정 폼 매핑 (이미 입력된 값은 덮어쓰지 않음)
+function applyClientDetail(d){
+    if(!d) return;
+    // 연락처 보강 (검색 결과에 전화번호가 없던 경우)
+    const gPhone=document.getElementById('g_phone');
+    if(gPhone&&!gPhone.value.trim()&&d.phone) gPhone.value=d.phone;
+    // 주소 → 장소 (도로명) + 상세주소
+    const loc=document.getElementById('modalLocation');
+    if(loc&&!loc.value.trim()&&d.address){
+        loc.value=d.address;
+        document.getElementById('modalAddress').value=d.address;
+        const det=document.getElementById('modalLocationDetail');
+        if(det&&!det.value.trim()&&d.address_detail) det.value=d.address_detail;
+    }
+    // 플랫폼 — 의뢰자 관리 명칭 → 캘린더 pill 매핑
+    const plats=(d.platforms||[]).filter(Boolean);
+    if(plats.length&&!getMultiRadio('g_platform_group').length){
+        const PLAT_MAP={'유튜브':'유튜브','치지직':'치지직','아프리카':'SOOP','SOOP':'SOOP','틱톡':'틱톡'};
+        const pills=[...new Set(plats.map(p=>PLAT_MAP[p]||'기타'))];
+        setMultiRadio('g_platform_group',pills);
+        // 매핑 안 되는 플랫폼(트위치/팬더 등)과 기타 입력값은 '기타' 입력칸에 원문 유지
+        const etcNames=[...plats.filter(p=>!PLAT_MAP[p]&&p!=='기타'),d.platform_etc].filter(Boolean);
+        if(etcNames.length){
+            const e=document.getElementById('g_platform_etc');
+            if(e&&!e.value.trim()) e.value=etcNames.join(', ');
+        }
+    }
 }
 
 async function loadClientProjects(clientId){
@@ -2773,10 +2803,10 @@ async function loadClientProjects(clientId){
     const sel=document.getElementById('projectSelect');
     try{
         const res=await fetch(`/api/clients/${clientId}/detail`);
-        if(!res.ok){wrap.style.display='none';return;}
+        if(!res.ok){wrap.style.display='none';return null;}
         const data=await res.json();
         const projects=data.projects||[];
-        if(!projects.length){wrap.style.display='none';return;}
+        if(!projects.length){wrap.style.display='none';return data;}
         sel.innerHTML='<option value="">프로젝트 선택 (선택사항)</option>';
         projects.forEach(p=>{
             const opt=document.createElement('option');
@@ -2787,7 +2817,8 @@ async function loadClientProjects(clientId){
         // 이전에 연결된 프로젝트가 있으면 선택
         if(linkedProjectId) sel.value=linkedProjectId;
         wrap.style.display='';
-    }catch(e){wrap.style.display='none';}
+        return data;
+    }catch(e){wrap.style.display='none';return null;}
 }
 
 function unlinkClient(){
