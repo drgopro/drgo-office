@@ -4086,7 +4086,11 @@ function initAllRadioGroups(){
 }
 // init 시 호출
 setTimeout(initAllRadioGroups,0);
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDetail();document.getElementById('historyOverlay').style.display='none';}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){
+    // 이미지 라이트박스가 열려 있으면 1단계로 라이트박스만 닫음 (전용 핸들러가 처리) — 일정 모달은 유지
+    if(document.getElementById('lightbox')?.classList.contains('open')) return;
+    closeModal();closeDetail();document.getElementById('historyOverlay').style.display='none';
+}});
 // 창 크기 변경 시 월간 다일 bar 위치 재계산(px 기반 overlay)
 let __calResizeTimer;
 window.addEventListener('resize',()=>{
