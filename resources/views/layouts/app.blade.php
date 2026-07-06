@@ -157,7 +157,7 @@
         /* ── 햄버거 전환 ≤ 980px — 좌측 드로어 (화면 일부만 가림, 좌측 정렬) ── */
         @media (max-width: 980px) {
             .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:40px; min-height:40px; }
-            .nav { display:none; position:fixed; top:var(--header-h); left:0; right:auto; bottom:0; width:min(78vw, 300px); align-items:stretch; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; border-right:1px solid var(--border); box-shadow:8px 0 28px rgba(0,0,0,0.14); }
+            .nav { display:none; position:fixed; top:var(--header-h); left:0; right:auto; bottom:0; width:min(62vw, 230px); align-items:stretch; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; border-right:1px solid var(--border); box-shadow:8px 0 28px rgba(0,0,0,0.14); }
             .nav.open { display:flex; animation:navSlideIn 0.18s ease; }
             @keyframes navSlideIn { from { transform:translateX(-24px); opacity:0; } to { transform:translateX(0); opacity:1; } }
             .nav a { font-size:14px; padding:11px 16px; border-radius:8px; min-height:42px; display:flex; align-items:center; justify-content:flex-start; }
@@ -245,7 +245,7 @@
             .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
             .theme-toggle { width:44px; height:44px; font-size:18px; }
             .logout-btn { min-height:44px; padding:8px 12px; }
-            .nav { display:none; position:fixed; top:var(--header-h); left:0; right:auto; bottom:0; width:min(80vw, 300px); align-items:stretch; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; border-right:1px solid var(--border); box-shadow:8px 0 28px rgba(0,0,0,0.14); }
+            .nav { display:none; position:fixed; top:var(--header-h); left:0; right:auto; bottom:0; width:min(66vw, 230px); align-items:stretch; background:var(--surface); flex-direction:column; padding:12px; gap:2px; z-index:199; overflow-y:auto; border-right:1px solid var(--border); box-shadow:8px 0 28px rgba(0,0,0,0.14); }
             .nav.open { display:flex; animation:navSlideIn 0.18s ease; }
             .nav a { font-size:15px; padding:12px 16px; border-radius:8px; min-height:44px; display:flex; align-items:center; justify-content:flex-start; }
             .nav-overlay { display:none; position:fixed; inset:0; top:var(--header-h); background:rgba(0,0,0,0.5); z-index:198; }
