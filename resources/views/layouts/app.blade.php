@@ -179,7 +179,8 @@
         .tab-item:hover { color:var(--text); background:var(--surface); }
         .tab-item.active { color:var(--accent); background:var(--surface); border-color:var(--border); font-weight:600; position:relative; }
         .tab-item.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface); }
-        .tab-item .tab-icon { font-size:11px; }
+        .tab-item .tab-icon { display:inline-flex; align-items:center; }
+        .tab-item .tab-icon svg { width:13px; height:13px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; }
         .tab-item .tab-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.12s; margin-left:2px; }
         .tab-item.tab-dragging { opacity:0.4; cursor:grabbing; }
         .tab-item.tab-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
@@ -193,6 +194,7 @@
         .tab-menu.open { display:block; }
         .tab-menu-item { display:flex; align-items:center; gap:7px; padding:6px 10px; border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; border:none; background:none; width:100%; text-align:left; }
         .tab-menu-item:hover { color:var(--text); background:var(--surface2); }
+        .tab-menu-item .nav-ico { width:14px; height:14px; }
 
         /* ══════════════════════════════════════════════
            데스크톱 세로 사이드바 — 기존 가로 헤더를 좌측 세로 배치로 전환
@@ -461,31 +463,31 @@ window.openTopTab = function(type, url, title) {
         <button class="tab-add" id="tabAddBtn" title="새 탭">+</button>
         <div class="tab-menu" id="tabMenu">
             @if(!Auth::user()->isGuest())
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('dashboard','/'); drgoTabs.closeMenu();">📊 대시보드</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('dashboard','/'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>대시보드</button>
             @endif
-            <button class="tab-menu-item" onclick="drgoTabs.openNav('calendar','/calendar'); drgoTabs.closeMenu();">📅 캘린더</button>
+            <button class="tab-menu-item" onclick="drgoTabs.openNav('calendar','/calendar'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>캘린더</button>
             @if(Auth::user()->hasPermission('clients.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('clients','/clients'); drgoTabs.closeMenu();">👤 의뢰자</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('clients','/clients'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>의뢰자</button>
             @endif
             @if(Auth::user()->hasPermission('projects.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('projects','/projects'); drgoTabs.closeMenu();">📁 프로젝트</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('projects','/projects'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>프로젝트</button>
             @endif
             @if(Auth::user()->hasPermission('estimates.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('estimates','/estimates'); drgoTabs.closeMenu();">📝 견적서</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('estimates','/estimates'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</button>
             @endif
             @if(Auth::user()->hasPermission('inventory.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('inventory','/inventory'); drgoTabs.closeMenu();">📦 재고</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('inventory','/inventory'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</button>
             @endif
-            <button class="tab-menu-item" onclick="drgoTabs.openNav('wiki','/wiki'); drgoTabs.closeMenu();">📖 위키</button>
+            <button class="tab-menu-item" onclick="drgoTabs.openNav('wiki','/wiki'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>위키</button>
             @if(Auth::user()->hasPermission('inventory.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental','/rental-equipment'); drgoTabs.closeMenu();">📷 장비 위치</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental','/rental-equipment'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>장비 위치</button>
             @endif
             @if(Auth::user()->hasPermission('clients.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental-contracts','/rental-contracts'); drgoTabs.closeMenu();">🏠 렌탈</button>
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('broadcast-room','/broadcast-room'); drgoTabs.closeMenu();">🎙 방송룸</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental-contracts','/rental-contracts'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('broadcast-room','/broadcast-room'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</button>
             @endif
             @if(Auth::user()->isAdmin())
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();">⚙️ 관리</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>관리</button>
             @endif
         </div>
     </div>
@@ -523,7 +525,23 @@ window.drgoTabs = {
     tabs: [],
     activeId: null,
 
-    ICONS: { dashboard:'📊', calendar:'📅', clients:'👤', projects:'📁', inventory:'📦', estimates:'📝', wiki:'📖', rental:'📷', 'rental-contracts':'🏠', 'broadcast-room':'🎙', 'marketing-report':'📊', admin:'⚙️', profile:'👤' },
+    // 시안 스트로크 픽토그램 (사이드바와 통일)
+    ICONS: {
+        dashboard:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>',
+        calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>',
+        clients:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>',
+        projects:'<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>',
+        inventory:'<svg viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>',
+        estimates:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>',
+        wiki:'<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+        rental:'<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
+        'rental-contracts':'<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>',
+        'broadcast-room':'<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>',
+        'marketing-report':'<svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>',
+        admin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>',
+        profile:'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        _default:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>',
+    },
     LABELS: { dashboard:'대시보드', calendar:'캘린더', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', admin:'관리', profile:'마이페이지' },
 
     init() {
@@ -701,7 +719,7 @@ window.drgoTabs = {
     render() {
         const strip = document.getElementById('tabStrip');
         strip.innerHTML = this.tabs.map(t => {
-            const icon = this.ICONS[t.type] || '📄';
+            const icon = this.ICONS[t.type] || this.ICONS._default;
             const label = t.title || this.LABELS[t.type] || t.type;
             const cls = t.id === this.activeId ? 'active' : '';
             const close = this.tabs.length > 1
