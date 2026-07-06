@@ -2159,8 +2159,8 @@ function renderMonth() {
                     if(ev.completed_at) cls+=' is-completed';
                     chip.className=cls;
                     // 데스크톱: 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림
-                    // 모바일: 오버레이가 숨겨지므로 칩에 제목 직접 표시 (빈 칩=높이 0으로 안 보이는 문제 방지)
-                    chip.innerHTML=window.innerWidth<=768
+                    // 모바일: 오버레이가 숨겨지므로 시작 칸(주 시작 포함)에만 제목 표시, 나머지는 빈 바로 이어짐
+                    chip.innerHTML=(window.innerWidth<=768&&isStart)
                         ? `<span class="chip-title">${_esc(isGuestUser?(ev.location||'일정'):(ev.title||''))}</span>`
                         : '';
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
