@@ -1977,8 +1977,8 @@ function renderMonth() {
                     selectMobileDay(cell.full);
                 } else {
                     if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return;
-                    // 날짜 숫자 클릭: 일정이 있으면 더보기 없이도 그 날 팝업 열기
-                    if(e.target.closest('.day-num-row')){
+                    // 날짜 숫자 클릭: 일정이 있으면 더보기 없이도 그 날 팝업 열기 (게스트 제외 — 일정 내용 비노출)
+                    if(!isGuestUser&&e.target.closest('.day-num-row')){
                         const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
                         if(hasEv){ openDayPopover(cell.full, div); return; }
                     }
