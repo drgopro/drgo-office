@@ -381,18 +381,11 @@
     /* ── 색상 선택 ── */
     .color-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .color-dot { padding:6px 14px; border-radius:20px; cursor:pointer; border:2px solid transparent; transition:all 0.18s; font-size:12px; font-weight:600; letter-spacing:0.03em; user-select:none; white-space:nowrap; }
-    .color-dot[data-color="gold"]   { background:rgba(200,176,138,0.18); color:#c8b08a; }
-    .color-dot[data-color="teal"]   { background:rgba(232,137,74,0.18); color:#e8894a; }
-    .color-dot[data-color="blue"]   { background:rgba(138,180,200,0.18); color:#8ab4c8; }
-    .color-dot[data-color="red"]    { background:rgba(200,122,122,0.18); color:#c87a7a; }
-    .color-dot[data-color="green"]  { background:rgba(122,200,122,0.18); color:#7ac87a; }
-    .color-dot[data-color="purple"] { background:rgba(155,112,200,0.18); color:#9b70c8; }
-    .color-dot.active[data-color="gold"]   { background:rgba(200,176,138,0.35); border-color:#c8b08a; }
-    .color-dot.active[data-color="teal"]   { background:rgba(232,137,74,0.35); border-color:#e8894a; }
-    .color-dot.active[data-color="blue"]   { background:rgba(138,180,200,0.35); border-color:#8ab4c8; }
-    .color-dot.active[data-color="red"]    { background:rgba(200,122,122,0.35); border-color:#c87a7a; }
-    .color-dot.active[data-color="green"]  { background:rgba(122,200,122,0.35); border-color:#7ac87a; }
-    .color-dot.active[data-color="purple"] { background:rgba(155,112,200,0.35); border-color:#9b70c8; }
+    /* 유형 선택 pill — 관리 설정 카테고리 색상과 자동 연동 (커스텀 포함) */
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .color-dot[data-color="{{ $__ck }}"] { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 18%, transparent); color:var(--chip-{{ $__ck }}-bg); }
+    .color-dot.active[data-color="{{ $__ck }}"] { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 35%, transparent); border-color:var(--chip-{{ $__ck }}-bg); }
+    @endforeach
     .color-dot:hover { filter:brightness(1.15); }
 
     /* ── 일정옵션 pill ── */
