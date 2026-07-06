@@ -59,6 +59,37 @@ class CalendarController extends Controller
         return response()->json($events);
     }
 
+    // 일정 검색 (제목/의뢰자/장소/주소, 전체 기간)
+    public function search(Request $request)
+    {
+        // 게스트는 일정 내용 비노출 — 검색 불가
+        if (Auth::user()->isGuest()) {
+            return response()->json([]);
+        }
+
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 1) {
+            return response()->json([]);
+        }
+
+        $like = '%'.$q.'%';
+        $events = Schedule::where(function ($w) use ($like) {
+            $w->where('title', 'like', $like)
+                ->orWhere('client_name', 'like', $like)
+                ->orWhere('location', 'like', $like)
+                ->orWhere('address', 'like', $like);
+        })
+            ->where(function ($p) {
+                $p->where('is_private', false)
+                    ->orWhere('created_by', Auth::id());
+            })
+            ->orderByDesc('start_date')
+            ->limit(30)
+            ->get(['id', 'title', 'start_date', 'end_date', 'color', 'client_name', 'location', 'completed_at']);
+
+        return response()->json($events);
+    }
+
     // 일정 저장
     public function store(Request $request)
     {

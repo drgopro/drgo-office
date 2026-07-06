@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/calendar/history', [CalendarController::class, 'historyIndex'])->name('calendar.history');
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
+    Route::get('/api/events/search', [CalendarController::class, 'search']);
     Route::get('/api/events/history', [CalendarController::class, 'historyEvents']);
     Route::get('/api/events/trashed', [CalendarController::class, 'trashed'])->middleware('permission:calendar.edit');
     Route::get('/api/events/{schedule}/detail', [CalendarController::class, 'detail']);

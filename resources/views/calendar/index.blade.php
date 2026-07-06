@@ -59,6 +59,19 @@
     .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
     .month-label { font-size:18px; font-weight:500; letter-spacing:0.05em; min-width:180px; text-align:center; }
 
+    /* 일정 검색 */
+    .cal-search-wrap { position:relative; flex-shrink:1; min-width:0; }
+    .cal-search-input { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:7px 12px; color:var(--text); font-size:12px; outline:none; width:170px; max-width:100%; transition:border-color .15s, width .2s; }
+    .cal-search-input:focus { border-color:var(--accent); width:220px; }
+    .cal-search-results { position:absolute; top:calc(100% + 6px); right:0; width:340px; max-width:calc(100vw - 24px); max-height:420px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--card-shadow, 0 8px 32px rgba(0,0,0,0.3)); z-index:60; padding:6px; }
+    .cal-sr-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; cursor:pointer; }
+    .cal-sr-item:hover { background:var(--surface2); }
+    .cal-sr-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .cal-sr-date { font-size:11px; color:var(--text-muted); flex-shrink:0; min-width:74px; font-family:ui-monospace,Menlo,monospace; }
+    .cal-sr-title { font-size:12px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cal-sr-item.is-completed .cal-sr-title { text-decoration:line-through; opacity:0.55; }
+    .cal-sr-sub { font-size:11px; color:var(--text-muted); flex-shrink:0; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cal-sr-empty { padding:14px; text-align:center; font-size:12px; color:var(--text-muted); }
     .cal-fontsize { display:flex; align-items:center; gap:2px; background:var(--surface2); border-radius:8px; padding:2px; }
     .cal-fz-btn { border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:6px; padding:4px 9px; font-size:13px; font-weight:700; line-height:1; }
     .cal-fz-btn:hover { background:var(--surface); color:var(--accent); }
@@ -773,6 +786,14 @@
         </div>
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
+        @if(!Auth::user()->isGuest())
+        <div class="cal-search-wrap" id="calSearchWrap">
+            <input class="cal-search-input" id="calSearchInput" placeholder="🔍 일정 검색" autocomplete="off"
+                oninput="onCalSearchInput()" onfocus="onCalSearchInput()"
+                onkeydown="if(event.key==='Escape')closeCalSearch();">
+            <div class="cal-search-results" id="calSearchResults" style="display:none;"></div>
+        </div>
+        @endif
         <div class="cal-fontsize" title="글자 크기 조절">
             <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
             <span id="calFontLabel">100%</span>
@@ -1666,6 +1687,59 @@ function calFont(dir){
     applyCalFz();
     if(typeof renderView==='function') renderView(); // 다일 제목 오버레이/행 높이 재계산
 }
+
+// ── 일정 검색 (전체 기간, 제목/의뢰자/장소) ──
+let calSearchTimer=null;
+function onCalSearchInput(){
+    clearTimeout(calSearchTimer);
+    const q=document.getElementById('calSearchInput').value.trim();
+    if(!q){ closeCalSearch(); return; }
+    calSearchTimer=setTimeout(()=>runCalSearch(q), 250);
+}
+async function runCalSearch(q){
+    try{
+        const res=await fetch(`/api/events/search?q=${encodeURIComponent(q)}`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        const list=await res.json();
+        renderCalSearchResults(list);
+    }catch(e){}
+}
+function renderCalSearchResults(list){
+    const box=document.getElementById('calSearchResults');
+    if(!box) return;
+    const CMAP={gold:'var(--chip-gold-bg)',teal:'var(--chip-teal-bg)',blue:'var(--chip-blue-bg)',red:'var(--chip-red-bg)',green:'var(--chip-green-bg)',purple:'var(--chip-purple-bg)'};
+    if(!list.length){ box.innerHTML='<div class="cal-sr-empty">검색 결과가 없습니다</div>'; box.style.display=''; return; }
+    box.innerHTML=list.map(ev=>{
+        const d=(ev.start_date||'').substring(0,10);
+        const sub=ev.client_name||ev.location||'';
+        return `<div class="cal-sr-item${ev.completed_at?' is-completed':''}" onclick="goToSearchResult(${ev.id},'${d}')">
+            <span class="cal-sr-dot" style="background:${CMAP[ev.color]||'var(--accent)'}"></span>
+            <span class="cal-sr-date">${d}</span>
+            <span class="cal-sr-title">${_esc(ev.title||'(제목 없음)')}</span>
+            ${sub?`<span class="cal-sr-sub">${_esc(sub)}</span>`:''}
+        </div>`;
+    }).join('');
+    box.style.display='';
+}
+function closeCalSearch(){
+    const box=document.getElementById('calSearchResults');
+    if(box) box.style.display='none';
+}
+async function goToSearchResult(id,dateStr){
+    closeCalSearch();
+    const inp=document.getElementById('calSearchInput'); if(inp) inp.blur();
+    const d=new Date(dateStr+'T00:00:00');
+    currentYear=d.getFullYear(); currentMonth=d.getMonth();
+    currentWeekStart=getWeekStart(d); currentDay=new Date(d); currentDay.setHours(0,0,0,0);
+    renderView();
+    await loadEvents();
+    const ev=events.find(e=>e.id===id);
+    if(ev) openDetailModal(ev);
+}
+// 바깥 클릭 시 검색 결과 닫기
+document.addEventListener('click',e=>{
+    if(!e.target.closest||!e.target.closest('#calSearchWrap')) closeCalSearch();
+});
 
 function switchView(view) {
     currentView = view;
