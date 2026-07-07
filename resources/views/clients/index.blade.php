@@ -414,7 +414,12 @@ const PLATFORM_OPTIONS = ['SOOP','유튜브','치지직','틱톡','팬더티비'
 const PLATFORM_ICONS = { 'SOOP':'/icons/platforms/soop.svg' };
 function platformLabelHtml(p){
     const ic=PLATFORM_ICONS[p];
-    return ic?`<img src="${ic}" alt="${p}" style="width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:3px;">${p}`:p;
+    return ic?`<img src="${ic}" alt="${p}" style="width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:4px;">${p}`:p;
+}
+// 아바타 대체용 — 아이콘 있는 첫 플랫폼의 로고 경로 (없으면 null → 이니셜 유지)
+function platformAvatarIcon(platforms){
+    for(const p of (platforms||[])){ if(PLATFORM_ICONS[p]) return PLATFORM_ICONS[p]; }
+    return null;
 }
 const TOPIC_OPTIONS = ['소통','게임','노래','먹방','야외','버추얼','코인','주식','기타','미정'];
 
@@ -677,8 +682,10 @@ function renderClientTabs() {
     bar.innerHTML = openClientTabs.map(t => {
         const cls = t.id === activeClientId ? 'active' : '';
         const initials = (t.nickname || t.name).substring(0, 2);
+        const tavIcon = platformAvatarIcon(t.data && t.data.platforms);
+        const tavInner = tavIcon ? `<img src="${tavIcon}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials;
         return `<button class="client-tab ${cls}" draggable="true" data-client-id="${t.id}" onclick="activateClientTab(${t.id})">
-            <span class="ct-avatar" style="color:${GRADE_COLORS[t.grade]};border-color:${GRADE_COLORS[t.grade]}">${initials}</span>
+            <span class="ct-avatar" style="color:${GRADE_COLORS[t.grade]};border-color:${GRADE_COLORS[t.grade]};overflow:hidden;">${tavInner}</span>
             ${t.nickname || t.name}
             <span class="ct-close" onclick="closeClientTab(${t.id}, event)">✕</span>
         </button>`;
@@ -745,10 +752,12 @@ function renderClientContent(id) {
         document.getElementById('clientContent').appendChild(pane);
 
         const initials = (d.nickname || d.name).substring(0, 2);
+        const avIcon = platformAvatarIcon(d.platforms);
+        const avatarInner = avIcon ? `<img src="${avIcon}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials;
         pane.innerHTML = `
         <div class="detail-header">
             <div class="detail-identity">
-                <div class="detail-avatar" style="color:${GRADE_COLORS[d.grade]};border-color:${GRADE_COLORS[d.grade]}">${initials}</div>
+                <div class="detail-avatar" style="color:${GRADE_COLORS[d.grade]};border-color:${GRADE_COLORS[d.grade]};overflow:hidden;">${avatarInner}</div>
                 <div>
                     <div class="detail-name">${d.nickname || d.name || '(이름 없음)'}</div>
                     <div class="detail-meta">${[d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · ')}</div>
