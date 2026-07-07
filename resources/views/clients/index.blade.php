@@ -410,6 +410,12 @@ const GRADE_LABELS = { normal:'일반', vip:'VIP', rental:'렌탈' };
 const GRADE_COLORS = { normal:'var(--text-muted)', vip:'var(--accent)', rental:'var(--blue)' };
 
 const PLATFORM_OPTIONS = ['SOOP','유튜브','치지직','틱톡','팬더티비','기타'];
+// 플랫폼 아이콘 (사이즈 테스트: SOOP)
+const PLATFORM_ICONS = { 'SOOP':'/icons/platforms/soop.svg' };
+function platformLabelHtml(p){
+    const ic=PLATFORM_ICONS[p];
+    return ic?`<img src="${ic}" alt="${p}" style="width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:3px;">${p}`:p;
+}
 const TOPIC_OPTIONS = ['소통','게임','노래','먹방','야외','버추얼','코인','주식','기타','미정'];
 
 function renderCheckboxGroup(group, id, options, selected, etcText) {
@@ -592,7 +598,7 @@ function renderClientList() {
     list.innerHTML = filtered.map(c => {
         const active = activeClientId === c.id ? 'active' : '';
         const displayName = c.nickname && c.name ? `${c.nickname} / ${c.name}` : (c.nickname || c.name);
-        const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.join(', ') : '';
+        const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.map(platformLabelHtml).join(', ') : '';
         return `<div class="sidebar-item ${active}" onclick="openClient(${c.id})">
             <div class="item-info" style="flex:1;min-width:0;">
                 <div class="item-name">${displayName}</div>

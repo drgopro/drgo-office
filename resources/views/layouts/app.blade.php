@@ -17,6 +17,7 @@
     <link rel="apple-touch-icon" href="/icon-192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
+    <link rel="icon" href="/icons/platforms/soop.svg" type="image/svg+xml">{{-- 사이즈 테스트용 SOOP 파비콘 --}}
     <title>닥터고블린 오피스</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>

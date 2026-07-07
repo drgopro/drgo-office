@@ -1109,14 +1109,17 @@
                 <div class="field-group">
                     <label class="field-label">방송 주제</label>
                     <div id="g_topic_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
-                        <div class="radio-group" id="g_topic_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
+                        <div class="radio-group" id="g_topic_group" style="flex-wrap:wrap;gap:5px;flex-shrink:0;">
                             <div class="radio-btn" data-val="소통">소통</div>
-                            <div class="radio-btn" data-val="먹방">먹방</div>
                             <div class="radio-btn" data-val="게임">게임</div>
-                            <div class="radio-btn" data-val="야외">야외</div>
                             <div class="radio-btn" data-val="노래">노래</div>
-                            <div class="radio-btn" data-val="주식/코인">주식/코인</div>
+                            <div class="radio-btn" data-val="먹방">먹방</div>
+                            <div class="radio-btn" data-val="야외">야외</div>
+                            <div class="radio-btn" data-val="버추얼">버추얼</div>
+                            <div class="radio-btn" data-val="코인">코인</div>
+                            <div class="radio-btn" data-val="주식">주식</div>
                             <div class="radio-btn" data-val="기타">기타</div>
+                            <div class="radio-btn" data-val="미정">미정</div>
                         </div>
                         <div class="conditional-field" id="g_topic_etc_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_topic_etc" placeholder="방송 주제를 직접 입력하세요" style="font-size:13px;"></div>
                     </div>
@@ -3090,11 +3093,12 @@ async function selectClient(id,nickname,name,phone){
     if(gNick) gNick.value=nickname||'';
     if(gName) gName.value=name||'';
     if(gPhone) gPhone.value=phone||'';
-    // teal(원격/방송룸): 모드별 이름 필드 자동 채움
+    // teal(원격/방송룸): 모드 미선택이어도 보이도록 양쪽 이름 필드 모두 채움 (빈 칸만)
     if(currentColor==='teal'){
-        const tMode=getRadio('teal_mode_group')||'remote';
-        const tName=document.getElementById(tMode==='studio'?'t_studio_name':'t_remote_name');
-        if(tName&&!tName.value.trim()) tName.value=nickname||name||'';
+        ['t_remote_name','t_studio_name'].forEach(fid=>{
+            const el=document.getElementById(fid);
+            if(el&&!el.value.trim()) el.value=nickname||name||'';
+        });
     }
     // 제목 비어있으면 의뢰자명으로 보조 채움
     document.getElementById('modalTitle').value=document.getElementById('modalTitle').value||(nickname||name);
@@ -3117,11 +3121,24 @@ function applyClientDetail(d){
         const det=document.getElementById('modalLocationDetail');
         if(det&&!det.value.trim()&&d.address_detail) det.value=d.address_detail;
     }
-    // teal(원격/방송룸): 플랫폼 텍스트 필드 채움
-    if(currentColor==='teal'&&(d.platforms||[]).length){
-        const tMode2=getRadio('teal_mode_group')||'remote';
-        const tPlat=document.getElementById(tMode2==='studio'?'t_studio_platform':'t_remote_platform');
-        if(tPlat&&!tPlat.value.trim()) tPlat.value=(d.platforms||[]).join(', ');
+    // teal(원격/방송룸): 플랫폼 텍스트 필드 채움 (양쪽 모드, 기타 직접입력 포함)
+    if(currentColor==='teal'){
+        const platTxt=[...(d.platforms||[]).filter(Boolean).filter(v=>v!=='기타'), d.platform_etc].filter(Boolean).join(', ');
+        if(platTxt){
+            ['t_remote_platform','t_studio_platform'].forEach(fid=>{
+                const el=document.getElementById(fid);
+                if(el&&!el.value.trim()) el.value=platTxt;
+            });
+        }
+    }
+    // 방송 주제 — 의뢰자 콘텐츠 유형과 목록 동일 → 그대로 매핑 (빈 경우만, 기타 직접입력 포함)
+    const ctypes=(d.content_types||[]).filter(Boolean);
+    if((ctypes.length||d.topic_etc)&&!getMultiRadio('g_topic_group').length){
+        const KNOWN_TOPICS=['소통','게임','노래','먹방','야외','버추얼','코인','주식','기타','미정'];
+        const etcT=[...ctypes.filter(t=>!KNOWN_TOPICS.includes(t)),d.topic_etc].filter(Boolean);
+        const pills=[...new Set([...ctypes.map(t=>KNOWN_TOPICS.includes(t)?t:'기타'), ...(etcT.length?['기타']:[])])];
+        if(pills.length) setMultiRadio('g_topic_group',pills);
+        if(etcT.length){ const e=document.getElementById('g_topic_etc'); if(e&&!e.value.trim()) e.value=etcT.join(', '); }
     }
     // 플랫폼 — 의뢰자 관리 명칭 → 캘린더 pill 매핑
     const plats=(d.platforms||[]).filter(Boolean);
@@ -3869,8 +3886,9 @@ function openEditModal(ev){
     }
     // 방송주제: "소통, 게임, 직접입력값" → pill 선택 + 기타 입력
     if(g.topic){
-        const known=['소통','먹방','게임','야외','노래','주식/코인','기타'];
-        const vals=g.topic.split(',').map(v=>v.trim());
+        const known=['소통','게임','노래','먹방','야외','버추얼','코인','주식','기타','미정'];
+        // 레거시 '주식/코인' → 주식+코인으로 분해
+        const vals=g.topic.split(',').map(v=>v.trim()).flatMap(v=>v==='주식/코인'?['주식','코인']:[v]);
         const pillVals=vals.map(v=>known.includes(v)?v:'기타');
         setMultiRadio('g_topic_group',[...new Set(pillVals)]);
         const etcVals=vals.filter(v=>!known.includes(v));
