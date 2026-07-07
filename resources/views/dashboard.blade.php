@@ -76,60 +76,60 @@
 <div class="dash-wrap">
     <div class="dash-header">
         <div>
-            <h1>🏠 대시보드</h1>
+            <h1><x-icon name="home" :size="20"/> 대시보드</h1>
             <p>{{ now()->format('Y년 m월 d일') }} · {{ Auth::user()->display_name }}님 안녕하세요</p>
         </div>
         @if(Auth::user()->isAdmin())
-            <a href="/marketing-report" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('marketing-report','/marketing-report'); else location.href='/marketing-report';" style="background:var(--accent); color:var(--accent-text); padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">📊 상세 통계 →</a>
+            <a href="/marketing-report" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('marketing-report','/marketing-report'); else location.href='/marketing-report';" style="background:var(--accent); color:var(--accent-text); padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;"><x-icon name="chart" :size="15"/> 상세 통계 →</a>
         @endif
     </div>
 
     {{-- 진행 상황 (파이프라인) --}}
     <div class="section-title">
-        ⚙️ 진행 상황
+        <x-icon name="gear" :size="17"/> 진행 상황
         <span class="section-sub">실시간 스냅샷 · 클릭하면 프로젝트 목록으로 이동</span>
     </div>
     <div class="pipeline-grid">
         <div class="pipeline-card p-consulting" onclick="goProjectsByStage('consulting')">
             <div class="pc-accent"></div>
-            <div class="pc-label">💬 상담 중</div>
+            <div class="pc-label"><x-icon name="chat" :size="15"/> 상담 중</div>
             <div class="pc-value">{{ $pipeline['consulting'] }}</div>
             <div class="pc-sub">초기 상담 단계</div>
         </div>
         <div class="pipeline-card p-estimate" onclick="goProjectsByStage('equipment,proposal,estimate')">
             <div class="pc-accent"></div>
-            <div class="pc-label">📝 견적 단계</div>
+            <div class="pc-label"><x-icon name="note" :size="15"/> 견적 단계</div>
             <div class="pc-value">{{ $pipeline['estimate'] }}</div>
             <div class="pc-sub">장비파악·제안·견적</div>
         </div>
         <div class="pipeline-card p-payment" onclick="goProjectsByStage('payment')">
             <div class="pc-accent"></div>
-            <div class="pc-label">💰 결제 대기</div>
+            <div class="pc-label"><x-icon name="money" :size="15"/> 결제 대기</div>
             <div class="pc-value">{{ $pipeline['payment'] }}</div>
             <div class="pc-sub">결제/예약 단계</div>
         </div>
         <div class="pipeline-card p-visit" onclick="goProjectsByStage('visit')">
             <div class="pc-accent"></div>
-            <div class="pc-label">🔧 세팅 진행</div>
+            <div class="pc-label"><x-icon name="wrench" :size="15"/> 세팅 진행</div>
             <div class="pc-value">{{ $pipeline['visit'] }}</div>
             <div class="pc-sub">방문/원격 세팅 진행 중</div>
         </div>
         <div class="pipeline-card p-as" onclick="goProjectsByStage('as')">
             <div class="pc-accent"></div>
-            <div class="pc-label">🛠 세팅 완료 · AS</div>
+            <div class="pc-label"><x-icon name="tools" :size="15"/> 세팅 완료 · AS</div>
             <div class="pc-value">{{ $pipeline['as'] ?? 0 }}</div>
             <div class="pc-sub">세팅 완료 후 AS 기간</div>
         </div>
         <div class="pipeline-card p-done" onclick="goProjectsByStage('done')">
             <div class="pc-accent"></div>
-            <div class="pc-label">🏁 완료</div>
+            <div class="pc-label"><x-icon name="flag" :size="15"/> 완료</div>
             <div class="pc-value">{{ $pipeline['done'] ?? 0 }}</div>
             <div class="pc-sub">상담 완료 · 세팅 완료 등</div>
         </div>
     </div>
 
     {{-- 간단한 현황 --}}
-    <div class="section-title">📌 오늘의 현황</div>
+    <div class="section-title"><x-icon name="pin" :size="17"/> 오늘의 현황</div>
     <div class="info-grid">
         <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href='/clients';">
             <div class="ic-label">의뢰자</div>
@@ -142,12 +142,12 @@
         </div>
         @if(($rentalActive ?? 0) > 0 || ($broadcastActive ?? 0) > 0)
         <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('rental-contracts','/rental-contracts'); else location.href='/rental-contracts';">
-            <div class="ic-label">🏠 렌탈 진행중</div>
+            <div class="ic-label"><x-icon name="home" :size="15"/> 렌탈 진행중</div>
             <div class="ic-value">{{ $rentalActive ?? 0 }}건</div>
             <div class="ic-sub">월 {{ number_format($rentalMonthlyRevenue ?? 0) }}원</div>
         </div>
         <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('broadcast-room','/broadcast-room'); else location.href='/broadcast-room';">
-            <div class="ic-label">🎙 방송룸 월계약</div>
+            <div class="ic-label"><x-icon name="mic" :size="15"/> 방송룸 월계약</div>
             <div class="ic-value">{{ $broadcastActive ?? 0 }}건</div>
             <div class="ic-sub">월 {{ number_format($broadcastMonthlyRevenue ?? 0) }}원</div>
         </div>
@@ -156,7 +156,7 @@
 
     {{-- 상담 대기/진행중 --}}
     <div class="section-title">
-        💬 상담 대기 / 진행중
+        <x-icon name="chat" :size="17"/> 상담 대기 / 진행중
         <span class="section-sub">우선순위가 높은 항목</span>
     </div>
     <div class="consult-list">
@@ -177,12 +177,12 @@
     </div>
 
     {{-- 위키 --}}
-    <div class="section-title" style="margin-top:28px;">📖 위키</div>
+    <div class="section-title" style="margin-top:28px;"><x-icon name="book" :size="17"/> 위키</div>
     <div class="wiki-widget-grid">
         <div class="wiki-widget">
-            <div class="ww-head">🆕 최신 등록 문서 <span class="ww-sub">최근 3건</span></div>
+            <div class="ww-head"><x-icon name="new" :size="15"/> 최신 등록 문서 <span class="ww-sub">최근 3건</span></div>
             @forelse($wikiRecent as $w)
-                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','📖 {{ addslashes($w->title) }}'); else location.href=this.href;">
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
                     <span class="ww-title">{{ $w->title }}</span>
                     <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
                 </a>
@@ -191,9 +191,9 @@
             @endforelse
         </div>
         <div class="wiki-widget">
-            <div class="ww-head">📚 전체 문서 <span class="ww-sub">총 {{ $wikiTotal }}건</span></div>
+            <div class="ww-head"><x-icon name="books" :size="15"/> 전체 문서 <span class="ww-sub">총 {{ $wikiTotal }}건</span></div>
             @forelse($wikiAll as $w)
-                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','📖 {{ addslashes($w->title) }}'); else location.href=this.href;">
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
                     <span class="ww-title">{{ $w->is_pinned ? '📌 ' : '' }}{{ $w->title }}</span>
                     <span class="ww-date">{{ $w->updated_at->format('m.d') }}</span>
                 </a>
@@ -201,39 +201,39 @@
                 <div class="ww-empty">등록된 문서가 없습니다</div>
             @endforelse
             @if($wikiTotal > 5)
-                <a class="ww-more" href="/wiki" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki','📖 위키'); else location.href=this.href;">전체 보기 →</a>
+                <a class="ww-more" href="/wiki" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki'); else location.href=this.href;">전체 보기 →</a>
             @endif
         </div>
     </div>
 
     {{-- 빠른 이동 --}}
-    <div class="section-title" style="margin-top:28px;">🔗 빠른 이동</div>
+    <div class="section-title" style="margin-top:28px;"><x-icon name="link" :size="17"/> 빠른 이동</div>
     <div class="shortcut-grid">
         <a href="/calendar" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href=this.href;">
-            <div class="sc-icon">📅</div>
+            <div class="sc-icon"><x-icon name="calendar" :size="26"/></div>
             <div class="sc-label">캘린더</div>
             <div class="sc-sub">일정 확인</div>
         </a>
         <a href="/clients" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href=this.href;">
-            <div class="sc-icon">👤</div>
+            <div class="sc-icon"><x-icon name="user" :size="26"/></div>
             <div class="sc-label">의뢰자</div>
             <div class="sc-sub">CRM 관리</div>
         </a>
         <a href="/projects" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects'); else location.href=this.href;">
-            <div class="sc-icon">📁</div>
+            <div class="sc-icon"><x-icon name="folder" :size="26"/></div>
             <div class="sc-label">프로젝트</div>
             <div class="sc-sub">전체 목록</div>
         </a>
         <a href="/estimates" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('estimates','/estimates'); else location.href=this.href;">
-            <div class="sc-icon">📝</div>
+            <div class="sc-icon"><x-icon name="note" :size="26"/></div>
             <div class="sc-label">견적서</div>
         </a>
         <a href="/inventory" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('inventory','/inventory'); else location.href=this.href;">
-            <div class="sc-icon">📦</div>
+            <div class="sc-icon"><x-icon name="box" :size="26"/></div>
             <div class="sc-label">재고</div>
         </a>
         <a href="/rental-equipment" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('rental','/rental-equipment'); else location.href=this.href;">
-            <div class="sc-icon">📷</div>
+            <div class="sc-icon"><x-icon name="camera" :size="26"/></div>
             <div class="sc-label">장비 위치</div>
         </a>
     </div>

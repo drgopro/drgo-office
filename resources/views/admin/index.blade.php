@@ -228,7 +228,7 @@
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
-        <button class="tab-btn" data-tab="settings">⚙️ 설정</button>
+        <button class="tab-btn" data-tab="settings"><x-icon name="gear" :size="14"/> 설정</button>
     </div>
 
     {{-- 설정 그룹 (의뢰자/프로젝트 필드 + 유형 + 캘린더 + 판매처 + 보고서 템플릿) --}}
@@ -307,7 +307,7 @@
                     <div class="field-label">비밀번호</div>
                     <div style="position:relative;">
                         <input class="field-input" id="newPassword" type="password" placeholder="8자 이상" style="padding-right:40px;">
-                        <button type="button" onclick="togglePwVisibility('newPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;">👁</button>
+                        <button type="button" onclick="togglePwVisibility('newPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
                     </div>
                 </div>
                 <div class="field-group">
@@ -373,7 +373,7 @@
         <div class="cf-modal">
             <h3>
                 <span id="fieldModalTitle">+ 필드 추가</span>
-                <button type="button" class="close-btn" onclick="closeFieldModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeFieldModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub">의뢰자 정보에 노출될 사용자 정의 필드를 구성합니다.</div>
             <input type="hidden" id="fieldId">
@@ -505,7 +505,7 @@
         <div class="cf-modal">
             <h3>
                 <span id="projectFieldModalTitle">+ 필드 추가</span>
-                <button type="button" class="close-btn" onclick="closeProjectFieldModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeProjectFieldModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub">프로젝트 정보에 노출될 사용자 정의 필드를 구성합니다.</div>
             <input type="hidden" id="projectFieldId">
@@ -616,7 +616,7 @@
         <div class="cf-modal">
             <h3>
                 <span id="assigneeModalTitle">+ 외부 담당자 추가</span>
-                <button type="button" class="close-btn" onclick="closeAssigneeModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeAssigneeModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub" id="assigneeModalSub">외부 인력(프리랜서/협력사 등)을 담당자 풀에 추가합니다.</div>
             <input type="hidden" id="assigneeIdInput">
@@ -666,7 +666,7 @@
         <div class="cf-modal">
             <h3>
                 <span id="consultTypeModalTitle">+ 프로젝트 유형 추가</span>
-                <button type="button" class="close-btn" onclick="closeConsultTypeModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeConsultTypeModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub">프로젝트 유형 정의. key는 비워두면 라벨에서 자동 생성됩니다.</div>
             <input type="hidden" id="consultTypeId">
@@ -705,7 +705,7 @@
         <div class="cf-modal" style="max-width:480px;">
             <h3>
                 <span>+ 카테고리 추가</span>
-                <button type="button" class="close-btn" onclick="closeNewCalendarCategoryModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeNewCalendarCategoryModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub">새로운 일정 분류를 추가합니다. 기본 카테고리(방문의뢰·원격·사내업무 등)와 동일한 방식으로 동작합니다.</div>
 
@@ -760,7 +760,7 @@
         <div class="cf-modal">
             <h3>
                 <span id="wtModalTitle">+ 작업 유형</span>
-                <button type="button" class="close-btn" onclick="closeWorkTypeModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeWorkTypeModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub">새 프로젝트 등록 시 '규모'에 따라 선택할 수 있는 작업 유형을 관리합니다.</div>
             <input type="hidden" id="wtId">
@@ -824,7 +824,7 @@
         <div class="cf-modal" style="max-width:900px;">
             <h3>
                 <span id="rtModalTitle">+ 보고서 템플릿</span>
-                <button type="button" class="close-btn" onclick="closeReportTemplateModal()">✕</button>
+                <button type="button" class="close-btn" onclick="closeReportTemplateModal()"><x-icon name="close" :size="15"/></button>
             </h3>
             <div class="cf-modal-sub">방문 보고서 작성 시 자동으로 불러올 수 있는 본문 템플릿을 정의합니다.</div>
             <input type="hidden" id="rtId">
@@ -870,7 +870,7 @@
                 <div class="field-group">
                     <div class="field-label">기본 / 활성</div>
                     <div class="cf-toggle-row" style="margin:0; padding:8px 10px;">
-                        <label><input type="checkbox" id="rtIsDefault"> ⭐ 기본 (자동 불러오기)</label>
+                        <label><input type="checkbox" id="rtIsDefault"> <x-icon name="star" :size="14"/> 기본 (자동 불러오기)</label>
                         <label><input type="checkbox" id="rtIsActive" checked> 활성</label>
                     </div>
                 </div>
@@ -941,7 +941,7 @@
 @if(Auth::user()->role === 'master')
 <div class="account-modal-overlay" id="accountModalOverlay" onclick="if(event.target===this) closeAccountModal()">
     <div class="account-modal">
-        <h3>계정 정보 수정 <button class="close-btn" onclick="closeAccountModal()">✕</button></h3>
+        <h3>계정 정보 수정 <button class="close-btn" onclick="closeAccountModal()"><x-icon name="close" :size="15"/></button></h3>
         <input type="hidden" id="accUserId">
         <div class="field-group">
             <div class="field-label">아이디 (로그인 ID)</div>
@@ -959,7 +959,7 @@
             <div class="field-label">비밀번호 변경 <span style="font-size:10px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
             <div style="position:relative;">
                 <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)" style="padding-right:40px;">
-                <button type="button" onclick="togglePwVisibility('accPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;">👁</button>
+                <button type="button" onclick="togglePwVisibility('accPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
         </div>
         <div class="modal-actions">
@@ -1147,7 +1147,7 @@ function renderProjectFields() {
     const container = document.getElementById('projectFieldsContainer');
     if (!allProjectFields.length) {
         container.innerHTML = `<div class="cf-empty">
-            <div class="cf-empty-icon">📋</div>
+            <div class="cf-empty-icon"><x-icon name="clip" :size="30"/></div>
             <div class="cf-empty-title">정의된 필드가 없습니다</div>
             <div class="cf-empty-sub">우측 상단 <b>+ 필드 추가</b> 버튼으로 첫 필드를 만들어 보세요.</div>
         </div>`;
@@ -1510,7 +1510,7 @@ function togglePwVisibility(inputId, btn) {
     const input = document.getElementById(inputId);
     const isPassword = input.type === 'password';
     input.type = isPassword ? 'text' : 'password';
-    btn.textContent = isPassword ? '🙈' : '👁';
+    btn.innerHTML = isPassword ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19c-7 0-11-7-11-7a19 19 0 0 1 5.1-5.9M9.9 4.2A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a19 19 0 0 1-2.2 3.2M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>` : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>`;
 }
 
 // ── 계정 수정 모달 (master 전용) ──
@@ -1688,7 +1688,7 @@ function renderClientFields() {
     const container = document.getElementById('clientFieldsContainer');
     if (!allFields.length) {
         container.innerHTML = `<div class="cf-empty">
-            <div class="cf-empty-icon">📋</div>
+            <div class="cf-empty-icon"><x-icon name="clip" :size="30"/></div>
             <div class="cf-empty-title">정의된 필드가 없습니다</div>
             <div class="cf-empty-sub">우측 상단 <b>+ 필드 추가</b> 버튼으로 첫 필드를 만들어 보세요.</div>
         </div>`;
@@ -1836,7 +1836,7 @@ async function loadCalendarCategories() {
 function renderCalendarCategories() {
     const container = document.getElementById('calendarCategoriesContainer');
     if (!allCalendarCategories.length) {
-        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📅</div><div class="cf-empty-title">카테고리가 없습니다</div></div>';
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon"><svg viewBox=\"0 0 24 24\" width=\"30\" height=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/></svg></div><div class="cf-empty-title">카테고리가 없습니다</div></div>';
         return;
     }
     const DEFAULT_KEYS = ['gold','teal','blue','red','green','purple','holiday'];
@@ -2017,7 +2017,7 @@ async function loadConsultTypes() {
 function renderConsultTypes() {
     const container = document.getElementById('consultTypesContainer');
     if (!allConsultTypes.length) {
-        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">정의된 프로젝트 유형이 없습니다</div></div>';
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon"><x-icon name="clip" :size="30"/></div><div class="cf-empty-title">정의된 프로젝트 유형이 없습니다</div></div>';
         return;
     }
     container.innerHTML = `<div class="cf-grid">${allConsultTypes.map(t => {
@@ -2116,7 +2116,7 @@ async function loadReportTemplates() {
 function renderReportTemplates() {
     const container = document.getElementById('reportTemplatesContainer');
     if (!allReportTemplates.length) {
-        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">📋</div><div class="cf-empty-title">등록된 템플릿이 없습니다</div><div class="cf-empty-sub">+ 템플릿 추가로 시작하세요</div></div>';
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon"><x-icon name="clip" :size="30"/></div><div class="cf-empty-title">등록된 템플릿이 없습니다</div><div class="cf-empty-sub">+ 템플릿 추가로 시작하세요</div></div>';
         return;
     }
     // 텍스트 미리보기 — HTML 태그/엔티티를 안전하게 디코딩
@@ -2128,7 +2128,7 @@ function renderReportTemplates() {
         return text.length > max ? text.slice(0, max) + '…' : text;
     }
     container.innerHTML = `<div class="cf-grid">${allReportTemplates.map(t => {
-        const star = t.is_default ? '<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);">⭐ 기본</span>' : '';
+        const star = t.is_default ? '<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"currentColor\" stroke=\"none\" style=\"vertical-align:-0.1em\"><path d=\"m12 2 3 6.6 7 .6-5.3 4.6 1.6 6.9L12 17.7 5.7 20.7l1.6-6.9L2 9.2l7-.6z\"/></svg> 기본</span>' : '';
         const inactive = t.is_active ? '' : ' inactive';
         const preview = _rtTextPreview(t.content);
         return `<div class="cf-card${inactive}" onclick="editReportTemplate(${t.id})">
@@ -2294,7 +2294,7 @@ async function loadWorkTypes() {
 function renderWorkTypes() {
     const container = document.getElementById('workTypesContainer');
     if (!allWorkTypes.length) {
-        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon">⚙️</div><div class="cf-empty-title">정의된 작업 유형이 없습니다</div></div>';
+        container.innerHTML = '<div class="cf-empty"><div class="cf-empty-icon"><svg viewBox=\"0 0 24 24\" width=\"30\" height=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1\"/></svg></div><div class="cf-empty-title">정의된 작업 유형이 없습니다</div></div>';
         return;
     }
     container.innerHTML = `<div class="cf-grid">${allWorkTypes.map(t => {
