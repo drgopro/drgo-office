@@ -231,6 +231,7 @@
     .chip-ship.s-part { color:#d78a2e; }
     .chip-ship.s-all { color:var(--green); }
     /* 배송 현황 섹션 */
+    .ship-caret { display:inline-block; width:12px; color:var(--text-muted); font-size:11px; }
     .ship-add-row { display:flex; gap:6px; margin-top:8px; align-items:center; }
     .ship-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
     .ship-input:focus { border-color:var(--accent); }
@@ -606,7 +607,7 @@
     body.range-dragging { user-select:none; cursor:cell; }
     body.dragging { cursor:grabbing !important; user-select:none; }
     body.dragging .event-chip { cursor:grabbing; }
-    .event-chip { cursor:grab; }
+    .event-chip { cursor:pointer; }
 
     /* ── 모바일 일정 리스트 (네이버 캘린더 스타일) ── */
     .mobile-day-events { display:none; }
@@ -1002,15 +1003,17 @@
             {{-- 배송 현황 (방문의뢰·촬영/스튜디오, 저장된 일정만) --}}
             <div class="field-section" id="shipmentSection" style="display:none;">
                 <div class="field-group">
-                    <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
-                        <span>📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
-                        <button type="button" class="ship-mini-btn" onclick="refreshShipments()" title="배송상태 새로고침">🔄 새로고침</button>
+                    <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleShipmentBody()">
+                        <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
+                        <button type="button" class="ship-mini-btn" onclick="event.stopPropagation();refreshShipments()" title="배송상태 새로고침">🔄 새로고침</button>
                     </label>
-                    <div id="shipmentList"></div>
-                    <div class="ship-add-row">
-                        <select class="ship-input" id="shipCarrier" style="flex:0 0 130px;"></select>
-                        <input class="ship-input" id="shipTrackingNo" placeholder="송장번호" inputmode="numeric" style="flex:1;min-width:0;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addShipment();}">
-                        <button type="button" class="ship-mini-btn primary" onclick="addShipment()">+ 등록</button>
+                    <div id="shipmentBody" style="display:none;">
+                        <div id="shipmentList"></div>
+                        <div class="ship-add-row">
+                            <select class="ship-input" id="shipCarrier" style="flex:0 0 130px;"></select>
+                            <input class="ship-input" id="shipTrackingNo" placeholder="송장번호" inputmode="numeric" style="flex:1;min-width:0;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addShipment();}">
+                            <button type="button" class="ship-mini-btn primary" onclick="addShipment()">+ 등록</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3312,6 +3315,14 @@ async function loadExistingAttachments(scheduleId){
 // ── 배송 현황 (송장 추적) — 방문의뢰(gold)·촬영/스튜디오(green), 저장된 일정만 ──
 const SHIP_COLORS=['gold','green'];
 let shipCache={shipments:[],carriers:{}};
+function toggleShipmentBody(force){
+    const body=document.getElementById('shipmentBody');
+    const caret=document.getElementById('shipCaret');
+    if(!body) return;
+    const open = force!==undefined ? force : body.style.display==='none';
+    body.style.display=open?'':'none';
+    if(caret) caret.textContent=open?'▾':'▸';
+}
 function updateShipmentSectionVisibility(){
     const sec=document.getElementById('shipmentSection');
     if(sec) sec.style.display=(editingId&&SHIP_COLORS.includes(currentColor))?'':'none';
@@ -3527,6 +3538,7 @@ function resetModalForm(){
     const shipBadge=document.getElementById('shipSummaryBadge'); if(shipBadge) shipBadge.textContent='';
     updateShipmentSectionVisibility();
     updateModalShipBadge();
+    toggleShipmentBody(false); // 배송 현황은 기본 접힘
     assigneePanelOpen=false;
     document.getElementById('assigneeList').style.display='none';
 }

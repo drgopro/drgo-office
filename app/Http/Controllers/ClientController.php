@@ -191,7 +191,7 @@ class ClientController extends Controller
             'projects' => $client->projects->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
-                'type' => $p->type,
+                'type' => $p->project_type,
                 'stage' => $p->stage,
                 'tags' => $p->tags ?? ['major' => [], 'minor' => []],
                 'created_at' => $p->created_at->format('Y.m.d'),

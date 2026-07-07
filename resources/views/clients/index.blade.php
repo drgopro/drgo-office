@@ -1034,7 +1034,7 @@ function renderProjectList(projects, clientId, order) {
         <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
             <div>
                 <div style="font-size:14px; font-weight:600;">${p.name}</div>
-                <div style="font-size:11px; color:var(--text-muted);">${TYPE_LABELS[p.type]||p.type} · 상담 ${p.consultations_count}건 · ${p.created_at}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${[TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · ')}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${STAGE_LABELS[p.stage]||p.stage}</span>
