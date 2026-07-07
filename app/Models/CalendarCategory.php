@@ -28,7 +28,19 @@ class CalendarCategory extends Model
      *
      * @return array<string, array{label:string,color:string,text_color:string}>
      */
+    /** 요청 내 캐시 — 캘린더 렌더 시 map()이 10여 회 호출되므로 쿼리 1회로 제한 */
+    protected static ?array $mapCache = null;
+
     public static function map(): array
+    {
+        if (static::$mapCache !== null) {
+            return static::$mapCache;
+        }
+
+        return static::$mapCache = static::buildMap();
+    }
+
+    protected static function buildMap(): array
     {
         try {
             $rows = self::orderBy('sort_order')->get(['key', 'label', 'color', 'text_color']);

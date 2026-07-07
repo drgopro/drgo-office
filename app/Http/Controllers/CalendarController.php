@@ -10,18 +10,31 @@ use Illuminate\Support\Facades\Auth;
 
 class CalendarController extends Controller
 {
-    // 캘린더 메인 뷰
+    // 캘린더 메인 뷰 — 첫 화면(이번 달 42칸)의 이벤트를 서버에서 주입해 초기 API 왕복 제거
     public function index()
     {
-        return view('calendar.index');
+        $first = now()->startOfMonth();
+        $gridStart = $first->copy()->subDays($first->dayOfWeek); // 일요일 시작
+        $gridEnd = $gridStart->copy()->addDays(41);
+
+        return view('calendar.index', [
+            'initialEvents' => $this->eventsBetween($gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d')),
+        ]);
     }
 
     // 일정 목록 API (월별 조회)
     public function events(Request $request)
     {
-        $start = $request->query('start'); // YYYY-MM-DD
-        $end = $request->query('end');   // YYYY-MM-DD
+        return response()->json(
+            $this->eventsBetween($request->query('start'), $request->query('end'))
+        );
+    }
 
+    /**
+     * 기간 내 일정 조회 (비공개 필터 + guest 마스킹 포함) — index/events 공용.
+     */
+    private function eventsBetween(?string $start, ?string $end)
+    {
         $events = Schedule::with('assignees')
             ->withCount([
                 'shipments',
@@ -56,7 +69,7 @@ class CalendarController extends Controller
             ]);
         }
 
-        return response()->json($events);
+        return $events;
     }
 
     // 일정 검색 (제목/의뢰자/장소/주소, 전체 기간)

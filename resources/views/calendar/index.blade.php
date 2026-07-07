@@ -794,10 +794,8 @@
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         @if(!Auth::user()->isGuest())
         <div class="cal-search-wrap" id="calSearchWrap">
-            <input class="cal-search-input" id="calSearchInput" placeholder="🔍 일정 검색" autocomplete="off"
-                oninput="onCalSearchInput()" onfocus="onCalSearchInput()"
-                onkeydown="if(event.key==='Escape'){closeCalSearch();}else if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
-            <div class="cal-search-results" id="calSearchResults" style="display:none;"></div>
+            <input class="cal-search-input" id="calSearchInput" placeholder="🔍 일정 검색 (Enter)" autocomplete="off"
+                onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
         </div>
         @endif
         <div class="cal-fontsize" title="글자 크기 조절">
@@ -1557,6 +1555,8 @@ function getHoliday(dateStr) {
 
 const canEditCalendar = @json(Auth::user()->hasPermission('calendar.edit'));
 const isGuestUser = @json(Auth::user()->isGuest());
+// 첫 화면(이번 달) 이벤트 서버 주입 — 초기 /api/events 왕복 제거
+const INITIAL_EVENTS = @json($initialEvents ?? null);
 const CAL_USER_ID = @json(Auth::id());
 const CAL_VISIT_OPTIONS = @json(collect(explode("\n", (string) \App\Models\Setting::get('calendar_visit_options', '')))->map(fn ($s) => trim($s))->filter()->values());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
@@ -1613,8 +1613,13 @@ function init() {
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
-    renderView();
-    loadEvents();
+    if (Array.isArray(INITIAL_EVENTS)) {
+        events = INITIAL_EVENTS; // 서버 주입분으로 즉시 렌더 (이번 달)
+        renderView();
+    } else {
+        renderView();
+        loadEvents();
+    }
 }
 
 function getWeekStart(d) {
@@ -1760,42 +1765,8 @@ function calFont(dir){
     if(typeof renderView==='function') renderView(); // 다일 제목 오버레이/행 높이 재계산
 }
 
-// ── 일정 검색 (전체 기간, 제목/의뢰자/장소) ──
-let calSearchTimer=null;
-function onCalSearchInput(){
-    clearTimeout(calSearchTimer);
-    const q=document.getElementById('calSearchInput').value.trim();
-    if(!q){ closeCalSearch(); return; }
-    calSearchTimer=setTimeout(()=>runCalSearch(q), 250);
-}
-async function runCalSearch(q){
-    try{
-        const res=await fetch(`/api/events/search?q=${encodeURIComponent(q)}`,{headers:{'Accept':'application/json'}});
-        if(!res.ok) return;
-        const list=await res.json();
-        renderCalSearchResults(list);
-    }catch(e){}
-}
-function renderCalSearchResults(list){
-    const box=document.getElementById('calSearchResults');
-    if(!box) return;
-    if(!list.length){ box.innerHTML='<div class="cal-sr-empty">검색 결과가 없습니다</div>'; box.style.display=''; return; }
-    box.innerHTML=list.map(ev=>{
-        const d=(ev.start_date||'').substring(0,10);
-        const sub=ev.client_name||ev.location||'';
-        return `<div class="cal-sr-item${ev.completed_at?' is-completed':''}" onclick="goToSearchResult(${ev.id},'${d}')">
-            <span class="cal-sr-dot" style="background:${chipColor(ev.color)}"></span>
-            <span class="cal-sr-date">${d}</span>
-            <span class="cal-sr-title">${_esc(ev.title||'(제목 없음)')}</span>
-            ${sub?`<span class="cal-sr-sub">${_esc(sub)}</span>`:''}
-        </div>`;
-    }).join('');
-    box.style.display='';
-}
-function closeCalSearch(){
-    const box=document.getElementById('calSearchResults');
-    if(box) box.style.display='none';
-}
+// ── 일정 검색 — Enter 시 목록 뷰 검색만 (자동완성 드롭다운은 리소스 절약 위해 제거) ──
+function closeCalSearch(){}
 // Enter → 검색 결과를 목록 뷰로 표시
 let agendaSearchQuery=null, agendaSearchResults=[];
 async function openSearchListView(){
@@ -1867,21 +1838,6 @@ function renderAgendaSearch(){
     });
     wrap.innerHTML=html;
 }
-async function goToSearchResult(id,dateStr){
-    closeCalSearch();
-    const inp=document.getElementById('calSearchInput'); if(inp) inp.blur();
-    const d=new Date(dateStr+'T00:00:00');
-    currentYear=d.getFullYear(); currentMonth=d.getMonth();
-    currentWeekStart=getWeekStart(d); currentDay=new Date(d); currentDay.setHours(0,0,0,0);
-    renderView();
-    await loadEvents();
-    const ev=events.find(e=>e.id===id);
-    if(ev) openDetailModal(ev);
-}
-// 바깥 클릭 시 검색 결과 닫기
-document.addEventListener('click',e=>{
-    if(!e.target.closest||!e.target.closest('#calSearchWrap')) closeCalSearch();
-});
 
 // 창 크기 변경 시 그리드 재계산 (행 높이·연속 바 위치)
 let calResizeTimer=null;
