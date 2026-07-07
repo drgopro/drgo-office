@@ -106,6 +106,10 @@
     .img-viewer-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; }
     .img-viewer-wrap img { max-width:90vw; max-height:85vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; }
     .img-viewer-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:1; }
+    .imgv-nav { position:absolute; top:50%; transform:translateY(-50%); z-index:2; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.14); color:#fff; font-size:26px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+    .imgv-nav:hover { background:rgba(255,255,255,0.3); }
+    .imgv-nav.prev { left:18px; }
+    .imgv-nav.next { right:18px; }
     .img-viewer-close:hover { background:rgba(255,255,255,0.3); }
     .img-viewer-zoom { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:10px; z-index:1; }
     .img-viewer-zoom button { background:rgba(255,255,255,0.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
@@ -269,6 +273,8 @@
 <!-- 이미지 뷰어 모달 -->
 <div class="img-viewer" id="imgViewer">
     <button class="img-viewer-close" onclick="closeImgViewer()"><x-icon name="close" :size="15"/></button>
+    <button class="imgv-nav prev" id="imgvPrev" onclick="imgViewerNav(-1)" title="이전 이미지">‹</button>
+    <button class="imgv-nav next" id="imgvNext" onclick="imgViewerNav(1)" title="다음 이미지">›</button>
     <div class="img-viewer-wrap" id="imgViewerWrap">
         <img id="imgViewerImg" src="" alt="">
     </div>
@@ -665,11 +671,34 @@ window.toggleEdit = function() {
     }
     function vReset(){vZoom=1;vPanX=0;vPanY=0;vUpdate();}
 
+    let vList=[], vIdx=0;
+    function vUpdateNav(){
+        const multi=vList.length>1;
+        const pb=document.getElementById('imgvPrev'), nb=document.getElementById('imgvNext');
+        if(pb) pb.style.display=multi?'':'none';
+        if(nb) nb.style.display=multi?'':'none';
+    }
     window.openImgViewer=function(src){
         vReset();
+        // 본문 이미지 전체를 앨범으로 수집
+        vList=[...document.querySelectorAll('.wiki-content img')].map(im=>im.src);
+        vIdx=Math.max(0, vList.indexOf(src));
         vImg.src=src;
         viewer.classList.add('open');
+        vUpdateNav();
     };
+    window.imgViewerNav=function(dir){
+        if(vList.length<2) return;
+        vIdx=(vIdx+dir+vList.length)%vList.length;
+        vReset();
+        vImg.src=vList[vIdx];
+    };
+    document.addEventListener('keydown',function(e){
+        if(!viewer.classList.contains('open')) return;
+        if(e.key==='ArrowLeft') imgViewerNav(-1);
+        if(e.key==='ArrowRight') imgViewerNav(1);
+        if(e.key==='Escape') closeImgViewer();
+    });
     window.closeImgViewer=function(){
         viewer.classList.remove('open');
         vImg.src='';

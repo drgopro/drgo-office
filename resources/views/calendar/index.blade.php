@@ -142,10 +142,10 @@
     .day-popover .dp-info { flex:1; min-width:0; }
     .day-popover .dp-title-row { display:flex; align-items:flex-start; gap:8px; }
     /* 제목: 한 줄 말줄임 대신 폰트 축소 + 2줄까지 줄바꿈 표시 */
-    .day-popover .dp-title { font-size:12px; font-weight:500; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
-    .day-popover .dp-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .day-popover .dp-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
-    .day-popover .dp-time { font-size:11px; font-weight:600; color:var(--text-muted); flex-shrink:0; min-width:38px; }
+    .day-popover .dp-title { font-size:calc(12px * var(--cal-fz,1)); font-weight:500; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
+    .day-popover .dp-assignee { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .day-popover .dp-meta { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); margin-top:2px; }
+    .day-popover .dp-time { font-size:calc(11px * var(--cal-fz,1)); font-weight:600; color:var(--text-muted); flex-shrink:0; min-width:38px; }
     [data-theme="light"] .assignee-filter { background-color:#fff; border-color:#a0a8b4; color:#4a5060; }
 
     /* ── 월간 뷰 ── */
@@ -216,6 +216,10 @@
     .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
     /* 배송 상태 아이콘 (✕ 미배송 / △ 일부 완료 / ○ 전부 완료) */
     .chip-ship { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:800; line-height:1; }
+    /* 옵션 아이콘 (주/일간·목록·팝업 공용) */
+    .ev-opt-ico { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); margin-left:4px; letter-spacing:1px; }
+    .tl-ev-title { font-weight:600; }
+    .tl-ev-assignee { font-size:9px; opacity:0.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
     /* 리스트 제목 옆 배송 아이콘 (담당자보다 앞) */
     .agenda-title .chip-ship, .dp-title .chip-ship, .mde-title .chip-ship { margin-left:6px; font-size:13px; }
     /* 이사세팅 출발/도착 2줄 */
@@ -1567,6 +1571,17 @@ function shipStatusIcon(ev){
     const [ico,cls]=d===0?['✕','s-none']:(d<t?['△','s-part']:['○','s-all']);
     return `<span class="chip-ship ${cls}" title="배송 ${d}/${t}건 완료">${ico}</span>`;
 }
+// 일정 옵션(빠름/긴급/AS이후) 아이콘 맵
+const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→'};
+// 특수옵션 + 세부유형 + 일정옵션 아이콘 묶음 — 주/일간·목록·팝업 뷰 공용
+function eventOptIconsHtml(ev){
+    if(!ev) return '';
+    let h='';
+    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="ev-opt-ico" title="${(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o}">${SPECIAL_ICONS[o]}</span>`; });
+    if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) h+=`<span class="ev-opt-ico">${SCHED_ICONS[ev.sched_opt]}</span>`;
+    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="ev-opt-ico">${SCHED_EVENT_ICONS[o]}</span>`; });
+    return h;
+}
 // 이사세팅 여부
 function isMoveSetting(ev){
     if(!ev || ev.color!=='gold') return false;
@@ -1992,7 +2007,7 @@ function openDayPopover(dateStr, anchorEl){
             <span class="dp-dot" style="background:${chipColor(ev.color)}"></span>
             <div class="dp-info">
                 <div class="dp-title-row">
-                    <span class="dp-title">${_esc(title)}${shipStatusIcon(ev)}</span>
+                    <span class="dp-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</span>
                     ${assignees?`<span class="dp-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 ${meta?`<div class="dp-meta">${_esc(meta)}</div>`:''}
@@ -2094,7 +2109,7 @@ function renderAgenda(){
             html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
                 <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
                 <div class="agenda-main">
-                    <div class="agenda-title">${_esc(title)}${shipStatusIcon(ev)}</div>
+                    <div class="agenda-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</div>
                     ${subHtml}
                 </div>
                 <div class="agenda-right">
@@ -2332,7 +2347,7 @@ function renderMobileDayEvents(dateStr){
             <div class="mde-dot" style="background:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
-                    <div class="mde-title">${_esc(title)}${shipStatusIcon(ev)}</div>
+                    <div class="mde-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</div>
                     ${assignees?`<span class="mde-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 <div class="mde-meta">${time}${(!moveHtml&&ev.location)?' · '+_esc(ev.location):''}</div>
@@ -2395,7 +2410,7 @@ function renderTimeline() {
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`+(ev.completed_at?' is-completed':'');
             chip.style.marginBottom='2px';
-            chip.textContent=isGuestUser?(ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):''):(ev.title||'');
+            chip.innerHTML=isGuestUser?_esc((ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):'')):(eventOptIconsHtml(ev)+`<span class="chip-title">${_esc(ev.title||'')}</span>`+shipStatusIcon(ev)+((ev.assignees||[]).length?` <span class="ev-assignee-badge">${_esc(assigneeNamesOf(ev).join(', '))}</span>`:''));
             chip.onclick=()=>openDetailModal(ev);
             cell.appendChild(chip);
         });
@@ -2490,7 +2505,7 @@ function renderTimeline() {
                     el.style.width=`calc(${widthPct}% - ${gap*2}px)`;
                     el.style.right='auto';
                 }
-                el.textContent=ev.title||'';
+                el.innerHTML=eventOptIconsHtml(ev)+`<span class="tl-ev-title">${_esc(ev.title||'')}</span>`+shipStatusIcon(ev)+((ev.assignees||[]).length?`<div class="tl-ev-assignee">${_esc(assigneeNamesOf(ev).join(', '))}</div>`:'');
                 el.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 slot.appendChild(el);
             });
@@ -3075,6 +3090,12 @@ async function selectClient(id,nickname,name,phone){
     if(gNick) gNick.value=nickname||'';
     if(gName) gName.value=name||'';
     if(gPhone) gPhone.value=phone||'';
+    // teal(원격/방송룸): 모드별 이름 필드 자동 채움
+    if(currentColor==='teal'){
+        const tMode=getRadio('teal_mode_group')||'remote';
+        const tName=document.getElementById(tMode==='studio'?'t_studio_name':'t_remote_name');
+        if(tName&&!tName.value.trim()) tName.value=nickname||name||'';
+    }
     // 제목 비어있으면 의뢰자명으로 보조 채움
     document.getElementById('modalTitle').value=document.getElementById('modalTitle').value||(nickname||name);
     // 프로젝트 목록 로드 + 상세정보(주소/연락처/플랫폼) 연동
@@ -3095,6 +3116,12 @@ function applyClientDetail(d){
         document.getElementById('modalAddress').value=d.address;
         const det=document.getElementById('modalLocationDetail');
         if(det&&!det.value.trim()&&d.address_detail) det.value=d.address_detail;
+    }
+    // teal(원격/방송룸): 플랫폼 텍스트 필드 채움
+    if(currentColor==='teal'&&(d.platforms||[]).length){
+        const tMode2=getRadio('teal_mode_group')||'remote';
+        const tPlat=document.getElementById(tMode2==='studio'?'t_studio_platform':'t_remote_platform');
+        if(tPlat&&!tPlat.value.trim()) tPlat.value=(d.platforms||[]).join(', ');
     }
     // 플랫폼 — 의뢰자 관리 명칭 → 캘린더 pill 매핑
     const plats=(d.platforms||[]).filter(Boolean);
