@@ -142,6 +142,7 @@
         .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
 
         /* 햄버거 / 모바일전용 */
+        .side-toggle { display:none; }
         .menu-toggle { display:none; background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; padding:6px; }
         .nav-overlay { display:none; }
         .nav-mobile-only { display:none; }
@@ -226,6 +227,19 @@
             /* 탭바/콘텐츠는 사이드바 폭만큼 밀기 */
             .tab-bar-wrap { margin-left:var(--sidebar-w); top:0; }
             .main { margin-left:var(--sidebar-w); }
+            /* 접기 버튼 */
+            .side-toggle { display:flex; align-items:center; justify-content:center; position:absolute; top:16px; right:10px; width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; transition:all .15s; }
+            .side-toggle:hover { color:var(--accent); border-color:var(--accent); }
+            .side-toggle svg { transition:transform .2s; }
+            /* ── 접힌 상태: 아이콘만 남는 미니 사이드바 ── */
+            body.side-collapsed { --sidebar-w: 62px; }
+            body.side-collapsed .side-toggle { position:static; margin:0 auto 4px; }
+            body.side-collapsed .side-toggle svg { transform:rotate(180deg); }
+            body.side-collapsed .logo { display:none; }
+            body.side-collapsed .nav a { font-size:0; gap:0; justify-content:center; padding:10px 0; }
+            body.side-collapsed .nav a .nav-ico { width:18px; height:18px; }
+            body.side-collapsed .header { padding:14px 8px; }
+            body.side-collapsed .header-right { display:none; } /* 하단 사용자 영역은 펼쳤을 때만 */
         }
         /* iframe 내부에서는 사이드바가 숨겨지므로 들여쓰기 제거 */
         body.in-iframe .tab-bar-wrap, body.in-iframe .main { margin-left:0 !important; }
@@ -332,6 +346,18 @@
 
 <script>
 if (window !== window.top) document.body.classList.add('in-iframe');
+
+// ── 사이드바 접기/펼치기 (데스크톱) ──
+if (localStorage.getItem('drgoSideCollapsed') === '1') document.body.classList.add('side-collapsed');
+window.toggleSidebar = function() {
+    const on = document.body.classList.toggle('side-collapsed');
+    localStorage.setItem('drgoSideCollapsed', on ? '1' : '0');
+    // 열린 페이지(캘린더 등)가 폭 변화에 맞춰 다시 그리도록
+    window.dispatchEvent(new Event('resize'));
+    document.querySelectorAll('.tab-pane iframe').forEach(f => {
+        try { f.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
+    });
+};
 window.CALENDAR_CATEGORIES = @json($__calCats);
 
 // ── 모달 최소화 도크 (tab-content layout과 동일 API) ──
@@ -405,34 +431,35 @@ window.openTopTab = function(type, url, title) {
 <div class="header">
     <div class="header-left">
         <a href="/" class="logo">DRGO</a>
+        <button type="button" class="side-toggle" id="sideToggle" onclick="toggleSidebar()" title="사이드바 접기/펼치기"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <button class="menu-toggle" id="menuToggle" onclick="toggleNav()">☰</button>
         <nav class="nav" id="mainNav">
             @if(!Auth::user()->isGuest())
-                <a href="/" class="{{ request()->is('/') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('dashboard','/');"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>대시보드</a>
+                <a href="/" class="{{ request()->is('/') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('dashboard','/');" title="대시보드"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>대시보드</a>
             @endif
-            <a href="/calendar" class="{{ request()->is('calendar*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('calendar','/calendar');"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>캘린더</a>
+            <a href="/calendar" class="{{ request()->is('calendar*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('calendar','/calendar');" title="캘린더"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>캘린더</a>
             @if(Auth::user()->hasPermission('clients.view'))
-                <a href="/clients" class="{{ request()->is('clients*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('clients','/clients');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>의뢰자</a>
+                <a href="/clients" class="{{ request()->is('clients*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('clients','/clients');" title="의뢰자"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>의뢰자</a>
             @endif
             @if(Auth::user()->hasPermission('projects.view'))
-                <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('projects','/projects');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>프로젝트</a>
+                <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('projects','/projects');" title="프로젝트"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>프로젝트</a>
             @endif
             @if(Auth::user()->hasPermission('estimates.view'))
-                <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('estimates','/estimates');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</a>
+                <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('estimates','/estimates');" title="견적서"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</a>
             @endif
             @if(Auth::user()->hasPermission('inventory.view'))
-                <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</a>
+                <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');" title="재고"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</a>
             @endif
-            <a href="/wiki" class="{{ request()->is('wiki*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>위키</a>
+            <a href="/wiki" class="{{ request()->is('wiki*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki');" title="위키"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>위키</a>
             @if(Auth::user()->hasPermission('inventory.view'))
-                <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>장비 위치</a>
+                <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');" title="장비 위치"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>장비 위치</a>
             @endif
             @if(Auth::user()->hasPermission('clients.view'))
-                <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</a>
-                <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</a>
+                <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');" title="렌탈"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</a>
+                <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');" title="방송룸"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</a>
             @endif
             @if(in_array(Auth::user()->role, ['master','admin','member']))
-                <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>통계</a>
+                <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');" title="통계"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>통계</a>
             @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
@@ -491,7 +518,7 @@ window.openTopTab = function(type, url, title) {
                 <button class="tab-menu-item" onclick="drgoTabs.openNav('broadcast-room','/broadcast-room'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</button>
             @endif
             @if(Auth::user()->isAdmin())
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>관리</button>
+                <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>관리</button>
             @endif
         </div>
     </div>
@@ -542,7 +569,7 @@ window.drgoTabs = {
         'rental-contracts':'<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>',
         'broadcast-room':'<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>',
         'marketing-report':'<svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>',
-        admin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>',
+        admin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
         profile:'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
         _default:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>',
     },
