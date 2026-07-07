@@ -415,7 +415,7 @@ const projTabs = {
             pane.className = 'proj-pane';
             pane.id = 'projPane-' + id;
             const iframe = document.createElement('iframe');
-            iframe.src = '/projects/' + id + '?_tab=1' + (hash || '');
+            iframe.src = '/projects/' + id + (hash || ''); // app 레이아웃(in-iframe) 사용 — csrf 메타/스크립트 포함
             pane.appendChild(iframe);
             document.getElementById('projPaneWrap').appendChild(pane);
         }
