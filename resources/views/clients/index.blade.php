@@ -417,6 +417,7 @@ const PLATFORM_ICONS = {
     '치지직':'/icons/platforms/chzzk.svg',
     '틱톡':'/icons/platforms/tiktok.svg',
     '팬더티비':'/icons/platforms/pandatv.svg',
+    '기타':'/icons/platforms/etc.svg',
 };
 function platformLabelHtml(p){
     const ic=PLATFORM_ICONS[p];
