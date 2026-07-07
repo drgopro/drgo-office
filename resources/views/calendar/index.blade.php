@@ -1628,6 +1628,7 @@ function init() {
     if (Array.isArray(INITIAL_EVENTS)) {
         events = INITIAL_EVENTS; // 서버 주입분으로 즉시 렌더 (이번 달)
         renderView();
+        loadEvents(); // 백그라운드로 라이브 API 대조 — 스냅샷 어긋남으로 인한 월간 누락 방지
     } else {
         renderView();
         loadEvents();
@@ -2137,7 +2138,8 @@ function renderMonth() {
         const weekStart=weekCells[0].full, weekEnd=weekCells[6].full;
 
         // ── 이 주에 걸친 다일 일정에 고정 레인(행) 배정 → 바가 같은 행을 유지해 정렬됨 ──
-        const weekMulti=events.filter(ev=>isFiltered(ev)&&ev.end_date&&ev.end_date!==ev.start_date&&ev.start_date<=weekEnd&&ev.end_date>=weekStart);
+        const _d=v=>(v||'').substring(0,10); // 날짜 정규화 (시간 접미 방어)
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&ev.end_date&&_d(ev.end_date)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&_d(ev.end_date)>=weekStart);
         weekMulti.sort((a,b)=> a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
         const laneOf={};
         const lanes=[];
@@ -2165,7 +2167,7 @@ function renderMonth() {
 
             // 모바일 간소화: 칩/바 없이 일정 유무 점만 표시, 상세는 하단 리스트에서
             if(isMobileCal){
-                const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
+                const hasEv=events.some(ev=>isFiltered(ev)&&_d(ev.start_date)<=cell.full&&_d(ev.end_date||ev.start_date)>=cell.full);
                 if(hasEv) div.classList.add('m-has-ev');
                 div.addEventListener('click',e=>{
                     if(suppressCellClick){ suppressCellClick=false; return; }
@@ -2182,16 +2184,16 @@ function renderMonth() {
             const coveringByLane={};
             let maxLane=-1;
             weekMulti.forEach(ev=>{
-                if(laneOf[ev.id]<LANE_CAP && ev.start_date<=cell.full && ev.end_date>=cell.full){
+                if(laneOf[ev.id]<LANE_CAP && _d(ev.start_date)<=cell.full && _d(ev.end_date)>=cell.full){
                     coveringByLane[laneOf[ev.id]]=ev;
                     if(laneOf[ev.id]>maxLane) maxLane=laneOf[ev.id];
                 }
             });
             // 캡 초과로 못 그리는 다일(더보기로)
-            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&ev.start_date<=cell.full&&ev.end_date>=cell.full).length;
+            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=cell.full&&_d(ev.end_date)>=cell.full).length;
 
             // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시
-            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&(!ev.end_date||ev.end_date===ev.start_date)&&ev.start_date===cell.full));
+            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&(!ev.end_date||_d(ev.end_date)===_d(ev.start_date))&&_d(ev.start_date)===cell.full));
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
@@ -2212,8 +2214,8 @@ function renderMonth() {
                 const ev=r.ev;
                 const chip=document.createElement('div');
                 if(r.multi){
-                    const isStart=ev.start_date===cell.full||d===0;
-                    const isEnd=ev.end_date===cell.full;
+                    const isStart=_d(ev.start_date)===cell.full||d===0;
+                    const isEnd=_d(ev.end_date)===cell.full;
                     let cls=`event-chip single color-${ev.color} multi-day`;
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
                     if(ev.completed_at) cls+=' is-completed';
@@ -2268,7 +2270,7 @@ function renderMonth() {
             weekMulti.forEach(ev=>{
                 if(laneOf[ev.id]>=LANE_CAP) return;
                 let c1=-1,c2=-1;
-                for(let d=0;d<7;d++){ const f=weekCells[d].full; if(f>=ev.start_date&&f<=ev.end_date){ if(c1<0)c1=d; c2=d; } }
+                for(let d=0;d<7;d++){ const f=weekCells[d].full; if(f>=_d(ev.start_date)&&f<=_d(ev.end_date)){ if(c1<0)c1=d; c2=d; } }
                 if(c1<0) return;
                 const startCell=weekRow.children[c1];
                 const chip=startCell&&startCell.querySelector(`.event-chip.multi-day[data-mev="${ev.id}"]`);
