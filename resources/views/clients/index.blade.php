@@ -224,7 +224,7 @@
         <div class="sidebar-pagination" id="clientPagination"></div>
         <div style="display:flex; gap:6px; margin:8px;">
             <div class="sidebar-add" style="flex:1; margin:0;" onclick="openNewClientModal()">+ 의뢰자 등록</div>
-            <div class="sidebar-add" style="flex:0; margin:0; white-space:nowrap;" onclick="openExcelImportModal('clients','의뢰자')">📥 엑셀</div>
+            <div class="sidebar-add" style="flex:0; margin:0; white-space:nowrap;" onclick="openExcelImportModal('clients','의뢰자')"><x-icon name="download" :size="13"/> 엑셀</div>
         </div>
     </div>
 
@@ -233,7 +233,7 @@
     {{-- 우측 메인 --}}
     <div class="crm-main">
         <div class="client-tab-bar" id="clientTabBar">
-            <button class="sidebar-toggle" onclick="openSidebar()">👤 고객목록</button>
+            <button class="sidebar-toggle" onclick="openSidebar()"><x-icon name="users" :size="14"/> 고객목록</button>
             <span style="padding:0 8px; color:var(--text-muted); font-size:11px;">열린 의뢰자가 없습니다</span>
         </div>
         <div class="client-content" id="clientContent">
@@ -749,7 +749,7 @@ function renderClientContent(id) {
                 </div>
             </div>
             <div class="detail-actions">
-                <button class="btn-log" onclick="openActivityLog('Client',${id},'${(d.name||'').replace(/'/g,"\\'")} 수정 로그')">📋 로그</button>
+                <button class="btn-log" onclick="openActivityLog('Client',${id},'${(d.name||'').replace(/'/g,"\\'")} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
                 <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>
             </div>

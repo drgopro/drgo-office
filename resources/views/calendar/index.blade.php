@@ -800,19 +800,19 @@
             <span id="calFontLabel">100%</span>
             <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
         </div>
-        <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">📋 캘린더 이력</button>
+        <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;"><x-icon name="clip" :size="13"/> 캘린더 이력</button>
         @if(Auth::user()->hasPermission('calendar.edit'))
-            <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;">🗑 휴지통</button>
+            <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;"><x-icon name="trash" :size="13"/> 휴지통</button>
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
             @if(Auth::user()->hasPermission('calendar.backup'))
             <div style="position:relative;">
                 <button class="nav-btn" onclick="toggleCalMenu()" title="내보내기/가져오기" style="font-size:14px;">⋯</button>
                 <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-                    <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📦 JSON 백업</button>
-                    <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📅 iCal 내보내기</button>
+                    <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
+                    <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> iCal 내보내기</button>
                     <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-                    <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📥 JSON 가져오기</button>
-                    <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;">📥 iCal 가져오기</button>
+                    <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> JSON 가져오기</button>
+                    <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> iCal 가져오기</button>
                 </div>
             </div>
             <input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importFile('json',this)">
@@ -1489,7 +1489,7 @@
 <div class="modal-overlay" id="trashOverlay" style="display:none;" onclick="if(event.target===this) this.style.display='none'">
     <div class="modal" style="max-width:640px; max-height:80vh; display:flex; flex-direction:column;">
         <div class="modal-header">
-            <div class="modal-title">🗑 휴지통</div>
+            <div class="modal-title"><x-icon name="trash" :size="16"/> 휴지통</div>
             <button class="modal-close" onclick="document.getElementById('trashOverlay').style.display='none'">×</button>
         </div>
         <div style="padding:10px 16px; border-bottom:1px solid var(--border); display:flex; gap:6px; align-items:center; flex-wrap:wrap;">

@@ -132,7 +132,7 @@
             @if(Auth::user()->hasPermission('projects.edit'))
                 <button style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
             @endif
-            <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')">📥 엑셀 가져오기</button>
+            <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')"><x-icon name="download" :size="14"/> 엑셀 가져오기</button>
         </div>
     </div>
 
@@ -263,7 +263,7 @@
                 @foreach($projects as $project)
                 <tr>
                     <td>
-                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '📁 {{ addslashes($project->name) }}');">{{ $project->name }}</a>
+                        <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '{{ addslashes($project->name) }}');">{{ $project->name }}</a>
                         @php $__tags = $project->tags ?? []; $__maj = $__tags['major'] ?? []; $__min = $__tags['minor'] ?? []; @endphp
                         @if(!empty($__maj) || !empty($__min))
                             <div class="pj-tags">
@@ -324,7 +324,7 @@
                 <input type="checkbox" id="npPaymentOnly" onchange="togglePaymentOnly(this.checked)">
                 <span class="drgo-toggle-switch"></span>
                 <div class="drgo-toggle-label">
-                    <div class="title">💳 단순 결제 프로젝트</div>
+                    <div class="title"><x-icon name="money" :size="16"/> 단순 결제 프로젝트</div>
                     <div class="desc">상담/단계 없이 결제 내역만 관리합니다.</div>
                 </div>
             </label>
@@ -381,11 +381,11 @@
 <script>
 const CSRF_NP = document.querySelector('meta[name="csrf-token"]').content;
 
-// 프로젝트 상세로 — 같은 프로젝트 탭 안에서 이동(새 탭 생성 안 함)
+// 프로젝트 상세로 — 각 프로젝트를 독립 탭으로 오픈 (의뢰자 상세 진입과 동일 방식)
 function goProjectDetail(id, title) {
     const url = '/projects/' + id;
-    if (window.parent && window.parent !== window && window.parent.drgoTabs && typeof window.parent.drgoTabs.navigateActive === 'function') {
-        window.parent.drgoTabs.navigateActive(url, title || '프로젝트');
+    if (typeof openTopTab === 'function') {
+        openTopTab('projects', url, title || '프로젝트');
     } else {
         window.location.href = url;
     }
@@ -549,8 +549,8 @@ async function submitNewProject() {
         closeNewProjectModal();
         // 단순 결제는 결제 모달 자동 오픈 hash 부착
         const hash = paymentOnly ? '#openPayment' : '';
-        if (projectId && window.parent && window.parent !== window && window.parent.drgoTabs && typeof window.parent.drgoTabs.navigateActive === 'function') {
-            window.parent.drgoTabs.navigateActive('/projects/' + projectId + hash, '📁 ' + name);
+        if (projectId && typeof openTopTab === 'function') {
+            openTopTab('projects', '/projects/' + projectId + hash, name);
         } else {
             location.href = '/projects/' + projectId + hash;
         }

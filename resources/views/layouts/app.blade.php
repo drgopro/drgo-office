@@ -120,7 +120,7 @@
         .nav { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; white-space:nowrap; }
         .nav a { text-decoration:none; color:var(--text-muted); font-size:13px; padding:6px 12px; border-radius:6px; transition:all 0.15s; white-space:nowrap; display:inline-flex; align-items:center; gap:9px; }
         /* 메뉴 픽토그램 (시안 스트로크 스타일) */
-        .nav-ico { width:16px; height:16px; stroke:currentColor; stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; opacity:0.85; }
+        .nav-ico { width:16px; height:16px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; opacity:0.85; }
         .nav a.active .nav-ico, .nav a:hover .nav-ico { opacity:1; }
         .nav a:hover { color:var(--text); background:var(--surface2); }
         .nav a.active { color:var(--accent); background:var(--surface2); }
@@ -181,7 +181,7 @@
         .tab-item.active { color:var(--accent); background:var(--surface); border-color:var(--border); font-weight:600; position:relative; }
         .tab-item.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface); }
         .tab-item .tab-icon { display:inline-flex; align-items:center; }
-        .tab-item .tab-icon svg { width:13px; height:13px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+        .tab-item .tab-icon svg { width:13px; height:13px; stroke:currentColor; stroke-width:2.1; fill:none; stroke-linecap:round; stroke-linejoin:round; }
         .tab-item .tab-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.12s; margin-left:2px; }
         .tab-item.tab-dragging { opacity:0.4; cursor:grabbing; }
         .tab-item.tab-drag-over { box-shadow:inset 2px 0 0 var(--accent); }

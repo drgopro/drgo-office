@@ -184,7 +184,7 @@
     <div class="wiki-sidebar" id="wikiSidebar">
         <div class="wiki-sidebar-header">
             <div class="wiki-sidebar-title">
-                <span>📖 위키</span>
+                <span><x-icon name="book" :size="16"/> 위키</span>
                 <button type="button" class="wiki-cat-mtoggle" onclick="document.getElementById('wikiSidebar').classList.toggle('cat-open')">카테고리 <span class="wcm-caret">▾</span></button>
             </div>
             <form method="GET" action="{{ route('wiki.index') }}" id="wikiSearchForm">
@@ -196,7 +196,7 @@
         <div class="wiki-cat-list" id="wikiCatTree"></div>
         <div class="wiki-sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
             <a href="{{ route('wiki.create') }}{{ request('cat') ? '?cat='.(int) request('cat') : '' }}" id="wikiNewBtn" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
-            <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')">🎛️ 연결도 에디터</button>
+            <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')"><x-icon name="gear" :size="13"/> 연결도 에디터</button>
         </div>
     </div>
 
@@ -206,9 +206,9 @@
             <div class="wiki-main-title" id="wikiMainTitle">전체 문서</div>
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="wiki-main-count" id="wikiMainCount">{{ $wikis->count() }}건</div>
-                <button type="button" class="wiki-cat-edit-btn" id="wikiSelToggle" onclick="toggleSelMode()">☑ 게시물 편집</button>
+                <button type="button" class="wiki-cat-edit-btn" id="wikiSelToggle" onclick="toggleSelMode()"><x-icon name="check" :size="13"/> 게시물 편집</button>
                 @if(auth()->user()->isAdmin())
-                    <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()">🗂 카테고리 편집</button>
+                    <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()"><x-icon name="folder" :size="13"/> 카테고리 편집</button>
                 @endif
             </div>
         </div>
@@ -252,7 +252,7 @@
                     <span>내용 * (마크다운 지원)</span>
                     <div style="display:flex;gap:6px;">
                         <label style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-muted);">
-                            📎 파일 첨부
+                            <x-icon name="clip" :size="12"/> 파일 첨부
                             <input type="file" id="wikiFileInput" style="display:none;" onchange="uploadWikiFile(this.files[0],'newContent')">
                         </label>
                         <button type="button" onclick="document.getElementById('previewPane').classList.toggle('hidden');this.textContent=this.textContent==='미리보기'?'미리보기 닫기':'미리보기'" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;background:none;color:var(--text-muted);">미리보기</button>
@@ -266,7 +266,7 @@
             <div class="field-group">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
                     <input type="checkbox" name="is_pinned" value="1">
-                    <span style="font-size:12px;">📌 상단 고정</span>
+                    <span style="font-size:12px;"><x-icon name="pin" :size="12"/> 상단 고정</span>
                 </label>
             </div>
             <div class="modal-actions">
@@ -281,7 +281,7 @@
 <!-- 카테고리 편집 모달 -->
 <div class="ce-overlay" id="catEditModal">
     <div class="ce-modal">
-        <div class="ce-head"><span>🗂 카테고리 편집</span><button class="ce-mini" onclick="closeCatEditor()">✕</button></div>
+        <div class="ce-head"><span><x-icon name="folder" :size="14"/> 카테고리 편집</span><button class="ce-mini" onclick="closeCatEditor()"><x-icon name="close" :size="14"/></button></div>
         <div class="ce-body">
             <div class="ce-addtop">
                 <input type="text" id="ceTopInput" placeholder="새 최상위 카테고리 이름" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();ceAdd(null,this);}">
