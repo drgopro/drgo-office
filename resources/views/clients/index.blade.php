@@ -610,7 +610,7 @@ function renderClientList() {
     list.innerHTML = filtered.map(c => {
         const active = activeClientId === c.id ? 'active' : '';
         const displayName = c.nickname && c.name ? `${c.nickname} / ${c.name}` : (c.nickname || c.name);
-        const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.map(platformLabelHtml).join(', ') : '';
+        const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.join(', ') : '';
         return `<div class="sidebar-item ${active}" onclick="openClient(${c.id})">
             <div class="item-info" style="flex:1;min-width:0;">
                 <div class="item-name">${displayName}</div>
@@ -688,11 +688,7 @@ function renderClientTabs() {
     }
     bar.innerHTML = openClientTabs.map(t => {
         const cls = t.id === activeClientId ? 'active' : '';
-        const initials = (t.nickname || t.name).substring(0, 2);
-        const tavIcon = platformAvatarIcon(t.data && t.data.platforms);
-        const tavInner = tavIcon ? `<img src="${tavIcon}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials;
         return `<button class="client-tab ${cls}" draggable="true" data-client-id="${t.id}" onclick="activateClientTab(${t.id})">
-            <span class="ct-avatar" style="color:${GRADE_COLORS[t.grade]};border-color:${GRADE_COLORS[t.grade]};overflow:hidden;">${tavInner}</span>
             ${t.nickname || t.name}
             <span class="ct-close" onclick="closeClientTab(${t.id}, event)">✕</span>
         </button>`;
@@ -758,15 +754,16 @@ function renderClientContent(id) {
         pane.className = 'client-pane';
         document.getElementById('clientContent').appendChild(pane);
 
-        const initials = (d.nickname || d.name).substring(0, 2);
-        const avIcon = platformAvatarIcon(d.platforms);
-        const avatarInner = avIcon ? `<img src="${avIcon}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials;
+        // 닉네임 옆 플랫폼 아이콘 (다중이면 모두, 20px)
+        const platIcons = (d.platforms || [])
+            .filter(pf => PLATFORM_ICONS[pf])
+            .map(pf => `<img src="${PLATFORM_ICONS[pf]}" alt="${pf}" title="${pf}" style="width:20px;height:20px;border-radius:5px;vertical-align:middle;">`)
+            .join('');
         pane.innerHTML = `
         <div class="detail-header">
             <div class="detail-identity">
-                <div class="detail-avatar" style="color:${GRADE_COLORS[d.grade]};border-color:${GRADE_COLORS[d.grade]};overflow:hidden;">${avatarInner}</div>
                 <div>
-                    <div class="detail-name">${d.nickname || d.name || '(이름 없음)'}</div>
+                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;">${d.nickname || d.name || '(이름 없음)'}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}</div>
                     <div class="detail-meta">${[d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · ')}</div>
                 </div>
             </div>
