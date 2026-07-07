@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Schedule;
 use App\Models\ScheduleAttachment;
+use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,6 +23,7 @@ class ScheduleAttachmentController extends Controller
                 'mime_type' => $a->mime_type,
                 'file_size' => $a->file_size,
                 'url' => route('schedule-attachments.serve', $a),
+                'thumb_url' => str_starts_with((string) $a->mime_type, 'image/') ? route('schedule-attachments.thumb', $a) : null,
             ])
         );
     }
@@ -81,6 +83,16 @@ class ScheduleAttachmentController extends Controller
             abort(404);
         }
 
-        return Storage::response($attachment->file_path, $attachment->file_name);
+        return Storage::response($attachment->file_path, $attachment->file_name, ImageThumbnailService::cacheHeaders());
+    }
+
+    /** 그리드/요약용 썸네일 (640px WebP, 온디맨드 생성·캐시) */
+    public function thumb(ScheduleAttachment $attachment, ImageThumbnailService $thumbs)
+    {
+        if (! Storage::exists($attachment->file_path)) {
+            abort(404);
+        }
+
+        return $thumbs->response($attachment->file_path, $attachment->file_name);
     }
 }

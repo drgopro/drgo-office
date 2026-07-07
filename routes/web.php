@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/schedule-shipments/{shipment}', [ShipmentController::class, 'destroy']);
     });
     Route::get('/schedule-attachments/{attachment}/view', [ScheduleAttachmentController::class, 'serve'])->name('schedule-attachments.serve');
+    Route::get('/schedule-attachments/{attachment}/thumb', [ScheduleAttachmentController::class, 'thumb'])->name('schedule-attachments.thumb');
 
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
@@ -188,6 +189,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:clients.view')->group(function () {
         Route::get('/documents/{document}/download', [ClientDocumentController::class, 'download'])->name('documents.download');
         Route::get('/documents/{document}/view', [ClientDocumentController::class, 'serve'])->name('documents.serve');
+        Route::get('/documents/{document}/thumb', [ClientDocumentController::class, 'thumb'])->name('documents.thumb');
     });
 
     // 프로젝트 문서
@@ -199,6 +201,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:projects.view')->group(function () {
         Route::get('/project-documents/{document}/download', [ProjectDocumentController::class, 'download'])->name('project-documents.download');
         Route::get('/project-documents/{document}/view', [ProjectDocumentController::class, 'serve'])->name('project-documents.serve');
+        Route::get('/project-documents/{document}/thumb', [ProjectDocumentController::class, 'thumb'])->name('project-documents.thumb');
     });
 
     // 상담 이력

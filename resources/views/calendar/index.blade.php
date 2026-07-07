@@ -2965,7 +2965,7 @@ function renderLockSummary(){
         imgHtml += `<div class="ls-img-section">
             <div class="ls-img-label">${g.label}</div>
             ${imgs.length
-                ? `<div class="ls-img-grid">${imgs.map(im => `<img src="${_esc(im.src)}" alt="${_esc(g.label)}" onclick="openLightbox(this.src)">`).join('')}</div>`
+                ? `<div class="ls-img-grid">${imgs.map(im => `<img src="${_esc(im.src)}" data-full="${_esc(im.dataset.full||im.src)}" alt="${_esc(g.label)}" loading="lazy" decoding="async">`).join('')}</div>`
                 : `<div class="ls-img-empty">— 등록된 ${g.label} 없음 —</div>`}
         </div>`;
     });
@@ -3248,7 +3248,7 @@ function renderImgGrid(type){
         existingAttachments[type].forEach((a,i)=>{
             const isImg=(a.mime_type||'').startsWith('image/');
             const thumb = isImg
-                ? `<img src="${a.url}" alt="${a.file_name||''}">`
+                ? `<img src="${a.thumb_url||a.url}" data-full="${a.url}" alt="${a.file_name||''}" loading="lazy" decoding="async">`
                 : `<a href="${a.url}" target="_blank" class="img-fileicon">📄</a>`;
             grid.innerHTML+=`<div class="img-item"><div class="img-thumb-wrap">${thumb}<button class="img-remove" onclick="removeExistingAttach('${type}',${i},${a.id})">✕</button></div><div class="img-filename">${a.file_name||''}</div></div>`;
         });
@@ -4414,14 +4414,24 @@ document.addEventListener('keydown',e=>{
 
 // 이미지 그리드 클릭 이벤트 위임
 document.addEventListener('click',e=>{
+    // 요약 뷰 이미지: 요약 내 모든 이미지를 하나의 앨범으로 (prev/next 표시)
+    const lsImg=e.target.closest('.ls-img-grid img');
+    if(lsImg){
+        e.preventDefault();
+        const scope=document.getElementById('lockSummary')||document;
+        const all=[...scope.querySelectorAll('.ls-img-grid img')].map(i=>({src:i.dataset.full||i.src,filename:i.alt||''}));
+        const cur=lsImg.dataset.full||lsImg.src;
+        openLightbox(cur, lsImg.alt||'', all, Math.max(0, all.findIndex(i=>i.src===cur)));
+        return;
+    }
     const img=e.target.closest('.img-item img');
     if(!img) return;
     e.preventDefault();
     const grid=img.closest('.img-grid');
-    if(!grid) { openLightbox(img.src,img.alt||''); return; }
-    const allImgs=[...grid.querySelectorAll('.img-item img')].map(i=>({src:i.src,filename:i.alt||i.closest('.img-item')?.querySelector('.img-filename')?.textContent||''}));
+    if(!grid) { openLightbox(img.dataset.full||img.src,img.alt||''); return; }
+    const allImgs=[...grid.querySelectorAll('.img-item img')].map(i=>({src:i.dataset.full||i.src,filename:i.alt||i.closest('.img-item')?.querySelector('.img-filename')?.textContent||''}));
     const idx=[...grid.querySelectorAll('.img-item img')].indexOf(img);
-    openLightbox(img.src,'',allImgs,idx);
+    openLightbox(img.dataset.full||img.src,'',allImgs,idx);
 });
 
 // ── 캘린더 메뉴 (백업/내보내기) ──

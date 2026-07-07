@@ -204,6 +204,7 @@ class ClientController extends Controller
                 'file_size' => $d->file_size,
                 'note' => $d->note,
                 'view_url' => route('documents.serve', $d),
+                'thumb_url' => str_starts_with((string) $d->mime_type, 'image/') ? route('documents.thumb', $d) : null,
                 'download_url' => route('documents.download', $d),
                 'created_at' => $d->created_at->format('Y.m.d H:i:s'),
             ]),

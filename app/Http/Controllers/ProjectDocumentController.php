@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Project;
 use App\Models\ProjectDocument;
+use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -163,6 +164,16 @@ class ProjectDocumentController extends Controller
             abort(404);
         }
 
-        return Storage::response($document->file_path, $document->file_name);
+        return Storage::response($document->file_path, $document->file_name, ImageThumbnailService::cacheHeaders());
+    }
+
+    /** 그리드/앨범용 썸네일 (640px WebP, 온디맨드 생성·캐시) */
+    public function thumb(ProjectDocument $document, ImageThumbnailService $thumbs)
+    {
+        if (! Storage::exists($document->file_path)) {
+            abort(404);
+        }
+
+        return $thumbs->response($document->file_path, $document->file_name);
     }
 }

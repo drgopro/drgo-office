@@ -1084,7 +1084,7 @@
                     <div class="doc-thumb-card" onclick="openAlbum({{ $i }})">
                         <div class="thumb-img">
                             @if($isImg)
-                                <img src="{{ route('project-documents.serve', $doc) }}" alt="{{ $doc->file_name }}" loading="lazy">
+                                <img src="{{ route('project-documents.thumb', $doc) }}" alt="{{ $doc->file_name }}" loading="lazy" decoding="async">
                             @elseif($isVid)
                                 <video src="{{ route('project-documents.serve', $doc) }}" preload="metadata" muted></video>
                                 <div class="video-play">▶</div>

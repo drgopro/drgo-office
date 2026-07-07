@@ -1052,7 +1052,7 @@ function renderDocList(docs, clientId) {
         const isVid = doc.mime_type && doc.mime_type.startsWith('video/');
         const ext = doc.file_name.split('.').pop().toUpperCase();
         const thumbContent = isImg
-            ? `<img src="${doc.view_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`
+            ? `<img src="${doc.thumb_url||doc.view_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async">`
             : isVid ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:14px;">▶</div>`
             : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:10px;font-weight:600;color:var(--text-muted);">${ext}</div>`;
         return `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">

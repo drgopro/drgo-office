@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Models\WikiCategory;
+use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -216,6 +217,6 @@ class WikiController extends Controller
             abort(404);
         }
 
-        return Storage::response($attachment->file_path, $attachment->file_name);
+        return Storage::response($attachment->file_path, $attachment->file_name, ImageThumbnailService::cacheHeaders());
     }
 }
