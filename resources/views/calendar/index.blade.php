@@ -644,7 +644,19 @@
         .calendar-wrap { padding:8px 12px; }
         .weekday { font-size:11px; padding:6px 0; }
         .week-row { min-height:84px; }
-        .day-cell { padding:4px 3px; }
+        /* 간소화 월간뷰: 날짜 + 점만 (일정 상세는 하단 리스트) */
+        .day-cell { padding:6px 0 12px; text-align:center; cursor:pointer; }
+        .week-row { min-height:54px !important; }
+        .day-num-row { justify-content:center; margin-bottom:0; }
+        .day-num { margin:0 auto; width:30px; height:30px; font-size:14px; border-radius:50%; transition:background .12s; position:relative; }
+        .holiday-label { display:none; } /* 공휴일명 숨김 — 숫자 색으로 구분 */
+        /* 일정 있음 점 */
+        .day-cell.m-has-ev::after { content:''; display:block; width:5px; height:5px; border-radius:50%; background:var(--accent); margin:3px auto 0; }
+        .day-cell.other-month.m-has-ev::after { opacity:0.4; }
+        /* 오늘: 연한 원 / 선택: 채운 원 */
+        .day-cell.today .day-num { background:var(--surface3); color:var(--text) !important; }
+        .day-cell.mobile-selected { background:none; }
+        .day-cell.mobile-selected .day-num { background:var(--accent); color:#fff !important; font-weight:700; }
         .day-num { font-size:13px; width:22px; height:22px; font-weight:700; }
         .day-cell.today .day-num { width:22px; height:22px; }
         .day-num-row { margin-bottom:2px; }
@@ -2107,6 +2119,7 @@ function renderMonth() {
         cells.push({date:dt.getDate(), month, full});
     }
 
+    const isMobileCal = window.innerWidth<=768; // 모바일: 점 표시 간소화 모드
     // ── 반응형: 그리드가 화면 높이를 꽉 채우도록 주 행 높이 계산 (110px*배율은 하한) ──
     let rowMin=Math.round(110*calFzScale);
     if(window.innerWidth>768){
@@ -2138,7 +2151,7 @@ function renderMonth() {
 
         const weekRow=document.createElement('div');
         weekRow.className='week-row';
-        weekRow.style.minHeight=rowMin+'px';
+        if(!isMobileCal) weekRow.style.minHeight=rowMin+'px';
         for(let d=0;d<7;d++){
             const cell=weekCells[d];
             const div=document.createElement('div');
@@ -2149,6 +2162,18 @@ function renderMonth() {
             const nc=d===0||holiday?'sun':d===6?'sat':'';
             const holidayHtml=holiday?`<span class="holiday-label">${holiday}</span>`:'';
             div.innerHTML=`<div class="day-num-row"><span class="day-num ${nc}">${cell.date}</span>${holidayHtml}</div>`;
+
+            // 모바일 간소화: 칩/바 없이 일정 유무 점만 표시, 상세는 하단 리스트에서
+            if(isMobileCal){
+                const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
+                if(hasEv) div.classList.add('m-has-ev');
+                div.addEventListener('click',e=>{
+                    if(suppressCellClick){ suppressCellClick=false; return; }
+                    selectMobileDay(cell.full);
+                });
+                weekRow.appendChild(div);
+                continue;
+            }
 
             const evList=document.createElement('div');
             evList.className='events-list';
@@ -2237,8 +2262,8 @@ function renderMonth() {
         }
         grid.appendChild(weekRow);
 
-        // ── 다일 일정 제목 오버레이: 바 전체 폭에 걸쳐 한 번만 출력(셀 경계 넘어 흐름). 주마다 시작 칸에서 다시 출력 (PC/모바일 공통) ──
-        {
+        // ── 다일 일정 제목 오버레이: 바 전체 폭에 걸쳐 한 번만 출력(셀 경계 넘어 흐름). 주마다 시작 칸에서 다시 출력 ──
+        if(!isMobileCal){
             const wrRect=weekRow.getBoundingClientRect();
             weekMulti.forEach(ev=>{
                 if(laneOf[ev.id]>=LANE_CAP) return;
