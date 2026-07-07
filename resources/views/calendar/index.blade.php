@@ -4301,12 +4301,40 @@ function lbShowZoomInfo(){
     info._t=setTimeout(()=>info.classList.remove('show'),800);
 }
 
+// 원본 프리로드 캐시 (한 번 받은 원본은 즉시 표시)
+const lbLoaded=new Set();
+function lbPreload(idx){
+    const it=lightboxImages[idx];
+    if(!it||lbLoaded.has(it.src)) return;
+    const im=new Image();
+    im.onload=()=>lbLoaded.add(it.src);
+    im.src=it.src;
+}
+// 현재 인덱스 표시: 썸네일 먼저(즉시) → 원본 로드되면 교체, 양옆은 미리 로드
+function lbShow(){
+    const it=lightboxImages[lightboxIdx];
+    const img=document.getElementById('lightboxImg');
+    document.getElementById('lightboxFilename').textContent=it.filename||'';
+    if(lbLoaded.has(it.src) || !it.thumb || it.thumb===it.src){
+        img.src=it.src; // 원본이 캐시됐거나 썸네일이 없으면 바로 원본
+    } else {
+        img.src=it.thumb; // 썸네일 즉시 표시
+        const full=new Image();
+        const myIdx=lightboxIdx;
+        full.onload=()=>{ lbLoaded.add(it.src); if(lightboxIdx===myIdx) img.src=it.src; };
+        full.src=it.src;
+    }
+    // 양옆 프리로드 — 다음 넘김이 즉시 뜨도록
+    if(lightboxImages.length>1){
+        lbPreload((lightboxIdx+1)%lightboxImages.length);
+        lbPreload((lightboxIdx-1+lightboxImages.length)%lightboxImages.length);
+    }
+}
 function openLightbox(src,filename,images,idx){
     lightboxImages=images||[{src,filename}];
     lightboxIdx=idx||0;
     lbResetZoom();
-    document.getElementById('lightboxImg').src=lightboxImages[lightboxIdx].src;
-    document.getElementById('lightboxFilename').textContent=lightboxImages[lightboxIdx].filename||'';
+    lbShow();
     document.getElementById('lightbox').classList.add('open');
     document.querySelector('.lightbox-nav.prev').style.display=lightboxImages.length>1?'':'none';
     document.querySelector('.lightbox-nav.next').style.display=lightboxImages.length>1?'':'none';
@@ -4315,8 +4343,7 @@ function closeLightbox(){ document.getElementById('lightbox').classList.remove('
 function lightboxNav(dir){
     lightboxIdx=(lightboxIdx+dir+lightboxImages.length)%lightboxImages.length;
     lbResetZoom();
-    document.getElementById('lightboxImg').src=lightboxImages[lightboxIdx].src;
-    document.getElementById('lightboxFilename').textContent=lightboxImages[lightboxIdx].filename||'';
+    lbShow();
 }
 
 // 휠 줌
@@ -4375,7 +4402,7 @@ document.addEventListener('click',e=>{
     if(lsImg){
         e.preventDefault();
         const scope=document.getElementById('lockSummary')||document;
-        const all=[...scope.querySelectorAll('.ls-img-grid img')].map(i=>({src:i.dataset.full||i.src,filename:i.alt||''}));
+        const all=[...scope.querySelectorAll('.ls-img-grid img')].map(i=>({src:i.dataset.full||i.src,thumb:i.src,filename:i.alt||''}));
         const cur=lsImg.dataset.full||lsImg.src;
         openLightbox(cur, lsImg.alt||'', all, Math.max(0, all.findIndex(i=>i.src===cur)));
         return;
@@ -4385,7 +4412,7 @@ document.addEventListener('click',e=>{
     e.preventDefault();
     const grid=img.closest('.img-grid');
     if(!grid) { openLightbox(img.dataset.full||img.src,img.alt||''); return; }
-    const allImgs=[...grid.querySelectorAll('.img-item img')].map(i=>({src:i.dataset.full||i.src,filename:i.alt||i.closest('.img-item')?.querySelector('.img-filename')?.textContent||''}));
+    const allImgs=[...grid.querySelectorAll('.img-item img')].map(i=>({src:i.dataset.full||i.src,thumb:i.src,filename:i.alt||i.closest('.img-item')?.querySelector('.img-filename')?.textContent||''}));
     const idx=[...grid.querySelectorAll('.img-item img')].indexOf(img);
     openLightbox(img.dataset.full||img.src,'',allImgs,idx);
 });

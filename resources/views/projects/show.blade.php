@@ -1717,8 +1717,18 @@ function applyZoom() {
     img.style.transform = `translate(${panX}px,${panY}px)`;
     document.getElementById('albumZoomLevel').textContent = Math.round(zoomScale * 100) + '%';
 }
+// 양옆 이미지 프리로드 — next/prev 즉시 표시
+const albumPreloaded = new Set();
+function albumPreload(idx) {
+    const d = albumDocs[(idx + albumDocs.length) % albumDocs.length];
+    if (!d || !d.mime || !d.mime.startsWith('image/') || albumPreloaded.has(d.url)) return;
+    const im = new Image();
+    im.onload = () => albumPreloaded.add(d.url);
+    im.src = d.url;
+}
 function renderAlbum() {
     const doc = albumDocs[albumIdx];
+    if (albumDocs.length > 1) { albumPreload(albumIdx + 1); albumPreload(albumIdx - 1); }
     const wrap = document.getElementById('albumMediaWrap');
     const zoomCtrl = document.getElementById('albumZoomControls');
     wrap.innerHTML = '';
