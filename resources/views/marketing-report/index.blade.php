@@ -66,7 +66,7 @@
 <div class="mk-wrap">
     <div class="mk-header">
         <div>
-            <div class="mk-title">📊 마케팅 통계</div>
+            <div class="mk-title"><x-icon name="chart" :size="18"/> 마케팅 통계</div>
         </div>
         <form method="GET" class="mk-filter" id="mkFilter">
             <button type="button" class="mk-navbtn" onclick="mkMonthNav(-1)" title="이전 달">◀</button>
@@ -75,7 +75,7 @@
             <input type="date" name="to" id="mkTo" value="{{ $to }}">
             <button type="button" class="mk-navbtn" onclick="mkMonthNav(1)" title="다음 달">▶</button>
             <button type="submit">조회</button>
-            <a href="/api/dashboard-export/excel?from={{ $from }}&to={{ $to }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;">📥 엑셀</a>
+            <a href="/api/dashboard-export/excel?from={{ $from }}&to={{ $to }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;"><x-icon name="download" :size="13"/> 엑셀</a>
             <select class="mk-preset-select" onchange="mkApplyPreset(this.value); this.selectedIndex=0;">
                 <option value="">기간 선택…</option>
                 <option value="today">오늘</option>
@@ -94,7 +94,7 @@
 
     {{-- 섹션 1: 마케팅 지표 --}}
     <div class="mk-section">
-        <div class="mk-section-title">📢 마케팅 지표</div>
+        <div class="mk-section-title"><x-icon name="chart-bar" :size="15"/> 마케팅 지표</div>
         <div style="font-size:12px; color:var(--text-muted); margin:-8px 0 16px;">📅 조회 기간: {{ $from }} ~ {{ $to }}</div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
@@ -185,7 +185,7 @@
 
     {{-- 섹션 1.5: 퍼널 분석 --}}
     <div class="mk-section">
-        <div class="mk-section-title">🔀 퍼널 분석 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 내 유입된 문의 코호트)</span></div>
+        <div class="mk-section-title"><x-icon name="chart" :size="15"/> 퍼널 분석 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 내 유입된 문의 코호트)</span></div>
 
         @php
             $stages = [
@@ -245,25 +245,25 @@
 
     {{-- 섹션 1.6: 파이프라인 (현재 진행 중) --}}
     <div class="mk-section">
-        <div class="mk-section-title">⚙️ 현재 파이프라인 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관, 실시간 스냅샷)</span></div>
+        <div class="mk-section-title"><x-icon name="gear" :size="15"/> 현재 파이프라인 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관, 실시간 스냅샷)</span></div>
         <div class="mk-grid">
             <div class="mk-card">
-                <div class="mk-label">💬 상담 중</div>
+                <div class="mk-label"><x-icon name="chat" :size="14"/> 상담 중</div>
                 <div class="mk-value" style="color:#c8b08a;">{{ $pipeline['consulting'] }}</div>
                 <div class="mk-sub">초기 상담 단계</div>
             </div>
             <div class="mk-card">
-                <div class="mk-label">📝 견적 단계</div>
+                <div class="mk-label"><x-icon name="note" :size="14"/> 견적 단계</div>
                 <div class="mk-value" style="color:#8ab4c8;">{{ $pipeline['estimate'] }}</div>
                 <div class="mk-sub">장비파악·제안·견적</div>
             </div>
             <div class="mk-card">
-                <div class="mk-label">💰 결제 대기</div>
+                <div class="mk-label"><x-icon name="money" :size="14"/> 결제 대기</div>
                 <div class="mk-value" style="color:#e8894a;">{{ $pipeline['payment'] }}</div>
                 <div class="mk-sub">결제/예약 단계</div>
             </div>
             <div class="mk-card">
-                <div class="mk-label">🔧 세팅 진행</div>
+                <div class="mk-label"><x-icon name="wrench" :size="14"/> 세팅 진행</div>
                 <div class="mk-value" style="color:#7ac87a;">{{ $pipeline['visit'] }}</div>
                 <div class="mk-sub">세팅·AS 진행 중</div>
             </div>
@@ -272,7 +272,7 @@
 
     {{-- 섹션 2: 프로젝트 지표 --}}
     <div class="mk-section">
-        <div class="mk-section-title">🏗 프로젝트 지표</div>
+        <div class="mk-section-title"><x-icon name="folder" :size="15"/> 프로젝트 지표</div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card">
@@ -339,7 +339,7 @@
 
     {{-- 섹션 3: 매출 지표 --}}
     <div class="mk-section">
-        <div class="mk-section-title">💰 매출 지표</div>
+        <div class="mk-section-title"><x-icon name="money" :size="15"/> 매출 지표</div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card">
@@ -375,7 +375,7 @@
     {{-- 섹션 4: 렌탈/방송룸 현황 --}}
     <div class="mk-two-col">
         <div class="mk-section">
-            <div class="mk-section-title">🏠 렌탈 현황</div>
+            <div class="mk-section-title"><x-icon name="home" :size="15"/> 렌탈 현황</div>
             <div class="mk-list">
                 <div class="mk-list-item">
                     <span class="mk-list-label">진행중 계약</span>
@@ -393,7 +393,7 @@
         </div>
 
         <div class="mk-section">
-            <div class="mk-section-title">🎙 방송룸 현황</div>
+            <div class="mk-section-title"><x-icon name="mic" :size="15"/> 방송룸 현황</div>
             <div class="mk-list">
                 <div class="mk-list-item">
                     <span class="mk-list-label">진행중 월 계약</span>
@@ -417,7 +417,7 @@
 
     {{-- 섹션 5: 월별 추이 --}}
     <div class="mk-section">
-        <div class="mk-section-title">📈 월별 추이 (최근 6개월)</div>
+        <div class="mk-section-title"><x-icon name="chart" :size="15"/> 월별 추이 (최근 6개월)</div>
         <div class="mk-chart-wrap" style="height:280px;"><canvas id="chartMonthlyTrend"></canvas></div>
     </div>
 </div>

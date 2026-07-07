@@ -62,7 +62,7 @@
 @section('content')
 <div class="page-wrap">
     <div class="page-header">
-        <div class="page-title">🎙 방송룸</div>
+        <div class="page-title"><x-icon name="mic" :size="18"/> 방송룸</div>
     </div>
 
     <div class="stat-row">

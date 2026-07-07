@@ -115,7 +115,7 @@
 @section('content')
 <div class="page-wrap">
     <div class="page-header">
-        <div class="page-title">📷 장비 위치</div>
+        <div class="page-title"><x-icon name="camera" :size="18"/> 장비 위치</div>
     </div>
 
     <div class="board-toolbar">
@@ -126,10 +126,10 @@
         <span class="stat-pill">대여중 <strong id="bdStatInUse">0</strong></span>
         <span class="stat-pill">대상 <strong id="bdStatTargets">0</strong></span>
         <div class="spacer"></div>
-        <button class="tb-btn" id="bdScanBtn" title="QR 스캔">📷 스캔</button>
-        <button class="tb-btn" id="bdCategoryBtn" title="카테고리 관리">🏷️ 카테고리</button>
-        <button class="tb-btn" id="bdGroupBtn" title="그룹 관리">🧩 그룹</button>
-        <button class="tb-btn" id="bdLogBtn" title="변경 이력">📋 이력</button>
+        <button class="tb-btn" id="bdScanBtn" title="QR 스캔"><x-icon name="qr" :size="13"/> 스캔</button>
+        <button class="tb-btn" id="bdCategoryBtn" title="카테고리 관리"><x-icon name="tag" :size="13"/> 카테고리</button>
+        <button class="tb-btn" id="bdGroupBtn" title="그룹 관리"><x-icon name="box" :size="13"/> 그룹</button>
+        <button class="tb-btn" id="bdLogBtn" title="변경 이력"><x-icon name="clip" :size="13"/> 이력</button>
         <button class="tb-btn" onclick="openRentalItemModal(null)">＋ 장비</button>
         <button class="tb-btn primary" onclick="openRentalTargetModal(null)">＋ 대상</button>
     </div>
@@ -222,7 +222,7 @@
             <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">직원 QR 코드</div>
             <img id="rtQrImg" style="width:160px; height:160px; border-radius:8px; background:#fff;">
             <div style="margin-top:8px;">
-                <button onclick="printTargetQr()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:6px; font-size:11px; cursor:pointer;">🖨 인쇄</button>
+                <button onclick="printTargetQr()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:6px; font-size:11px; cursor:pointer;"><x-icon name="note" :size="13"/> 인쇄</button>
             </div>
         </div>
         <div class="modal-actions">
@@ -237,7 +237,7 @@
 <div class="modal-overlay" id="categoryManageModal">
     <div class="modal" style="width:520px;">
         <div class="modal-header">
-            <div class="modal-title">🏷️ 카테고리 관리</div>
+            <div class="modal-title"><x-icon name="tag" :size="16"/> 카테고리 관리</div>
             <button class="modal-close" onclick="closeModal('categoryManageModal')">×</button>
         </div>
         <div class="field-group">
@@ -261,7 +261,7 @@
 <div class="modal-overlay" id="groupManageModal">
     <div class="modal" style="width:520px;">
         <div class="modal-header">
-            <div class="modal-title">🧩 그룹 관리</div>
+            <div class="modal-title"><x-icon name="box" :size="16"/> 그룹 관리</div>
             <button class="modal-close" onclick="closeModal('groupManageModal')">×</button>
         </div>
         <div class="field-group">
@@ -305,7 +305,7 @@
 <div class="modal-overlay" id="qrScanModal">
     <div class="modal" style="width:420px;">
         <div class="modal-header">
-            <div class="modal-title">📷 QR 스캔</div>
+            <div class="modal-title"><x-icon name="qr" :size="16"/> QR 스캔</div>
             <button class="modal-close" onclick="stopQrScan(true)">×</button>
         </div>
         <div id="qrScanReader" style="width:100%; background:#000; border-radius:8px; overflow:hidden; min-height:260px;"></div>
@@ -375,7 +375,7 @@
 <!-- 로그 패널 -->
 <div class="eq-log-panel" id="bdLogPanel">
     <div class="eq-log-head">
-        <span class="title">📋 변경 이력</span>
+        <span class="title"><x-icon name="clip" :size="16"/> 변경 이력</span>
         <button class="modal-close" onclick="document.getElementById('bdLogPanel').classList.remove('open')">×</button>
     </div>
     <div class="eq-log-body" id="bdLogBody">

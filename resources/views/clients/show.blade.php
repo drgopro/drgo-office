@@ -177,7 +177,7 @@
             </div>
         </div>
         <div style="display:flex; gap:8px;">
-            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'{{ $client->name }} 수정 로그')">📋 로그</button>
+            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'{{ $client->name }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
             <a href="{{ route('clients.edit', $client) }}" class="btn-edit">수정</a>
             <a href="#" class="btn-primary" onclick="openProjectModal(); return false;">+ 프로젝트</a>
         </div>
@@ -245,7 +245,7 @@
         <div class="info-card">
             <div class="card-title">메모</div>
             @if($client->important_memo)
-                <div style="font-size:12px; color:var(--accent); margin-bottom:6px;">⚠ 중요</div>
+                <div style="font-size:12px; color:var(--accent); margin-bottom:6px;"><x-icon name="warning" :size="13"/> 중요</div>
                 <div style="font-size:13px; margin-bottom:10px;">{{ $client->important_memo }}</div>
             @endif
             @if($client->memo)

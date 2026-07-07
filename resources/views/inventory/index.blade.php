@@ -134,8 +134,8 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">재고 관리</div>
-        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('products','제품')">📥 엑셀 가져오기</button>
-        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Product,ProductCategory,StockMovement,PurchaseOrder',0,'재고 전체 수정 로그')">📋 수정 로그</button>
+        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('products','제품')"><x-icon name="download" :size="14"/> 엑셀 가져오기</button>
+        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Product,ProductCategory,StockMovement,PurchaseOrder',0,'재고 전체 수정 로그')"><x-icon name="clip" :size="14"/> 수정 로그</button>
     </div>
 
     <div class="tab-bar">
@@ -173,10 +173,10 @@
                 <span id="prodBulkCount">0</span>개 선택됨
             </span>
             <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; align-items:center;">
-                <button class="btn-outline btn-sm" onclick="bulkSetEstimate(true)">✓ 견적서 노출 ON</button>
-                <button class="btn-outline btn-sm" onclick="bulkSetEstimate(false)">✕ 견적서 노출 OFF</button>
+                <button class="btn-outline btn-sm" onclick="bulkSetEstimate(true)"><x-icon name="check" :size="13"/> 견적서 노출 ON</button>
+                <button class="btn-outline btn-sm" onclick="bulkSetEstimate(false)"><x-icon name="close" :size="13"/> 견적서 노출 OFF</button>
                 <button class="btn-outline btn-sm" onclick="clearProdSelection()">선택 해제</button>
-                <button onclick="bulkDeleteProducts()" style="background:var(--red, #dc2626); color:#fff; border:1px solid var(--red, #dc2626); padding:6px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">⚠ 선택 삭제</button>
+                <button onclick="bulkDeleteProducts()" style="background:var(--red, #dc2626); color:#fff; border:1px solid var(--red, #dc2626); padding:6px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"><x-icon name="warning" :size="13"/> 선택 삭제</button>
             </div>
         </div>
         <div class="data-card">

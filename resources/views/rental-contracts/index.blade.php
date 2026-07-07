@@ -57,7 +57,7 @@
 @section('content')
 <div class="page-wrap">
     <div class="page-header">
-        <div class="page-title">🏠 렌탈 계약</div>
+        <div class="page-title"><x-icon name="home" :size="18"/> 렌탈 계약</div>
         @if(Auth::user()->hasPermission('clients.edit'))
             <button class="btn-primary" onclick="openContractModal()">+ 계약 등록</button>
         @endif

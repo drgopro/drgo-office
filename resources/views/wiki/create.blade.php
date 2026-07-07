@@ -126,7 +126,7 @@
                 📎
                 <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
             </label>
-            <button class="tool-btn" onclick="alert('문서를 먼저 저장하면 연결도를 추가할 수 있습니다.')" title="저장 후 연결도 추가 가능">🎛️ 연결도</button>
+            <button class="tool-btn" onclick="alert('문서를 먼저 저장하면 연결도를 추가할 수 있습니다.')" title="저장 후 연결도 추가 가능"><x-icon name="gear" :size="13"/> 연결도</button>
         </div>
         <div id="editor"></div>
     </div>

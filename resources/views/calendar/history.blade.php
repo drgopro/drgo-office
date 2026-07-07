@@ -123,7 +123,7 @@
 <div class="ch-wrap">
     <div class="ch-header">
         <button class="ch-back" onclick="location.href='/calendar'">← 캘린더로</button>
-        <span class="ch-title">📋 캘린더 이력</span>
+        <span class="ch-title"><x-icon name="clip" :size="16"/> 캘린더 이력</span>
         <div class="ch-spacer"></div>
         <button class="ch-nav" onclick="chChangeMonth(-1)">‹</button>
         <span class="ch-period" id="chPeriod"></span>

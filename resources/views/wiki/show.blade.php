@@ -150,7 +150,7 @@
             </div>
         </div>
         <div class="wiki-actions" id="viewActions">
-            <button onclick="openActivityLog('Wiki',{{ $wiki->id }},'{{ addslashes($wiki->title) }} 수정 로그')">📋 로그</button>
+            <button onclick="openActivityLog('Wiki',{{ $wiki->id }},'{{ addslashes($wiki->title) }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
             <button onclick="toggleEdit()">수정</button>
             <form method="POST" action="{{ route('wiki.destroy', $wiki) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
                 @csrf @method('DELETE')
@@ -231,7 +231,7 @@
                     📎
                     <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
                 </label>
-                <button onclick="window.open('{{ route('wiki.broadcast-editor') }}?wiki_id={{ $wiki->id }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid transparent;color:var(--text-muted);padding:0 8px;height:30px;border-radius:6px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;" title="방송 연결도 에디터">🎛️ 연결도</button>
+                <button onclick="window.open('{{ route('wiki.broadcast-editor') }}?wiki_id={{ $wiki->id }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid transparent;color:var(--text-muted);padding:0 8px;height:30px;border-radius:6px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;" title="방송 연결도 에디터"><x-icon name="gear" :size="13"/> 연결도</button>
             </div>
             <div id="editor"></div>
         </div>
@@ -268,7 +268,7 @@
 
 <!-- 이미지 뷰어 모달 -->
 <div class="img-viewer" id="imgViewer">
-    <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
+    <button class="img-viewer-close" onclick="closeImgViewer()"><x-icon name="close" :size="15"/></button>
     <div class="img-viewer-wrap" id="imgViewerWrap">
         <img id="imgViewerImg" src="" alt="">
     </div>
