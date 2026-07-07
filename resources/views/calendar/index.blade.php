@@ -1577,6 +1577,12 @@ let currentYear, currentMonth, currentWeekStart, currentDay;
 let events = [], assignees = [], selectedAssignees = [];
 let editingId = null, currentColor = 'gold', currentView = 'month';
 let editingOrigDT = null; // 편집 중 일정의 원본 날짜/시간 (변경 사유 필수 판정용)
+// 종료일 정규화 — 역전(종료<시작) 데이터는 시작일 하루짜리로 취급
+function evEnd(ev){
+    const sd=(ev.start_date||'').substring(0,10);
+    const ed=(ev.end_date||'').substring(0,10);
+    return (ed && ed>=sd) ? ed : sd;
+}
 // 카테고리 색 — 관리 설정과 연동된 CSS 변수 반환 (커스텀 카테고리 포함)
 function chipColor(c){
     if(c==='holiday') return 'var(--chip-red-bg)';
@@ -2139,7 +2145,7 @@ function renderMonth() {
 
         // ── 이 주에 걸친 다일 일정에 고정 레인(행) 배정 → 바가 같은 행을 유지해 정렬됨 ──
         const _d=v=>(v||'').substring(0,10); // 날짜 정규화 (시간 접미 방어)
-        const weekMulti=events.filter(ev=>isFiltered(ev)&&ev.end_date&&_d(ev.end_date)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&_d(ev.end_date)>=weekStart);
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
         weekMulti.sort((a,b)=> a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
         const laneOf={};
         const lanes=[];
@@ -2167,7 +2173,7 @@ function renderMonth() {
 
             // 모바일 간소화: 칩/바 없이 일정 유무 점만 표시, 상세는 하단 리스트에서
             if(isMobileCal){
-                const hasEv=events.some(ev=>isFiltered(ev)&&_d(ev.start_date)<=cell.full&&_d(ev.end_date||ev.start_date)>=cell.full);
+                const hasEv=events.some(ev=>isFiltered(ev)&&_d(ev.start_date)<=cell.full&&evEnd(ev)>=cell.full);
                 if(hasEv) div.classList.add('m-has-ev');
                 div.addEventListener('click',e=>{
                     if(suppressCellClick){ suppressCellClick=false; return; }
@@ -2184,16 +2190,16 @@ function renderMonth() {
             const coveringByLane={};
             let maxLane=-1;
             weekMulti.forEach(ev=>{
-                if(laneOf[ev.id]<LANE_CAP && _d(ev.start_date)<=cell.full && _d(ev.end_date)>=cell.full){
+                if(laneOf[ev.id]<LANE_CAP && _d(ev.start_date)<=cell.full && evEnd(ev)>=cell.full){
                     coveringByLane[laneOf[ev.id]]=ev;
                     if(laneOf[ev.id]>maxLane) maxLane=laneOf[ev.id];
                 }
             });
             // 캡 초과로 못 그리는 다일(더보기로)
-            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=cell.full&&_d(ev.end_date)>=cell.full).length;
+            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=cell.full&&evEnd(ev)>=cell.full).length;
 
             // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시
-            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&(!ev.end_date||_d(ev.end_date)===_d(ev.start_date))&&_d(ev.start_date)===cell.full));
+            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===cell.full));
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
@@ -2270,7 +2276,7 @@ function renderMonth() {
             weekMulti.forEach(ev=>{
                 if(laneOf[ev.id]>=LANE_CAP) return;
                 let c1=-1,c2=-1;
-                for(let d=0;d<7;d++){ const f=weekCells[d].full; if(f>=_d(ev.start_date)&&f<=_d(ev.end_date)){ if(c1<0)c1=d; c2=d; } }
+                for(let d=0;d<7;d++){ const f=weekCells[d].full; if(f>=_d(ev.start_date)&&f<=evEnd(ev)){ if(c1<0)c1=d; c2=d; } }
                 if(c1<0) return;
                 const startCell=weekRow.children[c1];
                 const chip=startCell&&startCell.querySelector(`.event-chip.multi-day[data-mev="${ev.id}"]`);
@@ -4097,6 +4103,7 @@ async function doSaveEvent(){
     const st=isGold?document.getElementById('goldStartTime').value:document.getElementById('startTime').value;
     const et=isGold?document.getElementById('goldEndTime').value:document.getElementById('endTime').value;
     if(!sd){alert('시작일을 입력하세요.');return;}
+    if(ed && ed<sd){alert('종료일이 시작일보다 빠릅니다. 날짜를 확인해주세요.');return;}
 
     // schedEventOpts 수집
     const schedEventOpts=[...document.querySelectorAll('#schedEventOpts .special-opt-btn.active')].map(b=>b.dataset.seopt);

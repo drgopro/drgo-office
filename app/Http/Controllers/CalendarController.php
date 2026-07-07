@@ -154,7 +154,7 @@ class CalendarController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|string|max:200',
             'start_date' => 'sometimes|date',
-            'end_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date|after_or_equal:start_date',
             'start_time' => 'nullable',
             'end_time' => 'nullable',
             'is_all_day' => 'boolean',
