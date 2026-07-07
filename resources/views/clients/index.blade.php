@@ -410,8 +410,14 @@ const GRADE_LABELS = { normal:'일반', vip:'VIP', rental:'렌탈' };
 const GRADE_COLORS = { normal:'var(--text-muted)', vip:'var(--accent)', rental:'var(--blue)' };
 
 const PLATFORM_OPTIONS = ['SOOP','유튜브','치지직','틱톡','팬더티비','기타'];
-// 플랫폼 아이콘 (사이즈 테스트: SOOP)
-const PLATFORM_ICONS = { 'SOOP':'/icons/platforms/soop.svg' };
+// 플랫폼 아이콘
+const PLATFORM_ICONS = {
+    'SOOP':'/icons/platforms/soop.svg',
+    '유튜브':'/icons/platforms/youtube.svg',
+    '치지직':'/icons/platforms/chzzk.svg',
+    '틱톡':'/icons/platforms/tiktok.svg',
+    '팬더티비':'/icons/platforms/pandatv.svg',
+};
 function platformLabelHtml(p){
     const ic=PLATFORM_ICONS[p];
     return ic?`<img src="${ic}" alt="${p}" style="width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:4px;">${p}`:p;
