@@ -154,6 +154,7 @@
             </div>
         </div>
         <div class="wiki-actions" id="viewActions">
+            <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
             <button onclick="openActivityLog('Wiki',{{ $wiki->id }},'{{ addslashes($wiki->title) }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
             <button onclick="toggleEdit()">수정</button>
             <form method="POST" action="{{ route('wiki.destroy', $wiki) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
@@ -289,6 +290,31 @@
 @endsection
 
 @push('scripts')
+<script>
+// 위키 문서 링크 복사 (내부 공유용)
+async function copyWikiLink(){
+    const url = location.origin + '/wiki/' + {{ $wiki->id }};
+    const btn = document.getElementById('copyWikiLinkBtn');
+    const done = () => {
+        if(!btn) return;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓ 복사됨';
+        btn.style.borderColor = 'var(--green, #248a38)';
+        btn.style.color = 'var(--green, #248a38)';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.borderColor=''; btn.style.color=''; }, 1600);
+    };
+    try {
+        await navigator.clipboard.writeText(url);
+        done();
+    } catch(e) {
+        // 클립보드 API 실패 시 폴백
+        const ta = document.createElement('textarea');
+        ta.value = url; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch(e2) { prompt('아래 링크를 복사하세요', url); }
+        ta.remove();
+    }
+}
+</script>
 <script type="importmap">
 {
     "imports": {
