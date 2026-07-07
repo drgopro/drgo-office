@@ -1317,8 +1317,12 @@
 <script>
 // 프로젝트 목록으로 — 같은 탭 안에서 이동(새 탭 생성 안 함)
 function goProjectList() {
-    if (window.parent && window.parent !== window && window.parent.drgoTabs && typeof window.parent.drgoTabs.navigateActive === 'function') {
-        window.parent.drgoTabs.navigateActive('/projects', '프로젝트');
+    const p = window.parent;
+    // 프로젝트 페이지 내부 탭 호스트가 있으면 내부 탭 닫고 목록으로
+    if (p && p !== window && typeof p.projInternalBack === 'function') {
+        p.projInternalBack({{ $project->id }});
+    } else if (p && p !== window && p.drgoTabs && typeof p.drgoTabs.navigateActive === 'function') {
+        p.drgoTabs.navigateActive('/projects', '프로젝트');
     } else {
         window.location.href = '/projects';
     }
@@ -1648,9 +1652,12 @@ async function deleteProject() {
     });
     if (res.ok) {
         alert('프로젝트가 삭제되었습니다.');
-        // 부모(의뢰자 상세) 탭이 있으면 그쪽으로 이동, 아니면 프로젝트 목록
-        if (window.parent && window.parent.location) {
-            window.parent.location.href = '/projects';
+        const p = window.parent;
+        // 프로젝트 페이지 내부 탭이면 그 탭만 닫고 목록으로, 아니면 기존 동작
+        if (p && p !== window && typeof p.projInternalBack === 'function') {
+            p.projInternalBack({{ $project->id }});
+        } else if (p && p.location) {
+            p.location.href = '/projects';
         } else {
             location.href = '/projects';
         }

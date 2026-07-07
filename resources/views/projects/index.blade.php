@@ -4,6 +4,21 @@
 
 @push('styles')
 <style>
+    /* 내부 탭 셸 (의뢰자 페이지와 동일 개념) */
+    .proj-shell { display:flex; flex-direction:column; height:calc(var(--full-h, 100vh) - var(--chrome-h, 86px)); overflow:hidden; }
+    .proj-tabstrip { display:none; align-items:center; background:var(--surface); border-bottom:1px solid var(--border); padding:0 10px; height:38px; gap:1px; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
+    .proj-tabstrip::-webkit-scrollbar { display:none; }
+    .proj-tabstrip.has-tabs { display:flex; }
+    .proj-tab { display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--text-muted); border:1px solid transparent; border-bottom:none; background:none; white-space:nowrap; border-radius:6px 6px 0 0; flex-shrink:0; transition:all .12s; }
+    .proj-tab:hover { color:var(--text); background:var(--surface2); }
+    .proj-tab.active { color:var(--accent); background:var(--surface2); border-color:var(--border); font-weight:600; }
+    .proj-tab .pt-close { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:3px; opacity:0.5; }
+    .proj-tab .pt-close:hover { opacity:1; background:var(--border); }
+    .proj-pane-wrap { flex:1; position:relative; overflow:hidden; min-height:0; }
+    .proj-pane { display:none; position:absolute; inset:0; overflow:auto; }
+    .proj-pane.active { display:block; }
+    .proj-pane > iframe { width:100%; height:100%; border:none; display:block; }
+
     .page-wrap { padding:24px 32px; max-width:1600px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .page-title { font-size:18px; font-weight:700; }
@@ -125,6 +140,10 @@
 @endpush
 
 @section('content')
+<div class="proj-shell" id="projShell">
+    <div class="proj-tabstrip" id="projTabStrip"></div>
+    <div class="proj-pane-wrap" id="projPaneWrap">
+        <div class="proj-pane active" id="projPane-list">
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">프로젝트 관리</div>
@@ -309,6 +328,9 @@
         {{ $projects->appends(request()->query())->links() }}
     </div>
 </div>
+        </div>{{-- /proj-pane-list --}}
+    </div>{{-- /proj-pane-wrap --}}
+</div>{{-- /proj-shell --}}
 
 @if(Auth::user()->hasPermission('projects.edit'))
 {{-- 새 프로젝트 모달 --}}
@@ -381,14 +403,57 @@
 <script>
 const CSRF_NP = document.querySelector('meta[name="csrf-token"]').content;
 
-// 프로젝트 상세로 — 각 프로젝트를 독립 탭으로 오픈 (의뢰자 상세 진입과 동일 방식)
+// ── 프로젝트 내부 탭 관리 (의뢰자 페이지와 동일 개념) ──
+const projTabs = {
+    tabs: [],           // {id, title}
+    active: 'list',
+    open(id, title, hash) {
+        id = String(id);
+        if (!this.tabs.find(t => t.id === id)) {
+            this.tabs.push({ id, title: title || ('프로젝트 #' + id) });
+            const pane = document.createElement('div');
+            pane.className = 'proj-pane';
+            pane.id = 'projPane-' + id;
+            const iframe = document.createElement('iframe');
+            iframe.src = '/projects/' + id + '?_tab=1' + (hash || '');
+            pane.appendChild(iframe);
+            document.getElementById('projPaneWrap').appendChild(pane);
+        }
+        this.activate(id);
+    },
+    activate(id) {
+        this.active = String(id);
+        document.querySelectorAll('.proj-pane').forEach(p => p.classList.remove('active'));
+        const pane = document.getElementById('projPane-' + (id === 'list' ? 'list' : id));
+        if (pane) pane.classList.add('active');
+        this.render();
+    },
+    close(id) {
+        id = String(id);
+        const idx = this.tabs.findIndex(t => t.id === id);
+        if (idx === -1) return;
+        this.tabs.splice(idx, 1);
+        const pane = document.getElementById('projPane-' + id);
+        if (pane) pane.remove();
+        if (this.active === id) this.activate('list');
+        else this.render();
+    },
+    render() {
+        const strip = document.getElementById('projTabStrip');
+        if (!strip) return;
+        strip.classList.toggle('has-tabs', this.tabs.length > 0);
+        let html = `<button class="proj-tab ${this.active === 'list' ? 'active' : ''}" onclick="projTabs.activate('list')">목록</button>`;
+        html += this.tabs.map(t => `<button class="proj-tab ${this.active === t.id ? 'active' : ''}" onclick="projTabs.activate('${t.id}')" title="${(t.title||'').replace(/"/g,'&quot;')}">${(t.title||'').replace(/</g,'&lt;')}<span class="pt-close" onclick="event.stopPropagation(); projTabs.close('${t.id}')">✕</span></button>`).join('');
+        strip.innerHTML = html;
+    },
+};
+window.projTabs = projTabs;
+// 프로젝트 상세 iframe에서 '목록으로'/삭제 시 호출 — 내부 탭 닫고 목록으로
+window.projInternalBack = function(id) { if (id) projTabs.close(id); else projTabs.activate('list'); };
+
+// 프로젝트 상세로 — 내부 탭으로 오픈
 function goProjectDetail(id, title) {
-    const url = '/projects/' + id;
-    if (typeof openTopTab === 'function') {
-        openTopTab('projects', url, title || '프로젝트');
-    } else {
-        window.location.href = url;
-    }
+    projTabs.open(id, title || '프로젝트');
 }
 // 폴백용 기본 작업유형 (DB 비어있을 때만 사용)
 const NP_WORK_TYPES_FALLBACK = {
@@ -549,8 +614,8 @@ async function submitNewProject() {
         closeNewProjectModal();
         // 단순 결제는 결제 모달 자동 오픈 hash 부착
         const hash = paymentOnly ? '#openPayment' : '';
-        if (projectId && typeof openTopTab === 'function') {
-            openTopTab('projects', '/projects/' + projectId + hash, name);
+        if (projectId) {
+            projTabs.open(projectId, name, hash);
         } else {
             location.href = '/projects/' + projectId + hash;
         }
