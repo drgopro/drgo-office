@@ -2784,6 +2784,17 @@ function renderLockSummary(){
     const clientChipHtml = linkedClientName
         ? `<a class="ls-client-chip" href="${_esc(linkedClientLink)}" target="_blank"><span>👤</span>${_esc(linkedClientName)}</a>`
         : '';
+    // 연결 프로젝트 칩 — projectSelect가 로드돼 있으면 이름 표시, 아니면 번호로라도 표시
+    let projectChipHtml = '';
+    {
+        const psel = document.getElementById('projectSelect');
+        const pid = (psel && psel.value) ? psel.value : (linkedProjectId || '');
+        if (pid) {
+            const opt = psel ? [...psel.options].find(o => o.value == pid) : null;
+            const plabel = opt ? opt.textContent : ('프로젝트 #' + pid);
+            projectChipHtml = `<a class="ls-client-chip" href="/projects/${pid}" target="_blank" style="max-width:100%;"><span>📁</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(plabel)}</span></a>`;
+        }
+    }
 
     const timeStr = isAll
         ? `${sDate} (종일)`
@@ -2829,7 +2840,7 @@ function renderLockSummary(){
     const specialPills=specialSel.map(o=>`<span class="ls-type-pill">${SPECIAL_ICONS[o]||''} ${_esc(SPECIAL_OPT_LABELS[o])}</span>`).join('');
     html += `<div class="ls-section">
         <div class="ls-time"><span class="ls-time-icon">⏰</span><span>${_esc(timeStr)}</span></div>
-        <div><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}${projectChipHtml}</div>
         ${specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${specialPills}</div>`:''}
     </div>`;
 
@@ -3175,6 +3186,7 @@ async function loadClientProjects(clientId){
         // 이전에 연결된 프로젝트가 있으면 선택
         if(linkedProjectId) sel.value=linkedProjectId;
         wrap.style.display='';
+        if(isLocked) renderLockSummary(); // 요약 뷰에 프로젝트명 반영
         return data;
     }catch(e){wrap.style.display='none';return null;}
 }

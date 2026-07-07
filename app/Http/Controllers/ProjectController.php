@@ -410,6 +410,28 @@ class ProjectController extends Controller
         ]);
 
         $stageData = $project->stage_data ?? [];
+
+        // 일정제안: 선택된 캘린더 일정에도 프로젝트 연결을 양방향 반영 (gold_data.project_id)
+        if ($validated['key'] === 'proposal') {
+            $newIds = array_map('intval', $validated['data']['schedule_ids'] ?? []);
+            $prevIds = array_map('intval', data_get($stageData, 'proposal.schedule_ids', []));
+
+            foreach (Schedule::whereIn('id', $newIds)->get() as $schedule) {
+                $gold = $schedule->gold_data ?? [];
+                $gold['project_id'] = $project->id;
+                $gold['client_id'] = $gold['client_id'] ?? $project->client_id;
+                $schedule->update(['gold_data' => $gold]);
+            }
+            // 선택 해제된 일정: 이 프로젝트로 연결돼 있던 경우만 연결 제거
+            foreach (Schedule::whereIn('id', array_diff($prevIds, $newIds))->get() as $schedule) {
+                $gold = $schedule->gold_data ?? [];
+                if ((int) ($gold['project_id'] ?? 0) === $project->id) {
+                    $gold['project_id'] = null;
+                    $schedule->update(['gold_data' => $gold]);
+                }
+            }
+        }
+
         $stageData[$validated['key']] = array_merge(
             $validated['data'] ?? [],
             ['updated_at' => now()->toIso8601String(), 'updated_by' => Auth::id()]
