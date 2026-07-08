@@ -567,19 +567,19 @@
     .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 
     /* ── 라이트박스 ── */
-    .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+    .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; touch-action:none; overscroll-behavior:contain; }
     .lightbox.open { display:flex; }
-    .lightbox-img-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; }
+    .lightbox-img-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; touch-action:none; }
     .lightbox-img-wrap.dragging { cursor:grabbing; }
     .lightbox-img-wrap.zoomed { cursor:grab; }
     .lightbox-img-wrap:not(.zoomed) { cursor:default; }
     .lightbox-img-wrap img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; pointer-events:auto; }
-    .lightbox-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:1; }
+    .lightbox-close { position:fixed; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:10; }
     .lightbox-close:hover { background:rgba(255,255,255,0.3); }
     .lightbox-zoom-info { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px; border-radius:20px; font-size:11px; opacity:0; transition:opacity 0.3s; pointer-events:none; }
     .lightbox-zoom-info.show { opacity:1; }
     .lightbox-filename { color:rgba(255,255,255,0.7); font-size:12px; text-align:center; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15); border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:1; }
+    .lightbox-nav { position:fixed; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15); border:none; color:#fff; width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:10; }
     .lightbox-nav:hover { background:rgba(255,255,255,0.3); }
     .lightbox-nav.prev { left:16px; }
     .lightbox-nav.next { right:16px; }
@@ -4117,6 +4117,15 @@ function pushCalModalHistory(){
     if(!__calModalHistory){ try{ history.pushState({calModal:1},''); }catch(e){} __calModalHistory=true; }
 }
 window.addEventListener('popstate',function(){
+    // 앨범(라이트박스) UI가 스스로 소비한 pop이면 아무 것도 하지 않음
+    if(__lbConsuming){ __lbConsuming=false; return; }
+    // 앨범이 열려 있으면 뒤로가기는 앨범만 닫음 (뒤의 일정 모달/페이지 유지)
+    const lb=document.getElementById('lightbox');
+    if(lb && lb.classList.contains('open')){
+        __lbHistory=false; // 이 history 항목은 이미 pop됨
+        lb.classList.remove('open'); lbResetZoom();
+        return;
+    }
     const ov=document.getElementById('modalOverlay');
     if(ov && ov.classList.contains('open')){
         __calModalHistory=false; // 이 history 항목은 이미 pop됨
@@ -4493,6 +4502,8 @@ function lbShow(){
         lbPreload((lightboxIdx-1+lightboxImages.length)%lightboxImages.length);
     }
 }
+// 앨범 전용 history 항목 — ESC/뒤로가기로 앨범만 먼저 닫히도록
+let __lbHistory=false, __lbConsuming=false;
 function openLightbox(src,filename,images,idx){
     lightboxImages=images||[{src,filename}];
     lightboxIdx=idx||0;
@@ -4501,8 +4512,13 @@ function openLightbox(src,filename,images,idx){
     document.getElementById('lightbox').classList.add('open');
     document.querySelector('.lightbox-nav.prev').style.display=lightboxImages.length>1?'':'none';
     document.querySelector('.lightbox-nav.next').style.display=lightboxImages.length>1?'':'none';
+    if(!__lbHistory){ try{ history.pushState({lb:1},''); }catch(e){} __lbHistory=true; }
 }
-function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); lbResetZoom(); }
+function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open'); lbResetZoom();
+    // UI로 닫을 때(뒤로가기 아님) push했던 history 항목 소비 — popstate가 무시하도록 플래그
+    if(__lbHistory){ __lbHistory=false; __lbConsuming=true; try{ history.back(); }catch(e){ __lbConsuming=false; } }
+}
 function lightboxNav(dir){
     lightboxIdx=(lightboxIdx+dir+lightboxImages.length)%lightboxImages.length;
     lbResetZoom();
@@ -4541,6 +4557,45 @@ document.addEventListener('mouseup',()=>{
     lbDragging=false;
     document.getElementById('lightboxWrap').classList.remove('dragging');
 });
+
+// 터치: 핀치 줌 + 한 손가락 팬 (모바일에서 페이지 전체가 확대되지 않도록 자체 처리)
+let lbTouchMode=null, lbPinchStartDist=0, lbPinchStartZoom=1, lbTouchStartX=0, lbTouchStartY=0, lbPanStartX=0, lbPanStartY=0;
+function lbTouchDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+(function(){
+    const wrap=document.getElementById('lightboxWrap');
+    wrap.addEventListener('touchstart',e=>{
+        if(e.touches.length===2){
+            lbTouchMode='pinch'; lbPinchStartDist=lbTouchDist(e.touches); lbPinchStartZoom=lbZoom;
+            e.preventDefault();
+        }else if(e.touches.length===1 && lbZoom>1.05){
+            lbTouchMode='pan'; lbTouchStartX=e.touches[0].clientX; lbTouchStartY=e.touches[0].clientY;
+            lbPanStartX=lbPanX; lbPanStartY=lbPanY;
+        }else{ lbTouchMode=null; }
+    },{passive:false});
+    wrap.addEventListener('touchmove',e=>{
+        if(lbTouchMode==='pinch' && e.touches.length===2){
+            e.preventDefault();
+            const d=lbTouchDist(e.touches);
+            if(lbPinchStartDist>0){
+                lbZoom=Math.min(LB_MAX_ZOOM,Math.max(LB_MIN_ZOOM,lbPinchStartZoom*(d/lbPinchStartDist)));
+                if(lbZoom<1.05){lbPanX=0;lbPanY=0;}
+                lbUpdateTransform(); lbShowZoomInfo();
+            }
+        }else if(lbTouchMode==='pan' && e.touches.length===1){
+            e.preventDefault();
+            lbPanX=lbPanStartX+(e.touches[0].clientX-lbTouchStartX);
+            lbPanY=lbPanStartY+(e.touches[0].clientY-lbTouchStartY);
+            lbUpdateTransform();
+        }
+    },{passive:false});
+    wrap.addEventListener('touchend',e=>{
+        if(e.touches.length===0){ lbTouchMode=null; }
+        else if(e.touches.length===1 && lbZoom>1.05){
+            lbTouchMode='pan'; lbTouchStartX=e.touches[0].clientX; lbTouchStartY=e.touches[0].clientY;
+            lbPanStartX=lbPanX; lbPanStartY=lbPanY;
+        }
+    },{passive:false});
+})();
 
 // 배경 클릭으로 닫기 (줌 안되어있을 때만)
 document.getElementById('lightbox').addEventListener('click',e=>{
