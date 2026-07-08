@@ -195,6 +195,8 @@ window.openTopTab = function(type, url, title) {
 };
 </script>
 
+@include('partials.pull-to-refresh')
+
 @yield('content')
 
 {{-- 활동 로그 모달 --}}

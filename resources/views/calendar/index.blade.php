@@ -4558,18 +4558,24 @@ document.addEventListener('mouseup',()=>{
     document.getElementById('lightboxWrap').classList.remove('dragging');
 });
 
-// 터치: 핀치 줌 + 한 손가락 팬 (모바일에서 페이지 전체가 확대되지 않도록 자체 처리)
+// 터치: 핀치 줌 + 한 손가락 팬 + (확대 안 됐을 때) 좌우 스와이프로 prev/next
 let lbTouchMode=null, lbPinchStartDist=0, lbPinchStartZoom=1, lbTouchStartX=0, lbTouchStartY=0, lbPanStartX=0, lbPanStartY=0;
+let lbSwipeActive=false, lbSwipeX=0, lbSwipeY=0;
 function lbTouchDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
 (function(){
     const wrap=document.getElementById('lightboxWrap');
     wrap.addEventListener('touchstart',e=>{
+        lbSwipeActive=false;
         if(e.touches.length===2){
             lbTouchMode='pinch'; lbPinchStartDist=lbTouchDist(e.touches); lbPinchStartZoom=lbZoom;
             e.preventDefault();
         }else if(e.touches.length===1 && lbZoom>1.05){
             lbTouchMode='pan'; lbTouchStartX=e.touches[0].clientX; lbTouchStartY=e.touches[0].clientY;
             lbPanStartX=lbPanX; lbPanStartY=lbPanY;
+        }else if(e.touches.length===1){
+            // 확대되지 않은 상태 → 좌우 스와이프로 이미지 넘김
+            lbTouchMode=null; lbSwipeActive=true;
+            lbSwipeX=e.touches[0].clientX; lbSwipeY=e.touches[0].clientY;
         }else{ lbTouchMode=null; }
     },{passive:false});
     wrap.addEventListener('touchmove',e=>{
@@ -4589,6 +4595,14 @@ function lbTouchDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1
         }
     },{passive:false});
     wrap.addEventListener('touchend',e=>{
+        // 좌우 스와이프 판정 (확대 안 된 상태, 손가락 모두 뗐을 때)
+        if(lbSwipeActive && e.touches.length===0 && e.changedTouches.length){
+            const dx=e.changedTouches[0].clientX-lbSwipeX, dy=e.changedTouches[0].clientY-lbSwipeY;
+            if(lightboxImages.length>1 && Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5){
+                lightboxNav(dx<0?1:-1); // 왼쪽으로 밀면 다음
+            }
+            lbSwipeActive=false;
+        }
         if(e.touches.length===0){ lbTouchMode=null; }
         else if(e.touches.length===1 && lbZoom>1.05){
             lbTouchMode='pan'; lbTouchStartX=e.touches[0].clientX; lbTouchStartY=e.touches[0].clientY;
