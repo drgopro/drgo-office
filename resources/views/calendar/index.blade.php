@@ -1015,6 +1015,57 @@
                 </div>
             </div>
 
+
+            {{-- 알림 + 반복 (전 유형 공통, 날짜/시간 바로 아래) --}}
+            <div class="field-section" id="notifRepeatSection">
+                <div class="field-group" id="notifGroup">
+                    <label class="field-label">🔔 알림</label>
+                    <div class="notif-row">
+                        <select class="notif-select" id="notifSelect">
+                            <option value="">알림 없음</option>
+                            <option value="0">정시 (일정 시작 시간)</option>
+                            <option value="5">5분 전</option>
+                            <option value="10">10분 전</option>
+                            <option value="15">15분 전</option>
+                            <option value="30">30분 전</option>
+                            <option value="60">1시간 전</option>
+                            <option value="120">2시간 전</option>
+                            <option value="1440">하루 전 오전 9시</option>
+                        </select>
+                        <span class="notif-allday-label" id="notifAlldayLabel" style="display:none;">당일 오전 9시 발송</span>
+                    </div>
+                </div>
+                <div class="field-group" id="repeatGroup">
+                    <div class="notif-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;color:var(--text);user-select:none;">
+                            <input type="checkbox" id="repeatChk" onchange="onRepeatChkToggle()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
+                            🔁 반복 일정
+                        </label>
+                        <span id="repeatControls" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <select class="notif-select" id="repeatFreq" onchange="onRepeatFreqChange()">
+                                <option value="daily">매일</option>
+                                <option value="weekly">매주</option>
+                                <option value="monthly">매월</option>
+                                <option value="custom">사용자 지정</option>
+                            </select>
+                            <span id="repeatCustomWrap" style="display:none;align-items:center;gap:4px;">
+                                <input type="number" class="field-input" id="repeatInterval" min="1" max="99" value="2" style="width:60px;padding:6px 8px;">
+                                <select class="notif-select" id="repeatUnit">
+                                    <option value="day">일마다</option>
+                                    <option value="week">주마다</option>
+                                    <option value="month">개월마다</option>
+                                </select>
+                            </span>
+                            <span id="repeatUntilWrap" style="display:inline-flex;align-items:center;gap:4px;">
+                                <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">종료일</span>
+                                <input type="date" class="field-input" id="repeatUntil" style="width:140px;padding:6px 8px;">
+                            </span>
+                        </span>
+                    </div>
+                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">이미 반복 그룹에 속한 일정입니다 — 반복 재설정 없이 이 일정만 수정됩니다.</div>
+                </div>
+            </div>
+
             {{-- 배송 현황 (방문의뢰·촬영/스튜디오, 저장된 일정만) --}}
             <div class="field-section" id="shipmentSection" style="display:none;">
                 <div class="field-group">
@@ -1048,52 +1099,6 @@
             </div>
 
             {{-- 의뢰자 검색/연결 (사내업무/휴가 제외) --}}
-            {{-- 알림 + 반복 (전 유형 공통) --}}
-            <div class="field-section" id="notifRepeatSection">
-                <div class="field-group" id="notifGroup">
-                    <label class="field-label">🔔 알림</label>
-                    <div class="notif-row">
-                        <select class="notif-select" id="notifSelect">
-                            <option value="">알림 없음</option>
-                            <option value="0">정시 (일정 시작 시간)</option>
-                            <option value="5">5분 전</option>
-                            <option value="10">10분 전</option>
-                            <option value="15">15분 전</option>
-                            <option value="30">30분 전</option>
-                            <option value="60">1시간 전</option>
-                            <option value="120">2시간 전</option>
-                            <option value="1440">하루 전 오전 9시</option>
-                        </select>
-                        <span class="notif-allday-label" id="notifAlldayLabel" style="display:none;">당일 오전 9시 발송</span>
-                    </div>
-                </div>
-                <div class="field-group" id="repeatGroup">
-                    <label class="field-label">🔁 반복</label>
-                    <div class="notif-row" style="flex-wrap:wrap;gap:6px;align-items:center;">
-                        <select class="notif-select" id="repeatFreq" onchange="onRepeatFreqChange()">
-                            <option value="">반복 없음</option>
-                            <option value="daily">매일</option>
-                            <option value="weekly">매주</option>
-                            <option value="monthly">매월</option>
-                            <option value="custom">사용자 지정</option>
-                        </select>
-                        <span id="repeatCustomWrap" style="display:none;align-items:center;gap:4px;">
-                            <input type="number" class="field-input" id="repeatInterval" min="1" max="99" value="2" style="width:60px;padding:6px 8px;">
-                            <select class="notif-select" id="repeatUnit">
-                                <option value="day">일마다</option>
-                                <option value="week">주마다</option>
-                                <option value="month">개월마다</option>
-                            </select>
-                        </span>
-                        <span id="repeatUntilWrap" style="display:none;align-items:center;gap:4px;">
-                            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">종료일</span>
-                            <input type="date" class="field-input" id="repeatUntil" style="width:140px;padding:6px 8px;">
-                        </span>
-                    </div>
-                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">이미 반복 그룹에 속한 일정입니다 — 반복 재설정 없이 이 일정만 수정됩니다.</div>
-                </div>
-            </div>
-
             <div class="field-section" id="clientLinkSection">
             <div class="section-heading" style="margin-bottom:4px;">의뢰자 / 프로젝트</div>
             <div class="field-group">
@@ -2699,12 +2704,16 @@ function onVisitOptChange(){
 }
 
 // ── 반복 설정 ──
+function onRepeatChkToggle(){
+    const on=document.getElementById('repeatChk')?.checked;
+    const ctrl=document.getElementById('repeatControls');
+    if(ctrl) ctrl.style.display=on?'inline-flex':'none';
+    onRepeatFreqChange();
+}
 function onRepeatFreqChange(){
     const f=document.getElementById('repeatFreq')?.value||'';
     const cw=document.getElementById('repeatCustomWrap');
-    const uw=document.getElementById('repeatUntilWrap');
     if(cw) cw.style.display=f==='custom'?'inline-flex':'none';
-    if(uw) uw.style.display=f?'inline-flex':'none';
 }
 
 // ── 담당자 ──
@@ -2850,6 +2859,8 @@ function _radioMulti(gid){
     return Array.from(g.querySelectorAll('.radio-btn.active')).map(b=>b.getAttribute('data-val'));
 }
 
+let lsShipOpen=false; // 요약 뷰 배송 현황 펼침 여부 (기본 접힘)
+function lsToggleShip(){ lsShipOpen=!lsShipOpen; renderLockSummary(); }
 function renderLockSummary(){
     const container = document.getElementById('lockSummary');
     if (!container) return;
@@ -2928,13 +2939,13 @@ function renderLockSummary(){
         ${specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${specialPills}</div>`:''}
     </div>`;
 
-    // 배송 현황 (gold/green, 송장 있을 때만)
+    // 배송 현황 (gold/green, 송장 있을 때만) — 기본 접힘, 제목 클릭으로 펼침
     const lsShips=(SHIP_COLORS.includes(color)?(shipCache.shipments||[]):[]);
     if (lsShips.length) {
         const lsDone=lsShips.filter(s=>s.status==='delivered').length;
         html += `<div class="ls-section">
-            <div class="ls-section-title">📦 배송 현황 (${lsDone}/${lsShips.length} 완료)</div>
-            ${lsShips.map(shipRowHtml).join('')}
+            <div class="ls-section-title" style="cursor:pointer;user-select:none;" onclick="lsToggleShip()">${lsShipOpen?'▾':'▸'} 📦 배송 현황 (${lsDone}/${lsShips.length} 완료)</div>
+            <div style="display:${lsShipOpen?'block':'none'};">${lsShips.map(shipRowHtml).join('')}</div>
         </div>`;
     }
 
@@ -3611,12 +3622,15 @@ function resetModalForm(){
     { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle(); }
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
     document.getElementById('notifSelect').value='60';
-    // 반복 UI 초기화 (새 일정에서만 노출, 편집 시 loadEventToModal이 숨김)
-    {const rf=document.getElementById('repeatFreq'); if(rf){rf.value='';onRepeatFreqChange();}
+    // 반복 UI 초기화 (체크 해제 상태로, 편집 시 loadEventToModal이 그룹 소속이면 숨김)
+    {const rc=document.getElementById('repeatChk'); if(rc) rc.checked=false;
+     const rf=document.getElementById('repeatFreq'); if(rf) rf.value='daily';
      const ru=document.getElementById('repeatUntil'); if(ru) ru.value='';
      const ri=document.getElementById('repeatInterval'); if(ri) ri.value='2';
      const rg=document.getElementById('repeatGroup'); if(rg){rg.querySelector('.notif-row').style.display='flex';}
-     const rn=document.getElementById('repeatEditNote'); if(rn) rn.style.display='none';}
+     const rn=document.getElementById('repeatEditNote'); if(rn) rn.style.display='none';
+     onRepeatChkToggle();}
+    lsShipOpen=false;
     // 입력 재활성화
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=false;});
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='';});
@@ -3963,7 +3977,7 @@ function openEditModal(ev){
      const isRepeat=!!ev.repeat_group;
      if(rg) rg.querySelector('.notif-row').style.display=isRepeat?'none':'flex';
      if(rn) rn.style.display=isRepeat?'block':'none';
-     if(!isRepeat){const rf=document.getElementById('repeatFreq'); if(rf){rf.value='';onRepeatFreqChange();}}}
+     if(!isRepeat){const rc=document.getElementById('repeatChk'); if(rc) rc.checked=false; onRepeatChkToggle();}}
     // 요약: 등록된 일정은 기본적으로 '요약'(읽기 요약 뷰) ON
     if(ev && ev.id){ isLocked=true; setTimeout(applyLockUI,0); }
     // 날짜 배지
@@ -4225,12 +4239,15 @@ async function doSaveEvent(){
     const et=isGold?document.getElementById('goldEndTime').value:document.getElementById('endTime').value;
     if(!sd){alert('시작일을 입력하세요.');return;}
     if(ed && ed<sd){alert('종료일이 시작일보다 빠릅니다. 날짜를 확인해주세요.');return;}
-    const repeatEnabled=(()=>{const row=document.getElementById('repeatGroup')?.querySelector('.notif-row');return row&&row.style.display!=='none';})();
+    const repeatEnabled=(()=>{
+        const row=document.getElementById('repeatGroup')?.querySelector('.notif-row');
+        const chk=document.getElementById('repeatChk');
+        return row&&row.style.display!=='none'&&chk&&chk.checked;
+    })();
     if(repeatEnabled){
-        const rf=document.getElementById('repeatFreq')?.value||'';
         const ru=document.getElementById('repeatUntil')?.value||'';
-        if(rf&&!ru){alert('반복 종료일을 선택해주세요.');return;}
-        if(rf&&ru&&ru<=sd){alert('반복 종료일이 시작일보다 늦어야 합니다.');return;}
+        if(!ru){alert('반복 종료일을 선택해주세요.');return;}
+        if(ru<=sd){alert('반복 종료일이 시작일보다 늦어야 합니다.');return;}
     }
 
     // schedEventOpts 수집
