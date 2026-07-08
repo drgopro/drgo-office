@@ -275,6 +275,38 @@
     .more-badge { font-size:calc(11px * var(--cal-fz,1)); color:var(--accent); padding:1px 6px; cursor:pointer; border-radius:3px; transition:all 0.15s; font-weight:600; }
     .more-badge:hover { background:rgba(200,176,138,0.15); }
     .day-cell.expanded { overflow:visible; z-index:10; position:relative; }
+    /* ── 캘린더 사이드 필터 (미니멀 접이식, 데스크탑 전용) ── */
+    #calBody { display:flex; align-items:flex-start; gap:14px; }
+    #calMain { flex:1; min-width:0; }
+    #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; position:sticky; top:10px; }
+    @media (max-width:1024px) { #calSide { display:none; } }
+    @media (min-width:1025px) { #filterBar { display:none; } }
+    .cs-mini-head { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; margin-bottom:8px; color:var(--text); }
+    .cs-mini-nav { display:flex; gap:4px; }
+    .cs-mini-nav button { background:none; border:1px solid var(--border); border-radius:6px; width:22px; height:22px; color:var(--text-muted); cursor:pointer; font-size:12px; line-height:1; }
+    .cs-mini-nav button:hover { color:var(--text); border-color:var(--text-muted); }
+    .cs-mini-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center; }
+    .cs-mini-dow { font-size:10px; color:var(--text-muted); margin-bottom:3px; }
+    .cs-mini-day { font-size:11px; padding:4px 0; border-radius:7px; cursor:pointer; color:var(--text); }
+    .cs-mini-day:hover { background:var(--surface2); }
+    .cs-mini-day.dim { color:var(--text-muted); opacity:0.4; }
+    .cs-mini-day.sel { box-shadow:inset 0 0 0 1.5px var(--accent); }
+    .cs-mini-day.today { background:var(--accent); color:var(--accent-text,#fff); font-weight:700; }
+    [data-theme="light"] .cs-mini-day.today { color:#fff; }
+    .cs-divider { height:1px; background:var(--border); margin:12px 0; }
+    .cs-sec-title { font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:6px; letter-spacing:0.03em; }
+    .cs-cat { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:8px; font-size:12.5px; cursor:pointer; color:var(--text); user-select:none; }
+    .cs-cat:hover { background:var(--surface2); }
+    .cs-cat.off { color:var(--text-muted); }
+    .cs-cat.off .cs-dot { opacity:0.35; }
+    .cs-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .cs-hidden-row { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-muted); cursor:pointer; padding:6px 8px; border-radius:8px; user-select:none; }
+    .cs-hidden-row:hover { background:var(--surface2); }
+    .cs-hidden-dots { display:inline-flex; gap:3px; margin-left:2px; }
+    .cs-hidden-dots .cs-dot { width:7px; height:7px; opacity:0.45; }
+    #calSide .assignee-filter { width:100%; margin-bottom:6px; box-sizing:border-box; }
+    #calSide .assignee-filter-chips { width:100%; }
+
     .day-cell.expanded .events-list { position:absolute; top:30px; left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px; box-shadow:0 6px 24px rgba(0,0,0,0.35); max-height:200px; overflow-y:auto; z-index:11; }
 
     /* ── 주간/일간 공통 ── */
@@ -849,6 +881,31 @@
     <div id="assigneeFilterChips" class="assignee-filter-chips"></div>
 </div>
 
+<div id="calBody">
+<aside id="calSide">
+    <div class="cs-mini-head">
+        <span id="csMiniLabel"></span>
+        <span class="cs-mini-nav">
+            <button type="button" onclick="csMiniMove(-1)" title="이전 달">‹</button>
+            <button type="button" onclick="csMiniMove(1)" title="다음 달">›</button>
+        </span>
+    </div>
+    <div class="cs-mini-grid cs-mini-dow"><span style="color:#e06c6c;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#5b8def;">토</span></div>
+    <div class="cs-mini-grid" id="csMiniGrid"></div>
+    <div class="cs-divider"></div>
+    <div class="cs-sec-title">표시 중 · <span id="csOnCount">0</span></div>
+    <div id="csCatsOn"></div>
+    <div class="cs-hidden-row" id="csHiddenRow" style="display:none;" onclick="csToggleHiddenOpen()">
+        <span id="csHiddenCaret">▸</span> 숨김 <span id="csOffCount">0</span>
+        <span class="cs-hidden-dots" id="csHiddenDots"></span>
+    </div>
+    <div id="csCatsOff" style="display:none;"></div>
+    <div class="cs-divider"></div>
+    <div class="cs-sec-title">담당자</div>
+    <div id="csAssignees"></div>
+</aside>
+<div id="calMain">
+
 <!-- 월간 뷰 -->
 <div id="monthView">
     <div class="calendar-wrap">
@@ -883,6 +940,9 @@
     <div class="agenda-strip" id="agendaStrip"></div>
     <div class="agenda-wrap" id="agendaWrap"></div>
 </div>
+
+</div>{{-- /calMain --}}
+</div>{{-- /calBody --}}
 
 <!-- 일정 모달 -->
 <div class="modal-overlay" id="modalOverlay">
@@ -1705,8 +1765,122 @@ function toggleFilter(btn){
     const f=btn.dataset.filter;
     if(activeFilters.has(f)){activeFilters.delete(f);btn.classList.remove('active');}
     else{activeFilters.add(f);btn.classList.add('active');}
+    csSaveHidden();
     renderView();
 }
+
+// ── 사이드 필터 (미니멀 접이식, 데스크탑) ──
+const CS_CATS = @json(\App\Models\CalendarCategory::map());
+const CS_HIDDEN_KEY = 'calHiddenCats';
+let csMiniY = null, csMiniM = null; // 미니 달력 표시 월
+let csHiddenOpen = false;
+
+// 저장된 숨김 카테고리 복원 (존재하는 키만)
+(function(){
+    try{
+        const hidden = JSON.parse(localStorage.getItem(CS_HIDDEN_KEY) || '[]');
+        hidden.filter(k => CS_CATS[k]).forEach(k => {
+            activeFilters.delete(k);
+            const btn = document.querySelector(`#filterBar .filter-btn[data-filter="${k}"]`);
+            if(btn) btn.classList.remove('active');
+        });
+    }catch(e){}
+})();
+
+function csSaveHidden(){
+    try{ localStorage.setItem(CS_HIDDEN_KEY, JSON.stringify(Object.keys(CS_CATS).filter(k => !activeFilters.has(k)))); }catch(e){}
+}
+function csToggleCat(k){
+    if(activeFilters.has(k)) activeFilters.delete(k); else activeFilters.add(k);
+    const btn = document.querySelector(`#filterBar .filter-btn[data-filter="${k}"]`);
+    if(btn) btn.classList.toggle('active', activeFilters.has(k));
+    csSaveHidden();
+    renderView();
+}
+function csToggleHiddenOpen(){
+    csHiddenOpen = !csHiddenOpen;
+    renderCalSide();
+}
+function csCatRow(k, on){
+    const c = CS_CATS[k];
+    return `<div class="cs-cat${on?'':' off'}" onclick="csToggleCat('${k}')" title="${on?'클릭하여 숨김':'클릭하여 표시'}">
+        <span class="cs-dot" style="background:var(--chip-${k}-bg)"></span>${(c.label||k).replace(/[<>&]/g,'')}
+    </div>`;
+}
+function renderCsCats(){
+    const onKeys = Object.keys(CS_CATS).filter(k => activeFilters.has(k));
+    const offKeys = Object.keys(CS_CATS).filter(k => !activeFilters.has(k));
+    document.getElementById('csOnCount').textContent = onKeys.length;
+    document.getElementById('csCatsOn').innerHTML = onKeys.map(k => csCatRow(k,true)).join('') || '<div style="font-size:11.5px;color:var(--text-muted);padding:4px 8px;">모두 숨김 상태입니다</div>';
+    const row = document.getElementById('csHiddenRow');
+    if(offKeys.length){
+        row.style.display = 'flex';
+        document.getElementById('csOffCount').textContent = offKeys.length;
+        document.getElementById('csHiddenCaret').textContent = csHiddenOpen ? '▾' : '▸';
+        document.getElementById('csHiddenDots').innerHTML = csHiddenOpen ? '' : offKeys.map(k => `<span class="cs-dot" style="background:var(--chip-${k}-bg)"></span>`).join('');
+        const off = document.getElementById('csCatsOff');
+        off.style.display = csHiddenOpen ? 'block' : 'none';
+        off.innerHTML = offKeys.map(k => csCatRow(k,false)).join('');
+    } else {
+        row.style.display = 'none';
+        document.getElementById('csCatsOff').style.display = 'none';
+        csHiddenOpen = false;
+    }
+}
+function csMiniMove(dir){
+    csMiniM += dir;
+    if(csMiniM > 11){ csMiniM = 0; csMiniY++; }
+    if(csMiniM < 0){ csMiniM = 11; csMiniY--; }
+    renderCsMini();
+}
+function csGoDate(dstr){
+    const d = new Date(dstr + 'T00:00:00');
+    currentYear = d.getFullYear(); currentMonth = d.getMonth();
+    currentWeekStart = getWeekStart(d);
+    currentDay = new Date(d); currentDay.setHours(0,0,0,0);
+    if(currentView === 'list'){ agendaWeekStart = null; agendaSelectedDate = dstr; }
+    renderView(); loadEvents();
+}
+function renderCsMini(){
+    const grid = document.getElementById('csMiniGrid');
+    if(!grid) return;
+    if(csMiniY === null){ csMiniY = currentYear; csMiniM = currentMonth; }
+    document.getElementById('csMiniLabel').textContent = `${csMiniY}년 ${csMiniM+1}월`;
+    const first = new Date(csMiniY, csMiniM, 1);
+    const start = new Date(first); start.setDate(1 - first.getDay()); // 일요일 시작
+    const today = todayStr();
+    // 현재 뷰 기준 강조: 일간=해당 일, 주간=주 범위
+    const selSet = new Set();
+    if(currentView === 'day'){ selSet.add(fmt(currentDay)); }
+    else if(currentView === 'week'){
+        for(let i=0;i<7;i++){ const d=new Date(currentWeekStart); d.setDate(d.getDate()+i); selSet.add(fmt(d)); }
+    }
+    let html = '';
+    const cur = new Date(start);
+    for(let i=0;i<42;i++){
+        const ds = fmt(cur);
+        const dim = cur.getMonth() !== csMiniM;
+        const cls = ['cs-mini-day', dim?'dim':'', ds===today?'today':'', (ds!==today&&selSet.has(ds))?'sel':''].filter(Boolean).join(' ');
+        html += `<span class="${cls}" onclick="csGoDate('${ds}')">${cur.getDate()}</span>`;
+        cur.setDate(cur.getDate()+1);
+        if(i>=34 && cur.getMonth()!==csMiniM && cur.getDay()===0) break; // 마지막 주가 전부 다음달이면 생략
+    }
+    grid.innerHTML = html;
+}
+function renderCalSide(){
+    if(!document.getElementById('calSide')) return;
+    renderCsMini();
+    renderCsCats();
+}
+// 데스크탑: 담당자 필터(셀렉트+칩)를 사이드바로 이동
+(function(){
+    if(window.innerWidth >= 1025){
+        const dst = document.getElementById('csAssignees');
+        const sel = document.getElementById('assigneeFilter');
+        const chips = document.getElementById('assigneeFilterChips');
+        if(dst && sel && chips){ dst.appendChild(sel); dst.appendChild(chips); }
+    }
+})();
 function isFiltered(ev){
     if (!activeFilters.has(ev.color)) return false;
     if (activeAssigneeIds.size > 0) {
@@ -1962,6 +2136,7 @@ function renderView() {
     if (currentView==='month') renderMonth();
     else if (currentView==='list') renderAgenda();
     else renderTimeline();
+    if(typeof renderCalSide==='function') renderCalSide();
 }
 
 // ── 이벤트 로드 ─────────────────────────────────────────────────
