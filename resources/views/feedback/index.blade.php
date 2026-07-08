@@ -20,7 +20,16 @@
     .fb-composer input[type=text]:focus, .fb-composer textarea:focus { border-color:var(--accent); }
     .fb-composer textarea { margin-top:8px; min-height:74px; resize:vertical; }
     .fb-composer-foot { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
-    .fb-select, .fb-attach-btn { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:7px 11px; color:var(--text); font-size:12px; cursor:pointer; font-family:inherit; }
+    .fb-select, .fb-attach-btn { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:7px 11px; color:var(--text); font-size:12px; cursor:pointer; font-family:inherit; transition:border-color 0.15s, background 0.15s, box-shadow 0.15s; }
+    .fb-select {
+        -webkit-appearance:none; appearance:none;
+        padding:8px 30px 8px 13px; border-radius:10px; font-weight:600; line-height:1.2;
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:right 11px center;
+    }
+    .fb-select:hover, .fb-attach-btn:hover { border-color:var(--text-muted); }
+    .fb-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .fb-select.has-value { border-color:var(--accent); color:var(--text); }
     .fb-attach-btn { border-style:dashed; color:var(--text-muted); }
     .fb-attach-btn.req { color:#5b8def; border-color:#5b8def66; }
     .fb-composer-hint { margin-left:auto; font-size:11px; color:var(--text-muted); }
@@ -34,7 +43,10 @@
 
     /* 필터 */
     .fb-filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
-    .fb-filters input[type=search] { flex:1; min-width:160px; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 12px; color:var(--text); font-size:12px; outline:none; }
+    .fb-filters input[type=search] { flex:1; min-width:160px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 13px 8px 32px; color:var(--text); font-size:12px; outline:none; transition:border-color 0.15s, box-shadow 0.15s;
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7' fill='none' stroke='%23999' stroke-width='2'/%3E%3Cpath d='m21 21-4.35-4.35' stroke='%23999' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:11px center; }
+    .fb-filters input[type=search]:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 
     /* 카드 */
     .fb-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden; }
@@ -218,6 +230,7 @@ function fbSwitchTab(t){
 
 // ── 목록 로드 ──
 async function fbLoad(){
+    fbMarkSelects();
     const params = new URLSearchParams({ type: fbType });
     const st = document.getElementById('fbFilterStatus').value; if(st) params.set('status', st);
     const pg = document.getElementById('fbFilterPage').value; if(pg) params.set('page', pg);
@@ -354,7 +367,14 @@ function fbRenderPreviews(){
     });
     fbUpdateSubmit();
 }
+function fbMarkSelects(){
+    ['fbPage','fbFilterStatus','fbFilterPage'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.toggle('has-value', !!el.value);
+    });
+}
 function fbUpdateSubmit(){
+    fbMarkSelects();
     const title = document.getElementById('fbTitle').value.trim();
     const page = document.getElementById('fbPage').value;
     const needShot = fbType === 'bug' && fbFiles.length === 0;
