@@ -912,6 +912,11 @@
                     <span id="assigneeBtnLabel">담당자 지정</span>
                 </button>
                 <div class="assignee-list" id="assigneeList" style="display:none;margin-top:8px;"></div>
+                <button class="assignee-btn" id="notifyBtn" onclick="toggleNotifyPanel()" title="알림 받을 멤버 (미지정 시 담당자 전체)" style="margin-top:6px;">
+                    <span>🔔</span>
+                    <span id="notifyBtnLabel">알림 받을 멤버</span>
+                </button>
+                <div class="assignee-list" id="notifyList" style="display:none;margin-top:8px;"></div>
             </div>
             <div class="modal-header-btns">
                 <span id="privateModeBadge" style="display:none;font-size:11px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa55;border-radius:6px;padding:2px 8px;font-weight:600;">🔒 개인</span>
@@ -1608,6 +1613,7 @@ const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;
 let events = [], assignees = [], selectedAssignees = [];
+let selectedNotifyAssignees = []; // 알림 받을 멤버 (비어있으면 담당자 전체)
 let editingId = null, currentColor = 'gold', currentView = 'month';
 let editingOrigDT = null; // 편집 중 일정의 원본 날짜/시간 (변경 사유 필수 판정용)
 // 종료일 정규화 — 역전(종료<시작) 데이터는 시작일 하루짜리로 취급
@@ -2755,6 +2761,47 @@ function renderAssigneeList(){
     }
 }
 
+// ── 알림 받을 멤버 ──
+let notifyPanelOpen=false;
+function toggleNotifyPanel(){
+    notifyPanelOpen=!notifyPanelOpen;
+    document.getElementById('notifyList').style.display=notifyPanelOpen?'flex':'none';
+    if(notifyPanelOpen) renderNotifyList();
+}
+function updateNotifyBtn(){
+    const btn=document.getElementById('notifyBtn');
+    const label=document.getElementById('notifyBtnLabel');
+    if(!btn||!label) return;
+    if(selectedNotifyAssignees.length){
+        label.textContent=assignees.filter(a=>selectedNotifyAssignees.includes(a.id)).map(a=>a.name).join(', ');
+        btn.classList.add('has-assignee');
+    }else{
+        label.textContent='알림 받을 멤버';
+        btn.classList.remove('has-assignee');
+    }
+}
+function renderNotifyList(){
+    const c=document.getElementById('notifyList');
+    if(!c) return;
+    if(!assignees.length){c.innerHTML='<div style="font-size:12px;color:var(--text-muted);">등록된 멤버 없음</div>';return;}
+    c.innerHTML='<div style="width:100%;font-size:11px;color:var(--text-muted);margin-bottom:4px;">선택하지 않으면 담당자 전체에게 알림이 갑니다</div>';
+    const ordered=[...assignees].sort((a,b)=>((a.user_id===CAL_USER_ID)?0:1)-((b.user_id===CAL_USER_ID)?0:1));
+    ordered.forEach(a=>{
+        const isSelf=a.user_id===CAL_USER_ID;
+        const isSel=selectedNotifyAssignees.includes(a.id);
+        const chip=document.createElement('div');
+        chip.className='assignee-chip'+(isSel?' selected':'')+(isSelf?' self':'');
+        chip.textContent=a.name+(isSelf?' (나)':''); chip.dataset.id=a.id;
+        chip.onclick=()=>{
+            if(isLocked) return;
+            if(selectedNotifyAssignees.includes(a.id)){selectedNotifyAssignees=selectedNotifyAssignees.filter(id=>id!==a.id);}
+            else{selectedNotifyAssignees.push(a.id);}
+            updateNotifyBtn(); renderNotifyList();
+        };
+        c.appendChild(chip);
+    });
+}
+
 // ── 종일 토글 ──
 function toggleAllDay(){
     if(isLocked) return;
@@ -3581,11 +3628,14 @@ function resetModalForm(){
     toggleShipmentBody(false); // 배송 현황은 기본 접힘
     assigneePanelOpen=false;
     document.getElementById('assigneeList').style.display='none';
+    notifyPanelOpen=false;
+    {const nl=document.getElementById('notifyList'); if(nl) nl.style.display='none';}
+    updateNotifyBtn();
 }
 
 // ── 모달 열기 ──
 function openNewModal(dateStr,timeStr,endStr){
-    editingId=null; selectedAssignees=[]; viewMode=false;
+    editingId=null; selectedAssignees=[]; selectedNotifyAssignees=[]; viewMode=false;
     resetModalForm();
     setEditModeUI();
     setColor('gold');
@@ -3625,7 +3675,7 @@ const COLOR_LABELS = (function(){
     Object.keys(cats).forEach(k => { o[k] = cats[k].label; });
     return o;
 })();
-const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'상세설명',special_note:'특이사항',handover_note:'전달사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',completed_at:'완료시각'};
+const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'상세설명',special_note:'특이사항',handover_note:'전달사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',notify_assignees:'알림 대상',completed_at:'완료시각'};
 
 // 변경 로그 값을 사람이 읽기 좋게 변환
 function fmtLogValue(key, val) {
@@ -3869,6 +3919,7 @@ async function openHistoryModal() {
 function openEditModal(ev){
     if(isGuestUser) return;
     editingId=ev.id; selectedAssignees=ev.assignees?ev.assignees.map(a=>a.id):[];
+    selectedNotifyAssignees=Array.isArray(ev.notify_assignees)?[...ev.notify_assignees]:[]; updateNotifyBtn();
     // 날짜/시간 원본 스냅샷 — 변경 사유 필수 여부 판정용
     editingOrigDT={
         sd:(ev.start_date||'').substring(0,10),
@@ -4190,6 +4241,7 @@ async function doSaveEvent(){
         // 전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),
         assignees:selectedAssignees,
+        notify_assignees:selectedNotifyAssignees,
         notif_minutes:document.getElementById('notifSelect').value||null,
         repeat_freq:(repeatEnabled?(document.getElementById('repeatFreq')?.value||null):null),
         repeat_interval:(repeatEnabled&&document.getElementById('repeatFreq')?.value==='custom')?(document.getElementById('repeatInterval')?.value||1):null,

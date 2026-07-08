@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -28,6 +29,7 @@ class Schedule extends Model
         'notif_minutes',
         'notified_at',
         'repeat_group',
+        'notify_assignees',
         'is_locked',
         'is_private',
         'special_opts',
@@ -47,6 +49,7 @@ class Schedule extends Model
         'is_locked' => 'boolean',
         'is_private' => 'boolean',
         'special_opts' => 'array',
+        'notify_assignees' => 'array',
         'sched_event_opts' => 'array',
         'gold_data' => 'array',
         'teal_data' => 'array',
@@ -60,6 +63,25 @@ class Schedule extends Model
     public function assignees()
     {
         return $this->belongsToMany(Assignee::class, 'schedule_assignees');
+    }
+
+    /**
+     * 알림 수신자 — 알림 대상 지정(notify_assignees)이 있으면 그 멤버, 없으면 담당자 전체, 둘 다 없으면 등록자.
+     *
+     * @return Collection<int, User>
+     */
+    public function notificationRecipients()
+    {
+        $notifyIds = collect($this->notify_assignees ?? []);
+        $userIds = $notifyIds->isNotEmpty()
+            ? Assignee::whereIn('id', $notifyIds)->pluck('user_id')->filter()->unique()
+            : $this->assignees()->pluck('user_id')->filter()->unique();
+
+        if ($userIds->isEmpty() && $this->created_by) {
+            $userIds = collect([$this->created_by]);
+        }
+
+        return User::whereIn('id', $userIds)->where('is_active', true)->get();
     }
 
     public function creator()

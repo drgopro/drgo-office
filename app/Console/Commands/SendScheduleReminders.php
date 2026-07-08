@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Schedule;
-use App\Models\User;
 use App\Notifications\ScheduleReminder;
 use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
@@ -39,8 +38,7 @@ class SendScheduleReminders extends Command
                 continue;
             }
 
-            $users = $this->recipients($schedule);
-            foreach ($users as $user) {
+            foreach ($schedule->notificationRecipients() as $user) {
                 $user->notify(new ScheduleReminder($schedule));
             }
 
@@ -73,16 +71,5 @@ class SendScheduleReminders extends Command
         }
 
         return Carbon::parse($date.' '.substr($schedule->start_time, 0, 5))->subMinutes($minutes);
-    }
-
-    /** 수신자 — 담당자로 연결된 사용자, 없으면 등록자 */
-    private function recipients(Schedule $schedule)
-    {
-        $userIds = $schedule->assignees->pluck('user_id')->filter()->unique();
-        if ($userIds->isEmpty() && $schedule->created_by) {
-            $userIds = collect([$schedule->created_by]);
-        }
-
-        return User::whereIn('id', $userIds)->where('is_active', true)->get();
     }
 }

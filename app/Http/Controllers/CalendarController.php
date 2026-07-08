@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
-use App\Models\User;
 use App\Notifications\ScheduleCreated;
+use App\Notifications\ScheduleUpdated;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -128,6 +128,7 @@ class CalendarController extends Controller
             'handover_note' => 'nullable|string|max:2000',
             'is_private' => 'boolean',
             'assignees' => 'nullable|array',
+            'notify_assignees' => 'nullable|array',
             'gold_data' => 'nullable|array',
             'teal_data' => 'nullable|array',
             'special_opts' => 'nullable|array',
@@ -214,16 +215,30 @@ class CalendarController extends Controller
     private function notifyAssigneesOfCreation(Schedule $schedule): void
     {
         try {
-            $userIds = $schedule->assignees()->pluck('user_id')->filter()->unique();
-            if ($userIds->isEmpty()) {
+            // 담당자도 알림 대상 지정도 없으면 발송 안 함 (등록자 본인 셀프 알림 방지)
+            if ($schedule->assignees()->count() === 0 && empty($schedule->notify_assignees)) {
                 return;
             }
-            $users = User::whereIn('id', $userIds)->where('is_active', true)->get();
-            foreach ($users as $user) {
+            foreach ($schedule->notificationRecipients() as $user) {
                 $user->notify(new ScheduleCreated($schedule));
             }
         } catch (\Throwable $e) {
             Log::warning('일정 등록 푸시 발송 실패: '.$e->getMessage());
+        }
+    }
+
+    /** 날짜/시간 변경 알림 — 알림 대상에게 웹푸시 (발송 실패가 저장을 막지 않도록 보호) */
+    private function notifyScheduleChanged(Schedule $schedule): void
+    {
+        try {
+            if ($schedule->assignees()->count() === 0 && empty($schedule->notify_assignees)) {
+                return;
+            }
+            foreach ($schedule->notificationRecipients() as $user) {
+                $user->notify(new ScheduleUpdated($schedule));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('일정 변경 푸시 발송 실패: '.$e->getMessage());
         }
     }
 
@@ -256,6 +271,7 @@ class CalendarController extends Controller
             'sched_after_reason' => 'nullable|string|max:300',
             'notif_minutes' => 'nullable|string|max:10',
             'is_locked' => 'boolean',
+            'notify_assignees' => 'nullable|array',
             'reason' => 'nullable|string|max:500',
             'repeat_freq' => 'nullable|in:daily,weekly,monthly,custom',
             'repeat_interval' => 'nullable|integer|min:1|max:99',
@@ -274,9 +290,10 @@ class CalendarController extends Controller
         $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
 
         // 변경 이력 기록 (날짜/시간은 포맷 차이로 인한 오탐 방지를 위해 정규화 후 비교)
+        $dtChanged = false;
         $diff = [];
         foreach ($validated as $key => $newVal) {
-            if ($key === 'assignees') {
+            if (in_array($key, ['assignees', 'notify_assignees'], true)) {
                 continue;
             }
             $oldVal = $schedule->getOriginal($key);
@@ -287,9 +304,9 @@ class CalendarController extends Controller
         if (! empty($diff)) {
             // 변경 사유: 방문의뢰(gold)·원격/방송룸(teal)에서 날짜/시간이 바뀔 때만 필수
             $dtKeys = ['start_date', 'end_date', 'start_time', 'end_time', 'is_all_day'];
+            $dtChanged = array_intersect($dtKeys, array_keys($diff)) !== [];
             $reasonColor = $validated['color'] ?? $schedule->color;
-            $needsReason = in_array($reasonColor, ['gold', 'teal'], true)
-                && array_intersect($dtKeys, array_keys($diff)) !== [];
+            $needsReason = in_array($reasonColor, ['gold', 'teal'], true) && $dtChanged;
             if ($needsReason && empty(trim((string) $reason))) {
                 return response()->json([
                     'message' => '일정(날짜/시간) 변경 사유를 입력해주세요.',
@@ -309,6 +326,12 @@ class CalendarController extends Controller
 
         if (isset($validated['assignees'])) {
             $schedule->assignees()->sync($validated['assignees']);
+        }
+
+        // 날짜/시간이 바뀌면 사전 알림을 새 시각 기준으로 다시 발송 + 변경 즉시 알림
+        if ($dtChanged) {
+            $schedule->forceFill(['notified_at' => null])->save();
+            $this->notifyScheduleChanged($schedule);
         }
 
         if (! empty($repeat['repeat_freq']) && ! $schedule->repeat_group) {

@@ -7,6 +7,7 @@ use App\Models\Schedule;
 use App\Models\User;
 use App\Notifications\ScheduleCreated;
 use App\Notifications\ScheduleReminder;
+use App\Notifications\ScheduleUpdated;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -159,6 +160,62 @@ class SchedulePushNotificationTest extends TestCase
         ])->assertCreated();
 
         Notification::assertNothingSent();
+    }
+
+    public function test_날짜_변경_시_변경_알림_발송_및_사전알림_리셋(): void
+    {
+        Notification::fake();
+
+        $master = $this->makeUser('master');
+        $assigneeUser = $this->makeUser();
+        $assignee = Assignee::firstWhere('user_id', $assigneeUser->id);
+        $schedule = $this->makeSchedule(['notified_at' => now()]);
+        $schedule->assignees()->attach($assignee->id);
+
+        $this->actingAs($master)->postJson("/api/events/{$schedule->id}", [
+            'start_date' => now()->addDays(3)->format('Y-m-d'),
+            'end_date' => now()->addDays(3)->format('Y-m-d'),
+        ])->assertOk();
+
+        Notification::assertSentTo($assigneeUser, ScheduleUpdated::class);
+        // 사전 알림이 새 일시 기준으로 다시 발송되도록 리셋
+        $this->assertNull($schedule->fresh()->notified_at);
+    }
+
+    public function test_제목만_변경_시_변경_알림_없음(): void
+    {
+        Notification::fake();
+
+        $master = $this->makeUser('master');
+        $assigneeUser = $this->makeUser();
+        $assignee = Assignee::firstWhere('user_id', $assigneeUser->id);
+        $schedule = $this->makeSchedule(['notified_at' => now()]);
+        $schedule->assignees()->attach($assignee->id);
+
+        $this->actingAs($master)->postJson("/api/events/{$schedule->id}", [
+            'title' => '이름만 변경',
+        ])->assertOk();
+
+        Notification::assertNothingSent();
+        $this->assertNotNull($schedule->fresh()->notified_at);
+    }
+
+    public function test_알림_대상_지정_시_해당_멤버에게만_발송(): void
+    {
+        Notification::fake();
+
+        $assigneeUser = $this->makeUser();
+        $notifyUser = $this->makeUser();
+        $assignee = Assignee::firstWhere('user_id', $assigneeUser->id);
+        $notifyTarget = Assignee::firstWhere('user_id', $notifyUser->id);
+
+        $schedule = $this->makeSchedule(['notify_assignees' => [$notifyTarget->id]]);
+        $schedule->assignees()->attach($assignee->id);
+
+        $this->artisan('schedules:notify')->assertSuccessful();
+
+        Notification::assertSentTo($notifyUser, ScheduleReminder::class);
+        Notification::assertNotSentTo($assigneeUser, ScheduleReminder::class);
     }
 
     public function test_종일_일정은_당일_오전9시_발송(): void
