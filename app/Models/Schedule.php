@@ -26,6 +26,7 @@ class Schedule extends Model
         'special_note',
         'handover_note',
         'notif_minutes',
+        'notified_at',
         'is_locked',
         'is_private',
         'special_opts',
@@ -52,6 +53,7 @@ class Schedule extends Model
         'end_date' => 'date:Y-m-d',
         'sched_after_date' => 'date:Y-m-d',
         'completed_at' => 'datetime',
+        'notified_at' => 'datetime',
     ];
 
     public function assignees()

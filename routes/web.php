@@ -24,6 +24,7 @@ use App\Http\Controllers\ProjectDocumentController;
 use App\Http\Controllers\ProjectFieldDefinitionController;
 use App\Http\Controllers\ProjectTagController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
@@ -116,6 +117,10 @@ Route::middleware('auth')->group(function () {
     });
     Route::get('/schedule-attachments/{attachment}/view', [ScheduleAttachmentController::class, 'serve'])->name('schedule-attachments.serve');
     Route::get('/schedule-attachments/{attachment}/thumb', [ScheduleAttachmentController::class, 'thumb'])->name('schedule-attachments.thumb');
+
+    // 웹푸시 구독 (일정 알림)
+    Route::post('/api/push/subscribe', [PushSubscriptionController::class, 'store']);
+    Route::delete('/api/push/subscribe', [PushSubscriptionController::class, 'destroy']);
 
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');
