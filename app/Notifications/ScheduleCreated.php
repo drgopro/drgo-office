@@ -22,11 +22,11 @@ class ScheduleCreated extends Notification
         $s = $this->schedule;
         $date = $s->start_date?->format('n/j');
         $time = $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5);
-        $body = collect([trim($date.' '.$time), $s->location])->filter()->implode(' · ');
+        $names = $s->assignees()->pluck('name')->implode(', ');
 
         return (new WebPushMessage)
-            ->title('🆕 새 일정: '.($s->title ?: '(제목 없음)'))
-            ->body($body ?: '새 일정에 담당자로 지정되었습니다.')
+            ->title('🆕 '.collect([trim(($date ?? '').' '.$time), $s->title ?: '(제목 없음)', $names])->filter()->implode(' - '))
+            ->body($s->location ?: '새 일정에 담당자로 지정되었습니다.')
             ->icon('/icon-192.png')
             ->badge('/favicon-96x96.png')
             ->tag('schedule-created-'.$s->id)

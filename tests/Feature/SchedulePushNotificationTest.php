@@ -133,6 +133,18 @@ class SchedulePushNotificationTest extends TestCase
         Notification::assertSentTo($assigneeUser, ScheduleCreated::class);
     }
 
+    public function test_알림_제목은_시간_제목_담당자_형식(): void
+    {
+        $assigneeUser = $this->makeUser();
+        $assignee = Assignee::firstWhere('user_id', $assigneeUser->id);
+        $schedule = $this->makeSchedule(['title' => '방문 세팅', 'start_time' => '13:00']);
+        $schedule->assignees()->attach($assignee->id);
+
+        $payload = (new ScheduleReminder($schedule))->toWebPush($assigneeUser)->toArray();
+
+        $this->assertSame('📅 13:00 - 방문 세팅 - '.$assignee->name, $payload['title']);
+    }
+
     public function test_담당자_없는_일정_등록은_알림_없음(): void
     {
         Notification::fake();

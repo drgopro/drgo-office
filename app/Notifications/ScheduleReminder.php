@@ -20,14 +20,12 @@ class ScheduleReminder extends Notification
     public function toWebPush(object $notifiable): WebPushMessage
     {
         $s = $this->schedule;
-        $time = $s->is_all_day
-            ? '종일'
-            : substr((string) $s->start_time, 0, 5).($s->end_time ? '~'.substr((string) $s->end_time, 0, 5) : '');
-        $body = collect([$time, $s->location])->filter()->implode(' · ');
+        $time = $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5);
+        $names = $s->assignees()->pluck('name')->implode(', ');
 
         return (new WebPushMessage)
-            ->title('📅 '.($s->title ?: '일정 알림'))
-            ->body($body ?: '곧 시작하는 일정이 있습니다.')
+            ->title('📅 '.collect([$time, $s->title ?: '(제목 없음)', $names])->filter()->implode(' - '))
+            ->body($s->location ?: '곧 시작하는 일정이 있습니다.')
             ->icon('/icon-192.png')
             ->badge('/favicon-96x96.png')
             ->tag('schedule-'.$s->id)
