@@ -281,18 +281,35 @@
     .more-badge:hover { background:rgba(200,176,138,0.15); }
     .day-cell.expanded { overflow:visible; z-index:10; position:relative; }
     /* ── 캘린더 사이드 필터 (미니멀 접이식, 데스크탑 전용) ── */
-    #calBody { display:flex; align-items:stretch; gap:12px; }
+    #calBody { display:flex; align-items:stretch; gap:8px; }
+    @media (min-width:1025px) { #calMain .calendar-wrap { padding-left:10px; } }
     #calMain { flex:1; min-width:0; }
     #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; transition:width 0.15s ease, padding 0.15s ease; }
     #calSideSticky { position:sticky; top:10px; }
-    /* 접힘: 패널을 없애고 작은 핸들 버튼만 (미니멀) */
-    #calSide.collapsed { width:26px; padding:0; border:none; background:none; }
+    /* 접힘: 슬림 레일 — 토글 버튼 + 카테고리 점 (점 클릭으로 필터 토글 가능) */
+    #calSide.collapsed { width:36px; padding:8px 5px; }
     #calSide.collapsed #calSideBody { display:none; }
+    #csRail { display:none; }
+    #calSide.collapsed #csRail { display:flex; flex-direction:column; align-items:center; gap:9px; margin-top:12px; }
+    #csRail .cs-dot { width:10px; height:10px; cursor:pointer; }
+    #csRail .cs-dot.off { opacity:0.25; }
+    #csRail .cs-dot:hover { transform:scale(1.25); }
     .cs-collapse-btn { display:block; width:22px; height:22px; margin:0 0 8px auto; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
-    #calSide.collapsed .cs-collapse-btn { margin:0; width:26px; height:26px; border-radius:8px; }
-    @media (max-width:1024px) { #calSide { display:none; } }
-    @media (min-width:1025px) { #filterBar { display:none; } }
+    #calSide.collapsed .cs-collapse-btn { margin:0 auto; width:24px; height:24px; border-radius:8px; }
+    #filterBar { display:none; } /* 카테고리/담당자 필터는 사이드 패널로 일원화 */
+    @media (max-width:1024px) {
+        /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
+        #calSide { display:none; }
+        #calSide.mobile-open { display:block; position:fixed; left:12px; bottom:70px; top:auto; width:min(280px, calc(100vw - 24px)); max-height:min(70vh, 560px); overflow-y:auto; z-index:600; box-shadow:0 12px 40px rgba(0,0,0,0.35); margin-top:0 !important; }
+        #calSide.mobile-open .cs-collapse-btn, #calSide.mobile-open #csRail { display:none; }
+        #calSide.mobile-open #calSideBody { display:block; }
+        #calSideFab { display:flex; }
+    }
+    #calSideFab { display:none; position:fixed; left:14px; bottom:16px; z-index:601; width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; }
+    #calSideFab svg { width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    #calSideBackdrop { display:none; position:fixed; inset:0; z-index:599; background:rgba(0,0,0,0.25); }
+    #calSideBackdrop.show { display:block; }
     .cs-mini-head { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; margin-bottom:8px; color:var(--text); }
     .cs-mini-nav { display:flex; gap:4px; }
     .cs-mini-nav button { background:none; border:1px solid var(--border); border-radius:6px; width:22px; height:22px; color:var(--text-muted); cursor:pointer; font-size:12px; line-height:1; }
@@ -895,6 +912,10 @@
     <div id="assigneeFilterChips" class="assignee-filter-chips"></div>
 </div>
 
+<button type="button" id="calSideFab" onclick="csToggleMobile()" title="필터/미니 달력">
+    <svg viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"></path></svg>
+</button>
+<div id="calSideBackdrop" onclick="csToggleMobile(false)"></div>
 <div id="calBody">
 <aside id="calSide">
     <div id="calSideSticky">
@@ -916,6 +937,7 @@
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
     </div>{{-- /calSideBody --}}
+    <div id="csRail"></div>
     </div>{{-- /calSideSticky --}}
 </aside>
 <div id="calMain">
@@ -1825,6 +1847,21 @@ function renderCsCats(){
     const keys = Object.keys(CS_CATS);
     document.getElementById('csOnCount').textContent = keys.filter(k => activeFilters.has(k)).length;
     document.getElementById('csCatsOn').innerHTML = keys.map(k => csCatRow(k, activeFilters.has(k))).join('');
+    // 접힘 레일: 카테고리 점 (클릭으로 토글)
+    const rail = document.getElementById('csRail');
+    if(rail) rail.innerHTML = keys.map(k =>
+        `<span class="cs-dot${activeFilters.has(k)?'':' off'}" style="background:var(--chip-${k}-bg)" onclick="csToggleCat('${k}')" title="${(CS_CATS[k].label||k).replace(/[<>&"]/g,'')}"></span>`
+    ).join('');
+}
+// 저해상도: 리모컨 패널 토글
+function csToggleMobile(force){
+    const side=document.getElementById('calSide');
+    const bd=document.getElementById('calSideBackdrop');
+    if(!side) return;
+    const open = typeof force==='boolean' ? force : !side.classList.contains('mobile-open');
+    side.classList.toggle('mobile-open', open);
+    if(bd) bd.classList.toggle('show', open);
+    if(open) renderCalSide();
 }
 function csMiniMove(dir){
     csMiniM += dir;
@@ -1894,6 +1931,7 @@ function renderCalSide(){
 function csAlignTop(){
     const side=document.getElementById('calSide');
     if(!side) return;
+    if(window.innerWidth<=1024){ side.style.marginTop='0'; return; }
     let head=null;
     if(currentView==='month') head=document.querySelector('#monthView .weekdays');
     else if(currentView==='week'||currentView==='day') head=document.querySelector('#timelineView .tl-header');
@@ -1904,14 +1942,12 @@ function csAlignTop(){
     }
     side.style.marginTop=offset?offset+'px':'0';
 }
-// 데스크탑: 담당자 필터(셀렉트+칩)를 사이드바로 이동
+// 담당자 필터(셀렉트+칩)를 사이드 패널로 이동 (전 해상도 공통)
 (function(){
-    if(window.innerWidth >= 1025){
-        const dst = document.getElementById('csAssignees');
-        const sel = document.getElementById('assigneeFilter');
-        const chips = document.getElementById('assigneeFilterChips');
-        if(dst && sel && chips){ dst.appendChild(sel); dst.appendChild(chips); }
-    }
+    const dst = document.getElementById('csAssignees');
+    const sel = document.getElementById('assigneeFilter');
+    const chips = document.getElementById('assigneeFilterChips');
+    if(dst && sel && chips){ dst.appendChild(sel); dst.appendChild(chips); }
 })();
 function isFiltered(ev){
     if (!activeFilters.has(ev.color)) return false;
