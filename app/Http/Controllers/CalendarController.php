@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
+use App\Models\User;
+use App\Notifications\ScheduleCreated;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CalendarController extends Controller
 {
@@ -145,7 +148,26 @@ class CalendarController extends Controller
             $schedule->assignees()->sync($validated['assignees']);
         }
 
+        $this->notifyAssigneesOfCreation($schedule);
+
         return response()->json($schedule, 201);
+    }
+
+    /** 등록 알림 — 담당자로 연결된 사용자에게 웹푸시 (발송 실패가 저장을 막지 않도록 보호) */
+    private function notifyAssigneesOfCreation(Schedule $schedule): void
+    {
+        try {
+            $userIds = $schedule->assignees()->pluck('user_id')->filter()->unique();
+            if ($userIds->isEmpty()) {
+                return;
+            }
+            $users = User::whereIn('id', $userIds)->where('is_active', true)->get();
+            foreach ($users as $user) {
+                $user->notify(new ScheduleCreated($schedule));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('일정 등록 푸시 발송 실패: '.$e->getMessage());
+        }
     }
 
     // 일정 수정

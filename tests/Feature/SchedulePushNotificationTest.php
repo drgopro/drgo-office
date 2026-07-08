@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Assignee;
 use App\Models\Schedule;
 use App\Models\User;
+use App\Notifications\ScheduleCreated;
 use App\Notifications\ScheduleReminder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -109,6 +110,41 @@ class SchedulePushNotificationTest extends TestCase
         $this->makeSchedule(['notif_minutes' => null]);
 
         $this->artisan('schedules:notify')->assertSuccessful();
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_일정_등록_시_담당자에게_즉시_알림(): void
+    {
+        Notification::fake();
+
+        $creator = $this->makeUser('master');
+        $assigneeUser = $this->makeUser();
+        $assignee = Assignee::firstWhere('user_id', $assigneeUser->id);
+
+        $this->actingAs($creator)->postJson('/api/events', [
+            'title' => '신규 방문 세팅',
+            'start_date' => now()->addDay()->format('Y-m-d'),
+            'end_date' => now()->addDay()->format('Y-m-d'),
+            'color' => 'gold',
+            'assignees' => [$assignee->id],
+        ])->assertCreated();
+
+        Notification::assertSentTo($assigneeUser, ScheduleCreated::class);
+    }
+
+    public function test_담당자_없는_일정_등록은_알림_없음(): void
+    {
+        Notification::fake();
+
+        $creator = $this->makeUser('master');
+
+        $this->actingAs($creator)->postJson('/api/events', [
+            'title' => '사내 업무',
+            'start_date' => now()->addDay()->format('Y-m-d'),
+            'end_date' => now()->addDay()->format('Y-m-d'),
+            'color' => 'blue',
+        ])->assertCreated();
 
         Notification::assertNothingSent();
     }
