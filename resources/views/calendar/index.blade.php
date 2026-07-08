@@ -281,14 +281,16 @@
     .more-badge:hover { background:rgba(200,176,138,0.15); }
     .day-cell.expanded { overflow:visible; z-index:10; position:relative; }
     /* ── 캘린더 사이드 필터 (미니멀 접이식, 데스크탑 전용) ── */
-    #calBody { display:flex; align-items:flex-start; gap:14px; }
+    #calBody { display:flex; align-items:stretch; gap:12px; }
     #calMain { flex:1; min-width:0; }
-    #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; position:sticky; top:10px; transition:width 0.15s ease, padding 0.15s ease; }
-    #calSide.collapsed { width:20px; padding:10px 5px; }
+    #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; transition:width 0.15s ease, padding 0.15s ease; }
+    #calSideSticky { position:sticky; top:10px; }
+    /* 접힘: 패널을 없애고 작은 핸들 버튼만 (미니멀) */
+    #calSide.collapsed { width:26px; padding:0; border:none; background:none; }
     #calSide.collapsed #calSideBody { display:none; }
     .cs-collapse-btn { display:block; width:22px; height:22px; margin:0 0 8px auto; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
-    #calSide.collapsed .cs-collapse-btn { margin:0 auto; }
+    #calSide.collapsed .cs-collapse-btn { margin:0; width:26px; height:26px; border-radius:8px; }
     @media (max-width:1024px) { #calSide { display:none; } }
     @media (min-width:1025px) { #filterBar { display:none; } }
     .cs-mini-head { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; margin-bottom:8px; color:var(--text); }
@@ -860,10 +862,9 @@
                 <button onclick="toggleCalMenu();openTrashModal()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="trash" :size="13"/> 휴지통</button>
                 @endif
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-                <div class="cal-fontsize" title="글자 크기 조절 (월간 뷰)" style="display:flex;align-items:center;gap:8px;padding:8px 14px;">
-                    <span style="font-size:12px;color:var(--text-muted);flex:1;">글자 크기</span>
+                <div class="cal-fontsize" title="글자 크기 조절 (월간 뷰)" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 14px;background:none;">
                     <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
-                    <span id="calFontLabel" style="font-size:11px;color:var(--text-muted);">100%</span>
+                    <span id="calFontLabel" style="font-size:11px;color:var(--text-muted);min-width:34px;text-align:center;">100%</span>
                     <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
                 </div>
                 @if(Auth::user()->hasPermission('calendar.edit') && Auth::user()->hasPermission('calendar.backup'))
@@ -896,6 +897,7 @@
 
 <div id="calBody">
 <aside id="calSide">
+    <div id="calSideSticky">
     <button type="button" class="cs-collapse-btn" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기">«</button>
     <div id="calSideBody">
     <div class="cs-mini-head">
@@ -914,6 +916,7 @@
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
     </div>{{-- /calSideBody --}}
+    </div>{{-- /calSideSticky --}}
 </aside>
 <div id="calMain">
 
