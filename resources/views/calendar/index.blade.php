@@ -1884,9 +1884,25 @@ function csToggleSide(){
     }catch(e){}
 })();
 function renderCalSide(){
-    if(!document.getElementById('calSide')) return;
+    const side=document.getElementById('calSide');
+    if(!side) return;
     renderCsMini();
     renderCsCats();
+    csAlignTop();
+}
+// 사이드바 상단을 요일 헤더 아래(그리드 시작선)에 맞춤
+function csAlignTop(){
+    const side=document.getElementById('calSide');
+    if(!side) return;
+    let head=null;
+    if(currentView==='month') head=document.querySelector('#monthView .weekdays');
+    else if(currentView==='week'||currentView==='day') head=document.querySelector('#timelineView .tl-header');
+    let offset=0;
+    if(head && head.offsetHeight){
+        const bodyTop=document.getElementById('calBody').getBoundingClientRect().top;
+        offset=Math.max(0, Math.round(head.getBoundingClientRect().bottom - bodyTop));
+    }
+    side.style.marginTop=offset?offset+'px':'0';
 }
 // 데스크탑: 담당자 필터(셀렉트+칩)를 사이드바로 이동
 (function(){
