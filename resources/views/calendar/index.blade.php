@@ -294,9 +294,9 @@
     #csRail .cs-dot { width:10px; height:10px; cursor:pointer; }
     #csRail .cs-dot.off { opacity:0.25; }
     #csRail .cs-dot:hover { transform:scale(1.25); }
-    .cs-collapse-btn { display:block; width:22px; height:22px; margin:0 0 8px auto; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
+    .cs-collapse-btn { display:block; width:22px; height:22px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
-    #calSide.collapsed .cs-collapse-btn { margin:0 auto; width:24px; height:24px; border-radius:8px; }
+    #csRail .cs-collapse-btn { margin:0 auto 2px; width:24px; height:24px; border-radius:8px; }
     #filterBar { display:none; } /* 카테고리/담당자 필터는 사이드 패널로 일원화 */
     @media (max-width:1024px) {
         /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
@@ -314,12 +314,17 @@
     .cs-mini-nav { display:flex; gap:4px; }
     .cs-mini-nav button { background:none; border:1px solid var(--border); border-radius:6px; width:22px; height:22px; color:var(--text-muted); cursor:pointer; font-size:12px; line-height:1; }
     .cs-mini-nav button:hover { color:var(--text); border-color:var(--text-muted); }
-    .cs-mini-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center; }
+    .cs-mini-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px 0; text-align:center; }
     .cs-mini-dow { font-size:10px; color:var(--text-muted); margin-bottom:3px; }
     .cs-mini-day { font-size:11px; padding:4px 0; border-radius:7px; cursor:pointer; color:var(--text); }
     .cs-mini-day:hover { background:var(--surface2); }
     .cs-mini-day.dim { color:var(--text-muted); opacity:0.4; }
     .cs-mini-day.sel { box-shadow:inset 0 0 0 1.5px var(--accent); }
+    /* 주간 선택: 한 줄 연속 밴드 */
+    .cs-mini-day.selr { background:color-mix(in srgb, var(--accent) 14%, transparent); border-radius:0; }
+    .cs-mini-day.selr.sel-start { border-radius:7px 0 0 7px; }
+    .cs-mini-day.selr.sel-end { border-radius:0 7px 7px 0; }
+    .cs-mini-day.selr.today, .cs-mini-day.today { background:var(--accent); border-radius:7px; }
     .cs-mini-day.today { background:var(--accent); color:var(--accent-text,#fff); font-weight:700; }
     [data-theme="light"] .cs-mini-day.today { color:#fff; }
     .cs-divider { height:1px; background:var(--border); margin:12px 0; }
@@ -919,13 +924,13 @@
 <div id="calBody">
 <aside id="calSide">
     <div id="calSideSticky">
-    <button type="button" class="cs-collapse-btn" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기">«</button>
     <div id="calSideBody">
     <div class="cs-mini-head">
         <span id="csMiniLabel"></span>
         <span class="cs-mini-nav">
             <button type="button" onclick="csMiniMove(-1)" title="이전 달">‹</button>
             <button type="button" onclick="csMiniMove(1)" title="다음 달">›</button>
+            <button type="button" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기">«</button>
         </span>
     </div>
     <div class="cs-mini-grid cs-mini-dow"><span style="color:#e06c6c;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#5b8def;">토</span></div>
@@ -1849,7 +1854,7 @@ function renderCsCats(){
     document.getElementById('csCatsOn').innerHTML = keys.map(k => csCatRow(k, activeFilters.has(k))).join('');
     // 접힘 레일: 카테고리 점 (클릭으로 토글)
     const rail = document.getElementById('csRail');
-    if(rail) rail.innerHTML = keys.map(k =>
+    if(rail) rail.innerHTML = '<button type="button" class="cs-collapse-btn" onclick="csToggleSide()" title="필터 펼치기">»</button>' + keys.map(k =>
         `<span class="cs-dot${activeFilters.has(k)?'':' off'}" style="background:var(--chip-${k}-bg)" onclick="csToggleCat('${k}')" title="${(CS_CATS[k].label||k).replace(/[<>&"]/g,'')}"></span>`
     ).join('');
 }
@@ -1887,16 +1892,22 @@ function renderCsMini(){
     const today = todayStr();
     // 현재 뷰 기준 강조: 일간=해당 일, 주간=주 범위
     const selSet = new Set();
+    let weekBand = null; // 주간: 연속 밴드 시작/끝
     if(currentView === 'day'){ selSet.add(fmt(currentDay)); }
     else if(currentView === 'week'){
-        for(let i=0;i<7;i++){ const d=new Date(currentWeekStart); d.setDate(d.getDate()+i); selSet.add(fmt(d)); }
+        const days=[];
+        for(let i=0;i<7;i++){ const d=new Date(currentWeekStart); d.setDate(d.getDate()+i); days.push(fmt(d)); }
+        weekBand = { set:new Set(days), start:days[0], end:days[6] };
     }
     let html = '';
     const cur = new Date(start);
     for(let i=0;i<42;i++){
         const ds = fmt(cur);
         const dim = cur.getMonth() !== csMiniM;
-        const cls = ['cs-mini-day', dim?'dim':'', ds===today?'today':'', (ds!==today&&selSet.has(ds))?'sel':''].filter(Boolean).join(' ');
+        const inBand = weekBand && weekBand.set.has(ds);
+        const cls = ['cs-mini-day', dim?'dim':'', ds===today?'today':'',
+            inBand?'selr':'', (inBand&&ds===weekBand.start)?'sel-start':'', (inBand&&ds===weekBand.end)?'sel-end':'',
+            (!inBand&&ds!==today&&selSet.has(ds))?'sel':''].filter(Boolean).join(' ');
         html += `<span class="${cls}" onclick="csGoDate('${ds}')">${cur.getDate()}</span>`;
         cur.setDate(cur.getDate()+1);
         if(i>=34 && cur.getMonth()!==csMiniM && cur.getDay()===0) break; // 마지막 주가 전부 다음달이면 생략
@@ -1908,15 +1919,14 @@ function csToggleSide(){
     const side=document.getElementById('calSide');
     if(!side) return;
     const collapsed=side.classList.toggle('collapsed');
-    document.getElementById('csCollapseBtn').textContent=collapsed?'»':'«';
-    document.getElementById('csCollapseBtn').title=collapsed?'필터 펼치기':'필터 접기';
     try{ localStorage.setItem(CS_COLLAPSE_KEY, collapsed?'1':''); }catch(e){}
+    renderCalSide();
 }
 (function(){
     try{
         if(localStorage.getItem(CS_COLLAPSE_KEY)==='1'){
             const side=document.getElementById('calSide');
-            if(side){ side.classList.add('collapsed'); const btn=document.getElementById('csCollapseBtn'); if(btn){btn.textContent='»';btn.title='필터 펼치기';} }
+            if(side) side.classList.add('collapsed');
         }
     }catch(e){}
 })();
@@ -1941,6 +1951,13 @@ function csAlignTop(){
         offset=Math.max(0, Math.round(head.getBoundingClientRect().bottom - bodyTop));
     }
     side.style.marginTop=offset?offset+'px':'0';
+    // 패널 하단을 그리드 하단과 일치 (주간 24h 그리드 등 뷰별 높이 대응)
+    const main=document.getElementById('calMain');
+    if(main && main.offsetHeight){
+        side.style.height=Math.max(0, main.offsetHeight-offset)+'px';
+    } else {
+        side.style.height='';
+    }
 }
 // 담당자 필터(셀렉트+칩)를 사이드 패널로 이동 (전 해상도 공통)
 (function(){
