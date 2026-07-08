@@ -219,6 +219,10 @@
     .chip-ship { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:800; line-height:1; }
     /* 옵션 아이콘 (주/일간·목록·팝업 공용) */
     .ev-opt-ico { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); margin-left:4px; letter-spacing:1px; }
+    .opt-chip { display:inline-flex; align-items:center; flex-shrink:0; font-size:calc(9px * var(--cal-fz,1)); font-weight:700; padding:1px 5px; border-radius:5px; background:rgba(127,127,127,0.16); border:1px solid rgba(127,127,127,0.28); color:inherit; margin-left:3px; line-height:1.4; vertical-align:middle; }
+    .opt-chip.accent { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
+    .opt-chip.urgent { background:#ef444426; border-color:#ef444466; color:#e06c6c; }
+    .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:10px; }
     .tl-ev-title { font-weight:600; }
     .tl-ev-assignee { font-size:9px; opacity:0.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
     /* 리스트 제목 옆 배송 아이콘 (담당자보다 앞) */
@@ -279,7 +283,12 @@
     /* ── 캘린더 사이드 필터 (미니멀 접이식, 데스크탑 전용) ── */
     #calBody { display:flex; align-items:flex-start; gap:14px; }
     #calMain { flex:1; min-width:0; }
-    #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; position:sticky; top:10px; }
+    #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; position:sticky; top:10px; transition:width 0.15s ease, padding 0.15s ease; }
+    #calSide.collapsed { width:20px; padding:10px 5px; }
+    #calSide.collapsed #calSideBody { display:none; }
+    .cs-collapse-btn { display:block; width:22px; height:22px; margin:0 0 8px auto; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
+    .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
+    #calSide.collapsed .cs-collapse-btn { margin:0 auto; }
     @media (max-width:1024px) { #calSide { display:none; } }
     @media (min-width:1025px) { #filterBar { display:none; } }
     .cs-mini-head { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; margin-bottom:8px; color:var(--text); }
@@ -679,8 +688,9 @@
         .day-num { margin:0 auto; width:30px; height:30px; font-size:14px; border-radius:50%; transition:background .12s; position:relative; }
         .holiday-label { display:none; } /* 공휴일명 숨김 — 숫자 색으로 구분 */
         /* 일정 있음 점 */
-        .day-cell.m-has-ev::after { content:''; display:block; width:5px; height:5px; border-radius:50%; background:var(--accent); margin:3px auto 0; }
-        .day-cell.other-month.m-has-ev::after { opacity:0.4; }
+        .m-dots { display:flex; gap:2px; justify-content:center; margin-top:3px; }
+        .m-dots i { width:5px; height:5px; border-radius:50%; display:block; }
+        .day-cell.other-month .m-dots i { opacity:0.4; }
         /* 오늘: 연한 원 / 선택: 채운 원 */
         .day-cell.today .day-num { background:var(--surface3); color:var(--text) !important; }
         .day-cell.mobile-selected { background:none; }
@@ -695,7 +705,8 @@
         .day-cell .event-chip .chip-title { display:inline; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
         .day-cell .event-chip .chip-time { display:inline; font-size:8px; opacity:0.8; flex-shrink:0; }
         .day-cell .event-chip .chip-special, .day-cell .event-chip .chip-badges,
-        .day-cell .event-chip .sched-icon-badge, .day-cell .event-chip .ev-assignee-badge { display:none; }
+        .day-cell .event-chip .sched-icon-badge, .day-cell .event-chip .ev-assignee-badge,
+        .day-cell .event-chip .opt-chip { display:none; }
         .day-cell .event-chip.single { border-left:none; color:var(--text); }
         {{-- 모바일 칩: PC처럼 연한 틴트로 (원색 배경은 가독성 저하) --}}
         @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
@@ -717,13 +728,15 @@
         /* 하단 일정 리스트 */
         .mobile-day-events { display:block; padding:12px; border-top:1px solid var(--border); background:var(--surface); }
         .mobile-day-events .mde-header { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:10px; }
-        .mobile-day-events .mde-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; cursor:pointer; transition:background 0.15s; min-height:44px; }
+        .mobile-day-events .mde-item { display:flex; align-items:flex-start; gap:10px; padding:12px 4px; border:none; border-bottom:1px solid var(--border); border-radius:0; margin-bottom:0; cursor:pointer; transition:background 0.15s; min-height:44px; }
+        .mobile-day-events .mde-item:last-child { border-bottom:none; }
         .mobile-day-events .mde-item:hover { background:var(--surface2); }
-        .mobile-day-events .mde-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .mobile-day-events .mde-time { width:42px; flex-shrink:0; font-size:12px; font-weight:700; color:var(--text-muted); padding-top:1px; }
+        .mobile-day-events .mde-bar { width:4px; align-self:stretch; min-height:30px; border-radius:2px; flex-shrink:0; }
         .mobile-day-events .mde-info { flex:1; min-width:0; }
         .mobile-day-events .mde-title-row { display:flex; align-items:flex-start; gap:8px; }
         /* 팝업뷰와 동일: 폰트 축소 + 2줄까지 줄바꿈 */
-        .mobile-day-events .mde-title { font-size:12px; font-weight:500; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
+        .mobile-day-events .mde-title { font-size:13px; font-weight:600; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
         .mobile-day-events .mde-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .mobile-day-events .mde-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
         .mobile-day-events .mde-empty { text-align:center; padding:20px; color:var(--text-muted); font-size:13px; }
@@ -734,7 +747,7 @@
         /* 다일 제목 오버레이: 모바일에서도 바 전체 폭으로 흐르게 (크기만 축소) */
         .mday-title-overlay { font-size:9px; padding:0 4px; gap:2px; }
         .mday-title-overlay .chip-badges, .mday-title-overlay .ev-assignee-badge,
-        .mday-title-overlay .sched-icon-badge, .mday-title-overlay .chip-special { display:none; }
+        .mday-title-overlay .sched-icon-badge, .mday-title-overlay .chip-special, .mday-title-overlay .opt-chip { display:none; }
 
         /* 모달 모바일 */
         .modal { max-width:95vw; border-radius:12px; }
@@ -883,6 +896,8 @@
 
 <div id="calBody">
 <aside id="calSide">
+    <button type="button" class="cs-collapse-btn" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기">«</button>
+    <div id="calSideBody">
     <div class="cs-mini-head">
         <span id="csMiniLabel"></span>
         <span class="cs-mini-nav">
@@ -898,6 +913,7 @@
     <div class="cs-divider"></div>
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
+    </div>{{-- /calSideBody --}}
 </aside>
 <div id="calMain">
 
@@ -1696,13 +1712,18 @@ function shipStatusIcon(ev){
 }
 // 일정 옵션(빠름/긴급/AS이후) 아이콘 맵
 const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→'};
+// 텍스트 미니 칩 라벨 (아이콘 식별이 어렵다는 피드백으로 텍스트화)
+const OPT_CHIP_LABELS={car:'차량',brief:'제품',group:'2인',ladder:'사다리',pet:'반려'};
+const SCHED_CHIP_LABELS={suggest:'제안',hope:'희망',target:'목표'};
+const SCHED_EVENT_CHIP_LABELS={fast:'빠른',urgent:'긴급',after:'이후'};
+function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''}"${title?` title="${title}"`:''}>${label}</span>`; }
 // 특수옵션 + 세부유형 + 일정옵션 아이콘 묶음 — 주/일간·목록·팝업 뷰 공용
 function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
-    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="ev-opt-ico" title="${(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o}">${SPECIAL_ICONS[o]}</span>`; });
-    if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) h+=`<span class="ev-opt-ico">${SCHED_ICONS[ev.sched_opt]}</span>`;
-    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="ev-opt-ico">${SCHED_EVENT_ICONS[o]}</span>`; });
+    (ev.special_opts||[]).forEach(o=>{ if(OPT_CHIP_LABELS[o]) h+=optChip(OPT_CHIP_LABELS[o],'',(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o); });
+    if(ev.sched_opt&&SCHED_CHIP_LABELS[ev.sched_opt]) h+=optChip(SCHED_CHIP_LABELS[ev.sched_opt],'accent');
+    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_CHIP_LABELS[o]) h+=optChip(SCHED_EVENT_CHIP_LABELS[o],o==='urgent'?'urgent':''); });
     return h;
 }
 // 이사세팅 여부
@@ -1842,6 +1863,23 @@ function renderCsMini(){
     }
     grid.innerHTML = html;
 }
+const CS_COLLAPSE_KEY='calSideFilterCollapsed';
+function csToggleSide(){
+    const side=document.getElementById('calSide');
+    if(!side) return;
+    const collapsed=side.classList.toggle('collapsed');
+    document.getElementById('csCollapseBtn').textContent=collapsed?'»':'«';
+    document.getElementById('csCollapseBtn').title=collapsed?'필터 펼치기':'필터 접기';
+    try{ localStorage.setItem(CS_COLLAPSE_KEY, collapsed?'1':''); }catch(e){}
+}
+(function(){
+    try{
+        if(localStorage.getItem(CS_COLLAPSE_KEY)==='1'){
+            const side=document.getElementById('calSide');
+            if(side){ side.classList.add('collapsed'); const btn=document.getElementById('csCollapseBtn'); if(btn){btn.textContent='»';btn.title='필터 펼치기';} }
+        }
+    }catch(e){}
+})();
 function renderCalSide(){
     if(!document.getElementById('calSide')) return;
     renderCsMini();
@@ -1908,14 +1946,14 @@ function buildChipHtml(ev){
     let html='';
     const time=ev.start_time?ev.start_time.substring(0,5):'';
     if(time) html+=`<span class="chip-time">${time}</span>`;
-    // 특수 아이콘
+    // 특수 옵션 미니 칩 (텍스트)
     const specOpts=ev.special_opts||[];
-    specOpts.forEach(o=>{if(SPECIAL_ICONS[o]) html+=`<span class="chip-special">${SPECIAL_ICONS[o]}</span>`;});
+    specOpts.forEach(o=>{if(OPT_CHIP_LABELS[o]) html+=optChip(OPT_CHIP_LABELS[o],'chip-special',(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o);});
     // 제목 (의뢰자 이름은 표시하지 않음). flex:1로 늘어나서 담당자 배지를 우측으로 밀어냄
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
     html+=`<span class="chip-title">${title}</span>`;
     // 일정 관련 아이콘
-    if(ev.sched_opt&&SCHED_ICONS[ev.sched_opt]) html+=`<span class="sched-icon-badge">${SCHED_ICONS[ev.sched_opt]}</span>`;
+    if(ev.sched_opt&&SCHED_CHIP_LABELS[ev.sched_opt]) html+=optChip(SCHED_CHIP_LABELS[ev.sched_opt],'accent sched-icon-badge');
     // 배송 상태: 등록만 ✕ / 일부 완료 △ / 전부 완료 ○
     if(ev.shipments_count>0){
         const shD=ev.shipments_delivered_count||0, shT=ev.shipments_count;
@@ -2375,8 +2413,16 @@ function renderMonth() {
 
             // 모바일 간소화: 칩/바 없이 일정 유무 점만 표시, 상세는 하단 리스트에서
             if(isMobileCal){
-                const hasEv=events.some(ev=>isFiltered(ev)&&_d(ev.start_date)<=cell.full&&evEnd(ev)>=cell.full);
-                if(hasEv) div.classList.add('m-has-ev');
+                // 그날 일정의 카테고리 색 점 (중복 제거, 최대 3개)
+                const dayCats=[];
+                events.forEach(ev=>{
+                    if(!isFiltered(ev)||_d(ev.start_date)>cell.full||evEnd(ev)<cell.full) return;
+                    if(!dayCats.includes(ev.color)) dayCats.push(ev.color);
+                });
+                if(dayCats.length){
+                    div.classList.add('m-has-ev');
+                    div.innerHTML+=`<div class="m-dots">${dayCats.slice(0,3).map(c=>`<i style="background:${chipColor(c)}"></i>`).join('')}</div>`;
+                }
                 div.addEventListener('click',e=>{
                     if(suppressCellClick){ suppressCellClick=false; return; }
                     selectMobileDay(cell.full);
@@ -2536,23 +2582,38 @@ function renderMobileDayEvents(dateStr){
         return;
     }
     const items=dayEvs.map(ev=>{
-        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'시간 미정');
+        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'—');
         const title=ev.title||'(제목 없음)';
         const assignees=assigneeNamesOf(ev).join(', ');
         const moveHtml=moveAddrLinesHtml(ev);
+        const catLabel=(typeof CS_CATS!=='undefined'&&CS_CATS[ev.color]&&CS_CATS[ev.color].label)||'';
+        const dur=evDurationLabel(ev);
+        const sub=[catLabel,dur,(!moveHtml&&ev.location)?ev.location:''].filter(Boolean).join(' · ');
         return `<div class="mde-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
-            <div class="mde-dot" style="background:${chipColor(ev.color)}"></div>
+            <div class="mde-time">${time}</div>
+            <div class="mde-bar" style="background:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
                     <div class="mde-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</div>
                     ${assignees?`<span class="mde-assignee">${_esc(assignees)}</span>`:''}
                 </div>
-                <div class="mde-meta">${time}${(!moveHtml&&ev.location)?' · '+_esc(ev.location):''}</div>
+                ${sub?`<div class="mde-meta">${_esc(sub)}</div>`:''}
                 ${moveHtml}
             </div>
         </div>`;
     }).join('');
-    container.innerHTML=`<div class="mde-header">${header}</div>${items}`;
+    container.innerHTML=`<div class="mde-header">${header} <span style="font-weight:500;color:var(--text-muted);">· ${dayEvs.length}건</span></div>${items}`;
+}
+
+// 소요시간 라벨 (예: 1시간 / 1시간 30분)
+function evDurationLabel(ev){
+    if(ev.is_all_day||!ev.start_time||!ev.end_time) return '';
+    const [sh,sm]=ev.start_time.split(':').map(Number);
+    const [eh,em]=ev.end_time.split(':').map(Number);
+    let m=(eh*60+em)-(sh*60+sm);
+    if(!(m>0)) return '';
+    const h=Math.floor(m/60), mm=m%60;
+    return (h?h+'시간':'')+(mm?(h?' ':'')+mm+'분':'');
 }
 
 // ── 주간/일간 타임라인 ───────────────────────────────────────────
