@@ -50,6 +50,7 @@
 
     .cal-header { padding:16px 24px; display:flex; justify-content:space-between; align-items:center; gap:12px 16px; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; }
     .cal-header-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .cal-title-xl { font-size:19px; font-weight:800; letter-spacing:-0.01em; margin-right:2px; }
     .cal-header-right { flex-wrap:wrap; }
     /* 헤더 버튼: 절대 줄바꿈/찌그러짐 없이 한 줄 유지, 공간 부족 시 그룹 단위로 다음 줄로 래핑 */
     .cal-header .nav-btn, .cal-header .add-btn, .cal-header .view-toggle-btn, .cal-header .month-label { white-space:nowrap; flex-shrink:0; }
@@ -297,13 +298,8 @@
     .cs-sec-title { font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:6px; letter-spacing:0.03em; }
     .cs-cat { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:8px; font-size:12.5px; cursor:pointer; color:var(--text); user-select:none; }
     .cs-cat:hover { background:var(--surface2); }
-    .cs-cat.off { color:var(--text-muted); }
-    .cs-cat.off .cs-dot { opacity:0.35; }
+    .cs-cat.off { opacity:0.38; }
     .cs-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-    .cs-hidden-row { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-muted); cursor:pointer; padding:6px 8px; border-radius:8px; user-select:none; }
-    .cs-hidden-row:hover { background:var(--surface2); }
-    .cs-hidden-dots { display:inline-flex; gap:3px; margin-left:2px; }
-    .cs-hidden-dots .cs-dot { width:7px; height:7px; opacity:0.45; }
     #calSide .assignee-filter { width:100%; margin-bottom:6px; box-sizing:border-box; }
     #calSide .assignee-filter-chips { width:100%; }
 
@@ -821,50 +817,54 @@
 @section('content')
 <div class="cal-header">
     <div class="cal-header-left">
-        <span class="app-title">Calendar</span>
-        <button class="nav-btn" onclick="changeYear(-1)" title="이전 년도">«</button>
-        <button class="nav-btn" onclick="changePeriod(-1)">‹</button>
-        <div class="month-label" id="periodTitle"></div>
-        <button class="nav-btn" onclick="changePeriod(1)">›</button>
-        <button class="nav-btn" onclick="changeYear(1)" title="다음 년도">»</button>
-        <button class="nav-btn" onclick="goToday()" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;">TODAY</button>
-        <div class="view-toggle-group">
-            <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월간</button>
-            <button class="view-toggle-btn"        id="tabWeek"  onclick="switchView('week')">주간</button>
-            <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일간</button>
-            <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
-        </div>
+        <div class="month-label cal-title-xl" id="periodTitle"></div>
+        <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
+        <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
+        <button class="nav-btn" onclick="goToday()" style="font-size:12px;font-weight:600;width:auto;padding:0 14px;">오늘</button>
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         @if(!Auth::user()->isGuest())
-        <div class="cal-search-wrap" id="calSearchWrap">
-            <input class="cal-search-input" id="calSearchInput" placeholder="🔍 일정 검색 (Enter)" autocomplete="off"
+        <button class="nav-btn" id="calSearchBtn" onclick="toggleCalSearch()" title="일정 검색"><x-icon name="search" :size="14"/></button>
+        <div class="cal-search-wrap" id="calSearchWrap" style="display:none;">
+            <input class="cal-search-input" id="calSearchInput" placeholder="일정 검색 (Enter)" autocomplete="off"
                 onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
         </div>
         @endif
-        <div class="cal-fontsize" title="글자 크기 조절">
-            <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
-            <span id="calFontLabel">100%</span>
-            <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
+        <div class="view-toggle-group">
+            <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월</button>
+            <button class="view-toggle-btn"        id="tabWeek"  onclick="switchView('week')">주</button>
+            <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일</button>
+            <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
         </div>
-        <button class="nav-btn" onclick="location.href='/calendar/history'" title="캘린더 이력 보기" style="font-size:11px;letter-spacing:0.05em;width:auto;padding:0 10px;"><x-icon name="clip" :size="13"/> 캘린더 이력</button>
         @if(Auth::user()->hasPermission('calendar.edit'))
-            <button class="nav-btn" onclick="openTrashModal()" title="휴지통" style="font-size:13px;width:auto;padding:0 10px;"><x-icon name="trash" :size="13"/> 휴지통</button>
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
-            @if(Auth::user()->hasPermission('calendar.backup'))
-            <div style="position:relative;">
-                <button class="nav-btn" onclick="toggleCalMenu()" title="내보내기/가져오기" style="font-size:14px;">⋯</button>
-                <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-                    <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
-                    <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> iCal 내보내기</button>
-                    <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-                    <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> JSON 가져오기</button>
-                    <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> iCal 가져오기</button>
+        @endif
+        <div style="position:relative;">
+            <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:14px;">⋯</button>
+            <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+                <button onclick="location.href='/calendar/history'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="clip" :size="13"/> 캘린더 이력</button>
+                @if(Auth::user()->hasPermission('calendar.edit'))
+                <button onclick="toggleCalMenu();openTrashModal()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="trash" :size="13"/> 휴지통</button>
+                @endif
+                <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+                <div class="cal-fontsize" title="글자 크기 조절 (월간 뷰)" style="display:flex;align-items:center;gap:8px;padding:8px 14px;">
+                    <span style="font-size:12px;color:var(--text-muted);flex:1;">글자 크기</span>
+                    <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
+                    <span id="calFontLabel" style="font-size:11px;color:var(--text-muted);">100%</span>
+                    <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
                 </div>
+                @if(Auth::user()->hasPermission('calendar.edit') && Auth::user()->hasPermission('calendar.backup'))
+                <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+                <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
+                <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> iCal 내보내기</button>
+                <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> JSON 가져오기</button>
+                <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> iCal 가져오기</button>
+                @endif
             </div>
-            <input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importFile('json',this)">
-            <input type="file" id="icalImportInput" accept=".ics,.ical" style="display:none" onchange="importFile('ical',this)">
-            @endif
+        </div>
+        @if(Auth::user()->hasPermission('calendar.edit') && Auth::user()->hasPermission('calendar.backup'))
+        <input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importFile('json',this)">
+        <input type="file" id="icalImportInput" accept=".ics,.ical" style="display:none" onchange="importFile('ical',this)">
         @endif
     </div>
 </div>
@@ -895,11 +895,6 @@
     <div class="cs-divider"></div>
     <div class="cs-sec-title">표시 중 · <span id="csOnCount">0</span></div>
     <div id="csCatsOn"></div>
-    <div class="cs-hidden-row" id="csHiddenRow" style="display:none;" onclick="csToggleHiddenOpen()">
-        <span id="csHiddenCaret">▸</span> 숨김 <span id="csOffCount">0</span>
-        <span class="cs-hidden-dots" id="csHiddenDots"></span>
-    </div>
-    <div id="csCatsOff" style="display:none;"></div>
     <div class="cs-divider"></div>
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
@@ -1773,7 +1768,6 @@ function toggleFilter(btn){
 const CS_CATS = @json(\App\Models\CalendarCategory::map());
 const CS_HIDDEN_KEY = 'calHiddenCats';
 let csMiniY = null, csMiniM = null; // 미니 달력 표시 월
-let csHiddenOpen = false;
 
 // 저장된 숨김 카테고리 복원 (존재하는 키만)
 (function(){
@@ -1797,35 +1791,16 @@ function csToggleCat(k){
     csSaveHidden();
     renderView();
 }
-function csToggleHiddenOpen(){
-    csHiddenOpen = !csHiddenOpen;
-    renderCalSide();
-}
 function csCatRow(k, on){
     const c = CS_CATS[k];
-    return `<div class="cs-cat${on?'':' off'}" onclick="csToggleCat('${k}')" title="${on?'클릭하여 숨김':'클릭하여 표시'}">
+    return `<div class="cs-cat${on?'':' off'}" onclick="csToggleCat('${k}')" title="${on?'클릭하여 끄기':'클릭하여 켜기'}">
         <span class="cs-dot" style="background:var(--chip-${k}-bg)"></span>${(c.label||k).replace(/[<>&]/g,'')}
     </div>`;
 }
 function renderCsCats(){
-    const onKeys = Object.keys(CS_CATS).filter(k => activeFilters.has(k));
-    const offKeys = Object.keys(CS_CATS).filter(k => !activeFilters.has(k));
-    document.getElementById('csOnCount').textContent = onKeys.length;
-    document.getElementById('csCatsOn').innerHTML = onKeys.map(k => csCatRow(k,true)).join('') || '<div style="font-size:11.5px;color:var(--text-muted);padding:4px 8px;">모두 숨김 상태입니다</div>';
-    const row = document.getElementById('csHiddenRow');
-    if(offKeys.length){
-        row.style.display = 'flex';
-        document.getElementById('csOffCount').textContent = offKeys.length;
-        document.getElementById('csHiddenCaret').textContent = csHiddenOpen ? '▾' : '▸';
-        document.getElementById('csHiddenDots').innerHTML = csHiddenOpen ? '' : offKeys.map(k => `<span class="cs-dot" style="background:var(--chip-${k}-bg)"></span>`).join('');
-        const off = document.getElementById('csCatsOff');
-        off.style.display = csHiddenOpen ? 'block' : 'none';
-        off.innerHTML = offKeys.map(k => csCatRow(k,false)).join('');
-    } else {
-        row.style.display = 'none';
-        document.getElementById('csCatsOff').style.display = 'none';
-        csHiddenOpen = false;
-    }
+    const keys = Object.keys(CS_CATS);
+    document.getElementById('csOnCount').textContent = keys.filter(k => activeFilters.has(k)).length;
+    document.getElementById('csCatsOn').innerHTML = keys.map(k => csCatRow(k, activeFilters.has(k))).join('');
 }
 function csMiniMove(dir){
     csMiniM += dir;
@@ -2086,8 +2061,9 @@ window.addEventListener('resize',()=>{
 function switchView(view) {
     agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
     currentView = view;
-    const LABEL={month:'월간',week:'주간',day:'일간',list:'목록'};
-    document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===LABEL[view]));
+    const TAB_IDS={month:'tabMonth',week:'tabWeek',day:'tabDay',list:'tabList'};
+    document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(TAB_IDS[view])?.classList.add('active');
     document.getElementById('monthView').style.display    = view==='month' ? '' : 'none';
     document.getElementById('timelineView').style.display = (view==='week'||view==='day') ? '' : 'none';
     document.getElementById('listView').style.display     = view==='list' ? '' : 'none';
@@ -2123,6 +2099,13 @@ function changePeriod(dir) {
     renderView(); loadEvents();
 }
 
+function toggleCalSearch(){
+    const w=document.getElementById('calSearchWrap');
+    if(!w) return;
+    const show=w.style.display==='none';
+    w.style.display=show?'':'none';
+    if(show) setTimeout(()=>document.getElementById('calSearchInput')?.focus(),0);
+}
 function goToday() {
     const now = new Date();
     currentYear=now.getFullYear(); currentMonth=now.getMonth();
