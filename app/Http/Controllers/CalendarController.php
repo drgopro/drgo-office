@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class CalendarController extends Controller
 {
@@ -137,8 +138,17 @@ class CalendarController extends Controller
             'sched_after_reason' => 'nullable|string|max:300',
             'notif_minutes' => 'nullable|string|max:10',
             'is_locked' => 'boolean',
+            'repeat_freq' => 'nullable|in:daily,weekly,monthly,custom',
+            'repeat_interval' => 'nullable|integer|min:1|max:99',
+            'repeat_unit' => 'nullable|in:day,week,month',
+            'repeat_until' => 'nullable|date|after:start_date|required_with:repeat_freq',
+        ], [
+            'repeat_until.required_with' => '반복 종료일을 선택해주세요.',
+            'repeat_until.after' => '반복 종료일이 시작일보다 늦어야 합니다.',
         ]);
 
+        $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
+        $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated['created_by'] = Auth::id();
 
         $schedule = Schedule::create($validated);
@@ -148,9 +158,56 @@ class CalendarController extends Controller
             $schedule->assignees()->sync($validated['assignees']);
         }
 
+        if (! empty($repeat['repeat_freq'])) {
+            $this->createRepeatOccurrences($schedule, $repeat);
+        }
+
         $this->notifyAssigneesOfCreation($schedule);
 
         return response()->json($schedule, 201);
+    }
+
+    /**
+     * 반복 일정 생성 — 기준 일정을 종료일까지 복제 (최대 60회, 그룹 uuid 공유).
+     *
+     * @param  array{repeat_freq:string, repeat_interval?:int|string|null, repeat_unit?:string|null, repeat_until:string}  $repeat
+     */
+    private function createRepeatOccurrences(Schedule $base, array $repeat): void
+    {
+        $group = (string) Str::uuid();
+        $base->update(['repeat_group' => $group]);
+
+        $start = Carbon::parse($base->start_date->format('Y-m-d'));
+        $spanDays = $start->diffInDays(Carbon::parse($base->end_date->format('Y-m-d')));
+        $until = Carbon::parse($repeat['repeat_until'])->min($start->copy()->addYear());
+        $interval = max(1, (int) ($repeat['repeat_interval'] ?? 1));
+        $assigneeIds = $base->assignees()->pluck('assignees.id')->all();
+
+        for ($i = 1; $i <= 60; $i++) {
+            $next = match ($repeat['repeat_freq']) {
+                'daily' => $start->copy()->addDays($i),
+                'weekly' => $start->copy()->addWeeks($i),
+                'monthly' => $start->copy()->addMonthsNoOverflow($i),
+                'custom' => match ($repeat['repeat_unit'] ?? 'day') {
+                    'week' => $start->copy()->addWeeks($i * $interval),
+                    'month' => $start->copy()->addMonthsNoOverflow($i * $interval),
+                    default => $start->copy()->addDays($i * $interval),
+                },
+            };
+            if ($next->gt($until)) {
+                break;
+            }
+
+            $copy = $base->replicate(['notified_at', 'completed_at']);
+            $copy->start_date = $next->format('Y-m-d');
+            $copy->end_date = $next->copy()->addDays($spanDays)->format('Y-m-d');
+            $copy->repeat_group = $group;
+            $copy->save();
+
+            if ($assigneeIds) {
+                $copy->assignees()->sync($assigneeIds);
+            }
+        }
     }
 
     /** 등록 알림 — 담당자로 연결된 사용자에게 웹푸시 (발송 실패가 저장을 막지 않도록 보호) */
@@ -288,9 +345,33 @@ class CalendarController extends Controller
     {
         $validated = $request->validate([
             'reason' => 'required|string|max:500',
+            'scope' => 'nullable|in:one,future',
         ], [
             'reason.required' => '삭제 사유를 입력해주세요.',
         ]);
+
+        // 반복 일정 일괄 삭제 — 이 일정 및 같은 그룹의 이후 일정 전부
+        if (($validated['scope'] ?? 'one') === 'future' && $schedule->repeat_group) {
+            $targets = Schedule::where('repeat_group', $schedule->repeat_group)
+                ->where('start_date', '>=', $schedule->start_date->format('Y-m-d'))
+                ->get();
+            foreach ($targets as $target) {
+                ScheduleChange::create([
+                    'schedule_id' => $target->id,
+                    'user_id' => Auth::id(),
+                    'action' => 'delete',
+                    'changes' => ['snapshot' => collect($target->getAttributes())->only([
+                        'title', 'start_date', 'end_date', 'start_time', 'end_time',
+                        'is_all_day', 'color', 'client_name', 'address', 'location',
+                        'description', 'is_private',
+                    ])->toArray()],
+                    'reason' => $validated['reason'].' (반복 일괄 삭제)',
+                ]);
+                $target->delete();
+            }
+
+            return response()->json(['ok' => true, 'deleted' => $targets->count()]);
+        }
 
         // 삭제 시점의 스냅샷을 changes에 보존
         $snapshot = collect($schedule->getAttributes())

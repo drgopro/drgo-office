@@ -27,6 +27,7 @@ class Schedule extends Model
         'handover_note',
         'notif_minutes',
         'notified_at',
+        'repeat_group',
         'is_locked',
         'is_private',
         'special_opts',

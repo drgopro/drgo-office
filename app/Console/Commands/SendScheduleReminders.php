@@ -67,6 +67,11 @@ class SendScheduleReminders extends Command
 
         $minutes = (int) $schedule->notif_minutes;
 
+        // '하루 전' 옵션(1440분 이상)은 라벨대로 전날 오전 9시에 발송
+        if ($minutes >= 1440) {
+            return Carbon::parse($date)->subDays(intdiv($minutes, 1440))->setTime(9, 0);
+        }
+
         return Carbon::parse($date.' '.substr($schedule->start_time, 0, 5))->subMinutes($minutes);
     }
 
