@@ -16,6 +16,7 @@ use App\Http\Controllers\CrmDemoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\ExcelImportController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\ProfileController;
@@ -75,6 +76,20 @@ Route::middleware('auth')->group(function () {
     // 마케팅 통계 (master/admin/member 접근 가능, guest 차단)
     Route::middleware('role:master,admin,member')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
+    });
+
+    // 피드백 보드 (버그 제보/기능 요청, guest 차단)
+    Route::middleware('role:master,admin,member')->group(function () {
+        Route::get('/feedback', [FeedbackController::class, 'index'])->name('feedback');
+        Route::get('/api/feedback', [FeedbackController::class, 'list']);
+        Route::post('/api/feedback', [FeedbackController::class, 'store']);
+        Route::patch('/api/feedback/{post}', [FeedbackController::class, 'update']);
+        Route::delete('/api/feedback/{post}', [FeedbackController::class, 'destroy']);
+        Route::post('/api/feedback/{post}/status', [FeedbackController::class, 'updateStatus']);
+        Route::post('/api/feedback/{post}/comments', [FeedbackController::class, 'storeComment']);
+        Route::delete('/api/feedback-comments/{comment}', [FeedbackController::class, 'destroyComment']);
+        Route::get('/feedback-attachments/{attachment}/view', [FeedbackController::class, 'serveAttachment'])->name('feedback-attachments.serve');
+        Route::get('/feedback-attachments/{attachment}/thumb', [FeedbackController::class, 'thumbAttachment'])->name('feedback-attachments.thumb');
     });
 
     // 마이페이지 (전체 사용자)
