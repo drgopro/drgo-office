@@ -3280,6 +3280,7 @@ function unlinkClient(){
     document.getElementById('linkedClientInfo').style.display='none';
     document.getElementById('linkedClientName').textContent=''; // 잔여 텍스트가 저장 시 client_name으로 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
+    {const psel=document.getElementById('projectSelect'); if(psel) psel.innerHTML='';}
     document.getElementById('g_nickname').value='';
     document.getElementById('g_name').value='';
     document.getElementById('g_phone').value='';
@@ -3597,6 +3598,7 @@ function resetModalForm(){
     document.getElementById('linkedClientInfo').style.display='none';
     document.getElementById('linkedClientName').textContent=''; // 이전 일정의 의뢰자명이 다음 일정에 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
+    {const psel=document.getElementById('projectSelect'); if(psel) psel.innerHTML='';} // 이전 일정의 프로젝트가 다음 일정에 새는 것 방지
     document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
@@ -4175,7 +4177,8 @@ function collectGoldFields(){
         balance_amount:document.getElementById('g_balance_amount').value.trim(),
         estimate_id:linkedEstimateId,
         client_id:linkedClientId,
-        project_id:document.getElementById('projectSelect')?.value||null,
+        // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
+        project_id:(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,
         // 이사세팅 출발지 (도착지는 기존 address/location 사용). '출발지 없음' 체크 시 빈 값
         move_no_from:document.getElementById('moveNoFrom')?.checked||false,
         move_from_address:document.getElementById('moveNoFrom')?.checked?'':(document.getElementById('moveFromAddress')?.value.trim()||''),
@@ -4252,7 +4255,7 @@ async function doSaveEvent(){
         sched_event_opts:schedEventOpts,
         special_opts:specialOpts,
         sched_after_reason:document.getElementById('schedAfterReason').value.trim()||null,
-        gold_data:isGold?collectGoldFields():(linkedClientId?{client_id:linkedClientId,project_id:document.getElementById('projectSelect')?.value||null,nickname:'',name:'',phone:''}:null),
+        gold_data:isGold?collectGoldFields():(linkedClientId?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
 
