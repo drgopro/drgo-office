@@ -257,11 +257,21 @@ class CalendarController extends Controller
             'notif_minutes' => 'nullable|string|max:10',
             'is_locked' => 'boolean',
             'reason' => 'nullable|string|max:500',
+            'repeat_freq' => 'nullable|in:daily,weekly,monthly,custom',
+            'repeat_interval' => 'nullable|integer|min:1|max:99',
+            'repeat_unit' => 'nullable|in:day,week,month',
+            'repeat_until' => 'nullable|date|required_with:repeat_freq',
+        ], [
+            'repeat_until.required_with' => '반복 종료일을 선택해주세요.',
         ]);
 
         // schedule 업데이트에는 reason 포함하지 않음 (변경 이력에만 기록)
         $reason = $validated['reason'] ?? null;
         unset($validated['reason']);
+
+        // 반복 파라미터 분리 — 이미 반복 그룹에 속한 일정은 중복 생성 방지를 위해 무시
+        $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
+        $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
 
         // 변경 이력 기록 (날짜/시간은 포맷 차이로 인한 오탐 방지를 위해 정규화 후 비교)
         $diff = [];
@@ -299,6 +309,17 @@ class CalendarController extends Controller
 
         if (isset($validated['assignees'])) {
             $schedule->assignees()->sync($validated['assignees']);
+        }
+
+        if (! empty($repeat['repeat_freq']) && ! $schedule->repeat_group) {
+            $schedule->refresh();
+            if (Carbon::parse($repeat['repeat_until'])->lte(Carbon::parse($schedule->start_date->format('Y-m-d')))) {
+                return response()->json([
+                    'message' => '반복 종료일이 시작일보다 늦어야 합니다.',
+                    'errors' => ['repeat_until' => ['반복 종료일이 시작일보다 늦어야 합니다.']],
+                ], 422);
+            }
+            $this->createRepeatOccurrences($schedule, $repeat);
         }
 
         return response()->json($schedule);

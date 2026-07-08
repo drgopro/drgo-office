@@ -100,6 +100,50 @@ class ScheduleRepeatTest extends TestCase
         Notification::assertCount(1);
     }
 
+    public function test_수정_시_반복_지정하면_이후_복제_생성(): void
+    {
+        $user = $this->master();
+        $schedule = Schedule::create([
+            'title' => '주간 회의',
+            'start_date' => '2026-08-03',
+            'end_date' => '2026-08-03',
+            'color' => 'blue',
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)->postJson("/api/events/{$schedule->id}", [
+            'title' => '주간 회의(정례화)',
+            'repeat_freq' => 'weekly',
+            'repeat_until' => '2026-08-24',
+        ])->assertOk();
+
+        // 8/3(원본) + 8/10, 8/17, 8/24 = 4건, 그룹 공유
+        $this->assertSame(4, Schedule::count());
+        $this->assertNotNull($schedule->fresh()->repeat_group);
+        $this->assertSame('주간 회의(정례화)', Schedule::where('start_date', '2026-08-24')->first()->title);
+    }
+
+    public function test_이미_반복_그룹인_일정_수정은_반복_재생성_안함(): void
+    {
+        $user = $this->master();
+        $this->actingAs($user)->postJson('/api/events', $this->basePayload([
+            'repeat_freq' => 'weekly',
+            'repeat_until' => '2026-08-17',
+        ]))->assertCreated();
+        $this->assertSame(3, Schedule::count());
+
+        $second = Schedule::where('start_date', '2026-08-10')->first();
+        $this->actingAs($user)->postJson("/api/events/{$second->id}", [
+            'title' => '변경된 회의',
+            'repeat_freq' => 'weekly',
+            'repeat_until' => '2026-09-30',
+        ])->assertOk();
+
+        // 반복 재생성 없이 제목만 변경
+        $this->assertSame(3, Schedule::count());
+        $this->assertSame('변경된 회의', $second->fresh()->title);
+    }
+
     public function test_반복_종료일_없으면_검증_실패(): void
     {
         $this->actingAs($this->master())->postJson('/api/events', $this->basePayload([

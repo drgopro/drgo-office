@@ -1085,7 +1085,7 @@
                             <input type="date" class="field-input" id="repeatUntil" style="width:140px;padding:6px 8px;">
                         </span>
                     </div>
-                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">반복 설정은 새 일정 등록 시에만 지정할 수 있습니다. 이 일정만 수정됩니다.</div>
+                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">이미 반복 그룹에 속한 일정입니다 — 반복 재설정 없이 이 일정만 수정됩니다.</div>
                 </div>
             </div>
 
@@ -3904,9 +3904,13 @@ function openEditModal(ev){
     }
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
-    // 편집 중엔 반복 설정 불가 — 안내만 표시
-    {const rg=document.getElementById('repeatGroup'); if(rg) rg.querySelector('.notif-row').style.display='none';
-     const rn=document.getElementById('repeatEditNote'); if(rn) rn.style.display='block';}
+    // 반복 설정: 이미 반복 그룹에 속한 일정만 잠금 (중복 생성 방지), 그 외엔 수정 중에도 지정 가능
+    {const rg=document.getElementById('repeatGroup');
+     const rn=document.getElementById('repeatEditNote');
+     const isRepeat=!!ev.repeat_group;
+     if(rg) rg.querySelector('.notif-row').style.display=isRepeat?'none':'flex';
+     if(rn) rn.style.display=isRepeat?'block':'none';
+     if(!isRepeat){const rf=document.getElementById('repeatFreq'); if(rf){rf.value='';onRepeatFreqChange();}}}
     // 요약: 등록된 일정은 기본적으로 '요약'(읽기 요약 뷰) ON
     if(ev && ev.id){ isLocked=true; setTimeout(applyLockUI,0); }
     // 날짜 배지
@@ -4158,7 +4162,8 @@ async function doSaveEvent(){
     const et=isGold?document.getElementById('goldEndTime').value:document.getElementById('endTime').value;
     if(!sd){alert('시작일을 입력하세요.');return;}
     if(ed && ed<sd){alert('종료일이 시작일보다 빠릅니다. 날짜를 확인해주세요.');return;}
-    if(!editingId){
+    const repeatEnabled=(()=>{const row=document.getElementById('repeatGroup')?.querySelector('.notif-row');return row&&row.style.display!=='none';})();
+    if(repeatEnabled){
         const rf=document.getElementById('repeatFreq')?.value||'';
         const ru=document.getElementById('repeatUntil')?.value||'';
         if(rf&&!ru){alert('반복 종료일을 선택해주세요.');return;}
@@ -4186,10 +4191,10 @@ async function doSaveEvent(){
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),
         assignees:selectedAssignees,
         notif_minutes:document.getElementById('notifSelect').value||null,
-        repeat_freq:(!editingId?(document.getElementById('repeatFreq')?.value||null):null),
-        repeat_interval:(!editingId&&document.getElementById('repeatFreq')?.value==='custom')?(document.getElementById('repeatInterval')?.value||1):null,
-        repeat_unit:(!editingId&&document.getElementById('repeatFreq')?.value==='custom')?(document.getElementById('repeatUnit')?.value||'day'):null,
-        repeat_until:(!editingId&&document.getElementById('repeatFreq')?.value)?(document.getElementById('repeatUntil')?.value||null):null,
+        repeat_freq:(repeatEnabled?(document.getElementById('repeatFreq')?.value||null):null),
+        repeat_interval:(repeatEnabled&&document.getElementById('repeatFreq')?.value==='custom')?(document.getElementById('repeatInterval')?.value||1):null,
+        repeat_unit:(repeatEnabled&&document.getElementById('repeatFreq')?.value==='custom')?(document.getElementById('repeatUnit')?.value||'day'):null,
+        repeat_until:(repeatEnabled&&document.getElementById('repeatFreq')?.value)?(document.getElementById('repeatUntil')?.value||null):null,
         is_locked:isLocked,
         sched_opt:schedOpt,
         sched_event_opts:schedEventOpts,
