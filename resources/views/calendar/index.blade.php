@@ -219,10 +219,10 @@
     .chip-ship { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:800; line-height:1; }
     /* 옵션 아이콘 (주/일간·목록·팝업 공용) */
     .ev-opt-ico { flex-shrink:0; font-size:calc(11px * var(--cal-fz,1)); margin-left:4px; letter-spacing:1px; }
-    .opt-chip { display:inline-flex; align-items:center; flex-shrink:0; font-size:calc(9px * var(--cal-fz,1)); font-weight:700; padding:1px 5px; border-radius:5px; background:rgba(127,127,127,0.16); border:1px solid rgba(127,127,127,0.28); color:inherit; margin-left:3px; line-height:1.4; vertical-align:middle; }
+    .opt-chip { display:inline-flex; align-items:center; flex-shrink:0; font-size:calc(8px * var(--cal-fz,1)); font-weight:700; padding:0 3px; border-radius:4px; background:rgba(127,127,127,0.16); border:1px solid rgba(127,127,127,0.28); color:inherit; margin-left:2px; line-height:1.5; vertical-align:middle; }
     .opt-chip.accent { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
     .opt-chip.urgent { background:#ef444426; border-color:#ef444466; color:#e06c6c; }
-    .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:10px; }
+    .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:9px; }
     .tl-ev-title { font-weight:600; }
     .tl-ev-assignee { font-size:9px; opacity:0.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
     /* 리스트 제목 옆 배송 아이콘 (담당자보다 앞) */
@@ -298,6 +298,8 @@
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
     #csRail .cs-collapse-btn { margin:0 auto 2px; width:24px; height:24px; border-radius:8px; }
     #filterBar { display:none; } /* 카테고리/담당자 필터는 사이드 패널로 일원화 */
+    #calSideFab { display:none; position:fixed; left:14px; bottom:16px; z-index:601; width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; }
+    #calSideFab svg { width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     @media (max-width:1024px) {
         /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
         #calSide { display:none; }
@@ -306,8 +308,6 @@
         #calSide.mobile-open #calSideBody { display:block; }
         #calSideFab { display:flex; }
     }
-    #calSideFab { display:none; position:fixed; left:14px; bottom:16px; z-index:601; width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; }
-    #calSideFab svg { width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     #calSideBackdrop { display:none; position:fixed; inset:0; z-index:599; background:rgba(0,0,0,0.25); }
     #calSideBackdrop.show { display:block; }
     .cs-mini-head { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; margin-bottom:8px; color:var(--text); }
