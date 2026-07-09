@@ -301,18 +301,22 @@
     #calSideFab { display:flex; position:fixed; left:8px; top:50%; transform:translateY(-50%); z-index:601; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; opacity:0.9; }
     #calSideFab:hover { opacity:1; }
     #calSideFab svg { width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
-    #calSideFab .fab-ico-menu { display:none; }
+    #calSideFab .fab-ico-menu, #calSideFab .fab-ico-close { display:none; }
+    /* 패널 열림 상태: 닫기(X) 아이콘으로 전환 */
+    #calSideFab.fab-open svg { display:none; }
+    #calSideFab.fab-open .fab-ico-close { display:block; }
     @media (max-width:1024px) {
         #calSideFab { top:auto; bottom:16px; transform:none; left:14px; }
         #calSideFab .fab-ico-filter { display:none; }
         #calSideFab .fab-ico-menu { display:block; }
     }
     @media (max-width:1024px) {
-        /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
-        #calSide { display:none; }
-        #calSide.mobile-open { display:block; position:fixed; left:56px; top:50%; transform:translateY(-50%); bottom:auto; width:min(280px, calc(100vw - 70px)); max-height:min(76vh, 600px); overflow-y:auto; z-index:600; box-shadow:0 12px 40px rgba(0,0,0,0.35); margin-top:0 !important; height:auto !important; }
-        #calSide.mobile-open .cs-collapse-btn, #calSide.mobile-open #csRail { display:none; }
-        #calSide.mobile-open #calSideBody { display:block; }
+        /* 저해상도: 좌측 드로어 — 평소엔 화면 밖, 버튼 클릭 시 좌측에서 슬라이드 인 */
+        #calSide, #calSide.collapsed { display:block; position:fixed; left:0; top:0; bottom:0; width:min(300px, 82vw); padding:14px; padding-bottom:calc(14px + env(safe-area-inset-bottom)); margin-top:0 !important; border-radius:0 14px 14px 0; overflow-y:auto; z-index:600; box-shadow:0 12px 40px rgba(0,0,0,0.35); transform:translateX(-105%); visibility:hidden; transition:transform 0.25s ease, visibility 0s linear 0.25s; }
+        #calSide.mobile-open { transform:translateX(0); visibility:visible; transition:transform 0.25s ease; }
+        #calSide .cs-collapse-btn, #calSide #csRail { display:none !important; }
+        #calSide #calSideBody { display:block !important; }
+        #calSideSticky { position:static; }
     }
     #calSideBackdrop { display:none; position:fixed; inset:0; z-index:599; background:rgba(0,0,0,0.25); }
     #calSideBackdrop.show { display:block; }
@@ -926,6 +930,7 @@
 <button type="button" id="calSideFab" onclick="csFabClick()" title="필터/미니 달력">
     <svg viewBox="0 0 24 24" class="fab-ico-filter"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"></path></svg>
     <svg viewBox="0 0 24 24" class="fab-ico-menu"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+    <svg viewBox="0 0 24 24" class="fab-ico-close"><path d="M18 6 6 18M6 6l12 12"></path></svg>
 </button>
 <div id="calSideBackdrop" onclick="csToggleMobile(false)"></div>
 <div id="calBody">
@@ -1865,12 +1870,23 @@ function renderCsCats(){
         `<span class="cs-dot${activeFilters.has(k)?'':' off'}" style="background:var(--chip-${k}-bg)" onclick="csToggleCat('${k}')" title="${(CS_CATS[k].label||k).replace(/[<>&"]/g,'')}"></span>`
     ).join('');
 }
-// 플로팅 버튼: 데스크탑=사이드바 접기/펼치기, 모바일=리모컨 패널
+// 플로팅 버튼: 데스크탑=사이드바 접기/펼치기, 모바일=좌측 드로어
 function csFabClick(){
     if(window.innerWidth<=1024) csToggleMobile();
     else csToggleSide();
 }
-// 저해상도: 리모컨 패널 토글
+// 플로팅 버튼 아이콘을 패널 열림 상태와 동기화 (열림=X, 닫힘=깔때기/햄버거)
+function csUpdateFab(){
+    const fab=document.getElementById('calSideFab');
+    const side=document.getElementById('calSide');
+    if(!fab||!side) return;
+    const open = window.innerWidth<=1024
+        ? side.classList.contains('mobile-open')
+        : !side.classList.contains('collapsed');
+    fab.classList.toggle('fab-open', open);
+    fab.title = open ? '필터 닫기' : '필터/미니 달력';
+}
+// 저해상도: 좌측 드로어 토글
 function csToggleMobile(force){
     const side=document.getElementById('calSide');
     const bd=document.getElementById('calSideBackdrop');
@@ -1879,6 +1895,7 @@ function csToggleMobile(force){
     side.classList.toggle('mobile-open', open);
     if(bd) bd.classList.toggle('show', open);
     if(open) renderCalSide();
+    csUpdateFab();
 }
 function csMiniMove(dir){
     csMiniM += dir;
@@ -1933,6 +1950,7 @@ function csToggleSide(){
     const collapsed=side.classList.toggle('collapsed');
     try{ localStorage.setItem(CS_COLLAPSE_KEY, collapsed?'1':''); }catch(e){}
     renderCalSide();
+    csUpdateFab();
 }
 (function(){
     try{
@@ -1941,6 +1959,7 @@ function csToggleSide(){
             if(side) side.classList.add('collapsed');
         }
     }catch(e){}
+    csUpdateFab();
 })();
 function renderCalSide(){
     const side=document.getElementById('calSide');
@@ -2177,7 +2196,7 @@ function renderAgendaSearch(){
 let calResizeTimer=null;
 window.addEventListener('resize',()=>{
     clearTimeout(calResizeTimer);
-    calResizeTimer=setTimeout(()=>renderView(),150);
+    calResizeTimer=setTimeout(()=>{ renderView(); csUpdateFab(); },150);
 });
 
 function switchView(view) {
