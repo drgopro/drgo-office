@@ -98,10 +98,6 @@
         [data-theme="light"] .tab-item { color:#5a6070; }
         [data-theme="light"] .tab-item:hover { color:var(--text); background:#fff; }
         [data-theme="light"] .tab-item.active { color:var(--accent); background:#fff; border-color:#c8ccd4; }
-        [data-theme="light"] .tab-add { color:#5a6070; }
-        [data-theme="light"] .tab-menu { background:#fff; border-color:#c8ccd4; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
-        [data-theme="light"] .tab-menu-item { color:#4a5060; }
-        [data-theme="light"] .tab-menu-item:hover { color:var(--text); background:#eceef2; }
         [data-theme="light"] .user-role { color:#6b7280; }
 
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -193,15 +189,6 @@
         .tab-item.tab-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
         .tab-item:hover .tab-close { opacity:0.5; }
         .tab-item .tab-close:hover { opacity:1; background:var(--border); }
-
-        .tab-add { display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:5px; border:none; background:none; color:var(--text-muted); font-size:14px; cursor:pointer; flex-shrink:0; margin-left:4px; transition:all 0.12s; position:relative; }
-        .tab-add:hover { color:var(--accent); background:var(--surface); }
-
-        .tab-menu { display:none; position:absolute; top:100%; left:0; margin-top:4px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px; min-width:130px; z-index:300; box-shadow:0 4px 12px rgba(0,0,0,0.3); }
-        .tab-menu.open { display:block; }
-        .tab-menu-item { display:flex; align-items:center; gap:7px; padding:6px 10px; border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; border:none; background:none; width:100%; text-align:left; }
-        .tab-menu-item:hover { color:var(--text); background:var(--surface2); }
-        .tab-menu-item .nav-ico { width:14px; height:14px; }
 
         /* ══════════════════════════════════════════════
            데스크톱 세로 사이드바 — 기존 가로 헤더를 좌측 세로 배치로 전환
@@ -495,38 +482,6 @@ window.openTopTab = function(type, url, title) {
 {{-- ── 탭 바 ── --}}
 <div class="tab-bar-wrap">
     <div class="tab-strip" id="tabStrip"></div>
-    <div style="position:relative;">
-        <button class="tab-add" id="tabAddBtn" title="새 탭">+</button>
-        <div class="tab-menu" id="tabMenu">
-            @if(!Auth::user()->isGuest())
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('dashboard','/'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>대시보드</button>
-            @endif
-            <button class="tab-menu-item" onclick="drgoTabs.openNav('calendar','/calendar'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>캘린더</button>
-            @if(Auth::user()->hasPermission('clients.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('clients','/clients'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>의뢰자</button>
-            @endif
-            @if(Auth::user()->hasPermission('projects.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('projects','/projects'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>프로젝트</button>
-            @endif
-            @if(Auth::user()->hasPermission('estimates.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('estimates','/estimates'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</button>
-            @endif
-            @if(Auth::user()->hasPermission('inventory.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('inventory','/inventory'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</button>
-            @endif
-            <button class="tab-menu-item" onclick="drgoTabs.openNav('wiki','/wiki'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>위키</button>
-            @if(Auth::user()->hasPermission('inventory.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental','/rental-equipment'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>장비 위치</button>
-            @endif
-            @if(Auth::user()->hasPermission('clients.view'))
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('rental-contracts','/rental-contracts'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</button>
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('broadcast-room','/broadcast-room'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</button>
-            @endif
-            @if(Auth::user()->isAdmin())
-                <button class="tab-menu-item" onclick="drgoTabs.openNav('admin','/admin'); drgoTabs.closeMenu();"><svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>관리</button>
-            @endif
-        </div>
-    </div>
 </div>
 
 {{-- ── 콘텐츠 영역 ── --}}
@@ -547,13 +502,6 @@ function toggleNav() {
     const btn = document.getElementById('menuToggle');
     btn.textContent = document.getElementById('mainNav').classList.contains('open') ? '✕' : '☰';
 }
-
-// ── 탭 추가 메뉴 ──
-document.getElementById('tabAddBtn').addEventListener('click', e => {
-    e.stopPropagation();
-    document.getElementById('tabMenu').classList.toggle('open');
-});
-document.addEventListener('click', () => document.getElementById('tabMenu').classList.remove('open'));
 
 // ── 탭 시스템 ──
 // window.drgoTabs로도 노출 (iframe → parent 접근용)
@@ -824,7 +772,6 @@ window.drgoTabs = {
         });
     },
 
-    closeMenu() { document.getElementById('tabMenu').classList.remove('open'); },
 
     _updateNav(type) {
         const NAV_MAP = { dashboard:'/', calendar:'/calendar', clients:'/clients', projects:'/projects', inventory:'/inventory', estimates:'/estimates', wiki:'/wiki', admin:'/admin', profile:'/profile' };
