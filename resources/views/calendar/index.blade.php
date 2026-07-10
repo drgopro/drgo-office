@@ -305,9 +305,9 @@
         /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
         #calSide { display:none; }
         #calSideFab { display:flex; }
-        /* 좌측에서 붙어 나오는 드로어 형태 */
-        #calSide.mobile-open { display:block; position:fixed; left:0; top:0; bottom:0; transform:none; width:min(300px, 82vw); max-height:none; overflow-y:auto; z-index:600; box-shadow:8px 0 32px rgba(0,0,0,0.3); margin-top:0 !important; height:auto !important; border-radius:0 16px 16px 0; animation:csDrawerIn .18s ease-out; }
-        @keyframes csDrawerIn { from { transform:translateX(-100%); } to { transform:translateX(0); } }
+        /* 좌측에 붙어 세로 중앙을 따라다니는 리모컨 */
+        #calSide.mobile-open { display:block; position:fixed; left:0; top:50%; bottom:auto; transform:translateY(-50%); width:min(300px, 82vw); max-height:min(80vh, 640px); overflow-y:auto; z-index:600; box-shadow:8px 0 32px rgba(0,0,0,0.3); margin-top:0 !important; height:auto !important; border-radius:0 16px 16px 0; animation:csDrawerIn .18s ease-out; }
+        @keyframes csDrawerIn { from { transform:translate(-100%, -50%); } to { transform:translate(0, -50%); } }
         #calSide.mobile-open .cs-collapse-btn, #calSide.mobile-open #csRail { display:none; }
         #calSide.mobile-open #calSideBody { display:block; }
     }
@@ -1932,6 +1932,19 @@ function csToggleSide(){
             if(side) side.classList.add('collapsed');
         }
     }catch(e){}
+})();
+// 데스크탑: 사이드 패널이 화면 세로 중앙을 따라다니도록 sticky top 계산
+function csCenterSide(){
+    const el=document.getElementById('calSideSticky');
+    if(!el) return;
+    if(window.innerWidth<=1024){ el.style.top=''; return; }
+    el.style.top=Math.max(10,(window.innerHeight-el.offsetHeight)/2)+'px';
+}
+(function(){
+    const el=document.getElementById('calSideSticky');
+    if(!el) return;
+    window.addEventListener('resize', csCenterSide);
+    new ResizeObserver(csCenterSide).observe(el); // 필터/담당자 목록 변화로 높이가 바뀌어도 재계산
 })();
 function renderCalSide(){
     const side=document.getElementById('calSide');
