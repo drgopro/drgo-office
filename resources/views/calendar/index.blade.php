@@ -298,18 +298,13 @@
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
     #csRail .cs-collapse-btn { margin:0 auto 2px; width:24px; height:24px; border-radius:8px; }
     #filterBar { display:none; } /* 카테고리/담당자 필터는 사이드 패널로 일원화 */
-    #calSideFab { display:flex; position:fixed; left:8px; top:50%; transform:translateY(-50%); z-index:601; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; opacity:0.9; }
+    #calSideFab { display:none; position:fixed; left:14px; bottom:16px; z-index:601; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; opacity:0.9; }
     #calSideFab:hover { opacity:1; }
     #calSideFab svg { width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
-    #calSideFab .fab-ico-menu { display:none; }
-    @media (max-width:1024px) {
-        #calSideFab { top:auto; bottom:16px; transform:none; left:14px; }
-        #calSideFab .fab-ico-filter { display:none; }
-        #calSideFab .fab-ico-menu { display:block; }
-    }
     @media (max-width:1024px) {
         /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
         #calSide { display:none; }
+        #calSideFab { display:flex; }
         #calSide.mobile-open { display:block; position:fixed; left:56px; top:50%; transform:translateY(-50%); bottom:auto; width:min(280px, calc(100vw - 70px)); max-height:min(76vh, 600px); overflow-y:auto; z-index:600; box-shadow:0 12px 40px rgba(0,0,0,0.35); margin-top:0 !important; height:auto !important; }
         #calSide.mobile-open .cs-collapse-btn, #calSide.mobile-open #csRail { display:none; }
         #calSide.mobile-open #calSideBody { display:block; }
@@ -923,9 +918,8 @@
     <div id="assigneeFilterChips" class="assignee-filter-chips"></div>
 </div>
 
-<button type="button" id="calSideFab" onclick="csFabClick()" title="필터/미니 달력">
-    <svg viewBox="0 0 24 24" class="fab-ico-filter"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"></path></svg>
-    <svg viewBox="0 0 24 24" class="fab-ico-menu"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+<button type="button" id="calSideFab" onclick="csToggleMobile()" title="필터/미니 달력">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
 </button>
 <div id="calSideBackdrop" onclick="csToggleMobile(false)"></div>
 <div id="calBody">
@@ -1864,11 +1858,6 @@ function renderCsCats(){
     if(rail) rail.innerHTML = '<button type="button" class="cs-collapse-btn" onclick="csToggleSide()" title="필터 펼치기">»</button>' + keys.map(k =>
         `<span class="cs-dot${activeFilters.has(k)?'':' off'}" style="background:var(--chip-${k}-bg)" onclick="csToggleCat('${k}')" title="${(CS_CATS[k].label||k).replace(/[<>&"]/g,'')}"></span>`
     ).join('');
-}
-// 플로팅 버튼: 데스크탑=사이드바 접기/펼치기, 모바일=리모컨 패널
-function csFabClick(){
-    if(window.innerWidth<=1024) csToggleMobile();
-    else csToggleSide();
 }
 // 저해상도: 리모컨 패널 토글
 function csToggleMobile(force){
