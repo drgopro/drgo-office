@@ -183,7 +183,7 @@
     <div class="section-title" style="margin-top:28px;"><x-icon name="book" :size="17"/> 위키</div>
     <div class="wiki-widget-grid">
         <div class="wiki-widget" style="grid-column:1/-1;">
-            <div class="ww-head">📢 공지·업데이트 <span class="ww-sub">최신순</span></div>
+            <div class="ww-head">공지·업데이트 <span class="ww-sub">최신순</span></div>
             @forelse($wikiNotices as $w)
                 <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
                     <span class="ww-type-badge {{ $w->type }}">{{ \App\Models\Wiki::SPECIAL_TYPES[$w->type] ?? $w->type }}</span>

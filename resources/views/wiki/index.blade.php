@@ -243,8 +243,8 @@
                     <div class="field-label">유형</div>
                     <select class="field-input" name="type" onchange="document.getElementById('wikiModalCatWrap').style.display=this.value==='normal'?'':'none'">
                         <option value="normal">일반 문서</option>
-                        <option value="notice">📢 공지사항</option>
-                        <option value="update">🆕 업데이트</option>
+                        <option value="notice">공지사항</option>
+                        <option value="update">업데이트</option>
                     </select>
                 </div>
                 @endif
@@ -315,7 +315,7 @@ let WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
 // 특수 유형(공지사항/업데이트) — 카테고리 트리와 별개의 고정 섹션
 const WIKI_TYPE_COUNTS = @json($typeCounts);
-const WIKI_TYPE_LABELS = {notice:'📢 공지사항', update:'🆕 업데이트'};
+const WIKI_TYPE_LABELS = {notice:'공지사항', update:'업데이트'};
 @php($curSpecialType = in_array(request('type'), ['notice', 'update'], true) ? request('type') : '')
 let WIKI_CUR_TYPE = @json($curSpecialType);
 const WIKI_DOCS = @json($wikiDocs);
