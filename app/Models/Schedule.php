@@ -19,6 +19,7 @@ class Schedule extends Model
         'start_time',
         'end_time',
         'is_all_day',
+        'exclude_weekends',
         'color',
         'client_name',
         'address',
@@ -53,6 +54,7 @@ class Schedule extends Model
 
     protected $casts = [
         'is_all_day' => 'boolean',
+        'exclude_weekends' => 'boolean',
         'is_locked' => 'boolean',
         'is_private' => 'boolean',
         'special_opts' => 'array',

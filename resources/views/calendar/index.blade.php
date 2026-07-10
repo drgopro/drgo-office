@@ -1106,6 +1106,10 @@
                         <div class="toggle-track" id="alldayTrack"><div class="toggle-thumb"></div></div>
                         <span class="toggle-label">종일</span>
                     </div>
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer;user-select:none;margin-left:14px;" title="여러 날에 걸친 일정에서 토/일을 제외 — 캘린더에서 주말은 칩이 끊기고 평일만 이어집니다">
+                        <input type="checkbox" id="excludeWeekendsChk" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
+                        주말 제외
+                    </label>
                 </div>
                 <div id="standardDtRows">
                     <div class="dt-row">
@@ -1757,6 +1761,15 @@ let editingId = null, currentColor = 'gold', currentView = 'month';
 let editingOrigDT = null; // 편집 중 일정의 원본 날짜/시간 (변경 사유 필수 판정용)
 let editingRepeatOrig = null; // 편집 중 반복 일정의 원본 반복 설정 (미변경 시 검증 스킵용)
 // 종료일 정규화 — 역전(종료<시작) 데이터는 시작일 하루짜리로 취급
+// 주말(토/일) 여부
+function isWeekendStr(ds){ const d=new Date(ds+'T00:00:00').getDay(); return d===0||d===6; }
+// 일정이 해당 날짜를 포함하는지 — '주말 제외' 다일 일정은 토/일 미포함 (주말에서 칩이 끊김)
+function evCoversDate(ev, ds){
+    const st=(ev.start_date||'').substring(0,10), en=((ev.end_date||ev.start_date)||'').substring(0,10);
+    if(!(st<=ds&&en>=ds)) return false;
+    if(ev.exclude_weekends&&st!==en&&isWeekendStr(ds)) return false;
+    return true;
+}
 function evEnd(ev){
     const sd=(ev.start_date||'').substring(0,10);
     const ed=(ev.end_date||'').substring(0,10);
@@ -2324,7 +2337,7 @@ function openDayPopover(dateStr, anchorEl){
     const overlay=document.getElementById('dayPopoverOverlay');
     if(!pop||!overlay) return;
 
-    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=dateStr&&(ev.end_date||ev.start_date)>=dateStr));
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)));
     const d=new Date(dateStr+'T00:00:00');
     const DAYS=['일','월','화','수','목','금','토'];
     document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`;
@@ -2411,7 +2424,7 @@ function renderAgenda(){
         strip.innerHTML=week.map(full=>{
             const d=new Date(full+'T00:00:00'); const dow=d.getDay();
             const cls=dow===0?'sun':dow===6?'sat':'';
-            const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full);
+            const hasEv=events.some(ev=>isFiltered(ev)&&evCoversDate(ev,full));
             return `<button class="agenda-day-btn ${full===agendaSelectedDate?'active':''}" onclick="selectAgendaDate('${full}')">
                 <span class="adb-dow ${cls}">${AGENDA_DOW[dow]}</span>
                 <span class="adb-num ${cls}">${d.getDate()}</span>
@@ -2425,7 +2438,7 @@ function renderAgenda(){
     if(!wrap) return;
     const full=agendaSelectedDate;
     const d=new Date(full+'T00:00:00');
-    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&ev.start_date<=full&&(ev.end_date||ev.start_date)>=full));
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,full)));
     const dowCls=full===ts?'ad-today':d.getDay()===0?'ad-sun':d.getDay()===6?'ad-sat':'';
 
     let html=`<div class="agenda-day"><div class="agenda-date-head">
@@ -2534,7 +2547,7 @@ function renderMonth() {
                 // 그날 일정의 카테고리 색 점 (중복 제거, 최대 3개)
                 const dayCats=[];
                 events.forEach(ev=>{
-                    if(!isFiltered(ev)||_d(ev.start_date)>cell.full||evEnd(ev)<cell.full) return;
+                    if(!isFiltered(ev)||!evCoversDate(ev,cell.full)) return;
                     if(!dayCats.includes(ev.color)) dayCats.push(ev.color);
                 });
                 if(dayCats.length){
@@ -2557,13 +2570,13 @@ function renderMonth() {
             const coveringByLane={};
             let maxLane=-1;
             weekMulti.forEach(ev=>{
-                if(laneOf[ev.id]<LANE_CAP && _d(ev.start_date)<=cell.full && evEnd(ev)>=cell.full){
+                if(laneOf[ev.id]<LANE_CAP && evCoversDate(ev,cell.full)){
                     coveringByLane[laneOf[ev.id]]=ev;
                     if(laneOf[ev.id]>maxLane) maxLane=laneOf[ev.id];
                 }
             });
             // 캡 초과로 못 그리는 다일(더보기로)
-            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=cell.full&&evEnd(ev)>=cell.full).length;
+            const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&evCoversDate(ev,cell.full)).length;
 
             // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시. 휴가/개인은 상단 우선 (그룹 내 시간순 유지: stable sort)
             const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===cell.full)).sort(redFirst);
@@ -2587,8 +2600,8 @@ function renderMonth() {
                 const ev=r.ev;
                 const chip=document.createElement('div');
                 if(r.multi){
-                    const isStart=_d(ev.start_date)===cell.full||d===0;
-                    const isEnd=_d(ev.end_date)===cell.full;
+                    const isStart=_d(ev.start_date)===cell.full||d===0||(ev.exclude_weekends&&!evCoversDate(ev,shiftDate(cell.full,-1)));
+                    const isEnd=_d(ev.end_date)===cell.full||(ev.exclude_weekends&&!evCoversDate(ev,shiftDate(cell.full,1)));
                     let cls=`event-chip single color-${ev.color} multi-day`;
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
                     if(ev.completed_at) cls+=' is-completed';
@@ -2627,7 +2640,7 @@ function renderMonth() {
                     if(e.target.closest('.event-chip')||e.target.closest('.more-badge')) return;
                     // 날짜 숫자 클릭: 일정이 있으면 더보기 없이도 그 날 팝업 열기 (게스트 제외 — 일정 내용 비노출)
                     if(!isGuestUser&&e.target.closest('.day-num-row')){
-                        const hasEv=events.some(ev=>isFiltered(ev)&&ev.start_date<=cell.full&&(ev.end_date||ev.start_date)>=cell.full);
+                        const hasEv=events.some(ev=>isFiltered(ev)&&evCoversDate(ev,cell.full));
                         if(hasEv){ openDayPopover(cell.full, div); return; }
                     }
                     if(canEditCalendar&&(e.target===div||e.target.classList.contains('day-num-row')||e.target.classList.contains('day-num'))) openNewModal(cell.full);
@@ -2637,29 +2650,36 @@ function renderMonth() {
         }
         grid.appendChild(weekRow);
 
-        // ── 다일 일정 제목 오버레이: 바 전체 폭에 걸쳐 한 번만 출력(셀 경계 넘어 흐름). 주마다 시작 칸에서 다시 출력 ──
+        // ── 다일 일정 제목 오버레이: 연속 구간(세그먼트)마다 출력 — '주말 제외' 일정은 주말에서 끊긴 구간별로 반복 ──
         if(!isMobileCal){
             const wrRect=weekRow.getBoundingClientRect();
             weekMulti.forEach(ev=>{
                 if(laneOf[ev.id]>=LANE_CAP) return;
-                let c1=-1,c2=-1;
-                for(let d=0;d<7;d++){ const f=weekCells[d].full; if(f>=_d(ev.start_date)&&f<=evEnd(ev)){ if(c1<0)c1=d; c2=d; } }
-                if(c1<0) return;
-                const startCell=weekRow.children[c1];
-                const chip=startCell&&startCell.querySelector(`.event-chip.multi-day[data-mev="${ev.id}"]`);
-                if(!chip) return;
-                const chipRect=chip.getBoundingClientRect();
-                const endRect=weekRow.children[c2].getBoundingClientRect();
-                const ov=document.createElement('div');
-                ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'');
-                // 제목 글자색도 카테고리 설정(text_color)과 연동
-                if(window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[ev.color]) ov.style.color=`var(--chip-${ev.color}-text)`;
-                ov.style.top=(chipRect.top-wrRect.top)+'px';
-                ov.style.height=chipRect.height+'px';
-                ov.style.left=(chipRect.left-wrRect.left)+'px';
-                ov.style.width=Math.max(0, (endRect.right-6)-chipRect.left)+'px';
-                ov.innerHTML=buildChipHtml(ev); // 제목 + 담당자 배지 등(연속 일정도 담당자 표기)
-                weekRow.appendChild(ov);
+                // 이 주에서 일정이 덮는 날들의 연속 구간 목록
+                const segs=[]; let seg=null;
+                for(let d=0;d<7;d++){
+                    const f=weekCells[d].full;
+                    if(evCoversDate(ev,f)){ if(!seg) seg={s:d,e:d}; else seg.e=d; }
+                    else if(seg){ segs.push(seg); seg=null; }
+                }
+                if(seg) segs.push(seg);
+                segs.forEach(sg=>{
+                    const startCell=weekRow.children[sg.s];
+                    const chip=startCell&&startCell.querySelector(`.event-chip.multi-day[data-mev="${ev.id}"]`);
+                    if(!chip) return;
+                    const chipRect=chip.getBoundingClientRect();
+                    const endRect=weekRow.children[sg.e].getBoundingClientRect();
+                    const ov=document.createElement('div');
+                    ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'');
+                    // 제목 글자색도 카테고리 설정(text_color)과 연동
+                    if(window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[ev.color]) ov.style.color=`var(--chip-${ev.color}-text)`;
+                    ov.style.top=(chipRect.top-wrRect.top)+'px';
+                    ov.style.height=chipRect.height+'px';
+                    ov.style.left=(chipRect.left-wrRect.left)+'px';
+                    ov.style.width=Math.max(0, (endRect.right-6)-chipRect.left)+'px';
+                    ov.innerHTML=buildChipHtml(ev); // 제목 + 담당자 배지 등(연속 일정도 담당자 표기)
+                    weekRow.appendChild(ov);
+                });
             });
         }
     }
@@ -2684,7 +2704,7 @@ function selectMobileDay(dateStr){
 function renderMobileDayEvents(dateStr){
     const container=document.getElementById('mobileDayEvents');
     if(!container) return;
-    const dayEvs=events.filter(ev=>isFiltered(ev)&&ev.start_date<=dateStr&&(ev.end_date||ev.start_date)>=dateStr)
+    const dayEvs=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr))
         // 카테고리 순이 아니라 시간순 정렬: 종일 먼저, 그 다음 시작시간 오름차순
         .sort((a,b)=>{
             const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
@@ -2783,7 +2803,7 @@ function renderTimeline() {
         const isToday=ds===ts;
         const cell=document.createElement('div');
         cell.className='tl-allday-cell'+(isToday?' today-col':'');
-        events.filter(ev=>isFiltered(ev)&&ev.is_all_day&&ev.start_date<=ds&&(ev.end_date||ev.start_date)>=ds).forEach(ev=>{
+        events.filter(ev=>isFiltered(ev)&&ev.is_all_day&&evCoversDate(ev,ds)).forEach(ev=>{
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`+(ev.completed_at?' is-completed':'');
             chip.style.marginBottom='2px';
@@ -4052,6 +4072,7 @@ function resetModalForm(){
     document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     document.getElementById('balanceBanner').classList.remove('visible');
     isAllDay=false; document.getElementById('alldayTrack').classList.remove('on');
+    {const xw=document.getElementById('excludeWeekendsChk'); if(xw) xw.checked=false;}
     // 이사세팅 출발지 상태 초기화
     { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle(); }
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
@@ -4457,6 +4478,8 @@ function openEditModal(ev){
         document.getElementById('modalAddress').value = ev.address || road;
         const det=document.getElementById('modalLocationDetail'); if(det) det.value = detail;
     }
+    // 주말 제외
+    {const xw=document.getElementById('excludeWeekendsChk'); if(xw) xw.checked=!!ev.exclude_weekends;}
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
     // 반복 설정: 그룹 소속 일정은 저장된 주기/종료일을 프리필해 재조정 가능 (변경 시 이후 반복 재생성)
@@ -4771,7 +4794,7 @@ async function doSaveEvent(){
     const data={
         title:document.getElementById('modalTitle').value.trim()||'(제목 없음)',
         start_date:sd, end_date:ed||sd, start_time:isAllDay?null:st, end_time:isAllDay?null:et,
-        is_all_day:isAllDay, color:currentColor,
+        is_all_day:isAllDay, exclude_weekends:!!document.getElementById('excludeWeekendsChk')?.checked, color:currentColor,
         // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
         client_name:isGold?document.getElementById('g_nickname').value.trim():((linkedClientId&&colorSupportsClientLink(currentColor))?(document.getElementById('linkedClientName')?.textContent.trim()||''):''),
         // address=도로명(검색), location=도로명+상세주소(표시용)
@@ -5361,6 +5384,7 @@ function buildEventPayload(ev){
     return {
         title:ev.title, start_date:ev.start_date, end_date:ev.end_date||ev.start_date,
         start_time:ev.start_time, end_time:ev.end_time, is_all_day:ev.is_allday||ev.is_all_day||false,
+        exclude_weekends:!!ev.exclude_weekends,
         color:ev.color, client_name:ev.client_name||'', address:ev.address||'', location:ev.location||'',
         description:ev.description||'', notif_minutes:ev.notif_minutes||null,
         is_locked:ev.is_locked||false, is_private:ev.is_private||false,
