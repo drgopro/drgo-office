@@ -87,6 +87,34 @@
         @endif
     </div>
 
+    {{-- 공지사항 · 업데이트 (최상단 고정) --}}
+    <div class="wiki-widget-grid">
+        <div class="wiki-widget">
+            <div class="ww-head"><span class="ww-type-badge notice">공지사항</span> <span class="ww-sub">최신순</span></div>
+            @forelse($wikiNoticeList as $w)
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
+                    <span class="ww-title">{{ $w->title }}</span>
+                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
+                </a>
+            @empty
+                <div class="ww-empty">등록된 공지사항이 없습니다</div>
+            @endforelse
+            <a class="ww-more" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
+        </div>
+        <div class="wiki-widget">
+            <div class="ww-head"><span class="ww-type-badge update">업데이트</span> <span class="ww-sub">최신순</span></div>
+            @forelse($wikiUpdateList as $w)
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
+                    <span class="ww-title">{{ $w->title }}</span>
+                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
+                </a>
+            @empty
+                <div class="ww-empty">등록된 업데이트가 없습니다</div>
+            @endforelse
+            <a class="ww-more" href="/wiki?type=update" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=update'); else location.href=this.href;">전체 보기 →</a>
+        </div>
+    </div>
+
     {{-- 진행 상황 (파이프라인) --}}
     <div class="section-title">
         <x-icon name="gear" :size="17"/> 진행 상황
@@ -182,30 +210,6 @@
     {{-- 위키 --}}
     <div class="section-title" style="margin-top:28px;"><x-icon name="book" :size="17"/> 위키</div>
     <div class="wiki-widget-grid">
-        <div class="wiki-widget">
-            <div class="ww-head"><span class="ww-type-badge notice">공지사항</span> <span class="ww-sub">최신순</span></div>
-            @forelse($wikiNoticeList as $w)
-                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
-                    <span class="ww-title">{{ $w->title }}</span>
-                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
-                </a>
-            @empty
-                <div class="ww-empty">등록된 공지사항이 없습니다</div>
-            @endforelse
-            <a class="ww-more" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
-        </div>
-        <div class="wiki-widget">
-            <div class="ww-head"><span class="ww-type-badge update">업데이트</span> <span class="ww-sub">최신순</span></div>
-            @forelse($wikiUpdateList as $w)
-                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
-                    <span class="ww-title">{{ $w->title }}</span>
-                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
-                </a>
-            @empty
-                <div class="ww-empty">등록된 업데이트가 없습니다</div>
-            @endforelse
-            <a class="ww-more" href="/wiki?type=update" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=update'); else location.href=this.href;">전체 보기 →</a>
-        </div>
         <div class="wiki-widget">
             <div class="ww-head"><x-icon name="new" :size="15"/> 최신 등록 문서 <span class="ww-sub">최근 3건</span></div>
             @forelse($wikiRecent as $w)
