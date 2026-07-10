@@ -1372,7 +1372,8 @@ function sortConsultations(order) {
     try {
         const title = '📁 ' + @json($project->name);
         if (window.parent && window.parent.drgoTabs && typeof window.parent.drgoTabs.setActiveTitle === 'function') {
-            window.parent.drgoTabs.setActiveTitle(title);
+            // window를 함께 넘겨 자신이 속한 탭의 제목만 갱신 (활성 탭 오염 방지)
+            window.parent.drgoTabs.setActiveTitle(title, window);
         }
     } catch(e) {}
 })();

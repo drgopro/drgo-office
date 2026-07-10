@@ -669,10 +669,22 @@ window.drgoTabs = {
     },
 
     /**
-     * iframe 내부에서 자신의 탭 타이틀을 갱신할 때 호출
+     * iframe 내부에서 자신의 탭 타이틀을 갱신할 때 호출.
+     * sourceWin(호출한 iframe의 window)을 넘기면 그 iframe이 속한 탭의 제목을 갱신 —
+     * 새로고침 복원 시 백그라운드 탭이 로드되며 활성 탭(예: 캘린더) 이름을 덮어쓰던 버그 방지.
      */
-    setActiveTitle(title) {
-        const tab = this.tabs.find(t => t.id === this.activeId);
+    setActiveTitle(title, sourceWin) {
+        let tab = null;
+        if (sourceWin && sourceWin !== window) {
+            const iframe = [...document.querySelectorAll('.tab-pane iframe')].find(f => {
+                try { return f.contentWindow === sourceWin; } catch (e) { return false; }
+            });
+            const paneId = iframe?.closest('.tab-pane')?.id?.replace('pane-', '');
+            tab = paneId ? this.tabs.find(t => t.id === paneId) : null;
+            if (!tab) return; // 호출한 iframe의 탭을 못 찾으면 엉뚱한 탭을 바꾸지 않음
+        } else {
+            tab = this.tabs.find(t => t.id === this.activeId);
+        }
         if (tab) {
             tab.title = title;
             this.render();
