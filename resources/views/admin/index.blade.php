@@ -188,22 +188,24 @@
     }
 
     /* 캘린더 카테고리 */
-    .cat-card { display:grid; grid-template-columns:26px 64px 1fr 130px 130px auto auto; gap:12px; align-items:center; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
-    .cat-order-btns { display:flex; flex-direction:column; gap:2px; }
-    .cat-order-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; font-size:9px; line-height:1; padding:4px 0; width:26px; cursor:pointer; }
-    .cat-order-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
-    .cat-order-btn:disabled { opacity:0.3; cursor:default; }
+    .cat-card { display:grid; grid-template-columns:20px 64px 1fr 130px 130px auto; gap:12px; align-items:center; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
+    .cat-card.dragging { opacity:0.45; border-style:dashed; }
+    .cat-drag-handle { color:var(--text-muted); cursor:grab; user-select:none; font-size:13px; letter-spacing:-1px; text-align:center; padding:8px 2px; }
+    .cat-drag-handle:active { cursor:grabbing; }
     .cat-preview { padding:10px 14px; border-radius:8px; text-align:center; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .cat-card input[type=text] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; width:100%; }
     .cat-card input[type=text]:focus { border-color:var(--accent); }
     .cat-color-wrap { display:flex; align-items:center; gap:6px; }
     .cat-color-wrap input[type=color] { width:36px; height:36px; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer; padding:0; }
     .cat-color-wrap input[type=text] { width:88px; font-family:ui-monospace,Menlo,monospace; font-size:11px; padding:7px 8px; }
-    .cat-actions { display:flex; gap:6px; }
+    .cat-actions { display:flex; gap:6px; justify-content:flex-end; }
+    /* 중간 해상도: 카드가 세로로 길게 늘어지지 않도록 3줄 compact 배치 */
     @media (max-width:900px) {
-        .cat-card { grid-template-columns:1fr 1fr; }
-        .cat-preview { grid-column:1/-1; }
-        .cat-actions { grid-column:1/-1; justify-content:flex-end; }
+        .cat-card { display:flex; flex-wrap:wrap; gap:10px; }
+        .cat-preview { flex:1; min-width:0; }
+        .cat-card > input[type=text] { flex:1 1 100%; }
+        .cat-color-wrap { flex:0 0 auto; }
+        .cat-actions { margin-left:auto; }
     }
 
     @media (max-width: 768px) {
@@ -1840,14 +1842,11 @@ function renderCalendarCategories() {
         return;
     }
     const DEFAULT_KEYS = ['gold','teal','blue','red','green','purple','holiday'];
-    container.innerHTML = allCalendarCategories.map((c, idx) => {
+    container.innerHTML = allCalendarCategories.map(c => {
         const isDefault = DEFAULT_KEYS.includes(c.key);
         return `
         <div class="cat-card" data-id="${c.id}">
-            <div class="cat-order-btns">
-                <button class="cat-order-btn" onclick="moveCalendarCategory(${c.id},-1)" ${idx===0?'disabled':''} title="위로">▲</button>
-                <button class="cat-order-btn" onclick="moveCalendarCategory(${c.id},1)" ${idx===allCalendarCategories.length-1?'disabled':''} title="아래로">▼</button>
-            </div>
+            <span class="cat-drag-handle" title="드래그하여 순서 변경 (캘린더에 표시되는 순서)">⋮⋮</span>
             <div class="cat-preview" style="background:${c.color}; color:${c.text_color};" id="catPreview-${c.id}">${escHtml(c.label)}</div>
             <input type="text" id="catLabel-${c.id}" value="${escHtml(c.label)}" placeholder="라벨" oninput="updateCatPreview(${c.id})">
             <div class="cat-color-wrap">
@@ -1862,25 +1861,52 @@ function renderCalendarCategories() {
                 ${isDefault
                     ? `<button class="btn-outline" onclick="resetCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;" title="기본 라벨/색으로 되돌림">기본값</button>`
                     : `<button class="btn-danger-outline" onclick="deleteCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;">삭제</button>`}
-            </div>
-            <div class="cat-actions">
                 <button class="btn-save" onclick="saveCalendarCategory(${c.id})" style="padding:7px 14px; font-size:12px;">저장</button>
             </div>
         </div>`;
     }).join('');
+    enableCatDrag(container);
 }
 
-// ── 카테고리 순서 이동 ──
-async function moveCalendarCategory(id, dir) {
-    const idx = allCalendarCategories.findIndex(c => c.id === id);
-    const to = idx + dir;
-    if (idx < 0 || to < 0 || to >= allCalendarCategories.length) return;
-    [allCalendarCategories[idx], allCalendarCategories[to]] = [allCalendarCategories[to], allCalendarCategories[idx]];
-    renderCalendarCategories();
+// ── 카테고리 순서 변경 (드래그앤드롭) — 캘린더 뷰어 리스트 표시 순서 ──
+let catDragSrc = null;
+function enableCatDrag(container) {
+    container.querySelectorAll('.cat-card').forEach(card => {
+        // 핸들을 잡았을 때만 드래그 시작 (입력창 텍스트 선택과 충돌 방지)
+        card.addEventListener('mousedown', e => { card.draggable = !!e.target.closest('.cat-drag-handle'); });
+        card.addEventListener('dragstart', e => {
+            catDragSrc = card;
+            card.classList.add('dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', card.dataset.id); } catch (err) {}
+            }
+        });
+        card.addEventListener('dragover', e => {
+            if (!catDragSrc || catDragSrc === card) return;
+            e.preventDefault();
+            const rect = card.getBoundingClientRect();
+            const before = e.clientY < rect.top + rect.height / 2;
+            card.parentNode.insertBefore(catDragSrc, before ? card : card.nextSibling);
+        });
+        card.addEventListener('dragend', () => {
+            card.draggable = false;
+            if (!catDragSrc) return;
+            catDragSrc.classList.remove('dragging');
+            catDragSrc = null;
+            saveCalendarCategoryOrder();
+        });
+    });
+}
+
+async function saveCalendarCategoryOrder() {
+    const ids = [...document.querySelectorAll('#calendarCategoriesContainer .cat-card')].map(el => Number(el.dataset.id));
+    if (ids.join(',') === allCalendarCategories.map(c => c.id).join(',')) return; // 순서 변화 없음
+    allCalendarCategories.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
     const res = await fetch('/api/admin/calendar-categories/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ order: allCalendarCategories.map(c => c.id) }),
+        body: JSON.stringify({ order: ids }),
     });
     if (!res.ok) { alert('순서 저장에 실패했습니다.'); loadCalendarCategories(); }
 }
