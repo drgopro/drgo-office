@@ -410,6 +410,7 @@ window.editor = new Editor({
     },
     onUpdate({ editor: e }) {
         updateToolbar(e);
+        markWikiDirty();
     },
     onSelectionUpdate({ editor: e }) {
         updateToolbar(e);
@@ -540,7 +541,10 @@ async function uploadAndInsertToEditor(file) {
 
 // 저장 — HTML을 마크다운으로 변환하지 않고 HTML로 저장 (서버에서 처리)
 let WIKI_SAVING = false;
+let WIKI_DIRTY = false; // 마지막 저장 이후 변경 여부 — 자동저장 지점 표시 + 불필요한 저장 방지
 function setAutosaveStatus(msg){ const el=document.getElementById('autosaveStatus'); if(el) el.textContent=msg; }
+function markWikiDirty(){ WIKI_DIRTY = true; setAutosaveStatus('● 저장되지 않은 변경 — 1분 내 자동 저장'); }
+document.getElementById('editTitle')?.addEventListener('input', markWikiDirty);
 async function doSaveWiki(silent) {
     const html = editor.getHTML();
     const title = document.getElementById('editTitle').value.trim();
@@ -562,6 +566,7 @@ async function doSaveWiki(silent) {
             else setAutosaveStatus('자동 저장 실패');
             return;
         }
+        WIKI_DIRTY = false;
         if (silent) {
             const now=new Date(); setAutosaveStatus(`✓ ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} 자동 저장됨`);
         } else {
@@ -570,9 +575,10 @@ async function doSaveWiki(silent) {
     } finally { WIKI_SAVING = false; }
 }
 window.saveWiki = function() { doSaveWiki(false); };
-// 1분마다 자동 저장 (수정 모드에서 제목·내용이 있을 때만)
+// 1분마다 자동 저장 (수정 모드 + 변경이 있을 때만)
 setInterval(() => {
     if (!document.getElementById('editForm').classList.contains('active')) return;
+    if (!WIKI_DIRTY) return;
     const title = document.getElementById('editTitle').value.trim();
     const html = editor?.getHTML?.() || '';
     if (title && html && html !== '<p></p>') doSaveWiki(true);
@@ -581,6 +587,7 @@ setInterval(() => {
 // 수정 모드 토글
 window.toggleEdit = function() {
     const editMode = document.getElementById('editForm').classList.toggle('active');
+    if (editMode) { WIKI_DIRTY = false; setAutosaveStatus('자동 저장 켜짐 (1분마다)'); }
     document.getElementById('viewContent').classList.toggle('hidden', editMode);
     document.getElementById('viewActions').style.display = editMode ? 'none' : '';
     document.getElementById('viewTitle').style.display = editMode ? 'none' : '';

@@ -346,6 +346,11 @@ window.uploadAndInsert=async function(file){
 let WIKI_CREATED_ID = null;
 let WIKI_SAVING = false;
 function setAutosaveStatus(msg){ const el=document.getElementById('autosaveStatus'); if(el) el.textContent=msg; }
+let WIKI_DIRTY=false; // 마지막 저장 이후 변경 여부 — 자동저장 지점 표시 + 불필요한 저장 방지
+function markWikiDirty(){ WIKI_DIRTY=true; setAutosaveStatus('● 저장되지 않은 변경 — 1분 내 자동 저장'); }
+editor.on('update', markWikiDirty);
+document.getElementById('wikiTitle')?.addEventListener('input', markWikiDirty);
+setAutosaveStatus('자동 저장 켜짐 (1분마다)');
 async function doSaveWiki(silent){
     const title=document.getElementById('wikiTitle').value.trim();
     const categoryId=document.getElementById('wikiCategoryId').value || null;
@@ -371,14 +376,16 @@ async function doSaveWiki(silent){
             else setAutosaveStatus('자동 저장 실패');
             return;
         }
+        WIKI_DIRTY=false;
         const now=new Date(); const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
         if(silent){ setAutosaveStatus('✓ '+t+' 자동 저장됨'); }
         else { location.href='/wiki/'+WIKI_CREATED_ID; }
     } finally { WIKI_SAVING=false; }
 }
 window.saveNewWiki=function(){ doSaveWiki(false); };
-// 1분마다 자동 저장 (제목·내용이 있을 때만)
+// 1분마다 자동 저장 (변경이 있고 제목·내용이 있을 때만)
 setInterval(()=>{
+    if(!WIKI_DIRTY) return;
     const title=document.getElementById('wikiTitle').value.trim();
     const html=editor?.getHTML?.()||'';
     if(title && html && html!=='<p></p>') doSaveWiki(true);
