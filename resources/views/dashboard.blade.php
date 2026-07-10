@@ -63,6 +63,9 @@
     .ww-date { font-size:11px; color:var(--text-muted); flex-shrink:0; }
     .ww-empty { font-size:12px; color:var(--text-muted); padding:12px 0; text-align:center; }
     .ww-more { display:block; text-align:right; font-size:11px; color:var(--accent); text-decoration:none; margin-top:8px; }
+    .ww-type-badge { flex-shrink:0; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; }
+    .ww-type-badge.notice { background:#e8894a22; color:#e8894a; }
+    .ww-type-badge.update { background:#7aaec822; color:#5b9bd5; }
     @media (max-width:768px) { .wiki-widget-grid { grid-template-columns:1fr; } }
 
     @media (max-width:768px) {
@@ -179,6 +182,19 @@
     {{-- 위키 --}}
     <div class="section-title" style="margin-top:28px;"><x-icon name="book" :size="17"/> 위키</div>
     <div class="wiki-widget-grid">
+        <div class="wiki-widget" style="grid-column:1/-1;">
+            <div class="ww-head">📢 공지·업데이트 <span class="ww-sub">최신순</span></div>
+            @forelse($wikiNotices as $w)
+                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
+                    <span class="ww-type-badge {{ $w->type }}">{{ \App\Models\Wiki::SPECIAL_TYPES[$w->type] ?? $w->type }}</span>
+                    <span class="ww-title">{{ $w->title }}</span>
+                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
+                </a>
+            @empty
+                <div class="ww-empty">등록된 공지·업데이트가 없습니다</div>
+            @endforelse
+            <a class="ww-more" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
+        </div>
         <div class="wiki-widget">
             <div class="ww-head"><x-icon name="new" :size="15"/> 최신 등록 문서 <span class="ww-sub">최근 3건</span></div>
             @forelse($wikiRecent as $w)

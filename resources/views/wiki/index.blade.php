@@ -172,6 +172,7 @@
         'id' => $w->id,
         'title' => $w->title,
         'category_id' => $w->category_id,
+        'type' => $w->type ?? 'normal',
         'is_pinned' => (bool) $w->is_pinned,
         'creator' => $w->creator?->display_name ?? '알 수 없음',
         'updated' => $w->updated_at->format('Y.m.d H:i'),
@@ -237,7 +238,17 @@
                     <div class="field-label">제목 *</div>
                     <input class="field-input" name="title" required placeholder="문서 제목">
                 </div>
-                <div class="field-group" style="width:200px;">
+                @if(auth()->user()->isAdmin())
+                <div class="field-group" style="width:130px;">
+                    <div class="field-label">유형</div>
+                    <select class="field-input" name="type" onchange="document.getElementById('wikiModalCatWrap').style.display=this.value==='normal'?'':'none'">
+                        <option value="normal">일반 문서</option>
+                        <option value="notice">📢 공지사항</option>
+                        <option value="update">🆕 업데이트</option>
+                    </select>
+                </div>
+                @endif
+                <div class="field-group" id="wikiModalCatWrap" style="width:200px;">
                     <div class="field-label">카테고리</div>
                     <select class="field-input" name="category_id">
                         <option value="">(미분류)</option>
@@ -302,6 +313,11 @@ const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' 
 let WIKI_CAT_COUNTS = @json($catCounts);
 let WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
+// 특수 유형(공지사항/업데이트) — 카테고리 트리와 별개의 고정 섹션
+const WIKI_TYPE_COUNTS = @json($typeCounts);
+const WIKI_TYPE_LABELS = {notice:'📢 공지사항', update:'🆕 업데이트'};
+@php($curSpecialType = in_array(request('type'), ['notice', 'update'], true) ? request('type') : '')
+let WIKI_CUR_TYPE = @json($curSpecialType);
 const WIKI_DOCS = @json($wikiDocs);
 const WIKI_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
 const WIKI_COLLAPSE_KEY = 'wikiCatCollapsed';
@@ -352,7 +368,14 @@ function renderWikiTree() {
     if (WIKI_UNCAT > 0) {
         html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
     }
-    wrap.innerHTML = html;
+    // 고정 섹션(공지사항/업데이트) — 카테고리 트리 상단, 트리와 별개 관리
+    let fixed = ['notice','update'].map(t =>
+        `<div class="wiki-cat-row cat-top ${WIKI_CUR_TYPE === t ? 'active' : ''}" onclick="filterType('${t}')">
+            <span class="wiki-cat-caret blank"></span>
+            <span class="wiki-cat-name">${WIKI_TYPE_LABELS[t]}</span>
+            <span class="wiki-cat-count">${WIKI_TYPE_COUNTS[t] || 0}</span></div>`
+    ).join('') + '<div style="border-bottom:1px solid var(--border);margin:6px 0;"></div>';
+    wrap.innerHTML = fixed + html;
 }
 // 행 클릭: 하위가 있으면 펼치기/접기 토글 + 해당 카테고리 필터를 동시에 처리
 function onCatRowClick(id, collapsible) {
@@ -369,12 +392,24 @@ function toggleWikiCat(id) {
     wikiSaveCollapsed(set);
     renderWikiTree();
 }
+// 특수 유형(공지/업데이트) 필터
+function filterType(t) {
+    WIKI_CUR_TYPE = (WIKI_CUR_TYPE === t) ? '' : t; // 재클릭 시 해제
+    WIKI_CUR_CAT = 0;
+    const params = new URLSearchParams(window.location.search);
+    params.delete('cat'); params.delete('category');
+    if (WIKI_CUR_TYPE) { params.set('type', WIKI_CUR_TYPE); } else { params.delete('type'); }
+    history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : ''));
+    renderWikiTree();
+    renderDocList();
+}
 // 카테고리 필터 — 새로고침 없이 즉시 목록 갱신
 function filterCatId(id) {
     WIKI_CUR_CAT = id ? parseInt(id, 10) : 0;
+    WIKI_CUR_TYPE = '';
     const params = new URLSearchParams(window.location.search);
     if (WIKI_CUR_CAT) { params.set('cat', WIKI_CUR_CAT); } else { params.delete('cat'); }
-    params.delete('category');
+    params.delete('category'); params.delete('type');
     history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : ''));
     // 새 문서 버튼에 현재 카테고리 반영 (선택된 카테고리에서 바로 작성)
     const newBtn = document.getElementById('wikiNewBtn');
@@ -400,14 +435,15 @@ function wikiCatPathStr(id) {
 function renderDocList() {
     const list = document.getElementById('wikiDocList');
     let docs = WIKI_DOCS;
-    if (WIKI_CUR_CAT) { const ids = wikiDescendantSet(WIKI_CUR_CAT); docs = WIKI_DOCS.filter(d => ids.has(d.category_id)); }
-    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서';
+    if (WIKI_CUR_TYPE) { docs = WIKI_DOCS.filter(d => d.type === WIKI_CUR_TYPE); }
+    else if (WIKI_CUR_CAT) { const ids = wikiDescendantSet(WIKI_CUR_CAT); docs = WIKI_DOCS.filter(d => ids.has(d.category_id)); }
+    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_TYPE ? WIKI_TYPE_LABELS[WIKI_CUR_TYPE] : (WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서');
     document.getElementById('wikiMainCount').textContent = docs.length + '건';
-    if (!docs.length) { list.innerHTML = '<div class="empty">해당 카테고리에 문서가 없습니다.</div>'; return; }
+    if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
     list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}" onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
         <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin">📌</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
         <div class="wiki-meta">
-            <span class="wiki-cat-badge">${wikiEsc(wikiCatPathStr(d.category_id))}</span>
+            <span class="wiki-cat-badge">${d.type !== 'normal' ? WIKI_TYPE_LABELS[d.type] : wikiEsc(wikiCatPathStr(d.category_id))}</span>
             <span>${wikiEsc(d.creator)}</span><span>${d.updated}</span>
         </div>
         <div class="wiki-preview">${wikiEsc(d.preview)}</div>

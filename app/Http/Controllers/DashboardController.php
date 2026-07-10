@@ -199,9 +199,12 @@ class DashboardController extends Controller
         $wikiTotal = Wiki::count();
         $wikiAll = Wiki::orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
         $wikiRecent = Wiki::orderByDesc('created_at')->limit(3)->get(['id', 'title', 'created_at']);
+        // 공지사항/업데이트 — 최신순 고정 노출
+        $wikiNotices = Wiki::whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
+            ->orderByDesc('created_at')->limit(5)->get(['id', 'title', 'type', 'created_at']);
 
         return view('dashboard', compact(
-            'wikiTotal', 'wikiAll', 'wikiRecent',
+            'wikiTotal', 'wikiAll', 'wikiRecent', 'wikiNotices',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',

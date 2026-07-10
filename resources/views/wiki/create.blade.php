@@ -75,7 +75,17 @@
             <div class="field-label">제목 *</div>
             <input class="field-input" id="wikiTitle" required placeholder="문서 제목">
         </div>
-        <div class="field-group" style="width:220px;margin:0;">
+        @if(auth()->user()->isAdmin())
+        <div class="field-group" style="width:130px;margin:0;">
+            <div class="field-label">유형</div>
+            <select class="field-input" id="wikiType" onchange="document.getElementById('wikiCatWrap').style.display=this.value==='normal'?'':'none'">
+                <option value="normal">일반 문서</option>
+                <option value="notice">📢 공지사항</option>
+                <option value="update">🆕 업데이트</option>
+            </select>
+        </div>
+        @endif
+        <div class="field-group" id="wikiCatWrap" style="width:220px;margin:0;">
             <div class="field-label">카테고리</div>
             @php
                 $catFlat = [];
@@ -347,7 +357,8 @@ async function doSaveWiki(silent){
     WIKI_SAVING=true;
     if(silent) setAutosaveStatus('저장 중…');
     try{
-        const body=JSON.stringify({title,category_id:categoryId,content:html,is_pinned:isPinned?1:0});
+        const wikiType=document.getElementById('wikiType')?.value||'normal';
+        const body=JSON.stringify({title,category_id:wikiType==='normal'?categoryId:null,type:wikiType,content:html,is_pinned:isPinned?1:0});
         let res;
         if(!WIKI_CREATED_ID){
             res=await fetch('{{ route("wiki.store") }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body});

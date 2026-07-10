@@ -26,12 +26,15 @@ class WikiController extends Controller
 
         $wikis = $query->orderByDesc('is_pinned')->orderByDesc('updated_at')->get();
         $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
-        // 카테고리별 직접 문서 수 (트리 배지용)
+        // 카테고리별 직접 문서 수 (트리 배지용) — 공지/업데이트는 카테고리 체계와 별개
         $catCounts = Wiki::whereNotNull('category_id')->selectRaw('category_id, count(*) as c')
             ->groupBy('category_id')->pluck('c', 'category_id');
-        $uncategorized = Wiki::whereNull('category_id')->count();
+        $uncategorized = Wiki::whereNull('category_id')->where('type', 'normal')->count();
+        // 특수 유형(공지사항/업데이트) 문서 수
+        $typeCounts = Wiki::whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
+            ->selectRaw('type, count(*) as c')->groupBy('type')->pluck('c', 'type');
 
-        return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized'));
+        return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized', 'typeCounts'));
     }
 
     /** 카테고리 id + 모든 하위 id (flat 트리에서 계산) */
@@ -62,6 +65,21 @@ class WikiController extends Controller
         return view('wiki.create', compact('categories', 'tree'));
     }
 
+    /**
+     * 공지사항/업데이트 유형 처리 — 관리자 전용, 카테고리 체계와 분리(카테고리 강제 해제).
+     * type 미지정 시 normal 유지.
+     */
+    private function applySpecialType(array &$validated): void
+    {
+        if (empty($validated['type']) || $validated['type'] === 'normal') {
+            return;
+        }
+        abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 작성할 수 있습니다.');
+        $validated['category_id'] = null;
+        $validated['category'] = Wiki::SPECIAL_TYPES[$validated['type']];
+        $validated['is_pinned'] = false; // 고정 섹션에 항상 노출되므로 별도 핀 불필요
+    }
+
     /** category_id가 있으면 노드명으로 category 문자열 동기화(하위 호환·풀텍스트용) */
     private function syncCategoryName(array &$validated): void
     {
@@ -89,11 +107,13 @@ class WikiController extends Controller
             'title' => 'required|string|max:200',
             'category' => 'nullable|string|max:50',
             'category_id' => 'nullable|integer|exists:wiki_categories,id',
+            'type' => 'nullable|in:normal,notice,update',
             'content' => 'required|string',
             'is_pinned' => 'boolean',
         ]);
 
         $this->syncCategoryName($validated);
+        $this->applySpecialType($validated);
         $validated['created_by'] = Auth::id();
         $validated['updated_by'] = Auth::id();
 
@@ -112,11 +132,17 @@ class WikiController extends Controller
             'title' => 'sometimes|string|max:200',
             'category' => 'sometimes|nullable|string|max:50',
             'category_id' => 'sometimes|nullable|integer|exists:wiki_categories,id',
+            'type' => 'sometimes|in:normal,notice,update',
             'content' => 'sometimes|string',
             'is_pinned' => 'boolean',
         ]);
 
         $this->syncCategoryName($validated);
+        // 공지/업데이트 문서 자체의 수정도 관리자만 (type 파라미터가 없어도)
+        if (isset(Wiki::SPECIAL_TYPES[$wiki->type])) {
+            abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 수정할 수 있습니다.');
+        }
+        $this->applySpecialType($validated);
         $validated['updated_by'] = Auth::id();
         $wiki->update($validated);
 
@@ -141,7 +167,8 @@ class WikiController extends Controller
             ? mb_substr(WikiCategory::find($categoryId)->name, 0, 50)
             : '미분류';
 
-        $moved = Wiki::whereIn('id', $validated['ids'])->update([
+        // 공지/업데이트는 카테고리 체계와 별개 — 일괄 이동 대상에서 제외
+        $moved = Wiki::whereIn('id', $validated['ids'])->where('type', 'normal')->update([
             'category_id' => $categoryId,
             'category' => $categoryName,
             'updated_by' => Auth::id(),
@@ -152,6 +179,9 @@ class WikiController extends Controller
 
     public function destroy(Request $request, Wiki $wiki)
     {
+        if (isset(Wiki::SPECIAL_TYPES[$wiki->type])) {
+            abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 삭제할 수 있습니다.');
+        }
         $wiki->delete();
 
         if ($request->wantsJson()) {
