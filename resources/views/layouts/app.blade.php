@@ -675,7 +675,12 @@ window.drgoTabs = {
      */
     setActiveTitle(title, sourceWin) {
         let tab = null;
-        if (sourceWin && sourceWin !== window) {
+        if (sourceWin === window) {
+            // 최상위에 직접 렌더링된 초기 페이지(iframe 아님) → initial 탭만 갱신
+            // (딥링크로 열린 프로젝트 페이지가 저장된 활성 탭(캘린더 등) 이름을 덮어쓰는 것 방지)
+            tab = this.tabs.find(t => t.id === 'initial');
+            if (!tab) return;
+        } else if (sourceWin) {
             const iframe = [...document.querySelectorAll('.tab-pane iframe')].find(f => {
                 try { return f.contentWindow === sourceWin; } catch (e) { return false; }
             });
@@ -888,8 +893,13 @@ window.drgoTabs = {
                 this.tabs.unshift({ id: 'initial', type, url: currentPath, loaded: true });
             }
 
-            // 활성 탭 결정
-            const activeTab = this.tabs.find(t => t.url === data.activeUrl);
+            // 활성 탭 결정 — 새로고침이면 저장된 활성 탭 유지,
+            // 새 탐색(딥링크·_blank로 복제된 세션)이면 실제로 연 페이지의 탭을 우선 활성화
+            const navType = performance.getEntriesByType?.('navigation')?.[0]?.type || 'navigate';
+            let activeTab = this.tabs.find(t => t.url === data.activeUrl);
+            if (navType !== 'reload') {
+                activeTab = this.tabs.find(t => t.url === currentPath) || activeTab;
+            }
             this.activeId = activeTab ? activeTab.id : 'initial';
 
             // initial이 아닌 활성 탭이면 해당 탭 활성화
