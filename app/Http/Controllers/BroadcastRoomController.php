@@ -6,6 +6,7 @@ use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\Client;
 use App\Models\Schedule;
+use App\Services\ContractCalendarSync;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class BroadcastRoomController extends Controller
 {
+    public function __construct(private ContractCalendarSync $calendarSync) {}
+
     public function index()
     {
         $activeContracts = BroadcastRoomContract::where('status', 'active')->count();
@@ -36,6 +39,7 @@ class BroadcastRoomController extends Controller
             'monthly_fee' => $c->monthly_fee,
             'status' => $c->status,
             'memo' => $c->memo,
+            'calendar_synced' => ! empty($c->calendar_meta),
         ]);
 
         return response()->json($contracts);
@@ -52,7 +56,12 @@ class BroadcastRoomController extends Controller
             'memo' => 'nullable|string',
         ]);
 
-        $c = BroadcastRoomContract::create($validated);
+        $c = DB::transaction(function () use ($validated) {
+            $c = BroadcastRoomContract::create($validated);
+            $this->calendarSync->sync($c); // 캘린더 양방향 등록 (시작/종료 이벤트 + 결제일 반복)
+
+            return $c;
+        });
 
         return response()->json($c->load('client'), 201);
     }
@@ -68,14 +77,20 @@ class BroadcastRoomController extends Controller
             'memo' => 'nullable|string',
         ]);
 
-        $contract->update($validated);
+        DB::transaction(function () use ($contract, $validated) {
+            $contract->update($validated);
+            $this->calendarSync->sync($contract); // 변경 사항 캘린더 재동기화
+        });
 
         return response()->json($contract->load('client'));
     }
 
     public function destroyContract(BroadcastRoomContract $contract)
     {
-        $contract->delete();
+        DB::transaction(function () use ($contract) {
+            $this->calendarSync->remove($contract); // 연결된 캘린더 일정 정리
+            $contract->delete();
+        });
 
         return response()->json(['ok' => true]);
     }

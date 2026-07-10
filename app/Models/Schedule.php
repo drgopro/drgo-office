@@ -34,6 +34,8 @@ class Schedule extends Model
         'repeat_unit',
         'repeat_until',
         'import_uid',
+        'source_type',
+        'source_id',
         'notify_assignees',
         'is_locked',
         'is_private',

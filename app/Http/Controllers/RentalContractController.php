@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\RentalContract;
+use App\Services\ContractCalendarSync;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RentalContractController extends Controller
 {
+    public function __construct(private ContractCalendarSync $calendarSync) {}
+
     public function index(Request $request)
     {
         $query = RentalContract::with('client');
@@ -41,6 +45,7 @@ class RentalContractController extends Controller
             'monthly_fee' => $c->monthly_fee,
             'status' => $c->status,
             'memo' => $c->memo,
+            'calendar_synced' => ! empty($c->calendar_meta),
         ]);
 
         return response()->json($contracts);
@@ -57,7 +62,12 @@ class RentalContractController extends Controller
             'memo' => 'nullable|string',
         ]);
 
-        $contract = RentalContract::create($validated);
+        $contract = DB::transaction(function () use ($validated) {
+            $contract = RentalContract::create($validated);
+            $this->calendarSync->sync($contract); // 캘린더 양방향 등록 (시작/종료 이벤트 + 결제일 반복)
+
+            return $contract;
+        });
 
         return response()->json($contract->load('client'), 201);
     }
@@ -73,14 +83,20 @@ class RentalContractController extends Controller
             'memo' => 'nullable|string',
         ]);
 
-        $contract->update($validated);
+        DB::transaction(function () use ($contract, $validated) {
+            $contract->update($validated);
+            $this->calendarSync->sync($contract); // 변경 사항 캘린더 재동기화
+        });
 
         return response()->json($contract->load('client'));
     }
 
     public function destroy(RentalContract $contract)
     {
-        $contract->delete();
+        DB::transaction(function () use ($contract) {
+            $this->calendarSync->remove($contract); // 연결된 캘린더 일정 정리
+            $contract->delete();
+        });
 
         return response()->json(['ok' => true]);
     }

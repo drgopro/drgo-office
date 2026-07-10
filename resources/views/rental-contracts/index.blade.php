@@ -195,8 +195,11 @@ function renderContracts() {
         const endDate = c.end_date || '—';
         const fee = c.monthly_fee ? Number(c.monthly_fee).toLocaleString() + '원' : '0원';
         const memo = c.memo ? c.memo.substring(0, 30) + (c.memo.length > 30 ? '...' : '') : '';
+        const calBadge = c.calendar_synced
+            ? `<a href="/calendar" title="캘린더에 연동됨 — 클릭 시 캘린더로 이동" style="text-decoration:none;margin-left:6px;cursor:pointer;" onclick="event.preventDefault();if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('calendar','/calendar');}else{location.href='/calendar';}">📅</a>`
+            : '';
         return `<tr>
-            <td>${clientName}</td>
+            <td>${clientName}${calBadge}</td>
             <td>${c.start_date}</td>
             <td>${endDate}</td>
             <td style="font-weight:600;color:var(--accent);">${fee}</td>

@@ -13,3 +13,6 @@ Schedule::command('schedules:notify')->everyMinute()->withoutOverlapping();
 
 // 미배송 송장 배송상태 갱신 (30분 주기)
 Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping();
+
+// 진행중 렌탈·방송룸 계약의 결제 반복 일정 자동 연장 (매월 1일)
+Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->withoutOverlapping();

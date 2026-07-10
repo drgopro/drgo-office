@@ -3214,6 +3214,18 @@ function renderLockSummary(){
     const clientChipHtml = linkedClientName
         ? `<a class="ls-client-chip" href="${_esc(linkedClientLink)}" target="_blank"><span>👤</span>${_esc(linkedClientName)}</a>`
         : '';
+    // 원본(렌탈 계약/방송룸 월계약) 이동 칩 — 계약 동기화로 생성된 일정
+    let sourceChipHtml = '';
+    {
+        const SOURCE_NAV = {
+            rental_contract: { label: '📄 렌탈 계약', type: 'rental-contracts', url: '/rental-contracts' },
+            broadcast_contract: { label: '📄 방송룸 월계약', type: 'broadcast-room', url: '/broadcast-room' },
+        };
+        const src = detailEvent && SOURCE_NAV[detailEvent.source_type];
+        if (src) {
+            sourceChipHtml = `<a class="ls-client-chip" href="${src.url}" onclick="event.preventDefault();if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('${src.type}','${src.url}');}else{location.href='${src.url}';}"><span>${src.label}</span></a>`;
+        }
+    }
     // 연결 프로젝트 칩 — projectSelect가 로드돼 있으면 이름 표시, 아니면 번호로라도 표시
     let projectChipHtml = '';
     {
@@ -3272,7 +3284,7 @@ function renderLockSummary(){
         .map(b=>`<span class="ls-type-pill">${_esc(b.textContent.trim())}</span>`).join('');
     html += `<div class="ls-section">
         <div class="ls-time"><span class="ls-time-icon">⏰</span><span>${_esc(timeStr)}</span></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}${projectChipHtml}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}${projectChipHtml}${sourceChipHtml}</div>
         ${schedPills||specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${schedPills}${specialPills}</div>`:''}
     </div>`;
 

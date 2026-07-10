@@ -1047,7 +1047,7 @@ class CalendarController extends Controller
             // 신규 커스텀 카테고리 생성 (라벨 → 키)
             $newKeys = [];
             foreach ($summary['will_create_categories'] as $label) {
-                $newKeys[$label] = $this->createImportCategory($label);
+                $newKeys[$label] = CalendarCategory::ensureByLabel($label);
             }
             foreach ($rows as $row) {
                 if (isset($newKeys[$row['color']])) {
@@ -1159,28 +1159,6 @@ class CalendarController extends Controller
         }
 
         return true;
-    }
-
-    /** 가져오기용 커스텀 카테고리 생성 — CalendarCategoryController@store와 동일한 키 생성 규칙 */
-    private function createImportCategory(string $label): string
-    {
-        $known = ['디자인' => 'design', '렌탈' => 'rental', '촬영' => 'shoot', '스튜디오' => 'studio'];
-        $base = $known[$label] ?? (preg_replace('/[^a-z0-9_]/', '', Str::slug($label, '_')) ?: 'cat_'.time());
-        $key = $base;
-        $i = 1;
-        while (CalendarCategory::where('key', $key)->exists()) {
-            $key = $base.'_'.$i++;
-        }
-        CalendarCategory::create([
-            'key' => $key,
-            'label' => $label,
-            'color' => '#8a9bb0',
-            'text_color' => '#101820',
-            'sort_order' => (CalendarCategory::max('sort_order') ?? 0) + 1,
-            'is_active' => true,
-        ]);
-
-        return $key;
     }
 
     /**

@@ -210,8 +210,11 @@ async function loadContracts() {
     tbody.innerHTML = allContracts.map(c => {
         const statusLabel = c.status === 'active' ? '진행중' : '해지';
         const clientName = c.client_name + (c.client_nickname ? ` (${c.client_nickname})` : '');
+        const calBadge = c.calendar_synced
+            ? `<a href="/calendar" title="캘린더에 연동됨 — 클릭 시 캘린더로 이동" style="text-decoration:none;margin-left:6px;cursor:pointer;" onclick="event.preventDefault();if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('calendar','/calendar');}else{location.href='/calendar';}">📅</a>`
+            : '';
         return `<tr>
-            <td>${clientName}</td><td>${c.start_date}</td><td>${c.end_date || '—'}</td>
+            <td>${clientName}${calBadge}</td><td>${c.start_date}</td><td>${c.end_date || '—'}</td>
             <td style="font-weight:600;color:var(--accent);">${Number(c.monthly_fee||0).toLocaleString()}원</td>
             <td><span class="status-badge status-${c.status}">${statusLabel}</span></td>
             <td style="color:var(--text-muted);">${(c.memo||'').substring(0,30)}</td>
