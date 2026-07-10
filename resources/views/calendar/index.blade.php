@@ -305,7 +305,9 @@
         /* 저해상도: 기본 숨김, 버튼으로 리모컨처럼 띄움 */
         #calSide { display:none; }
         #calSideFab { display:flex; }
-        #calSide.mobile-open { display:block; position:fixed; left:56px; top:50%; transform:translateY(-50%); bottom:auto; width:min(280px, calc(100vw - 70px)); max-height:min(76vh, 600px); overflow-y:auto; z-index:600; box-shadow:0 12px 40px rgba(0,0,0,0.35); margin-top:0 !important; height:auto !important; }
+        /* 좌측에서 붙어 나오는 드로어 형태 */
+        #calSide.mobile-open { display:block; position:fixed; left:0; top:0; bottom:0; transform:none; width:min(300px, 82vw); max-height:none; overflow-y:auto; z-index:600; box-shadow:8px 0 32px rgba(0,0,0,0.3); margin-top:0 !important; height:auto !important; border-radius:0 16px 16px 0; animation:csDrawerIn .18s ease-out; }
+        @keyframes csDrawerIn { from { transform:translateX(-100%); } to { transform:translateX(0); } }
         #calSide.mobile-open .cs-collapse-btn, #calSide.mobile-open #csRail { display:none; }
         #calSide.mobile-open #calSideBody { display:block; }
     }
