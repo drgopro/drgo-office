@@ -3673,8 +3673,9 @@ async function loadClientProjects(clientId){
 
 // 대여 이력 등록 토글 (신규 등록 시에만 사용) — teal: 방송룸 시간/월, 렌탈 카테고리: 렌탈 월계약
 function brRentalKind(){
-    if(currentColor==='teal') return 'broadcast';
-    if((window.CALENDAR_CATEGORIES?.[currentColor]?.label)==='렌탈') return 'rental';
+    const label=(window.CALENDAR_CATEGORIES?.[currentColor]?.label)||'';
+    if(currentColor==='teal'||label.includes('방송룸')) return 'broadcast';
+    if(label==='렌탈') return 'rental';
     return null;
 }
 function updateBrRentalUI(){

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
+use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Schedule;
 use App\Services\ContractCalendarSync;
@@ -143,7 +144,7 @@ class BroadcastRoomController extends Controller
             $start = Carbon::parse($validated['start_at']);
             $end = Carbon::parse($validated['end_at']);
 
-            // 캘린더 일정 자동 생성 (color=teal = 원격/방송룸)
+            // 캘린더 일정 자동 생성 — '방송룸 대여' 카테고리 (없으면 자동 생성)
             $client = Client::find($validated['client_id']);
             $clientLabel = $client ? trim(($client->nickname ?: $client->name).($client->name && $client->nickname ? ' ('.$client->name.')' : '')) : null;
             $titleName = $client ? ($client->nickname ?: $client->name) : null;
@@ -155,7 +156,7 @@ class BroadcastRoomController extends Controller
                 'start_time' => $start->format('H:i:s'),
                 'end_time' => $end->format('H:i:s'),
                 'is_all_day' => false,
-                'color' => 'teal',
+                'color' => CalendarCategory::ensureByLabel('방송룸 대여'),
                 'client_name' => $clientLabel,
                 'description' => $validated['memo'] ?? null,
                 'created_by' => Auth::id(),
