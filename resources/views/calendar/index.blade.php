@@ -408,6 +408,10 @@
     .modal-strip.color-holiday { background:var(--red); }
 
     .type-badge { display:inline-flex; align-items:center; gap:5px; font-size:10px; letter-spacing:0.12em; padding:3px 8px; border-radius:4px; border:1px solid; }
+    /* 보기 모드: 배지 클릭으로 카테고리 빠른 변경 */
+    body .type-badge.quick-editable { cursor:pointer; }
+    .type-badge.quick-editable:hover { filter:brightness(1.2); box-shadow:0 0 0 2px color-mix(in srgb, currentColor 25%, transparent); }
+    .cat-quick-pick { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 2px; padding:8px; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,0.25); }
     .type-badge.gold   { color:#c8b08a; border-color:rgba(200,176,138,0.35); background:rgba(200,176,138,0.08); }
     .type-badge.teal   { color:#e8894a; border-color:rgba(232,137,74,0.35);  background:rgba(232,137,74,0.08); }
     .type-badge.blue   { color:#8ab4c8; border-color:rgba(138,180,200,0.35); background:rgba(138,180,200,0.08); }
@@ -1006,7 +1010,7 @@
             <div style="flex:1">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                     <span class="modal-date-badge" id="modalDateBadge"></span>
-                    <span class="type-badge gold" id="typeBadge">● 방문의뢰</span>
+                    <span class="type-badge gold" id="typeBadge" onclick="toggleCategoryQuickPick()">● 방문의뢰</span>
                 </div>
                 <div class="color-row" id="colorRow" style="margin-bottom:4px;flex-wrap:wrap;">
                     @foreach(\App\Models\CalendarCategory::map() as $__k => $__c)
@@ -3068,7 +3072,21 @@ function renderAssigneeList(){
         chip.textContent=a.name+(isSelf?' (나)':''); chip.dataset.id=a.id;
         // 접힘 상태: 본인/이미 선택된 담당자만 노출, 나머지는 숨김
         if(!assigneeShowAll && !isSelf && !isSel){ chip.style.display='none'; hidden++; }
-        chip.onclick=()=>{
+        chip.onclick=async ()=>{
+            // 보기 모드: 수정 진입 없이 클릭 즉시 서버 반영
+            if(viewMode&&editingId){
+                if(!canEditCalendar) return;
+                const next=selectedAssignees.includes(a.id)
+                    ? selectedAssignees.filter(id=>id!==a.id)
+                    : [...selectedAssignees, a.id];
+                if(!(await quickUpdateEvent({assignees:next}))) return;
+                selectedAssignees=next;
+                if(detailEvent) detailEvent.assignees=assignees.filter(x=>next.includes(x.id));
+                updateAssigneeBtn(); renderAssigneeList();
+                showCalToast('담당자가 변경되었습니다');
+                loadEvents();
+                return;
+            }
             if(isLocked) return;
             if(selectedAssignees.includes(a.id)){selectedAssignees=selectedAssignees.filter(id=>id!==a.id);}
             else{selectedAssignees.push(a.id);}
@@ -3950,6 +3968,7 @@ function resetModalForm(){
     document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
+    document.getElementById('catQuickPick')?.remove(); // 카테고리 빠른 변경 팝업 잔여 제거
     isLocked=false; document.getElementById('lockBtn').textContent='☐ 요약'; document.getElementById('lockBtn').classList.remove('locked');
     document.getElementById('lockedBanner').classList.remove('visible');
     document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
@@ -4062,6 +4081,56 @@ let detailEvent = null;
 
 let viewMode = false; // true: 상세보기(읽기전용), false: 편집
 
+// ── 보기 모드 즉시 적용 (수정 모드 진입 없이 담당자/카테고리 변경) ──
+async function quickUpdateEvent(payload){
+    if(!editingId) return false;
+    const res=await fetch(`/api/events/${editingId}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify(payload)
+    });
+    if(!res.ok){
+        const err=await res.json().catch(()=>({}));
+        showCalToast(err.message||'변경 실패');
+        return false;
+    }
+    return true;
+}
+
+// 카테고리 빠른 변경 팝업 (보기 모드에서 typeBadge 클릭)
+function toggleCategoryQuickPick(){
+    if(!viewMode||!editingId||!canEditCalendar) return;
+    const existing=document.getElementById('catQuickPick');
+    if(existing){ existing.remove(); return; }
+    const badge=document.getElementById('typeBadge');
+    const pop=document.createElement('div');
+    pop.id='catQuickPick';
+    pop.className='cat-quick-pick';
+    Object.entries(window.CALENDAR_CATEGORIES||{}).forEach(([k,c])=>{
+        const chip=document.createElement('div');
+        chip.className='color-dot'+(k===currentColor?' active':'');
+        chip.dataset.color=k;
+        chip.textContent=c.label||k;
+        chip.style.pointerEvents='auto';
+        chip.onclick=async e=>{
+            e.stopPropagation();
+            pop.remove();
+            if(k===currentColor) return;
+            if(!(await quickUpdateEvent({color:k}))) return;
+            setColor(k); // 배지/칩 표시 갱신 (요약 뷰에서는 폼이 숨겨져 있어 부작용 없음)
+            if(detailEvent) detailEvent.color=k;
+            if(isLocked) renderLockSummary();
+            showCalToast('카테고리가 변경되었습니다');
+            loadEvents();
+        };
+        pop.appendChild(chip);
+    });
+    badge.insertAdjacentElement('afterend',pop);
+    setTimeout(()=>document.addEventListener('click',function close(e){
+        if(!pop.contains(e.target)&&e.target!==badge){ pop.remove(); document.removeEventListener('click',close); }
+    }),0);
+}
+
 // 완료 버튼(푸터 + 모달 옆 외부) 상태 갱신. showFooter=true면 푸터 버튼도 노출(보기 모드).
 function updateCompleteUI(showFooter){
     const existing=!!editingId;
@@ -4091,6 +4160,8 @@ function setViewModeUI(){
     document.querySelectorAll('#modalOverlay .radio-btn:not([data-always-active])').forEach(b=>{b.style.pointerEvents='none';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='none';});
     // 읽기 모드: 카테고리는 상단 배지(typeBadge)로 이미 표시되므로 선택 칩 줄 전체 숨김(중복 방지) + 공휴일 지정 버튼 숨김
+    // 배지 클릭으로 빠른 변경 가능 표시
+    {const tb=document.getElementById('typeBadge'); if(tb&&canEditCalendar){ tb.classList.add('quick-editable'); tb.title='클릭하여 카테고리 변경'; }}
     const crow=document.getElementById('colorRow'); if(crow) crow.style.display='none';
     const hwrap=document.querySelector('#modalOverlay .holiday-btn-wrap'); if(hwrap) hwrap.style.display='none';
     document.querySelectorAll('#modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn').forEach(b=>{b.style.pointerEvents='none';});
@@ -4126,7 +4197,8 @@ function setEditModeUI(){
     document.querySelectorAll('#modalOverlay .img-upload-zone').forEach(z=>{z.style.display='';});
     document.querySelectorAll('#modalOverlay .radio-btn').forEach(b=>{b.style.pointerEvents='';});
     document.querySelectorAll('#modalOverlay .color-dot').forEach(b=>{b.style.pointerEvents='';});
-    // 편집 모드: 카테고리 선택 줄/칩 전체 다시 표시 + 공휴일 지정 버튼 복원
+    // 편집 모드: 카테고리 선택 줄/칩 전체 다시 표시 + 공휴일 지정 버튼 복원 + 배지 빠른 변경 해제
+    {const tb=document.getElementById('typeBadge'); if(tb){ tb.classList.remove('quick-editable'); tb.title=''; } document.getElementById('catQuickPick')?.remove();}
     const crow2=document.getElementById('colorRow'); if(crow2) crow2.style.display='';
     document.querySelectorAll('#colorRow .color-dot').forEach(d=>{ d.style.display=''; });
     const hwrap2=document.querySelector('#modalOverlay .holiday-btn-wrap'); if(hwrap2) hwrap2.style.display='';
