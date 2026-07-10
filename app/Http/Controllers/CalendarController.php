@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CalendarCategory;
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
 use App\Notifications\ScheduleCreated;
@@ -9,6 +10,7 @@ use App\Notifications\ScheduleUpdated;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -893,50 +895,259 @@ class CalendarController extends Controller
     }
 
     // iCal 가져오기
+    /**
+     * iCal(.ics) 가져오기 — TickTick 등 외부 캘린더의 CATEGORIES를 앱 카테고리로 매핑.
+     * dry=1이면 저장 없이 매핑 요약만 반환 (프론트에서 미리보기 확인 후 실제 실행).
+     */
     public function importIcal(Request $request)
     {
         $request->validate(['file' => 'required|file']);
+        $dry = $request->boolean('dry');
 
         $content = file_get_contents($request->file('file')->getRealPath());
+        // RFC5545 줄접기(folding) 해제 — 연속줄(공백/탭 시작)을 이전 줄에 이어붙임
+        $content = preg_replace('/\r?\n[ \t]/', '', $content);
+
         $vevents = preg_split('/BEGIN:VEVENT/', $content);
         array_shift($vevents); // 첫 번째는 VCALENDAR 헤더
 
-        $count = 0;
-        foreach ($vevents as $vevent) {
-            $title = $this->icalProp($vevent, 'SUMMARY');
-            $dtstart = $this->icalProp($vevent, 'DTSTART');
-            $dtend = $this->icalProp($vevent, 'DTEND');
-            $location = $this->icalProp($vevent, 'LOCATION');
-            $description = str_replace('\\n', "\n", $this->icalProp($vevent, 'DESCRIPTION') ?? '');
+        $categoryMap = CalendarCategory::map();
+        $labelToKey = [];
+        foreach ($categoryMap as $key => $c) {
+            $labelToKey[$c['label']] = $key;
+        }
 
-            $isAllDay = strlen($dtstart) === 8;
-            if ($isAllDay) {
-                $startDate = substr($dtstart, 0, 4).'-'.substr($dtstart, 4, 2).'-'.substr($dtstart, 6, 2);
-                $endDate = $dtend ? date('Y-m-d', strtotime(substr($dtend, 0, 4).'-'.substr($dtend, 4, 2).'-'.substr($dtend, 6, 2).' -1 day')) : $startDate;
-                $startTime = $endTime = null;
-            } else {
-                $startDate = substr($dtstart, 0, 4).'-'.substr($dtstart, 4, 2).'-'.substr($dtstart, 6, 2);
-                $startTime = substr($dtstart, 9, 2).':'.substr($dtstart, 11, 2);
-                $endDate = $dtend ? substr($dtend, 0, 4).'-'.substr($dtend, 4, 2).'-'.substr($dtend, 6, 2) : $startDate;
-                $endTime = $dtend ? substr($dtend, 9, 2).':'.substr($dtend, 11, 2) : null;
+        // 기존 import_uid 셋 (소프트 삭제 포함) — 재실행 시 중복 방지
+        $existingUids = Schedule::withTrashed()->whereNotNull('import_uid')->pluck('import_uid')->flip();
+
+        $summary = [
+            'total' => 0, 'imported' => 0, 'duplicates' => 0, 'skipped_holiday' => 0,
+            'rrule_count' => 0, 'by_category' => [], 'unmapped' => [], 'will_create_categories' => [],
+        ];
+        $rows = [];
+
+        foreach ($vevents as $vevent) {
+            $summary['total']++;
+
+            $uid = $this->icalProp($vevent, 'UID');
+            if ($uid && isset($existingUids[$uid])) {
+                $summary['duplicates']++;
+
+                continue;
             }
 
-            Schedule::create([
-                'title' => $title ?? '(제목 없음)',
+            $categories = array_filter(array_map('trim', explode(',', $this->icalUnescape($this->icalProp($vevent, 'CATEGORIES') ?? ''))));
+            $mapped = $this->mapIcalCategories($categories, $labelToKey);
+            if ($mapped === null) { // 공휴일 → 스킵
+                $summary['skipped_holiday']++;
+
+                continue;
+            }
+            [$colorKey, $newCategoryLabel, $isUnmapped] = $mapped;
+            if ($newCategoryLabel && ! in_array($newCategoryLabel, $summary['will_create_categories'], true)) {
+                $summary['will_create_categories'][] = $newCategoryLabel;
+            }
+            if ($isUnmapped) {
+                $orig = implode(',', $categories);
+                if (! in_array($orig, $summary['unmapped'], true)) {
+                    $summary['unmapped'][] = $orig;
+                }
+            }
+            if ($this->icalProp($vevent, 'RRULE')) {
+                $summary['rrule_count']++; // 반복 규칙은 첫 회차만 가져옴
+            }
+
+            $title = $this->icalUnescape($this->icalProp($vevent, 'SUMMARY') ?? '(제목 없음)');
+            // ✓ 완료 마커: 제목에서 제거하고 완료 처리
+            $completed = false;
+            if (preg_match('/^[✓☑✔]\s*/u', $title)) {
+                $completed = true;
+                $title = preg_replace('/^[✓☑✔]\s*/u', '', $title) ?: '(제목 없음)';
+            }
+
+            $dtstart = $this->icalDateTime($this->icalProp($vevent, 'DTSTART'));
+            $dtend = $this->icalDateTime($this->icalProp($vevent, 'DTEND'));
+            if (! $dtstart) {
+                continue;
+            }
+
+            $isAllDay = $dtstart['allDay'];
+            $startDate = $dtstart['date'];
+            $startTime = $isAllDay ? null : $dtstart['time'];
+            if ($isAllDay) {
+                // iCal 종일 DTEND는 exclusive → 하루 빼기
+                $endDate = $dtend ? date('Y-m-d', strtotime($dtend['date'].' -1 day')) : $startDate;
+                if ($endDate < $startDate) {
+                    $endDate = $startDate;
+                }
+                $endTime = null;
+            } else {
+                $endDate = $dtend['date'] ?? $startDate;
+                $endTime = $dtend['time'] ?? null;
+            }
+
+            $rows[] = [
+                'title' => $title,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'is_all_day' => $isAllDay,
-                'color' => 'blue',
-                'location' => $location,
-                'description' => $description ?: null,
+                'color' => $colorKey,       // 신규 카테고리는 라벨 문자열 → 저장 직전 키로 치환
+                'description' => $this->icalUnescape($this->icalProp($vevent, 'DESCRIPTION') ?? '') ?: null,
+                'location' => $this->icalUnescape($this->icalProp($vevent, 'LOCATION') ?? '') ?: null,
+                'completed_at' => $completed ? ($endDate.' '.($endTime ?: '23:59').':00') : null,
+                'import_uid' => $uid ? mb_substr($uid, 0, 100) : null,
                 'created_by' => Auth::id(),
-            ]);
-            $count++;
+            ];
+
+            $label = $newCategoryLabel ?: ($categoryMap[$colorKey]['label'] ?? $colorKey);
+            $summary['by_category'][$label] = ($summary['by_category'][$label] ?? 0) + 1;
         }
 
-        return response()->json(['message' => "{$count}건의 일정을 가져왔습니다.", 'count' => $count]);
+        if ($dry) {
+            return response()->json($summary);
+        }
+
+        DB::transaction(function () use (&$rows, &$summary) {
+            // 신규 커스텀 카테고리 생성 (라벨 → 키)
+            $newKeys = [];
+            foreach ($summary['will_create_categories'] as $label) {
+                $newKeys[$label] = $this->createImportCategory($label);
+            }
+            foreach ($rows as $row) {
+                if (isset($newKeys[$row['color']])) {
+                    $row['color'] = $newKeys[$row['color']];
+                }
+                Schedule::create($row);
+                $summary['imported']++;
+            }
+        });
+
+        $msg = "{$summary['imported']}건의 일정을 가져왔습니다.";
+        if ($summary['duplicates']) {
+            $msg .= " (중복 {$summary['duplicates']}건 스킵)";
+        }
+        if ($summary['skipped_holiday']) {
+            $msg .= " (공휴일 {$summary['skipped_holiday']}건 제외)";
+        }
+
+        return response()->json(['message' => $msg, 'count' => $summary['imported']] + $summary);
+    }
+
+    /**
+     * TickTick CATEGORIES 토큰 → 앱 카테고리. 우선순위 순서대로 첫 매칭.
+     * 반환: null=스킵(공휴일), [colorKeyOrNewLabel, 생성할 라벨|null, 미매칭 여부]
+     *
+     * @param  list<string>  $categories
+     * @param  array<string, string>  $labelToKey
+     * @return array{0:string,1:?string,2:bool}|null
+     */
+    private function mapIcalCategories(array $categories, array $labelToKey): ?array
+    {
+        $has = fn (string $needle) => collect($categories)->contains(fn ($c) => str_contains($c, $needle));
+
+        if ($has('공휴일')) {
+            return null;
+        }
+        if ($has('휴가') || $has('생일')) {
+            return ['red', null, false];
+        }
+        if ($has('내방')) {
+            return ['purple', null, false];
+        }
+        // '렌탈&방송룸월대여'가 방송룸보다 먼저 걸리도록 렌탈을 우선 평가
+        foreach ([
+            ['needles' => ['렌탈', '장비렌탈'], 'label' => '렌탈'],
+        ] as $rule) {
+            foreach ($rule['needles'] as $n) {
+                if ($has($n)) {
+                    return isset($labelToKey[$rule['label']])
+                        ? [$labelToKey[$rule['label']], null, false]
+                        : [$rule['label'], $rule['label'], false];
+                }
+            }
+        }
+        if ($has('원격') || $has('방송룸')) {
+            return ['teal', null, false];
+        }
+        foreach (['스튜디오', '촬영', '디자인'] as $label) {
+            if ($has($label)) {
+                // 라벨 정확 일치 → 부분 일치(예: '촬영/스튜디오') 순으로 탐색
+                $key = $labelToKey[$label] ?? null;
+                if (! $key) {
+                    foreach ($labelToKey as $l => $k) {
+                        if (str_contains($l, $label)) {
+                            $key = $k;
+                            break;
+                        }
+                    }
+                }
+
+                return $key ? [$key, null, false] : [$label, $label, false];
+            }
+        }
+        if ($has('개인의뢰') || $has('의뢰자')) {
+            return ['gold', null, false];
+        }
+        if ($has('프로젝트') || $has('일반')) {
+            return ['blue', null, false];
+        }
+
+        return ['blue', null, true]; // 미매칭 → 사내업무 + 보고
+    }
+
+    /** 가져오기용 커스텀 카테고리 생성 — CalendarCategoryController@store와 동일한 키 생성 규칙 */
+    private function createImportCategory(string $label): string
+    {
+        $known = ['디자인' => 'design', '렌탈' => 'rental', '촬영' => 'shoot', '스튜디오' => 'studio'];
+        $base = $known[$label] ?? (preg_replace('/[^a-z0-9_]/', '', Str::slug($label, '_')) ?: 'cat_'.time());
+        $key = $base;
+        $i = 1;
+        while (CalendarCategory::where('key', $key)->exists()) {
+            $key = $base.'_'.$i++;
+        }
+        CalendarCategory::create([
+            'key' => $key,
+            'label' => $label,
+            'color' => '#8a9bb0',
+            'text_color' => '#101820',
+            'sort_order' => (CalendarCategory::max('sort_order') ?? 0) + 1,
+            'is_active' => true,
+        ]);
+
+        return $key;
+    }
+
+    /**
+     * iCal 날짜/시간 파싱 — YYYYMMDD(종일) 또는 YYYYMMDDTHHMMSS[Z].
+     * 끝에 Z(UTC)가 붙으면 KST(+9)로 변환.
+     *
+     * @return array{date:string,time:?string,allDay:bool}|null
+     */
+    private function icalDateTime(?string $raw): ?array
+    {
+        if (! $raw || ! preg_match('/^(\d{8})(T(\d{4})\d{0,2}(Z?))?/', $raw, $m)) {
+            return null;
+        }
+        $date = substr($m[1], 0, 4).'-'.substr($m[1], 4, 2).'-'.substr($m[1], 6, 2);
+        if (empty($m[2])) {
+            return ['date' => $date, 'time' => null, 'allDay' => true];
+        }
+        $time = substr($m[3], 0, 2).':'.substr($m[3], 2, 2);
+        if (($m[4] ?? '') === 'Z') {
+            $kst = Carbon::parse($date.' '.$time, 'UTC')->setTimezone('Asia/Seoul');
+            $date = $kst->format('Y-m-d');
+            $time = $kst->format('H:i');
+        }
+
+        return ['date' => $date, 'time' => $time, 'allDay' => false];
+    }
+
+    /** iCal 텍스트 언이스케이프 (\n \, \; \\) */
+    private function icalUnescape(string $val): string
+    {
+        return trim(str_replace(['\\n', '\\N', '\\,', '\\;', '\\\\'], ["\n", "\n", ',', ';', '\\'], $val));
     }
 
     private function icalProp(string $vevent, string $name): ?string

@@ -33,6 +33,7 @@ class Schedule extends Model
         'repeat_interval',
         'repeat_unit',
         'repeat_until',
+        'import_uid',
         'notify_assignees',
         'is_locked',
         'is_private',
