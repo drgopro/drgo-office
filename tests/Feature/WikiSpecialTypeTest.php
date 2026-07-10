@@ -87,19 +87,22 @@ class WikiSpecialTypeTest extends TestCase
         $this->assertSame(1, (int) $res->viewData('typeCounts')['notice']);
     }
 
-    public function test_dashboard_shows_notices_latest_first(): void
+    public function test_dashboard_shows_notice_and_update_panels_separately(): void
     {
         $old = Wiki::create(['title' => '옛 공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
         $old->forceFill(['created_at' => now()->subDays(3)])->save();
-        $new = Wiki::create(['title' => '새 업데이트', 'type' => 'update', 'content' => 'x', 'category' => '업데이트']);
+        Wiki::create(['title' => '새 공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
+        Wiki::create(['title' => '업데이트 글', 'type' => 'update', 'content' => 'x', 'category' => '업데이트']);
         Wiki::create(['title' => '일반 문서', 'content' => 'x']);
 
         $res = $this->actingAs($this->member())->get('/');
 
         $res->assertOk();
-        $notices = $res->viewData('wikiNotices');
-        $this->assertCount(2, $notices, '일반 문서는 공지 패널에 미포함');
-        $this->assertSame('새 업데이트', $notices->first()->title, '최신순');
-        $res->assertSee('공지·업데이트');
+        $notices = $res->viewData('wikiNoticeList');
+        $updates = $res->viewData('wikiUpdateList');
+        $this->assertCount(2, $notices, '공지 패널은 공지만');
+        $this->assertSame('새 공지', $notices->first()->title, '최신순');
+        $this->assertCount(1, $updates, '업데이트 패널은 업데이트만');
+        $this->assertSame('업데이트 글', $updates->first()->title);
     }
 }
