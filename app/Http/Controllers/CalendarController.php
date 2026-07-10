@@ -150,6 +150,7 @@ class CalendarController extends Controller
 
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
+        $validated = $this->stripClientLinkForExcludedColors($validated, $validated['color'] ?? null);
         $validated['created_by'] = Auth::id();
 
         $schedule = Schedule::create($validated);
@@ -166,6 +167,26 @@ class CalendarController extends Controller
         $this->notifyAssigneesOfCreation($schedule);
 
         return response()->json($schedule, 201);
+    }
+
+    /** 의뢰자 연동을 지원하지 않는 카테고리 — 사내업무(blue)/휴가·개인(red). 프론트 setColor 규칙과 동일 */
+    public const CLIENT_LINK_EXCLUDED_COLORS = ['blue', 'red'];
+
+    /**
+     * 연동 미지원 카테고리에는 의뢰자 이름/연결 데이터를 저장하지 않음.
+     * 과거 프론트 상태 누수로 오염된 client_name·gold_data가 저장 시마다 재기록되던 문제 차단.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function stripClientLinkForExcludedColors(array $validated, ?string $color): array
+    {
+        if (in_array($color, self::CLIENT_LINK_EXCLUDED_COLORS, true)) {
+            $validated['client_name'] = null;
+            $validated['gold_data'] = null;
+        }
+
+        return $validated;
     }
 
     /**
@@ -288,6 +309,7 @@ class CalendarController extends Controller
         // 반복 파라미터 분리 — 이미 반복 그룹에 속한 일정은 중복 생성 방지를 위해 무시
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
+        $validated = $this->stripClientLinkForExcludedColors($validated, $validated['color'] ?? $schedule->color);
 
         // 변경 이력 기록 (날짜/시간은 포맷 차이로 인한 오탐 방지를 위해 정규화 후 비교)
         $dtChanged = false;

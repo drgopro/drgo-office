@@ -3451,6 +3451,10 @@ function openTimePicker(trigger,hiddenId){
 
 // ── 의뢰자/프로젝트 연동 ──
 let linkedClientId=null, linkedProjectId=null;
+// 사내업무(blue)/휴가·개인(red)은 의뢰자 연동 대상 아님 — 과거 누수로 오염된 client_id가
+// 열람 시 복원되고 저장 시 재기록되는 것을 차단 (setColor의 섹션 숨김 규칙과 동일)
+const CLIENT_LINK_EXCLUDED_COLORS=['blue','red'];
+function colorSupportsClientLink(c){ return !CLIENT_LINK_EXCLUDED_COLORS.includes(c); }
 let clientSearchTimer=null;
 
 function renderClientList(list){
@@ -4411,8 +4415,8 @@ function openEditModal(ev){
         loadClientProjects(g.client_id);
         if(!(g.nickname||g.name)) restoreLinkedClientName(g.client_id);
     }
-    // 비-gold에서도 gold_data에 저장된 의뢰자 연결 복원
-    if(!g.client_id && ev.gold_data && ev.gold_data.client_id){
+    // 비-gold에서도 gold_data에 저장된 의뢰자 연결 복원 (연동 미지원 카테고리는 오염 데이터 부활 방지 위해 제외)
+    if(!g.client_id && ev.gold_data && ev.gold_data.client_id && colorSupportsClientLink(ev.color)){
         linkedClientId=ev.gold_data.client_id;
         document.getElementById('linkedClientName').textContent=ev.gold_data.nickname||ev.gold_data.name||`의뢰자 #${ev.gold_data.client_id}`;
         document.getElementById('linkedClientInfo').style.display='';
@@ -4584,7 +4588,7 @@ async function doSaveEvent(){
         start_date:sd, end_date:ed||sd, start_time:isAllDay?null:st, end_time:isAllDay?null:et,
         is_all_day:isAllDay, color:currentColor,
         // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
-        client_name:isGold?document.getElementById('g_nickname').value.trim():(linkedClientId?(document.getElementById('linkedClientName')?.textContent.trim()||''):''),
+        client_name:isGold?document.getElementById('g_nickname').value.trim():((linkedClientId&&colorSupportsClientLink(currentColor))?(document.getElementById('linkedClientName')?.textContent.trim()||''):''),
         // address=도로명(검색), location=도로명+상세주소(표시용)
         address:document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim(),
         location:[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
@@ -4603,7 +4607,7 @@ async function doSaveEvent(){
         sched_event_opts:schedEventOpts,
         special_opts:specialOpts,
         sched_after_reason:document.getElementById('schedAfterReason').value.trim()||null,
-        gold_data:isGold?collectGoldFields():(linkedClientId?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
+        gold_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
 
