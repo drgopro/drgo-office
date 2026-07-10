@@ -222,7 +222,8 @@
     .opt-chip { display:inline-flex; align-items:center; flex-shrink:0; font-size:calc(8px * var(--cal-fz,1)); font-weight:700; padding:0 3px; border-radius:4px; background:rgba(127,127,127,0.16); border:1px solid rgba(127,127,127,0.28); color:inherit; margin-left:2px; line-height:1.5; vertical-align:middle; }
     .opt-chip.accent { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
     .opt-chip.urgent { background:#ef444426; border-color:#ef444466; color:#e06c6c; }
-    .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:9px; }
+    /* 리스트 계열 뷰: 옵션 칩을 타이틀 앞에 배치 — 폰트 축소 + 여백 방향 전환 */
+    .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
     .tl-ev-title { font-weight:600; }
     .tl-ev-assignee { font-size:9px; opacity:0.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
     /* 리스트 제목 옆 배송 아이콘 (담당자보다 앞) */
@@ -2320,7 +2321,7 @@ function openDayPopover(dateStr, anchorEl){
             <span class="dp-dot" style="background:${chipColor(ev.color)}"></span>
             <div class="dp-info">
                 <div class="dp-title-row">
-                    <span class="dp-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</span>
+                    <span class="dp-title">${eventOptIconsHtml(ev)}${_esc(title)}${shipStatusIcon(ev)}</span>
                     ${assignees?`<span class="dp-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 ${meta?`<div class="dp-meta">${_esc(meta)}</div>`:''}
@@ -2422,7 +2423,7 @@ function renderAgenda(){
             html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
                 <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
                 <div class="agenda-main">
-                    <div class="agenda-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</div>
+                    <div class="agenda-title">${eventOptIconsHtml(ev)}${_esc(title)}${shipStatusIcon(ev)}</div>
                     ${subHtml}
                 </div>
                 <div class="agenda-right">
@@ -2686,7 +2687,7 @@ function renderMobileDayEvents(dateStr){
             <div class="mde-bar" style="background:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
-                    <div class="mde-title">${_esc(title)}${shipStatusIcon(ev)}${eventOptIconsHtml(ev)}</div>
+                    <div class="mde-title">${eventOptIconsHtml(ev)}${_esc(title)}${shipStatusIcon(ev)}</div>
                     ${assignees?`<span class="mde-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 ${sub?`<div class="mde-meta">${_esc(sub)}</div>`:''}
@@ -3240,14 +3241,16 @@ function renderLockSummary(){
         </div>`;
     }
 
-    // 시간 + 카테고리 핀 + 특수 옵션(반려동물 등)
+    // 시간 + 카테고리 핀 + 일정 옵션(빠른/긴급/이후·제안/희망/목표) + 특수 옵션(반려동물 등)
     const specialSel=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')]
         .map(b=>b.dataset.opt).filter(o=>SPECIAL_OPT_LABELS[o]);
     const specialPills=specialSel.map(o=>`<span class="ls-type-pill">${SPECIAL_ICONS[o]||''} ${_esc(SPECIAL_OPT_LABELS[o])}</span>`).join('');
+    const schedPills=[...document.querySelectorAll('#scheduleOpts .sched-opt-btn.active, #schedEventOpts .special-opt-btn.active')]
+        .map(b=>`<span class="ls-type-pill">${_esc(b.textContent.trim())}</span>`).join('');
     html += `<div class="ls-section">
         <div class="ls-time"><span class="ls-time-icon">⏰</span><span>${_esc(timeStr)}</span></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}${projectChipHtml}</div>
-        ${specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${specialPills}</div>`:''}
+        ${schedPills||specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${schedPills}${specialPills}</div>`:''}
     </div>`;
 
     // 배송 현황 (gold/green, 송장 있을 때만) — 기본 접힘, 제목 클릭으로 펼침
