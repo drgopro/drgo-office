@@ -1193,6 +1193,18 @@
 
             {{-- 배송 현황 (방문의뢰·촬영/스튜디오, 저장된 일정만) --}}
             <div class="field-section" id="shipmentSection" style="display:none;">
+                <div class="field-group" id="shipIconRow">
+                    <div class="field-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span>제목 배송 아이콘</span>
+                        <span style="display:inline-flex;gap:4px;">
+                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="" onclick="setShipIconOverride('')" title="배송현황 기준 자동 표시">자동</button>
+                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="all" onclick="setShipIconOverride('all')" title="완료로 표시" style="color:var(--green);">○</button>
+                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="part" onclick="setShipIconOverride('part')" title="부분 배송으로 표시" style="color:#d78a2e;">△</button>
+                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="none" onclick="setShipIconOverride('none')" title="미배송으로 표시" style="color:var(--red);">✕</button>
+                        </span>
+                        <span style="font-weight:400;font-size:10px;color:var(--text-muted);">수동 지정 시 배송현황과 무관하게 제목에 표시</span>
+                    </div>
+                </div>
                 <div class="field-group">
                     <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleShipmentBody()">
                         <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
@@ -1785,8 +1797,15 @@ function chipColor(c){
     return (window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[c])?`var(--chip-${c}-bg)`:'var(--accent)';
 }
 // 배송 상태 인라인 아이콘 (송장 없으면 빈 문자열) — 리스트/팝오버 공용
+const SHIP_ICON_MAP={all:['○','s-all','배송 완료 (수동 지정)'],part:['△','s-part','부분 배송 (수동 지정)'],none:['✕','s-none','미배송 (수동 지정)']};
 function shipStatusIcon(ev){
-    if(!ev || !ev.shipments_count) return '';
+    if(!ev) return '';
+    // 수동 지정이 있으면 배송현황과 무관하게 우선 표시 (부분 송장 업로드 시 완료 착각 방지)
+    if(ev.ship_icon_override&&SHIP_ICON_MAP[ev.ship_icon_override]){
+        const [ico,cls,tt]=SHIP_ICON_MAP[ev.ship_icon_override];
+        return `<span class="chip-ship ${cls}" title="${tt}">${ico}</span>`;
+    }
+    if(!ev.shipments_count) return '';
     const d=ev.shipments_delivered_count||0, t=ev.shipments_count;
     const [ico,cls]=d===0?['✕','s-none']:(d<t?['△','s-part']:['○','s-all']);
     return `<span class="chip-ship ${cls}" title="배송 ${d}/${t}건 완료">${ico}</span>`;
@@ -2087,13 +2106,8 @@ function buildChipHtml(ev){
     // 제목 (의뢰자 이름은 표시하지 않음). flex:1로 늘어나서 담당자 배지를 우측으로 밀어냄
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
     html+=`<span class="chip-title">${title}</span>`;
-    // 배송 상태: 등록만 ✕ / 일부 완료 △ / 전부 완료 ○
-    if(ev.shipments_count>0){
-        const shD=ev.shipments_delivered_count||0, shT=ev.shipments_count;
-        const shCls=shD===0?'s-none':(shD<shT?'s-part':'s-all');
-        const shIco=shD===0?'✕':(shD<shT?'△':'○');
-        html+=`<span class="chip-ship ${shCls}" title="배송 ${shD}/${shT}건 완료">${shIco}</span>`;
-    }
+    // 배송 상태: 수동 지정 우선, 없으면 등록만 ✕ / 일부 완료 △ / 전부 완료 ○
+    html+=shipStatusIcon(ev);
     // 담당자 — chip 우측 정렬. 2명 이상이면 첫 번째 이름 + '+N' (전체 명단은 hover 즉시 툴팁)
     if (ev.assignees && ev.assignees.length) {
         const names = ev.assignees.map(a => (a.name || '').trim()).filter(Boolean);
@@ -3921,10 +3935,36 @@ function shipRowHtml(s){
         <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
     </div>`;
 }
-// 모달 제목 옆 배송 상태 아이콘 (송장 없으면 미표시)
+let shipIconOverride=null; // 현재 열린 일정의 수동 배송 아이콘 (null=자동)
+function renderShipIconButtons(){
+    document.querySelectorAll('.ship-ico-btn').forEach(b=>{
+        b.classList.toggle('primary', (b.dataset.sio||'')===(shipIconOverride||''));
+    });
+}
+// 배송 아이콘 수동 지정 — 클릭 즉시 서버 반영 (부분 송장 업로드 시 완료 착각 방지)
+async function setShipIconOverride(v){
+    if(!editingId||!canEditCalendar) return;
+    const val=v||null;
+    if(!(await quickUpdateEvent({ship_icon_override:val}))) return;
+    shipIconOverride=val;
+    if(detailEvent) detailEvent.ship_icon_override=val;
+    renderShipIconButtons();
+    updateModalShipBadge();
+    showCalToast(val?'제목 배송 아이콘을 수동으로 지정했습니다':'배송 아이콘을 자동으로 되돌렸습니다');
+    loadEvents();
+}
+// 모달 제목 옆 배송 상태 아이콘 (수동 지정 우선, 송장 없으면 미표시)
 function updateModalShipBadge(){
     const badge=document.getElementById('modalShipBadge');
     if(!badge) return;
+    if(shipIconOverride&&SHIP_ICON_MAP[shipIconOverride]){
+        const [ico,cls]=SHIP_ICON_MAP[shipIconOverride];
+        badge.textContent=ico;
+        badge.style.color=cls==='s-all'?'var(--green)':(cls==='s-part'?'#d78a2e':'var(--red)');
+        badge.title='배송 아이콘 수동 지정';
+        badge.style.display='';
+        return;
+    }
     const ships=shipCache.shipments||[];
     if(!ships.length){ badge.style.display='none'; badge.textContent=''; return; }
     const done=ships.filter(s=>s.status==='delivered').length;
@@ -4092,6 +4132,7 @@ function resetModalForm(){
     document.getElementById('balanceBanner').classList.remove('visible');
     isAllDay=false; document.getElementById('alldayTrack').classList.remove('on');
     {const xw=document.getElementById('excludeWeekendsChk'); if(xw) xw.checked=false;}
+    shipIconOverride=null; renderShipIconButtons();
     // 이사세팅 출발지 상태 초기화
     { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle(); }
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
@@ -4499,6 +4540,9 @@ function openEditModal(ev){
     }
     // 주말 제외
     {const xw=document.getElementById('excludeWeekendsChk'); if(xw) xw.checked=!!ev.exclude_weekends;}
+    // 배송 아이콘 수동 지정 복원
+    shipIconOverride=ev.ship_icon_override||null;
+    renderShipIconButtons();
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
     // 반복 설정: 그룹 소속 일정은 저장된 주기/종료일을 프리필해 재조정 가능 (변경 시 이후 반복 재생성)
@@ -5404,6 +5448,7 @@ function buildEventPayload(ev){
         title:ev.title, start_date:ev.start_date, end_date:ev.end_date||ev.start_date,
         start_time:ev.start_time, end_time:ev.end_time, is_all_day:ev.is_allday||ev.is_all_day||false,
         exclude_weekends:!!ev.exclude_weekends,
+        ship_icon_override:ev.ship_icon_override||null,
         color:ev.color, client_name:ev.client_name||'', address:ev.address||'', location:ev.location||'',
         description:ev.description||'', notif_minutes:ev.notif_minutes||null,
         is_locked:ev.is_locked||false, is_private:ev.is_private||false,

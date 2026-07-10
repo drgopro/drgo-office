@@ -20,6 +20,7 @@ class Schedule extends Model
         'end_time',
         'is_all_day',
         'exclude_weekends',
+        'ship_icon_override',
         'color',
         'client_name',
         'address',
