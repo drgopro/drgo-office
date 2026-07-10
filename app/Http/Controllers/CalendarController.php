@@ -197,7 +197,14 @@ class CalendarController extends Controller
     private function createRepeatOccurrences(Schedule $base, array $repeat): void
     {
         $group = (string) Str::uuid();
-        $base->update(['repeat_group' => $group]);
+        // 반복 설정을 기준 일정에 저장 → 편집 시 현재 설정 표시/재조정 가능. replicate로 반복 생성분에도 복사됨
+        $base->update([
+            'repeat_group' => $group,
+            'repeat_freq' => $repeat['repeat_freq'],
+            'repeat_interval' => $repeat['repeat_freq'] === 'custom' ? max(1, (int) ($repeat['repeat_interval'] ?? 1)) : null,
+            'repeat_unit' => $repeat['repeat_freq'] === 'custom' ? ($repeat['repeat_unit'] ?? 'day') : null,
+            'repeat_until' => $repeat['repeat_until'],
+        ]);
 
         $start = Carbon::parse($base->start_date->format('Y-m-d'));
         $spanDays = $start->diffInDays(Carbon::parse($base->end_date->format('Y-m-d')));
@@ -365,9 +372,60 @@ class CalendarController extends Controller
                 ], 422);
             }
             $this->createRepeatOccurrences($schedule, $repeat);
+        } elseif (! empty($repeat['repeat_freq']) && $schedule->repeat_group && $this->repeatSettingsChanged($schedule, $repeat)) {
+            // 반복 그룹 소속 일정의 주기/종료일 재조정 — 이 일정 이후의 기존 반복을 지우고 새 설정으로 재생성
+            $schedule->refresh();
+            if (Carbon::parse($repeat['repeat_until'])->lte(Carbon::parse($schedule->start_date->format('Y-m-d')))) {
+                return response()->json([
+                    'message' => '반복 종료일이 시작일보다 늦어야 합니다.',
+                    'errors' => ['repeat_until' => ['반복 종료일이 시작일보다 늦어야 합니다.']],
+                ], 422);
+            }
+
+            $removed = Schedule::where('repeat_group', $schedule->repeat_group)
+                ->where('id', '!=', $schedule->id)
+                ->where('start_date', '>', $schedule->start_date->format('Y-m-d'))
+                ->get();
+            $removed->each->delete(); // 소프트 삭제 — 휴지통에서 복구 가능
+
+            ScheduleChange::create([
+                'schedule_id' => $schedule->id,
+                'user_id' => Auth::id(),
+                'action' => 'update',
+                'changes' => ['반복 설정' => [
+                    'old' => $this->repeatSummary($schedule->repeat_freq, $schedule->repeat_interval, $schedule->repeat_unit, $schedule->repeat_until?->format('Y-m-d')),
+                    'new' => $this->repeatSummary($repeat['repeat_freq'], $repeat['repeat_interval'] ?? null, $repeat['repeat_unit'] ?? null, $repeat['repeat_until']),
+                ]],
+                'reason' => '반복 설정 변경 — 이후 반복 '.$removed->count().'건 재생성',
+            ]);
+
+            $this->createRepeatOccurrences($schedule, $repeat);
         }
 
         return response()->json($schedule);
+    }
+
+    /** 저장된 반복 설정과 요청 설정이 다른지 (custom이 아닐 땐 간격/단위 무시) */
+    private function repeatSettingsChanged(Schedule $schedule, array $repeat): bool
+    {
+        $norm = fn (?string $freq, $interval, ?string $unit, ?string $until) => $freq === 'custom'
+            ? [$freq, max(1, (int) ($interval ?: 1)), $unit ?: 'day', $until]
+            : [$freq, null, null, $until];
+
+        return $norm($schedule->repeat_freq, $schedule->repeat_interval, $schedule->repeat_unit, $schedule->repeat_until?->format('Y-m-d'))
+            !== $norm($repeat['repeat_freq'], $repeat['repeat_interval'] ?? null, $repeat['repeat_unit'] ?? null, $repeat['repeat_until'] ?? null);
+    }
+
+    /** 변경 이력용 반복 설정 요약 문자열 */
+    private function repeatSummary(?string $freq, $interval, ?string $unit, ?string $until): string
+    {
+        if (! $freq) {
+            return '(반복 설정 없음)';
+        }
+        $freqLabel = ['daily' => '매일', 'weekly' => '매주', 'monthly' => '매월'][$freq]
+            ?? (max(1, (int) ($interval ?: 1)).(['day' => '일', 'week' => '주', 'month' => '개월'][$unit ?? 'day'] ?? '일').'마다');
+
+        return $freqLabel.' · ~'.($until ?: '?');
     }
 
     // 일정 상세 API

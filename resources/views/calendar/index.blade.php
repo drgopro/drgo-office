@@ -1175,7 +1175,7 @@
                             </span>
                         </span>
                     </div>
-                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">이미 반복 그룹에 속한 일정입니다 — 반복 재설정 없이 이 일정만 수정됩니다.</div>
+                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">🔁 반복 일정입니다 — 주기/종료일을 바꾸면 <b>이 일정 이후</b>의 반복이 새 설정으로 재생성됩니다 (지난 반복은 그대로).</div>
                 </div>
             </div>
 
@@ -1734,6 +1734,7 @@ let events = [], assignees = [], selectedAssignees = [];
 let selectedNotifyAssignees = []; // 알림 받을 멤버 (비어있으면 담당자 전체)
 let editingId = null, currentColor = 'gold', currentView = 'month';
 let editingOrigDT = null; // 편집 중 일정의 원본 날짜/시간 (변경 사유 필수 판정용)
+let editingRepeatOrig = null; // 편집 중 반복 일정의 원본 반복 설정 (미변경 시 검증 스킵용)
 // 종료일 정규화 — 역전(종료<시작) 데이터는 시작일 하루짜리로 취급
 function evEnd(ev){
     const sd=(ev.start_date||'').substring(0,10);
@@ -3966,6 +3967,7 @@ function resetModalForm(){
      const rg=document.getElementById('repeatGroup'); if(rg){rg.querySelector('.notif-row').style.display='flex';}
      const rn=document.getElementById('repeatEditNote'); if(rn) rn.style.display='none';
      onRepeatChkToggle();}
+    editingRepeatOrig=null;
     lsShipOpen=false;
     // 입력 재활성화
     document.querySelectorAll('#modalOverlay .field-input, #modalOverlay .field-textarea, #modalOverlay .dt-input, #modalOverlay .notif-select, #modalOverlay .modal-title-input').forEach(el=>{el.disabled=false;});
@@ -4307,13 +4309,26 @@ function openEditModal(ev){
     }
     // 알림
     if(ev.notif_minutes!==null&&ev.notif_minutes!==undefined) document.getElementById('notifSelect').value=ev.notif_minutes;
-    // 반복 설정: 이미 반복 그룹에 속한 일정만 잠금 (중복 생성 방지), 그 외엔 수정 중에도 지정 가능
+    // 반복 설정: 그룹 소속 일정은 저장된 주기/종료일을 프리필해 재조정 가능 (변경 시 이후 반복 재생성)
     {const rg=document.getElementById('repeatGroup');
      const rn=document.getElementById('repeatEditNote');
      const isRepeat=!!ev.repeat_group;
-     if(rg) rg.querySelector('.notif-row').style.display=isRepeat?'none':'flex';
+     if(rg) rg.querySelector('.notif-row').style.display='flex';
      if(rn) rn.style.display=isRepeat?'block':'none';
-     if(!isRepeat){const rc=document.getElementById('repeatChk'); if(rc) rc.checked=false; onRepeatChkToggle();}}
+     const rc=document.getElementById('repeatChk');
+     if(isRepeat&&ev.repeat_freq){
+         if(rc) rc.checked=true;
+         const rf=document.getElementById('repeatFreq'); if(rf) rf.value=ev.repeat_freq;
+         const ri=document.getElementById('repeatInterval'); if(ri&&ev.repeat_interval) ri.value=ev.repeat_interval;
+         const runit=document.getElementById('repeatUnit'); if(runit&&ev.repeat_unit) runit.value=ev.repeat_unit;
+         const ru=document.getElementById('repeatUntil'); if(ru) ru.value=(ev.repeat_until||'').substring(0,10);
+         onRepeatChkToggle(); onRepeatFreqChange();
+         editingRepeatOrig={f:ev.repeat_freq, ru:(ev.repeat_until||'').substring(0,10),
+             iv:ev.repeat_freq==='custom'?String(ev.repeat_interval||'1'):'', un:ev.repeat_freq==='custom'?(ev.repeat_unit||'day'):''};
+     } else {
+         if(rc) rc.checked=false;
+         onRepeatChkToggle();
+     }}
     // 요약: 등록된 일정은 기본적으로 '요약'(읽기 요약 뷰) ON
     if(ev && ev.id){ isLocked=true; setTimeout(applyLockUI,0); }
     // 날짜 배지
@@ -4582,8 +4597,16 @@ async function doSaveEvent(){
     })();
     if(repeatEnabled){
         const ru=document.getElementById('repeatUntil')?.value||'';
-        if(!ru){alert('반복 종료일을 선택해주세요.');return;}
-        if(ru<=sd){alert('반복 종료일이 시작일보다 늦어야 합니다.');return;}
+        // 기존 반복 일정을 열어 설정을 안 바꿨으면 검증 스킵 (백엔드도 미변경 시 재생성 안 함)
+        const rf=document.getElementById('repeatFreq')?.value;
+        const rIv=rf==='custom'?(document.getElementById('repeatInterval')?.value||'1'):'';
+        const rUn=rf==='custom'?(document.getElementById('repeatUnit')?.value||'day'):'';
+        const repeatUnchanged=editingId&&editingRepeatOrig
+            &&editingRepeatOrig.f===rf&&editingRepeatOrig.ru===ru&&editingRepeatOrig.iv===rIv&&editingRepeatOrig.un===rUn;
+        if(!repeatUnchanged){
+            if(!ru){alert('반복 종료일을 선택해주세요.');return;}
+            if(ru<=sd){alert('반복 종료일이 시작일보다 늦어야 합니다.');return;}
+        }
     }
 
     // schedEventOpts 수집
