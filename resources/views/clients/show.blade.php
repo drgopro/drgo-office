@@ -380,7 +380,7 @@
                             @endif
                         </div>
                         <span class="project-stage stage-{{ $project->stage }}">
-                            {{ ['consulting'=>'상담','equipment'=>'장비파악','proposal'=>'일정제안','estimate'=>'견적/계약','payment'=>'결제/예약','visit'=>'세팅','as'=>'AS','done'=>'완료','cancelled'=>'취소'][$project->stage] }}
+                            {{ $project->stageLabel() }}
                         </span>
                     </a>
                     @endforeach

@@ -11,6 +11,23 @@ class Project extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
 
+    /**
+     * 프로젝트 진행 단계(stage) 코드 → 한글 라벨 (단일 출처).
+     *
+     * @var array<string, string>
+     */
+    public const STAGE_LABELS = [
+        'consulting' => '상담',
+        'equipment' => '장비파악',
+        'proposal' => '일정제안',
+        'estimate' => '견적/계약',
+        'payment' => '결제/예약',
+        'visit' => '세팅',
+        'as' => 'AS',
+        'done' => '완료',
+        'cancelled' => '취소',
+    ];
+
     protected $fillable = [
         'client_id',
         'name',
@@ -44,6 +61,12 @@ class Project extends Model
         'is_payment_only' => 'boolean',
         'tags' => 'array',
     ];
+
+    /** stage 코드에 대응하는 한글 라벨 (미정의 코드는 코드 그대로 반환) */
+    public function stageLabel(): string
+    {
+        return self::STAGE_LABELS[$this->stage] ?? (string) $this->stage;
+    }
 
     public function client()
     {

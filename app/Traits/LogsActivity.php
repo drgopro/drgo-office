@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\ActivityLog;
+use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
 
 trait LogsActivity
@@ -257,9 +258,7 @@ trait LogsActivity
 
         // 단계 → 한글
         if ($key === 'stage') {
-            $stages = ['consulting' => '상담', 'equipment' => '장비파악', 'proposal' => '일정제안', 'estimate' => '견적/계약', 'payment' => '결제/예약', 'visit' => '세팅', 'as' => 'AS', 'done' => '완료'];
-
-            return $stages[$value] ?? $value;
+            return Project::STAGE_LABELS[$value] ?? $value;
         }
 
         // 프로젝트 유형 → 한글

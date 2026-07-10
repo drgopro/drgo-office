@@ -193,6 +193,7 @@ class ClientController extends Controller
                 'name' => $p->name,
                 'type' => $p->project_type,
                 'stage' => $p->stage,
+                'stage_label' => $p->stageLabel(),
                 'tags' => $p->tags ?? ['major' => [], 'minor' => []],
                 'created_at' => $p->created_at->format('Y.m.d'),
                 'consultations_count' => $p->consultations->count(),
