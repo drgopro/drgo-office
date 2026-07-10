@@ -2479,8 +2479,10 @@ function renderMonth() {
 
         // ── 이 주에 걸친 다일 일정에 고정 레인(행) 배정 → 바가 같은 행을 유지해 정렬됨 ──
         const _d=v=>(v||'').substring(0,10); // 날짜 정규화 (시간 접미 방어)
+        // 휴가/개인(red)은 리스트 상단 우선 — 레인 배정을 먼저 받아 위쪽 바를 차지 (주 단위 고정이라 바 연속성 유지)
+        const redFirst=(a,b)=>((b.color==='red')-(a.color==='red'));
         const weekMulti=events.filter(ev=>isFiltered(ev)&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
-        weekMulti.sort((a,b)=> a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
+        weekMulti.sort((a,b)=> redFirst(a,b) || a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
         const laneOf={};
         const lanes=[];
         weekMulti.forEach(ev=>{
@@ -2515,6 +2517,7 @@ function renderMonth() {
                 });
                 if(dayCats.length){
                     div.classList.add('m-has-ev');
+                    dayCats.sort((a,b)=>((b==='red')-(a==='red'))); // 휴가/개인 점이 잘리지 않도록 앞으로
                     div.innerHTML+=`<div class="m-dots">${dayCats.slice(0,3).map(c=>`<i style="background:${chipColor(c)}"></i>`).join('')}</div>`;
                 }
                 div.addEventListener('click',e=>{
@@ -2540,8 +2543,8 @@ function renderMonth() {
             // 캡 초과로 못 그리는 다일(더보기로)
             const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=cell.full&&evEnd(ev)>=cell.full).length;
 
-            // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시
-            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===cell.full));
+            // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시. 휴가/개인은 상단 우선 (그룹 내 시간순 유지: stable sort)
+            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===cell.full)).sort(redFirst);
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
