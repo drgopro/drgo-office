@@ -50,6 +50,9 @@
 
     /* 카드 */
     .fb-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden; }
+    /* 완료된 글: 흐리게 — 펼치거나 호버하면 원래 농도로 */
+    .fb-card.status-done { opacity:0.5; }
+    .fb-card.status-done:hover, .fb-card.status-done.open { opacity:1; }
     .fb-card-head { display:flex; align-items:center; gap:11px; padding:14px 16px; cursor:pointer; }
     .fb-avatar { width:32px; height:32px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--text-muted); flex-shrink:0; }
     .fb-head-main { flex:1; min-width:0; }
@@ -268,7 +271,9 @@ function fbRenderCounts(counts){
 function fbRenderFeed(){
     const feed = document.getElementById('fbFeed');
     if(!fbPosts.length){ feed.innerHTML = '<div class="fb-empty">아직 등록된 글이 없습니다. 첫 글을 남겨보세요!</div>'; return; }
-    feed.innerHTML = fbPosts.map(p => {
+    // 완료된 글은 목록 최하단으로 (그 외는 기존 정렬 유지 — sort는 stable)
+    const ordered = [...fbPosts].sort((a,b) => (a.status==='done'?1:0) - (b.status==='done'?1:0));
+    feed.innerHTML = ordered.map(p => {
         const open = p.id === fbOpenId;
         const initial = _e((p.author||'?').charAt(0));
         return `<div class="fb-card status-${p.status}${open?' open':''}" id="fbCard${p.id}">
