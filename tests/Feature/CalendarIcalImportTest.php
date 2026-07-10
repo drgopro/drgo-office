@@ -146,6 +146,57 @@ class CalendarIcalImportTest extends TestCase
         $this->assertSame('포인트랑 현장 설명 진행후 돌아가는거 확인하고 퇴각', $s->description);
     }
 
+    public function test_description_goes_to_visible_field_per_category(): void
+    {
+        $file = $this->icsFile(
+            $this->vevent('v1', '✓ 방문 세팅', '의뢰자\\,개인의뢰', "DESCRIPTION:방문 상세 내용\r\n")
+            .$this->vevent('v2', '✓ 원격 세팅', '원격\\,원격', "DESCRIPTION:원격 상세 내용\r\n")
+            .$this->vevent('v3', '✓ 회의', '일반', "DESCRIPTION:회의 안건\r\n")
+        );
+
+        $this->import($file)->assertOk();
+
+        // gold: 편집 폼에 보이는 요청상세(gold_data.req_detail)로
+        $gold = Schedule::where('import_uid', 'v1@ticktick-backup')->first();
+        $this->assertSame('방문 상세 내용', $gold->gold_data['req_detail']);
+        $this->assertNull($gold->description);
+
+        // teal: 상세설명(teal_data.desc)로
+        $teal = Schedule::where('import_uid', 'v2@ticktick-backup')->first();
+        $this->assertSame('원격 상세 내용', $teal->teal_data['desc']);
+        $this->assertNull($teal->description);
+
+        // 공통 유형: description 그대로
+        $blue = Schedule::where('import_uid', 'v3@ticktick-backup')->first();
+        $this->assertSame('회의 안건', $blue->description);
+    }
+
+    public function test_reimport_repairs_content_hidden_in_description(): void
+    {
+        // 이전 버전 가져오기로 생긴 상태: gold인데 내용이 description에만 있음
+        Schedule::create([
+            'title' => '방문 세팅', 'start_date' => '2026-07-08', 'end_date' => '2026-07-08',
+            'is_all_day' => true, 'color' => 'gold', 'description' => '숨어있던 내용',
+            'import_uid' => 'rp1@ticktick-backup',
+        ]);
+
+        $file = $this->icsFile($this->vevent('rp1', '✓ 방문 세팅', '의뢰자\\,개인의뢰', "DESCRIPTION:숨어있던 내용\r\n"));
+
+        // dry-run: 치유 대상으로 보고만, 변경 없음
+        $dry = $this->import($file, dry: true);
+        $dry->assertOk()->assertJsonPath('repaired', 1);
+        $this->assertSame('숨어있던 내용', Schedule::first()->description);
+
+        // 실제 실행: description → gold_data.req_detail 이동
+        $res = $this->import($this->icsFile($this->vevent('rp1', '✓ 방문 세팅', '의뢰자\\,개인의뢰', "DESCRIPTION:숨어있던 내용\r\n")));
+        $res->assertOk()->assertJsonPath('repaired', 1)->assertJsonPath('duplicates', 1);
+
+        $row = Schedule::first();
+        $this->assertSame('숨어있던 내용', $row->gold_data['req_detail']);
+        $this->assertNull($row->description);
+        $this->assertSame(1, Schedule::count(), '중복 생성 없음');
+    }
+
     public function test_until_cutoff_skips_events_starting_after(): void
     {
         // vevent 기본 시작일은 2026-07-08 — until=2026-06-30이면 제외되어야 함

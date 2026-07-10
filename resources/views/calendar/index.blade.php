@@ -5059,6 +5059,7 @@ async function importFile(type, input){
         if(s.skipped_after) msg+=`\n\n${importUntil} 이후 시작 ${s.skipped_after}건 제외`;
         if(s.skipped_holiday) msg+=`\n공휴일 ${s.skipped_holiday}건 제외 (앱 자동 표시와 중복)`;
         if(s.duplicates) msg+=`\n이미 가져온 일정 ${s.duplicates}건 스킵`;
+        if(s.repaired) msg+=`\n기존 일정 ${s.repaired}건은 내용이 보이는 위치로 이동됩니다`;
         if(s.rrule_count) msg+=`\n반복 규칙 ${s.rrule_count}건은 첫 회차만 가져옴`;
         if((s.will_create_categories||[]).length) msg+=`\n새 카테고리 생성: ${s.will_create_categories.join(', ')}`;
         if((s.unmapped||[]).length) msg+=`\n미매칭(사내업무로 지정): ${s.unmapped.slice(0,5).join(' / ')}`;

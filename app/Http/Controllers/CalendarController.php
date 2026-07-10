@@ -930,7 +930,7 @@ class CalendarController extends Controller
         $existingUids = Schedule::withTrashed()->whereNotNull('import_uid')->pluck('import_uid')->flip();
 
         $summary = [
-            'total' => 0, 'imported' => 0, 'duplicates' => 0, 'skipped_holiday' => 0, 'skipped_after' => 0,
+            'total' => 0, 'imported' => 0, 'duplicates' => 0, 'repaired' => 0, 'skipped_holiday' => 0, 'skipped_after' => 0,
             'rrule_count' => 0, 'by_category' => [], 'unmapped' => [], 'will_create_categories' => [],
         ];
         $rows = [];
@@ -941,6 +941,10 @@ class CalendarController extends Controller
             $uid = $this->icalProp($vevent, 'UID');
             if ($uid && isset($existingUids[$uid])) {
                 $summary['duplicates']++;
+                // 이전 가져오기에서 gold/teal의 내용이 화면에 안 보이는 description에 저장된 행 치유
+                if ($this->repairImportedContent($uid, $dry)) {
+                    $summary['repaired']++;
+                }
 
                 continue;
             }
@@ -1001,6 +1005,19 @@ class CalendarController extends Controller
                 $endTime = $dtend['time'] ?? null;
             }
 
+            // 내용은 카테고리별로 실제 화면에 보이는 필드에 저장
+            // (gold/teal 편집 폼에는 description(상세 설명) 필드가 없음 — gold는 요청상세, teal은 상세설명)
+            $description = $this->icalUnescape($this->icalProp($vevent, 'DESCRIPTION') ?? '') ?: null;
+            $goldData = null;
+            $tealData = null;
+            if ($description && $colorKey === 'gold') {
+                $goldData = ['req_detail' => $description];
+                $description = null;
+            } elseif ($description && $colorKey === 'teal') {
+                $tealData = ['desc' => $description];
+                $description = null;
+            }
+
             $rows[] = [
                 'title' => $title,
                 'start_date' => $startDate,
@@ -1009,7 +1026,9 @@ class CalendarController extends Controller
                 'end_time' => $endTime,
                 'is_all_day' => $isAllDay,
                 'color' => $colorKey,       // 신규 카테고리는 라벨 문자열 → 저장 직전 키로 치환
-                'description' => $this->icalUnescape($this->icalProp($vevent, 'DESCRIPTION') ?? '') ?: null,
+                'description' => $description,
+                'gold_data' => $goldData,
+                'teal_data' => $tealData,
                 'location' => $this->icalUnescape($this->icalProp($vevent, 'LOCATION') ?? '') ?: null,
                 'completed_at' => $completed ? ($endDate.' '.($endTime ?: '23:59').':00') : null,
                 'import_uid' => $uid ? mb_substr($uid, 0, 100) : null,
@@ -1048,6 +1067,9 @@ class CalendarController extends Controller
         }
         if ($summary['skipped_after']) {
             $msg .= " ({$until} 이후 {$summary['skipped_after']}건 제외)";
+        }
+        if ($summary['repaired']) {
+            $msg .= " (기존 {$summary['repaired']}건 내용 위치 치유)";
         }
 
         return response()->json(['message' => $msg, 'count' => $summary['imported']] + $summary);
@@ -1113,6 +1135,30 @@ class CalendarController extends Controller
         }
 
         return ['blue', null, true]; // 미매칭 → 사내업무 + 보고
+    }
+
+    /**
+     * 이미 가져온 gold/teal 일정의 내용이 화면에 안 보이는 description에 남아있으면
+     * 카테고리별 표시 필드(gold→req_detail, teal→desc)로 이동. 치유 대상이면 true.
+     */
+    private function repairImportedContent(string $uid, bool $dry): bool
+    {
+        $row = Schedule::where('import_uid', $uid)->first();
+        if (! $row || ! in_array($row->color, ['gold', 'teal'], true) || ! trim((string) $row->description)) {
+            return false;
+        }
+        $field = $row->color === 'gold' ? 'gold_data' : 'teal_data';
+        $subKey = $row->color === 'gold' ? 'req_detail' : 'desc';
+        $data = $row->{$field} ?? [];
+        if (! empty($data[$subKey])) {
+            return false; // 이미 보이는 필드에 내용 있음 — 덮어쓰지 않음
+        }
+        if (! $dry) {
+            $data[$subKey] = trim((string) $row->description);
+            $row->update([$field => $data, 'description' => null]);
+        }
+
+        return true;
     }
 
     /** 가져오기용 커스텀 카테고리 생성 — CalendarCategoryController@store와 동일한 키 생성 규칙 */
