@@ -42,6 +42,5 @@
     ];
     $svg = $paths[$name] ?? '';
 @endphp
-@if($svg)
-<svg {{ $attributes->merge(['class' => 'ico']) }} viewBox="0 0 24 24" width="{{ $size }}" height="{{ $size }}" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-0.15em;flex-shrink:0">{!! $svg !!}</svg>
-@endif
+{{-- JS 문자열 안에서도 쓰이므로 출력에 줄바꿈이 없어야 함 (한 줄 유지) --}}
+@if($svg)<svg {{ $attributes->merge(['class' => 'ico']) }} viewBox="0 0 24 24" width="{{ $size }}" height="{{ $size }}" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-0.15em;flex-shrink:0">{!! $svg !!}</svg>@endif
