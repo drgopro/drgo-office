@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\Client;
+use App\Models\RentalContract;
 use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -84,6 +85,28 @@ class CalendarBroadcastRentalTest extends TestCase
         $this->assertSame(2, Schedule::count());
         $this->assertStringContainsString('월 요금: 500,000원', $start->description);
         $this->assertStringContainsString('결제일: 매월 20일', $start->description);
+    }
+
+    public function test_rental_contract_from_calendar(): void
+    {
+        $res = $this->actingAs($this->user)->postJson('/api/events', $this->eventPayload([
+            'color' => 'rental',
+            'start_date' => '2026-07-18', 'end_date' => '2026-09-17',
+            'is_all_day' => true, 'start_time' => null, 'end_time' => null,
+            'broadcast_rental' => ['mode' => 'rental', 'fee' => 158000],
+        ]));
+
+        $res->assertCreated();
+        $contract = RentalContract::first();
+        $this->assertNotNull($contract);
+        $this->assertSame(158000, $contract->monthly_fee);
+        $this->assertSame($this->client->id, $contract->client_id);
+
+        $meta = $contract->calendar_meta;
+        $this->assertSame($res->json('id'), $meta['start_id']);
+        $this->assertSame('렌탈 시작 · 정예원', Schedule::find($meta['start_id'])->title);
+        // 렌탈은 결제일 반복 유지: 7/18, 8/18 + 시작/종료 이벤트
+        $this->assertSame(2, Schedule::where('repeat_group', $meta['repeat_group'])->count());
     }
 
     public function test_rental_requires_linked_client(): void

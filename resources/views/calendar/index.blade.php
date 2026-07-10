@@ -1541,21 +1541,22 @@
                     <label class="field-label">메모 (선택)</label>
                     <textarea class="field-textarea" id="t_desc" placeholder="추가 메모를 입력하세요"></textarea>
                 </div>
-                {{-- 방송룸 대여 이력 등록 (신규 등록 시에만) — 체크 시 방송룸 페이지에 월/시간제 이력 생성 --}}
-                <div class="field-group" id="brRentalGroup">
-                    <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;color:var(--text);user-select:none;">
-                        <input type="checkbox" id="brRentalChk" onchange="onBrRentalToggle()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
-                        🎙 방송룸 대여 이력 등록
-                    </label>
-                    <div id="brRentalFields" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                        <select class="notif-select" id="brRentalMode">
-                            <option value="hourly">시간 대여</option>
-                            <option value="monthly">월 대여</option>
-                        </select>
-                        <input class="field-input" id="brRentalRoom" placeholder="호실 (예: 2)" style="width:100px;padding:6px 8px;">
-                        <input class="field-input" id="brRentalFee" type="number" min="0" placeholder="요금(원)" style="width:120px;padding:6px 8px;">
-                        <span id="brRentalHint" style="font-size:11px;color:var(--text-muted);flex-basis:100%;">의뢰자 연동 필수 · 월 대여는 시작~종료일이 계약 기간이 됩니다 (제목은 자동 지정)</span>
-                    </div>
+            </div>
+
+            {{-- 대여 이력 등록 (신규 등록 시에만) — 원격/방송룸: 시간/월 대여, 렌탈 카테고리: 렌탈 월 계약 --}}
+            <div class="field-group" id="brRentalGroup" style="display:none;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;color:var(--text);user-select:none;">
+                    <input type="checkbox" id="brRentalChk" onchange="onBrRentalToggle()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
+                    📄 대여 이력 등록 <span id="brRentalKindLabel" style="color:var(--text-muted);font-size:12px;">(방송룸)</span>
+                </label>
+                <div id="brRentalFields" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                    <select class="notif-select" id="brRentalMode" onchange="onBrRentalModeChange()">
+                        <option value="hourly">시간 대여</option>
+                        <option value="monthly">월 대여</option>
+                    </select>
+                    <input class="field-input" id="brRentalRoom" placeholder="호실 (예: 2)" style="width:100px;padding:6px 8px;">
+                    <input class="field-input" id="brRentalFee" type="number" min="0" placeholder="요금(원)" style="width:120px;padding:6px 8px;">
+                    <span id="brRentalHint" style="font-size:11px;color:var(--text-muted);flex-basis:100%;">의뢰자 연동 필수 · 월 대여/렌탈은 시작~종료일이 계약 기간이 됩니다 (제목은 자동 지정)</span>
                 </div>
             </div>
 
@@ -3013,6 +3014,7 @@ function setColor(c){
     updateBalanceBanner();
     applyVisitOptsUI();
     updateShipmentSectionVisibility();
+    if(typeof updateBrRentalUI==='function') updateBrRentalUI();
     if(typeof updateMoveSettingUI==='function') updateMoveSettingUI();
     if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
 }
@@ -3669,7 +3671,34 @@ async function loadClientProjects(clientId){
     }catch(e){wrap.style.display='none';return null;}
 }
 
-// 방송룸 대여 이력 등록 토글 (신규 등록 시에만 사용)
+// 대여 이력 등록 토글 (신규 등록 시에만 사용) — teal: 방송룸 시간/월, 렌탈 카테고리: 렌탈 월계약
+function brRentalKind(){
+    if(currentColor==='teal') return 'broadcast';
+    if((window.CALENDAR_CATEGORIES?.[currentColor]?.label)==='렌탈') return 'rental';
+    return null;
+}
+function updateBrRentalUI(){
+    const g=document.getElementById('brRentalGroup');
+    if(!g) return;
+    const kind=brRentalKind();
+    g.style.display=(!editingId&&kind)?'':'none';
+    const sel=document.getElementById('brRentalMode');
+    const kl=document.getElementById('brRentalKindLabel');
+    if(kind==='rental'){
+        if(sel) sel.innerHTML='<option value="rental">렌탈 월 계약</option>';
+        if(kl) kl.textContent='(렌탈)';
+    }else{
+        if(sel&&!sel.querySelector('option[value="hourly"]')) sel.innerHTML='<option value="hourly">시간 대여</option><option value="monthly">월 대여</option>';
+        if(kl) kl.textContent='(방송룸)';
+    }
+    onBrRentalModeChange();
+}
+function onBrRentalModeChange(){
+    // 렌탈 월계약에는 호실 개념 없음
+    const mode=document.getElementById('brRentalMode')?.value;
+    const room=document.getElementById('brRentalRoom');
+    if(room) room.style.display=mode==='rental'?'none':'';
+}
 function onBrRentalToggle(){
     const on=document.getElementById('brRentalChk')?.checked;
     const f=document.getElementById('brRentalFields');
@@ -3677,7 +3706,7 @@ function onBrRentalToggle(){
 }
 function collectBrRental(){
     // 편집 모드에선 미지원 (신규 등록만)
-    if(editingId || !document.getElementById('brRentalChk')?.checked) return null;
+    if(editingId || !brRentalKind() || !document.getElementById('brRentalChk')?.checked) return null;
     return {
         mode: document.getElementById('brRentalMode')?.value||'hourly',
         room_no: document.getElementById('brRentalRoom')?.value.trim()||null,
@@ -4012,9 +4041,8 @@ function resetModalForm(){
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
     document.getElementById('catQuickPick')?.remove(); // 카테고리 빠른 변경 팝업 잔여 제거
-    // 방송룸 대여 이력 등록 초기화 (신규 등록 전용 — 편집 시 loadEventToModal이 숨김)
+    // 대여 이력 등록 초기화 (표시 여부는 setColor→updateBrRentalUI가 결정)
     {const bc=document.getElementById('brRentalChk'); if(bc) bc.checked=false;
-     const bg=document.getElementById('brRentalGroup'); if(bg) bg.style.display='';
      const bf=document.getElementById('brRentalFields'); if(bf) bf.style.display='none';
      const br=document.getElementById('brRentalRoom'); if(br) br.value='';
      const bfee=document.getElementById('brRentalFee'); if(bfee) bfee.value='';}
@@ -4766,11 +4794,13 @@ async function doSaveEvent(){
         gold_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
         teal_data:currentColor==='teal'?collectTealFields():null,
     };
-    // 방송룸 대여 이력 등록 (teal 신규 등록 + 체크 시)
-    if(currentColor==='teal'){
+    // 대여 이력 등록 (방송룸/렌탈 신규 등록 + 체크 시)
+    {
         const br=collectBrRental();
         if(br){
-            if(!linkedClientId){alert('방송룸 대여 이력 등록에는 의뢰자 연동이 필요합니다.');return;}
+            if(!linkedClientId){alert('대여 이력 등록에는 의뢰자 연동이 필요합니다.');return;}
+            // 렌탈/월대여는 gold_data가 없을 수 있으므로 의뢰자 연동 보장
+            if(!data.gold_data) data.gold_data={client_id:linkedClientId,project_id:null,nickname:'',name:'',phone:''};
             data.broadcast_rental=br;
         }
     }

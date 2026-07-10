@@ -6,6 +6,7 @@ use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
 use App\Models\Client;
+use App\Models\RentalContract;
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
 use App\Notifications\ScheduleCreated;
@@ -150,7 +151,7 @@ class CalendarController extends Controller
             'repeat_unit' => 'nullable|in:day,week,month',
             'repeat_until' => 'nullable|date|after:start_date|required_with:repeat_freq',
             'broadcast_rental' => 'nullable|array',
-            'broadcast_rental.mode' => 'required_with:broadcast_rental|in:hourly,monthly',
+            'broadcast_rental.mode' => 'required_with:broadcast_rental|in:hourly,monthly,rental',
             'broadcast_rental.room_no' => 'nullable|string|max:20',
             'broadcast_rental.fee' => 'nullable|integer|min:0',
         ], [
@@ -186,10 +187,10 @@ class CalendarController extends Controller
     }
 
     /**
-     * 캘린더에서 '방송룸 대여 이력 등록' 체크로 등록 — 방송룸 페이지(월/시간제)와 양방향 연동.
+     * 캘린더에서 '대여 이력 등록' 체크로 등록 — 방송룸(월/시간제)·렌탈 페이지와 양방향 연동.
      * - 시간제(hourly): 일정을 표준 제목('{의뢰자} 방송룸 n호실 대여')으로 만들고 시간 대여 이력을 연결
-     * - 월대여(monthly): 폼의 시작~종료일로 월계약을 만들고 ContractCalendarSync가 표준 일정
-     *   ('{의뢰자} 방송룸 n호실 월대여 시작/종료' + 결제 반복)을 생성 — 폼 일정은 따로 만들지 않음
+     * - 월대여(monthly)/렌탈(rental): 폼의 시작~종료일로 계약을 만들고 ContractCalendarSync가
+     *   표준 일정을 생성 — 폼 일정은 따로 만들지 않음
      *
      * @param  array<string, mixed>  $validated
      * @param  array<string, mixed>  $brRental
@@ -199,7 +200,7 @@ class CalendarController extends Controller
         $clientId = data_get($validated, 'gold_data.client_id');
         if (! $clientId) {
             return response()->json([
-                'message' => '방송룸 대여 이력 등록에는 의뢰자 연동이 필요합니다.',
+                'message' => '대여 이력 등록에는 의뢰자 연동이 필요합니다.',
                 'errors' => ['broadcast_rental' => ['의뢰자를 먼저 연동해주세요.']],
             ], 422);
         }
@@ -207,17 +208,19 @@ class CalendarController extends Controller
         $titleName = $client ? ($client->nickname ?: $client->name) : '';
         $roomLabel = ! empty($brRental['room_no']) ? "방송룸 {$brRental['room_no']}호실" : '방송룸';
 
-        if ($brRental['mode'] === 'monthly') {
+        if (in_array($brRental['mode'], ['monthly', 'rental'], true)) {
             $contract = DB::transaction(function () use ($validated, $brRental, $clientId) {
-                $contract = BroadcastRoomContract::create([
+                $attrs = [
                     'client_id' => $clientId,
-                    'room_no' => $brRental['room_no'] ?? null,
                     'start_date' => $validated['start_date'],
                     'end_date' => $validated['end_date'] !== $validated['start_date'] ? $validated['end_date'] : null,
                     'monthly_fee' => (int) ($brRental['fee'] ?? 0),
                     'status' => 'active',
                     'memo' => $validated['description'] ?? null,
-                ]);
+                ];
+                $contract = $brRental['mode'] === 'rental'
+                    ? RentalContract::create($attrs)
+                    : BroadcastRoomContract::create($attrs + ['room_no' => $brRental['room_no'] ?? null]);
                 app(ContractCalendarSync::class)->sync($contract);
 
                 return $contract;
