@@ -224,7 +224,10 @@
     .opt-chip.urgent { background:#ef444426; border-color:#ef444466; color:#e06c6c; }
     /* 리스트 계열 뷰: 옵션 칩을 타이틀 앞에 배치 — 폰트 축소 + 여백 방향 전환 */
     .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
-    .tl-ev-title { font-weight:600; }
+    /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
+    .tl-ev-head { display:flex; align-items:center; gap:3px; min-width:0; }
+    .tl-ev-head .opt-chip { margin-left:0; }
+    .tl-ev-title { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .tl-ev-assignee { font-size:9px; opacity:0.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
     /* 리스트 제목 옆 배송 아이콘 (담당자보다 앞) */
     .agenda-title .chip-ship, .dp-title .chip-ship, .mde-title .chip-ship { margin-left:6px; font-size:13px; }
@@ -364,7 +367,8 @@
     .tl-allday-cell:last-child { border-right:none; }
     .tl-allday-cell.today-col { background:rgba(200,176,138,0.04); }
     /* 종일 칩: 셀 폭 안에서 한 줄 말줄임 (세로로 글자 깨짐 방지) */
-    .tl-allday-cell .event-chip { display:block; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; height:auto; min-height:18px; line-height:1.4; }
+    /* 주간 종일 칩: flex 유지로 옵션 칩 수직 중앙 정렬 (말줄임은 chip-title이 담당) */
+    .tl-allday-cell .event-chip { display:flex; align-items:center; gap:3px; width:100%; overflow:hidden; height:auto; min-height:18px; line-height:1.4; }
 
     /* 시간 슬롯 */
     .tl-body { position:relative; }
@@ -2039,14 +2043,11 @@ function buildChipHtml(ev){
     let html='';
     const time=ev.start_time?ev.start_time.substring(0,5):'';
     if(time) html+=`<span class="chip-time">${time}</span>`;
-    // 특수 옵션 미니 칩 (텍스트)
-    const specOpts=ev.special_opts||[];
-    specOpts.forEach(o=>{if(OPT_CHIP_LABELS[o]) html+=optChip(OPT_CHIP_LABELS[o],'chip-special',(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o);});
+    // 옵션 칩(특수/세부유형/일정옵션) — 타이틀 앞 배치, 모든 뷰 공통 순서
+    html+=eventOptIconsHtml(ev);
     // 제목 (의뢰자 이름은 표시하지 않음). flex:1로 늘어나서 담당자 배지를 우측으로 밀어냄
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
     html+=`<span class="chip-title">${title}</span>`;
-    // 일정 관련 아이콘
-    if(ev.sched_opt&&SCHED_CHIP_LABELS[ev.sched_opt]) html+=optChip(SCHED_CHIP_LABELS[ev.sched_opt],'accent sched-icon-badge');
     // 배송 상태: 등록만 ✕ / 일부 완료 △ / 전부 완료 ○
     if(ev.shipments_count>0){
         const shD=ev.shipments_delivered_count||0, shT=ev.shipments_count;
@@ -2856,7 +2857,7 @@ function renderTimeline() {
                     el.style.width=`calc(${widthPct}% - ${gap*2}px)`;
                     el.style.right='auto';
                 }
-                el.innerHTML=eventOptIconsHtml(ev)+`<span class="tl-ev-title">${_esc(ev.title||'')}</span>`+shipStatusIcon(ev)+((ev.assignees||[]).length?`<div class="tl-ev-assignee">${_esc(assigneeNamesOf(ev).join(', '))}</div>`:'');
+                el.innerHTML=`<div class="tl-ev-head">${eventOptIconsHtml(ev)}<span class="tl-ev-title">${_esc(ev.title||'')}</span>${shipStatusIcon(ev)}</div>`+((ev.assignees||[]).length?`<div class="tl-ev-assignee">${_esc(assigneeNamesOf(ev).join(', '))}</div>`:'');
                 el.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 slot.appendChild(el);
             });
