@@ -3507,7 +3507,10 @@ async function restoreLinkedClientName(id){
         const label=(c.nickname||c.name)?((c.nickname||c.name)+(c.nickname&&c.name?' ('+c.name+')':'')):`의뢰자 #${id}`;
         const el=document.getElementById('linkedClientName');
         // 현재 표시 중인 대상이 여전히 같은 의뢰자일 때만 갱신
-        if(el && linkedClientId===id) el.textContent=label;
+        if(el && linkedClientId===id){
+            el.textContent=label;
+            if(isLocked) renderLockSummary(); // 비동기 이름 도착 후 요약 칩의 '의뢰자 #id' → 실제 이름 갱신
+        }
     }catch(e){}
 }
 
