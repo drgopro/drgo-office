@@ -77,10 +77,13 @@ class CalendarBroadcastRentalTest extends TestCase
         // 표준 일정 세트 생성 + 응답은 시작 일정
         $meta = $contract->calendar_meta;
         $this->assertSame($res->json('id'), $meta['start_id']);
-        $this->assertSame('정예원 방송룸 1호실 월대여 시작', Schedule::find($meta['start_id'])->title);
+        $start = Schedule::find($meta['start_id']);
+        $this->assertSame('정예원 방송룸 1호실 월대여 시작', $start->title);
         $this->assertSame('정예원 방송룸 1호실 월대여 종료', Schedule::find($meta['end_id'])->title);
-        // 폼 초안 일정은 따로 저장되지 않음: 시작+종료+결제반복(7/20, 8/20, 9/20)
-        $this->assertSame(5, Schedule::count());
+        // 결제 반복 없이 시작+종료 2건만, 결제 내역은 시작 일정 내용에
+        $this->assertSame(2, Schedule::count());
+        $this->assertStringContainsString('월 요금: 500,000원', $start->description);
+        $this->assertStringContainsString('결제일: 매월 20일', $start->description);
     }
 
     public function test_rental_requires_linked_client(): void

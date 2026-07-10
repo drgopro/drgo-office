@@ -65,11 +65,22 @@ class ContractCalendarSync
         $start = Carbon::parse($contract->start_date->format('Y-m-d'));
         $end = $contract->end_date ? Carbon::parse($contract->end_date->format('Y-m-d')) : null;
 
+        // 방송룸 월대여: 별도 결제 반복 일정 없이 시작 일정 내용에 결제 내역 기재
+        $isBroadcast = $contract instanceof BroadcastRoomContract;
+        $description = $contract->memo ?: null;
+        if ($isBroadcast) {
+            $paymentInfo = "[결제 내역]\n"
+                .'· 월 요금: '.number_format($contract->monthly_fee).'원'
+                ."\n· 결제일: 매월 {$start->day}일"
+                ."\n· 계약 기간: {$start->toDateString()} ~ ".($end ? $end->toDateString() : '진행중');
+            $description = $paymentInfo.($contract->memo ? "\n\n".$contract->memo : '');
+        }
+
         $base = [
             'is_all_day' => true,
             'color' => $colorKey,
             'client_name' => $clientLabel,
-            'description' => $contract->memo ?: null,
+            'description' => $description,
             'source_type' => $kind['source'],
             'source_id' => $contract->id,
             'created_by' => Auth::id(),
@@ -94,9 +105,10 @@ class ContractCalendarSync
             ])->id;
         }
 
-        // 매월 결제일 반복 — 해지(terminated)면 종료일 이후 생성 안 함 (until이 자연히 잘라줌)
+        // 매월 결제일 반복 — 렌탈 계약만 (방송룸 월대여는 결제 내역을 일정 내용으로 대체)
+        // 해지(terminated)면 종료일 이후 생성 안 함 (until이 자연히 잘라줌)
         $until = $end ?? $start->copy()->addMonthsNoOverflow(self::ONGOING_MONTHS);
-        if ($until->gt($start)) {
+        if (! $isBroadcast && $until->gt($start)) {
             $meta['repeat_group'] = $this->createMonthlyOccurrences(
                 $base,
                 $titles['pay'].($contract->monthly_fee ? ' ('.number_format($contract->monthly_fee).'원)' : ''),

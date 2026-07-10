@@ -129,8 +129,14 @@ class ContractCalendarSyncTest extends TestCase
         $start = Schedule::find($meta['start_id']);
         $this->assertSame('윤민아 방송룸 2호실 월대여 시작', $start->title);
         $this->assertSame('윤민아 방송룸 2호실 월대여 종료', Schedule::find($meta['end_id'])->title);
-        $this->assertStringContainsString('윤민아 방송룸 2호실 월대여 결제', Schedule::where('repeat_group', $meta['repeat_group'])->first()->title);
         $this->assertSame('broadcast_contract', $start->source_type);
+
+        // 방송룸 월대여: 결제 반복 일정 없이 시작 일정 내용에 결제 내역 기재
+        $this->assertNull($meta['repeat_group']);
+        $this->assertSame(2, Schedule::count(), '시작+종료 2건만');
+        $this->assertStringContainsString('[결제 내역]', $start->description);
+        $this->assertStringContainsString('월 요금: 158,000원', $start->description);
+        $this->assertStringContainsString('결제일: 매월 18일', $start->description);
 
         $cat = CalendarCategory::where('label', '방송룸 대여')->first();
         $this->assertNotNull($cat);
