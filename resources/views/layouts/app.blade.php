@@ -870,11 +870,15 @@ window.drgoTabs = {
             let initialSet = false;
 
             data.tabs.forEach((t, i) => {
+                // 과거 setActiveTitle 버그로 다른 페이지의 제목(📁 프로젝트명)이 저장된 탭 치유:
+                // 프로젝트 상세 URL이 아닌 탭에 프로젝트 제목이 붙어 있으면 기본 라벨로 되돌림
+                let title = t.title || null;
+                if (title && title.startsWith('📁') && !/^\/projects\/\d+/.test(t.url || '')) title = null;
                 if (t.url === currentPath && !initialSet) {
-                    this.tabs.push({ id: 'initial', type: t.type, url: t.url, title: t.title || null, loaded: true });
+                    this.tabs.push({ id: 'initial', type: t.type, url: t.url, title, loaded: true });
                     initialSet = true;
                 } else {
-                    this.tabs.push({ id: 'tab-r-' + i, type: t.type, url: t.url, title: t.title || null, loaded: false });
+                    this.tabs.push({ id: 'tab-r-' + i, type: t.type, url: t.url, title, loaded: false });
                 }
             });
 
