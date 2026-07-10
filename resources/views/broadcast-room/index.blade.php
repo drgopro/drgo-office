@@ -309,16 +309,21 @@ function _toLocalInput(s) {
     if (!s) return '';
     return s.replace(' ', 'T').slice(0,16);
 }
+// 로컬 시각 기준 datetime-local 문자열 (toISOString은 UTC로 9시간 밀려 종료<시작 오류를 유발)
+function _fmtLocal(d) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 function _defaultStart() {
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
-    return d.toISOString().slice(0,16);
+    return _fmtLocal(d);
 }
 function _addHours(localStr, hours) {
     const d = new Date(localStr);
     d.setHours(d.getHours() + hours);
-    return d.toISOString().slice(0,16);
+    return _fmtLocal(d);
 }
 function updateHoursPreview() {
     const s = document.getElementById('uStartAt').value;

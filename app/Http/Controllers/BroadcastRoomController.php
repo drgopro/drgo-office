@@ -144,7 +144,7 @@ class BroadcastRoomController extends Controller
                 'used_date' => $start->toDateString(),
                 'start_at' => $start,
                 'end_at' => $end,
-                'hours' => round($end->diffInMinutes($start) / 60, 2),
+                'hours' => round($start->diffInMinutes($end) / 60, 2), // Carbon 3: diffIn*은 부호 있음 — start→end 방향이어야 양수
                 'fee' => $validated['fee'],
                 'memo' => $validated['memo'] ?? null,
                 'schedule_id' => $schedule->id,
@@ -171,7 +171,7 @@ class BroadcastRoomController extends Controller
                 $validated['used_date'] = $start->toDateString();
                 $validated['start_at'] = $start;
                 $validated['end_at'] = $end;
-                $validated['hours'] = round($end->diffInMinutes($start) / 60, 2);
+                $validated['hours'] = round($start->diffInMinutes($end) / 60, 2);
             }
             $usage->update($validated);
 
