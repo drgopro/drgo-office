@@ -49,7 +49,8 @@
             --chip-single-bg: #303030;
             --header-h: 48px;
             --tab-h: 36px;
-            --chrome-h: calc(var(--header-h) + var(--tab-h) + 2px);
+            /* 노치/다이나믹아일랜드 기기: 헤더가 safe-area만큼 커지므로 chrome 높이에도 포함 */
+            --chrome-h: calc(var(--header-h) + var(--tab-h) + 2px + env(safe-area-inset-top, 0px));
             --full-h: 100vh;
         }
         [data-theme="light"] {
@@ -177,7 +178,7 @@
         }
 
         /* ── 탭 바 ── */
-        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:var(--header-h); z-index:190; }
+        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:190; }
         .tab-strip { display:flex; align-items:center; flex:1; overflow-x:auto; gap:1px; scrollbar-width:none; }
         .tab-strip::-webkit-scrollbar { display:none; }
 
@@ -274,7 +275,7 @@
             .nav-mobile-only a:hover { color:var(--accent); background:var(--surface2); }
             .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
 
-            .tab-bar-wrap { top:var(--header-h); height:var(--tab-h); padding:0 8px; }
+            .tab-bar-wrap { top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); height:var(--tab-h); padding:0 8px; }
             .tab-item { font-size:11px; padding:6px 10px; }
             .tab-item .tab-close { opacity:0.5; position:relative; }
             .tab-item .tab-close::before { content:''; position:absolute; top:-10px; right:-8px; bottom:-10px; left:-8px; }
