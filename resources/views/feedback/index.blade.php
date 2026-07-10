@@ -53,7 +53,7 @@
     .fb-card-head { display:flex; align-items:center; gap:11px; padding:14px 16px; cursor:pointer; }
     .fb-avatar { width:32px; height:32px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--text-muted); flex-shrink:0; }
     .fb-head-main { flex:1; min-width:0; }
-    .fb-title { font-size:14px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fb-title { font-size:14px; font-weight:600; color:var(--text); word-break:break-word; }
     .fb-card.status-done .fb-title, .fb-card.status-rejected .fb-title { color:var(--text-muted); font-weight:500; }
     .fb-meta { font-size:11px; color:var(--text-muted); margin-top:3px; display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
     .fb-page-tag { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; font-family:ui-monospace,monospace; font-size:10px; }
@@ -100,6 +100,13 @@
     .fb-card-actions { text-align:right; margin-top:10px; font-size:11px; color:var(--text-muted); }
     .fb-card-actions button { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 5px; }
     .fb-card-actions button:hover { color:var(--text); }
+
+    /* 인라인 수정 폼 */
+    .fb-edit-form input[type=text], .fb-edit-form textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 13px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; font-family:inherit; }
+    .fb-edit-form input[type=text]:focus, .fb-edit-form textarea:focus { border-color:var(--accent); }
+    .fb-edit-form textarea { margin-top:8px; min-height:96px; resize:vertical; }
+    .fb-edit-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+    .fb-edit-cancel { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:8px 14px; color:var(--text); font-size:12px; font-weight:600; cursor:pointer; }
 
     /* 사이드바 */
     .fb-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
@@ -211,6 +218,7 @@ let fbType = 'bug';
 let fbPosts = [];
 let fbFiles = []; // 첨부 대기 파일 (File 객체)
 let fbOpenId = null;
+let fbEditingId = null; // 인라인 수정 중인 글 id
 
 function _e(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -280,7 +288,17 @@ function fbRenderFeed(){
 
 function fbBodyHtml(p){
     let html = '';
-    if(p.body) html += `<div class="fb-body-text">${_e(p.body)}</div>`;
+    if(fbEditingId === p.id){
+        html += `<div class="fb-edit-form">
+            <input type="text" id="fbEditTitle${p.id}" maxlength="200" value="${_e(p.title)}" placeholder="제목">
+            <textarea id="fbEditBody${p.id}" maxlength="5000" placeholder="상세 설명">${_e(p.body||'')}</textarea>
+            <div class="fb-edit-actions">
+                <button class="fb-edit-cancel" onclick="fbCancelEdit()">취소</button>
+                <button class="fb-submit" onclick="fbSaveEdit(${p.id})">저장</button>
+            </div>
+        </div>`;
+    }
+    else if(p.body) html += `<div class="fb-body-text">${_e(p.body)}</div>`;
     if(p.status==='rejected' && p.reject_reason) html += `<div class="fb-reject-box">반려 사유: ${_e(p.reject_reason)}</div>`;
     if(p.attachments.length){
         html += '<div class="fb-att-grid">'+p.attachments.map(a =>
@@ -306,7 +324,7 @@ function fbBodyHtml(p){
             <button class="fb-comment-submit" onclick="fbComment(${p.id})">등록</button>
         </div>
     </div>`;
-    if((p.is_mine && !p.locked) || FB_IS_DEV){
+    if(fbEditingId !== p.id && ((p.is_mine && !p.locked) || FB_IS_DEV)){
         html += `<div class="fb-card-actions">
             <button onclick="fbEdit(${p.id})">수정</button>
             <button onclick="fbDelete(${p.id})">삭제</button>
@@ -448,16 +466,26 @@ async function fbDeleteComment(id){
 }
 
 // ── 수정 / 삭제 ──
-async function fbEdit(id){
+function fbEdit(id){
+    fbOpenId = id;
+    fbEditingId = id;
+    fbRenderFeed();
+    document.getElementById('fbEditTitle'+id)?.focus();
+}
+function fbCancelEdit(){
+    fbEditingId = null;
+    fbRenderFeed();
+}
+async function fbSaveEdit(id){
     const p = fbPosts.find(x => x.id === id);
     if(!p) return;
-    const title = prompt('제목 수정', p.title);
-    if(title === null) return;
-    const body = prompt('상세 설명 수정', p.body || '');
-    if(body === null) return;
-    const res = await fetch(`/api/feedback/${id}`, {method:'PATCH', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({title:title.trim()||p.title, body:body.trim(), page:p.page})});
+    const title = document.getElementById('fbEditTitle'+id).value.trim();
+    if(!title){ alert('제목을 입력해주세요.'); return; }
+    const body = document.getElementById('fbEditBody'+id).value.trim();
+    const res = await fetch(`/api/feedback/${id}`, {method:'PATCH', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({title, body, page:p.page})});
     const data = await res.json().catch(()=>({}));
     if(!res.ok){ alert(data.message || '수정 실패'); return; }
+    fbEditingId = null;
     fbLoad();
 }
 async function fbDelete(id){
