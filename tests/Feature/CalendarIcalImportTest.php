@@ -146,6 +146,21 @@ class CalendarIcalImportTest extends TestCase
         $this->assertSame('포인트랑 현장 설명 진행후 돌아가는거 확인하고 퇴각', $s->description);
     }
 
+    public function test_until_cutoff_skips_events_starting_after(): void
+    {
+        // vevent 기본 시작일은 2026-07-08 — until=2026-06-30이면 제외되어야 함
+        $body = $this->vevent('cut1', '✓ 6월 일정', '일반');
+        $body = str_replace('20260708T180000', '20260615T180000', str_replace('20260708T190000', '20260615T190000', $body));
+        $file = $this->icsFile($body.$this->vevent('cut2', '✓ 7월 일정', '일반'));
+
+        $res = $this->actingAs($this->user)->post('/api/events/import/ical',
+            ['file' => $file, 'until' => '2026-06-30'], ['Accept' => 'application/json']);
+
+        $res->assertOk()->assertJsonPath('skipped_after', 1)->assertJsonPath('count', 1);
+        $this->assertNotNull(Schedule::where('import_uid', 'cut1@ticktick-backup')->first());
+        $this->assertNull(Schedule::where('import_uid', 'cut2@ticktick-backup')->first());
+    }
+
     public function test_studio_matches_default_combined_label(): void
     {
         // 기본 카테고리 green 라벨 '촬영/스튜디오'에 부분 일치 → 새 카테고리 생성 없이 green 사용

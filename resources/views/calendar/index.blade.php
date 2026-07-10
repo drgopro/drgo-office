@@ -5039,17 +5039,25 @@ async function importFile(type, input){
     if(!file) return;
     input.value='';
 
-    // iCal: 먼저 dry-run으로 카테고리 매핑 요약을 보여주고 확인 후 실제 가져오기
+    // iCal: 기준일 입력 → dry-run으로 카테고리 매핑 요약 확인 → 실제 가져오기
+    let importUntil='';
     if(type==='ical'){
+        const u=prompt('어느 날짜까지 가져올까요? (YYYY-MM-DD, 비우면 전체)\n이후에 시작하는 일정은 제외됩니다.','2026-06-30');
+        if(u===null) return; // 취소
+        importUntil=(u||'').trim();
+        if(importUntil && !/^\d{4}-\d{2}-\d{2}$/.test(importUntil)){ showCalToast('날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)'); return; }
+
         const dryFd=new FormData();
         dryFd.append('file',file);
         dryFd.append('dry','1');
+        if(importUntil) dryFd.append('until',importUntil);
         const dryRes=await fetch('/api/events/import/ical',{method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:dryFd});
         if(!dryRes.ok){ const d=await dryRes.json().catch(()=>({})); showCalToast(d.error||d.message||'파일 분석 실패'); return; }
         const s=await dryRes.json();
         const catLines=Object.entries(s.by_category||{}).map(([l,n])=>`  · ${l}: ${n}건`).join('\n');
         let msg=`총 ${s.total}건 분석 결과:\n${catLines}`;
-        if(s.skipped_holiday) msg+=`\n\n공휴일 ${s.skipped_holiday}건 제외 (앱 자동 표시와 중복)`;
+        if(s.skipped_after) msg+=`\n\n${importUntil} 이후 시작 ${s.skipped_after}건 제외`;
+        if(s.skipped_holiday) msg+=`\n공휴일 ${s.skipped_holiday}건 제외 (앱 자동 표시와 중복)`;
         if(s.duplicates) msg+=`\n이미 가져온 일정 ${s.duplicates}건 스킵`;
         if(s.rrule_count) msg+=`\n반복 규칙 ${s.rrule_count}건은 첫 회차만 가져옴`;
         if((s.will_create_categories||[]).length) msg+=`\n새 카테고리 생성: ${s.will_create_categories.join(', ')}`;
@@ -5060,6 +5068,7 @@ async function importFile(type, input){
 
     const fd=new FormData();
     fd.append('file',file);
+    if(importUntil) fd.append('until',importUntil);
     const res=await fetch(`/api/events/import/${type}`,{
         method:'POST',
         headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},

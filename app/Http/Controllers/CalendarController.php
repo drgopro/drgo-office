@@ -901,8 +901,9 @@ class CalendarController extends Controller
      */
     public function importIcal(Request $request)
     {
-        $request->validate(['file' => 'required|file']);
+        $request->validate(['file' => 'required|file', 'until' => 'nullable|date']);
         $dry = $request->boolean('dry');
+        $until = $request->input('until'); // 이 날짜(포함) 이후에 시작하는 일정은 제외
 
         $content = file_get_contents($request->file('file')->getRealPath());
         // RFC5545 줄접기(folding) 해제 — 연속줄(공백/탭 시작)을 이전 줄에 이어붙임
@@ -921,7 +922,7 @@ class CalendarController extends Controller
         $existingUids = Schedule::withTrashed()->whereNotNull('import_uid')->pluck('import_uid')->flip();
 
         $summary = [
-            'total' => 0, 'imported' => 0, 'duplicates' => 0, 'skipped_holiday' => 0,
+            'total' => 0, 'imported' => 0, 'duplicates' => 0, 'skipped_holiday' => 0, 'skipped_after' => 0,
             'rrule_count' => 0, 'by_category' => [], 'unmapped' => [], 'will_create_categories' => [],
         ];
         $rows = [];
@@ -968,6 +969,12 @@ class CalendarController extends Controller
             $dtstart = $this->icalDateTime($this->icalProp($vevent, 'DTSTART'));
             $dtend = $this->icalDateTime($this->icalProp($vevent, 'DTEND'));
             if (! $dtstart) {
+                continue;
+            }
+            // 기준일 이후 시작하는 일정 제외 (예: 2026-06-30까지만 가져오기)
+            if ($until && $dtstart['date'] > $until) {
+                $summary['skipped_after']++;
+
                 continue;
             }
 
@@ -1030,6 +1037,9 @@ class CalendarController extends Controller
         }
         if ($summary['skipped_holiday']) {
             $msg .= " (공휴일 {$summary['skipped_holiday']}건 제외)";
+        }
+        if ($summary['skipped_after']) {
+            $msg .= " ({$until} 이후 {$summary['skipped_after']}건 제외)";
         }
 
         return response()->json(['message' => $msg, 'count' => $summary['imported']] + $summary);
