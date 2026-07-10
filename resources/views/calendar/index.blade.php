@@ -58,6 +58,7 @@
     .app-title { font-size:13px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; }
     .nav-btn { background:none; border:1px solid var(--border); color:var(--text-muted); cursor:pointer; width:32px; height:32px; border-radius:6px; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
     .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+    @keyframes calSpin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
     .month-label { font-size:18px; font-weight:500; letter-spacing:0.05em; min-width:180px; text-align:center; }
 
     /* 일정 검색 */
@@ -874,6 +875,9 @@
         <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
         <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
         <button class="nav-btn" onclick="goToday()" style="font-size:12px;font-weight:600;width:auto;padding:0 14px;">오늘</button>
+        <button class="nav-btn" id="calRefreshBtn" onclick="refreshCalendar()" title="새로고침 (현재 보기 유지)">
+            <svg id="calRefreshIco" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+        </button>
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         @if(!Auth::user()->isGuest())
@@ -2290,6 +2294,21 @@ function renderView() {
 }
 
 // ── 이벤트 로드 ─────────────────────────────────────────────────
+// 상단 새로고침 버튼 — 현재 보기(월/주/일/목록)를 유지한 채 일정만 다시 불러옴
+async function refreshCalendar(){
+    const btn=document.getElementById('calRefreshBtn');
+    const ico=document.getElementById('calRefreshIco');
+    if(btn) btn.disabled=true;
+    if(ico) ico.style.animation='calSpin 0.8s linear infinite';
+    try{
+        await loadEvents();
+        showCalToast('일정을 새로고침했습니다');
+    } finally {
+        if(btn) btn.disabled=false;
+        if(ico) ico.style.animation='';
+    }
+}
+
 async function loadEvents() {
     expandedDays.clear();
     let start, end;
