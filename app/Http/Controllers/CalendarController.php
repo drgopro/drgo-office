@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BroadcastRoomContract;
+use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
+use App\Models\Client;
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
 use App\Notifications\ScheduleCreated;
 use App\Notifications\ScheduleUpdated;
+use App\Services\ContractCalendarSync;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -145,15 +149,25 @@ class CalendarController extends Controller
             'repeat_interval' => 'nullable|integer|min:1|max:99',
             'repeat_unit' => 'nullable|in:day,week,month',
             'repeat_until' => 'nullable|date|after:start_date|required_with:repeat_freq',
+            'broadcast_rental' => 'nullable|array',
+            'broadcast_rental.mode' => 'required_with:broadcast_rental|in:hourly,monthly',
+            'broadcast_rental.room_no' => 'nullable|string|max:20',
+            'broadcast_rental.fee' => 'nullable|integer|min:0',
         ], [
             'repeat_until.required_with' => '반복 종료일을 선택해주세요.',
             'repeat_until.after' => '반복 종료일이 시작일보다 늦어야 합니다.',
         ]);
 
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
-        $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
+        $brRental = $validated['broadcast_rental'] ?? null;
+        $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until', 'broadcast_rental'])->all();
         $validated = $this->stripClientLinkForExcludedColors($validated, $validated['color'] ?? null);
         $validated['created_by'] = Auth::id();
+
+        // 캘린더 → 방송룸 대여 이력 등록 (체크 시)
+        if ($brRental) {
+            return $this->storeWithBroadcastRental($validated, $brRental);
+        }
 
         $schedule = Schedule::create($validated);
 
@@ -165,6 +179,85 @@ class CalendarController extends Controller
         if (! empty($repeat['repeat_freq'])) {
             $this->createRepeatOccurrences($schedule, $repeat);
         }
+
+        $this->notifyAssigneesOfCreation($schedule);
+
+        return response()->json($schedule, 201);
+    }
+
+    /**
+     * 캘린더에서 '방송룸 대여 이력 등록' 체크로 등록 — 방송룸 페이지(월/시간제)와 양방향 연동.
+     * - 시간제(hourly): 일정을 표준 제목('{의뢰자} 방송룸 n호실 대여')으로 만들고 시간 대여 이력을 연결
+     * - 월대여(monthly): 폼의 시작~종료일로 월계약을 만들고 ContractCalendarSync가 표준 일정
+     *   ('{의뢰자} 방송룸 n호실 월대여 시작/종료' + 결제 반복)을 생성 — 폼 일정은 따로 만들지 않음
+     *
+     * @param  array<string, mixed>  $validated
+     * @param  array<string, mixed>  $brRental
+     */
+    private function storeWithBroadcastRental(array $validated, array $brRental)
+    {
+        $clientId = data_get($validated, 'gold_data.client_id');
+        if (! $clientId) {
+            return response()->json([
+                'message' => '방송룸 대여 이력 등록에는 의뢰자 연동이 필요합니다.',
+                'errors' => ['broadcast_rental' => ['의뢰자를 먼저 연동해주세요.']],
+            ], 422);
+        }
+        $client = Client::find($clientId);
+        $titleName = $client ? ($client->nickname ?: $client->name) : '';
+        $roomLabel = ! empty($brRental['room_no']) ? "방송룸 {$brRental['room_no']}호실" : '방송룸';
+
+        if ($brRental['mode'] === 'monthly') {
+            $contract = DB::transaction(function () use ($validated, $brRental, $clientId) {
+                $contract = BroadcastRoomContract::create([
+                    'client_id' => $clientId,
+                    'room_no' => $brRental['room_no'] ?? null,
+                    'start_date' => $validated['start_date'],
+                    'end_date' => $validated['end_date'] !== $validated['start_date'] ? $validated['end_date'] : null,
+                    'monthly_fee' => (int) ($brRental['fee'] ?? 0),
+                    'status' => 'active',
+                    'memo' => $validated['description'] ?? null,
+                ]);
+                app(ContractCalendarSync::class)->sync($contract);
+
+                return $contract;
+            });
+
+            // 프론트가 첨부 업로드 등에 쓰도록 동기화로 생성된 시작 일정을 반환
+            return response()->json(Schedule::find($contract->fresh()->calendar_meta['start_id']), 201);
+        }
+
+        // 시간제 — 종일 일정으로는 시간 계산이 불가
+        if (! empty($validated['is_all_day']) || empty($validated['start_time']) || empty($validated['end_time'])) {
+            return response()->json([
+                'message' => '시간 대여 등록에는 시작/종료 시간이 필요합니다.',
+                'errors' => ['broadcast_rental' => ['종일이 아닌 시간 지정 일정으로 등록해주세요.']],
+            ], 422);
+        }
+
+        $schedule = DB::transaction(function () use ($validated, $brRental, $clientId, $titleName, $roomLabel) {
+            $validated['title'] = trim(($titleName ? $titleName.' ' : '')."{$roomLabel} 대여");
+            $schedule = Schedule::create($validated);
+            if (! empty($validated['assignees'])) {
+                $schedule->assignees()->sync($validated['assignees']);
+            }
+
+            $start = Carbon::parse($validated['start_date'].' '.$validated['start_time']);
+            $end = Carbon::parse($validated['end_date'].' '.$validated['end_time']);
+            BroadcastRoomUsage::create([
+                'client_id' => $clientId,
+                'room_no' => $brRental['room_no'] ?? null,
+                'used_date' => $start->toDateString(),
+                'start_at' => $start,
+                'end_at' => $end,
+                'hours' => round($start->diffInMinutes($end) / 60, 2),
+                'fee' => (int) ($brRental['fee'] ?? 0),
+                'memo' => $validated['description'] ?? null,
+                'schedule_id' => $schedule->id,
+            ]);
+
+            return $schedule;
+        });
 
         $this->notifyAssigneesOfCreation($schedule);
 

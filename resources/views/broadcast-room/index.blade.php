@@ -100,11 +100,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th>의뢰자</th><th>시작일</th><th>종료일</th><th>월 금액</th><th>상태</th><th>메모</th>
+                        <th>의뢰자</th><th>호실</th><th>시작일</th><th>종료일</th><th>월 금액</th><th>상태</th><th>메모</th>
                         @if(Auth::user()->hasPermission('clients.edit'))<th></th>@endif
                     </tr>
                 </thead>
-                <tbody id="contractsBody"><tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">로딩 중...</td></tr></tbody>
+                <tbody id="contractsBody"><tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -120,11 +120,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th>날짜</th><th>의뢰자</th><th>시간</th><th>금액</th><th>메모</th>
+                        <th>날짜</th><th>의뢰자</th><th>호실</th><th>시간</th><th>금액</th><th>메모</th>
                         @if(Auth::user()->hasPermission('clients.edit'))<th></th>@endif
                     </tr>
                 </thead>
-                <tbody id="usagesBody"><tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">로딩 중...</td></tr></tbody>
+                <tbody id="usagesBody"><tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -144,6 +144,7 @@
             </div>
             <div id="cSelectedClient" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
         </div>
+        <div class="field-group"><div class="field-label">호실</div><input type="text" class="field-input" id="cRoomNo" placeholder="예: 2 (2호실)"></div>
         <div class="field-row">
             <div class="field-group"><div class="field-label">시작일 *</div><input type="date" class="field-input" id="cStartDate"></div>
             <div class="field-group"><div class="field-label">종료일</div><input type="date" class="field-input" id="cEndDate"></div>
@@ -175,6 +176,7 @@
             </div>
             <div id="uSelectedClient" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
         </div>
+        <div class="field-group"><div class="field-label">호실</div><input type="text" class="field-input" id="uRoomNo" placeholder="예: 2 (2호실)"></div>
         <div class="field-row">
             <div class="field-group"><div class="field-label">시작 일시 *</div><input type="datetime-local" class="field-input" id="uStartAt"></div>
             <div class="field-group"><div class="field-label">종료 일시 *</div><input type="datetime-local" class="field-input" id="uEndAt"></div>
@@ -206,7 +208,7 @@ async function loadContracts() {
     const res = await fetch('/api/broadcast-room/contracts');
     allContracts = await res.json();
     const tbody = document.getElementById('contractsBody');
-    if (!allContracts.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">계약이 없습니다.</td></tr>'; return; }
+    if (!allContracts.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">계약이 없습니다.</td></tr>'; return; }
     tbody.innerHTML = allContracts.map(c => {
         const statusLabel = c.status === 'active' ? '진행중' : '해지';
         const clientName = c.client_name + (c.client_nickname ? ` (${c.client_nickname})` : '');
@@ -214,7 +216,7 @@ async function loadContracts() {
             ? `<a href="/calendar" title="캘린더에 연동됨 — 클릭 시 캘린더로 이동" style="text-decoration:none;margin-left:6px;cursor:pointer;" onclick="event.preventDefault();if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('calendar','/calendar');}else{location.href='/calendar';}">📅</a>`
             : '';
         return `<tr>
-            <td>${clientName}${calBadge}</td><td>${c.start_date}</td><td>${c.end_date || '—'}</td>
+            <td>${clientName}${calBadge}</td><td>${c.room_no ? c.room_no+'호실' : '—'}</td><td>${c.start_date}</td><td>${c.end_date || '—'}</td>
             <td style="font-weight:600;color:var(--accent);">${Number(c.monthly_fee||0).toLocaleString()}원</td>
             <td><span class="status-badge status-${c.status}">${statusLabel}</span></td>
             <td style="color:var(--text-muted);">${(c.memo||'').substring(0,30)}</td>
@@ -227,14 +229,14 @@ async function loadUsages() {
     const res = await fetch('/api/broadcast-room/usages');
     allUsages = await res.json();
     const tbody = document.getElementById('usagesBody');
-    if (!allUsages.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">이용 내역이 없습니다.</td></tr>'; return; }
+    if (!allUsages.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">이용 내역이 없습니다.</td></tr>'; return; }
     tbody.innerHTML = allUsages.map(u => {
         const clientName = (u.client_name || u.client_nickname || '') + (u.client_name && u.client_nickname ? ` (${u.client_nickname})` : '');
         const timeRange = u.start_at && u.end_at
             ? `${u.start_at} ~ ${u.end_at.slice(11)}`
             : (u.used_date || '');
         return `<tr>
-            <td>${timeRange}</td><td>${clientName}</td>
+            <td>${timeRange}</td><td>${clientName}</td><td>${u.room_no ? u.room_no+'호실' : '—'}</td>
             <td>${u.hours}시간</td>
             <td style="font-weight:600;color:var(--accent);">${Number(u.fee||0).toLocaleString()}원</td>
             <td style="color:var(--text-muted);">${(u.memo||'').substring(0,30)}</td>
@@ -274,6 +276,7 @@ function openContractModal(data) {
     document.getElementById('cClientSearch').value = data ? (data.client_nickname || data.client_name || '') : '';
     document.getElementById('cSelectedClient').textContent = data ? `✓ ${data.client_name}${data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
     document.getElementById('cSelectedClient').style.display = data ? 'block' : 'none';
+    document.getElementById('cRoomNo').value = data?.room_no || '';
     document.getElementById('cStartDate').value = data?.start_date || new Date().toISOString().slice(0,10);
     document.getElementById('cEndDate').value = data?.end_date || '';
     document.getElementById('cMonthlyFee').value = data?.monthly_fee || '';
@@ -289,6 +292,7 @@ async function saveContract() {
     if (!clientId) return alert('의뢰자를 선택하세요.');
     const body = {
         client_id: parseInt(clientId),
+        room_no: document.getElementById('cRoomNo').value.trim() || null,
         start_date: document.getElementById('cStartDate').value,
         end_date: document.getElementById('cEndDate').value || null,
         monthly_fee: parseInt(document.getElementById('cMonthlyFee').value || 0),
@@ -348,6 +352,7 @@ function openUsageModal(data) {
     document.getElementById('uSelectedClient').style.display = data ? 'block' : 'none';
     const start = data?.start_at ? _toLocalInput(data.start_at) : _defaultStart();
     const end = data?.end_at ? _toLocalInput(data.end_at) : _addHours(start, 1);
+    document.getElementById('uRoomNo').value = data?.room_no || '';
     document.getElementById('uStartAt').value = start;
     document.getElementById('uEndAt').value = end;
     document.getElementById('uFee').value = data?.fee || '';
@@ -367,6 +372,7 @@ async function saveUsage() {
     if (new Date(end) <= new Date(start)) return alert('종료 일시는 시작 일시보다 뒤여야 합니다.');
     const body = {
         client_id: parseInt(clientId),
+        room_no: document.getElementById('uRoomNo').value.trim() || null,
         start_at: start,
         end_at: end,
         fee: parseInt(document.getElementById('uFee').value || 0),

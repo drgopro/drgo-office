@@ -12,7 +12,7 @@ class BroadcastRoomContract extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
-        'client_id', 'start_date', 'end_date', 'monthly_fee', 'status', 'memo', 'calendar_meta',
+        'client_id', 'room_no', 'start_date', 'end_date', 'monthly_fee', 'status', 'memo', 'calendar_meta',
     ];
 
     protected $casts = [

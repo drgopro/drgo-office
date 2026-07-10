@@ -26,11 +26,32 @@ class ContractCalendarSync
     /** 진행중(종료일 없음) 계약의 결제 반복 생성 범위 (개월) */
     public const ONGOING_MONTHS = 12;
 
-    /** @var array<class-string, array{source:string, label:string, category:string}> */
+    /** @var array<class-string, array{source:string, category:string}> */
     private const KINDS = [
-        RentalContract::class => ['source' => 'rental_contract', 'label' => '렌탈', 'category' => '렌탈'],
-        BroadcastRoomContract::class => ['source' => 'broadcast_contract', 'label' => '방송룸 계약', 'category' => '방송룸 대여'],
+        RentalContract::class => ['source' => 'rental_contract', 'category' => '렌탈'],
+        BroadcastRoomContract::class => ['source' => 'broadcast_contract', 'category' => '방송룸 대여'],
     ];
+
+    /**
+     * 계약 종류별 일정 제목 — 방송룸은 '{의뢰자} 방송룸 n호실 월대여 시작/종료/결제' 형식.
+     *
+     * @return array{start:string, end:string, pay:string}
+     */
+    private function titles(RentalContract|BroadcastRoomContract $contract, string $clientLabel): array
+    {
+        if ($contract instanceof BroadcastRoomContract) {
+            $room = $contract->room_no ? "방송룸 {$contract->room_no}호실" : '방송룸';
+            $prefix = trim("{$clientLabel} {$room} 월대여");
+
+            return ['start' => "{$prefix} 시작", 'end' => "{$prefix} 종료", 'pay' => "{$prefix} 결제"];
+        }
+
+        return [
+            'start' => "렌탈 시작 · {$clientLabel}",
+            'end' => "렌탈 종료 · {$clientLabel}",
+            'pay' => "렌탈 결제 · {$clientLabel}",
+        ];
+    }
 
     /** 계약 → 캘린더 재동기화 (등록/수정 공용) */
     public function sync(RentalContract|BroadcastRoomContract $contract): void
@@ -54,11 +75,12 @@ class ContractCalendarSync
             'created_by' => Auth::id(),
         ];
 
+        $titles = $this->titles($contract, $clientLabel);
         $meta = ['start_id' => null, 'end_id' => null, 'repeat_group' => null];
 
         // 시작 이벤트
         $meta['start_id'] = Schedule::create($base + [
-            'title' => "{$kind['label']} 시작 · {$clientLabel}",
+            'title' => $titles['start'],
             'start_date' => $start->toDateString(),
             'end_date' => $start->toDateString(),
         ])->id;
@@ -66,7 +88,7 @@ class ContractCalendarSync
         // 종료 이벤트
         if ($end) {
             $meta['end_id'] = Schedule::create($base + [
-                'title' => "{$kind['label']} 종료 · {$clientLabel}",
+                'title' => $titles['end'],
                 'start_date' => $end->toDateString(),
                 'end_date' => $end->toDateString(),
             ])->id;
@@ -77,7 +99,7 @@ class ContractCalendarSync
         if ($until->gt($start)) {
             $meta['repeat_group'] = $this->createMonthlyOccurrences(
                 $base,
-                "{$kind['label']} 결제 · {$clientLabel}".($contract->monthly_fee ? ' ('.number_format($contract->monthly_fee).'원)' : ''),
+                $titles['pay'].($contract->monthly_fee ? ' ('.number_format($contract->monthly_fee).'원)' : ''),
                 $start,
                 $until,
             );

@@ -12,7 +12,7 @@ class BroadcastRoomUsage extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
-        'client_id', 'used_date', 'start_at', 'end_at', 'schedule_id', 'hours', 'fee', 'memo',
+        'client_id', 'room_no', 'used_date', 'start_at', 'end_at', 'schedule_id', 'hours', 'fee', 'memo',
     ];
 
     protected $casts = [

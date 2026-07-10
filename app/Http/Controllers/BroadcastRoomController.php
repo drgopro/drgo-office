@@ -34,6 +34,7 @@ class BroadcastRoomController extends Controller
             'client_id' => $c->client_id,
             'client_name' => $c->client?->name,
             'client_nickname' => $c->client?->nickname,
+            'room_no' => $c->room_no,
             'start_date' => $c->start_date?->format('Y-m-d'),
             'end_date' => $c->end_date?->format('Y-m-d'),
             'monthly_fee' => $c->monthly_fee,
@@ -49,6 +50,7 @@ class BroadcastRoomController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
+            'room_no' => 'nullable|string|max:20',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'monthly_fee' => 'required|integer|min:0',
@@ -70,6 +72,7 @@ class BroadcastRoomController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'sometimes|exists:clients,id',
+            'room_no' => 'nullable|string|max:20',
             'start_date' => 'sometimes|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'monthly_fee' => 'sometimes|integer|min:0',
@@ -112,6 +115,7 @@ class BroadcastRoomController extends Controller
             'client_id' => $u->client_id,
             'client_name' => $u->client?->name,
             'client_nickname' => $u->client?->nickname,
+            'room_no' => $u->room_no,
             'used_date' => $u->used_date?->format('Y-m-d'),
             'start_at' => $u->start_at?->format('Y-m-d H:i'),
             'end_at' => $u->end_at?->format('Y-m-d H:i'),
@@ -128,6 +132,7 @@ class BroadcastRoomController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
+            'room_no' => 'nullable|string|max:20',
             'start_at' => 'required|date',
             'end_at' => 'required|date|after:start_at',
             'fee' => 'required|integer|min:0',
@@ -141,8 +146,10 @@ class BroadcastRoomController extends Controller
             // 캘린더 일정 자동 생성 (color=teal = 원격/방송룸)
             $client = Client::find($validated['client_id']);
             $clientLabel = $client ? trim(($client->nickname ?: $client->name).($client->name && $client->nickname ? ' ('.$client->name.')' : '')) : null;
+            $titleName = $client ? ($client->nickname ?: $client->name) : null;
+            $roomLabel = ! empty($validated['room_no']) ? "방송룸 {$validated['room_no']}호실" : '방송룸';
             $schedule = Schedule::create([
-                'title' => '🎙 방송룸 대여'.($clientLabel ? ' · '.$clientLabel : ''),
+                'title' => trim(($titleName ? $titleName.' ' : '')."{$roomLabel} 대여"),
                 'start_date' => $start->toDateString(),
                 'end_date' => $end->toDateString(),
                 'start_time' => $start->format('H:i:s'),
@@ -156,6 +163,7 @@ class BroadcastRoomController extends Controller
 
             return BroadcastRoomUsage::create([
                 'client_id' => $validated['client_id'],
+                'room_no' => $validated['room_no'] ?? null,
                 'used_date' => $start->toDateString(),
                 'start_at' => $start,
                 'end_at' => $end,
@@ -173,6 +181,7 @@ class BroadcastRoomController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'sometimes|exists:clients,id',
+            'room_no' => 'nullable|string|max:20',
             'start_at' => 'sometimes|date',
             'end_at' => 'sometimes|date|after:start_at',
             'fee' => 'sometimes|integer|min:0',
@@ -194,8 +203,10 @@ class BroadcastRoomController extends Controller
             if ($usage->schedule_id && $usage->start_at && $usage->end_at) {
                 $client = $usage->client;
                 $clientLabel = $client ? trim(($client->nickname ?: $client->name).($client->name && $client->nickname ? ' ('.$client->name.')' : '')) : null;
+                $titleName = $client ? ($client->nickname ?: $client->name) : null;
+                $roomLabel = $usage->room_no ? "방송룸 {$usage->room_no}호실" : '방송룸';
                 Schedule::where('id', $usage->schedule_id)->update([
-                    'title' => '🎙 방송룸 대여'.($clientLabel ? ' · '.$clientLabel : ''),
+                    'title' => trim(($titleName ? $titleName.' ' : '')."{$roomLabel} 대여"),
                     'start_date' => $usage->start_at->toDateString(),
                     'end_date' => $usage->end_at->toDateString(),
                     'start_time' => $usage->start_at->format('H:i:s'),

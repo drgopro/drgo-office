@@ -115,22 +115,35 @@ class ContractCalendarSyncTest extends TestCase
         $this->assertSame(0, Schedule::where('repeat_group', $meta['repeat_group'])->count());
     }
 
-    public function test_broadcast_contract_syncs_with_own_category(): void
+    public function test_broadcast_contract_syncs_with_own_category_and_room_title(): void
     {
         $res = $this->actingAs($this->user)->postJson('/api/broadcast-room/contracts', $this->payload([
             'end_date' => '2026-08-31',
+            'room_no' => '2',
         ]));
         $res->assertCreated();
 
-        $meta = BroadcastRoomContract::first()->calendar_meta;
+        $contract = BroadcastRoomContract::first();
+        $this->assertSame('2', $contract->room_no);
+        $meta = $contract->calendar_meta;
         $start = Schedule::find($meta['start_id']);
-        $this->assertSame('방송룸 계약 시작 · 윤민아', $start->title);
+        $this->assertSame('윤민아 방송룸 2호실 월대여 시작', $start->title);
+        $this->assertSame('윤민아 방송룸 2호실 월대여 종료', Schedule::find($meta['end_id'])->title);
+        $this->assertStringContainsString('윤민아 방송룸 2호실 월대여 결제', Schedule::where('repeat_group', $meta['repeat_group'])->first()->title);
         $this->assertSame('broadcast_contract', $start->source_type);
 
         $cat = CalendarCategory::where('label', '방송룸 대여')->first();
         $this->assertNotNull($cat);
         $this->assertSame('broadcast_rental', $cat->key);
         $this->assertSame($cat->key, $start->color);
+    }
+
+    public function test_broadcast_contract_without_room_omits_room_label(): void
+    {
+        $this->actingAs($this->user)->postJson('/api/broadcast-room/contracts', $this->payload())->assertCreated();
+
+        $meta = BroadcastRoomContract::first()->calendar_meta;
+        $this->assertSame('윤민아 방송룸 월대여 시작', Schedule::find($meta['start_id'])->title);
     }
 
     public function test_calendar_delete_keeps_contract_and_resync_recovers(): void
