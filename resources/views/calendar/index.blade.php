@@ -584,6 +584,10 @@
     .ls-img-label { font-size:11px; color:var(--text-muted); letter-spacing:0.04em; }
     .ls-img-grid { display:flex; flex-wrap:wrap; gap:8px; }
     .ls-img-grid img { width:88px; height:88px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:zoom-in; }
+    /* 비이미지 첨부: 파일 아이콘 + 파일명 칩 */
+    .ls-file { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:88px; height:88px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); text-decoration:none; color:var(--text); font-size:22px; padding:6px; box-sizing:border-box; }
+    .ls-file:hover { border-color:var(--accent); }
+    .ls-file span { font-size:10px; color:var(--text-muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .ls-img-empty { font-size:12px; color:var(--text-muted); opacity:0.6; padding:6px 0; }
     .ls-client-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; background:rgba(122,160,200,0.10); border:1px solid rgba(122,160,200,0.30); color:#8ab4c8; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; }
     @media (max-width:768px) {
@@ -3360,11 +3364,22 @@ function renderLockSummary(){
     let imgHtml = '';
     imgGroups.forEach(g => {
         const grid = document.getElementById(g.grid);
-        const imgs = grid ? Array.from(grid.querySelectorAll('img')) : [];
+        // 이미지는 썸네일, 비이미지 파일(문서 등)은 파일 칩으로 — 둘 다 요약에 노출
+        const items = grid ? Array.from(grid.querySelectorAll('.img-item')) : [];
+        const cells = items.map(it => {
+            const im = it.querySelector('img');
+            if (im) return `<img src="${_esc(im.src)}" data-full="${_esc(im.dataset.full||im.src)}" alt="${_esc(g.label)}" loading="lazy" decoding="async">`;
+            const name = (it.querySelector('.img-filename')?.textContent || '').trim();
+            const href = it.querySelector('a.img-fileicon')?.href || '';
+            const inner = `📄<span>${_esc(name)||'파일'}</span>`;
+            return href
+                ? `<a class="ls-file" href="${_esc(href)}" target="_blank" title="${_esc(name)}">${inner}</a>`
+                : `<div class="ls-file" title="${_esc(name)}">${inner}</div>`;
+        });
         imgHtml += `<div class="ls-img-section">
             <div class="ls-img-label">${g.label}</div>
-            ${imgs.length
-                ? `<div class="ls-img-grid">${imgs.map(im => `<img src="${_esc(im.src)}" data-full="${_esc(im.dataset.full||im.src)}" alt="${_esc(g.label)}" loading="lazy" decoding="async">`).join('')}</div>`
+            ${cells.length
+                ? `<div class="ls-img-grid">${cells.join('')}</div>`
                 : `<div class="ls-img-empty">— 등록된 ${g.label} 없음 —</div>`}
         </div>`;
     });
