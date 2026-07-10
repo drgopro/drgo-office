@@ -1175,7 +1175,7 @@
                             </span>
                         </span>
                     </div>
-                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">🔁 반복 일정입니다 — 주기/종료일을 바꾸면 <b>이 일정 이후</b>의 반복이 새 설정으로 재생성됩니다 (지난 반복은 그대로).</div>
+                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">🔁 반복 일정입니다 — 주기/종료일·카테고리를 바꾸면 <b>이 일정 이후</b>의 반복에 반영됩니다 (지난 반복은 그대로).</div>
                 </div>
             </div>
 

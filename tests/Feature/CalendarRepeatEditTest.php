@@ -122,6 +122,25 @@ class CalendarRepeatEditTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_color_change_propagates_to_future_occurrences(): void
+    {
+        $base = $this->createDailyGroup(); // blue, 7/1~7/5
+        $third = Schedule::where('repeat_group', $base->repeat_group)
+            ->where('start_date', '2026-07-03')->firstOrFail();
+
+        // 3번째 회차의 카테고리를 red로 변경 (반복 설정은 그대로)
+        $this->actingAs($this->user)->postJson("/api/events/{$third->id}", [
+            'color' => 'red',
+            'repeat_freq' => 'daily',
+            'repeat_until' => '2026-07-05',
+        ])->assertOk();
+
+        $colors = Schedule::where('repeat_group', $base->repeat_group)
+            ->orderBy('start_date')->pluck('color')->all();
+        $this->assertEquals(['blue', 'blue', 'red', 'red', 'red'], $colors, '이후 회차만 카테고리 전파');
+        $this->assertCount(5, Schedule::where('repeat_group', $base->repeat_group)->get(), '재생성 없이 전파만');
+    }
+
     public function test_last_occurrence_saves_fine_with_unchanged_settings(): void
     {
         $base = $this->createDailyGroup();

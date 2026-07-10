@@ -365,6 +365,14 @@ class CalendarController extends Controller
             $this->notifyScheduleChanged($schedule);
         }
 
+        // 반복 그룹: 카테고리 변경은 이 일정 이후의 반복 회차에도 전파 (지난 회차는 그대로)
+        if ($schedule->repeat_group && isset($diff['color']) && isset($validated['color'])) {
+            Schedule::where('repeat_group', $schedule->repeat_group)
+                ->where('id', '!=', $schedule->id)
+                ->where('start_date', '>=', $schedule->start_date->format('Y-m-d'))
+                ->update(['color' => $validated['color']]);
+        }
+
         if (! empty($repeat['repeat_freq']) && ! $schedule->repeat_group) {
             $schedule->refresh();
             if (Carbon::parse($repeat['repeat_until'])->lte(Carbon::parse($schedule->start_date->format('Y-m-d')))) {
