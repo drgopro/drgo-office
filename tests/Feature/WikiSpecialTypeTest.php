@@ -60,6 +60,53 @@ class WikiSpecialTypeTest extends TestCase
         ])->assertCreated();
     }
 
+    public function test_member_creates_meeting_doc_without_category(): void
+    {
+        $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);
+
+        $res = $this->actingAs($this->member())->postJson('/wiki', [
+            'title' => '7월 2주차 회의록',
+            'type' => 'meeting',
+            'category_id' => $cat->id, // 지정해도 강제 해제되어야 함
+            'content' => '<p>내용</p>',
+        ]);
+
+        $res->assertCreated();
+        $wiki = Wiki::first();
+        $this->assertSame('meeting', $wiki->type);
+        $this->assertNull($wiki->category_id, '회의록은 카테고리와 분리');
+        $this->assertSame('회의록', $wiki->category);
+    }
+
+    public function test_member_can_edit_and_delete_meeting_doc(): void
+    {
+        $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);
+        $meeting = Wiki::create(['title' => '회의록', 'type' => 'meeting', 'content' => 'x', 'category' => '회의록']);
+
+        $this->actingAs($this->member())->patchJson("/wiki/{$meeting->id}", [
+            'title' => '회의록 수정',
+            'category_id' => $cat->id,
+        ])->assertOk();
+
+        $fresh = $meeting->fresh();
+        $this->assertSame('회의록 수정', $fresh->title);
+        $this->assertNull($fresh->category_id, '회의록은 카테고리 변경 요청을 무시');
+        $this->assertSame('회의록', $fresh->category);
+
+        $this->actingAs($this->member())->deleteJson("/wiki/{$meeting->id}")->assertOk();
+        $this->assertNull(Wiki::find($meeting->id));
+    }
+
+    public function test_meeting_count_included_in_type_counts(): void
+    {
+        Wiki::create(['title' => '주간 회의', 'type' => 'meeting', 'content' => 'x', 'category' => '회의록']);
+
+        $res = $this->actingAs($this->member())->get('/wiki');
+
+        $res->assertOk();
+        $this->assertSame(1, (int) $res->viewData('typeCounts')['meeting']);
+    }
+
     public function test_bulk_move_skips_special_types(): void
     {
         $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);

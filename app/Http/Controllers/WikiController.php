@@ -66,15 +66,17 @@ class WikiController extends Controller
     }
 
     /**
-     * 공지사항/업데이트 유형 처리 — 관리자 전용, 카테고리 체계와 분리(카테고리 강제 해제).
-     * type 미지정 시 normal 유지.
+     * 특수 유형(공지사항/업데이트/회의록) 처리 — 카테고리 체계와 분리(카테고리 강제 해제).
+     * 공지사항/업데이트는 관리자 전용, 회의록은 전 직원 작성 가능. type 미지정 시 normal 유지.
      */
     private function applySpecialType(array &$validated): void
     {
         if (empty($validated['type']) || $validated['type'] === 'normal') {
             return;
         }
-        abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 작성할 수 있습니다.');
+        if (in_array($validated['type'], Wiki::ADMIN_ONLY_TYPES, true)) {
+            abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 작성할 수 있습니다.');
+        }
         $validated['category_id'] = null;
         $validated['category'] = Wiki::SPECIAL_TYPES[$validated['type']];
         $validated['is_pinned'] = false; // 고정 섹션에 항상 노출되므로 별도 핀 불필요
@@ -107,7 +109,7 @@ class WikiController extends Controller
             'title' => 'required|string|max:200',
             'category' => 'nullable|string|max:50',
             'category_id' => 'nullable|integer|exists:wiki_categories,id',
-            'type' => 'nullable|in:normal,notice,update',
+            'type' => 'nullable|in:normal,notice,update,meeting',
             'content' => 'required|string',
             'is_pinned' => 'boolean',
         ]);
@@ -132,16 +134,20 @@ class WikiController extends Controller
             'title' => 'sometimes|string|max:200',
             'category' => 'sometimes|nullable|string|max:50',
             'category_id' => 'sometimes|nullable|integer|exists:wiki_categories,id',
-            'type' => 'sometimes|in:normal,notice,update',
+            'type' => 'sometimes|in:normal,notice,update,meeting',
             'content' => 'sometimes|string',
             'is_pinned' => 'boolean',
         ]);
 
-        $this->syncCategoryName($validated);
-        // 공지/업데이트 문서 자체의 수정도 관리자만 (type 파라미터가 없어도)
+        // 특수 유형 문서: 공지/업데이트는 관리자만 수정 (type 파라미터가 없어도),
+        // 카테고리 체계와 분리되어 있으므로 카테고리 변경 요청은 무시
         if (isset(Wiki::SPECIAL_TYPES[$wiki->type])) {
-            abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 수정할 수 있습니다.');
+            if (in_array($wiki->type, Wiki::ADMIN_ONLY_TYPES, true)) {
+                abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 수정할 수 있습니다.');
+            }
+            unset($validated['category_id'], $validated['category']);
         }
+        $this->syncCategoryName($validated);
         $this->applySpecialType($validated);
         $validated['updated_by'] = Auth::id();
         $wiki->update($validated);
@@ -179,7 +185,7 @@ class WikiController extends Controller
 
     public function destroy(Request $request, Wiki $wiki)
     {
-        if (isset(Wiki::SPECIAL_TYPES[$wiki->type])) {
+        if (in_array($wiki->type, Wiki::ADMIN_ONLY_TYPES, true)) {
             abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 삭제할 수 있습니다.');
         }
         $wiki->delete();

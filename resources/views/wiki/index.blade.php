@@ -238,16 +238,17 @@
                     <div class="field-label">제목 *</div>
                     <input class="field-input" name="title" required placeholder="문서 제목">
                 </div>
-                @if(auth()->user()->isAdmin())
                 <div class="field-group" style="width:130px;">
                     <div class="field-label">유형</div>
                     <select class="field-input" name="type" onchange="document.getElementById('wikiModalCatWrap').style.display=this.value==='normal'?'':'none'">
                         <option value="normal">일반 문서</option>
+                        @if(auth()->user()->isAdmin())
                         <option value="notice">공지사항</option>
                         <option value="update">업데이트</option>
+                        @endif
+                        <option value="meeting">회의록</option>
                     </select>
                 </div>
-                @endif
                 <div class="field-group" id="wikiModalCatWrap" style="width:200px;">
                     <div class="field-label">카테고리</div>
                     <select class="field-input" name="category_id">
@@ -313,10 +314,10 @@ const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' 
 let WIKI_CAT_COUNTS = @json($catCounts);
 let WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
-// 특수 유형(공지사항/업데이트) — 카테고리 트리와 별개의 고정 섹션
+// 특수 유형(공지사항/업데이트/회의록) — 카테고리 트리와 별개의 고정 섹션
 const WIKI_TYPE_COUNTS = @json($typeCounts);
-const WIKI_TYPE_LABELS = {notice:'공지사항', update:'업데이트'};
-@php($curSpecialType = in_array(request('type'), ['notice', 'update'], true) ? request('type') : '')
+const WIKI_TYPE_LABELS = @json(\App\Models\Wiki::SPECIAL_TYPES);
+@php($curSpecialType = array_key_exists(request('type', ''), \App\Models\Wiki::SPECIAL_TYPES) ? request('type') : '')
 let WIKI_CUR_TYPE = @json($curSpecialType);
 const WIKI_DOCS = @json($wikiDocs);
 const WIKI_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
@@ -368,8 +369,8 @@ function renderWikiTree() {
     if (WIKI_UNCAT > 0) {
         html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
     }
-    // 고정 섹션(공지사항/업데이트) — 카테고리 트리 상단, 트리와 별개 관리
-    let fixed = ['notice','update'].map(t =>
+    // 고정 섹션(공지사항/업데이트/회의록) — 카테고리 트리 상단, 트리와 별개 관리
+    let fixed = Object.keys(WIKI_TYPE_LABELS).map(t =>
         `<div class="wiki-cat-row cat-top ${WIKI_CUR_TYPE === t ? 'active' : ''}" onclick="filterType('${t}')">
             <span class="wiki-cat-caret blank"></span>
             <span class="wiki-cat-name">${WIKI_TYPE_LABELS[t]}</span>
@@ -400,6 +401,9 @@ function filterType(t) {
     params.delete('cat'); params.delete('category');
     if (WIKI_CUR_TYPE) { params.set('type', WIKI_CUR_TYPE); } else { params.delete('type'); }
     history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : ''));
+    // 새 문서 버튼에 현재 유형 반영 (선택된 게시판 유형으로 바로 작성)
+    const newBtn = document.getElementById('wikiNewBtn');
+    if (newBtn) newBtn.href = '/wiki/create' + (WIKI_CUR_TYPE ? '?type=' + WIKI_CUR_TYPE : '');
     renderWikiTree();
     renderDocList();
 }

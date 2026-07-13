@@ -75,17 +75,23 @@
             <div class="field-label">제목 *</div>
             <input class="field-input" id="wikiTitle" required placeholder="문서 제목">
         </div>
-        @if(auth()->user()->isAdmin())
+        @php
+            // ?type= 프리셀렉트 — 관리자가 아니면 회의록만 허용
+            $allowedTypes = auth()->user()->isAdmin() ? array_keys(\App\Models\Wiki::SPECIAL_TYPES) : ['meeting'];
+            $presetType = in_array(request('type'), $allowedTypes, true) ? request('type') : 'normal';
+        @endphp
         <div class="field-group" style="width:130px;margin:0;">
             <div class="field-label">유형</div>
             <select class="field-input" id="wikiType" onchange="document.getElementById('wikiCatWrap').style.display=this.value==='normal'?'':'none'">
                 <option value="normal">일반 문서</option>
-                <option value="notice">공지사항</option>
-                <option value="update">업데이트</option>
+                @if(auth()->user()->isAdmin())
+                <option value="notice" @selected($presetType === 'notice')>공지사항</option>
+                <option value="update" @selected($presetType === 'update')>업데이트</option>
+                @endif
+                <option value="meeting" @selected($presetType === 'meeting')>회의록</option>
             </select>
         </div>
-        @endif
-        <div class="field-group" id="wikiCatWrap" style="width:220px;margin:0;">
+        <div class="field-group" id="wikiCatWrap" style="width:220px;margin:0;{{ $presetType !== 'normal' ? 'display:none;' : '' }}">
             <div class="field-label">카테고리</div>
             @php
                 $catFlat = [];
