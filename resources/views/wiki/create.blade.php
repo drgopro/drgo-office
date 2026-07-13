@@ -56,6 +56,21 @@
     .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
     .slash-label { font-weight:500; }
     .slash-desc { font-size:11px; color:var(--text-muted); }
+
+    /* 템플릿 메뉴 */
+    .tpl-menu { display:none; position:absolute; right:0; top:calc(100% + 6px); width:300px; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:900; overflow:hidden; }
+    .tpl-menu.open { display:block; }
+    .tpl-list { max-height:280px; overflow-y:auto; padding:6px; }
+    .tpl-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:7px; cursor:pointer; font-size:13px; }
+    .tpl-item:hover { background:var(--surface2); }
+    .tpl-item-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .tpl-item-meta { font-size:11px; color:var(--text-muted); flex-shrink:0; }
+    .tpl-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 5px; border-radius:4px; flex-shrink:0; }
+    .tpl-del:hover { color:#e03131; background:var(--surface2); }
+    .tpl-empty { padding:16px 12px; text-align:center; color:var(--text-muted); font-size:12px; line-height:1.6; }
+    .tpl-foot { border-top:1px solid var(--border); padding:8px; }
+    .tpl-save-btn { width:100%; background:none; border:1px dashed var(--border); color:var(--text-muted); padding:7px 0; border-radius:7px; font-size:12px; cursor:pointer; }
+    .tpl-save-btn:hover { color:var(--text); border-color:var(--accent); }
 </style>
 @endpush
 
@@ -66,6 +81,10 @@
         <h1 style="font-size:20px;font-weight:700;margin:0;">새 문서 작성</h1>
         <div style="display:flex;align-items:center;gap:10px;">
             <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
+            <div style="position:relative;">
+                <button id="tplBtn" onclick="toggleTplMenu()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">📋 템플릿</button>
+                <div id="tplMenu" class="tpl-menu"></div>
+            </div>
             <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
         </div>
     </div>
@@ -338,6 +357,65 @@ window.uploadAndInsert=async function(file){
     const data=await res.json();
     if(data.is_image) editor.chain().focus().setImage({src:data.url,alt:data.name}).run();
     else editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank">${data.name}</a>`).run();
+};
+
+// ── 템플릿 — 미리 만든 글 서식 불러오기/저장 ──
+let TPL_OPEN=false;
+let TPL_BY_ID={};
+function tplEsc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function renderTplMenu(){
+    const menu=document.getElementById('tplMenu');
+    menu.innerHTML='<div class="tpl-empty">불러오는 중…</div>';
+    let list=[];
+    try{ const res=await fetch('/api/wiki-templates',{headers:{'Accept':'application/json'}}); if(res.ok) list=await res.json(); }catch(e){}
+    TPL_BY_ID={};
+    list.forEach(t=>{ TPL_BY_ID[t.id]=t; });
+    const items=list.length
+        ? list.map(t=>`<div class="tpl-item" onclick="applyTemplate(${t.id})">
+            <span class="tpl-item-name">${tplEsc(t.name)}</span>
+            <span class="tpl-item-meta">${tplEsc(t.creator||'')}</span>
+            <button class="tpl-del" title="템플릿 삭제" onclick="event.stopPropagation();deleteTemplate(${t.id})">✕</button>
+        </div>`).join('')
+        : '<div class="tpl-empty">등록된 템플릿이 없습니다.<br>내용을 작성한 뒤 아래 버튼으로 저장해보세요.</div>';
+    menu.innerHTML=`<div class="tpl-list">${items}</div>
+        <div class="tpl-foot"><button class="tpl-save-btn" onclick="saveAsTemplate()">+ 현재 내용을 템플릿으로 저장</button></div>`;
+}
+window.toggleTplMenu=function(){
+    TPL_OPEN=!TPL_OPEN;
+    document.getElementById('tplMenu').classList.toggle('open',TPL_OPEN);
+    if(TPL_OPEN) renderTplMenu();
+};
+document.addEventListener('click',e=>{
+    if(!TPL_OPEN) return;
+    if(!e.target.closest('#tplMenu') && !e.target.closest('#tplBtn')) window.toggleTplMenu();
+});
+window.applyTemplate=async function(id){
+    const name=TPL_BY_ID[id]?.name||'선택한';
+    const cur=editor.getHTML();
+    if(cur && cur!=='<p></p>' && !confirm(`작성 중인 내용을 '${name}' 템플릿으로 교체할까요?`)) return;
+    const res=await fetch('/api/wiki-templates/'+id,{headers:{'Accept':'application/json'}});
+    if(!res.ok){ alert('템플릿을 불러오지 못했습니다.'); return; }
+    const tpl=await res.json();
+    editor.commands.setContent(tpl.content);
+    markWikiDirty();
+    if(TPL_OPEN) window.toggleTplMenu();
+    editor.commands.focus('start');
+};
+window.saveAsTemplate=async function(){
+    const html=editor.getHTML();
+    if(!html||html==='<p></p>'){ alert('내용을 작성한 뒤 템플릿으로 저장해주세요.'); return; }
+    const name=prompt('템플릿 이름을 입력해주세요.');
+    if(!name||!name.trim()) return;
+    const res=await fetch('/api/wiki-templates',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:JSON.stringify({name:name.trim(),content:html})});
+    if(!res.ok){ alert('템플릿 저장 실패'); return; }
+    renderTplMenu();
+};
+window.deleteTemplate=async function(id){
+    const name=TPL_BY_ID[id]?.name||'선택한';
+    if(!confirm(`'${name}' 템플릿을 삭제할까요?`)) return;
+    const res=await fetch('/api/wiki-templates/'+id,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(!res.ok){ alert('삭제 실패'); return; }
+    renderTplMenu();
 };
 
 // 목록에서 카테고리 선택 상태로 진입 시(?cat=) 해당 카테고리 프리셀렉트

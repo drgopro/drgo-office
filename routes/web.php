@@ -33,6 +33,7 @@ use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\VisitReportTemplateController;
 use App\Http\Controllers\WikiCategoryController;
 use App\Http\Controllers\WikiController;
+use App\Http\Controllers\WikiTemplateController;
 use App\Http\Controllers\WorkTypeController;
 use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
@@ -331,6 +332,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/wiki/bulk-category', [WikiController::class, 'bulkCategory'])->name('wiki.bulk-category');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
+    // 위키 템플릿 — 글 작성 시 불러오는 미리 만든 글 서식
+    Route::get('/api/wiki-templates', [WikiTemplateController::class, 'index']);
+    Route::get('/api/wiki-templates/{template}', [WikiTemplateController::class, 'show']);
+    Route::post('/api/wiki-templates', [WikiTemplateController::class, 'store']);
+    Route::patch('/api/wiki-templates/{template}', [WikiTemplateController::class, 'update']);
+    Route::delete('/api/wiki-templates/{template}', [WikiTemplateController::class, 'destroy']);
     // 위키 카테고리 (계층) — 조회는 위키 사용자, 편집은 master/admin
     Route::get('/api/wiki-categories', [WikiCategoryController::class, 'index']);
     Route::middleware('role:master,admin')->group(function () {
