@@ -192,7 +192,9 @@
         'type' => $w->type ?? 'normal',
         'is_pinned' => (bool) $w->is_pinned,
         'creator' => $w->creator?->display_name ?? '알 수 없음',
-        'updated' => $w->updated_at->format('Y.m.d H:i'),
+        'created' => $w->created_at->format('Y.m.d H:i'),
+        // 수정일은 실제로 수정된 경우만 (작성 직후 1분 이내 갱신은 작성으로 간주)
+        'updated' => $w->updated_at->gt($w->created_at->copy()->addMinute()) ? $w->updated_at->format('Y.m.d H:i') : null,
         'preview' => $htmlPreview($w->content),
     ])->values();
 @endphp
@@ -525,7 +527,7 @@ function renderDocList() {
         <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin">📌</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
         <div class="wiki-meta">
             <span class="wiki-cat-badge">${d.type !== 'normal' ? WIKI_TYPE_LABELS[d.type] : wikiEsc(wikiCatPathStr(d.category_id))}</span>
-            <span>${wikiEsc(d.creator)}</span><span>${d.updated}</span>
+            <span>${wikiEsc(d.creator)}</span><span>작성 ${d.created}</span>${d.updated ? `<span>수정 ${d.updated}</span>` : ''}
         </div>
         <div class="wiki-preview">${wikiEsc(d.preview)}</div>
     </div>`).join('');
