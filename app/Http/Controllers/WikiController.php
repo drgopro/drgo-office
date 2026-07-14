@@ -108,7 +108,7 @@ class WikiController extends Controller
         }
         $validated['category_id'] = null;
         $validated['category'] = Wiki::SPECIAL_TYPES[$validated['type']];
-        $validated['is_pinned'] = false; // 고정 섹션에 항상 노출되므로 별도 핀 불필요
+        // is_pinned는 유지 — 게시판 안 목록에서도 상단 고정 가능
     }
 
     /** category_id가 있으면 노드명으로 category 문자열 동기화(하위 호환·풀텍스트용) */
@@ -178,11 +178,10 @@ class WikiController extends Controller
             abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 수정할 수 있습니다.');
         }
         if (isset(Wiki::SPECIAL_TYPES[$newType])) {
-            // 특수 유형으로 유지/전환 — 카테고리 체계와 분리(카테고리 강제 해제)
+            // 특수 유형으로 유지/전환 — 카테고리 체계와 분리(카테고리 강제 해제), 고정은 유지
             $validated['type'] = $newType;
             $validated['category_id'] = null;
             $validated['category'] = Wiki::SPECIAL_TYPES[$newType];
-            $validated['is_pinned'] = false;
         } else {
             // 특수 유형 해제(→일반) 시 카테고리 미지정이면 미분류로
             if ($wiki->type !== 'normal' && ! array_key_exists('category_id', $validated)) {

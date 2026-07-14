@@ -39,7 +39,26 @@ class WikiSpecialTypeTest extends TestCase
         $this->assertSame('update', $wiki->type);
         $this->assertNull($wiki->category_id, '공지/업데이트는 카테고리와 분리');
         $this->assertSame('업데이트', $wiki->category);
-        $this->assertFalse($wiki->is_pinned);
+        $this->assertTrue($wiki->is_pinned, '게시판 글도 고정 가능');
+    }
+
+    public function test_pin_toggle_works_for_special_and_normal_types(): void
+    {
+        $member = $this->member();
+
+        // 회의록 글 고정 → 수정을 반복해도 고정 유지
+        $meeting = Wiki::create(['title' => '회의록', 'type' => 'meeting', 'content' => 'x', 'category' => '회의록']);
+        $this->actingAs($member)->patchJson("/wiki/{$meeting->id}", ['is_pinned' => 1])->assertOk();
+        $this->assertTrue($meeting->fresh()->is_pinned);
+        $this->actingAs($member)->patchJson("/wiki/{$meeting->id}", ['title' => '내용만 수정'])->assertOk();
+        $this->assertTrue($meeting->fresh()->is_pinned, '다른 필드 수정 시 고정 유지');
+        $this->actingAs($member)->patchJson("/wiki/{$meeting->id}", ['is_pinned' => 0])->assertOk();
+        $this->assertFalse($meeting->fresh()->is_pinned);
+
+        // 일반 문서 고정
+        $normal = Wiki::create(['title' => '일반', 'content' => 'x']);
+        $this->actingAs($member)->patchJson("/wiki/{$normal->id}", ['is_pinned' => 1])->assertOk();
+        $this->assertTrue($normal->fresh()->is_pinned);
     }
 
     public function test_member_cannot_create_or_edit_notice(): void
