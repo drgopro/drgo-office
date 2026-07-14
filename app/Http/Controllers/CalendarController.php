@@ -732,10 +732,10 @@ class CalendarController extends Controller
     }
 
     /**
-     * 캘린더 이력용 이벤트 — 일정 1건이 여러 chip으로 분할될 수 있다.
+     * 캘린더 이력용 이벤트 — 일정당 최종 이력만 노출한다 (전체 로그는 DB에 그대로 보존).
      *
-     * - 활성/완료 일정: 현재 위치에 active|completed chip + 과거 위치 변경 이력마다 modified shadow
-     * - 삭제 일정: 삭제 시점의 start_date에 deleted shadow + 그 이전의 위치 변경 이력도 modified shadow
+     * - 활성/완료 일정: 현재 위치에 active|completed chip + 마지막 위치 변경 1건만 modified shadow
+     * - 삭제 일정: 삭제 시점의 start_date에 deleted shadow만 (과거 변경 흔적 미노출)
      */
     public function historyEvents(Request $request)
     {
@@ -743,7 +743,8 @@ class CalendarController extends Controller
         $end = $request->query('end');
 
         $schedules = Schedule::withTrashed()
-            ->with(['changes' => fn ($q) => $q->where('action', 'update')->orderBy('created_at')])
+            // 관계 기본 정렬(orderByDesc)을 재정의해 오래된 순으로 — 마지막 항목이 최종 변경
+            ->with(['changes' => fn ($q) => $q->where('action', 'update')->reorder('created_at')])
             ->withCount('changes')
             ->where(function ($q) {
                 $q->where('is_private', false)
@@ -779,41 +780,47 @@ class CalendarController extends Controller
                 ]));
             }
 
-            // 2. 과거 위치 흔적 — start_date가 변경된 update 이력마다 modified shadow
-            //    이 시점의 start_time/end_time/is_all_day도 함께 복원 (변경되지 않았으면 현재 값 그대로)
-            foreach ($s->changes as $c) {
-                $changes = $c->changes ?? [];
-                if (! isset($changes['start_date']['old'])) {
-                    continue;
-                }
-                $oldStart = $this->normalizeDate($changes['start_date']['old']);
-                $oldEnd = isset($changes['end_date']['old'])
-                    ? $this->normalizeDate($changes['end_date']['old'])
-                    : $oldStart;
-                if (! $oldStart) {
-                    continue;
-                }
+            // 2. 과거 위치 흔적 — 마지막(최종) 위치 변경 1건만 modified shadow로 표시.
+            //    삭제된 일정은 삭제 chip만 노출하고, 이 시점의 start_time/end_time/is_all_day도 함께 복원.
+            if ($s->deleted_at === null) {
+                $lastShadow = null;
+                foreach ($s->changes as $c) {
+                    $changes = $c->changes ?? [];
+                    if (! isset($changes['start_date']['old'])) {
+                        continue;
+                    }
+                    $oldStart = $this->normalizeDate($changes['start_date']['old']);
+                    $oldEnd = isset($changes['end_date']['old'])
+                        ? $this->normalizeDate($changes['end_date']['old'])
+                        : $oldStart;
+                    if (! $oldStart) {
+                        continue;
+                    }
 
-                $shadow = array_merge($base, [
-                    'chip_id' => 'sh-'.$c->id,
-                    'display_start_date' => $oldStart,
-                    'display_end_date' => $oldEnd ?? $oldStart,
-                    'state' => 'modified',
-                    'is_shadow' => true,
-                    'change_at' => $c->created_at,
-                ]);
-                // 시간/종일 필드도 변경 이력이 있으면 그 시점의 값 사용
-                if (array_key_exists('start_time', $changes)) {
-                    $shadow['start_time'] = $changes['start_time']['old'] ?? null;
-                }
-                if (array_key_exists('end_time', $changes)) {
-                    $shadow['end_time'] = $changes['end_time']['old'] ?? null;
-                }
-                if (array_key_exists('is_all_day', $changes)) {
-                    $shadow['is_all_day'] = (bool) ($changes['is_all_day']['old'] ?? false);
-                }
+                    $shadow = array_merge($base, [
+                        'chip_id' => 'sh-'.$c->id,
+                        'display_start_date' => $oldStart,
+                        'display_end_date' => $oldEnd ?? $oldStart,
+                        'state' => 'modified',
+                        'is_shadow' => true,
+                        'change_at' => $c->created_at,
+                    ]);
+                    // 시간/종일 필드도 변경 이력이 있으면 그 시점의 값 사용
+                    if (array_key_exists('start_time', $changes)) {
+                        $shadow['start_time'] = $changes['start_time']['old'] ?? null;
+                    }
+                    if (array_key_exists('end_time', $changes)) {
+                        $shadow['end_time'] = $changes['end_time']['old'] ?? null;
+                    }
+                    if (array_key_exists('is_all_day', $changes)) {
+                        $shadow['is_all_day'] = (bool) ($changes['is_all_day']['old'] ?? false);
+                    }
 
-                $chips->push($shadow);
+                    $lastShadow = $shadow; // created_at 오름차순이므로 마지막 것이 최종 변경
+                }
+                if ($lastShadow) {
+                    $chips->push($lastShadow);
+                }
             }
 
             // 3. 삭제된 경우, 삭제 시점의 위치에 deleted shadow
