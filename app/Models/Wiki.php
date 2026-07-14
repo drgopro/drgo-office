@@ -51,4 +51,10 @@ class Wiki extends Model
     {
         return $this->belongsTo(WikiCategory::class, 'category_id');
     }
+
+    /** 댓글 — 회의록(meeting) 유형 게시물 전용 */
+    public function comments()
+    {
+        return $this->hasMany(WikiComment::class)->orderBy('created_at');
+    }
 }

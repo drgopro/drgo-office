@@ -330,6 +330,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/wiki/{wiki}/diagram', [WikiController::class, 'saveDiagram']);
     Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');
     Route::post('/api/wiki/bulk-category', [WikiController::class, 'bulkCategory'])->name('wiki.bulk-category');
+    // 위키 댓글 — 회의록 게시물 전용
+    Route::post('/wiki/{wiki}/comments', [WikiController::class, 'storeComment'])->name('wiki.comments.store');
+    Route::delete('/wiki-comments/{comment}', [WikiController::class, 'destroyComment'])->name('wiki.comments.destroy');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
     // 위키 템플릿 — 글 작성 시 불러오는 미리 만든 글 서식

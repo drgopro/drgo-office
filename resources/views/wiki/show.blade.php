@@ -21,6 +21,22 @@
     .wiki-actions .btn-del { border-color:var(--red); color:var(--red); }
     .wiki-actions .btn-del:hover { background:rgba(200,50,50,0.1); }
 
+    /* 댓글 — 회의록 전용 */
+    .wiki-comments { margin-top:24px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; }
+    .wiki-comments-title { font-size:14px; font-weight:700; margin-bottom:14px; }
+    .wiki-comments-title span { color:var(--accent); }
+    .wiki-comment { padding:12px 0; border-top:1px solid var(--border); }
+    .wiki-comment-meta { display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted); margin-bottom:6px; }
+    .wiki-comment-author { font-weight:600; color:var(--text); font-size:12px; }
+    .wiki-comment-del { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; border-radius:4px; margin-left:auto; }
+    .wiki-comment-del:hover { color:var(--red); background:var(--surface2); }
+    .wiki-comment-body { font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+    .wiki-comment-empty { padding:14px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:12px; text-align:center; }
+    .wiki-comment-form { display:flex; gap:8px; margin-top:14px; align-items:flex-end; }
+    .wiki-comment-form textarea { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:13px; outline:none; resize:vertical; min-height:64px; line-height:1.6; font-family:inherit; }
+    .wiki-comment-form textarea:focus { border-color:var(--accent); }
+    .wiki-comment-form button { background:var(--accent); color:var(--accent-text); border:none; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0; }
+
     /* 보기 모드 콘텐츠 */
     .wiki-content { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px 32px; line-height:1.85; font-size:14px; }
     .wiki-content h1 { font-size:24px; font-weight:700; margin:24px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--border); }
@@ -153,14 +169,19 @@
                 @endif
             </div>
         </div>
+        @php
+            $canEditWiki = ! in_array($wiki->type, \App\Models\Wiki::ADMIN_ONLY_TYPES, true) || auth()->user()->isAdmin();
+        @endphp
         <div class="wiki-actions" id="viewActions">
             <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
             <button onclick="openActivityLog('Wiki',{{ $wiki->id }},'{{ addslashes($wiki->title) }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
+            @if($canEditWiki)
             <button onclick="toggleEdit()">수정</button>
             <form method="POST" action="{{ route('wiki.destroy', $wiki) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
                 @csrf @method('DELETE')
                 <button type="submit" class="btn-del">삭제</button>
             </form>
+            @endif
         </div>
     </div>
 
@@ -185,7 +206,18 @@
                 <div class="field-label">제목</div>
                 <input class="field-input" id="editTitle" value="{{ $wiki->title }}" required>
             </div>
-            <div class="field-group" style="width:220px;margin:0;">
+            <div class="field-group" style="width:130px;margin:0;">
+                <div class="field-label">유형</div>
+                <select class="field-input" id="editType" onchange="document.getElementById('editCatWrap').style.display=this.value==='normal'?'':'none'">
+                    <option value="normal" @selected($wiki->type === 'normal')>일반 문서</option>
+                    @if(auth()->user()->isAdmin())
+                    <option value="notice" @selected($wiki->type === 'notice')>공지사항</option>
+                    <option value="update" @selected($wiki->type === 'update')>업데이트</option>
+                    @endif
+                    <option value="meeting" @selected($wiki->type === 'meeting')>회의록</option>
+                </select>
+            </div>
+            <div class="field-group" id="editCatWrap" style="width:220px;margin:0;{{ $wiki->type !== 'normal' ? 'display:none;' : '' }}">
                 <div class="field-label">카테고리</div>
                 @php
                     $catFlat = [];
@@ -246,6 +278,35 @@
             <button onclick="saveWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
         </div>
     </div>
+
+    @if($wiki->type === 'meeting')
+    <!-- 댓글 — 회의록 전용 -->
+    <div class="wiki-comments" id="wikiComments">
+        <div class="wiki-comments-title">💬 댓글 <span>{{ $wiki->comments->count() }}</span></div>
+        @forelse($wiki->comments as $comment)
+        <div class="wiki-comment">
+            <div class="wiki-comment-meta">
+                <span class="wiki-comment-author">{{ $comment->user?->display_name ?? $comment->user?->username ?? '알 수 없음' }}</span>
+                <span>{{ $comment->created_at->format('Y.m.d H:i') }}</span>
+                @if($comment->user_id === auth()->id() || auth()->user()->isAdmin())
+                <form method="POST" action="{{ route('wiki.comments.destroy', $comment) }}" onsubmit="return confirm('이 댓글을 삭제하시겠습니까?')" style="margin-left:auto;">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="wiki-comment-del">삭제</button>
+                </form>
+                @endif
+            </div>
+            <div class="wiki-comment-body">{{ $comment->body }}</div>
+        </div>
+        @empty
+        <div class="wiki-comment-empty">첫 댓글을 남겨보세요.</div>
+        @endforelse
+        <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form">
+            @csrf
+            <textarea name="body" required maxlength="2000" rows="3" placeholder="댓글을 입력하세요..."></textarea>
+            <button type="submit">등록</button>
+        </form>
+    </div>
+    @endif
 </div>
 
 <div class="slash-menu" id="slashMenu"></div>
@@ -548,6 +609,7 @@ document.getElementById('editTitle')?.addEventListener('input', markWikiDirty);
 async function doSaveWiki(silent) {
     const html = editor.getHTML();
     const title = document.getElementById('editTitle').value.trim();
+    const wikiType = document.getElementById('editType')?.value || '{{ $wiki->type }}';
     const categoryId = document.getElementById('editCategoryId').value || null;
     const isPinned = document.getElementById('editPinned').checked;
     if (!title) { if(!silent){alert('제목을 입력해주세요.');} return; }
@@ -559,7 +621,7 @@ async function doSaveWiki(silent) {
         const res = await fetch('{{ route("wiki.update", $wiki) }}', {
             method:'PATCH',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-            body:JSON.stringify({ title, category_id:categoryId, content:html, is_pinned:isPinned?1:0 }),
+            body:JSON.stringify({ title, type:wikiType, category_id:wikiType==='normal'?categoryId:null, content:html, is_pinned:isPinned?1:0 }),
         });
         if (!res.ok) {
             if(!silent){ try { const err=await res.json(); alert(err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패')); } catch(e) { alert('저장 실패'); } }

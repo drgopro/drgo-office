@@ -311,11 +311,13 @@
 @push('scripts')
 <script>
 const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' => $c->parent_id, 'name' => $c->name])->values());
+const WIKI_IS_ADMIN = @json(auth()->user()->isAdmin());
 let WIKI_CAT_COUNTS = @json($catCounts);
 let WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
+let WIKI_CUR_UNCAT = @json(request('cat') === 'uncat');
 // 특수 유형(공지사항/업데이트/회의록) — 카테고리 트리와 별개의 고정 섹션
-const WIKI_TYPE_COUNTS = @json($typeCounts);
+let WIKI_TYPE_COUNTS = @json($typeCounts);
 const WIKI_TYPE_LABELS = @json(\App\Models\Wiki::SPECIAL_TYPES);
 @php($curSpecialType = array_key_exists(request('type', ''), \App\Models\Wiki::SPECIAL_TYPES) ? request('type') : '')
 let WIKI_CUR_TYPE = @json($curSpecialType);
@@ -346,7 +348,7 @@ function renderWikiTree() {
     const collapsed = wikiCollapsedSet();
     const total = WIKI_TREE_DATA.reduce((s, c) => s + (WIKI_CAT_COUNTS[c.id] || 0), 0) + WIKI_UNCAT;
 
-    let html = `<div class="wiki-cat-row cat-top ${!WIKI_CUR_CAT ? 'active' : ''}" onclick="filterCatId('')">
+    let html = `<div class="wiki-cat-row cat-top ${!WIKI_CUR_CAT && !WIKI_CUR_TYPE && !WIKI_CUR_UNCAT ? 'active' : ''}" onclick="filterCatId('')">
         <span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">전체</span><span class="wiki-cat-count">${total}</span></div>`;
 
     function node(c, depth) {
@@ -366,8 +368,8 @@ function renderWikiTree() {
         return h;
     }
     html += (childMap[null] || []).map(c => node(c, 1)).join('');
-    if (WIKI_UNCAT > 0) {
-        html += `<div class="wiki-cat-row" onclick="filterCatId('')" style="opacity:0.7;"><span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
+    if (WIKI_UNCAT > 0 || WIKI_CUR_UNCAT) {
+        html += `<div class="wiki-cat-row ${WIKI_CUR_UNCAT ? 'active' : ''}" onclick="filterUncat()" style="opacity:${WIKI_CUR_UNCAT ? 1 : 0.7};"><span class="wiki-cat-caret blank"></span><span class="wiki-cat-name">미분류</span><span class="wiki-cat-count">${WIKI_UNCAT}</span></div>`;
     }
     // 고정 섹션(공지사항/업데이트/회의록) — 카테고리 트리 상단, 트리와 별개 관리
     let fixed = Object.keys(WIKI_TYPE_LABELS).map(t =>
@@ -393,10 +395,25 @@ function toggleWikiCat(id) {
     wikiSaveCollapsed(set);
     renderWikiTree();
 }
-// 특수 유형(공지/업데이트) 필터
+// 미분류 필터 — 카테고리 없는 일반 문서만
+function filterUncat() {
+    WIKI_CUR_UNCAT = !WIKI_CUR_UNCAT; // 재클릭 시 해제
+    WIKI_CUR_CAT = 0;
+    WIKI_CUR_TYPE = '';
+    const params = new URLSearchParams(window.location.search);
+    params.delete('category'); params.delete('type');
+    if (WIKI_CUR_UNCAT) { params.set('cat', 'uncat'); } else { params.delete('cat'); }
+    history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : ''));
+    const newBtn = document.getElementById('wikiNewBtn');
+    if (newBtn) newBtn.href = '/wiki/create';
+    renderWikiTree();
+    renderDocList();
+}
+// 특수 유형(공지/업데이트/회의록) 필터
 function filterType(t) {
     WIKI_CUR_TYPE = (WIKI_CUR_TYPE === t) ? '' : t; // 재클릭 시 해제
     WIKI_CUR_CAT = 0;
+    WIKI_CUR_UNCAT = false;
     const params = new URLSearchParams(window.location.search);
     params.delete('cat'); params.delete('category');
     if (WIKI_CUR_TYPE) { params.set('type', WIKI_CUR_TYPE); } else { params.delete('type'); }
@@ -411,6 +428,7 @@ function filterType(t) {
 function filterCatId(id) {
     WIKI_CUR_CAT = id ? parseInt(id, 10) : 0;
     WIKI_CUR_TYPE = '';
+    WIKI_CUR_UNCAT = false;
     const params = new URLSearchParams(window.location.search);
     if (WIKI_CUR_CAT) { params.set('cat', WIKI_CUR_CAT); } else { params.delete('cat'); }
     params.delete('category'); params.delete('type');
@@ -440,8 +458,9 @@ function renderDocList() {
     const list = document.getElementById('wikiDocList');
     let docs = WIKI_DOCS;
     if (WIKI_CUR_TYPE) { docs = WIKI_DOCS.filter(d => d.type === WIKI_CUR_TYPE); }
+    else if (WIKI_CUR_UNCAT) { docs = WIKI_DOCS.filter(d => !d.category_id && d.type === 'normal'); }
     else if (WIKI_CUR_CAT) { const ids = wikiDescendantSet(WIKI_CUR_CAT); docs = WIKI_DOCS.filter(d => ids.has(d.category_id)); }
-    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_TYPE ? WIKI_TYPE_LABELS[WIKI_CUR_TYPE] : (WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서');
+    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_TYPE ? WIKI_TYPE_LABELS[WIKI_CUR_TYPE] : (WIKI_CUR_UNCAT ? '미분류' : (WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서'));
     document.getElementById('wikiMainCount').textContent = docs.length + '건';
     if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
     list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}" onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
@@ -477,11 +496,13 @@ function updateSelCount() {
     const btn = document.getElementById('wikiSelMoveBtn');
     if (btn) btn.disabled = WIKI_SEL.size === 0;
 }
-// 이동 대상 카테고리 옵션 (계층 순서 + 들여쓰기)
+// 이동 대상 옵션 — 고정 게시판(공지/업데이트/회의록) + 카테고리 (계층 순서 + 들여쓰기)
 function buildSelTargetOptions() {
     const sel = document.getElementById('wikiSelTarget');
     const childMap = wikiChildrenMap(WIKI_TREE_DATA);
-    let opts = '<option value="">(미분류)</option>';
+    const boardTypes = WIKI_IS_ADMIN ? ['notice', 'update', 'meeting'] : ['meeting'];
+    let opts = '<optgroup label="게시판">' + boardTypes.map(t => `<option value="type:${t}">${WIKI_TYPE_LABELS[t]}</option>`).join('') + '</optgroup>';
+    opts += '<optgroup label="카테고리"><option value="">(미분류)</option>';
     function walk(parentId, depth) {
         (childMap[parentId] || []).forEach(c => {
             opts += `<option value="${c.id}">${'— '.repeat(depth)}${wikiEsc(c.name)}</option>`;
@@ -489,23 +510,31 @@ function buildSelTargetOptions() {
         });
     }
     walk(null, 0);
-    sel.innerHTML = opts;
+    sel.innerHTML = opts + '</optgroup>';
+    sel.value = ''; // 기본 선택: (미분류)
 }
 async function bulkMoveCategory() {
     if (!WIKI_SEL.size) return;
     const targetVal = document.getElementById('wikiSelTarget').value;
-    const targetId = targetVal ? parseInt(targetVal, 10) : null;
+    const targetType = targetVal.startsWith('type:') ? targetVal.slice(5) : null;
+    const targetId = (!targetType && targetVal) ? parseInt(targetVal, 10) : null;
     const res = await fetch('/api/wiki/bulk-category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ ids: [...WIKI_SEL], category_id: targetId }),
+        body: JSON.stringify({ ids: [...WIKI_SEL], category_id: targetId, type: targetType }),
     });
     if (!res.ok) { alert('이동에 실패했습니다.'); return; }
-    // 로컬 데이터 갱신 후 목록/트리 즉시 반영
-    WIKI_DOCS.forEach(d => { if (WIKI_SEL.has(d.id)) d.category_id = targetId; });
-    WIKI_CAT_COUNTS = {}; WIKI_UNCAT = 0;
+    // 로컬 데이터 갱신 후 목록/트리 즉시 반영 (관리자 전용 유형 문서는 서버에서 제외되므로 동일하게 건너뜀)
     WIKI_DOCS.forEach(d => {
-        if (d.category_id) WIKI_CAT_COUNTS[d.category_id] = (WIKI_CAT_COUNTS[d.category_id] || 0) + 1;
+        if (!WIKI_SEL.has(d.id)) return;
+        if (!WIKI_IS_ADMIN && (d.type === 'notice' || d.type === 'update')) return;
+        d.type = targetType || 'normal';
+        d.category_id = targetType ? null : targetId;
+    });
+    WIKI_CAT_COUNTS = {}; WIKI_UNCAT = 0; WIKI_TYPE_COUNTS = {};
+    WIKI_DOCS.forEach(d => {
+        if (d.type !== 'normal') WIKI_TYPE_COUNTS[d.type] = (WIKI_TYPE_COUNTS[d.type] || 0) + 1;
+        else if (d.category_id) WIKI_CAT_COUNTS[d.category_id] = (WIKI_CAT_COUNTS[d.category_id] || 0) + 1;
         else WIKI_UNCAT++;
     });
     toggleSelMode(); // 선택 모드 종료 (renderDocList 포함)

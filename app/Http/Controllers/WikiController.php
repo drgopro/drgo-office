@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Models\WikiCategory;
+use App\Models\WikiComment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -98,6 +99,9 @@ class WikiController extends Controller
     public function show(Wiki $wiki)
     {
         $wiki->load('creator', 'updater');
+        if ($wiki->type === 'meeting') {
+            $wiki->load('comments.user:id,display_name,username');
+        }
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
 
         return view('wiki.show', compact('wiki', 'tree'));
@@ -139,16 +143,26 @@ class WikiController extends Controller
             'is_pinned' => 'boolean',
         ]);
 
-        // 특수 유형 문서: 공지/업데이트는 관리자만 수정 (type 파라미터가 없어도),
-        // 카테고리 체계와 분리되어 있으므로 카테고리 변경 요청은 무시
-        if (isset(Wiki::SPECIAL_TYPES[$wiki->type])) {
-            if (in_array($wiki->type, Wiki::ADMIN_ONLY_TYPES, true)) {
-                abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 수정할 수 있습니다.');
-            }
-            unset($validated['category_id'], $validated['category']);
+        // 유형 변경 지원 — type 파라미터가 없으면 현재 유형 유지
+        $newType = ($validated['type'] ?? null) ?: $wiki->type;
+        // 관리자 전용 유형(공지/업데이트)은 해당 유형으로의 전환·해제·수정 모두 관리자만
+        if (in_array($wiki->type, Wiki::ADMIN_ONLY_TYPES, true) || in_array($newType, Wiki::ADMIN_ONLY_TYPES, true)) {
+            abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 수정할 수 있습니다.');
         }
-        $this->syncCategoryName($validated);
-        $this->applySpecialType($validated);
+        if (isset(Wiki::SPECIAL_TYPES[$newType])) {
+            // 특수 유형으로 유지/전환 — 카테고리 체계와 분리(카테고리 강제 해제)
+            $validated['type'] = $newType;
+            $validated['category_id'] = null;
+            $validated['category'] = Wiki::SPECIAL_TYPES[$newType];
+            $validated['is_pinned'] = false;
+        } else {
+            // 특수 유형 해제(→일반) 시 카테고리 미지정이면 미분류로
+            if ($wiki->type !== 'normal' && ! array_key_exists('category_id', $validated)) {
+                $validated['category_id'] = null;
+                $validated['category'] = '미분류';
+            }
+            $this->syncCategoryName($validated);
+        }
         $validated['updated_by'] = Auth::id();
         $wiki->update($validated);
 
@@ -159,26 +173,50 @@ class WikiController extends Controller
         return redirect()->route('wiki.show', $wiki)->with('success', '문서가 수정되었습니다.');
     }
 
-    /** 선택한 문서들의 카테고리 일괄 이동 */
+    /** 선택한 문서들의 일괄 이동 — 카테고리 또는 특수 유형(공지/업데이트/회의록) 대상 */
     public function bulkCategory(Request $request)
     {
         $validated = $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'integer|exists:wikis,id',
             'category_id' => 'nullable|integer|exists:wiki_categories,id',
+            'type' => 'nullable|in:notice,update,meeting',
         ]);
 
-        $categoryId = $validated['category_id'] ?? null;
-        $categoryName = $categoryId
-            ? mb_substr(WikiCategory::find($categoryId)->name, 0, 50)
-            : '미분류';
+        $targetType = $validated['type'] ?? null;
+        if (in_array($targetType, Wiki::ADMIN_ONLY_TYPES, true)) {
+            abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트로는 관리자만 이동할 수 있습니다.');
+        }
 
-        // 공지/업데이트는 카테고리 체계와 별개 — 일괄 이동 대상에서 제외
-        $moved = Wiki::whereIn('id', $validated['ids'])->where('type', 'normal')->update([
-            'category_id' => $categoryId,
-            'category' => $categoryName,
-            'updated_by' => Auth::id(),
-        ]);
+        $query = Wiki::whereIn('id', $validated['ids']);
+        // 관리자 전용 유형 문서는 관리자만 이동 가능 — 일반 직원 요청에서는 제외
+        if (! Auth::user()->isAdmin()) {
+            $query->whereNotIn('type', Wiki::ADMIN_ONLY_TYPES);
+        }
+
+        if ($targetType) {
+            // 특수 유형으로 이동 — 카테고리 체계와 분리
+            $moved = $query->update([
+                'type' => $targetType,
+                'category_id' => null,
+                'category' => Wiki::SPECIAL_TYPES[$targetType],
+                'is_pinned' => false,
+                'updated_by' => Auth::id(),
+            ]);
+        } else {
+            // 카테고리(또는 미분류)로 이동 — 특수 유형 문서는 일반 문서로 전환
+            $categoryId = $validated['category_id'] ?? null;
+            $categoryName = $categoryId
+                ? mb_substr(WikiCategory::find($categoryId)->name, 0, 50)
+                : '미분류';
+
+            $moved = $query->update([
+                'type' => 'normal',
+                'category_id' => $categoryId,
+                'category' => $categoryName,
+                'updated_by' => Auth::id(),
+            ]);
+        }
 
         return response()->json(['ok' => true, 'moved' => $moved]);
     }
@@ -195,6 +233,34 @@ class WikiController extends Controller
         }
 
         return redirect()->route('wiki.index')->with('success', '문서가 삭제되었습니다.');
+    }
+
+    /** 댓글 작성 — 회의록(meeting) 유형 게시물에만 허용 */
+    public function storeComment(Request $request, Wiki $wiki)
+    {
+        abort_unless($wiki->type === 'meeting', 403, '댓글은 회의록 게시물에만 작성할 수 있습니다.');
+
+        $validated = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $wiki->comments()->create([
+            'user_id' => Auth::id(),
+            'body' => $validated['body'],
+        ]);
+
+        return redirect()->route('wiki.show', $wiki)->with('success', '댓글이 등록되었습니다.');
+    }
+
+    /** 댓글 삭제 — 작성자 본인 또는 관리자만 */
+    public function destroyComment(WikiComment $comment)
+    {
+        abort_unless($comment->user_id === Auth::id() || Auth::user()->isAdmin(), 403, '본인이 작성한 댓글만 삭제할 수 있습니다.');
+
+        $wiki = $comment->wiki;
+        $comment->delete();
+
+        return redirect()->route('wiki.show', $wiki)->with('success', '댓글이 삭제되었습니다.');
     }
 
     // 연결도 데이터 저장

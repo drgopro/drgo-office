@@ -107,19 +107,88 @@ class WikiSpecialTypeTest extends TestCase
         $this->assertSame(1, (int) $res->viewData('typeCounts')['meeting']);
     }
 
-    public function test_bulk_move_skips_special_types(): void
+    public function test_member_changes_doc_type_between_normal_and_meeting(): void
+    {
+        $member = $this->member();
+        $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);
+        $doc = Wiki::create(['title' => '회의 내용', 'content' => 'x', 'category_id' => $cat->id, 'category' => '매뉴얼']);
+
+        // 일반 → 회의록: 카테고리 강제 해제
+        $this->actingAs($member)->patchJson("/wiki/{$doc->id}", ['type' => 'meeting'])->assertOk();
+        $fresh = $doc->fresh();
+        $this->assertSame('meeting', $fresh->type);
+        $this->assertNull($fresh->category_id);
+        $this->assertSame('회의록', $fresh->category);
+
+        // 회의록 → 일반: 카테고리 지정 가능
+        $this->actingAs($member)->patchJson("/wiki/{$doc->id}", ['type' => 'normal', 'category_id' => $cat->id])->assertOk();
+        $fresh = $doc->fresh();
+        $this->assertSame('normal', $fresh->type);
+        $this->assertSame($cat->id, $fresh->category_id);
+        $this->assertSame('매뉴얼', $fresh->category);
+    }
+
+    public function test_member_cannot_change_type_to_admin_only(): void
+    {
+        $doc = Wiki::create(['title' => '일반', 'content' => 'x']);
+
+        $this->actingAs($this->member())->patchJson("/wiki/{$doc->id}", ['type' => 'notice'])->assertForbidden();
+        $this->assertSame('normal', $doc->fresh()->type);
+    }
+
+    public function test_admin_converts_notice_to_normal(): void
+    {
+        $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);
+        $notice = Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
+
+        $this->actingAs($this->admin())->patchJson("/wiki/{$notice->id}", ['type' => 'normal', 'category_id' => $cat->id])->assertOk();
+        $fresh = $notice->fresh();
+        $this->assertSame('normal', $fresh->type);
+        $this->assertSame($cat->id, $fresh->category_id);
+    }
+
+    public function test_admin_bulk_moves_docs_across_types_and_categories(): void
     {
         $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);
         $notice = Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
         $normal = Wiki::create(['title' => '일반', 'content' => 'x']);
 
+        // 카테고리로 이동 — 특수 유형도 일반 문서로 전환되며 이동
         $this->actingAs($this->admin())->postJson('/api/wiki/bulk-category', [
             'ids' => [$notice->id, $normal->id],
             'category_id' => $cat->id,
         ])->assertOk();
-
-        $this->assertNull($notice->fresh()->category_id, '공지는 일괄 이동에서 제외');
+        $this->assertSame('normal', $notice->fresh()->type);
+        $this->assertSame($cat->id, $notice->fresh()->category_id);
         $this->assertSame($cat->id, $normal->fresh()->category_id);
+
+        // 회의록 게시판으로 이동 — 카테고리 해제
+        $this->actingAs($this->admin())->postJson('/api/wiki/bulk-category', [
+            'ids' => [$normal->id],
+            'type' => 'meeting',
+        ])->assertOk();
+        $this->assertSame('meeting', $normal->fresh()->type);
+        $this->assertNull($normal->fresh()->category_id);
+        $this->assertSame('회의록', $normal->fresh()->category);
+    }
+
+    public function test_member_bulk_move_skips_admin_only_docs_and_cannot_target_them(): void
+    {
+        $cat = WikiCategory::create(['name' => '매뉴얼', 'sort_order' => 1]);
+        $notice = Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
+        $normal = Wiki::create(['title' => '일반', 'content' => 'x']);
+
+        // 공지/업데이트 대상 지정은 관리자만
+        $this->actingAs($this->member())->postJson('/api/wiki/bulk-category', [
+            'ids' => [$normal->id], 'type' => 'notice',
+        ])->assertForbidden();
+
+        // 회의록으로 이동 시 공지 문서는 건너뜀
+        $this->actingAs($this->member())->postJson('/api/wiki/bulk-category', [
+            'ids' => [$notice->id, $normal->id], 'type' => 'meeting',
+        ])->assertOk();
+        $this->assertSame('notice', $notice->fresh()->type, '공지는 일반 직원 이동에서 제외');
+        $this->assertSame('meeting', $normal->fresh()->type);
     }
 
     public function test_wiki_index_separates_special_from_uncategorized(): void
