@@ -391,6 +391,18 @@ class ProjectController extends Controller
             if (! empty($validated['billing_id'])) {
                 ProjectBilling::find($validated['billing_id'])?->refreshStatus();
             }
+
+            // 잔금 여부 O + 잔금 금액 — 남은 금액을 청구로 자동 등록해 잔금 관리 화면과 연동
+            if (! empty($payment['has_balance']) && (int) $payment['balance_amount'] > 0) {
+                ProjectBilling::create([
+                    'project_id' => $project->id,
+                    'amount' => (int) $payment['balance_amount'],
+                    'billed_at' => $payment['paid_at'] ?? now()->format('Y-m-d'),
+                    'status' => 'unpaid',
+                    'memo' => '결제 시 잔금'.($payment['memo'] ? ' — '.mb_substr($payment['memo'], 0, 400) : ''),
+                    'created_by' => Auth::id(),
+                ]);
+            }
         } catch (\Throwable $e) {
             report($e);
 

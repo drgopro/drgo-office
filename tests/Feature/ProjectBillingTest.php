@@ -117,6 +117,42 @@ class ProjectBillingTest extends TestCase
         $this->assertSame(1, ProjectPayment::where('project_id', $project->id)->where('type', 'charge')->count());
     }
 
+    public function test_payment_with_balance_flag_creates_billing_automatically(): void
+    {
+        $project = $this->makeProject();
+
+        // 결제 모달의 '잔금 여부 O + 잔금 금액' — 잔금이 청구로 자동 등록되어야 함
+        $this->actingAs($this->admin())->postJson("/api/projects/{$project->id}/payment", [
+            'amount' => 100000,
+            'paid_at' => '2026-07-14',
+            'has_balance' => true,
+            'balance_amount' => 50000,
+            'memo' => '잔금',
+        ])->assertOk();
+
+        $billing = ProjectBilling::where('project_id', $project->id)->first();
+        $this->assertNotNull($billing, '잔금이 청구로 등록됨');
+        $this->assertSame(50000, $billing->amount);
+        $this->assertSame('unpaid', $billing->status);
+        $this->assertSame('2026-07-14', $billing->billed_at->format('Y-m-d'));
+
+        // 잔금 관리 화면에 노출
+        $this->actingAs($this->admin())->get('/projects-billing')
+            ->assertOk()
+            ->assertSee('50,000원');
+    }
+
+    public function test_payment_without_balance_flag_creates_no_billing(): void
+    {
+        $project = $this->makeProject();
+
+        $this->actingAs($this->admin())->postJson("/api/projects/{$project->id}/payment", [
+            'amount' => 100000, 'has_balance' => false, 'balance_amount' => 0,
+        ])->assertOk();
+
+        $this->assertSame(0, ProjectBilling::count());
+    }
+
     public function test_billing_index_lists_outstanding_only(): void
     {
         $project = $this->makeProject();
