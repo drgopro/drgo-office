@@ -297,7 +297,12 @@
                                 @endif
                             </a>
                         @else
-                            <span class="text-muted" style="color:var(--text-muted);">(의뢰자 없음)</span>
+                            @if($project->manual_client_name)
+                                {{ $project->manual_client_name }}
+                            @else
+                                <span class="text-muted" style="color:var(--text-muted);">(의뢰자 없음)</span>
+                            @endif
+                            <span style="font-size:9px; padding:1px 6px; border-radius:8px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border); white-space:nowrap;">확인불가</span>
                         @endif
                     </td>
                     <td>
@@ -350,12 +355,19 @@
 
             <div>
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">의뢰자 *</div>
-                <div style="position:relative;">
+                <div id="npClientSearchWrap" style="position:relative;">
                     <input type="text" id="npClientSearch" placeholder="이름/닉네임/전화 검색" autocomplete="off" oninput="searchProjectClients(this.value)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
                     <input type="hidden" id="npClientId">
                     <div id="npClientResults" style="display:none; position:absolute; left:0; right:0; top:100%; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; max-height:240px; overflow-y:auto; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
                 </div>
                 <div id="npClientPicked" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
+                {{-- 의뢰자명 확인 불가 — 의뢰자 미연동 프로젝트 --}}
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
+                    <input type="checkbox" id="npNoClient" onchange="toggleNpNoClient()"> 의뢰자명 확인 불가 (의뢰자와 연동하지 않고 생성)
+                </label>
+                <div id="npManualNameWrap" style="display:none; margin-top:6px;">
+                    <input type="text" id="npManualName" placeholder="파악된 이름/별칭을 주관식으로 입력 (선택)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px dashed var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                </div>
             </div>
             <div>
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
@@ -497,6 +509,9 @@ async function openNewProjectModal() {
     document.getElementById('npClientSearch').value = '';
     document.getElementById('npClientId').value = '';
     document.getElementById('npClientPicked').style.display = 'none';
+    document.getElementById('npNoClient').checked = false;
+    document.getElementById('npManualName').value = '';
+    toggleNpNoClient();
     document.getElementById('npName').value = '';
     document.getElementById('npScale').value = 'personal';
     document.getElementById('npMemo').value = '';
@@ -550,9 +565,22 @@ function pickNpClient(id, display) {
     document.getElementById('npClientPicked').style.display = 'block';
 }
 
+// 의뢰자명 확인 불가 토글 — 검색 대신 주관식 이름 입력
+function toggleNpNoClient() {
+    const noClient = document.getElementById('npNoClient').checked;
+    document.getElementById('npClientSearchWrap').style.display = noClient ? 'none' : '';
+    document.getElementById('npManualNameWrap').style.display = noClient ? '' : 'none';
+    if (noClient) {
+        document.getElementById('npClientId').value = '';
+        document.getElementById('npClientSearch').value = '';
+        document.getElementById('npClientPicked').style.display = 'none';
+    }
+}
+
 async function submitNewProject() {
+    const noClient = document.getElementById('npNoClient').checked;
     const clientId = document.getElementById('npClientId').value;
-    if (!clientId) return alert('의뢰자를 검색하여 선택해 주세요.');
+    if (!noClient && !clientId) return alert('의뢰자를 검색하여 선택하거나, [의뢰자명 확인 불가]를 체크해 주세요.');
     const name = document.getElementById('npName').value.trim();
     if (!name) return alert('프로젝트명을 입력하세요.');
 
@@ -590,7 +618,10 @@ async function submitNewProject() {
         };
     }
     body.tags = CrmTagPicker.value('np'); // 대분류/소분류
-    const res = await fetch(`/clients/${clientId}/projects`, {
+    if (noClient) {
+        body.manual_client_name = document.getElementById('npManualName').value.trim() || null;
+    }
+    const res = await fetch(noClient ? '/api/projects' : `/clients/${clientId}/projects`, {
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_NP,'Accept':'application/json'},
         body: JSON.stringify(body),

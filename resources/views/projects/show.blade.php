@@ -301,6 +301,8 @@
                 @if($project->client)
                     {{-- 의뢰자 이름 클릭 → 의뢰자 상세 --}}
                     <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
+                @else
+                    <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:10px; color:var(--text-muted);">(확인불가)</span></span>
                 @endif
             </div>
             <div>
@@ -444,7 +446,14 @@
             </div>
             @endif
             @else
-            <div class="text-muted" style="color:var(--text-muted); font-size:13px; padding:8px 0;">연결된 의뢰자가 없습니다.</div>
+            <div class="info-row">
+                <div class="info-label">이름</div>
+                <div>
+                    {{ $project->manual_client_name ?: '(미입력)' }}
+                    <span style="font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border);">의뢰자명 확인 불가</span>
+                </div>
+            </div>
+            <div class="text-muted" style="color:var(--text-muted); font-size:12px; padding:6px 0;">의뢰자와 연동되지 않은 프로젝트입니다. 이름은 참고용 주관식 입력입니다.</div>
             @endif
         </div>
 

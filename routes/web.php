@@ -184,6 +184,7 @@ Route::middleware('auth')->group(function () {
     // 프로젝트
     Route::middleware('permission:projects.edit')->group(function () {
         Route::post('/clients/{client}/projects', [ProjectController::class, 'store'])->name('projects.store');
+        Route::post('/api/projects', [ProjectController::class, 'storeStandalone']); // 의뢰자명 확인 불가 — 미연동 프로젝트
         Route::patch('/projects/{project}/stage', [ProjectController::class, 'updateStage'])->name('projects.stage');
         Route::patch('/api/projects/{project}', [ProjectController::class, 'updateJson']);
         Route::delete('/api/projects/{project}', [ProjectController::class, 'destroy']);

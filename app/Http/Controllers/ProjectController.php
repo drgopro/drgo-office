@@ -26,12 +26,16 @@ class ProjectController extends Controller
         $query = Project::with('client', 'assignedUser')
             ->where('status', '!=', 'cancelled');
 
-        // 검색
+        // 검색 — 의뢰자명/닉네임/프로젝트명/미연동 주관식 이름 (그룹으로 묶어 status 필터와 AND 유지)
         if ($search = $request->query('search')) {
-            $query->whereHas('client', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('nickname', 'like', "%{$search}%");
-            })->orWhere('name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('client', function ($qq) use ($search) {
+                    $qq->where('name', 'like', "%{$search}%")
+                        ->orWhere('nickname', 'like', "%{$search}%");
+                })
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('manual_client_name', 'like', "%{$search}%");
+            });
         }
 
         // 단계 필터 (단일/콤마 구분/배열 모두 지원)
@@ -80,10 +84,21 @@ class ProjectController extends Controller
         return view('projects.index', compact('projects', 'tagOptions'));
     }
 
-    // 등록
+    // 등록 (의뢰자 연동)
     public function store(Request $request, Client $client)
     {
-        $validated = $request->validate([
+        return $this->createProject($request, $client);
+    }
+
+    /** 의뢰자 미연동 등록 — 의뢰자명 확인 불가 시 주관식 이름으로 생성 */
+    public function storeStandalone(Request $request)
+    {
+        return $this->createProject($request, null);
+    }
+
+    private function createProject(Request $request, ?Client $client)
+    {
+        $rules = [
             'name' => 'required|string|max:200',
             'project_type' => 'required|string|max:50|exists:consultation_types,key',
             'client_scale' => 'nullable|in:personal,studio,corporate,rental,broadcast_room',
@@ -96,14 +111,18 @@ class ProjectController extends Controller
             'tags.major.*' => 'string|max:60',
             'tags.minor' => 'nullable|array',
             'tags.minor.*' => 'string|max:60',
-        ]);
+        ];
+        if (! $client) {
+            $rules['manual_client_name'] = 'nullable|string|max:100';
+        }
+        $validated = $request->validate($rules);
         $validated['tags'] = $this->normalizeTags($request->input('tags'));
         if (isset($validated['memo']) && ! isset($validated['overview'])) {
             $validated['overview'] = $validated['memo'];
         }
         unset($validated['memo']);
 
-        $validated['client_id'] = $client->id;
+        $validated['client_id'] = $client?->id;
         $validated['assigned_user_id'] = Auth::id();
         $validated['stage'] = 'consulting';
         $validated['status'] = 'active';

@@ -33,6 +33,7 @@ class Project extends Model
 
     protected $fillable = [
         'client_id',
+        'manual_client_name',
         'name',
         'project_type',
         'client_scale',
@@ -85,6 +86,16 @@ class Project extends Model
         }
 
         return self::STAGE_LABELS[$this->stage] ?? (string) $this->stage;
+    }
+
+    /** 의뢰자 표시명 — 연동 의뢰자 우선, 미연동이면 주관식 이름(의뢰자명 확인 불가) */
+    public function clientDisplayName(): ?string
+    {
+        if ($this->client) {
+            return $this->client->name ?: $this->client->nickname;
+        }
+
+        return $this->manual_client_name;
     }
 
     public function payments()
