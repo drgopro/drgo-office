@@ -3319,6 +3319,7 @@ function renderLockSummary(){
     }
     // 연결 프로젝트 칩 — projectSelect가 로드돼 있으면 이름 표시, 아니면 번호로라도 표시
     let projectChipHtml = '';
+    let lsProjSummaryPid = null;
     {
         const psel = document.getElementById('projectSelect');
         const pid = (psel && psel.value) ? psel.value : (linkedProjectId || '');
@@ -3326,6 +3327,7 @@ function renderLockSummary(){
             const opt = psel ? [...psel.options].find(o => o.value == pid) : null;
             const plabel = opt ? opt.textContent : ('프로젝트 #' + pid);
             projectChipHtml = `<a class="ls-client-chip" href="/projects/${pid}" target="_blank" style="max-width:100%;"><span>📁</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(plabel)}</span></a>`;
+            if (color !== 'gold') lsProjSummaryPid = pid; // 방문의뢰 외 카테고리: 프로젝트 요약 섹션 노출
         }
     }
 
@@ -3378,6 +3380,14 @@ function renderLockSummary(){
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}${projectChipHtml}${sourceChipHtml}</div>
         ${schedPills||specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${schedPills}${specialPills}</div>`:''}
     </div>`;
+
+    // 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계를 비동기 로드
+    if (lsProjSummaryPid) {
+        html += `<div class="ls-section" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">
+            <div class="ls-section-title">📁 연결 프로젝트 요약</div>
+            <div class="ls-text-block muted">불러오는 중…</div>
+        </div>`;
+    }
 
     // 배송 현황 (gold/green, 송장 있을 때만) — 기본 접힘, 제목 클릭으로 펼침
     const lsShips=(SHIP_COLORS.includes(color)?(shipCache.shipments||[]):[]);
@@ -3515,6 +3525,35 @@ function renderLockSummary(){
     html += `<div class="ls-section"><div class="ls-section-title">첨부 이미지</div>${imgHtml}</div>`;
 
     container.innerHTML = html || '<div class="ls-text-block muted">내용 없음</div>';
+    if (lsProjSummaryPid) lsLoadProjectSummary(lsProjSummaryPid);
+}
+
+// ── 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계 ──
+async function lsLoadProjectSummary(pid){
+    const box = document.getElementById('lsProjectSummary');
+    if (!box) return;
+    try{
+        const res = await fetch(`/api/projects/${pid}/summary`, {headers:{'Accept':'application/json'}});
+        if (!res.ok) { box.style.display='none'; return; } // 권한 없음/삭제된 프로젝트 등 — 섹션 숨김
+        const p = await res.json();
+        const cur = document.getElementById('lsProjectSummary');
+        if (!cur || cur.dataset.pid != String(pid)) return; // 로딩 중 다른 일정으로 전환됨
+        const fmt = n => Number(n||0).toLocaleString();
+        cur.innerHTML = `
+            <div class="ls-section-title">📁 연결 프로젝트 요약</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <a class="ls-client-chip" href="/projects/${pid}" target="_blank"><span>📁</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(p.name||('프로젝트 #'+pid))}</span></a>
+                ${p.stage?`<span class="ls-type-pill">단계: ${_esc(p.stage)}</span>`:''}
+                ${p.work_type?`<span class="ls-type-pill">${_esc(p.work_type)}</span>`:''}
+            </div>
+            <div style="margin-top:8px;">
+                <div class="ls-info-label">결제된 금액</div>
+                ${p.payments_count>0
+                    ? `<div class="ls-amount">${fmt(p.paid_total)}원</div>
+                       <div class="ls-info-label" style="margin-top:3px;">결제 ${p.payments_count}건${p.refunded_total>0?` · 환불/취소 ${fmt(p.refunded_total)}원 반영`:''}${p.last_paid_at?` · 최근 ${_esc(p.last_paid_at)}`:''}</div>`
+                    : `<div class="ls-text-block muted">— 결제 내역 없음 —</div>`}
+            </div>`;
+    }catch(e){ /* 네트워크 오류 — 로딩 문구 유지 */ }
 }
 
 // ── 잔금 배너 ──

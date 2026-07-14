@@ -204,6 +204,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('/api/projects/{project}/payment-estimates', [ProjectController::class, 'paymentEstimates']);
         Route::get('/api/projects/{project}/payments', [ProjectController::class, 'payments']);
+        Route::get('/api/projects/{project}/summary', [ProjectController::class, 'summary']);
         Route::get('/api/projects/{project}/schedules', [ProjectController::class, 'projectSchedules']);
     });
 

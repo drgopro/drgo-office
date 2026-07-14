@@ -9,6 +9,7 @@ use App\Models\ProjectFeedback;
 use App\Models\ProjectPayment;
 use App\Models\ProjectSubtag;
 use App\Models\Schedule;
+use App\Models\WorkType;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -502,6 +503,31 @@ class ProjectController extends Controller
         }
 
         return back()->with('success', '프로젝트가 삭제되었습니다.');
+    }
+
+    /**
+     * 캘린더 일정 요약용 프로젝트 스냅샷 — 결제 합계 + 진행 단계
+     */
+    public function summary(Project $project): JsonResponse
+    {
+        $charges = ProjectPayment::where('project_id', $project->id)->where('type', 'charge');
+        $chargedTotal = (int) $charges->clone()->sum('amount');
+        $refundedTotal = (int) ProjectPayment::where('project_id', $project->id)
+            ->whereIn('type', ['refund', 'cancel'])
+            ->get()
+            ->sum(fn ($r) => abs($r->amount));
+
+        return response()->json([
+            'id' => $project->id,
+            'name' => $project->name,
+            'stage' => $project->stageLabel(),
+            'work_type' => WorkType::where('key', $project->work_type)->value('label') ?? $project->work_type,
+            'charged_total' => $chargedTotal,
+            'refunded_total' => $refundedTotal,
+            'paid_total' => $chargedTotal - $refundedTotal,
+            'payments_count' => $charges->clone()->count(),
+            'last_paid_at' => $charges->clone()->max('paid_at'),
+        ]);
     }
 
     /**
