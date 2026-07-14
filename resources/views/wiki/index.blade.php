@@ -92,7 +92,11 @@
     /* 검색 필터 바 — 기본 접힘, [검색] 버튼으로 펼침 */
     .wiki-filter-bar { display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
     .wiki-filter-bar.open { display:flex; }
-    .wiki-cat-edit-btn.wf-toggle-on { color:var(--accent); border-color:var(--accent); }
+    /* 검색 토글 버튼 — 배경색으로 강조 */
+    #wikiFilterToggle { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
+    #wikiFilterToggle:hover { opacity:0.88; color:var(--accent-text); background:var(--accent); }
+    #wikiFilterToggle.wf-toggle-on { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
+    #wikiFilterToggle.wf-toggle-on:hover { opacity:1; background:var(--surface2); color:var(--accent); }
     .wf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
     .wf-input:focus { border-color:var(--accent); }
     .wf-search { flex:1; min-width:160px; }
