@@ -141,7 +141,7 @@
         <div style="flex:1;min-width:0;">
             <a href="{{ route('wiki.index') }}" class="wiki-back">← 위키 목록</a>
             <div class="wiki-title-row" id="viewTitle">
-                @if($wiki->is_pinned)<span style="font-size:14px;">📌</span>@endif
+                @if($wiki->is_pinned)<span style="font-size:10px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 고정</span>@endif
                 <span class="wiki-title-text">{{ $wiki->title }}</span>
             </div>
             @php

@@ -84,6 +84,7 @@
     .wiki-item-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
     .wiki-title { font-size:14px; font-weight:600; }
     .wiki-pin { font-size:11px; color:var(--accent); }
+    .wiki-pin-badge { font-size:9px; padding:2px 7px; border-radius:8px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap; flex-shrink:0; }
     .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
     .wiki-cat-badge { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
     .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
@@ -525,7 +526,7 @@ function renderDocList() {
     document.getElementById('wikiMainCount').textContent = docs.length + '건';
     if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
     list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}" onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
-        <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin">📌</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
+        <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div></div>
         <div class="wiki-meta">
             <span class="wiki-cat-badge">${d.type !== 'normal' ? WIKI_TYPE_LABELS[d.type] : wikiEsc(wikiCatPathStr(d.category_id))}</span>
             <span>${wikiEsc(d.creator)} 작성 ${d.created}</span>${d.updated ? `<span>최종수정 ${wikiEsc(d.updater)} ${d.updated}</span>` : ''}
