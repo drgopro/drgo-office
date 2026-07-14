@@ -151,6 +151,7 @@
             @if(Auth::user()->hasPermission('projects.edit'))
                 <button style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
             @endif
+            <a href="{{ route('projects.billing') }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">💸 잔금 관리</a>
             <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')"><x-icon name="download" :size="14"/> 엑셀 가져오기</button>
         </div>
     </div>

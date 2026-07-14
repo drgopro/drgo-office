@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
+use App\Models\ProjectBilling;
 use App\Models\ProjectFeedback;
 use App\Models\ProjectPayment;
 use App\Models\ProjectSubtag;
@@ -332,6 +333,7 @@ class ProjectController extends Controller
             'mark_estimate_paid' => 'nullable|boolean',
             'has_balance' => 'nullable|boolean',
             'balance_amount' => 'nullable|integer|min:0',
+            'billing_id' => 'nullable|integer|exists:project_billings,id',
         ]);
 
         try {
@@ -356,6 +358,7 @@ class ProjectController extends Controller
             ProjectPayment::create([
                 'project_id' => $project->id,
                 'type' => 'charge',
+                'billing_id' => $validated['billing_id'] ?? null,
                 'estimate_id' => $payment['estimate_id'] ?? null,
                 'amount' => (int) ($payment['amount'] ?? 0),
                 'items' => $items,
@@ -364,6 +367,11 @@ class ProjectController extends Controller
                 'memo' => $payment['memo'] ?? null,
                 'recorded_by' => Auth::id(),
             ]);
+
+            // 청구에 연결된 입금이면 잔금 상태 갱신 (부분/전액 입금 자동 반영)
+            if (! empty($validated['billing_id'])) {
+                ProjectBilling::find($validated['billing_id'])?->refreshStatus();
+            }
         } catch (\Throwable $e) {
             report($e);
 
@@ -535,7 +543,14 @@ class ProjectController extends Controller
             $lastPaidAt = $project->payment_info['paid_at'] ?? null;
         }
 
+        // 미수 잔금 (미입금·부분입금 청구의 잔액 합)
+        $outstanding = ProjectBilling::where('project_id', $project->id)
+            ->whereIn('status', ['unpaid', 'partial'])
+            ->get()
+            ->sum(fn ($b) => $b->balance());
+
         return response()->json([
+            'outstanding_balance' => $outstanding,
             'id' => $project->id,
             'name' => $project->name,
             'stage' => $project->stageLabel(),
@@ -570,6 +585,7 @@ class ProjectController extends Controller
             'payments' => $rows->map(fn ($r) => [
                 'id' => $r->id,
                 'parent_payment_id' => $r->parent_payment_id,
+                'billing_id' => $r->billing_id,
                 'type' => $r->type,
                 'estimate_id' => $r->estimate_id,
                 'amount' => $r->amount,
@@ -582,6 +598,100 @@ class ProjectController extends Controller
                 'refunded_amount' => $r->type === 'charge' ? ($byCharge[$r->id] ?? 0) : 0,
                 'is_fully_refunded' => $r->type === 'charge' && ($byCharge[$r->id] ?? 0) >= $r->amount,
             ]),
+            'billings' => ProjectBilling::where('project_id', $project->id)
+                ->orderByDesc('billed_at')->orderByDesc('id')->get()
+                ->map(fn ($b) => [
+                    'id' => $b->id,
+                    'amount' => $b->amount,
+                    'billed_at' => $b->billed_at?->format('Y-m-d'),
+                    'status' => $b->status,
+                    'memo' => $b->memo,
+                    'paid_total' => $b->paidTotal(),
+                    'balance' => $b->balance(),
+                ]),
+        ]);
+    }
+
+    /** 청구 생성 — 결제 단계의 '청구' 체크 (받을 금액 등록, 입금은 이후 추적) */
+    public function storeBilling(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'required|integer|min:1',
+            'billed_at' => 'nullable|date',
+            'memo' => 'nullable|string|max:500',
+        ]);
+
+        $billing = ProjectBilling::create([
+            'project_id' => $project->id,
+            'amount' => $validated['amount'],
+            'billed_at' => $validated['billed_at'] ?? now()->format('Y-m-d'),
+            'status' => 'unpaid',
+            'memo' => $validated['memo'] ?? null,
+            'created_by' => Auth::id(),
+        ]);
+
+        // 현재 stage가 payment 이전이면 payment로 진행 (flow에 결제 단계가 있는 유형만)
+        $stageOrder = array_column($project->flowStages(), 'code');
+        $payIdx = array_search('payment', $stageOrder, true);
+        if ($payIdx !== false) {
+            $curIdx = array_search($project->stage, $stageOrder, true);
+            if ($curIdx === false || $curIdx < $payIdx) {
+                $project->update(['stage' => 'payment']);
+            }
+        }
+
+        return response()->json($billing->only('id', 'amount', 'billed_at', 'status', 'memo'), 201);
+    }
+
+    /** 청구 수정 — 금액/청구일/메모, status 직접 지정 시 수동 완료 처리 */
+    public function updateBilling(Request $request, ProjectBilling $billing): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'sometimes|integer|min:1',
+            'billed_at' => 'sometimes|date',
+            'memo' => 'nullable|string|max:500',
+            'status' => ['sometimes', Rule::in(ProjectBilling::STATUSES)],
+        ]);
+
+        $billing->update($validated);
+        if (! array_key_exists('status', $validated) && array_key_exists('amount', $validated)) {
+            $billing->refreshStatus(); // 청구액 변경 시 잔금 상태 재계산
+        }
+
+        return response()->json([
+            'ok' => true,
+            'billing' => array_merge(
+                $billing->fresh()->only('id', 'amount', 'billed_at', 'status', 'memo'),
+                ['paid_total' => $billing->paidTotal(), 'balance' => $billing->balance()],
+            ),
+        ]);
+    }
+
+    public function destroyBilling(ProjectBilling $billing): JsonResponse
+    {
+        $billing->delete(); // 연결 입금은 billing_id만 해제 (기록 보존)
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** 잔금 관리 화면 — 미입금·부분입금 청구가 있는 프로젝트 모아보기 */
+    public function billingIndex()
+    {
+        $billings = ProjectBilling::with(['project.client', 'creator:id,display_name'])
+            ->whereIn('status', ['unpaid', 'partial'])
+            ->orderBy('billed_at')
+            ->get();
+
+        $rows = $billings->map(fn ($b) => [
+            'billing' => $b,
+            'paid_total' => $b->paidTotal(),
+            'balance' => $b->balance(),
+            'last_paid_at' => $b->payments()->where('type', 'charge')->max('paid_at'),
+        ]);
+
+        return view('projects.billing', [
+            'rows' => $rows,
+            'totalBalance' => $rows->sum('balance'),
         ]);
     }
 
@@ -650,6 +760,7 @@ class ProjectController extends Controller
             }
 
             $payment->update($validated);
+            $payment->billing?->refreshStatus(); // 금액 수정 시 청구 잔금 재계산
 
             // payment_info(project)도 동기화 — 결제 모달이 다시 열릴 때 prefill용
             $project->update(['payment_info' => array_merge((array) $project->payment_info, [
@@ -682,6 +793,7 @@ class ProjectController extends Controller
             return response()->json(['error' => '해당 프로젝트의 결제가 아닙니다.'], 404);
         }
 
+        $billingId = $payment->billing_id;
         DB::transaction(function () use ($payment) {
             if ($payment->type === 'charge') {
                 // 자식 환불/취소 트랜잭션 함께 삭제
@@ -689,6 +801,9 @@ class ProjectController extends Controller
             }
             $payment->delete();
         });
+        if ($billingId) {
+            ProjectBilling::find($billingId)?->refreshStatus(); // 입금 삭제 시 청구 잔금 재계산
+        }
 
         return response()->json(['ok' => true]);
     }
@@ -750,6 +865,7 @@ class ProjectController extends Controller
         $row = ProjectPayment::create([
             'project_id' => $project->id,
             'parent_payment_id' => $parent->id,
+            'billing_id' => $parent->billing_id, // 청구 연결 입금의 환불은 잔금에 반영
             'type' => $validated['type'],
             'estimate_id' => $parent->estimate_id,
             'amount' => -$amount, // 음수로 저장
@@ -759,6 +875,7 @@ class ProjectController extends Controller
             'memo' => $validated['reason'] ?? null,
             'recorded_by' => Auth::id(),
         ]);
+        $row->billing?->refreshStatus();
 
         return response()->json([
             'ok' => true,

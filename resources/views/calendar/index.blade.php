@@ -3552,6 +3552,7 @@ async function lsLoadProjectSummary(pid){
                     ? `<div class="ls-amount">${fmt(p.paid_total)}원</div>
                        <div class="ls-info-label" style="margin-top:3px;">결제 ${p.payments_count}건${p.refunded_total>0?` · 환불/취소 ${fmt(p.refunded_total)}원 반영`:''}${p.last_paid_at?` · 최근 ${_esc(p.last_paid_at)}`:''}</div>`
                     : `<div class="ls-text-block muted">— 결제 내역 없음 —</div>`}
+                ${p.outstanding_balance>0?`<div class="ls-info-label" style="margin-top:4px;color:var(--red);font-weight:700;">💸 미수 잔금 ${fmt(p.outstanding_balance)}원</div>`:''}
             </div>`;
     }catch(e){ /* 네트워크 오류 — 로딩 문구 유지 */ }
 }

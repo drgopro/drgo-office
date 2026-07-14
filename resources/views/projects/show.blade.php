@@ -792,6 +792,18 @@
                     <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;">
                         <input type="checkbox" id="payMarkPaid" checked> 연결한 견적서의 상태를 '결제됨'으로 표시
                     </label>
+
+                    {{-- 청구 — 지금 입금이 아니라 받을 금액으로 등록 (입금은 이후 추적) --}}
+                    <div id="payBillWrap" style="border-top:1px dashed var(--border); padding-top:10px;">
+                        <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                            <input type="checkbox" id="payAsBilling" onchange="togglePayBilling()"> <b>💸 청구로 등록</b>
+                            <span style="color:var(--text-muted);">— 아직 입금 전, 받을 금액으로 기록하고 입금을 추적합니다</span>
+                        </label>
+                        <div id="payBillingLinkWrap" style="display:none; margin-top:8px;">
+                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">입금을 연결할 청구 (선택)</div>
+                            <select id="payBillingId" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;"></select>
+                        </div>
+                    </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
                     <button type="button" class="btn-cancel" onclick="closePaymentModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:7px; font-size:13px; cursor:pointer;">취소</button>
@@ -2152,6 +2164,7 @@ loadProjectFieldsForShow();
 
 // ──────────── 결제 내역 (history) ────────────
 let __payments = [];
+let __billings = []; // 청구·잔금 (결제 단계 '청구' 체크로 생성)
 let __refundContext = null; // { chargeId, items: [{name,qty,price,maxQty,checked}] }
 
 async function loadPaymentHistory() {
@@ -2160,6 +2173,7 @@ async function loadPaymentHistory() {
         if (!res.ok) return;
         const data = await res.json();
         __payments = data.payments || [];
+        __billings = data.billings || [];
         renderPaymentHistory();
     } catch(e) {}
 }
@@ -2167,15 +2181,45 @@ async function loadPaymentHistory() {
 function _escPh(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function _fmtPh(n){ return Number(n||0).toLocaleString('ko-KR'); }
 
+// 청구 현황 블록 — 청구액/입금/잔금, 전액 입금 시 자동 완료
+function renderBillingBlock() {
+    if (!__billings.length) return '';
+    const statusPill = b => b.status === 'paid'
+        ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">완료</span>'
+        : (b.status === 'partial'
+            ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">부분입금</span>'
+            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">미입금</span>');
+    return `<div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+        ${__billings.map(b => `
+        <div style="padding:10px 14px; background:var(--surface2); border:1px dashed var(--border); border-radius:10px; ${b.status==='paid'?'opacity:0.55;':''}">
+            <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:11px; font-weight:700;">💸 청구</span>
+                    ${statusPill(b)}
+                    <span style="font-size:13px; font-weight:700;">${_fmtPh(b.amount)}원</span>
+                    <span style="font-size:11px; color:var(--text-muted);">입금 ${_fmtPh(b.paid_total)}원${b.status!=='paid'?` · <b style="color:var(--red);">잔금 ${_fmtPh(b.balance)}원</b>`:''}</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    ${b.status!=='paid' ? `<button onclick="recordBillingPayment(${b.id}, ${b.balance})" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">입금 기록</button>` : ''}
+                    ${b.status!=='paid' ? `<button onclick="markBillingPaid(${b.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">완료 처리</button>` : ''}
+                    <button onclick="deleteBilling(${b.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+                </div>
+            </div>
+            <div style="margin-top:4px; font-size:11px; color:var(--text-muted);">📅 청구일 ${b.billed_at||'-'}${b.memo?` · 📝 ${_escPh(b.memo)}`:''}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
 function renderPaymentHistory() {
     const card = document.getElementById('paymentHistoryCard');
     const list = document.getElementById('paymentHistoryList');
     // 결제가 없어도 카드는 항상 표시 — 진행 프로세스에 결제 단계가 없는 유형(단순문의/AS/문제해결 등)도
     // '+ 결제 추가' 버튼으로 결제를 기록할 수 있어야 함
     card.style.display = '';
+    const billingHtml = renderBillingBlock();
     if (!__payments.length) {
         document.getElementById('phNetTotal').textContent = '';
-        list.innerHTML = '<div style="padding:10px 0; font-size:12px; color:var(--text-muted);">등록된 결제 내역이 없습니다. 우측 상단 [+ 결제 추가]로 기록할 수 있습니다.</div>';
+        list.innerHTML = billingHtml + '<div style="padding:10px 0; font-size:12px; color:var(--text-muted);">등록된 결제 내역이 없습니다. 우측 상단 [+ 결제 추가]로 기록할 수 있습니다.</div>';
         return;
     }
 
@@ -2183,7 +2227,7 @@ function renderPaymentHistory() {
     const net = __payments.reduce((s, p) => s + (p.amount||0), 0);
     document.getElementById('phNetTotal').textContent = `· 순 결제액 ${_fmtPh(net)}원`;
 
-    list.innerHTML = __payments.map(p => {
+    list.innerHTML = billingHtml + __payments.map(p => {
         const isCharge = p.type === 'charge';
         const isRefund = p.type === 'refund';
         const isCancel = p.type === 'cancel';
@@ -2586,6 +2630,62 @@ async function openPaymentModal(prefillPayment) {
     renderPayItems(cur.items || []);
     recalcPayAmount();
     onSelectEstimate(); // 정보 표시
+
+    // 청구 UI 초기화 — 수정 모드에서는 숨김 (청구 생성/연결은 신규 기록에서만)
+    const asBill = document.getElementById('payAsBilling');
+    if (asBill) asBill.checked = false;
+    const billWrap = document.getElementById('payBillWrap');
+    if (billWrap) billWrap.style.display = isEdit ? 'none' : '';
+    populateBillingSelect(window.presetBillingId || null);
+    window.presetBillingId = null;
+}
+
+// 미완료 청구 목록으로 '입금 연결' select 채우기
+function populateBillingSelect(presetId) {
+    const wrap = document.getElementById('payBillingLinkWrap');
+    const sel = document.getElementById('payBillingId');
+    if (!wrap || !sel) return;
+    const open = __billings.filter(b => b.status !== 'paid');
+    if (!open.length) { wrap.style.display = 'none'; sel.innerHTML = ''; return; }
+    sel.innerHTML = '<option value="">— 청구에 연결 안 함 —</option>' + open.map(b =>
+        `<option value="${b.id}">청구 ${_fmtPh(b.amount)}원 · 잔금 ${_fmtPh(b.balance)}원 (${b.billed_at || ''})</option>`).join('');
+    sel.value = presetId ? String(presetId) : '';
+    wrap.style.display = '';
+}
+// '청구로 등록' 체크 시 입금-청구 연결 select 숨김 (상호 배타)
+function togglePayBilling() {
+    const asBill = document.getElementById('payAsBilling')?.checked;
+    const wrap = document.getElementById('payBillingLinkWrap');
+    if (!wrap) return;
+    if (asBill) { wrap.style.display = 'none'; }
+    else { populateBillingSelect(document.getElementById('payBillingId')?.value || null); }
+}
+// 청구 행 '입금 기록' — 결제 모달을 잔금 금액·청구 연결 상태로 오픈
+async function recordBillingPayment(id, balance) {
+    window.presetBillingId = id;
+    await openPaymentModal();
+    const amt = document.getElementById('payAmount');
+    if (amt && (!amt.value || +amt.value === 0)) { window.payAmountManual = true; amt.value = balance; recalcPayAmount(); }
+}
+// 수동 완료 — 잔금이 남아도 종결 (할인 마감 등)
+async function markBillingPaid(id) {
+    if (!confirm('이 청구를 완료 처리할까요? (잔금이 남아 있어도 종결됩니다)')) return;
+    const res = await fetch(`/api/project-billings/${id}`, {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+        body: JSON.stringify({status: 'paid'}),
+    });
+    if (!res.ok) return alert('완료 처리에 실패했습니다.');
+    loadPaymentHistory();
+}
+async function deleteBilling(id) {
+    if (!confirm('이 청구를 삭제할까요? 연결된 입금 기록은 보존됩니다.')) return;
+    const res = await fetch(`/api/project-billings/${id}`, {
+        method: 'DELETE',
+        headers: {'X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+    });
+    if (!res.ok) return alert('삭제에 실패했습니다.');
+    loadPaymentHistory();
 }
 function closePaymentModal() {
     document.getElementById('paymentModalOverlay').style.display = 'none';
@@ -2772,6 +2872,29 @@ async function savePayment() {
     }
     // 수정 모드 (PATCH) — editingPaymentId가 설정되어 있으면 분기
     const editId = window.editingPaymentId;
+
+    // '청구로 등록' — 입금이 아니라 받을 금액(청구)으로 생성, 입금은 이후 추적
+    if (!editId && document.getElementById('payAsBilling')?.checked) {
+        if (!body.amount || body.amount <= 0) return alert('청구 금액을 입력해주세요.');
+        const bres = await fetch(`/api/projects/${PROJECT_ID}/billings`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+            body: JSON.stringify({ amount: body.amount, billed_at: body.paid_at, memo: body.memo }),
+        });
+        if (!bres.ok) {
+            const err = await bres.json().catch(() => ({}));
+            return alert('청구 등록 실패: ' + (err.message || bres.status));
+        }
+        closePaymentModal();
+        location.reload();
+        return;
+    }
+    // 입금-청구 연결 (선택)
+    if (!editId) {
+        const bsel = document.getElementById('payBillingId');
+        body.billing_id = (bsel && bsel.value) ? +bsel.value : null;
+    }
+
     const url = editId
         ? `/api/projects/${PROJECT_ID}/payments/${editId}`
         : `/api/projects/${PROJECT_ID}/payment`;

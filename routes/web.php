@@ -193,6 +193,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'updatePayment']);
         Route::delete('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'destroyPayment']);
         Route::post('/api/projects/{project}/payments/refund', [ProjectController::class, 'refundPayment'])->name('projects.payments.refund');
+        // 청구·잔금 관리
+        Route::post('/api/projects/{project}/billings', [ProjectController::class, 'storeBilling']);
+        Route::patch('/api/project-billings/{billing}', [ProjectController::class, 'updateBilling']);
+        Route::delete('/api/project-billings/{billing}', [ProjectController::class, 'destroyBilling']);
         Route::post('/api/projects/{project}/stage-data', [ProjectController::class, 'saveStageData'])->name('projects.stageData');
         // 소분류 태그 관리 (추가/삭제) — 컨트롤러에서 tags.manage 권한 재확인
         Route::post('/api/project-subtags', [ProjectTagController::class, 'storeSubtag']);
@@ -201,6 +205,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:projects.view')->group(function () {
         Route::get('/api/project-tags', [ProjectTagController::class, 'index']);
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+        Route::get('/projects-billing', [ProjectController::class, 'billingIndex'])->name('projects.billing');
         Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
         Route::get('/api/projects/{project}/payment-estimates', [ProjectController::class, 'paymentEstimates']);
         Route::get('/api/projects/{project}/payments', [ProjectController::class, 'payments']);

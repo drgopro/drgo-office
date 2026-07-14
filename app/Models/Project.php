@@ -92,6 +92,12 @@ class Project extends Model
         return $this->hasMany(ProjectPayment::class)->orderByDesc('created_at');
     }
 
+    /** 청구 (청구·잔금 관리) */
+    public function billings()
+    {
+        return $this->hasMany(ProjectBilling::class)->orderByDesc('billed_at');
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class);

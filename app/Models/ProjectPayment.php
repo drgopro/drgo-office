@@ -12,6 +12,7 @@ class ProjectPayment extends Model
     protected $fillable = [
         'project_id',
         'parent_payment_id',
+        'billing_id',
         'type',
         'estimate_id',
         'amount',
@@ -73,6 +74,12 @@ class ProjectPayment extends Model
     public function parent()
     {
         return $this->belongsTo(self::class, 'parent_payment_id');
+    }
+
+    /** 연결된 청구 (청구·잔금 관리) */
+    public function billing()
+    {
+        return $this->belongsTo(ProjectBilling::class, 'billing_id');
     }
 
     public function refunds()
