@@ -89,6 +89,18 @@
     .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
     .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
 
+    /* 검색 필터 바 */
+    .wiki-filter-bar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+    .wf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
+    .wf-input:focus { border-color:var(--accent); }
+    .wf-search { flex:1; min-width:160px; }
+    .wf-tilde { color:var(--text-muted); font-size:12px; }
+    .wf-btn { background:var(--accent); color:var(--accent-text); border:none; padding:7px 16px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; }
+    .wf-reset { color:var(--text-muted); font-size:12px; text-decoration:none; padding:6px 8px; white-space:nowrap; }
+    .wf-reset:hover { color:var(--red, #e03131); }
+    .wf-active { font-size:11px; color:var(--text-muted); margin:-4px 0 10px; }
+    @media (max-width:768px) { .wf-search { min-width:100%; } }
+
     /* 모달 */
     .wiki-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9000; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
     .wiki-modal.open { display:flex; }
@@ -130,7 +142,6 @@
 
 @section('content')
 @php
-    $currentCat = request('category');
     $grouped = $wikis->groupBy('category');
     $allCats = $categories->count() ? $categories : collect(['일반']);
 
@@ -188,11 +199,7 @@
                 <span><x-icon name="book" :size="16"/> 위키</span>
                 <button type="button" class="wiki-cat-mtoggle" onclick="document.getElementById('wikiSidebar').classList.toggle('cat-open')">카테고리 <span class="wcm-caret">▾</span></button>
             </div>
-            <form method="GET" action="{{ route('wiki.index') }}" id="wikiSearchForm">
-                <input class="wiki-sidebar-search" type="text" name="search" placeholder="문서 검색..." value="{{ request('search') }}">
-                <input type="hidden" name="category" id="catInput" value="{{ $currentCat }}">
-                <input type="hidden" name="cat" value="{{ request('cat') }}">
-            </form>
+            {{-- 검색은 우측 문서 목록 상단의 필터 바로 통합 --}}
         </div>
         <div class="wiki-cat-list" id="wikiCatTree"></div>
         <div class="wiki-sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
@@ -213,6 +220,34 @@
                 @endif
             </div>
         </div>
+
+        <!-- 검색 필터 바 — 검색어/기간/작성자, 사이드바에서 선택한 카테고리·게시판 안에서 조회 -->
+        @php($wfActive = request()->filled('search') || request()->filled('date_from') || request()->filled('date_to') || request()->filled('author'))
+        <form method="GET" action="{{ route('wiki.index') }}" class="wiki-filter-bar" id="wikiFilterForm">
+            <input type="hidden" name="cat" id="wfCat" value="{{ request('cat') }}">
+            <input type="hidden" name="type" id="wfType" value="{{ request('type') }}">
+            <input class="wf-input wf-search" type="text" name="search" placeholder="제목·내용 검색" value="{{ request('search') }}">
+            <select class="wf-input" name="date_field" title="기간 기준">
+                <option value="updated" @selected(request('date_field') !== 'created')>수정일</option>
+                <option value="created" @selected(request('date_field') === 'created')>작성일</option>
+            </select>
+            <input class="wf-input" type="date" name="date_from" value="{{ request('date_from') }}" title="시작일">
+            <span class="wf-tilde">~</span>
+            <input class="wf-input" type="date" name="date_to" value="{{ request('date_to') }}" title="종료일">
+            <select class="wf-input" name="author" title="작성자">
+                <option value="">작성자 전체</option>
+                @foreach($authors as $a)
+                    <option value="{{ $a->id }}" @selected((int) request('author') === $a->id)>{{ $a->display_name }}</option>
+                @endforeach
+            </select>
+            <button type="submit" class="wf-btn">검색</button>
+            @if($wfActive)
+                <a class="wf-reset" href="{{ route('wiki.index', array_filter(['cat' => request('cat'), 'type' => request('type')])) }}">✕ 초기화</a>
+            @endif
+        </form>
+        @if($wfActive)
+            <div class="wf-active">🔎 필터 적용됨 — {{ $wikis->count() }}건. 사이드바에서 카테고리·게시판을 선택하면 그 안에서 더 좁혀집니다.</div>
+        @endif
 
         <!-- 게시물 선택 모드 액션 바 -->
         <div class="wiki-selbar" id="wikiSelBar">
@@ -553,10 +588,16 @@ function fitWikiLayout() {
 fitWikiLayout();
 window.addEventListener('resize', fitWikiLayout);
 
-function filterCat(cat) {
-    document.getElementById('catInput').value = cat;
-    document.getElementById('wikiSearchForm').submit();
-}
+// 검색 필터 바 — 제출 시 현재 사이드바 선택(카테고리/게시판/미분류)을 유지하고 빈 파라미터는 URL에서 제외
+document.getElementById('wikiFilterForm')?.addEventListener('submit', function () {
+    document.getElementById('wfCat').value = WIKI_CUR_UNCAT ? 'uncat' : (WIKI_CUR_CAT || '');
+    document.getElementById('wfType').value = WIKI_CUR_TYPE || '';
+    const dateFrom = this.querySelector('[name="date_from"]');
+    const dateTo = this.querySelector('[name="date_to"]');
+    const dateField = this.querySelector('[name="date_field"]');
+    if (dateField && !dateFrom.value && !dateTo.value) dateField.disabled = true; // 기간 미지정 시 기준값 생략
+    [...this.elements].forEach(el => { if (el.name && !el.value) el.disabled = true; });
+});
 
 // ── 카테고리 편집 ──
 let CE_DATA = [];

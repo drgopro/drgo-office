@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Models\WikiCategory;
@@ -9,6 +10,7 @@ use App\Models\WikiComment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class WikiController extends Controller
@@ -17,9 +19,31 @@ class WikiController extends Controller
     {
         $query = Wiki::with('creator', 'updater');
 
-        if ($search = $request->query('search')) {
-            $query->whereFullText(['title', 'content'], $search)
-                ->orWhere('title', 'like', "%{$search}%");
+        // 검색어 — 그룹으로 묶어 기간/작성자 필터와 AND 유지 (mysql 외 드라이버는 like 폴백)
+        if ($search = trim((string) $request->query('search'))) {
+            $query->where(function ($q) use ($search) {
+                if (DB::getDriverName() === 'mysql') {
+                    $q->whereFullText(['title', 'content'], $search)
+                        ->orWhere('title', 'like', "%{$search}%");
+                } else {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhere('content', 'like', "%{$search}%");
+                }
+            });
+        }
+
+        // 기간 필터 — 수정일(기본) 또는 작성일 기준
+        $dateField = $request->query('date_field') === 'created' ? 'created_at' : 'updated_at';
+        if ($from = $request->query('date_from')) {
+            $query->whereDate($dateField, '>=', $from);
+        }
+        if ($to = $request->query('date_to')) {
+            $query->whereDate($dateField, '<=', $to);
+        }
+
+        // 작성자 필터
+        if ($author = (int) $request->query('author')) {
+            $query->where('created_by', $author);
         }
 
         // 카테고리 트리 (계층). 카테고리 필터는 클라이언트에서 즉시 처리(새로고침 없음).
@@ -34,8 +58,11 @@ class WikiController extends Controller
         // 특수 유형(공지사항/업데이트) 문서 수
         $typeCounts = Wiki::whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
             ->selectRaw('type, count(*) as c')->groupBy('type')->pluck('c', 'type');
+        // 검색 필터 작성자 옵션 — 문서를 작성한 적 있는 사용자만
+        $authors = User::whereIn('id', Wiki::whereNotNull('created_by')->distinct()->pluck('created_by'))
+            ->orderBy('display_name')->get(['id', 'display_name']);
 
-        return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized', 'typeCounts'));
+        return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized', 'typeCounts', 'authors'));
     }
 
     /** 카테고리 id + 모든 하위 id (flat 트리에서 계산) */
