@@ -2226,11 +2226,14 @@ function _fmtPh(n){ return Number(n||0).toLocaleString('ko-KR'); }
 function renderPaymentHistory() {
     const card = document.getElementById('paymentHistoryCard');
     const list = document.getElementById('paymentHistoryList');
+    // 결제가 없어도 카드는 항상 표시 — 진행 프로세스에 결제 단계가 없는 유형(단순문의/AS/문제해결 등)도
+    // '+ 결제 추가' 버튼으로 결제를 기록할 수 있어야 함
+    card.style.display = '';
     if (!__payments.length) {
-        card.style.display = 'none';
+        document.getElementById('phNetTotal').textContent = '';
+        list.innerHTML = '<div style="padding:10px 0; font-size:12px; color:var(--text-muted);">등록된 결제 내역이 없습니다. 우측 상단 [+ 결제 추가]로 기록할 수 있습니다.</div>';
         return;
     }
-    card.style.display = '';
 
     // 순 결제액 = sum(amount), refund/cancel은 음수로 저장되어 있음
     const net = __payments.reduce((s, p) => s + (p.amount||0), 0);

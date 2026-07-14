@@ -59,6 +59,43 @@ class ProjectSummaryTest extends TestCase
             ->assertJsonPath('payments_count', 0);
     }
 
+    public function test_summary_falls_back_to_payment_info_when_no_transactions(): void
+    {
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create([
+            'client_id' => $client->id,
+            'name' => '원격 문제해결',
+            'project_type' => 'troubleshoot',
+            'stage' => 'visit',
+            'payment_info' => ['amount' => 80000, 'paid_at' => '2026-06-15'],
+        ]);
+
+        $res = $this->actingAs($this->admin())->getJson("/api/projects/{$project->id}/summary");
+
+        $res->assertOk()
+            ->assertJsonPath('paid_total', 80000)
+            ->assertJsonPath('payments_count', 1)
+            ->assertJsonPath('last_paid_at', '2026-06-15');
+    }
+
+    public function test_project_show_always_renders_payment_card(): void
+    {
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create([
+            'client_id' => $client->id,
+            'name' => '원격 문의',
+            'project_type' => 'inquiry', // 진행 프로세스에 결제 단계가 없는 유형
+            'stage' => 'consulting',
+        ]);
+
+        $res = $this->actingAs($this->admin())->get("/projects/{$project->id}");
+
+        $res->assertOk()
+            ->assertSee('id="paymentHistoryCard"', false)
+            ->assertSee('+ 결제 추가')
+            ->assertSee('등록된 결제 내역이 없습니다');
+    }
+
     public function test_calendar_page_renders_project_summary_loader(): void
     {
         $res = $this->actingAs($this->admin())->get('/calendar');

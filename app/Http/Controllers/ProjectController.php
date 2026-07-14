@@ -506,7 +506,8 @@ class ProjectController extends Controller
     }
 
     /**
-     * 캘린더 일정 요약용 프로젝트 스냅샷 — 결제 합계 + 진행 단계
+     * 캘린더 일정 요약용 프로젝트 스냅샷 — 결제 합계 + 진행 단계.
+     * 결제 트랜잭션이 없으면 구버전 payment_info(JSON) 금액으로 폴백.
      */
     public function summary(Project $project): JsonResponse
     {
@@ -516,6 +517,15 @@ class ProjectController extends Controller
             ->whereIn('type', ['refund', 'cancel'])
             ->get()
             ->sum(fn ($r) => abs($r->amount));
+        $paymentsCount = $charges->clone()->count();
+        $lastPaidAt = $charges->clone()->max('paid_at');
+
+        // 트랜잭션 도입 이전에 payment_info로만 기록된 결제 폴백
+        if ($paymentsCount === 0 && (int) ($project->payment_info['amount'] ?? 0) > 0) {
+            $chargedTotal = (int) $project->payment_info['amount'];
+            $paymentsCount = 1;
+            $lastPaidAt = $project->payment_info['paid_at'] ?? null;
+        }
 
         return response()->json([
             'id' => $project->id,
@@ -525,8 +535,8 @@ class ProjectController extends Controller
             'charged_total' => $chargedTotal,
             'refunded_total' => $refundedTotal,
             'paid_total' => $chargedTotal - $refundedTotal,
-            'payments_count' => $charges->clone()->count(),
-            'last_paid_at' => $charges->clone()->max('paid_at'),
+            'payments_count' => $paymentsCount,
+            'last_paid_at' => $lastPaidAt,
         ]);
     }
 
