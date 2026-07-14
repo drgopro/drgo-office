@@ -19,6 +19,7 @@ use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MarketingReportController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
@@ -137,6 +138,10 @@ Route::middleware('auth')->group(function () {
     // 웹푸시 구독 (일정 알림)
     Route::post('/api/push/subscribe', [PushSubscriptionController::class, 'store']);
     Route::delete('/api/push/subscribe', [PushSubscriptionController::class, 'destroy']);
+
+    // 상단 알림 리스트
+    Route::get('/api/notifications', [NotificationController::class, 'index']);
+    Route::post('/api/notifications/read', [NotificationController::class, 'markRead']);
 
     // 담당자 API
     Route::get('/api/assignees', [AssigneeController::class, 'index'])->name('api.assignees');

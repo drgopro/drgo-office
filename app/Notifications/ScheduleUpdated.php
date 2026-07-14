@@ -14,22 +14,42 @@ class ScheduleUpdated extends Notification
     /** @return array<int, string> */
     public function via(object $notifiable): array
     {
-        return [WebPushChannel::class];
+        return [WebPushChannel::class, 'database'];
     }
 
-    public function toWebPush(object $notifiable): WebPushMessage
+    private function buildTitle(): string
     {
         $s = $this->schedule;
         $date = $s->start_date?->format('n/j');
         $time = $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5);
         $names = $s->assignees()->pluck('name')->implode(', ');
 
+        return '🔄 변경: '.collect([trim(($date ?? '').' '.$time), $s->title ?: '(제목 없음)', $names])->filter()->implode(' - ');
+    }
+
+    private function buildBody(): string
+    {
+        return '일정 날짜/시간이 변경되었습니다.'.($this->schedule->location ? ' · '.$this->schedule->location : '');
+    }
+
+    /** 상단 알림 리스트(database 채널) 저장용 */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => $this->buildTitle(),
+            'body' => $this->buildBody(),
+            'url' => '/calendar',
+        ];
+    }
+
+    public function toWebPush(object $notifiable): WebPushMessage
+    {
         return (new WebPushMessage)
-            ->title('🔄 변경: '.collect([trim(($date ?? '').' '.$time), $s->title ?: '(제목 없음)', $names])->filter()->implode(' - '))
-            ->body('일정 날짜/시간이 변경되었습니다.'.($s->location ? ' · '.$s->location : ''))
+            ->title($this->buildTitle())
+            ->body($this->buildBody())
             ->icon('/icon-192.png')
             ->badge('/favicon-96x96.png')
-            ->tag('schedule-updated-'.$s->id)
+            ->tag('schedule-updated-'.$this->schedule->id)
             ->data(['url' => '/calendar'])
             ->options(['TTL' => 3600]);
     }

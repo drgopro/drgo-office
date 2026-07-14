@@ -17,7 +17,17 @@ class FeedbackActivity extends Notification
     /** @return array<int, string> */
     public function via(object $notifiable): array
     {
-        return [WebPushChannel::class];
+        return [WebPushChannel::class, 'database'];
+    }
+
+    /** 상단 알림 리스트(database 채널) 저장용 */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body' => $this->body,
+            'url' => '/feedback',
+        ];
     }
 
     public function toWebPush(object $notifiable): WebPushMessage

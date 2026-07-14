@@ -176,6 +176,28 @@
         /* ── 탭 바 ── */
         .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:190; }
         .tab-strip { display:flex; align-items:center; flex:1; overflow-x:auto; gap:1px; scrollbar-width:none; }
+
+        /* ── 상단 우측 알림 ── */
+        .notif-wrap { position:relative; flex-shrink:0; margin-left:8px; }
+        .notif-bell { position:relative; display:flex; align-items:center; justify-content:center; width:28px; height:26px; background:none; border:none; cursor:pointer; color:var(--text-muted); border-radius:8px; padding:0; }
+        .notif-bell:hover { color:var(--text); background:var(--surface); }
+        .notif-bell svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+        .notif-badge { position:absolute; top:-3px; right:-5px; min-width:15px; height:15px; padding:0 4px; border-radius:8px; background:#e03131; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+        .notif-panel { display:none; position:fixed; right:12px; top:calc(var(--header-h) + var(--tab-h) + 6px); width:340px; max-width:calc(100vw - 24px); background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,0.18); z-index:400; overflow:hidden; }
+        @media (min-width: 981px) { .notif-panel { top:calc(var(--tab-h) + 6px); } }
+        .notif-panel.open { display:block; }
+        .notif-head { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; font-weight:700; }
+        .notif-head button { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; border-radius:6px; }
+        .notif-head button:hover { color:var(--accent); background:var(--surface2); }
+        .notif-list { max-height:380px; overflow-y:auto; }
+        .notif-item { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; }
+        .notif-item:last-child { border-bottom:none; }
+        .notif-item:hover { background:var(--surface2); }
+        .notif-item.unread .notif-title::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; vertical-align:1px; }
+        .notif-title { font-size:12.5px; font-weight:600; color:var(--text); line-height:1.4; }
+        .notif-body { font-size:11.5px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
+        .notif-time { font-size:10px; color:var(--text-muted); opacity:0.8; margin-top:3px; }
+        .notif-empty { padding:28px 0; text-align:center; color:var(--text-muted); font-size:12px; }
         .tab-strip::-webkit-scrollbar { display:none; }
 
         .tab-item { display:flex; align-items:center; gap:5px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--text-muted); background:transparent; border:none; white-space:nowrap; transition:all 0.12s; flex-shrink:0; border-radius:5px 5px 0 0; border:1px solid transparent; border-bottom:none; }
@@ -482,6 +504,17 @@ window.openTopTab = function(type, url, title) {
 {{-- ── 탭 바 ── --}}
 <div class="tab-bar-wrap">
     <div class="tab-strip" id="tabStrip"></div>
+    {{-- 상단 우측 알림 --}}
+    <div class="notif-wrap">
+        <button type="button" class="notif-bell" id="notifBell" onclick="notifToggle()" title="알림">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+            <div class="notif-head"><span>알림</span><button type="button" onclick="notifReadAll()">모두 읽음</button></div>
+            <div class="notif-list" id="notifList"><div class="notif-empty">알림이 없습니다.</div></div>
+        </div>
+    </div>
 </div>
 
 {{-- ── 콘텐츠 영역 ── --}}
@@ -1113,6 +1146,69 @@ function showGqrToast(msg){
 
 </script>
 
+<script>
+// ── 상단 우측 알림 리스트 ──
+const NOTIF_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+let notifItems = [];
+function notifEsc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function notifFetch(){
+    try{
+        const res = await fetch('/api/notifications', {headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        const d = await res.json();
+        notifItems = d.items || [];
+        const badge = document.getElementById('notifBadge');
+        if(badge){ badge.style.display = d.unread > 0 ? 'flex' : 'none'; badge.textContent = d.unread > 99 ? '99+' : d.unread; }
+        if(document.getElementById('notifPanel')?.classList.contains('open')) notifRender();
+    }catch(e){}
+}
+function notifRender(){
+    const list = document.getElementById('notifList');
+    if(!list) return;
+    list.innerHTML = notifItems.length ? notifItems.map(n => `
+        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="notifOpen('${notifEsc(n.id)}')">
+            <div class="notif-title">${notifEsc(n.title)}</div>
+            ${n.body ? `<div class="notif-body">${notifEsc(n.body)}</div>` : ''}
+            <div class="notif-time">${notifEsc(n.time)}</div>
+        </div>`).join('') : '<div class="notif-empty">알림이 없습니다.</div>';
+}
+function notifToggle(){
+    const p = document.getElementById('notifPanel');
+    if(!p) return;
+    p.classList.toggle('open');
+    if(p.classList.contains('open')){ notifRender(); notifFetch(); }
+}
+document.addEventListener('click', e => {
+    if(!e.target.closest('.notif-wrap')) document.getElementById('notifPanel')?.classList.remove('open');
+});
+async function notifMarkRead(id){
+    try{
+        await fetch('/api/notifications/read', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':NOTIF_CSRF,'Accept':'application/json'},
+            body: JSON.stringify(id ? {id} : {}),
+        });
+    }catch(e){}
+}
+async function notifOpen(id){
+    const item = notifItems.find(n => n.id === id);
+    if(item && !item.read){ item.read = true; notifRender(); await notifMarkRead(id); notifFetch(); }
+    document.getElementById('notifPanel')?.classList.remove('open');
+    const url = item?.url;
+    if(url){
+        const key = url.replace(/^\//,'').split('/')[0] || 'dashboard';
+        if(window.drgoTabs?.openNav) drgoTabs.openNav(key, url); else location.href = url;
+    }
+}
+async function notifReadAll(){
+    notifItems.forEach(n => n.read = true);
+    notifRender();
+    await notifMarkRead(null);
+    notifFetch();
+}
+notifFetch();
+setInterval(notifFetch, 60000); // 1분마다 새 알림 확인
+</script>
 @stack('scripts')
 </body>
 </html>
