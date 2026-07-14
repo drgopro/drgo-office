@@ -91,18 +91,29 @@ class WikiSearchFilterTest extends TestCase
         $this->assertSame(['세팅 가이드 v2'], $this->titles($res));
     }
 
-    public function test_filter_bar_renders(): void
+    public function test_filter_bar_renders_collapsed_by_default(): void
     {
         $res = $this->actingAs($this->member())->get('/wiki');
 
         $res->assertOk()
             ->assertSee('id="wikiFilterForm"', false)
+            ->assertSee('id="wikiFilterToggle"', false)
             ->assertSee('name="date_from"', false)
             ->assertSee('name="author"', false)
             ->assertSee('작성자 전체')
             // 조회 범위 드롭다운 — 게시판·미분류·카테고리를 필터 바에서 직접 선택
             ->assertSee('id="wfScope"', false)
             ->assertSee('type:meeting', false)
-            ->assertSee('(미분류)');
+            ->assertSee('(미분류)')
+            // 기본은 접힘 상태
+            ->assertSee('class="wiki-filter-bar"', false)
+            ->assertDontSee('class="wiki-filter-bar open"', false);
+    }
+
+    public function test_filter_bar_opens_when_filters_active(): void
+    {
+        $res = $this->actingAs($this->member())->get('/wiki?search=테스트');
+
+        $res->assertOk()->assertSee('class="wiki-filter-bar open"', false);
     }
 }

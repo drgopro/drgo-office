@@ -89,8 +89,10 @@
     .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
     .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
 
-    /* 검색 필터 바 */
-    .wiki-filter-bar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+    /* 검색 필터 바 — 기본 접힘, [검색] 버튼으로 펼침 */
+    .wiki-filter-bar { display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+    .wiki-filter-bar.open { display:flex; }
+    .wiki-cat-edit-btn.wf-toggle-on { color:var(--accent); border-color:var(--accent); }
     .wf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
     .wf-input:focus { border-color:var(--accent); }
     .wf-search { flex:1; min-width:160px; }
@@ -214,6 +216,7 @@
             <div class="wiki-main-title" id="wikiMainTitle">전체 문서</div>
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="wiki-main-count" id="wikiMainCount">{{ $wikis->count() }}건</div>
+                <button type="button" class="wiki-cat-edit-btn" id="wikiFilterToggle" onclick="toggleFilterBar()"><x-icon name="search" :size="13"/> 검색</button>
                 <button type="button" class="wiki-cat-edit-btn" id="wikiSelToggle" onclick="toggleSelMode()"><x-icon name="check" :size="13"/> 게시물 편집</button>
                 @if(auth()->user()->isAdmin())
                     <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()"><x-icon name="folder" :size="13"/> 카테고리 편집</button>
@@ -223,7 +226,7 @@
 
         <!-- 검색 필터 바 — 검색어/기간/작성자, 사이드바에서 선택한 카테고리·게시판 안에서 조회 -->
         @php($wfActive = request()->filled('search') || request()->filled('date_from') || request()->filled('date_to') || request()->filled('author'))
-        <form method="GET" action="{{ route('wiki.index') }}" class="wiki-filter-bar" id="wikiFilterForm">
+        <form method="GET" action="{{ route('wiki.index') }}" class="wiki-filter-bar{{ $wfActive ? ' open' : '' }}" id="wikiFilterForm">
             <input type="hidden" name="cat" id="wfCat" value="{{ request('cat') }}">
             <input type="hidden" name="type" id="wfType" value="{{ request('type') }}">
             {{-- 조회 범위 — 사이드바 선택과 양방향 동기화, 변경 즉시 목록 반영 --}}
@@ -615,6 +618,17 @@ document.getElementById('wikiFilterForm')?.addEventListener('submit', function (
     if (dateField && !dateFrom.value && !dateTo.value) dateField.disabled = true; // 기간 미지정 시 기준값 생략
     [...this.elements].forEach(el => { if (el.name && !el.value) el.disabled = true; });
 });
+// [검색] 버튼 — 필터 바 펼침/접힘 (기본 접힘, 필터 적용 중이면 펼친 상태로 시작)
+function toggleFilterBar() {
+    const bar = document.getElementById('wikiFilterForm');
+    if (!bar) return;
+    const open = bar.classList.toggle('open');
+    document.getElementById('wikiFilterToggle')?.classList.toggle('wf-toggle-on', open);
+    if (open) bar.querySelector('[name="search"]')?.focus();
+}
+document.getElementById('wikiFilterToggle')?.classList.toggle('wf-toggle-on',
+    document.getElementById('wikiFilterForm')?.classList.contains('open') ?? false);
+
 // 조회 범위 드롭다운 직접 선택 — 사이드바 클릭과 동일하게 즉시 목록 반영
 function wfScopeApply(v) {
     if (v.startsWith('type:')) {
