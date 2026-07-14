@@ -99,6 +99,10 @@ class WikiSearchFilterTest extends TestCase
             ->assertSee('id="wikiFilterForm"', false)
             ->assertSee('name="date_from"', false)
             ->assertSee('name="author"', false)
-            ->assertSee('작성자 전체');
+            ->assertSee('작성자 전체')
+            // 조회 범위 드롭다운 — 게시판·미분류·카테고리를 필터 바에서 직접 선택
+            ->assertSee('id="wfScope"', false)
+            ->assertSee('type:meeting', false)
+            ->assertSee('(미분류)');
     }
 }

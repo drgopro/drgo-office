@@ -226,6 +226,21 @@
         <form method="GET" action="{{ route('wiki.index') }}" class="wiki-filter-bar" id="wikiFilterForm">
             <input type="hidden" name="cat" id="wfCat" value="{{ request('cat') }}">
             <input type="hidden" name="type" id="wfType" value="{{ request('type') }}">
+            {{-- 조회 범위 — 사이드바 선택과 양방향 동기화, 변경 즉시 목록 반영 --}}
+            <select class="wf-input" id="wfScope" title="조회 범위" onchange="wfScopeApply(this.value)">
+                <option value="">전체</option>
+                <optgroup label="게시판">
+                    @foreach(\App\Models\Wiki::SPECIAL_TYPES as $tk => $tl)
+                        <option value="type:{{ $tk }}" @selected(request('type') === $tk)>{{ $tl }}</option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="카테고리">
+                    <option value="uncat" @selected(request('cat') === 'uncat')>(미분류)</option>
+                    @foreach($catFlat as $cf)
+                        <option value="{{ $cf['id'] }}" @selected((string) request('cat') === (string) $cf['id'])>{{ $cf['name'] }}</option>
+                    @endforeach
+                </optgroup>
+            </select>
             <input class="wf-input wf-search" type="text" name="search" placeholder="제목·내용 검색" value="{{ request('search') }}">
             <select class="wf-input" name="date_field" title="기간 기준">
                 <option value="updated" @selected(request('date_field') !== 'created')>수정일</option>
@@ -414,6 +429,7 @@ function renderWikiTree() {
             <span class="wiki-cat-count">${WIKI_TYPE_COUNTS[t] || 0}</span></div>`
     ).join('') + '<div style="border-bottom:1px solid var(--border);margin:6px 0;"></div>';
     wrap.innerHTML = fixed + html;
+    if (typeof wfSyncScope === 'function') wfSyncScope(); // 필터 바 조회 범위 드롭다운 동기화
 }
 // 행 클릭: 하위가 있으면 펼치기/접기 토글 + 해당 카테고리 필터를 동시에 처리
 function onCatRowClick(id, collapsible) {
@@ -588,16 +604,34 @@ function fitWikiLayout() {
 fitWikiLayout();
 window.addEventListener('resize', fitWikiLayout);
 
-// 검색 필터 바 — 제출 시 현재 사이드바 선택(카테고리/게시판/미분류)을 유지하고 빈 파라미터는 URL에서 제외
+// 검색 필터 바 — 조회 범위 select 기준으로 cat/type 파라미터 구성, 빈 파라미터는 URL에서 제외
 document.getElementById('wikiFilterForm')?.addEventListener('submit', function () {
-    document.getElementById('wfCat').value = WIKI_CUR_UNCAT ? 'uncat' : (WIKI_CUR_CAT || '');
-    document.getElementById('wfType').value = WIKI_CUR_TYPE || '';
+    const scope = document.getElementById('wfScope')?.value ?? '';
+    document.getElementById('wfType').value = scope.startsWith('type:') ? scope.slice(5) : '';
+    document.getElementById('wfCat').value = scope.startsWith('type:') ? '' : scope; // '', 'uncat', 카테고리 id
     const dateFrom = this.querySelector('[name="date_from"]');
     const dateTo = this.querySelector('[name="date_to"]');
     const dateField = this.querySelector('[name="date_field"]');
     if (dateField && !dateFrom.value && !dateTo.value) dateField.disabled = true; // 기간 미지정 시 기준값 생략
     [...this.elements].forEach(el => { if (el.name && !el.value) el.disabled = true; });
 });
+// 조회 범위 드롭다운 직접 선택 — 사이드바 클릭과 동일하게 즉시 목록 반영
+function wfScopeApply(v) {
+    if (v.startsWith('type:')) {
+        const t = v.slice(5);
+        if (WIKI_CUR_TYPE !== t) filterType(t);
+    } else if (v === 'uncat') {
+        if (!WIKI_CUR_UNCAT) filterUncat();
+    } else {
+        filterCatId(v);
+    }
+}
+// 사이드바 선택 → 드롭다운 동기화 (renderWikiTree가 모든 필터 변경 후 호출됨)
+function wfSyncScope() {
+    const sel = document.getElementById('wfScope');
+    if (!sel) return;
+    sel.value = WIKI_CUR_TYPE ? 'type:' + WIKI_CUR_TYPE : (WIKI_CUR_UNCAT ? 'uncat' : (WIKI_CUR_CAT ? String(WIKI_CUR_CAT) : ''));
+}
 
 // ── 카테고리 편집 ──
 let CE_DATA = [];
