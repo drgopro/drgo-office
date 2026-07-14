@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
@@ -183,11 +184,15 @@ class ProjectController extends Controller
         return response()->json(['message' => '삭제되었습니다.']);
     }
 
-    // 단계 변경
+    // 단계 변경 — 허용 단계는 유형별 flow 기준 (done/cancelled는 항상 허용)
     public function updateStage(Request $request, Project $project)
     {
+        $allowedStages = array_unique(array_merge(
+            array_column($project->flowStages(), 'code'),
+            ['done', 'cancelled'],
+        ));
         $request->validate([
-            'stage' => 'required|in:consulting,equipment,proposal,estimate,payment,visit,as,done,cancelled',
+            'stage' => ['required', Rule::in($allowedStages)],
             'cancel_reason' => 'nullable|string|max:50',
             'cancel_detail' => 'nullable|string|max:500',
         ]);
@@ -369,12 +374,15 @@ class ProjectController extends Controller
             ], 500);
         }
 
-        // 현재 stage가 payment 이전이면 payment로 진행 (이후 단계는 그대로 유지)
-        $stageOrder = ['consulting', 'equipment', 'proposal', 'estimate', 'payment', 'visit', 'as', 'done'];
-        $curIdx = array_search($project->stage, $stageOrder, true);
+        // 현재 stage가 payment 이전이면 payment로 진행 (이후 단계는 그대로 유지) — 순서는 유형별 flow 기준.
+        // flow에 결제 단계가 없는 유형(문의/AS 등)은 결제 기록만 남기고 단계는 건드리지 않음.
+        $stageOrder = array_column($project->flowStages(), 'code');
         $payIdx = array_search('payment', $stageOrder, true);
-        if ($curIdx === false || $curIdx < $payIdx) {
-            $project->update(['stage' => 'payment']);
+        if ($payIdx !== false) {
+            $curIdx = array_search($project->stage, $stageOrder, true);
+            if ($curIdx === false || $curIdx < $payIdx) {
+                $project->update(['stage' => 'payment']);
+            }
         }
 
         // 견적서 연결 + 결제 완료 표시
@@ -440,8 +448,8 @@ class ProjectController extends Controller
 
         $project->update(['stage_data' => $stageData]);
 
-        // stage 자동 진행
-        $stageOrder = ['consulting', 'equipment', 'proposal', 'estimate', 'payment', 'visit', 'as', 'done'];
+        // stage 자동 진행 — 순서는 유형별 flow 기준
+        $stageOrder = array_column($project->flowStages(), 'code');
         $advance = $validated['advance_to'] ?? null;
         if ($advance && in_array($advance, $stageOrder, true)) {
             $curIdx = array_search($project->stage, $stageOrder, true);

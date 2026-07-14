@@ -41,6 +41,18 @@ class ProjectStageLabelTest extends TestCase
         $res->assertOk();
         $project = $res->json('projects.0');
         $this->assertSame('payment', $project['stage']);
-        $this->assertSame('결제/예약', $project['stage_label']);
+        $this->assertSame('견적/결제', $project['stage_label'], '원격 유형 flow의 결제 단계 라벨');
+    }
+
+    public function test_stage_label_uses_type_flow(): void
+    {
+        $project = new Project(['stage' => 'visit', 'project_type' => 'broadcast']);
+        $this->assertSame('이용', $project->stageLabel());
+
+        $project->project_type = 'design';
+        $this->assertSame('제작/컨펌', $project->stageLabel());
+
+        $project->stage = 'delivery';
+        $this->assertSame('납품', $project->stageLabel());
     }
 }

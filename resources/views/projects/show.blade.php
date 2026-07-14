@@ -348,66 +348,11 @@
         </div>
     </div>
 
-    <!-- 프로세스 바 (프로젝트 유형별 단계 세트) -->
+    <!-- 프로세스 바 (프로젝트 유형별 단계 세트 — consultation_types.stages JSON 단일 출처) -->
     @php
-        // project_type 별 단계 시퀀스. DB stage enum은 공유하되 라벨/포함 여부만 분기.
-        $stageSets = [
-            'visit' => [
-                'consulting' => '상담',
-                'equipment'  => '장비파악',
-                'proposal'   => '일정제안',
-                'estimate'   => '견적/계약',
-                'payment'    => '결제/예약',
-                'visit'      => '방문 세팅',
-                'done'       => '완료',
-            ],
-            'remote' => [
-                'consulting' => '상담',
-                'equipment'  => '장비파악',
-                'proposal'   => '일정제안',
-                'estimate'   => '견적/계약',
-                'payment'    => '결제/예약',
-                'visit'      => '원격 세팅',
-                'done'       => '완료',
-            ],
-            'design' => [
-                'consulting' => '상담',
-                'estimate'   => '견적/계약',
-                'payment'    => '결제',
-                'visit'      => '디자인 작업',
-                'done'       => '납품 완료',
-            ],
-            'inquiry' => [
-                'consulting' => '문의 접수',
-                'visit'      => '처리 중',
-                'done'       => '상담 완료',
-            ],
-            'product_inquiry' => [
-                'consulting' => '상담 접수',
-                'estimate'   => '견적서 전달',
-                'payment'    => '결제 대기',
-                'done'       => '결제완료',
-            ],
-            'as' => [
-                'consulting' => 'AS 접수',
-                'equipment'  => '점검',
-                'visit'      => 'AS 진행',
-                'done'       => '처리 완료',
-            ],
-            'troubleshoot' => [
-                'consulting' => '문의 접수',
-                'equipment'  => '진단',
-                'visit'      => '조치 진행',
-                'done'       => '해결 완료',
-            ],
-        ];
-        // '상품 문의' 라벨은 항상 product_inquiry 시퀀스를 사용 (다른 key를 쓰는 경우 폴백)
-        $ptLabel = rescue(fn () => optional(\App\Models\ConsultationType::where('key', $project->project_type)->first())->label, '', false) ?? '';
-        if (in_array($ptLabel, ['상품 문의', '상품문의'], true) && isset($stageSets['product_inquiry'])) {
-            $stages = $stageSets['product_inquiry'];
-        } else {
-            $stages = $stageSets[$project->project_type] ?? $stageSets['visit'];
-        }
+        $flow = $project->flowStages();
+        $stages = collect($flow)->pluck('label', 'code')->all();
+        $stageKinds = collect($flow)->pluck('kind', 'code')->all();
         $stageKeys = array_keys($stages);
         $currentIdx = array_search($project->stage, $stageKeys);
         if ($currentIdx === false) {
@@ -416,10 +361,9 @@
     @endphp
 
     @php
-        // 단계별 전용 모달 매핑 — 단계 클릭 시 form submit 대신 해당 JS 함수 호출
-        // 장비파악(equipment)은 모달 없이 카드에서 인라인 직접 편집
-        // 'visit' 단계는 모달 없이 단순 단계 전환만 (방문 보고서는 '완료' 후 작성)
-        $stageModals = [
+        // 단계 kind별 전용 모달 매핑 — 단계 클릭 시 form submit 대신 해당 JS 함수 호출.
+        // work/normal 단계는 모달 없이 단순 단계 전환 (방문 보고서는 '완료' 후 작성)
+        $kindModals = [
             'proposal' => 'openProposalModal',
             'estimate' => 'openEstimateInfoModal',
             'payment' => 'openPaymentModal',
@@ -436,7 +380,7 @@
             @foreach($stages as $key => $label)
             @php
                 $idx = array_search($key, $stageKeys);
-                $modalFn = $stageModals[$key] ?? null;
+                $modalFn = $kindModals[$stageKinds[$key] ?? ''] ?? null;
             @endphp
             <div class="process-step">
                 @if($modalFn)

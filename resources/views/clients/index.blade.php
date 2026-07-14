@@ -735,8 +735,8 @@ function bindClientTabDrag() {
     });
 }
 
-const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',as:'AS',done:'완료',cancelled:'취소'};
-window.TYPE_LABELS = {visit:'방문세팅',remote:'원격세팅',design:'디자인',inquiry:'단순문의',as:'A/S',troubleshoot:'문제 해결'};
+const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',survey:'사전답사',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',delivery:'납품',as:'AS',done:'완료',cancelled:'취소'}; // 폴백 — 유형별 라벨은 서버 stage_label 우선
+window.TYPE_LABELS = @json(\App\Models\ConsultationType::map());
 const TYPE_LABELS = window.TYPE_LABELS;
 
 function renderClientContent(id) {
@@ -1041,7 +1041,7 @@ function renderProjectList(projects, clientId, order) {
                 <div style="font-size:11px; color:var(--text-muted);">${[TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · ')}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${STAGE_LABELS[p.stage]||p.stage}</span>
+                <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${p.stage_label||STAGE_LABELS[p.stage]||p.stage}</span>
                 ${p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
                 <button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>
             </div>

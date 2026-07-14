@@ -169,24 +169,20 @@
             ? array_filter($rawTag)
             : array_filter(array_map('trim', explode(',', (string) $rawTag)));
 
+        // 단계 필터 — 공통 코드 기준 (유형별 라벨은 달라도 코드는 공유)
         $stageOptions = [
             'consulting' => '상담',
-            'equipment' => '장비파악',
+            'equipment' => '장비파악/진단',
             'proposal' => '일정제안',
+            'survey' => '사전답사',
             'estimate' => '견적/계약',
-            'payment' => '결제/예약',
-            'visit' => '세팅 진행',
-            'as' => '세팅 완료·AS',
+            'payment' => '결제',
+            'visit' => '진행 중',
+            'delivery' => '납품',
+            'as' => 'AS',
             'done' => '완료',
         ];
-        $typeOptions = [
-            'visit' => '방문세팅',
-            'remote' => '원격세팅',
-            'design' => '디자인',
-            'inquiry' => '단순문의',
-            'as' => 'A/S',
-            'troubleshoot' => '문제 해결',
-        ];
+        $typeOptions = \App\Models\ConsultationType::map();
     @endphp
 
     <form method="GET" action="{{ route('projects.index') }}" class="search-bar">

@@ -12,7 +12,8 @@ class Project extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     /**
-     * 프로젝트 진행 단계(stage) 코드 → 한글 라벨 (단일 출처).
+     * 진행 단계(stage) 코드 → 한글 폴백 라벨.
+     * 유형별 라벨은 유형 flow(consultation_types.stages JSON)가 우선 — stageLabel() 참고.
      *
      * @var array<string, string>
      */
@@ -20,9 +21,11 @@ class Project extends Model
         'consulting' => '상담',
         'equipment' => '장비파악',
         'proposal' => '일정제안',
+        'survey' => '사전답사',
         'estimate' => '견적/계약',
         'payment' => '결제/예약',
         'visit' => '세팅',
+        'delivery' => '납품',
         'as' => 'AS',
         'done' => '완료',
         'cancelled' => '취소',
@@ -62,10 +65,31 @@ class Project extends Model
         'tags' => 'array',
     ];
 
-    /** stage 코드에 대응하는 한글 라벨 (미정의 코드는 코드 그대로 반환) */
+    /**
+     * 이 프로젝트 유형의 진행 단계 flow.
+     *
+     * @return array<int, array{code: string, label: string, kind: string}>
+     */
+    public function flowStages(): array
+    {
+        return ConsultationType::stagesFor($this->project_type);
+    }
+
+    /** 유형 flow 기준 단계 라벨 (flow에 없는 코드는 공통 폴백 라벨) */
     public function stageLabel(): string
     {
+        foreach ($this->flowStages() as $s) {
+            if (($s['code'] ?? null) === $this->stage) {
+                return $s['label'] ?? $this->stage;
+            }
+        }
+
         return self::STAGE_LABELS[$this->stage] ?? (string) $this->stage;
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(ProjectPayment::class)->orderByDesc('created_at');
     }
 
     public function client()
