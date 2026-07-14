@@ -340,6 +340,12 @@
     .cs-cat { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:8px; font-size:12.5px; cursor:pointer; color:var(--text); user-select:none; }
     .cs-cat:hover { background:var(--surface2); }
     .cs-cat.off { opacity:0.38; }
+    .cs-cat .cs-cat-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* '만 보기' — 행 hover 시 우측에 표시, 클릭하면 해당 카테고리만 켜기 (재클릭 시 전체 복원) */
+    .cs-solo { margin-left:auto; flex-shrink:0; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); font-size:10px; padding:1px 7px; border-radius:8px; cursor:pointer; opacity:0; transition:opacity 0.12s; }
+    .cs-cat:hover .cs-solo { opacity:1; }
+    .cs-solo:hover { color:var(--accent); border-color:var(--accent); }
+    @media (hover:none) { .cs-solo { opacity:1; } }
     .cs-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
     #calSide .assignee-filter { width:100%; margin-bottom:6px; box-sizing:border-box; }
     #calSide .assignee-filter-chips { width:100%; }
@@ -1915,8 +1921,22 @@ function csToggleCat(k){
 function csCatRow(k, on){
     const c = CS_CATS[k];
     return `<div class="cs-cat${on?'':' off'}" onclick="csToggleCat('${k}')" title="${on?'클릭하여 끄기':'클릭하여 켜기'}">
-        <span class="cs-dot" style="background:var(--chip-${k}-bg)"></span>${(c.label||k).replace(/[<>&]/g,'')}
+        <span class="cs-dot" style="background:var(--chip-${k}-bg)"></span><span class="cs-cat-label">${(c.label||k).replace(/[<>&]/g,'')}</span>
+        <button type="button" class="cs-solo" onclick="event.stopPropagation();csSoloCat('${k}')" title="이 카테고리만 보기">만 보기</button>
     </div>`;
+}
+// '만 보기' — 해당 카테고리만 켜기, 이미 단독 상태면 전체 켜기로 복원
+function csSoloCat(k){
+    const keys = Object.keys(CS_CATS);
+    const isSolo = activeFilters.has(k) && keys.every(x => x === k || !activeFilters.has(x));
+    keys.forEach(x => {
+        const on = isSolo || x === k;
+        if(on) activeFilters.add(x); else activeFilters.delete(x);
+        const btn = document.querySelector(`#filterBar .filter-btn[data-filter="${x}"]`);
+        if(btn) btn.classList.toggle('active', on);
+    });
+    csSaveHidden();
+    renderView();
 }
 function renderCsCats(){
     const keys = Object.keys(CS_CATS);
