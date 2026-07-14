@@ -132,11 +132,13 @@ class ScheduleRepeatTest extends TestCase
         ]))->assertCreated();
         $this->assertSame(3, Schedule::count());
 
+        // 편집 모달은 저장된 반복 설정을 그대로 재전송 — 미변경이면 재생성 없어야 함
+        // (설정을 바꾼 경우의 재생성 동작은 CalendarRepeatEditTest에서 검증)
         $second = Schedule::where('start_date', '2026-08-10')->first();
         $this->actingAs($user)->postJson("/api/events/{$second->id}", [
             'title' => '변경된 회의',
             'repeat_freq' => 'weekly',
-            'repeat_until' => '2026-09-30',
+            'repeat_until' => '2026-08-17',
         ])->assertOk();
 
         // 반복 재생성 없이 제목만 변경
