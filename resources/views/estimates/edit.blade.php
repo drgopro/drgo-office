@@ -459,7 +459,7 @@ async function searchClients(q) {
             const res = await fetch(`/api/clients/search?q=${encodeURIComponent(q)}`);
             const clients = await res.json();
             if (!clients.length) { el.classList.remove('show'); return; }
-            el.innerHTML = clients.map(c => `<div class="client-result-item" onclick='selectClient(${JSON.stringify(c)})'>${c.nickname||''} (${c.name}) ${c.phone||''}</div>`).join('');
+            el.innerHTML = clients.map(c => `<div class="client-result-item" onclick='selectClient(${JSON.stringify(c)})'>${c.nickname || c.name || ''}${c.nickname && c.name ? ' ('+c.name+')' : ''} ${c.phone||''}</div>`).join('');
             el.classList.add('show');
         } catch(e) { el.classList.remove('show'); }
     }, 300);

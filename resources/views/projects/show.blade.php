@@ -479,9 +479,9 @@
                 <div class="info-label">이름</div>
                 <div>
                     <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" style="color:var(--accent); text-decoration:none;" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
-                        {{ $project->client->name }}
+                        {{ $project->client->name ?: $project->client->nickname }}
                     </a>
-                    @if($project->client->nickname)
+                    @if($project->client->name && $project->client->nickname)
                         <span style="color:var(--text-muted); font-size:12px;"> ({{ $project->client->nickname }})</span>
                     @endif
                 </div>

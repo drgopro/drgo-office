@@ -294,8 +294,8 @@
                     <td>
                         @if($project->client)
                             <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="client-link" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
-                                {{ $project->client->name }}
-                                @if($project->client->nickname)
+                                {{ $project->client->name ?: $project->client->nickname }}
+                                @if($project->client->name && $project->client->nickname)
                                     ({{ $project->client->nickname }})
                                 @endif
                             </a>

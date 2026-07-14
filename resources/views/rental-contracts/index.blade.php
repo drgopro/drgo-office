@@ -191,7 +191,7 @@ function renderContracts() {
     tbody.innerHTML = filtered.map(c => {
         const statusLabel = c.status === 'active' ? '진행중' : '해지';
         const statusClass = 'status-' + c.status;
-        const clientName = c.client_name + (c.client_nickname ? ` (${c.client_nickname})` : '');
+        const clientName = (c.client_name || c.client_nickname || '-') + (c.client_name && c.client_nickname ? ` (${c.client_nickname})` : '');
         const endDate = c.end_date || '—';
         const fee = c.monthly_fee ? Number(c.monthly_fee).toLocaleString() + '원' : '0원';
         const memo = c.memo ? c.memo.substring(0, 30) + (c.memo.length > 30 ? '...' : '') : '';
@@ -218,7 +218,7 @@ function openContractModal(data) {
     document.getElementById('contractId').value = data?.id || '';
     document.getElementById('clientId').value = data?.client_id || '';
     document.getElementById('clientSearch').value = data ? (data.client_nickname || data.client_name || '') : '';
-    document.getElementById('selectedClient').textContent = data ? `✓ ${data.client_name}${data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
+    document.getElementById('selectedClient').textContent = data ? `✓ ${data.client_name || data.client_nickname || ''}${data.client_name && data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
     document.getElementById('selectedClient').style.display = data ? 'block' : 'none';
     document.getElementById('startDate').value = data?.start_date || new Date().toISOString().slice(0,10);
     document.getElementById('endDate').value = data?.end_date || '';
@@ -247,7 +247,7 @@ async function searchClients(q) {
         const list = await res.json();
         const el = document.getElementById('clientResults');
         if (!list.length) { el.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>'; el.classList.add('open'); return; }
-        el.innerHTML = list.map(c => `<div class="client-search-result" onclick='selectClient(${JSON.stringify(c)})'>${c.name}${c.nickname ? ' ('+c.nickname+')' : ''} ${c.phone ? '· '+c.phone : ''}</div>`).join('');
+        el.innerHTML = list.map(c => `<div class="client-search-result" onclick='selectClient(${JSON.stringify(c)})'>${c.name || c.nickname || ''}${c.name && c.nickname ? ' ('+c.nickname+')' : ''} ${c.phone ? '· '+c.phone : ''}</div>`).join('');
         el.classList.add('open');
     }, 200);
 }
@@ -255,7 +255,7 @@ async function searchClients(q) {
 function selectClient(c) {
     document.getElementById('clientId').value = c.id;
     document.getElementById('clientSearch').value = c.nickname || c.name;
-    document.getElementById('selectedClient').textContent = `✓ ${c.name}${c.nickname ? ' ('+c.nickname+')' : ''}`;
+    document.getElementById('selectedClient').textContent = `✓ ${c.name || c.nickname || ''}${c.name && c.nickname ? ' ('+c.nickname+')' : ''}`;
     document.getElementById('selectedClient').style.display = 'block';
     document.getElementById('clientResults').classList.remove('open');
 }

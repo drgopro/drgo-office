@@ -1,6 +1,6 @@
 @extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
 
-@section('title', $client->name . ' - 닥터고블린 오피스')
+@section('title', ($client->name ?: $client->nickname) . ' - 닥터고블린 오피스')
 
 @push('styles')
 <style>
@@ -166,18 +166,18 @@
             <a href="{{ route('clients.index') }}" class="back-btn">← 목록</a>
             <div>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <div class="client-name">{{ $client->name }}</div>
+                    <div class="client-name">{{ $client->name ?: $client->nickname }}</div>
                     <span class="badge badge-{{ $client->grade }}">
                         {{ ['normal'=>'일반','vip'=>'VIP','rental'=>'렌탈'][$client->grade] }}
                     </span>
                 </div>
-                @if($client->nickname)
+                @if($client->name && $client->nickname)
                     <div class="client-nickname">{{ $client->nickname }}</div>
                 @endif
             </div>
         </div>
         <div style="display:flex; gap:8px;">
-            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'{{ $client->name }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
+            <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'{{ $client->name ?: $client->nickname }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
             <a href="{{ route('clients.edit', $client) }}" class="btn-edit">수정</a>
             <a href="#" class="btn-primary" onclick="openProjectModal(); return false;">+ 프로젝트</a>
         </div>

@@ -211,7 +211,7 @@ async function loadContracts() {
     if (!allContracts.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">계약이 없습니다.</td></tr>'; return; }
     tbody.innerHTML = allContracts.map(c => {
         const statusLabel = c.status === 'active' ? '진행중' : '해지';
-        const clientName = c.client_name + (c.client_nickname ? ` (${c.client_nickname})` : '');
+        const clientName = (c.client_name || c.client_nickname || '-') + (c.client_name && c.client_nickname ? ` (${c.client_nickname})` : '');
         const calBadge = c.calendar_synced
             ? `<a href="/calendar" title="캘린더에 연동됨 — 클릭 시 캘린더로 이동" style="text-decoration:none;margin-left:6px;cursor:pointer;" onclick="event.preventDefault();if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('calendar','/calendar');}else{location.href='/calendar';}">📅</a>`
             : '';
@@ -255,14 +255,14 @@ async function searchClients(q, prefix) {
         const list = await res.json();
         const el = document.getElementById(prefix + 'ClientResults');
         if (!list.length) { el.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>'; el.classList.add('open'); return; }
-        el.innerHTML = list.map(c => `<div class="client-search-result" onclick='selectClient(${JSON.stringify(c)}, "${prefix}")'>${c.name}${c.nickname ? ' ('+c.nickname+')' : ''} ${c.phone ? '· '+c.phone : ''}</div>`).join('');
+        el.innerHTML = list.map(c => `<div class="client-search-result" onclick='selectClient(${JSON.stringify(c)}, "${prefix}")'>${c.name || c.nickname || ''}${c.name && c.nickname ? ' ('+c.nickname+')' : ''} ${c.phone ? '· '+c.phone : ''}</div>`).join('');
         el.classList.add('open');
     }, 200);
 }
 function selectClient(c, prefix) {
     document.getElementById(prefix + 'ClientId').value = c.id;
     document.getElementById(prefix + 'ClientSearch').value = c.nickname || c.name;
-    document.getElementById(prefix + 'SelectedClient').textContent = `✓ ${c.name}${c.nickname ? ' ('+c.nickname+')' : ''}`;
+    document.getElementById(prefix + 'SelectedClient').textContent = `✓ ${c.name || c.nickname || ''}${c.name && c.nickname ? ' ('+c.nickname+')' : ''}`;
     document.getElementById(prefix + 'SelectedClient').style.display = 'block';
     document.getElementById(prefix + 'ClientResults').classList.remove('open');
 }
@@ -274,7 +274,7 @@ function openContractModal(data) {
     document.getElementById('contractId').value = data?.id || '';
     document.getElementById('cClientId').value = data?.client_id || '';
     document.getElementById('cClientSearch').value = data ? (data.client_nickname || data.client_name || '') : '';
-    document.getElementById('cSelectedClient').textContent = data ? `✓ ${data.client_name}${data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
+    document.getElementById('cSelectedClient').textContent = data ? `✓ ${data.client_name || data.client_nickname || ''}${data.client_name && data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
     document.getElementById('cSelectedClient').style.display = data ? 'block' : 'none';
     document.getElementById('cRoomNo').value = data?.room_no || '';
     document.getElementById('cStartDate').value = data?.start_date || new Date().toISOString().slice(0,10);
@@ -348,7 +348,7 @@ function openUsageModal(data) {
     document.getElementById('usageId').value = data?.id || '';
     document.getElementById('uClientId').value = data?.client_id || '';
     document.getElementById('uClientSearch').value = data ? (data.client_nickname || data.client_name || '') : '';
-    document.getElementById('uSelectedClient').textContent = data ? `✓ ${data.client_name}${data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
+    document.getElementById('uSelectedClient').textContent = data ? `✓ ${data.client_name || data.client_nickname || ''}${data.client_name && data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
     document.getElementById('uSelectedClient').style.display = data ? 'block' : 'none';
     const start = data?.start_at ? _toLocalInput(data.start_at) : _defaultStart();
     const end = data?.end_at ? _toLocalInput(data.end_at) : _addHours(start, 1);
