@@ -49,7 +49,8 @@ class WikiController extends Controller
         // 카테고리 트리 (계층). 카테고리 필터는 클라이언트에서 즉시 처리(새로고침 없음).
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
 
-        $wikis = $query->orderByDesc('is_pinned')->orderByDesc('updated_at')->get();
+        // 고정 문서 우선, 그다음 작성시간 최신순 (수정해도 목록 순서 유지)
+        $wikis = $query->orderByDesc('is_pinned')->orderByDesc('created_at')->get();
         $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
         // 카테고리별 직접 문서 수 (트리 배지용) — 공지/업데이트는 카테고리 체계와 별개
         $catCounts = Wiki::whereNotNull('category_id')->selectRaw('category_id, count(*) as c')

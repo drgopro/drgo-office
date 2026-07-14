@@ -91,6 +91,19 @@ class WikiSearchFilterTest extends TestCase
         $this->assertSame(['세팅 가이드 v2'], $this->titles($res));
     }
 
+    public function test_list_is_sorted_by_created_at_not_updated_at(): void
+    {
+        $old = $this->makeWiki('먼저 작성된 문서', [], '2026-07-01 10:00:00');
+        $this->makeWiki('나중에 작성된 문서', [], '2026-07-10 10:00:00');
+        // 먼저 작성된 문서를 최근에 수정해도 순서는 작성시간 기준 유지
+        $old->forceFill(['updated_at' => '2026-07-14 12:00:00'])->save();
+
+        $res = $this->actingAs($this->member())->get('/wiki');
+
+        $res->assertOk();
+        $this->assertSame(['나중에 작성된 문서', '먼저 작성된 문서'], $this->titles($res));
+    }
+
     public function test_filter_bar_renders_collapsed_by_default(): void
     {
         $res = $this->actingAs($this->member())->get('/wiki');
