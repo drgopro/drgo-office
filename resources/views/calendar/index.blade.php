@@ -616,7 +616,7 @@
     #modalOverlay .ls-mobile-cta { display:none; width:100%; margin-top:4px; padding:14px 0; border:none; border-radius:12px; background:var(--m-accent); color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; }
     @media (max-width:860px) {
         /* 모바일 요약: 시안 순서의 1컬럼 — 일시장소 → 의뢰자 → 진행상태 → 장비 → 특이사항 → 방송정보 → 결제 → 첨부 */
-        #modalOverlay .ls-grid { display:flex; flex-direction:column; gap:12px; }
+        #modalOverlay .ls-grid { display:flex; flex-direction:column; gap:12px; align-items:stretch; } /* 기본 그리드의 align-items:start 무효화 — 카드 풀폭 */
         #modalOverlay .ls-col { display:contents; }
         #modalOverlay .ls-c-time { order:1; background:color-mix(in srgb, var(--m-accent) 5%, #fff); border-color:color-mix(in srgb, var(--m-accent) 16%, #fff); }
         #modalOverlay .ls-c-client { order:2; }
@@ -3631,7 +3631,7 @@ function renderLockSummary(){
             return val?`<span class="ls-state mid">${label} ${_esc(val)}</span>`:'';
         };
         const payChips=[
-            paid==='O'?'<span class="ls-state on">결제완료</span>':(paid?st('결제',paid):''),
+            (paid==='O'||paid==='결제완료')?'<span class="ls-state on">결제완료</span>':(paid?'<span class="ls-state">결제 ✕</span>':''),
             st('주문',orderVal),
             balanceVal==='O'?'<span class="ls-state warn">잔금 O</span>':st('잔금',balanceVal),
             orderVal==='O'?st('수령',delivery||'X'):'',
@@ -3645,7 +3645,7 @@ function renderLockSummary(){
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span class="ls-amount-big">${amount?_esc(_fmtAmt(amount))+'원':'<span style="font-size:13px;color:var(--text-muted);font-weight:400;">결제 금액 미입력</span>'}</span>
                 <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-                    ${paid==='O'?'<span class="ls-state on">결제완료</span>':''}
+                    ${(paid==='O'||paid==='결제완료')?'<span class="ls-state on">결제완료</span>':''}
                     ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
                 </span>
             </div>
