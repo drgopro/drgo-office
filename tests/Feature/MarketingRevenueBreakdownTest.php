@@ -72,11 +72,24 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertJsonPath('projects.0.payments.0.label', '환불'); // 최신순 (환불이 나중 기록)
     }
 
+    public function test_revenue_page_renders(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/marketing-report/revenue?from=2026-07-01&to=2026-07-31')
+            ->assertOk()
+            ->assertSee('매출 상세')
+            ->assertSee('통계로 돌아가기')
+            ->assertSee('2026-07-01', false)
+            ->assertSee('rvLoad', false);
+    }
+
     public function test_revenue_projects_blocked_for_guest(): void
     {
         $guest = User::factory()->create(['role' => 'guest']);
 
         $this->actingAs($guest)->getJson('/api/marketing-report/revenue-projects')->assertForbidden();
+        $this->actingAs($guest)->get('/marketing-report/revenue')->assertForbidden();
     }
 
     public function test_refund_reduces_type_revenue(): void

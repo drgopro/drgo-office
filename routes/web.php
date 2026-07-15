@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
     // 마케팅 통계 (master/admin/member 접근 가능, guest 차단)
     Route::middleware('role:master,admin,member')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
+        Route::get('/marketing-report/revenue', [MarketingReportController::class, 'revenuePage'])->name('marketing-report.revenue');
         Route::get('/api/marketing-report/revenue-projects', [MarketingReportController::class, 'revenueProjects']);
     });
 

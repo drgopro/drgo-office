@@ -293,6 +293,15 @@ class MarketingReportController extends Controller
         ));
     }
 
+    /** 매출 상세 페이지 — 결제 발생 프로젝트 목록 (통계 총 매출 카드에서 진입, 메뉴 미노출) */
+    public function revenuePage(Request $request)
+    {
+        return view('marketing-report.revenue', [
+            'from' => $request->query('from', now()->startOfMonth()->format('Y-m-d')),
+            'to' => $request->query('to', now()->endOfMonth()->format('Y-m-d')),
+        ]);
+    }
+
     /** 총 매출 드릴다운 — 기간 내 결제가 발생한 프로젝트별 순매출 목록 (JSON) */
     public function revenueProjects(Request $request)
     {
