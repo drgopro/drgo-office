@@ -44,7 +44,15 @@
     .todo-pri.high { background:#d64545; }
     .todo-pri.medium { background:#e8a13a; }
     .todo-pri.low { background:#57ab5a; }
+    .todo-card-title-row { display:flex; align-items:flex-start; gap:8px; }
     .todo-card-title { font-size:13px; font-weight:700; line-height:1.45; word-break:break-word; }
+    /* 원형 완료 체크 — 호버 시 미리보기, 완료 시 채워짐 */
+    .todo-check { flex-shrink:0; width:19px; height:19px; border-radius:50%; border:2px solid #c3cad6; background:transparent; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; margin-top:1px; }
+    .todo-check svg { width:11px; height:11px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:opacity 0.15s; }
+    .todo-check:hover { border-color:#2e7d32; }
+    .todo-check:hover svg { opacity:1; stroke:#2e7d32; }
+    .todo-check.on { background:#2e7d32; border-color:#2e7d32; }
+    .todo-check.on svg { opacity:1; stroke:#fff; }
     .todo-card-foot { display:flex; align-items:center; gap:6px; margin-top:8px; }
     .todo-due { font-size:10px; font-weight:700; padding:3px 9px; border-radius:9px; background:var(--surface2); color:var(--text-muted); }
     .todo-due.overdue { background:#fdecea; color:#c0392b; }
@@ -277,7 +285,12 @@ function cardHtml(t) {
             ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
             <span class="todo-pri ${t.priority}">${priLabel}</span>
         </div>
-        <div class="todo-card-title">${esc(t.title)}</div>
+        <div class="todo-card-title-row">
+            <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
+                <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+            </button>
+            <div class="todo-card-title">${esc(t.title)}</div>
+        </div>
         <div class="todo-card-foot">
             ${dueChip(t)}
             ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
@@ -468,6 +481,16 @@ function editTodo() {
     if (!t) { return; }
     closeTodoView();
     openTodoForm(t);
+}
+
+// 카드 체크박스로 즉시 완료 토글
+async function quickComplete(id) {
+    const res = await fetch(`/api/todos/${id}/complete`, {
+        method: 'PATCH',
+        headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+    });
+    if (!res.ok) { alert('처리에 실패했습니다.'); return; }
+    await refreshBoard();
 }
 
 async function toggleComplete() {
