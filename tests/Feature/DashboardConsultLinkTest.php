@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\Project;
@@ -99,6 +100,45 @@ class DashboardConsultLinkTest extends TestCase
             ->assertSee('오늘 마감')
             ->assertDontSee('끝난 일')
             ->assertDontSee('남의 일');
+    }
+
+    public function test_category_colors_sync_with_calendar_settings(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 관리자가 캘린더에서 방문의뢰 색을 바꾸면 대시보드 점 색상도 따라감
+        CalendarCategory::updateOrCreate(['key' => 'gold'], [
+            'label' => '방문의뢰', 'color' => '#123456', 'text_color' => '#ffffff',
+            'sort_order' => 1, 'is_active' => true,
+        ]);
+        Schedule::create([
+            'title' => '색상 동기화 확인', 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+            'color' => 'gold', 'is_all_day' => true,
+        ]);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('background:#123456', false); // 오늘의 일정 점 색상이 DB 색상을 따름
+    }
+
+    public function test_vacation_card_tracks_renamed_category_key(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 커스텀 키의 휴가 카테고리 — 색상 키가 red가 아니어도 라벨로 추적
+        CalendarCategory::updateOrCreate(['key' => 'annual_leave'], [
+            'label' => '연차/휴가', 'color' => '#aa3344', 'text_color' => '#ffffff',
+            'sort_order' => 1, 'is_active' => true,
+        ]);
+        Schedule::create([
+            'title' => '김광래 연차', 'start_date' => now()->addDays(2)->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(), 'color' => 'annual_leave', 'is_all_day' => true,
+        ]);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('김광래 연차')
+            ->assertSee('D-2');
     }
 
     public function test_vacation_card_shows_upcoming_week_only(): void

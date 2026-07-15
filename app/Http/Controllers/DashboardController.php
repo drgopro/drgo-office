@@ -97,6 +97,10 @@ class DashboardController extends Controller
         $consultByType = Consultation::select('consult_type', DB::raw('count(*) as cnt'))->groupBy('consult_type')->pluck('cnt', 'consult_type');
 
         // 월별 추이 (최근 6개월) — 유형별 분리
+        // 캘린더 카테고리 키 — 라벨 기준 조회 (고정 색상 키 하드코딩 방지, 레거시 폴백 포함)
+        $visitKeys = CalendarCategory::keysByLabel('방문', ['gold']);
+        $remoteKeys = CalendarCategory::keysByLabel('원격', ['teal']);
+
         $monthlyData = [];
         for ($i = 5; $i >= 0; $i--) {
             $m = now()->subMonths($i);
@@ -115,8 +119,8 @@ class DashboardController extends Controller
                 'projects_remote' => Project::whereBetween('created_at', [$start, $end])->where('project_type', 'remote')->count(),
                 'consults' => Consultation::whereBetween('consulted_at', [$start, $end])->count(),
                 'schedules' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->count(),
-                'schedules_visit' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->where('color', 'gold')->count(),
-                'schedules_remote' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->where('color', 'teal')->count(),
+                'schedules_visit' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->whereIn('color', $visitKeys)->count(),
+                'schedules_remote' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->whereIn('color', $remoteKeys)->count(),
                 'est_amount' => (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount'),
                 'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount'),
                 'est_count' => Estimate::whereBetween('created_at', [$start, $end])->count(),
@@ -203,6 +207,7 @@ class DashboardController extends Controller
         // 오늘의 일정 — 오늘과 겹치는 일정 (타인 비공개 제외), 종일 → 시간순
         $today = now()->toDateString();
         $catMap = CalendarCategory::map();
+        $catColors = CalendarCategory::colors(); // 대시보드 카테고리 점 색상 — 캘린더 실제 색과 동기화
         $todaySchedules = Schedule::with('assignees:id,name')
             ->whereDate('start_date', '<=', $today)
             ->where(fn ($q) => $q->whereDate('end_date', '>=', $today)->orWhereNull('end_date'))
@@ -239,7 +244,7 @@ class DashboardController extends Controller
             ]);
 
         // 휴가 — 휴가/개인 카테고리 일정, 오늘부터 D-7까지 (라벨에 '휴가'가 포함된 카테고리, 기본 red)
-        $vacationColors = collect($catMap)->filter(fn ($c) => str_contains($c['label'] ?? '', '휴가'))->keys()->all() ?: ['red'];
+        $vacationColors = CalendarCategory::keysByLabel('휴가', ['red']);
         $vacationEnd = now()->addDays(7)->toDateString();
         $vacations = Schedule::with('assignees:id,name')
             ->whereIn('color', $vacationColors)
@@ -312,7 +317,7 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'wikiTotal', 'wikiAll', 'wikiRecent', 'wikiNoticeList', 'wikiUpdateList',
-            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations', 'myTodos', 'myTodoCount',
+            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations', 'myTodos', 'myTodoCount', 'catColors',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',
@@ -333,7 +338,7 @@ class DashboardController extends Controller
         $typeL = ['visit' => '방문세팅', 'remote' => '원격세팅', 'design' => '디자인', 'inquiry' => '단순문의', 'as' => 'A/S', 'troubleshoot' => '문제 해결'];
         $consultL = ['kakao' => '카카오톡', 'phone' => '전화', 'visit' => '내방상담', 'field' => '현장답사'];
         $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
-        $colorL = ['gold' => '방문의뢰', 'teal' => '원격/방송룸', 'blue' => '사내업무', 'red' => '휴가/개인', 'green' => '촬영/스튜디오', 'purple' => '미팅/내방'];
+        $colorL = CalendarCategory::labels();
         $resultL = ['in_progress' => '진행중', 'waiting' => '대기', 'valid' => '유효', 'invalid' => '무효', 'done' => '완료'];
 
         // 기간 필터
@@ -407,7 +412,7 @@ class DashboardController extends Controller
         $stageL = ['consulting' => '상담', 'equipment' => '장비파악', 'proposal' => '일정제안', 'estimate' => '견적/계약', 'payment' => '결제/예약', 'visit' => '세팅', 'as' => 'AS', 'done' => '완료', 'cancelled' => '취소'];
         $consultL = ['kakao' => '카카오톡', 'phone' => '전화', 'visit' => '내방상담', 'field' => '현장답사'];
         $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
-        $colorL = ['gold' => '방문의뢰', 'teal' => '원격/방송룸', 'blue' => '사내업무', 'red' => '휴가/개인', 'green' => '촬영/스튜디오', 'purple' => '미팅/내방'];
+        $colorL = CalendarCategory::labels();
         $resultL = ['in_progress' => '진행중', 'waiting' => '대기', 'valid' => '유효', 'invalid' => '무효', 'done' => '완료'];
 
         $spreadsheet = new Spreadsheet;
@@ -758,8 +763,8 @@ class DashboardController extends Controller
                 Project::whereBetween('created_at', [$ds, $de])->count(),
                 Consultation::where('consulted_at', '>=', $ds)->where('consulted_at', '<=', $de)->count(),
                 Schedule::where('start_date', $ds)->count(),
-                Schedule::where('start_date', $ds)->where('color', 'gold')->count(),
-                Schedule::where('start_date', $ds)->where('color', 'teal')->count(),
+                Schedule::where('start_date', $ds)->whereIn('color', CalendarCategory::keysByLabel('방문', ['gold']))->count(),
+                Schedule::where('start_date', $ds)->whereIn('color', CalendarCategory::keysByLabel('원격', ['teal']))->count(),
             ], null, "A{$row}");
             $row++;
             $cur->addDay();

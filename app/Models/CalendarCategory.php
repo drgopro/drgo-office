@@ -32,6 +32,18 @@ class CalendarCategory extends Model
     /** 요청 내 캐시 — 캘린더 렌더 시 map()이 10여 회 호출되므로 쿼리 1회로 제한 */
     protected static ?array $mapCache = null;
 
+    protected static function booted(): void
+    {
+        // 카테고리 변경 시 요청 내 캐시 무효화 (관리자 수정 직후 응답에도 반영)
+        static::saved(fn () => static::$mapCache = null);
+        static::deleted(fn () => static::$mapCache = null);
+    }
+
+    public static function clearMapCache(): void
+    {
+        static::$mapCache = null;
+    }
+
     public static function map(): array
     {
         if (static::$mapCache !== null) {
@@ -39,6 +51,34 @@ class CalendarCategory extends Model
         }
 
         return static::$mapCache = static::buildMap();
+    }
+
+    /**
+     * 라벨 부분일치로 카테고리 키 목록 조회 — 'gold' 같은 고정 색상 키 하드코딩 방지용.
+     * 관리자가 카테고리를 바꿔도 의미(라벨) 기준으로 추적되고, 못 찾으면 레거시 폴백 키를 쓴다.
+     *
+     * @param  array<int, string>  $fallback
+     * @return array<int, string>
+     */
+    public static function keysByLabel(string $needle, array $fallback = []): array
+    {
+        $keys = collect(static::map())
+            ->filter(fn ($c) => str_contains($c['label'] ?? '', $needle))
+            ->keys()->all();
+
+        return $keys ?: $fallback;
+    }
+
+    /** @return array<string, string> key => 라벨 */
+    public static function labels(): array
+    {
+        return collect(static::map())->map(fn ($c) => $c['label'] ?? '')->all();
+    }
+
+    /** @return array<string, string> key => hex 색상 (대시보드 등 캘린더 색상 동기화용) */
+    public static function colors(): array
+    {
+        return collect(static::map())->map(fn ($c) => $c['color'] ?? '#8a9bb0')->all();
     }
 
     /**

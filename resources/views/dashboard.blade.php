@@ -251,13 +251,11 @@
             @if($todaySchedules->count())<span class="dc-count">{{ $todaySchedules->count() }}</span>@endif
             <a class="dc-link" href="/calendar" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">캘린더로 이동 →</a>
         </div>
-        @php
-            $dashColorMap = ['gold' => '#c8b08a', 'teal' => '#4ecdc4', 'blue' => '#8ab4c8', 'red' => '#c87a7a', 'green' => '#7ac87a', 'purple' => '#9b70c8'];
-        @endphp
         @forelse($todaySchedules as $s)
             <div class="ts-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">
                 <span class="ts-time">{{ $s['time'] }}@if($s['time_end'])<span class="ts-end"> – {{ $s['time_end'] }}</span>@endif</span>
-                <span class="ts-accent" style="background:{{ $dashColorMap[$s['color']] ?? '#8ba3c7' }};"></span>
+                {{-- 카테고리 색상 — 캘린더 관리에서 설정한 실제 색과 동기화 --}}
+                <span class="ts-accent" style="background:{{ $catColors[$s['color']] ?? '#8ba3c7' }};"></span>
                 <span class="ts-body">
                     <span class="ts-title {{ $s['completed'] ? 'done' : '' }}">{{ $s['title'] }}</span>
                     <div class="ts-sub">{{ $s['category'] }}{{ $s['assignees'] ? ' · 담당 '.$s['assignees'] : '' }}</div>
