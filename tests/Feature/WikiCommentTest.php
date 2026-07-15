@@ -123,6 +123,17 @@ class WikiCommentTest extends TestCase
         $this->assertNull(WikiComment::find($comment->id));
     }
 
+    public function test_index_exposes_comment_count(): void
+    {
+        $wiki = $this->meetingDoc();
+        $wiki->comments()->create(['user_id' => $this->member()->id, 'body' => '첫 댓글']);
+        $wiki->comments()->create(['user_id' => $this->member()->id, 'body' => '둘째 댓글']);
+
+        $this->actingAs($this->member())->get('/wiki')
+            ->assertOk()
+            ->assertSee('"comments":2', false);
+    }
+
     public function test_comments_shown_only_on_meeting_show_page(): void
     {
         $wiki = $this->meetingDoc();

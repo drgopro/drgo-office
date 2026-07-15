@@ -17,7 +17,7 @@ class WikiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Wiki::with('creator', 'updater');
+        $query = Wiki::with('creator', 'updater')->withCount('comments');
 
         // 검색어 — 그룹으로 묶어 기간/작성자 필터와 AND 유지 (mysql 외 드라이버는 like 폴백)
         if ($search = trim((string) $request->query('search'))) {
