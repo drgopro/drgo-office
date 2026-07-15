@@ -509,6 +509,65 @@
     .sched-opt-btn.active[data-sopt="confirmed"] { border-color:#2f9e44; background:rgba(47,158,68,0.20); color:#2f9e44; box-shadow:0 0 0 2px rgba(47,158,68,0.20); font-weight:700; }
     .sched-opt-sub { font-size:11px; color:var(--text-muted); margin:2px 0 6px; }
 
+    /* ══ 2a 리디자인: 일정 모달 — 웜 뉴트럴 + 네이비 포인트, 섹션 카드, 작성 현황 레일 ══ */
+    #modalOverlay { --m-accent:#3A5683; --m-ink:#26251f; --m-muted:#8a887f; --m-card:#ffffff; --m-border:#e7e5e0; --m-soft:#faf9f7; }
+    #modalOverlay .modal { max-width:1180px; background:#f4f2ee; }
+    #modalOverlay .modal-header { background:var(--m-card); border-bottom:1px solid var(--m-border); padding:18px 28px 14px; }
+    #modalOverlay .modal-footer { background:var(--m-card); border-top:1px solid var(--m-border); padding:14px 28px 18px; margin-top:6px; }
+    #modalOverlay .modal-body { display:grid; grid-template-columns:minmax(0,1fr) 248px; gap:16px; align-items:start; counter-reset:msec; }
+    #modalOverlay .modal-body.is-locked { display:flex; flex-direction:column; }
+    #modalOverlay .m-main { display:flex; flex-direction:column; gap:14px; min-width:0; }
+    /* 섹션 카드 — 흰 배경 + 번호 카운터 */
+    #modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section,
+    #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card {
+        background:var(--m-card); border:1px solid var(--m-border); border-radius:14px; padding:18px 20px;
+        counter-increment:msec; display:flex; flex-direction:column; gap:12px;
+    }
+    #modalOverlay .m-main .section-heading { font-size:13.5px; font-weight:800; color:var(--m-ink); text-transform:none; letter-spacing:-0.2px; }
+    #modalOverlay .m-main .section-heading::after { display:none; }
+    #modalOverlay .m-main .section-heading::before {
+        content:counter(msec, decimal-leading-zero); width:24px; height:24px; border-radius:8px; flex:none;
+        background:color-mix(in srgb, var(--m-accent) 10%, transparent); color:var(--m-accent);
+        display:inline-flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; letter-spacing:0;
+    }
+    /* 칩 — pill + 네이비 필 (카테고리 칩·확정상태 단계색은 예외 유지) */
+    #modalOverlay .radio-btn { border-radius:999px; background:var(--m-soft); border-color:#dcdad5; color:#55544e; }
+    #modalOverlay .radio-btn:hover { border-color:var(--m-accent); color:var(--m-accent); }
+    #modalOverlay .radio-btn.active { background:var(--m-accent); border-color:var(--m-accent); color:#fff; }
+    #modalOverlay .radio-btn.active-red { background:var(--red); border-color:var(--red); color:#fff; }
+    #modalOverlay .radio-btn.active-green { background:var(--green); border-color:var(--green); color:#111; }
+    #modalOverlay .special-opt-btn, #modalOverlay .sched-opt-btn { border-radius:999px; background:var(--m-soft); border-color:#dcdad5; color:#55544e; }
+    #modalOverlay .special-opt-btn.active { border-color:var(--m-accent); background:color-mix(in srgb, var(--m-accent) 10%, transparent); color:var(--m-accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--m-accent) 14%, transparent); }
+    #modalOverlay .btn-save-top, #modalOverlay .btn-save, .modal-external-action { background:var(--m-accent); color:#fff; }
+    #modalOverlay .field-section .field-label { color:var(--m-accent); }
+    /* 우측 작성 현황 레일 */
+    #modalOverlay .m-rail { position:sticky; top:0; display:flex; flex-direction:column; gap:10px; }
+    #modalOverlay .m-rail-card { background:var(--m-card); border:1px solid var(--m-border); border-radius:14px; padding:16px 16px 12px; display:flex; flex-direction:column; gap:10px; }
+    #modalOverlay .m-rail-title { font-weight:700; font-size:11px; color:var(--m-muted); letter-spacing:0.6px; }
+    #modalOverlay .m-rail-pct { display:flex; align-items:baseline; gap:8px; }
+    #modalOverlay .m-rail-pct b { font-weight:800; font-size:26px; color:var(--m-ink); letter-spacing:-0.5px; }
+    #modalOverlay .m-rail-cnt { font-size:11.5px; color:#a8a69e; }
+    #modalOverlay .m-rail-bar { height:6px; background:#f0eee9; border-radius:999px; overflow:hidden; }
+    #modalOverlay .m-rail-bar > div { height:100%; background:var(--m-accent); border-radius:999px; width:0; transition:width .25s; }
+    #modalOverlay .m-rail-nav { display:flex; flex-direction:column; border-top:1px solid #f0eee9; padding-top:6px; }
+    #modalOverlay .m-rail-item { display:flex; align-items:center; gap:8px; padding:6px 4px; border-radius:8px; text-decoration:none; cursor:pointer; }
+    #modalOverlay .m-rail-item:hover { background:var(--m-soft); }
+    #modalOverlay .m-rail-dot { width:20px; height:20px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; flex:none; background:#f0eee9; color:#a8a69e; }
+    #modalOverlay .m-rail-item.part .m-rail-dot { background:color-mix(in srgb, var(--m-accent) 12%, transparent); color:var(--m-accent); }
+    #modalOverlay .m-rail-item.done .m-rail-dot { background:var(--m-accent); color:#fff; }
+    #modalOverlay .m-rail-label { flex:1; font-size:12px; color:#55544e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #modalOverlay .m-rail-item.done .m-rail-label { color:#a8a69e; }
+    #modalOverlay .m-rail-count { font-size:10.5px; color:#a8a69e; flex:none; }
+    #modalOverlay .m-rail-remaining { background:color-mix(in srgb, var(--m-accent) 5%, #fff); border:1px solid color-mix(in srgb, var(--m-accent) 14%, #fff); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+    #modalOverlay .m-rail-rem-title { font-weight:700; font-size:11px; color:var(--m-accent); letter-spacing:0.4px; }
+    #modalOverlay .m-rail-rem-chips { display:flex; flex-wrap:wrap; gap:5px; }
+    #modalOverlay .m-rail-rem-chip { padding:4px 9px; border-radius:999px; background:#fff; border:1px solid #e0dfda; font-size:11px; color:#55544e; }
+    #modalOverlay .m-rail-rem-more { padding:4px 2px; font-size:11px; color:#a8a69e; }
+    @media (max-width:980px) {
+        #modalOverlay .modal-body { display:flex; flex-direction:column; }
+        #modalOverlay .m-rail { display:none !important; }
+    }
+
     /* ── 조건부 필드 ── */
     .conditional-field { overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
     .conditional-field.visible { max-height:120px; }
@@ -1065,6 +1124,9 @@
             {{-- 잠금 요약 뷰 (isLocked=true 일 때 표시) --}}
             <div id="lockSummary" class="lock-summary"></div>
 
+            {{-- 2a 리디자인: 좌측 폼 컬럼 --}}
+            <div class="m-main">
+
             {{-- 미팅/내방 옵션 (미팅/내방 카테고리 전용) --}}
             <div class="field-section" id="visitOptsSection" style="display:none;">
                 <div class="field-group">
@@ -1603,6 +1665,22 @@
                     <div class="img-grid" id="generalAttachGrid" style="margin-top:8px;"></div>
                 </div>
             </div>
+
+            </div>{{-- /m-main --}}
+
+            {{-- 2a 리디자인: 우측 작성 현황 레일 --}}
+            <aside class="m-rail" id="modalRail">
+                <div class="m-rail-card">
+                    <div class="m-rail-title">작성 현황</div>
+                    <div class="m-rail-pct"><b id="mRailPct">0%</b><span class="m-rail-cnt" id="mRailCnt"></span></div>
+                    <div class="m-rail-bar"><div id="mRailBarFill"></div></div>
+                    <div class="m-rail-nav" id="mRailNav"></div>
+                </div>
+                <div class="m-rail-remaining" id="mRailRemaining" style="display:none;">
+                    <div class="m-rail-rem-title">남은 항목</div>
+                    <div class="m-rail-rem-chips" id="mRailRemChips"></div>
+                </div>
+            </aside>
 
         </div>{{-- modal-body end --}}
 
@@ -5115,6 +5193,84 @@ function initAllRadioGroups(){
     document.querySelectorAll('#schedEventOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');if(btn.dataset.seopt==='after')document.getElementById('schedReasonWrap').style.display=btn.classList.contains('active')?'':'none';});});
     // scheduleOpts (단일)
     document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;const was=btn.classList.contains('active');document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.remove('active'));if(!was)btn.classList.add('active');updateSchedOptDesc();});});
+
+// ── 2a 리디자인: gold/teal 폼을 섹션 카드로 그룹핑 (section-heading·divider 경계 기준) ──
+(function(){
+    document.querySelectorAll('#modalOverlay .gold-only, #modalOverlay .teal-only').forEach(container=>{
+        let card=null;
+        [...container.children].forEach(el=>{
+            if(el.classList.contains('divider')){ el.remove(); card=null; return; }
+            if(el.classList.contains('section-heading') || !card){
+                card=document.createElement('div');
+                card.className='m-card';
+                container.insertBefore(card, el);
+            }
+            card.appendChild(el);
+        });
+    });
+})();
+
+// ── 2a 리디자인: 우측 작성 현황 레일 — 섹션별 진행/전체 작성률/남은 항목 ──
+const M_RAIL_SEC_SEL='#modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section, #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card';
+function mRailLabel(el){
+    if(el.classList.contains('datetime-section')) return '날짜 / 시간';
+    if(el.id==='generalAttachSection') return '첨부 파일';
+    const h=el.querySelector('.section-heading, .field-label');
+    const t=h?h.textContent.replace(/\s+/g,' ').replace(/[*🔍✕]/g,'').trim():'';
+    return t.length>16 ? t.slice(0,16)+'…' : (t||'섹션');
+}
+function mRailState(el){
+    const fields=[...el.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea, select')]
+        .filter(f=>f.offsetParent!==null);
+    const filled=fields.filter(f=>String(f.value||'').trim()!=='').length;
+    const chips=el.querySelectorAll('.radio-btn.active, .special-opt-btn.active, .sched-opt-btn.active, .visit-opt input:checked').length;
+    const total=fields.length;
+    let state='empty';
+    if(total===0) state=chips>0?'done':'empty';
+    else if(filled>=total) state='done';
+    else if(filled>0||chips>0) state='part';
+    return {total,filled,state};
+}
+function updateModalRail(){
+    const rail=document.getElementById('modalRail');
+    if(!rail) return;
+    if(typeof isLocked!=='undefined'&&isLocked){ rail.style.display='none'; return; }
+    rail.style.display='';
+    const secs=[...document.querySelectorAll(M_RAIL_SEC_SEL)].filter(el=>el.offsetParent!==null);
+    let done=0,total=0; const rem=[];
+    const navHtml=secs.map((el,i)=>{
+        const s=mRailState(el);
+        total+=s.total; done+=Math.min(s.filled,s.total);
+        if(s.state!=='done') rem.push(mRailLabel(el));
+        if(!el.id) el.id='mSec'+i;
+        const mark=s.state==='done'?'✓':String(i+1).padStart(2,'0');
+        return `<a class="m-rail-item ${s.state}" onclick="document.getElementById('${el.id}')?.scrollIntoView({behavior:'smooth',block:'start'})">
+            <span class="m-rail-dot">${mark}</span><span class="m-rail-label">${mRailLabel(el)}</span>
+            <span class="m-rail-count">${s.total?`${Math.min(s.filled,s.total)}/${s.total}`:''}</span></a>`;
+    }).join('');
+    document.getElementById('mRailNav').innerHTML=navHtml;
+    const pct=total>0?Math.round(done/total*100):0;
+    document.getElementById('mRailPct').textContent=pct+'%';
+    document.getElementById('mRailCnt').textContent=total?`${done}/${total} 항목`:'';
+    document.getElementById('mRailBarFill').style.width=pct+'%';
+    const remBox=document.getElementById('mRailRemaining');
+    if(rem.length){
+        remBox.style.display='';
+        document.getElementById('mRailRemChips').innerHTML=
+            rem.slice(0,6).map(r=>`<span class="m-rail-rem-chip">${r}</span>`).join('')
+            +(rem.length>6?`<span class="m-rail-rem-more">외 ${rem.length-6}개</span>`:'');
+    } else remBox.style.display='none';
+}
+let __mRailTimer=null;
+function scheduleRailUpdate(){ clearTimeout(__mRailTimer); __mRailTimer=setTimeout(updateModalRail,150); }
+(function(){
+    const mo=document.getElementById('modalOverlay');
+    if(!mo) return;
+    ['input','change','click'].forEach(evt=>mo.addEventListener(evt,scheduleRailUpdate,true));
+    // 모달이 열릴 때(카테고리 전환 포함) 레일 재구성
+    new MutationObserver(()=>{ if(mo.classList.contains('open')) scheduleRailUpdate(); })
+        .observe(mo,{attributes:true,attributeFilter:['class']});
+})();
     // specialOpts (멀티 토글)
     document.querySelectorAll('#specialOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');});});
     // 잔금 금액 변경 시 배너 업데이트

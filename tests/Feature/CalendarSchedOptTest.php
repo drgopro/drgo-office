@@ -47,4 +47,19 @@ class CalendarSchedOptTest extends TestCase
             // 기존의 분리된 '일정 관련 옵션' 라벨은 제거됨
             ->assertDontSee('일정 관련 옵션');
     }
+
+    public function test_calendar_modal_renders_2a_redesign_elements(): void
+    {
+        $res = $this->actingAs($this->master())->get('/calendar');
+
+        $res->assertOk()
+            // 좌측 폼 컬럼 + 우측 작성 현황 레일
+            ->assertSee('class="m-main"', false)
+            ->assertSee('id="modalRail"', false)
+            ->assertSee('작성 현황')
+            ->assertSee('남은 항목')
+            // 진행률·섹션 카드 그룹핑 JS
+            ->assertSee('function updateModalRail', false)
+            ->assertSee("className='m-card'", false);
+    }
 }
