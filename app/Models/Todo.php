@@ -21,6 +21,7 @@ class Todo extends Model
         'priority',
         'due_date',
         'assignee_id',
+        'schedule_id',
         'created_by',
         'completed_at',
         'sort_order',
@@ -39,6 +40,12 @@ class Todo extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    /** @return BelongsTo<Schedule, $this> — 캘린더 연동용 (선택) */
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(Schedule::class);
     }
 
     /** @return BelongsTo<User, $this> */

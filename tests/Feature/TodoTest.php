@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Schedule;
 use App\Models\Todo;
 use App\Models\TodoAttachment;
 use App\Models\User;
@@ -139,6 +140,30 @@ class TodoTest extends TestCase
 
         $this->assertSame(0, TodoAttachment::count());
         Storage::assertMissing($path);
+    }
+
+    public function test_todo_links_to_schedule_and_survives_schedule_delete(): void
+    {
+        $schedule = Schedule::create([
+            'title' => '방문 세팅', 'start_date' => '2026-07-20', 'end_date' => '2026-07-20',
+            'color' => 'gold', 'is_all_day' => true,
+        ]);
+
+        $res = $this->actingAs($this->user)->postJson('/api/todos', [
+            'title' => '세팅 전 장비 점검', 'priority' => 'high',
+            'assignee_id' => $this->user->id, 'schedule_id' => $schedule->id,
+        ]);
+
+        $res->assertCreated()->assertJsonPath('todo.schedule_id', $schedule->id);
+
+        // 일정 소프트 삭제 시 연결 유지 (복구 가능), 완전 삭제 시 연결만 해제되고 할 일은 유지
+        $schedule->delete();
+        $this->assertSame($schedule->id, Todo::first()->schedule_id);
+
+        $schedule->forceDelete();
+        $todo = Todo::first();
+        $this->assertNotNull($todo);
+        $this->assertNull($todo->schedule_id);
     }
 
     public function test_board_json_returns_todos(): void

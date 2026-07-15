@@ -142,6 +142,7 @@ class TodoController extends Controller
             'priority' => ['required', Rule::in(array_keys(Todo::PRIORITIES))],
             'due_date' => 'nullable|date',
             'assignee_id' => 'required|exists:users,id',
+            'schedule_id' => 'nullable|exists:schedules,id', // 캘린더 연동용 (선택)
         ]);
     }
 
@@ -166,6 +167,7 @@ class TodoController extends Controller
             'priority' => $t->priority,
             'due_date' => $t->due_date?->format('Y-m-d'),
             'assignee_id' => $t->assignee_id,
+            'schedule_id' => $t->schedule_id,
             'assignee' => $t->assignee?->display_name ?? '알 수 없음',
             'team' => $t->assignee?->team?->name,
             'creator' => $t->creator?->display_name,
