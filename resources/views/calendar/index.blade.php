@@ -563,6 +563,24 @@
     #modalOverlay .m-rail-rem-chips { display:flex; flex-wrap:wrap; gap:5px; }
     #modalOverlay .m-rail-rem-chip { padding:4px 9px; border-radius:999px; background:#fff; border:1px solid #e0dfda; font-size:11px; color:#55544e; }
     #modalOverlay .m-rail-rem-more { padding:4px 2px; font-size:11px; color:#a8a69e; }
+    /* 헤더 — 시안형: 큰 제목 + dashed pill 버튼 */
+    #modalOverlay .modal-date-badge { color:var(--m-muted); font-weight:600; letter-spacing:0; font-size:12px; }
+    #modalOverlay .modal-title-input { font-size:26px; font-weight:800; letter-spacing:-0.4px; color:var(--m-ink); }
+    #modalOverlay .modal-title-input::placeholder { color:#b3b1aa; }
+    #modalOverlay .assignee-btn { border:1px dashed #c1bfb8; border-radius:999px; padding:5px 13px; background:transparent; color:#6b6a63; margin-right:6px; }
+    #modalOverlay .assignee-btn:hover { border-color:var(--m-accent); color:var(--m-accent); }
+    /* 01 카드 안 카테고리 칩 — 선택 시 ✓ */
+    #modalOverlay .color-dot { background:var(--m-soft); }
+    #modalOverlay .color-dot.active::before { content:'✓ '; font-weight:800; }
+    /* 종일 토글 — 네이비 스위치 */
+    #modalOverlay .toggle-track.on { background:var(--m-accent); }
+    #modalOverlay .toggle-track.on .toggle-thumb { background:#fff; }
+    /* 01 카드: datetime 자체 배경 제거(카드 스킨으로 통일) + 병합된 알림/반복 구분선 */
+    #modalOverlay .m-main > .datetime-section { background:var(--m-card); border-color:var(--m-border); }
+    #modalOverlay .m-main > .datetime-section #notifGroup { border-top:1px solid #f0eee9; padding-top:12px; }
+    /* 섹션 헤더 우측 'n/m 작성' 상태 */
+    #modalOverlay .m-secstat { margin-left:auto; font-size:11px; font-weight:600; color:#a8a69e; }
+    #modalOverlay .m-secstat.done { color:var(--m-accent); }
     @media (max-width:980px) {
         #modalOverlay .modal-body { display:flex; flex-direction:column; }
         #modalOverlay .m-rail { display:none !important; }
@@ -5210,14 +5228,43 @@ function initAllRadioGroups(){
     });
 })();
 
+// ── 2a 리디자인: 시안과 동일한 섹션 배치 — 01 분류/시간 → 02 의뢰자 → 03 장소 ──
+(function(){
+    const main=document.querySelector('#modalOverlay .m-main');
+    const dt=main?.querySelector(':scope > .datetime-section');
+    if(!main||!dt) return;
+    // 01 카드: 헤딩 + 카테고리 칩(헤더의 colorRow 이동) + 알림/반복 병합
+    const heading=document.createElement('div');
+    heading.className='section-heading';
+    heading.textContent='일정 분류 및 시간';
+    dt.insertBefore(heading, dt.firstChild);
+    const colorRow=document.getElementById('colorRow');
+    if(colorRow){ colorRow.style.marginBottom='2px'; dt.insertBefore(colorRow, heading.nextSibling); }
+    const nr=document.getElementById('notifRepeatSection');
+    if(nr){ [...nr.children].forEach(ch=>dt.appendChild(ch)); nr.remove(); }
+    // 02 의뢰자 정보 카드(gold 첫 카드)를 검색 카드 뒤로 — gold-only 클래스로 표시 토글 유지
+    const goldClientCard=[...document.querySelectorAll('#modalOverlay .gold-only .m-card')]
+        .find(c=>c.querySelector('.section-heading')?.textContent.includes('의뢰자 정보'));
+    const clientLink=document.getElementById('clientLinkSection');
+    const moveFrom=document.getElementById('moveFromBlock');
+    const addr=document.getElementById('addressBlock');
+    main.insertBefore(dt, main.firstChild);
+    let after=dt;
+    if(clientLink){ after.after(clientLink); after=clientLink; }
+    if(goldClientCard){ goldClientCard.classList.add('gold-only'); after.after(goldClientCard); after=goldClientCard; }
+    if(moveFrom){ after.after(moveFrom); after=moveFrom; }
+    if(addr){ after.after(addr); }
+})();
+
 // ── 2a 리디자인: 우측 작성 현황 레일 — 섹션별 진행/전체 작성률/남은 항목 ──
 const M_RAIL_SEC_SEL='#modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section, #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card';
 function mRailLabel(el){
     if(el.classList.contains('datetime-section')) return '날짜 / 시간';
     if(el.id==='generalAttachSection') return '첨부 파일';
     const h=el.querySelector('.section-heading, .field-label');
-    // 이모지·기호 제거 (u 플래그 필수 — 서로게이트 반쪽만 지워져 깨진 문자가 남는 것 방지)
-    const t=h?h.textContent.replace(/\s+/g,' ').replace(/[\p{Extended_Pictographic}️*✕]/gu,'').trim():'';
+    // 상태 라벨(m-secstat) 제외 + 이모지·기호 제거 (u 플래그 필수 — 서로게이트 반쪽 잔류 방지)
+    const raw=h?[...h.childNodes].filter(n=>!(n.nodeType===1&&n.classList.contains('m-secstat'))).map(n=>n.textContent).join(''):'';
+    const t=raw.replace(/\s+/g,' ').replace(/[\p{Extended_Pictographic}️*✕]/gu,'').trim();
     return t.length>16 ? t.slice(0,16)+'…' : (t||'섹션');
 }
 function mRailState(el){
@@ -5244,6 +5291,14 @@ function updateModalRail(){
         total+=s.total; done+=Math.min(s.filled,s.total);
         if(s.state!=='done') rem.push(mRailLabel(el));
         if(!el.id) el.id='mSec'+i;
+        // 카드 헤더 우측 'n/m 작성' 상태 (시안의 섹션 상태 라벨)
+        const hd=el.querySelector('.section-heading');
+        if(hd){
+            let st=hd.querySelector('.m-secstat');
+            if(!st){ st=document.createElement('span'); st.className='m-secstat'; hd.appendChild(st); }
+            st.textContent=s.total?`${Math.min(s.filled,s.total)}/${s.total} 작성`:(s.state==='done'?'작성됨':'');
+            st.classList.toggle('done', s.state==='done');
+        }
         const mark=s.state==='done'?'✓':String(i+1).padStart(2,'0');
         return `<a class="m-rail-item ${s.state}" onclick="document.getElementById('${el.id}')?.scrollIntoView({behavior:'smooth',block:'start'})">
             <span class="m-rail-dot">${mark}</span><span class="m-rail-label">${mRailLabel(el)}</span>
