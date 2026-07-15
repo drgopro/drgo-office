@@ -511,10 +511,10 @@
 
     /* ══ 2a 리디자인: 일정 모달 — 웜 뉴트럴 + 네이비 포인트, 섹션 카드, 작성 현황 레일 ══ */
     #modalOverlay { --m-accent:#3A5683; --m-ink:#26251f; --m-muted:#8a887f; --m-card:#ffffff; --m-border:#e7e5e0; --m-soft:#faf9f7; }
-    #modalOverlay .modal { max-width:1180px; background:#f4f2ee; }
+    #modalOverlay .modal { max-width:980px; background:#f4f2ee; }
     #modalOverlay .modal-header { background:var(--m-card); border-bottom:1px solid var(--m-border); padding:18px 28px 14px; }
     #modalOverlay .modal-footer { background:var(--m-card); border-top:1px solid var(--m-border); padding:14px 28px 18px; margin-top:6px; }
-    #modalOverlay .modal-body { display:grid; grid-template-columns:minmax(0,1fr) 248px; gap:16px; align-items:start; counter-reset:msec; }
+    #modalOverlay .modal-body { display:grid; grid-template-columns:minmax(0,1fr) 208px; gap:14px; align-items:start; counter-reset:msec; }
     #modalOverlay .modal-body.is-locked { display:flex; flex-direction:column; }
     #modalOverlay .m-main { display:flex; flex-direction:column; gap:14px; min-width:0; }
     /* 섹션 카드 — 흰 배경 + 번호 카운터 */
@@ -5216,7 +5216,8 @@ function mRailLabel(el){
     if(el.classList.contains('datetime-section')) return '날짜 / 시간';
     if(el.id==='generalAttachSection') return '첨부 파일';
     const h=el.querySelector('.section-heading, .field-label');
-    const t=h?h.textContent.replace(/\s+/g,' ').replace(/[*🔍✕]/g,'').trim():'';
+    // 이모지·기호 제거 (u 플래그 필수 — 서로게이트 반쪽만 지워져 깨진 문자가 남는 것 방지)
+    const t=h?h.textContent.replace(/\s+/g,' ').replace(/[\p{Extended_Pictographic}️*✕]/gu,'').trim():'';
     return t.length>16 ? t.slice(0,16)+'…' : (t||'섹션');
 }
 function mRailState(el){
