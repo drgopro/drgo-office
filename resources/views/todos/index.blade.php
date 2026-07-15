@@ -47,7 +47,7 @@
     .todo-card-title-row { display:flex; align-items:flex-start; gap:8px; }
     .todo-card-title { font-size:13px; font-weight:700; line-height:1.45; word-break:break-word; }
     /* 원형 완료 체크 — 호버 시 미리보기, 완료 시 채워짐 */
-    .todo-check { flex-shrink:0; width:19px; height:19px; border-radius:50%; border:2px solid #c3cad6; background:transparent; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; margin-top:1px; }
+    .todo-check { flex-shrink:0; width:19px; height:19px; border-radius:50%; border:2px solid #c3cad6; background:transparent; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
     .todo-check svg { width:11px; height:11px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:opacity 0.15s; }
     .todo-check:hover { border-color:#2e7d32; }
     .todo-check:hover svg { opacity:1; stroke:#2e7d32; }
