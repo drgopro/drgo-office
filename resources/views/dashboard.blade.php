@@ -168,6 +168,35 @@
         .pipeline-grid { grid-template-columns:1fr 1fr; }
         .pipeline-card .pc-value { font-size:24px; }
     }
+
+    /* ══ 목업 팔레트 — 웜그레이 배경 + 화이트 카드 + 네이비 포인트 ══ */
+    body { background:#f0f1f4; }
+    .dash-wrap { --d-navy:#1f2b40; --d-accent:#3A5683; --d-ink:#1c2433; --d-muted:#7d8698; --d-border:#e3e6ec; }
+    .dash-header h1 { font-size:22px; letter-spacing:-0.3px; color:var(--d-ink); }
+    .dash-header p { color:var(--d-muted); }
+    /* 카드 공통 */
+    .dcard, .pl-wrap { background:#fff; border-color:var(--d-border); box-shadow:0 1px 2px rgba(16,24,40,0.04); }
+    .dcard-head { background:#f7f8fa; border-bottom-color:#edeff3; color:var(--d-ink); font-weight:800; }
+    .dcard-head .dc-sub { color:var(--d-muted); }
+    .dcard-head .dc-link { color:var(--d-accent); }
+    .dcard-head .dc-count { background:var(--d-navy); color:#fff; }
+    .dcard-empty { color:var(--d-muted); }
+    /* 행 구분/hover */
+    .ts-row, .fp-row, .ob-row, .nu-row, .consult-item { border-bottom-color:#f0f2f5; }
+    .ts-row:hover, .fp-row:hover, .ob-row:hover, .nu-row:hover, .consult-item:hover { background:#f7f8fa; }
+    /* 텍스트 톤 */
+    .ts-time, .ts-title, .ws-value, .plc-value, .fp-client, .ob-label, .ob-amt, .nu-title, .consult-client, .pl-title { color:var(--d-ink); }
+    .ts-sub, .ws-label, .ws-sub, .plc-label, .plc-sub, .fp-desc, .ob-sub, .nu-date, .pl-sub, .consult-content, .consult-meta { color:var(--d-muted); }
+    .pl-total { color:var(--d-muted); } .pl-total b { color:var(--d-ink); }
+    /* 칩/버튼 네이비 포인트 */
+    .ts-chip { color:var(--d-accent); border-color:#dfe4ee; background:#f3f5f9; }
+    .consult-badge.in_progress { background:rgba(58,86,131,0.12); color:var(--d-accent); }
+    .consult-badge.waiting { background:#eef0f4; color:var(--d-muted); }
+    .ws-cell, .pl-card { border-color:var(--d-border); }
+    .ws-cell:hover, .pl-card:hover { background:#f7f8fa; border-color:var(--d-accent); }
+    .pl-bar { background:#eef0f4; }
+    .ob-total { background:#f7f8fa; }
+    .ob-total b { color:var(--d-navy); }
 </style>
 @endpush
 
@@ -179,7 +208,7 @@
             <p>{{ now()->format('Y년 m월 d일') }} · {{ Auth::user()->display_name }}님 안녕하세요</p>
         </div>
         @if(Auth::user()->isAdmin())
-            <a href="/marketing-report" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('marketing-report','/marketing-report'); else location.href='/marketing-report';" style="background:var(--accent); color:var(--accent-text); padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;"><x-icon name="chart" :size="15"/> 상세 통계 →</a>
+            <a href="/marketing-report" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('marketing-report','/marketing-report'); else location.href='/marketing-report';" style="background:#1f2b40; color:#fff; padding:9px 18px; border-radius:9px; font-size:12.5px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:5px;"><x-icon name="chart" :size="15"/> 상세 통계 →</a>
         @endif
     </div>
 
