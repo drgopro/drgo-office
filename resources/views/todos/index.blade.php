@@ -26,9 +26,15 @@
     .todo-mfilter-btn #mfilterCount { color:var(--accent); font-weight:700; }
     .todo-mfilter-panel { display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:50; min-width:190px; max-height:300px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:8px; }
     .todo-mfilter.open .todo-mfilter-panel { display:block; }
-    .todo-mfilter-panel label { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:7px 9px; border-radius:7px; cursor:pointer; }
+    .todo-mfilter-panel label { display:flex; align-items:center; gap:9px; font-size:12.5px; padding:7px 9px; border-radius:7px; cursor:pointer; }
     .todo-mfilter-panel label:hover { background:var(--surface2); }
-    .todo-mfilter-panel input { accent-color:var(--accent); margin:0; }
+    .todo-mfilter-panel label:has(input:checked) { color:var(--accent); font-weight:600; }
+    /* 커스텀 체크박스 — 라운드 사각 + 체크마크 */
+    .todo-mfilter-panel input { appearance:none; -webkit-appearance:none; width:17px; height:17px; margin:0; flex-shrink:0; border:1.5px solid #c3cad6; border-radius:5px; background:var(--surface); cursor:pointer; position:relative; transition:all 0.15s; }
+    .todo-mfilter-panel input:hover { border-color:var(--accent); }
+    .todo-mfilter-panel input:checked { background:var(--accent); border-color:var(--accent); }
+    .todo-mfilter-panel input::after { content:''; position:absolute; left:5px; top:1.5px; width:4px; height:8px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg) scale(0); transition:transform 0.12s; }
+    .todo-mfilter-panel input:checked::after { transform:rotate(45deg) scale(1); }
     .todo-mfilter-panel .mfilter-all { border-bottom:1px solid var(--border); margin-bottom:4px; padding-bottom:9px; font-weight:700; }
     .todo-mfilter-panel .mfilter-team { color:var(--text-muted); font-size:11px; margin-left:auto; }
 
