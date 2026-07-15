@@ -292,4 +292,69 @@ class MarketingReportController extends Controller
             'avgInquiryToComplete', 'avgPaidToComplete', 'pipeline'
         ));
     }
+
+    /** 총 매출 드릴다운 — 기간 내 결제가 발생한 프로젝트별 순매출 목록 (JSON) */
+    public function revenueProjects(Request $request)
+    {
+        $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
+        $to = $request->query('to', now()->endOfMonth()->format('Y-m-d'));
+        $fromDt = $from.' 00:00:00';
+        $toDt = $to.' 23:59:59';
+
+        $typeLabels = ConsultationType::map(false);
+        $items = collect();
+
+        if (Schema::hasTable('project_payments')) {
+            $items = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
+                ->join('projects', 'projects.id', '=', 'project_payments.project_id')
+                ->leftJoin('clients', 'clients.id', '=', 'projects.client_id')
+                ->selectRaw('projects.id, projects.name, projects.project_type, projects.manual_client_name,
+                    clients.nickname as client_nickname, clients.name as client_name,
+                    sum(project_payments.amount) as total, count(*) as pay_count, max(project_payments.paid_at) as last_paid_at')
+                ->groupBy('projects.id', 'projects.name', 'projects.project_type', 'projects.manual_client_name', 'clients.nickname', 'clients.name')
+                ->get()
+                ->map(fn ($r) => [
+                    'project_id' => $r->id,
+                    'name' => $r->name,
+                    'client' => $r->client_nickname ?: $r->client_name ?: $r->manual_client_name ?: '(의뢰자 없음)',
+                    'type' => $typeLabels[$r->project_type] ?? $r->project_type,
+                    'amount' => (int) $r->total,
+                    'pay_count' => (int) $r->pay_count,
+                    'last_paid_at' => $r->last_paid_at,
+                    'source' => 'payment',
+                ]);
+        }
+
+        // 레거시: 결제 내역 미연결 결제완료 견적 (총 매출 정의와 동일)
+        $linkedEstimateIds = Schema::hasTable('project_payments')
+            ? ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])->whereNotNull('estimate_id')->pluck('estimate_id')->unique()->all()
+            : [];
+        $legacy = Estimate::with('project.client')
+            ->where('status', 'paid')
+            ->whereBetween('created_at', [$fromDt, $toDt])
+            ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
+            ->get()
+            ->map(fn ($e) => [
+                'project_id' => $e->project_id,
+                'name' => $e->project?->name ?? '견적 #'.$e->id.' (프로젝트 미연결)',
+                'client' => $e->client_nickname ?: $e->client_name ?: ($e->project?->client?->nickname ?? '(의뢰자 없음)'),
+                'type' => $e->project ? ($typeLabels[$e->project->project_type] ?? $e->project->project_type) : '견적',
+                'amount' => (int) $e->total_amount,
+                'pay_count' => 1,
+                'last_paid_at' => $e->created_at->format('Y-m-d'),
+                'source' => 'estimate',
+            ]);
+
+        $rows = $items->concat($legacy)
+            ->filter(fn ($r) => $r['amount'] !== 0)
+            ->sortByDesc('amount')->values();
+
+        return response()->json([
+            'from' => $from,
+            'to' => $to,
+            'total' => $rows->sum('amount'),
+            'count' => $rows->count(),
+            'projects' => $rows,
+        ]);
+    }
 }

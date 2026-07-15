@@ -18,6 +18,25 @@
 
     .mk-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
     .mk-section-title { font-size:14px; font-weight:700; color:var(--accent); margin-bottom:16px; display:flex; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    .mk-clickable { cursor:pointer; transition:all 0.15s; }
+    .mk-clickable:hover { border-color:var(--accent); box-shadow:0 3px 10px rgba(24,39,64,.08); }
+    /* 총 매출 드릴다운 모달 */
+    .rvp-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:400; align-items:flex-start; justify-content:center; padding:6vh 16px 16px; overflow-y:auto; }
+    .rvp-overlay.open { display:flex; }
+    .rvp-modal { width:100%; max-width:640px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .rvp-head { display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid var(--border); }
+    .rvp-head h2 { font-size:15px; font-weight:700; margin:0; }
+    .rvp-head .sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .rvp-close { background:none; border:none; font-size:17px; color:var(--text-muted); cursor:pointer; padding:2px 8px; }
+    .rvp-body { max-height:62vh; overflow-y:auto; padding:8px 12px 14px; }
+    .rvp-row { display:flex; align-items:center; gap:10px; padding:10px 10px; border-bottom:1px solid var(--surface2); cursor:pointer; border-radius:8px; }
+    .rvp-row:hover { background:var(--surface2); }
+    .rvp-row:last-child { border-bottom:none; }
+    .rvp-name { font-size:13px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rvp-sub { font-size:11.5px; color:var(--text-muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rvp-amt { margin-left:auto; flex-shrink:0; font-size:13.5px; font-weight:700; color:var(--accent); }
+    .rvp-amt.minus { color:#c0392b; }
+    .rvp-empty { color:var(--text-muted); font-size:12.5px; text-align:center; padding:36px 0; }
 
     .mk-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
     .mk-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
@@ -342,8 +361,8 @@
         <div class="mk-section-title"><x-icon name="money" :size="15"/> 매출 지표</div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
-            <div class="mk-card">
-                <div class="mk-label">총 매출</div>
+            <div class="mk-card mk-clickable" onclick="openRevenueProjects()" title="결제가 발생한 프로젝트 보기">
+                <div class="mk-label">총 매출 <span style="font-size:10px; color:var(--accent);">상세 ↗</span></div>
                 <div class="mk-value" style="color:var(--accent); font-size:20px;">{{ number_format($revenueTotal) }}원</div>
             </div>
             <div class="mk-card">
@@ -462,6 +481,20 @@
         <div class="mk-chart-wrap" style="height:280px;"><canvas id="chartMonthlyTrend"></canvas></div>
     </div>
 </div>
+
+{{-- 총 매출 드릴다운 — 기간 내 결제가 발생한 프로젝트 목록 --}}
+<div class="rvp-overlay" id="rvpOverlay" onclick="if(event.target.id==='rvpOverlay') closeRevenueProjects()">
+    <div class="rvp-modal">
+        <div class="rvp-head">
+            <div>
+                <h2>💰 결제 발생 프로젝트</h2>
+                <div class="sub" id="rvpSub"></div>
+            </div>
+            <button type="button" class="rvp-close" onclick="closeRevenueProjects()">✕</button>
+        </div>
+        <div class="rvp-body" id="rvpBody"><div class="rvp-empty">불러오는 중…</div></div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -518,6 +551,35 @@ new Chart(document.getElementById('chartMonthlyTrend'), {
         }
     }
 });
+
+// ── 총 매출 드릴다운 ──
+function rvpEsc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+async function openRevenueProjects(){
+    const overlay=document.getElementById('rvpOverlay');
+    const body=document.getElementById('rvpBody');
+    overlay.classList.add('open');
+    body.innerHTML='<div class="rvp-empty">불러오는 중…</div>';
+    const from=document.getElementById('mkFrom').value, to=document.getElementById('mkTo').value;
+    try{
+        const res=await fetch(`/api/marketing-report/revenue-projects?from=${from}&to=${to}`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) throw new Error();
+        const data=await res.json();
+        document.getElementById('rvpSub').textContent=`${data.from} ~ ${data.to} · ${data.count}건 · 합계 ${Number(data.total).toLocaleString()}원`;
+        if(!data.projects.length){ body.innerHTML='<div class="rvp-empty">기간 내 결제가 발생한 프로젝트가 없습니다.</div>'; return; }
+        body.innerHTML=data.projects.map(p=>`<div class="rvp-row" ${p.project_id?`onclick="openRvpProject(${p.project_id})"`:''}>
+            <span style="min-width:0;">
+                <div class="rvp-name">${rvpEsc(p.name)}</div>
+                <div class="rvp-sub">${rvpEsc(p.client)} · ${rvpEsc(p.type)}${p.pay_count>1?` · 결제 ${p.pay_count}건`:''}${p.last_paid_at?` · 최근 ${p.last_paid_at}`:''}</div>
+            </span>
+            <span class="rvp-amt ${p.amount<0?'minus':''}">${Number(p.amount).toLocaleString()}원</span>
+        </div>`).join('');
+    }catch(e){ body.innerHTML='<div class="rvp-empty">목록을 불러오지 못했습니다.</div>'; }
+}
+function closeRevenueProjects(){ document.getElementById('rvpOverlay').classList.remove('open'); }
+function openRvpProject(id){
+    if(window.parent && window.parent.drgoTabs){ window.parent.drgoTabs.openNav('projects','/projects/'+id); }
+    else{ location.href='/projects/'+id; }
+}
 
 // ── 기간 프리셋 / 월 이동 ──
 function mkPad(n){ return String(n).padStart(2,'0'); }
