@@ -6,6 +6,7 @@ use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
 use App\Models\Client;
+use App\Models\ProjectBilling;
 use App\Models\RentalContract;
 use App\Models\Schedule;
 use App\Models\ScheduleChange;
@@ -184,8 +185,52 @@ class CalendarController extends Controller
         }
 
         $this->notifyAssigneesOfCreation($schedule);
+        $this->syncBalanceBilling($schedule);
 
         return response()->json($schedule, 201);
+    }
+
+    /**
+     * 캘린더 잔금(gold_data.balance=O) ↔ 청구(project_billings) 동기화.
+     * 프로젝트가 연결된 일정의 잔금을 미수 청구로 등록해 잔금 관리·대시보드 잔금 미수와 연동한다.
+     * 생성한 청구 id는 gold_data.balance_billing_id에 기억해 재저장 시 중복 생성을 방지.
+     */
+    private function syncBalanceBilling(Schedule $schedule): void
+    {
+        $g = $schedule->gold_data ?? [];
+        $projectId = (int) ($g['project_id'] ?? 0);
+        $amount = (int) preg_replace('/\D/', '', (string) ($g['balance_amount'] ?? ''));
+        $active = ($g['balance'] ?? '') === 'O' && $amount > 0 && $projectId > 0;
+        $billing = ! empty($g['balance_billing_id']) ? ProjectBilling::find($g['balance_billing_id']) : null;
+
+        if ($active) {
+            if ($billing) {
+                // 입금 전(미입금)일 때만 금액/프로젝트/청구일 최신화 — 입금이 시작된 청구는 건드리지 않음
+                if ((int) $billing->paidTotal() === 0 && $billing->status === 'unpaid') {
+                    $billing->update([
+                        'project_id' => $projectId,
+                        'amount' => $amount,
+                        'billed_at' => $schedule->start_date?->format('Y-m-d') ?? now()->format('Y-m-d'),
+                    ]);
+                }
+            } else {
+                $billing = ProjectBilling::create([
+                    'project_id' => $projectId,
+                    'amount' => $amount,
+                    'billed_at' => $schedule->start_date?->format('Y-m-d') ?? now()->format('Y-m-d'),
+                    'status' => 'unpaid',
+                    'memo' => '캘린더 잔금 — '.($schedule->title ?: '일정 #'.$schedule->id),
+                    'created_by' => Auth::id(),
+                ]);
+                $g['balance_billing_id'] = $billing->id;
+                $schedule->update(['gold_data' => $g]);
+            }
+        } elseif ($billing && $billing->payments()->count() === 0 && $billing->status !== 'paid') {
+            // 잔금 해제(X)·프로젝트 연결 해제 — 입금 이력이 없을 때만 청구 제거
+            $billing->delete();
+            unset($g['balance_billing_id']);
+            $schedule->update(['gold_data' => $g]);
+        }
     }
 
     /**
@@ -453,7 +498,16 @@ class CalendarController extends Controller
             ]);
         }
 
+        // 캘린더 잔금 청구 연결 id는 서버가 관리 — 클라이언트가 재전송한 gold_data에 승계 (중복 청구 방지)
+        if (isset($validated['gold_data']) && is_array($validated['gold_data'])) {
+            $prevBillingId = data_get($schedule->gold_data, 'balance_billing_id');
+            if ($prevBillingId && empty($validated['gold_data']['balance_billing_id'])) {
+                $validated['gold_data']['balance_billing_id'] = $prevBillingId;
+            }
+        }
+
         $schedule->update($validated);
+        $this->syncBalanceBilling($schedule);
 
         if (isset($validated['assignees'])) {
             $schedule->assignees()->sync($validated['assignees']);
@@ -625,6 +679,12 @@ class CalendarController extends Controller
         ]);
 
         $schedule->delete(); // SoftDeletes → deleted_at만 set
+
+        // 캘린더 잔금 청구 정리 — 입금 이력이 없을 때만 함께 제거
+        $balanceBillingId = data_get($schedule->gold_data, 'balance_billing_id');
+        if ($balanceBillingId && ($b = ProjectBilling::find($balanceBillingId)) && $b->payments()->count() === 0 && $b->status !== 'paid') {
+            $b->delete();
+        }
 
         return response()->json(['ok' => true]);
     }
