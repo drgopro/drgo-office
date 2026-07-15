@@ -77,4 +77,23 @@ class DashboardConsultLinkTest extends TestCase
             ->assertSee('공지사항')
             ->assertSee('업데이트');
     }
+
+    public function test_vacation_card_shows_upcoming_week_only(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 오늘 휴가 중 / D-5 예정 / D-10 (표시 제외)
+        Schedule::create(['title' => '김웅 여름휴가', 'start_date' => now()->toDateString(), 'end_date' => now()->addDay()->toDateString(), 'color' => 'red', 'is_all_day' => true]);
+        Schedule::create(['title' => '박진혁 휴가', 'start_date' => now()->addDays(5)->toDateString(), 'end_date' => now()->addDays(5)->toDateString(), 'color' => 'red', 'is_all_day' => true]);
+        Schedule::create(['title' => '먼 미래 휴가', 'start_date' => now()->addDays(10)->toDateString(), 'end_date' => now()->addDays(10)->toDateString(), 'color' => 'red', 'is_all_day' => true]);
+
+        $res = $this->actingAs($user)->get('/');
+
+        $res->assertOk()
+            ->assertSee('김웅 여름휴가')
+            ->assertSee('휴가 중')
+            ->assertSee('박진혁 휴가')
+            ->assertSee('D-5')
+            ->assertDontSee('먼 미래 휴가');
+    }
 }

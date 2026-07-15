@@ -73,6 +73,16 @@
     .ob-total { display:flex; align-items:center; justify-content:space-between; padding:11px 16px; font-size:12.5px; font-weight:700; background:var(--surface2); }
     .ob-total b { font-size:15px; color:var(--red); }
 
+    /* 휴가 (우측) */
+    .vc-row { display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid #f0f2f5; cursor:pointer; }
+    .vc-row:last-child { border-bottom:none; }
+    .vc-row:hover { background:#f7f8fa; }
+    .vc-body { flex:1; min-width:0; }
+    .vc-name { font-size:13px; font-weight:700; color:var(--d-ink, var(--text)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .vc-sub { font-size:11px; color:var(--d-muted, var(--text-muted)); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .vc-chip { flex:none; font-size:10.5px; font-weight:800; border-radius:8px; padding:3px 9px; border:1px solid #dfe4ee; color:#3A5683; background:#f3f5f9; }
+    .vc-chip.on { background:#c87a7a; border-color:#c87a7a; color:#fff; }
+
     /* 공지·업데이트 (우측) */
     .nu-row { display:flex; align-items:center; gap:9px; padding:10px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
     .nu-row:last-child { border-bottom:none; }
@@ -378,6 +388,26 @@
             @endif
         </div>
         @endif
+
+        {{-- 휴가 — 휴가/개인 카테고리, 오늘 ~ D-7 --}}
+        <div class="dcard">
+            <div class="dcard-head">
+                휴가
+                @if($vacations->count())<span class="dc-count">{{ $vacations->count() }}</span>@endif
+                <span class="dc-sub" style="margin-left:auto;">D-7까지</span>
+            </div>
+            @forelse($vacations as $v)
+                <div class="vc-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">
+                    <span class="vc-body">
+                        <div class="vc-name">{{ $v['name'] }}</div>
+                        <div class="vc-sub">{{ $v['title'] }}{{ $v['title'] && $v['period'] ? ' · ' : '' }}{{ $v['period'] }}</div>
+                    </span>
+                    <span class="vc-chip {{ $v['ongoing'] ? 'on' : '' }}">{{ $v['dday'] }}</span>
+                </div>
+            @empty
+                <div class="dcard-empty">예정된 휴가가 없습니다</div>
+            @endforelse
+        </div>
 
         {{-- 나의 할 일 — 추후 개발 예정 --}}
 

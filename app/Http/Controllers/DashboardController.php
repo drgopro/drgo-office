@@ -237,6 +237,29 @@ class DashboardController extends Controller
                 'project_id' => data_get($s->gold_data, 'project_id'),
             ]);
 
+        // 휴가 — 휴가/개인 카테고리 일정, 오늘부터 D-7까지 (라벨에 '휴가'가 포함된 카테고리, 기본 red)
+        $vacationColors = collect($catMap)->filter(fn ($c) => str_contains($c['label'] ?? '', '휴가'))->keys()->all() ?: ['red'];
+        $vacationEnd = now()->addDays(7)->toDateString();
+        $vacations = Schedule::with('assignees:id,name')
+            ->whereIn('color', $vacationColors)
+            ->whereDate('start_date', '<=', $vacationEnd)
+            ->where(fn ($q) => $q->whereDate('end_date', '>=', $today)
+                ->orWhere(fn ($qq) => $qq->whereNull('end_date')->whereDate('start_date', '>=', $today)))
+            ->orderBy('start_date')->limit(6)->get()
+            ->map(function ($s) use ($today) {
+                $start = $s->start_date;
+                $end = $s->end_date ?: $start;
+                $ongoing = $start->toDateString() <= $today && $end->toDateString() >= $today;
+
+                return [
+                    'name' => $s->assignees->pluck('name')->implode(', ') ?: ($s->title ?: '(이름 없음)'),
+                    'title' => $s->title,
+                    'period' => $start->format('m.d').($end->ne($start) ? ' – '.$end->format('m.d') : ''),
+                    'ongoing' => $ongoing,
+                    'dday' => $ongoing ? '휴가 중' : 'D-'.max(0, (int) now()->startOfDay()->diffInDays($start->copy()->startOfDay())),
+                ];
+            });
+
         // 잔금 미수 — 미입금·부분입금 청구 상위 + 합계
         $outstanding = collect();
         $outstandingTotal = 0;
@@ -266,7 +289,7 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'wikiTotal', 'wikiAll', 'wikiRecent', 'wikiNoticeList', 'wikiUpdateList',
-            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount',
+            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',
