@@ -1,0 +1,433 @@
+@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
+
+@section('title', '할 일 - 닥터고블린 오피스')
+
+@push('styles')
+<style>
+    .todo-wrap { padding:24px; max-width:1400px; margin:0 auto; }
+    .todo-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+    .todo-header h1 { font-size:20px; font-weight:700; }
+    .todo-header p { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .todo-header-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+    .todo-toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none; }
+    .todo-toggle input { accent-color:var(--accent); }
+    .todo-add-btn { background:#1f2b40; color:#fff; border:none; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; }
+    .todo-add-btn:hover { background:#2c3d5c; }
+
+    /* ── 칸반 보드 ── */
+    .todo-board { display:flex; gap:14px; align-items:flex-start; overflow-x:auto; padding-bottom:14px; }
+    .todo-col { flex:0 0 280px; background:var(--surface); border:1px solid var(--border); border-radius:14px; min-height:120px; }
+    .todo-col.drag-over { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 5%, var(--surface)); }
+    .todo-col-head { display:flex; align-items:center; gap:8px; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .todo-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+    .todo-col-name { font-size:14px; font-weight:700; }
+    .todo-col-team { font-size:11px; color:var(--text-muted); }
+    .todo-col-count { margin-left:auto; font-size:12px; color:var(--text-muted); font-weight:600; }
+    .todo-col-body { padding:12px; display:flex; flex-direction:column; gap:10px; min-height:60px; }
+
+    /* ── 카드 ── */
+    .todo-card { position:relative; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px 12px 18px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+    .todo-card:hover { border-color:var(--accent); }
+    .todo-card::before { content:''; position:absolute; left:6px; top:10px; bottom:10px; width:4px; border-radius:2px; background:var(--p-color, #d0d5dd); }
+    .todo-card.p-high { --p-color:#e0604f; }
+    .todo-card.p-medium { --p-color:#e8a13a; }
+    .todo-card.p-low { --p-color:#57ab5a; }
+    .todo-card.dragging { opacity:0.45; }
+    .todo-card-meta { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+    .todo-team-label { font-size:10px; color:var(--text-muted); font-weight:600; }
+    .todo-pri { font-size:9px; font-weight:700; color:#fff; padding:2px 8px; border-radius:8px; }
+    .todo-pri.high { background:#d64545; }
+    .todo-pri.medium { background:#e8a13a; }
+    .todo-pri.low { background:#57ab5a; }
+    .todo-card-title { font-size:13px; font-weight:700; line-height:1.45; word-break:break-word; }
+    .todo-card-foot { display:flex; align-items:center; gap:6px; margin-top:8px; }
+    .todo-due { font-size:10px; font-weight:700; padding:3px 9px; border-radius:9px; background:var(--surface2); color:var(--text-muted); }
+    .todo-due.overdue { background:#fdecea; color:#c0392b; }
+    .todo-due.today { background:#fdf1e3; color:#b26a00; }
+    .todo-attach-n { font-size:10px; color:var(--text-muted); }
+    .todo-card.done { opacity:0.6; }
+    .todo-card.done .todo-card-title { text-decoration:line-through; }
+    .todo-empty { color:var(--text-muted); font-size:12px; text-align:center; padding:30px 10px; }
+
+    /* ── 모달 (등록/상세) ── */
+    .todo-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:400; align-items:flex-start; justify-content:center; padding:6vh 16px 16px; overflow-y:auto; }
+    .todo-overlay.open { display:flex; }
+    .todo-modal { width:100%; max-width:560px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+    .todo-modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
+    .todo-modal-head h2 { font-size:15px; font-weight:700; }
+    .todo-modal-close { background:none; border:none; font-size:18px; color:var(--text-muted); cursor:pointer; padding:2px 8px; }
+    .todo-modal-body { padding:18px 20px; display:flex; flex-direction:column; gap:14px; }
+    .todo-field label { display:block; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:5px; }
+    .todo-field input[type=text], .todo-field input[type=date], .todo-field select, .todo-field textarea {
+        width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; font-family:inherit;
+    }
+    .todo-field textarea { resize:vertical; min-height:90px; line-height:1.6; }
+    .todo-field input:focus, .todo-field select:focus, .todo-field textarea:focus { border-color:var(--accent); }
+    .todo-field-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    @media (max-width:560px) { .todo-field-row { grid-template-columns:1fr; } }
+    .todo-modal-foot { display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--border); justify-content:flex-end; flex-wrap:wrap; }
+    .todo-btn { border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+    .todo-btn.primary { background:var(--accent); color:var(--accent-text); }
+    .todo-btn.ghost { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
+    .todo-btn.danger { background:none; color:#c0392b; border:1px solid #e5b4ae; margin-right:auto; }
+    .todo-btn.success { background:#2e7d32; color:#fff; }
+
+    /* 상세 보기 */
+    .todo-view-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--text-muted); }
+    .todo-view-content { font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; background:var(--surface2); border-radius:10px; padding:14px 16px; }
+    .todo-attach-list { display:flex; flex-direction:column; gap:6px; }
+    .todo-attach-item { display:flex; align-items:center; gap:8px; font-size:12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; }
+    .todo-attach-item a { color:var(--accent); text-decoration:none; word-break:break-all; }
+    .todo-attach-item img { width:38px; height:38px; object-fit:cover; border-radius:6px; flex-shrink:0; }
+    .todo-attach-del { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
+    .todo-attach-del:hover { color:#c0392b; }
+
+    @media (max-width:768px) {
+        .todo-wrap { padding:16px 12px; }
+        .todo-board { flex-direction:column; }
+        .todo-col { flex:none; width:100%; }
+    }
+</style>
+@endpush
+
+@section('content')
+@php
+    $me = auth()->user();
+    $membersJson = $members->map(fn ($m) => [
+        'id' => $m->id,
+        'name' => $m->display_name,
+        'team' => $m->team?->name,
+    ])->values();
+@endphp
+<div class="todo-wrap">
+    <div class="todo-header">
+        <div>
+            <h1>할 일</h1>
+            <p>담당자별 진행 현황 · 드래그로 담당자 변경</p>
+        </div>
+        <div class="todo-header-actions">
+            <label class="todo-toggle"><input type="checkbox" id="todoMineOnly" onchange="renderBoard()"> 내 것만 보기</label>
+            <label class="todo-toggle"><input type="checkbox" id="todoShowDone" onchange="renderBoard()"> 완료 보기</label>
+            <button type="button" class="todo-add-btn" onclick="openTodoForm()">+ 할일 추가</button>
+        </div>
+    </div>
+    <div class="todo-board" id="todoBoard"></div>
+</div>
+
+{{-- 등록/수정 모달 --}}
+<div class="todo-overlay" id="todoFormOverlay">
+    <div class="todo-modal">
+        <div class="todo-modal-head">
+            <h2 id="todoFormTitle">할일 추가</h2>
+            <button type="button" class="todo-modal-close" onclick="closeTodoForm()">✕</button>
+        </div>
+        <div class="todo-modal-body">
+            <div class="todo-field">
+                <label>타이틀 *</label>
+                <input type="text" id="tfTitle" maxlength="255" placeholder="할 일 제목">
+            </div>
+            <div class="todo-field-row">
+                <div class="todo-field">
+                    <label>우선순위 *</label>
+                    <select id="tfPriority">
+                        <option value="high">높음</option>
+                        <option value="medium" selected>중간</option>
+                        <option value="low">낮음</option>
+                    </select>
+                </div>
+                <div class="todo-field">
+                    <label>기한</label>
+                    <input type="date" id="tfDue">
+                </div>
+                <div class="todo-field">
+                    <label>담당자 *</label>
+                    <select id="tfAssignee"></select>
+                </div>
+            </div>
+            <div class="todo-field">
+                <label>내용</label>
+                <textarea id="tfContent" maxlength="10000" placeholder="상세 내용을 입력하세요"></textarea>
+            </div>
+            <div class="todo-field">
+                <label>첨부파일 (이미지 · 파일 · 영상)</label>
+                <input type="file" id="tfFiles" multiple>
+            </div>
+        </div>
+        <div class="todo-modal-foot">
+            <button type="button" class="todo-btn ghost" onclick="closeTodoForm()">취소</button>
+            <button type="button" class="todo-btn primary" id="tfSaveBtn" onclick="saveTodo()">저장</button>
+        </div>
+    </div>
+</div>
+
+{{-- 상세 모달 --}}
+<div class="todo-overlay" id="todoViewOverlay">
+    <div class="todo-modal">
+        <div class="todo-modal-head">
+            <h2 id="tvTitle"></h2>
+            <button type="button" class="todo-modal-close" onclick="closeTodoView()">✕</button>
+        </div>
+        <div class="todo-modal-body">
+            <div class="todo-view-meta" id="tvMeta"></div>
+            <div class="todo-view-content" id="tvContent"></div>
+            <div class="todo-attach-list" id="tvAttachments"></div>
+        </div>
+        <div class="todo-modal-foot">
+            <button type="button" class="todo-btn danger" onclick="deleteTodo()">삭제</button>
+            <button type="button" class="todo-btn ghost" onclick="editTodo()">수정</button>
+            <button type="button" class="todo-btn success" id="tvCompleteBtn" onclick="toggleComplete()">완료 처리</button>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+const TODO_MEMBERS = @json($membersJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+const TODO_ME = {{ $me->id }};
+const TODO_CSRF = '{{ csrf_token() }}';
+let TODOS = @json($todos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+let TODO_VIEW_ID = null;
+let TODO_EDIT_ID = null;
+
+const AVATAR_COLORS = ['#3A5683','#b26a00','#2e7d32','#7b4fb5','#c0392b','#1f7a8c','#a84f7f','#5c6b3c'];
+const PRI_LABELS = { high: '높음', medium: '중간', low: '낮음' };
+function avatarColor(id) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function memberById(id) { return TODO_MEMBERS.find(m => m.id === id); }
+
+function dueChip(t) {
+    if (!t.due_date) { return ''; }
+    if (t.completed) { return `<span class="todo-due">${t.due_date.replaceAll('-', '.')}</span>`; }
+    const today = new Date(); today.setHours(0,0,0,0);
+    const due = new Date(t.due_date + 'T00:00:00');
+    const diff = Math.round((due - today) / 86400000);
+    if (diff < 0) { return `<span class="todo-due overdue">⚠ ${-diff}일 지남</span>`; }
+    if (diff === 0) { return `<span class="todo-due today">오늘 마감</span>`; }
+    return `<span class="todo-due">D-${diff}</span>`;
+}
+
+function renderBoard() {
+    const mineOnly = document.getElementById('todoMineOnly').checked;
+    const showDone = document.getElementById('todoShowDone').checked;
+    const board = document.getElementById('todoBoard');
+
+    let todos = TODOS.filter(t => showDone ? true : !t.completed);
+    if (mineOnly) { todos = todos.filter(t => t.assignee_id === TODO_ME); }
+
+    // 할 일이 있는 인원만 컬럼 생성
+    const byAssignee = new Map();
+    todos.forEach(t => {
+        if (!byAssignee.has(t.assignee_id)) { byAssignee.set(t.assignee_id, []); }
+        byAssignee.get(t.assignee_id).push(t);
+    });
+
+    if (!byAssignee.size) {
+        board.innerHTML = '<div class="todo-empty" style="width:100%;">표시할 할 일이 없습니다. 우측 상단에서 추가해보세요.</div>';
+        return;
+    }
+
+    board.innerHTML = [...byAssignee.entries()].map(([uid, items]) => {
+        const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
+        const openCount = items.filter(t => !t.completed).length;
+        return `<div class="todo-col" data-assignee="${uid}"
+            ondragover="event.preventDefault(); this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="dropTodo(event, ${uid})">
+            <div class="todo-col-head">
+                <span class="todo-avatar" style="background:${avatarColor(uid)}">${esc((m.name || '?').charAt(0))}</span>
+                <span class="todo-col-name">${esc(m.name)}</span>
+                ${m.team ? `<span class="todo-col-team">${esc(m.team)}</span>` : ''}
+                <span class="todo-col-count">${openCount}</span>
+            </div>
+            <div class="todo-col-body">${items.map(cardHtml).join('')}</div>
+        </div>`;
+    }).join('');
+}
+
+function cardHtml(t) {
+    const priLabel = PRI_LABELS[t.priority] || t.priority;
+    return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
+        ondragstart="event.dataTransfer.setData('text/plain', '${t.id}'); this.classList.add('dragging')"
+        ondragend="this.classList.remove('dragging')"
+        onclick="openTodoView(${t.id})">
+        <div class="todo-card-meta">
+            ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
+            <span class="todo-pri ${t.priority}">${priLabel}</span>
+        </div>
+        <div class="todo-card-title">${esc(t.title)}</div>
+        <div class="todo-card-foot">
+            ${dueChip(t)}
+            ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
+            ${t.completed ? `<span class="todo-due">완료 ${t.completed_at}</span>` : ''}
+        </div>
+    </div>`;
+}
+
+async function dropTodo(ev, assigneeId) {
+    ev.preventDefault();
+    ev.currentTarget.classList.remove('drag-over');
+    const id = parseInt(ev.dataTransfer.getData('text/plain'), 10);
+    const todo = TODOS.find(t => t.id === id);
+    if (!todo || todo.assignee_id === assigneeId) { return; }
+
+    const res = await fetch(`/api/todos/${id}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ assignee_id: assigneeId }),
+    });
+    if (!res.ok) { alert('담당자 변경에 실패했습니다.'); return; }
+    const m = memberById(assigneeId);
+    todo.assignee_id = assigneeId;
+    todo.assignee = m ? m.name : todo.assignee;
+    todo.team = m ? m.team : todo.team;
+    renderBoard();
+}
+
+async function refreshBoard() {
+    const res = await fetch('/api/todos', { headers: { 'Accept': 'application/json' } });
+    if (res.ok) { TODOS = (await res.json()).todos; renderBoard(); }
+}
+
+// ── 등록/수정 모달 ──
+function fillAssigneeOptions(selected) {
+    document.getElementById('tfAssignee').innerHTML = TODO_MEMBERS.map(m =>
+        `<option value="${m.id}" ${m.id === selected ? 'selected' : ''}>${esc(m.name)}${m.team ? ` (${esc(m.team)})` : ''}</option>`
+    ).join('');
+}
+
+function openTodoForm(todo) {
+    TODO_EDIT_ID = todo ? todo.id : null;
+    document.getElementById('todoFormTitle').textContent = todo ? '할일 수정' : '할일 추가';
+    document.getElementById('tfTitle').value = todo ? todo.title : '';
+    document.getElementById('tfPriority').value = todo ? todo.priority : 'medium';
+    document.getElementById('tfDue').value = todo ? (todo.due_date || '') : '';
+    document.getElementById('tfContent').value = todo ? (todo.content || '') : '';
+    document.getElementById('tfFiles').value = '';
+    fillAssigneeOptions(todo ? todo.assignee_id : TODO_ME);
+    document.getElementById('todoFormOverlay').classList.add('open');
+    document.getElementById('tfTitle').focus();
+}
+function closeTodoForm() { document.getElementById('todoFormOverlay').classList.remove('open'); }
+
+async function saveTodo() {
+    const btn = document.getElementById('tfSaveBtn');
+    const payload = {
+        title: document.getElementById('tfTitle').value.trim(),
+        priority: document.getElementById('tfPriority').value,
+        due_date: document.getElementById('tfDue').value || null,
+        content: document.getElementById('tfContent').value.trim() || null,
+        assignee_id: parseInt(document.getElementById('tfAssignee').value, 10),
+    };
+    if (!payload.title) { alert('타이틀을 입력하세요.'); return; }
+
+    btn.disabled = true;
+    try {
+        const url = TODO_EDIT_ID ? `/api/todos/${TODO_EDIT_ID}` : '/api/todos';
+        const res = await fetch(url, {
+            method: TODO_EDIT_ID ? 'PATCH' : 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.message || '저장에 실패했습니다.');
+            return;
+        }
+        const { todo } = await res.json();
+
+        // 첨부 업로드
+        const files = document.getElementById('tfFiles').files;
+        if (files.length) {
+            const fd = new FormData();
+            [...files].forEach(f => fd.append('files[]', f));
+            const up = await fetch(`/api/todos/${todo.id}/attachments`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+                body: fd,
+            });
+            if (!up.ok) {
+                const err = await up.json().catch(() => ({}));
+                alert('할 일은 저장됐지만 첨부 업로드에 실패했습니다: ' + (err.message || ''));
+            }
+        }
+
+        closeTodoForm();
+        await refreshBoard();
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ── 상세 모달 ──
+function openTodoView(id) {
+    const t = TODOS.find(x => x.id === id);
+    if (!t) { return; }
+    TODO_VIEW_ID = id;
+    document.getElementById('tvTitle').textContent = t.title;
+    document.getElementById('tvMeta').innerHTML = [
+        `<span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>`,
+        `<span>담당 <b>${esc(t.assignee)}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>`,
+        t.due_date ? `<span>기한 ${t.due_date.replaceAll('-', '.')}</span>` : '',
+        dueChip(t),
+        t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : '',
+        t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : '',
+    ].filter(Boolean).join('');
+    document.getElementById('tvContent').textContent = t.content || '내용 없음';
+    document.getElementById('tvAttachments').innerHTML = t.attachments.map(a => `
+        <div class="todo-attach-item">
+            ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : '📄'}
+            <a href="${a.url}" target="_blank" rel="noopener">${esc(a.file_name)}</a>
+            <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
+        </div>`).join('');
+    document.getElementById('tvCompleteBtn').textContent = t.completed ? '완료 취소' : '완료 처리';
+    document.getElementById('todoViewOverlay').classList.add('open');
+}
+function closeTodoView() { document.getElementById('todoViewOverlay').classList.remove('open'); TODO_VIEW_ID = null; }
+
+function editTodo() {
+    const t = TODOS.find(x => x.id === TODO_VIEW_ID);
+    if (!t) { return; }
+    closeTodoView();
+    openTodoForm(t);
+}
+
+async function toggleComplete() {
+    const res = await fetch(`/api/todos/${TODO_VIEW_ID}/complete`, {
+        method: 'PATCH',
+        headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+    });
+    if (!res.ok) { alert('처리에 실패했습니다.'); return; }
+    closeTodoView();
+    await refreshBoard();
+}
+
+async function deleteTodo() {
+    if (!confirm('이 할 일을 삭제하시겠습니까?')) { return; }
+    const res = await fetch(`/api/todos/${TODO_VIEW_ID}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+    });
+    if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+    closeTodoView();
+    await refreshBoard();
+}
+
+async function deleteAttachment(id) {
+    if (!confirm('이 첨부파일을 삭제하시겠습니까?')) { return; }
+    const res = await fetch(`/api/todo-attachments/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+    });
+    if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+    await refreshBoard();
+    if (TODO_VIEW_ID) { openTodoView(TODO_VIEW_ID); }
+}
+
+// 오버레이 바깥 클릭으로 닫기
+document.getElementById('todoFormOverlay').addEventListener('click', e => { if (e.target.id === 'todoFormOverlay') { closeTodoForm(); } });
+document.getElementById('todoViewOverlay').addEventListener('click', e => { if (e.target.id === 'todoViewOverlay') { closeTodoView(); } });
+
+renderBoard();
+</script>
+@endpush

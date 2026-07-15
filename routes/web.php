@@ -32,6 +32,7 @@ use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\TodoController;
 use App\Http\Controllers\VisitReportTemplateController;
 use App\Http\Controllers\WikiCategoryController;
 use App\Http\Controllers\WikiController;
@@ -334,6 +335,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estimates', [EstimateController::class, 'estimates']);
         Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
     });
+
+    // 할 일 — 담당자별 칸반 보드
+    Route::get('/todos', [TodoController::class, 'index'])->name('todos.index');
+    Route::get('/api/todos', [TodoController::class, 'board']);
+    Route::post('/api/todos', [TodoController::class, 'store']);
+    Route::patch('/api/todos/{todo}', [TodoController::class, 'update']);
+    Route::patch('/api/todos/{todo}/assign', [TodoController::class, 'assign']);
+    Route::patch('/api/todos/{todo}/complete', [TodoController::class, 'complete']);
+    Route::delete('/api/todos/{todo}', [TodoController::class, 'destroy']);
+    Route::post('/api/todos/{todo}/attachments', [TodoController::class, 'storeAttachments']);
+    Route::delete('/api/todo-attachments/{attachment}', [TodoController::class, 'destroyAttachment']);
+    Route::get('/todo-attachments/{attachment}', [TodoController::class, 'serveAttachment'])->name('todo-attachments.serve');
 
     // 위키
     Route::get('/wiki', [WikiController::class, 'index'])->name('wiki.index');
