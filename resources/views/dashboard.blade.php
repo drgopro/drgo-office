@@ -352,10 +352,10 @@
 
         {{-- 나의 할 일 — 추후 개발 예정 --}}
 
-        {{-- 공지 · 업데이트 (공지 2건 + 업데이트 1건) --}}
+        {{-- 공지사항 (최근 2건) --}}
         <div class="dcard">
             <div class="dcard-head">
-                공지 · 업데이트
+                공지사항
                 <a class="dc-link" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
             </div>
             @forelse($wikiNoticeList as $w)
@@ -367,13 +367,23 @@
             @empty
                 <div class="dcard-empty">등록된 공지사항이 없습니다</div>
             @endforelse
-            @foreach($wikiUpdateList as $w)
+        </div>
+
+        {{-- 업데이트 (최근 1건) --}}
+        <div class="dcard">
+            <div class="dcard-head">
+                업데이트
+                <a class="dc-link" href="/wiki?type=update" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=update'); else location.href=this.href;">전체 보기 →</a>
+            </div>
+            @forelse($wikiUpdateList as $w)
                 <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
                     <span class="nu-badge update">업뎃</span>
                     <span class="nu-title">{{ $w->title }}</span>
                     <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
                 </div>
-            @endforeach
+            @empty
+                <div class="dcard-empty">등록된 업데이트가 없습니다</div>
+            @endforelse
         </div>
     </aside>
     </div>{{-- /dash-grid --}}
