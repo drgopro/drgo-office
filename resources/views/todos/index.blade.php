@@ -52,18 +52,23 @@
     .todo-lrow:hover { background:var(--surface2); }
     .todo-lrow.sel { background:color-mix(in srgb, var(--accent) 8%, transparent); box-shadow:inset 3px 0 0 var(--accent); }
     .todo-lrow .todo-check { margin-top:0; }
-    .todo-lrow-title { font-size:13.5px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .todo-lrow-title { font-size:14.5px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .todo-lrow.done .todo-lrow-title { text-decoration:line-through; color:var(--text-muted); }
     .todo-lrow-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-shrink:0; }
-    .todo-lrow-right .todo-team-label { font-size:12px; }
-    .todo-lrow-right .todo-pri { font-size:10.5px; padding:3px 10px; }
-    .todo-lrow-right .todo-due { font-size:11.5px; padding:4px 10px; }
-    .todo-lrow-due-date { font-size:12.5px; color:var(--text-muted); font-weight:600; }
-    .todo-lrow-assignee { font-size:12.5px; color:var(--text); font-weight:600; }
+    .todo-lrow-right .todo-team-label { font-size:12.5px; }
+    .todo-lrow-right .todo-pri { font-size:11px; padding:3px 10px; }
+    .todo-lrow-right .todo-due { font-size:12px; padding:4px 10px; }
+    .todo-lrow-due-date { font-size:13.5px; color:var(--text-muted); font-weight:600; }
+    .todo-lrow-due-date.imminent { color:#c0392b; }  /* 오늘 마감·기한 지남 */
+    .todo-lrow-due-date.soon { color:#b26a00; }      /* D-3 이내 */
+    .todo-lrow-assignee { font-size:13.5px; color:var(--text); font-weight:600; }
     /* 우측 상세 패널 */
     .todo-detail-pane { position:sticky; top:16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; display:flex; flex-direction:column; gap:13px; }
     .todo-detail-empty { color:var(--text-muted); font-size:12.5px; text-align:center; padding:46px 0; }
-    .tdp-title { font-size:15px; font-weight:700; line-height:1.5; word-break:break-word; }
+    .tdp-title { font-size:16px; font-weight:700; line-height:1.5; word-break:break-word; }
+    .todo-view-content a { color:var(--accent); word-break:break-all; }
+    .yt-embed { margin-top:10px; border-radius:10px; overflow:hidden; aspect-ratio:16/9; background:#000; }
+    .yt-embed iframe { width:100%; height:100%; border:0; display:block; }
     .tdp-actions { display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:13px; }
     .tdp-actions .todo-btn { padding:8px 14px; font-size:12.5px; }
     @media (max-width:900px) {
@@ -291,15 +296,41 @@ const PRI_LABELS = { high: '높음', medium: '중간', low: '낮음' };
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
 function memberById(id) { return TODO_MEMBERS.find(m => m.id === id); }
 
+function dueDiff(t) {
+    if (!t.due_date) { return null; }
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.round((new Date(t.due_date + 'T00:00:00') - today) / 86400000);
+}
+
 function dueChip(t) {
     if (!t.due_date) { return ''; }
     if (t.completed) { return `<span class="todo-due">${t.due_date.replaceAll('-', '.')}</span>`; }
-    const today = new Date(); today.setHours(0,0,0,0);
-    const due = new Date(t.due_date + 'T00:00:00');
-    const diff = Math.round((due - today) / 86400000);
+    const diff = dueDiff(t);
     if (diff < 0) { return `<span class="todo-due overdue">⚠ ${-diff}일 지남</span>`; }
     if (diff === 0) { return `<span class="todo-due today">오늘 마감</span>`; }
     return `<span class="todo-due">D-${diff}</span>`;
+}
+
+// 리스트 뷰용 기한 날짜 — 임박 정도에 따라 색상 강조
+function dueDateHtml(t) {
+    if (!t.due_date) { return ''; }
+    const diff = dueDiff(t);
+    const cls = t.completed ? '' : diff <= 0 ? 'imminent' : diff <= 3 ? 'soon' : '';
+    return `<span class="todo-lrow-due-date ${cls}">${t.due_date.replaceAll('-', '.')}</span>`;
+}
+
+// 본문 링크 처리 — URL은 클릭 가능하게, 유튜브 링크는 미리보기 임베드 (최대 3개)
+function contentHtml(text) {
+    if (!text) { return '내용 없음'; }
+    const html = esc(text).replace(/(https?:\/\/[^\s<]+)/g, m => `<a href="${m}" target="_blank" rel="noopener">${m}</a>`);
+    const ids = [];
+    const ytRe = /(?:youtube\.com\/(?:watch\?[^\s<]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/g;
+    let m;
+    while ((m = ytRe.exec(text)) && ids.length < 3) {
+        if (!ids.includes(m[1])) { ids.push(m[1]); }
+    }
+    const embeds = ids.map(id => `<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/${id}" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`).join('');
+    return html + embeds;
 }
 
 function filteredTodos() {
@@ -373,7 +404,7 @@ function listHtml(todos) {
         <span class="todo-lrow-right">
             ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
             <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
-            ${t.due_date ? `<span class="todo-lrow-due-date">${t.due_date.replaceAll('-', '.')}</span>` : ''}
+            ${dueDateHtml(t)}
             ${dueChip(t)}
             <span class="todo-lrow-assignee">${esc(t.assignee)}</span>
         </span>
@@ -404,7 +435,7 @@ function renderDetailPane() {
             ${t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : ''}
             ${t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : ''}
         </div>
-        <div class="todo-view-content">${esc(t.content || '내용 없음')}</div>
+        <div class="todo-view-content">${contentHtml(t.content)}</div>
         ${t.attachments.length ? `<div class="todo-attach-list">${t.attachments.map(a => `
             <div class="todo-attach-item">
                 ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : '📄'}
@@ -659,7 +690,7 @@ function openTodoView(id) {
         t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : '',
         t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : '',
     ].filter(Boolean).join('');
-    document.getElementById('tvContent').textContent = t.content || '내용 없음';
+    document.getElementById('tvContent').innerHTML = contentHtml(t.content);
     document.getElementById('tvAttachments').innerHTML = t.attachments.map(a => `
         <div class="todo-attach-item">
             ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : '📄'}
