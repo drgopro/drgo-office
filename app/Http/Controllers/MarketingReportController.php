@@ -6,10 +6,12 @@ use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\Client;
 use App\Models\Consultation;
+use App\Models\ConsultationType;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
+use App\Models\WorkType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -156,7 +158,8 @@ class MarketingReportController extends Controller
         }
 
         // 2) Legacy: 견적서 status=paid 중 project_payments에 미연결인 것만 (중복 카운트 방지)
-        $legacyPaidEstimates = Estimate::where('status', 'paid')
+        $legacyPaidEstimates = Estimate::with('project')
+            ->where('status', 'paid')
             ->whereBetween('created_at', [$fromDt, $toDt])
             ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
             ->get();
@@ -181,6 +184,45 @@ class MarketingReportController extends Controller
                 ->whereNull('estimate_id')
                 ->sum('amount');
         }
+
+        // 3) 프로젝트 유형·작업 유형별 매출 세분화 — 결제를 프로젝트에 조인해 실제 어떤 일에서 매출이 났는지 집계
+        $revenueByProjectType = [];
+        $revenueByWorkType = [];
+        if (Schema::hasTable('project_payments')) {
+            $revenueByProjectType = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
+                ->join('projects', 'projects.id', '=', 'project_payments.project_id')
+                ->selectRaw("coalesce(projects.project_type, '') as k, sum(project_payments.amount) as total")
+                ->groupBy('k')->pluck('total', 'k')->map(fn ($v) => (int) $v)->all();
+            $revenueByWorkType = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
+                ->join('projects', 'projects.id', '=', 'project_payments.project_id')
+                ->selectRaw("coalesce(projects.work_type, '') as k, sum(project_payments.amount) as total")
+                ->groupBy('k')->pluck('total', 'k')->map(fn ($v) => (int) $v)->all();
+        }
+        // 레거시 견적 매출도 연결된 프로젝트 기준으로 합산 (미연결 견적은 빈 키 = 미지정)
+        foreach ($legacyPaidEstimates as $e) {
+            $tKey = $e->project?->project_type ?? '';
+            $wKey = $e->project?->work_type ?? '';
+            $revenueByProjectType[$tKey] = ($revenueByProjectType[$tKey] ?? 0) + (int) $e->total_amount;
+            $revenueByWorkType[$wKey] = ($revenueByWorkType[$wKey] ?? 0) + (int) $e->total_amount;
+        }
+        // 라벨 매핑 (비활성 유형 포함) + 금액 내림차순, 0원 제거
+        $typeLabels = ConsultationType::map(false);
+        $workLabels = WorkType::map(false);
+        $labelize = function (array $rows, array $labels): array {
+            $out = [];
+            foreach ($rows as $key => $amount) {
+                if ((int) $amount === 0) {
+                    continue;
+                }
+                $label = $key === '' ? '미지정' : ($labels[$key] ?? $key);
+                $out[$label] = ($out[$label] ?? 0) + (int) $amount;
+            }
+            arsort($out);
+
+            return $out;
+        };
+        $revenueByProjectType = $labelize($revenueByProjectType, $typeLabels);
+        $revenueByWorkType = $labelize($revenueByWorkType, $workLabels);
 
         // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──
         $rentalActive = 0;
@@ -235,7 +277,7 @@ class MarketingReportController extends Controller
             'totalConsults', 'reConsultCount',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
             'newProjects', 'settingDone', 'cancelled', 'cancelReasons',
-            'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown',
+            'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown', 'revenueByProjectType', 'revenueByWorkType',
             'rentalActive', 'rentalMonthlyRevenue', 'rentalNewInPeriod',
             'broadcastActive', 'broadcastMonthlyRevenue', 'broadcastUsagesInPeriod', 'broadcastUsageRevenue',
             'monthlyTrend',

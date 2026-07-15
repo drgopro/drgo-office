@@ -358,7 +358,7 @@
 
         @if(array_sum($revenueBreakdown) > 0)
         <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">세부 카테고리 매출 분해</div>
-        <div class="mk-list">
+        <div class="mk-list" style="margin-bottom:20px;">
             @foreach($breakdownL as $key => $label)
                 @php $val = $revenueBreakdown[$key] ?? 0; @endphp
                 @if($val > 0)
@@ -368,6 +368,38 @@
                 </div>
                 @endif
             @endforeach
+        </div>
+        @endif
+
+        {{-- 어떤 일(프로젝트 유형·작업 유형)에서 결제가 이루어졌는지 세분화 --}}
+        @if(count($revenueByProjectType) || count($revenueByWorkType))
+        <div class="mk-two-col">
+            @if(count($revenueByProjectType))
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">프로젝트 유형별 매출</div>
+                <div class="mk-list">
+                    @foreach($revenueByProjectType as $label => $val)
+                    <div class="mk-list-item">
+                        <span class="mk-list-label">{{ $label }}</span>
+                        <span class="mk-list-value">{{ number_format($val) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($val / $revenueTotal * 100) : 0 }}%)</span></span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+            @if(count($revenueByWorkType))
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">작업 유형별 매출</div>
+                <div class="mk-list">
+                    @foreach($revenueByWorkType as $label => $val)
+                    <div class="mk-list-item">
+                        <span class="mk-list-label">{{ $label }}</span>
+                        <span class="mk-list-value">{{ number_format($val) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($val / $revenueTotal * 100) : 0 }}%)</span></span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
         @endif
     </div>
