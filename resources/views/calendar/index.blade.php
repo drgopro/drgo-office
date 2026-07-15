@@ -3531,7 +3531,10 @@ function renderLockSummary(){
     const specialPills=specialSel.map(o=>`<span class="ls-type-pill">${SPECIAL_ICONS[o]||''} ${_esc(SPECIAL_OPT_LABELS[o])}</span>`).join('');
     const schedPills=[...document.querySelectorAll('#scheduleOpts .sched-opt-btn.active, #schedEventOpts .special-opt-btn.active')]
         .map(b=>`<span class="ls-type-pill">${_esc(b.textContent.trim())}</span>`).join('');
-    const metaRow=`<div class="ls-meta-row">${clientChipHtml}${projectChipHtml}${sourceChipHtml}${schedPills}${specialPills}</div>`;
+    // 의뢰자/프로젝트 줄과 일정 옵션 줄 분리
+    const linkRow=(clientChipHtml||projectChipHtml||sourceChipHtml)?`<div class="ls-meta-row">${clientChipHtml}${projectChipHtml}${sourceChipHtml}</div>`:'';
+    const optRow=(schedPills||specialPills)?`<div class="ls-meta-row">${schedPills}${specialPills}</div>`:'';
+    const metaRow=linkRow+optRow;
 
     // ① 일시·장소 — 굵은 일시 + 굵은 주소 + 특수옵션 회색 라인
     const dowN=['일','월','화','수','목','금','토'];
