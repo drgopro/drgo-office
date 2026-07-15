@@ -189,7 +189,7 @@
     .dcard-head { background:#f7f8fa; border-bottom-color:#edeff3; color:var(--d-ink); font-weight:800; }
     .dcard-head .dc-sub { color:var(--d-muted); }
     .dcard-head .dc-link { color:var(--d-accent); }
-    .dcard-head .dc-count { background:var(--d-navy); color:#fff; }
+    .dcard-head .dc-count { background:#d64545; color:#fff; } /* 건수 배지 — 붉은 계열로 강조 */
     .dcard-empty { color:var(--d-muted); }
     /* 행 구분/hover */
     .ts-row, .fp-row, .ob-row, .nu-row, .consult-item { border-bottom-color:#f0f2f5; }
