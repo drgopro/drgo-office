@@ -266,30 +266,31 @@
             body.side-collapsed .side-search, body.side-collapsed .nav-group-label { display:none; }
         }
 
-        /* ── 데스크탑 사이드바 다크 네이비 스킨 (목업) ── */
+        /* ── 데스크탑 사이드바 다크 네이비 스킨 (목업) ──
+           [data-theme] 프리픽스: 라이트 테마 강제 규칙([data-theme="light"] .header 등)보다 우선하도록 */
         @media (min-width: 981px) {
-            .header { background:#1f2b40; border-right-color:#2a3852; }
-            .header .logo { color:#fff; border-right:none; }
-            .header .logo::after { content:' OFFICE'; font-size:9px; font-weight:600; color:#7f8fae; letter-spacing:0.12em; }
-            .side-toggle { color:#8fa0bd; background:transparent; border-color:#334565; }
-            .side-search { background:rgba(255,255,255,0.06); border-color:#334565; color:#9aa9c4; }
-            .side-search:hover { border-color:#5c7aa6; color:#dbe3f0; }
-            .side-search kbd { background:rgba(255,255,255,0.08); border-color:#3a4d70; color:#9aa9c4; }
-            .nav-group-label { color:#7f8fae; opacity:1; }
-            .nav-group-gap { border-bottom-color:#2a3852; }
-            .header .nav a { color:#b9c4d9; }
-            .header .nav a:hover { color:#fff; background:rgba(255,255,255,0.08); }
-            .header .nav a.active { background:#fff; color:#1f2b40; font-weight:700; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
-            .header .nav a .nav-ico { opacity:0.75; }
-            .header .nav a.active .nav-ico { opacity:1; }
+            html[data-theme] .header { background:#1f2b40; border-right-color:#2a3852; border-bottom-color:#2a3852; }
+            html[data-theme] .header .logo { color:#fff; border-right:none; }
+            html[data-theme] .header .logo::after { content:' OFFICE'; font-size:9px; font-weight:600; color:#7f8fae; letter-spacing:0.12em; }
+            html[data-theme] .side-toggle { color:#8fa0bd; background:transparent; border-color:#334565; }
+            html[data-theme] .side-search { background:rgba(255,255,255,0.06); border-color:#334565; color:#9aa9c4; }
+            html[data-theme] .side-search:hover { border-color:#5c7aa6; color:#dbe3f0; }
+            html[data-theme] .side-search kbd { background:rgba(255,255,255,0.08); border-color:#3a4d70; color:#9aa9c4; }
+            html[data-theme] .nav-group-label { color:#7f8fae; opacity:1; }
+            html[data-theme] .nav-group-gap { border-bottom-color:#2a3852; }
+            html[data-theme] .header .nav a { color:#b9c4d9; }
+            html[data-theme] .header .nav a:hover { color:#fff; background:rgba(255,255,255,0.08); }
+            html[data-theme] .header .nav a.active { background:#fff; color:#1f2b40; font-weight:700; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+            html[data-theme] .header .nav a .nav-ico { opacity:0.75; }
+            html[data-theme] .header .nav a.active .nav-ico { opacity:1; }
             /* 하단 사용자 영역 */
-            .header .header-right { border-top-color:#2a3852; }
-            .header .admin-link { color:#b9c4d9; border-color:#334565; }
-            .header .admin-link:hover { color:#fff; border-color:#5c7aa6; }
-            .header .user-role { color:#7f8fae; }
-            .header .logout-btn { color:#b9c4d9; border-color:#334565; }
-            .header .logout-btn:hover { color:#fff; border-color:#5c7aa6; }
-            .header .qr-fab { background:rgba(255,255,255,0.1); color:#dbe3f0; border:1px solid #334565; }
+            html[data-theme] .header .header-right { border-top-color:#2a3852; }
+            html[data-theme] .header .admin-link { color:#b9c4d9; border-color:#334565; }
+            html[data-theme] .header .admin-link:hover { color:#fff; border-color:#5c7aa6; }
+            html[data-theme] .header .user-role { color:#7f8fae; }
+            html[data-theme] .header .logout-btn { color:#b9c4d9; border-color:#334565; }
+            html[data-theme] .header .logout-btn:hover { color:#fff; border-color:#5c7aa6; }
+            html[data-theme] .header .qr-fab { background:rgba(255,255,255,0.1); color:#dbe3f0; border:1px solid #334565; }
         }
 
         /* ── 오피스 전체 검색 (Ctrl+K) ── */
