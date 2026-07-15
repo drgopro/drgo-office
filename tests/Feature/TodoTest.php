@@ -26,21 +26,38 @@ class TodoTest extends TestCase
 
     public function test_board_page_renders_with_todos(): void
     {
-        Todo::factory()->create(['title' => '서비스 의뢰 페이지 개편', 'assignee_id' => $this->user->id]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        Todo::factory()->create(['title' => '서비스 의뢰 페이지 개편', 'assignee_id' => $admin->id]);
 
-        $this->actingAs($this->user)->get('/todos')
+        $this->actingAs($admin)->get('/todos')
             ->assertOk()
             ->assertSee('할일 추가')
             ->assertSee('내 것만 보기')
+            ->assertSee('직원 필터')
             ->assertSee('완료 보기')
+            ->assertSee('리스트')
             ->assertSee('서비스 의뢰 페이지 개편');
+    }
+
+    public function test_member_page_hides_admin_filters_and_sees_only_own(): void
+    {
+        Todo::factory()->create(['title' => '내 할 일', 'assignee_id' => $this->user->id]);
+        Todo::factory()->create(['title' => '다른 사람 할 일']);
+
+        $this->actingAs($this->user)->get('/todos')
+            ->assertOk()
+            ->assertSee('내 할 일')
+            ->assertDontSee('다른 사람 할 일')
+            ->assertDontSee('내 것만 보기')
+            ->assertDontSee('id="mfilterPanel"', false); // 직원 필터 패널은 관리자 전용
     }
 
     public function test_store_creates_todo_with_required_fields(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
         $assignee = User::factory()->create();
 
-        $res = $this->actingAs($this->user)->postJson('/api/todos', [
+        $res = $this->actingAs($admin)->postJson('/api/todos', [
             'title' => 'SSL 인증서 갱신',
             'content' => '시그저장소 인증서 만료 전 갱신',
             'priority' => 'high',
@@ -51,7 +68,7 @@ class TodoTest extends TestCase
         $res->assertCreated()->assertJsonPath('todo.title', 'SSL 인증서 갱신');
         $todo = Todo::first();
         $this->assertSame($assignee->id, $todo->assignee_id);
-        $this->assertSame($this->user->id, $todo->created_by);
+        $this->assertSame($admin->id, $todo->created_by);
         $this->assertSame('high', $todo->priority);
         $this->assertSame('2026-07-20', $todo->due_date->format('Y-m-d'));
     }
@@ -63,25 +80,49 @@ class TodoTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors(['priority', 'assignee_id']);
     }
 
-    public function test_anyone_can_update_others_todo(): void
+    public function test_admin_updates_others_todo_but_member_cannot(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
         $todo = Todo::factory()->create(['title' => '원래 제목', 'priority' => 'low']);
 
+        // 멤버가 타인 할 일을 타인 담당으로 수정 → 차단
         $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}", [
-            'title' => '수정된 제목',
-            'priority' => 'medium',
-            'assignee_id' => $todo->assignee_id,
+            'title' => '탈취', 'priority' => 'medium', 'assignee_id' => $todo->assignee_id,
+        ])->assertForbidden();
+
+        $this->actingAs($admin)->patchJson("/api/todos/{$todo->id}", [
+            'title' => '수정된 제목', 'priority' => 'medium', 'assignee_id' => $todo->assignee_id,
         ])->assertOk();
 
         $this->assertSame('수정된 제목', $todo->fresh()->title);
     }
 
-    public function test_assign_moves_todo_to_new_assignee(): void
+    public function test_member_cannot_create_todo_for_others(): void
     {
+        $other = User::factory()->create();
+
+        $this->actingAs($this->user)->postJson('/api/todos', [
+            'title' => '떠넘기기', 'priority' => 'high', 'assignee_id' => $other->id,
+        ])->assertForbidden();
+        $this->assertSame(0, Todo::count());
+
+        // 본인 앞으로는 가능
+        $this->actingAs($this->user)->postJson('/api/todos', [
+            'title' => '내 할 일', 'priority' => 'high', 'assignee_id' => $this->user->id,
+        ])->assertCreated();
+    }
+
+    public function test_assign_is_admin_only(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
         $todo = Todo::factory()->create();
         $newAssignee = User::factory()->create();
 
         $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}/assign", [
+            'assignee_id' => $newAssignee->id,
+        ])->assertForbidden();
+
+        $this->actingAs($admin)->patchJson("/api/todos/{$todo->id}/assign", [
             'assignee_id' => $newAssignee->id,
         ])->assertOk();
 
@@ -166,15 +207,20 @@ class TodoTest extends TestCase
         $this->assertNull($todo->schedule_id);
     }
 
-    public function test_board_json_returns_todos(): void
+    public function test_board_json_scopes_by_role(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
         Todo::factory()->count(2)->create();
-        Todo::factory()->completed()->create();
+        Todo::factory()->completed()->create(['assignee_id' => $this->user->id]);
 
-        $res = $this->actingAs($this->user)->getJson('/api/todos');
-
+        // 관리자는 전체 조회
+        $res = $this->actingAs($admin)->getJson('/api/todos');
         $res->assertOk();
         $this->assertCount(3, $res->json('todos'));
         $this->assertSame(1, collect($res->json('todos'))->where('completed', true)->count());
+
+        // 일반 멤버는 본인 것만
+        $mine = $this->actingAs($this->user)->getJson('/api/todos');
+        $this->assertCount(1, $mine->json('todos'));
     }
 }

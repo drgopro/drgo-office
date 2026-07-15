@@ -19,12 +19,42 @@
     .todo-add-btn { background:#1f2b40; color:#fff; border:none; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; }
     .todo-add-btn:hover { background:#2c3d5c; }
 
+    /* 직원 필터 (관리자) */
+    .todo-mfilter { position:relative; }
+    .todo-mfilter-btn { background:var(--surface); border:1px solid var(--border); color:var(--text-muted); padding:7px 12px; border-radius:9px; font-size:12px; cursor:pointer; }
+    .todo-mfilter-btn:hover { border-color:var(--accent); color:var(--text); }
+    .todo-mfilter-btn #mfilterCount { color:var(--accent); font-weight:700; }
+    .todo-mfilter-panel { display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:50; min-width:190px; max-height:300px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:8px; }
+    .todo-mfilter.open .todo-mfilter-panel { display:block; }
+    .todo-mfilter-panel label { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:7px 9px; border-radius:7px; cursor:pointer; }
+    .todo-mfilter-panel label:hover { background:var(--surface2); }
+    .todo-mfilter-panel input { accent-color:var(--accent); margin:0; }
+    .todo-mfilter-panel .mfilter-all { border-bottom:1px solid var(--border); margin-bottom:4px; padding-bottom:9px; font-weight:700; }
+    .todo-mfilter-panel .mfilter-team { color:var(--text-muted); font-size:11px; margin-left:auto; }
+
+    /* 카드/리스트 뷰 전환 */
+    .todo-viewswitch { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+    .todo-viewswitch button { background:var(--surface); border:none; color:var(--text-muted); padding:7px 12px; font-size:12px; cursor:pointer; }
+    .todo-viewswitch button + button { border-left:1px solid var(--border); }
+    .todo-viewswitch button.on { background:#1f2b40; color:#fff; font-weight:700; }
+
+    /* ── 리스트 뷰 ── */
+    .todo-list { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .todo-lrow { display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .todo-lrow:last-child { border-bottom:none; }
+    .todo-lrow:hover { background:var(--surface2); }
+    .todo-lrow .todo-check { margin-top:0; }
+    .todo-lrow-title { font-size:13px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .todo-lrow.done .todo-lrow-title { text-decoration:line-through; color:var(--text-muted); }
+    .todo-lrow-right { margin-left:auto; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .todo-lrow-assignee { font-size:11px; color:var(--text-muted); }
+    @media (max-width:560px) { .todo-lrow-assignee, .todo-lrow .todo-team-label { display:none; } }
+
     /* ── 칸반 보드 ── */
     .todo-board { display:flex; gap:14px; align-items:flex-start; overflow-x:auto; padding-bottom:14px; }
     .todo-col { flex:0 0 280px; background:var(--surface); border:1px solid var(--border); border-radius:14px; min-height:120px; }
     .todo-col.drag-over { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 5%, var(--surface)); }
     .todo-col-head { display:flex; align-items:center; gap:8px; padding:14px 16px; border-bottom:1px solid var(--border); }
-    .todo-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
     .todo-col-name { font-size:14px; font-weight:700; }
     .todo-col-team { font-size:11px; color:var(--text-muted); }
     .todo-col-count { margin-left:auto; font-size:12px; color:var(--text-muted); font-weight:600; }
@@ -47,7 +77,7 @@
     .todo-card-title-row { display:flex; align-items:flex-start; gap:8px; }
     .todo-card-title { font-size:13px; font-weight:700; line-height:1.45; word-break:break-word; }
     /* 원형 완료 체크 — 호버 시 미리보기, 완료 시 채워짐 */
-    .todo-check { flex-shrink:0; width:19px; height:19px; border-radius:50%; border:2px solid #c3cad6; background:transparent; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .todo-check { flex-shrink:0; width:19px; height:19px; border-radius:50%; border:2px solid #c3cad6; background:transparent; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; margin-top:-1px; }
     .todo-check svg { width:11px; height:11px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:opacity 0.15s; }
     .todo-check:hover { border-color:#2e7d32; }
     .todo-check:hover svg { opacity:1; stroke:#2e7d32; }
@@ -132,8 +162,20 @@
             <p>담당자별 진행 현황 · 드래그로 담당자 변경</p>
         </div>
         <div class="todo-header-actions">
+            @if($me->isAdmin())
             <label class="todo-toggle"><input type="checkbox" id="todoMineOnly" onchange="renderBoard()"> 내 것만 보기</label>
+            <div class="todo-mfilter" id="todoMfilter">
+                <button type="button" class="todo-mfilter-btn" onclick="toggleMfilter()">직원 필터 <span id="mfilterCount"></span> ▾</button>
+                <div class="todo-mfilter-panel" id="mfilterPanel"></div>
+            </div>
+            @else
+            <input type="checkbox" id="todoMineOnly" hidden>
+            @endif
             <label class="todo-toggle"><input type="checkbox" id="todoShowDone" onchange="renderBoard()"> 완료 보기</label>
+            <div class="todo-viewswitch">
+                <button type="button" id="viewBtnBoard" onclick="setTodoView('board')" title="카드 보드">▦ 카드</button>
+                <button type="button" id="viewBtnList" onclick="setTodoView('list')" title="리스트">☰ 리스트</button>
+            </div>
             <button type="button" class="todo-add-btn" onclick="openTodoForm()">+ 할일 추가</button>
         </div>
     </div>
@@ -165,9 +207,9 @@
                     <label>기한</label>
                     <input type="date" id="tfDue">
                 </div>
-                <div class="todo-field">
+                <div class="todo-field" id="tfAssigneeField" @if(!$me->isAdmin()) style="display:none;" @endif>
                     <label>담당자 *</label>
-                    <select id="tfAssignee"></select>
+                    <select id="tfAssignee" @if(!$me->isAdmin()) disabled @endif></select>
                 </div>
             </div>
             <div class="todo-field">
@@ -215,14 +257,15 @@
 <script>
 const TODO_MEMBERS = @json($membersJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 const TODO_ME = {{ $me->id }};
+const IS_ADMIN = @json($me->isAdmin());
 const TODO_CSRF = '{{ csrf_token() }}';
+let TODO_VIEW = localStorage.getItem('todo_view') || 'board';
+let MFILTER = new Set(); // 직원 필터 (비어 있으면 전체)
 let TODOS = @json($todos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 let TODO_VIEW_ID = null;
 let TODO_EDIT_ID = null;
 
-const AVATAR_COLORS = ['#3A5683','#b26a00','#2e7d32','#7b4fb5','#c0392b','#1f7a8c','#a84f7f','#5c6b3c'];
 const PRI_LABELS = { high: '높음', medium: '중간', low: '낮음' };
-function avatarColor(id) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
 function memberById(id) { return TODO_MEMBERS.find(m => m.id === id); }
 
@@ -237,14 +280,31 @@ function dueChip(t) {
     return `<span class="todo-due">D-${diff}</span>`;
 }
 
-function renderBoard() {
+function filteredTodos() {
     const mineOnly = document.getElementById('todoMineOnly').checked;
     const showDone = document.getElementById('todoShowDone').checked;
-    const board = document.getElementById('todoBoard');
-
     let todos = TODOS.filter(t => showDone ? true : !t.completed);
     if (mineOnly) { todos = todos.filter(t => t.assignee_id === TODO_ME); }
+    else if (MFILTER.size) { todos = todos.filter(t => MFILTER.has(t.assignee_id)); }
+    return todos;
+}
 
+function renderBoard() {
+    document.getElementById('viewBtnBoard').classList.toggle('on', TODO_VIEW === 'board');
+    document.getElementById('viewBtnList').classList.toggle('on', TODO_VIEW === 'list');
+    const board = document.getElementById('todoBoard');
+    board.className = TODO_VIEW === 'list' ? 'todo-list' : 'todo-board';
+
+    const todos = filteredTodos();
+    if (!todos.length) {
+        board.innerHTML = '<div class="todo-empty" style="width:100%;">표시할 할 일이 없습니다. 우측 상단에서 추가해보세요.</div>';
+        return;
+    }
+
+    board.innerHTML = TODO_VIEW === 'list' ? listHtml(todos) : boardHtml(todos);
+}
+
+function boardHtml(todos) {
     // 할 일이 있는 인원만 컬럼 생성
     const byAssignee = new Map();
     todos.forEach(t => {
@@ -252,12 +312,7 @@ function renderBoard() {
         byAssignee.get(t.assignee_id).push(t);
     });
 
-    if (!byAssignee.size) {
-        board.innerHTML = '<div class="todo-empty" style="width:100%;">표시할 할 일이 없습니다. 우측 상단에서 추가해보세요.</div>';
-        return;
-    }
-
-    board.innerHTML = [...byAssignee.entries()].map(([uid, items]) => {
+    return [...byAssignee.entries()].map(([uid, items]) => {
         const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
         const openCount = items.filter(t => !t.completed).length;
         return `<div class="todo-col" data-assignee="${uid}"
@@ -265,7 +320,6 @@ function renderBoard() {
             ondragleave="this.classList.remove('drag-over')"
             ondrop="dropTodo(event, ${uid})">
             <div class="todo-col-head">
-                <span class="todo-avatar" style="background:${avatarColor(uid)}">${esc((m.name || '?').charAt(0))}</span>
                 <span class="todo-col-name">${esc(m.name)}</span>
                 ${m.team ? `<span class="todo-col-team">${esc(m.team)}</span>` : ''}
                 <span class="todo-col-count">${openCount}</span>
@@ -275,9 +329,64 @@ function renderBoard() {
     }).join('');
 }
 
+const PRI_WEIGHT = { high: 0, medium: 1, low: 2 };
+function listHtml(todos) {
+    const sorted = [...todos].sort((a, b) =>
+        (a.completed - b.completed)
+        || ((a.due_date || '9999') < (b.due_date || '9999') ? -1 : (a.due_date || '9999') > (b.due_date || '9999') ? 1 : 0)
+        || (PRI_WEIGHT[a.priority] - PRI_WEIGHT[b.priority]));
+    return sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''}" onclick="openTodoView(${t.id})">
+        <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
+            <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <span class="todo-lrow-title">${esc(t.title)}</span>
+        ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
+        <span class="todo-lrow-right">
+            ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
+            <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
+            ${dueChip(t)}
+            <span class="todo-lrow-assignee">${esc(t.assignee)}</span>
+        </span>
+    </div>`).join('');
+}
+
+function setTodoView(v) {
+    TODO_VIEW = v;
+    localStorage.setItem('todo_view', v);
+    renderBoard();
+}
+
+// ── 직원 필터 (관리자) ──
+function toggleMfilter() {
+    document.getElementById('todoMfilter').classList.toggle('open');
+}
+
+function renderMfilterPanel() {
+    const panel = document.getElementById('mfilterPanel');
+    if (!panel) { return; }
+    panel.innerHTML = `<label class="mfilter-all"><input type="checkbox" ${MFILTER.size ? '' : 'checked'} onchange="MFILTER.clear(); renderMfilterPanel(); renderBoard();"> 전체</label>`
+        + TODO_MEMBERS.map(m => `<label>
+            <input type="checkbox" ${MFILTER.has(m.id) ? 'checked' : ''} onchange="toggleMfilterMember(${m.id})">
+            ${esc(m.name)}${m.team ? `<span class="mfilter-team">${esc(m.team)}</span>` : ''}
+        </label>`).join('');
+    const count = document.getElementById('mfilterCount');
+    if (count) { count.textContent = MFILTER.size ? `${MFILTER.size}` : ''; }
+}
+
+function toggleMfilterMember(id) {
+    if (MFILTER.has(id)) { MFILTER.delete(id); } else { MFILTER.add(id); }
+    renderMfilterPanel();
+    renderBoard();
+}
+
+document.addEventListener('click', e => {
+    const mf = document.getElementById('todoMfilter');
+    if (mf && mf.classList.contains('open') && !mf.contains(e.target)) { mf.classList.remove('open'); }
+});
+
 function cardHtml(t) {
     const priLabel = PRI_LABELS[t.priority] || t.priority;
-    return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
+    return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="${IS_ADMIN}" data-id="${t.id}"
         ondragstart="event.dataTransfer.setData('text/plain', '${t.id}'); this.classList.add('dragging')"
         ondragend="this.classList.remove('dragging')"
         onclick="openTodoView(${t.id})">
@@ -302,6 +411,7 @@ function cardHtml(t) {
 async function dropTodo(ev, assigneeId) {
     ev.preventDefault();
     ev.currentTarget.classList.remove('drag-over');
+    if (!IS_ADMIN) { return; } // 담당자 변경은 관리자 이상
     const id = parseInt(ev.dataTransfer.getData('text/plain'), 10);
     const todo = TODOS.find(t => t.id === id);
     if (!todo || todo.assignee_id === assigneeId) { return; }
@@ -409,7 +519,8 @@ async function saveTodo() {
         priority: document.getElementById('tfPriority').value,
         due_date: document.getElementById('tfDue').value || null,
         content: document.getElementById('tfContent').value.trim() || null,
-        assignee_id: parseInt(document.getElementById('tfAssignee').value, 10),
+        // 일반 멤버는 본인에게만 등록 가능
+        assignee_id: IS_ADMIN ? parseInt(document.getElementById('tfAssignee').value, 10) : TODO_ME,
     };
     if (!payload.title) { alert('타이틀을 입력하세요.'); return; }
 
@@ -529,6 +640,7 @@ async function deleteAttachment(id) {
 document.getElementById('todoFormOverlay').addEventListener('click', e => { if (e.target.id === 'todoFormOverlay') { closeTodoForm(); } });
 document.getElementById('todoViewOverlay').addEventListener('click', e => { if (e.target.id === 'todoViewOverlay') { closeTodoView(); } });
 
+renderMfilterPanel();
 renderBoard();
 </script>
 @endpush

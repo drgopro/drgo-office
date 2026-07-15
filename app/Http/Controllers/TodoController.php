@@ -50,9 +50,11 @@ class TodoController extends Controller
         return response()->json(['todo' => $this->present($todo->fresh()->load('assignee.team', 'creator', 'attachments'))]);
     }
 
-    /** 드래그로 담당자 변경 */
+    /** 드래그로 담당자 변경 — 관리자 이상만 */
     public function assign(Request $request, Todo $todo)
     {
+        abort_unless(Auth::user()->isAdmin(), 403, '담당자 변경은 관리자만 가능합니다.');
+
         $validated = $request->validate(['assignee_id' => 'required|exists:users,id']);
 
         $todo->update([
@@ -136,7 +138,7 @@ class TodoController extends Controller
     /** @return array<string, mixed> */
     private function validateTodo(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'nullable|string|max:10000',
             'priority' => ['required', Rule::in(array_keys(Todo::PRIORITIES))],
@@ -144,12 +146,21 @@ class TodoController extends Controller
             'assignee_id' => 'required|exists:users,id',
             'schedule_id' => 'nullable|exists:schedules,id', // 캘린더 연동용 (선택)
         ]);
+
+        // 일반 멤버는 본인에게만 등록/수정 가능 (타인 지정은 관리자 이상)
+        if (! Auth::user()->isAdmin() && (int) $validated['assignee_id'] !== Auth::id()) {
+            abort(403, '다른 직원에게 할 일을 지정하는 것은 관리자만 가능합니다.');
+        }
+
+        return $validated;
     }
 
     /** @return array<int, array<string, mixed>> */
     private function boardTodos(): array
     {
         return Todo::with('assignee.team', 'creator', 'attachments')
+            // 일반 멤버는 본인 할 일만 조회
+            ->when(! Auth::user()->isAdmin(), fn ($q) => $q->where('assignee_id', Auth::id()))
             ->orderBy('sort_order')->orderBy('id')
             ->get()
             ->map(fn (Todo $t) => $this->present($t))
