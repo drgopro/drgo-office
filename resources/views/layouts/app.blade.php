@@ -279,6 +279,7 @@
         .gs-sec-label { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:800; color:var(--text); padding:12px 10px 6px; border-top:1px solid var(--border); margin-top:8px; }
         .gs-results > .gs-sec-label:first-child { border-top:none; margin-top:0; }
         .gs-sec-count { font-size:10px; font-weight:700; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:1px 7px; }
+        .gs-sec-ico { width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
         .gs-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; }
         .gs-item:hover { background:var(--surface2); }
         .gs-item-label { font-size:13.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1225,9 +1226,17 @@ function gsRender(data){
     if(!data){ el.innerHTML='<div class="gs-hint">오피스 전체에서 검색합니다 — 검색어를 입력하세요</div>'; return; }
     const secs=data.sections||[];
     if(!secs.length){ el.innerHTML='<div class="gs-hint">검색 결과가 없습니다</div>'; return; }
-    const GS_ICONS={clients:'👤',projects:'📁',schedules:'📅',wiki:'📖',estimates:'📄'};
+    // 섹션 아이콘 — 사이드바 메뉴와 동일한 픽토그램
+    const GS_ICONS={
+        clients:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>',
+        projects:'<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/>',
+        schedules:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+        wiki:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+        estimates:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/>',
+    };
+    const gsIco=k=>GS_ICONS[k]?`<svg class="gs-sec-ico" viewBox="0 0 24 24">${GS_ICONS[k]}</svg>`:'';
     el.innerHTML=secs.map(sec=>`
-        <div class="gs-sec-label">${GS_ICONS[sec.key]||''} ${gsEsc(sec.label)} <span class="gs-sec-count">${sec.items.length}</span></div>
+        <div class="gs-sec-label">${gsIco(sec.key)} ${gsEsc(sec.label)} <span class="gs-sec-count">${sec.items.length}</span></div>
         ${sec.items.map(it=>`<div class="gs-item" onclick='gsGo(${JSON.stringify(it.nav)}, ${JSON.stringify(it.url)}, ${it.client_id||'null'})'>
             <span class="gs-item-label">${gsEsc(it.label)}</span>
             <span class="gs-item-sub">${gsEsc(it.sub||'')}</span>
