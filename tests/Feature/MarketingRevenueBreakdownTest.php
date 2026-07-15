@@ -66,7 +66,10 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertJsonPath('projects.0.name', '부산 스튜디오 세팅')
             ->assertJsonPath('projects.0.client', '고블린')
             ->assertJsonPath('projects.0.amount', 250000)
-            ->assertJsonPath('projects.0.pay_count', 2);
+            ->assertJsonPath('projects.0.pay_count', 2)
+            ->assertJsonPath('projects.0.work', '미지정')
+            ->assertJsonCount(2, 'projects.0.payments') // 프로젝트 내 개별 결제 건
+            ->assertJsonPath('projects.0.payments.0.label', '환불'); // 최신순 (환불이 나중 기록)
     }
 
     public function test_revenue_projects_blocked_for_guest(): void

@@ -219,9 +219,12 @@
            (마크업/JS 변경 없음, CSS 전용. 모바일 ≤980px는 기존 햄버거 유지)
            ══════════════════════════════════════════════ */
         @media (min-width: 981px) {
-            :root { --sidebar-w: 200px; --chrome-h: calc(var(--tab-h) + 2px); }
+            :root { --sidebar-w: 200px; --chrome-h: calc(var(--tab-h) + 2px); --ui-zoom: 1.07; }
+            /* 데스크탑 가독성 확대 — px 고정 폰트가 많아 zoom으로 일괄 확대.
+               셸에서 1회만 적용 (iframe 내부 문서는 셸 배율이 화면에 이미 반영되므로 제외) */
+            body:not(.in-iframe) { zoom: var(--ui-zoom); min-height:calc(100vh / var(--ui-zoom)); }
             .header {
-                position:fixed; left:0; top:0; bottom:0; width:var(--sidebar-w); height:100vh;
+                position:fixed; left:0; top:0; bottom:0; width:var(--sidebar-w); height:calc(100vh / var(--ui-zoom, 1));
                 flex-direction:column; align-items:stretch; justify-content:flex-start;
                 border-right:1px solid var(--border); border-bottom:none;
                 padding:16px 12px 14px; gap:12px;
@@ -818,7 +821,7 @@ window.drgoTabs = {
     _load(tab, pane) {
         const iframe = document.createElement('iframe');
         iframe.src = tab.url;
-        iframe.style.cssText = 'width:100%;height:calc(100vh - var(--chrome-h, 86px));border:none;display:block;';
+        iframe.style.cssText = 'width:100%;height:calc(100vh / var(--ui-zoom, 1) - var(--chrome-h, 86px));border:none;display:block;';
         iframe.onload = () => { tab.loaded = true; };
         iframe.onerror = () => {
             pane.innerHTML = '<div class="tab-loading" style="color:var(--red)">로드 실패 — <a href="' + tab.url + '" style="color:var(--accent)">직접 열기</a></div>';

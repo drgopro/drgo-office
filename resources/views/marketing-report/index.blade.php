@@ -37,6 +37,21 @@
     .rvp-amt { margin-left:auto; flex-shrink:0; font-size:13.5px; font-weight:700; color:var(--accent); }
     .rvp-amt.minus { color:#c0392b; }
     .rvp-empty { color:var(--text-muted); font-size:12.5px; text-align:center; padding:36px 0; }
+    .rvp-filters { padding:10px 10px 4px; border-bottom:1px solid var(--surface2); margin-bottom:4px; }
+    .rvp-filter-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px; }
+    .rvp-filter-label { font-size:11px; font-weight:700; color:var(--text-muted); width:28px; flex-shrink:0; }
+    .rvp-chip { border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:14px; padding:3px 11px; font-size:12px; cursor:pointer; }
+    .rvp-chip:hover { border-color:var(--accent); color:var(--text); }
+    .rvp-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
+    .rvp-open { flex-shrink:0; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; width:26px; height:26px; cursor:pointer; font-size:13px; }
+    .rvp-open:hover { border-color:var(--accent); color:var(--accent); }
+    .rvp-pays { padding:2px 10px 8px 22px; }
+    .rvp-pay { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12.5px; border-bottom:1px dashed var(--surface2); }
+    .rvp-pay:last-child { border-bottom:none; }
+    .rvp-pay-label { flex-shrink:0; font-weight:700; color:var(--accent); }
+    .rvp-pay-label.minus, .rvp-pay-amt.minus { color:#c0392b; }
+    .rvp-pay-info { color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rvp-pay-amt { margin-left:auto; flex-shrink:0; font-weight:700; }
 
     .mk-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
     .mk-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
@@ -554,6 +569,7 @@ new Chart(document.getElementById('chartMonthlyTrend'), {
 
 // ── 총 매출 드릴다운 ──
 function rvpEsc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+let RVP_DATA=null, RVP_TYPE='', RVP_WORK='';
 async function openRevenueProjects(){
     const overlay=document.getElementById('rvpOverlay');
     const body=document.getElementById('rvpBody');
@@ -563,17 +579,58 @@ async function openRevenueProjects(){
     try{
         const res=await fetch(`/api/marketing-report/revenue-projects?from=${from}&to=${to}`,{headers:{'Accept':'application/json'}});
         if(!res.ok) throw new Error();
-        const data=await res.json();
-        document.getElementById('rvpSub').textContent=`${data.from} ~ ${data.to} · ${data.count}건 · 합계 ${Number(data.total).toLocaleString()}원`;
-        if(!data.projects.length){ body.innerHTML='<div class="rvp-empty">기간 내 결제가 발생한 프로젝트가 없습니다.</div>'; return; }
-        body.innerHTML=data.projects.map(p=>`<div class="rvp-row" ${p.project_id?`onclick="openRvpProject(${p.project_id})"`:''}>
+        RVP_DATA=await res.json();
+        RVP_TYPE=''; RVP_WORK='';
+        renderRvp();
+    }catch(e){ body.innerHTML='<div class="rvp-empty">목록을 불러오지 못했습니다.</div>'; }
+}
+
+function renderRvp(){
+    const body=document.getElementById('rvpBody');
+    const all=RVP_DATA.projects;
+    if(!all.length){
+        document.getElementById('rvpSub').textContent=`${RVP_DATA.from} ~ ${RVP_DATA.to}`;
+        body.innerHTML='<div class="rvp-empty">기간 내 결제가 발생한 프로젝트가 없습니다.</div>';
+        return;
+    }
+    // 필터 칩 — 데이터에 존재하는 유형/작업 유형만 노출
+    const types=[...new Set(all.map(p=>p.type))];
+    const works=[...new Set(all.map(p=>p.work))];
+    const rows=all.filter(p=>(!RVP_TYPE||p.type===RVP_TYPE)&&(!RVP_WORK||p.work===RVP_WORK));
+    const sum=rows.reduce((a,p)=>a+p.amount,0);
+    document.getElementById('rvpSub').textContent=`${RVP_DATA.from} ~ ${RVP_DATA.to} · ${rows.length}건 · 합계 ${sum.toLocaleString()}원`;
+
+    const chip=(label,active,onclick)=>`<button type="button" class="rvp-chip ${active?'on':''}" onclick="${onclick}">${rvpEsc(label)}</button>`;
+    let html=`<div class="rvp-filters">
+        <div class="rvp-filter-row"><span class="rvp-filter-label">유형</span>${chip('전체',!RVP_TYPE,"rvpSetType('')")}${types.map(t=>chip(t,RVP_TYPE===t,`rvpSetType('${rvpEsc(t).replaceAll("'","\\'")}')`)).join('')}</div>
+        <div class="rvp-filter-row"><span class="rvp-filter-label">작업</span>${chip('전체',!RVP_WORK,"rvpSetWork('')")}${works.map(w=>chip(w,RVP_WORK===w,`rvpSetWork('${rvpEsc(w).replaceAll("'","\\'")}')`)).join('')}</div>
+    </div>`;
+
+    if(!rows.length){ body.innerHTML=html+'<div class="rvp-empty">조건에 맞는 프로젝트가 없습니다.</div>'; return; }
+    html+=rows.map((p,i)=>`<div class="rvp-item">
+        <div class="rvp-row" onclick="rvpToggle(${i})">
             <span style="min-width:0;">
                 <div class="rvp-name">${rvpEsc(p.name)}</div>
-                <div class="rvp-sub">${rvpEsc(p.client)} · ${rvpEsc(p.type)}${p.pay_count>1?` · 결제 ${p.pay_count}건`:''}${p.last_paid_at?` · 최근 ${p.last_paid_at}`:''}</div>
+                <div class="rvp-sub">${rvpEsc(p.client)} · ${rvpEsc(p.type)} · ${rvpEsc(p.work)}${p.pay_count>1?` · 결제 ${p.pay_count}건`:''}${p.last_paid_at?` · 최근 ${p.last_paid_at}`:''}</div>
             </span>
             <span class="rvp-amt ${p.amount<0?'minus':''}">${Number(p.amount).toLocaleString()}원</span>
-        </div>`).join('');
-    }catch(e){ body.innerHTML='<div class="rvp-empty">목록을 불러오지 못했습니다.</div>'; }
+            ${p.project_id?`<button type="button" class="rvp-open" onclick="event.stopPropagation(); openRvpProject(${p.project_id})" title="프로젝트 열기">↗</button>`:''}
+        </div>
+        <div class="rvp-pays" id="rvpPays${i}" style="display:none;">
+            ${(p.payments||[]).map(pay=>`<div class="rvp-pay">
+                <span class="rvp-pay-label ${pay.amount<0?'minus':''}">${rvpEsc(pay.label)}</span>
+                <span class="rvp-pay-info">${pay.paid_at||''}${pay.method?` · ${rvpEsc(pay.method)}`:''}${pay.memo?` · ${rvpEsc(pay.memo)}`:''}</span>
+                <span class="rvp-pay-amt ${pay.amount<0?'minus':''}">${Number(pay.amount).toLocaleString()}원</span>
+            </div>`).join('')||'<div class="rvp-pay" style="color:var(--text-muted);">개별 결제 내역 없음</div>'}
+        </div>
+    </div>`).join('');
+    body.innerHTML=html;
+}
+function rvpSetType(t){ RVP_TYPE=t; renderRvp(); }
+function rvpSetWork(w){ RVP_WORK=w; renderRvp(); }
+function rvpToggle(i){
+    const el=document.getElementById('rvpPays'+i);
+    if(el) el.style.display=el.style.display==='none'?'':'none';
 }
 function closeRevenueProjects(){ document.getElementById('rvpOverlay').classList.remove('open'); }
 function openRvpProject(id){

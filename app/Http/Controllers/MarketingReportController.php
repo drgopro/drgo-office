@@ -302,27 +302,45 @@ class MarketingReportController extends Controller
         $toDt = $to.' 23:59:59';
 
         $typeLabels = ConsultationType::map(false);
+        $workLabels = WorkType::map(false);
         $items = collect();
 
         if (Schema::hasTable('project_payments')) {
-            $items = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
+            $grouped = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
                 ->join('projects', 'projects.id', '=', 'project_payments.project_id')
                 ->leftJoin('clients', 'clients.id', '=', 'projects.client_id')
-                ->selectRaw('projects.id, projects.name, projects.project_type, projects.manual_client_name,
+                ->selectRaw('projects.id, projects.name, projects.project_type, projects.work_type, projects.manual_client_name,
                     clients.nickname as client_nickname, clients.name as client_name,
                     sum(project_payments.amount) as total, count(*) as pay_count, max(project_payments.paid_at) as last_paid_at')
-                ->groupBy('projects.id', 'projects.name', 'projects.project_type', 'projects.manual_client_name', 'clients.nickname', 'clients.name')
-                ->get()
-                ->map(fn ($r) => [
-                    'project_id' => $r->id,
-                    'name' => $r->name,
-                    'client' => $r->client_nickname ?: $r->client_name ?: $r->manual_client_name ?: '(의뢰자 없음)',
-                    'type' => $typeLabels[$r->project_type] ?? $r->project_type,
-                    'amount' => (int) $r->total,
-                    'pay_count' => (int) $r->pay_count,
-                    'last_paid_at' => $r->last_paid_at,
-                    'source' => 'payment',
-                ]);
+                ->groupBy('projects.id', 'projects.name', 'projects.project_type', 'projects.work_type', 'projects.manual_client_name', 'clients.nickname', 'clients.name')
+                ->get();
+
+            // 프로젝트 내 개별 결제 건 (모달에서 펼쳐 보기)
+            $paymentRows = ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereIn('project_id', $grouped->pluck('id'))
+                ->orderByDesc('paid_at')->orderByDesc('id')
+                ->get(['project_id', 'type', 'amount', 'method', 'paid_at', 'memo'])
+                ->groupBy('project_id');
+            $payTypeLabels = ['charge' => '결제', 'refund' => '환불', 'cancel' => '취소'];
+
+            $items = $grouped->map(fn ($r) => [
+                'project_id' => $r->id,
+                'name' => $r->name,
+                'client' => $r->client_nickname ?: $r->client_name ?: $r->manual_client_name ?: '(의뢰자 없음)',
+                'type' => $typeLabels[$r->project_type] ?? $r->project_type,
+                'work' => $r->work_type ? ($workLabels[$r->work_type] ?? $r->work_type) : '미지정',
+                'amount' => (int) $r->total,
+                'pay_count' => (int) $r->pay_count,
+                'last_paid_at' => $r->last_paid_at,
+                'source' => 'payment',
+                'payments' => ($paymentRows[$r->id] ?? collect())->map(fn ($p) => [
+                    'label' => $payTypeLabels[$p->type] ?? $p->type,
+                    'amount' => (int) $p->amount,
+                    'method' => $p->method,
+                    'paid_at' => $p->paid_at?->format('Y-m-d'),
+                    'memo' => $p->memo ? mb_substr($p->memo, 0, 80) : null,
+                ])->values()->all(),
+            ]);
         }
 
         // 레거시: 결제 내역 미연결 결제완료 견적 (총 매출 정의와 동일)
@@ -339,10 +357,18 @@ class MarketingReportController extends Controller
                 'name' => $e->project?->name ?? '견적 #'.$e->id.' (프로젝트 미연결)',
                 'client' => $e->client_nickname ?: $e->client_name ?: ($e->project?->client?->nickname ?? '(의뢰자 없음)'),
                 'type' => $e->project ? ($typeLabels[$e->project->project_type] ?? $e->project->project_type) : '견적',
+                'work' => $e->project?->work_type ? ($workLabels[$e->project->work_type] ?? $e->project->work_type) : '미지정',
                 'amount' => (int) $e->total_amount,
                 'pay_count' => 1,
                 'last_paid_at' => $e->created_at->format('Y-m-d'),
                 'source' => 'estimate',
+                'payments' => [[
+                    'label' => '견적 결제완료',
+                    'amount' => (int) $e->total_amount,
+                    'method' => null,
+                    'paid_at' => $e->created_at->format('Y-m-d'),
+                    'memo' => null,
+                ]],
             ]);
 
         $rows = $items->concat($legacy)
