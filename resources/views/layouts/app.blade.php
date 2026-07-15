@@ -276,7 +276,9 @@
         .gs-esc { font-size:10px; border:1px solid var(--border); border-radius:5px; padding:2px 6px; color:var(--text-muted); cursor:pointer; flex:none; }
         .gs-results { max-height:56vh; overflow-y:auto; padding:6px 8px 10px; }
         .gs-hint { padding:22px 0; text-align:center; color:var(--text-muted); font-size:12.5px; }
-        .gs-sec-label { font-size:10.5px; font-weight:700; color:var(--text-muted); letter-spacing:0.06em; padding:10px 10px 4px; }
+        .gs-sec-label { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:800; color:var(--text); padding:12px 10px 6px; border-top:1px solid var(--border); margin-top:8px; }
+        .gs-results > .gs-sec-label:first-child { border-top:none; margin-top:0; }
+        .gs-sec-count { font-size:10px; font-weight:700; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:1px 7px; }
         .gs-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; }
         .gs-item:hover { background:var(--surface2); }
         .gs-item-label { font-size:13.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1223,8 +1225,9 @@ function gsRender(data){
     if(!data){ el.innerHTML='<div class="gs-hint">오피스 전체에서 검색합니다 — 검색어를 입력하세요</div>'; return; }
     const secs=data.sections||[];
     if(!secs.length){ el.innerHTML='<div class="gs-hint">검색 결과가 없습니다</div>'; return; }
+    const GS_ICONS={clients:'👤',projects:'📁',schedules:'📅',wiki:'📖',estimates:'📄'};
     el.innerHTML=secs.map(sec=>`
-        <div class="gs-sec-label">${gsEsc(sec.label)}</div>
+        <div class="gs-sec-label">${GS_ICONS[sec.key]||''} ${gsEsc(sec.label)} <span class="gs-sec-count">${sec.items.length}</span></div>
         ${sec.items.map(it=>`<div class="gs-item" onclick='gsGo(${JSON.stringify(it.nav)}, ${JSON.stringify(it.url)}, ${it.client_id||'null'})'>
             <span class="gs-item-label">${gsEsc(it.label)}</span>
             <span class="gs-item-sub">${gsEsc(it.sub||'')}</span>
