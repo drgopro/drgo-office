@@ -233,7 +233,7 @@
                     <span class="ts-title {{ $s['completed'] ? 'done' : '' }}">{{ $s['title'] }}</span>
                     <div class="ts-sub">{{ $s['category'] }}{{ $s['assignees'] ? ' · 담당 '.$s['assignees'] : '' }}</div>
                 </span>
-                <span class="ts-chip">{{ \Illuminate\Support\Str::limit($s['category'], 6, '') }}</span>
+                <span class="ts-chip">{{ $s['category'] }}</span>
             </div>
         @empty
             <div class="dcard-empty">오늘 예정된 일정이 없습니다</div>
