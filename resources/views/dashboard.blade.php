@@ -16,7 +16,12 @@
     .dash-grid { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start; }
     .dash-main { display:flex; flex-direction:column; gap:16px; min-width:0; }
     .dash-side { display:flex; flex-direction:column; gap:16px; }
-    @media (max-width:980px) { .dash-grid { grid-template-columns:1fr; } }
+    /* 중간 해상도(~1200px): 우측 레일이 본문을 짓누르지 않도록 1단으로 전환, 사이드 카드는 2열 그리드로 재배치 */
+    @media (max-width:1200px) {
+        .dash-grid { grid-template-columns:1fr; }
+        .dash-side { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); align-items:start; }
+    }
+    @media (max-width:700px) { .dash-side { grid-template-columns:1fr; } }
 
     /* 공통 카드 */
     .dcard { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
