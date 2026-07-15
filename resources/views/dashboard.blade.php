@@ -16,10 +16,11 @@
     .dash-grid { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start; }
     .dash-main { display:flex; flex-direction:column; gap:16px; min-width:0; }
     .dash-side { display:flex; flex-direction:column; gap:16px; }
-    /* 중간 해상도(~1200px): 우측 레일이 본문을 짓누르지 않도록 1단으로 전환, 사이드 카드는 2열 그리드로 재배치 */
+    .side-stack { display:flex; flex-direction:column; gap:16px; } /* 공지+업데이트 묶음 — 그리드에서 한 칸 차지 */
+    /* 중간 해상도(~1200px): 사이드 레일을 본문 위 그리드로 재배치 (잔금·휴가·공지+업데이트 순) */
     @media (max-width:1200px) {
         .dash-grid { grid-template-columns:1fr; }
-        .dash-side { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); align-items:start; }
+        .dash-side { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); align-items:start; order:-1; }
     }
     @media (max-width:700px) { .dash-side { grid-template-columns:1fr; } }
 
@@ -416,6 +417,8 @@
 
         {{-- 나의 할 일 — 추후 개발 예정 --}}
 
+        {{-- 공지사항 + 업데이트 — 반응형 그리드에서 한 칸을 차지하도록 묶음 --}}
+        <div class="side-stack">
         {{-- 공지사항 (최근 2건) --}}
         <div class="dcard">
             <div class="dcard-head">
@@ -449,6 +452,7 @@
                 <div class="dcard-empty">등록된 업데이트가 없습니다</div>
             @endforelse
         </div>
+        </div>{{-- /side-stack --}}
     </aside>
     </div>{{-- /dash-grid --}}
 
