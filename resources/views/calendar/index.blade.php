@@ -5340,11 +5340,15 @@ function initAllRadioGroups(){
     // 02 의뢰자 정보 카드(gold 첫 카드)를 검색 카드 뒤로 — gold-only 클래스로 표시 토글 유지
     const goldClientCard=[...document.querySelectorAll('#modalOverlay .gold-only .m-card')]
         .find(c=>c.querySelector('.section-heading')?.textContent.includes('의뢰자 정보'));
+    // 일정 옵션 카드(확정 상태/시기 요청/특수 옵션)는 01 분류·시간 카드 바로 아래로
+    const schedOptCard=[...document.querySelectorAll('#modalOverlay .gold-only .m-card')]
+        .find(c=>c.querySelector('#scheduleOpts'));
     const clientLink=document.getElementById('clientLinkSection');
     const moveFrom=document.getElementById('moveFromBlock');
     const addr=document.getElementById('addressBlock');
     main.insertBefore(dt, main.firstChild);
     let after=dt;
+    if(schedOptCard){ schedOptCard.classList.add('gold-only'); after.after(schedOptCard); after=schedOptCard; }
     if(clientLink){ after.after(clientLink); after=clientLink; }
     if(goldClientCard){ goldClientCard.classList.add('gold-only'); after.after(goldClientCard); after=goldClientCard; }
     if(moveFrom){ after.after(moveFrom); after=moveFrom; }
