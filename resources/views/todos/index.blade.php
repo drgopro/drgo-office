@@ -69,6 +69,7 @@
     .todo-view-content a { color:var(--accent); word-break:break-all; }
     .yt-embed { margin-top:10px; border-radius:10px; overflow:hidden; aspect-ratio:16/9; background:#000; }
     .yt-embed iframe { width:100%; height:100%; border:0; display:block; }
+    .yt-embed.vertical { aspect-ratio:9/16; max-width:250px; } /* 쇼츠 등 세로 영상 */
     /* 외부 링크 OG 미리보기 카드 */
     .link-card { display:flex; gap:12px; margin-top:10px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); text-decoration:none !important; color:var(--text); align-items:center; min-height:52px; transition:border-color 0.15s; }
     .link-card:hover { border-color:var(--accent); }
@@ -340,17 +341,19 @@ function dueDateHtml(t) {
 function contentHtml(text) {
     if (!text) { return '내용 없음'; }
     const html = esc(text).replace(/(https?:\/\/[^\s<]+)/g, m => `<a href="${m}" target="_blank" rel="noopener">${m}</a>`);
-    const ytIds = [], others = [];
+    const ytVideos = [], others = [];
     const ytRe = /(?:youtube\.com\/(?:watch\?[^\s<]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/;
     (text.match(/https?:\/\/[^\s<]+/g) || []).forEach(u => {
         const yt = u.match(ytRe);
         if (yt) {
-            if (!ytIds.includes(yt[1]) && ytIds.length < 3) { ytIds.push(yt[1]); }
+            if (!ytVideos.some(v => v.id === yt[1]) && ytVideos.length < 3) {
+                ytVideos.push({ id: yt[1], vertical: u.includes('/shorts/') });
+            }
         } else if (!others.includes(u) && others.length < 3) {
             others.push(u);
         }
     });
-    const embeds = ytIds.map(id => `<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/${id}" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`).join('');
+    const embeds = ytVideos.map(v => `<div class="yt-embed ${v.vertical ? 'vertical' : ''}"><iframe src="https://www.youtube-nocookie.com/embed/${v.id}" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`).join('');
     const cards = others.map(u => `<a class="link-card" data-url="${esc(u)}" href="${esc(u)}" target="_blank" rel="noopener"></a>`).join('');
     return html + embeds + cards;
 }
