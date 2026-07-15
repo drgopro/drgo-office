@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\Project;
+use App\Models\ProjectBilling;
+use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -41,5 +43,37 @@ class DashboardConsultLinkTest extends TestCase
             ->assertSee("'/projects/{$project->id}'", false)
             ->assertSee("'/projects/{$project2->id}'", false)
             ->assertSee('consult-item clickable', false);
+    }
+
+    public function test_dashboard_renders_new_sections(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '옴니버', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '부산 세팅', 'project_type' => 'visit', 'stage' => 'payment']);
+
+        // 오늘의 일정 + 주목 프로젝트(확정 일정) + 잔금 미수
+        Schedule::create([
+            'title' => '옴니버 방문 세팅', 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+            'color' => 'gold', 'is_all_day' => true,
+        ]);
+        Schedule::create([
+            'title' => '옴니버 확정 방문', 'client_name' => '옴니버',
+            'start_date' => now()->addDays(5)->toDateString(), 'end_date' => now()->addDays(5)->toDateString(),
+            'color' => 'gold', 'is_all_day' => true, 'sched_opt' => 'confirmed',
+        ]);
+        ProjectBilling::create([
+            'project_id' => $project->id, 'amount' => 550000, 'billed_at' => now()->toDateString(), 'status' => 'unpaid',
+        ]);
+
+        $res = $this->actingAs($user)->get('/');
+
+        $res->assertOk()
+            ->assertSee('오늘의 일정')
+            ->assertSee('옴니버 방문 세팅')
+            ->assertSee('주목 프로젝트')
+            ->assertSee('확정 일정')
+            ->assertSee('잔금 미수')
+            ->assertSee('550,000원')
+            ->assertSee('공지 · 업데이트');
     }
 }

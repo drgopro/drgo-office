@@ -4,13 +4,84 @@
 
 @push('styles')
 <style>
-    .dash-wrap { padding:24px; max-width:1100px; margin:0 auto; }
+    .dash-wrap { padding:24px; max-width:1240px; margin:0 auto; }
     .dash-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
     .dash-header h1 { font-size:20px; font-weight:700; }
     .dash-header p { font-size:12px; color:var(--text-muted); margin-top:4px; }
 
     .section-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
     .section-title .section-sub { font-size:11px; color:var(--text-muted); font-weight:400; margin-left:auto; }
+
+    /* 전체 2컬럼 (본문 + 우측 레일) */
+    .dash-grid { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start; }
+    .dash-main { display:flex; flex-direction:column; gap:16px; min-width:0; }
+    .dash-side { display:flex; flex-direction:column; gap:16px; }
+    @media (max-width:980px) { .dash-grid { grid-template-columns:1fr; } }
+
+    /* 공통 카드 */
+    .dcard { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .dcard-head { display:flex; align-items:center; gap:8px; padding:11px 16px; background:var(--surface2); border-bottom:1px solid var(--border); font-size:13px; font-weight:700; }
+    .dcard-head .dc-sub { font-size:11px; color:var(--text-muted); font-weight:400; }
+    .dcard-head .dc-count { font-size:10px; font-weight:700; background:var(--accent); color:var(--accent-text); border-radius:9px; padding:1px 8px; }
+    .dcard-head .dc-link { margin-left:auto; font-size:11px; color:var(--accent); text-decoration:none; font-weight:600; white-space:nowrap; }
+    .dcard-empty { padding:20px; text-align:center; color:var(--text-muted); font-size:12px; }
+
+    /* 오늘의 일정 */
+    .ts-row { display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .ts-row:last-child { border-bottom:none; }
+    .ts-row:hover { background:var(--surface2); }
+    .ts-time { font-size:12.5px; font-weight:700; min-width:86px; white-space:nowrap; }
+    .ts-time .ts-end { color:var(--text-muted); font-weight:400; }
+    .ts-accent { width:3px; height:30px; border-radius:2px; flex:none; }
+    .ts-body { flex:1; min-width:0; }
+    .ts-title { font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ts-title.done { text-decoration:line-through; color:var(--text-muted); }
+    .ts-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .ts-chip { flex:none; font-size:10.5px; font-weight:700; border:1px solid var(--border); border-radius:8px; padding:3px 9px; color:var(--text-muted); background:var(--surface); }
+
+    /* 업무 현황 — 스탯 스트립 */
+    .ws-strip { display:grid; grid-template-columns:repeat(4,1fr); }
+    .ws-cell { padding:14px 16px; border-right:1px solid var(--border); cursor:pointer; }
+    .ws-cell:last-child { border-right:none; }
+    .ws-cell:hover { background:var(--surface2); }
+    .ws-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
+    .ws-value { font-size:22px; font-weight:800; line-height:1; }
+    .ws-sub { font-size:11px; color:var(--text-muted); margin-top:5px; }
+    @media (max-width:700px) { .ws-strip { grid-template-columns:repeat(2,1fr); } .ws-cell:nth-child(2) { border-right:none; } }
+
+    /* 주목 프로젝트 */
+    .fp-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .fp-row:last-child { border-bottom:none; }
+    .fp-row:hover { background:var(--surface2); }
+    .fp-dday { flex:none; font-size:11.5px; font-weight:800; background:#3A5683; color:#fff; border-radius:7px; padding:4px 10px; }
+    .fp-dday.d-urgent { background:var(--red); }
+    .fp-client { font-weight:700; font-size:13px; min-width:80px; }
+    .fp-desc { flex:1; min-width:0; font-size:12.5px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fp-chip { flex:none; font-size:10.5px; font-weight:700; border-radius:8px; padding:3px 9px; border:1px solid var(--border); color:var(--text-muted); }
+    .fp-chip.confirmed { background:rgba(47,158,68,0.12); color:#2f9e44; border-color:rgba(47,158,68,0.4); }
+    .fp-chip.suggest { background:rgba(138,180,200,0.15); color:#5b8aa6; border-color:rgba(138,180,200,0.45); }
+    .fp-chip.hope { background:rgba(200,176,138,0.15); color:#a8834a; border-color:rgba(200,176,138,0.5); }
+    .fp-chip.target { background:rgba(122,200,122,0.14); color:#4a9a4a; border-color:rgba(122,200,122,0.45); }
+
+    /* 잔금 미수 */
+    .ob-row { display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .ob-row:hover { background:var(--surface2); }
+    .ob-body { flex:1; min-width:0; }
+    .ob-label { font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ob-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .ob-amt { flex:none; font-size:13.5px; font-weight:800; }
+    .ob-total { display:flex; align-items:center; justify-content:space-between; padding:11px 16px; font-size:12.5px; font-weight:700; background:var(--surface2); }
+    .ob-total b { font-size:15px; color:var(--red); }
+
+    /* 공지·업데이트 (우측) */
+    .nu-row { display:flex; align-items:center; gap:9px; padding:10px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .nu-row:last-child { border-bottom:none; }
+    .nu-row:hover { background:var(--surface2); }
+    .nu-badge { flex:none; font-size:9.5px; font-weight:800; border-radius:6px; padding:2px 7px; }
+    .nu-badge.notice { background:#3A5683; color:#fff; }
+    .nu-badge.update { background:rgba(58,86,131,0.12); color:#3A5683; }
+    .nu-title { flex:1; min-width:0; font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .nu-date { flex:none; font-size:11px; color:var(--text-muted); }
 
     /* 상담 현황 — 세그먼트 바 + 단계 카드 (한 컨테이너) */
     .pl-wrap { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px; }
@@ -112,7 +183,35 @@
         @endif
     </div>
 
-    {{-- 상담 현황 — 세그먼트 바 + 단계 카드 --}}
+    <div class="dash-grid">
+    <div class="dash-main">
+
+    {{-- ① 오늘의 일정 --}}
+    <div class="dcard">
+        <div class="dcard-head">
+            오늘의 일정
+            @if($todaySchedules->count())<span class="dc-count">{{ $todaySchedules->count() }}</span>@endif
+            <a class="dc-link" href="/calendar" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">캘린더로 이동 →</a>
+        </div>
+        @php
+            $dashColorMap = ['gold' => '#c8b08a', 'teal' => '#4ecdc4', 'blue' => '#8ab4c8', 'red' => '#c87a7a', 'green' => '#7ac87a', 'purple' => '#9b70c8'];
+        @endphp
+        @forelse($todaySchedules as $s)
+            <div class="ts-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">
+                <span class="ts-time">{{ $s['time'] }}@if($s['time_end'])<span class="ts-end"> – {{ $s['time_end'] }}</span>@endif</span>
+                <span class="ts-accent" style="background:{{ $dashColorMap[$s['color']] ?? '#8ba3c7' }};"></span>
+                <span class="ts-body">
+                    <span class="ts-title {{ $s['completed'] ? 'done' : '' }}">{{ $s['title'] }}</span>
+                    <div class="ts-sub">{{ $s['category'] }}{{ $s['assignees'] ? ' · 담당 '.$s['assignees'] : '' }}</div>
+                </span>
+                <span class="ts-chip">{{ \Illuminate\Support\Str::limit($s['category'], 6, '') }}</span>
+            </div>
+        @empty
+            <div class="dcard-empty">오늘 예정된 일정이 없습니다</div>
+        @endforelse
+    </div>
+
+    {{-- ② 상담 현황 — 세그먼트 바 + 단계 카드 --}}
     @php
         $plStages = [
             ['key' => 'consulting', 'label' => '상담 중', 'sub' => '초기 상담 단계', 'count' => $pipeline['consulting'], 'go' => 'consulting', 'color' => '#3A5683'],
@@ -147,155 +246,138 @@
         </div>
     </div>
 
-    {{-- 간단한 현황 --}}
-    <div class="section-title"><x-icon name="pin" :size="17"/> 오늘의 현황</div>
-    <div class="info-grid">
-        <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href='/clients';">
-            <div class="ic-label">의뢰자</div>
-            <div class="ic-value">{{ number_format($clientTotal) }}명</div>
-            <div class="ic-sub">이번 달 +{{ $clientThisMonth }}</div>
+    {{-- ③ 업무 현황 — 4개 스탯 한 카드 --}}
+    <div class="dcard">
+        <div class="dcard-head">업무 현황 <span class="dc-sub" style="margin-left:auto;">이번 달</span></div>
+        <div class="ws-strip">
+            <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href='/clients';">
+                <div class="ws-label">의뢰자</div>
+                <div class="ws-value">{{ number_format($clientTotal) }}</div>
+                <div class="ws-sub">+{{ $clientThisMonth }}</div>
+            </div>
+            <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">
+                <div class="ws-label">일정</div>
+                <div class="ws-value">{{ $scheduleThisMonth }}건</div>
+                <div class="ws-sub">{{ now()->format('n') }}월</div>
+            </div>
+            <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('rental-contracts','/rental-contracts'); else location.href='/rental-contracts';">
+                <div class="ws-label">렌탈</div>
+                <div class="ws-value">{{ $rentalActive ?? 0 }}건</div>
+                <div class="ws-sub">월 {{ number_format($rentalMonthlyRevenue ?? 0) }}원</div>
+            </div>
+            <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('broadcast-room','/broadcast-room'); else location.href='/broadcast-room';">
+                <div class="ws-label">방송룸</div>
+                <div class="ws-value">{{ $broadcastActive ?? 0 }}건</div>
+                <div class="ws-sub">월 {{ number_format($broadcastMonthlyRevenue ?? 0) }}원</div>
+            </div>
         </div>
-        <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">
-            <div class="ic-label">이번 달 일정</div>
-            <div class="ic-value">{{ $scheduleThisMonth }}건</div>
-            <div class="ic-sub">{{ now()->format('n') }}월 기준</div>
+    </div>
+
+    {{-- ④ 주목 프로젝트 — 임박한 목표·제안·확정 일정 --}}
+    <div class="dcard">
+        <div class="dcard-head">
+            주목 프로젝트 <span class="dc-sub">목표 · 제안 일정이 다가오는 건</span>
+            <a class="dc-link" href="/calendar" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">전체 보기 →</a>
         </div>
-        @if(($rentalActive ?? 0) > 0 || ($broadcastActive ?? 0) > 0)
-        <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('rental-contracts','/rental-contracts'); else location.href='/rental-contracts';">
-            <div class="ic-label"><x-icon name="home" :size="15"/> 렌탈 진행중</div>
-            <div class="ic-value">{{ $rentalActive ?? 0 }}건</div>
-            <div class="ic-sub">월 {{ number_format($rentalMonthlyRevenue ?? 0) }}원</div>
+        @forelse($focusSchedules as $f)
+            <div class="fp-row" onclick="{{ $f['project_id'] ? "if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/".$f['project_id']."');}else{location.href='/projects/".$f['project_id']."';}" : "if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('calendar','/calendar');}else{location.href='/calendar';}" }}">
+                <span class="fp-dday {{ $f['dday'] <= 3 ? 'd-urgent' : '' }}">{{ $f['dday'] === 0 ? '오늘' : 'D-'.$f['dday'] }}</span>
+                <span class="fp-client">{{ $f['client'] }}</span>
+                <span class="fp-desc">{{ $f['opt_label'] }} {{ $f['date'] }} · {{ $f['desc'] }}</span>
+                <span class="fp-chip {{ $f['opt'] }}">{{ $f['opt_label'] }}</span>
+            </div>
+        @empty
+            <div class="dcard-empty">다가오는 목표·제안·확정 일정이 없습니다</div>
+        @endforelse
+    </div>
+
+    {{-- ⑤ 최근 이슈 · 상담 진행중 --}}
+    <div class="dcard">
+        <div class="dcard-head">
+            최근 이슈 · 상담 진행중 <span class="dc-sub">우선순위가 높은 항목</span>
+            <a class="dc-link" href="/projects" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects'); else location.href='/projects';">전체 보기 →</a>
         </div>
-        <div class="info-card" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('broadcast-room','/broadcast-room'); else location.href='/broadcast-room';">
-            <div class="ic-label"><x-icon name="mic" :size="15"/> 방송룸 월계약</div>
-            <div class="ic-value">{{ $broadcastActive ?? 0 }}건</div>
-            <div class="ic-sub">월 {{ number_format($broadcastMonthlyRevenue ?? 0) }}원</div>
-        </div>
+        @if($recentConsults->count() > 0)
+            @foreach($recentConsults as $c)
+                {{-- 클릭 시 연결 프로젝트로 이동 (프로젝트 없으면 의뢰자 상세로) --}}
+                <div class="consult-item{{ ($c['project_id'] || $c['client_id']) ? ' clickable' : '' }}"
+                    @if($c['project_id'])
+                        onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $c['project_id'] }}');}else{location.href='/projects/{{ $c['project_id'] }}';}"
+                        title="프로젝트로 이동"
+                    @elseif($c['client_id'])
+                        onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openClientDetail({{ $c['client_id'] }});}else{location.href='/clients?open={{ $c['client_id'] }}';}"
+                        title="의뢰자 상세로 이동"
+                    @endif>
+                    <span class="consult-badge {{ $c['result'] }}">
+                        {{ ['in_progress' => '진행중', 'waiting' => '대기'][$c['result']] ?? $c['result'] }}
+                    </span>
+                    <span class="consult-client">{{ $c['client'] ?? '-' }}</span>
+                    <span class="consult-content">{{ $c['content'] }}</span>
+                    <span class="consult-meta">{{ $c['consultant'] ?? '-' }} · {{ $c['date'] }}</span>
+                </div>
+            @endforeach
+        @else
+            <div class="dcard-empty">대기/진행중 상담이 없습니다</div>
         @endif
     </div>
 
-    {{-- 좌: 최근 이슈·상담 진행중 / 우: 공지사항·업데이트 --}}
-    <div class="dash-cols">
-        <div>
-            <div class="section-title">
-                <x-icon name="chat" :size="17"/> 최근 이슈 · 상담 진행중
-                <span class="section-sub">우선순위가 높은 항목</span>
-            </div>
-            <div class="consult-list">
-                @if($recentConsults->count() > 0)
-                    @foreach($recentConsults as $c)
-                        {{-- 클릭 시 연결 프로젝트로 이동 (프로젝트 없으면 의뢰자 상세로) --}}
-                        <div class="consult-item{{ ($c['project_id'] || $c['client_id']) ? ' clickable' : '' }}"
-                            @if($c['project_id'])
-                                onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $c['project_id'] }}');}else{location.href='/projects/{{ $c['project_id'] }}';}"
-                                title="프로젝트로 이동"
-                            @elseif($c['client_id'])
-                                onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openClientDetail({{ $c['client_id'] }});}else{location.href='/clients?open={{ $c['client_id'] }}';}"
-                                title="의뢰자 상세로 이동"
-                            @endif>
-                            <span class="consult-badge {{ $c['result'] }}">
-                                {{ ['in_progress' => '진행중', 'waiting' => '대기'][$c['result']] ?? $c['result'] }}
-                            </span>
-                            <span class="consult-client">{{ $c['client'] ?? '-' }}</span>
-                            <span class="consult-content">{{ $c['content'] }}</span>
-                            <span class="consult-meta">{{ $c['consultant'] ?? '-' }} · {{ $c['date'] }}</span>
-                        </div>
-                    @endforeach
-                @else
-                    <div class="consult-empty">대기/진행중 상담이 없습니다</div>
-                @endif
-                <a class="list-more" href="/projects" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects'); else location.href='/projects';">전체 보기 →</a>
-            </div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:12px;">
-            <div class="wiki-widget">
-                <div class="ww-head"><span class="ww-type-badge notice">공지사항</span> <span class="ww-sub">최신순</span></div>
-                @forelse($wikiNoticeList as $w)
-                    <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
-                        <span class="ww-title">{{ $w->title }}</span>
-                        <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
-                    </a>
-                @empty
-                    <div class="ww-empty">등록된 공지사항이 없습니다</div>
-                @endforelse
-                <a class="ww-more" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
-            </div>
-            <div class="wiki-widget">
-                <div class="ww-head"><span class="ww-type-badge update">업데이트</span> <span class="ww-sub">최신순</span></div>
-                @forelse($wikiUpdateList as $w)
-                    <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
-                        <span class="ww-title">{{ $w->title }}</span>
-                        <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
-                    </a>
-                @empty
-                    <div class="ww-empty">등록된 업데이트가 없습니다</div>
-                @endforelse
-                <a class="ww-more" href="/wiki?type=update" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=update'); else location.href=this.href;">전체 보기 →</a>
-            </div>
-        </div>
-    </div>
+    </div>{{-- /dash-main --}}
 
-    {{-- 위키 --}}
-    <div class="section-title" style="margin-top:28px;"><x-icon name="book" :size="17"/> 위키</div>
-    <div class="wiki-widget-grid">
-        <div class="wiki-widget">
-            <div class="ww-head"><x-icon name="new" :size="15"/> 최신 등록 문서 <span class="ww-sub">최근 3건</span></div>
-            @forelse($wikiRecent as $w)
-                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
-                    <span class="ww-title">{{ $w->title }}</span>
-                    <span class="ww-date">{{ $w->created_at->format('m.d') }}</span>
-                </a>
+    {{-- 우측 레일 --}}
+    <aside class="dash-side">
+        {{-- 잔금 미수 --}}
+        @if(Auth::user()->hasPermission('projects.view'))
+        <div class="dcard">
+            <div class="dcard-head">
+                잔금 미수
+                @if($outstandingCount)<span class="dc-count">{{ $outstandingCount }}</span>@endif
+                <a class="dc-link" href="/projects-billing" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects-billing'); else location.href='/projects-billing';">전체 →</a>
+            </div>
+            @forelse($outstanding as $o)
+                <div class="ob-row" onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $o['project_id'] }}');}else{location.href='/projects/{{ $o['project_id'] }}';}">
+                    <span class="ob-body">
+                        <div class="ob-label">{{ $o['label'] }}</div>
+                        <div class="ob-sub">{{ $o['sub'] }}</div>
+                    </span>
+                    <span class="ob-amt">{{ number_format($o['balance']) }}원</span>
+                </div>
             @empty
-                <div class="ww-empty">등록된 문서가 없습니다</div>
+                <div class="dcard-empty">잔금이 남은 프로젝트가 없습니다</div>
             @endforelse
-        </div>
-        <div class="wiki-widget">
-            <div class="ww-head"><x-icon name="books" :size="15"/> 전체 문서 <span class="ww-sub">총 {{ $wikiTotal }}건</span></div>
-            @forelse($wikiAll as $w)
-                <a class="ww-item" href="/wiki/{{ $w->id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href=this.href;">
-                    <span class="ww-title">{{ $w->is_pinned ? '📌 ' : '' }}{{ $w->title }}</span>
-                    <span class="ww-date">{{ $w->updated_at->format('m.d') }}</span>
-                </a>
-            @empty
-                <div class="ww-empty">등록된 문서가 없습니다</div>
-            @endforelse
-            @if($wikiTotal > 5)
-                <a class="ww-more" href="/wiki" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki'); else location.href=this.href;">전체 보기 →</a>
+            @if($outstandingCount)
+                <div class="ob-total"><span>합계</span><b>{{ number_format($outstandingTotal) }}원</b></div>
             @endif
         </div>
-    </div>
+        @endif
 
-    {{-- 빠른 이동 --}}
-    <div class="section-title" style="margin-top:28px;"><x-icon name="link" :size="17"/> 빠른 이동</div>
-    <div class="shortcut-grid">
-        <a href="/calendar" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href=this.href;">
-            <div class="sc-icon"><x-icon name="calendar" :size="26"/></div>
-            <div class="sc-label">캘린더</div>
-            <div class="sc-sub">일정 확인</div>
-        </a>
-        <a href="/clients" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href=this.href;">
-            <div class="sc-icon"><x-icon name="user" :size="26"/></div>
-            <div class="sc-label">의뢰자</div>
-            <div class="sc-sub">CRM 관리</div>
-        </a>
-        <a href="/projects" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects'); else location.href=this.href;">
-            <div class="sc-icon"><x-icon name="folder" :size="26"/></div>
-            <div class="sc-label">프로젝트</div>
-            <div class="sc-sub">전체 목록</div>
-        </a>
-        <a href="/estimates" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('estimates','/estimates'); else location.href=this.href;">
-            <div class="sc-icon"><x-icon name="note" :size="26"/></div>
-            <div class="sc-label">견적서</div>
-        </a>
-        <a href="/inventory" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('inventory','/inventory'); else location.href=this.href;">
-            <div class="sc-icon"><x-icon name="box" :size="26"/></div>
-            <div class="sc-label">재고</div>
-        </a>
-        <a href="/rental-equipment" class="shortcut-card" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('rental','/rental-equipment'); else location.href=this.href;">
-            <div class="sc-icon"><x-icon name="camera" :size="26"/></div>
-            <div class="sc-label">장비 위치</div>
-        </a>
-    </div>
+        {{-- 나의 할 일 — 추후 개발 예정 --}}
+
+        {{-- 공지 · 업데이트 (공지 2건 + 업데이트 1건) --}}
+        <div class="dcard">
+            <div class="dcard-head">
+                공지 · 업데이트
+                <a class="dc-link" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
+            </div>
+            @forelse($wikiNoticeList as $w)
+                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
+                    <span class="nu-badge notice">공지</span>
+                    <span class="nu-title">{{ $w->title }}</span>
+                    <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
+                </div>
+            @empty
+                <div class="dcard-empty">등록된 공지사항이 없습니다</div>
+            @endforelse
+            @foreach($wikiUpdateList as $w)
+                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
+                    <span class="nu-badge update">업뎃</span>
+                    <span class="nu-title">{{ $w->title }}</span>
+                    <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
+                </div>
+            @endforeach
+        </div>
+    </aside>
+    </div>{{-- /dash-grid --}}
+
 </div>
 
 <script>

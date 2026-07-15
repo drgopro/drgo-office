@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
+use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\ConsultationType;
 use App\Models\Estimate;
 use App\Models\Project;
+use App\Models\ProjectBilling;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
 use App\Models\Schedule;
@@ -197,18 +199,74 @@ class DashboardController extends Controller
                 'date' => $c->consulted_at?->format('m.d'),
             ]);
 
+        // 오늘의 일정 — 오늘과 겹치는 일정 (타인 비공개 제외), 종일 → 시간순
+        $today = now()->toDateString();
+        $catMap = CalendarCategory::map();
+        $todaySchedules = Schedule::with('assignees:id,name')
+            ->whereDate('start_date', '<=', $today)
+            ->where(fn ($q) => $q->whereDate('end_date', '>=', $today)->orWhereNull('end_date'))
+            ->where(fn ($q) => $q->where('is_private', false)->orWhere('created_by', auth()->id()))
+            ->orderByDesc('is_all_day')->orderBy('start_time')
+            ->limit(8)->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'title' => $s->title ?: '(제목 없음)',
+                'time' => $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5),
+                'time_end' => $s->is_all_day || ! $s->end_time ? null : substr((string) $s->end_time, 0, 5),
+                'color' => $s->color,
+                'category' => $catMap[$s->color]['label'] ?? $s->color,
+                'assignees' => $s->assignees->pluck('name')->implode(', '),
+                'completed' => $s->completed_at !== null,
+            ]);
+
+        // 주목 프로젝트 — 다가오는 제안/희망/목표/확정 일정 (D-day 오름차순)
+        $schedOptLabels = ['suggest' => '제안 일정', 'hope' => '희망 일정', 'target' => '목표 일정', 'confirmed' => '확정 일정'];
+        $focusSchedules = Schedule::whereNotNull('sched_opt')
+            ->whereIn('sched_opt', array_keys($schedOptLabels))
+            ->whereDate('start_date', '>=', $today)
+            ->where(fn ($q) => $q->where('is_private', false)->orWhere('created_by', auth()->id()))
+            ->orderBy('start_date')->limit(4)->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'dday' => (int) now()->startOfDay()->diffInDays($s->start_date->copy()->startOfDay()),
+                'client' => $s->client_name ?: '(의뢰자 미상)',
+                'desc' => $s->title ?: '(제목 없음)',
+                'date' => $s->start_date->format('m.d'),
+                'opt' => $s->sched_opt,
+                'opt_label' => $schedOptLabels[$s->sched_opt] ?? $s->sched_opt,
+                'project_id' => data_get($s->gold_data, 'project_id'),
+            ]);
+
+        // 잔금 미수 — 미입금·부분입금 청구 상위 + 합계
+        $outstanding = collect();
+        $outstandingTotal = 0;
+        $outstandingCount = 0;
+        if (auth()->user()->hasPermission('projects.view')) {
+            $obs = ProjectBilling::with('project.client')
+                ->whereIn('status', ['unpaid', 'partial'])->orderBy('billed_at')->get();
+            $outstandingCount = $obs->count();
+            $outstandingTotal = $obs->sum(fn ($b) => $b->balance());
+            $outstanding = $obs->take(4)->map(fn ($b) => [
+                'project_id' => $b->project_id,
+                'label' => $b->project?->clientDisplayName() ?: ($b->project?->name ?? '프로젝트 #'.$b->project_id),
+                'sub' => trim(($b->project?->name ?? '').' · 청구 '.$b->billed_at?->format('m.d'), ' ·'),
+                'balance' => $b->balance(),
+            ]);
+        }
+
         // 위키 위젯 — 전체 문서(고정 우선, 최대 5), 최신 등록 문서(최대 3)
         $wikiTotal = Wiki::count();
         $wikiAll = Wiki::orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
         $wikiRecent = Wiki::orderByDesc('created_at')->limit(3)->get(['id', 'title', 'created_at']);
-        // 공지사항/업데이트 — 최신순, 별도 패널로 분리 노출
+        // 공지사항/업데이트 — 최신순 (대시보드 우측 카드: 공지 2건 + 업데이트 1건)
         $wikiNoticeList = Wiki::where('type', 'notice')
-            ->orderByDesc('created_at')->limit(5)->get(['id', 'title', 'created_at']);
+            ->orderByDesc('created_at')->limit(2)->get(['id', 'title', 'created_at']);
         $wikiUpdateList = Wiki::where('type', 'update')
-            ->orderByDesc('created_at')->limit(5)->get(['id', 'title', 'created_at']);
+            ->orderByDesc('created_at')->limit(1)->get(['id', 'title', 'created_at']);
 
         return view('dashboard', compact(
             'wikiTotal', 'wikiAll', 'wikiRecent', 'wikiNoticeList', 'wikiUpdateList',
+            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',
