@@ -69,6 +69,15 @@
     .todo-view-content a { color:var(--accent); word-break:break-all; }
     .yt-embed { margin-top:10px; border-radius:10px; overflow:hidden; aspect-ratio:16/9; background:#000; }
     .yt-embed iframe { width:100%; height:100%; border:0; display:block; }
+    /* 외부 링크 OG 미리보기 카드 */
+    .link-card { display:flex; gap:12px; margin-top:10px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); text-decoration:none !important; color:var(--text); align-items:center; min-height:52px; transition:border-color 0.15s; }
+    .link-card:hover { border-color:var(--accent); }
+    .link-card:empty { display:none; }
+    .lc-thumb { width:76px; height:56px; object-fit:cover; border-radius:7px; flex-shrink:0; background:var(--surface2); }
+    .lc-body { display:flex; flex-direction:column; gap:3px; min-width:0; }
+    .lc-title { font-size:12.5px; font-weight:700; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-all; }
+    .lc-desc { font-size:11px; color:var(--text-muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-all; }
+    .lc-host { font-size:10.5px; color:var(--text-muted); opacity:0.8; }
     .tdp-actions { display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:13px; }
     .tdp-actions .todo-btn { padding:8px 14px; font-size:12.5px; }
     @media (max-width:900px) {
@@ -319,18 +328,48 @@ function dueDateHtml(t) {
     return `<span class="todo-lrow-due-date ${cls}">${t.due_date.replaceAll('-', '.')}</span>`;
 }
 
-// 본문 링크 처리 — URL은 클릭 가능하게, 유튜브 링크는 미리보기 임베드 (최대 3개)
+// 본문 링크 처리 — URL은 클릭 가능하게, 유튜브는 임베드, 일반 링크는 OG 미리보기 카드 (각 최대 3개)
 function contentHtml(text) {
     if (!text) { return '내용 없음'; }
     const html = esc(text).replace(/(https?:\/\/[^\s<]+)/g, m => `<a href="${m}" target="_blank" rel="noopener">${m}</a>`);
-    const ids = [];
-    const ytRe = /(?:youtube\.com\/(?:watch\?[^\s<]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/g;
-    let m;
-    while ((m = ytRe.exec(text)) && ids.length < 3) {
-        if (!ids.includes(m[1])) { ids.push(m[1]); }
+    const ytIds = [], others = [];
+    const ytRe = /(?:youtube\.com\/(?:watch\?[^\s<]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/;
+    (text.match(/https?:\/\/[^\s<]+/g) || []).forEach(u => {
+        const yt = u.match(ytRe);
+        if (yt) {
+            if (!ytIds.includes(yt[1]) && ytIds.length < 3) { ytIds.push(yt[1]); }
+        } else if (!others.includes(u) && others.length < 3) {
+            others.push(u);
+        }
+    });
+    const embeds = ytIds.map(id => `<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/${id}" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`).join('');
+    const cards = others.map(u => `<a class="link-card" data-url="${esc(u)}" href="${esc(u)}" target="_blank" rel="noopener"></a>`).join('');
+    return html + embeds + cards;
+}
+
+// OG 미리보기 카드 로딩 — contentHtml 렌더 후 호출
+const LINK_PREVIEW_CACHE = new Map();
+async function loadLinkCards() {
+    for (const el of document.querySelectorAll('.link-card[data-url]:not(.loaded)')) {
+        el.classList.add('loaded');
+        const url = el.dataset.url;
+        try {
+            let data = LINK_PREVIEW_CACHE.get(url);
+            if (!data) {
+                const res = await fetch('/api/link-preview?url=' + encodeURIComponent(url), { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) { el.remove(); continue; }
+                data = await res.json();
+                LINK_PREVIEW_CACHE.set(url, data);
+            }
+            el.innerHTML = `
+                ${data.image ? `<img class="lc-thumb" src="${esc(data.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+                <span class="lc-body">
+                    <span class="lc-title">${esc(data.title)}</span>
+                    ${data.description ? `<span class="lc-desc">${esc(data.description)}</span>` : ''}
+                    <span class="lc-host">${esc(data.host)}</span>
+                </span>`;
+        } catch (e) { el.remove(); }
     }
-    const embeds = ids.map(id => `<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/${id}" loading="lazy" allowfullscreen allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`).join('');
-    return html + embeds;
 }
 
 function filteredTodos() {
@@ -447,6 +486,7 @@ function renderDetailPane() {
             <button type="button" class="todo-btn ghost" onclick="paneEdit()">수정</button>
             <button type="button" class="todo-btn success" onclick="quickComplete(${t.id})">${t.completed ? '완료 취소' : '완료 처리'}</button>
         </div>`;
+    loadLinkCards();
 }
 
 function paneEdit() {
@@ -691,6 +731,7 @@ function openTodoView(id) {
         t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : '',
     ].filter(Boolean).join('');
     document.getElementById('tvContent').innerHTML = contentHtml(t.content);
+    loadLinkCards();
     document.getElementById('tvAttachments').innerHTML = t.attachments.map(a => `
         <div class="todo-attach-item">
             ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : '📄'}

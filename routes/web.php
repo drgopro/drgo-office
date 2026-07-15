@@ -19,6 +19,7 @@ use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\LinkPreviewController;
 use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
@@ -347,6 +348,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/todos/{todo}/attachments', [TodoController::class, 'storeAttachments']);
     Route::delete('/api/todo-attachments/{attachment}', [TodoController::class, 'destroyAttachment']);
     Route::get('/todo-attachments/{attachment}', [TodoController::class, 'serveAttachment'])->name('todo-attachments.serve');
+    Route::get('/api/link-preview', [LinkPreviewController::class, 'show']); // 본문 링크 OG 미리보기
 
     // 위키
     Route::get('/wiki', [WikiController::class, 'index'])->name('wiki.index');
