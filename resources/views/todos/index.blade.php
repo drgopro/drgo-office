@@ -9,8 +9,13 @@
     .todo-header h1 { font-size:20px; font-weight:700; }
     .todo-header p { font-size:12px; color:var(--text-muted); margin-top:4px; }
     .todo-header-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-    .todo-toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none; }
-    .todo-toggle input { accent-color:var(--accent); }
+    .todo-toggle { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-muted); cursor:pointer; user-select:none; }
+    .todo-toggle:has(input:checked) { color:var(--text); font-weight:600; }
+    /* 스위치형 토글 */
+    .todo-toggle input { appearance:none; -webkit-appearance:none; width:34px; height:19px; border-radius:10px; background:var(--surface3); border:1px solid var(--border); position:relative; cursor:pointer; transition:background 0.18s, border-color 0.18s; margin:0; flex-shrink:0; }
+    .todo-toggle input::after { content:''; position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.25); transition:left 0.18s; }
+    .todo-toggle input:checked { background:var(--accent); border-color:var(--accent); }
+    .todo-toggle input:checked::after { left:17px; }
     .todo-add-btn { background:#1f2b40; color:#fff; border:none; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; }
     .todo-add-btn:hover { background:#2c3d5c; }
 
