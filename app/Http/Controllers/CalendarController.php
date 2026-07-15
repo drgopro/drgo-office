@@ -200,7 +200,9 @@ class CalendarController extends Controller
         $g = $schedule->gold_data ?? [];
         $projectId = (int) ($g['project_id'] ?? 0);
         $amount = (int) preg_replace('/\D/', '', (string) ($g['balance_amount'] ?? ''));
-        $active = ($g['balance'] ?? '') === 'O' && $amount > 0 && $projectId > 0;
+        // balance_source=project — 결제/잔금이 프로젝트 결제 연동 표시값이므로 캘린더발 청구 생성 안 함 (이중 청구 방지)
+        $active = ($g['balance'] ?? '') === 'O' && $amount > 0 && $projectId > 0
+            && ($g['balance_source'] ?? '') !== 'project';
         $billing = ! empty($g['balance_billing_id']) ? ProjectBilling::find($g['balance_billing_id']) : null;
 
         if ($active) {

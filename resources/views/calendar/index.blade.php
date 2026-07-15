@@ -1620,6 +1620,8 @@
                         </div>
                     </div>
                 </div>
+                {{-- 프로젝트 결제 연동 안내 — 프로젝트 연결 시 결제 금액/잔금은 프로젝트 결제 데이터에서 자동 반영 --}}
+                <div id="projPayNote" style="display:none;font-size:11px;color:var(--accent);margin:-4px 0 8px;"></div>
 
                 <div class="divider"></div>
 
@@ -3986,9 +3988,52 @@ async function loadClientProjects(clientId){
         // 이전에 연결된 프로젝트가 있으면 선택
         if(linkedProjectId) sel.value=linkedProjectId;
         wrap.style.display='';
+        syncProjectPaymentFields(); // 결제 금액/잔금을 프로젝트 결제 데이터로 연동
         if(isLocked) renderLockSummary(); // 요약 뷰에 프로젝트명 반영
         return data;
     }catch(e){wrap.style.display='none';return null;}
+}
+
+// ── 프로젝트 결제 연동 — 결제된 금액/잔금은 연결 프로젝트의 결제 합계·미수 잔금에서 자동 반영 (읽기 전용) ──
+let projPayLinked=false;
+async function syncProjectPaymentFields(){
+    const wrap=document.getElementById('projectSelectWrap');
+    const pid=(wrap&&wrap.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null;
+    const amt=document.getElementById('g_estimate_amount');
+    const bal=document.getElementById('g_balance_amount');
+    const note=document.getElementById('projPayNote');
+    const extractBtn=document.getElementById('g_estimate_btn');
+    if(!pid||currentColor!=='gold'){
+        // 연동 해제 — 수기 입력 복원
+        projPayLinked=false;
+        if(amt){amt.readOnly=false;amt.style.opacity='';}
+        if(bal){bal.readOnly=false;bal.style.opacity='';}
+        if(extractBtn) extractBtn.style.display='';
+        if(note) note.style.display='none';
+        return;
+    }
+    try{
+        const res=await fetch(`/api/projects/${pid}/summary`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        const p=await res.json();
+        // 로딩 중 프로젝트가 바뀌었으면 무시
+        const curPid=(wrap&&wrap.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null;
+        if(String(curPid)!==String(pid)) return;
+        projPayLinked=true;
+        const paid=Number(p.paid_total||0);
+        const outstanding=Number(p.outstanding_balance||0);
+        if(amt){amt.value=paid>0?paid.toLocaleString():'';amt.readOnly=true;amt.style.opacity='0.75';}
+        if(extractBtn) extractBtn.style.display='none';
+        setRadio('g_balance_group', outstanding>0?'O':'X');
+        if(outstanding>0&&bal){bal.value=outstanding.toLocaleString();}
+        if(bal){bal.readOnly=true;bal.style.opacity='0.75';}
+        updateBalanceBanner();
+        if(note){
+            note.style.display='';
+            note.textContent=`🔗 프로젝트 결제 연동 — 결제 ${paid.toLocaleString()}원 · 미수 잔금 ${outstanding.toLocaleString()}원 (수정은 프로젝트 결제에서)`;
+        }
+        if(isLocked) renderLockSummary();
+    }catch(e){}
 }
 
 // 대여 이력 등록 토글 (신규 등록 시에만 사용) — teal: 방송룸 시간/월, 렌탈 카테고리: 렌탈 월계약
@@ -4040,6 +4085,7 @@ function unlinkClient(){
     document.getElementById('linkedClientName').textContent=''; // 잔여 텍스트가 저장 시 client_name으로 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
     {const psel=document.getElementById('projectSelect'); if(psel) psel.innerHTML='';}
+    syncProjectPaymentFields(); // 연동 해제 — 결제/잔금 수기 입력 복원
     document.getElementById('g_nickname').value='';
     document.getElementById('g_name').value='';
     document.getElementById('g_phone').value='';
@@ -4385,6 +4431,7 @@ function resetModalForm(){
     document.getElementById('linkedClientName').textContent=''; // 이전 일정의 의뢰자명이 다음 일정에 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
     {const psel=document.getElementById('projectSelect'); if(psel) psel.innerHTML='';} // 이전 일정의 프로젝트가 다음 일정에 새는 것 방지
+    syncProjectPaymentFields(); // 연동 해제 — 결제/잔금 수기 입력 복원
     document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
@@ -5056,6 +5103,8 @@ function collectGoldFields(){
         delivery:getRadio('g_delivery_group'),
         balance:getRadio('g_balance_group'),
         balance_amount:document.getElementById('g_balance_amount').value.trim(),
+        // 결제 금액/잔금이 프로젝트 결제 연동 값이면 표시 — 서버가 캘린더발 청구 생성을 건너뜀 (이중 청구 방지)
+        balance_source:projPayLinked?'project':'',
         estimate_id:linkedEstimateId,
         client_id:linkedClientId,
         // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
@@ -5306,6 +5355,9 @@ function initAllRadioGroups(){
     document.querySelectorAll('#schedEventOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');if(btn.dataset.seopt==='after')document.getElementById('schedReasonWrap').style.display=btn.classList.contains('active')?'':'none';});});
     // scheduleOpts (단일)
     document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;const was=btn.classList.contains('active');document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.remove('active'));if(!was)btn.classList.add('active');updateSchedOptDesc();});});
+
+// 프로젝트 선택 변경 시 결제 금액/잔금 연동 갱신
+document.getElementById('projectSelect')?.addEventListener('change',()=>syncProjectPaymentFields());
 
 // ── 2a 리디자인: gold/teal 폼을 섹션 카드로 그룹핑 (section-heading·divider 경계 기준) ──
 (function(){

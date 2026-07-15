@@ -88,6 +88,30 @@ class CalendarBalanceBillingTest extends TestCase
         $this->assertSame(0, ProjectBilling::count(), '잔금 해제 시 미입금 청구 제거');
     }
 
+    public function test_project_linked_balance_display_does_not_create_billing(): void
+    {
+        // 결제/잔금이 프로젝트 결제 연동 표시값(balance_source=project)이면 캘린더발 청구를 만들지 않음
+        $this->actingAs($this->user)->postJson('/api/events', $this->goldPayload([
+            'balance_source' => 'project',
+        ]))->assertCreated();
+
+        $this->assertSame(0, ProjectBilling::count(), '프로젝트 연동 값은 이중 청구 생성 안 함');
+    }
+
+    public function test_switching_to_project_linked_removes_calendar_billing(): void
+    {
+        // 수기 잔금으로 청구가 생긴 일정이 프로젝트 연동으로 전환되면 미입금 청구는 정리됨
+        $this->actingAs($this->user)->postJson('/api/events', $this->goldPayload())->assertCreated();
+        $this->assertSame(1, ProjectBilling::count());
+        $schedule = Schedule::first();
+
+        $this->actingAs($this->user)->patchJson("/api/events/{$schedule->id}", $this->goldPayload([
+            'balance_source' => 'project',
+        ]))->assertOk();
+
+        $this->assertSame(0, ProjectBilling::count());
+    }
+
     public function test_schedule_delete_removes_unpaid_billing(): void
     {
         $this->actingAs($this->user)->postJson('/api/events', $this->goldPayload())->assertCreated();
