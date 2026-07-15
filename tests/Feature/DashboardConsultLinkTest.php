@@ -74,6 +74,7 @@ class DashboardConsultLinkTest extends TestCase
             ->assertSee('확정 일정')
             ->assertSee('잔금 미수')
             ->assertSee('550,000원')
-            ->assertSee('공지 · 업데이트');
+            ->assertSee('공지사항')
+            ->assertSee('업데이트');
     }
 }
