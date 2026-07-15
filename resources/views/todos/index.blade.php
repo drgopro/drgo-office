@@ -62,6 +62,12 @@
     .todo-lrow-due-date.imminent { color:#c0392b; }  /* 오늘 마감·기한 지남 */
     .todo-lrow-due-date.soon { color:#b26a00; }      /* D-3 이내 */
     .todo-lrow-assignee { font-size:13.5px; color:var(--text); font-weight:600; }
+    /* 담당자별 섹션 헤더 */
+    .todo-lgroup-head { display:flex; align-items:center; gap:8px; padding:11px 16px 9px; background:var(--surface2); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1; }
+    .todo-lgroup-head:not(:first-child) { border-top:1px solid var(--border); }
+    .todo-lgroup-name { font-size:13.5px; font-weight:800; }
+    .todo-lgroup-team { font-size:11.5px; color:var(--text-muted); }
+    .todo-lgroup-count { font-size:11.5px; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); border-radius:9px; padding:1px 9px; }
     /* 우측 상세 패널 */
     .todo-detail-pane { position:sticky; top:16px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; display:flex; flex-direction:column; gap:13px; }
     .todo-detail-empty { color:var(--text-muted); font-size:12.5px; text-align:center; padding:46px 0; }
@@ -441,24 +447,38 @@ const PRI_WEIGHT = { high: 0, medium: 1, low: 2 };
 let SELECTED_ID = null;
 
 function listHtml(todos) {
-    const sorted = [...todos].sort((a, b) =>
-        (a.completed - b.completed)
-        || ((a.due_date || '9999') < (b.due_date || '9999') ? -1 : (a.due_date || '9999') > (b.due_date || '9999') ? 1 : 0)
-        || (PRI_WEIGHT[a.priority] - PRI_WEIGHT[b.priority]));
-    return sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''} ${t.id === SELECTED_ID ? 'sel' : ''}" onclick="selectTodo(${t.id})">
-        <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
-            <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-        </button>
-        <span class="todo-lrow-title">${esc(t.title)}</span>
-        ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
-        <span class="todo-lrow-right">
-            ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
-            <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
-            ${dueDateHtml(t)}
-            ${dueChip(t)}
-            <span class="todo-lrow-assignee">${esc(t.assignee)}</span>
-        </span>
-    </div>`).join('');
+    // 담당자별 섹션 그룹화
+    const byAssignee = new Map();
+    todos.forEach(t => {
+        if (!byAssignee.has(t.assignee_id)) { byAssignee.set(t.assignee_id, []); }
+        byAssignee.get(t.assignee_id).push(t);
+    });
+
+    return [...byAssignee.entries()].map(([uid, items]) => {
+        const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
+        const openCount = items.filter(t => !t.completed).length;
+        const sorted = [...items].sort((a, b) =>
+            (a.completed - b.completed)
+            || ((a.due_date || '9999') < (b.due_date || '9999') ? -1 : (a.due_date || '9999') > (b.due_date || '9999') ? 1 : 0)
+            || (PRI_WEIGHT[a.priority] - PRI_WEIGHT[b.priority]));
+        return `<div class="todo-lgroup-head">
+            <span class="todo-lgroup-name">${esc(m.name)}</span>
+            ${m.team ? `<span class="todo-lgroup-team">${esc(m.team)}</span>` : ''}
+            <span class="todo-lgroup-count">${openCount}</span>
+        </div>` + sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''} ${t.id === SELECTED_ID ? 'sel' : ''}" onclick="selectTodo(${t.id})">
+            <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
+                <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+            </button>
+            <span class="todo-lrow-title">${esc(t.title)}</span>
+            ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
+            <span class="todo-lrow-right">
+                ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
+                <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
+                ${dueDateHtml(t)}
+                ${dueChip(t)}
+            </span>
+        </div>`).join('');
+    }).join('');
 }
 
 // 리스트 뷰: 행 선택 → 우측 상세 패널
