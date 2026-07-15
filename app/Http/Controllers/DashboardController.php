@@ -14,6 +14,7 @@ use App\Models\ProjectBilling;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
 use App\Models\Schedule;
+use App\Models\Todo;
 use App\Models\Wiki;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -277,6 +278,28 @@ class DashboardController extends Controller
             ]);
         }
 
+        // 나의 할 일 — 미완료, 기한 임박·우선순위 순 (우측 카드)
+        $myTodoAll = Todo::where('assignee_id', auth()->id())->whereNull('completed_at')
+            ->orderByRaw('due_date is null')->orderBy('due_date')
+            ->orderByRaw("case priority when 'high' then 0 when 'medium' then 1 else 2 end")
+            ->get();
+        $myTodoCount = $myTodoAll->count();
+        $myTodos = $myTodoAll->take(5)->map(function (Todo $t) {
+            $dday = null;
+            if ($t->due_date) {
+                $diff = (int) now()->startOfDay()->diffInDays($t->due_date->copy()->startOfDay(), false);
+                $dday = $diff < 0 ? abs($diff).'일 지남' : ($diff === 0 ? '오늘 마감' : 'D-'.$diff);
+            }
+
+            return [
+                'id' => $t->id,
+                'title' => $t->title,
+                'priority' => $t->priority,
+                'dday' => $dday,
+                'overdue' => $t->due_date && $t->due_date->lt(now()->startOfDay()),
+            ];
+        });
+
         // 위키 위젯 — 전체 문서(고정 우선, 최대 5), 최신 등록 문서(최대 3)
         $wikiTotal = Wiki::count();
         $wikiAll = Wiki::orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
@@ -289,7 +312,7 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'wikiTotal', 'wikiAll', 'wikiRecent', 'wikiNoticeList', 'wikiUpdateList',
-            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations',
+            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations', 'myTodos', 'myTodoCount',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',

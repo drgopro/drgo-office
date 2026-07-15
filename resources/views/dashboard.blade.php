@@ -89,6 +89,19 @@
     .vc-chip { flex:none; font-size:10.5px; font-weight:800; border-radius:8px; padding:3px 9px; border:1px solid #dfe4ee; color:#3A5683; background:#f3f5f9; }
     .vc-chip.on { background:#c87a7a; border-color:#c87a7a; color:#fff; }
 
+    /* 나의 할 일 */
+    .td-row { display:flex; align-items:center; gap:9px; padding:11px 16px; border-bottom:1px solid #f0f2f5; cursor:pointer; }
+    .td-row:last-child { border-bottom:none; }
+    .td-row:hover { background:#f7f8fa; }
+    .td-dot { flex:none; width:8px; height:8px; border-radius:50%; background:#c9d0dc; }
+    .td-dot.high { background:#d64545; }
+    .td-dot.medium { background:#e8a13a; }
+    .td-dot.low { background:#57ab5a; }
+    .td-title { font-size:12.5px; font-weight:600; color:#242a35; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .td-dday { flex:none; margin-left:auto; font-size:10.5px; font-weight:800; border-radius:8px; padding:3px 9px; border:1px solid #dfe4ee; color:#3A5683; background:#f3f5f9; }
+    .td-dday.today { background:#fdf1e3; border-color:#f0ddc0; color:#b26a00; }
+    .td-dday.over { background:#fdecea; border-color:#f2cfca; color:#c0392b; }
+
     /* 공지·업데이트 (우측) */
     .nu-row { display:flex; align-items:center; gap:9px; padding:10px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
     .nu-row:last-child { border-bottom:none; }
@@ -415,7 +428,25 @@
             @endforelse
         </div>
 
-        {{-- 나의 할 일 — 추후 개발 예정 --}}
+        {{-- 나의 할 일 --}}
+        <div class="dcard">
+            <div class="dcard-head">
+                나의 할 일
+                @if($myTodoCount)<span class="dc-count">{{ $myTodoCount }}</span>@endif
+                <a class="dc-link" href="/todos" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('todos','/todos'); else location.href='/todos';">전체 →</a>
+            </div>
+            @forelse($myTodos as $t)
+                <div class="td-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('todos','/todos'); else location.href='/todos';">
+                    <span class="td-dot {{ $t['priority'] }}"></span>
+                    <span class="td-title">{{ $t['title'] }}</span>
+                    @if($t['dday'])
+                        <span class="td-dday {{ $t['overdue'] ? 'over' : ($t['dday'] === '오늘 마감' ? 'today' : '') }}">{{ $t['dday'] }}</span>
+                    @endif
+                </div>
+            @empty
+                <div class="dcard-empty">등록된 할 일이 없습니다</div>
+            @endforelse
+        </div>
 
         {{-- 공지사항 + 업데이트 — 반응형 그리드에서 한 칸을 차지하도록 묶음 --}}
         <div class="side-stack">

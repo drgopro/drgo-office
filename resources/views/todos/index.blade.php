@@ -98,6 +98,8 @@
     .todo-board { display:flex; gap:14px; align-items:flex-start; overflow-x:auto; padding-bottom:14px; }
     .todo-col { flex:0 0 280px; background:var(--surface); border:1px solid var(--border); border-radius:14px; min-height:120px; }
     .todo-col.drag-over { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 5%, var(--surface)); }
+    .todo-col.ghost { border-style:dashed; opacity:0.85; }
+    .todo-col.ghost .todo-empty { padding:18px 10px; }
     .todo-col-head { display:flex; align-items:center; gap:8px; padding:14px 16px; border-bottom:1px solid var(--border); }
     .todo-col-name { font-size:14px; font-weight:700; }
     .todo-col-team { font-size:11px; color:var(--text-muted); }
@@ -476,7 +478,7 @@ function listHtml(todos) {
             <span class="todo-lgroup-name">${esc(m.name)}</span>
             ${m.team ? `<span class="todo-lgroup-team">${esc(m.team)}</span>` : ''}
             <span class="todo-lgroup-count">${openCount}</span>
-        </div>` + sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''} ${t.id === SELECTED_ID ? 'sel' : ''}" onclick="selectTodo(${t.id})">
+        </div>` + sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''} ${t.id === SELECTED_ID ? 'sel' : ''}" onclick="selectTodo(${t.id})" data-lrow="${t.id}">
             <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
                 <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
@@ -584,8 +586,8 @@ document.addEventListener('click', e => {
 function cardHtml(t) {
     const priLabel = PRI_LABELS[t.priority] || t.priority;
     return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="${IS_ADMIN}" data-id="${t.id}"
-        ondragstart="event.dataTransfer.setData('text/plain', '${t.id}'); this.classList.add('dragging')"
-        ondragend="this.classList.remove('dragging')"
+        ondragstart="startCardDrag(event, ${t.id})"
+        ondragend="endCardDrag(this)"
         onclick="openTodoView(${t.id})">
         <div class="todo-card-meta">
             ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
@@ -603,6 +605,35 @@ function cardHtml(t) {
             ${t.completed ? `<span class="todo-due">완료 ${t.completed_at}</span>` : ''}
         </div>
     </div>`;
+}
+
+// 드래그 시작 — 할 일이 없어 컬럼이 없는 직원도 드롭 대상이 되도록 빈 고스트 컬럼을 펼침
+function startCardDrag(ev, id) {
+    ev.dataTransfer.setData('text/plain', String(id));
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.currentTarget.classList.add('dragging');
+    const board = document.getElementById('todoBoard');
+    const existing = new Set([...board.querySelectorAll('.todo-col')].map(c => parseInt(c.dataset.assignee, 10)));
+    TODO_MEMBERS.filter(m => !existing.has(m.id)).forEach(m => {
+        const col = document.createElement('div');
+        col.className = 'todo-col ghost';
+        col.dataset.assignee = m.id;
+        col.innerHTML = `<div class="todo-col-head">
+                <span class="todo-col-name">${esc(m.name)}</span>
+                ${m.team ? `<span class="todo-col-team">${esc(m.team)}</span>` : ''}
+                <span class="todo-col-count">0</span>
+            </div>
+            <div class="todo-col-body"><div class="todo-empty">여기로 드래그</div></div>`;
+        col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+        col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+        col.addEventListener('drop', e => dropTodo(e, m.id));
+        board.appendChild(col);
+    });
+}
+
+function endCardDrag(card) {
+    card.classList.remove('dragging');
+    document.querySelectorAll('#todoBoard .todo-col.ghost').forEach(c => c.remove());
 }
 
 async function dropTodo(ev, assigneeId) {

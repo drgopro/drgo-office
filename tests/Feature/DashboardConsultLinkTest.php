@@ -7,6 +7,7 @@ use App\Models\Consultation;
 use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\Schedule;
+use App\Models\Todo;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -77,6 +78,27 @@ class DashboardConsultLinkTest extends TestCase
             ->assertSee('550,000원')
             ->assertSee('공지사항')
             ->assertSee('업데이트');
+    }
+
+    public function test_my_todo_card_shows_own_incomplete_todos(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        Todo::factory()->create([
+            'title' => '방송 장비 재고 정리', 'assignee_id' => $user->id, 'priority' => 'high',
+            'due_date' => now()->toDateString(),
+        ]);
+        Todo::factory()->completed()->create(['title' => '끝난 일', 'assignee_id' => $user->id]);
+        Todo::factory()->create(['title' => '남의 일']); // 다른 담당자
+
+        $res = $this->actingAs($user)->get('/');
+
+        $res->assertOk()
+            ->assertSee('나의 할 일')
+            ->assertSee('방송 장비 재고 정리')
+            ->assertSee('오늘 마감')
+            ->assertDontSee('끝난 일')
+            ->assertDontSee('남의 일');
     }
 
     public function test_vacation_card_shows_upcoming_week_only(): void
