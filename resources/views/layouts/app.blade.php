@@ -255,6 +255,33 @@
         /* iframe 내부에서는 사이드바가 숨겨지므로 들여쓰기 제거 */
         body.in-iframe .tab-bar-wrap, body.in-iframe .main { margin-left:0 !important; }
 
+        /* ── 사이드바 검색 + 그룹 라벨 (데스크탑 세로 사이드바 전용) ── */
+        .side-search, .nav-group-label, .nav-group-gap { display:none; }
+        @media (min-width: 981px) {
+            .side-search { display:flex; align-items:center; gap:7px; width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--surface2); color:var(--text-muted); font-size:12px; cursor:pointer; margin:2px 0 4px; }
+            .side-search:hover { border-color:var(--accent); color:var(--text); }
+            .side-search kbd { margin-left:auto; font-size:10px; border:1px solid var(--border); border-radius:5px; padding:1px 5px; color:var(--text-muted); background:var(--surface); font-family:inherit; }
+            .nav-group-label { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; color:var(--text-muted); opacity:0.7; padding:10px 10px 4px; }
+            .nav-group-gap { display:block; min-height:14px; border-bottom:1px solid var(--border); margin:4px 6px 8px; }
+            body.side-collapsed .side-search, body.side-collapsed .nav-group-label { display:none; }
+        }
+
+        /* ── 오피스 전체 검색 (Ctrl+K) ── */
+        .gs-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; backdrop-filter:blur(3px); align-items:flex-start; justify-content:center; padding:10vh 16px 16px; }
+        .gs-overlay.open { display:flex; }
+        .gs-box { width:100%; max-width:620px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.3); overflow:hidden; }
+        .gs-input-row { display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
+        .gs-input-row svg { flex:none; color:var(--text-muted); }
+        .gs-input-row input { flex:1; border:none; background:none; outline:none; font-size:15px; color:var(--text); font-family:inherit; }
+        .gs-esc { font-size:10px; border:1px solid var(--border); border-radius:5px; padding:2px 6px; color:var(--text-muted); cursor:pointer; flex:none; }
+        .gs-results { max-height:56vh; overflow-y:auto; padding:6px 8px 10px; }
+        .gs-hint { padding:22px 0; text-align:center; color:var(--text-muted); font-size:12.5px; }
+        .gs-sec-label { font-size:10.5px; font-weight:700; color:var(--text-muted); letter-spacing:0.06em; padding:10px 10px 4px; }
+        .gs-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; }
+        .gs-item:hover { background:var(--surface2); }
+        .gs-item-label { font-size:13.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .gs-item-sub { margin-left:auto; font-size:11px; color:var(--text-muted); flex:none; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
         /* ── 콘텐츠 영역 ── */
         .main { flex:1; position:relative; }
         .tab-pane { display:none; height:100%; }
@@ -444,7 +471,14 @@ window.openTopTab = function(type, url, title) {
         <a href="/" class="logo">DRGO</a>
         <button type="button" class="side-toggle" id="sideToggle" onclick="toggleSidebar()" title="사이드바 접기/펼치기"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <button class="menu-toggle" id="menuToggle" onclick="toggleNav()">☰</button>
+        {{-- 오피스 전체 검색 (Ctrl+K) --}}
+        <button type="button" class="side-search" onclick="openGlobalSearch()" title="오피스 전체 검색 (Ctrl+K)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+            <span>검색</span>
+            <kbd>Ctrl K</kbd>
+        </button>
         <nav class="nav" id="mainNav">
+            <div class="nav-group-label">워크스페이스</div>
             @if(!Auth::user()->isGuest())
                 <a href="/" class="{{ request()->is('/') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('dashboard','/');" title="대시보드"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>대시보드</a>
             @endif
@@ -458,6 +492,7 @@ window.openTopTab = function(type, url, title) {
             @if(Auth::user()->hasPermission('estimates.view'))
                 <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('estimates','/estimates');" title="견적서"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</a>
             @endif
+            <div class="nav-group-label">지식 · 자산</div>
             @if(Auth::user()->hasPermission('inventory.view'))
                 <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');" title="재고"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</a>
             @endif
@@ -469,6 +504,7 @@ window.openTopTab = function(type, url, title) {
                 <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');" title="렌탈"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</a>
                 <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');" title="방송룸"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</a>
             @endif
+            <div class="nav-group-gap"></div>
             @if(in_array(Auth::user()->role, ['master','admin','member']))
                 <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');" title="통계"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>통계</a>
             @endif
@@ -1144,6 +1180,66 @@ function showGqrToast(msg){
     setTimeout(()=>{el.style.transition='opacity 0.3s';el.style.opacity='0';setTimeout(()=>el.remove(),300);},2700);
 }
 
+</script>
+
+{{-- ── 오피스 전체 검색 모달 ── --}}
+<div class="gs-overlay" id="gsOverlay" onclick="if(event.target===this)closeGlobalSearch()">
+    <div class="gs-box">
+        <div class="gs-input-row">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+            <input id="gsInput" placeholder="의뢰자 · 프로젝트 · 일정 · 위키 · 견적서 검색" autocomplete="off" oninput="gsQuery(this.value)">
+            <span class="gs-esc" onclick="closeGlobalSearch()">ESC</span>
+        </div>
+        <div class="gs-results" id="gsResults"><div class="gs-hint">오피스 전체에서 검색합니다 — 검색어를 입력하세요</div></div>
+    </div>
+</div>
+
+<script>
+// ── 오피스 전체 검색 (Ctrl+K) ──
+function openGlobalSearch(){
+    const ov=document.getElementById('gsOverlay');
+    ov.classList.add('open');
+    const inp=document.getElementById('gsInput');
+    inp.value=''; gsRender(null);
+    setTimeout(()=>inp.focus(),30);
+}
+function closeGlobalSearch(){ document.getElementById('gsOverlay').classList.remove('open'); }
+function gsEsc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let __gsTimer=null, __gsSeq=0;
+function gsQuery(q){
+    clearTimeout(__gsTimer);
+    if(!q.trim()){ gsRender(null); return; }
+    __gsTimer=setTimeout(async()=>{
+        const seq=++__gsSeq;
+        try{
+            const res=await fetch('/api/global-search?q='+encodeURIComponent(q.trim()),{headers:{'Accept':'application/json'}});
+            if(!res.ok||seq!==__gsSeq) return;
+            gsRender(await res.json());
+        }catch(e){}
+    },220);
+}
+function gsRender(data){
+    const el=document.getElementById('gsResults');
+    if(!data){ el.innerHTML='<div class="gs-hint">오피스 전체에서 검색합니다 — 검색어를 입력하세요</div>'; return; }
+    const secs=data.sections||[];
+    if(!secs.length){ el.innerHTML='<div class="gs-hint">검색 결과가 없습니다</div>'; return; }
+    el.innerHTML=secs.map(sec=>`
+        <div class="gs-sec-label">${gsEsc(sec.label)}</div>
+        ${sec.items.map(it=>`<div class="gs-item" onclick='gsGo(${JSON.stringify(it.nav)}, ${JSON.stringify(it.url)}, ${it.client_id||'null'})'>
+            <span class="gs-item-label">${gsEsc(it.label)}</span>
+            <span class="gs-item-sub">${gsEsc(it.sub||'')}</span>
+        </div>`).join('')}`).join('');
+}
+function gsGo(nav,url,clientId){
+    closeGlobalSearch();
+    if(nav==='clients'&&clientId&&window.drgoTabs?.openClientDetail){ drgoTabs.openClientDetail(clientId); return; }
+    if(window.drgoTabs?.openNav){ drgoTabs.openNav(nav,url); return; }
+    location.href=url;
+}
+document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openGlobalSearch(); }
+    if(e.key==='Escape') closeGlobalSearch();
+});
 </script>
 
 <script>

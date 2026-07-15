@@ -17,6 +17,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\NotificationController;
@@ -138,6 +139,9 @@ Route::middleware('auth')->group(function () {
     // 웹푸시 구독 (일정 알림)
     Route::post('/api/push/subscribe', [PushSubscriptionController::class, 'store']);
     Route::delete('/api/push/subscribe', [PushSubscriptionController::class, 'destroy']);
+
+    // 오피스 전체 통합 검색 (사이드바 Ctrl+K)
+    Route::get('/api/global-search', [GlobalSearchController::class, 'search']);
 
     // 상단 알림 리스트
     Route::get('/api/notifications', [NotificationController::class, 'index']);
