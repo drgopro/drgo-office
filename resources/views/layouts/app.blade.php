@@ -176,8 +176,11 @@
         .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:190; }
         .tab-strip { display:flex; align-items:center; flex:1; overflow-x:auto; gap:1px; scrollbar-width:none; }
 
-        /* ── 상단 우측 알림 ── */
-        .notif-wrap { position:relative; flex-shrink:0; margin-left:8px; }
+        /* ── 상단 우측 알림 + 가이드 ── */
+        .notif-wrap { position:relative; flex-shrink:0; margin-left:8px; display:flex; align-items:center; gap:3px; }
+        .guide-link { display:flex; align-items:center; gap:5px; height:26px; padding:0 9px; border-radius:8px; color:var(--text-muted); font-size:11.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+        .guide-link:hover { color:var(--text); background:var(--surface); }
+        .guide-link svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
         .notif-bell { position:relative; display:flex; align-items:center; justify-content:center; width:28px; height:26px; background:none; border:none; cursor:pointer; color:var(--text-muted); border-radius:8px; padding:0; }
         .notif-bell:hover { color:var(--text); background:var(--surface); }
         .notif-bell svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -575,6 +578,10 @@ window.openTopTab = function(type, url, title) {
     <div class="tab-strip" id="tabStrip"></div>
     {{-- 상단 우측 알림 --}}
     <div class="notif-wrap">
+        <a href="/guide" class="guide-link" title="사용 가이드" onclick="event.preventDefault(); drgoTabs.openNav('guide','/guide');">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            가이드
+        </a>
         <button type="button" class="notif-bell" id="notifBell" onclick="notifToggle()" title="알림">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
@@ -629,7 +636,7 @@ window.drgoTabs = {
         profile:'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
         _default:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>',
     },
-    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', admin:'관리', profile:'마이페이지' },
+    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', admin:'관리', profile:'마이페이지', guide:'가이드' },
 
     init() {
         // iframe 내부에서는 탭 시스템 비활성화

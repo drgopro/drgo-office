@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>캘린더 · 일정 사용법 도움말 — 닥터고블린 오피스</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface2:#eef1f5; --border:#e4e7ec;
+    --text:#1f2a37; --text-muted:#69727e; --accent:#1f3a5c; --accent-text:#ffffff;
+    --shadow:0 6px 24px rgba(24,39,64,.08);
+    --side-bg:#212f48; --side-text:#c2ccd9; --side-muted:#8b97a8; --side-accent:#5b8fc7;
+    --gold:#c8a870; --teal:#e8894a; --blue:#7aaec8; --red:#c87070; --green:#70c870; --purple:#9b70c8;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .layout{display:flex;min-height:100vh;max-width:1200px;margin:0 auto}
+
+  /* Sidebar */
+  .side{width:262px;flex-shrink:0;padding:22px 14px 40px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--side-bg)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;letter-spacing:-.01em;margin-bottom:3px;color:#fff}
+  .brand .dot{width:22px;height:22px;border-radius:6px;background:#e0322f;color:#fff;display:grid;place-items:center;font-size:13px}
+  .brand-sub{font-size:11.5px;color:var(--side-muted);margin:0 0 16px 31px;letter-spacing:.02em}
+  .search-wrap{position:relative;margin-bottom:14px}
+  #search{width:100%;padding:9px 12px 9px 32px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:9px;color:#eef2f7;font-size:13px;outline:none}
+  #search::placeholder{color:var(--side-muted)}
+  #search:focus{border-color:var(--side-accent)}
+  .search-wrap::before{content:'🔍';position:absolute;left:10px;top:8px;font-size:13px;opacity:.5}
+  nav a{display:block;padding:6px 10px;border-radius:7px;color:var(--side-text);font-size:13.5px;border-left:2px solid transparent}
+  nav a:hover{background:rgba(255,255,255,.06);color:#fff;text-decoration:none}
+  nav a.active{color:#fff;border-left-color:var(--side-accent);background:rgba(255,255,255,.10)}
+  nav .grp{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--side-muted);margin:16px 0 5px 10px;opacity:.85}
+
+  /* Main */
+  main{flex:1;min-width:0;padding:34px 46px 90px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:8px}
+  h1{font-size:27px;margin:0 0 2px;letter-spacing:-.02em}
+  .lede{color:var(--text-muted);font-size:14.5px;margin:0 0 8px}
+  section{scroll-margin-top:20px;padding:24px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+  h2 .n{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700}
+  h3{font-size:15.5px;margin:20px 0 6px}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  ol.steps{counter-reset:s;list-style:none;padding-left:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:2px 0 2px 38px;margin:9px 0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;background:var(--accent);color:var(--accent-text);border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+
+  code{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12.5px;font-family:'SF Mono',ui-monospace,monospace}
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-text);border-radius:7px;padding:1px 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .chip{display:inline-block;border:1px solid var(--border);background:var(--surface2);border-radius:20px;padding:1px 10px;font-size:12px;white-space:nowrap}
+
+  .callout{border-radius:10px;padding:12px 15px;margin:14px 0;font-size:13.5px;border:1px solid var(--border);background:var(--surface2);display:flex;gap:10px}
+  .callout .i{flex-shrink:0;font-size:15px}
+  .callout.tip{border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+  .callout.warn{border-color:color-mix(in srgb,var(--red) 50%,var(--border))}
+  .callout.auto{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+
+  .cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .cat{border:1px solid var(--border);border-radius:10px;padding:11px 13px;background:var(--surface)}
+  .cat .swatch{width:15px;height:15px;border-radius:5px;display:inline-block;vertical-align:-2px;margin-right:7px}
+  .cat b{font-size:14px}
+  .cat p{font-size:12.5px;color:var(--text-muted);margin:5px 0 0}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--text-muted);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  td b{font-weight:600}
+
+  .faq details{border:1px solid var(--border);border-radius:9px;margin:8px 0;background:var(--surface);padding:0 14px}
+  .faq summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:14px}
+  .faq summary::marker{color:var(--accent)}
+  .faq details[open]{padding-bottom:10px}
+
+  .nores{display:none;color:var(--text-muted);padding:30px 4px;font-size:14px}
+  mark{background:color-mix(in srgb,var(--accent) 35%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12.5px}
+
+  @media(max-width:860px){
+    .side{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow)}
+    .side.open{transform:translateX(0)}
+    main{padding:20px 18px 70px}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;margin-bottom:14px}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+  .scrim.show{display:block}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side" id="side">
+    <div class="brand"><span class="dot">📅</span>캘린더 · 일정</div>
+    <div class="brand-sub">닥터고블린 오피스 사용 가이드</div>
+    <div class="search-wrap"><input id="search" type="text" placeholder="도움말 검색…" autocomplete="off"></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main id="main">
+    <button class="menu-toggle" id="menuToggle">☰ 목차</button>
+    <div class="top">
+      <div>
+        <h1>캘린더 · 일정 사용법</h1>
+        <p class="lede">방문의뢰부터 렌탈·방송룸·촬영 일정까지, 캘린더 한 곳에서 관리하는 방법을 안내합니다.</p>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section id="overview" data-title="화면 구성 시작하기 오늘 월 주 보기 필터 사이드">
+      <h2><span class="n">1</span>화면 구성 한눈에 보기</h2>
+      <p>캘린더는 크게 <b>상단 도구막대</b>, <b>가운데 달력</b>, <b>왼쪽 사이드 필터</b>로 이루어져 있습니다.</p>
+      <ul>
+        <li><span class="chip">오늘</span> 오늘 날짜로 즉시 이동합니다.</li>
+        <li><span class="chip">월</span> <span class="chip">주</span> 달력을 <b>월 보기</b>와 <b>주 보기(시간대별)</b>로 전환합니다. 첫 화면은 이번 달(42칸)입니다.</li>
+        <li><span class="btn">+ 일정 추가</span> 새 일정 작성 창을 엽니다.</li>
+        <li>왼쪽 앞뒤 화살표로 이전/다음 달(주)로 이동합니다.</li>
+      </ul>
+      <h3>사이드 필터</h3>
+      <p>왼쪽 패널에서 <b>일정 유형(카테고리)</b>과 <b>담당자</b>로 화면에 보이는 일정을 걸러 볼 수 있습니다. 유형 점(●)을 눌러 켜고 끄며, 담당자 칸에 이름을 입력해 특정 담당자의 일정만 볼 수 있습니다.</p>
+      <div class="callout tip"><span class="i">💡</span><div>필터는 <b>보기 전용</b>입니다. 필터를 꺼도 일정이 삭제되는 것이 아니라 화면에서만 숨겨집니다.</div></div>
+    </section>
+
+    <!-- 2 -->
+    <section id="categories" data-title="일정 유형 카테고리 색상 방문의뢰 원격 방송룸 사내업무 휴가 개인 촬영 스튜디오 미팅 내방 gold teal blue red green purple">
+      <h2><span class="n">2</span>일정 유형(카테고리)</h2>
+      <p>모든 일정은 색으로 구분되는 유형을 가집니다. 기본 유형은 6가지이며, 유형에 따라 입력하는 항목이 달라집니다(예: <b>방문의뢰</b>는 의뢰자·결제·견적 정보를 함께 입력).</p>
+      <div class="cats">
+        <div class="cat"><b><span class="swatch" style="background:var(--gold)"></span>방문의뢰</b><p>고객 방문·설치 의뢰. 의뢰자/결제/견적 상세 입력.</p></div>
+        <div class="cat"><b><span class="swatch" style="background:var(--teal)"></span>원격/방송룸</b><p>원격 작업·방송룸 대여 관련 일정.</p></div>
+        <div class="cat"><b><span class="swatch" style="background:var(--blue)"></span>사내업무</b><p>내부 업무. 의뢰자 연결 불필요.</p></div>
+        <div class="cat"><b><span class="swatch" style="background:var(--red)"></span>휴가/개인</b><p>휴가·개인 일정. 의뢰자 연결 불필요.</p></div>
+        <div class="cat"><b><span class="swatch" style="background:var(--green)"></span>촬영/스튜디오</b><p>촬영·스튜디오 작업 일정.</p></div>
+        <div class="cat"><b><span class="swatch" style="background:var(--purple)"></span>미팅/내방</b><p>미팅·고객 내방 일정.</p></div>
+      </div>
+      <div class="callout auto"><span class="i">⚙️</span><div>유형은 관리자 화면에서 <b>추가·색상 변경·순서 조정</b>이 가능합니다. 렌탈/방송룸 계약을 만들면 해당 유형이 자동으로 생성되기도 합니다.</div></div>
+    </section>
+
+    <!-- 3 -->
+    <section id="create" data-title="새 일정 추가 만들기 제목 날짜 시간 종일 유형 저장 공휴일">
+      <h2><span class="n">3</span>새 일정 추가하기</h2>
+      <p>일정을 만드는 가장 기본적인 흐름입니다.</p>
+      <ol class="steps">
+        <li>상단 <span class="btn">+ 일정 추가</span>를 누르거나, 달력의 날짜 칸을 클릭합니다.</li>
+        <li><b>제목</b>을 입력하고 <b>유형(색상)</b>을 고릅니다.</li>
+        <li><b>시작일 · 종료일</b>과 시간을 정합니다. 하루 종일이면 <span class="chip">종일</span>을 켭니다.</li>
+        <li>필요 시 담당자·알림·의뢰자 연결 등 세부 항목을 입력합니다(아래 항목 참고).</li>
+        <li>오른쪽 위 또는 아래의 <span class="btn">저장</span>을 누릅니다.</li>
+      </ol>
+      <div class="callout tip"><span class="i">📅</span><div>일정 창에서 <b>📅 공휴일로 지정</b>을 사용하면 해당 날짜를 공휴일로 표시할 수 있습니다.</div></div>
+    </section>
+
+    <!-- 4 -->
+    <section id="assignee-notify" data-title="담당자 지정 알림 받을 멤버 알림 시점 웹푸시 하루 전 notif">
+      <h2><span class="n">4</span>담당자 · 알림 설정</h2>
+      <h3>담당자 지정</h3>
+      <p><b>담당자 지정</b>에서 이 일정을 수행할 멤버를 연결합니다. <b>알림 받을 멤버</b>를 따로 지정하면 그 멤버에게만 알림이 갑니다(지정하지 않으면 담당자 전체, 담당자도 없으면 등록자에게 발송).</p>
+      <h3>알림 시점</h3>
+      <p><span class="chip">🔔 알림</span>에서 시작 전 알림 시점을 고릅니다. <b>알림 없음</b>부터 분 단위, <b>하루 전</b>까지 선택할 수 있습니다.</p>
+      <div class="callout auto"><span class="i">🔔</span><div><b>자동 발송:</b> 설정한 시점이 되면 시스템이 담당자에게 <b>웹푸시 알림</b>을 자동으로 보냅니다(매분 점검). 종일 일정은 당일 오전 9시, 시간이 있는 일정은 시작 시각에서 설정한 분만큼 앞서 발송됩니다.</div></div>
+    </section>
+
+    <!-- 5 -->
+    <section id="client-project" data-title="의뢰자 검색 연결 프로젝트 연결 자동 채움 gold_data">
+      <h2><span class="n">5</span>의뢰자 · 프로젝트 연결</h2>
+      <p>방문의뢰 등 고객이 있는 일정은 의뢰자·프로젝트와 연결할 수 있습니다.</p>
+      <ul>
+        <li><b>의뢰자 검색</b>에 이름/닉네임을 입력해 등록된 의뢰자를 연결합니다. 연결하면 의뢰자 정보(연락처·플랫폼·주제 등)가 일정 폼에 <b>자동으로 채워집니다</b>(이미 입력한 값은 덮어쓰지 않음).</li>
+        <li><b>프로젝트 연결</b>에서 관련 프로젝트를 선택하면, 프로젝트의 "일정제안" 단계와 <b>양방향으로 연결</b>됩니다.</li>
+      </ul>
+      <div class="callout"><span class="i">ℹ️</span><div>사내업무·휴가/개인 유형은 고객이 없으므로 의뢰자 검색 영역이 숨겨집니다.</div></div>
+    </section>
+
+    <!-- 6 -->
+    <section id="visit-detail" data-title="방문의뢰 상세 방송 주제 예산 장비 의뢰 내용 결제 정보 결제완료 금액 주문 제품">
+      <h2><span class="n">6</span>방문의뢰 상세 입력</h2>
+      <p><b>방문의뢰(gold)</b> 유형은 현장 방문에 필요한 정보를 한 창에서 정리합니다.</p>
+      <table>
+        <tr><th>영역</th><th>입력 내용</th></tr>
+        <tr><td><b>의뢰자 정보</b></td><td>닉네임·이름·연락처, 방송 주제, 예산 성향, 장비 목록</td></tr>
+        <tr><td><b>의뢰 내용</b></td><td>의뢰 주제(처음/추가/이사 세팅·렌탈 등), 세부항목, 특이사항</td></tr>
+        <tr><td><b>결제 정보</b></td><td>결제 여부(미결제/결제완료), 결제 금액, 주문 제품(O/X), 배송완료 여부</td></tr>
+        <tr><td><b>장소/주소</b></td><td><span class="chip">🔍 주소 검색</span>으로 도로명 검색, 상세주소 직접 입력. 이사 세팅은 출발지·도착지 구분 입력.</td></tr>
+      </table>
+      <div class="callout tip"><span class="i">🔍</span><div>결제 금액 옆 <b>🔍 추출</b> 버튼은 연결된 견적서에서 금액을 자동으로 가져옵니다.</div></div>
+    </section>
+
+    <!-- 7 -->
+    <section id="options" data-title="일정 옵션 빠른 긴급 이후 희망 제안 목표 특수 옵션 차량 사다리 반려동물 2인 확정">
+      <h2><span class="n">7</span>일정 성격 · 특수 옵션</h2>
+      <p>일정의 성격과 현장 준비물을 태그로 표시합니다. 세 묶음이 있습니다.</p>
+      <table>
+        <tr><th>묶음</th><th>선택지</th><th>용도</th></tr>
+        <tr><td><b>일정 옵션</b></td><td>← 빠른 일정 희망 · 🚨 긴급 일정 · → 날짜 이후 희망</td><td>일정의 시급성·시점 조건. "이후 희망"은 사유도 적을 수 있습니다.</td></tr>
+        <tr><td><b>일정 관련 옵션</b></td><td>💬 제안 · 🙏 희망 · 🎯 목표</td><td>날짜가 얼마나 확정적인지 성격 표시.</td></tr>
+        <tr><td><b>특수 옵션</b></td><td>🚗 차량 · 💼 제품 지참 · 👥 2인 필수 · ▤ 사다리 · 🐾 반려동물</td><td>현장 준비·주의사항.</td></tr>
+      </table>
+      <div class="callout"><span class="i">📝</span><div>현재 성격 태그는 <b>제안 → 희망 → 목표</b>까지 있으며, 별도의 "확정" 상태는 아직 없습니다. 확정 여부는 담당자 간 협의로 관리합니다.</div></div>
+    </section>
+
+    <!-- 8 -->
+    <section id="repeat" data-title="반복 일정 매주 매월 주기 종료일 반영">
+      <h2><span class="n">8</span>반복 일정</h2>
+      <p>정기적으로 반복되는 일정은 <span class="chip">🔁 반복</span>에서 주기를 설정합니다.</p>
+      <ul>
+        <li>주기: <b>매주 / 매월</b> 또는 <b>N주마다 / N개월마다</b></li>
+        <li><b>반복 종료일</b>은 필수이며, 시작일보다 뒤여야 합니다.</li>
+      </ul>
+      <div class="callout warn"><span class="i">⚠️</span><div>이미 반복 중인 일정에서 <b>주기·종료일·카테고리를 바꾸면 앞으로의 반복 전체에 반영</b>됩니다(이미 지난 반복은 그대로 유지).</div></div>
+    </section>
+
+    <!-- 9 -->
+    <section id="attachments" data-title="첨부 파일 이미지 견적서 첨부 불러오기 연결 드래그">
+      <h2><span class="n">9</span>첨부 파일 · 견적서</h2>
+      <ul>
+        <li><b>첨부 이미지 / 첨부 파일</b>: 파일을 고르거나 <b>드래그해서</b> 일정에 붙일 수 있습니다.</li>
+        <li><b>견적서</b>: <span class="chip">📄 견적서 첨부</span>로 파일을 붙이거나, <span class="chip">📋 견적서 불러오기</span>로 시스템에 등록된 견적서를 검색해 연결합니다. 연결하면 금액 자동 추출과 연동됩니다.</li>
+      </ul>
+    </section>
+
+    <!-- 10 -->
+    <section id="shipment" data-title="배송 현황 송장 택배 자동 갱신 제목 배송 아이콘 delivered">
+      <h2><span class="n">10</span>배송 · 송장 관리</h2>
+      <p>제품 배송이 있는 일정은 <span class="chip">📦 배송 현황</span>에서 송장번호와 택배사를 등록해 추적할 수 있습니다.</p>
+      <div class="callout auto"><span class="i">🚚</span><div><b>자동 갱신:</b> 등록된 송장의 배송 상태(집화 전 / 배송중 / 배송완료)를 시스템이 <b>30분마다 자동으로 갱신</b>합니다. 일정 제목의 배송 아이콘은 배송 현황에 따라 표시되며, <b>제목 배송 아이콘</b>에서 수동으로 지정할 수도 있습니다.</div></div>
+    </section>
+
+    <!-- 11 -->
+    <section id="rental-broadcast" data-title="방송룸 이용 렌탈 월 대여 시간제 계약 자동 동기화 결제 반복">
+      <h2><span class="n">11</span>방송룸 · 렌탈 이용 등록</h2>
+      <p>일정 창의 <span class="chip">🎙 방송룸 이용</span>에서 방송룸/렌탈 이용을 함께 등록할 수 있습니다. 모드는 <b>시간제 · 월 대여 · 렌탈</b>이 있습니다.</p>
+      <ul>
+        <li><b>시간제</b>: 표준 제목의 일정으로 만들고 시간 이용 이력을 연결합니다.</li>
+        <li><b>월 대여 / 렌탈</b>: 폼의 시작~종료일이 <b>계약 기간</b>이 되어 계약이 생성되고, 제목은 자동 지정됩니다(의뢰자 연동 필수).</li>
+      </ul>
+      <div class="callout auto"><span class="i">⚙️</span><div><b>자동 동기화:</b> 렌탈·방송룸 계약을 만들면 <b>시작·종료 일정과 매월 결제일 반복 일정</b>이 캘린더에 자동 생성됩니다. 진행 중(종료일 없는) 계약의 결제 반복은 매월 자동으로 연장됩니다.</div></div>
+    </section>
+
+    <!-- 12 -->
+    <section id="edit-complete" data-title="일정 수정 변경 사유 로그 완료 처리 체크">
+      <h2><span class="n">12</span>일정 수정 · 완료 처리</h2>
+      <p>달력의 일정을 클릭하면 상세/수정 창이 열립니다.</p>
+      <ul>
+        <li><b>변경 로그</b>: 이 일정의 수정·완료 이력을 확인합니다.</li>
+        <li><b>일정 변경 사유</b>: <b>날짜·시간을 바꿀 때는 사유 입력이 필수</b>입니다(기록으로 남습니다).</li>
+        <li><span class="chip">✓ 완료</span>: 끝난 일정을 완료로 표시합니다. 다시 누르면 완료를 해제할 수 있습니다.</li>
+      </ul>
+      <div class="callout"><span class="i">🔒</span><div><b>잠금</b>을 켜면 실수로 수정되지 않도록 보호되고, <b>비공개</b>로 두면 등록한 본인만 그 일정을 볼 수 있습니다.</div></div>
+    </section>
+
+    <!-- 13 -->
+    <section id="delete-trash" data-title="일정 삭제 사유 휴지통 복원 되살리기">
+      <h2><span class="n">13</span>삭제 · 휴지통 · 복원</h2>
+      <ol class="steps">
+        <li>일정 창에서 <span class="chip">일정 삭제</span>를 누릅니다.</li>
+        <li><b>삭제 사유</b>를 입력하고 확인합니다(취소한 이유 등 기록용).</li>
+        <li>삭제된 일정은 완전히 사라지지 않고 <b>휴지통</b>으로 이동합니다.</li>
+        <li>상단 <span class="chip">휴지통</span>에서 삭제 목록을 보고 <b>복원</b>할 수 있습니다.</li>
+      </ol>
+    </section>
+
+    <!-- 14 -->
+    <section id="search-sec" data-title="검색 제목 의뢰자 장소 주소 전체 기간">
+      <h2><span class="n">14</span>일정 검색</h2>
+      <p>사이드 또는 도구막대의 검색으로 <b>제목·의뢰자명·장소·주소</b>를 기준으로 전체 기간의 일정을 찾을 수 있습니다.</p>
+    </section>
+
+    <!-- 15 -->
+    <section id="backup" data-title="백업 가져오기 내보내기 JSON iCal 구글 캘린더 import export">
+      <h2><span class="n">15</span>백업 · 가져오기 · 내보내기</h2>
+      <p>도구막대에서 데이터를 주고받을 수 있습니다(권한 필요).</p>
+      <table>
+        <tr><th>기능</th><th>설명</th></tr>
+        <tr><td><span class="chip">JSON 백업</span></td><td>전체 일정을 JSON 파일로 내려받아 보관.</td></tr>
+        <tr><td><span class="chip">JSON 가져오기</span></td><td>백업한 JSON을 다시 불러오기.</td></tr>
+        <tr><td><span class="chip">iCal 내보내기</span></td><td>외부 캘린더(구글 등)에서 볼 수 있는 iCal로 내보내기.</td></tr>
+        <tr><td><span class="chip">iCal 가져오기</span></td><td>외부 iCal 일정을 캘린더로 가져오기.</td></tr>
+      </table>
+    </section>
+
+    <!-- 16 -->
+    <section id="history" data-title="캘린더 이력 변경 기록 감사">
+      <h2><span class="n">16</span>캘린더 이력</h2>
+      <p>도구막대 <span class="chip">캘린더 이력</span>에서 일정들의 생성·수정·삭제·완료 기록을 모아 볼 수 있습니다. 누가 언제 무엇을 바꿨는지 추적이 필요할 때 사용합니다.</p>
+    </section>
+
+    <!-- 17 -->
+    <section id="permissions" data-title="권한 공개 범위 비공개 게스트 guest 열람 편집 calendar edit backup">
+      <h2><span class="n">17</span>권한 · 공개 범위</h2>
+      <table>
+        <tr><th>구분</th><th>내용</th></tr>
+        <tr><td><b>편집 권한</b></td><td>일정 추가·수정·삭제·완료는 캘린더 편집 권한이 있는 멤버만 가능합니다.</td></tr>
+        <tr><td><b>백업 권한</b></td><td>백업·가져오기는 별도 권한이 필요합니다.</td></tr>
+        <tr><td><b>비공개 일정</b></td><td>비공개로 설정하면 등록한 본인에게만 보입니다.</td></tr>
+        <tr><td><b>게스트</b></td><td>게스트 계정은 일정의 <b>지역·시간만</b> 볼 수 있고 내용은 가려지며, 검색도 제한됩니다.</td></tr>
+      </table>
+    </section>
+
+    <!-- 18 -->
+    <section id="automation" data-title="자동 처리 자동화 알림 계약 동기화 배송 갱신 참고">
+      <h2><span class="n">18</span>자동으로 처리되는 것들</h2>
+      <p>아래는 사용자가 따로 조작하지 않아도 시스템이 알아서 처리합니다.</p>
+      <ul>
+        <li><b>일정 시작 전 알림</b> — 설정한 시점에 담당자에게 웹푸시 자동 발송(매분 점검).</li>
+        <li><b>배송 상태 갱신</b> — 미완료 송장의 배송 현황을 30분마다 자동 조회.</li>
+        <li><b>계약 결제 일정 연장</b> — 진행 중 렌탈·방송룸 계약의 월 결제 반복 일정을 매월 자동 연장.</li>
+        <li><b>생성·수정 알림</b> — 일정이 만들어지거나 바뀌면 관련 담당자에게 알림.</li>
+      </ul>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" data-title="자주 묻는 질문 FAQ 문제 해결 안 보임 알림 안 옴 되돌리기">
+      <h2><span class="n">?</span>자주 묻는 질문</h2>
+      <div class="faq">
+        <details><summary>일정이 화면에 안 보여요.</summary><p>왼쪽 사이드에서 해당 <b>유형 필터</b>가 꺼져 있거나 <b>담당자 필터</b>가 걸려 있을 수 있습니다. 필터를 모두 켜고 확인하세요. 비공개로 등록된 일정은 등록한 본인에게만 보입니다.</p></details>
+        <details><summary>알림이 오지 않아요.</summary><p>일정에 <b>🔔 알림 시점</b>이 설정돼 있는지, <b>알림 받을 멤버/담당자</b>가 지정돼 있는지 확인하세요. 브라우저·기기의 웹푸시 알림 권한도 허용돼 있어야 합니다.</p></details>
+        <details><summary>실수로 삭제했어요.</summary><p>상단 <b>휴지통</b>에서 삭제된 일정을 찾아 <b>복원</b>할 수 있습니다. 삭제는 완전 삭제가 아니라 휴지통 이동입니다.</p></details>
+        <details><summary>날짜만 바꾸려는데 사유를 꼭 넣어야 하나요?</summary><p>네. 날짜·시간 변경은 이력 관리를 위해 <b>변경 사유가 필수</b>입니다. 그 외 항목 수정은 사유 없이 저장됩니다.</p></details>
+        <details><summary>렌탈/방송룸 계약 일정을 캘린더에서 지웠는데 다시 생겨요.</summary><p>계약이 살아 있으면 정기 동기화 때 표준 일정이 다시 만들어집니다. 일정을 없애려면 원본 <b>계약</b> 쪽을 정리해야 합니다.</p></details>
+      </div>
+    </section>
+
+    <footer>
+      닥터고블린 오피스 · 캘린더/일정 사용 가이드 · 실제 화면 기준으로 작성되었습니다. 기능이 업데이트되면 이 문서도 갱신하세요.
+    </footer>
+  </main>
+</div>
+
+<script>
+// ── 목차 자동 생성 ──
+const groups=[
+  {name:'기본',ids:['overview','categories','create']},
+  {name:'세부 입력',ids:['assignee-notify','client-project','visit-detail','options','repeat','attachments']},
+  {name:'연동·관리',ids:['shipment','rental-broadcast','edit-complete','delete-trash','search-sec']},
+  {name:'데이터·권한',ids:['backup','history','permissions','automation']},
+  {name:'도움말',ids:['faq']},
+];
+const nav=document.getElementById('nav');
+const secs=[...document.querySelectorAll('section')];
+groups.forEach(g=>{
+  const gl=document.createElement('div');gl.className='grp';gl.textContent=g.name;nav.appendChild(gl);
+  g.ids.forEach(id=>{
+    const s=document.getElementById(id);if(!s)return;
+    const a=document.createElement('a');a.href='#'+id;
+    a.textContent=s.querySelector('h2').textContent.replace(/^\s*[\d?]+\s*/,'');
+    a.dataset.id=id;nav.appendChild(a);
+  });
+});
+
+// ── 스크롤 시 현재 섹션 하이라이트 ──
+const links=[...nav.querySelectorAll('a')];
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){
+    links.forEach(l=>l.classList.toggle('active',l.dataset.id===e.target.id));
+  }});
+},{rootMargin:'-40% 0px -55% 0px'});
+secs.forEach(s=>obs.observe(s));
+
+// ── 검색(섹션 필터 + 하이라이트) ──
+const search=document.getElementById('search');
+let noRes=document.createElement('div');noRes.className='nores';noRes.textContent='검색 결과가 없습니다.';
+document.getElementById('main').appendChild(noRes);
+search.addEventListener('input',()=>{
+  const q=search.value.trim().toLowerCase();
+  let shown=0;
+  secs.forEach(s=>{
+    const hay=(s.textContent+' '+(s.dataset.title||'')).toLowerCase();
+    const hit=!q||hay.includes(q);
+    s.style.display=hit?'':'none';
+    if(hit)shown++;
+  });
+  // 목차도 같이 필터
+  links.forEach(l=>{const s=document.getElementById(l.dataset.id);l.style.display=(!q||s.style.display!=='none')?'':'none';});
+  noRes.style.display=shown?'none':'block';
+});
+
+// ── 모바일 목차 ──
+const side=document.getElementById('side'),scrim=document.getElementById('scrim');
+document.getElementById('menuToggle').addEventListener('click',()=>{side.classList.add('open');scrim.classList.add('show');});
+scrim.addEventListener('click',()=>{side.classList.remove('open');scrim.classList.remove('show');});
+nav.addEventListener('click',e=>{if(e.target.tagName==='A'){side.classList.remove('open');scrim.classList.remove('show');}});
+</script>
+</body>
+</html>

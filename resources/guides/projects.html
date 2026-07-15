@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로젝트 관리 사용법 — 닥터고블린 오피스</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface2:#eef1f5; --border:#e4e7ec;
+    --text:#1f2a37; --text-muted:#69727e; --accent:#1f3a5c; --accent-text:#ffffff;
+    --shadow:0 6px 24px rgba(24,39,64,.08);
+    --side-bg:#212f48; --side-text:#c2ccd9; --side-muted:#8b97a8; --side-accent:#5b8fc7;
+    --gold:#c8a870; --teal:#e8894a; --blue:#7aaec8; --red:#c87070; --green:#70c870; --purple:#9b70c8;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:flex;min-height:100vh;max-width:1200px;margin:0 auto}
+  .side{width:262px;flex-shrink:0;padding:22px 14px 40px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--side-bg)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;letter-spacing:-.01em;margin-bottom:3px;color:#fff}
+  .brand .dot{width:22px;height:22px;border-radius:6px;background:#e0322f;color:#fff;display:grid;place-items:center;font-size:13px}
+  .brand-sub{font-size:11.5px;color:var(--side-muted);margin:0 0 16px 31px;letter-spacing:.02em}
+  .search-wrap{position:relative;margin-bottom:14px}
+  #search{width:100%;padding:9px 12px 9px 32px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:9px;color:#eef2f7;font-size:13px;outline:none}
+  #search::placeholder{color:var(--side-muted)}
+  #search:focus{border-color:var(--side-accent)}
+  .search-wrap::before{content:'🔍';position:absolute;left:10px;top:8px;font-size:13px;opacity:.5}
+  nav a{display:block;padding:6px 10px;border-radius:7px;color:var(--side-text);font-size:13.5px;border-left:2px solid transparent}
+  nav a:hover{background:rgba(255,255,255,.06);color:#fff;text-decoration:none}
+  nav a.active{color:#fff;border-left-color:var(--side-accent);background:rgba(255,255,255,.10)}
+  nav .grp{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--side-muted);margin:16px 0 5px 10px;opacity:.85}
+  main{flex:1;min-width:0;padding:34px 46px 90px}
+  .top{margin-bottom:8px}
+  h1{font-size:27px;margin:0 0 2px;letter-spacing:-.02em}
+  .lede{color:var(--text-muted);font-size:14.5px;margin:0 0 8px}
+  section{scroll-margin-top:20px;padding:24px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+  h2 .n{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700}
+  h3{font-size:15.5px;margin:20px 0 6px}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  ol.steps{counter-reset:s;list-style:none;padding-left:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:2px 0 2px 38px;margin:9px 0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;background:var(--accent);color:var(--accent-text);border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+  code{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12.5px;font-family:'SF Mono',ui-monospace,monospace}
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-text);border-radius:7px;padding:1px 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .chip{display:inline-block;border:1px solid var(--border);background:var(--surface2);border-radius:20px;padding:1px 10px;font-size:12px;white-space:nowrap}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0}
+  .flow .st{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:3px 10px;font-size:12.5px;font-weight:600}
+  .flow .ar{color:var(--text-muted);font-size:13px}
+  .callout{border-radius:10px;padding:12px 15px;margin:14px 0;font-size:13.5px;border:1px solid var(--border);background:var(--surface2);display:flex;gap:10px}
+  .callout .i{flex-shrink:0;font-size:15px}
+  .callout.tip{border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+  .callout.warn{border-color:color-mix(in srgb,var(--red) 50%,var(--border))}
+  .callout.auto{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--text-muted);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  td b{font-weight:600}
+  .faq details{border:1px solid var(--border);border-radius:9px;margin:8px 0;background:var(--surface);padding:0 14px}
+  .faq summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:14px}
+  .faq summary::marker{color:var(--accent)}
+  .faq details[open]{padding-bottom:10px}
+  .nores{display:none;color:var(--text-muted);padding:30px 4px;font-size:14px}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12.5px}
+  @media(max-width:860px){
+    .side{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow)}
+    .side.open{transform:translateX(0)}
+    main{padding:20px 18px 70px}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;margin-bottom:14px}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+  .scrim.show{display:block}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side" id="side">
+    <div class="brand"><span class="dot">📁</span>프로젝트 관리</div>
+    <div class="brand-sub">닥터고블린 오피스 사용 가이드</div>
+    <div class="search-wrap"><input id="search" type="text" placeholder="도움말 검색…" autocomplete="off"></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main id="main">
+    <button class="menu-toggle" id="menuToggle">☰ 목차</button>
+    <div class="top">
+      <h1>프로젝트 관리 사용법</h1>
+      <p class="lede">상담부터 세팅·납품·결제·잔금까지, 프로젝트의 진행 단계를 관리하는 방법을 안내합니다.</p>
+    </div>
+
+    <!-- 1 -->
+    <section id="overview" data-title="목록 화면 검색 필터 단계 유형 태그 컬럼 잔금 관리 엑셀">
+      <h2><span class="n">1</span>프로젝트 목록 화면</h2>
+      <p>목록에는 <b>진행 중인 프로젝트</b>가 표시됩니다(취소된 건은 기본 제외). 상단에 검색·필터·주요 버튼이 있습니다.</p>
+      <ul>
+        <li><b>검색</b>: 의뢰자명 · 프로젝트명으로 찾습니다. <span class="chip">↺ 초기화</span>로 조건을 지웁니다.</li>
+        <li><b>필터</b>: <b>단계</b> · <b>유형</b> · <b>태그</b>(대분류/소분류)로 좁혀 봅니다. 체크하면 바로 적용됩니다.</li>
+        <li><b>컬럼</b>: 프로젝트명 · 의뢰자 · 유형 · 단계 · 담당자 · 시작일. 의뢰자와 연동 안 된 건은 <span class="chip">(의뢰자 없음)</span> · <span class="chip">확인불가</span>로 표시됩니다.</li>
+      </ul>
+      <p>상단 버튼: <span class="btn">+ 새 프로젝트</span> · <span class="chip">💸 잔금 관리</span> · <span class="chip">엑셀 가져오기</span>. 목록은 최근 생성순, 20건씩 표시됩니다.</p>
+    </section>
+
+    <!-- 2 -->
+    <section id="create" data-title="새 프로젝트 만들기 의뢰자 연동 확인 불가 단순 결제 프로젝트 규모 작업 유형 개요">
+      <h2><span class="n">2</span>새 프로젝트 만들기</h2>
+      <p>상단 <span class="btn">+ 새 프로젝트</span>를 누르면 생성 창이 열립니다.</p>
+      <ol class="steps">
+        <li><b>의뢰자</b>를 검색해 연결합니다. 아직 등록 안 된 고객이면 <span class="chip">의뢰자명 확인 불가</span>를 체크하고 이름만 직접 적어 만들 수 있습니다(나중에 연동 가능).</li>
+        <li><b>프로젝트명</b>과 <b>유형</b>을 정합니다(필수). 필요 시 <b>규모</b>(개인/스튜디오/기업/렌탈/방송룸)와 <b>작업 유형</b>, <b>개요</b>를 입력합니다.</li>
+        <li><span class="btn">생성</span>을 누릅니다. 생성하면 단계는 <b>상담</b>부터 시작하고, 등록한 본인이 담당자가 됩니다.</li>
+      </ol>
+      <div class="callout tip"><span class="i">💳</span><div><b>단순 결제 프로젝트</b> 토글을 켜면 상담·단계 없이 <b>결제 내역만</b> 관리합니다. 생성 후 결제 입력창이 바로 열립니다(예: 단순 상품 판매·입금 기록).</div></div>
+    </section>
+
+    <!-- 3 -->
+    <section id="types" data-title="프로젝트 유형 문의 원격 방문 내방 촬영 제작 렌탈 방송룸 상품 AS 문제 해결 작업 유형 규모">
+      <h2><span class="n">3</span>프로젝트 유형 · 작업 유형 · 규모</h2>
+      <p>프로젝트는 <b>유형</b>에 따라 진행 단계가 달라집니다. 기본 유형은 다음과 같습니다.</p>
+      <p>
+        <span class="chip">문의</span> <span class="chip">원격</span> <span class="chip">방문</span> <span class="chip">내방</span>
+        <span class="chip">촬영</span> <span class="chip">제작</span> <span class="chip">렌탈</span> <span class="chip">방송룸</span>
+        <span class="chip">상품</span> <span class="chip">A/S</span> <span class="chip">문제 해결</span>
+      </p>
+      <p><b>작업 유형</b>(세팅·원격·답사·촬영중계·디자인·A/S·파견·월 계약·시간 대여)과 <b>규모</b>(개인·스튜디오·기업·렌탈·방송룸)를 함께 지정해 성격을 구체화합니다.</p>
+      <div class="callout auto"><span class="i">⚙️</span><div>유형·단계 구성은 관리자 화면에서 바꿀 수 있습니다. 유형별 단계는 아래 <a href="#stages">진행 단계</a>를 참고하세요.</div></div>
+    </section>
+
+    <!-- 4 -->
+    <section id="stages" data-title="진행 단계 스테이지 flow 상담 장비파악 일정제안 사전답사 견적 계약 결제 세팅 납품 완료 취소 유형별">
+      <h2><span class="n">4</span>진행 단계(스테이지)</h2>
+      <p>프로젝트 상세 위쪽의 <b>진행 단계 바</b>에서 현재 단계를 확인하고, 단계를 눌러 진행합니다. 단계는 <b>유형마다 다릅니다.</b> 주요 유형의 흐름은 다음과 같습니다.</p>
+
+      <h3>방문</h3>
+      <div class="flow"><span class="st">상담</span><span class="ar">→</span><span class="st">일정제안</span><span class="ar">→</span><span class="st">견적/계약</span><span class="ar">→</span><span class="st">결제/예약</span><span class="ar">→</span><span class="st">방문세팅</span><span class="ar">→</span><span class="st">완료</span></div>
+      <h3>원격</h3>
+      <div class="flow"><span class="st">상담</span><span class="ar">→</span><span class="st">진단</span><span class="ar">→</span><span class="st">일정제안</span><span class="ar">→</span><span class="st">견적/결제</span><span class="ar">→</span><span class="st">원격처리</span><span class="ar">→</span><span class="st">완료</span></div>
+      <h3>촬영</h3>
+      <div class="flow"><span class="st">상담</span><span class="ar">→</span><span class="st">일정제안</span><span class="ar">→</span><span class="st">사전답사</span><span class="ar">→</span><span class="st">견적/계약</span><span class="ar">→</span><span class="st">결제</span><span class="ar">→</span><span class="st">촬영</span><span class="ar">→</span><span class="st">완료</span></div>
+      <h3>제작(디자인)</h3>
+      <div class="flow"><span class="st">상담</span><span class="ar">→</span><span class="st">견적/계약</span><span class="ar">→</span><span class="st">결제</span><span class="ar">→</span><span class="st">제작/컨펌</span><span class="ar">→</span><span class="st">납품</span><span class="ar">→</span><span class="st">완료</span></div>
+      <h3>내방 · 방송룸 · 렌탈</h3>
+      <div class="flow"><span class="st">상담</span><span class="ar">→</span><span class="st">일정제안</span><span class="ar">→</span><span class="st">(견적)</span><span class="ar">→</span><span class="st">결제</span><span class="ar">→</span><span class="st">이용</span><span class="ar">→</span><span class="st">완료</span></div>
+      <h3>문의 · 상품 · A/S · 문제 해결</h3>
+      <div class="flow"><span class="st">접수/상담</span><span class="ar">→</span><span class="st">(진단)</span><span class="ar">→</span><span class="st">처리/진행</span><span class="ar">→</span><span class="st">완료</span></div>
+
+      <div class="callout"><span class="i">🖱️</span><div>단계를 누르면 그 단계의 성격에 따라 창이 열립니다 — <b>일정제안</b>→일정 연결 창, <b>견적/계약</b>→견적 창, <b>결제</b>→결제 창, <b>완료</b>→완료 확인. 그 외 단계는 창 없이 바로 넘어갑니다.</div></div>
+    </section>
+
+    <!-- 5 -->
+    <section id="detail" data-title="상세 화면 카드 의뢰자 정보 개요 태그 일정 제안 견적 계약 방문 보고서 상담 이력 피드백 문서 추가 정보">
+      <h2><span class="n">5</span>프로젝트 상세 화면</h2>
+      <p>상세 상단에는 의뢰자·유형·규모·담당자·시작일이 있고, 우측에 <span class="chip">📋 로그</span> <span class="chip">✏️ 프로젝트 수정</span> <span class="chip">취소</span> <span class="chip">삭제</span> 버튼이 있습니다. 아래로 여러 카드가 이어집니다.</p>
+      <table>
+        <tr><th>카드</th><th>용도</th></tr>
+        <tr><td><b>의뢰자 정보 / 개요 / 태그</b></td><td>연결된 고객, 프로젝트 개요, 대분류·소분류 태그.</td></tr>
+        <tr><td><b>📅 일정 제안</b></td><td>연결된 캘린더 일정 요약. <b>편집</b>으로 일정을 연결하면 캘린더와 <b>양방향</b>으로 이어집니다.</td></tr>
+        <tr><td><b>📝 견적/계약</b></td><td>연동 견적서 링크와 메모.</td></tr>
+        <tr><td><b>🛠 방문 보고서</b></td><td>서식 있는 에디터(제목·목록·표·이미지·템플릿). 완료 후 작성.</td></tr>
+        <tr><td><b>상담 이력</b></td><td><b>상담 등록</b>으로 수단(카카오톡/전화/내방상담/현장답사)·결과(대기/유효/무효/완료)·내용 기록.</td></tr>
+        <tr><td><b>피드백 / 문서 / 추가 정보</b></td><td>내부 피드백, 문서 업로드, 관리자 정의 맞춤 항목.</td></tr>
+      </table>
+    </section>
+
+    <!-- 6 -->
+    <section id="payment" data-title="결제 내역 결제 추가 견적서 연결 결제일 수단 카드 현금 계좌이체 항목 환불 취소">
+      <h2><span class="n">6</span>결제 내역</h2>
+      <p><b>💰 결제 내역</b> 카드의 <span class="btn">+ 결제 추가</span>로 입금을 기록합니다.</p>
+      <ul>
+        <li><b>견적서 연결</b>: 연동하면 견적 항목이 결제 항목으로 자동 채워집니다.</li>
+        <li>금액 · 결제일 · <b>결제 수단</b>(카드/현금/계좌이체/기타) · 수기 항목 · 메모를 입력합니다.</li>
+        <li><b>환불 · 결제 취소</b>: 결제 건에서 <span class="chip">↩ 환불</span>(선택 항목/금액) 또는 <span class="chip">⚠ 결제 취소</span>(전액)를 처리합니다. 환불액은 남은 결제액을 넘을 수 없습니다.</li>
+      </ul>
+      <div class="callout"><span class="i">🧾</span><div>결제 내역 카드는 결제가 없어도 항상 표시됩니다. <code>등록된 결제 내역이 없습니다. 우측 상단 [+ 결제 추가]로 기록</code></div></div>
+    </section>
+
+    <!-- 7 -->
+    <section id="billing" data-title="청구 잔금 청구로 등록 입금 기록 완료 처리 미입금 부분입금 자동 청구">
+      <h2><span class="n">7</span>청구 · 잔금 관리</h2>
+      <p>아직 못 받은 돈은 <b>청구</b>로 등록해 추적합니다.</p>
+      <ul>
+        <li>결제 입력 시 <span class="chip">💸 청구로 등록</span>을 켜면 받을 금액이 청구로 남고 입금을 추적합니다.</li>
+        <li>결제에서 <b>잔금</b>을 체크하면, 남은 금액이 <b>자동으로 청구(미입금)로 생성</b>됩니다.</li>
+        <li>결제 내역 카드에 <b>💸 청구 / 입금 / 잔금</b>과 <span class="chip">입금 기록</span> <span class="chip">완료 처리</span> 버튼이 표시되고, <b>미입금 / 부분입금</b> 배지로 상태를 봅니다.</li>
+      </ul>
+      <div class="callout auto"><span class="i">🔄</span><div><b>자동 계산:</b> 입금이 쌓이면 청구 상태가 <b>미입금 → 부분입금 → 완료</b>로 자동 갱신되고, 결제 저장 시 단계가 결제보다 앞이면 <b>결제 단계로 자동 진행</b>됩니다(결제 단계가 있는 유형만).</div></div>
+    </section>
+
+    <!-- 8 -->
+    <section id="billing-screen" data-title="잔금 관리 화면 미수 미입금 부분입금 경과일 완료 처리 합계">
+      <h2><span class="n">8</span>잔금 관리 화면</h2>
+      <p>목록 상단 <span class="chip">💸 잔금 관리</span>를 누르면 <b>미입금·부분입금 청구를 모아</b> 봅니다.</p>
+      <ul>
+        <li>컬럼: 의뢰자 · 프로젝트 · 청구일(경과일) · 청구액 · 입금액 · 잔금 · 최근 입금일 · 상태.</li>
+        <li>상단에 <b>총 미수 잔금 합계 · 건수</b>가 표시됩니다.</li>
+        <li>잔금이 남아 있어도 <span class="chip">완료 처리</span>로 수동 종결할 수 있습니다.</li>
+      </ul>
+      <p>남은 청구가 없으면 <code>✅ 잔금이 남은 청구가 없습니다.</code>가 표시됩니다.</p>
+    </section>
+
+    <!-- 9 -->
+    <section id="cancel" data-title="프로젝트 취소 삭제 사유 연락 두절 데이터 보존">
+      <h2><span class="n">9</span>프로젝트 취소 · 삭제</h2>
+      <p>상세 우측 <span class="chip">취소</span>를 누르면 취소 창이 열립니다. 사유(의뢰자 연락 두절 / 의뢰자 사정 / 일정 불일치 / 기타)를 고르고 <b>취소 처리</b>합니다.</p>
+      <div class="callout warn"><span class="i">⚠️</span><div><b>취소</b>는 <code>데이터는 보존되며, 단계만 '취소'로 변경</code>됩니다. 반면 <b>삭제</b>는 프로젝트를 완전히 지웁니다. 기록을 남기려면 취소를 사용하세요.</div></div>
+    </section>
+
+    <!-- 10 -->
+    <section id="permissions" data-title="권한 열람 편집 projects view edit 관리자">
+      <h2><span class="n">10</span>권한</h2>
+      <table>
+        <tr><th>권한</th><th>가능한 작업</th></tr>
+        <tr><td><b>열람 권한</b></td><td>목록·상세·잔금 관리 보기, 결제·요약·일정 조회, 문서 열람.</td></tr>
+        <tr><td><b>편집 권한</b></td><td>생성·단계 변경·수정·삭제, 피드백, 결제 저장/수정/삭제/환불, 청구 생성/수정, 문서 업로드.</td></tr>
+      </table>
+      <p>유형·맞춤 항목 정의 변경은 관리자 권한이 필요합니다.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" data-title="자주 묻는 질문 FAQ 단계 안 넘어감 결제 잔금 취소 의뢰자 없이">
+      <h2><span class="n">?</span>자주 묻는 질문</h2>
+      <div class="faq">
+        <details><summary>단계가 안 넘어가요.</summary><p>단계는 <b>유형별 흐름에 있는 단계만</b> 이동할 수 있습니다(완료·취소는 언제든 가능). 유형에 맞는 다음 단계인지 확인하세요.</p></details>
+        <details><summary>결제를 기록했는데 단계가 자동으로 바뀌었어요.</summary><p>정상입니다. 결제를 저장하면 현재 단계가 결제보다 앞일 때 <b>결제 단계로 자동 진행</b>됩니다(결제 단계가 있는 유형에 한함). 문의·A/S 등은 결제만 기록되고 단계는 유지됩니다.</p></details>
+        <details><summary>의뢰자를 아직 등록 안 했는데 프로젝트를 만들 수 있나요?</summary><p>네. 생성 창에서 <b>의뢰자명 확인 불가</b>를 체크하고 이름만 적어 만들 수 있습니다. 나중에 실제 의뢰자와 연동하면 됩니다.</p></details>
+        <details><summary>잔금이 계속 남아 있는데 끝내고 싶어요.</summary><p>잔금 관리 화면 또는 결제 카드에서 <b>완료 처리</b>로 수동 종결할 수 있습니다(입금이 다 안 됐어도 가능).</p></details>
+        <details><summary>취소한 프로젝트가 목록에서 사라졌어요.</summary><p>목록은 기본적으로 취소 건을 숨깁니다. <b>단계 필터</b>에서 취소를 포함하거나 검색으로 찾을 수 있고, 데이터는 그대로 보존됩니다.</p></details>
+      </div>
+    </section>
+
+    <footer>닥터고블린 오피스 · 프로젝트 관리 사용 가이드 · 실제 화면·단계 구성을 기준으로 작성되었습니다.</footer>
+  </main>
+</div>
+<script>
+const groups=[
+  {name:'기본',ids:['overview','create','types']},
+  {name:'진행·상세',ids:['stages','detail']},
+  {name:'결제·정산',ids:['payment','billing','billing-screen']},
+  {name:'관리',ids:['cancel','permissions']},
+  {name:'도움말',ids:['faq']},
+];
+const nav=document.getElementById('nav');
+const secs=[...document.querySelectorAll('section')];
+groups.forEach(g=>{
+  const gl=document.createElement('div');gl.className='grp';gl.textContent=g.name;nav.appendChild(gl);
+  g.ids.forEach(id=>{const s=document.getElementById(id);if(!s)return;
+    const a=document.createElement('a');a.href='#'+id;
+    a.textContent=s.querySelector('h2').textContent.replace(/^\s*[\d?]+\s*/,'');
+    a.dataset.id=id;nav.appendChild(a);});
+});
+const links=[...nav.querySelectorAll('a')];
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  links.forEach(l=>l.classList.toggle('active',l.dataset.id===e.target.id));}});},{rootMargin:'-40% 0px -55% 0px'});
+secs.forEach(s=>obs.observe(s));
+const search=document.getElementById('search');
+let noRes=document.createElement('div');noRes.className='nores';noRes.textContent='검색 결과가 없습니다.';
+document.getElementById('main').appendChild(noRes);
+search.addEventListener('input',()=>{
+  const q=search.value.trim().toLowerCase();let shown=0;
+  secs.forEach(s=>{const hay=(s.textContent+' '+(s.dataset.title||'')).toLowerCase();
+    const hit=!q||hay.includes(q);s.style.display=hit?'':'none';if(hit)shown++;});
+  links.forEach(l=>{const s=document.getElementById(l.dataset.id);l.style.display=(!q||s.style.display!=='none')?'':'none';});
+  noRes.style.display=shown?'none':'block';
+});
+const side=document.getElementById('side'),scrim=document.getElementById('scrim');
+document.getElementById('menuToggle').addEventListener('click',()=>{side.classList.add('open');scrim.classList.add('show');});
+scrim.addEventListener('click',()=>{side.classList.remove('open');scrim.classList.remove('show');});
+nav.addEventListener('click',e=>{if(e.target.tagName==='A'){side.classList.remove('open');scrim.classList.remove('show');}});
+</script>
+</body>
+</html>

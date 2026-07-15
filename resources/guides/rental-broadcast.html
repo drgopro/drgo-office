@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>렌탈 · 방송룸 사용법 — 닥터고블린 오피스</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface2:#eef1f5; --border:#e4e7ec;
+    --text:#1f2a37; --text-muted:#69727e; --accent:#1f3a5c; --accent-text:#ffffff;
+    --shadow:0 6px 24px rgba(24,39,64,.08);
+    --side-bg:#212f48; --side-text:#c2ccd9; --side-muted:#8b97a8; --side-accent:#5b8fc7;
+    --gold:#c8a870; --teal:#e8894a; --blue:#7aaec8; --red:#c87070; --green:#70c870; --purple:#9b70c8;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:flex;min-height:100vh;max-width:1200px;margin:0 auto}
+  .side{width:262px;flex-shrink:0;padding:22px 14px 40px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--side-bg)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;letter-spacing:-.01em;margin-bottom:3px;color:#fff}
+  .brand .dot{width:22px;height:22px;border-radius:6px;background:#e0322f;color:#fff;display:grid;place-items:center;font-size:13px}
+  .brand-sub{font-size:11.5px;color:var(--side-muted);margin:0 0 16px 31px;letter-spacing:.02em}
+  .search-wrap{position:relative;margin-bottom:14px}
+  #search{width:100%;padding:9px 12px 9px 32px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:9px;color:#eef2f7;font-size:13px;outline:none}
+  #search::placeholder{color:var(--side-muted)}
+  #search:focus{border-color:var(--side-accent)}
+  .search-wrap::before{content:'🔍';position:absolute;left:10px;top:8px;font-size:13px;opacity:.5}
+  nav a{display:block;padding:6px 10px;border-radius:7px;color:var(--side-text);font-size:13.5px;border-left:2px solid transparent}
+  nav a:hover{background:rgba(255,255,255,.06);color:#fff;text-decoration:none}
+  nav a.active{color:#fff;border-left-color:var(--side-accent);background:rgba(255,255,255,.10)}
+  nav .grp{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--side-muted);margin:16px 0 5px 10px;opacity:.85}
+  main{flex:1;min-width:0;padding:34px 46px 90px}
+  .top{margin-bottom:8px}
+  h1{font-size:27px;margin:0 0 2px;letter-spacing:-.02em}
+  .lede{color:var(--text-muted);font-size:14.5px;margin:0 0 8px}
+  section{scroll-margin-top:20px;padding:24px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+  h2 .n{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700}
+  h3{font-size:15.5px;margin:20px 0 6px}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  ol.steps{counter-reset:s;list-style:none;padding-left:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:2px 0 2px 38px;margin:9px 0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;background:var(--accent);color:var(--accent-text);border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+  code{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12.5px;font-family:'SF Mono',ui-monospace,monospace}
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-text);border-radius:7px;padding:1px 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .chip{display:inline-block;border:1px solid var(--border);background:var(--surface2);border-radius:20px;padding:1px 10px;font-size:12px;white-space:nowrap}
+  .callout{border-radius:10px;padding:12px 15px;margin:14px 0;font-size:13.5px;border:1px solid var(--border);background:var(--surface2);display:flex;gap:10px}
+  .callout .i{flex-shrink:0;font-size:15px}
+  .callout.tip{border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+  .callout.warn{border-color:color-mix(in srgb,var(--red) 50%,var(--border))}
+  .callout.auto{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--text-muted);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  td b{font-weight:600}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .kpi{border:1px solid var(--border);border-radius:10px;padding:11px 13px;background:var(--surface)}
+  .kpi .l{font-size:12px;color:var(--text-muted)}
+  .kpi .v{font-size:18px;font-weight:700;color:var(--accent);margin-top:3px}
+  .faq details{border:1px solid var(--border);border-radius:9px;margin:8px 0;background:var(--surface);padding:0 14px}
+  .faq summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:14px}
+  .faq summary::marker{color:var(--accent)}
+  .faq details[open]{padding-bottom:10px}
+  .nores{display:none;color:var(--text-muted);padding:30px 4px;font-size:14px}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12.5px}
+  @media(max-width:860px){
+    .side{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow)}
+    .side.open{transform:translateX(0)}
+    main{padding:20px 18px 70px}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;margin-bottom:14px}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+  .scrim.show{display:block}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side" id="side">
+    <div class="brand"><span class="dot">🏷</span>렌탈 · 방송룸</div>
+    <div class="brand-sub">닥터고블린 오피스 사용 가이드</div>
+    <div class="search-wrap"><input id="search" type="text" placeholder="도움말 검색…" autocomplete="off"></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main id="main">
+    <button class="menu-toggle" id="menuToggle">☰ 목차</button>
+    <div class="top">
+      <h1>렌탈 · 방송룸 사용법</h1>
+      <p class="lede">렌탈 계약, 방송룸 월 계약·시간 대여, 그리고 렌탈 장비 위치 관리까지 안내합니다. 계약을 등록하면 캘린더 일정이 자동으로 만들어집니다.</p>
+    </div>
+
+    <div class="callout"><span class="i">🗺</span><div>이 문서는 세 화면을 다룹니다 — 사이드 메뉴의 <b>렌탈</b>(렌탈 계약), <b>방송룸</b>(월 계약·시간 대여), <b>장비 위치</b>(렌탈 장비 추적). 셋은 성격이 이어져 함께 정리했습니다.</div></div>
+
+    <!-- 1 렌탈 계약 화면 -->
+    <section id="rental-list" data-title="렌탈 계약 화면 통계 진행중 월 매출 전체 검색 상태 필터 컬럼">
+      <h2><span class="n">1</span>렌탈 계약 화면</h2>
+      <p>사이드 메뉴 <b>렌탈</b> → 고객과 맺은 <b>월 단위 렌탈 계약</b>을 관리합니다.</p>
+      <div class="kpis">
+        <div class="kpi"><div class="l">진행중 계약</div><div class="v">N건</div></div>
+        <div class="kpi"><div class="l">월 매출 (진행중)</div><div class="v">₩</div></div>
+        <div class="kpi"><div class="l">전체 계약</div><div class="v">N건</div></div>
+      </div>
+      <ul>
+        <li><b>검색</b>: 의뢰자명/닉네임으로 찾습니다.</li>
+        <li><b>상태 필터</b>: <span class="chip">전체 상태</span> <span class="chip">진행중</span> <span class="chip">해지</span>.</li>
+        <li><b>컬럼</b>: 의뢰자 · 시작일 · 종료일 · 월 금액 · 상태 · 메모. 한 페이지 30건.</li>
+      </ul>
+    </section>
+
+    <!-- 2 렌탈 계약 등록 -->
+    <section id="rental-create" data-title="렌탈 계약 등록 편집 의뢰자 시작일 종료일 진행중 월 금액 상태 해지 메모 삭제">
+      <h2><span class="n">2</span>렌탈 계약 등록 · 편집</h2>
+      <p><span class="btn">+ 계약 등록</span>을 눌러 계약을 만듭니다.</p>
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td><b>의뢰자 <span style="color:var(--red)">*</span></b></td><td>이름/닉네임/전화번호로 검색해 연결(필수).</td></tr>
+        <tr><td>시작일 <span style="color:var(--red)">*</span></td><td>계약 시작일(필수).</td></tr>
+        <tr><td>종료일</td><td>비우면 <b>진행중</b>으로 처리됩니다.</td></tr>
+        <tr><td>월 금액 (원) <span style="color:var(--red)">*</span></td><td>월 렌탈료(필수).</td></tr>
+        <tr><td>상태</td><td>진행중 / 해지. <b>해지</b>는 상태를 바꾸는 것으로 처리합니다(별도 종료 버튼 없음).</td></tr>
+        <tr><td>메모</td><td>참고 사항(선택).</td></tr>
+      </table>
+      <p>버튼은 <span class="chip">삭제</span> · <span class="chip">취소</span> · <span class="chip">저장</span>입니다. 삭제 시 확인을 거칩니다.</p>
+    </section>
+
+    <!-- 3 렌탈 캘린더 연동 -->
+    <section id="rental-calendar" data-title="렌탈 캘린더 자동 연동 시작 종료 매월 결제 반복 12개월 배지">
+      <h2><span class="n">3</span>렌탈 계약 → 캘린더 자동 연동</h2>
+      <p>계약을 저장하면 캘린더에 일정이 <b>자동으로</b> 만들어집니다(카테고리: 렌탈).</p>
+      <ul>
+        <li><b>렌탈 시작 · {의뢰자}</b> — 시작일 종일 일정.</li>
+        <li><b>렌탈 종료 · {의뢰자}</b> — 종료일이 있을 때만.</li>
+        <li><b>렌탈 결제 · {의뢰자} (금액)</b> — <b>매월 결제일 반복</b> 일정(시작일의 '일' 기준).</li>
+      </ul>
+      <div class="callout auto"><span class="i">🔄</span><div>종료일이 없는 <b>진행중 계약</b>의 결제 반복은 우선 <b>12개월치</b>가 생성되고, 매월 자동으로 연장됩니다. 계약 표의 <span class="chip">📅</span> 배지는 "캘린더에 연동됨"을 뜻하며, 클릭하면 캘린더로 이동합니다.</div></div>
+      <div class="callout warn"><span class="i">⚠️</span><div>캘린더에서 이 자동 일정을 지워도 <b>계약이 살아 있으면 다시 생성</b>됩니다. 일정을 없애려면 계약 자체를 해지/삭제하세요.</div></div>
+    </section>
+
+    <!-- 4 방송룸 화면 -->
+    <section id="broadcast-list" data-title="방송룸 화면 통계 진행중 월 계약 매출 이번달 시간 대여 탭 월 계약 시간 대여">
+      <h2><span class="n">4</span>방송룸 화면</h2>
+      <p>사이드 메뉴 <b>방송룸</b> → 방송룸 대여를 관리합니다. 상단에 4개의 요약 카드가 있습니다.</p>
+      <div class="kpis">
+        <div class="kpi"><div class="l">진행중 월 계약</div><div class="v">N건</div></div>
+        <div class="kpi"><div class="l">월 계약 매출</div><div class="v">₩</div></div>
+        <div class="kpi"><div class="l">이번달 시간 대여</div><div class="v">N회</div></div>
+        <div class="kpi"><div class="l">이번달 시간 대여 매출</div><div class="v">₩</div></div>
+      </div>
+      <p>화면은 두 탭으로 나뉩니다 — <span class="chip">월 계약</span>(정기 대여)과 <span class="chip">시간 대여</span>(시간제 이용).</p>
+    </section>
+
+    <!-- 5 방송룸 월 계약 -->
+    <section id="broadcast-monthly" data-title="방송룸 월 계약 등록 호실 시작일 종료일 월 금액 상태 결제 내역 캘린더">
+      <h2><span class="n">5</span>방송룸 월 계약</h2>
+      <p><span class="btn">+ 월 계약 등록</span>으로 정기(월) 대여 계약을 만듭니다. 필드: 의뢰자*, <b>호실</b>(예: <code>2</code> → 2호실), 시작일*, 종료일, 월 금액(원)*, 상태(진행중/해지), 메모.</p>
+      <div class="callout auto"><span class="i">📅</span><div><b>캘린더 자동 연동:</b> 저장하면 <b>{의뢰자} 방송룸 n호실 월대여 시작 / 종료</b> 일정이 만들어집니다. 렌탈과 달리 <b>매월 결제 반복 일정은 만들지 않고</b>, 대신 시작 일정 안에 결제 내역(월 요금·결제일·계약 기간)을 적어 둡니다.</div></div>
+    </section>
+
+    <!-- 6 방송룸 시간 대여 -->
+    <section id="broadcast-hourly" data-title="방송룸 시간 대여 시간제 시작 일시 종료 일시 이용 시간 자동 계산 금액 캘린더 원격 방송룸">
+      <h2><span class="n">6</span>방송룸 시간 대여</h2>
+      <p><span class="btn">+ 시간 대여 등록</span>으로 시간제 이용을 기록합니다.</p>
+      <ol class="steps">
+        <li><b>의뢰자</b>를 검색해 연결하고 <b>호실</b>을 입력합니다.</li>
+        <li><b>시작 일시 · 종료 일시</b>를 고르면 <b>이용 시간이 자동 계산</b>됩니다(<code>⏱ 계산된 이용 시간: N 시간</code>).</li>
+        <li><b>금액(원)</b>과 메모를 입력하고 저장합니다.</li>
+      </ol>
+      <div class="callout auto"><span class="i">🎙</span><div>등록하면 <code>📅 등록 시 캘린더에 자동 일정이 생성됩니다 (원격/방송룸 카테고리)</code>. 제목은 <b>{의뢰자} 방송룸 n호실 대여</b>이고, 시간이 있는 일정으로 들어갑니다. 시간을 수정하면 연결된 캘린더 일정도 함께 갱신됩니다.</div></div>
+    </section>
+
+    <!-- 7 월 vs 시간 -->
+    <section id="broadcast-modes" data-title="월대여 시간대여 차이 시간제 월 계약 렌탈 비교">
+      <h2><span class="n">7</span>월 대여 vs 시간 대여</h2>
+      <table>
+        <tr><th></th><th>월 계약(월대여)</th><th>시간 대여(시간제)</th></tr>
+        <tr><td><b>단위</b></td><td>월 단위 정기 계약</td><td>1회(시간) 이용</td></tr>
+        <tr><td><b>요금</b></td><td>월 금액</td><td>이용 건별 금액(시간 자동 계산)</td></tr>
+        <tr><td><b>캘린더</b></td><td>시작/종료 종일 일정 + 결제 내역 기재</td><td>이용 시간대의 일정(타임드)</td></tr>
+        <tr><td><b>상태</b></td><td>진행중 / 해지</td><td>상태 없음(이용 기록)</td></tr>
+      </table>
+      <div class="callout"><span class="i">ℹ️</span><div>참고로 캘린더의 <b>🎙 방송룸 이용</b> 창에는 <b>시간제 · 월대여 · 렌탈</b> 모드가 있어, 일정을 만들면서 이 이용/계약을 함께 등록할 수 있습니다. "렌탈" 모드는 위 렌탈 계약과 연결됩니다.</div></div>
+    </section>
+
+    <!-- 8 장비 위치 보드 -->
+    <section id="equip-board" data-title="장비 위치 보드 매트릭스 장비 대상 통계 대여중 검색 스캔 이력">
+      <h2><span class="n">8</span>장비 위치 보드</h2>
+      <p>사이드 메뉴 <b>장비 위치</b> → 렌탈/보유 장비가 <b>지금 어디(누구)에게 있는지</b>를 표로 관리합니다. 행은 <b>장비</b>, 열은 <b>대상</b>(사람/장소)이고, 채워진 칸(●)이 "그 장비가 그 대상에 있음"을 뜻합니다.</p>
+      <ul>
+        <li>상단 통계: <b>장비</b> 수 · <b>대여중</b> 수 · <b>대상</b> 수.</li>
+        <li><b>검색</b>: 장비명·시리얼·대상으로 찾습니다.</li>
+        <li>버튼: <span class="chip">스캔</span>(QR) · <span class="chip">카테고리</span> · <span class="chip">그룹</span> · <span class="chip">이력</span> · <span class="btn">＋ 장비</span> · <span class="btn">＋ 대상</span>.</li>
+      </ul>
+      <div class="callout"><span class="i">🖱</span><div><code>셀을 클릭하면 해당 대상으로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다.</code></div></div>
+      <div class="callout"><span class="i">📦</span><div>이 보드는 <b>수량/재고 개념이 없습니다.</b> 장비 하나 = 실물 1대이며, 상태는 "지금 어느 대상에 있는지"로만 표현됩니다.</div></div>
+    </section>
+
+    <!-- 9 장비 등록 -->
+    <section id="equip-add" data-title="장비 추가 등록 장비명 시리얼 카테고리 원래 위치 그룹 제품 구성 QR 코드">
+      <h2><span class="n">9</span>장비 · 대상 등록</h2>
+      <h3>장비 추가</h3>
+      <p><span class="btn">＋ 장비</span> → 필드: <b>장비명*</b>, 시리얼 번호, 카테고리, <b>원래 위치 (반납 시 복귀)</b>, 그룹, 제품 구성, 제품 설명/비고. 저장하면 <b>QR 코드</b>(장비 식별용)가 생성됩니다 — <code>인쇄 후 장비에 부착 · 📷 스캔으로 인식</code>.</p>
+      <h3>대상 추가</h3>
+      <p><span class="btn">＋ 대상</span> → 이름/명칭*, 연락처, 주소/장소, 메모. 직원(대상)용 QR 코드도 인쇄할 수 있습니다.</p>
+      <div class="callout tip"><span class="i">🏠</span><div><b>원래 위치</b>를 정해 두면, 반납 처리 시 장비가 그 위치로 자동 복귀합니다.</div></div>
+    </section>
+
+    <!-- 10 이동/반납 -->
+    <section id="equip-move" data-title="위치 지정 이동 반납 처리 셀 클릭 드래그 그룹 일괄 이동 QR 스캔">
+      <h2><span class="n">10</span>위치 지정 · 이동 · 반납</h2>
+      <ul>
+        <li><b>지정/이동</b>: 칸을 클릭하거나 ● 마크를 드래그해 대상을 바꿉니다. 칸 창에서 <span class="chip">이 위치로 지정</span> / <span class="chip">반납 처리</span>.</li>
+        <li><b>그룹 일괄 이동</b>: 같은 그룹의 장비를 한 대상으로 한 번에 이동하거나 <b>원래 위치로 반납</b>합니다.</li>
+        <li><b>QR 스캔</b>: 장비 QR을 찍으면 <b>반납 처리 / 상세 보기(편집) / 다른 위치로 이동</b> 중 고를 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- 11 이력 -->
+    <section id="equip-log" data-title="변경 이력 로그 위치 지정 변경 반납 그룹 이동 기록">
+      <h2><span class="n">11</span>변경 이력</h2>
+      <p><span class="chip">이력</span> 버튼을 누르면 장비·대상·카테고리·그룹의 모든 변경(추가·수정·삭제·이동·반납)이 <b>누가 언제</b> 했는지 기록으로 남습니다. 보드에는 최근 50건이 표시됩니다. 기록이 없으면 <code>아직 기록된 변경이 없습니다.</code></p>
+    </section>
+
+    <!-- 12 권한 -->
+    <section id="permissions" data-title="권한 장비 위치 inventory 렌탈 계약 방송룸 clients view edit">
+      <h2><span class="n">12</span>권한</h2>
+      <table>
+        <tr><th>화면</th><th>열람</th><th>편집(등록·수정·삭제)</th></tr>
+        <tr><td><b>장비 위치</b></td><td>재고 열람 권한</td><td>재고 편집 권한</td></tr>
+        <tr><td><b>렌탈 계약</b></td><td>의뢰자 열람 권한</td><td>의뢰자 편집 권한</td></tr>
+        <tr><td><b>방송룸</b></td><td>의뢰자 열람 권한</td><td>의뢰자 편집 권한</td></tr>
+      </table>
+      <p>편집 권한이 없으면 목록은 보이지만 등록/편집 버튼이 나타나지 않습니다.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" data-title="자주 묻는 질문 FAQ 캘린더 다시 생김 결제 반복 호실 진행중">
+      <h2><span class="n">?</span>자주 묻는 질문</h2>
+      <div class="faq">
+        <details><summary>캘린더에서 렌탈/방송룸 일정을 지웠는데 다시 생겨요.</summary><p>계약이 살아 있으면 정기 동기화 때 일정이 다시 만들어집니다. 없애려면 <b>계약을 해지하거나 삭제</b>하세요.</p></details>
+        <details><summary>렌탈은 매월 결제 일정이 생기는데 방송룸 월 계약은 왜 안 생기나요?</summary><p>의도된 차이입니다. <b>렌탈</b>은 매월 <b>결제 반복 일정</b>을 만들고, <b>방송룸 월 계약</b>은 시작 일정 안에 <b>결제 내역(월 요금·결제일·기간)</b>을 적어 두는 방식입니다.</p></details>
+        <details><summary>종료일을 비워도 되나요?</summary><p>네. 종료일을 비우면 <b>진행중</b> 계약으로 처리되고, 렌탈은 결제 반복이 12개월치 생성된 뒤 매월 자동 연장됩니다.</p></details>
+        <details><summary>호실은 어떻게 정하나요?</summary><p>호실은 정해진 목록이 아니라 <b>직접 입력</b>합니다(예: <code>2</code> → 2호실). 비워두면 "방송룸"으로만 표시됩니다.</p></details>
+        <details><summary>장비가 몇 개 남았는지 재고로 보고 싶어요.</summary><p>장비 위치 보드는 <b>수량/재고</b>가 아니라 <b>실물 1대의 현재 위치</b>를 추적합니다. 수량 기반 재고는 <b>재고</b> 메뉴를 사용하세요.</p></details>
+      </div>
+    </section>
+
+    <footer>닥터고블린 오피스 · 렌탈 · 방송룸 사용 가이드 · 실제 화면·동작 기준으로 작성되었습니다.</footer>
+  </main>
+</div>
+<script>
+const groups=[
+  {name:'렌탈 계약',ids:['rental-list','rental-create','rental-calendar']},
+  {name:'방송룸',ids:['broadcast-list','broadcast-monthly','broadcast-hourly','broadcast-modes']},
+  {name:'장비 위치',ids:['equip-board','equip-add','equip-move','equip-log']},
+  {name:'관리',ids:['permissions']},
+  {name:'도움말',ids:['faq']},
+];
+const nav=document.getElementById('nav');
+const secs=[...document.querySelectorAll('section')];
+groups.forEach(g=>{
+  const gl=document.createElement('div');gl.className='grp';gl.textContent=g.name;nav.appendChild(gl);
+  g.ids.forEach(id=>{const s=document.getElementById(id);if(!s)return;
+    const a=document.createElement('a');a.href='#'+id;
+    a.textContent=s.querySelector('h2').textContent.replace(/^\s*[\d?]+\s*/,'');
+    a.dataset.id=id;nav.appendChild(a);});
+});
+const links=[...nav.querySelectorAll('a')];
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  links.forEach(l=>l.classList.toggle('active',l.dataset.id===e.target.id));}});},{rootMargin:'-40% 0px -55% 0px'});
+secs.forEach(s=>obs.observe(s));
+const search=document.getElementById('search');
+let noRes=document.createElement('div');noRes.className='nores';noRes.textContent='검색 결과가 없습니다.';
+document.getElementById('main').appendChild(noRes);
+search.addEventListener('input',()=>{
+  const q=search.value.trim().toLowerCase();let shown=0;
+  secs.forEach(s=>{const hay=(s.textContent+' '+(s.dataset.title||'')).toLowerCase();
+    const hit=!q||hay.includes(q);s.style.display=hit?'':'none';if(hit)shown++;});
+  links.forEach(l=>{const s=document.getElementById(l.dataset.id);l.style.display=(!q||s.style.display!=='none')?'':'none';});
+  noRes.style.display=shown?'none':'block';
+});
+const side=document.getElementById('side'),scrim=document.getElementById('scrim');
+document.getElementById('menuToggle').addEventListener('click',()=>{side.classList.add('open');scrim.classList.add('show');});
+scrim.addEventListener('click',()=>{side.classList.remove('open');scrim.classList.remove('show');});
+nav.addEventListener('click',e=>{if(e.target.tagName==='A'){side.classList.remove('open');scrim.classList.remove('show');}});
+</script>
+</body>
+</html>

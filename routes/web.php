@@ -350,6 +350,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/todo-attachments/{attachment}', [TodoController::class, 'serveAttachment'])->name('todo-attachments.serve');
     Route::get('/api/link-preview', [LinkPreviewController::class, 'show']); // 본문 링크 OG 미리보기
 
+    // 사용 가이드 — 정적 HTML 문서 (resources/guides)
+    Route::view('/guide', 'guide.index')->name('guide.index');
+    Route::get('/guide/{slug}', function (string $slug) {
+        abort_unless(in_array($slug, ['calendar', 'projects', 'clients', 'rental-broadcast'], true), 404);
+
+        return response()->file(resource_path("guides/{$slug}.html"));
+    })->name('guide.show');
+
     // 위키
     Route::get('/wiki', [WikiController::class, 'index'])->name('wiki.index');
     Route::get('/wiki/create', [WikiController::class, 'create'])->name('wiki.create');

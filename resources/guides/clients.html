@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>의뢰자 관리 사용법 — 닥터고블린 오피스</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface2:#eef1f5; --border:#e4e7ec;
+    --text:#1f2a37; --text-muted:#69727e; --accent:#1f3a5c; --accent-text:#ffffff;
+    --shadow:0 6px 24px rgba(24,39,64,.08);
+    --side-bg:#212f48; --side-text:#c2ccd9; --side-muted:#8b97a8; --side-accent:#5b8fc7;
+    --gold:#c8a870; --teal:#e8894a; --blue:#7aaec8; --red:#c87070; --green:#70c870; --purple:#9b70c8;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:flex;min-height:100vh;max-width:1200px;margin:0 auto}
+  .side{width:262px;flex-shrink:0;padding:22px 14px 40px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--side-bg)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;letter-spacing:-.01em;margin-bottom:3px;color:#fff}
+  .brand .dot{width:22px;height:22px;border-radius:6px;background:#e0322f;color:#fff;display:grid;place-items:center;font-size:13px}
+  .brand-sub{font-size:11.5px;color:var(--side-muted);margin:0 0 16px 31px;letter-spacing:.02em}
+  .search-wrap{position:relative;margin-bottom:14px}
+  #search{width:100%;padding:9px 12px 9px 32px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:9px;color:#eef2f7;font-size:13px;outline:none}
+  #search::placeholder{color:var(--side-muted)}
+  #search:focus{border-color:var(--side-accent)}
+  .search-wrap::before{content:'🔍';position:absolute;left:10px;top:8px;font-size:13px;opacity:.5}
+  nav a{display:block;padding:6px 10px;border-radius:7px;color:var(--side-text);font-size:13.5px;border-left:2px solid transparent}
+  nav a:hover{background:rgba(255,255,255,.06);color:#fff;text-decoration:none}
+  nav a.active{color:#fff;border-left-color:var(--side-accent);background:rgba(255,255,255,.10)}
+  nav .grp{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--side-muted);margin:16px 0 5px 10px;opacity:.85}
+  main{flex:1;min-width:0;padding:34px 46px 90px}
+  .top{margin-bottom:8px}
+  h1{font-size:27px;margin:0 0 2px;letter-spacing:-.02em}
+  .lede{color:var(--text-muted);font-size:14.5px;margin:0 0 8px}
+  section{scroll-margin-top:20px;padding:24px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+  h2 .n{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700}
+  h3{font-size:15.5px;margin:20px 0 6px}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  ol.steps{counter-reset:s;list-style:none;padding-left:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:2px 0 2px 38px;margin:9px 0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;background:var(--accent);color:var(--accent-text);border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+  code{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12.5px;font-family:'SF Mono',ui-monospace,monospace}
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-text);border-radius:7px;padding:1px 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .chip{display:inline-block;border:1px solid var(--border);background:var(--surface2);border-radius:20px;padding:1px 10px;font-size:12px;white-space:nowrap}
+  .callout{border-radius:10px;padding:12px 15px;margin:14px 0;font-size:13.5px;border:1px solid var(--border);background:var(--surface2);display:flex;gap:10px}
+  .callout .i{flex-shrink:0;font-size:15px}
+  .callout.tip{border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+  .callout.warn{border-color:color-mix(in srgb,var(--red) 50%,var(--border))}
+  .callout.auto{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--text-muted);font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  td b{font-weight:600}
+  .badges{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+  .b{border-radius:6px;padding:2px 10px;font-size:12.5px;font-weight:600;border:1px solid var(--border)}
+  .faq details{border:1px solid var(--border);border-radius:9px;margin:8px 0;background:var(--surface);padding:0 14px}
+  .faq summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:14px}
+  .faq summary::marker{color:var(--accent)}
+  .faq details[open]{padding-bottom:10px}
+  .nores{display:none;color:var(--text-muted);padding:30px 4px;font-size:14px}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12.5px}
+  @media(max-width:860px){
+    .side{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow)}
+    .side.open{transform:translateX(0)}
+    main{padding:20px 18px 70px}
+    .menu-toggle{display:inline-flex!important}
+  }
+  .menu-toggle{display:none;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;margin-bottom:14px}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+  .scrim.show{display:block}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side" id="side">
+    <div class="brand"><span class="dot">👤</span>의뢰자 관리</div>
+    <div class="brand-sub">닥터고블린 오피스 사용 가이드</div>
+    <div class="search-wrap"><input id="search" type="text" placeholder="도움말 검색…" autocomplete="off"></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main id="main">
+    <button class="menu-toggle" id="menuToggle">☰ 목차</button>
+    <div class="top">
+      <h1>의뢰자 관리 사용법</h1>
+      <p class="lede">의뢰자(고객) 등록부터 프로젝트·견적·문서·메모까지, 한 화면에서 관리하는 방법을 안내합니다.</p>
+    </div>
+
+    <!-- 1 -->
+    <section id="overview" data-title="화면 구성 목록 상세 탭 좌측 우측 선택">
+      <h2><span class="n">1</span>화면 구성 한눈에 보기</h2>
+      <p>의뢰자 화면은 <b>왼쪽 의뢰자 목록</b>과 <b>오른쪽 상세(탭)</b>로 나뉩니다. 목록에서 의뢰자를 선택하면 오른쪽에 그 사람의 상세 정보가 탭으로 열립니다.</p>
+      <ul>
+        <li>왼쪽 상단에 <b>의뢰자 목록 (N명)</b>과 검색창, 등급 필터가 있습니다.</li>
+        <li>아직 아무도 선택하지 않으면 <span class="chip">좌측 목록에서 의뢰자를 선택하세요</span>가 표시됩니다.</li>
+        <li>오른쪽 상세는 <b>기본 정보 · 프로젝트 · 첨부파일 · 견적서 · 메모</b> 탭으로 구성됩니다(각 탭에 건수가 함께 표시).</li>
+      </ul>
+      <div class="callout"><span class="i">📱</span><div>모바일에서는 <b>고객목록</b> 버튼으로 목록을 열고 닫습니다.</div></div>
+    </section>
+
+    <!-- 2 -->
+    <section id="register" data-title="의뢰자 등록 닉네임 이름 연락처 등급 유입경로 유형 플랫폼 방송 주제 성향">
+      <h2><span class="n">2</span>의뢰자 등록하기</h2>
+      <p>왼쪽 상단 <span class="btn">+ 의뢰자 등록</span>을 누르면 등록 창이 열립니다.</p>
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td><b>닉네임 <span style="color:var(--red)">*</span></b></td><td>필수. 스트리머명 등 대표 식별 이름. (이름보다 닉네임이 기준입니다.)</td></tr>
+        <tr><td>이름 / 연락처</td><td>실명과 전화번호(선택).</td></tr>
+        <tr><td>등급</td><td>일반 · VIP · 렌탈 중 선택(기본 일반).</td></tr>
+        <tr><td>유입경로</td><td>검색 · 지인 소개 · SNS · 광고 · 커뮤니티 · 기타.</td></tr>
+        <tr><td>의뢰자 유형</td><td>개인 · 엔터 · 스튜디오.</td></tr>
+        <tr><td>플랫폼</td><td>SOOP · 유튜브 · 치지직 · 틱톡 · 팬더티비 · 기타(복수 선택). "기타" 선택 시 직접 입력칸이 열립니다.</td></tr>
+        <tr><td>방송 주제</td><td>소통 · 게임 · 노래 · 먹방 · 야외 · 버추얼 · 코인 · 주식 · 기타 · 미정(복수 선택).</td></tr>
+        <tr><td>방송 아이디</td><td>플랫폼 방송 ID/채널명.</td></tr>
+        <tr><td>의뢰자 성향</td><td>의뢰자 성격(예: 꼼꼼함, 빠른 결정) / 예산 집행 스타일(예: 보수적, 최고급 사양 선호).</td></tr>
+      </table>
+      <p>입력 후 <span class="btn">등록</span>을 누릅니다. 닉네임을 비우면 <code>닉네임을 입력하세요.</code> 안내가 뜹니다.</p>
+      <div class="callout tip"><span class="i">✅</span><div>등록하면 <b>등록한 본인이 담당자</b>로 자동 지정되고, 상태는 <b>활성</b>으로 시작합니다.</div></div>
+    </section>
+
+    <!-- 3 -->
+    <section id="list-filter" data-title="목록 검색 필터 등급 전체 일반 VIP 렌탈 엑셀 페이지 블랙리스트">
+      <h2><span class="n">3</span>목록 검색 · 필터</h2>
+      <ul>
+        <li><b>검색창</b>: 이름 · 닉네임 · 연락처로 찾습니다.</li>
+        <li><b>등급 필터</b>: <span class="chip">전체</span> <span class="chip">일반</span> <span class="chip">VIP</span> <span class="chip">렌탈</span>로 좁혀 봅니다.</li>
+        <li><b>엑셀</b> 버튼으로 의뢰자 데이터를 가져오거나 내보낼 수 있습니다.</li>
+        <li>목록은 <b>최근 등록순</b>으로 정렬되며, 한 페이지에 20명씩 표시됩니다(처음/이전/다음/끝 이동).</li>
+      </ul>
+      <div class="callout"><span class="i">🚫</span><div><b>블랙리스트</b>로 지정된 의뢰자는 목록·검색에서 항상 제외됩니다.</div></div>
+    </section>
+
+    <!-- 4 -->
+    <section id="grades" data-title="등급 고객 유형 일반 VIP 렌탈 상태 활성 블랙리스트">
+      <h2><span class="n">4</span>등급과 상태</h2>
+      <p>등급(고객 유형)은 배지로 표시되고 목록 필터의 기준이 됩니다.</p>
+      <div class="badges">
+        <span class="b" style="border-color:var(--blue);color:var(--accent)">일반</span>
+        <span class="b" style="border-color:var(--gold);color:#8a6a1f">VIP</span>
+        <span class="b" style="border-color:var(--teal);color:#a85a20">렌탈</span>
+      </div>
+      <p>상태는 <b>활성</b>이 기본이며, 문제가 있는 의뢰자는 <b>블랙리스트</b>로 두어 목록에서 숨길 수 있습니다. 삭제해도 데이터는 보존(소프트 삭제)됩니다.</p>
+    </section>
+
+    <!-- 5 -->
+    <section id="basic-tab" data-title="기본 정보 탭 편집 전화번호 소속 성별 주소 특이사항 장비 정보 성향 저장 삭제 로그">
+      <h2><span class="n">5</span>기본 정보 탭</h2>
+      <p>의뢰자의 상세 정보를 보고 바로 편집하는 탭입니다.</p>
+      <ul>
+        <li>편집 항목: 닉네임 · 이름 · 전화번호 · 고객 유형(등급) · 소속 · 성별 · 주소(<span class="chip">주소 검색</span> 지원) · 상세주소 · 특이사항 · 플랫폼 · 방송 주제 · 방송 아이디 · 유입경로 · 의뢰자 유형, 그리고 <b>의뢰자 성향</b>(성격/예산 스타일). 최초 등록일은 읽기 전용입니다.</li>
+        <li><b>📦 장비 정보 (최근 프로젝트 기준)</b>: 가장 최근 프로젝트의 장비 항목을 자동으로 요약해 보여줍니다.</li>
+        <li>상단의 <span class="chip">로그</span>로 수정 이력, <span class="chip">저장</span>으로 변경 저장, <span class="chip">삭제</span>로 의뢰자를 삭제합니다.</li>
+      </ul>
+    </section>
+
+    <!-- 6 -->
+    <section id="projects-tab" data-title="프로젝트 탭 추가 생성 규모 작업 유형 취소 삭제 상담">
+      <h2><span class="n">6</span>프로젝트 탭</h2>
+      <p>이 의뢰자와 연결된 프로젝트를 보고, 바로 새로 만들 수 있습니다.</p>
+      <ol class="steps">
+        <li><span class="chip">최신 순 / 오래된 순</span>으로 정렬을 바꿀 수 있습니다.</li>
+        <li><span class="btn">+ 프로젝트</span>를 눌러 인라인으로 새 프로젝트를 만듭니다 — 프로젝트명, 유형, 규모(개인/스튜디오/기업/렌탈/방송룸), 작업 유형(세팅/원격/촬영중계/디자인), 개요.</li>
+        <li>각 프로젝트에는 유형과 <b>상담 N건</b>, 날짜가 표시됩니다.</li>
+      </ol>
+      <div class="callout warn"><span class="i">⚠️</span><div><b>취소</b>와 <b>삭제</b>는 다릅니다. <b>취소</b>는 데이터를 보존한 채 상태만 바꾸고, <b>삭제</b>는 완전히 지웁니다. 되도록 취소를 쓰세요.</div></div>
+    </section>
+
+    <!-- 7 -->
+    <section id="files-tab" data-title="첨부파일 탭 파일 추가 카테고리 현금영수증 사업자등록증 계약서 견적서 업로드 다운로드">
+      <h2><span class="n">7</span>첨부파일 탭</h2>
+      <p><span class="btn">+ 파일 추가</span>로 문서를 올립니다. 카테고리를 골라 정리하면 나중에 찾기 쉽습니다.</p>
+      <p>카테고리: <span class="chip">사진/이미지</span> <span class="chip">현금영수증</span> <span class="chip">사업자등록증</span> <span class="chip">계약서</span> <span class="chip">견적서</span> <span class="chip">기타</span>. 메모를 함께 남길 수 있고, 파일별로 <b>다운로드 · 삭제</b>가 가능합니다(이미지는 썸네일 표시).</p>
+    </section>
+
+    <!-- 8 -->
+    <section id="estimates-tab" data-title="견적서 탭 상태 작성중 수정중 완료 결제완료 보류 보기 편집">
+      <h2><span class="n">8</span>견적서 탭</h2>
+      <p>이 의뢰자의 견적서를 상태와 금액과 함께 모아 봅니다.</p>
+      <div class="badges">
+        <span class="b" style="border-color:var(--border)">작성중</span>
+        <span class="b" style="border-color:var(--border)">수정중</span>
+        <span class="b" style="border-color:var(--green);color:#3c7a4c">완료</span>
+        <span class="b" style="border-color:var(--accent);color:var(--accent)">결제완료</span>
+        <span class="b" style="border-color:var(--border)">보류</span>
+      </div>
+      <p>각 견적서는 <b>보기 · 편집</b>이 가능하고, <b>결제완료</b>된 견적서는 잠깁니다.</p>
+    </section>
+
+    <!-- 9 -->
+    <section id="memo-tab" data-title="메모 탭 추가 삭제 더 보기 접기 작성자 시간">
+      <h2><span class="n">9</span>메모 탭</h2>
+      <p>의뢰자에 대한 메모를 시간순으로 남깁니다. 입력창에 내용을 쓰고 <span class="btn">메모 추가</span>를 누르면 작성자와 시각이 함께 기록됩니다. 메모가 많으면 <span class="chip">+ N개 더 보기 / 접기</span>로 펼치고 접을 수 있고, 메모별로 <b>삭제</b>할 수 있습니다.</p>
+      <div class="callout"><span class="i">💡</span><div>기본 정보 탭에서도 빠른 메모 입력이 가능합니다.</div></div>
+    </section>
+
+    <!-- 10 -->
+    <section id="custom-fields" data-title="동적 항목 커스텀 필드 장비 정보 방송 정보 사업자 정보 관리자">
+      <h2><span class="n">10</span>추가 항목(맞춤 필드)</h2>
+      <p>기본 정보 탭에는 관리자가 정의한 <b>맞춤 항목</b>이 함께 나타날 수 있습니다. 예: 장비 정보, 방송 정보, 사업자 정보 등. 항목의 종류(선택·라디오·숫자·날짜 등)와 필수 여부, 수량 입력 여부는 관리자 화면에서 설정합니다.</p>
+      <div class="callout auto"><span class="i">⚙️</span><div>맞춤 항목을 추가·수정하려면 <b>관리자 → 의뢰자 항목 관리</b>에서 설정합니다. 여기서 만든 항목이 모든 의뢰자 화면에 반영됩니다.</div></div>
+    </section>
+
+    <!-- 11 -->
+    <section id="permissions" data-title="권한 열람 편집 clients view edit 담당자">
+      <h2><span class="n">11</span>권한</h2>
+      <table>
+        <tr><th>권한</th><th>가능한 작업</th></tr>
+        <tr><td><b>열람 권한</b></td><td>목록·상세 보기, 검색, 문서 열람/다운로드.</td></tr>
+        <tr><td><b>편집 권한</b></td><td>의뢰자 등록·수정·삭제, 메모 추가/삭제, 문서 업로드/삭제, 프로젝트 생성.</td></tr>
+      </table>
+      <p>맞춤 항목 정의는 관리자 권한이 있어야 변경할 수 있습니다.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" data-title="자주 묻는 질문 FAQ 안 보임 삭제 블랙리스트 닉네임 이름">
+      <h2><span class="n">?</span>자주 묻는 질문</h2>
+      <div class="faq">
+        <details><summary>닉네임과 이름 중 뭘 꼭 넣어야 하나요?</summary><p><b>닉네임이 필수</b>입니다(스트리머명 등 대표 식별값). 이름은 선택이며, 화면 제목은 이름이 있으면 이름, 없으면 닉네임으로 표시됩니다.</p></details>
+        <details><summary>목록에서 특정 의뢰자가 안 보여요.</summary><p>등급 필터가 걸려 있거나 검색어가 남아 있을 수 있습니다. <b>전체</b> 필터로 두고 검색어를 비워보세요. <b>블랙리스트</b> 의뢰자는 목록에 나오지 않습니다.</p></details>
+        <details><summary>프로젝트를 잘못 만들었어요.</summary><p>프로젝트 항목의 <b>취소</b>(데이터 보존)와 <b>삭제</b>(완전 삭제) 중 골라 처리하세요. 기록을 남기려면 취소를 권장합니다.</p></details>
+        <details><summary>견적서를 수정할 수 없어요.</summary><p><b>결제완료</b> 상태의 견적서는 잠겨 편집이 제한됩니다.</p></details>
+      </div>
+    </section>
+
+    <footer>닥터고블린 오피스 · 의뢰자 관리 사용 가이드 · 실제 화면 기준으로 작성되었습니다.</footer>
+  </main>
+</div>
+<script>
+const groups=[
+  {name:'기본',ids:['overview','register','list-filter','grades']},
+  {name:'상세 탭',ids:['basic-tab','projects-tab','files-tab','estimates-tab','memo-tab']},
+  {name:'심화',ids:['custom-fields','permissions']},
+  {name:'도움말',ids:['faq']},
+];
+const nav=document.getElementById('nav');
+const secs=[...document.querySelectorAll('section')];
+groups.forEach(g=>{
+  const gl=document.createElement('div');gl.className='grp';gl.textContent=g.name;nav.appendChild(gl);
+  g.ids.forEach(id=>{const s=document.getElementById(id);if(!s)return;
+    const a=document.createElement('a');a.href='#'+id;
+    a.textContent=s.querySelector('h2').textContent.replace(/^\s*[\d?]+\s*/,'');
+    a.dataset.id=id;nav.appendChild(a);});
+});
+const links=[...nav.querySelectorAll('a')];
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  links.forEach(l=>l.classList.toggle('active',l.dataset.id===e.target.id));}});},{rootMargin:'-40% 0px -55% 0px'});
+secs.forEach(s=>obs.observe(s));
+const search=document.getElementById('search');
+let noRes=document.createElement('div');noRes.className='nores';noRes.textContent='검색 결과가 없습니다.';
+document.getElementById('main').appendChild(noRes);
+search.addEventListener('input',()=>{
+  const q=search.value.trim().toLowerCase();let shown=0;
+  secs.forEach(s=>{const hay=(s.textContent+' '+(s.dataset.title||'')).toLowerCase();
+    const hit=!q||hay.includes(q);s.style.display=hit?'':'none';if(hit)shown++;});
+  links.forEach(l=>{const s=document.getElementById(l.dataset.id);l.style.display=(!q||s.style.display!=='none')?'':'none';});
+  noRes.style.display=shown?'none':'block';
+});
+const side=document.getElementById('side'),scrim=document.getElementById('scrim');
+document.getElementById('menuToggle').addEventListener('click',()=>{side.classList.add('open');scrim.classList.add('show');});
+scrim.addEventListener('click',()=>{side.classList.remove('open');scrim.classList.remove('show');});
+nav.addEventListener('click',e=>{if(e.target.tagName==='A'){side.classList.remove('open');scrim.classList.remove('show');}});
+</script>
+</body>
+</html>
