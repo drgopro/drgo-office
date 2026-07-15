@@ -142,6 +142,43 @@ class ProjectBillingTest extends TestCase
             ->assertSee('50,000원');
     }
 
+    public function test_payment_edit_saves_balance_flag_and_syncs_billing(): void
+    {
+        $project = $this->makeProject();
+
+        // 잔금 없이 결제 기록 후 — 수정에서 잔금 O + 금액 입력
+        $this->actingAs($this->admin())->postJson("/api/projects/{$project->id}/payment", [
+            'amount' => 100000, 'paid_at' => '2026-07-14', 'has_balance' => false,
+        ])->assertOk();
+        $payment = ProjectPayment::where('project_id', $project->id)->first();
+        $this->assertSame(0, ProjectBilling::count());
+
+        $this->actingAs($this->admin())->patchJson("/api/projects/{$project->id}/payments/{$payment->id}", [
+            'amount' => 100000, 'has_balance' => true, 'balance_amount' => 70000,
+        ])->assertOk();
+
+        $info = $project->fresh()->payment_info;
+        $this->assertTrue((bool) $info['has_balance'], '잔금 여부 저장');
+        $this->assertSame(70000, (int) $info['balance_amount'], '잔금 금액 저장');
+        $billing = ProjectBilling::where('project_id', $project->id)->first();
+        $this->assertNotNull($billing, '잔금 자동 청구 생성');
+        $this->assertSame(70000, $billing->amount);
+
+        // 재수정 — 금액 변경은 기존 청구 재사용 (중복 생성 없음)
+        $this->actingAs($this->admin())->patchJson("/api/projects/{$project->id}/payments/{$payment->id}", [
+            'amount' => 100000, 'has_balance' => true, 'balance_amount' => 30000,
+        ])->assertOk();
+        $this->assertSame(1, ProjectBilling::count());
+        $this->assertSame(30000, ProjectBilling::first()->amount);
+
+        // 잔금 X로 변경 — 미입금 자동 청구 정리
+        $this->actingAs($this->admin())->patchJson("/api/projects/{$project->id}/payments/{$payment->id}", [
+            'amount' => 100000, 'has_balance' => false,
+        ])->assertOk();
+        $this->assertSame(0, ProjectBilling::count());
+        $this->assertFalse((bool) $project->fresh()->payment_info['has_balance']);
+    }
+
     public function test_payment_without_balance_flag_creates_no_billing(): void
     {
         $project = $this->makeProject();

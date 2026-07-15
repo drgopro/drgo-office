@@ -760,6 +760,8 @@ class ProjectController extends Controller
             'items.*.source' => 'nullable|string|max:20',
             'memo' => 'nullable|string|max:1000',
             'estimate_id' => 'nullable|integer|exists:estimates,id',
+            'has_balance' => 'nullable|boolean',
+            'balance_amount' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -790,18 +792,53 @@ class ProjectController extends Controller
                 }
             }
 
+            // 잔금 여부/금액은 결제 레코드가 아니라 payment_info + 자동 청구로 관리
+            $hasBalance = array_key_exists('has_balance', $validated) ? (bool) $validated['has_balance'] : null;
+            $balanceAmount = $hasBalance ? (int) ($validated['balance_amount'] ?? 0) : 0;
+            unset($validated['has_balance'], $validated['balance_amount']);
+
             $payment->update($validated);
             $payment->billing?->refreshStatus(); // 금액 수정 시 청구 잔금 재계산
 
             // payment_info(project)도 동기화 — 결제 모달이 다시 열릴 때 prefill용
-            $project->update(['payment_info' => array_merge((array) $project->payment_info, [
+            $paymentInfo = array_merge((array) $project->payment_info, [
                 'amount' => $payment->amount,
                 'items' => $payment->items ?? [],
                 'method' => $payment->method,
                 'paid_at' => $payment->paid_at?->format('Y-m-d'),
                 'memo' => $payment->memo,
                 'estimate_id' => $payment->estimate_id,
-            ])]);
+            ]);
+            if ($hasBalance !== null) {
+                $paymentInfo['has_balance'] = $hasBalance;
+                $paymentInfo['balance_amount'] = $balanceAmount;
+            }
+            $project->update(['payment_info' => $paymentInfo]);
+
+            // 잔금 자동 청구 동기화 — 수정 시에는 기존 '결제 시 잔금' 미입금 청구를 재사용해 중복 생성 방지
+            if ($hasBalance !== null) {
+                $autoBilling = ProjectBilling::where('project_id', $project->id)
+                    ->where('status', 'unpaid')
+                    ->where('memo', 'like', '결제 시 잔금%')
+                    ->latest('id')->first();
+
+                if ($hasBalance && $balanceAmount > 0) {
+                    if ($autoBilling) {
+                        $autoBilling->update(['amount' => $balanceAmount]);
+                    } else {
+                        ProjectBilling::create([
+                            'project_id' => $project->id,
+                            'amount' => $balanceAmount,
+                            'billed_at' => $payment->paid_at?->format('Y-m-d') ?? now()->format('Y-m-d'),
+                            'status' => 'unpaid',
+                            'memo' => '결제 시 잔금'.($payment->memo ? ' — '.mb_substr($payment->memo, 0, 400) : ''),
+                            'created_by' => Auth::id(),
+                        ]);
+                    }
+                } elseif (! $hasBalance && $autoBilling) {
+                    $autoBilling->delete(); // 잔금 X로 변경 → 미입금 자동 청구 정리
+                }
+            }
 
             return response()->json(['ok' => true, 'payment' => $payment->fresh()]);
         } catch (\Throwable $e) {

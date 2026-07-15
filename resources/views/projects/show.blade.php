@@ -2627,12 +2627,13 @@ async function openPaymentModal(prefillPayment) {
     document.getElementById('payPaidAt').value = cur.paid_at || new Date().toISOString().slice(0,10);
     document.getElementById('payMethod').value = cur.method || '';
     document.getElementById('payMemo').value = cur.memo || '';
-    // 잔금 여부/금액 복원
-    const hasBal = !!cur.has_balance;
+    // 잔금 여부/금액 복원 — 잔금은 프로젝트 단위 상태(payment_info)라 신규 모달에서도 유지되어야 함
+    const balSrc = isEdit ? cur : (initialPayment || {});
+    const hasBal = !!balSrc.has_balance;
     document.querySelectorAll('input[name="payHasBalance"]').forEach(r => {
         r.checked = (r.value === (hasBal ? '1' : '0'));
     });
-    document.getElementById('payBalanceAmount').value = cur.balance_amount || '';
+    document.getElementById('payBalanceAmount').value = balSrc.balance_amount || '';
     togglePayBalance();
     // 항목/금액 합산 초기화 — 기존 amount가 있으면 수기 모드, 없으면 합산 모드
     window.payAmountManual = !!cur.amount;
@@ -2836,8 +2837,9 @@ async function editPayment(paymentId) {
         items: p.items || [],
         memo: p.memo || '',
         estimate_id: p.estimate_id || null,
-        has_balance: false,
-        balance_amount: 0,
+        // 잔금 여부/금액은 프로젝트 payment_info에 저장됨 — 하드코딩 false로 덮으면 수정 시 잔금이 X로 초기화되는 버그
+        has_balance: !!(initialPayment && initialPayment.has_balance),
+        balance_amount: (initialPayment && initialPayment.balance_amount) || 0,
     });
     // 모달 제목 갱신 + 저장 버튼 라벨 변경
     const title = document.querySelector('#paymentModalOverlay .modal-title, #paymentModalOverlay h3, #paymentModalOverlay [style*="font-weight:700"]');
