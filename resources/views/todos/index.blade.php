@@ -82,6 +82,19 @@
     .todo-attach-del { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
     .todo-attach-del:hover { color:#c0392b; }
 
+    /* 첨부 드롭존 — 캘린더 첨부 UI와 동일 패턴 */
+    .img-upload-zone { border:1px dashed var(--border); border-radius:8px; padding:14px 12px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; font-size:11px; color:var(--text-muted); }
+    .img-upload-zone:hover, .img-upload-zone.drag-over { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 5%, transparent); color:var(--accent); }
+    .img-upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    .img-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-top:8px; }
+    .img-grid:empty { display:none; }
+    .img-item { position:relative; border-radius:8px; border:1px solid var(--border); background:var(--surface2); display:flex; flex-direction:column; }
+    .img-item .img-thumb-wrap { position:relative; aspect-ratio:1; overflow:hidden; border-radius:8px 8px 0 0; }
+    .img-item img { width:100%; height:100%; object-fit:cover; display:block; }
+    .img-item .img-fileicon { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px; background:var(--surface2); }
+    .img-item .img-filename { font-size:10px; color:var(--text-muted); padding:4px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid var(--border); }
+    .img-remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.75); border:none; color:#fff; width:18px; height:18px; border-radius:50%; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; z-index:1; }
+
     @media (max-width:768px) {
         .todo-wrap { padding:16px 12px; }
         .todo-board { flex-direction:column; }
@@ -150,7 +163,11 @@
             </div>
             <div class="todo-field">
                 <label>첨부파일 (이미지 · 파일 · 영상)</label>
-                <input type="file" id="tfFiles" multiple>
+                <div class="img-upload-zone" id="todoDropZone">
+                    <input type="file" id="tfFiles" multiple onchange="addTodoFiles(this.files); this.value='';">
+                    📎 파일을 클릭·드래그하거나 클립보드에서 붙여넣기 (Ctrl+V)
+                </div>
+                <div class="img-grid" id="tfFileGrid"></div>
             </div>
         </div>
         <div class="todo-modal-foot">
@@ -289,6 +306,62 @@ async function refreshBoard() {
     if (res.ok) { TODOS = (await res.json()).todos; renderBoard(); }
 }
 
+// ── 첨부 대기열 (드롭존·클립보드 붙여넣기·파일 선택 공용) ──
+let TF_PENDING = [];
+
+function addTodoFiles(files) {
+    [...files].forEach(f => TF_PENDING.push(f));
+    renderTfGrid();
+}
+
+function removeTodoFile(idx) {
+    TF_PENDING.splice(idx, 1);
+    renderTfGrid();
+}
+
+function renderTfGrid() {
+    const grid = document.getElementById('tfFileGrid');
+    grid.innerHTML = '';
+    TF_PENDING.forEach((f, i) => {
+        const div = document.createElement('div'); div.className = 'img-item';
+        const wrap = document.createElement('div'); wrap.className = 'img-thumb-wrap';
+        if (f.type.startsWith('image/')) {
+            const img = document.createElement('img'); img.src = URL.createObjectURL(f); img.alt = f.name;
+            wrap.appendChild(img);
+        } else {
+            const ic = document.createElement('div'); ic.className = 'img-fileicon';
+            ic.textContent = f.type.startsWith('video/') ? '🎬' : '📄';
+            wrap.appendChild(ic);
+        }
+        const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'img-remove'; rm.textContent = '✕';
+        rm.onclick = () => removeTodoFile(i);
+        wrap.appendChild(rm); div.appendChild(wrap);
+        const fn = document.createElement('div'); fn.className = 'img-filename'; fn.textContent = f.name;
+        div.appendChild(fn);
+        grid.appendChild(div);
+    });
+}
+
+// 드롭존 드래그앤드롭
+const todoDropZone = document.getElementById('todoDropZone');
+todoDropZone.addEventListener('dragover', e => { e.preventDefault(); todoDropZone.classList.add('drag-over'); });
+todoDropZone.addEventListener('dragleave', () => todoDropZone.classList.remove('drag-over'));
+todoDropZone.addEventListener('drop', e => { e.preventDefault(); todoDropZone.classList.remove('drag-over'); addTodoFiles(e.dataTransfer.files); });
+
+// 클립보드 붙여넣기 — 등록/수정 모달이 열려 있을 때만
+document.addEventListener('paste', e => {
+    if (!document.getElementById('todoFormOverlay').classList.contains('open')) { return; }
+    const files = [...(e.clipboardData?.files || [])];
+    if (!files.length) { return; }
+    e.preventDefault();
+    addTodoFiles(files.map((f, i) => {
+        if (f.name && f.name !== 'image.png') { return f; }
+        const ext = (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '').replace('T', '-');
+        return new File([f], `붙여넣기-${stamp}${i ? '-' + i : ''}.${ext}`, { type: f.type });
+    }));
+});
+
 // ── 등록/수정 모달 ──
 function fillAssigneeOptions(selected) {
     document.getElementById('tfAssignee').innerHTML = TODO_MEMBERS.map(m =>
@@ -303,7 +376,8 @@ function openTodoForm(todo) {
     document.getElementById('tfPriority').value = todo ? todo.priority : 'medium';
     document.getElementById('tfDue').value = todo ? (todo.due_date || '') : '';
     document.getElementById('tfContent').value = todo ? (todo.content || '') : '';
-    document.getElementById('tfFiles').value = '';
+    TF_PENDING = [];
+    renderTfGrid();
     fillAssigneeOptions(todo ? todo.assignee_id : TODO_ME);
     document.getElementById('todoFormOverlay').classList.add('open');
     document.getElementById('tfTitle').focus();
@@ -336,11 +410,10 @@ async function saveTodo() {
         }
         const { todo } = await res.json();
 
-        // 첨부 업로드
-        const files = document.getElementById('tfFiles').files;
-        if (files.length) {
+        // 첨부 업로드 (드롭존·붙여넣기 대기열)
+        if (TF_PENDING.length) {
             const fd = new FormData();
-            [...files].forEach(f => fd.append('files[]', f));
+            TF_PENDING.forEach(f => fd.append('files[]', f));
             const up = await fetch(`/api/todos/${todo.id}/attachments`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
