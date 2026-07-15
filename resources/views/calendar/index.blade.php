@@ -223,6 +223,7 @@
     .opt-chip { display:inline-flex; align-items:center; flex-shrink:0; font-size:calc(8px * var(--cal-fz,1)); font-weight:700; padding:0 3px; border-radius:4px; background:rgba(127,127,127,0.16); border:1px solid rgba(127,127,127,0.28); color:inherit; margin-left:2px; line-height:1.5; vertical-align:middle; }
     .opt-chip.accent { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
     .opt-chip.urgent { background:#ef444426; border-color:#ef444466; color:#e06c6c; }
+    .opt-chip.confirmed { background:#2f9e4426; border-color:#2f9e4466; color:#3fae54; }
     /* 리스트 계열 뷰: 옵션 칩을 타이틀 앞에 배치 — 폰트 축소 + 여백 방향 전환 */
     .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
     /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
@@ -505,6 +506,8 @@
     .sched-opt-btn.active[data-sopt="suggest"] { border-color:#8ab4c8; background:rgba(138,180,200,0.18); color:#8ab4c8; box-shadow:0 0 0 2px rgba(138,180,200,0.18); }
     .sched-opt-btn.active[data-sopt="hope"] { border-color:#c8b08a; background:rgba(200,176,138,0.18); color:var(--accent); box-shadow:0 0 0 2px rgba(200,176,138,0.18); }
     .sched-opt-btn.active[data-sopt="target"] { border-color:#7ac87a; background:rgba(122,200,122,0.18); color:#7ac87a; box-shadow:0 0 0 2px rgba(122,200,122,0.18); }
+    .sched-opt-btn.active[data-sopt="confirmed"] { border-color:#2f9e44; background:rgba(47,158,68,0.20); color:#2f9e44; box-shadow:0 0 0 2px rgba(47,158,68,0.20); font-weight:700; }
+    .sched-opt-sub { font-size:11px; color:var(--text-muted); margin:2px 0 6px; }
 
     /* ── 조건부 필드 ── */
     .conditional-field { overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
@@ -1360,8 +1363,18 @@
 
                 <div class="divider"></div>
 
+                {{-- 일정 옵션 — 확정 상태(단일)와 시기 요청(복수)을 한 섹션으로 통합 --}}
                 <div class="field-group">
                     <div class="field-label">일정 옵션</div>
+                    <div class="sched-opt-sub">확정 상태 — 이 날짜가 얼마나 확정적인지 (하나 선택)</div>
+                    <div class="special-opts" id="scheduleOpts">
+                        <div class="sched-opt-btn" data-sopt="suggest"><span class="opt-icon">💬</span>제안</div>
+                        <div class="sched-opt-btn" data-sopt="hope"><span class="opt-icon">🙏</span>희망</div>
+                        <div class="sched-opt-btn" data-sopt="target"><span class="opt-icon">🎯</span>목표</div>
+                        <div class="sched-opt-btn" data-sopt="confirmed"><span class="opt-icon">✅</span>확정</div>
+                    </div>
+                    <div class="sched-opt-desc" id="schedOptDesc"></div>
+                    <div class="sched-opt-sub" style="margin-top:10px;">시기 요청 (복수 선택 가능)</div>
                     <div class="special-opts" id="schedEventOpts">
                         <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
                         <div class="special-opt-btn" data-seopt="urgent"><span class="opt-icon">🚨</span>긴급 일정</div>
@@ -1370,15 +1383,6 @@
                     <div id="schedReasonWrap" style="display:none;margin-top:6px;">
                         <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
                     </div>
-                </div>
-                <div class="field-group">
-                    <div class="field-label">일정 관련 옵션</div>
-                    <div class="special-opts" id="scheduleOpts">
-                        <div class="sched-opt-btn" data-sopt="suggest"><span class="opt-icon">💬</span>제안</div>
-                        <div class="sched-opt-btn" data-sopt="hope"><span class="opt-icon">🙏</span>희망</div>
-                        <div class="sched-opt-btn" data-sopt="target"><span class="opt-icon">🎯</span>목표</div>
-                    </div>
-                    <div class="sched-opt-desc" id="schedOptDesc"></div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">특수 옵션</div>
@@ -1820,7 +1824,19 @@ function shipStatusIcon(ev){
 const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→'};
 // 텍스트 미니 칩 라벨 (아이콘 식별이 어렵다는 피드백으로 텍스트화)
 const OPT_CHIP_LABELS={car:'차량',brief:'제품',group:'2인',ladder:'사다리',pet:'반려'};
-const SCHED_CHIP_LABELS={suggest:'제안',hope:'희망',target:'목표'};
+const SCHED_CHIP_LABELS={suggest:'제안',hope:'희망',target:'목표',confirmed:'확정'};
+// 확정 상태 단계 설명 — 버튼 선택 시 모달에 표시
+const SCHED_OPT_DESCS={
+    suggest:'💬 제안 — 우리가 의뢰자에게 제안해 둔 날짜 (아직 미확정)',
+    hope:'🙏 희망 — 의뢰자가 희망하는 날짜 (아직 미확정)',
+    target:'🎯 목표 — 내부적으로 잡아둔 목표 날짜',
+    confirmed:'✅ 확정 — 의뢰자와 협의가 끝난 확정 일정',
+};
+function updateSchedOptDesc(){
+    const a=document.querySelector('#scheduleOpts .sched-opt-btn.active');
+    const el=document.getElementById('schedOptDesc');
+    if(el) el.textContent=a?(SCHED_OPT_DESCS[a.dataset.sopt]||''):'';
+}
 const SCHED_EVENT_CHIP_LABELS={fast:'빠른',urgent:'긴급',after:'이후'};
 function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''}"${title?` title="${title}"`:''}>${label}</span>`; }
 // 특수옵션 + 세부유형 + 일정옵션 아이콘 묶음 — 주/일간·목록·팝업 뷰 공용
@@ -1828,7 +1844,7 @@ function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
     (ev.special_opts||[]).forEach(o=>{ if(OPT_CHIP_LABELS[o]) h+=optChip(OPT_CHIP_LABELS[o],'',(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o); });
-    if(ev.sched_opt&&SCHED_CHIP_LABELS[ev.sched_opt]) h+=optChip(SCHED_CHIP_LABELS[ev.sched_opt],'accent');
+    if(ev.sched_opt&&SCHED_CHIP_LABELS[ev.sched_opt]) h+=optChip(SCHED_CHIP_LABELS[ev.sched_opt],ev.sched_opt==='confirmed'?'confirmed':'accent');
     (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_CHIP_LABELS[o]) h+=optChip(SCHED_EVENT_CHIP_LABELS[o],o==='urgent'?'urgent':''); });
     return h;
 }
@@ -4164,6 +4180,7 @@ function resetModalForm(){
     setRadio('teal_mode_group','remote');
     // schedEventOpts / scheduleOpts / specialOpts 초기화
     document.querySelectorAll('#schedEventOpts .special-opt-btn, #scheduleOpts .sched-opt-btn, #specialOpts .special-opt-btn').forEach(b=>b.classList.remove('active'));
+    updateSchedOptDesc();
     document.getElementById('schedReasonWrap').style.display='none';
     document.getElementById('schedAfterReason').value='';
     // 조건부 필드 숨기기
@@ -4635,6 +4652,7 @@ function openEditModal(ev){
     // 일정옵션
     if(ev.sched_event_opts){const opts=Array.isArray(ev.sched_event_opts)?ev.sched_event_opts:[];opts.forEach(v=>{const b=document.querySelector(`#schedEventOpts [data-seopt="${v}"]`);if(b)b.classList.add('active');});if(opts.includes('after'))document.getElementById('schedReasonWrap').style.display='';}
     if(ev.sched_opt){const b=document.querySelector(`#scheduleOpts [data-sopt="${ev.sched_opt}"]`);if(b)b.classList.add('active');}
+    updateSchedOptDesc();
     if(ev.special_opts){const opts=Array.isArray(ev.special_opts)?ev.special_opts:[];opts.forEach(v=>{const b=document.querySelector(`#specialOpts [data-opt="${v}"]`);if(b)b.classList.add('active');});
         // 미팅/내방 옵션 체크 복원
         document.querySelectorAll('#visitOptsList input').forEach(cb=>{ cb.checked=opts.includes(cb.value); });
@@ -5096,7 +5114,7 @@ function initAllRadioGroups(){
     // schedEventOpts (멀티 토글)
     document.querySelectorAll('#schedEventOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');if(btn.dataset.seopt==='after')document.getElementById('schedReasonWrap').style.display=btn.classList.contains('active')?'':'none';});});
     // scheduleOpts (단일)
-    document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;const was=btn.classList.contains('active');document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.remove('active'));if(!was)btn.classList.add('active');});});
+    document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;const was=btn.classList.contains('active');document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.remove('active'));if(!was)btn.classList.add('active');updateSchedOptDesc();});});
     // specialOpts (멀티 토글)
     document.querySelectorAll('#specialOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');});});
     // 잔금 금액 변경 시 배너 업데이트
