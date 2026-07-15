@@ -279,6 +279,20 @@ class WikiController extends Controller
         return redirect()->route('wiki.show', $wiki)->with('success', '댓글이 등록되었습니다.');
     }
 
+    /** 댓글 수정 — 작성자 본인 또는 관리자만 */
+    public function updateComment(Request $request, WikiComment $comment)
+    {
+        abort_unless($comment->user_id === Auth::id() || Auth::user()->isAdmin(), 403, '본인이 작성한 댓글만 수정할 수 있습니다.');
+
+        $validated = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $comment->update(['body' => $validated['body']]);
+
+        return redirect()->route('wiki.show', $comment->wiki)->with('success', '댓글이 수정되었습니다.');
+    }
+
     /** 댓글 삭제 — 작성자 본인 또는 관리자만 */
     public function destroyComment(WikiComment $comment)
     {

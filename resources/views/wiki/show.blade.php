@@ -28,8 +28,12 @@
     .wiki-comment { padding:12px 0; border-top:1px solid var(--border); }
     .wiki-comment-meta { display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted); margin-bottom:6px; }
     .wiki-comment-author { font-weight:600; color:var(--text); font-size:12px; }
-    .wiki-comment-del { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; border-radius:4px; margin-left:auto; }
+    .wiki-comment-del { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; border-radius:4px; }
     .wiki-comment-del:hover { color:var(--red); background:var(--surface2); }
+    .wiki-comment-actions { display:flex; gap:2px; margin-left:auto; }
+    .wiki-comment-edit-form { margin-top:8px; }
+    .wiki-comment-edit-btns { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+    .wiki-comment-edit-btns .cancel { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); padding:8px 16px; border-radius:8px; font-size:12px; cursor:pointer; }
     .wiki-comment-body { font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
     .wiki-comment-empty { padding:14px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:12px; text-align:center; }
     .wiki-comment-form { display:flex; gap:8px; margin-top:14px; align-items:flex-end; }
@@ -288,14 +292,30 @@
             <div class="wiki-comment-meta">
                 <span class="wiki-comment-author">{{ $comment->user?->display_name ?? $comment->user?->username ?? '알 수 없음' }}</span>
                 <span>{{ $comment->created_at->format('Y.m.d H:i') }}</span>
+                @if($comment->updated_at->gt($comment->created_at))
+                <span>(수정됨)</span>
+                @endif
                 @if($comment->user_id === auth()->id() || auth()->user()->isAdmin())
-                <form method="POST" action="{{ route('wiki.comments.destroy', $comment) }}" onsubmit="return confirm('이 댓글을 삭제하시겠습니까?')" style="margin-left:auto;">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="wiki-comment-del">삭제</button>
-                </form>
+                <span class="wiki-comment-actions">
+                    <button type="button" class="wiki-comment-del" onclick="toggleCommentEdit({{ $comment->id }})">수정</button>
+                    <form method="POST" action="{{ route('wiki.comments.destroy', $comment) }}" onsubmit="return confirm('이 댓글을 삭제하시겠습니까?')" style="margin:0;">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="wiki-comment-del">삭제</button>
+                    </form>
+                </span>
                 @endif
             </div>
-            <div class="wiki-comment-body">{{ $comment->body }}</div>
+            <div class="wiki-comment-body" id="commentBody{{ $comment->id }}">{{ $comment->body }}</div>
+            @if($comment->user_id === auth()->id() || auth()->user()->isAdmin())
+            <form method="POST" action="{{ route('wiki.comments.update', $comment) }}" class="wiki-comment-form wiki-comment-edit-form" id="commentEdit{{ $comment->id }}" style="display:none;">
+                @csrf @method('PATCH')
+                <textarea name="body" required maxlength="2000" rows="3">{{ $comment->body }}</textarea>
+                <span class="wiki-comment-edit-btns">
+                    <button type="submit">저장</button>
+                    <button type="button" class="cancel" onclick="toggleCommentEdit({{ $comment->id }})">취소</button>
+                </span>
+            </form>
+            @endif
         </div>
         @empty
         <div class="wiki-comment-empty">첫 댓글을 남겨보세요.</div>
@@ -306,6 +326,16 @@
             <button type="submit">등록</button>
         </form>
     </div>
+    <script>
+    function toggleCommentEdit(id) {
+        const body = document.getElementById('commentBody' + id);
+        const form = document.getElementById('commentEdit' + id);
+        const editing = form.style.display === 'none';
+        form.style.display = editing ? 'flex' : 'none';
+        body.style.display = editing ? 'none' : '';
+        if (editing) { form.querySelector('textarea').focus(); }
+    }
+    </script>
     @endif
 </div>
 

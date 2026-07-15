@@ -63,6 +63,43 @@ class WikiCommentTest extends TestCase
             ->assertJsonValidationErrors(['body']);
     }
 
+    public function test_author_edits_own_comment_but_not_others(): void
+    {
+        $wiki = $this->meetingDoc();
+        $author = $this->member();
+        $other = $this->member();
+        $comment = $wiki->comments()->create(['user_id' => $author->id, 'body' => '원래 내용']);
+
+        $this->actingAs($other)->patch("/wiki-comments/{$comment->id}", ['body' => '탈취 시도'])->assertForbidden();
+        $this->assertSame('원래 내용', $comment->fresh()->body);
+
+        $this->actingAs($author)->patch("/wiki-comments/{$comment->id}", ['body' => '수정된 내용'])
+            ->assertRedirect(route('wiki.show', $wiki));
+        $this->assertSame('수정된 내용', $comment->fresh()->body);
+    }
+
+    public function test_admin_edits_any_comment(): void
+    {
+        $wiki = $this->meetingDoc();
+        $comment = $wiki->comments()->create(['user_id' => $this->member()->id, 'body' => '직원 댓글']);
+
+        $this->actingAs($this->admin())->patch("/wiki-comments/{$comment->id}", ['body' => '관리자가 정정'])
+            ->assertRedirect(route('wiki.show', $wiki));
+        $this->assertSame('관리자가 정정', $comment->fresh()->body);
+    }
+
+    public function test_edit_body_is_required(): void
+    {
+        $wiki = $this->meetingDoc();
+        $author = $this->member();
+        $comment = $wiki->comments()->create(['user_id' => $author->id, 'body' => '원래 내용']);
+
+        $this->actingAs($author)->patchJson("/wiki-comments/{$comment->id}", ['body' => ''])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['body']);
+        $this->assertSame('원래 내용', $comment->fresh()->body);
+    }
+
     public function test_author_deletes_own_comment_but_not_others(): void
     {
         $wiki = $this->meetingDoc();

@@ -348,6 +348,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/wiki/bulk-category', [WikiController::class, 'bulkCategory'])->name('wiki.bulk-category');
     // 위키 댓글 — 회의록 게시물 전용
     Route::post('/wiki/{wiki}/comments', [WikiController::class, 'storeComment'])->name('wiki.comments.store');
+    Route::patch('/wiki-comments/{comment}', [WikiController::class, 'updateComment'])->name('wiki.comments.update');
     Route::delete('/wiki-comments/{comment}', [WikiController::class, 'destroyComment'])->name('wiki.comments.destroy');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
