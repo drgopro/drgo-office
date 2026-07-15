@@ -45,7 +45,7 @@
     .todo-viewswitch button.on { background:#1f2b40; color:#fff; font-weight:700; }
 
     /* ── 리스트 뷰 (좌측 리스트 + 우측 상세 패널) ── */
-    .todo-list-layout { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
+    .todo-list-layout { display:grid; grid-template-columns:minmax(0,1fr) 430px; gap:16px; align-items:start; }
     .todo-list { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
     .todo-lrow { display:flex; align-items:center; gap:11px; padding:13px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
     .todo-lrow:last-child { border-bottom:none; }
@@ -80,6 +80,7 @@
     .lc-host { font-size:10.5px; color:var(--text-muted); opacity:0.8; }
     .tdp-actions { display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:13px; }
     .tdp-actions .todo-btn { padding:8px 14px; font-size:12.5px; }
+    .tdp-done-badge { background:#2e7d32; color:#fff; font-size:11px; font-weight:700; padding:3px 11px; border-radius:8px; }
     @media (max-width:900px) {
         .todo-list-layout { grid-template-columns:1fr; }
         .todo-detail-pane { position:static; order:-1; }
@@ -479,7 +480,7 @@ function renderDetailPane() {
             ${t.due_date ? `<span>기한 ${fmtDate(t.due_date)}</span>` : ''}
             ${dueChip(t)}
             ${t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : ''}
-            ${t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : ''}
+            ${t.completed ? `<span class="tdp-done-badge">완료</span><span>${t.completed_at}</span>` : ''}
         </div>
         <div class="todo-view-content">${contentHtml(t.content)}</div>
         ${t.attachments.length ? `<div class="todo-attach-list">${t.attachments.map(a => `
@@ -735,7 +736,7 @@ function openTodoView(id) {
         t.due_date ? `<span>기한 ${fmtDate(t.due_date)}</span>` : '',
         dueChip(t),
         t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : '',
-        t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : '',
+        t.completed ? `<span class="tdp-done-badge">완료</span><span>${t.completed_at}</span>` : '',
     ].filter(Boolean).join('');
     document.getElementById('tvContent').innerHTML = contentHtml(t.content);
     loadLinkCards();
