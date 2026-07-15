@@ -608,7 +608,33 @@
     #modalOverlay .ls-bullets { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:var(--m-ink); }
     #modalOverlay .ls-tinted { background:color-mix(in srgb, #e8894a 6%, #fff); border-color:color-mix(in srgb, #e8894a 26%, #fff); }
     #modalOverlay .ls-tinted .ls-card-title { color:#c8763a; }
-    @media (max-width:860px) { #modalOverlay .ls-grid { grid-template-columns:1fr; } }
+    #modalOverlay .ls-dur { font-size:12px; font-weight:600; color:#a8a69e; margin-left:8px; letter-spacing:0; }
+    #modalOverlay .ls-spec-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    #modalOverlay .ls-spec-chip { padding:5px 11px; border-radius:999px; background:#fff; border:1px solid #e0dfda; font-size:11.5px; font-weight:600; color:#55544e; }
+    #modalOverlay .ls-call-btn { flex:none; padding:8px 18px; border-radius:9px; background:var(--m-accent); color:#fff; font-size:12.5px; font-weight:700; text-decoration:none; }
+    #modalOverlay .ls-attach-hint { font-weight:500; color:#a8a69e; }
+    #modalOverlay .ls-mobile-cta { display:none; width:100%; margin-top:4px; padding:14px 0; border:none; border-radius:12px; background:var(--m-accent); color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; }
+    @media (max-width:860px) {
+        /* 모바일 요약: 시안 순서의 1컬럼 — 일시장소 → 의뢰자 → 진행상태 → 장비 → 특이사항 → 방송정보 → 결제 → 첨부 */
+        #modalOverlay .ls-grid { display:flex; flex-direction:column; gap:12px; }
+        #modalOverlay .ls-col { display:contents; }
+        #modalOverlay .ls-c-time { order:1; background:color-mix(in srgb, var(--m-accent) 5%, #fff); border-color:color-mix(in srgb, var(--m-accent) 16%, #fff); }
+        #modalOverlay .ls-c-client { order:2; }
+        #modalOverlay .ls-c-state { order:3; }
+        #modalOverlay .ls-c-equip { order:4; }
+        #modalOverlay .ls-c-detail { order:5; }
+        #modalOverlay .ls-c-special { order:6; }
+        #modalOverlay .ls-c-broadcast { order:7; }
+        #modalOverlay .ls-c-pay { order:8; }
+        #modalOverlay .ls-c-proj { order:9; }
+        #modalOverlay .ls-c-ship { order:10; }
+        #modalOverlay .ls-c-desc { order:11; }
+        #modalOverlay .ls-c-attach { order:12; }
+        /* 첨부 썸네일 가로 스크롤 */
+        #modalOverlay .ls-c-attach .ls-img-grid { display:flex; overflow-x:auto; gap:8px; padding-bottom:6px; }
+        #modalOverlay .ls-c-attach .ls-img-grid img { flex:none; width:96px; height:96px; object-fit:cover; border-radius:8px; }
+        #modalOverlay .ls-mobile-cta { display:block; }
+    }
     @media (max-width:980px) {
         #modalOverlay .modal-body { display:flex; flex-direction:column; }
         #modalOverlay .m-rail { display:none !important; }
@@ -3499,30 +3525,38 @@ function renderLockSummary(){
     const timeBig=(isAll)
         ? `${fmtD(sDate)}${eDate&&eDate!==sDate?` – ${fmtD(eDate)}`:''} 종일`
         : `${fmtD(sDate)}${eDate&&eDate!==sDate?` – ${fmtD(eDate)}`:''} ${_esc(sTime)} – ${_esc(eTime)}`;
-    const specialLine=[...specialSel.map(o=>SPECIAL_OPT_LABELS[o]), _val('specialReason')].filter(Boolean).join(' · ');
+    // 소요 시간 (같은 날 + 시간 지정 시)
+    let durTxt='';
+    if(!isAll && sTime && eTime && (!eDate || eDate===sDate)){
+        const [sh,sm]=sTime.split(':').map(Number), [eh,em]=eTime.split(':').map(Number);
+        const mins=(eh*60+em)-(sh*60+sm);
+        if(mins>0) durTxt=`<span class="ls-dur">${Math.floor(mins/60)?Math.floor(mins/60)+'시간':''}${mins%60?(Math.floor(mins/60)?' ':'')+(mins%60)+'분':''}</span>`;
+    }
+    const specialChipsArr=[...specialSel.map(o=>SPECIAL_OPT_LABELS[o]), _val('specialReason')].filter(Boolean);
+    const specialLine=specialChipsArr.length?`<div class="ls-spec-chips">${specialChipsArr.map(t=>`<span class="ls-spec-chip">${_esc(t)}</span>`).join('')}</div>`:'';
     const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
             <a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 주소 검색</a>
             <a class="ls-action-btn primary" href="https://map.kakao.com/?sName=출발지&eName=${encodeURIComponent(addr)}" target="_blank">🗺 동선 검색</a>
         </div>` : '';
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
-            <div class="ls-big">${timeBig}</div>
+            <div class="ls-big">${timeBig}${durTxt}</div>
             <div style="margin-top:8px;"><div class="ls-info-label">🚚 출발지 (이사 전)</div>
                 <div class="ls-addr" style="margin-top:2px;">${document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>')}</div></div>
             <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
                 <div class="ls-addr" style="margin-top:2px;">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div></div>
-            ${specialLine?`<div class="ls-sub">${_esc(specialLine)}</div>`:''}
+            ${specialLine}
             <div class="ls-actions" style="margin-top:8px;">
                 ${mfAddr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(mfAddr)}" target="_blank">🔍 출발지</a>` : ''}
                 ${addr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 도착지</a>` : ''}
                 ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="https://map.kakao.com/?sName=${encodeURIComponent(mfAddr)}&eName=${encodeURIComponent(addr)}" target="_blank">🗺 출발→도착 동선</a>` : ''}
-            </div>`));
+            </div>`, '', 'ls-c-time ls-time-card'));
     } else {
         left.push(lsCard('일시 · 장소', `
-            <div class="ls-big">${timeBig}</div>
+            <div class="ls-big">${timeBig}${durTxt}</div>
             <div class="ls-addr">${_esc(location) || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>'}</div>
-            ${specialLine?`<div class="ls-sub">${_esc(specialLine)}</div>`:''}
-            ${addrActions}`));
+            ${specialLine}
+            ${addrActions}`, '', 'ls-c-time ls-time-card'));
     }
 
     // 배송 현황 (gold/green, 송장 있을 때만) — 결제 카드 배지용 수치 겸용
@@ -3554,8 +3588,13 @@ function renderLockSummary(){
             ? (nick === name ? '<span class="ls-sub-inline">닉네임 동일</span>' : `<span class="ls-sub-inline">이름 ${_esc(name)}</span>`)
             : '';
         left.push(lsCard('의뢰자', `
-            <div class="ls-big" style="font-size:15px;">${_esc(nick || name) || '<span style="color:var(--text-muted);font-weight:400;">— 미입력 —</span>'} ${nameNote}</div>
-            <div class="ls-addr" style="margin-top:4px;">${_esc(phone) || '<span style="color:var(--text-muted);font-weight:400;">전화번호 미입력</span>'}</div>`));
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="flex:1;min-width:0;">
+                    <div class="ls-big" style="font-size:15px;">${_esc(nick || name) || '<span style="color:var(--text-muted);font-weight:400;">— 미입력 —</span>'} ${nameNote}</div>
+                    <div class="ls-addr" style="margin-top:4px;">${_esc(phone) || '<span style="color:var(--text-muted);font-weight:400;">전화번호 미입력</span>'}</div>
+                </div>
+                ${phone?`<a class="ls-call-btn" href="tel:${_esc(phone.replace(/[^0-9+]/g,''))}">전화</a>`:''}
+            </div>`, '', 'ls-c-client'));
 
         // ③ 방송 정보 — 미니 타일 (값 있는 것만)
         const tiles=[];
@@ -3566,7 +3605,7 @@ function renderLockSummary(){
         pushTile('방송주제', topic === '기타' ? (topicEtc || '기타') : topic);
         pushTile('유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
         pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
-        if (tiles.length) left.push(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`));
+        if (tiles.length) left.push(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast'));
 
         // ④ 결제 · 진행 — 금액 크게 + 상태 칩(결제/주문/잔금/수령) + 배송 배지
         const amount = _val('g_estimate_amount');
@@ -3583,14 +3622,21 @@ function renderLockSummary(){
             balanceVal==='O'?'<span class="ls-state warn">잔금 O</span>':st('잔금',balanceVal),
             orderVal==='O'?st('수령',delivery||'X'):'',
         ].filter(Boolean).join('');
-        left.push(lsCard('결제 · 진행', `
-            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        // 진행 상태 (상태 칩 + 배송 배지) / 결제 금액 — 모바일 시안 기준 분리
+        if (payChips || lsShips.length) {
+            left.push(lsCard('진행 상태', `<div class="ls-state-chips" style="margin-top:0;">${payChips||'<span class="ls-sub" style="margin:0;">— 표시할 상태 없음 —</span>'}</div>`,
+                lsShips.length?`배송 ${lsShipsDone}/${lsShips.length} 완료`:'', 'ls-c-state'));
+        }
+        left.push(lsCard('결제 금액', `
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span class="ls-amount-big">${amount?_esc(_fmtAmt(amount))+'원':'<span style="font-size:13px;color:var(--text-muted);font-weight:400;">결제 금액 미입력</span>'}</span>
-                ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
+                <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+                    ${paid==='O'?'<span class="ls-state on">결제완료</span>':''}
+                    ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
+                </span>
             </div>
-            ${payChips?`<div class="ls-state-chips">${payChips}</div>`:''}
             ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}`,
-            lsShips.length?`배송 ${lsShipsDone}/${lsShips.length} 완료`:''));
+            '', 'ls-c-pay'));
 
         // 우측 ① 장비 목록 — 불릿 + n품목
         const equip = _val('g_equipment');
@@ -3599,18 +3645,18 @@ function renderLockSummary(){
             equipLines.length
                 ? `<ul class="ls-bullets">${equipLines.map(l=>`<li>${_esc(l)}</li>`).join('')}</ul>`
                 : '<div class="ls-text-block muted">— 등록된 장비 없음 —</div>',
-            equipLines.length?`${equipLines.length}품목`:''));
+            equipLines.length?`${equipLines.length}품목`:'', 'ls-c-equip'));
 
         // 우측 ② 의뢰 세부항목 / ③ 특이사항 (틴트)
         const reqDetail = _val('g_req_detail');
-        if (reqDetail) right.push(lsCard('의뢰 세부항목', `<div class="ls-text-block">${_esc(reqDetail)}</div>`));
+        if (reqDetail) right.push(lsCard('의뢰 세부항목', `<div class="ls-text-block">${_esc(reqDetail)}</div>`, '', 'ls-c-detail'));
         const special = _val('g_special');
-        if (special) right.push(lsCard('특이사항', `<div class="ls-text-block" style="font-weight:600;">${_esc(special)}</div>`, '', 'ls-tinted'));
+        if (special) right.push(lsCard('특이사항 · 필독', `<div class="ls-text-block" style="font-weight:600;">${_esc(special)}</div>`, '', 'ls-tinted ls-c-special'));
     }
 
     // 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계를 비동기 로드
     if (lsProjSummaryPid) {
-        left.push(`<div class="ls-card" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">
+        left.push(`<div class="ls-card ls-c-proj" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">
             <div class="ls-card-head"><span class="ls-card-title">📁 연결 프로젝트 요약</span></div>
             <div class="ls-text-block muted">불러오는 중…</div>
         </div>`);
@@ -3619,16 +3665,16 @@ function renderLockSummary(){
     // 공통: 상세 설명 / 전달사항
     if (color !== 'gold' && color !== 'teal') {
         const desc = _val('commonDesc');
-        if (desc) left.push(lsCard('상세 설명', `<div class="ls-text-block">${_esc(desc)}</div>`));
+        if (desc) left.push(lsCard('상세 설명', `<div class="ls-text-block">${_esc(desc)}</div>`, '', 'ls-c-desc'));
         const hNote = _val('commonHandoverNote');
-        if (hNote) left.push(lsCard('전달사항', `<div class="ls-text-block">${_esc(hNote)}</div>`, '', 'ls-tinted'));
+        if (hNote) left.push(lsCard('전달사항', `<div class="ls-text-block">${_esc(hNote)}</div>`, '', 'ls-tinted ls-c-desc'));
     }
 
     // 배송 현황 목록 카드 (접힘 토글 유지)
     if (lsShips.length) {
         left.push(lsCard('', `
             <div class="ls-card-title" style="cursor:pointer;user-select:none;" onclick="lsToggleShip()">${lsShipOpen?'▾':'▸'} 📦 배송 현황 (${lsShipsDone}/${lsShips.length} 완료)</div>
-            <div style="display:${lsShipOpen?'block':'none'};margin-top:8px;">${lsShips.map(shipRowHtml).join('')}</div>`));
+            <div style="display:${lsShipOpen?'block':'none'};margin-top:8px;">${lsShips.map(shipRowHtml).join('')}</div>`, '', 'ls-c-ship'));
     }
 
     // 우측 하단: 첨부 이미지 (모든 카테고리 공통)
@@ -3661,9 +3707,14 @@ function renderLockSummary(){
         </div>`;
     });
     if (imgEmpty.length) imgHtml += `<div class="ls-sub" style="margin-top:4px;">${imgEmpty.join(' · ')} — 등록된 항목 없음</div>`;
-    right.push(lsCard('첨부 이미지', imgHtml || '<div class="ls-text-block muted">— 등록된 첨부 없음 —</div>'));
+    right.push(lsCard('첨부 파일', imgHtml || '<div class="ls-text-block muted">— 등록된 첨부 없음 —</div>', '<span class="ls-attach-hint">탭하여 크게 보기</span>', 'ls-c-attach'));
 
-    container.innerHTML = metaRow + `<div class="ls-grid"><div class="ls-col">${left.join('')}</div><div class="ls-col">${right.join('')}</div></div>`;
+    // 모바일 하단 CTA — 현장 확인 완료 (완료 처리 가능 상태에서만)
+    const canComplete = detailEvent && !detailEvent.completed_at
+        && document.getElementById('btnComplete')?.style.display !== 'none';
+    const mobileCta = canComplete ? '<button type="button" class="ls-mobile-cta" onclick="toggleCompleteFromDetail()">현장 확인 완료</button>' : '';
+
+    container.innerHTML = metaRow + `<div class="ls-grid"><div class="ls-col">${left.join('')}</div><div class="ls-col">${right.join('')}</div></div>` + mobileCta;
     if (lsProjSummaryPid) lsLoadProjectSummary(lsProjSummaryPid);
 }
 
