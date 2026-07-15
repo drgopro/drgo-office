@@ -16,7 +16,7 @@ trait LogsActivity
 
         static::updated(function ($model) {
             $changes = [];
-            $jsonFields = ['gold_data', 'teal_data', 'special_opts', 'sched_event_opts', 'product_items', 'service_items', 'platforms', 'content_types', 'phones', 'items'];
+            $jsonFields = ['request_data', 'remote_data', 'special_opts', 'sched_event_opts', 'product_items', 'service_items', 'platforms', 'content_types', 'phones', 'items'];
 
             // payment_info는 ProjectPayment 모델에서 별도 트랜잭션 단위로 로깅되므로 여기선 스킵
             $skipKeys = ['updated_at', 'created_at', 'payment_info'];
@@ -67,7 +67,7 @@ trait LogsActivity
                             'new' => "{$newCount}개 항목",
                         ];
                     } else {
-                        // 연관 배열 (gold_data 등) → 키별 diff
+                        // 연관 배열 (request_data 등) → 키별 diff
                         $allKeys = array_unique(array_merge(array_keys($oldArr), array_keys($newArr)));
                         $hasInnerChange = false;
                         foreach ($allKeys as $subKey) {
@@ -181,7 +181,7 @@ trait LogsActivity
             'end_time' => '종료시간', 'is_all_day' => '종일', 'color' => '유형',
             'client_name' => '의뢰자명', 'location' => '장소', 'is_locked' => '잠금',
             'is_private' => '비공개', 'notif_minutes' => '알림',
-            'gold_data' => '의뢰자정보', 'teal_data' => '원격정보',
+            'request_data' => '의뢰자정보', 'remote_data' => '원격정보',
             'special_opts' => '특수옵션', 'sched_opt' => '일정관련옵션',
             'sched_event_opts' => '일정옵션', 'sched_after_reason' => '이후사유',
             'sched_after_date' => '이후날짜',
@@ -208,7 +208,7 @@ trait LogsActivity
             // 첨부파일
             'file_name' => '파일명', 'file_path' => '파일경로', 'file_size' => '파일크기',
             'mime_type' => '파일유형', 'attachment_type' => '첨부유형',
-            // gold_data 내부 필드
+            // request_data 내부 필드
             'nickname' => '닉네임', 'platform' => '플랫폼', 'career' => '경력',
             'source' => '유입경로', 'topic' => '방송주제', 'equipment' => '장비목록',
             'request_topic' => '의뢰주제', 'req_topic' => '의뢰주제',
@@ -221,7 +221,7 @@ trait LogsActivity
             'platform_etc' => '플랫폼(기타)', 'topic_etc' => '방송주제(기타)',
             'budget_etc' => '예산(직접입력)', 'source_ref' => '소개자',
             'req_topic_etc' => '의뢰주제(기타)',
-            // teal_data 내부 필드
+            // remote_data 내부 필드
             'mode' => '모드', 'desc' => '설명',
         ];
 

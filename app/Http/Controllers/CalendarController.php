@@ -117,9 +117,21 @@ class CalendarController extends Controller
         return response()->json($events);
     }
 
+    /** 구버전 클라이언트(배포 전에 열린 탭)가 보내는 색상 키 기반 필드명 → 의미 기반 필드명 승계 */
+    private function mergeLegacyDataKeys(Request $request): void
+    {
+        foreach (['gold_data' => 'request_data', 'teal_data' => 'remote_data'] as $legacy => $current) {
+            if ($request->has($legacy) && ! $request->has($current)) {
+                $request->merge([$current => $request->input($legacy)]);
+            }
+        }
+    }
+
     // 일정 저장
     public function store(Request $request)
     {
+        $this->mergeLegacyDataKeys($request);
+
         $validated = $request->validate([
             'title' => 'required|string|max:200',
             'start_date' => 'required|date',
@@ -139,8 +151,8 @@ class CalendarController extends Controller
             'is_private' => 'boolean',
             'assignees' => 'nullable|array',
             'notify_assignees' => 'nullable|array',
-            'gold_data' => 'nullable|array',
-            'teal_data' => 'nullable|array',
+            'request_data' => 'nullable|array',
+            'remote_data' => 'nullable|array',
             'special_opts' => 'nullable|array',
             'sched_opt' => 'nullable|string|max:50',
             'sched_event_opts' => 'nullable|array',
@@ -191,13 +203,13 @@ class CalendarController extends Controller
     }
 
     /**
-     * 캘린더 잔금(gold_data.balance=O) ↔ 청구(project_billings) 동기화.
+     * 캘린더 잔금(request_data.balance=O) ↔ 청구(project_billings) 동기화.
      * 프로젝트가 연결된 일정의 잔금을 미수 청구로 등록해 잔금 관리·대시보드 잔금 미수와 연동한다.
-     * 생성한 청구 id는 gold_data.balance_billing_id에 기억해 재저장 시 중복 생성을 방지.
+     * 생성한 청구 id는 request_data.balance_billing_id에 기억해 재저장 시 중복 생성을 방지.
      */
     private function syncBalanceBilling(Schedule $schedule): void
     {
-        $g = $schedule->gold_data ?? [];
+        $g = $schedule->request_data ?? [];
         $projectId = (int) ($g['project_id'] ?? 0);
         $amount = (int) preg_replace('/\D/', '', (string) ($g['balance_amount'] ?? ''));
         // balance_source=project — 결제/잔금이 프로젝트 결제 연동 표시값이므로 캘린더발 청구 생성 안 함 (이중 청구 방지)
@@ -225,13 +237,13 @@ class CalendarController extends Controller
                     'created_by' => Auth::id(),
                 ]);
                 $g['balance_billing_id'] = $billing->id;
-                $schedule->update(['gold_data' => $g]);
+                $schedule->update(['request_data' => $g]);
             }
         } elseif ($billing && $billing->payments()->count() === 0 && $billing->status !== 'paid') {
             // 잔금 해제(X)·프로젝트 연결 해제 — 입금 이력이 없을 때만 청구 제거
             $billing->delete();
             unset($g['balance_billing_id']);
-            $schedule->update(['gold_data' => $g]);
+            $schedule->update(['request_data' => $g]);
         }
     }
 
@@ -246,7 +258,7 @@ class CalendarController extends Controller
      */
     private function storeWithBroadcastRental(array $validated, array $brRental)
     {
-        $clientId = data_get($validated, 'gold_data.client_id');
+        $clientId = data_get($validated, 'request_data.client_id');
         if (! $clientId) {
             return response()->json([
                 'message' => '대여 이력 등록에는 의뢰자 연동이 필요합니다.',
@@ -321,7 +333,7 @@ class CalendarController extends Controller
 
     /**
      * 연동 미지원 카테고리에는 의뢰자 이름/연결 데이터를 저장하지 않음.
-     * 과거 프론트 상태 누수로 오염된 client_name·gold_data가 저장 시마다 재기록되던 문제 차단.
+     * 과거 프론트 상태 누수로 오염된 client_name·request_data가 저장 시마다 재기록되던 문제 차단.
      *
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
@@ -330,7 +342,7 @@ class CalendarController extends Controller
     {
         if (in_array($color, self::CLIENT_LINK_EXCLUDED_COLORS, true)) {
             $validated['client_name'] = null;
-            $validated['gold_data'] = null;
+            $validated['request_data'] = null;
         }
 
         return $validated;
@@ -420,6 +432,8 @@ class CalendarController extends Controller
     // 일정 수정
     public function update(Request $request, Schedule $schedule)
     {
+        $this->mergeLegacyDataKeys($request);
+
         $validated = $request->validate([
             'title' => 'sometimes|string|max:200',
             'start_date' => 'sometimes|date',
@@ -438,8 +452,8 @@ class CalendarController extends Controller
             'handover_note' => 'nullable|string|max:2000',
             'is_private' => 'boolean',
             'assignees' => 'nullable|array',
-            'gold_data' => 'nullable|array',
-            'teal_data' => 'nullable|array',
+            'request_data' => 'nullable|array',
+            'remote_data' => 'nullable|array',
             'special_opts' => 'nullable|array',
             'sched_opt' => 'nullable|string|max:50',
             'sched_event_opts' => 'nullable|array',
@@ -500,11 +514,11 @@ class CalendarController extends Controller
             ]);
         }
 
-        // 캘린더 잔금 청구 연결 id는 서버가 관리 — 클라이언트가 재전송한 gold_data에 승계 (중복 청구 방지)
-        if (isset($validated['gold_data']) && is_array($validated['gold_data'])) {
-            $prevBillingId = data_get($schedule->gold_data, 'balance_billing_id');
-            if ($prevBillingId && empty($validated['gold_data']['balance_billing_id'])) {
-                $validated['gold_data']['balance_billing_id'] = $prevBillingId;
+        // 캘린더 잔금 청구 연결 id는 서버가 관리 — 클라이언트가 재전송한 request_data에 승계 (중복 청구 방지)
+        if (isset($validated['request_data']) && is_array($validated['request_data'])) {
+            $prevBillingId = data_get($schedule->request_data, 'balance_billing_id');
+            if ($prevBillingId && empty($validated['request_data']['balance_billing_id'])) {
+                $validated['request_data']['balance_billing_id'] = $prevBillingId;
             }
         }
 
@@ -683,7 +697,7 @@ class CalendarController extends Controller
         $schedule->delete(); // SoftDeletes → deleted_at만 set
 
         // 캘린더 잔금 청구 정리 — 입금 이력이 없을 때만 함께 제거
-        $balanceBillingId = data_get($schedule->gold_data, 'balance_billing_id');
+        $balanceBillingId = data_get($schedule->request_data, 'balance_billing_id');
         if ($balanceBillingId && ($b = ProjectBilling::find($balanceBillingId)) && $b->payments()->count() === 0 && $b->status !== 'paid') {
             $b->delete();
         }
@@ -972,8 +986,8 @@ class CalendarController extends Controller
             'sched_opt' => $e->sched_opt,
             'sched_event_opts' => $e->sched_event_opts,
             'sched_after_reason' => $e->sched_after_reason,
-            'gold_data' => $e->gold_data,
-            'teal_data' => $e->teal_data,
+            'request_data' => $e->request_data,
+            'remote_data' => $e->remote_data,
             'assignee_ids' => $e->assignees->pluck('id')->toArray(),
         ]);
 
@@ -1020,8 +1034,8 @@ class CalendarController extends Controller
                 'sched_opt' => $item['sched_opt'] ?? null,
                 'sched_event_opts' => $item['sched_event_opts'] ?? [],
                 'sched_after_reason' => $item['sched_after_reason'] ?? null,
-                'gold_data' => $item['gold_data'] ?? null,
-                'teal_data' => $item['teal_data'] ?? null,
+                'request_data' => $item['request_data'] ?? null,
+                'remote_data' => $item['remote_data'] ?? null,
                 'created_by' => Auth::id(),
             ]);
             if (! empty($item['assignee_ids'])) {
@@ -1196,8 +1210,8 @@ class CalendarController extends Controller
                 'is_all_day' => $isAllDay,
                 'color' => $colorKey,       // 신규 카테고리는 라벨 문자열 → 저장 직전 키로 치환
                 'description' => $description,
-                'gold_data' => $goldData,
-                'teal_data' => $tealData,
+                'request_data' => $goldData,
+                'remote_data' => $tealData,
                 'location' => $this->icalUnescape($this->icalProp($vevent, 'LOCATION') ?? '') ?: null,
                 'completed_at' => $completed ? ($endDate.' '.($endTime ?: '23:59').':00') : null,
                 'import_uid' => $uid ? mb_substr($uid, 0, 100) : null,
@@ -1316,7 +1330,7 @@ class CalendarController extends Controller
         if (! $row || ! in_array($row->color, ['gold', 'teal'], true) || ! trim((string) $row->description)) {
             return false;
         }
-        $field = $row->color === 'gold' ? 'gold_data' : 'teal_data';
+        $field = $row->color === 'gold' ? 'request_data' : 'remote_data';
         $subKey = $row->color === 'gold' ? 'req_detail' : 'desc';
         $data = $row->{$field} ?? [];
         if (! empty($data[$subKey])) {

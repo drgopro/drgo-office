@@ -33,13 +33,13 @@ class CalendarClientLinkGuardTest extends TestCase
         foreach (['blue', 'red'] as $color) {
             $res = $this->actingAs($this->actingUser())->postJson('/api/events', $this->basePayload($color) + [
                 'client_name' => '엉뚱한 의뢰자',
-                'gold_data' => ['client_id' => 99, 'project_id' => 5, 'nickname' => '', 'name' => '', 'phone' => ''],
+                'request_data' => ['client_id' => 99, 'project_id' => 5, 'nickname' => '', 'name' => '', 'phone' => ''],
             ]);
 
             $res->assertCreated();
             $schedule = Schedule::find($res->json('id'));
             $this->assertNull($schedule->client_name, "{$color}: client_name은 저장되면 안 됨");
-            $this->assertNull($schedule->gold_data, "{$color}: gold_data는 저장되면 안 됨");
+            $this->assertNull($schedule->request_data, "{$color}: request_data는 저장되면 안 됨");
         }
     }
 
@@ -47,13 +47,13 @@ class CalendarClientLinkGuardTest extends TestCase
     {
         $res = $this->actingAs($this->actingUser())->postJson('/api/events', $this->basePayload('teal') + [
             'client_name' => '정상 의뢰자',
-            'gold_data' => ['client_id' => 7, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
+            'request_data' => ['client_id' => 7, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
         ]);
 
         $res->assertCreated();
         $schedule = Schedule::find($res->json('id'));
         $this->assertSame('정상 의뢰자', $schedule->client_name);
-        $this->assertSame(7, $schedule->gold_data['client_id']);
+        $this->assertSame(7, $schedule->request_data['client_id']);
     }
 
     public function test_update_heals_contaminated_excluded_color_schedule(): void
@@ -61,7 +61,7 @@ class CalendarClientLinkGuardTest extends TestCase
         // 과거 누수로 오염된 휴가 일정
         $schedule = Schedule::create($this->basePayload('red') + [
             'client_name' => '누수된 의뢰자',
-            'gold_data' => ['client_id' => 42, 'nickname' => '누수', 'name' => '홍길동', 'phone' => '010'],
+            'request_data' => ['client_id' => 42, 'nickname' => '누수', 'name' => '홍길동', 'phone' => '010'],
         ]);
 
         // 제목만 바꿔 저장해도 (드래그 이동 포함 모든 저장 경로) 오염이 제거되어야 함
@@ -71,14 +71,14 @@ class CalendarClientLinkGuardTest extends TestCase
 
         $schedule->refresh();
         $this->assertNull($schedule->client_name);
-        $this->assertNull($schedule->gold_data);
+        $this->assertNull($schedule->request_data);
     }
 
     public function test_update_does_not_touch_supported_color_links(): void
     {
         $schedule = Schedule::create($this->basePayload('teal') + [
             'client_name' => '유지될 의뢰자',
-            'gold_data' => ['client_id' => 7, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
+            'request_data' => ['client_id' => 7, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
         ]);
 
         $this->actingAs($this->actingUser())->postJson("/api/events/{$schedule->id}", [
@@ -87,18 +87,18 @@ class CalendarClientLinkGuardTest extends TestCase
 
         $schedule->refresh();
         $this->assertSame('유지될 의뢰자', $schedule->client_name);
-        $this->assertSame(7, $schedule->gold_data['client_id']);
+        $this->assertSame(7, $schedule->request_data['client_id']);
     }
 
     public function test_clean_command_reports_and_fixes_contaminated_rows(): void
     {
         $bad = Schedule::create($this->basePayload('blue') + [
             'client_name' => '오염 의뢰자',
-            'gold_data' => ['client_id' => 42],
+            'request_data' => ['client_id' => 42],
         ]);
         $good = Schedule::create($this->basePayload('teal') + [
             'client_name' => '정상 의뢰자',
-            'gold_data' => ['client_id' => 7, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
+            'request_data' => ['client_id' => 7, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
         ]);
 
         // 기본(dry-run): 변경 없음
@@ -110,8 +110,8 @@ class CalendarClientLinkGuardTest extends TestCase
         // --fix: 오염만 제거, 정상 연동은 유지
         $this->artisan('calendar:clean-client-links', ['--fix' => true])->assertSuccessful();
         $this->assertNull($bad->fresh()->client_name);
-        $this->assertNull($bad->fresh()->gold_data);
+        $this->assertNull($bad->fresh()->request_data);
         $this->assertSame('정상 의뢰자', $good->fresh()->client_name);
-        $this->assertSame(7, $good->fresh()->gold_data['client_id']);
+        $this->assertSame(7, $good->fresh()->request_data['client_id']);
     }
 }

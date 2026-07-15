@@ -156,14 +156,14 @@ class CalendarIcalImportTest extends TestCase
 
         $this->import($file)->assertOk();
 
-        // gold: 편집 폼에 보이는 요청상세(gold_data.req_detail)로
+        // gold: 편집 폼에 보이는 요청상세(request_data.req_detail)로
         $gold = Schedule::where('import_uid', 'v1@ticktick-backup')->first();
-        $this->assertSame('방문 상세 내용', $gold->gold_data['req_detail']);
+        $this->assertSame('방문 상세 내용', $gold->request_data['req_detail']);
         $this->assertNull($gold->description);
 
-        // teal: 상세설명(teal_data.desc)로
+        // teal: 상세설명(remote_data.desc)로
         $teal = Schedule::where('import_uid', 'v2@ticktick-backup')->first();
-        $this->assertSame('원격 상세 내용', $teal->teal_data['desc']);
+        $this->assertSame('원격 상세 내용', $teal->remote_data['desc']);
         $this->assertNull($teal->description);
 
         // 공통 유형: description 그대로
@@ -187,12 +187,12 @@ class CalendarIcalImportTest extends TestCase
         $dry->assertOk()->assertJsonPath('repaired', 1);
         $this->assertSame('숨어있던 내용', Schedule::first()->description);
 
-        // 실제 실행: description → gold_data.req_detail 이동
+        // 실제 실행: description → request_data.req_detail 이동
         $res = $this->import($this->icsFile($this->vevent('rp1', '✓ 방문 세팅', '의뢰자\\,개인의뢰', "DESCRIPTION:숨어있던 내용\r\n")));
         $res->assertOk()->assertJsonPath('repaired', 1)->assertJsonPath('duplicates', 1);
 
         $row = Schedule::first();
-        $this->assertSame('숨어있던 내용', $row->gold_data['req_detail']);
+        $this->assertSame('숨어있던 내용', $row->request_data['req_detail']);
         $this->assertNull($row->description);
         $this->assertSame(1, Schedule::count(), '중복 생성 없음');
     }

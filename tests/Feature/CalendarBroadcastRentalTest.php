@@ -37,7 +37,7 @@ class CalendarBroadcastRentalTest extends TestCase
             'end_time' => '16:00',
             'is_all_day' => false,
             'color' => 'teal',
-            'gold_data' => ['client_id' => $this->client->id, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
+            'request_data' => ['client_id' => $this->client->id, 'project_id' => null, 'nickname' => '', 'name' => '', 'phone' => ''],
         ], $extra);
     }
 
@@ -112,7 +112,7 @@ class CalendarBroadcastRentalTest extends TestCase
     public function test_rental_requires_linked_client(): void
     {
         $this->actingAs($this->user)->postJson('/api/events', $this->eventPayload([
-            'gold_data' => null,
+            'request_data' => null,
             'broadcast_rental' => ['mode' => 'hourly'],
         ]))->assertUnprocessable();
 

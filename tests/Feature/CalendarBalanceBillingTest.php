@@ -10,7 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** 캘린더 잔금(gold_data.balance=O) ↔ 청구(project_billings) 동기화 */
+/** 캘린더 잔금(request_data.balance=O) ↔ 청구(project_billings) 동기화 */
 class CalendarBalanceBillingTest extends TestCase
 {
     use RefreshDatabase;
@@ -38,7 +38,7 @@ class CalendarBalanceBillingTest extends TestCase
             'end_date' => '2026-07-21',
             'is_all_day' => true,
             'color' => 'gold',
-            'gold_data' => array_merge([
+            'request_data' => array_merge([
                 'client_id' => $this->project->client_id,
                 'project_id' => $this->project->id,
                 'nickname' => '닥터고', 'name' => '', 'phone' => '',
@@ -59,7 +59,7 @@ class CalendarBalanceBillingTest extends TestCase
         $this->assertSame(50000, $billing->amount);
         $this->assertSame('unpaid', $billing->status);
         // 일정에 청구 id가 기억됨
-        $this->assertSame($billing->id, (int) data_get(Schedule::first()->gold_data, 'balance_billing_id'));
+        $this->assertSame($billing->id, (int) data_get(Schedule::first()->request_data, 'balance_billing_id'));
     }
 
     public function test_resave_updates_billing_without_duplicating(): void
@@ -67,7 +67,7 @@ class CalendarBalanceBillingTest extends TestCase
         $this->actingAs($this->user)->postJson('/api/events', $this->goldPayload())->assertCreated();
         $schedule = Schedule::first();
 
-        // 클라이언트 재저장 — gold_data에 balance_billing_id 없이 전송 (실제 폼 동작과 동일)
+        // 클라이언트 재저장 — request_data에 balance_billing_id 없이 전송 (실제 폼 동작과 동일)
         $this->actingAs($this->user)->patchJson("/api/events/{$schedule->id}", $this->goldPayload([
             'balance_amount' => '70,000',
         ]))->assertOk();
@@ -110,6 +110,20 @@ class CalendarBalanceBillingTest extends TestCase
         ]))->assertOk();
 
         $this->assertSame(0, ProjectBilling::count());
+    }
+
+    public function test_legacy_gold_data_key_is_accepted(): void
+    {
+        // 배포 전에 열려 있던 구버전 탭이 gold_data 키로 저장해도 request_data로 승계됨
+        $payload = $this->goldPayload();
+        $payload['gold_data'] = $payload['request_data'];
+        unset($payload['request_data']);
+
+        $this->actingAs($this->user)->postJson('/api/events', $payload)->assertCreated();
+
+        $schedule = Schedule::first();
+        $this->assertSame($this->project->id, (int) data_get($schedule->request_data, 'project_id'));
+        $this->assertSame(1, ProjectBilling::count(), '잔금 청구 자동 생성도 동일 동작');
     }
 
     public function test_schedule_delete_removes_unpaid_billing(): void

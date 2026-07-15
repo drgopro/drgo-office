@@ -240,7 +240,7 @@ class DashboardController extends Controller
                 'date' => $s->start_date->format('m.d'),
                 'opt' => $s->sched_opt,
                 'opt_label' => $schedOptLabels[$s->sched_opt] ?? $s->sched_opt,
-                'project_id' => data_get($s->gold_data, 'project_id'),
+                'project_id' => data_get($s->request_data, 'project_id'),
             ]);
 
         // 휴가 — 휴가/개인 카테고리 일정, 오늘부터 D-7까지 (라벨에 '휴가'가 포함된 카테고리, 기본 red)

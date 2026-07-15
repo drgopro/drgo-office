@@ -40,8 +40,8 @@ class ProjectProposalLinkTest extends TestCase
             'data' => ['schedule_ids' => [$s1->id], 'note' => ''],
         ])->assertOk();
 
-        $this->assertSame($project->id, (int) data_get($s1->fresh()->gold_data, 'project_id'));
-        $this->assertSame($client->id, (int) data_get($s1->fresh()->gold_data, 'client_id'));
+        $this->assertSame($project->id, (int) data_get($s1->fresh()->request_data, 'project_id'));
+        $this->assertSame($client->id, (int) data_get($s1->fresh()->request_data, 'client_id'));
 
         // 2) s2로 교체 → s1 연결 해제, s2 연결
         $this->actingAs($user)->postJson("/api/projects/{$project->id}/stage-data", [
@@ -49,8 +49,8 @@ class ProjectProposalLinkTest extends TestCase
             'data' => ['schedule_ids' => [$s2->id], 'note' => ''],
         ])->assertOk();
 
-        $this->assertNull(data_get($s1->fresh()->gold_data, 'project_id'));
-        $this->assertSame($project->id, (int) data_get($s2->fresh()->gold_data, 'project_id'));
+        $this->assertNull(data_get($s1->fresh()->request_data, 'project_id'));
+        $this->assertSame($project->id, (int) data_get($s2->fresh()->request_data, 'project_id'));
     }
 
     public function test_proposal_does_not_clobber_other_project_link(): void
@@ -74,6 +74,6 @@ class ProjectProposalLinkTest extends TestCase
             'key' => 'proposal', 'data' => ['schedule_ids' => []],
         ])->assertOk();
 
-        $this->assertSame($projectB->id, (int) data_get($s->fresh()->gold_data, 'project_id'));
+        $this->assertSame($projectB->id, (int) data_get($s->fresh()->request_data, 'project_id'));
     }
 }

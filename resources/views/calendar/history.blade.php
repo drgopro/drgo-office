@@ -186,7 +186,8 @@ const FIELD_LABELS = {
     sched_opt:'세부유형', sched_event_opts:'세부옵션',
     special_opts:'특수옵션', sched_after_days:'AS일수',
     sched_after_date:'AS만료일', sched_after_reason:'AS사유',
-    gold_data:'방문 상세', teal_data:'원격 상세',
+    request_data:'방문 상세', remote_data:'원격 상세',
+    gold_data:'방문 상세', teal_data:'원격 상세', // 구키 — 과거 이력 스냅샷용
     assignees:'담당자', completed_at:'완료시각',
 };
 const COLOR_LABELS = {

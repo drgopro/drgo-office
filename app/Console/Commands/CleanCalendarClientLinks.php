@@ -16,7 +16,7 @@ class CleanCalendarClientLinks extends Command
     {
         $contaminated = Schedule::whereIn('color', CalendarController::CLIENT_LINK_EXCLUDED_COLORS)
             ->where(function ($q) {
-                $q->whereNotNull('gold_data')
+                $q->whereNotNull('request_data')
                     ->orWhere(fn ($w) => $w->whereNotNull('client_name')->where('client_name', '!=', ''));
             })
             ->orderBy('start_date')
@@ -26,23 +26,23 @@ class CleanCalendarClientLinks extends Command
             $this->info('오염된 일정이 없습니다.');
         } else {
             $this->table(
-                ['ID', '색상', '날짜', '제목', 'client_name', 'gold_data client_id'],
+                ['ID', '색상', '날짜', '제목', 'client_name', 'request_data client_id'],
                 $contaminated->map(fn ($s) => [
                     $s->id,
                     $s->color,
                     $s->start_date?->format('Y-m-d'),
                     mb_substr($s->title, 0, 30),
                     $s->client_name,
-                    $s->gold_data['client_id'] ?? '-',
+                    $s->request_data['client_id'] ?? '-',
                 ])->all()
             );
             $this->warn("연동 미지원 카테고리에 의뢰자 데이터가 남은 일정: {$contaminated->count()}건");
 
             if ($this->option('fix')) {
                 foreach ($contaminated as $s) {
-                    $s->update(['client_name' => null, 'gold_data' => null]);
+                    $s->update(['client_name' => null, 'request_data' => null]);
                 }
-                $this->info("{$contaminated->count()}건 정리 완료 (client_name·gold_data 제거).");
+                $this->info("{$contaminated->count()}건 정리 완료 (client_name·request_data 제거).");
             } else {
                 $this->line('정리하려면 --fix 옵션을 붙여 다시 실행하세요.');
             }
@@ -52,11 +52,11 @@ class CleanCalendarClientLinks extends Command
         $legitKeys = ['client_id', 'project_id', 'nickname', 'name', 'phone'];
         $suspicious = Schedule::where('color', '!=', 'gold')
             ->whereNotIn('color', CalendarController::CLIENT_LINK_EXCLUDED_COLORS)
-            ->whereNotNull('gold_data')
+            ->whereNotNull('request_data')
             ->get()
             ->filter(function ($s) use ($legitKeys) {
-                $extraKeys = array_diff(array_keys($s->gold_data ?? []), $legitKeys);
-                $filledIdentity = collect(['nickname', 'name', 'phone'])->contains(fn ($k) => ! empty($s->gold_data[$k] ?? null));
+                $extraKeys = array_diff(array_keys($s->request_data ?? []), $legitKeys);
+                $filledIdentity = collect(['nickname', 'name', 'phone'])->contains(fn ($k) => ! empty($s->request_data[$k] ?? null));
 
                 return $extraKeys !== [] || $filledIdentity;
             });
@@ -65,13 +65,13 @@ class CleanCalendarClientLinks extends Command
             $this->newLine();
             $this->warn("[참고] gold 전용 필드가 섞인 비-gold 일정 {$suspicious->count()}건 — 실제 연동인지 수동 확인 필요:");
             $this->table(
-                ['ID', '색상', '날짜', '제목', 'gold_data client_id'],
+                ['ID', '색상', '날짜', '제목', 'request_data client_id'],
                 $suspicious->map(fn ($s) => [
                     $s->id,
                     $s->color,
                     $s->start_date?->format('Y-m-d'),
                     mb_substr($s->title, 0, 30),
-                    $s->gold_data['client_id'] ?? '-',
+                    $s->request_data['client_id'] ?? '-',
                 ])->all()
             );
         }

@@ -2017,13 +2017,13 @@ function eventOptIconsHtml(ev){
 // 이사세팅 여부
 function isMoveSetting(ev){
     if(!ev || ev.color!=='gold') return false;
-    const rt=(ev.gold_data&&ev.gold_data.req_topic)||'';
+    const rt=(ev.request_data&&ev.request_data.req_topic)||'';
     return rt.split(',').map(s=>s.trim()).includes('이사세팅');
 }
 // 이사세팅 출발/도착 2줄 HTML (리스트용) — 이사세팅 아닐 땐 빈 문자열
 function moveAddrLinesHtml(ev){
     if(!isMoveSetting(ev)) return '';
-    const g=ev.gold_data||{};
+    const g=ev.request_data||{};
     const from = g.move_no_from ? '없음' : (g.move_from_location||g.move_from_address||'—');
     const to = ev.location||ev.address||'—';
     return `<div class="agenda-move"><span>출발: ${_esc(from)}</span><span>도착: ${_esc(to)}</span></div>`;
@@ -4522,7 +4522,7 @@ const COLOR_LABELS = (function(){
     Object.keys(cats).forEach(k => { o[k] = cats[k].label; });
     return o;
 })();
-const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'상세설명',special_note:'특이사항',handover_note:'전달사항',is_locked:'잠금',is_private:'비공개',gold_data:'의뢰자정보',teal_data:'원격정보',notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',notify_assignees:'알림 대상',completed_at:'완료시각'};
+const FIELD_LABELS = {title:'제목',start_date:'시작일',end_date:'종료일',start_time:'시작시간',end_time:'종료시간',is_all_day:'종일',color:'유형',client_name:'의뢰자',address:'주소',location:'장소',description:'상세설명',special_note:'특이사항',handover_note:'전달사항',is_locked:'잠금',is_private:'비공개',request_data:'의뢰자정보',remote_data:'원격정보',gold_data:'의뢰자정보',teal_data:'원격정보',/* 구키 — 과거 이력 스냅샷용 */notif_minutes:'알림(분)',sched_opt:'세부유형',sched_event_opts:'세부옵션',special_opts:'특수옵션',sched_after_days:'AS일수',sched_after_date:'AS만료일',sched_after_reason:'AS사유',assignees:'담당자',notify_assignees:'알림 대상',completed_at:'완료시각'};
 
 // 변경 로그 값을 사람이 읽기 좋게 변환
 function fmtLogValue(key, val) {
@@ -4900,8 +4900,8 @@ function openEditModal(ev){
     // 공통 필드
     document.getElementById('commonDesc').value=ev.description||'';
     const _ch=document.getElementById('commonHandoverNote'); if(_ch) _ch.value=ev.handover_note||'';
-    // gold_data 복원 (Firebase 데이터 구조 호환)
-    const g=ev.gold_data||{};
+    // request_data 복원 (Firebase 데이터 구조 호환)
+    const g=ev.request_data||{};
     // client_name 폴백은 방문의뢰(gold)일 때만 — 과거 누수로 오염된 비-gold 일정의 의뢰자명이 폼에 부활하는 것 방지
     document.getElementById('g_nickname').value=g.nickname||(ev.color==='gold'?(ev.client_name||''):'');
     document.getElementById('g_name').value=g.name||'';
@@ -4994,18 +4994,18 @@ function openEditModal(ev){
         loadClientProjects(g.client_id);
         if(!(g.nickname||g.name)) restoreLinkedClientName(g.client_id);
     }
-    // 비-gold에서도 gold_data에 저장된 의뢰자 연결 복원 (연동 미지원 카테고리는 오염 데이터 부활 방지 위해 제외)
-    if(!g.client_id && ev.gold_data && ev.gold_data.client_id && colorSupportsClientLink(ev.color)){
-        linkedClientId=ev.gold_data.client_id;
-        document.getElementById('linkedClientName').textContent=ev.gold_data.nickname||ev.gold_data.name||`의뢰자 #${ev.gold_data.client_id}`;
+    // 비-gold에서도 request_data에 저장된 의뢰자 연결 복원 (연동 미지원 카테고리는 오염 데이터 부활 방지 위해 제외)
+    if(!g.client_id && ev.request_data && ev.request_data.client_id && colorSupportsClientLink(ev.color)){
+        linkedClientId=ev.request_data.client_id;
+        document.getElementById('linkedClientName').textContent=ev.request_data.nickname||ev.request_data.name||`의뢰자 #${ev.request_data.client_id}`;
         document.getElementById('linkedClientInfo').style.display='';
-        document.getElementById('linkedClientLink').href='/clients/'+ev.gold_data.client_id;
-        linkedProjectId=ev.gold_data.project_id||null;
-        loadClientProjects(ev.gold_data.client_id);
-        if(!(ev.gold_data.nickname||ev.gold_data.name)) restoreLinkedClientName(ev.gold_data.client_id);
+        document.getElementById('linkedClientLink').href='/clients/'+ev.request_data.client_id;
+        linkedProjectId=ev.request_data.project_id||null;
+        loadClientProjects(ev.request_data.client_id);
+        if(!(ev.request_data.nickname||ev.request_data.name)) restoreLinkedClientName(ev.request_data.client_id);
     }
-    // teal_data 복원
-    const t=ev.teal_data||{};
+    // remote_data 복원
+    const t=ev.remote_data||{};
     if(t.mode){setRadio('teal_mode_group',t.mode);document.getElementById('teal_remote_fields').style.display=t.mode==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=t.mode==='studio'?'':'none';}
     document.getElementById('t_remote_name').value=t.mode==='remote'?t.name||'':'';
     document.getElementById('t_remote_platform').value=t.mode==='remote'?t.platform||'':'';
@@ -5196,16 +5196,16 @@ async function doSaveEvent(){
         sched_event_opts:schedEventOpts,
         special_opts:specialOpts,
         sched_after_reason:document.getElementById('schedAfterReason').value.trim()||null,
-        gold_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
-        teal_data:currentColor==='teal'?collectTealFields():null,
+        request_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
+        remote_data:currentColor==='teal'?collectTealFields():null,
     };
     // 대여 이력 등록 (방송룸/렌탈 신규 등록 + 체크 시)
     {
         const br=collectBrRental();
         if(br){
             if(!linkedClientId){alert('대여 이력 등록에는 의뢰자 연동이 필요합니다.');return;}
-            // 렌탈/월대여는 gold_data가 없을 수 있으므로 의뢰자 연동 보장
-            if(!data.gold_data) data.gold_data={client_id:linkedClientId,project_id:null,nickname:'',name:'',phone:''};
+            // 렌탈/월대여는 request_data가 없을 수 있으므로 의뢰자 연동 보장
+            if(!data.request_data) data.request_data={client_id:linkedClientId,project_id:null,nickname:'',name:'',phone:''};
             data.broadcast_rental=br;
         }
     }
@@ -5895,7 +5895,7 @@ function buildEventPayload(ev){
         is_locked:ev.is_locked||false, is_private:ev.is_private||false,
         sched_opt:ev.sched_opt||null, sched_event_opts:ev.sched_event_opts||[],
         special_opts:ev.special_opts||[], sched_after_reason:ev.sched_after_reason||null,
-        gold_data:ev.gold_data||null, teal_data:ev.teal_data||null,
+        request_data:ev.request_data||null, remote_data:ev.remote_data||null,
         assignees:ev.assignees?ev.assignees.map(a=>a.id||a):[],
     };
 }
