@@ -305,6 +305,13 @@ const PRI_LABELS = { high: '높음', medium: '중간', low: '낮음' };
 function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
 function memberById(id) { return TODO_MEMBERS.find(m => m.id === id); }
 
+// YYYY-MM-DD → YY년 MM월 DD일
+function fmtDate(iso) {
+    if (!iso) { return ''; }
+    const [y, m, d] = iso.split('-');
+    return `${y.slice(2)}년 ${m}월 ${d}일`;
+}
+
 function dueDiff(t) {
     if (!t.due_date) { return null; }
     const today = new Date(); today.setHours(0,0,0,0);
@@ -313,7 +320,7 @@ function dueDiff(t) {
 
 function dueChip(t) {
     if (!t.due_date) { return ''; }
-    if (t.completed) { return `<span class="todo-due">${t.due_date.replaceAll('-', '.')}</span>`; }
+    if (t.completed) { return `<span class="todo-due">${fmtDate(t.due_date)}</span>`; }
     const diff = dueDiff(t);
     if (diff < 0) { return `<span class="todo-due overdue">⚠ ${-diff}일 지남</span>`; }
     if (diff === 0) { return `<span class="todo-due today">오늘 마감</span>`; }
@@ -325,7 +332,7 @@ function dueDateHtml(t) {
     if (!t.due_date) { return ''; }
     const diff = dueDiff(t);
     const cls = t.completed ? '' : diff <= 0 ? 'imminent' : diff <= 3 ? 'soon' : '';
-    return `<span class="todo-lrow-due-date ${cls}">${t.due_date.replaceAll('-', '.')}</span>`;
+    return `<span class="todo-lrow-due-date ${cls}">${fmtDate(t.due_date)}</span>`;
 }
 
 // 본문 링크 처리 — URL은 클릭 가능하게, 유튜브는 임베드, 일반 링크는 OG 미리보기 카드 (각 최대 3개)
@@ -469,7 +476,7 @@ function renderDetailPane() {
         <div class="todo-view-meta">
             <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
             <span>담당 <b>${esc(t.assignee)}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>
-            ${t.due_date ? `<span>기한 ${t.due_date.replaceAll('-', '.')}</span>` : ''}
+            ${t.due_date ? `<span>기한 ${fmtDate(t.due_date)}</span>` : ''}
             ${dueChip(t)}
             ${t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : ''}
             ${t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : ''}
@@ -725,7 +732,7 @@ function openTodoView(id) {
     document.getElementById('tvMeta').innerHTML = [
         `<span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>`,
         `<span>담당 <b>${esc(t.assignee)}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>`,
-        t.due_date ? `<span>기한 ${t.due_date.replaceAll('-', '.')}</span>` : '',
+        t.due_date ? `<span>기한 ${fmtDate(t.due_date)}</span>` : '',
         dueChip(t),
         t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : '',
         t.completed ? `<span>✅ 완료 ${t.completed_at}</span>` : '',
