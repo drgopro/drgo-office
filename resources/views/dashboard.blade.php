@@ -37,6 +37,8 @@
     .consult-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); font-size:13px; }
     .consult-item:last-child { border-bottom:none; }
     .consult-item:hover { background:var(--surface2); }
+    .consult-item.clickable { cursor:pointer; }
+    .consult-item.clickable:hover .consult-content { color:var(--accent); }
     .consult-badge { font-size:10px; padding:3px 8px; border-radius:4px; font-weight:600; white-space:nowrap; }
     .consult-badge.in_progress { background:rgba(200,176,138,0.2); color:var(--accent); }
     .consult-badge.waiting { background:rgba(138,180,200,0.2); color:#8ab4c8; }
@@ -193,7 +195,15 @@
     <div class="consult-list">
         @if($recentConsults->count() > 0)
             @foreach($recentConsults as $c)
-                <div class="consult-item">
+                {{-- 클릭 시 연결 프로젝트로 이동 (프로젝트 없으면 의뢰자 상세로) --}}
+                <div class="consult-item{{ ($c['project_id'] || $c['client_id']) ? ' clickable' : '' }}"
+                    @if($c['project_id'])
+                        onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $c['project_id'] }}');}else{location.href='/projects/{{ $c['project_id'] }}';}"
+                        title="프로젝트로 이동"
+                    @elseif($c['client_id'])
+                        onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openClientDetail({{ $c['client_id'] }});}else{location.href='/clients?open={{ $c['client_id'] }}';}"
+                        title="의뢰자 상세로 이동"
+                    @endif>
                     <span class="consult-badge {{ $c['result'] }}">
                         {{ ['in_progress' => '진행중', 'waiting' => '대기'][$c['result']] ?? $c['result'] }}
                     </span>

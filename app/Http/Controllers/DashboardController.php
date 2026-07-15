@@ -188,6 +188,8 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($c) => [
                 'id' => $c->id,
+                'project_id' => $c->project_id,
+                'client_id' => $c->client_id,
                 'client' => $c->client?->nickname ?: $c->client?->name,
                 'result' => $c->result,
                 'content' => \Str::limit($c->content, 40),
