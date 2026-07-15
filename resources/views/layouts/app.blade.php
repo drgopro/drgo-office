@@ -240,7 +240,7 @@
             .tab-bar-wrap { margin-left:var(--sidebar-w); top:0; }
             .main { margin-left:var(--sidebar-w); }
             /* 접기 버튼 */
-            .side-toggle { display:flex; align-items:center; justify-content:center; position:absolute; top:16px; right:10px; width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; transition:all .15s; }
+            .side-toggle { display:flex; align-items:center; justify-content:center; position:absolute; top:12px; right:10px; width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; transition:all .15s; }
             .side-toggle:hover { color:var(--accent); border-color:var(--accent); }
             .side-toggle svg { transition:transform .2s; }
             /* ── 접힌 상태: 아이콘만 남는 미니 사이드바 ── */
