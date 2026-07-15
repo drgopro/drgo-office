@@ -68,6 +68,7 @@ class DashboardConsultLinkTest extends TestCase
         $res = $this->actingAs($user)->get('/');
 
         $res->assertOk()
+            ->assertSee('logo-office.png') // 사이드바 이미지 로고
             ->assertSee('오늘의 일정')
             ->assertSee('옴니버 방문 세팅')
             ->assertSee('주목 프로젝트')

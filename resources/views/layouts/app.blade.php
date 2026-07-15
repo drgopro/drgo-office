@@ -117,6 +117,7 @@
         .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; padding-top:env(safe-area-inset-top, 0px); display:flex; justify-content:space-between; align-items:center; height:calc(var(--header-h) + env(safe-area-inset-top, 0px)); position:sticky; top:0; z-index:200; }
         .header-left { display:flex; align-items:center; gap:0; }
         .logo { font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.15em; text-decoration:none; padding:0 16px 0 0; margin-right:16px; border-right:1px solid var(--border); }
+        .logo-img { display:none; } /* 이미지 로고는 어두운 사이드바(데스크탑)에서만 — 밝은 모바일 헤더에선 흰 워드마크가 안 보임 */
 
         .nav { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; white-space:nowrap; }
         .nav a { text-decoration:none; color:var(--text-muted); font-size:13px; padding:6px 12px; border-radius:6px; transition:all 0.15s; white-space:nowrap; display:inline-flex; align-items:center; gap:9px; }
@@ -270,8 +271,9 @@
            [data-theme] 프리픽스: 라이트 테마 강제 규칙([data-theme="light"] .header 등)보다 우선하도록 */
         @media (min-width: 981px) {
             html[data-theme] .header { background:#1f2b40; border-right-color:#2a3852; border-bottom-color:#2a3852; }
-            html[data-theme] .header .logo { color:#fff; border-right:none; }
-            html[data-theme] .header .logo::after { content:' OFFICE'; font-size:9px; font-weight:600; color:#7f8fae; letter-spacing:0.12em; }
+            html[data-theme] .header .logo { color:#fff; border-right:none; display:flex; align-items:center; }
+            html[data-theme] .header .logo .logo-text { display:none; }
+            html[data-theme] .header .logo .logo-img { display:block; height:26px; width:auto; }
             html[data-theme] .side-toggle { color:#8fa0bd; background:transparent; border-color:#334565; }
             html[data-theme] .side-search { background:rgba(255,255,255,0.06); border-color:#334565; color:#9aa9c4; }
             html[data-theme] .side-search:hover { border-color:#5c7aa6; color:#dbe3f0; }
@@ -498,7 +500,7 @@ window.openTopTab = function(type, url, title) {
 {{-- ── 상단 내비게이션 ── --}}
 <div class="header">
     <div class="header-left">
-        <a href="/" class="logo">DRGO</a>
+        <a href="/" class="logo"><img src="/logo-office.png" alt="DRGO OFFICE" class="logo-img"><span class="logo-text">DRGO</span></a>
         <button type="button" class="side-toggle" id="sideToggle" onclick="toggleSidebar()" title="사이드바 접기/펼치기"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <button class="menu-toggle" id="menuToggle" onclick="toggleNav()">☰</button>
         {{-- 오피스 전체 검색 (Ctrl+K) --}}
