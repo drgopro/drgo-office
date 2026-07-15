@@ -153,6 +153,11 @@
     .todo-field-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
     @media (max-width:560px) { .todo-field-row { grid-template-columns:1fr; } }
     .todo-modal-foot { display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--border); justify-content:flex-end; flex-wrap:wrap; }
+    /* 임시저장 배너 */
+    .tf-draft-bar { display:flex; align-items:center; gap:8px; background:color-mix(in srgb, var(--accent) 8%, transparent); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius:9px; padding:8px 12px; font-size:12px; color:var(--text); }
+    .tf-draft-bar button { border:none; border-radius:7px; padding:5px 11px; font-size:11.5px; font-weight:700; cursor:pointer; background:var(--accent); color:var(--accent-text); }
+    .tf-draft-bar .tf-draft-del { background:none; color:var(--text-muted); margin-left:auto; }
+    .tf-draft-bar .tf-draft-del:hover { color:#c0392b; }
     .todo-btn { border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; }
     .todo-btn.primary { background:var(--accent); color:var(--accent-text); }
     .todo-btn.ghost { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
@@ -234,6 +239,12 @@
             <button type="button" class="todo-modal-close" onclick="closeTodoForm()">✕</button>
         </div>
         <div class="todo-modal-body">
+            {{-- 임시저장 배너 --}}
+            <div class="tf-draft-bar" id="tfDraftBar" style="display:none;">
+                <span id="tfDraftInfo"></span>
+                <button type="button" id="tfDraftRestore" onclick="restoreDraft()">불러오기</button>
+                <button type="button" class="tf-draft-del" onclick="discardDraft()">삭제</button>
+            </div>
             <div class="todo-field">
                 <label>타이틀 *</label>
                 <input type="text" id="tfTitle" maxlength="255" placeholder="할 일 제목">
@@ -695,8 +706,71 @@ function openTodoForm(todo) {
     fillAssigneeOptions(todo ? todo.assignee_id : TODO_ME);
     document.getElementById('todoFormOverlay').classList.add('open');
     document.getElementById('tfTitle').focus();
+    armModalHistory();
+    checkDraftBar();
+    clearInterval(TF_AUTOSAVE);
+    TF_AUTOSAVE = setInterval(saveDraft, 60000); // 1분마다 자동 임시저장
 }
-function closeTodoForm() { document.getElementById('todoFormOverlay').classList.remove('open'); }
+function closeTodoForm() {
+    if (MODAL_HIST) { history.back(); } else { reallyCloseForm(); }
+}
+function reallyCloseForm() {
+    document.getElementById('todoFormOverlay').classList.remove('open');
+    clearInterval(TF_AUTOSAVE);
+}
+
+// ── 임시저장 (자동저장 1분 주기 + 불러오기) ──
+let TF_AUTOSAVE = null;
+function draftKey() { return TODO_EDIT_ID ? `todo_draft_edit_${TODO_EDIT_ID}` : 'todo_draft_new'; }
+
+function saveDraft() {
+    if (!document.getElementById('todoFormOverlay').classList.contains('open')) { return; }
+    const title = document.getElementById('tfTitle').value.trim();
+    const content = document.getElementById('tfContent').value.trim();
+    if (!title && !content) { return; }
+    localStorage.setItem(draftKey(), JSON.stringify({
+        title,
+        content,
+        priority: document.getElementById('tfPriority').value,
+        due_date: document.getElementById('tfDue').value,
+        ts: Date.now(),
+    }));
+    const bar = document.getElementById('tfDraftBar');
+    bar.style.display = 'flex';
+    document.getElementById('tfDraftInfo').textContent = `🕐 ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 자동저장됨`;
+    document.getElementById('tfDraftRestore').style.display = 'none';
+}
+
+function checkDraftBar() {
+    const bar = document.getElementById('tfDraftBar');
+    const raw = localStorage.getItem(draftKey());
+    if (!raw) { bar.style.display = 'none'; return; }
+    try {
+        const d = JSON.parse(raw);
+        bar.style.display = 'flex';
+        document.getElementById('tfDraftInfo').textContent = `🕐 ${new Date(d.ts).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} 임시저장본이 있습니다`;
+        document.getElementById('tfDraftRestore').style.display = '';
+    } catch (e) { bar.style.display = 'none'; }
+}
+
+function restoreDraft() {
+    const raw = localStorage.getItem(draftKey());
+    if (!raw) { return; }
+    try {
+        const d = JSON.parse(raw);
+        document.getElementById('tfTitle').value = d.title || '';
+        document.getElementById('tfContent').value = d.content || '';
+        document.getElementById('tfPriority').value = d.priority || 'medium';
+        document.getElementById('tfDue').value = d.due_date || '';
+        document.getElementById('tfDraftRestore').style.display = 'none';
+        document.getElementById('tfDraftInfo').textContent = '임시저장본을 불러왔습니다';
+    } catch (e) { /* 무시 */ }
+}
+
+function discardDraft() {
+    localStorage.removeItem(draftKey());
+    document.getElementById('tfDraftBar').style.display = 'none';
+}
 
 async function saveTodo() {
     const btn = document.getElementById('tfSaveBtn');
@@ -740,6 +814,7 @@ async function saveTodo() {
             }
         }
 
+        localStorage.removeItem(draftKey()); // 저장 성공 → 임시저장본 정리
         closeTodoForm();
         await refreshBoard();
     } finally {
@@ -771,13 +846,17 @@ function openTodoView(id) {
         </div>`).join('');
     document.getElementById('tvCompleteBtn').textContent = t.completed ? '완료 취소' : '완료 처리';
     document.getElementById('todoViewOverlay').classList.add('open');
+    armModalHistory();
 }
-function closeTodoView() { document.getElementById('todoViewOverlay').classList.remove('open'); TODO_VIEW_ID = null; }
+function closeTodoView() {
+    if (MODAL_HIST) { history.back(); } else { reallyCloseView(); }
+}
+function reallyCloseView() { document.getElementById('todoViewOverlay').classList.remove('open'); TODO_VIEW_ID = null; }
 
 function editTodo() {
     const t = TODOS.find(x => x.id === TODO_VIEW_ID);
     if (!t) { return; }
-    closeTodoView();
+    reallyCloseView(); // 히스토리는 폼 모달이 이어받음
     openTodoForm(t);
 }
 
@@ -823,9 +902,24 @@ async function deleteAttachment(id) {
     if (TODO_VIEW_ID) { openTodoView(TODO_VIEW_ID); }
 }
 
-// 오버레이 바깥 클릭으로 닫기
-document.getElementById('todoFormOverlay').addEventListener('click', e => { if (e.target.id === 'todoFormOverlay') { closeTodoForm(); } });
-document.getElementById('todoViewOverlay').addEventListener('click', e => { if (e.target.id === 'todoViewOverlay') { closeTodoView(); } });
+// 모달 닫기 UX — 바깥 클릭으로는 닫히지 않고 ESC/뒤로가기(✕·취소 포함)로만 닫힘
+let MODAL_HIST = false;
+function armModalHistory() {
+    if (!MODAL_HIST) { history.pushState({ todoModal: true }, ''); MODAL_HIST = true; }
+}
+window.addEventListener('popstate', () => { MODAL_HIST = false; reallyCloseForm(); reallyCloseView(); });
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') { return; }
+    if (document.getElementById('todoFormOverlay').classList.contains('open')
+        || document.getElementById('todoViewOverlay').classList.contains('open')) {
+        e.preventDefault();
+        closeAnyModal();
+    }
+});
+function closeAnyModal() {
+    if (MODAL_HIST) { history.back(); } // popstate에서 실제로 닫힘 (뒤로가기와 동일 경로)
+    else { reallyCloseForm(); reallyCloseView(); }
+}
 
 renderMfilterPanel();
 renderBoard();
