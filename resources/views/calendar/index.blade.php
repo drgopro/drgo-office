@@ -581,6 +581,34 @@
     /* 섹션 헤더 우측 'n/m 작성' 상태 */
     #modalOverlay .m-secstat { margin-left:auto; font-size:11px; font-weight:600; color:#a8a69e; }
     #modalOverlay .m-secstat.done { color:var(--m-accent); }
+    /* 요약 뷰 — 2a 스타일 2컬럼 카드 그리드 */
+    #modalOverlay .lock-summary { gap:12px; }
+    #modalOverlay .ls-meta-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    #modalOverlay .ls-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+    #modalOverlay .ls-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
+    #modalOverlay .ls-card { background:var(--m-card); border:1px solid var(--m-border); border-radius:14px; padding:16px 18px; }
+    #modalOverlay .ls-card-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    #modalOverlay .ls-card-title { font-size:11px; font-weight:700; color:var(--m-muted); letter-spacing:0.4px; }
+    #modalOverlay .ls-card-extra { margin-left:auto; font-size:11px; font-weight:700; color:var(--m-accent); }
+    #modalOverlay .ls-big { font-size:16px; font-weight:800; color:var(--m-ink); letter-spacing:-0.2px; }
+    #modalOverlay .ls-addr { font-size:13.5px; font-weight:700; color:var(--m-ink); margin-top:6px; line-height:1.55; word-break:break-all; }
+    #modalOverlay .ls-sub { font-size:12px; color:#a8a69e; margin-top:6px; }
+    #modalOverlay .ls-sub-inline { font-size:12px; color:#a8a69e; font-weight:400; }
+    #modalOverlay .ls-tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+    #modalOverlay .ls-tile { border:1px solid #f0eee9; background:var(--m-soft); border-radius:10px; padding:10px 12px; min-width:0; }
+    #modalOverlay .ls-tile-k { font-size:10.5px; color:#a8a69e; font-weight:600; margin-bottom:3px; }
+    #modalOverlay .ls-tile-v { font-size:13px; font-weight:700; color:var(--m-ink); word-break:keep-all; }
+    #modalOverlay .ls-amount-big { font-size:22px; font-weight:800; color:var(--m-ink); letter-spacing:-0.3px; }
+    #modalOverlay .ls-state-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    #modalOverlay .ls-state { padding:5px 12px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid #e0dfda; color:#a8a69e; background:var(--m-soft); }
+    #modalOverlay .ls-state.on { background:var(--m-accent); border-color:var(--m-accent); color:#fff; }
+    #modalOverlay .ls-state.mid { border-color:var(--m-accent); color:var(--m-accent); background:color-mix(in srgb, var(--m-accent) 8%, transparent); }
+    #modalOverlay .ls-state.warn { border-color:var(--red); color:var(--red); background:rgba(200,80,80,0.08); }
+    #modalOverlay .ls-balance-warn { margin-top:10px; font-size:12.5px; font-weight:800; color:var(--red); }
+    #modalOverlay .ls-bullets { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:var(--m-ink); }
+    #modalOverlay .ls-tinted { background:color-mix(in srgb, #e8894a 6%, #fff); border-color:color-mix(in srgb, #e8894a 26%, #fff); }
+    #modalOverlay .ls-tinted .ls-card-title { color:#c8763a; }
+    @media (max-width:860px) { #modalOverlay .ls-grid { grid-template-columns:1fr; } }
     @media (max-width:980px) {
         #modalOverlay .modal-body { display:flex; flex-direction:column; }
         #modalOverlay .m-rail { display:none !important; }
@@ -3452,66 +3480,55 @@ function renderLockSummary(){
     const mfLoc = [_val('moveFromLocation'), _val('moveFromDetail')].filter(Boolean).join(' ');
     const mfAddr = document.getElementById('moveFromAddress')?.value || '';
 
-    let html = '';
-    // 장소 (이사세팅이면 출발지 → 도착지 + 출발→도착 동선 검색)
-    if (isMove && (mfLoc || location || mfAddr || addr)) {
-        html += `<div class="ls-section">
-            <div class="ls-section-title">이사 이동 경로</div>
-            <div><div class="ls-info-label">🚚 출발지 (이사 전)</div>
-                <div class="ls-location">${document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>')}</div>
-            </div>
-            <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
-                <div class="ls-location">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div>
-            </div>
-            <div class="ls-actions" style="margin-top:8px;">
-                ${mfAddr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(mfAddr)}" target="_blank">🔍 출발지</a>` : ''}
-                ${addr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 도착지</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="https://map.kakao.com/?sName=${encodeURIComponent(mfAddr)}&eName=${encodeURIComponent(addr)}" target="_blank">🗺 출발→도착 동선</a>` : ''}
-            </div>
-        </div>`;
-    } else if (location || addr) {
-        // 일반 장소
-        html += `<div class="ls-section">
-            <div class="ls-section-title">장소</div>
-            <div class="ls-location">${_esc(location)}</div>
-            ${addr ? `<div class="ls-actions">
-                <a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 주소 검색</a>
-                <a class="ls-action-btn primary" href="https://map.kakao.com/?sName=출발지&eName=${encodeURIComponent(addr)}" target="_blank">🗺 동선 검색</a>
-            </div>` : ''}
-        </div>`;
-    }
+    // ── 2a 요약 레이아웃: 상단 메타 행 + 좌/우 2컬럼 카드 그리드 ──
+    const left = [], right = [];
+    const lsCard = (title, body, extra = '', cls = '') =>
+        `<div class="ls-card${cls ? ' ' + cls : ''}">${title ? `<div class="ls-card-head"><span class="ls-card-title">${title}</span>${extra ? `<span class="ls-card-extra">${extra}</span>` : ''}</div>` : ''}${body}</div>`;
 
-    // 시간 + 카테고리 핀 + 일정 옵션(빠른/긴급/이후·제안/희망/목표) + 특수 옵션(반려동물 등)
+    // 메타 행 — 카테고리/의뢰자/프로젝트/원본 + 일정 성격 pills
     const specialSel=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')]
         .map(b=>b.dataset.opt).filter(o=>SPECIAL_OPT_LABELS[o]);
     const specialPills=specialSel.map(o=>`<span class="ls-type-pill">${SPECIAL_ICONS[o]||''} ${_esc(SPECIAL_OPT_LABELS[o])}</span>`).join('');
     const schedPills=[...document.querySelectorAll('#scheduleOpts .sched-opt-btn.active, #schedEventOpts .special-opt-btn.active')]
         .map(b=>`<span class="ls-type-pill">${_esc(b.textContent.trim())}</span>`).join('');
-    html += `<div class="ls-section">
-        <div class="ls-time"><span class="ls-time-icon">⏰</span><span>${_esc(timeStr)}</span></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span class="ls-type-pill">📌 ${_esc(typeLabel)}</span>${clientChipHtml}${projectChipHtml}${sourceChipHtml}</div>
-        ${schedPills||specialPills?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${schedPills}${specialPills}</div>`:''}
-    </div>`;
+    const metaRow=`<div class="ls-meta-row">${clientChipHtml}${projectChipHtml}${sourceChipHtml}${schedPills}${specialPills}</div>`;
 
-    // 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계를 비동기 로드
-    if (lsProjSummaryPid) {
-        html += `<div class="ls-section" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">
-            <div class="ls-section-title">📁 연결 프로젝트 요약</div>
-            <div class="ls-text-block muted">불러오는 중…</div>
-        </div>`;
+    // ① 일시·장소 — 굵은 일시 + 굵은 주소 + 특수옵션 회색 라인
+    const dowN=['일','월','화','수','목','금','토'];
+    const fmtD=d=>{ if(!d) return ''; const dt=new Date(d+'T00:00:00'); return isNaN(dt)?_esc(d):`${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')} (${dowN[dt.getDay()]})`; };
+    const timeBig=(isAll)
+        ? `${fmtD(sDate)}${eDate&&eDate!==sDate?` – ${fmtD(eDate)}`:''} 종일`
+        : `${fmtD(sDate)}${eDate&&eDate!==sDate?` – ${fmtD(eDate)}`:''} ${_esc(sTime)} – ${_esc(eTime)}`;
+    const specialLine=[...specialSel.map(o=>SPECIAL_OPT_LABELS[o]), _val('specialReason')].filter(Boolean).join(' · ');
+    const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
+            <a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 주소 검색</a>
+            <a class="ls-action-btn primary" href="https://map.kakao.com/?sName=출발지&eName=${encodeURIComponent(addr)}" target="_blank">🗺 동선 검색</a>
+        </div>` : '';
+    if (isMove && (mfLoc || location || mfAddr || addr)) {
+        left.push(lsCard('일시 · 이사 이동 경로', `
+            <div class="ls-big">${timeBig}</div>
+            <div style="margin-top:8px;"><div class="ls-info-label">🚚 출발지 (이사 전)</div>
+                <div class="ls-addr" style="margin-top:2px;">${document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>')}</div></div>
+            <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
+                <div class="ls-addr" style="margin-top:2px;">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div></div>
+            ${specialLine?`<div class="ls-sub">${_esc(specialLine)}</div>`:''}
+            <div class="ls-actions" style="margin-top:8px;">
+                ${mfAddr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(mfAddr)}" target="_blank">🔍 출발지</a>` : ''}
+                ${addr ? `<a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 도착지</a>` : ''}
+                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="https://map.kakao.com/?sName=${encodeURIComponent(mfAddr)}&eName=${encodeURIComponent(addr)}" target="_blank">🗺 출발→도착 동선</a>` : ''}
+            </div>`));
+    } else {
+        left.push(lsCard('일시 · 장소', `
+            <div class="ls-big">${timeBig}</div>
+            <div class="ls-addr">${_esc(location) || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>'}</div>
+            ${specialLine?`<div class="ls-sub">${_esc(specialLine)}</div>`:''}
+            ${addrActions}`));
     }
 
-    // 배송 현황 (gold/green, 송장 있을 때만) — 기본 접힘, 제목 클릭으로 펼침
+    // 배송 현황 (gold/green, 송장 있을 때만) — 결제 카드 배지용 수치 겸용
     const lsShips=(SHIP_COLORS.includes(color)?(shipCache.shipments||[]):[]);
-    if (lsShips.length) {
-        const lsDone=lsShips.filter(s=>s.status==='delivered').length;
-        html += `<div class="ls-section">
-            <div class="ls-section-title" style="cursor:pointer;user-select:none;" onclick="lsToggleShip()">${lsShipOpen?'▾':'▸'} 📦 배송 현황 (${lsDone}/${lsShips.length} 완료)</div>
-            <div style="display:${lsShipOpen?'block':'none'};">${lsShips.map(shipRowHtml).join('')}</div>
-        </div>`;
-    }
+    const lsShipsDone=lsShips.filter(s=>s.status==='delivered').length;
 
-    // Gold 전용 상세 칩 + 섹션
     if (color === 'gold') {
         const platform = _radio('g_platform_group');
         const platformEtc = _val('g_platform_etc');
@@ -3529,83 +3546,92 @@ function renderLockSummary(){
         const balanceVal = _radio('g_balance_group');
         const delivery = _radio('g_delivery_group');
 
-        const chips = [];
-        const pushChip = (icon, key, val) => { if (val) chips.push(`<span class="ls-chip"><span class="ls-chip-icon">${icon}</span><span class="ls-chip-key">${key}</span><span class="ls-chip-val">${_esc(val)}</span></span>`); };
-        pushChip('🔗', '유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
-        pushChip('🖥', '플랫폼', platform === '기타' ? (platformEtc || '기타') : platform);
-        pushChip('🎓', '경력', career);
-        pushChip('🎙', '방송주제', topic === '기타' ? (topicEtc || '기타') : topic);
-        pushChip('💰', '예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
-        pushChip('📋', '의뢰주제', reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic);
-        pushChip('💳', '결제', paid);
-        pushChip('📦', '주문', orderVal);
-        pushChip('💵', '잔금', balanceVal);
-        if (orderVal === 'O') pushChip('🚛', '수령', delivery || 'X');
-
-        if (chips.length) {
-            html += `<div class="ls-chips">${chips.join('')}</div>`;
-        }
-
-        // 의뢰자 정보 (비어있어도 영역 표시)
+        // ② 의뢰자 — 닉네임/이름 굵게 + 전화 굵게
         const nick = _val('g_nickname');
         const name = _val('g_name');
         const phone = _val('g_phone');
-        const _cell = (label, v) => `<div class="ls-info-cell"><div class="ls-info-label">${label}</div><div class="ls-info-val${v?'':' ls-empty'}">${v ? _esc(v) : '—'}</div></div>`;
-        html += `<div class="ls-section">
-            <div class="ls-section-title">의뢰자 정보</div>
-            <div class="ls-info-grid">
-                ${_cell('의뢰자 닉네임', nick)}
-                ${_cell('의뢰자 이름', name)}
-                ${_cell('전화번호', phone)}
-            </div>
-        </div>`;
+        const nameNote = (nick && name)
+            ? (nick === name ? '<span class="ls-sub-inline">닉네임 동일</span>' : `<span class="ls-sub-inline">이름 ${_esc(name)}</span>`)
+            : '';
+        left.push(lsCard('의뢰자', `
+            <div class="ls-big" style="font-size:15px;">${_esc(nick || name) || '<span style="color:var(--text-muted);font-weight:400;">— 미입력 —</span>'} ${nameNote}</div>
+            <div class="ls-addr" style="margin-top:4px;">${_esc(phone) || '<span style="color:var(--text-muted);font-weight:400;">전화번호 미입력</span>'}</div>`));
 
-        // 장비 목록
-        const equip = _val('g_equipment');
-        html += `<div class="ls-section">
-            <div class="ls-section-title">장비 목록</div>
-            ${equip ? `<div class="ls-text-block">${_esc(equip)}</div>` : `<div class="ls-text-block muted">— 등록된 장비 없음 —</div>`}
-        </div>`;
+        // ③ 방송 정보 — 미니 타일 (값 있는 것만)
+        const tiles=[];
+        const pushTile=(k,v)=>{ if(v) tiles.push(`<div class="ls-tile"><div class="ls-tile-k">${k}</div><div class="ls-tile-v">${_esc(v)}</div></div>`); };
+        pushTile('플랫폼', platform === '기타' ? (platformEtc || '기타') : platform);
+        pushTile('경력', career);
+        pushTile('의뢰주제', reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic);
+        pushTile('방송주제', topic === '기타' ? (topicEtc || '기타') : topic);
+        pushTile('유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
+        pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
+        if (tiles.length) left.push(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`));
 
-        // 의뢰 내용
-        const reqDetail = _val('g_req_detail');
-        const special = _val('g_special');
-        html += `<div class="ls-section">
-            <div class="ls-section-title">의뢰 내용</div>
-            <div><div class="ls-info-label">의뢰 세부항목</div>
-                ${reqDetail ? `<div class="ls-text-block">${_esc(reqDetail)}</div>` : `<div class="ls-text-block muted">— 내용 없음 —</div>`}
-            </div>
-            <div><div class="ls-info-label">특이사항</div>
-                ${special ? `<div class="ls-text-block">${_esc(special)}</div>` : `<div class="ls-text-block muted">— 내용 없음 —</div>`}
-            </div>
-        </div>`;
-
-        // 결제 정보
+        // ④ 결제 · 진행 — 금액 크게 + 상태 칩(결제/주문/잔금/수령) + 배송 배지
         const amount = _val('g_estimate_amount');
         const balanceAmount = _val('g_balance_amount');
         const savedFlag = document.getElementById('g_estimate_status')?.textContent?.includes('저장');
-        html += `<div class="ls-section">
-            <div class="ls-section-title">결제 정보</div>
-            <div class="ls-amount-row">
-                <div>
-                    <div class="ls-info-label">결제된 금액</div>
-                    ${amount ? `<div class="ls-amount">${_esc(_fmtAmt(amount))}원</div>` : `<div class="ls-text-block muted">— 미입력 —</div>`}
-                </div>
+        const st=(label,val,goodLabel)=>{
+            if(val==='O') return `<span class="ls-state on">${goodLabel||label} ✓</span>`;
+            if(val==='X') return `<span class="ls-state">${label} ✕</span>`;
+            return val?`<span class="ls-state mid">${label} ${_esc(val)}</span>`:'';
+        };
+        const payChips=[
+            paid==='O'?'<span class="ls-state on">결제완료</span>':(paid?st('결제',paid):''),
+            st('주문',orderVal),
+            balanceVal==='O'?'<span class="ls-state warn">잔금 O</span>':st('잔금',balanceVal),
+            orderVal==='O'?st('수령',delivery||'X'):'',
+        ].filter(Boolean).join('');
+        left.push(lsCard('결제 · 진행', `
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+                <span class="ls-amount-big">${amount?_esc(_fmtAmt(amount))+'원':'<span style="font-size:13px;color:var(--text-muted);font-weight:400;">결제 금액 미입력</span>'}</span>
                 ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
             </div>
-            ${balanceAmount ? `<div style="margin-top:6px;"><div class="ls-info-label">잔금 금액</div><div class="ls-text-block">${_esc(_fmtAmt(balanceAmount))}원</div></div>` : ''}
-        </div>`;
+            ${payChips?`<div class="ls-state-chips">${payChips}</div>`:''}
+            ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}`,
+            lsShips.length?`배송 ${lsShipsDone}/${lsShips.length} 완료`:''));
+
+        // 우측 ① 장비 목록 — 불릿 + n품목
+        const equip = _val('g_equipment');
+        const equipLines = equip.split(/\n/).map(s=>s.trim()).filter(Boolean);
+        right.push(lsCard('장비 목록',
+            equipLines.length
+                ? `<ul class="ls-bullets">${equipLines.map(l=>`<li>${_esc(l)}</li>`).join('')}</ul>`
+                : '<div class="ls-text-block muted">— 등록된 장비 없음 —</div>',
+            equipLines.length?`${equipLines.length}품목`:''));
+
+        // 우측 ② 의뢰 세부항목 / ③ 특이사항 (틴트)
+        const reqDetail = _val('g_req_detail');
+        if (reqDetail) right.push(lsCard('의뢰 세부항목', `<div class="ls-text-block">${_esc(reqDetail)}</div>`));
+        const special = _val('g_special');
+        if (special) right.push(lsCard('특이사항', `<div class="ls-text-block" style="font-weight:600;">${_esc(special)}</div>`, '', 'ls-tinted'));
     }
 
-    // 공통: 상세 설명
+    // 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계를 비동기 로드
+    if (lsProjSummaryPid) {
+        left.push(`<div class="ls-card" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">
+            <div class="ls-card-head"><span class="ls-card-title">📁 연결 프로젝트 요약</span></div>
+            <div class="ls-text-block muted">불러오는 중…</div>
+        </div>`);
+    }
+
+    // 공통: 상세 설명 / 전달사항
     if (color !== 'gold' && color !== 'teal') {
         const desc = _val('commonDesc');
-        if (desc) html += `<div class="ls-section"><div class="ls-section-title">상세 설명</div><div class="ls-text-block">${_esc(desc)}</div></div>`;
+        if (desc) left.push(lsCard('상세 설명', `<div class="ls-text-block">${_esc(desc)}</div>`));
         const hNote = _val('commonHandoverNote');
-        if (hNote) html += `<div class="ls-section"><div class="ls-section-title">전달사항</div><div class="ls-text-block">${_esc(hNote)}</div></div>`;
+        if (hNote) left.push(lsCard('전달사항', `<div class="ls-text-block">${_esc(hNote)}</div>`, '', 'ls-tinted'));
     }
 
-    // 첨부 이미지 (모든 카테고리 공통, 비어있어도 영역 표시)
+    // 배송 현황 목록 카드 (접힘 토글 유지)
+    if (lsShips.length) {
+        left.push(lsCard('', `
+            <div class="ls-card-title" style="cursor:pointer;user-select:none;" onclick="lsToggleShip()">${lsShipOpen?'▾':'▸'} 📦 배송 현황 (${lsShipsDone}/${lsShips.length} 완료)</div>
+            <div style="display:${lsShipOpen?'block':'none'};margin-top:8px;">${lsShips.map(shipRowHtml).join('')}</div>`));
+    }
+
+    // 우측 하단: 첨부 이미지 (모든 카테고리 공통)
     const imgGroups = [
         { label:'견적서', grid:'quoteGrid' },
         { label:'레퍼런스', grid:'refGrid' },
@@ -3613,10 +3639,12 @@ function renderLockSummary(){
         { label:'첨부 파일', grid:'generalGrid' },
     ];
     let imgHtml = '';
+    let imgEmpty = [];
     imgGroups.forEach(g => {
         const grid = document.getElementById(g.grid);
         // 이미지는 썸네일, 비이미지 파일(문서 등)은 파일 칩으로 — 둘 다 요약에 노출
         const items = grid ? Array.from(grid.querySelectorAll('.img-item')) : [];
+        if (!items.length) { imgEmpty.push(g.label); return; }
         const cells = items.map(it => {
             const im = it.querySelector('img');
             if (im) return `<img src="${_esc(im.src)}" data-full="${_esc(im.dataset.full||im.src)}" alt="${_esc(g.label)}" loading="lazy" decoding="async">`;
@@ -3629,14 +3657,13 @@ function renderLockSummary(){
         });
         imgHtml += `<div class="ls-img-section">
             <div class="ls-img-label">${g.label}</div>
-            ${cells.length
-                ? `<div class="ls-img-grid">${cells.join('')}</div>`
-                : `<div class="ls-img-empty">— 등록된 ${g.label} 없음 —</div>`}
+            <div class="ls-img-grid">${cells.join('')}</div>
         </div>`;
     });
-    html += `<div class="ls-section"><div class="ls-section-title">첨부 이미지</div>${imgHtml}</div>`;
+    if (imgEmpty.length) imgHtml += `<div class="ls-sub" style="margin-top:4px;">${imgEmpty.join(' · ')} — 등록된 항목 없음</div>`;
+    right.push(lsCard('첨부 이미지', imgHtml || '<div class="ls-text-block muted">— 등록된 첨부 없음 —</div>'));
 
-    container.innerHTML = html || '<div class="ls-text-block muted">내용 없음</div>';
+    container.innerHTML = metaRow + `<div class="ls-grid"><div class="ls-col">${left.join('')}</div><div class="ls-col">${right.join('')}</div></div>`;
     if (lsProjSummaryPid) lsLoadProjectSummary(lsProjSummaryPid);
 }
 
