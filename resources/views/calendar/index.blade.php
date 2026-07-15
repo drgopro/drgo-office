@@ -582,7 +582,7 @@
     #modalOverlay .m-secstat { margin-left:auto; font-size:11px; font-weight:600; color:#a8a69e; }
     #modalOverlay .m-secstat.done { color:var(--m-accent); }
     /* 요약 뷰 — 2a 스타일 2컬럼 카드 그리드 */
-    #modalOverlay .lock-summary { gap:12px; }
+    #modalOverlay .lock-summary { gap:12px; padding:0; } /* modal-body 패딩만 사용 (이중 패딩 제거) */
     #modalOverlay .ls-meta-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
     #modalOverlay .ls-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
     #modalOverlay .ls-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
@@ -634,6 +634,20 @@
         #modalOverlay .ls-c-attach .ls-img-grid { display:flex; overflow-x:auto; gap:8px; padding-bottom:6px; }
         #modalOverlay .ls-c-attach .ls-img-grid img { flex:none; width:96px; height:96px; object-fit:cover; border-radius:8px; }
         #modalOverlay .ls-mobile-cta { display:block; }
+        /* 모바일 여백/크기 정돈 — 카드가 좁아지지 않도록 */
+        #modalOverlay .modal-body { padding:12px; gap:12px; }
+        #modalOverlay .modal-header { padding:14px 16px 12px; }
+        #modalOverlay .modal-footer { padding:12px 16px 14px; }
+        #modalOverlay .ls-card { padding:14px; border-radius:12px; }
+        #modalOverlay .ls-grid { gap:10px; }
+        #modalOverlay .lock-summary { gap:10px; }
+        #modalOverlay .ls-meta-row { gap:5px; }
+        #modalOverlay .ls-meta-row .ls-type-pill, #modalOverlay .ls-meta-row .ls-client-chip { font-size:11px; padding:4px 9px; }
+        #modalOverlay .ls-big { font-size:15px; }
+        #modalOverlay .ls-amount-big { font-size:19px; }
+        #modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section,
+        #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card { padding:14px; border-radius:12px; }
+        #modalOverlay #balanceBanner { margin:10px 12px 0; }
     }
     @media (max-width:980px) {
         #modalOverlay .modal-body { display:flex; flex-direction:column; }
