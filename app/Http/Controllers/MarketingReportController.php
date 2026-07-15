@@ -185,44 +185,51 @@ class MarketingReportController extends Controller
                 ->sum('amount');
         }
 
-        // 3) 프로젝트 유형·작업 유형별 매출 세분화 — 결제를 프로젝트에 조인해 실제 어떤 일에서 매출이 났는지 집계
-        $revenueByProjectType = [];
-        $revenueByWorkType = [];
+        // 3) 프로젝트 유형·작업 유형별 매출 세분화 — 결제를 프로젝트에 조인해 (유형 × 작업 유형) 매트릭스로 집계
+        $revenueMatrix = [];
         if (Schema::hasTable('project_payments')) {
-            $revenueByProjectType = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
+            $rows = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
                 ->join('projects', 'projects.id', '=', 'project_payments.project_id')
-                ->selectRaw("coalesce(projects.project_type, '') as k, sum(project_payments.amount) as total")
-                ->groupBy('k')->pluck('total', 'k')->map(fn ($v) => (int) $v)->all();
-            $revenueByWorkType = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
-                ->join('projects', 'projects.id', '=', 'project_payments.project_id')
-                ->selectRaw("coalesce(projects.work_type, '') as k, sum(project_payments.amount) as total")
-                ->groupBy('k')->pluck('total', 'k')->map(fn ($v) => (int) $v)->all();
+                ->selectRaw("coalesce(projects.project_type, '') as t, coalesce(projects.work_type, '') as w, sum(project_payments.amount) as total")
+                ->groupBy('t', 'w')->get();
+            foreach ($rows as $r) {
+                $revenueMatrix[$r->t][$r->w] = ($revenueMatrix[$r->t][$r->w] ?? 0) + (int) $r->total;
+            }
         }
         // 레거시 견적 매출도 연결된 프로젝트 기준으로 합산 (미연결 견적은 빈 키 = 미지정)
         foreach ($legacyPaidEstimates as $e) {
             $tKey = $e->project?->project_type ?? '';
             $wKey = $e->project?->work_type ?? '';
-            $revenueByProjectType[$tKey] = ($revenueByProjectType[$tKey] ?? 0) + (int) $e->total_amount;
-            $revenueByWorkType[$wKey] = ($revenueByWorkType[$wKey] ?? 0) + (int) $e->total_amount;
+            $revenueMatrix[$tKey][$wKey] = ($revenueMatrix[$tKey][$wKey] ?? 0) + (int) $e->total_amount;
         }
-        // 라벨 매핑 (비활성 유형 포함) + 금액 내림차순, 0원 제거
+
+        // 라벨 매핑 (비활성 유형 포함) — 유형별 합계 + 유형 내 작업 유형 하위 분해, 작업 유형 단독 집계
         $typeLabels = ConsultationType::map(false);
         $workLabels = WorkType::map(false);
-        $labelize = function (array $rows, array $labels): array {
-            $out = [];
-            foreach ($rows as $key => $amount) {
+        $revenueByProjectType = [];
+        $revenueByWorkType = [];
+        foreach ($revenueMatrix as $t => $works) {
+            $tLabel = $t === '' ? '미지정' : ($typeLabels[$t] ?? $t);
+            foreach ($works as $w => $amount) {
                 if ((int) $amount === 0) {
                     continue;
                 }
-                $label = $key === '' ? '미지정' : ($labels[$key] ?? $key);
-                $out[$label] = ($out[$label] ?? 0) + (int) $amount;
+                $wLabel = $w === '' ? '미지정' : ($workLabels[$w] ?? $w);
+                $revenueByProjectType[$tLabel]['total'] = ($revenueByProjectType[$tLabel]['total'] ?? 0) + (int) $amount;
+                $revenueByProjectType[$tLabel]['works'][$wLabel] = ($revenueByProjectType[$tLabel]['works'][$wLabel] ?? 0) + (int) $amount;
+                $revenueByWorkType[$wLabel] = ($revenueByWorkType[$wLabel] ?? 0) + (int) $amount;
             }
-            arsort($out);
+        }
+        $revenueByProjectType = collect($revenueByProjectType)
+            ->filter(fn ($d) => ($d['total'] ?? 0) !== 0)
+            ->sortByDesc('total')
+            ->map(function ($d) {
+                arsort($d['works']);
 
-            return $out;
-        };
-        $revenueByProjectType = $labelize($revenueByProjectType, $typeLabels);
-        $revenueByWorkType = $labelize($revenueByWorkType, $workLabels);
+                return $d;
+            })->all();
+        $revenueByWorkType = array_filter($revenueByWorkType, fn ($v) => $v !== 0);
+        arsort($revenueByWorkType);
 
         // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──
         $rentalActive = 0;

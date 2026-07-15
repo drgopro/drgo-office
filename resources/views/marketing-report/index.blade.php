@@ -376,13 +376,22 @@
         <div class="mk-two-col">
             @if(count($revenueByProjectType))
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">프로젝트 유형별 매출</div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">프로젝트 유형별 매출 <span style="font-weight:400;">· 하위 항목은 작업 유형</span></div>
                 <div class="mk-list">
-                    @foreach($revenueByProjectType as $label => $val)
+                    @foreach($revenueByProjectType as $label => $data)
                     <div class="mk-list-item">
-                        <span class="mk-list-label">{{ $label }}</span>
-                        <span class="mk-list-value">{{ number_format($val) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($val / $revenueTotal * 100) : 0 }}%)</span></span>
+                        <span class="mk-list-label" style="font-weight:700;">{{ $label }}</span>
+                        <span class="mk-list-value">{{ number_format($data['total']) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($data['total'] / $revenueTotal * 100) : 0 }}%)</span></span>
                     </div>
+                    {{-- 유형 안에서 어떤 작업이 매출을 만들었는지 — 작업 유형이 미지정 하나뿐이면 생략 --}}
+                    @if(count($data['works']) > 1 || !isset($data['works']['미지정']))
+                        @foreach($data['works'] as $wLabel => $wVal)
+                        <div class="mk-list-item" style="padding-left:24px; background:transparent;">
+                            <span class="mk-list-label" style="color:var(--text-muted); font-size:12px;">└ {{ $wLabel }}</span>
+                            <span class="mk-list-value" style="font-size:12px; color:var(--text-muted);">{{ number_format($wVal) }}원 <span style="font-weight:400; font-size:11px;">({{ $data['total'] > 0 ? round($wVal / $data['total'] * 100) : 0 }}%)</span></span>
+                        </div>
+                        @endforeach
+                    @endif
                     @endforeach
                 </div>
             </div>

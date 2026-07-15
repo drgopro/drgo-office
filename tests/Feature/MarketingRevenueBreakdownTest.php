@@ -36,9 +36,10 @@ class MarketingRevenueBreakdownTest extends TestCase
         $res->assertOk()
             ->assertSee('프로젝트 유형별 매출')
             ->assertSee('작업 유형별 매출')
-            ->assertSee('500,000원')  // 방문 합산
-            ->assertSee('100,000원')  // 원격
-            ->assertSee('미지정');     // 원격 프로젝트의 work_type 없음
+            ->assertSee('500,000원')      // 방문 합산
+            ->assertSee('100,000원')      // 원격
+            ->assertSee('└ 세팅', false)  // 방문 하위 작업 유형 분해
+            ->assertSee('미지정');         // 원격 프로젝트의 work_type 없음
     }
 
     public function test_refund_reduces_type_revenue(): void
