@@ -443,7 +443,7 @@ function boardHtml(todos) {
         const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
         const openCount = items.filter(t => !t.completed).length;
         return `<div class="todo-col" data-assignee="${uid}"
-            ondragover="event.preventDefault(); this.classList.add('drag-over')"
+            ondragover="colDragOver(event, this)"
             ondragleave="this.classList.remove('drag-over')"
             ondrop="dropTodo(event, ${uid})">
             <div class="todo-col-head">
@@ -585,7 +585,7 @@ document.addEventListener('click', e => {
 
 function cardHtml(t) {
     const priLabel = PRI_LABELS[t.priority] || t.priority;
-    return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="${IS_ADMIN}" data-id="${t.id}"
+    return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
         ondragstart="startCardDrag(event, ${t.id})"
         ondragend="endCardDrag(this)"
         onclick="openTodoView(${t.id})">
@@ -636,25 +636,64 @@ function endCardDrag(card) {
     document.querySelectorAll('#todoBoard .todo-col.ghost').forEach(c => c.remove());
 }
 
+// 드래그 중 컬럼 위 이동 — 같은 컬럼(또는 관리자는 다른 컬럼)에서 카드가 마우스 위치로 실시간 재배치됨
+function colDragOver(ev, colEl) {
+    ev.preventDefault();
+    colEl.classList.add('drag-over');
+    const dragging = document.querySelector('#todoBoard .todo-card.dragging');
+    if (!dragging) { return; }
+    const dragTodo = TODOS.find(t => t.id === parseInt(dragging.dataset.id, 10));
+    const colAssignee = parseInt(colEl.dataset.assignee, 10);
+    // 멤버는 자기 컬럼 안에서만 이동 (다른 컬럼으로의 실시간 이동 차단)
+    if (!IS_ADMIN && dragTodo && dragTodo.assignee_id !== colAssignee) { return; }
+    const body = colEl.querySelector('.todo-col-body');
+    const after = cardAfterPointer(body, ev.clientY);
+    if (after === null) { body.appendChild(dragging); }
+    else if (after !== dragging) { body.insertBefore(dragging, after); }
+}
+
+// 마우스 y좌표 기준으로 어느 카드 앞에 끼울지 계산
+function cardAfterPointer(body, y) {
+    let closest = { offset: -Infinity, el: null };
+    body.querySelectorAll('.todo-card:not(.dragging)').forEach(card => {
+        const box = card.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) { closest = { offset, el: card }; }
+    });
+    return closest.el;
+}
+
 async function dropTodo(ev, assigneeId) {
     ev.preventDefault();
     ev.currentTarget.classList.remove('drag-over');
-    if (!IS_ADMIN) { return; } // 담당자 변경은 관리자 이상
     const id = parseInt(ev.dataTransfer.getData('text/plain'), 10);
     const todo = TODOS.find(t => t.id === id);
-    if (!todo || todo.assignee_id === assigneeId) { return; }
+    if (!todo) { return; }
 
-    const res = await fetch(`/api/todos/${id}/assign`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ assignee_id: assigneeId }),
-    });
-    if (!res.ok) { alert('담당자 변경에 실패했습니다.'); return; }
-    const m = memberById(assigneeId);
-    todo.assignee_id = assigneeId;
-    todo.assignee = m ? m.name : todo.assignee;
-    todo.team = m ? m.team : todo.team;
-    renderBoard();
+    const changed = todo.assignee_id !== assigneeId;
+    if (changed && !IS_ADMIN) { return; } // 담당자 변경은 관리자 이상 (순서 변경은 누구나)
+
+    if (changed) {
+        const res = await fetch(`/api/todos/${id}/assign`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify({ assignee_id: assigneeId }),
+        });
+        if (!res.ok) { alert('담당자 변경에 실패했습니다.'); await refreshBoard(); return; }
+    }
+
+    // 드롭된 컬럼의 화면 순서 그대로 저장
+    const body = ev.currentTarget.querySelector('.todo-col-body');
+    const ids = body ? [...body.querySelectorAll('.todo-card')].map(c => parseInt(c.dataset.id, 10)).filter(Boolean) : [];
+    if (ids.length) {
+        const res = await fetch('/api/todos/reorder', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify({ ids }),
+        });
+        if (!res.ok) { alert('순서 저장에 실패했습니다.'); }
+    }
+    await refreshBoard();
 }
 
 async function refreshBoard() {

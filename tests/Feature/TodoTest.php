@@ -129,6 +129,41 @@ class TodoTest extends TestCase
         $this->assertSame($newAssignee->id, $todo->fresh()->assignee_id);
     }
 
+    public function test_reorder_sets_sort_order_by_given_ids(): void
+    {
+        $a = Todo::factory()->create(['assignee_id' => $this->user->id]);
+        $b = Todo::factory()->create(['assignee_id' => $this->user->id]);
+        $c = Todo::factory()->create(['assignee_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->patchJson('/api/todos/reorder', [
+            'ids' => [$c->id, $a->id, $b->id],
+        ])->assertOk();
+
+        $this->assertSame(1, $c->fresh()->sort_order);
+        $this->assertSame(2, $a->fresh()->sort_order);
+        $this->assertSame(3, $b->fresh()->sort_order);
+
+        // 보드 응답도 새 순서를 따름
+        $ids = collect($this->actingAs($this->user)->getJson('/api/todos')->json('todos'))->pluck('id')->all();
+        $this->assertSame([$c->id, $a->id, $b->id], $ids);
+    }
+
+    public function test_member_cannot_reorder_others_todos(): void
+    {
+        $mine = Todo::factory()->create(['assignee_id' => $this->user->id]);
+        $others = Todo::factory()->create();
+
+        $this->actingAs($this->user)->patchJson('/api/todos/reorder', [
+            'ids' => [$others->id, $mine->id],
+        ])->assertForbidden();
+
+        // 관리자는 가능
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->patchJson('/api/todos/reorder', [
+            'ids' => [$others->id, $mine->id],
+        ])->assertOk();
+    }
+
     public function test_complete_toggles(): void
     {
         $todo = Todo::factory()->create();

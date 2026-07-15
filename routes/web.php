@@ -343,6 +343,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/todos', [TodoController::class, 'index'])->name('todos.index');
     Route::get('/api/todos', [TodoController::class, 'board']);
     Route::post('/api/todos', [TodoController::class, 'store']);
+    Route::patch('/api/todos/reorder', [TodoController::class, 'reorder']); // {todo}보다 먼저 매칭돼야 함
     Route::patch('/api/todos/{todo}', [TodoController::class, 'update']);
     Route::patch('/api/todos/{todo}/assign', [TodoController::class, 'assign']);
     Route::patch('/api/todos/{todo}/complete', [TodoController::class, 'complete']);

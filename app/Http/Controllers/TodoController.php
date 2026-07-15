@@ -50,6 +50,26 @@ class TodoController extends Controller
         return response()->json(['todo' => $this->present($todo->fresh()->load('assignee.team', 'creator', 'attachments'))]);
     }
 
+    /** 드래그 순서 변경 — 전달된 id 순서대로 sort_order 재부여 (멤버는 본인 할 일만) */
+    public function reorder(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:todos,id',
+        ]);
+
+        $todos = Todo::whereIn('id', $validated['ids'])->get()->keyBy('id');
+        if (! Auth::user()->isAdmin() && $todos->contains(fn (Todo $t) => $t->assignee_id !== Auth::id())) {
+            abort(403, '본인 할 일만 순서를 변경할 수 있습니다.');
+        }
+
+        foreach (array_values($validated['ids']) as $i => $id) {
+            $todos[$id]?->update(['sort_order' => $i + 1]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     /** 드래그로 담당자 변경 — 관리자 이상만 */
     public function assign(Request $request, Todo $todo)
     {
