@@ -357,15 +357,11 @@
     /* '만 보기' — 행 hover 시 우측에 표시, 클릭하면 해당 카테고리만 켜기 (재클릭 시 전체 복원) */
     /* (만 보기 버튼 제거 — 라벨 클릭이 단독 보기 역할) */
 
-    /* ── 삭제/변경 흔적 고스트 칩 — 점선 테두리 + 취소선 + 반투명 (실제 일정과 구분) ── */
+    /* ── 삭제/변경 흔적 고스트 칩 — 카테고리 색·폰트는 일반 칩과 동일, 빨간 네온 테두리 + 취소선으로 구분 ── */
     .cs-ghost-row { border-top:1px dashed var(--border); margin-top:6px; padding-top:8px; }
-    .day-cell .event-chip.ghost-chip { background:transparent !important; border:1px dashed color-mix(in srgb, var(--text-muted) 55%, transparent) !important; opacity:0.75; cursor:pointer; pointer-events:auto; width:100%; min-width:0; border-radius:4px; padding:0 3px; font-size:9px; line-height:1.6; display:flex; align-items:center; overflow:hidden; }
-    .day-cell .event-chip.ghost-chip .chip-title { text-decoration:line-through; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
-    .day-cell .event-chip.ghost-chip.g-deleted { border-color:rgba(207,84,84,0.55) !important; }
-    .day-cell .event-chip.ghost-chip.g-deleted .chip-title { color:#cf5454; }
-    .day-cell .event-chip.ghost-chip.g-modified { border-color:rgba(90,130,200,0.55) !important; }
-    .day-cell .event-chip.ghost-chip.g-modified .chip-title { color:#5a82c8; }
-    .day-cell .event-chip.ghost-chip:hover { opacity:1; }
+    .day-cell .event-chip.ghost-chip { border:1.5px solid #ff4d4f !important; box-shadow:0 0 6px rgba(255,77,79,0.55); cursor:pointer; pointer-events:auto; }
+    .day-cell .event-chip.ghost-chip .chip-title { text-decoration:line-through; }
+    .day-cell .event-chip.ghost-chip:hover { box-shadow:0 0 10px rgba(255,77,79,0.85); }
     .cs-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
     #calSide .assignee-filter { width:100%; margin-bottom:6px; box-sizing:border-box; }
     #calSide .assignee-filter-chips { width:100%; }
