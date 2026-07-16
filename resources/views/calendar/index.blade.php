@@ -946,12 +946,21 @@
 
         /* 모달 모바일 */
         .modal { max-width:95vw; border-radius:12px; }
-        .modal-body { padding:14px 16px; }
+        .modal-body { padding:14px 16px; overflow-x:hidden; }
         .modal-header { padding:16px 16px 0; }
         .modal-footer { padding:0 16px 16px; }
         .icon-btn { width:40px; height:40px; }
         .modal-title-input { font-size:18px; }
         .field-section { padding:12px; }
+
+        /* ── 긴 텍스트로 인한 가로 스크롤 방지 — 화면 폭에 맞게 고정 ── */
+        html, body { max-width:100vw; overflow-x:hidden; }
+        .cal-container, .calendar-wrap, .mobile-day-events, .legend, .modal, .lock-summary { max-width:100%; min-width:0; }
+        .mobile-day-events .mde-meta { overflow-wrap:anywhere; }
+        .modal-body .field-input, .modal-body textarea, .modal-body select { max-width:100%; min-width:0; }
+        /* 요약/카드 내부 텍스트 — 공백 없는 긴 문자열(주소·URL 등)도 강제 줄바꿈 */
+        .lock-summary *, .m-card *, .field-section * { overflow-wrap:anywhere; }
+        .radio-group { flex-wrap:wrap; }
     }
 
     @media (max-width: 480px) {
@@ -1458,11 +1467,14 @@
                     </div>
                     <div class="field-group" style="flex:1;">
                         <label class="field-label">유입 경로</label>
-                        <div id="g_source_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
-                            <div class="radio-group" id="g_source_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
+                        <div id="g_source_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                            <div class="radio-group" id="g_source_group" style="flex-wrap:wrap;gap:5px;flex-shrink:0;">
                                 <div class="radio-btn" data-val="광고">📢 광고</div>
                                 <div class="radio-btn" data-val="검색">🔍 검색</div>
                                 <div class="radio-btn" data-val="소개">🤝 소개</div>
+                                <div class="radio-btn" data-val="SNS">📱 SNS</div>
+                                <div class="radio-btn" data-val="커뮤니티">👥 커뮤니티</div>
+                                <div class="radio-btn" data-val="기타">기타</div>
                             </div>
                             <div class="conditional-field" id="g_source_ref_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름" style="font-size:13px;"></div>
                         </div>
@@ -3214,7 +3226,8 @@ function handleConditional(gid){
         const g=document.getElementById(gid);
         const wrap=document.getElementById(condMap[gid]);
         if(!g||!wrap) return;
-        const triggerVals=['기타','직접입력','소개'];
+        // 유입 경로의 부가 입력(소개해 준 분)은 '소개'에서만 — 기타 pill 추가로 오작동 방지
+        const triggerVals=gid==='g_source_group'?['소개']:['기타','직접입력','소개'];
         const hasMatch=[...g.querySelectorAll('.radio-btn.active')].some(b=>triggerVals.includes(b.dataset.val));
         wrap.classList.toggle('visible',hasMatch);
     }
@@ -3968,9 +3981,9 @@ function applyClientDetail(d){
     }
     // 방송 경력 — 의뢰자 프로필 값을 그대로 반영 (모달 기본값 '처음'보다 프로필이 우선)
     if(d.career) setRadio('g_career_group',d.career);
-    // 유입 경로 — 의뢰자 키 → 캘린더 pill 매핑 (SNS/커뮤니티/기타는 대응 pill이 없어 유지)
+    // 유입 경로 — 의뢰자 키 → 캘린더 pill 매핑 (전체 대응)
     if(d.inflow_source&&!getRadio('g_source_group')){
-        const SRC_MAP={ad:'광고',search:'검색',referral:'소개'};
+        const SRC_MAP={ad:'광고',search:'검색',referral:'소개',sns:'SNS',community:'커뮤니티',other:'기타'};
         if(SRC_MAP[d.inflow_source]) setRadio('g_source_group',SRC_MAP[d.inflow_source]);
     }
     // 예산 성향 — 풍족/부족/모름은 pill로, 그 외 자유 서술은 직접입력으로

@@ -117,7 +117,7 @@
     .chk-group { display:flex; flex-wrap:wrap; gap:6px; }
     .chk-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:12px; cursor:pointer; user-select:none; transition:all 0.12s; }
     .chk-chip:hover { border-color:var(--accent); color:var(--text); }
-    .chk-chip input[type=checkbox] { display:none; }
+    .chk-chip input[type=checkbox], .chk-chip input[type=radio] { display:none; }
     .chk-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
     [data-theme="light"] .chk-chip.on { color:#fff; }
     .field-select { cursor:pointer; }
@@ -269,15 +269,14 @@
             </div>
             <div class="field">
                 <div class="field-label">유입경로</div>
-                <select class="field-input field-select" id="ncInflowSource">
-                    <option value="">선택</option>
-                    <option value="search">검색</option>
-                    <option value="referral">지인 소개</option>
-                    <option value="sns">SNS</option>
-                    <option value="ad">광고</option>
-                    <option value="community">커뮤니티</option>
-                    <option value="other">기타</option>
-                </select>
+                <div class="chk-group" onchange="syncRadioState(this)">
+                    <label class="chk-chip"><input type="radio" name="ncInflow" value="search"><span>검색</span></label>
+                    <label class="chk-chip"><input type="radio" name="ncInflow" value="referral"><span>지인 소개</span></label>
+                    <label class="chk-chip"><input type="radio" name="ncInflow" value="sns"><span>SNS</span></label>
+                    <label class="chk-chip"><input type="radio" name="ncInflow" value="ad"><span>광고</span></label>
+                    <label class="chk-chip"><input type="radio" name="ncInflow" value="community"><span>커뮤니티</span></label>
+                    <label class="chk-chip"><input type="radio" name="ncInflow" value="other"><span>기타</span></label>
+                </div>
             </div>
             <div class="field">
                 <div class="field-label">의뢰자 유형</div>
@@ -325,8 +324,14 @@
             </div>
             <div class="form-grid full" style="margin-top:10px;">
                 <div class="field">
-                    <div class="field-label">예산 집행 스타일</div>
-                    <textarea class="field-input field-textarea" id="ncBudgetStyle" rows="2" placeholder="예: 보수적, 최고급 사양 선호"></textarea>
+                    <div class="field-label">예산 성향</div>
+                    <div class="chk-group" onchange="syncRadioState(this)">
+                        <label class="chk-chip"><input type="radio" name="budget-nc" value="풍족"><span>풍족</span></label>
+                        <label class="chk-chip"><input type="radio" name="budget-nc" value="부족"><span>부족</span></label>
+                        <label class="chk-chip"><input type="radio" name="budget-nc" value="모름"><span>모름</span></label>
+                        <label class="chk-chip"><input type="radio" name="budget-nc" value="직접입력"><span>직접입력</span></label>
+                    </div>
+                    <input type="text" class="field-input" id="budget-nc-etc" placeholder="예산 성향 직접 입력" style="margin-top:8px; display:none;">
                 </div>
             </div>
         </div>
@@ -453,6 +458,72 @@ function renderCheckboxGroup(group, id, options, selected, etcText) {
     }).join('');
     const etcInput = `<input type="text" class="field-input" id="f-${group}-etc-${id}" value="${(etcText||'').replace(/"/g,'&quot;')}" placeholder="기타 내용 입력" style="margin-top:8px; display:${hasEtc?'block':'none'};">`;
     return `<div class="chk-group" id="chkgroup-${group}-${id}" onchange="syncChipState(this)">${items}</div>${etcInput}`;
+}
+
+// 라디오 pill 그룹 — 캘린더와 동일한 버튼형 단일 선택 (options: [{value,label}] 또는 문자열 배열)
+function renderRadioGroup(name, options, selectedValue) {
+    return `<div class="chk-group" onchange="syncRadioState(this)">${options.map(opt => {
+        const value = typeof opt === 'string' ? opt : opt.value;
+        const label = typeof opt === 'string' ? opt : opt.label;
+        const checked = selectedValue === value ? 'checked' : '';
+        return `<label class="chk-chip${checked ? ' on' : ''}">
+            <input type="radio" name="${name}" value="${value.replace(/"/g, '&quot;')}" ${checked}>
+            <span>${label}</span>
+        </label>`;
+    }).join('')}</div>`;
+}
+
+function syncRadioState(wrap) {
+    wrap.querySelectorAll('label.chk-chip').forEach(l => {
+        const r = l.querySelector('input[type=radio]');
+        l.classList.toggle('on', !!r?.checked);
+    });
+    // 예산 성향 직접입력 토글
+    const name = wrap.querySelector('input[type=radio]')?.name || '';
+    if (name.startsWith('budget')) {
+        const etc = document.getElementById(`${name}-etc`);
+        if (etc) {
+            const isCustom = wrap.querySelector('input[value="직접입력"]')?.checked;
+            etc.style.display = isCustom ? 'block' : 'none';
+        }
+    }
+}
+
+function getRadioValue(name) {
+    return document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+}
+
+// 예산 성향 값 수집 — 풍족/부족/모름은 그대로, 직접입력은 입력 텍스트
+function collectBudgetStyle(name) {
+    const sel = getRadioValue(name);
+    if (!sel) return null;
+    if (sel === '직접입력') return document.getElementById(`${name}-etc`)?.value.trim() || null;
+    return sel;
+}
+
+// 저장된 예산 성향 → 라디오 상태 (풍족/부족/모름 외 자유 서술은 직접입력)
+function budgetRadioState(stored) {
+    const v = (stored || '').trim();
+    if (!v) return { selected: '', etc: '' };
+    if (['풍족', '부족', '모름'].includes(v)) return { selected: v, etc: '' };
+    return { selected: '직접입력', etc: v };
+}
+
+const INFLOW_OPTIONS = [
+    { value: 'search', label: '검색' }, { value: 'referral', label: '지인 소개' }, { value: 'sns', label: 'SNS' },
+    { value: 'ad', label: '광고' }, { value: 'community', label: '커뮤니티' }, { value: 'other', label: '기타' },
+];
+const BUDGET_OPTIONS = ['풍족', '부족', '모름', '직접입력'];
+
+// 상세 탭용 — 중첩 템플릿 리터럴을 피하기 위한 필드 렌더 헬퍼
+function renderInflowField(id, stored) {
+    return renderRadioGroup(`inflow-${id}`, INFLOW_OPTIONS, stored || '');
+}
+
+function renderBudgetField(id, stored) {
+    const b = budgetRadioState(stored);
+    return renderRadioGroup(`budget-${id}`, BUDGET_OPTIONS, b.selected)
+        + `<input type="text" class="field-input" id="budget-${id}-etc" value="${b.etc.replace(/"/g, '&quot;')}" placeholder="예산 성향 직접 입력" style="margin-top:8px; display:${b.selected === '직접입력' ? 'block' : 'none'};">`;
 }
 
 function toggleEtcInput(group, id) {
@@ -882,15 +953,7 @@ function renderClientContent(id) {
             <div class="form-grid" style="margin-top:14px;">
                 <div class="field">
                     <div class="field-label">유입경로</div>
-                    <select class="field-input field-select" id="f-inflow_source-${id}">
-                        <option value="">선택</option>
-                        <option value="search" ${d.inflow_source==='search'?'selected':''}>검색</option>
-                        <option value="referral" ${d.inflow_source==='referral'?'selected':''}>지인 소개</option>
-                        <option value="sns" ${d.inflow_source==='sns'?'selected':''}>SNS</option>
-                        <option value="ad" ${d.inflow_source==='ad'?'selected':''}>광고</option>
-                        <option value="community" ${d.inflow_source==='community'?'selected':''}>커뮤니티</option>
-                        <option value="other" ${d.inflow_source==='other'?'selected':''}>기타</option>
-                    </select>
+                    ${renderInflowField(id, d.inflow_source)}
                 </div>
                 <div class="field">
                     <div class="field-label">의뢰자 유형</div>
@@ -914,8 +977,8 @@ function renderClientContent(id) {
                 </div>
                 <div class="form-grid full" style="margin-top:10px;">
                     <div class="field">
-                        <div class="field-label">예산 집행 스타일</div>
-                        <textarea class="field-input field-textarea" id="f-budget_style-${id}" rows="2" placeholder="예: 보수적, 최고급 사양 선호, 단계적 업그레이드">${d.budget_style||''}</textarea>
+                        <div class="field-label">예산 성향</div>
+                        ${renderBudgetField(id, d.budget_style)}
                     </div>
                 </div>
             </div>
@@ -1487,10 +1550,10 @@ async function saveClient(id) {
         })(),
         broadcast_id: document.getElementById(`f-broadcast_id-${id}`)?.value || null,
         career: document.getElementById(`f-career-${id}`)?.value || null,
-        inflow_source: document.getElementById(`f-inflow_source-${id}`)?.value || null,
+        inflow_source: getRadioValue(`inflow-${id}`) || null,
         client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
         personality: document.getElementById(`f-personality-${id}`)?.value || null,
-        budget_style: document.getElementById(`f-budget_style-${id}`)?.value || null,
+        budget_style: collectBudgetStyle(`budget-${id}`),
         custom_data: collectCustomData(id),
     };
 
@@ -1544,7 +1607,7 @@ async function createClient() {
         nickname,
         phone: document.getElementById('ncPhone').value.trim(),
         grade: document.getElementById('ncGrade').value,
-        inflow_source: document.getElementById('ncInflowSource').value || null,
+        inflow_source: getRadioValue('ncInflow') || null,
         client_type: document.getElementById('ncClientType').value || null,
         platforms: p.values,
         platform_etc: p.values.includes('기타') ? p.etc : null,
@@ -1553,7 +1616,7 @@ async function createClient() {
         broadcast_id: document.getElementById('ncBroadcastId').value.trim() || null,
         career: document.getElementById('ncCareer').value || null,
         personality: document.getElementById('ncPersonality').value.trim() || null,
-        budget_style: document.getElementById('ncBudgetStyle').value.trim() || null,
+        budget_style: collectBudgetStyle('budget-nc'),
     };
 
     const res = await fetch('/api/clients', {
@@ -1565,9 +1628,15 @@ async function createClient() {
     if (res.ok) {
         const data = await res.json();
         closeNewClientModal();
-        ['ncName','ncNickname','ncPhone','ncBroadcastId','ncCareer','ncPersonality','ncBudgetStyle'].forEach(k => {
+        ['ncName','ncNickname','ncPhone','ncBroadcastId','ncCareer','ncPersonality','budget-nc-etc'].forEach(k => {
             const el = document.getElementById(k); if (el) el.value = '';
         });
+        // 라디오 pill 초기화 (유입경로/예산 성향)
+        document.querySelectorAll('input[name="ncInflow"], input[name="budget-nc"]').forEach(r => {
+            r.checked = false;
+            r.closest('label')?.classList.remove('on');
+        });
+        document.getElementById('budget-nc-etc').style.display = 'none';
         await loadClientList();
         openClient(data.id);
         showToast('등록되었습니다');
