@@ -4114,6 +4114,23 @@ function handleImgFiles(type,files){
     const input=document.getElementById(FILE_MAP[type]); if(input) input.value='';
 }
 
+// 클립보드 붙여넣기 — 일정 모달이 열려 있을 때 이미지 파일을 첨부 파일(general)로 적재
+document.addEventListener('paste',e=>{
+    if(!document.getElementById('modalOverlay').classList.contains('open')) return;
+    if(typeof isLocked!=='undefined'&&isLocked) return; // 요약(잠금) 뷰에서는 무시
+    const files=[...(e.clipboardData?.files||[])];
+    if(!files.length) return;
+    e.preventDefault();
+    const stamped=files.map((f,i)=>{
+        if(f.name&&f.name!=='image.png') return f;
+        const ext=(f.type.split('/')[1]||'png').replace('jpeg','jpg');
+        const stamp=new Date().toISOString().slice(0,19).replaceAll(':','').replace('T','-');
+        return new File([f],`붙여넣기-${stamp}${i?'-'+i:''}.${ext}`,{type:f.type});
+    });
+    handleImgFiles('general',stamped);
+    if(typeof showCalToast==='function') showCalToast('📎 클립보드 이미지가 첨부 파일에 추가되었습니다');
+});
+
 // 공통 유형의 '첨부 파일' 섹션(generalAttachSection) 핸들러 — general 타입으로 적재
 function handleGeneralFiles(files){
     if(!files||!files.length) return;
