@@ -20,9 +20,11 @@ class ConsultationTypeController extends Controller
     {
         $validated = $request->validate([
             'key' => 'nullable|string|max:50|regex:/^[a-z0-9_]+$/|unique:consultation_types,key',
-            'label' => 'required|string|max:100',
+            'label' => 'required|string|max:100|unique:consultation_types,label',
             'sort_order' => 'nullable|integer',
             'is_active' => 'sometimes|boolean',
+        ], [
+            'label.unique' => '같은 이름의 유형이 이미 있습니다.',
         ]);
 
         // key 자동 생성 (label → slug 영문/숫자만)
@@ -51,9 +53,11 @@ class ConsultationTypeController extends Controller
     public function update(Request $request, ConsultationType $type)
     {
         $validated = $request->validate([
-            'label' => 'sometimes|string|max:100',
+            'label' => 'sometimes|string|max:100|unique:consultation_types,label,'.$type->id,
             'sort_order' => 'sometimes|integer',
             'is_active' => 'sometimes|boolean',
+        ], [
+            'label.unique' => '같은 이름의 유형이 이미 있습니다.',
         ]);
 
         $type->update($validated);
