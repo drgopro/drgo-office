@@ -422,6 +422,8 @@ function openTopTab(type, url) {
     window.location.href = url;
 }
 const GRADE_LABELS = { normal:'일반', vip:'VIP', rental:'렌탈' };
+// HTML 이스케이프 — 사용자 입력(이름/메모/파일명 등)을 innerHTML에 넣기 전 필수 (XSS 방지)
+function _esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 const GRADE_COLORS = { normal:'var(--text-muted)', vip:'var(--accent)', rental:'var(--blue)' };
 
 const PLATFORM_OPTIONS = ['SOOP','유튜브','치지직','틱톡','팬더티비','기타'];
@@ -694,8 +696,8 @@ function renderClientList() {
         const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.join(', ') : '';
         return `<div class="sidebar-item ${active}" onclick="openClient(${c.id})">
             <div class="item-info" style="flex:1;min-width:0;">
-                <div class="item-name">${displayName}</div>
-                <div class="item-sub">${platforms || '<span style="opacity:0.5;">플랫폼 없음</span>'}</div>
+                <div class="item-name">${_esc(displayName)}</div>
+                <div class="item-sub">${_esc(platforms) || '<span style="opacity:0.5;">플랫폼 없음</span>'}</div>
             </div>
             <span class="item-grade grade-${c.grade}">${GRADE_LABELS[c.grade]||''}</span>
         </div>`;
@@ -770,7 +772,7 @@ function renderClientTabs() {
     bar.innerHTML = openClientTabs.map(t => {
         const cls = t.id === activeClientId ? 'active' : '';
         return `<button class="client-tab ${cls}" draggable="true" data-client-id="${t.id}" onclick="activateClientTab(${t.id})">
-            ${t.nickname || t.name}
+            ${_esc(t.nickname || t.name)}
             <span class="ct-close" onclick="closeClientTab(${t.id}, event)">✕</span>
         </button>`;
     }).join('');
@@ -844,12 +846,12 @@ function renderClientContent(id) {
         <div class="detail-header">
             <div class="detail-identity">
                 <div>
-                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;">${d.nickname || d.name || '(이름 없음)'}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}</div>
-                    <div class="detail-meta">${[d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · ')}</div>
+                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;">${_esc(d.nickname || d.name || '(이름 없음)')}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}</div>
+                    <div class="detail-meta">${_esc([d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · '))}</div>
                 </div>
             </div>
             <div class="detail-actions">
-                <button class="btn-log" onclick="openActivityLog('Client',${id},'${(d.name||'').replace(/'/g,"\\'")} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
+                <button class="btn-log" onclick="openActivityLog('Client',${id},'${_esc((d.name||'').replace(/'/g,"\\'"))} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
                 <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>
             </div>
@@ -868,15 +870,15 @@ function renderClientContent(id) {
             <div class="form-grid">
                 <div class="field">
                     <div class="field-label">닉네임 *</div>
-                    <input class="field-input" id="f-nickname-${id}" value="${d.nickname||''}">
+                    <input class="field-input" id="f-nickname-${id}" value="${_esc(d.nickname||'')}">
                 </div>
                 <div class="field">
                     <div class="field-label">이름</div>
-                    <input class="field-input" id="f-name-${id}" value="${d.name||''}">
+                    <input class="field-input" id="f-name-${id}" value="${_esc(d.name||'')}">
                 </div>
                 <div class="field">
                     <div class="field-label">전화번호</div>
-                    <input class="field-input" id="f-phone-${id}" value="${d.phone||''}">
+                    <input class="field-input" id="f-phone-${id}" value="${_esc(d.phone||'')}">
                 </div>
                 <div class="field">
                     <div class="field-label">고객 유형</div>
@@ -888,7 +890,7 @@ function renderClientContent(id) {
                 </div>
                 <div class="field">
                     <div class="field-label">소속</div>
-                    <input class="field-input" id="f-affiliation-${id}" value="${d.affiliation||''}">
+                    <input class="field-input" id="f-affiliation-${id}" value="${_esc(d.affiliation||'')}">
                 </div>
                 <div class="field">
                     <div class="field-label">성별</div>
@@ -904,19 +906,19 @@ function renderClientContent(id) {
                 <div class="field" style="grid-column:1/-1;">
                     <div class="field-label">주소</div>
                     <div style="display:flex; gap:6px;">
-                        <input class="field-input" id="f-address-${id}" value="${d.address||''}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
+                        <input class="field-input" id="f-address-${id}" value="${_esc(d.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
                         <button class="btn-save" onclick="searchAddress(${id})" style="white-space:nowrap;">주소 검색</button>
                     </div>
                 </div>
                 <div class="field" style="grid-column:1/-1;">
                     <div class="field-label">상세주소</div>
-                    <input class="field-input" id="f-address_detail-${id}" value="${d.address_detail||''}">
+                    <input class="field-input" id="f-address_detail-${id}" value="${_esc(d.address_detail||'')}">
                 </div>
             </div>
             <div class="form-grid full" style="margin-top:14px;">
                 <div class="field">
                     <div class="field-label">특이사항</div>
-                    <textarea class="field-input field-textarea" id="f-important_memo-${id}">${d.important_memo||''}</textarea>
+                    <textarea class="field-input field-textarea" id="f-important_memo-${id}">${_esc(d.important_memo||'')}</textarea>
                 </div>
             </div>
             <div class="form-grid full" style="margin-top:14px;">
@@ -954,7 +956,7 @@ function renderClientContent(id) {
             <div class="form-grid" style="margin-top:14px;">
                 <div class="field">
                     <div class="field-label">방송 아이디</div>
-                    <input class="field-input" id="f-broadcast_id-${id}" value="${d.broadcast_id||''}" placeholder="플랫폼 방송 ID/채널명">
+                    <input class="field-input" id="f-broadcast_id-${id}" value="${_esc(d.broadcast_id||'')}" placeholder="플랫폼 방송 ID/채널명">
                 </div>
                 <div class="field">
                     <div class="field-label">최초 등록일</div>
@@ -974,7 +976,7 @@ function renderClientContent(id) {
                 <div class="form-grid full">
                     <div class="field">
                         <div class="field-label">의뢰자 성격</div>
-                        <textarea class="field-input field-textarea" id="f-personality-${id}" rows="2" placeholder="예: 꼼꼼함, 빠른 결정, 의견 수용 적극적">${d.personality||''}</textarea>
+                        <textarea class="field-input field-textarea" id="f-personality-${id}" rows="2" placeholder="예: 꼼꼼함, 빠른 결정, 의견 수용 적극적">${_esc(d.personality||'')}</textarea>
                     </div>
                 </div>
                 <div class="form-grid full" style="margin-top:10px;">
@@ -1121,11 +1123,11 @@ function renderProjectList(projects, clientId, order) {
     return sorted.map(p => `
         <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
             <div>
-                <div style="font-size:14px; font-weight:600;">${p.name}</div>
-                <div style="font-size:11px; color:var(--text-muted);">${[TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · ')}</div>
+                <div style="font-size:14px; font-weight:600;">${_esc(p.name)}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${_esc([TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · '))}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${p.stage_label||STAGE_LABELS[p.stage]||p.stage}</span>
+                <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
                 ${p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
                 <button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>
             </div>
@@ -1146,8 +1148,8 @@ function renderDocList(docs, clientId) {
         return `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
             <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; flex-shrink:0; cursor:pointer; border:1px solid var(--border);" onclick="openAlbumViewer(${clientId},${i})">${thumbContent}</div>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.file_name}">${doc.file_name}</div>
-                <div style="font-size:10px; color:var(--text-muted);">${doc.note ? doc.note + ' · ' : ''}${doc.created_at}</div>
+                <div style="font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${_esc(doc.file_name)}">${_esc(doc.file_name)}</div>
+                <div style="font-size:10px; color:var(--text-muted);">${doc.note ? _esc(doc.note) + ' · ' : ''}${doc.created_at}</div>
             </div>
             <div style="display:flex; gap:6px; flex-shrink:0;">
                 <a href="${doc.download_url}" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--accent); text-decoration:none; transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">다운로드</a>
@@ -1174,7 +1176,7 @@ function renderEstimateList(estimates, clientId) {
                     <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:color-mix(in srgb, ${statusColor} 20%, transparent); color:${statusColor}; font-weight:600;">${statusLabel}</span>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-                    ${amount ? '<span style="font-weight:600; color:var(--text);">' + amount + '</span> · ' : ''}${e.created_at}${e.creator_name ? ' · ' + e.creator_name : ''}
+                    ${amount ? '<span style="font-weight:600; color:var(--text);">' + amount + '</span> · ' : ''}${e.created_at}${e.creator_name ? ' · ' + _esc(e.creator_name) : ''}
                 </div>
             </div>
             <div style="display:flex; gap:6px;">
@@ -1656,12 +1658,12 @@ function renderMemoItem(m, clientId) {
         <div style="flex:1; min-width:0;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <span style="font-size:12px; font-weight:600;">${m.user_name}</span>
+                    <span style="font-size:12px; font-weight:600;">${_esc(m.user_name)}</span>
                     <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
                 </div>
                 <button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
             </div>
-            <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${m.content}</div>
+            <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${_esc(m.content)}</div>
         </div>
     </div>`;
 }

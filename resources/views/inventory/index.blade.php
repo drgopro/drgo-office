@@ -349,6 +349,8 @@
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
 let allProducts = [], catData = [], allProjects = [];
+// HTML 이스케이프 — 사용자 입력(제품명/메모 등)을 innerHTML에 넣기 전 필수 (XSS 방지)
+function _esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 function switchTab(name, skipHash) {
     document.querySelectorAll('.tab-btn').forEach(b => {
@@ -388,7 +390,7 @@ function renderCatNode(cat, depth) {
         <div class="cat-row">
             <span class="cat-handle" title="드래그하여 이동/정렬" style="cursor:grab; user-select:none; padding:0 4px; color:var(--text-muted);">⋮⋮</span>
             <span class="cat-code" ondblclick="startEditCat(${cat.id},'code')">${cat.code}</span>
-            <span class="cat-name" ondblclick="startEditCat(${cat.id},'name')">${cat.name}</span>
+            <span class="cat-name" ondblclick="startEditCat(${cat.id},'name')">${_esc(cat.name)}</span>
             <span class="cat-depth">${depth}차</span>
             <div class="cat-actions">
                 <button class="btn-outline btn-sm" onclick="startEditCat(${cat.id},'name')" title="이름/코드 수정">✎</button>
@@ -543,7 +545,7 @@ function getSkuBaseCode(catId) {
 }
 function populateCatDropdowns(editCatId) {
     const s1 = document.getElementById('pCat1');
-    s1.innerHTML = '<option value="">1차 선택</option>' + catData.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    s1.innerHTML = '<option value="">1차 선택</option>' + catData.map(c=>`<option value="${c.id}">${_esc(c.name)}</option>`).join('');
     ['pCat2','pCat3','pCat4'].forEach((id, idx) => {
         const sel = document.getElementById(id);
         if (sel) { sel.innerHTML = `<option value="">${idx+2}차 선택</option>`; sel.disabled = true; }
@@ -587,7 +589,7 @@ function onCat1Change() {
     s3.innerHTML = '<option value="">3차 선택</option>'; s3.disabled = true;
     if (s4) { s4.innerHTML = '<option value="">4차 선택</option>'; s4.disabled = true; }
     if (c1 && c1.children?.length) {
-        s2.innerHTML = '<option value="">2차 선택</option>' + c1.children.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+        s2.innerHTML = '<option value="">2차 선택</option>' + c1.children.map(c=>`<option value="${c.id}">${_esc(c.name)}</option>`).join('');
         s2.disabled = false;
     } else { s2.innerHTML = '<option value="">2차 없음</option>'; s2.disabled = true; }
     updateSkuPreview();
@@ -599,7 +601,7 @@ function onCat2Change() {
     const s4 = document.getElementById('pCat4');
     if (s4) { s4.innerHTML = '<option value="">4차 선택</option>'; s4.disabled = true; }
     if (c2 && c2.children?.length) {
-        s3.innerHTML = '<option value="">3차 선택</option>' + c2.children.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+        s3.innerHTML = '<option value="">3차 선택</option>' + c2.children.map(c=>`<option value="${c.id}">${_esc(c.name)}</option>`).join('');
         s3.disabled = false;
     } else { s3.innerHTML = '<option value="">3차 없음</option>'; s3.disabled = true; }
     updateSkuPreview();
@@ -611,7 +613,7 @@ function onCat3Change() {
     const s4 = document.getElementById('pCat4');
     if (!s4) return;
     if (c3 && c3.children?.length) {
-        s4.innerHTML = '<option value="">4차 선택</option>' + c3.children.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+        s4.innerHTML = '<option value="">4차 선택</option>' + c3.children.map(c=>`<option value="${c.id}">${_esc(c.name)}</option>`).join('');
         s4.disabled = false;
     } else { s4.innerHTML = '<option value="">4차 없음</option>'; s4.disabled = true; }
     updateSkuPreview();
@@ -629,7 +631,7 @@ async function loadStock() {
     const tb = document.getElementById('stockBody');
     if (!data.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>'; return; }
     tb.innerHTML = data.map(p => `<tr>
-        <td class="text-muted">${p.sku}</td><td>${p.name}</td><td class="text-muted">${p.category||'-'}</td>
+        <td class="text-muted">${_esc(p.sku)}</td><td>${_esc(p.name)}</td><td class="text-muted">${_esc(p.category)||'-'}</td>
         <td class="text-right ${p.is_low?'text-warn':''}" style="font-weight:600;">${p.quantity}</td>
         <td class="text-right text-muted">${p.safety_stock||'-'}</td>
         <td>${p.is_low?'<span class="badge badge-low">부족</span>':'<span class="badge badge-ok">정상</span>'}</td>
@@ -651,15 +653,15 @@ async function loadProducts() {
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
     tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
-        <td class="text-muted">${p.sku}</td>
-        <td class="text-wrap">${p.name}</td>
+        <td class="text-muted">${_esc(p.sku)}</td>
+        <td class="text-wrap">${_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${fmt(p.purchase_price)}</td>
         <td class="text-right">${fmt(p.sale_price)}</td>
         <td class="text-right">${p.safety_stock||'-'}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td class="action-cell">
-            <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${p.name.replace(/'/g,"\\'")} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋</button>
+            <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${_esc(p.name.replace(/'/g,"\\'"))} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋</button>
             <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </td>
@@ -848,15 +850,15 @@ async function loadMovements() {
         <td>${m.product?.name||'-'}</td>
         <td class="text-right" style="font-weight:600;color:${m.movement_type==='out'?'var(--red)':'var(--green)'};">${m.movement_type==='out'?'-':''}${m.quantity}</td>
         <td class="text-right">${m.quantity_after}</td>
-        <td class="text-muted">${m.user?.display_name||'-'}</td>
-        <td class="text-muted">${m.memo||'-'}</td>
+        <td class="text-muted">${_esc(m.user?.display_name)||'-'}</td>
+        <td class="text-muted">${_esc(m.memo)||'-'}</td>
     </tr>`).join('');
 }
 async function openMovementModal() {
     if (!allProducts.length) { const r = await fetch('/api/inventory/products'); allProducts = await r.json(); }
     if (!allProjects.length) { const r = await fetch('/api/inventory/projects'); allProjects = await r.json(); }
-    document.getElementById('mProduct').innerHTML = allProducts.map(p=>`<option value="${p.id}">${p.name} (${p.sku})</option>`).join('');
-    document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('mProduct').innerHTML = allProducts.map(p=>`<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
+    document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('');
     document.getElementById('mType').value='in'; document.getElementById('mQty').value=1; document.getElementById('mMemo').value='';
     document.getElementById('mProject').value='';
     onMovementTypeChange();
@@ -908,7 +910,7 @@ async function openOrderModal() {
 }
 function addOrderItem() {
     const div=document.getElementById('orderItems'), row=document.createElement('div'); row.className='order-item-row';
-    row.innerHTML=`<select>${allProducts.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+    row.innerHTML=`<select>${allProducts.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('')}</select>
         <input type="number" min="1" value="1" placeholder="수량"><input type="number" min="0" value="0" placeholder="단가">
         <button class="btn-remove-item" onclick="this.parentElement.remove()">×</button>`;
     div.appendChild(row);

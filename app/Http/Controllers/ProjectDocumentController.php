@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Project;
 use App\Models\ProjectDocument;
+use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +23,7 @@ class ProjectDocumentController extends Controller
 
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'required|file|max:102400', // 100MB / 파일
+            'files.*' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB / 파일
             'category' => 'required|string|max:50',
             'note' => 'nullable|string|max:300',
         ]);
@@ -103,7 +104,7 @@ class ProjectDocumentController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|max:102400', // 100MB
+            'file' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB
         ]);
 
         $file = $request->file('file');

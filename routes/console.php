@@ -19,3 +19,6 @@ Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->wit
 
 // 서버 디스크 사용률 점검 — 80% 초과 시 관리자 알림 (매일 오전 8시)
 Schedule::command('disk:check')->dailyAt('08:00')->withoutOverlapping();
+
+// DB 백업 — mysqldump gzip, 14일 보관 (매일 새벽 3시 30분)
+Schedule::command('db:backup')->dailyAt('03:30')->withoutOverlapping();

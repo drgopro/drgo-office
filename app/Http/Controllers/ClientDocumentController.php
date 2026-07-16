@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Client;
 use App\Models\ClientDocument;
+use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -26,7 +27,7 @@ class ClientDocumentController extends Controller
 
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'required|file|max:102400', // 100MB / 파일. Nginx client_max_body_size / PHP upload_max_filesize 도 같이 조정 필요
+            'files.*' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB / 파일. Nginx client_max_body_size / PHP upload_max_filesize 도 같이 조정 필요
             'category' => 'required|string|max:50',
             'note' => 'nullable|string|max:300',
         ]);

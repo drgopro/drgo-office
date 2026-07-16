@@ -398,11 +398,11 @@ Route::middleware('auth')->group(function () {
     });
 
     // 관리자 (master, admin만)
-    // 엑셀 가져오기
-    Route::get('/api/import/template/{type}', [ExcelImportController::class, 'template']);
-    Route::post('/api/import/{type}', [ExcelImportController::class, 'import']);
-
     Route::middleware('role:master,admin')->group(function () {
+        // 엑셀 가져오기
+        Route::get('/api/import/template/{type}', [ExcelImportController::class, 'template']);
+        Route::post('/api/import/{type}', [ExcelImportController::class, 'import']);
+
         Route::get('/admin', [AdminController::class, 'index'])->name('admin');
         Route::get('/api/settings', [AdminController::class, 'settings']);
         Route::post('/api/settings', [AdminController::class, 'updateSettings']);

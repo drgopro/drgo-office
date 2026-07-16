@@ -166,7 +166,8 @@ class TodoTest extends TestCase
 
     public function test_complete_toggles(): void
     {
-        $todo = Todo::factory()->create();
+        // 멤버는 본인 할 일만 조작 가능 (IDOR 방지)
+        $todo = Todo::factory()->create(['assignee_id' => $this->user->id]);
 
         $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}/complete")->assertOk();
         $this->assertNotNull($todo->fresh()->completed_at);
@@ -178,7 +179,7 @@ class TodoTest extends TestCase
     public function test_destroy_removes_todo_and_attachment_files(): void
     {
         Storage::fake();
-        $todo = Todo::factory()->create();
+        $todo = Todo::factory()->create(['assignee_id' => $this->user->id]);
         $path = UploadedFile::fake()->image('사진.jpg')->store("todos/{$todo->id}");
         $todo->attachments()->create(['file_name' => '사진.jpg', 'file_path' => $path, 'mime_type' => 'image/jpeg', 'file_size' => 100]);
 
@@ -192,7 +193,7 @@ class TodoTest extends TestCase
     public function test_attachment_upload_and_serve(): void
     {
         Storage::fake();
-        $todo = Todo::factory()->create();
+        $todo = Todo::factory()->create(['assignee_id' => $this->user->id]);
 
         $this->actingAs($this->user)->post("/api/todos/{$todo->id}/attachments", [
             'files' => [UploadedFile::fake()->image('장비점검.png')],
@@ -208,7 +209,7 @@ class TodoTest extends TestCase
     public function test_attachment_delete(): void
     {
         Storage::fake();
-        $todo = Todo::factory()->create();
+        $todo = Todo::factory()->create(['assignee_id' => $this->user->id]);
         $path = UploadedFile::fake()->create('문서.pdf', 10)->store("todos/{$todo->id}");
         $attachment = $todo->attachments()->create(['file_name' => '문서.pdf', 'file_path' => $path, 'mime_type' => 'application/pdf', 'file_size' => 100]);
 

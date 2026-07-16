@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Schedule;
 use App\Models\ScheduleAttachment;
+use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -36,7 +37,7 @@ class ScheduleAttachmentController extends Controller
 
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'required|file|max:102400', // 100MB / 파일
+            'files.*' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB / 파일
             'attachment_type' => 'required|in:general,quote,reference,room',
         ]);
 

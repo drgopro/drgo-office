@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Todo;
 use App\Models\TodoAttachment;
 use App\Models\User;
+use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +46,7 @@ class TodoController extends Controller
 
     public function update(Request $request, Todo $todo)
     {
+        $this->authorizeTodo($todo);
         $todo->update($this->validateTodo($request));
 
         return response()->json(['todo' => $this->present($todo->fresh()->load('assignee.team', 'creator', 'attachments'))]);
@@ -88,6 +90,7 @@ class TodoController extends Controller
     /** 완료 토글 */
     public function complete(Todo $todo)
     {
+        $this->authorizeTodo($todo);
         $todo->update(['completed_at' => $todo->completed_at ? null : now()]);
 
         return response()->json(['ok' => true, 'completed' => (bool) $todo->completed_at]);
@@ -95,6 +98,7 @@ class TodoController extends Controller
 
     public function destroy(Todo $todo)
     {
+        $this->authorizeTodo($todo);
         foreach ($todo->attachments as $attachment) {
             Storage::delete($attachment->file_path);
         }
@@ -107,13 +111,14 @@ class TodoController extends Controller
 
     public function storeAttachments(Request $request, Todo $todo)
     {
+        $this->authorizeTodo($todo);
         if ($this->postBodyWasDropped($request)) {
             return response()->json(['message' => $this->uploadLimitMessage()], 422);
         }
 
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'required|file|max:102400', // 100MB / 파일
+            'files.*' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB / 파일
         ]);
 
         $result = $this->storeUploadedFiles(
@@ -138,6 +143,7 @@ class TodoController extends Controller
 
     public function destroyAttachment(TodoAttachment $attachment)
     {
+        $this->authorizeTodo($attachment->todo);
         Storage::delete($attachment->file_path);
         $attachment->delete();
 
@@ -146,6 +152,7 @@ class TodoController extends Controller
 
     public function serveAttachment(TodoAttachment $attachment)
     {
+        $this->authorizeTodo($attachment->todo);
         if (! Storage::exists($attachment->file_path)) {
             abort(404);
         }
@@ -154,6 +161,19 @@ class TodoController extends Controller
     }
 
     // ── 내부 헬퍼 ──
+
+    /** 관리자 또는 담당자/작성자 본인만 조작 가능 (IDOR 방지) */
+    private function authorizeTodo(?Todo $todo): void
+    {
+        if (! $todo) {
+            abort(404);
+        }
+        $user = Auth::user();
+        if ($user->isAdmin() || $todo->assignee_id === $user->id || $todo->created_by === $user->id) {
+            return;
+        }
+        abort(403, '본인의 할 일만 처리할 수 있습니다.');
+    }
 
     /** @return array<string, mixed> */
     private function validateTodo(Request $request): array

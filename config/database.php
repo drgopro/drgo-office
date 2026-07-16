@@ -19,6 +19,9 @@ return [
 
     'default' => env('DB_CONNECTION', 'sqlite'),
 
+    // db:backup 커맨드가 사용할 mysqldump 바이너리 (PATH에 없으면 절대경로 지정)
+    'backup_mysqldump' => env('DB_BACKUP_MYSQLDUMP', 'mysqldump'),
+
     /*
     |--------------------------------------------------------------------------
     | Database Connections

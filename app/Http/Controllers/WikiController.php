@@ -7,6 +7,7 @@ use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Models\WikiCategory;
 use App\Models\WikiComment;
+use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -325,7 +326,7 @@ class WikiController extends Controller
     public function uploadFile(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:102400', // 100MB
+            'file' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB
             'wiki_id' => 'nullable|integer',
         ]);
 
