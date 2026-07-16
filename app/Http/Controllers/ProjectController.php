@@ -213,7 +213,8 @@ class ProjectController extends Controller
         ));
         $request->validate([
             'stage' => ['required', Rule::in($allowedStages)],
-            'cancel_reason' => 'nullable|string|max:50',
+            'cancel_reason' => 'nullable|string|max:100', // 관리자 정의 사유 허용
+
             'cancel_detail' => 'nullable|string|max:500',
         ]);
 

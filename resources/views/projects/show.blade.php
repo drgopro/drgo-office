@@ -1251,18 +1251,19 @@
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">데이터는 보존되며, 단계만 "취소"로 변경됩니다.</p>
         <div style="margin-bottom:14px;">
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">취소 사유 *</div>
+            @php
+                // 관리자 설정(한 줄=사유 하나) — '기타'는 항상 마지막에 고정
+                $cancelReasonOptions = collect(explode("\n", (string) \App\Models\Setting::get('project_cancel_reasons', "의뢰자 연락 두절\n의뢰자 사정으로 취소\n일정이 맞지 않음")))
+                    ->map(fn ($s) => trim($s))->filter()->reject(fn ($s) => $s === '기타')->values();
+            @endphp
             <div style="display:flex;flex-direction:column;gap:6px;" id="cancelReasons">
+                @foreach($cancelReasonOptions as $reasonOpt)
                 <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
-                    <input type="radio" name="cancel_reason" value="no_contact" style="accent-color:var(--accent);"> 의뢰자 연락 두절
+                    <input type="radio" name="cancel_reason" value="{{ $reasonOpt }}" style="accent-color:var(--accent);"> {{ $reasonOpt }}
                 </label>
+                @endforeach
                 <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
-                    <input type="radio" name="cancel_reason" value="client_request" style="accent-color:var(--accent);"> 의뢰자 사정으로 취소
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
-                    <input type="radio" name="cancel_reason" value="schedule_mismatch" style="accent-color:var(--accent);"> 일정이 맞지 않음
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
-                    <input type="radio" name="cancel_reason" value="other" style="accent-color:var(--accent);"> 기타
+                    <input type="radio" name="cancel_reason" value="기타" style="accent-color:var(--accent);"> 기타
                 </label>
             </div>
         </div>
@@ -1580,7 +1581,7 @@ function closeCancelModal() { document.getElementById('cancelModal').style.displ
 // 라디오 선택 시 기타 상세 입력 토글
 document.querySelectorAll('input[name="cancel_reason"]').forEach(r => {
     r.addEventListener('change', function() {
-        document.getElementById('cancelDetailWrap').style.display = this.value === 'other' ? 'block' : 'none';
+        document.getElementById('cancelDetailWrap').style.display = this.value === '기타' ? 'block' : 'none';
         // 선택된 라벨 강조
         document.querySelectorAll('#cancelReasons label').forEach(l => l.style.borderColor = 'var(--border)');
         this.closest('label').style.borderColor = 'var(--accent)';
@@ -1590,9 +1591,9 @@ document.querySelectorAll('input[name="cancel_reason"]').forEach(r => {
 async function submitCancel() {
     const reason = document.querySelector('input[name="cancel_reason"]:checked');
     if (!reason) { alert('취소 사유를 선택하세요.'); return; }
-    const REASON_LABELS = { no_contact:'의뢰자 연락 두절', client_request:'의뢰자 사정으로 취소', schedule_mismatch:'일정이 맞지 않음', other:'기타' };
-    const detail = reason.value === 'other' ? document.getElementById('cancelDetail').value.trim() : '';
-    if (reason.value === 'other' && !detail) { alert('기타 사유를 입력하세요.'); return; }
+    // 사유 선택지는 관리자 설정에서 관리 — 라디오 value가 곧 저장되는 사유 텍스트
+    const detail = reason.value === '기타' ? document.getElementById('cancelDetail').value.trim() : '';
+    if (reason.value === '기타' && !detail) { alert('기타 사유를 입력하세요.'); return; }
 
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const res = await fetch(`/projects/{{ $project->id }}/stage`, {
@@ -1600,7 +1601,7 @@ async function submitCancel() {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
         body: JSON.stringify({
             stage: 'cancelled',
-            cancel_reason: REASON_LABELS[reason.value] || reason.value,
+            cancel_reason: reason.value,
             cancel_detail: detail || null,
         }),
     });

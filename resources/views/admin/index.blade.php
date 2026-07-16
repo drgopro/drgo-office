@@ -243,6 +243,7 @@
             <button class="sub-tab-btn" data-subtab="calendarCategories" onclick="switchSettingsSubTab('calendarCategories')">캘린더 카테고리</button>
             <button class="sub-tab-btn" data-subtab="reportTemplates" onclick="switchSettingsSubTab('reportTemplates')">보고서 템플릿</button>
             <button class="sub-tab-btn" data-subtab="visitOptions" onclick="switchSettingsSubTab('visitOptions')">내방 옵션</button>
+            <button class="sub-tab-btn" data-subtab="cancelReasons" onclick="switchSettingsSubTab('cancelReasons')">취소 사유</button>
             <button class="sub-tab-btn" data-subtab="seller" onclick="switchSettingsSubTab('seller')">판매처 설정</button>
         </div>
         <div id="settingsContent"></div>
@@ -900,6 +901,25 @@
             <div style="display:flex; align-items:center;">
                 <button class="btn-save" onclick="saveVisitOptions()">저장</button>
                 <span class="save-msg" id="visitOptionsSaveMsg">저장되었습니다.</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- 프로젝트 취소 사유 --}}
+    <div class="tab-panel" id="panel-cancelReasons">
+        <div class="settings-form">
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
+                프로젝트 <b>취소 모달</b>에 표시되는 취소 사유 선택지를 관리합니다.<br>
+                한 줄에 하나씩 입력하세요 — 줄을 추가하면 생성, 고치면 수정, 지우면 삭제됩니다.<br>
+                <b>"기타"</b>(상세 사유 직접 입력)는 목록과 별개로 항상 마지막에 표시됩니다.
+            </div>
+            <div class="field-group">
+                <div class="field-label">취소 사유 (한 줄에 하나)</div>
+                <textarea class="field-input" id="cancelReasonsText" rows="7" placeholder="예:&#10;의뢰자 연락 두절&#10;의뢰자 사정으로 취소&#10;일정이 맞지 않음" style="resize:vertical; line-height:1.7; font-family:inherit;">{{ $sellerSettings['project_cancel_reasons'] ?? "의뢰자 연락 두절\n의뢰자 사정으로 취소\n일정이 맞지 않음" }}</textarea>
+            </div>
+            <div style="display:flex; align-items:center;">
+                <button class="btn-save" onclick="saveCancelReasons()">저장</button>
+                <span class="save-msg" id="cancelReasonsSaveMsg">저장되었습니다.</span>
             </div>
         </div>
     </div>
@@ -1669,6 +1689,17 @@ async function saveVisitOptions() {
         body: JSON.stringify({ calendar_visit_options: document.getElementById('visitOptionsText').value })
     });
     const msg = document.getElementById('visitOptionsSaveMsg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+async function saveCancelReasons() {
+    await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ project_cancel_reasons: document.getElementById('cancelReasonsText').value })
+    });
+    const msg = document.getElementById('cancelReasonsSaveMsg');
     msg.style.display = 'inline';
     setTimeout(() => msg.style.display = 'none', 2000);
 }
