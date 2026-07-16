@@ -176,6 +176,40 @@ class FeedbackBoardTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_첨부_추가와_삭제(): void
+    {
+        Storage::fake();
+        $author = $this->member();
+        $post = $this->makePost($author);
+
+        // 작성자가 첨부 추가
+        $this->actingAs($author)->post("/api/feedback/{$post->id}/attachments", [
+            'files' => [UploadedFile::fake()->image('추가스크린샷.png')],
+        ])->assertOk();
+        $attachment = $post->attachments()->first();
+        $this->assertNotNull($attachment);
+        Storage::assertExists($attachment->file_path);
+
+        // 타인은 삭제 불가
+        $this->actingAs($this->member())->deleteJson("/api/feedback-attachments/{$attachment->id}")->assertForbidden();
+
+        // 작성자는 삭제 가능 (파일도 정리)
+        $this->actingAs($author)->deleteJson("/api/feedback-attachments/{$attachment->id}")->assertOk();
+        $this->assertSame(0, $post->attachments()->count());
+        Storage::assertMissing($attachment->file_path);
+    }
+
+    public function test_첨부는_이미지만_허용(): void
+    {
+        Storage::fake();
+        $author = $this->member();
+        $post = $this->makePost($author);
+
+        $this->actingAs($author)->post("/api/feedback/{$post->id}/attachments", [
+            'files' => [UploadedFile::fake()->create('문서.pdf', 10)],
+        ], ['Accept' => 'application/json'])->assertUnprocessable();
+    }
+
     public function test_관리자는_모든_글_수정_가능(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

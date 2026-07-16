@@ -109,6 +109,13 @@
     .fb-edit-form input[type=text]:focus, .fb-edit-form textarea:focus { border-color:var(--accent); }
     .fb-edit-form textarea { margin-top:8px; min-height:96px; resize:vertical; }
     .fb-edit-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+    /* 수정 모드 첨부 관리 */
+    .fb-att-editable { cursor:default; }
+    .fb-att-editable img { cursor:zoom-in; width:100%; height:100%; object-fit:cover; }
+    .fb-att-del { position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none; background:rgba(0,0,0,0.72); color:#fff; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2; }
+    .fb-att-del:hover { background:#cf5454; }
+    .fb-edit-addfile { display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:7px 12px; border:1px dashed var(--border); border-radius:9px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+    .fb-edit-addfile:hover { border-color:var(--accent); color:var(--accent); }
     .fb-edit-cancel { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:8px 14px; color:var(--text); font-size:12px; font-weight:600; cursor:pointer; }
 
     /* 사이드바 */
@@ -298,6 +305,14 @@ function fbBodyHtml(p){
         html += `<div class="fb-edit-form">
             <input type="text" id="fbEditTitle${p.id}" maxlength="200" value="${_e(p.title)}" placeholder="제목">
             <textarea id="fbEditBody${p.id}" maxlength="5000" placeholder="상세 설명">${_e(p.body||'')}</textarea>
+            ${p.attachments.length?`<div class="fb-att-grid">${p.attachments.map(a=>`
+                <div class="fb-att fb-att-editable">
+                    <img src="${a.thumb_url}" alt="${_e(a.file_name)}" loading="lazy" onclick="fbLbOpen('${a.url}')">
+                    <button type="button" class="fb-att-del" onclick="fbDeleteAttachment(${p.id},${a.id})" title="첨부 삭제">✕</button>
+                </div>`).join('')}</div>`:''}
+            <label class="fb-edit-addfile">📎 이미지 추가
+                <input type="file" accept="image/*" multiple style="display:none;" onchange="fbAddAttachments(${p.id}, this.files)">
+            </label>
             <div class="fb-edit-actions">
                 <button class="fb-edit-cancel" onclick="fbCancelEdit()">취소</button>
                 <button class="fb-submit" onclick="fbSaveEdit(${p.id})">저장</button>
@@ -494,6 +509,29 @@ async function fbSaveEdit(id){
     fbEditingId = null;
     fbLoad();
 }
+// ── 첨부 수정 (수정 모드에서 추가/삭제) ──
+async function fbAddAttachments(id, files){
+    if(!files || !files.length) return;
+    const fd = new FormData();
+    [...files].forEach(f => fd.append('files[]', f));
+    const res = await fetch(`/api/feedback/${id}/attachments`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Accept':'application/json'}, body:fd});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){ alert(data.message || Object.values(data.errors||{}).flat().join('\n') || '첨부 추가 실패'); return; }
+    // 편집 모드 유지한 채 첨부 목록만 갱신
+    const idx = fbPosts.findIndex(x => x.id === id);
+    if(idx >= 0) fbPosts[idx] = data;
+    fbRenderFeed();
+}
+async function fbDeleteAttachment(id, attId){
+    if(!confirm('이 첨부 이미지를 삭제할까요?')) return;
+    const res = await fetch(`/api/feedback-attachments/${attId}`, {method:'DELETE', headers:{'X-CSRF-TOKEN':FB_CSRF,'Accept':'application/json'}});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){ alert(data.message || '삭제 실패'); return; }
+    const p = fbPosts.find(x => x.id === id);
+    if(p) p.attachments = p.attachments.filter(a => a.id !== attId);
+    fbRenderFeed();
+}
+
 async function fbDelete(id){
     if(!confirm('이 글을 삭제할까요?')) return;
     const res = await fetch(`/api/feedback/${id}`, {method:'DELETE', headers:{'X-CSRF-TOKEN':FB_CSRF,'Accept':'application/json'}});

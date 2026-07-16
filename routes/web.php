@@ -96,6 +96,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/feedback/{post}/status', [FeedbackController::class, 'updateStatus']);
         Route::post('/api/feedback/{post}/comments', [FeedbackController::class, 'storeComment']);
         Route::delete('/api/feedback-comments/{comment}', [FeedbackController::class, 'destroyComment']);
+        Route::post('/api/feedback/{post}/attachments', [FeedbackController::class, 'storeAttachments']);
+        Route::delete('/api/feedback-attachments/{attachment}', [FeedbackController::class, 'destroyAttachment']);
         Route::get('/feedback-attachments/{attachment}/view', [FeedbackController::class, 'serveAttachment'])->name('feedback-attachments.serve');
         Route::get('/feedback-attachments/{attachment}/thumb', [FeedbackController::class, 'thumbAttachment'])->name('feedback-attachments.thumb');
     });

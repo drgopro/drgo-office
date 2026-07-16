@@ -151,6 +151,49 @@ class FeedbackController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /** 첨부 추가 — 작성자(잠금 전) 또는 관리자 */
+    public function storeAttachments(Request $request, FeedbackPost $post): JsonResponse
+    {
+        $this->authorizeEdit($post);
+
+        if ($this->postBodyWasDropped($request)) {
+            return response()->json(['message' => $this->uploadLimitMessage()], 422);
+        }
+
+        $request->validate([
+            'files' => 'required|array|min:1',
+            'files.*' => 'file|mimes:jpg,jpeg,png,gif,webp|max:20480',
+        ], [
+            'files.*.mimes' => '이미지 파일만 첨부할 수 있습니다.',
+        ]);
+
+        $this->storeUploadedFiles(
+            $request->file('files'),
+            "feedback/{$post->id}",
+            function ($file, $path) use ($post) {
+                $post->attachments()->create([
+                    'file_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                    'file_path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        );
+
+        return response()->json($this->postPayload($post->fresh(['author:id,display_name,username,role', 'comments.user:id,display_name,username,role', 'attachments'])->loadCount('comments')));
+    }
+
+    /** 첨부 삭제 — 작성자(잠금 전) 또는 관리자 */
+    public function destroyAttachment(FeedbackAttachment $attachment): JsonResponse
+    {
+        $this->authorizeEdit($attachment->post);
+
+        Storage::delete($attachment->file_path);
+        $attachment->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     /** 상태 변경 — 개발자(master) 전용. 반려는 사유 필수 */
     public function updateStatus(Request $request, FeedbackPost $post): JsonResponse
     {
