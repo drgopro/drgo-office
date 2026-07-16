@@ -96,6 +96,27 @@ class CalendarHistoryEventsTest extends TestCase
         $this->assertStringContainsString('07-13 → 07-20', $move['text']);
     }
 
+    public function test_same_date_change_records_produce_no_shadow(): void
+    {
+        $member = $this->member();
+        $schedule = Schedule::create(['title' => '제목만 수정된 일정', 'start_date' => '2026-07-10', 'end_date' => '2026-07-10', 'color' => 'gold']);
+
+        // 제목 수정 시 형식 차이로 start_date old==new가 함께 기록된 케이스 (실제 이동 아님)
+        ScheduleChange::create([
+            'schedule_id' => $schedule->id, 'user_id' => $member->id, 'action' => 'update',
+            'changes' => [
+                'title' => ['old' => 'A', 'new' => '제목만 수정된 일정'],
+                'start_date' => ['old' => '2026-07-10', 'new' => '2026-07-10T00:00:00'],
+            ],
+        ]);
+
+        $chips = collect($this->actingAs($member)->getJson('/api/events/history?start=2026-07-01&end=2026-07-31')->json());
+        $this->assertCount(0, $chips, '날짜가 실제로 안 바뀐 기록은 흔적 미표시');
+
+        $log = collect($this->actingAs($member)->getJson('/api/events/change-log')->json());
+        $this->assertCount(0, $log, '문장 로그에서도 제외');
+    }
+
     public function test_unchanged_and_completed_schedules_are_hidden(): void
     {
         $member = $this->member();

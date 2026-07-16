@@ -842,16 +842,22 @@ class CalendarController extends Controller
                     'schedule_id' => $s->id,
                 ];
             } else {
-                // update — 날짜/시간이 실제로 바뀐 것만 (일정 이동)
+                // update — 날짜/시간이 실제로 바뀐 것만 (일정 이동, 형식 차이 오탐 제외)
                 $c = $log->changes ?? [];
                 $parts = [];
                 if (isset($c['start_date'])) {
-                    $parts[] = ($fmtD($c['start_date']['old'] ?? null) ?? '?').' → '.($fmtD($c['start_date']['new'] ?? null) ?? '?');
+                    $oldD = $fmtD($c['start_date']['old'] ?? null);
+                    $newD = $fmtD($c['start_date']['new'] ?? null);
+                    if ($oldD !== $newD) {
+                        $parts[] = ($oldD ?? '?').' → '.($newD ?? '?');
+                    }
                 }
-                if (! isset($c['start_date']) && isset($c['start_time'])) {
+                if (! $parts && isset($c['start_time'])) {
                     $old = mb_substr((string) ($c['start_time']['old'] ?? ''), 0, 5) ?: '종일';
                     $new = mb_substr((string) ($c['start_time']['new'] ?? ''), 0, 5) ?: '종일';
-                    $parts[] = "{$old} → {$new}";
+                    if ($old !== $new) {
+                        $parts[] = "{$old} → {$new}";
+                    }
                 }
                 if (! $parts) {
                     continue;
@@ -923,10 +929,12 @@ class CalendarController extends Controller
                         continue;
                     }
                     $oldStart = $this->normalizeDate($changes['start_date']['old']);
+                    $newStart = $this->normalizeDate($changes['start_date']['new'] ?? null);
                     $oldEnd = isset($changes['end_date']['old'])
                         ? $this->normalizeDate($changes['end_date']['old'])
                         : $oldStart;
-                    if (! $oldStart) {
+                    // 날짜가 실제로 달라진 변경만 흔적으로 (제목 등만 고친 기록·형식 차이 오탐 제외)
+                    if (! $oldStart || $oldStart === $newStart) {
                         continue;
                     }
 
