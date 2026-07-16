@@ -1111,7 +1111,7 @@
         <div style="position:relative;">
             <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:14px;">⋯</button>
             <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-                <button onclick="location.href='/calendar/history'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="clip" :size="13"/> 캘린더 이력</button>
+                {{-- 캘린더 이력 — 사용 빈도가 낮아 비활성화 (라우트는 유지, 필요 시 버튼만 복원) --}}
                 @if(Auth::user()->hasPermission('calendar.edit'))
                 <button onclick="toggleCalMenu();openTrashModal()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="trash" :size="13"/> 휴지통</button>
                 @endif
@@ -1173,8 +1173,7 @@
     <div class="cs-divider"></div>
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
-    <div class="cs-divider"></div>
-    <button type="button" class="cs-changelog-btn" onclick="openChangeLog()">📋 삭제/변경 이력</button>
+    {{-- 삭제/변경 이력 버튼 제거 — 문장 로그 모달은 흔적 칩 클릭으로만 접근 --}}
     </div>{{-- /calSideBody --}}
     <div id="csRail"></div>
     </div>{{-- /calSideSticky --}}
