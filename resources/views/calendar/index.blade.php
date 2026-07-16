@@ -4001,30 +4001,48 @@ function applyClientDetail(d){
     }
 }
 
-async function loadClientProjects(clientId){
+// ── 세션 캐시(SWR) — 연동 데이터를 캐시로 즉시 표시하고 백그라운드에서 최신화 ──
+// 모달이 열린 뒤 비동기 응답으로 화면이 늦게 바뀌어 버그처럼 보이던 문제 완화 (재열람 시 즉시 최종 모습)
+function swrGet(key){ try{ const raw=sessionStorage.getItem('calswr:'+key); return raw?JSON.parse(raw).data:null; }catch(e){ return null; } }
+function swrSet(key,data){ try{ sessionStorage.setItem('calswr:'+key, JSON.stringify({data,ts:Date.now()})); }catch(e){} }
+function swrDel(key){ try{ sessionStorage.removeItem('calswr:'+key); }catch(e){} }
+
+function applyClientProjects(clientId,data){
     const wrap=document.getElementById('projectSelectWrap');
     const sel=document.getElementById('projectSelect');
+    if(String(linkedClientId)!==String(clientId)) return; // 로딩 중 의뢰자가 바뀜
+    const projects=(data&&data.projects)||[];
+    if(!projects.length){wrap.style.display='none';return;}
+    sel.innerHTML='<option value="">프로젝트 선택 (선택사항)</option>';
+    projects.forEach(p=>{
+        const opt=document.createElement('option');
+        opt.value=p.id;
+        const tags=[...((p.tags&&p.tags.major)||[]),...((p.tags&&p.tags.minor)||[])];
+        opt.textContent=`${p.name} (${p.stage_label||p.stage||p.type||''})`+(p.created_at?` · ${p.created_at}`:'')+(tags.length?` — #${tags.join(' #')}`:'');
+        sel.appendChild(opt);
+    });
+    // 이전에 연결된 프로젝트가 있으면 선택
+    if(linkedProjectId) sel.value=linkedProjectId;
+    wrap.style.display='';
+    syncProjectPaymentFields(); // 결제 금액/잔금을 프로젝트 결제 데이터로 연동
+    if(isLocked) renderLockSummary(); // 요약 뷰에 프로젝트명 반영
+}
+
+async function loadClientProjects(clientId){
+    const wrap=document.getElementById('projectSelectWrap');
+    // 캐시 즉시 표시
+    const cached=swrGet('clidet:'+clientId);
+    if(cached) applyClientProjects(clientId,cached);
     try{
         const res=await fetch(`/api/clients/${clientId}/detail`);
-        if(!res.ok){wrap.style.display='none';return null;}
+        if(!res.ok){ if(!cached) wrap.style.display='none'; return cached; }
         const data=await res.json();
-        const projects=data.projects||[];
-        if(!projects.length){wrap.style.display='none';return data;}
-        sel.innerHTML='<option value="">프로젝트 선택 (선택사항)</option>';
-        projects.forEach(p=>{
-            const opt=document.createElement('option');
-            opt.value=p.id;
-            const tags=[...((p.tags&&p.tags.major)||[]),...((p.tags&&p.tags.minor)||[])];
-            opt.textContent=`${p.name} (${p.stage_label||p.stage||p.type||''})`+(p.created_at?` · ${p.created_at}`:'')+(tags.length?` — #${tags.join(' #')}`:'');
-            sel.appendChild(opt);
-        });
-        // 이전에 연결된 프로젝트가 있으면 선택
-        if(linkedProjectId) sel.value=linkedProjectId;
-        wrap.style.display='';
-        syncProjectPaymentFields(); // 결제 금액/잔금을 프로젝트 결제 데이터로 연동
-        if(isLocked) renderLockSummary(); // 요약 뷰에 프로젝트명 반영
+        swrSet('clidet:'+clientId,data);
+        // 캐시와 다를 때만 다시 그림 (동일하면 재렌더 생략)
+        if(!cached||JSON.stringify(cached.projects||[])!==JSON.stringify(data.projects||[])) applyClientProjects(clientId,data);
+        if(!(data.projects||[]).length&&!cached) wrap.style.display='none';
         return data;
-    }catch(e){wrap.style.display='none';return null;}
+    }catch(e){ if(!cached) wrap.style.display='none'; return cached; }
 }
 
 // ── 프로젝트 결제 연동 — 결제된 금액/잔금은 연결 프로젝트의 결제 합계·미수 잔금에서 자동 반영 (읽기 전용) ──
@@ -4045,10 +4063,7 @@ async function syncProjectPaymentFields(){
         if(note) note.style.display='none';
         return;
     }
-    try{
-        const res=await fetch(`/api/projects/${pid}/summary`,{headers:{'Accept':'application/json'}});
-        if(!res.ok) return;
-        const p=await res.json();
+    const apply=(p)=>{
         // 로딩 중 프로젝트가 바뀌었으면 무시
         const curPid=(wrap&&wrap.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null;
         if(String(curPid)!==String(pid)) return;
@@ -4066,6 +4081,16 @@ async function syncProjectPaymentFields(){
             note.textContent=`🔗 프로젝트 결제 연동 — 결제 ${paid.toLocaleString()}원 · 미수 잔금 ${outstanding.toLocaleString()}원 (수정은 프로젝트 결제에서)`;
         }
         if(isLocked) renderLockSummary();
+    };
+    // 캐시 즉시 적용 → 백그라운드 최신화
+    const cached=swrGet('projsum:'+pid);
+    if(cached) apply(cached);
+    try{
+        const res=await fetch(`/api/projects/${pid}/summary`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        const p=await res.json();
+        swrSet('projsum:'+pid,p);
+        if(!cached||JSON.stringify(cached)!==JSON.stringify(p)) apply(p);
     }catch(e){}
 }
 
@@ -4221,6 +4246,7 @@ async function removeExistingAttach(type,idx,id){
     if(!confirm('이 이미지를 삭제하시겠습니까?')) return;
     await fetch(`/api/schedule-attachments/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF}});
     existingAttachments[type].splice(idx,1);renderImgGrid(type);
+    if(editingId) swrDel('attach:'+editingId); // 캐시 무효화
 }
 async function uploadPendingAttachments(scheduleId){
     const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진',general:'첨부 파일'};
@@ -4241,13 +4267,28 @@ async function uploadPendingAttachments(scheduleId){
         }catch(e){ console.error(`첨부파일 업로드 오류 (${type}):`,e); failedTypes.push(TYPE_LABEL[type]||type); }
     }
     if(failedTypes.length) showCalToast('⚠ '+failedTypes.join(', ')+' 업로드 실패');
+    swrDel('attach:'+scheduleId); // 캐시 무효화 — 다음 열람 시 최신 목록 반영
+}
+function applyAttachmentList(list){
+    existingAttachments={quote:[],reference:[],room:[],general:[]};
+    (list||[]).forEach(a=>{if(existingAttachments[a.attachment_type])existingAttachments[a.attachment_type].push(a);});
+    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
+    // 요약 뷰가 켜진 상태라면 첨부 반영 후 요약을 다시 렌더
+    if(isLocked) renderLockSummary();
 }
 async function loadExistingAttachments(scheduleId){
-    existingAttachments={quote:[],reference:[],room:[],general:[]};
-    try{const res=await fetch(`/api/schedules/${scheduleId}/attachments`);if(res.ok){const list=await res.json();list.forEach(a=>{if(existingAttachments[a.attachment_type])existingAttachments[a.attachment_type].push(a);});}}catch(e){}
-    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
-    // 요약 뷰가 켜진 상태라면 첨부 로딩 완료 후 요약을 다시 렌더(비동기로 늦게 도착한 이미지 반영)
-    if(isLocked) renderLockSummary();
+    // 캐시 즉시 표시 → 백그라운드 최신화 (재열람 시 이미지가 늦게 떠 요약이 다시 그려지던 문제 완화)
+    const cached=swrGet('attach:'+scheduleId);
+    applyAttachmentList(cached||[]);
+    try{
+        const res=await fetch(`/api/schedules/${scheduleId}/attachments`);
+        if(!res.ok) return;
+        const list=await res.json();
+        if(editingId&&String(editingId)!==String(scheduleId)) return; // 로딩 중 다른 일정으로 전환됨
+        const changed=!cached||JSON.stringify(cached)!==JSON.stringify(list);
+        swrSet('attach:'+scheduleId,list);
+        if(changed) applyAttachmentList(list);
+    }catch(e){}
 }
 // ── 배송 현황 (송장 추적) — 방문의뢰(gold)·촬영/스튜디오(green), 저장된 일정만 ──
 const SHIP_COLORS=['gold','green'];
@@ -4266,12 +4307,18 @@ function updateShipmentSectionVisibility(){
 }
 async function loadShipments(){
     if(!editingId||!SHIP_COLORS.includes(currentColor)) return;
+    const sid=editingId;
+    // 캐시 즉시 표시 → 백그라운드 최신화 (재열람 시 늦은 갱신으로 화면이 바뀌어 보이는 문제 완화)
+    const cached=swrGet('ship:'+sid);
+    if(cached){ shipCache=cached; renderShipments(); if(isLocked) renderLockSummary(); }
     try{
-        const res=await fetch(`/api/schedules/${editingId}/shipments`,{headers:{'Accept':'application/json'}});
+        const res=await fetch(`/api/schedules/${sid}/shipments`,{headers:{'Accept':'application/json'}});
         if(!res.ok) return;
-        shipCache=await res.json();
-        renderShipments();
-        if(isLocked) renderLockSummary(); // 요약 뷰에 배송 현황 반영
+        const data=await res.json();
+        if(String(editingId)!==String(sid)) return; // 로딩 중 다른 일정으로 전환됨
+        const changed=!cached||JSON.stringify(cached)!==JSON.stringify(data);
+        swrSet('ship:'+sid,data);
+        if(changed){ shipCache=data; renderShipments(); if(isLocked) renderLockSummary(); }
     }catch(e){}
 }
 // 택배사별 실시간 조회 페이지 (송장번호 클릭 시 새 창)
@@ -4355,19 +4402,19 @@ async function addShipment(){
     const data=await res.json().catch(()=>null);
     if(!res.ok){alert((data&&data.message)||(data&&data.errors&&Object.values(data.errors).flat().join('\n'))||'등록 실패');return;}
     document.getElementById('shipTrackingNo').value='';
-    shipCache=data; renderShipments(); loadEvents(); // 칩 아이콘 갱신
+    shipCache=data; swrSet('ship:'+editingId,data); renderShipments(); loadEvents(); // 칩 아이콘 갱신
 }
 async function deleteShipment(id){
     if(!confirm('이 송장을 삭제하시겠습니까?')) return;
     const res=await fetch(`/api/schedule-shipments/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
     if(!res.ok){alert('삭제 실패');return;}
-    shipCache=await res.json(); renderShipments(); loadEvents();
+    shipCache=await res.json(); if(editingId) swrSet('ship:'+editingId,shipCache); renderShipments(); loadEvents();
 }
 async function refreshShipments(){
     if(!editingId) return;
     const res=await fetch(`/api/schedules/${editingId}/shipments/refresh`,{method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
     if(!res.ok){alert('배송상태 갱신 실패');return;}
-    shipCache=await res.json(); renderShipments(); loadEvents();
+    shipCache=await res.json(); swrSet('ship:'+editingId,shipCache); renderShipments(); loadEvents();
     if(isLocked) renderLockSummary();
 }
 
