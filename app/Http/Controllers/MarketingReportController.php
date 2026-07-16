@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
+use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\ConsultationType;
@@ -11,10 +12,14 @@ use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
+use App\Models\Schedule;
 use App\Models\WorkType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MarketingReportController extends Controller
 {
@@ -299,6 +304,139 @@ class MarketingReportController extends Controller
         return view('marketing-report.revenue', [
             'from' => $request->query('from', now()->startOfMonth()->format('Y-m-d')),
             'to' => $request->query('to', now()->endOfMonth()->format('Y-m-d')),
+        ]);
+    }
+
+    /**
+     * 일정 통계 엑셀 — 기간 내 일정을 날짜별로 나열 (의뢰자 플랫폼·경력·결제 포함).
+     * 기간이 여러 달에 걸치면 월별 시트로 분리, 각 시트 상단에 유형 분포 요약.
+     */
+    public function schedulesExport(Request $request): StreamedResponse
+    {
+        $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
+        $to = $request->query('to', now()->endOfMonth()->format('Y-m-d'));
+
+        $catMap = CalendarCategory::map();
+        $optLabels = ['suggest' => '제안', 'hope' => '희망', 'target' => '목표', 'confirmed' => '확정'];
+        $dows = ['일', '월', '화', '수', '목', '금', '토'];
+
+        $schedules = Schedule::with('assignees:id,name')
+            ->whereBetween('start_date', [$from, $to])
+            ->orderBy('start_date')->orderBy('is_all_day', 'desc')->orderBy('start_time')
+            ->get();
+
+        // 연동 의뢰자 일괄 로딩 (플랫폼 폴백용)
+        $clientIds = $schedules->map(fn ($s) => data_get($s->request_data, 'client_id'))->filter()->unique();
+        $clients = Client::whereIn('id', $clientIds)->get()->keyBy('id');
+
+        $rowFor = function (Schedule $s) use ($catMap, $optLabels, $dows, $clients): array {
+            $g = (array) ($s->request_data ?? []);
+            $client = ! empty($g['client_id']) ? $clients->get($g['client_id']) : null;
+
+            $platform = trim((string) ($g['platform'] ?? ''));
+            if ($platform === '' && $client) {
+                $platform = implode(', ', $client->platforms ?? []);
+            }
+            if ($platform === '' && is_array($s->remote_data)) {
+                $platform = trim((string) ($s->remote_data['platform'] ?? ''));
+            }
+
+            $amount = (int) preg_replace('/\D/', '', (string) ($g['estimate_amount'] ?? ''));
+            $paidRaw = (string) ($g['paid'] ?? '');
+            $paidClass = ($paidRaw === '결제완료' || $amount > 0 || ($g['balance'] ?? '') === 'O')
+                ? '유상'
+                : ($paidRaw === '미결제' ? '유상(미결제)' : '무상/미기재');
+
+            return [
+                'date' => $s->start_date->format('Y-m-d'),
+                'dow' => $dows[$s->start_date->dayOfWeek],
+                'time' => $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5),
+                'title' => $s->title,
+                'category' => $catMap[$s->color]['label'] ?? $s->color,
+                'opt' => $optLabels[$s->sched_opt] ?? '',
+                'client' => $s->client_name ?: ($g['nickname'] ?? '') ?: ($g['name'] ?? '') ?: ($client->nickname ?? ''),
+                'platform' => $platform,
+                'career' => (string) ($g['career'] ?? ''),
+                'paid' => $paidClass,
+                'amount' => $amount,
+                'balance' => ($g['balance'] ?? '') === 'O' ? (int) preg_replace('/\D/', '', (string) ($g['balance_amount'] ?? '')) : 0,
+                'assignees' => $s->assignees->pluck('name')->implode(', '),
+                'completed' => $s->completed_at ? 'O' : '',
+            ];
+        };
+
+        $spreadsheet = new Spreadsheet;
+        $bold = fn ($sheet, $range) => $sheet->getStyle($range)->getFont()->setBold(true);
+        $byMonth = $schedules->groupBy(fn ($s) => $s->start_date->format('Y-m'));
+
+        $header = ['날짜', '요일', '시간', '제목', '유형', '일정 성격', '의뢰자', '플랫폼', '경력', '결제', '결제금액', '잔금', '담당자', '완료'];
+        $firstSheet = true;
+
+        foreach ($byMonth as $ym => $monthSchedules) {
+            $sheet = $firstSheet ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
+            $firstSheet = false;
+            $sheet->setTitle($ym);
+
+            $rows = $monthSchedules->map($rowFor);
+
+            // ── 요약: 유형 분포 + 결제 유무 ──
+            $sheet->setCellValue('A1', "{$ym} 일정 통계");
+            $bold($sheet, 'A1');
+            $sheet->setCellValue('A2', '기간');
+            $sheet->setCellValue('B2', max($from, $ym.'-01').' ~ '.min($to, $monthSchedules->max(fn ($s) => $s->start_date->format('Y-m-d'))));
+            $sheet->setCellValue('A3', '총 일정');
+            $sheet->setCellValue('B3', $rows->count().'건');
+
+            $r = 5;
+            $sheet->setCellValue("A{$r}", '■ 유형 분포');
+            $bold($sheet, "A{$r}");
+            $r++;
+            $sheet->fromArray(['유형', '건수', '비중'], null, "A{$r}");
+            $bold($sheet, "A{$r}:C{$r}");
+            $r++;
+            foreach ($rows->countBy('category')->sortDesc() as $label => $cnt) {
+                $sheet->fromArray([$label, $cnt, round($cnt / max(1, $rows->count()) * 100).'%'], null, "A{$r}");
+                $r++;
+            }
+
+            $r++;
+            $sheet->setCellValue("A{$r}", '■ 결제 유무');
+            $bold($sheet, "A{$r}");
+            $r++;
+            foreach ($rows->countBy('paid')->sortDesc() as $label => $cnt) {
+                $sheet->fromArray([$label, $cnt], null, "A{$r}");
+                $r++;
+            }
+
+            // ── 일정 목록 ──
+            $r += 1;
+            $sheet->setCellValue("A{$r}", '■ 일정 목록');
+            $bold($sheet, "A{$r}");
+            $r++;
+            $sheet->fromArray($header, null, "A{$r}");
+            $bold($sheet, "A{$r}:N{$r}");
+            $r++;
+            foreach ($rows as $row) {
+                $sheet->fromArray(array_values($row), null, "A{$r}");
+                $r++;
+            }
+            foreach (range('A', 'N') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+        }
+
+        if ($byMonth->isEmpty()) {
+            $spreadsheet->getActiveSheet()->setTitle('일정 없음')
+                ->setCellValue('A1', "{$from} ~ {$to} 기간에 일정이 없습니다.");
+        }
+
+        $filename = "일정통계_{$from}_{$to}.xlsx";
+
+        return new StreamedResponse(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename*=UTF-8''".rawurlencode($filename),
         ]);
     }
 

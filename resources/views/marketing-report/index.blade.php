@@ -78,6 +78,7 @@
             <button type="button" class="mk-navbtn" onclick="mkMonthNav(1)" title="다음 달">▶</button>
             <button type="submit">조회</button>
             <a href="/api/dashboard-export/excel?from={{ $from }}&to={{ $to }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;"><x-icon name="download" :size="13"/> 엑셀</a>
+            <a href="{{ route('marketing-report.schedules-export') }}?from={{ $from }}&to={{ $to }}" title="기간 내 일정을 날짜별로 나열 (의뢰자 플랫폼·경력·결제 포함, 월별 시트)" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;"><x-icon name="download" :size="13"/> 일정 엑셀</a>
             <select class="mk-preset-select" onchange="mkApplyPreset(this.value); this.selectedIndex=0;">
                 <option value="">기간 선택…</option>
                 <option value="today">오늘</option>
