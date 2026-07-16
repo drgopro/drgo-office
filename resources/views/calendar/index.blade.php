@@ -809,7 +809,7 @@
     .cs-changelog-btn:hover { border-color:var(--accent); color:var(--text); }
     .changelog-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:300; align-items:flex-start; justify-content:center; padding:7vh 16px 16px; }
     .changelog-overlay.open { display:flex; }
-    .changelog-modal { width:100%; max-width:560px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+    .changelog-modal { width:100%; max-width:860px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
     .changelog-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); font-size:14px; font-weight:700; }
     .changelog-head button { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:2px 8px; }
     .changelog-body { max-height:64vh; overflow-y:auto; padding:8px 14px 14px; }
