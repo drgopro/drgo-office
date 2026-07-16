@@ -2734,15 +2734,22 @@ function openDayPopover(dateStr, anchorEl){
         </div>`;
     }).join('');
 
-    // 위치: 앵커 셀 근처, 화면 밖으로 안 나가게 보정
+    // 위치: 앵커 셀 근처, 화면(실제 보이는 영역) 밖으로 안 나가게 보정
     overlay.classList.add('open');
     pop.style.display='block';
+    const vv=window.visualViewport;
+    const vw=vv?vv.width:window.innerWidth, vh=vv?vv.height:window.innerHeight;
+    const vx=vv?vv.offsetLeft:0, vy=vv?vv.offsetTop:0;
+    // 높이 측정 전에 기본 상한 재설정 (이전 열림에서 줄여둔 max-height 초기화)
+    pop.style.maxHeight=Math.round(vh*0.6)+'px';
     const r=anchorEl.getBoundingClientRect();
     const pw=300, ph=pop.offsetHeight;
     let left=r.left, top=r.top;
-    if(left+pw>window.innerWidth-12) left=window.innerWidth-pw-12;
-    if(left<12) left=12;
-    if(top+ph>window.innerHeight-12) top=Math.max(12, window.innerHeight-ph-12);
+    if(left+pw>vx+vw-12) left=vx+vw-pw-12;
+    if(left<vx+12) left=vx+12;
+    if(top+ph>vy+vh-12) top=Math.max(vy+12, vy+vh-ph-12);
+    // 최종 안전장치 — 팝업 하단이 화면 아래로 넘어가지 않도록 높이를 남은 공간에 맞춰 제한 (내부 스크롤 유지)
+    pop.style.maxHeight=Math.max(140, vy+vh-top-12)+'px';
     pop.style.left=left+'px';
     pop.style.top=top+'px';
 }
