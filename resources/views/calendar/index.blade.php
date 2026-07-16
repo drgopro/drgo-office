@@ -806,7 +806,8 @@
     .lightbox-img-wrap.zoomed { cursor:grab; }
     .lightbox-img-wrap:not(.zoomed) { cursor:default; }
     .lightbox-img-wrap img { max-width:90vw; max-height:80vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; pointer-events:auto; }
-    .lightbox-close { position:fixed; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:10; }
+    .lightbox-close { position:fixed; top:16px; right:16px; background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.35); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; z-index:20; }
+    body.lb-open { overflow:hidden; } /* 라이트박스 열림 — 배경 스크롤 잠금 (닫기 버튼이 스크롤로 밀려나지 않도록) */
     .lightbox-close:hover { background:rgba(255,255,255,0.3); }
     .lightbox-zoom-info { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px; border-radius:20px; font-size:11px; opacity:0; transition:opacity 0.3s; pointer-events:none; }
     .lightbox-zoom-info.show { opacity:1; }
@@ -5089,6 +5090,8 @@ window.addEventListener('popstate',function(){
     if(lb && lb.classList.contains('open')){
         __lbHistory=false; // 이 history 항목은 이미 pop됨
         lb.classList.remove('open'); lbResetZoom();
+        document.body.classList.remove('lb-open');
+        if(typeof lbBindPin==='function') lbBindPin(false);
         return;
     }
     const ov=document.getElementById('modalOverlay');
@@ -5623,12 +5626,33 @@ function openLightbox(src,filename,images,idx){
     document.getElementById('lightbox').classList.add('open');
     document.querySelector('.lightbox-nav.prev').style.display=lightboxImages.length>1?'':'none';
     document.querySelector('.lightbox-nav.next').style.display=lightboxImages.length>1?'':'none';
+    document.body.classList.add('lb-open');
+    lbPinClose(); lbBindPin(true);
     if(!__lbHistory){ try{ history.pushState({lb:1},''); }catch(e){} __lbHistory=true; }
 }
 function closeLightbox(){
     document.getElementById('lightbox').classList.remove('open'); lbResetZoom();
+    document.body.classList.remove('lb-open');
+    lbBindPin(false);
+    const btn=document.querySelector('.lightbox-close'); if(btn){ btn.style.top=''; btn.style.left=''; btn.style.right=''; }
     // UI로 닫을 때(뒤로가기 아님) push했던 history 항목 소비 — popstate가 무시하도록 플래그
     if(__lbHistory){ __lbHistory=false; __lbConsuming=true; try{ history.back(); }catch(e){ __lbConsuming=false; } }
+}
+
+// 닫기 버튼을 '실제 보이는 화면'(비주얼 뷰포트) 우상단에 고정 — 핀치 줌/스크롤에도 안 움직임
+function lbPinClose(){
+    const btn=document.querySelector('.lightbox-close'); if(!btn) return;
+    const vv=window.visualViewport;
+    if(!vv){ btn.style.top='16px'; btn.style.right='16px'; return; }
+    btn.style.right='auto';
+    btn.style.top=(vv.offsetTop+12)+'px';
+    btn.style.left=(vv.offsetLeft+vv.width-52)+'px';
+}
+let __lbPinBound=false;
+function lbBindPin(on){
+    const vv=window.visualViewport; if(!vv) return;
+    if(on&&!__lbPinBound){ vv.addEventListener('resize',lbPinClose); vv.addEventListener('scroll',lbPinClose); __lbPinBound=true; }
+    else if(!on&&__lbPinBound){ vv.removeEventListener('resize',lbPinClose); vv.removeEventListener('scroll',lbPinClose); __lbPinBound=false; }
 }
 function lightboxNav(dir){
     lightboxIdx=(lightboxIdx+dir+lightboxImages.length)%lightboxImages.length;
