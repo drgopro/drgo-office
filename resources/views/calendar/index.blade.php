@@ -344,7 +344,13 @@
     .cs-sec-title { font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:6px; letter-spacing:0.03em; }
     .cs-cat { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:8px; font-size:12.5px; cursor:pointer; color:var(--text); user-select:none; }
     .cs-cat:hover { background:var(--surface2); }
-    .cs-cat.off { opacity:0.38; }
+    .cs-cat.off .cs-cat-label { opacity:0.45; }
+    /* 카테고리 체크박스 — 켜짐: 카테고리 색 채움 + 흰 체크 / 꺼짐: 테두리만 */
+    .cs-check { flex-shrink:0; width:17px; height:17px; border-radius:5px; border:1.5px solid var(--cat-c,#bbb); background:var(--surface); display:inline-flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .cs-check svg { width:11px; height:11px; fill:none; stroke:#fff; stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; opacity:0; }
+    .cs-check.on { background:var(--cat-c); border-color:var(--cat-c); }
+    .cs-check.on svg { opacity:1; }
+    .cs-cat.off .cs-check { opacity:0.7; }
     .cs-cat .cs-cat-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     /* '만 보기' — 행 hover 시 우측에 표시, 클릭하면 해당 카테고리만 켜기 (재클릭 시 전체 복원) */
     .cs-solo { margin-left:auto; flex-shrink:0; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); font-size:10px; padding:1px 7px; border-radius:8px; cursor:pointer; opacity:0; transition:opacity 0.12s; }
@@ -2190,7 +2196,8 @@ function csToggleCat(k){
 function csCatRow(k, on){
     const c = CS_CATS[k];
     return `<div class="cs-cat${on?'':' off'}" onclick="csToggleCat('${k}')" title="${on?'클릭하여 끄기':'클릭하여 켜기'}">
-        <span class="cs-dot" style="background:var(--chip-${k}-bg)"></span><span class="cs-cat-label">${(c.label||k).replace(/[<>&]/g,'')}</span>
+        <span class="cs-check${on?' on':''}" style="--cat-c:var(--chip-${k}-bg)"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+        <span class="cs-cat-label">${(c.label||k).replace(/[<>&]/g,'')}</span>
         <button type="button" class="cs-solo" onclick="event.stopPropagation();csSoloCat('${k}')" title="이 카테고리만 보기">만 보기</button>
     </div>`;
 }
