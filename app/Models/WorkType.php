@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkType extends Model
 {
-    protected $fillable = ['key', 'label', 'scale_keys', 'sort_order', 'is_active'];
+    protected $fillable = ['key', 'type_key', 'label', 'scale_keys', 'sort_order', 'is_active'];
 
     protected $casts = [
         'scale_keys' => 'array',

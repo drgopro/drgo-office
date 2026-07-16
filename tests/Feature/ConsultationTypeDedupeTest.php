@@ -60,9 +60,9 @@ class ConsultationTypeDedupeTest extends TestCase
         $this->assertFalse($activeKeys->contains('as'));
         $this->assertFalse($activeKeys->contains('troubleshoot'));
 
-        // 작업 유형으로 이동 — work_types에 존재
-        $this->assertDatabaseHas('work_types', ['key' => 'as', 'label' => 'A/S']);
-        $this->assertDatabaseHas('work_types', ['key' => 'troubleshoot', 'label' => '문제해결']);
+        // 작업 유형으로 이동 — work_types에 존재 (원격 유형 종속)
+        $this->assertDatabaseHas('work_types', ['key' => 'as', 'label' => 'AS', 'type_key' => 'remote']);
+        $this->assertDatabaseHas('work_types', ['key' => 'troubleshoot', 'label' => '문제해결', 'type_key' => 'remote']);
     }
 
     public function test_admin_can_delete_unused_default_type(): void

@@ -694,12 +694,12 @@
                     </div>
                     <div>
                         <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형</div>
-                        <select id="peProjectType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                        <select id="peProjectType" onchange="updatePeWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div>
                             <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
-                            <select id="peScale" onchange="updatePeWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                            <select id="peScale" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
                                 <option value="">선택</option>
                                 <option value="personal">개인</option>
                                 <option value="studio">스튜디오</option>
@@ -1479,8 +1479,8 @@ async function openProjectEditModal() {
 function closeProjectEditModal() { document.getElementById('projectEditModalOverlay').style.display = 'none'; }
 
 function updatePeWorkType() {
-    const scale = document.getElementById('peScale').value;
-    const opts = WORK_TYPES_FOR(scale);
+    const projectType = document.getElementById('peProjectType').value;
+    const opts = WORK_TYPES_FOR(projectType);
     const sel = document.getElementById('peWorkType');
     sel.innerHTML = `<option value="">선택</option>` + opts.map(([v,l]) => `<option value="${v}" ${CURRENT_PROJECT.work_type === v ? 'selected' : ''}>${l}</option>`).join('');
 }
@@ -1530,20 +1530,21 @@ async function loadActiveWorkTypes() {
     return WORK_TYPES_ACTIVE || [];
 }
 
-function WORK_TYPES_FOR(scale) {
-    if (!WORK_TYPES_ACTIVE || !WORK_TYPES_ACTIVE.length) return WORK_TYPES_FALLBACK[scale] || [];
+function WORK_TYPES_FOR(projectType) {
+    if (!WORK_TYPES_ACTIVE || !WORK_TYPES_ACTIVE.length) return WORK_TYPES_FALLBACK.personal || [];
+    // 종속 구조: 프로젝트 유형에 속한 작업 유형만 노출 (type_key 없는 항목은 공통)
     return WORK_TYPES_ACTIVE
-        .filter(w => !w.scale_keys || !w.scale_keys.length || (scale && w.scale_keys.includes(scale)))
+        .filter(w => !w.type_key || w.type_key === projectType)
         .map(w => [w.key, w.label]);
 }
 
 // 'WORK_TYPES'는 다른 코드 호환을 위해 Proxy로 노출 (스칼라 키 접근 시 자동 조회)
-const WORK_TYPES = new Proxy({}, { get: (_, scale) => WORK_TYPES_FOR(scale) });
+const WORK_TYPES = new Proxy({}, { get: (_, key) => WORK_TYPES_FOR(key) });
 
 function updateEditWorkTypes() {
-    const scale = document.getElementById('editScale').value;
+    // 규모 편집 모달에는 유형 선택이 없으므로 현재 프로젝트 유형 기준으로 종속 필터링
     const sel = document.getElementById('editWorkType');
-    const opts = WORK_TYPES_FOR(scale);
+    const opts = WORK_TYPES_FOR(CURRENT_PROJECT.project_type);
     sel.innerHTML = opts.map(([v,l]) => `<option value="${v}" ${CURRENT_WORK_TYPE===v?'selected':''}>${l}</option>`).join('');
 }
 

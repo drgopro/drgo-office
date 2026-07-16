@@ -18,13 +18,13 @@ class WorkTypeController extends Controller
         );
     }
 
-    /** 활성 목록 (드롭다운용) */
+    /** 활성 목록 (드롭다운용) — type_key로 프로젝트 유형 종속 필터링 */
     public function active()
     {
         return response()->json(
             WorkType::where('is_active', true)
                 ->orderBy('sort_order')->orderBy('id')
-                ->get(['id', 'key', 'label', 'scale_keys'])
+                ->get(['id', 'key', 'type_key', 'label', 'scale_keys'])
         );
     }
 
@@ -32,6 +32,7 @@ class WorkTypeController extends Controller
     {
         $validated = $request->validate([
             'key' => 'nullable|string|max:50|regex:/^[a-z0-9_]+$/|unique:work_types,key',
+            'type_key' => 'nullable|string|exists:consultation_types,key',
             'label' => 'required|string|max:100',
             'scale_keys' => 'nullable|array',
             'scale_keys.*' => ['string', 'in:'.implode(',', self::VALID_SCALES)],
@@ -65,6 +66,7 @@ class WorkTypeController extends Controller
     {
         $validated = $request->validate([
             'label' => 'sometimes|string|max:100',
+            'type_key' => 'nullable|string|exists:consultation_types,key',
             'scale_keys' => 'nullable|array',
             'scale_keys.*' => ['string', 'in:'.implode(',', self::VALID_SCALES)],
             'sort_order' => 'sometimes|integer',

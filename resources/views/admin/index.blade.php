@@ -750,8 +750,8 @@
     <div class="tab-panel" id="panel-workTypes">
         <div class="cf-toolbar">
             <div class="cf-hint">
-                프로젝트의 <b>작업 유형</b>(세팅·원격·답사·촬영중계 등)을 관리합니다.<br>
-                <span style="opacity:0.7;">규모(개인/스튜디오/기업/렌탈/방송룸)별로 노출 여부를 지정할 수 있습니다. 기본 9종은 삭제 불가, 비활성화는 가능합니다.</span>
+                프로젝트의 <b>작업 유형</b>(단순·문제해결·일반·중계 등)을 관리합니다.<br>
+                <span style="opacity:0.7;">프로젝트 유형을 먼저 고르면 그에 속한 작업 유형만 드롭다운에 노출됩니다(종속). 유형을 지정하지 않으면 모든 프로젝트 유형에서 공통으로 노출됩니다.</span>
             </div>
             <button class="btn-add" style="margin-bottom:0;" onclick="openWorkTypeModal()">+ 작업 유형 추가</button>
         </div>
@@ -765,7 +765,7 @@
                 <span id="wtModalTitle">+ 작업 유형</span>
                 <button type="button" class="close-btn" onclick="closeWorkTypeModal()"><x-icon name="close" :size="15"/></button>
             </h3>
-            <div class="cf-modal-sub">새 프로젝트 등록 시 '규모'에 따라 선택할 수 있는 작업 유형을 관리합니다.</div>
+            <div class="cf-modal-sub">새 프로젝트 등록 시 '프로젝트 유형'에 따라 선택할 수 있는 작업 유형을 관리합니다.</div>
             <input type="hidden" id="wtId">
 
             <div class="field-group">
@@ -779,14 +779,10 @@
             </div>
 
             <div class="field-group">
-                <div class="field-label">적용 규모 (체크 안 하면 모든 규모에 노출)</div>
-                <div class="cf-toggle-row" style="flex-wrap:wrap; gap:14px;">
-                    <label><input type="checkbox" class="wt-scale-cb" value="personal"> 개인</label>
-                    <label><input type="checkbox" class="wt-scale-cb" value="studio"> 스튜디오</label>
-                    <label><input type="checkbox" class="wt-scale-cb" value="corporate"> 기업</label>
-                    <label><input type="checkbox" class="wt-scale-cb" value="rental"> 렌탈</label>
-                    <label><input type="checkbox" class="wt-scale-cb" value="broadcast_room"> 방송룸</label>
-                </div>
+                <div class="field-label">종속 프로젝트 유형 (선택 안 하면 모든 유형에 공통 노출)</div>
+                <select class="field-input" id="wtTypeKey">
+                    <option value="">공통 (모든 유형)</option>
+                </select>
             </div>
 
             <div class="cf-modal-row">
@@ -2339,10 +2335,24 @@ async function initRtEditor(initialContent) {
 
 // ─────────────── 작업 유형 ───────────────
 const WORK_TYPE_DEFAULTS = ['setup','remote','survey','filming','design','as','dispatch','monthly','hourly'];
-const SCALE_LABELS = { personal:'개인', studio:'스튜디오', corporate:'기업', rental:'렌탈', broadcast_room:'방송룸' };
 let allWorkTypes = [];
 
+async function ensureConsultTypesLoaded() {
+    if (allConsultTypes.length) return;
+    try {
+        const res = await fetch('/api/admin/consultation-types', { headers:{ 'Accept':'application/json' } });
+        if (res.ok) allConsultTypes = await res.json();
+    } catch(e) {}
+}
+
+function consultTypeLabel(key) {
+    if (!key) return null;
+    const t = allConsultTypes.find(x => x.key === key);
+    return t ? t.label : key;
+}
+
 async function loadWorkTypes() {
+    await ensureConsultTypesLoaded();
     const res = await fetch('/api/admin/work-types', { headers:{'Accept':'application/json'} });
     allWorkTypes = await res.json();
     renderWorkTypes();
@@ -2357,10 +2367,9 @@ function renderWorkTypes() {
     container.innerHTML = `<div class="cf-grid">${allWorkTypes.map(t => {
         const isDefault = WORK_TYPE_DEFAULTS.includes(t.key);
         const inactive = t.is_active ? '' : ' inactive';
-        const scaleKeys = Array.isArray(t.scale_keys) ? t.scale_keys : [];
-        const scaleChips = scaleKeys.length
-            ? scaleKeys.map(k => `<span class="cf-chip">${SCALE_LABELS[k]||k}</span>`).join('')
-            : '<span class="cf-chip muted">모든 규모</span>';
+        const typeChip = t.type_key
+            ? `<span class="cf-chip" style="border-color:var(--accent); color:var(--accent);">${escHtml(consultTypeLabel(t.type_key))}</span>`
+            : '<span class="cf-chip muted">공통</span>';
         return `<div class="cf-card${inactive}" onclick="editWorkType(${t.id})">
             <div class="cf-card-row">
                 <div class="cf-card-label">${escHtml(t.label)}</div>
@@ -2373,12 +2382,12 @@ function renderWorkTypes() {
                     <span class="cf-chip">순서 ${t.sort_order ?? 0}</span>
                 </div>
             </div>
-            <div class="cf-card-row" style="flex-wrap:wrap; gap:4px;">${scaleChips}</div>
+            <div class="cf-card-row" style="flex-wrap:wrap; gap:4px;">${typeChip}</div>
         </div>`;
     }).join('')}</div>`;
 }
 
-function openWorkTypeModal(t) {
+async function openWorkTypeModal(t) {
     document.getElementById('wtModalOverlay').classList.add('open');
     document.getElementById('wtModalTitle').textContent = t ? '작업 유형 편집' : '+ 작업 유형';
     document.getElementById('wtId').value = t?.id || '';
@@ -2387,8 +2396,12 @@ function openWorkTypeModal(t) {
     document.getElementById('wtKey').disabled = !!t;
     document.getElementById('wtSortOrder').value = t?.sort_order ?? '';
     document.getElementById('wtIsActive').checked = t ? !!t.is_active : true;
-    const scaleKeys = Array.isArray(t?.scale_keys) ? t.scale_keys : [];
-    document.querySelectorAll('.wt-scale-cb').forEach(cb => { cb.checked = scaleKeys.includes(cb.value); });
+    await ensureConsultTypesLoaded();
+    const typeSel = document.getElementById('wtTypeKey');
+    typeSel.innerHTML = '<option value="">공통 (모든 유형)</option>'
+        + allConsultTypes.filter(ct => ct.is_active || ct.key === t?.type_key)
+            .map(ct => `<option value="${ct.key}">${escHtml(ct.label)}</option>`).join('');
+    typeSel.value = t?.type_key || '';
     const isDefault = t && WORK_TYPE_DEFAULTS.includes(t.key);
     document.getElementById('wtDeleteBtn').style.display = (t && !isDefault) ? 'inline-block' : 'none';
 }
@@ -2400,10 +2413,9 @@ async function saveWorkType() {
     const id = document.getElementById('wtId').value;
     const label = document.getElementById('wtLabel').value.trim();
     if (!label) return alert('라벨을 입력하세요.');
-    const scaleKeys = Array.from(document.querySelectorAll('.wt-scale-cb:checked')).map(cb => cb.value);
     const body = {
         label,
-        scale_keys: scaleKeys.length ? scaleKeys : null,
+        type_key: document.getElementById('wtTypeKey').value || null,
         sort_order: parseInt(document.getElementById('wtSortOrder').value || 0),
         is_active: document.getElementById('wtIsActive').checked,
     };

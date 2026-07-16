@@ -483,13 +483,13 @@ async function loadNpWorkTypes() {
     return NP_WORK_TYPES_ACTIVE || [];
 }
 
-function NP_WORK_TYPES_FOR(scale) {
+function NP_WORK_TYPES_FOR(projectType) {
     if (!NP_WORK_TYPES_ACTIVE || !NP_WORK_TYPES_ACTIVE.length) {
-        return NP_WORK_TYPES_FALLBACK[scale] || [];
+        return [];
     }
-    // scale_keys가 비어있으면 모든 규모에 노출, 아니면 해당 규모만
+    // 종속 구조: 선택한 프로젝트 유형에 속한 작업 유형만 노출 (type_key 없는 항목은 공통)
     return NP_WORK_TYPES_ACTIVE
-        .filter(w => !w.scale_keys || !w.scale_keys.length || (scale && w.scale_keys.includes(scale)))
+        .filter(w => !w.type_key || w.type_key === projectType)
         .map(w => [w.key, w.label]);
 }
 
@@ -504,6 +504,7 @@ async function openNewProjectModal() {
         sel.innerHTML = types.length
             ? types.map(t => `<option value="${t.key}">${t.label}</option>`).join('')
             : '<option value="visit">방문세팅</option>';
+        sel.onchange = updateNpWorkType; // 유형 변경 시 종속 작업 유형 갱신
     } catch(e) {}
     // 초기화 — 규모는 '개인' 기본값
     document.getElementById('npClientSearch').value = '';
@@ -531,8 +532,8 @@ function togglePaymentOnly(checked) {
 }
 
 function updateNpWorkType() {
-    const scale = document.getElementById('npScale').value;
-    const opts = NP_WORK_TYPES_FOR(scale);
+    const projectType = document.getElementById('npType').value;
+    const opts = NP_WORK_TYPES_FOR(projectType);
     document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>' + opts.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
 }
 
