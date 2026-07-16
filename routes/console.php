@@ -16,3 +16,6 @@ Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping
 
 // 진행중 렌탈·방송룸 계약의 결제 반복 일정 자동 연장 (매월 1일)
 Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->withoutOverlapping();
+
+// 서버 디스크 사용률 점검 — 80% 초과 시 관리자 알림 (매일 오전 8시)
+Schedule::command('disk:check')->dailyAt('08:00')->withoutOverlapping();
