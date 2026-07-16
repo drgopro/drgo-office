@@ -3697,10 +3697,18 @@ function renderLockSummary(){
         if (hNote) left.push(lsCard('전달사항', `<div class="ls-text-block">${_esc(hNote)}</div>`, '', 'ls-tinted ls-c-desc'));
     }
 
-    // 배송 현황 목록 카드 (접힘 토글 유지)
+    // 배송 현황 목록 카드 (접힘 토글 유지) — 제목 배송 아이콘도 요약에서 바로 지정 가능
     if (lsShips.length) {
+        const shipPick=(v,label,color)=>`<button type="button" class="ship-mini-btn ship-ico-btn ${((shipIconOverride||'')===v)?'primary':''}" data-sio="${v}" onclick="event.stopPropagation();setShipIconOverride('${v}')"${color?` style="color:${color};"`:''}>${label}</button>`;
+        const shipPicker=canEditCalendar?`<span style="display:inline-flex;gap:4px;align-items:center;">
+                <span style="font-size:10px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
+                ${shipPick('all','○','var(--green)')}${shipPick('part','△','#d78a2e')}${shipPick('none','✕','var(--red)')}${shipPick('','없음','')}
+            </span>`:'';
         left.push(lsCard('', `
-            <div class="ls-card-title" style="cursor:pointer;user-select:none;" onclick="lsToggleShip()">${lsShipOpen?'▾':'▸'} 📦 배송 현황 (${lsShipsDone}/${lsShips.length} 완료)</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                <div class="ls-card-title" style="cursor:pointer;user-select:none;" onclick="lsToggleShip()">${lsShipOpen?'▾':'▸'} 📦 배송 현황 (${lsShipsDone}/${lsShips.length} 완료)</div>
+                ${shipPicker}
+            </div>
             <div style="display:${lsShipOpen?'block':'none'};margin-top:8px;">${lsShips.map(shipRowHtml).join('')}</div>`, '', 'ls-c-ship'));
     }
 
@@ -4306,6 +4314,7 @@ async function setShipIconOverride(v){
     renderShipIconButtons();
     updateModalShipBadge();
     showCalToast(val?'제목 배송 아이콘을 지정했습니다':'제목 배송 아이콘을 해제했습니다');
+    if(isLocked&&typeof renderLockSummary==='function') renderLockSummary(); // 요약 뷰의 선택 상태 갱신
     loadEvents();
 }
 // 모달 제목 옆 배송 상태 아이콘 — 수동 지정만 표시 (자동 판정 제거)
