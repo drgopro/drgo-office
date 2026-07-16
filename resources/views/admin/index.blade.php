@@ -1059,6 +1059,7 @@ const SETTINGS_PANEL_MAP = {
     calendarCategories: { panel: 'panel-calendarCategories', load: () => typeof loadCalendarCategories === 'function' && loadCalendarCategories() },
     reportTemplates: { panel: 'panel-reportTemplates', load: () => typeof loadReportTemplates === 'function' && loadReportTemplates() },
     visitOptions: { panel: 'panel-visitOptions', load: () => {} },
+    cancelReasons: { panel: 'panel-cancelReasons', load: () => {} },
     seller: { panel: 'panel-seller', load: () => {} },
 };
 
