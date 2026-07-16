@@ -1369,22 +1369,17 @@
 
             {{-- 배송 현황 (방문의뢰·촬영/스튜디오, 저장된 일정만) --}}
             <div class="field-section" id="shipmentSection" style="display:none;">
-                <div class="field-group" id="shipIconRow">
-                    <div class="field-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span>제목 배송 아이콘</span>
-                        <span style="display:inline-flex;gap:4px;">
-                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="" onclick="setShipIconOverride('')" title="배송현황 기준 자동 표시">자동</button>
-                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="all" onclick="setShipIconOverride('all')" title="완료로 표시" style="color:var(--green);">○</button>
+                <div class="field-group">
+                    <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;" onclick="toggleShipmentBody()">
+                        <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
+                        <span style="display:inline-flex;gap:4px;align-items:center;" onclick="event.stopPropagation();">
+                            <span style="font-weight:400;font-size:10px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
+                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="all" onclick="setShipIconOverride('all')" title="배송 완료로 표시" style="color:var(--green);">○</button>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="part" onclick="setShipIconOverride('part')" title="부분 배송으로 표시" style="color:#d78a2e;">△</button>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="none" onclick="setShipIconOverride('none')" title="미배송으로 표시" style="color:var(--red);">✕</button>
+                            <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="" onclick="setShipIconOverride('')" title="제목에 표시 안 함">없음</button>
+                            <button type="button" class="ship-mini-btn" onclick="refreshShipments()" title="배송상태 새로고침">🔄 새로고침</button>
                         </span>
-                        <span style="font-weight:400;font-size:10px;color:var(--text-muted);">수동 지정 시 배송현황과 무관하게 제목에 표시</span>
-                    </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleShipmentBody()">
-                        <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
-                        <button type="button" class="ship-mini-btn" onclick="event.stopPropagation();refreshShipments()" title="배송상태 새로고침">🔄 새로고침</button>
                     </label>
                     <div id="shipmentBody" style="display:none;">
                         <div id="shipmentList"></div>
@@ -1616,13 +1611,6 @@
                     <div class="field-group" style="flex:none;">
                         <div class="field-label">주문 제품</div>
                         <div class="radio-group" id="g_order_group">
-                            <div class="radio-btn active" data-val="X">X</div>
-                            <div class="radio-btn" data-val="O">O</div>
-                        </div>
-                    </div>
-                    <div class="field-group" id="g_delivery_wrap" style="flex:none;display:none;">
-                        <div class="field-label">배송완료</div>
-                        <div class="radio-group" id="g_delivery_group">
                             <div class="radio-btn active" data-val="X">X</div>
                             <div class="radio-btn" data-val="O">O</div>
                         </div>
@@ -1998,19 +1986,16 @@ function chipColor(c){
     if(c==='holiday') return 'var(--chip-red-bg)';
     return (window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[c])?`var(--chip-${c}-bg)`:'var(--accent)';
 }
-// 배송 상태 인라인 아이콘 (송장 없으면 빈 문자열) — 리스트/팝오버 공용
-const SHIP_ICON_MAP={all:['○','s-all','배송 완료 (수동 지정)'],part:['△','s-part','부분 배송 (수동 지정)'],none:['✕','s-none','미배송 (수동 지정)']};
+// 배송 상태 인라인 아이콘 — 수동 지정만 표시 (자동 판정 제거: 일부 송장만 등록해도
+// 전부 도착하면 완료(○)로 보여 착각을 유발하던 문제 → 담당자가 직접 지정)
+const SHIP_ICON_MAP={all:['○','s-all','배송 완료'],part:['△','s-part','부분 배송'],none:['✕','s-none','미배송']};
 function shipStatusIcon(ev){
     if(!ev) return '';
-    // 수동 지정이 있으면 배송현황과 무관하게 우선 표시 (부분 송장 업로드 시 완료 착각 방지)
     if(ev.ship_icon_override&&SHIP_ICON_MAP[ev.ship_icon_override]){
         const [ico,cls,tt]=SHIP_ICON_MAP[ev.ship_icon_override];
         return `<span class="chip-ship ${cls}" title="${tt}">${ico}</span>`;
     }
-    if(!ev.shipments_count) return '';
-    const d=ev.shipments_delivered_count||0, t=ev.shipments_count;
-    const [ico,cls]=d===0?['✕','s-none']:(d<t?['△','s-part']:['○','s-all']);
-    return `<span class="chip-ship ${cls}" title="배송 ${d}/${t}건 완료">${ico}</span>`;
+    return '';
 }
 // 일정 옵션(빠름/긴급/AS이후) 아이콘 맵
 const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→'};
@@ -3249,11 +3234,7 @@ function handleConditional(gid){
     if(gid==='g_req_topic_group'){
         updateMoveSettingUI();
     }
-    // 주문제품 O → 배송완료
-    if(gid==='g_order_group'){
-        const v=getRadio('g_order_group');
-        document.getElementById('g_delivery_wrap').style.display=v==='O'?'':'none';
-    }
+    // (배송완료 O/X 필드는 제거됨 — 제목 배송 아이콘 수동 지정으로 대체)
     // 잔금 O → 금액
     if(gid==='g_balance_group'){
         const v=getRadio('g_balance_group');
@@ -3626,7 +3607,6 @@ function renderLockSummary(){
         const paid = _radio('g_paid_group');
         const orderVal = _radio('g_order_group');
         const balanceVal = _radio('g_balance_group');
-        const delivery = _radio('g_delivery_group');
 
         // ② 의뢰자 — 닉네임/이름 굵게 + 전화 굵게
         const nick = _val('g_nickname');
@@ -3668,7 +3648,6 @@ function renderLockSummary(){
             (paid==='O'||paid==='결제완료')?'<span class="ls-state on">결제완료</span>':(paid?'<span class="ls-state">결제 ✕</span>':''),
             st('주문',orderVal),
             balanceVal==='O'?'<span class="ls-state warn">잔금 O</span>':st('잔금',balanceVal),
-            orderVal==='O'?st('수령',delivery||'X'):'',
         ].filter(Boolean).join('');
         // 진행 상태 (상태 칩 + 배송 배지) / 결제 금액 — 모바일 시안 기준 분리
         if (payChips || lsShips.length) {
@@ -4311,7 +4290,7 @@ function shipRowHtml(s){
         <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
     </div>`;
 }
-let shipIconOverride=null; // 현재 열린 일정의 수동 배송 아이콘 (null=자동)
+let shipIconOverride=null; // 현재 열린 일정의 수동 배송 아이콘 (null=제목에 표시 안 함)
 function renderShipIconButtons(){
     document.querySelectorAll('.ship-ico-btn').forEach(b=>{
         b.classList.toggle('primary', (b.dataset.sio||'')===(shipIconOverride||''));
@@ -4326,10 +4305,10 @@ async function setShipIconOverride(v){
     if(detailEvent) detailEvent.ship_icon_override=val;
     renderShipIconButtons();
     updateModalShipBadge();
-    showCalToast(val?'제목 배송 아이콘을 수동으로 지정했습니다':'배송 아이콘을 자동으로 되돌렸습니다');
+    showCalToast(val?'제목 배송 아이콘을 지정했습니다':'제목 배송 아이콘을 해제했습니다');
     loadEvents();
 }
-// 모달 제목 옆 배송 상태 아이콘 (수동 지정 우선, 송장 없으면 미표시)
+// 모달 제목 옆 배송 상태 아이콘 — 수동 지정만 표시 (자동 판정 제거)
 function updateModalShipBadge(){
     const badge=document.getElementById('modalShipBadge');
     if(!badge) return;
@@ -4337,18 +4316,11 @@ function updateModalShipBadge(){
         const [ico,cls]=SHIP_ICON_MAP[shipIconOverride];
         badge.textContent=ico;
         badge.style.color=cls==='s-all'?'var(--green)':(cls==='s-part'?'#d78a2e':'var(--red)');
-        badge.title='배송 아이콘 수동 지정';
+        badge.title=SHIP_ICON_MAP[shipIconOverride][2];
         badge.style.display='';
         return;
     }
-    const ships=shipCache.shipments||[];
-    if(!ships.length){ badge.style.display='none'; badge.textContent=''; return; }
-    const done=ships.filter(s=>s.status==='delivered').length;
-    const [ico,color]=done===0?['✕','var(--red)']:(done<ships.length?['△','#d78a2e']:['○','var(--green)']);
-    badge.textContent=ico;
-    badge.style.color=color;
-    badge.title=`배송 ${done}/${ships.length}건 완료`;
-    badge.style.display='';
+    badge.style.display='none'; badge.textContent='';
 }
 function renderShipments(){
     const list=document.getElementById('shipmentList');
@@ -4471,7 +4443,7 @@ function resetModalForm(){
     // 미팅/내방 옵션 체크 초기화
     document.querySelectorAll('#visitOptsList input:checked').forEach(cb=>cb.checked=false);
     // 라디오 그룹 초기화
-    ['g_platform_group','g_career_group','g_source_group','g_topic_group','g_budget_group','g_req_topic_group','g_paid_group','g_order_group','g_delivery_group','g_balance_group','teal_mode_group'].forEach(id=>clearRadio(id));
+    ['g_platform_group','g_career_group','g_source_group','g_topic_group','g_budget_group','g_req_topic_group','g_paid_group','g_order_group','g_balance_group','teal_mode_group'].forEach(id=>clearRadio(id));
     // 기본값 세팅
     setRadio('g_career_group','처음');
     setRadio('g_paid_group','미결제');
@@ -4486,7 +4458,6 @@ function resetModalForm(){
     document.getElementById('schedAfterReason').value='';
     // 조건부 필드 숨기기
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
-    document.getElementById('g_delivery_wrap').style.display='none';
     // 텍스트 초기화
     ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalAddress','moveFromLocation','moveFromDetail','moveFromAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
@@ -5044,8 +5015,7 @@ function openEditModal(ev){
     if(typeof updateCarReasonUI==='function') updateCarReasonUI();
     if(g.paid) setRadio('g_paid_group',g.paid);
     document.getElementById('g_estimate_amount').value=_fmtAmt(g.estimate_amount||'');
-    if(g.order){setRadio('g_order_group',g.order);if(g.order==='O')document.getElementById('g_delivery_wrap').style.display='';handleConditional('g_order_group');}
-    if(g.delivery) setRadio('g_delivery_group',g.delivery);
+    if(g.order){setRadio('g_order_group',g.order);handleConditional('g_order_group');}
     if(g.balance){setRadio('g_balance_group',g.balance);handleConditional('g_balance_group');}
     document.getElementById('g_balance_amount').value=_fmtAmt(g.balance_amount||'');
     if(g.estimate_id){linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';}
@@ -5167,7 +5137,6 @@ function collectGoldFields(){
         career:getRadio('g_career_group'),
         paid:getRadio('g_paid_group'),
         order:getRadio('g_order_group'),
-        delivery:getRadio('g_delivery_group'),
         balance:getRadio('g_balance_group'),
         balance_amount:document.getElementById('g_balance_amount').value.trim(),
         // 결제 금액/잔금이 프로젝트 결제 연동 값이면 표시 — 서버가 캘린더발 청구 생성을 건너뜀 (이중 청구 방지)
@@ -5412,7 +5381,7 @@ function initAllRadioGroups(){
     initRadioGroup('g_platform_group',{multi:true});
     initRadioGroup('g_topic_group',{multi:true});
     // 단일 선택
-    ['g_career_group','g_source_group','g_budget_group','g_paid_group','g_order_group','g_delivery_group','g_balance_group'].forEach(id=>initRadioGroup(id));
+    ['g_career_group','g_source_group','g_budget_group','g_paid_group','g_order_group','g_balance_group'].forEach(id=>initRadioGroup(id));
     initRadioGroup('g_req_topic_group',{multi:true});
     // teal 모드 전환
     initRadioGroup('teal_mode_group',{onChange:v=>{document.getElementById('teal_remote_fields').style.display=v==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=v==='studio'?'':'none';}});
