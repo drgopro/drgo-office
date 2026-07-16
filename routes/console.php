@@ -22,3 +22,6 @@ Schedule::command('disk:check')->dailyAt('08:00')->withoutOverlapping();
 
 // DB 백업 — mysqldump gzip, 14일 보관 (매일 새벽 3시 30분)
 Schedule::command('db:backup')->dailyAt('03:30')->withoutOverlapping();
+
+// 고아 첨부파일 정리 — 부모가 영구 삭제된 첨부·미참조 디스크 파일 (매주 월요일 새벽 4시)
+Schedule::command('attachments:prune-orphans')->weeklyOn(1, '04:00')->withoutOverlapping();

@@ -105,6 +105,9 @@ return [
         ),
     ],
 
+    // 미처리 예외 발생 시 관리자 알림 (ServerErrorNotifier)
+    'error_alerts' => (bool) env('APP_ERROR_ALERTS', true),
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver
