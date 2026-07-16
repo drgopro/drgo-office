@@ -82,8 +82,10 @@
     .view-toggle-group { display:flex; background:var(--surface2); border-radius:8px; padding:2px; gap:2px; }
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
-    .mw-select { padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; cursor:pointer; outline:none; flex-shrink:0; }
-    .mw-select:hover { border-color:var(--accent); color:var(--text); }
+    .mw-stepper { display:inline-flex; align-items:center; gap:2px; border:1px solid var(--border); border-radius:8px; background:var(--surface); flex-shrink:0; }
+    .mw-stepper button { border:none; background:none; color:var(--text-muted); font-size:14px; padding:4px 8px; cursor:pointer; line-height:1; }
+    .mw-stepper button:hover { color:var(--accent); }
+    .mw-stepper #mwLabel { font-size:12px; color:var(--text); min-width:44px; text-align:center; font-weight:600; }
     /* ── 목록(아젠다) 뷰 ── */
     .agenda-strip { display:flex; gap:4px; max-width:900px; margin:0 auto; padding:12px 12px 6px; }
     .agenda-day-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; padding:4px 0 16px; border:none; background:none; cursor:pointer; position:relative; }
@@ -1068,13 +1070,12 @@
             <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일</button>
             <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
         </div>
-        {{-- 월간 뷰 표시 주 수 (다중 주) --}}
-        <select id="monthWeeksSel" class="mw-select" onchange="setMonthWeeks(this.value)" title="월간 뷰에 표시할 주 수">
-            <option value="6">월 전체</option>
-            <option value="4">4주</option>
-            <option value="3">3주</option>
-            <option value="2">2주</option>
-        </select>
+        {{-- 월간 뷰 표시 주 수 (다중 주, 2~6주 화살표) --}}
+        <div id="monthWeeksCtl" class="mw-stepper" title="월간 뷰에 표시할 주 수 (2주~월 전체)">
+            <button type="button" onclick="mwStep(-1)">‹</button>
+            <span id="mwLabel">월 전체</span>
+            <button type="button" onclick="mwStep(1)">›</button>
+        </div>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
         @endif
@@ -1970,8 +1971,8 @@ const CAL_VISIT_OPTIONS = @json(collect(explode("\n", (string) \App\Models\Setti
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;
-// ── 월간 뷰 표시 주 수 (다중 주 모드) — 6=월 전체(기본), 2/3/4=현재 주부터 N주 ──
-let monthWeeks=(v=>[2,3,4,6].includes(v)?v:6)(parseInt(localStorage.getItem('cal_month_weeks'),10));
+// ── 월간 뷰 표시 주 수 (다중 주 모드) — 6=월 전체(기본), 2~5=현재 주부터 N주 ──
+let monthWeeks=(v=>[2,3,4,5,6].includes(v)?v:6)(parseInt(localStorage.getItem('cal_month_weeks'),10));
 let multiWeekStart=null; // 다중 주 모드의 첫 주 시작일(일요일)
 function monthGridWeeks(){ return monthWeeks>=6?6:monthWeeks; }
 function ensureMultiWeekStart(){
@@ -1990,10 +1991,16 @@ function monthGridStart(){
     return new Date(multiWeekStart);
 }
 function setMonthWeeks(v){
-    monthWeeks=(x=>[2,3,4,6].includes(x)?x:6)(parseInt(v,10));
+    monthWeeks=(x=>[2,3,4,5,6].includes(x)?x:6)(parseInt(v,10));
     localStorage.setItem('cal_month_weeks',monthWeeks);
     multiWeekStart=null; // 현재 달/오늘 기준으로 재앵커
+    updateMwLabel();
     renderView(); loadEvents();
+}
+function mwStep(dir){ setMonthWeeks(Math.min(6,Math.max(2,monthWeeks+dir))); }
+function updateMwLabel(){
+    const l=document.getElementById('mwLabel');
+    if(l) l.textContent=monthWeeks>=6?'월 전체':`${monthWeeks}주`;
 }
 let events = [], assignees = [], selectedAssignees = [];
 let selectedNotifyAssignees = []; // 알림 받을 멤버 (비어있으면 담당자 전체)
@@ -2084,9 +2091,10 @@ function init() {
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
-    // 월간 표시 주 수 셀렉트 초기화 (저장값 복원)
-    const mwSel=document.getElementById('monthWeeksSel');
-    if(mwSel){ mwSel.value=String(monthWeeks); mwSel.style.display=currentView==='month'?'':'none'; }
+    // 월간 표시 주 수 초기화 (저장값 복원)
+    updateMwLabel();
+    const mwCtl=document.getElementById('monthWeeksCtl');
+    if(mwCtl) mwCtl.style.display=currentView==='month'?'':'none';
     if (Array.isArray(INITIAL_EVENTS)) {
         events = INITIAL_EVENTS; // 서버 주입분으로 즉시 렌더 (이번 달)
         renderView();
@@ -2506,7 +2514,7 @@ function switchView(view) {
     // 글자 크기 조절은 월간 뷰에만 적용되므로 그 외 뷰에서는 버튼 숨김
     const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display = view==='month' ? '' : 'none';
     // 표시 주 수 선택도 월간 뷰 전용
-    const mw=document.getElementById('monthWeeksSel'); if(mw) mw.style.display = view==='month' ? '' : 'none';
+    const mw=document.getElementById('monthWeeksCtl'); if(mw) mw.style.display = view==='month' ? '' : 'none';
     renderView();
     loadEvents();
 }
@@ -2893,7 +2901,8 @@ function renderMonth() {
 
             const isExpanded=expandedDays.has(cell.full);
             if(isExpanded) div.classList.add('expanded');
-            const TARGET_ROWS=4;
+            // 셀 높이에 들어가는 만큼 표시 (창이 크거나 주 수를 줄이면 그만큼 더 노출, 최소 4행)
+            const TARGET_ROWS=Math.max(4, MAX_VISIBLE);
             const shownRows=isExpanded?rows:rows.slice(0, TARGET_ROWS);
             shownRows.forEach(r=>{
                 if(r.spacer){ const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp); return; }
