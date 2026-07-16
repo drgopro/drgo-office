@@ -3966,6 +3966,23 @@ function applyClientDetail(d){
             if(e&&!e.value.trim()) e.value=etcNames.join(', ');
         }
     }
+    // 방송 경력 — 의뢰자 프로필 값을 그대로 반영 (모달 기본값 '처음'보다 프로필이 우선)
+    if(d.career) setRadio('g_career_group',d.career);
+    // 유입 경로 — 의뢰자 키 → 캘린더 pill 매핑 (SNS/커뮤니티/기타는 대응 pill이 없어 유지)
+    if(d.inflow_source&&!getRadio('g_source_group')){
+        const SRC_MAP={ad:'광고',search:'검색',referral:'소개'};
+        if(SRC_MAP[d.inflow_source]) setRadio('g_source_group',SRC_MAP[d.inflow_source]);
+    }
+    // 예산 성향 — 풍족/부족/모름은 pill로, 그 외 자유 서술은 직접입력으로
+    if(d.budget_style&&!getRadio('g_budget_group')){
+        const b=d.budget_style.trim();
+        if(['풍족','부족','모름'].includes(b)){ setRadio('g_budget_group',b); }
+        else{
+            setRadio('g_budget_group','직접입력');
+            const e=document.getElementById('g_budget_etc');
+            if(e&&!e.value.trim()) e.value=b;
+        }
+    }
 }
 
 async function loadClientProjects(clientId){

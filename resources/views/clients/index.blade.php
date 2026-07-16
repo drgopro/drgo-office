@@ -306,6 +306,16 @@
         </div>
 
         <div class="new-client-section">
+            <div class="new-client-section-title">방송 경력</div>
+            <select class="field-input field-select" id="ncCareer">
+                <option value="">선택</option>
+                <option value="처음">처음</option>
+                <option value="초보">초보</option>
+                <option value="경력">경력</option>
+            </select>
+        </div>
+
+        <div class="new-client-section">
             <div class="new-client-section-title">의뢰자 성향</div>
             <div class="form-grid full">
                 <div class="field">
@@ -854,6 +864,15 @@ function renderClientContent(id) {
                 <div class="field">
                     <div class="field-label">방송 아이디</div>
                     <input class="field-input" id="f-broadcast_id-${id}" value="${d.broadcast_id||''}" placeholder="플랫폼 방송 ID/채널명">
+                </div>
+                <div class="field">
+                    <div class="field-label">방송 경력</div>
+                    <select class="field-input field-select" id="f-career-${id}">
+                        <option value="">선택</option>
+                        <option value="처음" ${d.career==='처음'?'selected':''}>처음</option>
+                        <option value="초보" ${d.career==='초보'?'selected':''}>초보</option>
+                        <option value="경력" ${d.career==='경력'?'selected':''}>경력</option>
+                    </select>
                 </div>
                 <div class="field">
                     <div class="field-label">최초 등록일</div>
@@ -1467,6 +1486,7 @@ async function saveClient(id) {
             };
         })(),
         broadcast_id: document.getElementById(`f-broadcast_id-${id}`)?.value || null,
+        career: document.getElementById(`f-career-${id}`)?.value || null,
         inflow_source: document.getElementById(`f-inflow_source-${id}`)?.value || null,
         client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
         personality: document.getElementById(`f-personality-${id}`)?.value || null,
@@ -1531,6 +1551,7 @@ async function createClient() {
         content_types: t.values,
         topic_etc: t.values.includes('기타') ? t.etc : null,
         broadcast_id: document.getElementById('ncBroadcastId').value.trim() || null,
+        career: document.getElementById('ncCareer').value || null,
         personality: document.getElementById('ncPersonality').value.trim() || null,
         budget_style: document.getElementById('ncBudgetStyle').value.trim() || null,
     };
@@ -1544,7 +1565,7 @@ async function createClient() {
     if (res.ok) {
         const data = await res.json();
         closeNewClientModal();
-        ['ncName','ncNickname','ncPhone','ncBroadcastId','ncPersonality','ncBudgetStyle'].forEach(k => {
+        ['ncName','ncNickname','ncPhone','ncBroadcastId','ncCareer','ncPersonality','ncBudgetStyle'].forEach(k => {
             const el = document.getElementById(k); if (el) el.value = '';
         });
         await loadClientList();

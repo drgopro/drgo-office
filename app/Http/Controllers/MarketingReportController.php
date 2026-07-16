@@ -356,7 +356,7 @@ class MarketingReportController extends Controller
                 'opt' => $optLabels[$s->sched_opt] ?? '',
                 'client' => $s->client_name ?: ($g['nickname'] ?? '') ?: ($g['name'] ?? '') ?: ($client->nickname ?? ''),
                 'platform' => $platform,
-                'career' => (string) ($g['career'] ?? ''),
+                'career' => (string) (($g['career'] ?? '') ?: ($client->career ?? '')),
                 'paid' => $paidClass,
                 'amount' => $amount,
                 'balance' => ($g['balance'] ?? '') === 'O' ? (int) preg_replace('/\D/', '', (string) ($g['balance_amount'] ?? '')) : 0,
