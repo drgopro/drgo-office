@@ -611,6 +611,7 @@
     #modalOverlay .ls-dur { font-size:12px; font-weight:600; color:#a8a69e; margin-left:8px; letter-spacing:0; }
     #modalOverlay .ls-spec-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
     #modalOverlay .ls-spec-chip { padding:5px 11px; border-radius:999px; background:#fff; border:1px solid #e0dfda; font-size:11.5px; font-weight:600; color:#55544e; }
+    #modalOverlay .ls-car-reason { margin-top:8px; padding:8px 12px; border-radius:9px; background:color-mix(in srgb, var(--m-accent, #3A5683) 8%, #fff); border:1px solid color-mix(in srgb, var(--m-accent, #3A5683) 25%, #e0dfda); font-size:12.5px; font-weight:600; color:#3b4353; overflow-wrap:anywhere; }
     #modalOverlay .ls-call-btn { flex:none; padding:8px 18px; border-radius:9px; background:var(--m-accent); color:#fff; font-size:12.5px; font-weight:700; text-decoration:none; }
     #modalOverlay .ls-attach-hint { font-weight:500; color:#a8a69e; }
     #modalOverlay .ls-mobile-cta { display:none; width:100%; margin-top:4px; padding:14px 0; border:none; border-radius:12px; background:var(--m-accent); color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; }
@@ -799,6 +800,14 @@
     .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 
     /* ── 라이트박스 ── */
+    /* 차량 이용 사유 — 모달 하단 고정 배너 */
+    .car-reason-banner { position:sticky; bottom:0; z-index:8; display:flex; align-items:center; gap:8px; margin:0 28px 10px; padding:9px 14px; background:color-mix(in srgb, var(--accent) 10%, var(--surface)); border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius:10px; font-size:12.5px; color:var(--text); box-shadow:0 -4px 14px rgba(0,0,0,0.08); }
+    .car-reason-banner b { color:var(--accent); flex-shrink:0; }
+    .car-reason-banner .crb-ico { flex-shrink:0; }
+    .car-reason-banner #carReasonBannerText { min-width:0; overflow-wrap:anywhere; }
+    .modal-body.is-locked ~ .car-reason-banner { display:none !important; } /* 요약 뷰에선 요약 카드로 표시 */
+    @media (max-width:768px){ .car-reason-banner { margin:0 12px 8px; } }
+
     .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; touch-action:none; overscroll-behavior:contain; }
     .lightbox.open { display:flex; }
     .lightbox-img-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; touch-action:none; }
@@ -1554,7 +1563,7 @@
                         <div class="special-opt-btn" data-opt="pet"><span class="opt-icon">🐾</span>반려동물 있음</div>
                     </div>
                     <div id="specialReasonWrap" style="display:none;margin-top:6px;">
-                        <input class="field-input" id="specialReason" placeholder="특수옵션 사유 (선택)" style="font-size:13px;">
+                        <input class="field-input" id="specialReason" placeholder="차량 이용 사유 입력 (예: 장비 운반, 주차 공간 필요)" style="font-size:13px;">
                     </div>
                 </div>
 
@@ -1783,6 +1792,11 @@
             </aside>
 
         </div>{{-- modal-body end --}}
+
+        {{-- 차량 이용 사유 — 모달 하단 고정 배너 (스크롤해도 유지) --}}
+        <div id="carReasonBanner" class="car-reason-banner" style="display:none;">
+            <span class="crb-ico">🚗</span><b>차량 이용</b><span id="carReasonBannerText"></span>
+        </div>
 
         <div id="reasonField" style="display:none; padding:0 28px 12px;">
             <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">일정 변경 사유 <span style="color:var(--red);">* 날짜/시간 변경 시 필수</span></div>
@@ -3564,8 +3578,10 @@ function renderLockSummary(){
         const mins=(eh*60+em)-(sh*60+sm);
         if(mins>0) durTxt=`<span class="ls-dur">${Math.floor(mins/60)?Math.floor(mins/60)+'시간':''}${mins%60?(Math.floor(mins/60)?' ':'')+(mins%60)+'분':''}</span>`;
     }
-    const specialChipsArr=[...specialSel.map(o=>SPECIAL_OPT_LABELS[o]), _val('specialReason')].filter(Boolean);
-    const specialLine=specialChipsArr.length?`<div class="ls-spec-chips">${specialChipsArr.map(t=>`<span class="ls-spec-chip">${_esc(t)}</span>`).join('')}</div>`:'';
+    const specialChipsArr=specialSel.map(o=>SPECIAL_OPT_LABELS[o]);
+    const carReasonTxt=specialSel.includes('car')?_val('specialReason'):'';
+    const carReasonLine=carReasonTxt?`<div class="ls-car-reason">🚗 차량 이용 사유 — ${_esc(carReasonTxt)}</div>`:'';
+    const specialLine=(specialChipsArr.length||carReasonTxt)?`${specialChipsArr.length?`<div class="ls-spec-chips">${specialChipsArr.map(t=>`<span class="ls-spec-chip">${_esc(t)}</span>`).join('')}</div>`:''}${carReasonLine}`:'';
     const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
             <a class="ls-action-btn" href="https://map.kakao.com/?q=${encodeURIComponent(addr)}" target="_blank">🔍 주소 검색</a>
             <a class="ls-action-btn primary" href="https://map.kakao.com/?sName=출발지&eName=${encodeURIComponent(addr)}" target="_blank">🗺 동선 검색</a>
@@ -4464,6 +4480,7 @@ function resetModalForm(){
     setRadio('teal_mode_group','remote');
     // schedEventOpts / scheduleOpts / specialOpts 초기화
     document.querySelectorAll('#schedEventOpts .special-opt-btn, #scheduleOpts .sched-opt-btn, #specialOpts .special-opt-btn').forEach(b=>b.classList.remove('active'));
+    if(typeof updateCarReasonUI==='function') updateCarReasonUI();
     updateSchedOptDesc();
     document.getElementById('schedReasonWrap').style.display='none';
     document.getElementById('schedAfterReason').value='';
@@ -5024,6 +5041,7 @@ function openEditModal(ev){
     updateMoveSettingUI();
     document.getElementById('g_special').value=g.special||'';
     if(g.specialReason) document.getElementById('specialReason').value=g.specialReason;
+    if(typeof updateCarReasonUI==='function') updateCarReasonUI();
     if(g.paid) setRadio('g_paid_group',g.paid);
     document.getElementById('g_estimate_amount').value=_fmtAmt(g.estimate_amount||'');
     if(g.order){setRadio('g_order_group',g.order);if(g.order==='O')document.getElementById('g_delivery_wrap').style.display='';handleConditional('g_order_group');}
@@ -5528,7 +5546,8 @@ function scheduleRailUpdate(){ clearTimeout(__mRailTimer); __mRailTimer=setTimeo
         .observe(mo,{attributes:true,attributeFilter:['class']});
 })();
     // specialOpts (멀티 토글)
-    document.querySelectorAll('#specialOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');});});
+    document.querySelectorAll('#specialOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');updateCarReasonUI();});});
+    document.getElementById('specialReason')?.addEventListener('input',updateCarReasonUI);
     // 잔금 금액 변경 시 배너 업데이트
     document.getElementById('g_balance_amount')?.addEventListener('input',updateBalanceBanner);
 }
@@ -5618,6 +5637,22 @@ function lbShow(){
 }
 // 앨범 전용 history 항목 — ESC/뒤로가기로 앨범만 먼저 닫히도록
 let __lbHistory=false, __lbConsuming=false;
+// 차량 이용 필요 선택 시 사유 입력 폼 노출 + 하단 고정 배너 갱신
+function updateCarReasonUI(){
+    const carOn=!!document.querySelector('#specialOpts .special-opt-btn[data-opt="car"].active');
+    const wrap=document.getElementById('specialReasonWrap');
+    const input=document.getElementById('specialReason');
+    if(wrap) wrap.style.display=carOn?'':'none';
+    if(!carOn&&input) input.value='';
+    const banner=document.getElementById('carReasonBanner');
+    if(banner){
+        const goldVisible=currentColor==='gold'&&!isLocked;
+        banner.style.display=(carOn&&goldVisible)?'flex':'none';
+        const reason=input?.value.trim()||'';
+        document.getElementById('carReasonBannerText').textContent=reason?('— '+reason):'— 사유 미입력';
+    }
+}
+
 function openLightbox(src,filename,images,idx){
     lightboxImages=images||[{src,filename}];
     lightboxIdx=idx||0;
