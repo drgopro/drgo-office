@@ -326,6 +326,14 @@ function fbBodyHtml(p){
             `<div class="fb-att" onclick="fbLbOpen('${a.url}')"><img src="${a.thumb_url}" alt="${_e(a.file_name)}" loading="lazy"></div>`
         ).join('')+'</div>';
     }
+    // 수정/삭제 — 본문·첨부 바로 아래 (게시물 내용 영역 안)
+    if(fbEditingId !== p.id && ((p.is_mine && !p.locked) || FB_IS_ADMIN)){
+        html += `<div class="fb-card-actions">
+            <button onclick="fbEdit(${p.id})">수정</button>
+            <button onclick="fbDelete(${p.id})">삭제</button>
+            <span style="margin-left:4px;">작성자·개발자만 가능</span>
+        </div>`;
+    }
     if(FB_IS_DEV){
         html += `<div class="fb-dev-bar">
             <span class="fb-dev-bar-label">개발자 처리</span>
@@ -345,13 +353,6 @@ function fbBodyHtml(p){
             <button class="fb-comment-submit" onclick="fbComment(${p.id})">등록</button>
         </div>
     </div>`;
-    if(fbEditingId !== p.id && ((p.is_mine && !p.locked) || FB_IS_ADMIN)){
-        html += `<div class="fb-card-actions">
-            <button onclick="fbEdit(${p.id})">수정</button>
-            <button onclick="fbDelete(${p.id})">삭제</button>
-            <span style="margin-left:4px;">작성자·개발자만 가능</span>
-        </div>`;
-    }
     return html;
 }
 
