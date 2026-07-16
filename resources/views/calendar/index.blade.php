@@ -71,7 +71,7 @@
     .cal-sr-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
     .cal-sr-date { font-size:11px; color:var(--text-muted); flex-shrink:0; min-width:74px; font-family:ui-monospace,Menlo,monospace; }
     .cal-sr-title { font-size:12px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .cal-sr-item.is-completed .cal-sr-title { text-decoration:line-through; opacity:0.55; }
+    .cal-sr-item.is-completed .cal-sr-title { opacity:0.55; } /* 완료 — 취소선 없이 흐리게 */
     .cal-sr-sub { font-size:11px; color:var(--text-muted); flex-shrink:0; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .cal-sr-empty { padding:14px; text-align:center; font-size:12px; color:var(--text-muted); }
     .agenda-search-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--border); font-size:13px; }
@@ -203,7 +203,7 @@
     /* 완료된 일정 — 흐리게 표시 */
     .event-chip.is-completed, .mday-title-overlay.is-completed, .tl-event.is-completed,
     .agenda-item.is-completed, .dp-item.is-completed, .mde-item.is-completed { opacity:0.4; }
-    .agenda-item.is-completed .agenda-title, .dp-item.is-completed .dp-title { text-decoration:line-through; }
+    /* 완료 일정은 취소선 없이 흐리게만 (위 opacity 0.4 규칙으로 충분) */
     .event-chip.single { background:var(--chip-single-bg); color:var(--text); border-left:3px solid var(--accent); }
     /* 다일 레인 정렬용 빈 자리 (보이지 않지만 칩 1행과 동일한 높이) — 채울 단일이 없을 때만 사용 */
     .lane-spacer { height:calc(22px * var(--cal-fz,1)); visibility:hidden; }
