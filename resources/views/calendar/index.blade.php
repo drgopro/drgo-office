@@ -82,6 +82,8 @@
     .view-toggle-group { display:flex; background:var(--surface2); border-radius:8px; padding:2px; gap:2px; }
     .view-toggle-btn { padding:5px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.15s; }
     .view-toggle-btn.active { background:var(--surface); color:var(--accent); font-weight:600; }
+    .mw-select { padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; cursor:pointer; outline:none; flex-shrink:0; }
+    .mw-select:hover { border-color:var(--accent); color:var(--text); }
     /* ── 목록(아젠다) 뷰 ── */
     .agenda-strip { display:flex; gap:4px; max-width:900px; margin:0 auto; padding:12px 12px 6px; }
     .agenda-day-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; padding:4px 0 16px; border:none; background:none; cursor:pointer; position:relative; }
@@ -1066,6 +1068,13 @@
             <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일</button>
             <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
         </div>
+        {{-- 월간 뷰 표시 주 수 (다중 주) --}}
+        <select id="monthWeeksSel" class="mw-select" onchange="setMonthWeeks(this.value)" title="월간 뷰에 표시할 주 수">
+            <option value="6">월 전체</option>
+            <option value="4">4주</option>
+            <option value="3">3주</option>
+            <option value="2">2주</option>
+        </select>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
         @endif
@@ -1961,6 +1970,31 @@ const CAL_VISIT_OPTIONS = @json(collect(explode("\n", (string) \App\Models\Setti
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;
+// ── 월간 뷰 표시 주 수 (다중 주 모드) — 6=월 전체(기본), 2/3/4=현재 주부터 N주 ──
+let monthWeeks=(v=>[2,3,4,6].includes(v)?v:6)(parseInt(localStorage.getItem('cal_month_weeks'),10));
+let multiWeekStart=null; // 다중 주 모드의 첫 주 시작일(일요일)
+function monthGridWeeks(){ return monthWeeks>=6?6:monthWeeks; }
+function ensureMultiWeekStart(){
+    if(multiWeekStart) return;
+    const now=new Date();
+    const base=(now.getFullYear()===currentYear&&now.getMonth()===currentMonth)?now:new Date(currentYear,currentMonth,1);
+    multiWeekStart=getWeekStart(base);
+}
+function monthGridStart(){
+    if(monthWeeks>=6){
+        const first=new Date(currentYear,currentMonth,1);
+        const gs=new Date(first); gs.setDate(gs.getDate()-first.getDay());
+        return gs;
+    }
+    ensureMultiWeekStart();
+    return new Date(multiWeekStart);
+}
+function setMonthWeeks(v){
+    monthWeeks=(x=>[2,3,4,6].includes(x)?x:6)(parseInt(v,10));
+    localStorage.setItem('cal_month_weeks',monthWeeks);
+    multiWeekStart=null; // 현재 달/오늘 기준으로 재앵커
+    renderView(); loadEvents();
+}
 let events = [], assignees = [], selectedAssignees = [];
 let selectedNotifyAssignees = []; // 알림 받을 멤버 (비어있으면 담당자 전체)
 let editingId = null, currentColor = 'gold', currentView = 'month';
@@ -2050,6 +2084,9 @@ function init() {
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
+    // 월간 표시 주 수 셀렉트 초기화 (저장값 복원)
+    const mwSel=document.getElementById('monthWeeksSel');
+    if(mwSel){ mwSel.value=String(monthWeeks); mwSel.style.display=currentView==='month'?'':'none'; }
     if (Array.isArray(INITIAL_EVENTS)) {
         events = INITIAL_EVENTS; // 서버 주입분으로 즉시 렌더 (이번 달)
         renderView();
@@ -2162,6 +2199,7 @@ function csGoDate(dstr){
     currentYear = d.getFullYear(); currentMonth = d.getMonth();
     currentWeekStart = getWeekStart(d);
     currentDay = new Date(d); currentDay.setHours(0,0,0,0);
+    multiWeekStart = getWeekStart(d); // 다중 주 모드도 선택한 날짜의 주로 이동
     if(currentView === 'list'){ agendaWeekStart = null; agendaSelectedDate = dstr; }
     renderView(); loadEvents();
 }
@@ -2467,6 +2505,8 @@ function switchView(view) {
     document.getElementById('listView').style.display     = view==='list' ? '' : 'none';
     // 글자 크기 조절은 월간 뷰에만 적용되므로 그 외 뷰에서는 버튼 숨김
     const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display = view==='month' ? '' : 'none';
+    // 표시 주 수 선택도 월간 뷰 전용
+    const mw=document.getElementById('monthWeeksSel'); if(mw) mw.style.display = view==='month' ? '' : 'none';
     renderView();
     loadEvents();
 }
@@ -2484,9 +2524,18 @@ function changePeriod(dir) {
         return;
     }
     if (currentView==='month') {
-        currentMonth += dir;
-        if (currentMonth>11){currentMonth=0;currentYear++;}
-        if (currentMonth<0) {currentMonth=11;currentYear--;}
+        if(monthWeeks<6){
+            // 다중 주 모드: 표시 주 수만큼 이동 + 현재 월 상태 동기화
+            ensureMultiWeekStart();
+            multiWeekStart=new Date(multiWeekStart);
+            multiWeekStart.setDate(multiWeekStart.getDate()+dir*monthWeeks*7);
+            const mid=new Date(multiWeekStart); mid.setDate(mid.getDate()+Math.floor(monthWeeks*7/2));
+            currentYear=mid.getFullYear(); currentMonth=mid.getMonth();
+        }else{
+            currentMonth += dir;
+            if (currentMonth>11){currentMonth=0;currentYear++;}
+            if (currentMonth<0) {currentMonth=11;currentYear--;}
+        }
     } else if (currentView==='week') {
         currentWeekStart = new Date(currentWeekStart);
         currentWeekStart.setDate(currentWeekStart.getDate()+dir*7);
@@ -2509,6 +2558,7 @@ function goToday() {
     currentYear=now.getFullYear(); currentMonth=now.getMonth();
     currentWeekStart=getWeekStart(now);
     currentDay=new Date(now); currentDay.setHours(0,0,0,0);
+    multiWeekStart=getWeekStart(now); // 다중 주 모드도 오늘이 포함된 주로 복귀
     agendaWeekStart=null; agendaSelectedDate=todayStr(); // 목록 뷰도 오늘 기준으로 복귀
     renderView(); loadEvents();
 }
@@ -2544,10 +2594,9 @@ async function loadEvents() {
         const wk=agendaWeekDates();
         start=wk[0]; end=wk[wk.length-1];
     } else if (currentView==='month') {
-        // 그리드에 보이는 앞뒤 다른 달 날짜까지 포함(42칸 전체)
-        const first=new Date(currentYear,currentMonth,1);
-        const gs=new Date(first); gs.setDate(gs.getDate()-first.getDay());
-        const ge=new Date(gs); ge.setDate(ge.getDate()+41);
+        // 그리드에 보이는 범위 전체 (월 전체 42칸 또는 다중 주 N*7칸)
+        const gs=monthGridStart();
+        const ge=new Date(gs); ge.setDate(ge.getDate()+monthGridWeeks()*7-1);
         start=fmt(gs); end=fmt(ge);
     } else if (currentView==='week') {
         start=fmt(currentWeekStart);
@@ -2722,23 +2771,28 @@ function selectAgendaDate(full){ agendaSelectedDate=full; renderAgenda(); }
 
 // ── 월간 뷰 ─────────────────────────────────────────────────────
 function renderMonth() {
-    document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
+    const N=monthGridWeeks();
     const grid=document.getElementById('daysGrid'); grid.innerHTML='';
-    const firstDay=new Date(currentYear,currentMonth,1).getDay();
-    const lastDate=new Date(currentYear,currentMonth+1,0).getDate();
-    const prevLast=new Date(currentYear,currentMonth,0).getDate();
     const ts=todayStr();
 
     // 셀 데이터 생성 — 모든 셀에 실제 날짜 부여(다른 달 포함) → 다일 바가 월 경계에서도 이어짐
-    const gridStart=new Date(currentYear,currentMonth,1);
-    gridStart.setDate(gridStart.getDate()-firstDay);
+    const gridStart=monthGridStart();
     const monthStart=fmt(new Date(currentYear,currentMonth,1));
     let cells=[];
-    for(let i=0;i<42;i++){
+    for(let i=0;i<N*7;i++){
         const dt=new Date(gridStart); dt.setDate(gridStart.getDate()+i);
         const full=fmt(dt);
-        const month=dt.getMonth()===currentMonth?'cur':(full<monthStart?'prev':'next');
+        // 다중 주 모드에서는 월 경계 흐림 없이 모두 현재로 취급
+        const month=(monthWeeks<6||dt.getMonth()===currentMonth)?'cur':(full<monthStart?'prev':'next');
         cells.push({date:dt.getDate(), month, full});
+    }
+
+    // 타이틀 — 월 전체: 해당 월 / 다중 주: 가운데 날짜의 월 + 주 수 표기
+    if(monthWeeks>=6){
+        document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
+    }else{
+        const mid=new Date(gridStart); mid.setDate(gridStart.getDate()+Math.floor(N*7/2));
+        document.getElementById('periodTitle').textContent=`${mid.getFullYear()}년 ${mid.getMonth()+1}월`;
     }
 
     const isMobileCal = window.innerWidth<=768; // 모바일: 점 표시 간소화 모드
@@ -2747,14 +2801,14 @@ function renderMonth() {
     if(window.innerWidth>768){
         const gTop=grid.getBoundingClientRect().top;
         const avail=window.innerHeight-gTop-24; // 하단 여백
-        rowMin=Math.max(rowMin, Math.floor((avail-7)/6)); // 6주 + 1px 경계선
+        rowMin=Math.max(rowMin, Math.floor((avail-N-1)/N)); // N주 + 1px 경계선
     }
     // 셀 높이에 들어가는 만큼 일정 칩 표시 (기존 고정 3개 → 동적, 최소 3개 보장)
     const chipH=22*calFzScale+2, headH=12+28*calFzScale, badgeH=18;
     const MAX_VISIBLE=Math.max(3, Math.floor((rowMin-headH-badgeH)/chipH));
 
     // 주 단위로 렌더링
-    for(let w=0;w<6;w++){
+    for(let w=0;w<N;w++){
         const weekCells=cells.slice(w*7, w*7+7);
         const weekStart=weekCells[0].full, weekEnd=weekCells[6].full;
 
@@ -2772,7 +2826,7 @@ function renderMonth() {
             (lanes[lane]=lanes[lane]||[]).push({s:ev.start_date,e:ev.end_date});
             laneOf[ev.id]=lane;
         });
-        const LANE_CAP=3; // 표시할 다일 레인 상한 (초과분은 '+N 더보기')
+        const LANE_CAP=monthWeeks<6?Math.max(3,Math.floor(MAX_VISIBLE*0.6)):3; // 다일 레인 상한 — 다중 주 모드는 행이 높아 더 표시
 
         const weekRow=document.createElement('div');
         weekRow.className='week-row';
