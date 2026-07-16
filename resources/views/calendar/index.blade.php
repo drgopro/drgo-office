@@ -810,17 +810,17 @@
     .changelog-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:300; align-items:flex-start; justify-content:center; padding:7vh 16px 16px; }
     .changelog-overlay.open { display:flex; }
     .changelog-modal { width:100%; max-width:860px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
-    .changelog-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); font-size:14px; font-weight:700; }
-    .changelog-head button { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:2px 8px; }
+    .changelog-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); font-size:15.5px; font-weight:700; }
+    .changelog-head button { background:none; border:none; color:var(--text-muted); font-size:17px; cursor:pointer; padding:2px 8px; }
     .changelog-body { max-height:64vh; overflow-y:auto; padding:8px 14px 14px; }
-    .changelog-item { padding:10px 6px; border-bottom:1px solid var(--surface2); font-size:13px; line-height:1.6; }
+    .changelog-item { padding:11px 6px; border-bottom:1px solid var(--surface2); font-size:14.5px; line-height:1.65; }
     .changelog-item:last-child { border-bottom:none; }
-    .changelog-item .cl-at { font-size:11px; color:var(--text-muted); margin-right:8px; }
-    .changelog-item .cl-kind { display:inline-block; font-size:10px; font-weight:700; border-radius:7px; padding:1px 8px; margin-right:6px; vertical-align:1px; }
+    .changelog-item .cl-at { font-size:12.5px; color:var(--text-muted); margin-right:8px; }
+    .changelog-item .cl-kind { display:inline-block; font-size:11.5px; font-weight:700; border-radius:7px; padding:2px 9px; margin-right:6px; vertical-align:1px; }
     .changelog-item .cl-kind.move { background:rgba(100,160,240,0.14); color:#4a7fd6; }
     .changelog-item .cl-kind.delete { background:rgba(224,80,80,0.12); color:#cf5454; }
-    .changelog-item .cl-reason { display:block; margin-top:3px; font-size:12px; color:var(--text-muted); }
-    .changelog-empty { color:var(--text-muted); font-size:12.5px; text-align:center; padding:34px 0; }
+    .changelog-item .cl-reason { display:block; margin-top:3px; font-size:13.5px; color:var(--text-muted); }
+    .changelog-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:34px 0; }
 
     /* 차량 이용 사유 — 모달 하단 고정 배너 */
     .car-reason-banner { position:sticky; bottom:0; z-index:8; display:flex; align-items:center; gap:8px; margin:0 28px 10px; padding:9px 14px; background:color-mix(in srgb, var(--accent) 10%, var(--surface)); border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius:10px; font-size:12.5px; color:var(--text); box-shadow:0 -4px 14px rgba(0,0,0,0.08); }
