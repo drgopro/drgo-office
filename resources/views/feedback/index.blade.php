@@ -397,8 +397,10 @@ function fbRenderPreviews(){
         const div = document.createElement('div');
         div.className = 'fb-preview';
         const img = document.createElement('img');
-        img.src = URL.createObjectURL(f);
-        img.onload = () => URL.revokeObjectURL(img.src);
+        img.src = URL.createObjectURL(f); // 뷰어에서 재사용하므로 revoke하지 않음 (등록 시 목록 재렌더로 정리)
+        img.style.cursor = 'zoom-in';
+        img.title = '클릭하여 크게 보기';
+        img.onclick = () => fbLbOpen(img.src); // 저장 전 첨부도 뷰어로 확인
         const btn = document.createElement('button');
         btn.textContent = '✕';
         btn.onclick = () => { fbFiles.splice(i,1); fbRenderPreviews(); };

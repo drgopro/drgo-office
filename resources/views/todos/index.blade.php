@@ -189,6 +189,12 @@
     .img-item .img-filename { font-size:10px; color:var(--text-muted); padding:4px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid var(--border); }
     .img-remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.75); border:none; color:#fff; width:18px; height:18px; border-radius:50%; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; z-index:1; }
 
+    /* 이미지 뷰어 */
+    .todo-lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:600; align-items:center; justify-content:center; cursor:zoom-out; }
+    .todo-lb.open { display:flex; }
+    .todo-lb img { max-width:92vw; max-height:88vh; object-fit:contain; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,0.5); }
+    .todo-lb-close { position:fixed; top:14px; right:14px; width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,0.35); background:rgba(0,0,0,0.5); color:#fff; font-size:16px; cursor:pointer; z-index:601; }
+
     @media (max-width:768px) {
         .todo-wrap { padding:16px 12px; }
         .todo-board { flex-direction:column; }
@@ -287,6 +293,12 @@
             <button type="button" class="todo-btn primary" id="tfSaveBtn" onclick="saveTodo()">저장</button>
         </div>
     </div>
+</div>
+
+{{-- 이미지 뷰어 (저장 전 대기 첨부 포함) --}}
+<div class="todo-lb" id="todoLb" onclick="this.classList.remove('open')">
+    <button type="button" class="todo-lb-close" onclick="document.getElementById('todoLb').classList.remove('open')">✕</button>
+    <img id="todoLbImg" src="" alt="">
 </div>
 
 {{-- 상세 모달 --}}
@@ -521,7 +533,7 @@ function renderDetailPane() {
         <div class="todo-view-content">${contentHtml(t.content)}</div>
         ${t.attachments.length ? `<div class="todo-attach-list">${t.attachments.map(a => `
             <div class="todo-attach-item">
-                ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : '📄'}
+                ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}')">` : '📄'}
                 <a href="${a.url}" target="_blank" rel="noopener">${esc(a.file_name)}</a>
                 <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
             </div>`).join('')}</div>` : ''}
@@ -701,6 +713,12 @@ async function refreshBoard() {
     if (res.ok) { TODOS = (await res.json()).todos; renderBoard(); }
 }
 
+// 이미지 뷰어 (대기 첨부 + 저장된 첨부 공용)
+function todoLbOpen(src){
+    document.getElementById('todoLbImg').src = src;
+    document.getElementById('todoLb').classList.add('open');
+}
+
 // ── 첨부 대기열 (드롭존·클립보드 붙여넣기·파일 선택 공용) ──
 let TF_PENDING = [];
 
@@ -722,6 +740,8 @@ function renderTfGrid() {
         const wrap = document.createElement('div'); wrap.className = 'img-thumb-wrap';
         if (f.type.startsWith('image/')) {
             const img = document.createElement('img'); img.src = URL.createObjectURL(f); img.alt = f.name;
+            img.style.cursor = 'zoom-in'; img.title = '클릭하여 크게 보기';
+            img.onclick = () => todoLbOpen(img.src); // 저장 전 대기 첨부도 뷰어로 확인
             wrap.appendChild(img);
         } else {
             const ic = document.createElement('div'); ic.className = 'img-fileicon';
@@ -910,7 +930,7 @@ function openTodoView(id) {
     loadLinkCards();
     document.getElementById('tvAttachments').innerHTML = t.attachments.map(a => `
         <div class="todo-attach-item">
-            ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : '📄'}
+            ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}')">` : '📄'}
             <a href="${a.url}" target="_blank" rel="noopener">${esc(a.file_name)}</a>
             <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
         </div>`).join('');
