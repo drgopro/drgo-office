@@ -176,6 +176,18 @@ class FeedbackBoardTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_관리자는_모든_글_수정_가능(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $post = $this->makePost($this->member(), ['status' => 'done']); // 잠긴 타인 글
+
+        $this->actingAs($admin)->patchJson("/api/feedback/{$post->id}", [
+            'title' => '관리자 수정', 'page' => '캘린더',
+        ])->assertOk();
+
+        $this->assertSame('관리자 수정', $post->fresh()->title);
+    }
+
     public function test_의견_등록과_알림(): void
     {
         Notification::fake();

@@ -31,6 +31,7 @@ class FeedbackController extends Controller
         return view('feedback.index', [
             'pageOptions' => self::PAGE_OPTIONS,
             'isDeveloper' => $this->isDeveloper(),
+            'isAdmin' => (bool) Auth::user()?->isAdmin(),
         ]);
     }
 
@@ -232,7 +233,8 @@ class FeedbackController extends Controller
     /** 작성자(잠금 전) 또는 개발자만 수정·삭제 가능 */
     private function authorizeEdit(FeedbackPost $post): void
     {
-        if ($this->isDeveloper()) {
+        // 관리자(master/admin)는 모든 글 수정·삭제 가능 (잠금 무시)
+        if (Auth::user()?->isAdmin()) {
             return;
         }
         abort_unless($post->created_by === Auth::id(), 403, '작성자만 수정할 수 있습니다.');

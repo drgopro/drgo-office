@@ -215,6 +215,7 @@
 <script>
 const FB_CSRF = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 const FB_IS_DEV = @json($isDeveloper);
+const FB_IS_ADMIN = @json($isAdmin); // 관리자(master/admin) — 모든 글 수정·삭제 가능
 const FB_STATUS = {waiting:'대기', reviewing:'검토중', hold:'보류', done:'완료', rejected:'반려'};
 const FB_STATUS_DOT = {waiting:'#888', reviewing:'#c9a227', hold:'#a78bfa', done:'#5b8def', rejected:'#e06c6c'};
 let fbType = 'bug';
@@ -329,7 +330,7 @@ function fbBodyHtml(p){
             <button class="fb-comment-submit" onclick="fbComment(${p.id})">등록</button>
         </div>
     </div>`;
-    if(fbEditingId !== p.id && ((p.is_mine && !p.locked) || FB_IS_DEV)){
+    if(fbEditingId !== p.id && ((p.is_mine && !p.locked) || FB_IS_ADMIN)){
         html += `<div class="fb-card-actions">
             <button onclick="fbEdit(${p.id})">수정</button>
             <button onclick="fbDelete(${p.id})">삭제</button>
