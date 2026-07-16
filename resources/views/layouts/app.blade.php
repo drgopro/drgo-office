@@ -330,7 +330,7 @@
             .header { padding:0 12px; height:var(--header-h); }
             .logo { font-size:12px; padding-right:10px; margin-right:10px; }
             .header-right .user-role, .header-right .admin-link { display:none; }
-            .qr-fab { position:fixed; bottom:24px; right:16px; z-index:210; padding:12px 18px; font-size:13px; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,0.4); }
+            .qr-fab { display:none; } /* 모바일 플로팅 QR 버튼 제거 */
             .header-right { gap:4px; }
 
             .menu-toggle { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
