@@ -48,6 +48,39 @@ class ConsultationTypeDedupeTest extends TestCase
         $this->assertSame('broadcast', $project->fresh()->project_type);
     }
 
+    public function test_as_and_troubleshoot_retired_from_project_types(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 프로젝트 유형에서는 비활성 (새 프로젝트 선택지 제외)
+        $this->assertFalse((bool) ConsultationType::where('key', 'as')->first()->is_active);
+        $this->assertFalse((bool) ConsultationType::where('key', 'troubleshoot')->first()->is_active);
+
+        $activeKeys = collect($this->actingAs($user)->getJson('/api/consultation-types/active')->json())->pluck('key');
+        $this->assertFalse($activeKeys->contains('as'));
+        $this->assertFalse($activeKeys->contains('troubleshoot'));
+
+        // 작업 유형으로 이동 — work_types에 존재
+        $this->assertDatabaseHas('work_types', ['key' => 'as', 'label' => 'A/S']);
+        $this->assertDatabaseHas('work_types', ['key' => 'troubleshoot', 'label' => '문제해결']);
+    }
+
+    public function test_admin_can_delete_unused_default_type(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $type = ConsultationType::where('key', 'troubleshoot')->first();
+
+        // 사용 프로젝트 없음 → 삭제 가능
+        $this->actingAs($admin)->deleteJson("/api/admin/consultation-types/{$type->id}")->assertOk();
+        $this->assertNull(ConsultationType::find($type->id));
+
+        // 사용 중이면 차단
+        $visit = ConsultationType::where('key', 'visit')->first();
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        Project::create(['client_id' => $client->id, 'name' => '방문', 'project_type' => 'visit', 'stage' => 'consulting']);
+        $this->actingAs($admin)->deleteJson("/api/admin/consultation-types/{$visit->id}")->assertUnprocessable();
+    }
+
     public function test_duplicate_label_is_rejected_on_create_and_update(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

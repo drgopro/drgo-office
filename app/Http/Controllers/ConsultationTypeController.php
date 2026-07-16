@@ -67,14 +67,7 @@ class ConsultationTypeController extends Controller
 
     public function destroy(ConsultationType $type)
     {
-        // 기본 키는 보호 (기존 데이터 영향)
-        if (array_key_exists($type->key, ConsultationType::DEFAULTS)) {
-            return response()->json([
-                'message' => '기본 유형은 삭제할 수 없습니다. 비활성화로 사용해 주세요.',
-            ], 422);
-        }
-
-        // 사용 중인지 확인
+        // 사용 중인지 확인 (기본 유형 포함 — 사용 프로젝트가 없으면 관리자 판단으로 삭제 가능)
         $inUse = Project::where('project_type', $type->key)->exists();
         if ($inUse) {
             return response()->json([

@@ -817,7 +817,7 @@ function bindClientTabDrag() {
 }
 
 const STAGE_LABELS = {consulting:'상담',equipment:'장비파악',proposal:'일정제안',survey:'사전답사',estimate:'견적/계약',payment:'결제/예약',visit:'세팅',delivery:'납품',as:'AS',done:'완료',cancelled:'취소'}; // 폴백 — 유형별 라벨은 서버 stage_label 우선
-window.TYPE_LABELS = @json(\App\Models\ConsultationType::map());
+window.TYPE_LABELS = @json(\App\Models\ConsultationType::map(false)); {{-- 비활성 포함 — 기존 프로젝트 라벨 표시용 --}}
 const TYPE_LABELS = window.TYPE_LABELS;
 
 function renderClientContent(id) {

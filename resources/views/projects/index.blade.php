@@ -183,7 +183,7 @@
             'as' => 'AS',
             'done' => '완료',
         ];
-        $typeOptions = \App\Models\ConsultationType::map();
+        $typeOptions = \App\Models\ConsultationType::map(false); // 비활성 포함 — 기존 A/S 등 레거시 프로젝트 필터/라벨용
     @endphp
 
     <form method="GET" action="{{ route('projects.index') }}" class="search-bar">

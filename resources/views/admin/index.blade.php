@@ -2074,10 +2074,9 @@ function openConsultTypeModal(t) {
     document.getElementById('consultTypeKey').value = t?.key || '';
     document.getElementById('consultTypeSortOrder').value = t?.sort_order ?? '';
     document.getElementById('consultTypeActive').checked = t ? !!t.is_active : true;
-    // 기본 유형은 key 수정/삭제 비활성화
-    const isDefault = t && CONSULT_TYPE_DEFAULTS.includes(t.key);
     document.getElementById('consultTypeKey').disabled = !!t; // 편집 시 key 잠금 (FK 영향)
-    document.getElementById('consultTypeDeleteBtn').style.display = (t && !isDefault) ? 'inline-block' : 'none';
+    // 삭제 버튼은 모든 유형에 노출 — 사용 중인 프로젝트가 있으면 서버가 차단하고 비활성화 안내
+    document.getElementById('consultTypeDeleteBtn').style.display = t ? 'inline-block' : 'none';
 }
 
 function closeConsultTypeModal() { document.getElementById('consultTypeModalOverlay').classList.remove('open'); }

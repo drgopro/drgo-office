@@ -22,6 +22,7 @@ class WorkType extends Model
         'filming' => '촬영중계',
         'design' => '디자인',
         'as' => 'A/S',
+        'troubleshoot' => '문제해결',
         'dispatch' => '파견',
         'monthly' => '월 계약',
         'hourly' => '시간 대여',
