@@ -3745,9 +3745,12 @@ function renderLockSummary(){
                 ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="https://map.kakao.com/?sName=${encodeURIComponent(mfAddr)}&eName=${encodeURIComponent(addr)}" target="_blank">🗺 출발→도착 동선</a>` : ''}
             </div>`, '', 'ls-c-time ls-time-card'));
     } else {
+        // 미팅/내방: 장소를 내방 옵션(체크박스)으로 지정하면 location이 비므로 옵션 값을 장소로 표시
+        const visitOptsSel=(color==='purple')?[...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value):[];
+        const locDisplay=_esc(location) || (visitOptsSel.length?`🏢 ${visitOptsSel.map(v=>_esc(v)).join(', ')}`:'');
         left.push(lsCard('일시 · 장소', `
             <div class="ls-big">${timeBig}${durTxt}</div>
-            <div class="ls-addr">${_esc(location) || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>'}</div>
+            <div class="ls-addr">${locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>'}</div>
             ${specialLine}
             ${addrActions}`, '', 'ls-c-time ls-time-card'));
     }

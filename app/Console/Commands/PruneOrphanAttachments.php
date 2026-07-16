@@ -75,20 +75,66 @@ class PruneOrphanAttachments extends Command
         return $count;
     }
 
-    /** 게시물 저장 전 업로드 후 방치된 위키 임시 첨부 (wiki_id null, 7일 경과) */
+    /**
+     * 게시물 저장 전 업로드된 위키 첨부(wiki_id null) 처리.
+     *
+     * 과거에는 저장 시 연결(backfill)이 없어서 발행된 게시물의 본문 이미지도
+     * wiki_id null로 남아 있다 — 본문/댓글에서 실제 참조 중이면 삭제 대신 연결하고,
+     * 어디에서도 참조되지 않고 7일이 지난 것만 삭제한다.
+     */
     private function pruneAbandonedPendingUploads(): int
     {
-        $stale = WikiAttachment::whereNull('wiki_id')->where('created_at', '<', now()->subDays(7))->get();
+        $pending = WikiAttachment::whereNull('wiki_id')->get();
+        if ($pending->isEmpty()) {
+            return 0;
+        }
 
-        foreach ($stale as $row) {
+        // 첨부 id → 참조하는 위키 id 매핑 (본문 + 댓글)
+        $referencedBy = [];
+        $collect = function (?string $text, int $wikiId) use (&$referencedBy) {
+            if (! $text) {
+                return;
+            }
+            preg_match_all('#/wiki-files/(\d+)#', $text, $m);
+            foreach ($m[1] as $id) {
+                $referencedBy[(int) $id] ??= $wikiId;
+            }
+        };
+        DB::table('wikis')->select('id', 'content')->orderBy('id')
+            ->chunk(200, function ($rows) use ($collect) {
+                foreach ($rows as $row) {
+                    $collect($row->content, (int) $row->id);
+                }
+            });
+        DB::table('wiki_comments')->select('wiki_id', 'body')->orderBy('id')
+            ->chunk(200, function ($rows) use ($collect) {
+                foreach ($rows as $row) {
+                    $collect($row->body, (int) $row->wiki_id);
+                }
+            });
+
+        $deleted = 0;
+        foreach ($pending as $row) {
+            if (isset($referencedBy[$row->id])) {
+                $this->line(($this->dryRun ? '[dry-run] ' : '')."본문 참조 연결: WikiAttachment #{$row->id} → wiki #{$referencedBy[$row->id]}");
+                if (! $this->dryRun) {
+                    $row->update(['wiki_id' => $referencedBy[$row->id]]);
+                }
+
+                continue;
+            }
+            if ($row->created_at >= now()->subDays(7)) {
+                continue; // 작성 중일 수 있음 — 유예
+            }
             $this->line(($this->dryRun ? '[dry-run] ' : '')."임시 업로드: WikiAttachment #{$row->id} ({$row->file_path})");
             if (! $this->dryRun) {
                 $this->deleteWithThumb($row->file_path);
                 $row->delete();
             }
+            $deleted++;
         }
 
-        return $stale->count();
+        return $deleted;
     }
 
     /**

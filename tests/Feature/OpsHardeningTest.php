@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Schedule;
 use App\Models\User;
+use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Notifications\ServerErrorAlert;
 use App\Services\ServerErrorNotifier;
@@ -95,6 +96,40 @@ class OpsHardeningTest extends TestCase
         $this->assertDatabaseMissing('wiki_attachments', ['id' => $stale->id]);
         $this->assertDatabaseHas('wiki_attachments', ['id' => $fresh->id]);
         Storage::assertMissing('wiki/stale.png');
+    }
+
+    public function test_prune_links_pending_uploads_still_referenced_in_wiki_content(): void
+    {
+        // 과거 저장분: 본문에 쓰였지만 wiki_id가 연결 안 된 이미지 — 삭제가 아니라 연결되어야 함
+        Storage::fake('local');
+        Storage::put('wiki/used.png', 'x');
+        $used = WikiAttachment::create(['wiki_id' => null, 'file_name' => 'used.png', 'file_path' => 'wiki/used.png', 'mime_type' => 'image/png', 'file_size' => 1]);
+        $used->forceFill(['created_at' => now()->subDays(30)])->save();
+
+        $user = User::factory()->create(['role' => 'admin']);
+        $wiki = Wiki::create([
+            'title' => '회의록', 'content' => "본문 이미지 ![img](/wiki-files/{$used->id})",
+            'created_by' => $user->id, 'updated_by' => $user->id,
+        ]);
+
+        $this->artisan('attachments:prune-orphans')->assertSuccessful();
+
+        $this->assertSame($wiki->id, $used->fresh()->wiki_id); // 연결됨
+        Storage::assertExists('wiki/used.png'); // 파일 보존
+    }
+
+    public function test_wiki_save_links_pending_attachments_in_content(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create(['role' => 'admin']);
+        $att = WikiAttachment::create(['wiki_id' => null, 'file_name' => 'new.png', 'file_path' => 'wiki/new.png', 'mime_type' => 'image/png', 'file_size' => 1]);
+
+        $res = $this->actingAs($user)->postJson('/wiki', [
+            'title' => '새 문서', 'content' => "![img](/wiki-files/{$att->id})",
+        ]);
+        $res->assertCreated();
+
+        $this->assertSame($res->json('id'), $att->fresh()->wiki_id);
     }
 
     public function test_dry_run_deletes_nothing(): void

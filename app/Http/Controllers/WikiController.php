@@ -153,6 +153,7 @@ class WikiController extends Controller
         $validated['updated_by'] = Auth::id();
 
         $wiki = Wiki::create($validated);
+        $this->linkPendingAttachments($wiki);
 
         if ($request->wantsJson()) {
             return response()->json($wiki, 201);
@@ -193,6 +194,7 @@ class WikiController extends Controller
         }
         $validated['updated_by'] = Auth::id();
         $wiki->update($validated);
+        $this->linkPendingAttachments($wiki);
 
         if ($request->wantsJson()) {
             return response()->json($wiki);
@@ -320,6 +322,23 @@ class WikiController extends Controller
     public function getDiagram(Wiki $wiki)
     {
         return response()->json(['diagram' => $wiki->diagram_data]);
+    }
+
+    /**
+     * 본문에 삽입된 미소속(wiki_id null) 업로드를 게시물에 연결.
+     * 새 글 작성 중 업로드는 wiki_id 없이 생성되므로 저장 시점에 연결해야
+     * 고아 첨부 정리(attachments:prune-orphans)에서 삭제되지 않는다.
+     */
+    private function linkPendingAttachments(Wiki $wiki): void
+    {
+        if (! $wiki->content) {
+            return;
+        }
+        preg_match_all('#/wiki-files/(\d+)#', $wiki->content, $m);
+        $ids = array_unique($m[1] ?? []);
+        if ($ids) {
+            WikiAttachment::whereIn('id', $ids)->whereNull('wiki_id')->update(['wiki_id' => $wiki->id]);
+        }
     }
 
     // 파일 업로드 (에디터에서 이미지/파일 삽입용)
