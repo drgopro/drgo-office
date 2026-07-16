@@ -808,6 +808,72 @@ class CalendarController extends Controller
     }
 
     /**
+     * 삭제/변경 이력 텍스트 로그 — 일정 이동(날짜/시간 변경)과 삭제만 문장으로 출력 (사이드바용).
+     */
+    public function changeLog(Request $request)
+    {
+        $limit = min(200, (int) $request->query('limit', 60));
+
+        $logs = ScheduleChange::with(['user:id,display_name', 'schedule' => fn ($q) => $q->withTrashed()])
+            ->whereIn('action', ['update', 'delete'])
+            ->orderByDesc('created_at')
+            ->limit(500) // 이동과 무관한 update가 섞여 있어 넉넉히 읽고 아래에서 걸러냄
+            ->get();
+
+        $fmtD = fn (?string $v) => $v ? mb_substr($this->normalizeDate($v) ?? $v, 5) : null; // MM-DD
+        $items = [];
+
+        foreach ($logs as $log) {
+            $s = $log->schedule;
+            if (! $s || ($s->is_private && $s->created_by !== Auth::id())) {
+                continue; // 타인 비공개 일정 제외
+            }
+
+            $who = $log->user?->display_name ?? '알 수 없음';
+            $title = $s->title ?: '(제목 없음)';
+            $when = $log->created_at->format('Y-m-d H:i');
+
+            if ($log->action === 'delete') {
+                $items[] = [
+                    'at' => $when,
+                    'kind' => 'delete',
+                    'text' => "{$who}님이 '{$title}' 일정을 삭제했습니다.",
+                    'reason' => $log->reason,
+                    'schedule_id' => $s->id,
+                ];
+            } else {
+                // update — 날짜/시간이 실제로 바뀐 것만 (일정 이동)
+                $c = $log->changes ?? [];
+                $parts = [];
+                if (isset($c['start_date'])) {
+                    $parts[] = ($fmtD($c['start_date']['old'] ?? null) ?? '?').' → '.($fmtD($c['start_date']['new'] ?? null) ?? '?');
+                }
+                if (! isset($c['start_date']) && isset($c['start_time'])) {
+                    $old = mb_substr((string) ($c['start_time']['old'] ?? ''), 0, 5) ?: '종일';
+                    $new = mb_substr((string) ($c['start_time']['new'] ?? ''), 0, 5) ?: '종일';
+                    $parts[] = "{$old} → {$new}";
+                }
+                if (! $parts) {
+                    continue;
+                }
+                $items[] = [
+                    'at' => $when,
+                    'kind' => 'move',
+                    'text' => "{$who}님이 '{$title}' 일정을 ".implode(', ', $parts).' 로 옮겼습니다.',
+                    'reason' => $log->reason,
+                    'schedule_id' => $s->id,
+                ];
+            }
+
+            if (count($items) >= $limit) {
+                break;
+            }
+        }
+
+        return response()->json($items);
+    }
+
+    /**
      * 캘린더 이력용 이벤트 — 일정당 최종 이력만 노출한다 (전체 로그는 DB에 그대로 보존).
      *
      * 옮겨진 일정과 삭제된 일정 위주로만 표시:

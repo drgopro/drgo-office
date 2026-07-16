@@ -804,6 +804,24 @@
     .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 
     /* ── 라이트박스 ── */
+    /* 삭제/변경 이력 (문장 로그) */
+    .cs-changelog-btn { display:block; width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; text-align:center; }
+    .cs-changelog-btn:hover { border-color:var(--accent); color:var(--text); }
+    .changelog-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:300; align-items:flex-start; justify-content:center; padding:7vh 16px 16px; }
+    .changelog-overlay.open { display:flex; }
+    .changelog-modal { width:100%; max-width:560px; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+    .changelog-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); font-size:14px; font-weight:700; }
+    .changelog-head button { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:2px 8px; }
+    .changelog-body { max-height:64vh; overflow-y:auto; padding:8px 14px 14px; }
+    .changelog-item { padding:10px 6px; border-bottom:1px solid var(--surface2); font-size:13px; line-height:1.6; }
+    .changelog-item:last-child { border-bottom:none; }
+    .changelog-item .cl-at { font-size:11px; color:var(--text-muted); margin-right:8px; }
+    .changelog-item .cl-kind { display:inline-block; font-size:10px; font-weight:700; border-radius:7px; padding:1px 8px; margin-right:6px; vertical-align:1px; }
+    .changelog-item .cl-kind.move { background:rgba(100,160,240,0.14); color:#4a7fd6; }
+    .changelog-item .cl-kind.delete { background:rgba(224,80,80,0.12); color:#cf5454; }
+    .changelog-item .cl-reason { display:block; margin-top:3px; font-size:12px; color:var(--text-muted); }
+    .changelog-empty { color:var(--text-muted); font-size:12.5px; text-align:center; padding:34px 0; }
+
     /* 차량 이용 사유 — 모달 하단 고정 배너 */
     .car-reason-banner { position:sticky; bottom:0; z-index:8; display:flex; align-items:center; gap:8px; margin:0 28px 10px; padding:9px 14px; background:color-mix(in srgb, var(--accent) 10%, var(--surface)); border:1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius:10px; font-size:12.5px; color:var(--text); box-shadow:0 -4px 14px rgba(0,0,0,0.08); }
     .car-reason-banner b { color:var(--accent); flex-shrink:0; }
@@ -1144,6 +1162,8 @@
     <div class="cs-divider"></div>
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
+    <div class="cs-divider"></div>
+    <button type="button" class="cs-changelog-btn" onclick="openChangeLog()">📋 삭제/변경 이력</button>
     </div>{{-- /calSideBody --}}
     <div id="csRail"></div>
     </div>{{-- /calSideSticky --}}
@@ -1922,6 +1942,17 @@
         <div id="trashBody" style="flex:1; overflow-y:auto; padding:8px;">
             <div style="padding:30px; text-align:center; color:var(--text-muted);">로딩 중...</div>
         </div>
+    </div>
+</div>
+
+<!-- 삭제/변경 이력 (문장 로그) -->
+<div class="changelog-overlay" id="changeLogOverlay" onclick="if(event.target.id==='changeLogOverlay') closeChangeLog()">
+    <div class="changelog-modal">
+        <div class="changelog-head">
+            <span>📋 삭제/변경 이력</span>
+            <button type="button" onclick="closeChangeLog()">✕</button>
+        </div>
+        <div class="changelog-body" id="changeLogBody"><div class="changelog-empty">불러오는 중…</div></div>
     </div>
 </div>
 
@@ -5725,6 +5756,25 @@ function lbShow(){
 }
 // 앨범 전용 history 항목 — ESC/뒤로가기로 앨범만 먼저 닫히도록
 let __lbHistory=false, __lbConsuming=false;
+// ── 삭제/변경 이력 (문장 로그) ──
+async function openChangeLog(){
+    const overlay=document.getElementById('changeLogOverlay');
+    const body=document.getElementById('changeLogBody');
+    overlay.classList.add('open');
+    body.innerHTML='<div class="changelog-empty">불러오는 중…</div>';
+    try{
+        const res=await fetch('/api/events/change-log?limit=60',{headers:{'Accept':'application/json'}});
+        if(!res.ok) throw new Error();
+        const items=await res.json();
+        if(!items.length){ body.innerHTML='<div class="changelog-empty">기록된 이동/삭제 이력이 없습니다.</div>'; return; }
+        body.innerHTML=items.map(it=>`<div class="changelog-item">
+            <span class="cl-at">${_esc(it.at)}</span><span class="cl-kind ${it.kind}">${it.kind==='delete'?'삭제':'이동'}</span>${_esc(it.text)}
+            ${it.reason?`<span class="cl-reason">└ 사유: ${_esc(it.reason)}</span>`:''}
+        </div>`).join('');
+    }catch(e){ body.innerHTML='<div class="changelog-empty">이력을 불러오지 못했습니다.</div>'; }
+}
+function closeChangeLog(){ document.getElementById('changeLogOverlay').classList.remove('open'); }
+
 // 차량 이용 필요 선택 시 사유 입력 폼 노출 + 하단 고정 배너 갱신
 function updateCarReasonUI(){
     const carOn=!!document.querySelector('#specialOpts .special-opt-btn[data-opt="car"].active');

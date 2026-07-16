@@ -111,6 +111,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
     Route::get('/api/events/search', [CalendarController::class, 'search']);
     Route::get('/api/events/history', [CalendarController::class, 'historyEvents']);
+    Route::get('/api/events/change-log', [CalendarController::class, 'changeLog']); // 사이드바 삭제/변경 이력 (문장 로그)
     Route::get('/api/events/trashed', [CalendarController::class, 'trashed'])->middleware('permission:calendar.edit');
     Route::get('/api/events/{schedule}/detail', [CalendarController::class, 'detail']);
     Route::get('/api/events/{schedule}/history', [CalendarController::class, 'history']);

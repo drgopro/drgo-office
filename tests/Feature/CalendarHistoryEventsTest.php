@@ -63,6 +63,39 @@ class CalendarHistoryEventsTest extends TestCase
         $this->assertSame(2, ScheduleChange::count());
     }
 
+    public function test_change_log_returns_move_and_delete_sentences(): void
+    {
+        $member = $this->member();
+        $schedule = $this->movedTwiceSchedule($member); // update 로그 2건 (start_date 이동)
+
+        // 제목만 바꾼 update — 이동이 아니므로 로그에서 제외
+        ScheduleChange::create([
+            'schedule_id' => $schedule->id, 'user_id' => $member->id, 'action' => 'update',
+            'changes' => ['title' => ['old' => 'A', 'new' => 'B']],
+        ]);
+
+        $deleted = Schedule::create(['title' => '취소된 방문', 'start_date' => '2026-07-25', 'end_date' => '2026-07-25', 'color' => 'gold']);
+        ScheduleChange::create([
+            'schedule_id' => $deleted->id, 'user_id' => $member->id, 'action' => 'delete',
+            'changes' => [], 'reason' => '의뢰자 요청',
+        ]);
+        $deleted->delete();
+
+        $res = $this->actingAs($member)->getJson('/api/events/change-log');
+
+        $res->assertOk();
+        $items = collect($res->json());
+        $this->assertCount(3, $items, '이동 2건 + 삭제 1건 (제목 변경은 제외)');
+
+        $del = $items->firstWhere('kind', 'delete');
+        $this->assertStringContainsString("'취소된 방문' 일정을 삭제했습니다", $del['text']);
+        $this->assertSame('의뢰자 요청', $del['reason']);
+
+        $move = $items->firstWhere('kind', 'move');
+        $this->assertStringContainsString('옮겼습니다', $move['text']);
+        $this->assertStringContainsString('07-13 → 07-20', $move['text']);
+    }
+
     public function test_unchanged_and_completed_schedules_are_hidden(): void
     {
         $member = $this->member();
