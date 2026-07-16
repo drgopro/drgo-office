@@ -1578,17 +1578,20 @@
                         <div class="sched-opt-btn" data-sopt="confirmed"><span class="opt-icon">✅</span>확정</div>
                     </div>
                     <div class="sched-opt-desc" id="schedOptDesc"></div>
-                    <div class="sched-opt-sub" style="margin-top:10px;">시기 요청 (복수 선택 가능)</div>
-                    <div class="special-opts" id="schedEventOpts">
-                        <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
-                        <div class="special-opt-btn" data-seopt="urgent"><span class="opt-icon">🚨</span>긴급 일정</div>
-                        <div class="special-opt-btn" data-seopt="after"><span class="opt-icon">→</span><span id="schedAfterLabel">날짜 선택</span> 이후 희망</div>
-                    </div>
-                    <div id="schedReasonWrap" style="display:none;margin-top:6px;">
-                        <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
+                    {{-- 시기 요청 — 방문의뢰(gold) 전용, 미팅/내방(purple)에서는 확정 상태만 노출 --}}
+                    <div id="schedEventSection">
+                        <div class="sched-opt-sub" style="margin-top:10px;">시기 요청 (복수 선택 가능)</div>
+                        <div class="special-opts" id="schedEventOpts">
+                            <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
+                            <div class="special-opt-btn" data-seopt="urgent"><span class="opt-icon">🚨</span>긴급 일정</div>
+                            <div class="special-opt-btn" data-seopt="after"><span class="opt-icon">→</span><span id="schedAfterLabel">날짜 선택</span> 이후 희망</div>
+                        </div>
+                        <div id="schedReasonWrap" style="display:none;margin-top:6px;">
+                            <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
+                        </div>
                     </div>
                 </div>
-                <div class="field-group">
+                <div class="field-group" id="specialOptsGroup">
                     <div class="field-label">특수 옵션</div>
                     <div class="special-opts" id="specialOpts">
                         <div class="special-opt-btn" data-opt="car"><span class="opt-icon">🚗</span>차량 이용 필요</div>
@@ -3419,6 +3422,13 @@ function setColor(c){
     document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'flex':'none');
     document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
     document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'flex':'none');
+    // 일정 옵션 카드 — 확정 상태는 미팅/내방(purple)에서도 사용 (시기 요청·특수 옵션은 gold 전용 유지)
+    const soCard=document.getElementById('schedOptCard');
+    if(soCard&&c==='purple') soCard.style.display='flex';
+    const seSec=document.getElementById('schedEventSection');
+    if(seSec) seSec.style.display=c==='gold'?'':'none';
+    const spGrp=document.getElementById('specialOptsGroup');
+    if(spGrp) spGrp.style.display=c==='gold'?'':'none';
     // 사내업무(blue)/휴가·개인(red)은 의뢰자 검색 불필요 → 섹션 숨김
     const clientSec=document.getElementById('clientLinkSection');
     if(clientSec) clientSec.style.display=(c==='blue'||c==='red')?'none':'';
@@ -5646,7 +5656,7 @@ document.getElementById('projectSelect')?.addEventListener('change',()=>syncProj
     const addr=document.getElementById('addressBlock');
     main.insertBefore(dt, main.firstChild);
     let after=dt;
-    if(schedOptCard){ schedOptCard.classList.add('gold-only'); after.after(schedOptCard); after=schedOptCard; }
+    if(schedOptCard){ schedOptCard.classList.add('gold-only'); schedOptCard.id='schedOptCard'; after.after(schedOptCard); after=schedOptCard; }
     if(clientLink){ after.after(clientLink); after=clientLink; }
     if(goldClientCard){ goldClientCard.classList.add('gold-only'); after.after(goldClientCard); after=goldClientCard; }
     if(moveFrom){ after.after(moveFrom); after=moveFrom; }
