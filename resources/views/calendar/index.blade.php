@@ -1456,31 +1456,6 @@
                     </div>
                 </div>
 
-                <div class="field-row">
-                    <div class="field-group" style="flex:0 0 auto;">
-                        <label class="field-label">경력 여부</label>
-                        <div class="radio-group" id="g_career_group">
-                            <div class="radio-btn active" data-val="처음">처음</div>
-                            <div class="radio-btn" data-val="초보">초보</div>
-                            <div class="radio-btn" data-val="경력">경력</div>
-                        </div>
-                    </div>
-                    <div class="field-group" style="flex:1;">
-                        <label class="field-label">유입 경로</label>
-                        <div id="g_source_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                            <div class="radio-group" id="g_source_group" style="flex-wrap:wrap;gap:5px;flex-shrink:0;">
-                                <div class="radio-btn" data-val="광고">📢 광고</div>
-                                <div class="radio-btn" data-val="검색">🔍 검색</div>
-                                <div class="radio-btn" data-val="소개">🤝 소개</div>
-                                <div class="radio-btn" data-val="SNS">📱 SNS</div>
-                                <div class="radio-btn" data-val="커뮤니티">👥 커뮤니티</div>
-                                <div class="radio-btn" data-val="기타">기타</div>
-                            </div>
-                            <div class="conditional-field" id="g_source_ref_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름" style="font-size:13px;"></div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="field-group">
                     <label class="field-label">방송 주제</label>
                     <div id="g_topic_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
@@ -1500,7 +1475,16 @@
                     </div>
                 </div>
 
-                <div class="field-group" style="margin-top:10px;">
+                <div class="field-group">
+                    <label class="field-label">경력 여부</label>
+                    <div class="radio-group" id="g_career_group">
+                        <div class="radio-btn active" data-val="처음">처음</div>
+                        <div class="radio-btn" data-val="초보">초보</div>
+                        <div class="radio-btn" data-val="경력">경력</div>
+                    </div>
+                </div>
+
+                <div class="field-group">
                     <label class="field-label">예산 성향</label>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                         <div class="radio-group" id="g_budget_group" style="flex-wrap:wrap;gap:5px;">
@@ -1510,6 +1494,21 @@
                             <div class="radio-btn" data-val="직접입력">직접입력</div>
                         </div>
                         <div class="conditional-field" id="g_budget_etc_wrap" style="margin-top:0;flex:1;min-width:120px;"><input class="field-input" id="g_budget_etc" placeholder="예산 직접 입력" style="font-size:13px;"></div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">유입 경로</label>
+                    <div id="g_source_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <div class="radio-group" id="g_source_group" style="flex-wrap:wrap;gap:5px;flex-shrink:0;">
+                            <div class="radio-btn" data-val="광고">📢 광고</div>
+                            <div class="radio-btn" data-val="검색">🔍 검색</div>
+                            <div class="radio-btn" data-val="소개">🤝 소개</div>
+                            <div class="radio-btn" data-val="SNS">📱 SNS</div>
+                            <div class="radio-btn" data-val="커뮤니티">👥 커뮤니티</div>
+                            <div class="radio-btn" data-val="기타">기타</div>
+                        </div>
+                        <div class="conditional-field" id="g_source_ref_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름" style="font-size:13px;"></div>
                     </div>
                 </div>
 
