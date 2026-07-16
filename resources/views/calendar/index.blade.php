@@ -356,6 +356,16 @@
     .cs-cat .cs-cat-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     /* '만 보기' — 행 hover 시 우측에 표시, 클릭하면 해당 카테고리만 켜기 (재클릭 시 전체 복원) */
     /* (만 보기 버튼 제거 — 라벨 클릭이 단독 보기 역할) */
+
+    /* ── 삭제/변경 흔적 고스트 칩 — 점선 테두리 + 취소선 + 반투명 (실제 일정과 구분) ── */
+    .cs-ghost-row { border-top:1px dashed var(--border); margin-top:6px; padding-top:8px; }
+    .day-cell .event-chip.ghost-chip { background:transparent !important; border:1px dashed color-mix(in srgb, var(--text-muted) 55%, transparent) !important; opacity:0.75; cursor:pointer; pointer-events:auto; width:100%; min-width:0; border-radius:4px; padding:0 3px; font-size:9px; line-height:1.6; display:flex; align-items:center; overflow:hidden; }
+    .day-cell .event-chip.ghost-chip .chip-title { text-decoration:line-through; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .day-cell .event-chip.ghost-chip.g-deleted { border-color:rgba(207,84,84,0.55) !important; }
+    .day-cell .event-chip.ghost-chip.g-deleted .chip-title { color:#cf5454; }
+    .day-cell .event-chip.ghost-chip.g-modified { border-color:rgba(90,130,200,0.55) !important; }
+    .day-cell .event-chip.ghost-chip.g-modified .chip-title { color:#5a82c8; }
+    .day-cell .event-chip.ghost-chip:hover { opacity:1; }
     .cs-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
     #calSide .assignee-filter { width:100%; margin-bottom:6px; box-sizing:border-box; }
     #calSide .assignee-filter-chips { width:100%; }
@@ -2038,6 +2048,15 @@ function updateMwLabel(){
     const l=document.getElementById('mwLabel');
     if(l) l.textContent=monthWeeks>=6?'월 전체':`${monthWeeks}주`;
 }
+// ── 삭제/변경 흔적 오버레이 — 사이드 필터로 켜고 끔 (월간 뷰에 취소선 고스트 칩) ──
+let showGhosts = localStorage.getItem('cal_show_ghosts') === '1';
+let ghostEvents = []; // 이력 API의 shadow 칩 (modified=이동 전 위치, deleted=삭제 시점 위치)
+function csToggleGhosts(){
+    showGhosts = !showGhosts;
+    localStorage.setItem('cal_show_ghosts', showGhosts ? '1' : '0');
+    renderCsCats();
+    loadEvents();
+}
 let events = [], assignees = [], selectedAssignees = [];
 let selectedNotifyAssignees = []; // 알림 받을 멤버 (비어있으면 담당자 전체)
 let editingId = null, currentColor = 'gold', currentView = 'month';
@@ -2216,7 +2235,12 @@ function csSoloCat(k){
 function renderCsCats(){
     const keys = Object.keys(CS_CATS);
     document.getElementById('csOnCount').textContent = keys.filter(k => activeFilters.has(k)).length;
-    document.getElementById('csCatsOn').innerHTML = keys.map(k => csCatRow(k, activeFilters.has(k))).join('');
+    document.getElementById('csCatsOn').innerHTML = keys.map(k => csCatRow(k, activeFilters.has(k))).join('')
+        // 특수 필터: 삭제/변경 흔적 — 일반 카테고리처럼 체크박스로 켜고 끔 (월간 뷰에 취소선 고스트 표시)
+        + `<div class="cs-cat cs-ghost-row${showGhosts?'':' off'}">
+            <span class="cs-check${showGhosts?' on':''}" style="--cat-c:#9aa3b2" onclick="csToggleGhosts()" title="${showGhosts?'끄기':'켜기'}"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span class="cs-cat-label" onclick="csToggleGhosts()" title="삭제·이동된 일정의 원래 위치를 취소선으로 표시">🗑 삭제/변경 흔적</span>
+        </div>`;
     // 접힘 레일: 카테고리 점 (클릭으로 토글)
     const rail = document.getElementById('csRail');
     if(rail) rail.innerHTML = '<button type="button" class="cs-collapse-btn" onclick="csToggleSide()" title="필터 펼치기">»</button>' + keys.map(k =>
@@ -2651,6 +2675,15 @@ async function loadEvents() {
     }
     const res=await fetch(`/api/events?start=${start}&end=${end}`);
     events=await res.json();
+    // 삭제/변경 흔적 — 필터가 켜진 경우에만 이력 shadow를 함께 로드 (월간 뷰 전용)
+    if(showGhosts && currentView==='month'){
+        try{
+            const gr=await fetch(`/api/events/history?start=${start}&end=${end}`,{headers:{'Accept':'application/json'}});
+            ghostEvents=gr.ok?(await gr.json()).filter(c=>c.is_shadow):[];
+        }catch(e){ ghostEvents=[]; }
+    }else{
+        ghostEvents=[];
+    }
     renderView();
 }
 
@@ -2965,6 +2998,25 @@ function renderMonth() {
                 chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
                 evList.appendChild(chip);
             });
+
+            // 삭제/변경 흔적 — 원래 있던 날짜에 취소선 고스트 칩 (필터 켠 경우만)
+            if(showGhosts&&ghostEvents.length){
+                ghostEvents.filter(g=>g.display_start_date<=cell.full&&(g.display_end_date||g.display_start_date)>=cell.full&&activeFilters.has(g.color))
+                    .forEach(g=>{
+                        const gc=document.createElement('div');
+                        gc.className=`event-chip single ghost-chip color-${g.color} g-${g.state}`;
+                        gc.innerHTML=`<span class="chip-title">${g.state==='deleted'?'🗑':'↪'} ${_esc(g.title||'(제목 없음)')}</span>`;
+                        const at=g.change_at?String(g.change_at).substring(0,16).replace('T',' '):'';
+                        gc.title=(g.state==='deleted'?'삭제된 일정':'이동 전 위치 — 클릭하면 현재 일정 열기')+(at?` · ${at}`:'');
+                        gc.onclick=e=>{
+                            e.stopPropagation();
+                            const cur=events.find(ev=>ev.id===g.schedule_id);
+                            if(g.state==='modified'&&cur){ openDetailModal(cur); }
+                            else{ openChangeLog(); }
+                        };
+                        evList.appendChild(gc);
+                    });
+            }
 
             // 더보기 = (표시 못한 행 중 실제 일정) + (캡 초과 다일)
             const hiddenRealInRows=rows.slice(shownRows.length).filter(r=>!r.spacer).length;
