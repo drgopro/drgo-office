@@ -933,10 +933,6 @@ function renderClientContent(id) {
             </div>
             <div class="form-grid" style="margin-top:14px;">
                 <div class="field">
-                    <div class="field-label">방송 아이디</div>
-                    <input class="field-input" id="f-broadcast_id-${id}" value="${d.broadcast_id||''}" placeholder="플랫폼 방송 ID/채널명">
-                </div>
-                <div class="field">
                     <div class="field-label">방송 경력</div>
                     <select class="field-input field-select" id="f-career-${id}">
                         <option value="">선택</option>
@@ -946,16 +942,6 @@ function renderClientContent(id) {
                     </select>
                 </div>
                 <div class="field">
-                    <div class="field-label">최초 등록일</div>
-                    <input class="field-input" value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;">
-                </div>
-            </div>
-            <div class="form-grid" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">유입경로</div>
-                    ${renderInflowField(id, d.inflow_source)}
-                </div>
-                <div class="field">
                     <div class="field-label">의뢰자 유형</div>
                     <select class="field-input field-select" id="f-client_type-${id}">
                         <option value="">선택</option>
@@ -963,6 +949,22 @@ function renderClientContent(id) {
                         <option value="enterprise" ${d.client_type==='enterprise'?'selected':''}>엔터</option>
                         <option value="studio" ${d.client_type==='studio'?'selected':''}>스튜디오</option>
                     </select>
+                </div>
+            </div>
+            <div class="form-grid" style="margin-top:14px;">
+                <div class="field">
+                    <div class="field-label">방송 아이디</div>
+                    <input class="field-input" id="f-broadcast_id-${id}" value="${d.broadcast_id||''}" placeholder="플랫폼 방송 ID/채널명">
+                </div>
+                <div class="field">
+                    <div class="field-label">최초 등록일</div>
+                    <input class="field-input" value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;">
+                </div>
+            </div>
+            <div class="form-grid full" style="margin-top:14px;">
+                <div class="field">
+                    <div class="field-label">유입경로</div>
+                    ${renderInflowField(id, d.inflow_source)}
                 </div>
             </div>
 
