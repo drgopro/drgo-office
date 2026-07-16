@@ -810,8 +810,10 @@ class CalendarController extends Controller
     /**
      * 캘린더 이력용 이벤트 — 일정당 최종 이력만 노출한다 (전체 로그는 DB에 그대로 보존).
      *
-     * - 활성/완료 일정: 현재 위치에 active|completed chip + 마지막 위치 변경 1건만 modified shadow
-     * - 삭제 일정: 삭제 시점의 start_date에 deleted shadow만 (과거 변경 흔적 미노출)
+     * 옮겨진 일정과 삭제된 일정 위주로만 표시:
+     * - 위치가 변경된 일정: 마지막 변경 1건의 이전 위치(modified shadow) + 현재 위치 chip
+     * - 삭제 일정: 삭제 시점의 start_date에 deleted shadow만
+     * - 변경·삭제 없이 등록만 되거나 완료된 일정은 노출하지 않음 (완료 이력 제외)
      */
     public function historyEvents(Request $request)
     {
@@ -845,18 +847,7 @@ class CalendarController extends Controller
                 'deleted_at' => $s->deleted_at,
             ];
 
-            // 1. 현재 위치 chip — 삭제되지 않은 경우만 (정상 표시)
-            if ($s->deleted_at === null) {
-                $chips->push(array_merge($base, [
-                    'chip_id' => 'cur-'.$s->id,
-                    'display_start_date' => $s->start_date->format('Y-m-d'),
-                    'display_end_date' => optional($s->end_date)->format('Y-m-d') ?? $s->start_date->format('Y-m-d'),
-                    'state' => $s->completed_at !== null ? 'completed' : 'active',
-                    'is_shadow' => false,
-                ]));
-            }
-
-            // 2. 과거 위치 흔적 — 마지막(최종) 위치 변경 1건만 modified shadow로 표시.
+            // 1. 과거 위치 흔적 — 마지막(최종) 위치 변경 1건만 modified shadow로 표시.
             //    삭제된 일정은 삭제 chip만 노출하고, 이 시점의 start_time/end_time/is_all_day도 함께 복원.
             if ($s->deleted_at === null) {
                 $lastShadow = null;
@@ -894,12 +885,21 @@ class CalendarController extends Controller
 
                     $lastShadow = $shadow; // created_at 오름차순이므로 마지막 것이 최종 변경
                 }
+                // 옮겨진 일정만 노출: 이전 위치 shadow + 현재 위치 chip.
+                // 변경 이력 없는 일정(단순 등록·완료)은 이력에서 제외해 노이즈를 줄인다.
                 if ($lastShadow) {
                     $chips->push($lastShadow);
+                    $chips->push(array_merge($base, [
+                        'chip_id' => 'cur-'.$s->id,
+                        'display_start_date' => $s->start_date->format('Y-m-d'),
+                        'display_end_date' => optional($s->end_date)->format('Y-m-d') ?? $s->start_date->format('Y-m-d'),
+                        'state' => 'active',
+                        'is_shadow' => false,
+                    ]));
                 }
             }
 
-            // 3. 삭제된 경우, 삭제 시점의 위치에 deleted shadow
+            // 2. 삭제된 경우, 삭제 시점의 위치에 deleted shadow
             if ($s->deleted_at !== null) {
                 $chips->push(array_merge($base, [
                     'chip_id' => 'del-'.$s->id,

@@ -133,8 +133,7 @@
 
     <div class="ch-filter">
         <button class="ch-fbtn active" data-state="all" onclick="chToggleFilter(this)"><span class="ch-dot"></span>전체</button>
-        <button class="ch-fbtn active" data-state="active" onclick="chToggleFilter(this)"><span class="ch-dot"></span>활성</button>
-        <button class="ch-fbtn active" data-state="completed" onclick="chToggleFilter(this)"><span class="ch-dot"></span>완료</button>
+        <button class="ch-fbtn active" data-state="active" onclick="chToggleFilter(this)"><span class="ch-dot"></span>현재 위치</button>
         <button class="ch-fbtn active" data-state="modified" onclick="chToggleFilter(this)"><span class="ch-dot"></span>변경됨</button>
         <button class="ch-fbtn active" data-state="deleted" onclick="chToggleFilter(this)"><span class="ch-dot"></span>삭제됨</button>
         <div style="flex:1;"></div>
@@ -255,13 +254,13 @@ function chToggleFilter(btn) {
         const allOn = chState.activeStates.has('all');
         chState.activeStates.clear();
         if (!allOn) {
-            ['all','active','completed','modified','deleted'].forEach(s => chState.activeStates.add(s));
+            ['all','active','modified','deleted'].forEach(s => chState.activeStates.add(s));
         }
     } else {
         if (chState.activeStates.has(state)) chState.activeStates.delete(state);
         else chState.activeStates.add(state);
-        // "전체"는 active+completed+modified+deleted 모두 켜져 있을 때만
-        const otherAllOn = ['active','completed','modified','deleted'].every(s => chState.activeStates.has(s));
+        // "전체"는 active+modified+deleted 모두 켜져 있을 때만
+        const otherAllOn = ['active','modified','deleted'].every(s => chState.activeStates.has(s));
         if (otherAllOn) chState.activeStates.add('all');
         else chState.activeStates.delete('all');
     }

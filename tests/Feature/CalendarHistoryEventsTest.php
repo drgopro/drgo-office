@@ -63,6 +63,19 @@ class CalendarHistoryEventsTest extends TestCase
         $this->assertSame(2, ScheduleChange::count());
     }
 
+    public function test_unchanged_and_completed_schedules_are_hidden(): void
+    {
+        $member = $this->member();
+        Schedule::create(['title' => '단순 등록 일정', 'start_date' => '2026-07-10', 'end_date' => '2026-07-10', 'color' => 'blue']);
+        Schedule::create(['title' => '완료된 일정', 'start_date' => '2026-07-11', 'end_date' => '2026-07-11', 'color' => 'gold', 'completed_at' => now()]);
+
+        $res = $this->actingAs($member)->getJson('/api/events/history?start=2026-07-01&end=2026-07-31');
+
+        // 이동·삭제 없는 일정(등록만/완료 포함)은 이력에 노출되지 않음
+        $res->assertOk();
+        $this->assertCount(0, collect($res->json()));
+    }
+
     public function test_deleted_schedule_shows_only_deleted_chip(): void
     {
         $member = $this->member();
