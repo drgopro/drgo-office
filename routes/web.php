@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
 
     // 캘린더 (조회: 전체, 수정: 권한 필요)
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
+    Route::view('/calendar/widget', 'calendar.widget')->name('calendar.widget'); // 데스크탑 위젯용 컴팩트 뷰
     Route::get('/calendar/history', [CalendarController::class, 'historyIndex'])->name('calendar.history');
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
     Route::get('/api/events/search', [CalendarController::class, 'search']);
