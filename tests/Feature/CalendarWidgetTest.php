@@ -23,6 +23,10 @@ class CalendarWidgetTest extends TestCase
         $this->actingAs($user)->get('/calendar/widget')
             ->assertOk()
             ->assertSee('캘린더 위젯', false)
+            // 월간 그리드 + 선택일 리스트 + 월 이동
+            ->assertSee('id="wgGrid"', false)
+            ->assertSee('id="wgList"', false)
+            ->assertSee('wgMove(-1)', false)
             // 카테고리 색상 주입 + 30초 폴링 + 세로 컬러 바
             ->assertSee('const CATS =', false)
             ->assertSee('POLL_MS = 30000', false)
