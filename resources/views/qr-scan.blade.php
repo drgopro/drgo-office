@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#111111">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/manifest-qr.json">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <title>QR 스캔 - 닥터고블린 오피스</title>

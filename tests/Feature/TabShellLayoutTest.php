@@ -37,4 +37,15 @@ class TabShellLayoutTest extends TestCase
             $this->assertFileExists(public_path($f));
         }
     }
+
+    public function test_default_pwa_manifest_starts_at_office_home(): void
+    {
+        // 기본 매니페스트가 QR 스캔이 아닌 오피스 홈으로 설치되어야 함 (QR은 전용 manifest-qr.json)
+        $manifest = json_decode((string) file_get_contents(public_path('manifest.json')), true);
+        $this->assertSame('/', $manifest['start_url']);
+        $this->assertSame('오피스', $manifest['short_name']);
+
+        $qr = json_decode((string) file_get_contents(public_path('manifest-qr.json')), true);
+        $this->assertSame('/qr-scan', $qr['start_url']);
+    }
 }

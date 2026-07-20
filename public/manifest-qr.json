@@ -1,11 +1,11 @@
 {
-    "name": "닥터고블린 오피스",
-    "short_name": "오피스",
-    "description": "닥터고블린 오피스 — 일정·프로젝트·의뢰자 관리",
-    "id": "/",
-    "start_url": "/",
-    "scope": "/",
+    "name": "닥터고블린 QR 스캔",
+    "short_name": "QR스캔",
+    "description": "장비 QR 스캔",
+    "id": "/qr-scan",
+    "start_url": "/qr-scan",
     "display": "standalone",
+    "orientation": "portrait",
     "background_color": "#111111",
     "theme_color": "#d4bc96",
     "icons": [
