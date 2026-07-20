@@ -320,7 +320,7 @@
         @empty
         <div class="wiki-comment-empty">첫 댓글을 남겨보세요.</div>
         @endforelse
-        <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form">
+        <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
             @csrf
             <textarea name="body" required maxlength="2000" rows="3" placeholder="댓글을 입력하세요..."></textarea>
             <button type="submit">등록</button>

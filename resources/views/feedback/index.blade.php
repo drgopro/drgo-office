@@ -349,8 +349,8 @@ function fbBodyHtml(p){
     }
     html += `<div class="fb-comments" id="fbComments${p.id}">${p.comments.map(c => fbCommentHtml(c)).join('')}
         <div class="fb-comment-form">
-            <input type="text" id="fbCommentInput${p.id}" maxlength="2000" placeholder="의견 남기기" onkeydown="if(event.key==='Enter')fbComment(${p.id})">
-            <button class="fb-comment-submit" onclick="fbComment(${p.id})">등록</button>
+            <input type="text" id="fbCommentInput${p.id}" maxlength="2000" placeholder="의견 남기기" onkeydown="if(event.key==='Enter'&&!event.isComposing)fbComment(${p.id})">
+            <button class="fb-comment-submit" id="fbCommentBtn${p.id}" onclick="fbComment(${p.id})">등록</button>
         </div>
     </div>`;
     return html;
@@ -474,14 +474,24 @@ async function fbSetStatus(id, status){
 }
 
 // ── 의견 ──
+let fbCommentBusy = false; // 연타/IME Enter 중복 전송 방지
 async function fbComment(id){
+    if(fbCommentBusy) return;
     const input = document.getElementById('fbCommentInput'+id);
     const body = input.value.trim();
     if(!body) return;
-    const res = await fetch(`/api/feedback/${id}/comments`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({body})});
-    if(!res.ok){ alert('의견 등록 실패'); return; }
-    input.value = '';
-    fbLoad();
+    fbCommentBusy = true;
+    const btn = document.getElementById('fbCommentBtn'+id);
+    if(btn) btn.disabled = true;
+    try {
+        const res = await fetch(`/api/feedback/${id}/comments`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({body})});
+        if(!res.ok){ alert('의견 등록 실패'); return; }
+        input.value = '';
+        await fbLoad();
+    } finally {
+        fbCommentBusy = false;
+        if(btn) btn.disabled = false;
+    }
 }
 async function fbDeleteComment(id){
     if(!confirm('이 의견을 삭제할까요?')) return;

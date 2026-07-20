@@ -238,6 +238,25 @@ class FeedbackBoardTest extends TestCase
         Notification::assertSentTo($author, FeedbackActivity::class);
     }
 
+    public function test_의견_중복_전송은_한_건만_저장(): void
+    {
+        // 등록 버튼 연타·IME Enter 이중 발화 — 10초 내 동일 내용은 저장하지 않고 기존 의견 반환
+        $author = $this->member();
+        $post = $this->makePost($author);
+        $commenter = $this->member();
+
+        $this->actingAs($commenter)->postJson("/api/feedback/{$post->id}/comments", ['body' => '중복 테스트'])->assertCreated();
+        $this->actingAs($commenter)->postJson("/api/feedback/{$post->id}/comments", ['body' => '중복 테스트'])->assertOk();
+
+        $this->assertSame(1, $post->comments()->where('body', '중복 테스트')->count());
+
+        // 내용이 다르면 정상 등록, 다른 사용자의 동일 내용도 정상 등록
+        $this->actingAs($commenter)->postJson("/api/feedback/{$post->id}/comments", ['body' => '다른 내용'])->assertCreated();
+        $this->actingAs($this->member())->postJson("/api/feedback/{$post->id}/comments", ['body' => '중복 테스트'])->assertCreated();
+
+        $this->assertSame(3, $post->comments()->count());
+    }
+
     public function test_목록_필터와_탭별_카운트(): void
     {
         $author = $this->member();

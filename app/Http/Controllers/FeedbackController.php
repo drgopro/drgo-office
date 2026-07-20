@@ -226,6 +226,17 @@ class FeedbackController extends Controller
     {
         $validated = $request->validate(['body' => 'required|string|max:2000']);
 
+        // 중복 전송 방지 (연타·IME Enter 이중 발화) — 10초 내 동일 내용은 기존 의견 반환
+        $duplicate = $post->comments()
+            ->where('user_id', Auth::id())
+            ->where('body', $validated['body'])
+            ->where('created_at', '>=', now()->subSeconds(10))
+            ->latest('id')
+            ->first();
+        if ($duplicate) {
+            return response()->json($this->commentPayload($duplicate->load('user:id,display_name,username,role')));
+        }
+
         $comment = $post->comments()->create([
             'user_id' => Auth::id(),
             'body' => $validated['body'],
