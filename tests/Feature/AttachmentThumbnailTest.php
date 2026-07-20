@@ -41,6 +41,44 @@ class AttachmentThumbnailTest extends TestCase
         $this->assertSame($thumb, app(ImageThumbnailService::class)->ensure('schedules/1/big.png'));
     }
 
+    private function makePalettePng(int $w, int $h): string
+    {
+        // 팔레트(인덱스 컬러) PNG — imagewebp가 직접 변환하지 못하는 형식
+        $img = imagecreate($w, $h);
+        imagecolorallocate($img, 200, 100, 50); // 배경색 (팔레트 첫 색상)
+        ob_start();
+        imagepng($img);
+        imagedestroy($img);
+
+        return ob_get_clean();
+    }
+
+    public function test_small_palette_image_is_converted_without_error(): void
+    {
+        // 640px 이하 팔레트 이미지는 리사이즈를 건너뛰어 팔레트 그대로 imagewebp에 전달되던 버그
+        // (imagewebp(): Palette image not supported by webp)
+        Storage::fake('local');
+        Storage::put('schedules/1/small-palette.png', $this->makePalettePng(100, 80));
+
+        $thumb = app(ImageThumbnailService::class)->ensure('schedules/1/small-palette.png');
+
+        $this->assertNotNull($thumb);
+        Storage::assertExists($thumb);
+        $this->assertSame('image/webp', getimagesizefromstring(Storage::get($thumb))['mime']);
+    }
+
+    public function test_large_palette_image_is_converted(): void
+    {
+        Storage::fake('local');
+        Storage::put('schedules/1/big-palette.png', $this->makePalettePng(1500, 900));
+
+        $thumb = app(ImageThumbnailService::class)->ensure('schedules/1/big-palette.png');
+
+        $this->assertNotNull($thumb);
+        $info = getimagesizefromstring(Storage::get($thumb));
+        $this->assertSame(640, max($info[0], $info[1]));
+    }
+
     public function test_non_image_returns_null(): void
     {
         Storage::fake('local');
