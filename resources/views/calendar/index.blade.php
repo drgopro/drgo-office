@@ -142,9 +142,10 @@
     .day-popover .dp-header { display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:700; margin-bottom:10px; position:sticky; top:0; background:var(--surface); }
     .day-popover .dp-close { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:0 4px; }
     .day-popover .dp-list { display:flex; flex-direction:column; gap:6px; }
-    .day-popover .dp-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:background 0.12s; }
+    .day-popover .dp-item { display:flex; align-items:stretch; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:background 0.12s; }
     .day-popover .dp-item:hover { background:var(--surface2); }
-    .day-popover .dp-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    /* 카테고리 색상 — 서클 대신 세로 컬러 바 */
+    .day-popover .dp-dot { width:4px; min-height:100%; border-radius:2px; flex-shrink:0; align-self:stretch; }
     .day-popover .dp-info { flex:1; min-width:0; }
     .day-popover .dp-title-row { display:flex; align-items:flex-start; gap:8px; }
     /* 제목: 한 줄 말줄임 대신 폰트 축소 + 2줄까지 줄바꿈 표시 */
@@ -230,6 +231,10 @@
     .opt-chip.confirmed { background:#2f9e4426; border-color:#2f9e4466; color:#3fae54; }
     /* 리스트 계열 뷰: 옵션 칩을 타이틀 앞에 배치 — 폰트 축소 + 여백 방향 전환 */
     .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
+    /* 특수 옵션 아이콘 (차량🚗·제품💼 등) — 제목 앞 */
+    .opt-ic { font-size:12px; margin-right:2px; line-height:1; }
+    /* 확정 상태 한 글자 칩 — 제목 끝 */
+    .opt-chip.sched-end, .agenda-title .opt-chip.sched-end, .dp-title .opt-chip.sched-end, .mde-title .opt-chip.sched-end { margin-left:4px; margin-right:0; }
     /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
     .tl-ev-head { display:flex; align-items:center; gap:3px; min-width:0; }
     .tl-ev-head .opt-chip { margin-left:0; }
@@ -2093,9 +2098,9 @@ function shipStatusIcon(ev){
 }
 // 일정 옵션(빠름/긴급/AS이후) 아이콘 맵
 const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→'};
-// 텍스트 미니 칩 라벨 (아이콘 식별이 어렵다는 피드백으로 텍스트화)
-const OPT_CHIP_LABELS={car:'차량',brief:'제품',group:'2인',ladder:'사다리',pet:'반려'};
-const SCHED_CHIP_LABELS={suggest:'제안',hope:'희망',target:'목표',confirmed:'확정'};
+// 확정 상태 — 리스트/칩에는 한 글자로 축약 표시 (제목 끝), 툴팁·설명에는 전체 라벨
+const SCHED_CHIP_LABELS={suggest:'제',hope:'희',target:'목',confirmed:'확'};
+const SCHED_FULL_LABELS={suggest:'제안',hope:'희망',target:'목표',confirmed:'확정'};
 // 확정 상태 단계 설명 — 버튼 선택 시 모달에 표시
 const SCHED_OPT_DESCS={
     suggest:'💬 제안 — 우리가 의뢰자에게 제안해 둔 날짜 (아직 미확정)',
@@ -2110,14 +2115,18 @@ function updateSchedOptDesc(){
 }
 const SCHED_EVENT_CHIP_LABELS={fast:'빠른',urgent:'긴급',after:'이후'};
 function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''}"${title?` title="${title}"`:''}>${label}</span>`; }
-// 특수옵션 + 세부유형 + 일정옵션 아이콘 묶음 — 주/일간·목록·팝업 뷰 공용
+// 특수옵션(아이콘) + 시기 요청 칩 묶음 — 주/일간·목록·팝업 뷰 공용 (확정 상태는 schedStatusChip으로 제목 끝에)
 function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
-    (ev.special_opts||[]).forEach(o=>{ if(OPT_CHIP_LABELS[o]) h+=optChip(OPT_CHIP_LABELS[o],'',(typeof SPECIAL_OPT_LABELS!=='undefined'&&SPECIAL_OPT_LABELS[o])||o); });
-    if(ev.sched_opt&&SCHED_CHIP_LABELS[ev.sched_opt]) h+=optChip(SCHED_CHIP_LABELS[ev.sched_opt],ev.sched_opt==='confirmed'?'confirmed':'accent');
+    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic" title="${SPECIAL_OPT_LABELS[o]||o}">${SPECIAL_ICONS[o]}</span>`; });
     (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_CHIP_LABELS[o]) h+=optChip(SCHED_EVENT_CHIP_LABELS[o],o==='urgent'?'urgent':''); });
     return h;
+}
+// 확정 상태 — 한 글자 칩(확/목/희/제), 제목 끝에 붙임
+function schedStatusChip(ev){
+    if(!ev||!ev.sched_opt||!SCHED_CHIP_LABELS[ev.sched_opt]) return '';
+    return optChip(SCHED_CHIP_LABELS[ev.sched_opt],(ev.sched_opt==='confirmed'?'confirmed':'accent')+' sched-end',SCHED_FULL_LABELS[ev.sched_opt]);
 }
 // 이사세팅 여부
 function isMoveSetting(ev){
@@ -2728,7 +2737,7 @@ function openDayPopover(dateStr, anchorEl){
             <span class="dp-dot" style="background:${chipColor(ev.color)}"></span>
             <div class="dp-info">
                 <div class="dp-title-row">
-                    <span class="dp-title">${eventOptIconsHtml(ev)}${_esc(title)}${shipStatusIcon(ev)}</span>
+                    <span class="dp-title">${eventOptIconsHtml(ev)}${_esc(title)}${schedStatusChip(ev)}${shipStatusIcon(ev)}</span>
                     ${assignees?`<span class="dp-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 ${meta?`<div class="dp-meta">${_esc(meta)}</div>`:''}
@@ -2837,7 +2846,7 @@ function renderAgenda(){
             html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
                 <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
                 <div class="agenda-main">
-                    <div class="agenda-title">${eventOptIconsHtml(ev)}${_esc(title)}${shipStatusIcon(ev)}</div>
+                    <div class="agenda-title">${eventOptIconsHtml(ev)}${_esc(title)}${schedStatusChip(ev)}${shipStatusIcon(ev)}</div>
                     ${subHtml}
                 </div>
                 <div class="agenda-right">
@@ -3136,7 +3145,7 @@ function renderMobileDayEvents(dateStr){
             <div class="mde-bar" style="background:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
-                    <div class="mde-title">${eventOptIconsHtml(ev)}${_esc(title)}${shipStatusIcon(ev)}</div>
+                    <div class="mde-title">${eventOptIconsHtml(ev)}${_esc(title)}${schedStatusChip(ev)}${shipStatusIcon(ev)}</div>
                     ${assignees?`<span class="mde-assignee">${_esc(assignees)}</span>`:''}
                 </div>
                 ${sub?`<div class="mde-meta">${_esc(sub)}</div>`:''}
@@ -3210,7 +3219,7 @@ function renderTimeline() {
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`+(ev.completed_at?' is-completed':'');
             chip.style.marginBottom='2px';
-            chip.innerHTML=isGuestUser?_esc((ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):'')):(eventOptIconsHtml(ev)+`<span class="chip-title">${_esc(ev.title||'')}</span>`+shipStatusIcon(ev)+((ev.assignees||[]).length?` <span class="ev-assignee-badge">${_esc(assigneeNamesOf(ev).join(', '))}</span>`:''));
+            chip.innerHTML=isGuestUser?_esc((ev.location||'일정')+(ev.start_time?' '+ev.start_time.slice(0,5):'')):(eventOptIconsHtml(ev)+`<span class="chip-title">${_esc(ev.title||'')}</span>`+schedStatusChip(ev)+shipStatusIcon(ev)+((ev.assignees||[]).length?` <span class="ev-assignee-badge">${_esc(assigneeNamesOf(ev).join(', '))}</span>`:''));
             chip.onclick=()=>openDetailModal(ev);
             cell.appendChild(chip);
         });
@@ -3305,7 +3314,7 @@ function renderTimeline() {
                     el.style.width=`calc(${widthPct}% - ${gap*2}px)`;
                     el.style.right='auto';
                 }
-                el.innerHTML=`<div class="tl-ev-head">${eventOptIconsHtml(ev)}<span class="tl-ev-title">${_esc(ev.title||'')}</span>${shipStatusIcon(ev)}</div>`+((ev.assignees||[]).length?`<div class="tl-ev-assignee">${_esc(assigneeNamesOf(ev).join(', '))}</div>`:'');
+                el.innerHTML=`<div class="tl-ev-head">${eventOptIconsHtml(ev)}<span class="tl-ev-title">${_esc(ev.title||'')}</span>${schedStatusChip(ev)}${shipStatusIcon(ev)}</div>`+((ev.assignees||[]).length?`<div class="tl-ev-assignee">${_esc(assigneeNamesOf(ev).join(', '))}</div>`:'');
                 el.onclick=e=>{e.stopPropagation();openDetailModal(ev);};
                 slot.appendChild(el);
             });
@@ -3422,9 +3431,9 @@ function setColor(c){
     document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'flex':'none');
     document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
     document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'flex':'none');
-    // 일정 옵션 카드 — 확정 상태는 미팅/내방(purple)에서도 사용 (시기 요청·특수 옵션은 gold 전용 유지)
+    // 일정 옵션 카드 — 확정 상태는 모든 카테고리에서 사용 (시기 요청·특수 옵션은 gold 전용 유지)
     const soCard=document.getElementById('schedOptCard');
-    if(soCard&&c==='purple') soCard.style.display='flex';
+    if(soCard) soCard.style.display='flex';
     const seSec=document.getElementById('schedEventSection');
     if(seSec) seSec.style.display=c==='gold'?'':'none';
     const spGrp=document.getElementById('specialOptsGroup');

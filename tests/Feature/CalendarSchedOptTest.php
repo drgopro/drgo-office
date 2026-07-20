@@ -53,10 +53,12 @@ class CalendarSchedOptTest extends TestCase
         $res = $this->actingAs($this->master())->get('/calendar');
 
         $res->assertOk()
-            // 확정 상태 카드는 purple에서도 노출, 시기 요청·특수 옵션은 gold 전용
+            // 확정 상태 카드는 모든 카테고리에 노출, 시기 요청·특수 옵션은 gold 전용
             ->assertSee('id="schedEventSection"', false)
             ->assertSee('id="specialOptsGroup"', false)
-            ->assertSee("if(soCard&&c==='purple') soCard.style.display='flex';", false);
+            ->assertSee("if(soCard) soCard.style.display='flex';", false)
+            // 확정 상태는 한 글자 칩으로 제목 끝에 표시
+            ->assertSee('function schedStatusChip', false);
     }
 
     public function test_calendar_page_renders_unified_options_with_confirmed(): void
