@@ -9,12 +9,12 @@
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         :root {
-            --bg: rgba(17,17,17,0.82);
-            --surface: rgba(255,255,255,0.05);
-            --surface2: rgba(255,255,255,0.09);
-            --border: rgba(255,255,255,0.10);
-            --text: #f0ebe2;
-            --text-muted: #9a958c;
+            --bg: rgba(17,17,17,0.93);
+            --surface: rgba(255,255,255,0.07);
+            --surface2: rgba(255,255,255,0.12);
+            --border: rgba(255,255,255,0.14);
+            --text: #f5f1e8;
+            --text-muted: #b3ada2;
             --accent: #d4bc96;
         }
         html, body { height:100%; }
@@ -51,16 +51,17 @@
         }
         .wg-cell:hover { background:var(--surface); }
         .wg-cell.sel { background:var(--surface2); border-color:color-mix(in srgb, var(--accent) 50%, transparent); }
-        .wg-cell .n { font-size:12px; font-weight:600; color:var(--text-muted); line-height:1.3; flex-shrink:0; }
+        .wg-cell .n { font-size:12px; font-weight:700; color:var(--text); line-height:1.3; flex-shrink:0; }
         .wg-cell.dim .n { opacity:0.35; }
         .wg-cell.today .n {
             color:#111; background:var(--accent); border-radius:5px;
             width:20px; text-align:center; font-weight:800;
         }
         .wg-cell .sun { color:#e06c6c; }
-        .wg-ev { display:flex; align-items:center; gap:3px; min-height:14px; overflow:hidden; flex-shrink:0; }
+        /* 셀 일정 — 카테고리색 배경 칩 (본 캘린더와 동일한 시각 언어) */
+        .wg-ev { display:flex; align-items:center; gap:4px; min-height:16px; overflow:hidden; flex-shrink:0; padding:1px 4px; border-radius:4px; }
         .wg-ev i { width:3px; height:11px; border-radius:1.5px; flex-shrink:0; }
-        .wg-ev b { font-size:11px; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .wg-ev b { font-size:11px; font-weight:600; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .wg-ev.done { opacity:0.35; }
         .wg-more { font-size:10.5px; color:var(--text-muted); line-height:1.2; }
 
@@ -179,7 +180,7 @@ function render(){
             const shown = dayEvs.slice(0, MAX_CELL_EV);
             html += `<div class="wg-cell${dim?' dim':''}${ds===today?' today':''}${ds===selDate?' sel':''}" onclick="wgSelect('${ds}')">
                 <span class="n${cur.getDay()===0?' sun':''}">${cur.getDate()}</span>
-                ${shown.map(e => `<span class="wg-ev${e.completed_at?' done':''}"><i style="background:${catColor(e.color)}"></i><b>${esc(e.title||'')}</b></span>`).join('')}
+                ${shown.map(e => `<span class="wg-ev${e.completed_at?' done':''}" style="background:color-mix(in srgb, ${catColor(e.color)} 30%, transparent)"><i style="background:${catColor(e.color)}"></i><b>${esc(e.title||'')}</b></span>`).join('')}
                 ${dayEvs.length > MAX_CELL_EV ? `<span class="wg-more">+${dayEvs.length - MAX_CELL_EV}</span>` : ''}
             </div>`;
             cur.setDate(cur.getDate()+1);
@@ -204,6 +205,7 @@ function renderList(){
             ? `<span class="wg-chip ${e.sched_opt==='confirmed'?'confirmed':''}" title="${SCHED_FULL[e.sched_opt]}">${SCHED_CHIP[e.sched_opt]}</span>` : '';
         return `<div class="wg-item${e.completed_at?' done':''}">
             <span class="wg-bar" style="background:${catColor(e.color)}"></span>
+
             <div class="wg-info">
                 <div class="wg-row1"><span class="wg-t">${esc(e.title||'(제목 없음)')}</span>${chip}${whoTxt?`<span class="wg-who">${esc(whoTxt)}</span>`:''}</div>
                 <div class="wg-meta">${esc([time, (e.location||'').split(',')[0]].filter(Boolean).join(' · '))}</div>
