@@ -20,7 +20,7 @@
         html, body { height:100%; }
         body {
             font-family:'Pretendard Variable', Pretendard, -apple-system, 'Malgun Gothic', sans-serif;
-            background:var(--bg); color:var(--text); font-size:13px;
+            background:var(--bg); color:var(--text); font-size:14px;
             overflow:hidden; border-radius:14px;
         }
         .wg { display:flex; flex-direction:column; height:100%; }
@@ -31,18 +31,18 @@
             -webkit-app-region:drag; user-select:none; flex-shrink:0;
         }
         .wg-head img { width:18px; height:18px; border-radius:5px; }
-        .wg-title { font-size:13.5px; font-weight:700; }
+        .wg-title { font-size:15px; font-weight:700; }
         .wg-nav { -webkit-app-region:no-drag; display:flex; align-items:center; gap:2px; margin-left:auto; }
         .wg-nav button {
             background:none; border:1px solid var(--border); color:var(--text-muted); cursor:pointer;
-            font-size:12px; padding:2px 8px; border-radius:6px; line-height:1.4;
+            font-size:13.5px; padding:3px 9px; border-radius:6px; line-height:1.4;
         }
         .wg-nav button:hover { color:var(--text); background:var(--surface); }
-        .wg-clock { font-size:10.5px; color:var(--text-muted); margin-left:6px; }
+        .wg-clock { font-size:12px; color:var(--text-muted); margin-left:6px; }
 
         /* 월간 그리드 */
         .wg-weekdays { display:grid; grid-template-columns:repeat(7,1fr); padding:0 8px; flex-shrink:0; }
-        .wg-weekdays span { text-align:center; font-size:10px; font-weight:700; color:var(--text-muted); padding:3px 0; }
+        .wg-weekdays span { text-align:center; font-size:11.5px; font-weight:700; color:var(--text-muted); padding:3px 0; }
         .wg-weekdays span:first-child { color:#e06c6c; }
         .wg-grid { flex:1; display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 8px; min-height:0; }
         .wg-cell {
@@ -51,24 +51,24 @@
         }
         .wg-cell:hover { background:var(--surface); }
         .wg-cell.sel { background:var(--surface2); border-color:color-mix(in srgb, var(--accent) 50%, transparent); }
-        .wg-cell .n { font-size:10px; font-weight:600; color:var(--text-muted); line-height:1.3; flex-shrink:0; }
+        .wg-cell .n { font-size:12px; font-weight:600; color:var(--text-muted); line-height:1.3; flex-shrink:0; }
         .wg-cell.dim .n { opacity:0.35; }
         .wg-cell.today .n {
             color:#111; background:var(--accent); border-radius:5px;
-            width:16px; text-align:center; font-weight:800;
+            width:20px; text-align:center; font-weight:800;
         }
         .wg-cell .sun { color:#e06c6c; }
-        .wg-ev { display:flex; align-items:center; gap:3px; min-height:11px; overflow:hidden; flex-shrink:0; }
-        .wg-ev i { width:3px; height:9px; border-radius:1.5px; flex-shrink:0; }
-        .wg-ev b { font-size:9px; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .wg-ev { display:flex; align-items:center; gap:3px; min-height:14px; overflow:hidden; flex-shrink:0; }
+        .wg-ev i { width:3px; height:11px; border-radius:1.5px; flex-shrink:0; }
+        .wg-ev b { font-size:11px; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .wg-ev.done { opacity:0.35; }
-        .wg-more { font-size:8.5px; color:var(--text-muted); line-height:1.2; }
+        .wg-more { font-size:10.5px; color:var(--text-muted); line-height:1.2; }
 
         /* 선택일 일정 리스트 */
         .wg-list { flex-shrink:0; max-height:38%; overflow-y:auto; padding:6px 10px 10px; border-top:1px solid var(--border); margin-top:6px; }
         .wg-list::-webkit-scrollbar { width:4px; }
         .wg-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:2px; }
-        .wg-list-head { font-size:11px; font-weight:700; color:var(--text-muted); padding:2px 2px 6px; }
+        .wg-list-head { font-size:13px; font-weight:700; color:var(--text-muted); padding:2px 2px 6px; }
         .wg-list-head .d-today { color:var(--accent); }
         .wg-item {
             display:flex; align-items:stretch; gap:8px; padding:6px 8px; border-radius:8px;
@@ -78,18 +78,18 @@
         .wg-bar { width:4px; border-radius:2px; flex-shrink:0; align-self:stretch; }
         .wg-info { flex:1; min-width:0; }
         .wg-row1 { display:flex; align-items:center; gap:6px; }
-        .wg-t { font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
-        .wg-who { font-size:10px; color:var(--text-muted); flex-shrink:0; }
-        .wg-meta { font-size:10.5px; color:var(--text-muted); margin-top:1px; }
+        .wg-t { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+        .wg-who { font-size:12px; color:var(--text-muted); flex-shrink:0; }
+        .wg-meta { font-size:12px; color:var(--text-muted); margin-top:1px; }
         .wg-chip {
-            display:inline-block; font-size:10px; font-weight:700; padding:0 4px; border-radius:4px;
+            display:inline-block; font-size:11.5px; font-weight:700; padding:0 5px; border-radius:4px;
             line-height:1.5; flex-shrink:0;
             background:color-mix(in srgb, var(--accent) 18%, transparent);
             border:1px solid color-mix(in srgb, var(--accent) 45%, transparent); color:var(--accent);
         }
         .wg-chip.confirmed { background:#2f9e4426; border-color:#2f9e4466; color:#3fae54; }
 
-        .wg-empty { text-align:center; color:var(--text-muted); padding:14px 0 6px; font-size:11.5px; }
+        .wg-empty { text-align:center; color:var(--text-muted); padding:14px 0 6px; font-size:13px; }
         .wg-login { text-align:center; padding:40px 16px; }
         .wg-login a { display:inline-block; margin-top:10px; padding:8px 18px; background:var(--accent); color:#111; border-radius:8px; font-weight:700; text-decoration:none; font-size:13px; }
     </style>
