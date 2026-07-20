@@ -410,7 +410,8 @@
         body.in-iframe .main { height:var(--full-h, 100vh); }
         @supports (height: 100dvh) {
             :root { --full-h: 100dvh; }
-            .tab-pane iframe { height: calc(100dvh - var(--chrome-h, 86px)) !important; }
+            /* 데스크탑 zoom 배율 보정 필수 — 미보정 시 iframe이 화면보다 7% 길어져 하단이 스크롤 밖으로 밀림 */
+            .tab-pane iframe { height: calc(100dvh / var(--ui-zoom, 1) - var(--chrome-h, 86px)) !important; }
         }
     </style>
     @stack('styles')
