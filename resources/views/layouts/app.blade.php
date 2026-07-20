@@ -15,10 +15,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="@yield('pwa_title', '닥터고블린 오피스')">
     <link rel="manifest" href="@yield('pwa_manifest', '/manifest.json')">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
-    <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png?v=3">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png?v=3">
+    <link rel="icon" href="/favicon.ico?v=3" sizes="48x48">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3">
     <title>닥터고블린 오피스</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>

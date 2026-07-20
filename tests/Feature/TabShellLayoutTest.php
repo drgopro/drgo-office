@@ -21,4 +21,20 @@ class TabShellLayoutTest extends TestCase
             ->assertSee('calc(100dvh / var(--ui-zoom, 1) - var(--chrome-h, 86px))', false)
             ->assertDontSee('calc(100dvh - var(--chrome-h, 86px))', false);
     }
+
+    public function test_favicon_and_pwa_icons_use_new_logo_version(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('/favicon.ico?v=3', false)
+            ->assertSee('/favicon.svg?v=3', false)
+            ->assertSee('/apple-touch-icon.png?v=3', false)
+            ->assertSee('/icon-192.png?v=3', false);
+
+        foreach (['favicon.ico', 'favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-96x96.png'] as $f) {
+            $this->assertFileExists(public_path($f));
+        }
+    }
 }
