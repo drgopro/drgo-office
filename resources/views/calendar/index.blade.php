@@ -312,6 +312,11 @@
     .cs-collapse-btn { display:block; width:22px; height:22px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
     #csRail .cs-collapse-btn { margin:0 auto 2px; width:24px; height:24px; border-radius:8px; }
+    /* 필터 접힘 시 펼치기 버튼 — 스크롤 위치와 무관하게 브라우저 하단 좌측에 고정 */
+    @media (min-width:1025px) {
+        #calSide.collapsed #csRail .cs-collapse-btn { position:fixed; left:12px; bottom:18px; z-index:130; width:36px; height:36px; border-radius:10px; font-size:15px; background:var(--surface); box-shadow:0 4px 14px rgba(0,0,0,0.35); }
+        #calSide.collapsed #csRail .cs-collapse-btn:hover { border-color:var(--accent); color:var(--accent); }
+    }
     #filterBar { display:none; } /* 카테고리/담당자 필터는 사이드 패널로 일원화 */
     #calSideFab { display:none; position:fixed; left:14px; bottom:16px; z-index:601; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; opacity:0.9; }
     #calSideFab:hover { opacity:1; }
