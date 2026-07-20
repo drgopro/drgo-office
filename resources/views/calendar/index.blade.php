@@ -233,8 +233,8 @@
     .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
     /* 특수 옵션 아이콘 (차량🚗·제품💼 등) — 제목 앞 */
     .opt-ic { font-size:12px; margin-right:2px; line-height:1; }
-    /* 확정 상태 한 글자 칩 — 제목 끝 */
-    .opt-chip.sched-end, .agenda-title .opt-chip.sched-end, .dp-title .opt-chip.sched-end, .mde-title .opt-chip.sched-end { margin-left:4px; margin-right:0; }
+    /* 확정 상태 한 글자 칩 — 제목 끝, 가시성 위해 다른 칩보다 크게 */
+    .opt-chip.sched-end, .agenda-title .opt-chip.sched-end, .dp-title .opt-chip.sched-end, .mde-title .opt-chip.sched-end { margin-left:4px; margin-right:0; font-size:calc(11px * var(--cal-fz,1)); padding:0 4px; line-height:1.4; }
     /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
     .tl-ev-head { display:flex; align-items:center; gap:3px; min-width:0; }
     .tl-ev-head .opt-chip { margin-left:0; }
