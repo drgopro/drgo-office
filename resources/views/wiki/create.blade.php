@@ -81,9 +81,9 @@
         <h1 style="font-size:20px;font-weight:700;margin:0;">새 문서 작성</h1>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
-            <button onclick="openDraftModal()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">🗂 불러오기</button>
+            <button onclick="openDraftModal()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">불러오기</button>
             <div style="position:relative;">
-                <button id="tplBtn" onclick="toggleTplMenu()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">📋 템플릿</button>
+                <button id="tplBtn" onclick="toggleTplMenu()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">템플릿</button>
                 <div id="tplMenu" class="tpl-menu"></div>
             </div>
             <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">등록</button>
