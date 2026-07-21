@@ -3508,7 +3508,8 @@ function updateAssigneeBtn(){
     const btn=document.getElementById('assigneeBtn');
     const label=document.getElementById('assigneeBtnLabel');
     if(selectedAssignees.length){
-        const names=assignees.filter(a=>selectedAssignees.includes(a.id)).map(a=>a.name).join(', ');
+        // 선택한 순서대로 표시 (먼저 고른 담당자가 앞)
+        const names=selectedAssignees.map(id=>assignees.find(a=>a.id===id)?.name).filter(Boolean).join(', ');
         label.textContent=names;
         btn.classList.add('has-assignee');
     }else{

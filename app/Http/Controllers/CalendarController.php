@@ -189,7 +189,7 @@ class CalendarController extends Controller
 
         // 담당자 연결
         if (! empty($validated['assignees'])) {
-            $schedule->assignees()->sync($validated['assignees']);
+            $schedule->syncAssigneesOrdered($validated['assignees']);
         }
 
         if (! empty($repeat['repeat_freq'])) {
@@ -303,7 +303,7 @@ class CalendarController extends Controller
             $validated['title'] = trim(($titleName ? $titleName.' ' : '')."{$roomLabel} 대여");
             $schedule = Schedule::create($validated);
             if (! empty($validated['assignees'])) {
-                $schedule->assignees()->sync($validated['assignees']);
+                $schedule->syncAssigneesOrdered($validated['assignees']);
             }
 
             $start = Carbon::parse($validated['start_date'].' '.$validated['start_time']);
@@ -393,7 +393,7 @@ class CalendarController extends Controller
             $copy->save();
 
             if ($assigneeIds) {
-                $copy->assignees()->sync($assigneeIds);
+                $copy->syncAssigneesOrdered($assigneeIds);
             }
         }
     }
@@ -526,7 +526,7 @@ class CalendarController extends Controller
         $this->syncBalanceBilling($schedule);
 
         if (isset($validated['assignees'])) {
-            $schedule->assignees()->sync($validated['assignees']);
+            $schedule->syncAssigneesOrdered($validated['assignees']);
         }
 
         // 날짜/시간이 바뀌면 사전 알림을 새 시각 기준으로 다시 발송 + 변경 즉시 알림
@@ -1113,7 +1113,7 @@ class CalendarController extends Controller
                 'created_by' => Auth::id(),
             ]);
             if (! empty($item['assignee_ids'])) {
-                $schedule->assignees()->sync($item['assignee_ids']);
+                $schedule->syncAssigneesOrdered($item['assignee_ids']);
             }
             $count++;
         }

@@ -74,7 +74,22 @@ class Schedule extends Model
 
     public function assignees()
     {
-        return $this->belongsToMany(Assignee::class, 'schedule_assignees');
+        // 선택 순서대로 표시 (sort_order = 모달에서 클릭한 순서)
+        return $this->belongsToMany(Assignee::class, 'schedule_assignees')
+            ->withPivot('sort_order')
+            ->orderByPivot('sort_order');
+    }
+
+    /**
+     * 담당자 동기화 — 배열 순서를 pivot sort_order로 저장해 선택 순서 보존.
+     *
+     * @param  array<int, int|string>  $ids
+     */
+    public function syncAssigneesOrdered(array $ids): void
+    {
+        $this->assignees()->sync(
+            collect($ids)->values()->mapWithKeys(fn ($id, $i) => [(int) $id => ['sort_order' => $i]])->all()
+        );
     }
 
     /**
