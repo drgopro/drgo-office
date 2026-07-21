@@ -25,3 +25,6 @@ Schedule::command('db:backup')->dailyAt('03:30')->withoutOverlapping();
 
 // 고아 첨부파일 정리 — 부모가 영구 삭제된 첨부·미참조 디스크 파일 (매주 월요일 새벽 4시)
 Schedule::command('attachments:prune-orphans')->weeklyOn(1, '04:00')->withoutOverlapping();
+
+// 위키 임시저장 정리 — 7일 지난 초안 삭제 (매일 새벽 4시 15분)
+Schedule::command('wiki:prune-drafts')->dailyAt('04:15')->withoutOverlapping();

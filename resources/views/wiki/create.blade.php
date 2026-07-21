@@ -79,13 +79,26 @@
     <a href="{{ route('wiki.index') }}" class="wiki-back">← 위키 목록</a>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 20px;">
         <h1 style="font-size:20px;font-weight:700;margin:0;">새 문서 작성</h1>
-        <div style="display:flex;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
+            <button onclick="openDraftModal()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">🗂 불러오기</button>
             <div style="position:relative;">
                 <button id="tplBtn" onclick="toggleTplMenu()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">📋 템플릿</button>
                 <div id="tplMenu" class="tpl-menu"></div>
             </div>
-            <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">등록</button>
+        </div>
+    </div>
+
+    {{-- 임시저장 불러오기 모달 --}}
+    <div id="draftOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;align-items:center;justify-content:center;" onclick="if(event.target===this)closeDraftModal()">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:480px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px;">
+                <b style="font-size:15px;">임시저장 글 불러오기</b>
+                <button onclick="closeDraftModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+            </div>
+            <div style="font-size:11.5px;color:var(--text-muted);padding:0 18px 10px;">자동 저장된 초안입니다. 마지막 수정 후 7일이 지나면 자동 삭제됩니다.</div>
+            <div id="draftList" style="flex:1;overflow-y:auto;padding:0 12px 14px;"></div>
         </div>
     </div>
 
@@ -431,10 +444,10 @@ let WIKI_CREATED_ID = null;
 let WIKI_SAVING = false;
 function setAutosaveStatus(msg){ const el=document.getElementById('autosaveStatus'); if(el) el.textContent=msg; }
 let WIKI_DIRTY=false; // 마지막 저장 이후 변경 여부 — 자동저장 지점 표시 + 불필요한 저장 방지
-function markWikiDirty(){ WIKI_DIRTY=true; setAutosaveStatus('● 저장되지 않은 변경 — 1분 내 자동 저장'); }
+function markWikiDirty(){ WIKI_DIRTY=true; setAutosaveStatus('● 저장되지 않은 변경 — 1분 내 임시저장'); }
 editor.on('update', markWikiDirty);
 document.getElementById('wikiTitle')?.addEventListener('input', markWikiDirty);
-setAutosaveStatus('자동 저장 켜짐 (1분마다)');
+setAutosaveStatus('임시저장 켜짐 (1분마다)');
 async function doSaveWiki(silent){
     const title=document.getElementById('wikiTitle').value.trim();
     const categoryId=document.getElementById('wikiCategoryId').value || null;
@@ -447,11 +460,12 @@ async function doSaveWiki(silent){
     if(silent) setAutosaveStatus('저장 중…');
     try{
         const wikiType=document.getElementById('wikiType')?.value||'normal';
-        const body=JSON.stringify({title,category_id:wikiType==='normal'?categoryId:null,type:wikiType,content:html,is_pinned:isPinned?1:0});
+        // 자동저장(silent)은 임시저장(is_draft=1) — 목록에 노출되지 않고, 등록 버튼을 눌러야 발행됨
+        const body=JSON.stringify({title,category_id:wikiType==='normal'?categoryId:null,type:wikiType,content:html,is_pinned:isPinned?1:0,is_draft:silent?1:0});
         let res;
         if(!WIKI_CREATED_ID){
             res=await fetch('{{ route("wiki.store") }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body});
-            if(res.ok){ const data=await res.json(); WIKI_CREATED_ID=data.id; history.replaceState(null,'','/wiki/'+data.id); }
+            if(res.ok){ const data=await res.json(); WIKI_CREATED_ID=data.id; }
         } else {
             res=await fetch('/wiki/'+WIKI_CREATED_ID,{method:'PATCH',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body});
         }
@@ -462,18 +476,66 @@ async function doSaveWiki(silent){
         }
         WIKI_DIRTY=false;
         const now=new Date(); const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-        if(silent){ setAutosaveStatus('✓ '+t+' 자동 저장됨'); }
+        if(silent){ setAutosaveStatus('✓ '+t+' 임시저장됨'); }
         else { location.href='/wiki/'+WIKI_CREATED_ID; }
     } finally { WIKI_SAVING=false; }
 }
 window.saveNewWiki=function(){ doSaveWiki(false); };
-// 1분마다 자동 저장 (변경이 있고 제목·내용이 있을 때만)
+// 1분마다 자동 임시저장 (변경이 있고 제목·내용이 있을 때만)
 setInterval(()=>{
     if(!WIKI_DIRTY) return;
     const title=document.getElementById('wikiTitle').value.trim();
     const html=editor?.getHTML?.()||'';
     if(title && html && html!=='<p></p>') doSaveWiki(true);
 }, 60000);
+
+// ── 임시저장 불러오기 ──
+function _escD(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+window.openDraftModal=async function(){
+    document.getElementById('draftOverlay').style.display='flex';
+    const list=document.getElementById('draftList');
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+    const res=await fetch('/api/wiki/drafts',{headers:{'Accept':'application/json'}});
+    if(!res.ok){ list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">목록을 불러오지 못했습니다</div>'; return; }
+    const drafts=await res.json();
+    if(!drafts.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px;">임시저장된 글이 없습니다</div>'; return; }
+    list.innerHTML=drafts.map(d=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escD(d.title)||'(제목 없음)'}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">마지막 수정 ${d.updated_at}</div>
+            </div>
+            <button onclick="loadDraft(${d.id})" style="background:var(--accent);color:var(--accent-text);border:none;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">불러오기</button>
+            <button onclick="deleteDraft(${d.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;border-radius:7px;font-size:12px;cursor:pointer;flex-shrink:0;">삭제</button>
+        </div>`).join('');
+};
+window.closeDraftModal=function(){ document.getElementById('draftOverlay').style.display='none'; };
+window.loadDraft=async function(id){
+    // 현재 작성 중인 내용이 있으면 확인 후 덮어쓰기
+    const curTitle=document.getElementById('wikiTitle').value.trim();
+    const curHtml=editor?.getHTML?.()||'';
+    if((curTitle||(curHtml&&curHtml!=='<p></p>')) && !confirm('작성 중인 내용을 임시저장 글로 덮어쓸까요?')) return;
+    const res=await fetch('/api/wiki/drafts/'+id,{headers:{'Accept':'application/json'}});
+    if(!res.ok){ alert('불러오기 실패'); return; }
+    const d=await res.json();
+    document.getElementById('wikiTitle').value=d.title||'';
+    const typeSel=document.getElementById('wikiType');
+    if(typeSel&&[...typeSel.options].some(o=>o.value===d.type)){ typeSel.value=d.type; typeSel.dispatchEvent(new Event('change')); }
+    const catSel=document.getElementById('wikiCategoryId');
+    if(catSel&&d.category_id&&[...catSel.options].some(o=>o.value==d.category_id)) catSel.value=d.category_id;
+    document.getElementById('wikiPinned').checked=!!d.is_pinned;
+    editor.commands.setContent(d.content||'');
+    WIKI_CREATED_ID=d.id; // 이어서 저장하면 이 초안이 갱신됨
+    WIKI_DIRTY=false;
+    setAutosaveStatus('임시저장 글 불러옴 — 등록 버튼을 눌러야 발행됩니다');
+    closeDraftModal();
+};
+window.deleteDraft=async function(id){
+    if(!confirm('이 임시저장 글을 삭제할까요?')) return;
+    const res=await fetch('/wiki/'+id,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(res.ok){ if(WIKI_CREATED_ID===id) WIKI_CREATED_ID=null; openDraftModal(); }
+    else alert('삭제 실패');
+};
 
 // 이미지 리사이즈 — 네이버 에디터 스타일
 (function(){

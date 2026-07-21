@@ -373,6 +373,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/wiki', [WikiController::class, 'store'])->name('wiki.store');
     Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
     Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');
+    Route::get('/api/wiki/drafts', [WikiController::class, 'drafts'])->name('wiki.drafts'); // 내 임시저장 목록
+    Route::get('/api/wiki/drafts/{wiki}', [WikiController::class, 'draftShow']);
     Route::get('/api/wiki/{wiki}/diagram', [WikiController::class, 'getDiagram']);
     Route::post('/api/wiki/{wiki}/diagram', [WikiController::class, 'saveDiagram']);
     Route::post('/api/wiki/upload', [WikiController::class, 'uploadFile'])->name('wiki.upload');

@@ -18,7 +18,7 @@ class WikiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Wiki::with('creator', 'updater')->withCount('comments');
+        $query = Wiki::published()->with('creator', 'updater')->withCount('comments');
 
         // 검색어 — 그룹으로 묶어 기간/작성자 필터와 AND 유지 (mysql 외 드라이버는 like 폴백)
         if ($search = trim((string) $request->query('search'))) {
@@ -52,16 +52,16 @@ class WikiController extends Controller
 
         // 고정 문서 우선, 그다음 작성시간 최신순 (수정해도 목록 순서 유지)
         $wikis = $query->orderByDesc('is_pinned')->orderByDesc('created_at')->get();
-        $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
+        $categories = Wiki::published()->select('category')->distinct()->orderBy('category')->pluck('category');
         // 카테고리별 직접 문서 수 (트리 배지용) — 공지/업데이트는 카테고리 체계와 별개
-        $catCounts = Wiki::whereNotNull('category_id')->selectRaw('category_id, count(*) as c')
+        $catCounts = Wiki::published()->whereNotNull('category_id')->selectRaw('category_id, count(*) as c')
             ->groupBy('category_id')->pluck('c', 'category_id');
-        $uncategorized = Wiki::whereNull('category_id')->where('type', 'normal')->count();
+        $uncategorized = Wiki::published()->whereNull('category_id')->where('type', 'normal')->count();
         // 특수 유형(공지사항/업데이트) 문서 수
-        $typeCounts = Wiki::whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
+        $typeCounts = Wiki::published()->whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
             ->selectRaw('type, count(*) as c')->groupBy('type')->pluck('c', 'type');
         // 검색 필터 작성자 옵션 — 문서를 작성한 적 있는 사용자만
-        $authors = User::whereIn('id', Wiki::whereNotNull('created_by')->distinct()->pluck('created_by'))
+        $authors = User::whereIn('id', Wiki::published()->whereNotNull('created_by')->distinct()->pluck('created_by'))
             ->orderBy('display_name')->get(['id', 'display_name']);
 
         return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized', 'typeCounts', 'authors'));
@@ -145,6 +145,7 @@ class WikiController extends Controller
             'type' => 'nullable|in:normal,notice,update,meeting',
             'content' => 'required|string',
             'is_pinned' => 'boolean',
+            'is_draft' => 'boolean', // 자동저장 = 임시저장 (목록 미노출)
         ]);
 
         $this->syncCategoryName($validated);
@@ -171,7 +172,13 @@ class WikiController extends Controller
             'type' => 'sometimes|in:normal,notice,update,meeting',
             'content' => 'sometimes|string',
             'is_pinned' => 'boolean',
+            'is_draft' => 'sometimes|boolean',
         ]);
+
+        // 임시저장 → 발행 시점에 작성일을 현재로 (며칠 묵힌 초안이 목록 아래에 묻히지 않도록)
+        if ($wiki->is_draft && array_key_exists('is_draft', $validated) && ! $validated['is_draft']) {
+            $wiki->created_at = now();
+        }
 
         // 유형 변경 지원 — type 파라미터가 없으면 현재 유형 유지
         $newType = ($validated['type'] ?? null) ?: $wiki->type;
@@ -322,6 +329,37 @@ class WikiController extends Controller
     public function getDiagram(Wiki $wiki)
     {
         return response()->json(['diagram' => $wiki->diagram_data]);
+    }
+
+    /** 내 임시저장 목록 — 작성 페이지 '불러오기' 모달용 */
+    public function drafts()
+    {
+        return response()->json(
+            Wiki::where('is_draft', true)->where('created_by', Auth::id())
+                ->orderByDesc('updated_at')
+                ->get(['id', 'title', 'type', 'updated_at'])
+                ->map(fn ($w) => [
+                    'id' => $w->id,
+                    'title' => $w->title,
+                    'type' => $w->type,
+                    'updated_at' => $w->updated_at->format('Y.m.d H:i'),
+                ])
+        );
+    }
+
+    /** 임시저장 글 단건 — 이어서 작성용 (본인 것만) */
+    public function draftShow(Wiki $wiki)
+    {
+        abort_unless($wiki->is_draft && $wiki->created_by === Auth::id(), 404);
+
+        return response()->json([
+            'id' => $wiki->id,
+            'title' => $wiki->title,
+            'type' => $wiki->type,
+            'category_id' => $wiki->category_id,
+            'content' => $wiki->content,
+            'is_pinned' => (bool) $wiki->is_pinned,
+        ]);
     }
 
     /**

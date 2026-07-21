@@ -305,14 +305,14 @@ class DashboardController extends Controller
             ];
         });
 
-        // 위키 위젯 — 전체 문서(고정 우선, 최대 5), 최신 등록 문서(최대 3)
-        $wikiTotal = Wiki::count();
-        $wikiAll = Wiki::orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
-        $wikiRecent = Wiki::orderByDesc('created_at')->limit(3)->get(['id', 'title', 'created_at']);
+        // 위키 위젯 — 전체 문서(고정 우선, 최대 5), 최신 등록 문서(최대 3). 임시저장 제외
+        $wikiTotal = Wiki::published()->count();
+        $wikiAll = Wiki::published()->orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
+        $wikiRecent = Wiki::published()->orderByDesc('created_at')->limit(3)->get(['id', 'title', 'created_at']);
         // 공지사항/업데이트 — 최신순 (대시보드 우측 카드: 공지 2건 + 업데이트 1건)
-        $wikiNoticeList = Wiki::where('type', 'notice')
+        $wikiNoticeList = Wiki::published()->where('type', 'notice')
             ->orderByDesc('created_at')->limit(2)->get(['id', 'title', 'created_at']);
-        $wikiUpdateList = Wiki::where('type', 'update')
+        $wikiUpdateList = Wiki::published()->where('type', 'update')
             ->orderByDesc('created_at')->limit(1)->get(['id', 'title', 'created_at']);
 
         return view('dashboard', compact(

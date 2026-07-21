@@ -23,14 +23,22 @@ class Wiki extends Model
         'content',
         'diagram_data',
         'is_pinned',
+        'is_draft',
         'created_by',
         'updated_by',
     ];
 
     protected $casts = [
         'is_pinned' => 'boolean',
+        'is_draft' => 'boolean',
         'diagram_data' => 'array',
     ];
+
+    /** 발행된 글만 (임시저장 제외) — 목록/검색/대시보드 공용 */
+    public function scopePublished($query)
+    {
+        return $query->where('is_draft', false);
+    }
 
     public function creator()
     {
