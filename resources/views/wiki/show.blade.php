@@ -63,6 +63,22 @@
     .wiki-content a { color:var(--accent); text-decoration:underline; }
     .wiki-content hr { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
+    /* 모바일 — 헤더 세로 배치 + 여백 축소로 본문 폭 확보 */
+    @media (max-width: 640px) {
+        .wiki-wrap { padding:14px 12px; }
+        .wiki-header { flex-direction:column; gap:10px; margin-bottom:14px; }
+        .wiki-title-text { font-size:18px; }
+        .wiki-actions { width:100%; }
+        .wiki-actions button, .wiki-actions a { flex:1; justify-content:center; padding:7px 6px; font-size:11.5px; }
+        .wiki-content { padding:16px 14px; font-size:13.5px; }
+        .wiki-content h1 { font-size:20px; }
+        .wiki-content h2 { font-size:17px; }
+        .wiki-content pre { padding:10px 12px; }
+        .wiki-comments { padding:14px; }
+        .wiki-comment-form { flex-direction:column; align-items:stretch; }
+        .wiki-comment-form button { width:100%; }
+    }
+
     /* 수정 모드 */
     .edit-form { display:none; }
     .edit-form.active { display:block; }
