@@ -296,12 +296,6 @@
     </div>
 </div>
 
-{{-- 이미지 뷰어 (저장 전 대기 첨부 포함) --}}
-<div class="todo-lb" id="todoLb" onclick="this.classList.remove('open')">
-    <button type="button" class="todo-lb-close" onclick="document.getElementById('todoLb').classList.remove('open')">✕</button>
-    <img id="todoLbImg" src="" alt="">
-</div>
-
 {{-- 상세 모달 --}}
 <div class="todo-overlay" id="todoViewOverlay">
     <div class="todo-modal">
@@ -536,7 +530,7 @@ function renderDetailPane() {
         <div class="todo-view-content">${contentHtml(t.content)}</div>
         ${t.attachments.length ? `<div class="todo-attach-list">${t.attachments.map(a => `
             <div class="todo-attach-item">
-                ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}')">` : '📄'}
+                ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}', ${t.id})">` : '📄'}
                 <a href="${a.url}" target="_blank" rel="noopener">${esc(a.file_name)}</a>
                 <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
             </div>`).join('')}</div>` : ''}
@@ -717,10 +711,15 @@ async function refreshBoard() {
     if (res.ok) { TODOS = (await res.json()).todos; renderBoard(); }
 }
 
-// 이미지 뷰어 (대기 첨부 + 저장된 첨부 공용)
-function todoLbOpen(src){
-    document.getElementById('todoLbImg').src = src;
-    document.getElementById('todoLb').classList.add('open');
+// 이미지 뷰어 — 공용 drgoViewer. 해당 할 일의 이미지 첨부 전체를 앨범으로 (확대·스와이프·넘김)
+function todoLbOpen(src, todoId){
+    const t = todoId ? TODOS.find(x => x.id === todoId) : null;
+    const imgs = t ? t.attachments.filter(a => a.mime_type && a.mime_type.startsWith('image/')) : [];
+    if (imgs.length) {
+        drgoViewer.open(imgs.map(a => ({ src: a.url, filename: a.file_name })), Math.max(0, imgs.findIndex(a => a.url === src)));
+    } else {
+        drgoViewer.open(src);
+    }
 }
 
 // ── 첨부 대기열 (드롭존·클립보드 붙여넣기·파일 선택 공용) ──
@@ -959,7 +958,7 @@ function openTodoView(id) {
     loadLinkCards();
     document.getElementById('tvAttachments').innerHTML = t.attachments.map(a => `
         <div class="todo-attach-item">
-            ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}')">` : '📄'}
+            ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}', ${t.id})">` : '📄'}
             <a href="${a.url}" target="_blank" rel="noopener">${esc(a.file_name)}</a>
             <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
         </div>`).join('');

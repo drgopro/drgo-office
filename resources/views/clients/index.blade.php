@@ -1424,6 +1424,18 @@ function albumNavDir(dir) {
     zoomScale = 1; panX = 0; panY = 0;
     renderAlbumMedia();
 }
+// 모바일: 좌우 스와이프로 이전/다음 (확대 상태가 아닐 때)
+(function(){
+    const ov=document.getElementById('albumOverlay');
+    if(!ov) return;
+    let sx=0, sy=0, on=false;
+    ov.addEventListener('touchstart',e=>{ if(e.touches.length===1 && zoomScale===1){ on=true; sx=e.touches[0].clientX; sy=e.touches[0].clientY; } else on=false; },{passive:true});
+    ov.addEventListener('touchend',e=>{
+        if(!on||!e.changedTouches.length) return; on=false;
+        const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+        if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5) albumNavDir(dx<0?1:-1);
+    },{passive:true});
+})();
 function albumZoomStep(dir) {
     const steps = [0.5, 0.75, 1, 1.5, 2, 3, 4];
     let ci = steps.indexOf(zoomScale); if (ci === -1) ci = 2;

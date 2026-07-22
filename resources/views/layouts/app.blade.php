@@ -1089,6 +1089,7 @@ async function submitExcelImport() {
 
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
 @include('partials.pull-to-refresh')
+@include('partials.image-viewer')
 
 {{-- 글로벌 QR 스캔 모달 --}}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>

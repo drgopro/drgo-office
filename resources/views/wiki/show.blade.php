@@ -820,13 +820,9 @@ window.toggleEdit = function() {
         if(nb) nb.style.display=multi?'':'none';
     }
     window.openImgViewer=function(src){
-        vReset();
-        // 본문 이미지 전체를 앨범으로 수집
-        vList=[...document.querySelectorAll('.wiki-content img')].map(im=>im.src);
-        vIdx=Math.max(0, vList.indexOf(src));
-        vImg.src=src;
-        viewer.classList.add('open');
-        vUpdateNav();
+        // 공용 drgoViewer로 위임 — 본문 이미지 전체를 앨범으로 (확대·핀치·스와이프·넘김)
+        const list=[...document.querySelectorAll('.wiki-content img')].map(im=>({src:im.src}));
+        drgoViewer.open(list, Math.max(0, list.findIndex(i=>i.src===src)));
     };
     window.imgViewerNav=function(dir){
         if(vList.length<2) return;

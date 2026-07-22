@@ -214,10 +214,6 @@
     </div>
 </div>
 
-<div class="fb-lb" id="fbLb" onclick="if(event.target===this)fbLbClose()">
-    <button class="fb-lb-close" onclick="fbLbClose()">✕</button>
-    <img id="fbLbImg" src="" alt="">
-</div>
 
 <script>
 const FB_CSRF = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
@@ -307,7 +303,7 @@ function fbBodyHtml(p){
             <textarea id="fbEditBody${p.id}" maxlength="5000" placeholder="상세 설명">${_e(p.body||'')}</textarea>
             ${p.attachments.length?`<div class="fb-att-grid">${p.attachments.map(a=>`
                 <div class="fb-att fb-att-editable">
-                    <img src="${a.thumb_url}" alt="${_e(a.file_name)}" loading="lazy" onclick="fbLbOpen('${a.url}')">
+                    <img src="${a.thumb_url}" alt="${_e(a.file_name)}" data-full="${a.url}" loading="lazy" onclick="fbLbOpenFrom(this)">
                     <button type="button" class="fb-att-del" onclick="fbDeleteAttachment(${p.id},${a.id})" title="첨부 삭제">✕</button>
                 </div>`).join('')}</div>`:''}
             <label class="fb-edit-addfile">📎 이미지 추가
@@ -323,7 +319,7 @@ function fbBodyHtml(p){
     if(p.status==='rejected' && p.reject_reason) html += `<div class="fb-reject-box">반려 사유: ${_e(p.reject_reason)}</div>`;
     if(p.attachments.length){
         html += '<div class="fb-att-grid">'+p.attachments.map(a =>
-            `<div class="fb-att" onclick="fbLbOpen('${a.url}')"><img src="${a.thumb_url}" alt="${_e(a.file_name)}" loading="lazy"></div>`
+            `<div class="fb-att" onclick="fbLbOpenFrom(this)"><img src="${a.thumb_url}" alt="${_e(a.file_name)}" data-full="${a.url}" loading="lazy"></div>`
         ).join('')+'</div>';
     }
     // 수정/삭제 — 본문·첨부 바로 아래 (게시물 내용 영역 안)
@@ -400,7 +396,7 @@ function fbRenderPreviews(){
         img.src = URL.createObjectURL(f); // 뷰어에서 재사용하므로 revoke하지 않음 (등록 시 목록 재렌더로 정리)
         img.style.cursor = 'zoom-in';
         img.title = '클릭하여 크게 보기';
-        img.onclick = () => fbLbOpen(img.src); // 저장 전 첨부도 뷰어로 확인
+        img.onclick = () => drgoViewer.open(img.src); // 저장 전 첨부도 뷰어로 확인
         const btn = document.createElement('button');
         btn.textContent = '✕';
         btn.onclick = () => { fbFiles.splice(i,1); fbRenderPreviews(); };
@@ -554,18 +550,16 @@ async function fbDelete(id){
     fbLoad();
 }
 
-// ── 라이트박스 ──
-function fbLbOpen(url){
-    document.getElementById('fbLbImg').src = url;
-    document.getElementById('fbLb').classList.add('open');
+// ── 이미지 뷰어 — 공용 drgoViewer로 같은 그리드의 이미지들을 앨범으로 (확대·스와이프·넘김) ──
+function fbLbOpenFrom(el){
+    const img = el.tagName === 'IMG' ? el : el.querySelector('img');
+    const grid = el.closest('.fb-att-grid');
+    const imgs = grid ? [...grid.querySelectorAll('img[data-full]')] : [img];
+    drgoViewer.open(
+        imgs.map(i => ({ src: i.dataset.full || i.src, thumb: i.src, filename: i.alt || '' })),
+        Math.max(0, imgs.indexOf(img))
+    );
 }
-function fbLbClose(){
-    document.getElementById('fbLb').classList.remove('open');
-    document.getElementById('fbLbImg').src = '';
-}
-document.addEventListener('keydown', e => {
-    if(e.key === 'Escape' && document.getElementById('fbLb').classList.contains('open')) fbLbClose();
-});
 
 fbLoad();
 </script>

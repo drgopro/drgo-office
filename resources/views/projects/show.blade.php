@@ -1652,6 +1652,17 @@ function closeAlbum() {
 document.getElementById('albumOverlay').addEventListener('click', e => {
     if (e.target.id === 'albumOverlay') closeAlbum();
 });
+// 모바일: 좌우 스와이프로 이전/다음 (확대 상태가 아닐 때)
+(function(){
+    const ov=document.getElementById('albumOverlay');
+    let sx=0, sy=0, on=false;
+    ov.addEventListener('touchstart',e=>{ if(e.touches.length===1 && (typeof zoomScale==='undefined'||zoomScale===1)){ on=true; sx=e.touches[0].clientX; sy=e.touches[0].clientY; } else on=false; },{passive:true});
+    ov.addEventListener('touchend',e=>{
+        if(!on||!e.changedTouches.length) return; on=false;
+        const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+        if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5) albumNav(dx<0?1:-1);
+    },{passive:true});
+})();
 function albumNav(dir) {
     albumIdx = (albumIdx + dir + albumDocs.length) % albumDocs.length;
     resetZoom();

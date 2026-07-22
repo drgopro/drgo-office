@@ -196,6 +196,7 @@ window.openTopTab = function(type, url, title) {
 </script>
 
 @include('partials.pull-to-refresh')
+@include('partials.image-viewer')
 
 @yield('content')
 
