@@ -174,8 +174,8 @@
         }
 
         /* ── 탭 바 ── */
-        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:190; }
-        .tab-strip { display:flex; align-items:center; flex:1; overflow-x:auto; gap:1px; scrollbar-width:none; }
+        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:flex-end; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:190; }
+        .tab-strip { display:flex; align-items:flex-end; flex:1; height:100%; overflow-x:auto; gap:2px; scrollbar-width:none; }
 
         /* ── 상단 우측 알림 + 가이드 ── */
         .notif-wrap { position:relative; flex-shrink:0; margin-left:8px; display:flex; align-items:center; gap:3px; }
@@ -203,10 +203,11 @@
         .notif-empty { padding:28px 0; text-align:center; color:var(--text-muted); font-size:12px; }
         .tab-strip::-webkit-scrollbar { display:none; }
 
-        .tab-item { display:flex; align-items:center; gap:5px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--text-muted); background:transparent; border:none; white-space:nowrap; transition:all 0.12s; flex-shrink:0; border-radius:5px 5px 0 0; border:1px solid transparent; border-bottom:none; }
-        .tab-item:hover { color:var(--text); background:var(--surface); }
-        .tab-item.active { color:var(--accent); background:var(--surface); border-color:var(--border); font-weight:600; position:relative; }
-        .tab-item.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface); }
+        .tab-item { position:relative; display:flex; align-items:center; gap:5px; align-self:flex-end; height:calc(100% - 5px); padding:0 12px; font-size:12px; cursor:pointer; color:var(--text-muted); background:transparent; white-space:nowrap; transition:background 0.12s, color 0.12s; flex-shrink:0; border-radius:7px 7px 0 0; border:1px solid transparent; border-bottom:none; }
+        .tab-item:hover { color:var(--text); background:color-mix(in srgb, var(--surface) 60%, transparent); }
+        .tab-item.active { color:var(--accent); background:var(--surface); border-color:var(--border); font-weight:600; }
+        /* 활성 탭 바닥선을 바 하단 경계 위로 1px 덮어 콘텐츠와 이어지게 (떠 있는 박스 → 연결된 탭) */
+        .tab-item.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:2px; background:var(--surface); }
         .tab-item .tab-icon { display:inline-flex; align-items:center; }
         .tab-item .tab-icon svg { width:13px; height:13px; stroke:currentColor; stroke-width:2.1; fill:none; stroke-linecap:round; stroke-linejoin:round; }
         .tab-item .tab-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.12s; margin-left:2px; }
@@ -349,7 +350,7 @@
             .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
 
             .tab-bar-wrap { top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); height:var(--tab-h); padding:0 8px; }
-            .tab-item { font-size:11px; padding:6px 10px; }
+            .tab-item { font-size:11px; padding:0 10px; }
             .tab-item .tab-close { opacity:0.5; position:relative; }
             .tab-item .tab-close::before { content:''; position:absolute; top:-10px; right:-8px; bottom:-10px; left:-8px; }
 
