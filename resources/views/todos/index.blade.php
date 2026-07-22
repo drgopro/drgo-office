@@ -152,7 +152,7 @@
     }
     .todo-field textarea { resize:vertical; min-height:90px; line-height:1.6; }
     .todo-field input:focus, .todo-field select:focus, .todo-field textarea:focus { border-color:var(--accent); }
-    .todo-field-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .todo-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     @media (max-width:560px) { .todo-field-row { grid-template-columns:1fr; } }
     .todo-modal-foot { display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--border); justify-content:flex-end; flex-wrap:wrap; }
     /* 임시저장 배너 */
@@ -270,10 +270,11 @@
                     <label>기한</label>
                     <input type="date" id="tfDue">
                 </div>
-                <div class="todo-field" id="tfAssigneeField" @if(!$me->isAdmin()) style="display:none;" @endif>
-                    <label>담당자 * <span style="font-weight:400;color:var(--text-muted);">(선택한 순서대로 표시, 첫 번째가 대표)</span></label>
-                    <div id="tfAssigneeChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-                </div>
+            </div>
+            {{-- 담당자 — 전체 폭 섹션 (칩이 가로로 흐르도록) --}}
+            <div class="todo-field" id="tfAssigneeField" @if(!$me->isAdmin()) style="display:none;" @endif>
+                <label>담당자 * <span style="font-weight:400;color:var(--text-muted);">선택한 순서대로 표시되며 첫 번째가 대표 담당자입니다</span></label>
+                <div id="tfAssigneeChips" style="display:flex;flex-wrap:wrap;gap:7px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;"></div>
             </div>
             <div class="todo-field">
                 <label>내용</label>
