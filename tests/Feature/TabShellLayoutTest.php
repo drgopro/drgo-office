@@ -38,6 +38,17 @@ class TabShellLayoutTest extends TestCase
         }
     }
 
+    public function test_pull_to_refresh_guards_inner_scroll_position(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 내부 컨테이너가 스크롤된 상태에선 최하단에서도 당김이 발동하지 않아야 함
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('function anyInnerScrolled', false)
+            ->assertSee("document.addEventListener('scroll'", false);
+    }
+
     public function test_default_pwa_manifest_starts_at_office_home(): void
     {
         // 기본 매니페스트가 QR 스캔이 아닌 오피스 홈으로 설치되어야 함 (QR은 전용 manifest-qr.json)

@@ -16,10 +16,26 @@
     const THRESHOLD=70, MAX=120, DAMP=0.5;
     let startY=0, pulling=false, dist=0, ready=false;
 
-    function pageTop(){ return window.scrollY || document.scrollingElement?.scrollTop || document.documentElement.scrollTop || 0; }
+    function pageTop(){
+        // body가 스크롤러인 경우까지 포함 — 어느 쪽이든 내려가 있으면 최상단 아님
+        return Math.max(window.scrollY||0, document.scrollingElement?.scrollTop||0,
+            document.documentElement.scrollTop||0, document.body?.scrollTop||0);
+    }
+    // 문서 어딘가에서 스크롤된 내부 컨테이너 추적 — 터치 지점 조상 체인 밖의 스크롤도 감지
+    // (내부만 스크롤되는 화면에서 window 스크롤이 항상 0이라 최하단에서도 당김이 발동하던 문제)
+    const scrollers=new Set();
+    document.addEventListener('scroll',e=>{ if(e.target instanceof Element) scrollers.add(e.target); },{capture:true,passive:true});
+    function anyInnerScrolled(){
+        for(const el of scrollers){
+            if(!el.isConnected){ scrollers.delete(el); continue; }
+            if(el.scrollTop>0) return true;
+        }
+        return false;
+    }
     // 라이트박스/모달이 열려 있거나, 손가락 아래 내부 스크롤이 위로 밀려 있으면 당김 무시
     function blocked(target){
         if(document.querySelector('.lightbox.open')) return true;
+        if(anyInnerScrolled()) return true;
         let el=target;
         while(el && el!==document.body && el!==document.documentElement){
             if(el.scrollHeight>el.clientHeight+2){
