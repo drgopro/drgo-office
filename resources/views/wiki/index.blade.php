@@ -25,7 +25,7 @@
     .wiki-cat-row:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-row.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
     /* 접기/펼치기 캐럿 — 히트 영역을 키우고, 이 영역을 클릭할 때만 접힘 (행 클릭은 필터만) */
-    .wiki-cat-caret { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; margin:-4px 0; border-radius:7px; font-size:12px; color:var(--text-muted); transition:transform .12s, background .12s; cursor:pointer; }
+    .wiki-cat-caret { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; margin:-5px 0; border-radius:7px; font-size:15px; color:var(--text-muted); transition:transform .12s, background .12s; cursor:pointer; }
     .wiki-cat-caret:not(.blank):hover { background:var(--surface3, var(--border)); color:var(--text); }
     .wiki-cat-caret.open { transform:rotate(90deg); }
     .wiki-cat-caret.blank { visibility:hidden; }
