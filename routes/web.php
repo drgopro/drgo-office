@@ -374,6 +374,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
     Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');
     Route::post('/api/wiki/reorder', [WikiController::class, 'reorder'])->name('wiki.reorder'); // 게시물 수동 정렬 (관리자)
+    Route::get('/api/wiki/order', [WikiController::class, 'orderState']); // 정렬 상태 폴링 (실시간 반영용)
     Route::get('/api/wiki/drafts', [WikiController::class, 'drafts'])->name('wiki.drafts'); // 내 임시저장 목록
     Route::get('/api/wiki/drafts/{wiki}', [WikiController::class, 'draftShow']);
     Route::get('/api/wiki/{wiki}/diagram', [WikiController::class, 'getDiagram']);

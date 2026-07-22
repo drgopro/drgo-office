@@ -349,6 +349,15 @@ class WikiController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /** 현재 정렬 상태 (폴링용) — 다른 사용자가 순서를 바꾸면 머물러 있는 목록에도 반영 */
+    public function orderState()
+    {
+        return response()->json(
+            Wiki::published()->get(['id', 'sort_order', 'is_pinned'])
+                ->map(fn ($w) => ['id' => $w->id, 'sort_order' => $w->sort_order, 'is_pinned' => (bool) $w->is_pinned])
+        );
+    }
+
     /** 내 임시저장 목록 — 작성 페이지 '불러오기' 모달용 */
     public function drafts()
     {

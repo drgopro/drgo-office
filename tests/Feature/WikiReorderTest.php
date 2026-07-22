@@ -41,6 +41,23 @@ class WikiReorderTest extends TestCase
         $this->assertNull($a->fresh()->sort_order);
     }
 
+    public function test_order_state_endpoint_for_polling(): void
+    {
+        $member = User::factory()->create(['role' => 'member']);
+        Wiki::create(['title' => '글A', 'content' => 'x', 'category' => '일반', 'sort_order' => 1, 'is_pinned' => true]);
+        Wiki::create(['title' => '초안', 'content' => 'x', 'is_draft' => true]); // 임시저장 제외
+
+        $state = $this->actingAs($member)->getJson('/api/wiki/order')->assertOk()->json();
+
+        $this->assertCount(1, $state);
+        $this->assertSame(1, $state[0]['sort_order']);
+        $this->assertTrue($state[0]['is_pinned']);
+
+        // 비로그인 차단
+        auth()->logout();
+        $this->getJson('/api/wiki/order')->assertUnauthorized();
+    }
+
     public function test_doc_list_includes_sort_order_and_reorder_ui(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

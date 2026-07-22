@@ -586,6 +586,27 @@ function wikiMoveDoc(id, dir) {
     [docs[idx], docs[to]] = [docs[to], docs[idx]];
     wikiSaveOrder(docs);
 }
+// 다른 사용자의 순서 변경을 30초마다 반영 — 편집 모드 중에는 건드리지 않음 (드래그 방해 방지)
+async function wikiPollOrder() {
+    if (WIKI_SEL_MODE) return;
+    try {
+        const res = await fetch('/api/wiki/order', { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return;
+        const state = await res.json();
+        let changed = false;
+        state.forEach(s => {
+            const d = WIKI_DOCS.find(x => x.id === s.id);
+            if (d && (d.sort_order !== s.sort_order || d.is_pinned !== s.is_pinned)) {
+                d.sort_order = s.sort_order;
+                d.is_pinned = s.is_pinned;
+                changed = true;
+            }
+        });
+        if (changed) renderDocList();
+    } catch (e) { /* 네트워크 오류 — 다음 폴링에서 재시도 */ }
+}
+setInterval(wikiPollOrder, 30000);
+
 let WIKI_DRAG_ID = null;
 function wikiBindDocDrag(docs) {
     document.querySelectorAll('#wikiDocList .wiki-item[data-id]').forEach(row => {
