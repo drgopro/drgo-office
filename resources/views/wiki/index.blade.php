@@ -97,11 +97,14 @@
     .wiki-filter-bar { display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
     .wiki-filter-bar.open { display:flex; }
     /* 검색 토글 버튼 — 배경색으로 강조 */
-    /* 게시물 순서 편집 (▲▼ + 드래그) — 편집 모드·카테고리 뷰·관리자 전용 */
+    /* 게시물 순서 편집 (핸들 드래그 + ▲▼) — 편집 모드·카테고리 뷰·관리자 전용 */
+    .wiki-drag-handle { display:inline-flex; align-items:center; justify-content:center; width:24px; height:26px; margin-right:2px; border-radius:6px; color:var(--text-muted); font-size:14px; cursor:grab; flex-shrink:0; user-select:none; letter-spacing:-1px; }
+    .wiki-drag-handle:hover { background:var(--surface2); color:var(--text); }
+    .wiki-drag-handle:active { cursor:grabbing; }
     .wiki-order-btns { display:inline-flex; gap:3px; margin-left:auto; flex-shrink:0; }
     .wiki-order-btns button { width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
     .wiki-order-btns button:hover { color:var(--accent); border-color:var(--accent); }
-    .wiki-item[draggable="true"] { cursor:grab; }
+    .wiki-item.wiki-drag-src { opacity:0.45; }
     #wikiFilterToggle { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     #wikiFilterToggle:hover { opacity:0.88; color:var(--accent-text); background:var(--accent); }
     #wikiFilterToggle.wf-toggle-on { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
@@ -545,8 +548,8 @@ function renderDocList() {
     if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
     // 순서 편집 가능: 게시물 편집 모드 + 특정 카테고리 뷰 + 관리자 (필터 미적용)
     const canReorder = WIKI_SEL_MODE && wikiManualSortActive() && WIKI_IS_ADMIN;
-    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` draggable="true" data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
-        <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
+    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
+        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
             ${canReorder ? `<span class="wiki-order-btns" onclick="event.stopPropagation()">
                 <button type="button" title="위로" onclick="wikiMoveDoc(${d.id},-1)">▲</button>
                 <button type="button" title="아래로" onclick="wikiMoveDoc(${d.id},1)">▼</button>
@@ -610,8 +613,14 @@ setInterval(wikiPollOrder, 30000);
 let WIKI_DRAG_ID = null;
 function wikiBindDocDrag(docs) {
     document.querySelectorAll('#wikiDocList .wiki-item[data-id]').forEach(row => {
-        row.ondragstart = e => { WIKI_DRAG_ID = parseInt(row.dataset.id, 10); e.dataTransfer.effectAllowed = 'move'; };
-        row.ondragend = () => { WIKI_DRAG_ID = null; document.querySelectorAll('#wikiDocList .wiki-item').forEach(r => { r.style.borderTop = ''; r.style.borderBottom = ''; }); };
+        // 드래그는 핸들(⠿)을 잡았을 때만 시작 — 행 클릭(선택)과 충돌 방지
+        const handle = row.querySelector('.wiki-drag-handle');
+        if (handle) {
+            handle.addEventListener('mousedown', () => { row.draggable = true; });
+            row.addEventListener('mouseup', () => { row.draggable = false; });
+        }
+        row.ondragstart = e => { WIKI_DRAG_ID = parseInt(row.dataset.id, 10); e.dataTransfer.effectAllowed = 'move'; row.classList.add('wiki-drag-src'); };
+        row.ondragend = () => { WIKI_DRAG_ID = null; row.draggable = false; row.classList.remove('wiki-drag-src'); document.querySelectorAll('#wikiDocList .wiki-item').forEach(r => { r.style.borderTop = ''; r.style.borderBottom = ''; }); };
         row.ondragover = e => {
             if (!WIKI_DRAG_ID || WIKI_DRAG_ID === parseInt(row.dataset.id, 10)) return;
             e.preventDefault();
