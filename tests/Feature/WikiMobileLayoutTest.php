@@ -12,6 +12,18 @@ class WikiMobileLayoutTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_editor_toolbar_stays_fixed_on_scroll(): void
+    {
+        // 글이 길어져 스크롤해도 툴바가 화면 상단에 유지 (작성·수정 페이지 공통)
+        $user = User::factory()->create(['role' => 'member']);
+        $wiki = Wiki::create(['title' => '긴 글', 'content' => '<p>본문</p>', 'category' => '일반']);
+
+        $this->actingAs($user)->get('/wiki/create')->assertOk()
+            ->assertSee("bar.style.position='fixed'", false);
+        $this->actingAs($user)->get("/wiki/{$wiki->id}")->assertOk()
+            ->assertSee("bar.style.position='fixed'", false);
+    }
+
     public function test_wiki_show_includes_mobile_responsive_styles(): void
     {
         $user = User::factory()->create(['role' => 'member']);

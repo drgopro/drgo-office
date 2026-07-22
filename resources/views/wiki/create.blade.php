@@ -578,4 +578,5 @@ window.deleteDraft=async function(id){
     document.addEventListener('keydown',function(e){if(e.key==='Escape'&&popup)removePopup();});
 })();
 </script>
+@include('partials.tiptap-sticky-toolbar')
 @endpush

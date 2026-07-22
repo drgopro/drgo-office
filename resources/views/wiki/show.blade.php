@@ -899,4 +899,5 @@ window.toggleEdit = function() {
     });
 })();
 </script>
+@include('partials.tiptap-sticky-toolbar')
 @endpush
