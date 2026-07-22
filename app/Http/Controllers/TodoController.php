@@ -35,21 +35,24 @@ class TodoController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $this->validateTodo($request);
+        [$validated, $assigneeIds] = $this->validateTodo($request);
         $validated['created_by'] = Auth::id();
         $validated['sort_order'] = (int) Todo::where('assignee_id', $validated['assignee_id'])->max('sort_order') + 1;
 
         $todo = Todo::create($validated);
+        $todo->syncAssigneesOrdered($assigneeIds);
 
-        return response()->json(['todo' => $this->present($todo->load('assignee.team', 'creator', 'attachments'))], 201);
+        return response()->json(['todo' => $this->present($todo->load('assignee.team', 'creator', 'attachments', 'assignees'))], 201);
     }
 
     public function update(Request $request, Todo $todo)
     {
         $this->authorizeTodo($todo);
-        $todo->update($this->validateTodo($request));
+        [$validated, $assigneeIds] = $this->validateTodo($request);
+        $todo->update($validated);
+        $todo->syncAssigneesOrdered($assigneeIds);
 
-        return response()->json(['todo' => $this->present($todo->fresh()->load('assignee.team', 'creator', 'attachments'))]);
+        return response()->json(['todo' => $this->present($todo->fresh()->load('assignee.team', 'creator', 'attachments', 'assignees'))]);
     }
 
     /** 드래그 순서 변경 — 전달된 id 순서대로 sort_order 재부여 (멤버는 본인 할 일만) */
@@ -72,17 +75,19 @@ class TodoController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    /** 드래그로 담당자 변경 — 관리자 이상만 */
+    /** 드래그로 담당자(컬럼) 변경 — 관리자 이상만. 대상이 대표(첫 번째)가 되고 나머지 담당자는 유지 */
     public function assign(Request $request, Todo $todo)
     {
         abort_unless(Auth::user()->isAdmin(), 403, '담당자 변경은 관리자만 가능합니다.');
 
         $validated = $request->validate(['assignee_id' => 'required|exists:users,id']);
+        $target = (int) $validated['assignee_id'];
 
+        $rest = $todo->assignees->pluck('id')->reject(fn ($id) => $id === $target)->values()->all();
         $todo->update([
-            'assignee_id' => $validated['assignee_id'],
-            'sort_order' => (int) Todo::where('assignee_id', $validated['assignee_id'])->max('sort_order') + 1,
+            'sort_order' => (int) Todo::where('assignee_id', $target)->max('sort_order') + 1,
         ]);
+        $todo->syncAssigneesOrdered([$target, ...$rest]);
 
         return response()->json(['ok' => true]);
     }
@@ -162,20 +167,25 @@ class TodoController extends Controller
 
     // ── 내부 헬퍼 ──
 
-    /** 관리자 또는 담당자/작성자 본인만 조작 가능 (IDOR 방지) */
+    /** 관리자 또는 담당자(복수 포함)/작성자 본인만 조작 가능 (IDOR 방지) */
     private function authorizeTodo(?Todo $todo): void
     {
         if (! $todo) {
             abort(404);
         }
         $user = Auth::user();
-        if ($user->isAdmin() || $todo->assignee_id === $user->id || $todo->created_by === $user->id) {
+        if ($user->isAdmin() || $todo->assignee_id === $user->id || $todo->created_by === $user->id
+            || $todo->assignees()->where('users.id', $user->id)->exists()) {
             return;
         }
         abort(403, '본인의 할 일만 처리할 수 있습니다.');
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * 검증 + 담당자 목록 해석 — assignee_ids(선택 순서 배열)가 오면 첫 번째가 대표(assignee_id).
+     *
+     * @return array{0: array<string, mixed>, 1: array<int, int>}
+     */
     private function validateTodo(Request $request): array
     {
         $validated = $request->validate([
@@ -183,24 +193,33 @@ class TodoController extends Controller
             'content' => 'nullable|string|max:10000',
             'priority' => ['required', Rule::in(array_keys(Todo::PRIORITIES))],
             'due_date' => 'nullable|date',
-            'assignee_id' => 'required|exists:users,id',
+            'assignee_id' => 'required_without:assignee_ids|nullable|exists:users,id',
+            'assignee_ids' => 'sometimes|array|min:1',
+            'assignee_ids.*' => 'integer|exists:users,id',
             'schedule_id' => 'nullable|exists:schedules,id', // 캘린더 연동용 (선택)
         ]);
 
+        $assigneeIds = collect($validated['assignee_ids'] ?? [$validated['assignee_id']])
+            ->map(fn ($id) => (int) $id)->unique()->values();
+        unset($validated['assignee_ids']);
+        $validated['assignee_id'] = $assigneeIds->first();
+
         // 일반 멤버는 본인에게만 등록/수정 가능 (타인 지정은 관리자 이상)
-        if (! Auth::user()->isAdmin() && (int) $validated['assignee_id'] !== Auth::id()) {
+        if (! Auth::user()->isAdmin() && $assigneeIds->contains(fn ($id) => $id !== Auth::id())) {
             abort(403, '다른 직원에게 할 일을 지정하는 것은 관리자만 가능합니다.');
         }
 
-        return $validated;
+        return [$validated, $assigneeIds->all()];
     }
 
     /** @return array<int, array<string, mixed>> */
     private function boardTodos(): array
     {
-        return Todo::with('assignee.team', 'creator', 'attachments')
-            // 일반 멤버는 본인 할 일만 조회
-            ->when(! Auth::user()->isAdmin(), fn ($q) => $q->where('assignee_id', Auth::id()))
+        return Todo::with('assignee.team', 'creator', 'attachments', 'assignees')
+            // 일반 멤버는 본인이 담당자로 포함된 할 일만 조회
+            ->when(! Auth::user()->isAdmin(), fn ($q) => $q->where(fn ($w) => $w
+                ->where('assignee_id', Auth::id())
+                ->orWhereHas('assignees', fn ($a) => $a->where('users.id', Auth::id()))))
             ->orderBy('sort_order')->orderBy('id')
             ->get()
             ->map(fn (Todo $t) => $this->present($t))
@@ -220,6 +239,9 @@ class TodoController extends Controller
             'assignee_id' => $t->assignee_id,
             'schedule_id' => $t->schedule_id,
             'assignee' => $t->assignee?->display_name ?? '알 수 없음',
+            // 전체 담당자 (선택 순서대로) — 첫 번째가 대표(칸반 컬럼 기준)
+            'assignee_ids' => $t->assignees->pluck('id')->values()->all() ?: [$t->assignee_id],
+            'assignee_names' => $t->assignees->pluck('display_name')->values()->all() ?: [$t->assignee?->display_name ?? '알 수 없음'],
             'team' => $t->assignee?->team?->name,
             'creator' => $t->creator?->display_name,
             'completed' => (bool) $t->completed_at,

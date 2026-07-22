@@ -283,8 +283,10 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 나의 할 일 — 미완료, 기한 임박·우선순위 순 (우측 카드)
-        $myTodoAll = Todo::where('assignee_id', auth()->id())->whereNull('completed_at')
+        // 나의 할 일 — 미완료, 기한 임박·우선순위 순 (우측 카드). 복수 담당자에 포함된 것도 포함
+        $myTodoAll = Todo::where(fn ($q) => $q->where('assignee_id', auth()->id())
+            ->orWhereHas('assignees', fn ($a) => $a->where('users.id', auth()->id())))
+            ->whereNull('completed_at')
             ->orderByRaw('due_date is null')->orderBy('due_date')
             ->orderByRaw("case priority when 'high' then 0 when 'medium' then 1 else 2 end")
             ->get();

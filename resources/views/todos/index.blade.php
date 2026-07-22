@@ -271,8 +271,8 @@
                     <input type="date" id="tfDue">
                 </div>
                 <div class="todo-field" id="tfAssigneeField" @if(!$me->isAdmin()) style="display:none;" @endif>
-                    <label>담당자 *</label>
-                    <select id="tfAssignee" @if(!$me->isAdmin()) disabled @endif></select>
+                    <label>담당자 * <span style="font-weight:400;color:var(--text-muted);">(선택한 순서대로 표시, 첫 번째가 대표)</span></label>
+                    <div id="tfAssigneeChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
                 </div>
             </div>
             <div class="todo-field">
@@ -418,8 +418,9 @@ function filteredTodos() {
     const mineOnly = document.getElementById('todoMineOnly').checked;
     const showDone = document.getElementById('todoShowDone').checked;
     let todos = TODOS.filter(t => showDone ? true : !t.completed);
-    if (mineOnly) { todos = todos.filter(t => t.assignee_id === TODO_ME); }
-    else if (MFILTER.size) { todos = todos.filter(t => MFILTER.has(t.assignee_id)); }
+    // 복수 담당자: 어느 순번이든 포함되어 있으면 매치
+    if (mineOnly) { todos = todos.filter(t => (t.assignee_ids || [t.assignee_id]).includes(TODO_ME)); }
+    else if (MFILTER.size) { todos = todos.filter(t => (t.assignee_ids || [t.assignee_id]).some(id => MFILTER.has(id))); }
     return todos;
 }
 
@@ -496,6 +497,7 @@ function listHtml(todos) {
             </button>
             <span class="todo-lrow-title">${esc(t.title)}</span>
             ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
+            ${(t.assignee_names || []).length > 1 ? `<span class="todo-attach-n" title="${esc(t.assignee_names.join(', '))}">👥 +${t.assignee_names.length - 1}</span>` : ''}
             <span class="todo-lrow-right">
                 ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
                 <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
@@ -524,7 +526,7 @@ function renderDetailPane() {
         <div class="tdp-title">${esc(t.title)}</div>
         <div class="todo-view-meta">
             <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
-            <span>담당 <b>${esc(t.assignee)}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>
+            <span>담당 <b>${esc((t.assignee_names || [t.assignee]).join(', '))}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>
             ${t.due_date ? `<span>기한 ${fmtDate(t.due_date)}</span>` : ''}
             ${dueChip(t)}
             ${t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : ''}
@@ -614,6 +616,7 @@ function cardHtml(t) {
         <div class="todo-card-foot">
             ${dueChip(t)}
             ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
+            ${(t.assignee_names || []).length > 1 ? `<span class="todo-due" title="${esc(t.assignee_names.join(', '))}">👥 +${t.assignee_names.length - 1}</span>` : ''}
             ${t.completed ? `<span class="todo-due">완료 ${t.completed_at}</span>` : ''}
         </div>
     </div>`;
@@ -778,10 +781,32 @@ document.addEventListener('paste', e => {
 });
 
 // ── 등록/수정 모달 ──
-function fillAssigneeOptions(selected) {
-    document.getElementById('tfAssignee').innerHTML = TODO_MEMBERS.map(m =>
-        `<option value="${m.id}" ${m.id === selected ? 'selected' : ''}>${esc(m.name)}${m.team ? ` (${esc(m.team)})` : ''}</option>`
-    ).join('');
+// 담당자 다중 선택 — 클릭한 순서대로 배열에 쌓임 (첫 번째 = 대표, 칸반 컬럼 기준)
+let TF_ASSIGNEES = [];
+function fillAssigneeOptions(selectedIds) {
+    TF_ASSIGNEES = (selectedIds || []).filter(id => TODO_MEMBERS.some(m => m.id === id));
+    renderAssigneeChips();
+}
+function renderAssigneeChips() {
+    const wrap = document.getElementById('tfAssigneeChips');
+    if (!wrap) return;
+    wrap.innerHTML = TODO_MEMBERS.map(m => {
+        const idx = TF_ASSIGNEES.indexOf(m.id);
+        const on = idx !== -1;
+        return `<button type="button" onclick="toggleTfAssignee(${m.id})"
+            style="display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:8px;font-size:12.5px;cursor:pointer;transition:all .12s;
+            border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};
+            background:${on ? 'color-mix(in srgb, var(--accent) 16%, transparent)' : 'none'};
+            color:${on ? 'var(--accent)' : 'var(--text-muted)'};font-weight:${on ? 700 : 400};">
+            ${on ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--accent);color:var(--accent-text);font-size:9.5px;font-weight:800;">${idx + 1}</span>` : ''}
+            ${esc(m.name)}</button>`;
+    }).join('');
+}
+function toggleTfAssignee(id) {
+    const idx = TF_ASSIGNEES.indexOf(id);
+    if (idx !== -1) { TF_ASSIGNEES.splice(idx, 1); }
+    else { TF_ASSIGNEES.push(id); }
+    renderAssigneeChips();
 }
 
 function openTodoForm(todo) {
@@ -793,7 +818,7 @@ function openTodoForm(todo) {
     document.getElementById('tfContent').value = todo ? (todo.content || '') : '';
     TF_PENDING = [];
     renderTfGrid();
-    fillAssigneeOptions(todo ? todo.assignee_id : TODO_ME);
+    fillAssigneeOptions(todo ? (todo.assignee_ids || [todo.assignee_id]) : [TODO_ME]);
     document.getElementById('todoFormOverlay').classList.add('open');
     document.getElementById('tfTitle').focus();
     armModalHistory();
@@ -864,15 +889,18 @@ function discardDraft() {
 
 async function saveTodo() {
     const btn = document.getElementById('tfSaveBtn');
+    // 일반 멤버는 본인에게만 등록 가능 — 관리자는 선택 순서 그대로 (첫 번째 = 대표)
+    const ids = IS_ADMIN ? TF_ASSIGNEES : [TODO_ME];
     const payload = {
         title: document.getElementById('tfTitle').value.trim(),
         priority: document.getElementById('tfPriority').value,
         due_date: document.getElementById('tfDue').value || null,
         content: document.getElementById('tfContent').value.trim() || null,
-        // 일반 멤버는 본인에게만 등록 가능
-        assignee_id: IS_ADMIN ? parseInt(document.getElementById('tfAssignee').value, 10) : TODO_ME,
+        assignee_ids: ids,
+        assignee_id: ids[0] || null,
     };
     if (!payload.title) { alert('타이틀을 입력하세요.'); return; }
+    if (!ids.length) { alert('담당자를 한 명 이상 선택하세요.'); return; }
 
     btn.disabled = true;
     try {
@@ -920,7 +948,7 @@ function openTodoView(id) {
     document.getElementById('tvTitle').textContent = t.title;
     document.getElementById('tvMeta').innerHTML = [
         `<span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>`,
-        `<span>담당 <b>${esc(t.assignee)}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>`,
+        `<span>담당 <b>${esc((t.assignee_names || [t.assignee]).join(', '))}</b>${t.team ? ` · ${esc(t.team)}` : ''}</span>`,
         t.due_date ? `<span>기한 ${fmtDate(t.due_date)}</span>` : '',
         dueChip(t),
         t.creator ? `<span>${esc(t.creator)} 등록 ${t.created_at}</span>` : '',
