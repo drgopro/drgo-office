@@ -24,7 +24,9 @@
     .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:5px 10px 5px 4px; font-size:13px; line-height:1.3; min-height:0; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
     .wiki-cat-row:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-row.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
-    .wiki-cat-caret { flex-shrink:0; width:16px; text-align:center; font-size:10px; color:var(--text-muted); transition:transform .12s; cursor:pointer; }
+    /* 접기/펼치기 캐럿 — 히트 영역을 키우고, 이 영역을 클릭할 때만 접힘 (행 클릭은 필터만) */
+    .wiki-cat-caret { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; margin:-4px 0; border-radius:7px; font-size:12px; color:var(--text-muted); transition:transform .12s, background .12s; cursor:pointer; }
+    .wiki-cat-caret:not(.blank):hover { background:var(--surface3, var(--border)); color:var(--text); }
     .wiki-cat-caret.open { transform:rotate(90deg); }
     .wiki-cat-caret.blank { visibility:hidden; }
     .wiki-cat-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -444,13 +446,8 @@ function renderWikiTree() {
     wrap.innerHTML = fixed + html;
     if (typeof wfSyncScope === 'function') wfSyncScope(); // 필터 바 조회 범위 드롭다운 동기화
 }
-// 행 클릭: 하위가 있으면 펼치기/접기 토글 + 해당 카테고리 필터를 동시에 처리
+// 행 클릭: 카테고리 필터만 — 접기/펼치기는 캐럿(화살표) 클릭으로만 동작
 function onCatRowClick(id, collapsible) {
-    if (collapsible) {
-        const set = wikiCollapsedSet();
-        set.has(id) ? set.delete(id) : set.add(id);
-        wikiSaveCollapsed(set);
-    }
     filterCatId(id); // 현재 카테고리 설정 + 트리/문서목록 즉시 갱신
 }
 function toggleWikiCat(id) {
