@@ -331,6 +331,24 @@ class WikiController extends Controller
         return response()->json(['diagram' => $wiki->diagram_data]);
     }
 
+    /** 게시물 수동 정렬 (카테고리 내) — 관리자 전용 */
+    public function reorder(Request $request)
+    {
+        abort_unless(Auth::user()->isAdmin(), 403, '게시물 순서 변경은 관리자만 가능합니다.');
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id' => 'required|integer|exists:wikis,id',
+            'items.*.sort_order' => 'required|integer|min:0',
+        ]);
+
+        foreach ($validated['items'] as $item) {
+            Wiki::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     /** 내 임시저장 목록 — 작성 페이지 '불러오기' 모달용 */
     public function drafts()
     {

@@ -24,6 +24,7 @@ class Wiki extends Model
         'diagram_data',
         'is_pinned',
         'is_draft',
+        'sort_order',
         'created_by',
         'updated_by',
     ];

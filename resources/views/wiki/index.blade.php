@@ -97,6 +97,11 @@
     .wiki-filter-bar { display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
     .wiki-filter-bar.open { display:flex; }
     /* 검색 토글 버튼 — 배경색으로 강조 */
+    /* 게시물 순서 편집 (▲▼ + 드래그) — 편집 모드·카테고리 뷰·관리자 전용 */
+    .wiki-order-btns { display:inline-flex; gap:3px; margin-left:auto; flex-shrink:0; }
+    .wiki-order-btns button { width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+    .wiki-order-btns button:hover { color:var(--accent); border-color:var(--accent); }
+    .wiki-item[draggable="true"] { cursor:grab; }
     #wikiFilterToggle { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     #wikiFilterToggle:hover { opacity:0.88; color:var(--accent-text); background:var(--accent); }
     #wikiFilterToggle.wf-toggle-on { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
@@ -152,6 +157,8 @@
 
 @section('content')
 @php
+    // 검색/기간/작성자 필터 적용 여부 — 필터 중엔 수동 순서 미적용 (@json 인라인 배열 파싱 문제로 여기서 계산)
+    $wikiFilterActive = request()->hasAny(['search', 'date_from', 'date_to', 'author']);
     $grouped = $wikis->groupBy('category');
     $allCats = $categories->count() ? $categories : collect(['일반']);
 
@@ -195,6 +202,7 @@
         'category_id' => $w->category_id,
         'type' => $w->type ?? 'normal',
         'is_pinned' => (bool) $w->is_pinned,
+        'sort_order' => $w->sort_order, // 카테고리 내 수동 순서 (null = 최신순)
         'comments' => $w->comments_count ?? 0,
         'creator' => $w->creator?->display_name ?? '알 수 없음',
         'created' => $w->created_at->format('Y.m.d H:i'),
@@ -377,6 +385,7 @@
 <script>
 const WIKI_TREE_DATA = @json($tree->map(fn ($c) => ['id' => $c->id, 'parent_id' => $c->parent_id, 'name' => $c->name])->values());
 const WIKI_IS_ADMIN = @json(auth()->user()->isAdmin());
+const WIKI_FILTER_ACTIVE = @json($wikiFilterActive); // 필터 중엔 수동 순서 미적용
 let WIKI_CAT_COUNTS = @json($catCounts);
 let WIKI_UNCAT = {{ (int) $uncategorized }};
 let WIKI_CUR_CAT = {{ (int) request('cat') }};
@@ -515,23 +524,94 @@ function wikiCatPathStr(id) {
     while (n) { p.unshift(n.name); n = n.parent_id ? byId[n.parent_id] : null; }
     return p.length ? p.join(' › ') : '미분류';
 }
+// 수동 정렬 적용 뷰 여부 — 특정 카테고리 선택 + 검색/필터 미적용일 때만
+function wikiManualSortActive() { return !!WIKI_CUR_CAT && !WIKI_FILTER_ACTIVE; }
 function renderDocList() {
     const list = document.getElementById('wikiDocList');
     let docs = WIKI_DOCS;
     if (WIKI_CUR_TYPE) { docs = WIKI_DOCS.filter(d => d.type === WIKI_CUR_TYPE); }
     else if (WIKI_CUR_UNCAT) { docs = WIKI_DOCS.filter(d => !d.category_id && d.type === 'normal'); }
     else if (WIKI_CUR_CAT) { const ids = wikiDescendantSet(WIKI_CUR_CAT); docs = WIKI_DOCS.filter(d => ids.has(d.category_id)); }
+    // 카테고리 뷰: 고정(📌) → 수동 순서(sort_order) → 최신순
+    if (wikiManualSortActive()) {
+        docs = [...docs].sort((a, b) =>
+            (b.is_pinned - a.is_pinned)
+            || ((a.sort_order === null) - (b.sort_order === null))
+            || ((a.sort_order ?? 0) - (b.sort_order ?? 0))
+            || (a.created < b.created ? 1 : -1));
+    }
     document.getElementById('wikiMainTitle').textContent = WIKI_CUR_TYPE ? WIKI_TYPE_LABELS[WIKI_CUR_TYPE] : (WIKI_CUR_UNCAT ? '미분류' : (WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서'));
     document.getElementById('wikiMainCount').textContent = docs.length + '건';
     if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
-    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}" onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
-        <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}</div>
+    // 순서 편집 가능: 게시물 편집 모드 + 특정 카테고리 뷰 + 관리자 (필터 미적용)
+    const canReorder = WIKI_SEL_MODE && wikiManualSortActive() && WIKI_IS_ADMIN;
+    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` draggable="true" data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
+        <div class="wiki-item-header">${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
+            ${canReorder ? `<span class="wiki-order-btns" onclick="event.stopPropagation()">
+                <button type="button" title="위로" onclick="wikiMoveDoc(${d.id},-1)">▲</button>
+                <button type="button" title="아래로" onclick="wikiMoveDoc(${d.id},1)">▼</button>
+            </span>` : ''}</div>
         <div class="wiki-meta">
             <span class="wiki-cat-badge">${d.type !== 'normal' ? WIKI_TYPE_LABELS[d.type] : wikiEsc(wikiCatPathStr(d.category_id))}</span>
             <span>${wikiEsc(d.creator)} 작성 ${d.created}</span>${d.updated ? `<span>최종수정 ${wikiEsc(d.updater)} ${d.updated}</span>` : ''}
         </div>
         <div class="wiki-preview">${wikiEsc(d.preview)}</div>
     </div>`).join('');
+    if (canReorder) { wikiBindDocDrag(docs); }
+}
+
+// ── 게시물 수동 정렬 (카테고리 내, 관리자) — 드래그 + ▲▼ 버튼 ──
+function wikiVisibleSorted() {
+    // renderDocList와 동일한 필터·정렬로 현재 뷰의 문서 배열 재구성
+    const ids = wikiDescendantSet(WIKI_CUR_CAT);
+    return WIKI_DOCS.filter(d => ids.has(d.category_id))
+        .sort((a, b) => (b.is_pinned - a.is_pinned)
+            || ((a.sort_order === null) - (b.sort_order === null))
+            || ((a.sort_order ?? 0) - (b.sort_order ?? 0))
+            || (a.created < b.created ? 1 : -1));
+}
+async function wikiSaveOrder(orderedDocs) {
+    const items = orderedDocs.map((d, i) => ({ id: d.id, sort_order: i }));
+    const res = await fetch('/api/wiki/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ items }) });
+    if (!res.ok) { alert('순서 변경 실패'); return false; }
+    items.forEach(it => { const d = WIKI_DOCS.find(x => x.id === it.id); if (d) d.sort_order = it.sort_order; });
+    renderDocList();
+    return true;
+}
+function wikiMoveDoc(id, dir) {
+    const docs = wikiVisibleSorted();
+    const idx = docs.findIndex(d => d.id === id);
+    const to = idx + dir;
+    if (idx === -1 || to < 0 || to >= docs.length) return;
+    [docs[idx], docs[to]] = [docs[to], docs[idx]];
+    wikiSaveOrder(docs);
+}
+let WIKI_DRAG_ID = null;
+function wikiBindDocDrag(docs) {
+    document.querySelectorAll('#wikiDocList .wiki-item[data-id]').forEach(row => {
+        row.ondragstart = e => { WIKI_DRAG_ID = parseInt(row.dataset.id, 10); e.dataTransfer.effectAllowed = 'move'; };
+        row.ondragend = () => { WIKI_DRAG_ID = null; document.querySelectorAll('#wikiDocList .wiki-item').forEach(r => { r.style.borderTop = ''; r.style.borderBottom = ''; }); };
+        row.ondragover = e => {
+            if (!WIKI_DRAG_ID || WIKI_DRAG_ID === parseInt(row.dataset.id, 10)) return;
+            e.preventDefault();
+            const rect = row.getBoundingClientRect(); const after = (e.clientY - rect.top) > rect.height / 2;
+            row.style.borderTop = after ? '' : '2px solid var(--accent)';
+            row.style.borderBottom = after ? '2px solid var(--accent)' : '';
+        };
+        row.ondragleave = () => { row.style.borderTop = ''; row.style.borderBottom = ''; };
+        row.ondrop = e => {
+            row.style.borderTop = ''; row.style.borderBottom = '';
+            const tgtId = parseInt(row.dataset.id, 10);
+            if (!WIKI_DRAG_ID || WIKI_DRAG_ID === tgtId) return;
+            e.preventDefault();
+            const list = wikiVisibleSorted().filter(d => d.id !== WIKI_DRAG_ID);
+            const drag = WIKI_DOCS.find(d => d.id === WIKI_DRAG_ID);
+            const rect = row.getBoundingClientRect(); const after = (e.clientY - rect.top) > rect.height / 2;
+            const idx = list.findIndex(d => d.id === tgtId);
+            list.splice(after ? idx + 1 : idx, 0, drag);
+            wikiSaveOrder(list);
+        };
+    });
 }
 
 // ── 게시물 편집 (선택 → 카테고리 일괄 이동) ──
