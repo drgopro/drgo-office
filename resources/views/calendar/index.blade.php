@@ -2334,10 +2334,10 @@ function csToggleSide(){
 })();
 // 데스크탑: 사이드 패널이 화면 세로 중앙을 따라다니도록 sticky top 계산
 function csCenterSide(){
+    // 세로 중앙 추적은 위쪽 여백이 과해 보인다는 피드백으로 상단 고정으로 변경
     const el=document.getElementById('calSideSticky');
     if(!el) return;
-    if(window.innerWidth<=1024){ el.style.top=''; return; }
-    el.style.top=Math.max(10,(window.innerHeight-el.offsetHeight)/2)+'px';
+    el.style.top=window.innerWidth<=1024?'':'10px';
 }
 (function(){
     const el=document.getElementById('calSideSticky');
@@ -2366,13 +2366,8 @@ function csAlignTop(){
         offset=Math.max(0, Math.round(head.getBoundingClientRect().bottom - bodyTop));
     }
     side.style.marginTop=offset?offset+'px':'0';
-    // 패널 하단을 그리드 하단과 일치 (주간 24h 그리드 등 뷰별 높이 대응)
-    const main=document.getElementById('calMain');
-    if(main && main.offsetHeight){
-        side.style.height=Math.max(0, main.offsetHeight-offset)+'px';
-    } else {
-        side.style.height='';
-    }
+    // 패널 높이는 콘텐츠에 맞춤 — 그리드 전체 높이로 늘리면 아래 빈 공간이 과도함
+    side.style.height='';
 }
 // 담당자 필터(셀렉트+칩)를 사이드 패널로 이동 (전 해상도 공통)
 (function(){
