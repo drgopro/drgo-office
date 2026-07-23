@@ -170,6 +170,15 @@ class CalendarChildScheduleTest extends TestCase
             ->assertViewHas('scheduleThisMonth', 1);
     }
 
+    public function test_calendar_page_renders_children_card_containers(): void
+    {
+        // 세부 일정 카드: 수정 폼(lsChildrenForm)과 요약 뷰(lsChildren) 양쪽 컨테이너 존재
+        $this->actingAs($this->master())->get('/calendar')
+            ->assertOk()
+            ->assertSee('id="lsChildrenForm"', false)
+            ->assertSee('renderChildrenCard', false);
+    }
+
     public function test_events_api_includes_parent_id_for_client_filtering(): void
     {
         $parent = $this->longSchedule();

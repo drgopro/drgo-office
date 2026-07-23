@@ -1366,6 +1366,8 @@
                 </div>
             </div>
 
+            {{-- 장기 일정 하위 일정 (2일 이상 기존 일정에서만 렌더) --}}
+            <div id="lsChildrenForm"></div>
 
             {{-- 알림 + 반복 (전 유형 공통, 날짜/시간 바로 아래) --}}
             <div class="field-section" id="notifRepeatSection">
@@ -3624,10 +3626,11 @@ function applyLockUI(){
     const body = document.querySelector('#modalOverlay .modal-body');
     if (!body) return;
     if (isLocked) {
+        body.classList.add('is-locked'); // renderChildrenCard가 컨테이너를 고르기 전에 클래스 먼저
         renderLockSummary();
-        body.classList.add('is-locked');
     } else {
         body.classList.remove('is-locked');
+        renderChildrenCard(); // 요약 → 폼 전환 시 폼 쪽 컨테이너에 다시 렌더
     }
 }
 
@@ -4754,6 +4757,7 @@ function resetModalForm(){
 function openNewModal(dateStr,timeStr,endStr){
     editingId=null; selectedAssignees=[]; selectedNotifyAssignees=[]; viewMode=false;
     resetModalForm();
+    renderChildrenCard(); // 새 일정: 이전에 열었던 일정의 세부 일정 카드 잔상 제거
     setEditModeUI();
     setColor('gold');
     document.getElementById('modalTitle').value='';
@@ -4990,8 +4994,10 @@ function openDetailModal(ev) {
         setViewModeUI();
         // 모바일: 수정 폼이 아니라 자물쇠(읽기 전용 요약) 뷰로 표시
         if(window.innerWidth<=768){
-            renderLockSummary();
             document.querySelector('#modalOverlay .modal-body')?.classList.add('is-locked');
+            renderLockSummary(); // 클래스 적용 후 렌더 — 세부 일정 카드가 요약 쪽에 붙도록
+        } else {
+            renderChildrenCard(); // 데스크탑: 폼 안 세부 일정 카드
         }
     },0);
 }
@@ -5001,6 +5007,7 @@ function switchToEditMode() {
     // 모바일 잠금(읽기전용) 요약 뷰 해제 → 편집 폼 노출
     document.querySelector('#modalOverlay .modal-body')?.classList.remove('is-locked');
     setEditModeUI();
+    renderChildrenCard(); // 요약 → 폼 전환 시 세부 일정 카드를 폼 쪽에 렌더
 }
 
 function closeDetail() {
@@ -5925,7 +5932,11 @@ function childSpanDays(){
     return (new Date(ev.end_date||ev.start_date)-new Date(ev.start_date))/86400000+1;
 }
 async function renderChildrenCard(){
-    const box=document.getElementById('lsChildren');
+    // 요약(잠금) 뷰면 요약 컨테이너, 아니면 수정 폼 컨테이너에 렌더 (id 중복 방지 위해 반대쪽은 비움)
+    const locked=document.querySelector('#modalOverlay .modal-body')?.classList.contains('is-locked');
+    const box=document.getElementById(locked?'lsChildren':'lsChildrenForm');
+    const other=document.getElementById(locked?'lsChildrenForm':'lsChildren');
+    if(other) other.innerHTML='';
     if(!box) return;
     const ev=editingId?events.find(e=>e.id===editingId):null;
     if(!ev || ev.parent_id || childSpanDays()<2){ box.innerHTML=''; return; }
