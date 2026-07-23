@@ -235,6 +235,8 @@
     .cv-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
     .cv-chip { padding:5px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text); font-size:12.5px; }
     .cv-chip.fill { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+    .cv-chip.cv-plat { display:inline-flex; align-items:center; gap:6px; font-weight:600; padding:4px 12px 4px 6px; }
+    .cv-chip.cv-plat img { width:18px; height:18px; border-radius:5px; }
     .cv-eqwrap { display:flex; flex-direction:column; gap:18px; }
     .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11.5px; font-weight:700; margin-bottom:10px; }
     .cv-eqlink { font-size:13px; font-weight:600; color:var(--accent); text-decoration:none; }
@@ -1962,8 +1964,12 @@ function renderClientView(d) {
     // 방송 정보
     const platforms = [...(d.platforms || []), ...(d.platform_etc ? [d.platform_etc] : [])];
     const topics = [...(d.content_types || []), ...(d.topic_etc ? [d.topic_etc] : [])];
+    // 플랫폼: 아이콘 + 이름 칩 (아이콘 없는 항목·기타는 텍스트만)
+    const platChips = platforms.length
+        ? `<div class="cv-chips">${platforms.map(p => `<span class="cv-chip cv-plat">${(typeof PLATFORM_ICONS !== 'undefined' && PLATFORM_ICONS[p]) ? `<img src="${PLATFORM_ICONS[p]}" alt="">` : ''}${_esc(p)}</span>`).join('')}</div>`
+        : '<div class="cv-v dim">—</div>';
     const broadcast = `<div class="cv-grid">
-        <div><div class="cv-l">플랫폼</div>${cvChips(platforms, true)}</div>
+        <div><div class="cv-l">플랫폼</div>${platChips}</div>
         <div><div class="cv-l">방송 주제</div>${cvChips(topics, false)}</div>
         ${cvField('방송 아이디', d.broadcast_id)}
         ${cvField('방송 경력', d.career)}
