@@ -299,6 +299,14 @@
     .pfa-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:2px; }
     .pfa-btn-ghost { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
     .pfa-btn-primary { padding:8px 20px; border-radius:8px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    /* ── 추가 정보 저장 상태 배지 + 수동 저장 버튼 ── */
+    .pcf-badge { font-size:11.5px; font-weight:600; letter-spacing:0; }
+    .pcf-badge.dirty { color:#d4a96a; }
+    .pcf-badge.saving { color:var(--text-muted); }
+    .pcf-badge.saved { color:#5cb87a; }
+    .pcf-badge.error { color:var(--red); }
+    .pcf-save-btn { margin-left:auto; background:var(--accent); border:none; border-radius:7px; color:#fff; font-size:12px; font-weight:700; padding:5px 16px; cursor:pointer; letter-spacing:0; }
+    .pcf-save-btn:hover { filter:brightness(1.1); }
 </style>
 @endpush
 
@@ -914,9 +922,12 @@
 
         <!-- 추가 정보 (관리자 정의 동적 필드) -->
         <div class="info-card full" id="customDataCard" style="display:none;">
-            <div class="card-title">추가 정보</div>
+            <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span>추가 정보</span>
+                <span id="pcfSaveBadge" class="pcf-badge"></span>
+                <button type="button" class="pcf-save-btn" onclick="pcfSaveNow()" title="변경 내용을 즉시 저장">저장</button>
+            </div>
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
-            <div class="text-muted" id="pcfSaveStatus" style="font-size:11px; color:var(--text-muted); margin-top:6px; min-height:14px;"></div>
         </div>
 
         <!-- 장비 항목 추가 모달 (master/admin 전용 — 필드 정의를 즉석 등록) -->
@@ -2290,30 +2301,52 @@ async function pcfAddSubmit() {
 }
 
 let pcfSaveTimer = null;
+let pcfDirty = false; // 저장되지 않은 변경 존재 여부 (이탈 경고용)
+function pcfSetStatus(state) {
+    const b = document.getElementById('pcfSaveBadge');
+    if (!b) return;
+    const map = {
+        dirty:  ['● 변경됨 — 잠시 후 자동 저장', 'dirty'],
+        saving: ['저장 중…', 'saving'],
+        saved:  [`✓ 저장 완료 ${new Date().toTimeString().slice(0,5)}`, 'saved'],
+        error:  ['⚠ 저장 실패 — 저장 버튼으로 다시 시도하세요', 'error'],
+    };
+    const [txt, cls] = map[state] || ['', ''];
+    b.textContent = txt;
+    b.className = 'pcf-badge' + (cls ? ' ' + cls : '');
+}
 function pcfScheduleSave() {
+    pcfDirty = true;
     clearTimeout(pcfSaveTimer);
-    document.getElementById('pcfSaveStatus').textContent = '저장 중...';
+    pcfSetStatus('dirty');
     pcfSaveTimer = setTimeout(pcfSave, 600);
 }
+function pcfSaveNow() {
+    clearTimeout(pcfSaveTimer);
+    pcfSave();
+}
 async function pcfSave() {
+    pcfSetStatus('saving');
     try {
         const res = await fetch(`/api/projects/${PROJECT_ID}`, {
             method:'PATCH',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
             body: JSON.stringify({ custom_data: projectCustomData }),
         });
-        const el = document.getElementById('pcfSaveStatus');
         if (res.ok) {
-            el.textContent = '✓ 저장됨';
-            setTimeout(() => { el.textContent = ''; }, 2000);
+            pcfDirty = false;
+            pcfSetStatus('saved'); // 저장 시각과 함께 다음 변경 전까지 유지
         } else {
-            el.textContent = '저장 실패';
-            el.style.color = 'var(--red)';
+            pcfSetStatus('error');
         }
     } catch(e) {
-        document.getElementById('pcfSaveStatus').textContent = '저장 실패';
+        pcfSetStatus('error');
     }
 }
+// 저장 안 된 변경이 있는 채로 페이지를 떠나면 경고
+window.addEventListener('beforeunload', (e) => {
+    if (pcfDirty) { e.preventDefault(); e.returnValue = ''; }
+});
 
 loadProjectFieldsForShow();
 

@@ -93,6 +93,9 @@ class EquipmentFieldAddTest extends TestCase
             ->assertOk()
             ->assertSee('장비 항목 추가')
             ->assertSee('pfaOverlay', false)
-            ->assertSee('pcfToggleChange', false);
+            ->assertSee('pcfToggleChange', false)
+            // 저장 상태 배지 + 수동 저장 버튼 (자동 저장 확인 UI)
+            ->assertSee('pcfSaveBadge', false)
+            ->assertSee('pcfSaveNow', false);
     }
 }
