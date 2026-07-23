@@ -176,7 +176,7 @@ function render(){
         for (let i = 0; i < 7; i++) {
             const ds = fmt(cur);
             const dim = cur.getMonth() !== curM;
-            const dayEvs = evsOn(ds);
+            const dayEvs = evsOn(ds).filter(e => !e.parent_id); // 하위 일정은 그리드에서 숨김 (선택일 리스트에는 표시)
             const shown = dayEvs.slice(0, MAX_CELL_EV);
             html += `<div class="wg-cell${dim?' dim':''}${ds===today?' today':''}${ds===selDate?' sel':''}" onclick="wgSelect('${ds}')">
                 <span class="n${cur.getDay()===0?' sun':''}">${cur.getDate()}</span>

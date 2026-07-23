@@ -70,6 +70,7 @@ class CalendarController extends Controller
         if (Auth::user()->isGuest()) {
             $events = $events->map(fn ($e) => [
                 'id' => $e->id,
+                'parent_id' => $e->parent_id,
                 'start_date' => $e->start_date,
                 'end_date' => $e->end_date,
                 'start_time' => $e->start_time,
@@ -609,6 +610,126 @@ class CalendarController extends Controller
     }
 
     // 일정 상세 API
+    // ── 장기 일정 하위 일정 (일자별 시간·담당자) ──
+
+    /** 하위 일정 목록 */
+    public function childrenIndex(Schedule $schedule)
+    {
+        return response()->json(
+            $schedule->children()->with('assignees:id,name')->get()
+                ->map(fn ($c) => $this->childPayload($c))
+        );
+    }
+
+    /**
+     * 하위 일정 추가 — 개별 날짜 목록(dates[]) 또는 기간(start_date~end_date) 중 하나로 등록.
+     * 개별 날짜는 날짜당 1건씩, 기간은 한 건으로 생성. 부모 기간 범위 검증.
+     */
+    public function childrenStore(Request $request, Schedule $schedule)
+    {
+        abort_if($schedule->parent_id, 422, '하위 일정에는 다시 하위를 만들 수 없습니다.');
+        $validated = $request->validate([
+            'dates' => 'required_without:start_date|array|min:1',
+            'dates.*' => 'date',
+            'start_date' => 'required_without:dates|nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i',
+            'assignees' => 'nullable|array',
+            'assignees.*' => 'integer|exists:assignees,id',
+            'memo' => 'nullable|string|max:300',
+        ]);
+
+        $ranges = ! empty($validated['dates'])
+            ? collect($validated['dates'])->unique()->sort()->map(fn ($d) => [$d, $d])->values()
+            : collect([[$validated['start_date'], $validated['end_date'] ?? $validated['start_date']]]);
+
+        $pStart = $schedule->start_date->toDateString();
+        $pEnd = $schedule->end_date?->toDateString() ?? $pStart;
+        foreach ($ranges as [$s, $e]) {
+            if ($s < $pStart || $e > $pEnd) {
+                abort(422, "하위 일정({$s}~{$e})이 상위 일정 기간을 벗어납니다.");
+            }
+        }
+
+        $created = [];
+        foreach ($ranges as [$s, $e]) {
+            $child = Schedule::create([
+                'parent_id' => $schedule->id,
+                'title' => $schedule->title,
+                'color' => $schedule->color,
+                'start_date' => $s,
+                'end_date' => $e,
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'] ?? null,
+                'is_all_day' => false,
+                'description' => $validated['memo'] ?? null,
+                'created_by' => Auth::id(),
+            ]);
+            $child->syncAssigneesOrdered($validated['assignees'] ?? []);
+            $created[] = $this->childPayload($child->load('assignees:id,name'));
+        }
+        $schedule->syncAssigneesFromChildren(); // 하위 담당자 합집합을 부모에 반영
+
+        return response()->json(['children' => $created], 201);
+    }
+
+    /** 하위 일정 수정 */
+    public function childrenUpdate(Request $request, Schedule $child)
+    {
+        abort_unless($child->parent_id, 404);
+        $parent = $child->parent;
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i',
+            'assignees' => 'nullable|array',
+            'assignees.*' => 'integer|exists:assignees,id',
+            'memo' => 'nullable|string|max:300',
+        ]);
+        $end = $validated['end_date'] ?? $validated['start_date'];
+        $pStart = $parent->start_date->toDateString();
+        $pEnd = $parent->end_date?->toDateString() ?? $pStart;
+        if ($validated['start_date'] < $pStart || $end > $pEnd) {
+            abort(422, '하위 일정이 상위 일정 기간을 벗어납니다.');
+        }
+        $child->update([
+            'start_date' => $validated['start_date'],
+            'end_date' => $end,
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'] ?? null,
+            'description' => $validated['memo'] ?? null,
+        ]);
+        $child->syncAssigneesOrdered($validated['assignees'] ?? []);
+        $parent->syncAssigneesFromChildren();
+
+        return response()->json($this->childPayload($child->fresh()->load('assignees:id,name')));
+    }
+
+    /** 하위 일정 삭제 */
+    public function childrenDestroy(Schedule $child)
+    {
+        abort_unless($child->parent_id, 404);
+        $child->forceDelete(); // 하위는 휴지통 없이 즉시 삭제
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** @return array<string, mixed> */
+    private function childPayload(Schedule $c): array
+    {
+        return [
+            'id' => $c->id,
+            'start_date' => $c->start_date->toDateString(),
+            'end_date' => $c->end_date?->toDateString() ?? $c->start_date->toDateString(),
+            'start_time' => $c->start_time ? substr($c->start_time, 0, 5) : null,
+            'end_time' => $c->end_time ? substr($c->end_time, 0, 5) : null,
+            'memo' => $c->description,
+            'assignees' => $c->assignees->map(fn ($a) => ['id' => $a->id, 'name' => $a->name])->values(),
+        ];
+    }
+
     public function detail(Schedule $schedule)
     {
         $schedule->load('assignees', 'creator');

@@ -320,7 +320,7 @@ class MarketingReportController extends Controller
         $optLabels = ['suggest' => '제안', 'hope' => '희망', 'target' => '목표', 'confirmed' => '확정'];
         $dows = ['일', '월', '화', '수', '목', '금', '토'];
 
-        $schedules = Schedule::with('assignees:id,name')
+        $schedules = Schedule::topLevel()->with('assignees:id,name')
             ->whereBetween('start_date', [$from, $to])
             ->orderBy('start_date')->orderBy('is_all_day', 'desc')->orderBy('start_time')
             ->get();

@@ -117,9 +117,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/events/change-log', [CalendarController::class, 'changeLog']); // 사이드바 삭제/변경 이력 (문장 로그)
     Route::get('/api/events/trashed', [CalendarController::class, 'trashed'])->middleware('permission:calendar.edit');
     Route::get('/api/events/{schedule}/detail', [CalendarController::class, 'detail']);
+    Route::get('/api/events/{schedule}/children', [CalendarController::class, 'childrenIndex']); // 장기 일정 하위 목록
     Route::get('/api/events/{schedule}/history', [CalendarController::class, 'history']);
     Route::middleware('permission:calendar.edit')->group(function () {
         Route::post('/api/events', [CalendarController::class, 'store'])->name('api.events.store');
+        // 장기 일정 하위 일정 (일자별 시간·담당자)
+        Route::post('/api/events/{schedule}/children', [CalendarController::class, 'childrenStore']);
+        Route::patch('/api/events/children/{child}', [CalendarController::class, 'childrenUpdate']);
+        Route::delete('/api/events/children/{child}', [CalendarController::class, 'childrenDestroy']);
         Route::post('/api/events/{schedule}/complete', [CalendarController::class, 'complete']);
         Route::post('/api/events/{schedule}/uncomplete', [CalendarController::class, 'uncomplete']);
         Route::post('/api/events/{id}/restore', [CalendarController::class, 'restore'])->withTrashed();

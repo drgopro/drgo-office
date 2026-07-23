@@ -150,9 +150,9 @@ class DashboardController extends Controller
             CalendarCategory::keysByLabel('디자인', ['design']),
             CalendarCategory::keysByLabel('렌탈', ['rental']),
         );
-        $scheduleThisMonth = Schedule::whereNotIn('color', $excludedScheduleCats)
+        $scheduleThisMonth = Schedule::topLevel()->whereNotIn('color', $excludedScheduleCats)
             ->where('start_date', '>=', now()->startOfMonth())->where('start_date', '<=', now()->endOfMonth())->count();
-        $scheduleByColor = Schedule::select('color', DB::raw('count(*) as cnt'))->groupBy('color')->pluck('cnt', 'color');
+        $scheduleByColor = Schedule::topLevel()->select('color', DB::raw('count(*) as cnt'))->groupBy('color')->pluck('cnt', 'color');
 
         // 규모별 프로젝트 (이번 달 기준) — 컬럼 있을 때만
         $scaleThisMonth = collect();
@@ -215,7 +215,7 @@ class DashboardController extends Controller
         $today = now()->toDateString();
         $catMap = CalendarCategory::map();
         $catColors = CalendarCategory::colors(); // 대시보드 카테고리 점 색상 — 캘린더 실제 색과 동기화
-        $todaySchedules = Schedule::with('assignees:id,name')
+        $todaySchedules = Schedule::topLevel()->with('assignees:id,name')
             ->whereDate('start_date', '<=', $today)
             ->where(fn ($q) => $q->whereDate('end_date', '>=', $today)->orWhereNull('end_date'))
             ->where(fn ($q) => $q->where('is_private', false)->orWhere('created_by', auth()->id()))

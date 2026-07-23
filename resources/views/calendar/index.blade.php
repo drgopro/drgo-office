@@ -2908,7 +2908,7 @@ function renderMonth() {
         const _d=v=>(v||'').substring(0,10); // 날짜 정규화 (시간 접미 방어)
         // 휴가/개인(red)은 리스트 상단 우선 — 레인 배정을 먼저 받아 위쪽 바를 차지 (주 단위 고정이라 바 연속성 유지)
         const redFirst=(a,b)=>((b.color==='red')-(a.color==='red'));
-        const weekMulti=events.filter(ev=>isFiltered(ev)&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
         weekMulti.sort((a,b)=> redFirst(a,b) || a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
         const laneOf={};
         const lanes=[];
@@ -2939,7 +2939,7 @@ function renderMonth() {
                 // 그날 일정의 카테고리 색 점 (중복 제거, 최대 3개)
                 const dayCats=[];
                 events.forEach(ev=>{
-                    if(!isFiltered(ev)||!evCoversDate(ev,cell.full)) return;
+                    if(!isFiltered(ev)||ev.parent_id||!evCoversDate(ev,cell.full)) return;
                     if(!dayCats.includes(ev.color)) dayCats.push(ev.color);
                 });
                 if(dayCats.length){
@@ -2971,7 +2971,7 @@ function renderMonth() {
             const hiddenMultiHere=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&evCoversDate(ev,cell.full)).length;
 
             // 단일 일정(시간순) — 다른 달 셀(회색)에도 표시. 휴가/개인은 상단 우선 (그룹 내 시간순 유지: stable sort)
-            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===cell.full)).sort(redFirst);
+            const singles=sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===cell.full)).sort(redFirst);
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
@@ -3926,7 +3926,9 @@ function renderLockSummary(){
         && document.getElementById('btnComplete')?.style.display !== 'none';
     const mobileCta = canComplete ? '<button type="button" class="ls-mobile-cta" onclick="toggleCompleteFromDetail()">현장 확인 완료</button>' : '';
 
-    container.innerHTML = metaRow + `<div class="ls-grid"><div class="ls-col">${left.join('')}</div><div class="ls-col">${right.join('')}</div></div>` + mobileCta;
+    container.innerHTML = metaRow + `<div class="ls-grid"><div class="ls-col">${left.join('')}</div><div class="ls-col">${right.join('')}</div></div>` + mobileCta
+        + `<div id="lsChildren"></div>`;
+    renderChildrenCard();
     if (lsProjSummaryPid) lsLoadProjectSummary(lsProjSummaryPid);
 }
 
@@ -4974,6 +4976,11 @@ function updateReasonFieldVisibility(){
 }
 
 function openDetailModal(ev) {
+    // 하위 일정 클릭 시 부모(장기 일정) 모달을 열어 세부 일정을 한곳에서 관리
+    if (ev && ev.parent_id) {
+        const p = events.find(e => e.id === ev.parent_id);
+        if (p) ev = p;
+    }
     if(isGuestUser) return;
     detailEvent = ev;
     viewMode = true;
@@ -5910,6 +5917,135 @@ function lbBindPin(on){
     if(on&&!__lbPinBound){ vv.addEventListener('resize',lbPinClose); vv.addEventListener('scroll',lbPinClose); __lbPinBound=true; }
     else if(!on&&__lbPinBound){ vv.removeEventListener('resize',lbPinClose); vv.removeEventListener('scroll',lbPinClose); __lbPinBound=false; }
 }
+// ── 장기 일정 하위 일정 (일자별 시간·담당자) — 요약 뷰 카드에서 관리 ──
+let CHILD_ROWS=[], CH_ASSIGNEES=[], CH_EDIT_ID=null, CH_MODE='range';
+function childSpanDays(){
+    if(!editingId) return 0;
+    const ev=events.find(e=>e.id===editingId); if(!ev) return 0;
+    return (new Date(ev.end_date||ev.start_date)-new Date(ev.start_date))/86400000+1;
+}
+async function renderChildrenCard(){
+    const box=document.getElementById('lsChildren');
+    if(!box) return;
+    const ev=editingId?events.find(e=>e.id===editingId):null;
+    if(!ev || ev.parent_id || childSpanDays()<2){ box.innerHTML=''; return; }
+    try{
+        const res=await fetch(`/api/events/${ev.id}/children`,{headers:{'Accept':'application/json'}});
+        CHILD_ROWS=res.ok?await res.json():[];
+    }catch(e){ CHILD_ROWS=[]; }
+    const rows=CHILD_ROWS.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:13px;">
+        <b style="flex-shrink:0;">${c.start_date===c.end_date?c.start_date:`${c.start_date} ~ ${c.end_date}`}</b>
+        <span style="color:var(--accent);font-weight:700;">${c.start_time||''}${c.end_time?'~'+c.end_time:''}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);">${(c.assignees||[]).map(a=>_esc(a.name)).join(', ')}${c.memo?' · '+_esc(c.memo):''}</span>
+        ${canEditCalendar?`<button onclick="chEdit(${c.id})" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:3px 8px;cursor:pointer;">수정</button>
+        <button onclick="chDelete(${c.id})" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:11px;padding:3px 8px;cursor:pointer;">삭제</button>`:''}
+    </div>`).join('');
+    if(!canEditCalendar){
+        box.innerHTML=CHILD_ROWS.length?`<div class="ls-card" style="margin-top:14px;">
+            <div class="ls-card-head"><span class="ls-card-title">일자별 세부 일정</span><span class="ls-card-extra">${CHILD_ROWS.length}건</span></div>${rows}</div>`:'';
+        return;
+    }
+    box.innerHTML=`<div class="ls-card" style="margin-top:14px;">
+        <div class="ls-card-head"><span class="ls-card-title">일자별 세부 일정</span><span class="ls-card-extra">${CHILD_ROWS.length}건 · 요일/기간별 시간·담당자</span></div>
+        ${rows||'<div style="font-size:12px;color:var(--text-muted);padding:4px 0 8px;">등록된 세부 일정이 없습니다. 아래에서 날짜별 시간을 지정하세요.</div>'}
+        <div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:10px;">
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
+                <button onclick="chSetMode('range')" id="chModeRange" style="padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">기간</button>
+                <button onclick="chSetMode('dates')" id="chModeDates" style="padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">개별 날짜</button>
+                <span id="chEditBadge" style="display:none;font-size:11px;color:var(--accent);align-self:center;">수정 중 — 저장 시 반영</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+                <span id="chRangeWrap" style="display:flex;gap:6px;"><input type="date" id="chStart" class="field-input" style="width:auto;"><input type="date" id="chEnd" class="field-input" style="width:auto;"></span>
+                <span id="chDatesWrap" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <input type="date" id="chDatePick" class="field-input" style="width:auto;">
+                    <button onclick="chAddDate()" style="padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text);font-size:12px;cursor:pointer;">+ 날짜</button>
+                    <span id="chDateChips" style="display:inline-flex;gap:4px;flex-wrap:wrap;"></span>
+                </span>
+                <input type="time" id="chTimeS" class="field-input" style="width:auto;">
+                <input type="time" id="chTimeE" class="field-input" style="width:auto;">
+                <input type="text" id="chMemo" class="field-input" placeholder="메모 (선택)" style="width:140px;">
+            </div>
+            <div id="chAssigneeChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
+                <button id="chCancelBtn" onclick="chResetForm()" style="display:none;padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">취소</button>
+                <button onclick="chSubmit()" style="padding:6px 16px;border-radius:7px;border:none;background:var(--accent);color:var(--accent-text);font-size:12px;font-weight:700;cursor:pointer;" id="chSubmitBtn">추가</button>
+            </div>
+        </div>
+    </div>`;
+    CH_DATES=[]; chRenderAssignees(); chSetMode(CH_MODE);
+}
+let CH_DATES=[];
+function chSetMode(m){
+    CH_MODE=m;
+    const r=document.getElementById('chModeRange'), d=document.getElementById('chModeDates');
+    if(!r) return;
+    [[r,'range'],[d,'dates']].forEach(([b,k])=>{ b.style.background=m===k?'var(--accent)':'none'; b.style.color=m===k?'var(--accent-text)':'var(--text-muted)'; b.style.borderColor=m===k?'var(--accent)':'var(--border)'; });
+    document.getElementById('chRangeWrap').style.display=m==='range'?'flex':'none';
+    document.getElementById('chDatesWrap').style.display=m==='dates'?'inline-flex':'none';
+}
+function chAddDate(){
+    const v=document.getElementById('chDatePick').value;
+    if(v&&!CH_DATES.includes(v)){ CH_DATES.push(v); CH_DATES.sort(); chRenderDates(); }
+}
+function chRenderDates(){
+    document.getElementById('chDateChips').innerHTML=CH_DATES.map(d=>`<span style="padding:3px 8px;border:1px solid var(--accent);border-radius:999px;font-size:11px;color:var(--accent);">${d} <a onclick="CH_DATES=CH_DATES.filter(x=>x!=='${d}');chRenderDates()" style="cursor:pointer;">✕</a></span>`).join('');
+}
+function chRenderAssignees(){
+    const wrap=document.getElementById('chAssigneeChips'); if(!wrap) return;
+    wrap.innerHTML=(assignees||[]).filter(a=>a.is_active!==false).map(a=>{
+        const idx=CH_ASSIGNEES.indexOf(a.id), on=idx!==-1;
+        return `<button onclick="chToggleAssignee(${a.id})" style="padding:4px 10px;border-radius:999px;font-size:11.5px;cursor:pointer;border:1px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--accent)':'none'};color:${on?'var(--accent-text)':'var(--text-muted)'};font-weight:${on?700:400};">${on?(idx+1)+'. ':''}${_esc(a.name)}</button>`;
+    }).join('');
+}
+function chToggleAssignee(id){
+    const i=CH_ASSIGNEES.indexOf(id);
+    if(i!==-1) CH_ASSIGNEES.splice(i,1); else CH_ASSIGNEES.push(id);
+    chRenderAssignees();
+}
+function chResetForm(){ CH_EDIT_ID=null; CH_DATES=[]; CH_ASSIGNEES=[]; renderChildrenCard(); }
+function chEdit(id){
+    const c=CHILD_ROWS.find(x=>x.id===id); if(!c) return;
+    CH_EDIT_ID=id; CH_MODE='range'; chSetMode('range');
+    document.getElementById('chStart').value=c.start_date;
+    document.getElementById('chEnd').value=c.end_date;
+    document.getElementById('chTimeS').value=c.start_time||'';
+    document.getElementById('chTimeE').value=c.end_time||'';
+    document.getElementById('chMemo').value=c.memo||'';
+    CH_ASSIGNEES=(c.assignees||[]).map(a=>a.id); chRenderAssignees();
+    document.getElementById('chEditBadge').style.display='';
+    document.getElementById('chCancelBtn').style.display='';
+    document.getElementById('chSubmitBtn').textContent='저장';
+}
+async function chDelete(id){
+    if(!confirm('이 세부 일정을 삭제할까요?')) return;
+    const res=await fetch(`/api/events/children/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(res.ok){ renderChildrenCard(); loadEvents(); } else alert('삭제 실패');
+}
+async function chSubmit(){
+    const ts=document.getElementById('chTimeS').value;
+    if(!ts) return alert('시작 시간을 입력하세요.');
+    const body={ start_time:ts, end_time:document.getElementById('chTimeE').value||null,
+        assignees:CH_ASSIGNEES, memo:document.getElementById('chMemo').value.trim()||null };
+    let url, method;
+    if(CH_EDIT_ID){
+        url=`/api/events/children/${CH_EDIT_ID}`; method='PATCH';
+        body.start_date=document.getElementById('chStart').value;
+        body.end_date=document.getElementById('chEnd').value||body.start_date;
+        if(!body.start_date) return alert('날짜를 입력하세요.');
+    } else if(CH_MODE==='dates'){
+        if(!CH_DATES.length) return alert('날짜를 추가하세요.');
+        url=`/api/events/${editingId}/children`; method='POST'; body.dates=CH_DATES;
+    } else {
+        body.start_date=document.getElementById('chStart').value;
+        body.end_date=document.getElementById('chEnd').value||body.start_date;
+        if(!body.start_date) return alert('시작 날짜를 입력하세요.');
+        url=`/api/events/${editingId}/children`; method='POST';
+    }
+    const res=await fetch(url,{method,headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:JSON.stringify(body)});
+    if(res.ok){ chResetForm(); loadEvents(); }
+    else{ const e=await res.json().catch(()=>({})); alert(e.message||'저장 실패'); }
+}
+
 function lightboxNav(dir){
     lightboxIdx=(lightboxIdx+dir+lightboxImages.length)%lightboxImages.length;
     lbResetZoom();

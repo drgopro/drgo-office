@@ -13,6 +13,7 @@ class Schedule extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
+        'parent_id',
         'title',
         'start_date',
         'end_date',
@@ -71,6 +72,37 @@ class Schedule extends Model
         'completed_at' => 'datetime',
         'notified_at' => 'datetime',
     ];
+
+    /** 장기 일정의 하위 일정 (일자별 시간·담당자) — 날짜·시간순 */
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id')
+            ->orderBy('start_date')->orderBy('start_time');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /** 상위 일정만 (하위 제외) — 집계·목록용 */
+    public function scopeTopLevel($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
+    /** 하위 담당자 합집합을 부모 담당자에 반영 (기존 순서 유지, 새 인원은 뒤에 추가) */
+    public function syncAssigneesFromChildren(): void
+    {
+        $current = $this->assignees->pluck('id')->all();
+        $childIds = self::where('parent_id', $this->id)
+            ->with('assignees')->get()
+            ->flatMap(fn ($c) => $c->assignees->pluck('id'))->unique()->all();
+        $merged = array_values(array_unique([...$current, ...$childIds]));
+        if ($merged !== $current) {
+            $this->syncAssigneesOrdered($merged);
+        }
+    }
 
     public function assignees()
     {
