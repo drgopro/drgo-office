@@ -1004,136 +1004,118 @@ function renderClientContent(id) {
         <div class="sub-panel active" id="sub-info-${id}">
             {{-- 조회 뷰 (기본) — 디자인 3a: 좌측 섹션 타이틀 레일 + 우측 값 그리드 --}}
             <div id="view-info-${id}">${renderClientView(d)}</div>
-            {{-- 수정 폼 (수정 버튼으로 전환) --}}
-            <div id="edit-info-${id}" style="display:none;">
-            <div class="form-grid">
-                <div class="field">
-                    <div class="field-label">닉네임 *</div>
-                    <input class="field-input" id="f-nickname-${id}" value="${_esc(d.nickname||'')}">
-                </div>
-                <div class="field">
-                    <div class="field-label">이름</div>
-                    <input class="field-input" id="f-name-${id}" value="${_esc(d.name||'')}">
-                </div>
-                <div class="field">
-                    <div class="field-label">전화번호</div>
-                    <input class="field-input" id="f-phone-${id}" value="${_esc(d.phone||'')}">
-                </div>
-                <div class="field">
-                    <div class="field-label">고객 유형</div>
-                    <select class="field-input field-select" id="f-grade-${id}">
-                        <option value="normal" ${d.grade==='normal'?'selected':''}>일반</option>
-                        <option value="vip" ${d.grade==='vip'?'selected':''}>VIP</option>
-                        <option value="rental" ${d.grade==='rental'?'selected':''}>렌탈</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <div class="field-label">소속</div>
-                    <input class="field-input" id="f-affiliation-${id}" value="${_esc(d.affiliation||'')}">
-                </div>
-                <div class="field">
-                    <div class="field-label">성별</div>
-                    <select class="field-input field-select" id="f-gender-${id}">
-                        <option value="">미지정</option>
-                        <option value="female" ${d.gender==='female'?'selected':''}>여성</option>
-                        <option value="male" ${d.gender==='male'?'selected':''}>남성</option>
-                        <option value="other" ${d.gender==='other'?'selected':''}>기타</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-grid" style="margin-top:14px;">
-                <div class="field" style="grid-column:1/-1;">
-                    <div class="field-label">주소</div>
-                    <div style="display:flex; gap:6px;">
-                        <input class="field-input" id="f-address-${id}" value="${_esc(d.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
-                        <button class="btn-save" onclick="searchAddress(${id})" style="white-space:nowrap;">주소 검색</button>
+            {{-- 수정 폼 (수정 버튼으로 전환) — 등록 모달과 동일한 번호 카드 + 작성 현황 사이드바 --}}
+            <div id="edit-info-${id}" class="ncm" style="display:none;" oninput="ceRefresh(${id})" onchange="ceRefresh(${id})">
+            <div class="ncm-body" style="padding:0;">
+            <div class="ncm-cards">
+                <div class="ncm-card" data-sec="플랫폼 / 방송">
+                    <div class="ncm-card-head"><span class="ncm-no">01</span><span class="ncm-title">플랫폼 / 방송 정보</span><span class="ncm-cnt"></span></div>
+                    <div class="ncm-label">플랫폼</div>
+                    ${renderCheckboxGroup('platforms', id, PLATFORM_OPTIONS, d.platforms||[], d.platform_etc||'')}
+                    <div class="ncm-label" style="margin-top:16px;">방송 주제</div>
+                    ${renderCheckboxGroup('topics', id, TOPIC_OPTIONS, d.content_types||[], d.topic_etc||'')}
+                    <div class="ncm-grid2" style="margin-top:16px;">
+                        <div><div class="ncm-label">방송 아이디</div><input class="field-input" id="f-broadcast_id-${id}" value="${_esc(d.broadcast_id||'')}" placeholder="플랫폼 방송 ID/채널명"></div>
+                        <div><div class="ncm-label">방송 경력</div>
+                            <select class="field-input field-select" id="f-career-${id}">
+                                <option value="">선택</option>
+                                <option value="처음" ${d.career==='처음'?'selected':''}>처음</option>
+                                <option value="초보" ${d.career==='초보'?'selected':''}>초보</option>
+                                <option value="경력" ${d.career==='경력'?'selected':''}>경력</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div class="field" style="grid-column:1/-1;">
-                    <div class="field-label">상세주소</div>
-                    <input class="field-input" id="f-address_detail-${id}" value="${_esc(d.address_detail||'')}">
+
+                <div class="ncm-card" data-sec="기본 정보">
+                    <div class="ncm-card-head"><span class="ncm-no">02</span><span class="ncm-title">기본 정보</span><span class="ncm-cnt"></span></div>
+                    <div class="ncm-grid2">
+                        <div><div class="ncm-label">닉네임 *</div><input class="field-input" id="f-nickname-${id}" value="${_esc(d.nickname||'')}"></div>
+                        <div><div class="ncm-label">이름</div><input class="field-input" id="f-name-${id}" value="${_esc(d.name||'')}"></div>
+                        <div><div class="ncm-label">전화번호</div><input class="field-input" id="f-phone-${id}" value="${_esc(d.phone||'')}"></div>
+                        <div><div class="ncm-label">등급</div>
+                            <select class="field-input field-select" id="f-grade-${id}">
+                                <option value="normal" ${d.grade==='normal'?'selected':''}>일반</option>
+                                <option value="vip" ${d.grade==='vip'?'selected':''}>VIP</option>
+                                <option value="rental" ${d.grade==='rental'?'selected':''}>렌탈</option>
+                            </select>
+                        </div>
+                        <div><div class="ncm-label">성별</div>
+                            <select class="field-input field-select" id="f-gender-${id}">
+                                <option value="">미지정</option>
+                                <option value="female" ${d.gender==='female'?'selected':''}>여성</option>
+                                <option value="male" ${d.gender==='male'?'selected':''}>남성</option>
+                                <option value="other" ${d.gender==='other'?'selected':''}>기타</option>
+                            </select>
+                        </div>
+                        <div><div class="ncm-label">소속</div><input class="field-input" id="f-affiliation-${id}" value="${_esc(d.affiliation||'')}"></div>
+                        <div><div class="ncm-label">의뢰자 유형</div>
+                            <select class="field-input field-select" id="f-client_type-${id}">
+                                <option value="">선택</option>
+                                <option value="personal" ${d.client_type==='personal'?'selected':''}>개인</option>
+                                <option value="enterprise" ${d.client_type==='enterprise'?'selected':''}>엔터</option>
+                                <option value="studio" ${d.client_type==='studio'?'selected':''}>스튜디오</option>
+                            </select>
+                        </div>
+                        <div><div class="ncm-label">최초 등록일</div><input class="field-input" data-ce-skip value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;"></div>
+                    </div>
+                    <div style="margin-top:14px;"><div class="ncm-label">주소</div>
+                        <div style="display:flex; gap:8px;">
+                            <input class="field-input" id="f-address-${id}" value="${_esc(d.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
+                            <button class="ncm-btn primary" style="white-space:nowrap;" onclick="searchAddress(${id})">주소 검색</button>
+                        </div>
+                        <input class="field-input" id="f-address_detail-${id}" value="${_esc(d.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+                    </div>
+                    <div style="margin-top:14px;"><div class="ncm-label">특이사항</div>
+                        <textarea class="field-input field-textarea" id="f-important_memo-${id}">${_esc(d.important_memo||'')}</textarea>
+                    </div>
                 </div>
-            </div>
-            <div class="form-grid full" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">특이사항</div>
-                    <textarea class="field-input field-textarea" id="f-important_memo-${id}">${_esc(d.important_memo||'')}</textarea>
+
+                {{-- 03 장비 정보 — 직접 입력 없음, 프로젝트 자동 연동 (읽기 전용 요약) --}}
+                <div class="ncm-card ncm-equip">
+                    <div class="ncm-card-head"><span class="ncm-no">03</span><span class="ncm-title">장비 정보</span><span class="ncm-badge">자동 연동</span></div>
+                    <div class="ncm-equip-note">
+                        <span class="ncm-equip-ico">⟳</span>
+                        <div>장비 정보는 <b>프로젝트에서 자동으로 불러옵니다.</b> 수정은 해당 프로젝트에서 해주세요.${d.last_project_equipment ? ` <a class="cv-eqlink" href="/projects/${d.last_project_equipment.project_id}">「${_esc(d.last_project_equipment.project_name)}」 열기 →</a>` : ''}</div>
+                    </div>
                 </div>
-            </div>
-            <div class="form-grid full" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">플랫폼</div>
-                    ${renderCheckboxGroup('platforms', id, PLATFORM_OPTIONS, d.platforms||[], d.platform_etc||'')}
+
+                <div class="ncm-card" data-sec="의뢰자 성향">
+                    <div class="ncm-card-head"><span class="ncm-no">04</span><span class="ncm-title">의뢰자 성향</span><span class="ncm-cnt"></span></div>
+                    <div class="ncm-label">의뢰자 성격</div>
+                    <textarea class="field-input field-textarea" id="f-personality-${id}" rows="2" placeholder="예: 꼼꼼함, 빠른 결정, 의견 수용 적극적">${_esc(d.personality||'')}</textarea>
+                    <div class="ncm-label" style="margin-top:14px;">예산 성향</div>
+                    ${renderBudgetField(id, d.budget_style)}
                 </div>
-            </div>
-            <div class="form-grid full" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">방송 주제</div>
-                    ${renderCheckboxGroup('topics', id, TOPIC_OPTIONS, d.content_types||[], d.topic_etc||'')}
-                </div>
-            </div>
-            <div class="form-grid" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">방송 경력</div>
-                    <select class="field-input field-select" id="f-career-${id}">
-                        <option value="">선택</option>
-                        <option value="처음" ${d.career==='처음'?'selected':''}>처음</option>
-                        <option value="초보" ${d.career==='초보'?'selected':''}>초보</option>
-                        <option value="경력" ${d.career==='경력'?'selected':''}>경력</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <div class="field-label">의뢰자 유형</div>
-                    <select class="field-input field-select" id="f-client_type-${id}">
-                        <option value="">선택</option>
-                        <option value="personal" ${d.client_type==='personal'?'selected':''}>개인</option>
-                        <option value="enterprise" ${d.client_type==='enterprise'?'selected':''}>엔터</option>
-                        <option value="studio" ${d.client_type==='studio'?'selected':''}>스튜디오</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-grid" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">방송 아이디</div>
-                    <input class="field-input" id="f-broadcast_id-${id}" value="${_esc(d.broadcast_id||'')}" placeholder="플랫폼 방송 ID/채널명">
-                </div>
-                <div class="field">
-                    <div class="field-label">최초 등록일</div>
-                    <input class="field-input" value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;">
-                </div>
-            </div>
-            <div class="form-grid full" style="margin-top:14px;">
-                <div class="field">
-                    <div class="field-label">유입경로</div>
+
+                <div class="ncm-card" data-sec="유입경로">
+                    <div class="ncm-card-head"><span class="ncm-no">05</span><span class="ncm-title">유입경로</span><span class="ncm-cnt"></span></div>
                     ${renderInflowField(id, d.inflow_source)}
                 </div>
-            </div>
 
-            <!-- 의뢰자 성향 -->
-            <div style="margin-top:18px; padding:14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px;">
-                <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:10px;">의뢰자 성향</div>
-                <div class="form-grid full">
-                    <div class="field">
-                        <div class="field-label">의뢰자 성격</div>
-                        <textarea class="field-input field-textarea" id="f-personality-${id}" rows="2" placeholder="예: 꼼꼼함, 빠른 결정, 의견 수용 적극적">${_esc(d.personality||'')}</textarea>
-                    </div>
-                </div>
-                <div class="form-grid full" style="margin-top:10px;">
-                    <div class="field">
-                        <div class="field-label">예산 성향</div>
-                        ${renderBudgetField(id, d.budget_style)}
-                    </div>
+                {{-- 동적 필드 (관리자 정의, 장비 섹션 제외) --}}
+                ${renderCustomFields(d.custom_data || {}, id, true)}
+
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="ncm-btn" onclick="clientEditMode(${id},false)">취소</button>
+                    <button class="ncm-btn primary" onclick="saveClient(${id})">저장</button>
                 </div>
             </div>
 
-            <!-- 동적 필드 (관리자 정의) -->
-            ${renderCustomFields(d.custom_data || {}, id)}
-
-            <!-- 장비 정보: 최근 프로젝트의 '장비 정보' 동적 필드 요약 -->
-            ${renderEquipmentSummary(d.last_project_equipment)}
-
-            <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
-                <button class="btn-save" onclick="saveClient(${id})">저장</button>
+            {{-- 작성 현황 사이드바 (등록 모달과 동일) --}}
+            <div class="ncm-side" style="top:10px;">
+                <div class="ncm-side-card">
+                    <div class="ncm-side-title">작성 현황</div>
+                    <div class="ncm-prog"><span class="ncm-pct" id="ce-pct-${id}">0%</span><span class="ncm-prog-sub" id="ce-cnt-${id}"></span></div>
+                    <div class="ncm-bar"><div id="ce-bar-${id}"></div></div>
+                    <div class="ncm-secs" id="ce-secs-${id}"></div>
+                </div>
+                <div class="ncm-side-card">
+                    <div class="ncm-side-title">남은 필수 항목</div>
+                    <div id="ce-req-${id}" style="display:flex;flex-wrap:wrap;gap:6px;"><span class="ncm-req">닉네임</span></div>
+                    <div class="ncm-req-done" id="ce-req-done-${id}" style="display:none;">✓ 필수 항목 완료</div>
+                </div>
+            </div>
             </div>
             </div>{{-- /edit-info --}}
 
@@ -1695,7 +1677,16 @@ async function saveClient(id) {
         client_type: document.getElementById(`f-client_type-${id}`)?.value || null,
         personality: document.getElementById(`f-personality-${id}`)?.value || null,
         budget_style: collectBudgetStyle(`budget-${id}`),
-        custom_data: collectCustomData(id),
+        custom_data: (() => {
+            const collected = collectCustomData(id);
+            // 장비 섹션은 수정 폼에서 제외(프로젝트 연동) — 의뢰자에 남아있는 기존 장비 값은 보존
+            const t = openClientTabs.find(x => x.id === id);
+            const prev = t?.data?.custom_data || {};
+            (customFieldDefs || []).filter(f => f.section === 'equipment').forEach(f => {
+                if (!(f.key in collected) && prev[f.key] !== undefined) collected[f.key] = prev[f.key];
+            });
+            return collected;
+        })(),
     };
 
     const res = await fetch(`/api/clients/${id}`, {
@@ -2016,6 +2007,43 @@ function renderClientView(d) {
         ${customSections}
     </div>`;
 }
+// 수정 폼 작성 현황 (등록 모달의 ncmRefresh와 동일 규칙 — 카드별 채움/전체 %/필수)
+function ceRefresh(id) {
+    const root = document.getElementById('edit-info-' + id);
+    if (!root) return;
+    const cards = [...root.querySelectorAll('.ncm-card[data-sec]')];
+    let filled = 0, total = 0;
+    const secs = cards.map((card, i) => {
+        let f = 0, t = 0;
+        card.querySelectorAll('input.field-input, select.field-input, textarea.field-input').forEach(el => {
+            if (el.hasAttribute('data-ce-skip') || /-etc-/.test(el.id || '')) return; // 등록일·기타 입력 제외
+            t++;
+            if ((el.value || '').trim()) f++;
+        });
+        card.querySelectorAll('.chk-group').forEach(g => { t++; if (g.querySelector('input:checked')) f++; });
+        filled += f; total += t;
+        const cnt = card.querySelector('.ncm-cnt');
+        if (cnt) cnt.textContent = `${f}/${t} 작성`;
+        return { name: card.dataset.sec, no: String(i+1).padStart(2,'0'), f, t };
+    });
+    const pct = total ? Math.round(filled/total*100) : 0;
+    const set = (elId, v) => { const el = document.getElementById(elId); if (el) el.textContent = v; };
+    set('ce-pct-' + id, pct + '%');
+    set('ce-cnt-' + id, `${filled}/${total} 항목`);
+    const bar = document.getElementById('ce-bar-' + id);
+    if (bar) bar.style.width = pct + '%';
+    const secsEl = document.getElementById('ce-secs-' + id);
+    if (secsEl) secsEl.innerHTML = secs.map(s => `
+        <div class="ncm-sec-row ${s.f >= s.t && s.t > 0 ? 'done' : ''}">
+            <span class="ncm-sec-no">${s.f >= s.t && s.t > 0 ? '✓' : s.no}</span>
+            <span>${s.name}</span><span class="ncm-sec-cnt">${s.f}/${s.t}</span>
+        </div>`).join('');
+    const nick = (document.getElementById('f-nickname-' + id)?.value || '').trim();
+    const req = document.getElementById('ce-req-' + id), reqDone = document.getElementById('ce-req-done-' + id);
+    if (req) req.style.display = nick ? 'none' : 'flex';
+    if (reqDone) reqDone.style.display = nick ? '' : 'none';
+}
+
 // 조회 ↔ 수정 전환
 function clientEditMode(id, on) {
     const v = document.getElementById('view-info-' + id);
@@ -2026,8 +2054,8 @@ function clientEditMode(id, on) {
     document.getElementById('ce-edit-' + id).style.display = on ? 'none' : '';
     document.getElementById('ce-save-' + id).style.display = on ? '' : 'none';
     document.getElementById('ce-cancel-' + id).style.display = on ? '' : 'none';
-    // 기본 정보 탭으로 이동 (다른 탭에서 수정 눌렀을 때)
-    if (on) { const tab = document.querySelector(`#subtabs-${id} .sub-tab`); if (tab) tab.click(); }
+    // 기본 정보 탭으로 이동 (다른 탭에서 수정 눌렀을 때) + 작성 현황 초기화
+    if (on) { const tab = document.querySelector(`#subtabs-${id} .sub-tab`); if (tab) tab.click(); ceRefresh(id); }
 }
 
 // 장비 정보 요약: 최근 프로젝트의 '장비 정보' 동적 필드(custom_data) 만 보여줌
@@ -2089,13 +2117,14 @@ function renderEquipmentSummary(latest) {
     </div>`;
 }
 
-function renderCustomFields(customData, clientId) {
+function renderCustomFields(customData, clientId, skipEquipment) {
     if (!customFieldDefs || !customFieldDefs.length) return '';
     // section → subsection → fields 2단 그룹핑 + priority 집계
     const grouped = {};
     const subMaxPrio = {}; // key: `${sec}::${sub}` → max priority
     customFieldDefs.forEach(f => {
         const sec = f.section || 'etc';
+        if (skipEquipment && sec === 'equipment') return; // 장비는 프로젝트 연동 — 수정 폼에서 제외
         const sub = f.subsection || '';
         const p = Number.isFinite(parseInt(f.priority, 10)) ? parseInt(f.priority, 10) : 0;
         if (!grouped[sec]) grouped[sec] = {};
