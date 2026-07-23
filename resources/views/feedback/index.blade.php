@@ -319,7 +319,7 @@ function fbBodyHtml(p){
             </div>
         </div>`;
     }
-    else if(p.body) html += `<div class="fb-body-text">${_e(p.body)}</div>`;
+    else if(p.body) html += `<div class="fb-body-text">${fbMentionHtml(p.body)}</div>`;
     if(p.status==='rejected' && p.reject_reason) html += `<div class="fb-reject-box">반려 사유: ${_e(p.reject_reason)}</div>`;
     if(p.attachments.length){
         html += '<div class="fb-att-grid">'+p.attachments.map(a =>
@@ -360,8 +360,8 @@ function fbBodyHtml(p){
     return html;
 }
 
-// @이름 강조 (이스케이프 후 치환)
-function fbBodyHtml(body){
+// @이름 강조 (이스케이프 후 치환) — 게시물 본문 렌더 함수 fbBodyHtml(p)와 다른 함수
+function fbMentionHtml(body){
     return _e(body).replace(/@([\p{L}\p{N}_.\-]+)/gu, '<span class="fb-mention">@$1</span>');
 }
 
@@ -373,7 +373,7 @@ function fbCommentHtml(c, postId, children){
             <div class="fb-comment-head"><b>${_e(c.user||'')}</b>${c.is_dev?'<span class="fb-dev-badge">DEV</span>':''}<span class="fb-comment-date">${c.created_at}</span>
             ${!c.parent_id?`<button class="fb-comment-del" onclick="fbToggleReply(${postId},${c.id})">답글</button>`:''}
             ${(c.is_mine||FB_IS_DEV)?`<button class="fb-comment-del" onclick="fbDeleteComment(${c.id})">삭제</button>`:''}</div>
-            <div class="fb-comment-text">${fbBodyHtml(c.body)}</div>
+            <div class="fb-comment-text">${fbMentionHtml(c.body)}</div>
             ${children.map(r => `<div class="fb-reply">${fbCommentHtml(r, postId, [])}</div>`).join('')}
             ${!c.parent_id?`<div class="fb-comment-form fb-reply-form" id="fbReplyForm${c.id}" style="display:none;">
                 <input type="text" id="fbReplyInput${c.id}" maxlength="2000" data-mention placeholder="답글 남기기 (@이름 으로 멤버 호출)" onkeydown="if(event.key==='Enter'&&!event.isComposing)fbComment(${postId},${c.id})">
