@@ -740,6 +740,42 @@
     .img-remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.75); border:none; color:#fff; width:18px; height:18px; border-radius:50%; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; z-index:1; }
     .img-item:hover .img-remove { opacity:1; }
 
+    /* ── 일자별 세부 일정 카드 (장기 일정 하위) ── */
+    .lsc-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px; background:var(--surface); }
+    .lsc-row b { flex-shrink:0; font-weight:600; }
+    .lsc-time { color:var(--accent); font-weight:700; flex-shrink:0; font-variant-numeric:tabular-nums; }
+    .lsc-who { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted); }
+    .lsc-mini-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:11px; padding:3px 9px; cursor:pointer; flex-shrink:0; }
+    .lsc-mini-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .lsc-mini-btn.danger:hover { border-color:var(--red); color:var(--red); }
+    .lsc-empty { font-size:12px; color:var(--text-muted); padding:4px 0 8px; }
+    .lsc-form { border-top:1px dashed var(--border); margin-top:10px; padding-top:12px; display:flex; flex-direction:column; gap:10px; }
+    .lsc-form-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .lsc-seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .lsc-seg button { border:none; background:none; color:var(--text-muted); font-size:12px; padding:6px 16px; cursor:pointer; transition:all .15s; }
+    .lsc-seg button.on { background:var(--accent); color:var(--accent-text); font-weight:700; }
+    .lsc-edit-badge { font-size:11px; color:var(--accent); font-weight:700; }
+    .lsc-grid { display:grid; grid-template-columns:56px 1fr; gap:9px 10px; align-items:center; }
+    .lsc-lab { font-size:11.5px; color:var(--text-muted); font-weight:600; }
+    .lsc-inline { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .lsc-inline .field-input { width:auto; flex:0 0 auto; }
+    .lsc-tilde { color:var(--text-muted); font-size:13px; }
+    .lsc-date-chip { padding:3px 9px; border:1px solid var(--accent); border-radius:999px; font-size:11px; color:var(--accent); white-space:nowrap; }
+    .lsc-date-chip a { cursor:pointer; margin-left:2px; }
+    .lsc-a-chip { padding:4px 11px; border-radius:999px; font-size:11.5px; cursor:pointer; border:1px solid var(--border); background:none; color:var(--text-muted); transition:all .15s; }
+    .lsc-a-chip.on { border-color:var(--accent); background:var(--accent); color:var(--accent-text); font-weight:700; }
+    .lsc-memo { grid-column:2; }
+    .lsc-actions { display:flex; justify-content:flex-end; gap:6px; }
+    .lsc-btn-primary { padding:7px 18px; border-radius:7px; border:none; background:var(--accent); color:var(--accent-text); font-size:12.5px; font-weight:700; cursor:pointer; }
+    .lsc-btn-ghost { padding:7px 14px; border-radius:7px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12.5px; cursor:pointer; }
+    @media (max-width: 768px) {
+        .lsc-grid { grid-template-columns:1fr; gap:4px; }
+        .lsc-grid .lsc-lab { margin-top:4px; }
+        .lsc-memo { grid-column:1; }
+        .lsc-row { flex-wrap:wrap; }
+        .lsc-who { flex-basis:100%; white-space:normal; }
+    }
+
     /* ── 잠금 요약 뷰 ── */
     .lock-summary { display:none; padding:0 28px 28px; flex-direction:column; gap:18px; }
     .modal-body.is-locked > *:not(#lockSummary) { display:none !important; }
@@ -5955,12 +5991,12 @@ async function renderChildrenCard(){
     if(!box) return;
     CH_BOX=box;
     if(!show){ box.innerHTML=''; return; }
-    const rows=CHILD_ROWS.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:13px;">
-        <b style="flex-shrink:0;">${c.start_date===c.end_date?c.start_date:`${c.start_date} ~ ${c.end_date}`}</b>
-        <span style="color:var(--accent);font-weight:700;">${c.start_time||''}${c.end_time?'~'+c.end_time:''}</span>
-        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);">${(c.assignees||[]).map(a=>_esc(a.name)).join(', ')}${c.memo?' · '+_esc(c.memo):''}</span>
-        ${canEditCalendar?`<button onclick="chEdit(${c.id})" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:11px;padding:3px 8px;cursor:pointer;">수정</button>
-        <button onclick="chDelete(${c.id})" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:11px;padding:3px 8px;cursor:pointer;">삭제</button>`:''}
+    const rows=CHILD_ROWS.map(c=>`<div class="lsc-row">
+        <b>${chFmtDate(c.start_date)}${c.start_date!==c.end_date?' ~ '+chFmtDate(c.end_date):''}</b>
+        <span class="lsc-time">${c.start_time||''}${c.end_time?' ~ '+c.end_time:''}</span>
+        <span class="lsc-who">${(c.assignees||[]).map(a=>_esc(a.name)).join(', ')}${c.memo?' · '+_esc(c.memo):''}</span>
+        ${canEditCalendar?`<button class="lsc-mini-btn" onclick="chEdit(${c.id})">수정</button>
+        <button class="lsc-mini-btn danger" onclick="chDelete(${c.id})">삭제</button>`:''}
     </div>`).join('');
     if(!canEditCalendar){
         box.innerHTML=CHILD_ROWS.length?`<div class="ls-card" style="margin-top:14px;">
@@ -5968,55 +6004,74 @@ async function renderChildrenCard(){
         return;
     }
     box.innerHTML=`<div class="ls-card" style="margin-top:14px;">
-        <div class="ls-card-head"><span class="ls-card-title">일자별 세부 일정</span><span class="ls-card-extra">${CHILD_ROWS.length}건 · 요일/기간별 시간·담당자</span></div>
-        ${rows||'<div style="font-size:12px;color:var(--text-muted);padding:4px 0 8px;">등록된 세부 일정이 없습니다. 아래에서 날짜별 시간을 지정하세요.</div>'}
-        <div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:10px;">
-            <div style="display:flex;gap:6px;margin-bottom:8px;">
-                <button onclick="chSetMode('range')" id="chModeRange" style="padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">기간</button>
-                <button onclick="chSetMode('dates')" id="chModeDates" style="padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">개별 날짜</button>
-                <span id="chEditBadge" style="display:none;font-size:11px;color:var(--accent);align-self:center;">수정 중 — 저장 시 반영</span>
+        <div class="ls-card-head"><span class="ls-card-title">일자별 세부 일정</span><span class="ls-card-extra">${CHILD_ROWS.length}건</span></div>
+        ${rows||'<div class="lsc-empty">등록된 세부 일정이 없습니다. 기간 또는 개별 날짜를 골라 시간을 지정하세요.</div>'}
+        <div class="lsc-form">
+            <div class="lsc-form-top">
+                <div class="lsc-seg">
+                    <button id="chModeRange" onclick="chSetMode('range')">기간</button>
+                    <button id="chModeDates" onclick="chSetMode('dates')">개별 날짜</button>
+                </div>
+                <span id="chEditBadge" class="lsc-edit-badge" style="display:none;">수정 중 — 저장 시 반영</span>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
-                <span id="chRangeWrap" style="display:flex;gap:6px;"><input type="date" id="chStart" class="field-input" style="width:auto;"><input type="date" id="chEnd" class="field-input" style="width:auto;"></span>
-                <span id="chDatesWrap" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
-                    <input type="date" id="chDatePick" class="field-input" style="width:auto;">
-                    <button onclick="chAddDate()" style="padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text);font-size:12px;cursor:pointer;">+ 날짜</button>
-                    <span id="chDateChips" style="display:inline-flex;gap:4px;flex-wrap:wrap;"></span>
+            <div class="lsc-grid">
+                <span class="lsc-lab">날짜</span>
+                <span>
+                    <span id="chRangeWrap" class="lsc-inline"><input type="date" id="chStart" class="field-input"><span class="lsc-tilde">~</span><input type="date" id="chEnd" class="field-input"></span>
+                    <span id="chDatesWrap" class="lsc-inline" style="display:none;">
+                        <input type="date" id="chDatePick" class="field-input">
+                        <button class="lsc-mini-btn" onclick="chAddDate()">+ 추가</button>
+                        <span id="chDateChips" class="lsc-inline"></span>
+                    </span>
                 </span>
-                <input type="time" id="chTimeS" class="field-input" style="width:auto;">
-                <input type="time" id="chTimeE" class="field-input" style="width:auto;">
-                <input type="text" id="chMemo" class="field-input" placeholder="메모 (선택)" style="width:140px;">
+                <span class="lsc-lab">시간</span>
+                <span class="lsc-inline"><input type="time" id="chTimeS" class="field-input"><span class="lsc-tilde">~</span><input type="time" id="chTimeE" class="field-input"></span>
+                <span class="lsc-lab">담당자</span>
+                <span id="chAssigneeChips" class="lsc-inline"></span>
+                <span class="lsc-lab">메모</span>
+                <input type="text" id="chMemo" class="field-input lsc-memo" placeholder="메모 (선택)">
             </div>
-            <div id="chAssigneeChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
-            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
-                <button id="chCancelBtn" onclick="chResetForm()" style="display:none;padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;cursor:pointer;">취소</button>
-                <button onclick="chSubmit()" style="padding:6px 16px;border-radius:7px;border:none;background:var(--accent);color:var(--accent-text);font-size:12px;font-weight:700;cursor:pointer;" id="chSubmitBtn">추가</button>
+            <div class="lsc-actions">
+                <button id="chCancelBtn" class="lsc-btn-ghost" style="display:none;" onclick="chResetForm()">취소</button>
+                <button id="chSubmitBtn" class="lsc-btn-primary" onclick="chSubmit()">추가</button>
             </div>
         </div>
     </div>`;
     CH_DATES=[]; chRenderAssignees(); chSetMode(CH_MODE);
+    // 기간 모드 기본값: 부모 일정 범위 프리필 (빈 폼에서 바로 시간만 고르면 되도록)
+    const pS=(ev.start_date||'').substring(0,10), pE=((ev.end_date||ev.start_date)||'').substring(0,10);
+    if(chEl('chStart') && !chEl('chStart').value){ chEl('chStart').value=pS; chEl('chEnd').value=pE; }
+    if(chEl('chDatePick')){ chEl('chDatePick').min=pS; chEl('chDatePick').max=pE; }
+    if(chEl('chStart')){ chEl('chStart').min=pS; chEl('chStart').max=pE; chEl('chEnd').min=pS; chEl('chEnd').max=pE; }
+}
+// 'YYYY-MM-DD' → '7/1(수)' 짧은 표기
+function chFmtDate(ds){
+    if(!ds) return '';
+    const d=new Date(ds+'T00:00:00');
+    return `${d.getMonth()+1}/${d.getDate()}(${DAYS_KO[d.getDay()]})`;
 }
 let CH_DATES=[];
 function chSetMode(m){
     CH_MODE=m;
     const r=chEl('chModeRange'), d=chEl('chModeDates');
     if(!r) return;
-    [[r,'range'],[d,'dates']].forEach(([b,k])=>{ b.style.background=m===k?'var(--accent)':'none'; b.style.color=m===k?'var(--accent-text)':'var(--text-muted)'; b.style.borderColor=m===k?'var(--accent)':'var(--border)'; });
+    r.classList.toggle('on',m==='range');
+    d.classList.toggle('on',m==='dates');
     chEl('chRangeWrap').style.display=m==='range'?'flex':'none';
-    chEl('chDatesWrap').style.display=m==='dates'?'inline-flex':'none';
+    chEl('chDatesWrap').style.display=m==='dates'?'flex':'none';
 }
 function chAddDate(){
     const v=chEl('chDatePick').value;
     if(v&&!CH_DATES.includes(v)){ CH_DATES.push(v); CH_DATES.sort(); chRenderDates(); }
 }
 function chRenderDates(){
-    chEl('chDateChips').innerHTML=CH_DATES.map(d=>`<span style="padding:3px 8px;border:1px solid var(--accent);border-radius:999px;font-size:11px;color:var(--accent);">${d} <a onclick="CH_DATES=CH_DATES.filter(x=>x!=='${d}');chRenderDates()" style="cursor:pointer;">✕</a></span>`).join('');
+    chEl('chDateChips').innerHTML=CH_DATES.map(d=>`<span class="lsc-date-chip">${chFmtDate(d)} <a onclick="CH_DATES=CH_DATES.filter(x=>x!=='${d}');chRenderDates()">✕</a></span>`).join('');
 }
 function chRenderAssignees(){
     const wrap=chEl('chAssigneeChips'); if(!wrap) return;
     wrap.innerHTML=(assignees||[]).filter(a=>a.is_active!==false).map(a=>{
         const idx=CH_ASSIGNEES.indexOf(a.id), on=idx!==-1;
-        return `<button onclick="chToggleAssignee(${a.id})" style="padding:4px 10px;border-radius:999px;font-size:11.5px;cursor:pointer;border:1px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--accent)':'none'};color:${on?'var(--accent-text)':'var(--text-muted)'};font-weight:${on?700:400};">${on?(idx+1)+'. ':''}${_esc(a.name)}</button>`;
+        return `<button class="lsc-a-chip${on?' on':''}" onclick="chToggleAssignee(${a.id})">${on?(idx+1)+'. ':''}${_esc(a.name)}</button>`;
     }).join('');
 }
 function chToggleAssignee(id){
