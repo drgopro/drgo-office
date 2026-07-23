@@ -121,14 +121,15 @@
     .pl-total b { color:var(--text); }
     .pl-bar { display:flex; height:8px; border-radius:999px; overflow:hidden; background:var(--surface2); margin-bottom:14px; gap:2px; }
     .pl-bar span { display:block; height:100%; border-radius:999px; min-width:4px; }
-    .pl-cards { display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; }
-    .pl-card { border:1px solid var(--border); border-radius:10px; padding:12px 14px; cursor:pointer; background:var(--surface); transition:all 0.15s; }
+    /* 폭이 좁아지면 카드가 자동 줄바꿈 — 고정 5열이 우측 컬럼 밑으로 넘치던 문제 방지 */
+    .pl-cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+    .pl-card { border:1px solid var(--border); border-radius:10px; padding:12px 14px; cursor:pointer; background:var(--surface); transition:all 0.15s; min-width:0; }
     .pl-card:hover { border-color:var(--accent); transform:translateY(-1px); }
-    .pl-card .plc-label { font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; margin-bottom:7px; white-space:nowrap; }
+    .pl-card .plc-label { font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; margin-bottom:7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .pl-card .plc-dot { width:8px; height:8px; border-radius:50%; flex:none; }
     .pl-card .plc-value { font-size:26px; font-weight:800; line-height:1; }
     .pl-card .plc-sub { font-size:10.5px; color:var(--text-muted); margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    @media (max-width:900px) { .pl-cards { grid-template-columns:repeat(2, 1fr); } }
+    @media (max-width:560px) { .pl-cards { grid-template-columns:repeat(2, 1fr); } }
 
     /* 좌(상담 리스트) / 우(공지·업데이트) 2컬럼 */
     .dash-cols { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:start; margin-bottom:28px; }

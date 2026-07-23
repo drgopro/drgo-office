@@ -32,4 +32,14 @@ class DashboardScheduleCountTest extends TestCase
             ->assertOk()
             ->assertViewHas('scheduleThisMonth', 2);
     }
+
+    public function test_consult_status_cards_wrap_instead_of_overflowing(): void
+    {
+        // 고정 5열 그리드가 우측 컬럼 밑으로 넘치던 문제 — 자동 줄바꿈 그리드 유지 확인
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('.pl-cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));', false);
+    }
 }
