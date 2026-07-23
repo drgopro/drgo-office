@@ -143,11 +143,12 @@ class DashboardController extends Controller
         $r3Clients = array_sum(array_column($recent3, 'clients'));
         $r3Revenue = array_sum(array_column($recent3, 'est_paid'));
 
-        // 일정 통계 — 업무 현황 카운트에서 사내업무/휴가·개인/디자인 카테고리는 제외 (실제 의뢰 업무만)
+        // 일정 통계 — 업무 현황 카운트에서 사내업무/휴가·개인/디자인/렌탈 카테고리는 제외 (실제 의뢰 업무만)
         $excludedScheduleCats = array_merge(
             CalendarCategory::keysByLabel('사내업무', ['blue']),
             CalendarCategory::keysByLabel('휴가', ['red']),
             CalendarCategory::keysByLabel('디자인', ['design']),
+            CalendarCategory::keysByLabel('렌탈', ['rental']),
         );
         $scheduleThisMonth = Schedule::whereNotIn('color', $excludedScheduleCats)
             ->where('start_date', '>=', now()->startOfMonth())->where('start_date', '<=', now()->endOfMonth())->count();

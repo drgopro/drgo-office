@@ -24,8 +24,10 @@ class DashboardScheduleCountTest extends TestCase
         Schedule::create(['title' => '연차', 'start_date' => $date, 'end_date' => $date, 'color' => 'red']);
         CalendarCategory::updateOrCreate(['key' => 'design'], ['label' => '디자인', 'color' => '#8888cc', 'text_color' => '#fff', 'sort_order' => 99, 'is_active' => true]);
         Schedule::create(['title' => '로고 제작', 'start_date' => $date, 'end_date' => $date, 'color' => 'design']);
+        CalendarCategory::updateOrCreate(['key' => 'rental'], ['label' => '렌탈', 'color' => '#cc88aa', 'text_color' => '#fff', 'sort_order' => 100, 'is_active' => true]);
+        Schedule::create(['title' => '렌탈 시작', 'start_date' => $date, 'end_date' => $date, 'color' => 'rental']);
 
-        // gold + teal 2건만 집계 (blue/red/design 제외)
+        // gold + teal 2건만 집계 (blue/red/design/rental 제외)
         $this->actingAs($user)->get('/')
             ->assertOk()
             ->assertViewHas('scheduleThisMonth', 2);
