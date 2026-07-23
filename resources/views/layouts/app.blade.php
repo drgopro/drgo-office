@@ -1015,6 +1015,25 @@ window.addEventListener('resize', () => {
     clearTimeout(drgoTabs._fitTimer);
     drgoTabs._fitTimer = setTimeout(() => drgoTabs._fitPanes(), 120);
 });
+
+// ── 레이아웃 진단 오버레이 — 주소 끝에 #fitdebug 붙여 열면 화면 좌하단에 측정값 표시 ──
+if (location.hash === '#fitdebug') {
+    const dbg = document.createElement('div');
+    dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:#000;color:#0f0;font:11px/1.6 monospace;padding:8px 12px;border-radius:8px;opacity:0.92;white-space:pre;pointer-events:none;';
+    document.body.appendChild(dbg);
+    setInterval(() => {
+        const f = document.querySelector('.tab-pane.active iframe');
+        const r = f && f.getBoundingClientRect();
+        dbg.textContent =
+            '창높이(innerHeight): ' + window.innerHeight +
+            '\niframe 유무: ' + (f ? 'O' : 'X (초기 SSR 탭)') +
+            (r ? '\niframe 하단: ' + Math.round(r.bottom) + ' (차이 ' + Math.round(window.innerHeight - r.bottom) + ')' +
+                 '\niframe 시각높이: ' + Math.round(r.height) + ' / offsetH: ' + (f.offsetHeight || 0)
+               : '') +
+            '\nbody zoom: ' + getComputedStyle(document.body).zoom +
+            '\n보정코드: ' + (typeof drgoTabs._fitPanes === 'function' ? '로드됨' : '없음');
+    }, 500);
+}
 </script>
 
 {{-- ── 활동 로그 모달 (글로벌) ── --}}
