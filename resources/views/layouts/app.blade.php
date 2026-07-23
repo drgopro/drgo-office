@@ -1037,6 +1037,16 @@ if (location.hash === '#fitdebug') {
             const de = doc.documentElement;
             lines.push('  내부 뷰포트 ' + win.innerHeight + ' / 문서 ' + de.scrollHeight + ' / 스크롤 ' + Math.round(win.scrollY) + '/' + Math.max(0, de.scrollHeight - win.innerHeight)
                 + ' / chrome-h [' + win.getComputedStyle(doc.body).getPropertyValue('--chrome-h').trim() + ']');
+            // 고정 높이 내부 셸이 있으면 실제 높이·변수값 표시
+            const shellEl = doc.querySelector('.proj-shell, .crm-wrap, .wiki-layout');
+            if (shellEl) {
+                const cs = win.getComputedStyle(shellEl);
+                const sr = shellEl.getBoundingClientRect();
+                lines.push('  내부셸 높이 ' + Math.round(sr.height) + ' (top ' + Math.round(sr.top) + ') / computed ' + cs.height
+                    + ' / 셸 chrome-h [' + cs.getPropertyValue('--chrome-h').trim() + '] full-h [' + cs.getPropertyValue('--full-h').trim() + ']');
+                const wrapEl = shellEl.querySelector('.proj-pane-wrap, .crm-main, .wiki-main');
+                if (wrapEl) lines.push('  판 래퍼 높이 ' + Math.round(wrapEl.getBoundingClientRect().height));
+            }
             depth++;
         }
         dbg.textContent = lines.join('\n');
