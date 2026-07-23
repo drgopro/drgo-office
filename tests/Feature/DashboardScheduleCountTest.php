@@ -20,6 +20,7 @@ class DashboardScheduleCountTest extends TestCase
 
         Schedule::create(['title' => '방문 세팅', 'start_date' => $date, 'end_date' => $date, 'color' => 'gold']);
         Schedule::create(['title' => '원격 지원', 'start_date' => $date, 'end_date' => $date, 'color' => 'teal']);
+        Schedule::create(['title' => '내방 세팅', 'start_date' => $date, 'end_date' => $date, 'color' => 'purple']); // 미팅/내방은 반드시 포함
         Schedule::create(['title' => '사내 회의', 'start_date' => $date, 'end_date' => $date, 'color' => 'blue']);
         Schedule::create(['title' => '연차', 'start_date' => $date, 'end_date' => $date, 'color' => 'red']);
         CalendarCategory::updateOrCreate(['key' => 'design'], ['label' => '디자인', 'color' => '#8888cc', 'text_color' => '#fff', 'sort_order' => 99, 'is_active' => true]);
@@ -27,10 +28,10 @@ class DashboardScheduleCountTest extends TestCase
         CalendarCategory::updateOrCreate(['key' => 'rental'], ['label' => '렌탈', 'color' => '#cc88aa', 'text_color' => '#fff', 'sort_order' => 100, 'is_active' => true]);
         Schedule::create(['title' => '렌탈 시작', 'start_date' => $date, 'end_date' => $date, 'color' => 'rental']);
 
-        // gold + teal 2건만 집계 (blue/red/design/rental 제외)
+        // gold + teal + purple(미팅/내방) 3건 집계 (blue/red/design/rental 제외)
         $this->actingAs($user)->get('/')
             ->assertOk()
-            ->assertViewHas('scheduleThisMonth', 2);
+            ->assertViewHas('scheduleThisMonth', 3);
     }
 
     public function test_work_status_splits_total_and_new_clients(): void
