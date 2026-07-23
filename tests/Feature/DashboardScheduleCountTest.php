@@ -33,6 +33,17 @@ class DashboardScheduleCountTest extends TestCase
             ->assertViewHas('scheduleThisMonth', 2);
     }
 
+    public function test_work_status_splits_total_and_new_clients(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('총 의뢰자')
+            ->assertSee('신규 의뢰자')
+            ->assertSee('grid-template-columns:repeat(5,1fr)', false);
+    }
+
     public function test_consult_status_cards_wrap_instead_of_overflowing(): void
     {
         // 고정 5열 그리드가 우측 컬럼 밑으로 넘치던 문제 — 자동 줄바꿈 그리드 유지 확인

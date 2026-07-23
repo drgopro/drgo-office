@@ -46,14 +46,14 @@
     .ts-chip { flex:none; font-size:10.5px; font-weight:700; border:1px solid var(--border); border-radius:8px; padding:3px 9px; color:var(--text-muted); background:var(--surface); }
 
     /* 업무 현황 — 스탯 스트립 */
-    .ws-strip { display:grid; grid-template-columns:repeat(4,1fr); }
+    .ws-strip { display:grid; grid-template-columns:repeat(5,1fr); }
     .ws-cell { padding:14px 16px; border-right:1px solid var(--border); cursor:pointer; }
     .ws-cell:last-child { border-right:none; }
     .ws-cell:hover { background:var(--surface2); }
     .ws-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
     .ws-value { font-size:22px; font-weight:800; line-height:1; }
     .ws-sub { font-size:11px; color:var(--text-muted); margin-top:5px; }
-    @media (max-width:700px) { .ws-strip { grid-template-columns:repeat(2,1fr); } .ws-cell:nth-child(2) { border-right:none; } }
+    @media (max-width:700px) { .ws-strip { grid-template-columns:repeat(2,1fr); } .ws-cell:nth-child(even) { border-right:none; } }
 
     /* 주목 프로젝트 */
     .fp-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
@@ -308,9 +308,14 @@
         <div class="dcard-head">업무 현황 <span class="dc-sub" style="margin-left:auto;">이번 달</span></div>
         <div class="ws-strip">
             <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href='/clients';">
-                <div class="ws-label">의뢰자</div>
+                <div class="ws-label">총 의뢰자</div>
                 <div class="ws-value">{{ number_format($clientTotal) }}</div>
-                <div class="ws-sub">+{{ $clientThisMonth }}</div>
+                <div class="ws-sub">누적</div>
+            </div>
+            <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients'); else location.href='/clients';">
+                <div class="ws-label">신규 의뢰자</div>
+                <div class="ws-value">+{{ number_format($clientThisMonth) }}</div>
+                <div class="ws-sub">{{ now()->format('n') }}월</div>
             </div>
             <div class="ws-cell" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar'); else location.href='/calendar';">
                 <div class="ws-label">일정</div>
