@@ -1024,6 +1024,22 @@ if (location.hash === '#fitdebug') {
     setInterval(() => {
         const f = document.querySelector('.tab-pane.active iframe');
         const r = f && f.getBoundingClientRect();
+        let inner = '';
+        if (f) {
+            try {
+                const w = f.contentWindow, d = w.document;
+                const de = d.documentElement;
+                const pager = d.querySelector('.drgo-pager');
+                const pr = pager && pager.getBoundingClientRect();
+                const maxScroll = Math.max(0, de.scrollHeight - w.innerHeight);
+                inner = '\n── 내부 문서 ──'
+                    + '\n내부 뷰포트: ' + w.innerHeight + ' / 문서 전체: ' + de.scrollHeight
+                    + '\n스크롤: ' + Math.round(w.scrollY) + ' / 최대 ' + maxScroll
+                    + '\nin-iframe 클래스: ' + (d.body.classList.contains('in-iframe') ? 'O' : 'X')
+                    + '\nbody zoom(내부): ' + w.getComputedStyle(d.body).zoom
+                    + (pr ? '\n페이저 하단: ' + Math.round(pr.bottom) + ' (뷰포트 ' + w.innerHeight + ' 대비 ' + Math.round(w.innerHeight - pr.bottom) + ')' : '\n페이저: 없음');
+            } catch (e) { inner = '\n내부 측정 불가: ' + e.message; }
+        }
         dbg.textContent =
             '창높이(innerHeight): ' + window.innerHeight +
             '\niframe 유무: ' + (f ? 'O' : 'X (초기 SSR 탭)') +
@@ -1031,7 +1047,8 @@ if (location.hash === '#fitdebug') {
                  '\niframe 시각높이: ' + Math.round(r.height) + ' / offsetH: ' + (f.offsetHeight || 0)
                : '') +
             '\nbody zoom: ' + getComputedStyle(document.body).zoom +
-            '\n보정코드: ' + (typeof drgoTabs._fitPanes === 'function' ? '로드됨' : '없음');
+            '\n보정코드: ' + (typeof drgoTabs._fitPanes === 'function' ? '로드됨' : '없음') +
+            inner;
     }, 500);
 }
 </script>
