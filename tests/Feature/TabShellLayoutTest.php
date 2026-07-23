@@ -38,6 +38,17 @@ class TabShellLayoutTest extends TestCase
         }
     }
 
+    public function test_tab_can_be_closed_with_middle_click(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 휠클릭(auxclick button 1)으로 탭 닫기 + mousedown 자동 스크롤 방지
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee("addEventListener('auxclick'", false)
+            ->assertSee('e.button === 1', false);
+    }
+
     public function test_pull_to_refresh_guards_inner_scroll_position(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

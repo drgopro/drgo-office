@@ -852,6 +852,13 @@ window.drgoTabs = {
         const strip = document.getElementById('tabStrip');
         const items = strip.querySelectorAll('.tab-item');
         items.forEach(el => {
+            // 휠클릭(가운데 버튼)으로 탭 닫기 — mousedown preventDefault로 자동 스크롤 모드 방지
+            el.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });
+            el.addEventListener('auxclick', e => {
+                if (e.button !== 1) return;
+                e.preventDefault();
+                if (this.tabs.length > 1) this.close(el.dataset.tabId);
+            });
             el.addEventListener('dragstart', e => {
                 this._dragId = el.dataset.tabId;
                 el.classList.add('tab-dragging');
