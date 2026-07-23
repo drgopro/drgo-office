@@ -126,13 +126,73 @@
     .toast { position:fixed; bottom:20px; right:20px; background:var(--accent); color:var(--accent-text); padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600; z-index:999; display:none; }
     .toast.show { display:block; }
 
-    /* 새 의뢰자 모달 */
-    .new-client-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; }
+    /* 새 의뢰자 모달 — 캘린더 일정 등록과 동일 문법 (히어로 + 번호 카드 + 사이드 진행) */
+    .new-client-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; padding:16px; }
     .new-client-overlay.open { display:flex; }
-    .new-client-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; width:560px; max-width:95vw; max-height:90vh; overflow-y:auto; }
-    .new-client-section { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
-    .new-client-section-title { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:10px; letter-spacing:0.02em; }
-    .new-client-modal h3 { font-size:16px; margin-bottom:16px; }
+    .new-client-modal.ncm { background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:0; width:1100px; max-width:96vw; max-height:92vh; overflow-y:auto; }
+    .ncm-head { background:var(--surface); border-bottom:1px solid var(--border); padding:18px 28px 16px; position:sticky; top:0; z-index:5; border-radius:14px 14px 0 0; }
+    .ncm-head-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .ncm-meta { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); }
+    .ncm-meta b { color:var(--text); font-weight:600; }
+    .ncm-actions { display:flex; align-items:center; gap:8px; }
+    .ncm-btn { height:34px; padding:0 16px; border:1px solid var(--border); border-radius:8px; background:var(--surface); font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+    .ncm-btn:hover { color:var(--text); border-color:var(--text-muted); }
+    .ncm-btn.primary { border:none; background:var(--accent); color:var(--accent-text); font-weight:700; padding:0 18px; }
+    .ncm-btn.primary:hover { opacity:0.9; color:var(--accent-text); }
+    .ncm-btn.icon { width:34px; padding:0; font-size:15px; }
+    .ncm-hero { margin-top:10px; width:100%; border:none; outline:none; font-size:24px; font-weight:800; color:var(--text); background:transparent; padding:0; box-sizing:border-box; font-family:inherit; }
+    .ncm-hero::placeholder { color:var(--text-muted); opacity:0.55; font-weight:700; }
+    .ncm-pills { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .ncm-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border:1px dashed var(--border); border-radius:999px; font-size:12px; color:var(--text-muted); }
+    .ncm-pill select { border:none; background:transparent; color:var(--text); font-size:12px; font-weight:600; outline:none; cursor:pointer; font-family:inherit; }
+    .ncm-body { display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:20px; padding:22px 28px 26px; align-items:start; }
+    .ncm-cards { display:flex; flex-direction:column; gap:16px; min-width:0; }
+    .ncm-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 22px; }
+    .ncm-card-head { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .ncm-no { font-size:12px; font-weight:700; color:var(--text-muted); background:var(--surface2); border-radius:6px; padding:3px 8px; }
+    .ncm-title { font-size:15px; font-weight:700; color:var(--text); }
+    .ncm-cnt { margin-left:auto; font-size:12px; color:var(--text-muted); }
+    .ncm-label { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
+    .ncm-input { width:100%; height:38px; border:1px solid var(--border); border-radius:8px; padding:0 12px; font-size:14px; color:var(--text); background:var(--surface); box-sizing:border-box; outline:none; font-family:inherit; }
+    .ncm-input:focus { border-color:var(--accent); }
+    .ncm-ta { height:64px; padding:10px 12px; resize:vertical; }
+    .ncm-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    /* 칩(라디오/체크) — 단색 pill (기존 chk-chip 메커니즘 위에 크기·모양만 조정) */
+    .ncm .chk-group { display:flex; flex-wrap:wrap; gap:8px; }
+    .ncm .chk-chip { padding:7px 14px; border-radius:999px; background:var(--surface); font-size:13px; }
+    .ncm .chk-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
+    /* 03 장비 — 자동 연동 안내 (읽기 전용) */
+    .ncm-equip { border-style:dashed; }
+    .ncm-equip .ncm-card-head { margin-bottom:0; }
+    .ncm-badge { padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:10.5px; font-weight:700; }
+    .ncm-equip-note { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px 16px; background:var(--surface2); border-radius:10px; font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+    .ncm-equip-note b { color:var(--text); }
+    .ncm-equip-ico { width:34px; height:34px; border-radius:10px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:15px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+    /* 사이드바 */
+    .ncm-side { display:flex; flex-direction:column; gap:14px; position:sticky; top:96px; }
+    .ncm-side-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
+    .ncm-side-title { font-size:12px; font-weight:700; color:var(--text-muted); }
+    .ncm-prog { display:flex; align-items:baseline; gap:8px; margin-top:8px; }
+    .ncm-pct { font-size:28px; font-weight:800; color:var(--text); }
+    .ncm-prog-sub { font-size:12px; color:var(--text-muted); }
+    .ncm-bar { height:6px; background:var(--surface2); border-radius:99px; margin-top:10px; overflow:hidden; }
+    .ncm-bar div { width:0; height:100%; background:var(--accent); border-radius:99px; transition:width .2s; }
+    .ncm-secs { display:flex; flex-direction:column; gap:2px; margin-top:14px; }
+    .ncm-sec-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; font-size:12.5px; color:var(--text); }
+    .ncm-sec-row.done { background:var(--surface2); font-weight:600; }
+    .ncm-sec-no { font-size:11px; font-weight:700; color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
+    .ncm-sec-row.done .ncm-sec-no { width:18px; height:18px; border-radius:50%; background:var(--accent); color:var(--accent-text); font-size:10px; display:inline-flex; align-items:center; justify-content:center; }
+    .ncm-sec-cnt { margin-left:auto; font-size:11px; color:var(--text-muted); }
+    .ncm-req { padding:4px 10px; border:1px solid color-mix(in srgb, var(--red) 45%, transparent); background:color-mix(in srgb, var(--red) 10%, transparent); border-radius:999px; font-size:11.5px; color:var(--red); }
+    .ncm-req-done { font-size:12px; color:var(--green, #3fae54); font-weight:600; }
+    @media (max-width:900px) {
+        .ncm-body { grid-template-columns:1fr; }
+        .ncm-side { display:none; }
+        .ncm-grid2 { grid-template-columns:1fr; }
+        .ncm-head { padding:14px 16px 12px; }
+        .ncm-body { padding:16px; }
+        .ncm-hero { font-size:19px; }
+    }
 
     /* ── 라이트모드 보정 ── */
     [data-theme="light"] .btn-log { background:#f0f1f3; border-color:#b8bcc8; color:#4a5060; }
@@ -242,103 +302,147 @@
     </div>
 </div>
 
-{{-- 새 의뢰자 모달 --}}
+{{-- 새 의뢰자 모달 — 캘린더 일정 등록과 동일 문법 (디자인 1a: 히어로 닉네임 + 번호 카드 스택 + 작성 현황 사이드바, 장비는 2b 자동 연동 안내) --}}
 <div class="new-client-overlay" id="newClientOverlay" onclick="if(event.target===this) drgoModalMinimize(this, '+ 새 의뢰자', '👤')">
-    <div class="new-client-modal">
-        <h3>의뢰자 등록</h3>
-        <div class="new-client-section" style="margin-top:0;">
-            <div class="new-client-section-title">플랫폼</div>
-            <div id="ncPlatformsWrap"></div>
-        </div>
-
-        <div class="new-client-section">
-            <div class="new-client-section-title">방송 주제</div>
-            <div id="ncTopicsWrap"></div>
-        </div>
-
-        <div class="form-grid" style="margin-top:14px;">
-            <div class="field">
-                <div class="field-label">닉네임 *</div>
-                <input class="field-input" id="ncNickname">
-            </div>
-            <div class="field">
-                <div class="field-label">이름</div>
-                <input class="field-input" id="ncName">
-            </div>
-            <div class="field">
-                <div class="field-label">연락처</div>
-                <input class="field-input" id="ncPhone">
-            </div>
-            <div class="field">
-                <div class="field-label">등급</div>
-                <select class="field-input field-select" id="ncGrade">
-                    <option value="normal">일반</option>
-                    <option value="vip">VIP</option>
-                    <option value="rental">렌탈</option>
-                </select>
-            </div>
-            <div class="field">
-                <div class="field-label">유입경로</div>
-                <div class="chk-group" onchange="syncRadioState(this)">
-                    <label class="chk-chip"><input type="radio" name="ncInflow" value="search"><span>검색</span></label>
-                    <label class="chk-chip"><input type="radio" name="ncInflow" value="referral"><span>지인 소개</span></label>
-                    <label class="chk-chip"><input type="radio" name="ncInflow" value="sns"><span>SNS</span></label>
-                    <label class="chk-chip"><input type="radio" name="ncInflow" value="ad"><span>광고</span></label>
-                    <label class="chk-chip"><input type="radio" name="ncInflow" value="community"><span>커뮤니티</span></label>
-                    <label class="chk-chip"><input type="radio" name="ncInflow" value="other"><span>기타</span></label>
+    <div class="new-client-modal ncm">
+        {{-- 헤더: 메타 + 액션 + 히어로 닉네임 + 등급/유형 필 --}}
+        <div class="ncm-head">
+            <div class="ncm-head-top">
+                <div class="ncm-meta"><b>신규 의뢰자</b><span>·</span><span id="ncmToday"></span></div>
+                <div class="ncm-actions">
+                    <button type="button" class="ncm-btn" onclick="closeNewClientModal()">취소</button>
+                    <button type="button" class="ncm-btn primary" onclick="createClient()">등록</button>
+                    <button type="button" class="ncm-btn icon" onclick="closeNewClientModal()" title="닫기">✕</button>
                 </div>
             </div>
-            <div class="field">
-                <div class="field-label">의뢰자 유형</div>
-                <select class="field-input field-select" id="ncClientType">
-                    <option value="">선택</option>
-                    <option value="personal">개인</option>
-                    <option value="enterprise">엔터</option>
-                    <option value="studio">스튜디오</option>
-                </select>
+            <input class="ncm-hero" id="ncNickname" placeholder="의뢰자 닉네임을 입력하세요 *" autocomplete="off">
+            <div class="ncm-pills">
+                <label class="ncm-pill">등급
+                    <select id="ncGrade">
+                        <option value="normal">일반</option>
+                        <option value="vip">VIP</option>
+                        <option value="rental">렌탈</option>
+                    </select>
+                </label>
+                <label class="ncm-pill">의뢰자 유형
+                    <select id="ncClientType">
+                        <option value="">선택</option>
+                        <option value="personal">개인</option>
+                        <option value="enterprise">엔터</option>
+                        <option value="studio">스튜디오</option>
+                    </select>
+                </label>
             </div>
         </div>
 
-        <div class="new-client-section">
-            <div class="new-client-section-title">방송 아이디</div>
-            <input class="field-input" id="ncBroadcastId" placeholder="플랫폼 방송 ID/채널명">
-        </div>
-
-        <div class="new-client-section">
-            <div class="new-client-section-title">방송 경력</div>
-            <select class="field-input field-select" id="ncCareer">
-                <option value="">선택</option>
-                <option value="처음">처음</option>
-                <option value="초보">초보</option>
-                <option value="경력">경력</option>
-            </select>
-        </div>
-
-        <div class="new-client-section">
-            <div class="new-client-section-title">의뢰자 성향</div>
-            <div class="form-grid full">
-                <div class="field">
-                    <div class="field-label">의뢰자 성격</div>
-                    <textarea class="field-input field-textarea" id="ncPersonality" rows="2" placeholder="예: 꼼꼼함, 빠른 결정"></textarea>
+        <div class="ncm-body">
+            <div class="ncm-cards">
+                {{-- 01 플랫폼 / 방송 정보 --}}
+                <div class="ncm-card" data-sec="플랫폼 / 방송">
+                    <div class="ncm-card-head"><span class="ncm-no">01</span><span class="ncm-title">플랫폼 / 방송 정보</span><span class="ncm-cnt"></span></div>
+                    <div class="ncm-label">플랫폼</div>
+                    <div id="ncPlatformsWrap"></div>
+                    <div class="ncm-label" style="margin-top:16px;">방송 주제</div>
+                    <div id="ncTopicsWrap"></div>
+                    <div class="ncm-grid2" style="margin-top:16px;">
+                        <div><div class="ncm-label">방송 아이디</div><input class="ncm-input" id="ncBroadcastId" placeholder="플랫폼 방송 ID/채널명"></div>
+                        <div><div class="ncm-label">방송 경력</div>
+                            <select class="ncm-input" id="ncCareer">
+                                <option value="">선택</option>
+                                <option value="처음">처음</option>
+                                <option value="초보">초보</option>
+                                <option value="경력">경력</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="form-grid full" style="margin-top:10px;">
-                <div class="field">
-                    <div class="field-label">예산 성향</div>
+
+                {{-- 02 기본 정보 --}}
+                <div class="ncm-card" data-sec="기본 정보">
+                    <div class="ncm-card-head"><span class="ncm-no">02</span><span class="ncm-title">기본 정보</span><span class="ncm-cnt"></span></div>
+                    <div class="ncm-grid2">
+                        <div><div class="ncm-label">이름</div><input class="ncm-input" id="ncName"></div>
+                        <div><div class="ncm-label">연락처</div><input class="ncm-input" id="ncPhone" placeholder="010-0000-0000"></div>
+                        <div><div class="ncm-label">성별</div>
+                            <select class="ncm-input" id="ncGender">
+                                <option value="">선택</option>
+                                <option value="female">여성</option>
+                                <option value="male">남성</option>
+                                <option value="other">기타</option>
+                            </select>
+                        </div>
+                        <div><div class="ncm-label">소속</div><input class="ncm-input" id="ncAffiliation"></div>
+                    </div>
+                    <div style="margin-top:14px;"><div class="ncm-label">주소</div>
+                        <div style="display:flex;gap:8px;">
+                            <input class="ncm-input" id="ncAddress" placeholder="주소 검색 버튼으로 입력하세요" readonly style="flex:1;background:var(--surface2);cursor:pointer;" onclick="ncSearchAddress()">
+                            <button type="button" class="ncm-btn primary" style="white-space:nowrap;" onclick="ncSearchAddress()">주소 검색</button>
+                        </div>
+                        <input class="ncm-input" id="ncAddressDetail" placeholder="상세주소 (동/호수 등) 직접 입력" style="margin-top:8px;">
+                    </div>
+                    <div style="margin-top:14px;"><div class="ncm-label">특이사항</div>
+                        <textarea class="ncm-input ncm-ta" id="ncImportantMemo" placeholder="응대 시 참고할 내용"></textarea>
+                    </div>
+                </div>
+
+                {{-- 03 장비 정보 — 직접 입력 없음, 프로젝트 자동 연동 안내 (읽기 전용) --}}
+                <div class="ncm-card ncm-equip">
+                    <div class="ncm-card-head"><span class="ncm-no">03</span><span class="ncm-title">장비 정보</span><span class="ncm-badge">자동 연동</span></div>
+                    <div class="ncm-equip-note">
+                        <span class="ncm-equip-ico">⟳</span>
+                        <div>장비 정보는 <b>프로젝트에서 자동으로 불러옵니다.</b><br>등록 시 입력할 필요 없이, 프로젝트 생성 후 의뢰자 조회 화면에 표시돼요.</div>
+                    </div>
+                </div>
+
+                {{-- 04 의뢰자 성향 --}}
+                <div class="ncm-card" data-sec="의뢰자 성향">
+                    <div class="ncm-card-head"><span class="ncm-no">04</span><span class="ncm-title">의뢰자 성향</span><span class="ncm-cnt"></span></div>
+                    <div class="ncm-label">의뢰자 성격</div>
+                    <input class="ncm-input" id="ncPersonality" placeholder="예: 꼼꼼함, 빠른 결정, 의견 수용 적극적">
+                    <div class="ncm-label" style="margin-top:14px;">예산 성향</div>
                     <div class="chk-group" onchange="syncRadioState(this)">
                         <label class="chk-chip"><input type="radio" name="budget-nc" value="풍족"><span>풍족</span></label>
                         <label class="chk-chip"><input type="radio" name="budget-nc" value="부족"><span>부족</span></label>
                         <label class="chk-chip"><input type="radio" name="budget-nc" value="모름"><span>모름</span></label>
                         <label class="chk-chip"><input type="radio" name="budget-nc" value="직접입력"><span>직접입력</span></label>
                     </div>
-                    <input type="text" class="field-input" id="budget-nc-etc" placeholder="예산 성향 직접 입력" style="margin-top:8px; display:none;">
+                    <input type="text" class="ncm-input" id="budget-nc-etc" placeholder="예산 성향 직접 입력" style="margin-top:8px; display:none;">
+                </div>
+
+                {{-- 05 유입경로 --}}
+                <div class="ncm-card" data-sec="유입경로">
+                    <div class="ncm-card-head"><span class="ncm-no">05</span><span class="ncm-title">유입경로</span><span class="ncm-cnt"></span></div>
+                    <div class="chk-group" onchange="syncRadioState(this)">
+                        <label class="chk-chip"><input type="radio" name="ncInflow" value="search"><span>검색</span></label>
+                        <label class="chk-chip"><input type="radio" name="ncInflow" value="referral"><span>지인 소개</span></label>
+                        <label class="chk-chip"><input type="radio" name="ncInflow" value="sns"><span>SNS</span></label>
+                        <label class="chk-chip"><input type="radio" name="ncInflow" value="ad"><span>광고</span></label>
+                        <label class="chk-chip"><input type="radio" name="ncInflow" value="community"><span>커뮤니티</span></label>
+                        <label class="chk-chip"><input type="radio" name="ncInflow" value="other"><span>기타</span></label>
+                    </div>
+                </div>
+
+                {{-- 06 메모 --}}
+                <div class="ncm-card" data-sec="메모">
+                    <div class="ncm-card-head"><span class="ncm-no">06</span><span class="ncm-title">메모</span><span class="ncm-cnt"></span></div>
+                    <textarea class="ncm-input ncm-ta" id="ncMemo" placeholder="내부 공유용 메모를 입력하세요"></textarea>
                 </div>
             </div>
-        </div>
 
-        <div style="display:flex; gap:8px; margin-top:20px; justify-content:flex-end;">
-            <button class="btn-delete" onclick="closeNewClientModal()" style="border-color:var(--border); color:var(--text-muted);">취소</button>
-            <button class="btn-save" onclick="createClient()">등록</button>
+            {{-- 사이드바: 작성 현황 + 남은 필수 항목 --}}
+            <div class="ncm-side">
+                <div class="ncm-side-card">
+                    <div class="ncm-side-title">작성 현황</div>
+                    <div class="ncm-prog"><span class="ncm-pct" id="ncmPct">0%</span><span class="ncm-prog-sub" id="ncmCnt"></span></div>
+                    <div class="ncm-bar"><div id="ncmBarFill"></div></div>
+                    <div class="ncm-secs" id="ncmSecs"></div>
+                </div>
+                <div class="ncm-side-card">
+                    <div class="ncm-side-title">남은 필수 항목</div>
+                    <div id="ncmRequired" style="display:flex;flex-wrap:wrap;gap:6px;"><span class="ncm-req">닉네임</span></div>
+                    <div class="ncm-req-done" id="ncmRequiredDone" style="display:none;">✓ 필수 항목 완료</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1608,8 +1712,82 @@ function openNewClientModal() {
     // 체크박스 그룹 렌더 (id='nc')
     document.getElementById('ncPlatformsWrap').innerHTML = renderCheckboxGroup('platforms', 'nc', PLATFORM_OPTIONS, [], '');
     document.getElementById('ncTopicsWrap').innerHTML = renderCheckboxGroup('topics', 'nc', TOPIC_OPTIONS, [], '');
+    // 헤더 날짜 + 작성 현황 초기화
+    const n = new Date();
+    document.getElementById('ncmToday').textContent = `${n.getFullYear()}.${String(n.getMonth()+1).padStart(2,'0')}.${String(n.getDate()).padStart(2,'0')} 등록`;
+    ncmBind();
+    ncmRefresh();
 }
 function closeNewClientModal() { document.getElementById('newClientOverlay').classList.remove('open'); }
+
+// ── 작성 현황 사이드바 (섹션별 채움 카운트 + 전체 % + 남은 필수) ──
+let NCM_BOUND = false;
+function ncmBind() {
+    if (NCM_BOUND) return;
+    NCM_BOUND = true;
+    const modal = document.querySelector('#newClientOverlay .ncm');
+    modal.addEventListener('input', ncmRefresh);
+    modal.addEventListener('change', ncmRefresh);
+}
+function ncmSectionCount(card) {
+    let filled = 0, total = 0;
+    // 개별 입력 (칩 그룹 내부 라디오/체크는 제외 — 그룹당 1항목으로 계산)
+    card.querySelectorAll('input.ncm-input, select.ncm-input, textarea.ncm-input').forEach(el => {
+        if (el.offsetParent === null && el.id !== 'budget-nc-etc') return; // 숨김 필드 제외 (직접입력 등)
+        if (el.id === 'budget-nc-etc') return; // 예산 직접입력은 칩 그룹에 포함
+        total++;
+        if ((el.value || '').trim()) filled++;
+    });
+    card.querySelectorAll('.chk-group').forEach(g => {
+        total++;
+        if (g.querySelector('input:checked')) filled++;
+    });
+    return [filled, total];
+}
+function ncmRefresh() {
+    const cards = [...document.querySelectorAll('#newClientOverlay .ncm-card[data-sec]')];
+    if (!cards.length) return;
+    let filled = 0, total = 0;
+    const secs = cards.map((card, i) => {
+        const [f, t] = ncmSectionCount(card);
+        filled += f; total += t;
+        card.querySelector('.ncm-cnt').textContent = `${f}/${t} 작성`;
+        return { name: card.dataset.sec, no: String(i+1).padStart(2,'0'), f, t };
+    });
+    // 히어로(닉네임) + 헤더 필(등급은 기본값이라 제외, 유형만) 포함
+    const nick = document.getElementById('ncNickname').value.trim();
+    total += 2; if (nick) filled++;
+    if (document.getElementById('ncClientType').value) filled++;
+    const pct = total ? Math.round(filled/total*100) : 0;
+    document.getElementById('ncmPct').textContent = pct + '%';
+    document.getElementById('ncmCnt').textContent = `${filled}/${total} 항목`;
+    document.getElementById('ncmBarFill').style.width = pct + '%';
+    document.getElementById('ncmSecs').innerHTML = secs.map(s => `
+        <div class="ncm-sec-row ${s.f >= s.t && s.t > 0 ? 'done' : ''}">
+            <span class="ncm-sec-no">${s.f >= s.t && s.t > 0 ? '✓' : s.no}</span>
+            <span>${s.name}</span><span class="ncm-sec-cnt">${s.f}/${s.t}</span>
+        </div>`).join('');
+    // 남은 필수: 닉네임
+    document.getElementById('ncmRequired').style.display = nick ? 'none' : 'flex';
+    document.getElementById('ncmRequiredDone').style.display = nick ? '' : 'none';
+}
+
+// 주소 검색 (다음 우편번호)
+function ncSearchAddress() {
+    const fill = () => new daum.Postcode({
+        oncomplete: d => {
+            document.getElementById('ncAddress').value = d.address;
+            document.getElementById('ncAddressDetail').focus();
+            ncmRefresh();
+        },
+    }).open();
+    if (typeof daum === 'undefined' || !daum.Postcode) {
+        const s = document.createElement('script');
+        s.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        s.onload = fill;
+        document.head.appendChild(s);
+    } else { fill(); }
+}
 
 async function createClient() {
     const nickname = document.getElementById('ncNickname').value.trim();
@@ -1634,6 +1812,13 @@ async function createClient() {
         career: document.getElementById('ncCareer').value || null,
         personality: document.getElementById('ncPersonality').value.trim() || null,
         budget_style: collectBudgetStyle('budget-nc'),
+        // 리디자인에서 추가된 기본 정보 필드
+        gender: document.getElementById('ncGender').value || null,
+        affiliation: document.getElementById('ncAffiliation').value.trim() || null,
+        address: document.getElementById('ncAddress').value.trim() || null,
+        address_detail: document.getElementById('ncAddressDetail').value.trim() || null,
+        important_memo: document.getElementById('ncImportantMemo').value.trim() || null,
+        memo: document.getElementById('ncMemo').value.trim() || null,
     };
 
     const res = await fetch('/api/clients', {

@@ -280,6 +280,13 @@ class ClientController extends Controller
             'career' => 'nullable|string|in:처음,초보,경력',
             'personality' => 'nullable|string|max:500',
             'budget_style' => 'nullable|string|max:500',
+            // 등록 폼 리디자인에서 추가된 기본 정보 필드
+            'gender' => 'nullable|in:male,female,other',
+            'affiliation' => 'nullable|string|max:200',
+            'address' => 'nullable|string|max:300',
+            'address_detail' => 'nullable|string|max:200',
+            'important_memo' => 'nullable|string',
+            'memo' => 'nullable|string',
         ]);
 
         $validated['assigned_user_id'] = Auth::id();
