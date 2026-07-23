@@ -45,7 +45,9 @@ class ClientRegisterRedesignTest extends TestCase
             ->assertSee('function clientEditMode', false)
             ->assertSee('cv-sec', false)
             ->assertSee('프로젝트 연동')
-            ->assertSee('인적 정보');
+            ->assertSee('인적 정보')
+            // 인적 정보에 연락처 표시 (d.phone)
+            ->assertSee("cvField('연락처', d.phone)", false);
     }
 
     public function test_equipment_falls_back_to_last_project_with_data(): void

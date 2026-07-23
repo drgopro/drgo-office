@@ -1954,6 +1954,7 @@ function renderClientView(d) {
     const addr = [d.address, d.address_detail].filter(Boolean).join(', ');
     const personal = `<div class="cv-grid">
         ${cvField('이름', d.name)}
+        ${cvField('연락처', d.phone)}
         ${cvField('성별', CV_GENDER[d.gender] || '')}
         ${cvField('소속', d.affiliation)}
         ${cvField('유입경로', CV_SRC[d.inflow_source] || '')}
