@@ -410,6 +410,10 @@
         /* iframe 내부에서는 내비/탭바 숨김 */
         body.in-iframe .header, body.in-iframe .tab-bar-wrap { display:none !important; }
         body.in-iframe .main { height:var(--full-h, 100vh); }
+        /* iframe 안에서는 셸 탭바가 이미 바깥(iframe 높이)에서 빠져 있으므로 chrome 높이를 다시 빼면 안 됨.
+           이중 차감 시 고정 높이 내부 셸(.proj-shell/.crm-wrap/.wiki-layout)이 화면보다 짧아져
+           하단에 죽은 여백이 생기고 페이지네이션 등 마지막 요소가 잘림 */
+        body.in-iframe { --chrome-h: 0px; }
         @supports (height: 100dvh) {
             :root { --full-h: 100dvh; }
             /* 데스크탑 zoom 배율 보정 필수 — 미보정 시 iframe이 화면보다 7% 길어져 하단이 스크롤 밖으로 밀림 */

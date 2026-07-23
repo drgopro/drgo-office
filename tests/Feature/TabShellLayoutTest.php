@@ -38,6 +38,16 @@ class TabShellLayoutTest extends TestCase
         }
     }
 
+    public function test_iframe_pages_do_not_double_subtract_chrome_height(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 고정 높이 내부 셸(.proj-shell 등)이 iframe 안에서 chrome 높이를 다시 빼 하단이 잘리던 문제
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('body.in-iframe { --chrome-h: 0px; }', false);
+    }
+
     public function test_iframe_height_is_fitted_by_measurement(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
