@@ -5934,19 +5934,27 @@ function childSpanDays(){
     const ev=events.find(e=>e.id===editingId); if(!ev) return 0;
     return (new Date(ev.end_date||ev.start_date)-new Date(ev.start_date))/86400000+1;
 }
+let CH_RENDER_SEQ=0, CH_BOX=null; // 렌더 순번 — 요약↔폼 전환 중 늦게 끝난 fetch가 반대쪽에 중복 카드를 남기는 것 방지
+function chEl(id){ return CH_BOX?CH_BOX.querySelector('#'+id):document.getElementById(id); }
 async function renderChildrenCard(){
-    // 요약(잠금) 뷰면 요약 컨테이너, 아니면 수정 폼 컨테이너에 렌더 (id 중복 방지 위해 반대쪽은 비움)
+    const seq=++CH_RENDER_SEQ;
+    const ev=editingId?events.find(e=>e.id===editingId):null;
+    const show=!!(ev && !ev.parent_id && childSpanDays()>=2);
+    if(show){
+        try{
+            const res=await fetch(`/api/events/${ev.id}/children`,{headers:{'Accept':'application/json'}});
+            CHILD_ROWS=res.ok?await res.json():[];
+        }catch(e){ CHILD_ROWS=[]; }
+    }
+    if(seq!==CH_RENDER_SEQ) return; // 이후에 더 최신 렌더가 시작됨 — 이 결과는 버림
+    // 컨테이너 결정은 fetch 완료 후 현재 뷰 기준으로 (요약=lsChildren, 폼=lsChildrenForm), 반대쪽은 비움
     const locked=document.querySelector('#modalOverlay .modal-body')?.classList.contains('is-locked');
     const box=document.getElementById(locked?'lsChildren':'lsChildrenForm');
     const other=document.getElementById(locked?'lsChildrenForm':'lsChildren');
     if(other) other.innerHTML='';
     if(!box) return;
-    const ev=editingId?events.find(e=>e.id===editingId):null;
-    if(!ev || ev.parent_id || childSpanDays()<2){ box.innerHTML=''; return; }
-    try{
-        const res=await fetch(`/api/events/${ev.id}/children`,{headers:{'Accept':'application/json'}});
-        CHILD_ROWS=res.ok?await res.json():[];
-    }catch(e){ CHILD_ROWS=[]; }
+    CH_BOX=box;
+    if(!show){ box.innerHTML=''; return; }
     const rows=CHILD_ROWS.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:13px;">
         <b style="flex-shrink:0;">${c.start_date===c.end_date?c.start_date:`${c.start_date} ~ ${c.end_date}`}</b>
         <span style="color:var(--accent);font-weight:700;">${c.start_time||''}${c.end_time?'~'+c.end_time:''}</span>
@@ -5991,21 +5999,21 @@ async function renderChildrenCard(){
 let CH_DATES=[];
 function chSetMode(m){
     CH_MODE=m;
-    const r=document.getElementById('chModeRange'), d=document.getElementById('chModeDates');
+    const r=chEl('chModeRange'), d=chEl('chModeDates');
     if(!r) return;
     [[r,'range'],[d,'dates']].forEach(([b,k])=>{ b.style.background=m===k?'var(--accent)':'none'; b.style.color=m===k?'var(--accent-text)':'var(--text-muted)'; b.style.borderColor=m===k?'var(--accent)':'var(--border)'; });
-    document.getElementById('chRangeWrap').style.display=m==='range'?'flex':'none';
-    document.getElementById('chDatesWrap').style.display=m==='dates'?'inline-flex':'none';
+    chEl('chRangeWrap').style.display=m==='range'?'flex':'none';
+    chEl('chDatesWrap').style.display=m==='dates'?'inline-flex':'none';
 }
 function chAddDate(){
-    const v=document.getElementById('chDatePick').value;
+    const v=chEl('chDatePick').value;
     if(v&&!CH_DATES.includes(v)){ CH_DATES.push(v); CH_DATES.sort(); chRenderDates(); }
 }
 function chRenderDates(){
-    document.getElementById('chDateChips').innerHTML=CH_DATES.map(d=>`<span style="padding:3px 8px;border:1px solid var(--accent);border-radius:999px;font-size:11px;color:var(--accent);">${d} <a onclick="CH_DATES=CH_DATES.filter(x=>x!=='${d}');chRenderDates()" style="cursor:pointer;">✕</a></span>`).join('');
+    chEl('chDateChips').innerHTML=CH_DATES.map(d=>`<span style="padding:3px 8px;border:1px solid var(--accent);border-radius:999px;font-size:11px;color:var(--accent);">${d} <a onclick="CH_DATES=CH_DATES.filter(x=>x!=='${d}');chRenderDates()" style="cursor:pointer;">✕</a></span>`).join('');
 }
 function chRenderAssignees(){
-    const wrap=document.getElementById('chAssigneeChips'); if(!wrap) return;
+    const wrap=chEl('chAssigneeChips'); if(!wrap) return;
     wrap.innerHTML=(assignees||[]).filter(a=>a.is_active!==false).map(a=>{
         const idx=CH_ASSIGNEES.indexOf(a.id), on=idx!==-1;
         return `<button onclick="chToggleAssignee(${a.id})" style="padding:4px 10px;border-radius:999px;font-size:11.5px;cursor:pointer;border:1px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--accent)':'none'};color:${on?'var(--accent-text)':'var(--text-muted)'};font-weight:${on?700:400};">${on?(idx+1)+'. ':''}${_esc(a.name)}</button>`;
@@ -6020,15 +6028,15 @@ function chResetForm(){ CH_EDIT_ID=null; CH_DATES=[]; CH_ASSIGNEES=[]; renderChi
 function chEdit(id){
     const c=CHILD_ROWS.find(x=>x.id===id); if(!c) return;
     CH_EDIT_ID=id; CH_MODE='range'; chSetMode('range');
-    document.getElementById('chStart').value=c.start_date;
-    document.getElementById('chEnd').value=c.end_date;
-    document.getElementById('chTimeS').value=c.start_time||'';
-    document.getElementById('chTimeE').value=c.end_time||'';
-    document.getElementById('chMemo').value=c.memo||'';
+    chEl('chStart').value=c.start_date;
+    chEl('chEnd').value=c.end_date;
+    chEl('chTimeS').value=c.start_time||'';
+    chEl('chTimeE').value=c.end_time||'';
+    chEl('chMemo').value=c.memo||'';
     CH_ASSIGNEES=(c.assignees||[]).map(a=>a.id); chRenderAssignees();
-    document.getElementById('chEditBadge').style.display='';
-    document.getElementById('chCancelBtn').style.display='';
-    document.getElementById('chSubmitBtn').textContent='저장';
+    chEl('chEditBadge').style.display='';
+    chEl('chCancelBtn').style.display='';
+    chEl('chSubmitBtn').textContent='저장';
 }
 async function chDelete(id){
     if(!confirm('이 세부 일정을 삭제할까요?')) return;
@@ -6036,22 +6044,22 @@ async function chDelete(id){
     if(res.ok){ renderChildrenCard(); loadEvents(); } else alert('삭제 실패');
 }
 async function chSubmit(){
-    const ts=document.getElementById('chTimeS').value;
+    const ts=chEl('chTimeS').value;
     if(!ts) return alert('시작 시간을 입력하세요.');
-    const body={ start_time:ts, end_time:document.getElementById('chTimeE').value||null,
-        assignees:CH_ASSIGNEES, memo:document.getElementById('chMemo').value.trim()||null };
+    const body={ start_time:ts, end_time:chEl('chTimeE').value||null,
+        assignees:CH_ASSIGNEES, memo:chEl('chMemo').value.trim()||null };
     let url, method;
     if(CH_EDIT_ID){
         url=`/api/events/children/${CH_EDIT_ID}`; method='PATCH';
-        body.start_date=document.getElementById('chStart').value;
-        body.end_date=document.getElementById('chEnd').value||body.start_date;
+        body.start_date=chEl('chStart').value;
+        body.end_date=chEl('chEnd').value||body.start_date;
         if(!body.start_date) return alert('날짜를 입력하세요.');
     } else if(CH_MODE==='dates'){
         if(!CH_DATES.length) return alert('날짜를 추가하세요.');
         url=`/api/events/${editingId}/children`; method='POST'; body.dates=CH_DATES;
     } else {
-        body.start_date=document.getElementById('chStart').value;
-        body.end_date=document.getElementById('chEnd').value||body.start_date;
+        body.start_date=chEl('chStart').value;
+        body.end_date=chEl('chEnd').value||body.start_date;
         if(!body.start_date) return alert('시작 날짜를 입력하세요.');
         url=`/api/events/${editingId}/children`; method='POST';
     }
