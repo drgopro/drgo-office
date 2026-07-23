@@ -1020,6 +1020,28 @@ window.addEventListener('resize', () => {
     drgoTabs._fitTimer = setTimeout(() => drgoTabs._fitPanes(), 120);
 });
 
+// ── 레이아웃 진단 오버레이 (#fitdebug) — 중첩 iframe을 단계별로 전부 측정 ──
+if (location.hash === '#fitdebug') {
+    const dbg = document.createElement('div');
+    dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;background:#000;color:#0f0;font:11px/1.6 monospace;padding:8px 12px;border-radius:8px;opacity:0.92;white-space:pre;pointer-events:none;';
+    document.body.appendChild(dbg);
+    setInterval(() => {
+        const lines = ['창높이: ' + window.innerHeight];
+        let doc = document, win = window, depth = 0;
+        while (depth < 4) {
+            const f = [...doc.querySelectorAll('iframe')].find(x => x.getBoundingClientRect().height > 150);
+            if (!f) break;
+            const r = f.getBoundingClientRect();
+            lines.push('L' + (depth + 1) + ' iframe 하단 ' + Math.round(r.bottom) + ' / 부모뷰포트 ' + win.innerHeight + ' (차이 ' + Math.round(win.innerHeight - r.bottom) + ')');
+            try { win = f.contentWindow; doc = win.document; } catch (e) { lines.push('  L' + (depth + 1) + ' 내부 접근 불가'); break; }
+            const de = doc.documentElement;
+            lines.push('  내부 뷰포트 ' + win.innerHeight + ' / 문서 ' + de.scrollHeight + ' / 스크롤 ' + Math.round(win.scrollY) + '/' + Math.max(0, de.scrollHeight - win.innerHeight)
+                + ' / chrome-h [' + win.getComputedStyle(doc.body).getPropertyValue('--chrome-h').trim() + ']');
+            depth++;
+        }
+        dbg.textContent = lines.join('\n');
+    }, 500);
+}
 </script>
 
 {{-- ── 활동 로그 모달 (글로벌) ── --}}
