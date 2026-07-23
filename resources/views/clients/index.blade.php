@@ -1640,34 +1640,15 @@ async function refreshClientData(clientId) {
         tab.nickname = data.nickname;
         tab.grade = data.grade;
     }
-    // pane 내부 데이터만 갱신 (sub-tab 활성 상태 유지)
+    // 패널 전체 재구성 — 조각별 갱신은 누락 지점이 생겨 저장 후 조회 뷰에 반영 안 되는 문제가 있었음
     const pane = document.getElementById('cpane-' + clientId);
-    if (pane) {
-        // sub-tab 카운트 갱신
-        const subTabs = document.getElementById('subtabs-' + clientId);
-        if (subTabs) {
-            const btns = subTabs.querySelectorAll('.sub-tab');
-            if (btns[1]) btns[1].textContent = `프로젝트 ${data.projects.length}`;
-            if (btns[2]) btns[2].textContent = `첨부파일 ${data.documents.length}`;
-            if (btns[3]) btns[3].textContent = `견적서 ${(data.estimates||[]).length}`;
-        }
-        // 각 sub-panel 내용 재렌더링
-        const projectListEl = document.getElementById('project-list-' + clientId);
-        if (projectListEl) {
-            const order = document.getElementById('project-sort-' + clientId)?.value || 'desc';
-            projectListEl.innerHTML = renderProjectList(data.projects, clientId, order);
-        }
-        const docListEl = document.getElementById('doc-list-' + clientId);
-        if (docListEl) docListEl.innerHTML = renderDocList(data.documents, clientId);
-        const estimateListEl = document.getElementById('estimate-list-' + clientId);
-        if (estimateListEl && typeof renderEstimateList === 'function') estimateListEl.innerHTML = renderEstimateList(data.estimates||[], clientId);
-        const memoThreadEl = document.getElementById('memo-thread-' + clientId);
-        if (memoThreadEl) memoThreadEl.innerHTML = renderMemoThread(data.memos, clientId);
-        // 기본 정보 조회 뷰 재렌더 + 조회 모드로 복귀
-        const viewEl = document.getElementById('view-info-' + clientId);
-        if (viewEl) { viewEl.innerHTML = renderClientView(data); clientEditMode(clientId, false); }
-    } else {
-        renderClientContent(clientId);
+    const activeSub = tab?.activeSubTab || 'info';
+    if (pane) pane.remove();
+    renderClientContent(clientId);
+    if (activeSub !== 'info') {
+        const idx = { info:0, projects:1, docs:2, estimates:3, memo:4 }[activeSub] ?? 0;
+        const btns = document.querySelectorAll(`#subtabs-${clientId} .sub-tab`);
+        if (btns[idx]) btns[idx].click();
     }
     renderClientTabs();
 }
