@@ -1894,12 +1894,13 @@ function escText(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g
 function formatCfDisplay(v) {
     if (Array.isArray(v)) return v.join(', ');
     if (v && typeof v === 'object' && !Array.isArray(v) && ('value' in v || 'qty' in v)) {
-        const val = String(v.value ?? '').trim();
+        // 토글 수량형 {value:true, qty:2} → '있음 × 2'
+        const val = v.value === true ? '있음' : v.value === false ? '없음' : String(v.value ?? '').trim();
         const qty = v.qty;
         if (qty === null || qty === undefined || qty === '') return val;
         return val ? `${val} × ${qty}` : `× ${qty}`;
     }
-    if (typeof v === 'boolean') return v ? '예' : '아니오';
+    if (typeof v === 'boolean') return v ? '있음' : '없음';
     return v;
 }
 

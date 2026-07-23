@@ -275,6 +275,30 @@
     .pcf-radios { display:flex; gap:10px; flex-wrap:wrap; font-size:13px; }
     .pcf-radios label { display:inline-flex; align-items:center; gap:4px; cursor:pointer; }
     [data-theme="light"] .pcf-input { background:#fff; border-color:#b8bcc8; }
+    /* ── 토글(있음/없음) 입력 ── */
+    .pcf-toggle { display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; padding:4px 0; }
+    .pcf-toggle input { display:none; }
+    .pcf-tg-track { width:36px; height:20px; border-radius:999px; background:var(--surface2); border:1px solid var(--border); position:relative; transition:all .18s; flex-shrink:0; }
+    .pcf-tg-track::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--text-muted); transition:all .18s; }
+    .pcf-toggle input:checked + .pcf-tg-track { background:var(--accent); border-color:var(--accent); }
+    .pcf-toggle input:checked + .pcf-tg-track::after { left:18px; background:#fff; }
+    .pcf-toggle-txt { font-size:13px; color:var(--text); }
+    /* ── 장비 항목 추가 ── */
+    .pcf-add-btn { margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:11px; padding:3px 10px; cursor:pointer; font-weight:600; letter-spacing:0; transition:all .15s; }
+    .pcf-add-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .pfa-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:900; align-items:center; justify-content:center; padding:16px; }
+    .pfa-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:440px; display:flex; flex-direction:column; gap:14px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
+    .pfa-title { font-size:15px; font-weight:700; color:var(--text); }
+    .pfa-group { display:flex; flex-direction:column; gap:6px; }
+    .pfa-lab { font-size:11.5px; color:var(--text-muted); font-weight:600; }
+    .pfa-types { display:flex; flex-wrap:wrap; gap:6px; }
+    .pfa-type-chip { padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; }
+    .pfa-type-chip.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+    .pfa-check { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text); cursor:pointer; }
+    .pfa-check input { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; }
+    .pfa-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:2px; }
+    .pfa-btn-ghost { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
+    .pfa-btn-primary { padding:8px 20px; border-radius:8px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
 </style>
 @endpush
 
@@ -893,6 +917,35 @@
             <div class="card-title">추가 정보</div>
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
             <div class="text-muted" id="pcfSaveStatus" style="font-size:11px; color:var(--text-muted); margin-top:6px; min-height:14px;"></div>
+        </div>
+
+        <!-- 장비 항목 추가 모달 (master/admin 전용 — 필드 정의를 즉석 등록) -->
+        <div class="pfa-overlay" id="pfaOverlay" onclick="if(event.target===this)closePcfAdd()">
+            <div class="pfa-modal">
+                <div class="pfa-title">장비 항목 추가</div>
+                <div class="pfa-group">
+                    <span class="pfa-lab">항목 이름 <span style="color:var(--red)">*</span></span>
+                    <input type="text" id="pfaLabel" class="pcf-input" placeholder="예: 캡처보드, 프롬프터, 크로마키">
+                </div>
+                <div class="pfa-group">
+                    <span class="pfa-lab">입력 방식</span>
+                    <div class="pfa-types" id="pfaTypes"></div>
+                </div>
+                <div class="pfa-group">
+                    <span class="pfa-lab">소분류 (그룹)</span>
+                    <input type="text" id="pfaSub" class="pcf-input" list="pfaSubList" placeholder="예: 카메라, 오디오, 주변기기 — 비우면 기타">
+                    <datalist id="pfaSubList"></datalist>
+                </div>
+                <div class="pfa-group" id="pfaOptsGroup" style="display:none;">
+                    <span class="pfa-lab">옵션 목록 <span style="color:var(--red)">*</span></span>
+                    <textarea id="pfaOpts" class="pcf-input" rows="3" placeholder="쉼표 또는 줄바꿈으로 구분&#10;예: 로지텍 브리오, 소니 ZV-1, 기타"></textarea>
+                </div>
+                <label class="pfa-check" id="pfaQtyWrap"><input type="checkbox" id="pfaQty"> 수량 입력 사용 (예: 모니터 × 2)</label>
+                <div class="pfa-actions">
+                    <button class="pfa-btn-ghost" onclick="closePcfAdd()">취소</button>
+                    <button class="pfa-btn-primary" onclick="pcfAddSubmit()">항목 추가</button>
+                </div>
+            </div>
         </div>
 
         <!-- 상담 이력 -->
@@ -1934,6 +1987,7 @@ const CSRF_PJ = document.querySelector('meta[name="csrf-token"]').content;
 let projectFieldDefs = [];
 let projectCustomData = @json($project->custom_data ?? new \stdClass);
 const PCF_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' };
+const PCF_CAN_MANAGE = @json(auth()->user()->isAdmin()); // 필드 정의 API는 master/admin 전용
 
 function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -1942,7 +1996,7 @@ async function loadProjectFieldsForShow() {
         const res = await fetch('/api/project-fields/active', {headers:{'Accept':'application/json'}});
         if (!res.ok) return;
         projectFieldDefs = (await res.json()).filter(f => f.is_active);
-        if (!projectFieldDefs.length) return; // 정의된 필드 없으면 카드도 숨김
+        if (!projectFieldDefs.length && !PCF_CAN_MANAGE) return; // 정의된 필드 없으면 카드 숨김 (관리자는 항목 추가를 위해 노출)
         document.getElementById('customDataCard').style.display = '';
         renderProjectCustomFields();
     } catch(e) {}
@@ -1995,6 +2049,7 @@ function renderProjectCustomFields() {
         if (w >= 1 && w <= 4) return w;
         if (f.type === 'textarea') return 4;
         if (['radio','checkbox'].includes(f.type) && (f.options||[]).length > 3) return 4;
+        if (f.type === 'toggle' && !f.has_quantity) return 1;
         return 2;
     };
 
@@ -2013,8 +2068,9 @@ function renderProjectCustomFields() {
     const collapsedKey = 'drgo_pcf_collapsed_{{ $project->id }}';
     const collapsed = (() => { try { return JSON.parse(localStorage.getItem(collapsedKey) || '[]'); } catch(e) { return []; } })();
     Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
-        if (!grouped[k]) return;
-        const subs = grouped[k];
+        // 장비 섹션은 항목이 없어도 관리자에게 노출 (+ 항목 추가 진입점)
+        if (!grouped[k] && !(k === 'equipment' && PCF_CAN_MANAGE)) return;
+        const subs = grouped[k] || { '': [] };
         const subKeys = Object.keys(subs);
         const hasSubsections = subKeys.some(s => s !== '');
         const isCollapsed = collapsed.includes(k);
@@ -2022,6 +2078,7 @@ function renderProjectCustomFields() {
         html += `<div class="pcf-section${isCollapsed ? ' collapsed' : ''}" data-section="${k}">
             <div class="pcf-sec-title" onclick="togglePcfSection('${k}')" title="클릭하여 접기/펼치기">
                 <span class="pcf-sec-toggle">▼</span>${pcfEsc(lbl)}
+                ${k === 'equipment' && PCF_CAN_MANAGE ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">+ 항목 추가</button>` : ''}
             </div>`;
 
         if (!hasSubsections) {
@@ -2030,6 +2087,9 @@ function renderProjectCustomFields() {
             html += `<div class="pcf-grid">`;
             sortedFields.forEach(f => { html += renderFieldHtml(f); });
             html += `</div>`;
+            if (k === 'equipment' && !sortedFields.length) {
+                html += `<div style="font-size:12px; color:var(--text-muted);">등록된 장비 항목이 없습니다 — <b>+ 항목 추가</b>로 첫 항목을 만들어 보세요.</div>`;
+            }
         } else {
             // 소분류 있음 → 소분류별 서브카드. 소분류 정렬은 그룹 최대 priority DESC, 빈 소분류는 마지막
             const ordered = subKeys.sort((a, b) => {
@@ -2077,7 +2137,7 @@ function togglePcfSection(sectionKey) {
 }
 
 // 수량 입력을 지원하는 타입
-const PCF_QTY_TYPES = ['text', 'textarea', 'select', 'radio', 'date'];
+const PCF_QTY_TYPES = ['text', 'textarea', 'select', 'radio', 'date', 'toggle'];
 
 // raw value(평문/객체) → {value, qty} 정규화 (has_quantity 필드 전용)
 function pcfGetVQ(v) {
@@ -2122,6 +2182,10 @@ function pcfInputCore(f, val) {
             return `<input type="number" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" oninput="pcfChange(this)" placeholder="${ph}">`;
         case 'date':
             return `<input type="date" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" onchange="pcfChange(this)">`;
+        case 'toggle': {
+            const on = val === true || val === 'true' || val === 1 || val === '1' || val === '있음';
+            return `<label class="pcf-toggle"><input type="checkbox"${on?' checked':''} data-key="${f.key}" onchange="pcfToggleChange(this)"><span class="pcf-tg-track"></span><span class="pcf-toggle-txt">${on?'있음':'없음'}</span></label>`;
+        }
         default:
             return `<input type="text" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" oninput="pcfChange(this)" placeholder="${ph}">`;
     }
@@ -2154,6 +2218,75 @@ function pcfCheckChange(el) {
     const all = [...document.querySelectorAll(`input[name="chk_${el.dataset.key}"]:checked`)].map(x => x.value);
     projectCustomData[el.dataset.key] = all;
     pcfScheduleSave();
+}
+function pcfToggleChange(el) {
+    const key = el.dataset.key;
+    const f = projectFieldDefs.find(x => x.key === key);
+    const on = el.checked;
+    if (f && f.has_quantity) {
+        const prev = projectCustomData[key];
+        const cur = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? {...prev} : {};
+        cur.value = on;
+        projectCustomData[key] = cur;
+    } else {
+        projectCustomData[key] = on;
+    }
+    const txt = el.closest('.pcf-toggle')?.querySelector('.pcf-toggle-txt');
+    if (txt) txt.textContent = on ? '있음' : '없음';
+    pcfScheduleSave();
+}
+
+// ── 장비 항목 즉석 추가 (master/admin — 필드 정의 생성) ──
+const PFA_TYPES = { toggle:'토글 (있음/없음)', checkbox:'체크박스 (다중 선택)', text:'수기 입력', select:'선택 목록', number:'숫자' };
+let pfaType = 'toggle';
+function openPcfAdd() {
+    document.getElementById('pfaOverlay').style.display = 'flex';
+    document.getElementById('pfaLabel').value = '';
+    document.getElementById('pfaSub').value = '';
+    document.getElementById('pfaOpts').value = '';
+    document.getElementById('pfaQty').checked = false;
+    // 기존 장비 소분류를 자동완성 목록으로
+    const subs = [...new Set(projectFieldDefs.filter(f => (f.section||'') === 'equipment').map(f => f.subsection).filter(Boolean))];
+    document.getElementById('pfaSubList').innerHTML = subs.map(s => `<option value="${pcfEsc(s)}">`).join('');
+    document.getElementById('pfaTypes').innerHTML = Object.entries(PFA_TYPES)
+        .map(([k, lbl]) => `<button class="pfa-type-chip" data-t="${k}" onclick="pfaSetType('${k}')">${lbl}</button>`).join('');
+    pfaSetType('toggle');
+    document.getElementById('pfaLabel').focus();
+}
+function closePcfAdd() { document.getElementById('pfaOverlay').style.display = 'none'; }
+function pfaSetType(t) {
+    pfaType = t;
+    document.querySelectorAll('#pfaTypes .pfa-type-chip').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    document.getElementById('pfaOptsGroup').style.display = ['checkbox','select'].includes(t) ? '' : 'none';
+    // 수량은 토글/수기입력/선택목록에서만 의미 있음 (체크박스·숫자는 제외)
+    document.getElementById('pfaQtyWrap').style.display = PCF_QTY_TYPES.includes(t) ? '' : 'none';
+}
+async function pcfAddSubmit() {
+    const label = document.getElementById('pfaLabel').value.trim();
+    if (!label) { alert('항목 이름을 입력하세요.'); return; }
+    const opts = document.getElementById('pfaOpts').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+    if (['checkbox','select'].includes(pfaType) && !opts.length) { alert('옵션을 한 개 이상 입력하세요.'); return; }
+    const body = {
+        label,
+        type: pfaType,
+        section: 'equipment',
+        subsection: document.getElementById('pfaSub').value.trim() || null,
+        options: ['checkbox','select'].includes(pfaType) ? opts : null,
+        has_quantity: PCF_QTY_TYPES.includes(pfaType) && document.getElementById('pfaQty').checked,
+        is_active: true,
+    };
+    const res = await fetch('/api/admin/project-fields', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (res.ok) {
+        closePcfAdd();
+        await loadProjectFieldsForShow(); // 새 항목 포함 재렌더
+    } else {
+        const e = await res.json().catch(() => ({}));
+        alert(e.message || '항목 추가에 실패했습니다.');
+    }
 }
 
 let pcfSaveTimer = null;

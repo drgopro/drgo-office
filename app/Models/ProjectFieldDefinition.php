@@ -24,7 +24,7 @@ class ProjectFieldDefinition extends Model
         'priority' => 'integer',
     ];
 
-    public const TYPES = ['text', 'textarea', 'select', 'radio', 'checkbox', 'number', 'date'];
+    public const TYPES = ['text', 'textarea', 'select', 'radio', 'checkbox', 'number', 'date', 'toggle'];
 
     public const SECTIONS = [
         'basic' => '기본 정보',

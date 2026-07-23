@@ -144,7 +144,9 @@ class ClientController extends Controller
                 $values = [];
                 foreach ($eqFields as $f) {
                     $v = $custom[$f->key] ?? null;
-                    if ($v === null || $v === '' || (is_array($v) && empty($v))) {
+                    // false = 토글 '없음' — 미입력과 동일하게 표시하지 않음 ({value:false, qty:…} 수량형 포함)
+                    if ($v === null || $v === '' || $v === false || (is_array($v) && empty($v))
+                        || (is_array($v) && array_key_exists('value', $v) && in_array($v['value'], [null, '', false], true))) {
                         continue;
                     }
                     $values[] = [

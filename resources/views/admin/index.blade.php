@@ -527,6 +527,7 @@
                         <option value="select">드롭다운</option>
                         <option value="radio">라디오 버튼</option>
                         <option value="checkbox">체크박스 (다중)</option>
+                        <option value="toggle">토글 (있음/없음)</option>
                         <option value="number">숫자</option>
                         <option value="date">날짜</option>
                     </select>
@@ -1703,7 +1704,7 @@ async function saveCancelReasons() {
 
 // ────────────── 의뢰자 필드 관리 ──────────────
 const FIELD_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', broadcast:'방송 정보', business:'사업자 정보', etc:'기타' };
-const FIELD_TYPES = { text:'텍스트', textarea:'여러 줄', select:'드롭다운', radio:'라디오', checkbox:'체크박스', number:'숫자', date:'날짜' };
+const FIELD_TYPES = { text:'텍스트', textarea:'여러 줄', select:'드롭다운', radio:'라디오', checkbox:'체크박스', toggle:'토글', number:'숫자', date:'날짜' };
 let allFields = [];
 
 async function loadClientFields() {
