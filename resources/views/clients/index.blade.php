@@ -218,6 +218,35 @@
     [data-theme="light"] .filter-chip.active { color:#fff; }
     [data-theme="light"] .toast { color:#fff; }
 
+    /* 기본 정보 조회 뷰 (디자인 3a) — 섹션 타이틀 레일 + 값 그리드, 구분선 기반 */
+    .cv-sec { display:grid; grid-template-columns:190px 1fr; gap:28px; padding:24px 0; border-bottom:1px solid var(--border); }
+    .cv-wrap .cv-sec:first-child { padding-top:8px; }
+    .cv-wrap .cv-sec:last-child { border-bottom:none; }
+    .cv-rail { border-right:2px solid var(--border); padding-right:20px; }
+    .cv-rt { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; color:var(--text); }
+    .cv-bar { width:4px; height:16px; background:var(--accent); border-radius:2px; flex-shrink:0; }
+    .cv-rd { font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.5; padding-left:13px; }
+    .cv-badge { padding:3px 10px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:10.5px; font-weight:700; }
+    .cv-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:36px; row-gap:16px; }
+    .cv-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; column-gap:30px; row-gap:14px; }
+    .cv-l { font-size:12px; color:var(--text-muted); font-weight:600; }
+    .cv-v { font-size:14.5px; color:var(--text); margin-top:4px; font-weight:500; word-break:break-word; white-space:pre-wrap; }
+    .cv-v.dim { color:var(--text-muted); opacity:0.55; font-weight:400; }
+    .cv-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .cv-chip { padding:5px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text); font-size:12.5px; }
+    .cv-chip.fill { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+    .cv-eqwrap { display:flex; flex-direction:column; gap:18px; }
+    .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11.5px; font-weight:700; margin-bottom:10px; }
+    .cv-eqlink { font-size:13px; font-weight:600; color:var(--accent); text-decoration:none; }
+    .cv-eqlink:hover { text-decoration:underline; }
+    @media (max-width:768px) {
+        .cv-sec { grid-template-columns:1fr; gap:10px; padding:18px 0; }
+        .cv-rail { border-right:none; padding-right:0; }
+        .cv-rd br { display:none; }
+        .cv-grid { column-gap:16px; }
+        .cv-grid3 { grid-template-columns:1fr 1fr; column-gap:16px; }
+    }
+
     /* 사이드바 토글 버튼 (모바일 전용) */
     .sidebar-toggle { display:none; }
     .sidebar-overlay { display:none; }
@@ -956,7 +985,9 @@ function renderClientContent(id) {
             </div>
             <div class="detail-actions">
                 <button class="btn-log" onclick="openActivityLog('Client',${id},'${_esc((d.name||'').replace(/'/g,"\\'"))} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
-                <button class="btn-save" onclick="saveClient(${id})">저장</button>
+                <button class="btn-save" id="ce-edit-${id}" onclick="clientEditMode(${id},true)">수정</button>
+                <button class="btn-save" id="ce-save-${id}" style="display:none;" onclick="saveClient(${id})">저장</button>
+                <button class="btn-log" id="ce-cancel-${id}" style="display:none;" onclick="clientEditMode(${id},false)">취소</button>
                 <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>
             </div>
         </div>
@@ -971,6 +1002,10 @@ function renderClientContent(id) {
 
         <!-- 기본 정보 -->
         <div class="sub-panel active" id="sub-info-${id}">
+            {{-- 조회 뷰 (기본) — 디자인 3a: 좌측 섹션 타이틀 레일 + 우측 값 그리드 --}}
+            <div id="view-info-${id}">${renderClientView(d)}</div>
+            {{-- 수정 폼 (수정 버튼으로 전환) --}}
+            <div id="edit-info-${id}" style="display:none;">
             <div class="form-grid">
                 <div class="field">
                     <div class="field-label">닉네임 *</div>
@@ -1100,6 +1135,7 @@ function renderClientContent(id) {
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
                 <button class="btn-save" onclick="saveClient(${id})">저장</button>
             </div>
+            </div>{{-- /edit-info --}}
 
             <!-- 메모 (인라인 스레드) -->
             <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
@@ -1627,6 +1663,9 @@ async function refreshClientData(clientId) {
         if (estimateListEl && typeof renderEstimateList === 'function') estimateListEl.innerHTML = renderEstimateList(data.estimates||[], clientId);
         const memoThreadEl = document.getElementById('memo-thread-' + clientId);
         if (memoThreadEl) memoThreadEl.innerHTML = renderMemoThread(data.memos, clientId);
+        // 기본 정보 조회 뷰 재렌더 + 조회 모드로 복귀
+        const viewEl = document.getElementById('view-info-' + clientId);
+        if (viewEl) { viewEl.innerHTML = renderClientView(data); clientEditMode(clientId, false); }
     } else {
         renderClientContent(clientId);
     }
@@ -1686,8 +1725,9 @@ async function saveClient(id) {
 
     if (res.ok) {
         showToast('저장되었습니다');
-        // 사이드바 리스트 갱신
+        // 사이드바 리스트 갱신 + 상세 재로드 (조회 뷰로 복귀하며 최신 값 반영)
         loadClientList();
+        await refreshClientData(id);
     } else {
         await showFetchError(res, '의뢰자 저장 실패');
     }
@@ -1910,6 +1950,101 @@ function cfSubIcon(name) {
         if (k.includes(key)) return CF_SUB_ICONS[key];
     }
     return '📦';
+}
+
+// ── 기본 정보 조회 뷰 (디자인 3a) — 좌측 섹션 타이틀 레일 + 우측 값 그리드, 장비는 프로젝트 연동 읽기 전용 ──
+const CV_GENDER = { male:'남성', female:'여성', other:'기타' };
+const CV_SRC = { search:'검색', referral:'지인 소개', sns:'SNS', ad:'광고', community:'커뮤니티', other:'기타' };
+const CV_TYPE = { personal:'개인', enterprise:'엔터', studio:'스튜디오' };
+const CV_SECTION_LABELS = { basic:'기본 정보', broadcast:'방송 정보', business:'사업자 정보', etc:'기타 정보' };
+function cvVal(v, dim) {
+    const has = v !== null && v !== undefined && String(v).trim() !== '';
+    return `<div class="cv-v ${has ? '' : 'dim'}">${has ? _esc(v) : (dim || '—')}</div>`;
+}
+function cvField(label, v, span, dim) {
+    return `<div ${span ? 'style="grid-column:span 2;"' : ''}><div class="cv-l">${_esc(label)}</div>${cvVal(v, dim)}</div>`;
+}
+function cvChips(list, filled) {
+    if (!list || !list.length) return '<div class="cv-v dim">—</div>';
+    return `<div class="cv-chips">${list.map(x => `<span class="cv-chip ${filled ? 'fill' : ''}">${_esc(x)}</span>`).join('')}</div>`;
+}
+function cvSection(title, railHtml, bodyHtml) {
+    return `<div class="cv-sec">
+        <div class="cv-rail"><div class="cv-rt"><span class="cv-bar"></span>${_esc(title)}</div>${railHtml || ''}</div>
+        <div>${bodyHtml}</div>
+    </div>`;
+}
+function renderClientView(d) {
+    // 인적 정보
+    const addr = [d.address, d.address_detail].filter(Boolean).join(', ');
+    const personal = `<div class="cv-grid">
+        ${cvField('이름', d.name)}
+        ${cvField('성별', CV_GENDER[d.gender] || '')}
+        ${cvField('소속', d.affiliation)}
+        ${cvField('유입경로', CV_SRC[d.inflow_source] || '')}
+        ${cvField('의뢰자 유형', CV_TYPE[d.client_type] || '')}
+        ${cvField('등록일', d.created_at)}
+        ${cvField('주소', addr, true)}
+        ${cvField('특이사항', d.important_memo, true)}
+    </div>`;
+    // 방송 정보
+    const platforms = [...(d.platforms || []), ...(d.platform_etc ? [d.platform_etc] : [])];
+    const topics = [...(d.content_types || []), ...(d.topic_etc ? [d.topic_etc] : [])];
+    const broadcast = `<div class="cv-grid">
+        <div><div class="cv-l">플랫폼</div>${cvChips(platforms, true)}</div>
+        <div><div class="cv-l">방송 주제</div>${cvChips(topics, false)}</div>
+        ${cvField('방송 아이디', d.broadcast_id)}
+        ${cvField('방송 경력', d.career)}
+        ${cvField('의뢰자 성격', d.personality, false, '미입력')}
+        ${cvField('예산 성향', d.budget_style, false, '미입력')}
+    </div>`;
+    // 장비 정보 — 최근 프로젝트 연동 (읽기 전용)
+    const eq = d.last_project_equipment;
+    let equipBody, equipRail;
+    if (eq && eq.fields?.length) {
+        const groups = {};
+        eq.fields.forEach(f => { const s = f.subsection || '기타'; (groups[s] = groups[s] || []).push(f); });
+        equipBody = Object.keys(groups).map(sub => `<div class="cv-eqgroup">
+            <span class="cv-subchip">${_esc(sub)}</span>
+            <div class="cv-grid3">${groups[sub].map(f => `<div><div class="cv-l">${_esc(f.label)}</div>${cvVal(formatCfDisplay(f.value))}</div>`).join('')}</div>
+        </div>`).join('')
+            + `<a class="cv-eqlink" href="/projects/${eq.project_id}">프로젝트에서 원본 보기 →</a>`;
+        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd">최근 프로젝트<br>「${_esc(eq.project_name)}」</div>`;
+    } else {
+        equipBody = '<div class="cv-v dim">연동된 장비 정보가 없습니다 — 프로젝트에서 장비 정보를 입력하면 여기에 표시됩니다.</div>';
+        equipRail = '<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div>';
+    }
+    // 기타 커스텀 필드 (장비 섹션 제외) — 관리자 정의 필드를 섹션별 읽기 전용으로
+    let customSections = '';
+    if (typeof customFieldDefs !== 'undefined' && customFieldDefs?.length) {
+        const bySec = {};
+        customFieldDefs.filter(f => (f.section || 'etc') !== 'equipment')
+            .forEach(f => { const s = f.section || 'etc'; (bySec[s] = bySec[s] || []).push(f); });
+        customSections = Object.keys(bySec).map(sec => cvSection(
+            CV_SECTION_LABELS[sec] || sec,
+            '',
+            `<div class="cv-grid">${bySec[sec].map(f => cvField(f.label, formatCfDisplay((d.custom_data || {})[f.key]))).join('')}</div>`
+        )).join('');
+    }
+    return `<div class="cv-wrap">
+        ${cvSection('인적 정보', '<div class="cv-rd">이름 · 연락 · 주소 등<br>개인 식별 정보</div>', personal)}
+        ${cvSection('방송 정보', '<div class="cv-rd">플랫폼 · 주제 · 경력</div>', broadcast)}
+        ${cvSection('장비 정보', equipRail, `<div class="cv-eqwrap">${equipBody}</div>`)}
+        ${customSections}
+    </div>`;
+}
+// 조회 ↔ 수정 전환
+function clientEditMode(id, on) {
+    const v = document.getElementById('view-info-' + id);
+    const e = document.getElementById('edit-info-' + id);
+    if (!v || !e) return;
+    v.style.display = on ? 'none' : '';
+    e.style.display = on ? '' : 'none';
+    document.getElementById('ce-edit-' + id).style.display = on ? 'none' : '';
+    document.getElementById('ce-save-' + id).style.display = on ? '' : 'none';
+    document.getElementById('ce-cancel-' + id).style.display = on ? '' : 'none';
+    // 기본 정보 탭으로 이동 (다른 탭에서 수정 눌렀을 때)
+    if (on) { const tab = document.querySelector(`#subtabs-${id} .sub-tab`); if (tab) tab.click(); }
 }
 
 // 장비 정보 요약: 최근 프로젝트의 '장비 정보' 동적 필드(custom_data) 만 보여줌

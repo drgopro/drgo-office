@@ -32,6 +32,20 @@ class ClientRegisterRedesignTest extends TestCase
             ->assertSee('id="ncMemo"', false);
     }
 
+    public function test_detail_view_renders_readonly_layout_with_edit_toggle(): void
+    {
+        // 조회 페이지 리디자인 (디자인 3a) — 읽기 전용 섹션 뷰 + 수정 버튼 토글, 장비는 프로젝트 연동
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/clients')
+            ->assertOk()
+            ->assertSee('function renderClientView', false)
+            ->assertSee('function clientEditMode', false)
+            ->assertSee('cv-sec', false)
+            ->assertSee('프로젝트 연동')
+            ->assertSee('인적 정보');
+    }
+
     public function test_store_accepts_new_basic_info_fields(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
