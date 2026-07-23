@@ -741,6 +741,7 @@
     .img-item:hover .img-remove { opacity:1; }
 
     /* ── 일자별 세부 일정 카드 (장기 일정 하위) ── */
+    .lsc-card { margin-top:14px; max-width:680px; }
     .lsc-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px; background:var(--surface); }
     .lsc-row b { flex-shrink:0; font-weight:600; }
     .lsc-time { color:var(--accent); font-weight:700; flex-shrink:0; font-variant-numeric:tabular-nums; }
@@ -5999,11 +6000,11 @@ async function renderChildrenCard(){
         <button class="lsc-mini-btn danger" onclick="chDelete(${c.id})">삭제</button>`:''}
     </div>`).join('');
     if(!canEditCalendar){
-        box.innerHTML=CHILD_ROWS.length?`<div class="ls-card" style="margin-top:14px;">
+        box.innerHTML=CHILD_ROWS.length?`<div class="ls-card lsc-card">
             <div class="ls-card-head"><span class="ls-card-title">일자별 세부 일정</span><span class="ls-card-extra">${CHILD_ROWS.length}건</span></div>${rows}</div>`:'';
         return;
     }
-    box.innerHTML=`<div class="ls-card" style="margin-top:14px;">
+    box.innerHTML=`<div class="ls-card lsc-card">
         <div class="ls-card-head"><span class="ls-card-title">일자별 세부 일정</span><span class="ls-card-extra">${CHILD_ROWS.length}건</span></div>
         ${rows||'<div class="lsc-empty">등록된 세부 일정이 없습니다. 기간 또는 개별 날짜를 골라 시간을 지정하세요.</div>'}
         <div class="lsc-form">
