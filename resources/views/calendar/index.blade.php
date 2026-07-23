@@ -5683,6 +5683,9 @@ document.getElementById('projectSelect')?.addEventListener('change',()=>syncProj
     const addr=document.getElementById('addressBlock');
     main.insertBefore(dt, main.firstChild);
     let after=dt;
+    // 일자별 세부 일정 카드는 01 분류·시간 카드 바로 아래
+    const lsChForm=document.getElementById('lsChildrenForm');
+    if(lsChForm){ after.after(lsChForm); after=lsChForm; }
     if(schedOptCard){ schedOptCard.classList.add('gold-only'); schedOptCard.id='schedOptCard'; after.after(schedOptCard); after=schedOptCard; }
     if(clientLink){ after.after(clientLink); after=clientLink; }
     if(goldClientCard){ goldClientCard.classList.add('gold-only'); after.after(goldClientCard); after=goldClientCard; }
