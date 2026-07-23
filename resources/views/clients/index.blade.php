@@ -246,7 +246,17 @@
 <div class="new-client-overlay" id="newClientOverlay" onclick="if(event.target===this) drgoModalMinimize(this, '+ 새 의뢰자', '👤')">
     <div class="new-client-modal">
         <h3>의뢰자 등록</h3>
-        <div class="form-grid">
+        <div class="new-client-section" style="margin-top:0;">
+            <div class="new-client-section-title">플랫폼</div>
+            <div id="ncPlatformsWrap"></div>
+        </div>
+
+        <div class="new-client-section">
+            <div class="new-client-section-title">방송 주제</div>
+            <div id="ncTopicsWrap"></div>
+        </div>
+
+        <div class="form-grid" style="margin-top:14px;">
             <div class="field">
                 <div class="field-label">닉네임 *</div>
                 <input class="field-input" id="ncNickname">
@@ -287,16 +297,6 @@
                     <option value="studio">스튜디오</option>
                 </select>
             </div>
-        </div>
-
-        <div class="new-client-section">
-            <div class="new-client-section-title">플랫폼</div>
-            <div id="ncPlatformsWrap"></div>
-        </div>
-
-        <div class="new-client-section">
-            <div class="new-client-section-title">방송 주제</div>
-            <div id="ncTopicsWrap"></div>
         </div>
 
         <div class="new-client-section">
