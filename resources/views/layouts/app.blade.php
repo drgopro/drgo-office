@@ -801,6 +801,26 @@ window.drgoTabs = {
         this.render();
         this._save();
         this._updateNav(tab.type);
+        requestAnimationFrame(() => this._fitPanes());
+    },
+
+    /*
+     * iframe 높이 실측 보정 — CSS 계산값(100dvh/zoom - chrome)이 브라우저의 zoom 구현에 따라
+     * 달라지는 문제 대응. 크롬 128+ CSS zoom 표준화로 zoom 영역 안 vh 단위가 자동 보정되면서
+     * 기존 수동 나눗셈과 이중 보정 → iframe이 화면보다 짧아져 모든 페이지 하단이 잘림.
+     * 렌더된 실제 위치(getBoundingClientRect)를 재서 화면 하단에 정확히 맞춘다.
+     */
+    _fitPanes() {
+        const iframe = document.querySelector('.tab-pane.active iframe');
+        if (!iframe) return;
+        const rect = iframe.getBoundingClientRect();
+        if (!rect.height) return; // 아직 렌더 전
+        const delta = window.innerHeight - rect.bottom; // 부족(+) / 초과(-) — 실제 픽셀
+        if (Math.abs(delta) < 1) return;
+        const scale = rect.height / (iframe.offsetHeight || 1); // zoom 배율 (구형 크롬 1.07, 표준화 후 1)
+        const h = iframe.offsetHeight + delta / scale;
+        // 스타일시트의 !important 규칙보다 우선하도록 inline important로 지정
+        document.querySelectorAll('.tab-pane iframe').forEach(f => f.style.setProperty('height', h + 'px', 'important'));
     },
 
     close(id) {
@@ -831,6 +851,7 @@ window.drgoTabs = {
         };
         pane.innerHTML = '';
         pane.appendChild(iframe);
+        requestAnimationFrame(() => this._fitPanes());
     },
 
     render() {
@@ -985,6 +1006,12 @@ window.drgoTabs = {
 };
 
 drgoTabs.init();
+// iframe 높이 실측 보정 — 초기 렌더/창 크기 변경 시 (뷰포트 단위·zoom 구현 차이 흡수)
+requestAnimationFrame(() => drgoTabs._fitPanes());
+window.addEventListener('resize', () => {
+    clearTimeout(drgoTabs._fitTimer);
+    drgoTabs._fitTimer = setTimeout(() => drgoTabs._fitPanes(), 120);
+});
 </script>
 
 {{-- ── 활동 로그 모달 (글로벌) ── --}}

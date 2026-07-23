@@ -38,6 +38,19 @@ class TabShellLayoutTest extends TestCase
         }
     }
 
+    public function test_iframe_height_is_fitted_by_measurement(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // 크롬 zoom 표준화(128+)로 vh 이중 보정 → iframe이 짧아져 전 페이지 하단이 잘리던 문제
+        // CSS 계산 대신 실측(getBoundingClientRect) 기반 보정이 있어야 함
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('_fitPanes', false)
+            ->assertSee('window.innerHeight - rect.bottom', false)
+            ->assertSee("addEventListener('resize'", false);
+    }
+
     public function test_tab_can_be_closed_with_middle_click(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
