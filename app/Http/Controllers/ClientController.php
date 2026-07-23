@@ -141,8 +141,19 @@ class ClientController extends Controller
 
             foreach ($sortedProjects as $project) {
                 $custom = $project->custom_data ?? [];
+                // 프로젝트 전용 장비 항목 (custom_data.__equip_items) — 전역 정의 뒤에 이어서
+                $localDefs = collect($custom['__equip_items'] ?? [])
+                    ->filter(fn ($i) => is_array($i) && ! empty($i['key']) && ! empty($i['label']))
+                    ->map(fn ($i) => (object) [
+                        'key' => $i['key'],
+                        'label' => $i['label'],
+                        'type' => $i['type'] ?? 'text',
+                        'subsection' => $i['subsection'] ?? null,
+                        'priority' => 0,
+                        'options' => $i['options'] ?? null,
+                    ]);
                 $values = [];
-                foreach ($eqFields as $f) {
+                foreach ($eqFields->concat($localDefs) as $f) {
                     $v = $custom[$f->key] ?? null;
                     // false = 토글 '없음' — 미입력과 동일하게 표시하지 않음 ({value:false, qty:…} 수량형 포함)
                     if ($v === null || $v === '' || $v === false || (is_array($v) && empty($v))

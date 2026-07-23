@@ -845,7 +845,7 @@ window.drgoTabs = {
         const iframe = document.createElement('iframe');
         iframe.src = tab.url;
         iframe.style.cssText = 'width:100%;height:calc(100vh / var(--ui-zoom, 1) - var(--chrome-h, 86px));border:none;display:block;';
-        iframe.onload = () => { tab.loaded = true; };
+        iframe.onload = () => { tab.loaded = true; this._fitPanes(); };
         iframe.onerror = () => {
             pane.innerHTML = '<div class="tab-loading" style="color:var(--red)">로드 실패 — <a href="' + tab.url + '" style="color:var(--accent)">직접 열기</a></div>';
         };
@@ -1007,7 +1007,10 @@ window.drgoTabs = {
 
 drgoTabs.init();
 // iframe 높이 실측 보정 — 초기 렌더/창 크기 변경 시 (뷰포트 단위·zoom 구현 차이 흡수)
+// 폰트 로드·스크롤바 등 늦은 레이아웃 변화 대비 지연 재보정 포함
 requestAnimationFrame(() => drgoTabs._fitPanes());
+setTimeout(() => drgoTabs._fitPanes(), 500);
+setTimeout(() => drgoTabs._fitPanes(), 1500);
 window.addEventListener('resize', () => {
     clearTimeout(drgoTabs._fitTimer);
     drgoTabs._fitTimer = setTimeout(() => drgoTabs._fitPanes(), 120);

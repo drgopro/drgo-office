@@ -930,10 +930,13 @@
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
         </div>
 
-        <!-- 장비 항목 추가 모달 (master/admin 전용 — 필드 정의를 즉석 등록) -->
+        <!-- 장비 항목 편집 모달 — 이 프로젝트에만 적용되는 항목 생성/수정/삭제 -->
         <div class="pfa-overlay" id="pfaOverlay" onclick="if(event.target===this)closePcfAdd()">
             <div class="pfa-modal">
-                <div class="pfa-title">장비 항목 추가</div>
+                <div class="pfa-title">장비 항목 편집 <span style="font-size:11px;font-weight:600;color:var(--text-muted);">이 프로젝트에만 적용</span></div>
+                <div id="pfaList" style="display:flex;flex-direction:column;gap:6px;"></div>
+                <div style="border-top:1px dashed var(--border);"></div>
+                <div class="pfa-subtitle" id="pfaFormTitle" style="font-size:12.5px;font-weight:700;color:var(--text);">새 항목 추가</div>
                 <div class="pfa-group">
                     <span class="pfa-lab">항목 이름 <span style="color:var(--red)">*</span></span>
                     <input type="text" id="pfaLabel" class="pcf-input" placeholder="예: 캡처보드, 프롬프터, 크로마키">
@@ -953,8 +956,9 @@
                 </div>
                 <label class="pfa-check" id="pfaQtyWrap"><input type="checkbox" id="pfaQty"> 수량 입력 사용 (예: 모니터 × 2)</label>
                 <div class="pfa-actions">
-                    <button class="pfa-btn-ghost" onclick="closePcfAdd()">취소</button>
-                    <button class="pfa-btn-primary" onclick="pcfAddSubmit()">항목 추가</button>
+                    <button class="pfa-btn-ghost" id="pfaCancelBtn" onclick="pfaResetForm()" style="display:none;">수정 취소</button>
+                    <button class="pfa-btn-ghost" onclick="closePcfAdd()">닫기</button>
+                    <button class="pfa-btn-primary" id="pfaSubmitBtn" onclick="pcfAddSubmit()">항목 추가</button>
                 </div>
             </div>
         </div>
@@ -2002,12 +2006,20 @@ const PCF_CAN_MANAGE = @json(auth()->user()->isAdmin()); // 필드 정의 API는
 
 function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// 이 프로젝트에만 적용되는 장비 항목 정의 (custom_data.__equip_items — 값은 custom_data[key]에 저장)
+function localEquipDefs() {
+    const items = Array.isArray(projectCustomData.__equip_items) ? projectCustomData.__equip_items : [];
+    return items.filter(i => i && i.key && i.label).map(i => ({...i, section:'equipment', __local:true}));
+}
+function pcfAllDefs() { return projectFieldDefs.concat(localEquipDefs()); }
+function pcfDefOf(key) { return pcfAllDefs().find(x => x.key === key); }
+
 async function loadProjectFieldsForShow() {
     try {
         const res = await fetch('/api/project-fields/active', {headers:{'Accept':'application/json'}});
         if (!res.ok) return;
         projectFieldDefs = (await res.json()).filter(f => f.is_active);
-        if (!projectFieldDefs.length && !PCF_CAN_MANAGE) return; // 정의된 필드 없으면 카드 숨김 (관리자는 항목 추가를 위해 노출)
+        // 관리자 전역 필드 + 이 프로젝트 전용 장비 항목이 모두 없어도 항목 편집 진입점은 노출
         document.getElementById('customDataCard').style.display = '';
         renderProjectCustomFields();
     } catch(e) {}
@@ -2040,10 +2052,10 @@ function pcfSubIcon(name) {
 
 function renderProjectCustomFields() {
     const wrap = document.getElementById('projectCustomFields');
-    // section → subsection → fields 2단 그룹 + priority 집계
+    // section → subsection → fields 2단 그룹 + priority 집계 (전역 정의 + 프로젝트 전용 장비 항목)
     const grouped = {};
     const subMaxPrio = {};
-    projectFieldDefs.forEach(f => {
+    pcfAllDefs().forEach(f => {
         const sec = f.section || 'etc';
         const sub = f.subsection || '';
         const p = Number.isFinite(parseInt(f.priority, 10)) ? parseInt(f.priority, 10) : 0;
@@ -2079,8 +2091,8 @@ function renderProjectCustomFields() {
     const collapsedKey = 'drgo_pcf_collapsed_{{ $project->id }}';
     const collapsed = (() => { try { return JSON.parse(localStorage.getItem(collapsedKey) || '[]'); } catch(e) { return []; } })();
     Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
-        // 장비 섹션은 항목이 없어도 관리자에게 노출 (+ 항목 추가 진입점)
-        if (!grouped[k] && !(k === 'equipment' && PCF_CAN_MANAGE)) return;
+        // 장비 섹션은 항목이 없어도 노출 (항목 편집 진입점)
+        if (!grouped[k] && k !== 'equipment') return;
         const subs = grouped[k] || { '': [] };
         const subKeys = Object.keys(subs);
         const hasSubsections = subKeys.some(s => s !== '');
@@ -2089,7 +2101,7 @@ function renderProjectCustomFields() {
         html += `<div class="pcf-section${isCollapsed ? ' collapsed' : ''}" data-section="${k}">
             <div class="pcf-sec-title" onclick="togglePcfSection('${k}')" title="클릭하여 접기/펼치기">
                 <span class="pcf-sec-toggle">▼</span>${pcfEsc(lbl)}
-                ${k === 'equipment' && PCF_CAN_MANAGE ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">+ 항목 추가</button>` : ''}
+                ${k === 'equipment' ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">⚙ 항목 편집</button>` : ''}
             </div>`;
 
         if (!hasSubsections) {
@@ -2099,7 +2111,7 @@ function renderProjectCustomFields() {
             sortedFields.forEach(f => { html += renderFieldHtml(f); });
             html += `</div>`;
             if (k === 'equipment' && !sortedFields.length) {
-                html += `<div style="font-size:12px; color:var(--text-muted);">등록된 장비 항목이 없습니다 — <b>+ 항목 추가</b>로 첫 항목을 만들어 보세요.</div>`;
+                html += `<div style="font-size:12px; color:var(--text-muted);">등록된 장비 항목이 없습니다 — <b>⚙ 항목 편집</b>으로 이 프로젝트의 항목을 만들어 보세요.</div>`;
             }
         } else {
             // 소분류 있음 → 소분류별 서브카드. 소분류 정렬은 그룹 최대 priority DESC, 빈 소분류는 마지막
@@ -2204,7 +2216,7 @@ function pcfInputCore(f, val) {
 
 function pcfChange(el) {
     const key = el.dataset.key;
-    const f = projectFieldDefs.find(x => x.key === key);
+    const f = pcfDefOf(key);
     if (f && f.has_quantity && PCF_QTY_TYPES.includes(f.type)) {
         const prev = projectCustomData[key];
         const cur = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? {...prev} : {};
@@ -2232,7 +2244,7 @@ function pcfCheckChange(el) {
 }
 function pcfToggleChange(el) {
     const key = el.dataset.key;
-    const f = projectFieldDefs.find(x => x.key === key);
+    const f = pcfDefOf(key);
     const on = el.checked;
     if (f && f.has_quantity) {
         const prev = projectCustomData[key];
@@ -2247,24 +2259,74 @@ function pcfToggleChange(el) {
     pcfScheduleSave();
 }
 
-// ── 장비 항목 즉석 추가 (master/admin — 필드 정의 생성) ──
+// ── 장비 항목 편집 — 이 프로젝트에만 적용되는 항목(custom_data.__equip_items) 생성/수정/삭제 ──
 const PFA_TYPES = { toggle:'토글 (있음/없음)', checkbox:'체크박스 (다중 선택)', text:'수기 입력', select:'선택 목록', number:'숫자' };
 let pfaType = 'toggle';
+let pfaEditKey = null; // 수정 중인 항목 key (null이면 새 항목)
+
+function pfaItems() {
+    if (!Array.isArray(projectCustomData.__equip_items)) projectCustomData.__equip_items = [];
+    return projectCustomData.__equip_items;
+}
 function openPcfAdd() {
     document.getElementById('pfaOverlay').style.display = 'flex';
+    document.getElementById('pfaTypes').innerHTML = Object.entries(PFA_TYPES)
+        .map(([k, lbl]) => `<button class="pfa-type-chip" data-t="${k}" onclick="pfaSetType('${k}')">${lbl}</button>`).join('');
+    // 기존 장비 소분류(전역+로컬)를 자동완성 목록으로
+    const subs = [...new Set(pcfAllDefs().filter(f => (f.section||'') === 'equipment').map(f => f.subsection).filter(Boolean))];
+    document.getElementById('pfaSubList').innerHTML = subs.map(s => `<option value="${pcfEsc(s)}">`).join('');
+    pfaResetForm();
+}
+function closePcfAdd() { document.getElementById('pfaOverlay').style.display = 'none'; }
+function pfaRenderList() {
+    const list = document.getElementById('pfaList');
+    const items = pfaItems();
+    if (!items.length) {
+        list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">이 프로젝트에 추가된 항목이 없습니다.</div>';
+        return;
+    }
+    list.innerHTML = items.map(i => `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">
+        <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(i.label)}</b>
+        <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">${PFA_TYPES[i.type]||i.type}${i.subsection?' · '+pcfEsc(i.subsection):''}</span>
+        <button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;" onclick="pfaEdit('${i.key}')">수정</button>
+        <button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;color:var(--red);" onclick="pfaDelete('${i.key}')">삭제</button>
+    </div>`).join('');
+}
+function pfaResetForm() {
+    pfaEditKey = null;
+    document.getElementById('pfaFormTitle').textContent = '새 항목 추가';
     document.getElementById('pfaLabel').value = '';
     document.getElementById('pfaSub').value = '';
     document.getElementById('pfaOpts').value = '';
     document.getElementById('pfaQty').checked = false;
-    // 기존 장비 소분류를 자동완성 목록으로
-    const subs = [...new Set(projectFieldDefs.filter(f => (f.section||'') === 'equipment').map(f => f.subsection).filter(Boolean))];
-    document.getElementById('pfaSubList').innerHTML = subs.map(s => `<option value="${pcfEsc(s)}">`).join('');
-    document.getElementById('pfaTypes').innerHTML = Object.entries(PFA_TYPES)
-        .map(([k, lbl]) => `<button class="pfa-type-chip" data-t="${k}" onclick="pfaSetType('${k}')">${lbl}</button>`).join('');
+    document.getElementById('pfaCancelBtn').style.display = 'none';
+    document.getElementById('pfaSubmitBtn').textContent = '항목 추가';
     pfaSetType('toggle');
+    pfaRenderList();
+}
+function pfaEdit(key) {
+    const i = pfaItems().find(x => x.key === key);
+    if (!i) return;
+    pfaEditKey = key;
+    document.getElementById('pfaFormTitle').textContent = `항목 수정 — ${i.label}`;
+    document.getElementById('pfaLabel').value = i.label;
+    document.getElementById('pfaSub').value = i.subsection || '';
+    document.getElementById('pfaOpts').value = (i.options || []).join(', ');
+    document.getElementById('pfaQty').checked = !!i.has_quantity;
+    document.getElementById('pfaCancelBtn').style.display = '';
+    document.getElementById('pfaSubmitBtn').textContent = '저장';
+    pfaSetType(i.type || 'text');
     document.getElementById('pfaLabel').focus();
 }
-function closePcfAdd() { document.getElementById('pfaOverlay').style.display = 'none'; }
+function pfaDelete(key) {
+    const i = pfaItems().find(x => x.key === key);
+    if (!i || !confirm(`'${i.label}' 항목을 삭제할까요? 입력된 값도 함께 삭제됩니다.`)) return;
+    projectCustomData.__equip_items = pfaItems().filter(x => x.key !== key);
+    delete projectCustomData[key]; // 입력값도 제거
+    if (pfaEditKey === key) pfaResetForm(); else pfaRenderList();
+    pcfScheduleSave();
+    renderProjectCustomFields();
+}
 function pfaSetType(t) {
     pfaType = t;
     document.querySelectorAll('#pfaTypes .pfa-type-chip').forEach(b => b.classList.toggle('on', b.dataset.t === t));
@@ -2272,32 +2334,27 @@ function pfaSetType(t) {
     // 수량은 토글/수기입력/선택목록에서만 의미 있음 (체크박스·숫자는 제외)
     document.getElementById('pfaQtyWrap').style.display = PCF_QTY_TYPES.includes(t) ? '' : 'none';
 }
-async function pcfAddSubmit() {
+function pcfAddSubmit() {
     const label = document.getElementById('pfaLabel').value.trim();
     if (!label) { alert('항목 이름을 입력하세요.'); return; }
     const opts = document.getElementById('pfaOpts').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
     if (['checkbox','select'].includes(pfaType) && !opts.length) { alert('옵션을 한 개 이상 입력하세요.'); return; }
-    const body = {
+    const data = {
         label,
         type: pfaType,
-        section: 'equipment',
         subsection: document.getElementById('pfaSub').value.trim() || null,
         options: ['checkbox','select'].includes(pfaType) ? opts : null,
         has_quantity: PCF_QTY_TYPES.includes(pfaType) && document.getElementById('pfaQty').checked,
-        is_active: true,
     };
-    const res = await fetch('/api/admin/project-fields', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
-        body: JSON.stringify(body),
-    });
-    if (res.ok) {
-        closePcfAdd();
-        await loadProjectFieldsForShow(); // 새 항목 포함 재렌더
+    if (pfaEditKey) {
+        const i = pfaItems().find(x => x.key === pfaEditKey);
+        if (i) Object.assign(i, data);
     } else {
-        const e = await res.json().catch(() => ({}));
-        alert(e.message || '항목 추가에 실패했습니다.');
+        pfaItems().push({ key: 'loc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...data });
     }
+    pcfScheduleSave();       // custom_data로 저장 (이 프로젝트에만 적용)
+    pfaResetForm();
+    renderProjectCustomFields();
 }
 
 let pcfSaveTimer = null;

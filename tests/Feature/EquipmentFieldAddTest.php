@@ -83,7 +83,7 @@ class EquipmentFieldAddTest extends TestCase
         $this->assertFalse($labels->contains('크로마키'));
     }
 
-    public function test_project_page_contains_add_item_ui(): void
+    public function test_project_page_contains_item_edit_ui(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = Client::create(['name' => '테스트 의뢰자', 'grade' => 'normal']);
@@ -91,11 +91,44 @@ class EquipmentFieldAddTest extends TestCase
 
         $this->actingAs($admin)->get("/projects/{$project->id}")
             ->assertOk()
-            ->assertSee('장비 항목 추가')
+            ->assertSee('장비 항목 편집')
             ->assertSee('pfaOverlay', false)
+            ->assertSee('__equip_items', false)
             ->assertSee('pcfToggleChange', false)
             // 저장 상태 배지 + 수동 저장 버튼 (자동 저장 확인 UI)
             ->assertSee('pcfSaveBadge', false)
             ->assertSee('pcfSaveNow', false);
+    }
+
+    public function test_local_equipment_item_applies_only_to_its_project(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $clientA = Client::create(['name' => 'A의뢰자', 'grade' => 'normal']);
+        $clientB = Client::create(['name' => 'B의뢰자', 'grade' => 'normal']);
+        $projectA = Project::create(['client_id' => $clientA->id, 'name' => 'A프로젝트']);
+        Project::create(['client_id' => $clientB->id, 'name' => 'B프로젝트', 'custom_data' => ['other' => 'x']]);
+
+        // 프로젝트 A에만 항목 정의 + 값 저장 (custom_data 경유 — 전역 필드 정의 생성 없음)
+        $this->actingAs($admin)->patchJson("/api/projects/{$projectA->id}", [
+            'custom_data' => [
+                '__equip_items' => [[
+                    'key' => 'loc_test1', 'label' => '캡처보드', 'type' => 'toggle',
+                    'subsection' => '주변기기', 'has_quantity' => false,
+                ]],
+                'loc_test1' => true,
+            ],
+        ])->assertOk();
+
+        $this->assertSame(0, ProjectFieldDefinition::count()); // 전역 정의는 생성되지 않음
+
+        // A 의뢰자 장비 연동에는 표시
+        $resA = $this->actingAs($admin)->getJson("/api/clients/{$clientA->id}/detail")->assertOk()->json();
+        $labelsA = collect($resA['last_project_equipment']['fields'] ?? [])->pluck('label');
+        $this->assertTrue($labelsA->contains('캡처보드'));
+
+        // B 의뢰자에는 없음 (프로젝트별 적용)
+        $resB = $this->actingAs($admin)->getJson("/api/clients/{$clientB->id}/detail")->assertOk()->json();
+        $labelsB = collect($resB['last_project_equipment']['fields'] ?? [])->pluck('label');
+        $this->assertFalse($labelsB->contains('캡처보드'));
     }
 }
