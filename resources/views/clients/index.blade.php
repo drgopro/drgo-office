@@ -2009,7 +2009,9 @@ function renderClientView(d) {
             <div class="cv-grid3">${groups[sub].map(f => `<div><div class="cv-l">${_esc(f.label)}</div>${cvVal(formatCfDisplay(f.value))}</div>`).join('')}</div>
         </div>`).join('')
             + `<a class="cv-eqlink" href="/projects/${eq.project_id}">프로젝트에서 원본 보기 →</a>`;
-        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd">최근 프로젝트<br>「${_esc(eq.project_name)}」</div>`;
+        // 최신 프로젝트가 아닌 과거 프로젝트에서 가져온 경우 출처를 명확히 표기
+        const srcLabel = eq.is_latest === false ? '장비 정보가 있는 마지막 프로젝트' : '최근 프로젝트';
+        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd">${srcLabel}<br>「${_esc(eq.project_name)}」 · ${eq.created_at}</div>`;
     } else {
         equipBody = '<div class="cv-v dim">연동된 장비 정보가 없습니다 — 프로젝트에서 장비 정보를 입력하면 여기에 표시됩니다.</div>';
         equipRail = '<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div>';

@@ -127,10 +127,10 @@ class ClientController extends Controller
     {
         $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator');
 
-        // 가장 최근 프로젝트의 '장비 정보' 섹션(동적 필드) 요약
+        // 장비 정보 연동 — 최신 프로젝트 우선, 비어 있으면 장비 정보가 적힌 가장 최근 프로젝트로 폴백
         $lastProjectEquipment = null;
-        $latestProject = $client->projects->sortByDesc('created_at')->first();
-        if ($latestProject) {
+        $sortedProjects = $client->projects->sortByDesc('created_at');
+        if ($sortedProjects->isNotEmpty()) {
             $eqFields = ProjectFieldDefinition::where('section', 'equipment')
                 ->where('is_active', true)
                 ->orderByDesc('priority')
@@ -138,29 +138,35 @@ class ClientController extends Controller
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get(['key', 'label', 'type', 'subsection', 'priority', 'options']);
-            $custom = $latestProject->custom_data ?? [];
-            $values = [];
-            foreach ($eqFields as $f) {
-                $v = $custom[$f->key] ?? null;
-                if ($v === null || $v === '' || (is_array($v) && empty($v))) {
-                    continue;
+
+            foreach ($sortedProjects as $project) {
+                $custom = $project->custom_data ?? [];
+                $values = [];
+                foreach ($eqFields as $f) {
+                    $v = $custom[$f->key] ?? null;
+                    if ($v === null || $v === '' || (is_array($v) && empty($v))) {
+                        continue;
+                    }
+                    $values[] = [
+                        'key' => $f->key,
+                        'label' => $f->label,
+                        'type' => $f->type,
+                        'subsection' => $f->subsection,
+                        'priority' => $f->priority,
+                        'value' => $v,
+                    ];
                 }
-                $values[] = [
-                    'key' => $f->key,
-                    'label' => $f->label,
-                    'type' => $f->type,
-                    'subsection' => $f->subsection,
-                    'priority' => $f->priority,
-                    'value' => $v,
-                ];
-            }
-            if (! empty($values)) {
-                $lastProjectEquipment = [
-                    'project_id' => $latestProject->id,
-                    'project_name' => $latestProject->name,
-                    'created_at' => $latestProject->created_at->format('Y.m.d'),
-                    'fields' => $values,
-                ];
+                if (! empty($values)) {
+                    $lastProjectEquipment = [
+                        'project_id' => $project->id,
+                        'project_name' => $project->name,
+                        'created_at' => $project->created_at->format('Y.m.d'),
+                        // 최신 프로젝트가 아닌 과거 프로젝트에서 가져온 경우 표시용
+                        'is_latest' => $project->is($sortedProjects->first()),
+                        'fields' => $values,
+                    ];
+                    break; // 장비 정보가 있는 가장 최근 프로젝트에서 중단
+                }
             }
         }
 
