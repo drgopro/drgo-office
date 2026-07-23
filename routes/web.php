@@ -42,6 +42,7 @@ use App\Http\Controllers\WorkTypeController;
 use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
 use App\Models\ProjectFieldDefinition;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
@@ -88,6 +89,13 @@ Route::middleware('auth')->group(function () {
 
     // 피드백 보드 (버그 제보/기능 요청, guest 차단)
     Route::middleware('role:master,admin,member')->group(function () {
+        // @멘션 자동완성용 멤버 목록 (피드백·위키 댓글 공용)
+        Route::get('/api/mention-users', function () {
+            return User::where('is_active', true)
+                ->orderBy('display_name')
+                ->get(['id', 'display_name', 'username'])
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->display_name ?? $u->username]);
+        });
         Route::get('/feedback', [FeedbackController::class, 'index'])->name('feedback');
         Route::get('/api/feedback', [FeedbackController::class, 'list']);
         Route::post('/api/feedback', [FeedbackController::class, 'store']);

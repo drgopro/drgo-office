@@ -97,6 +97,10 @@
     .fb-comment-date { font-size:10px; color:var(--text-muted); }
     .fb-comment-text { color:var(--text); margin-top:2px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
     .fb-comment-del { background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; padding:0 4px; }
+    .fb-mention { color:var(--accent); font-weight:700; }
+    .fb-reply { margin-top:8px; padding-left:10px; border-left:2px solid var(--border); }
+    .fb-reply-form { margin-top:8px; }
+    .fb-reply-form input { font-size:12px; padding:6px 10px; }
     .fb-comment-form { display:flex; gap:8px; margin-top:2px; }
     .fb-comment-form input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:8px 12px; color:var(--text); font-size:12.5px; outline:none; }
     .fb-comment-submit { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:0 14px; color:var(--text); font-size:12px; font-weight:600; cursor:pointer; }
@@ -343,24 +347,48 @@ function fbBodyHtml(p){
             </span>
         </div>`;
     }
-    html += `<div class="fb-comments" id="fbComments${p.id}">${p.comments.map(c => fbCommentHtml(c)).join('')}
+    // 최상위 의견 + 대댓글 (1뎁스) 그룹 렌더
+    const roots = p.comments.filter(c => !c.parent_id);
+    const replies = {};
+    p.comments.filter(c => c.parent_id).forEach(c => { (replies[c.parent_id] = replies[c.parent_id] || []).push(c); });
+    html += `<div class="fb-comments" id="fbComments${p.id}">${roots.map(c => fbCommentHtml(c, p.id, replies[c.id] || [])).join('')}
         <div class="fb-comment-form">
-            <input type="text" id="fbCommentInput${p.id}" maxlength="2000" placeholder="의견 남기기" onkeydown="if(event.key==='Enter'&&!event.isComposing)fbComment(${p.id})">
+            <input type="text" id="fbCommentInput${p.id}" maxlength="2000" data-mention placeholder="의견 남기기 (@이름 으로 멤버 호출)" onkeydown="if(event.key==='Enter'&&!event.isComposing)fbComment(${p.id})">
             <button class="fb-comment-submit" id="fbCommentBtn${p.id}" onclick="fbComment(${p.id})">등록</button>
         </div>
     </div>`;
     return html;
 }
 
-function fbCommentHtml(c){
+// @이름 강조 (이스케이프 후 치환)
+function fbBodyHtml(body){
+    return _e(body).replace(/@([\p{L}\p{N}_.\-]+)/gu, '<span class="fb-mention">@$1</span>');
+}
+
+function fbCommentHtml(c, postId, children){
+    children = children || [];
     return `<div class="fb-comment" id="fbComment${c.id}">
         <div class="fb-avatar" style="width:26px;height:26px;font-size:11px;">${_e((c.user||'?').charAt(0))}</div>
         <div class="fb-comment-body">
             <div class="fb-comment-head"><b>${_e(c.user||'')}</b>${c.is_dev?'<span class="fb-dev-badge">DEV</span>':''}<span class="fb-comment-date">${c.created_at}</span>
+            ${!c.parent_id?`<button class="fb-comment-del" onclick="fbToggleReply(${postId},${c.id})">답글</button>`:''}
             ${(c.is_mine||FB_IS_DEV)?`<button class="fb-comment-del" onclick="fbDeleteComment(${c.id})">삭제</button>`:''}</div>
-            <div class="fb-comment-text">${_e(c.body)}</div>
+            <div class="fb-comment-text">${fbBodyHtml(c.body)}</div>
+            ${children.map(r => `<div class="fb-reply">${fbCommentHtml(r, postId, [])}</div>`).join('')}
+            ${!c.parent_id?`<div class="fb-comment-form fb-reply-form" id="fbReplyForm${c.id}" style="display:none;">
+                <input type="text" id="fbReplyInput${c.id}" maxlength="2000" data-mention placeholder="답글 남기기 (@이름 으로 멤버 호출)" onkeydown="if(event.key==='Enter'&&!event.isComposing)fbComment(${postId},${c.id})">
+                <button class="fb-comment-submit" id="fbCommentBtn${postId}_${c.id}" onclick="fbComment(${postId},${c.id})">등록</button>
+            </div>`:''}
         </div>
     </div>`;
+}
+
+function fbToggleReply(postId, commentId){
+    const form = document.getElementById('fbReplyForm'+commentId);
+    if(!form) return;
+    const show = form.style.display === 'none';
+    form.style.display = show ? 'flex' : 'none';
+    if(show) document.getElementById('fbReplyInput'+commentId)?.focus();
 }
 
 function fbToggle(id){
@@ -471,16 +499,16 @@ async function fbSetStatus(id, status){
 
 // ── 의견 ──
 let fbCommentBusy = false; // 연타/IME Enter 중복 전송 방지
-async function fbComment(id){
+async function fbComment(id, parentId){
     if(fbCommentBusy) return;
-    const input = document.getElementById('fbCommentInput'+id);
+    const input = document.getElementById(parentId ? 'fbReplyInput'+parentId : 'fbCommentInput'+id);
     const body = input.value.trim();
     if(!body) return;
     fbCommentBusy = true;
-    const btn = document.getElementById('fbCommentBtn'+id);
+    const btn = document.getElementById(parentId ? `fbCommentBtn${id}_${parentId}` : 'fbCommentBtn'+id);
     if(btn) btn.disabled = true;
     try {
-        const res = await fetch(`/api/feedback/${id}/comments`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({body})});
+        const res = await fetch(`/api/feedback/${id}/comments`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({body, parent_id: parentId || null})});
         if(!res.ok){ alert('의견 등록 실패'); return; }
         input.value = '';
         await fbLoad();
@@ -563,4 +591,5 @@ function fbLbOpenFrom(el){
 
 fbLoad();
 </script>
+@include('partials.mention-autocomplete')
 @endsection

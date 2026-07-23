@@ -9,9 +9,16 @@ class FeedbackComment extends Model
 {
     protected $fillable = [
         'feedback_post_id',
+        'parent_id',
         'user_id',
         'body',
     ];
+
+    /** @return BelongsTo<self, $this> */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
 
     /** @return BelongsTo<FeedbackPost, $this> */
     public function post(): BelongsTo

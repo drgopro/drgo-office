@@ -7,11 +7,14 @@ use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Models\WikiCategory;
 use App\Models\WikiComment;
+use App\Notifications\MentionAlert;
 use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
+use App\Services\MentionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class WikiController extends Controller
@@ -272,21 +275,64 @@ class WikiController extends Controller
         return redirect()->route('wiki.index')->with('success', '문서가 삭제되었습니다.');
     }
 
-    /** 댓글 작성 — 회의록(meeting) 유형 게시물에만 허용 */
+    /** 댓글 작성 — 회의록(meeting) 유형 게시물에만 허용. 대댓글(1뎁스) + @멘션 알림 지원 */
     public function storeComment(Request $request, Wiki $wiki)
     {
         abort_unless($wiki->type === 'meeting', 403, '댓글은 회의록 게시물에만 작성할 수 있습니다.');
 
         $validated = $request->validate([
             'body' => 'required|string|max:2000',
+            'parent_id' => 'nullable|integer|exists:wiki_comments,id',
         ]);
 
-        $wiki->comments()->create([
+        $parent = null;
+        if (! empty($validated['parent_id'])) {
+            $parent = WikiComment::findOrFail($validated['parent_id']);
+            abort_unless($parent->wiki_id === $wiki->id && $parent->parent_id === null, 422, '답글에는 다시 답글을 달 수 없습니다.');
+        }
+
+        $comment = $wiki->comments()->create([
             'user_id' => Auth::id(),
+            'parent_id' => $parent?->id,
             'body' => $validated['body'],
         ]);
 
+        $this->sendCommentAlerts($wiki, $comment, $parent);
+
         return redirect()->route('wiki.show', $wiki)->with('success', '댓글이 등록되었습니다.');
+    }
+
+    /** @멘션 호출 + 대댓글 알림 (푸시·상단 알림) — 실패해도 댓글 등록은 유지 */
+    private function sendCommentAlerts(Wiki $wiki, WikiComment $comment, ?WikiComment $parent): void
+    {
+        try {
+            $me = Auth::user();
+            $myName = $me->display_name ?? $me->username;
+            $excerpt = mb_substr($comment->body, 0, 80);
+            $url = '/wiki/'.$wiki->id;
+
+            $mentioned = MentionService::users($comment->body)->reject(fn ($u) => $u->id === $me->id);
+            foreach ($mentioned as $user) {
+                $user->notify(new MentionAlert(
+                    '📣 '.$myName.'님이 회원님을 언급했습니다',
+                    $wiki->title.' — '.$excerpt,
+                    $url,
+                    'wiki-mention-'.$comment->id
+                ));
+            }
+
+            if ($parent && $parent->user && $parent->user->is_active
+                && $parent->user_id !== $me->id && ! $mentioned->contains('id', $parent->user_id)) {
+                $parent->user->notify(new MentionAlert(
+                    '↩ '.$myName.'님이 내 댓글에 답글을 남겼습니다',
+                    $wiki->title.' — '.$excerpt,
+                    $url,
+                    'wiki-reply-'.$comment->id
+                ));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('위키 댓글 알림 발송 실패: '.$e->getMessage());
+        }
     }
 
     /** 댓글 수정 — 작성자 본인 또는 관리자만 */
@@ -309,6 +355,7 @@ class WikiController extends Controller
         abort_unless($comment->user_id === Auth::id() || Auth::user()->isAdmin(), 403, '본인이 작성한 댓글만 삭제할 수 있습니다.');
 
         $wiki = $comment->wiki;
+        WikiComment::where('parent_id', $comment->id)->delete(); // 대댓글 함께 삭제
         $comment->delete();
 
         return redirect()->route('wiki.show', $wiki)->with('success', '댓글이 삭제되었습니다.');

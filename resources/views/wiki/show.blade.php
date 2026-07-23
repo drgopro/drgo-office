@@ -25,6 +25,9 @@
     .wiki-comments { margin-top:24px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; }
     .wiki-comments-title { font-size:14px; font-weight:700; margin-bottom:14px; }
     .wiki-comments-title span { color:var(--accent); }
+    .wiki-reply { margin-left:24px; padding-left:12px; border-left:2px solid var(--border); }
+    .wiki-reply-form { margin-left:24px; }
+    .wiki-mention { color:var(--accent); font-weight:700; }
     .wiki-comment { padding:12px 0; border-top:1px solid var(--border); }
     .wiki-comment-meta { display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted); margin-bottom:6px; }
     .wiki-comment-author { font-weight:600; color:var(--text); font-size:12px; }
@@ -303,42 +306,28 @@
     <!-- 댓글 — 회의록 전용 -->
     <div class="wiki-comments" id="wikiComments">
         <div class="wiki-comments-title">💬 댓글 <span>{{ $wiki->comments->count() }}</span></div>
-        @forelse($wiki->comments as $comment)
-        <div class="wiki-comment">
-            <div class="wiki-comment-meta">
-                <span class="wiki-comment-author">{{ $comment->user?->display_name ?? $comment->user?->username ?? '알 수 없음' }}</span>
-                <span>{{ $comment->created_at->format('Y.m.d H:i') }}</span>
-                @if($comment->updated_at->gt($comment->created_at))
-                <span>(수정됨)</span>
-                @endif
-                @if($comment->user_id === auth()->id() || auth()->user()->isAdmin())
-                <span class="wiki-comment-actions">
-                    <button type="button" class="wiki-comment-del" onclick="toggleCommentEdit({{ $comment->id }})">수정</button>
-                    <form method="POST" action="{{ route('wiki.comments.destroy', $comment) }}" onsubmit="return confirm('이 댓글을 삭제하시겠습니까?')" style="margin:0;">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="wiki-comment-del">삭제</button>
-                    </form>
-                </span>
-                @endif
-            </div>
-            <div class="wiki-comment-body" id="commentBody{{ $comment->id }}">{{ $comment->body }}</div>
-            @if($comment->user_id === auth()->id() || auth()->user()->isAdmin())
-            <form method="POST" action="{{ route('wiki.comments.update', $comment) }}" class="wiki-comment-form wiki-comment-edit-form" id="commentEdit{{ $comment->id }}" style="display:none;">
-                @csrf @method('PATCH')
-                <textarea name="body" required maxlength="2000" rows="3">{{ $comment->body }}</textarea>
-                <span class="wiki-comment-edit-btns">
-                    <button type="submit">저장</button>
-                    <button type="button" class="cancel" onclick="toggleCommentEdit({{ $comment->id }})">취소</button>
-                </span>
+        @php
+            $rootComments = $wiki->comments->whereNull('parent_id')->values();
+            $childComments = $wiki->comments->whereNotNull('parent_id')->groupBy('parent_id');
+        @endphp
+        @forelse($rootComments as $comment)
+            @include('wiki.partials.comment', ['comment' => $comment, 'wiki' => $wiki, 'isReply' => false])
+            @foreach($childComments->get($comment->id, collect()) as $reply)
+                @include('wiki.partials.comment', ['comment' => $reply, 'wiki' => $wiki, 'isReply' => true])
+            @endforeach
+            {{-- 답글 폼 (1뎁스) --}}
+            <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form wiki-reply-form" id="replyForm{{ $comment->id }}" style="display:none;" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
+                @csrf
+                <input type="hidden" name="parent_id" value="{{ $comment->id }}">
+                <textarea name="body" required maxlength="2000" rows="2" data-mention placeholder="답글을 입력하세요... (@이름 으로 멤버 호출)"></textarea>
+                <button type="submit">등록</button>
             </form>
-            @endif
-        </div>
         @empty
         <div class="wiki-comment-empty">첫 댓글을 남겨보세요.</div>
         @endforelse
         <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
             @csrf
-            <textarea name="body" required maxlength="2000" rows="3" placeholder="댓글을 입력하세요..."></textarea>
+            <textarea name="body" required maxlength="2000" rows="3" data-mention placeholder="댓글을 입력하세요... (@이름 으로 멤버 호출)"></textarea>
             <button type="submit">등록</button>
         </form>
     </div>
@@ -351,7 +340,19 @@
         body.style.display = editing ? 'none' : '';
         if (editing) { form.querySelector('textarea').focus(); }
     }
+    function toggleReplyForm(id) {
+        const form = document.getElementById('replyForm' + id);
+        if (!form) return;
+        const show = form.style.display === 'none';
+        form.style.display = show ? 'flex' : 'none';
+        if (show) { form.querySelector('textarea').focus(); }
+    }
+    // 댓글 본문 @이름 강조
+    document.querySelectorAll('.wiki-comment-body').forEach(el => {
+        el.innerHTML = el.innerHTML.replace(/@([\p{L}\p{N}_.\-]+)/gu, '<span class="wiki-mention">@$1</span>');
+    });
     </script>
+    @include('partials.mention-autocomplete')
     @endif
 </div>
 

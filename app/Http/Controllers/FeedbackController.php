@@ -8,9 +8,12 @@ use App\Models\FeedbackComment;
 use App\Models\FeedbackPost;
 use App\Models\User;
 use App\Notifications\FeedbackActivity;
+use App\Notifications\MentionAlert;
 use App\Services\ImageThumbnailService;
+use App\Services\MentionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -224,7 +227,17 @@ class FeedbackController extends Controller
 
     public function storeComment(Request $request, FeedbackPost $post): JsonResponse
     {
-        $validated = $request->validate(['body' => 'required|string|max:2000']);
+        $validated = $request->validate([
+            'body' => 'required|string|max:2000',
+            'parent_id' => 'nullable|integer|exists:feedback_comments,id',
+        ]);
+
+        // 대댓글은 1뎁스만 — 같은 글의 최상위 의견에만 달 수 있음
+        $parent = null;
+        if (! empty($validated['parent_id'])) {
+            $parent = FeedbackComment::findOrFail($validated['parent_id']);
+            abort_unless($parent->feedback_post_id === $post->id && $parent->parent_id === null, 422, '답글에는 다시 답글을 달 수 없습니다.');
+        }
 
         // 중복 전송 방지 (연타·IME Enter 이중 발화) — 10초 내 동일 내용은 기존 의견 반환
         $duplicate = $post->comments()
@@ -239,17 +252,43 @@ class FeedbackController extends Controller
 
         $comment = $post->comments()->create([
             'user_id' => Auth::id(),
+            'parent_id' => $parent?->id,
             'body' => $validated['body'],
         ]);
 
-        // 작성자 + 개발자에게 알림 (본인 제외)
+        $me = Auth::user();
+        $myName = $me->display_name ?? $me->username;
+        $excerpt = mb_substr($validated['body'], 0, 80);
+
+        // @멘션 호출 알림 (본인 제외)
+        $mentioned = MentionService::users($validated['body'])->reject(fn ($u) => $u->id === $me->id);
+        $this->notifyUsers($mentioned, new MentionAlert(
+            '📣 '.$myName.'님이 회원님을 언급했습니다',
+            $post->title.' — '.$excerpt,
+            '/feedback',
+            'feedback-mention-'.$comment->id
+        ));
+
+        // 대댓글이면 부모 의견 작성자에게 알림 (본인·멘션 수신자 제외)
+        $notified = $mentioned->pluck('id')->push($me->id);
+        if ($parent && $parent->user && $parent->user->is_active && ! $notified->contains($parent->user_id)) {
+            $this->notifyUsers(collect([$parent->user]), new MentionAlert(
+                '↩ '.$myName.'님이 내 의견에 답글을 남겼습니다',
+                $post->title.' — '.$excerpt,
+                '/feedback',
+                'feedback-reply-'.$comment->id
+            ));
+            $notified->push($parent->user_id);
+        }
+
+        // 작성자 + 개발자에게 일반 알림 (본인·위에서 이미 알림 받은 사람 제외)
         $recipients = User::where('is_active', true)
             ->where(fn ($q) => $q->where('role', 'master')->orWhere('id', $post->created_by))
-            ->where('id', '!=', Auth::id())
+            ->whereNotIn('id', $notified)
             ->get();
         $this->notifyUsers($recipients, new FeedbackActivity(
             '💬 피드백 의견: '.$post->title,
-            (Auth::user()->display_name ?? Auth::user()->username).' — '.mb_substr($validated['body'], 0, 80),
+            $myName.' — '.$excerpt,
             'feedback-comment-'.$post->id
         ));
 
@@ -260,6 +299,7 @@ class FeedbackController extends Controller
     {
         abort_unless($comment->user_id === Auth::id() || $this->isDeveloper(), 403);
 
+        FeedbackComment::where('parent_id', $comment->id)->delete(); // 대댓글 함께 삭제
         $comment->delete();
 
         return response()->json(['ok' => true]);
@@ -341,6 +381,7 @@ class FeedbackController extends Controller
     {
         return [
             'id' => $c->id,
+            'parent_id' => $c->parent_id,
             'body' => $c->body,
             'user' => $c->user?->display_name ?? $c->user?->username,
             'is_dev' => $c->user?->role === 'master',
@@ -358,7 +399,7 @@ class FeedbackController extends Controller
     }
 
     /** @param  Collection<int, User>|\Illuminate\Database\Eloquent\Collection<int, User>  $users */
-    private function notifyUsers($users, FeedbackActivity $notification): void
+    private function notifyUsers($users, Notification $notification): void
     {
         try {
             foreach ($users as $user) {
