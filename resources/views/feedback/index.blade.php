@@ -38,7 +38,7 @@
     [data-theme="light"] .fb-submit { color:#fff; }
     .fb-preview-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
     .fb-preview { position:relative; width:86px; height:64px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }
-    .fb-preview img { width:100%; height:100%; object-fit:cover; display:block; }
+    .fb-preview img, .fb-preview video { width:100%; height:100%; object-fit:cover; display:block; }
     .fb-preview button { position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; cursor:pointer; line-height:1; }
 
     /* 필터 */
@@ -75,6 +75,9 @@
     .fb-reject-box { margin-top:10px; background:#ef44441a; border:1px solid #ef444440; border-radius:9px; padding:9px 13px; font-size:12px; color:#e06c6c; }
     .fb-att-grid { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
     .fb-att { width:150px; height:104px; border-radius:9px; overflow:hidden; border:1px solid var(--border); cursor:zoom-in; position:relative; background:var(--surface2); }
+    /* 영상 첨부 — 다운로드 없이 인라인 플레이어로 재생 */
+    .fb-att-vid { width:100%; max-width:480px; height:auto; cursor:default; background:#000; }
+    .fb-att-vid video { width:100%; max-height:320px; display:block; }
     .fb-att img { width:100%; height:100%; object-fit:cover; display:block; }
 
     /* 개발자 처리 바 */
@@ -143,6 +146,7 @@
         .fb-side { width:100%; order:-1; }
         .fb-side .fb-panel:last-child { display:none; } /* 모바일에선 가이드 숨김 */
         .fb-att { width:110px; height:80px; }
+        .fb-att-vid { width:100%; height:auto; }
     }
 </style>
 @endpush
@@ -167,8 +171,8 @@
                         <option value="{{ $opt }}">{{ $opt }}</option>
                     @endforeach
                 </select>
-                <button type="button" class="fb-attach-btn req" id="fbAttachBtn" onclick="document.getElementById('fbFile').click()">+ 스크린샷 첨부 <b id="fbAttachReq">(필수)</b></button>
-                <input type="file" id="fbFile" accept="image/*" multiple style="display:none;">
+                <button type="button" class="fb-attach-btn req" id="fbAttachBtn" onclick="document.getElementById('fbFile').click()">+ 스크린샷·영상 첨부 <b id="fbAttachReq">(필수)</b></button>
+                <input type="file" id="fbFile" accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" multiple style="display:none;">
                 <span class="fb-composer-hint" id="fbHint">스크린샷 첨부 후 등록할 수 있어요 · 캡처 후 붙여넣기(Ctrl+V)도 가능</span>
                 <button type="button" class="fb-submit" id="fbSubmit" disabled onclick="fbSubmit()">등록</button>
             </div>
@@ -306,12 +310,14 @@ function fbBodyHtml(p){
             <input type="text" id="fbEditTitle${p.id}" maxlength="200" value="${_e(p.title)}" placeholder="제목">
             <textarea id="fbEditBody${p.id}" maxlength="5000" placeholder="상세 설명">${_e(p.body||'')}</textarea>
             ${p.attachments.length?`<div class="fb-att-grid">${p.attachments.map(a=>`
-                <div class="fb-att fb-att-editable">
-                    <img src="${a.thumb_url}" alt="${_e(a.file_name)}" data-full="${a.url}" loading="lazy" onclick="fbLbOpenFrom(this)">
+                <div class="fb-att${a.is_video?' fb-att-vid':''} fb-att-editable">
+                    ${a.is_video
+                        ? `<video src="${a.url}" preload="metadata" controls title="${_e(a.file_name)}"></video>`
+                        : `<img src="${a.thumb_url}" alt="${_e(a.file_name)}" data-full="${a.url}" loading="lazy" onclick="fbLbOpenFrom(this)">`}
                     <button type="button" class="fb-att-del" onclick="fbDeleteAttachment(${p.id},${a.id})" title="첨부 삭제">✕</button>
                 </div>`).join('')}</div>`:''}
-            <label class="fb-edit-addfile">📎 이미지 추가
-                <input type="file" accept="image/*" multiple style="display:none;" onchange="fbAddAttachments(${p.id}, this.files)">
+            <label class="fb-edit-addfile">📎 이미지·영상 추가
+                <input type="file" accept="image/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" multiple style="display:none;" onchange="fbAddAttachments(${p.id}, this.files)">
             </label>
             <div class="fb-edit-actions">
                 <button class="fb-edit-cancel" onclick="fbCancelEdit()">취소</button>
@@ -323,7 +329,9 @@ function fbBodyHtml(p){
     if(p.status==='rejected' && p.reject_reason) html += `<div class="fb-reject-box">반려 사유: ${_e(p.reject_reason)}</div>`;
     if(p.attachments.length){
         html += '<div class="fb-att-grid">'+p.attachments.map(a =>
-            `<div class="fb-att" onclick="fbLbOpenFrom(this)"><img src="${a.thumb_url}" alt="${_e(a.file_name)}" data-full="${a.url}" loading="lazy"></div>`
+            a.is_video
+                ? `<div class="fb-att fb-att-vid"><video src="${a.url}" preload="metadata" controls title="${_e(a.file_name)}"></video></div>`
+                : `<div class="fb-att" onclick="fbLbOpenFrom(this)"><img src="${a.thumb_url}" alt="${_e(a.file_name)}" data-full="${a.url}" loading="lazy"></div>`
         ).join('')+'</div>';
     }
     // 수정/삭제 — 본문·첨부 바로 아래 (게시물 내용 영역 안)
@@ -398,7 +406,7 @@ function fbToggle(id){
 
 // ── 첨부 (파일 선택 + 클립보드 붙여넣기) ──
 document.getElementById('fbFile').addEventListener('change', e => {
-    [...e.target.files].forEach(f => { if(f.type.startsWith('image/')) fbFiles.push(f); });
+    [...e.target.files].forEach(f => { if(/^(image|video)\//.test(f.type)) fbFiles.push(f); });
     e.target.value = '';
     fbRenderPreviews();
 });
@@ -420,15 +428,23 @@ function fbRenderPreviews(){
     fbFiles.forEach((f, i) => {
         const div = document.createElement('div');
         div.className = 'fb-preview';
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(f); // 뷰어에서 재사용하므로 revoke하지 않음 (등록 시 목록 재렌더로 정리)
-        img.style.cursor = 'zoom-in';
-        img.title = '클릭하여 크게 보기';
-        img.onclick = () => drgoViewer.open(img.src); // 저장 전 첨부도 뷰어로 확인
+        let media;
+        if (f.type.startsWith('video/')) {
+            media = document.createElement('video');
+            media.src = URL.createObjectURL(f);
+            media.muted = true;
+            media.title = f.name;
+        } else {
+            media = document.createElement('img');
+            media.src = URL.createObjectURL(f); // 뷰어에서 재사용하므로 revoke하지 않음 (등록 시 목록 재렌더로 정리)
+            media.style.cursor = 'zoom-in';
+            media.title = '클릭하여 크게 보기';
+            media.onclick = () => drgoViewer.open(media.src); // 저장 전 첨부도 뷰어로 확인
+        }
         const btn = document.createElement('button');
         btn.textContent = '✕';
         btn.onclick = () => { fbFiles.splice(i,1); fbRenderPreviews(); };
-        div.appendChild(img); div.appendChild(btn);
+        div.appendChild(media); div.appendChild(btn);
         row.appendChild(div);
     });
     fbUpdateSubmit();

@@ -1020,8 +1020,8 @@
         .mobile-day-events .mde-bar { width:4px; align-self:stretch; min-height:30px; border-radius:2px; flex-shrink:0; }
         .mobile-day-events .mde-info { flex:1; min-width:0; }
         .mobile-day-events .mde-title-row { display:flex; align-items:flex-start; gap:8px; }
-        /* 팝업뷰와 동일: 폰트 축소 + 2줄까지 줄바꿈 */
-        .mobile-day-events .mde-title { font-size:13px; font-weight:600; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
+        /* 긴 제목이 잘리지 않도록 폰트 축소 + 3줄까지 줄바꿈 허용 */
+        .mobile-day-events .mde-title { font-size:12px; font-weight:600; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
         .mobile-day-events .mde-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .mobile-day-events .mde-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
         .mobile-day-events .mde-empty { text-align:center; padding:20px; color:var(--text-muted); font-size:13px; }

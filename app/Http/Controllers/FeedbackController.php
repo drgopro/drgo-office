@@ -95,11 +95,12 @@ class FeedbackController extends Controller
             'body' => 'nullable|string|max:5000',
             'page' => 'required|string|max:50',
             'files' => [$request->input('type') === 'bug' ? 'required' : 'nullable', 'array'],
-            'files.*' => 'file|mimes:jpg,jpeg,png,gif,webp|max:20480',
+            'files.*' => 'file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,webm|max:112640',
         ], [
             'page.required' => '어떤 페이지인지 선택해주세요.',
             'files.required' => '버그 제보에는 스크린샷 첨부가 필수입니다.',
-            'files.*.mimes' => '이미지 파일만 첨부할 수 있습니다.',
+            'files.*.mimes' => '이미지 또는 영상(mp4/mov/webm) 파일만 첨부할 수 있습니다.',
+            'files.*.max' => '파일당 최대 110MB까지 첨부할 수 있습니다.',
         ]);
 
         $post = FeedbackPost::create([
@@ -165,9 +166,10 @@ class FeedbackController extends Controller
 
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'file|mimes:jpg,jpeg,png,gif,webp|max:20480',
+            'files.*' => 'file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,webm|max:112640',
         ], [
-            'files.*.mimes' => '이미지 파일만 첨부할 수 있습니다.',
+            'files.*.mimes' => '이미지 또는 영상(mp4/mov/webm) 파일만 첨부할 수 있습니다.',
+            'files.*.max' => '파일당 최대 110MB까지 첨부할 수 있습니다.',
         ]);
 
         $this->storeUploadedFiles(
@@ -316,6 +318,11 @@ class FeedbackController extends Controller
     {
         abort_unless(Storage::exists($attachment->file_path), 404);
 
+        // 영상은 이미지 썸네일 생성 불가 — 원본 응답으로 폴백
+        if (str_starts_with((string) $attachment->mime_type, 'video/')) {
+            return Storage::response($attachment->file_path, $attachment->file_name, ImageThumbnailService::cacheHeaders());
+        }
+
         return $thumbs->response($attachment->file_path, $attachment->file_name);
     }
 
@@ -370,6 +377,7 @@ class FeedbackController extends Controller
             'attachments' => $p->relationLoaded('attachments') ? $p->attachments->map(fn ($a) => [
                 'id' => $a->id,
                 'file_name' => $a->file_name,
+                'is_video' => str_starts_with((string) $a->mime_type, 'video/'),
                 'url' => route('feedback-attachments.serve', $a),
                 'thumb_url' => route('feedback-attachments.thumb', $a),
             ])->all() : [],

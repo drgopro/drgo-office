@@ -66,6 +66,38 @@ class FeedbackBoardTest extends TestCase
         $this->assertDatabaseHas('feedback_posts', ['title' => '다크모드 추가해주세요', 'status' => 'waiting']);
     }
 
+    public function test_영상_첨부_업로드와_인라인_플레이어(): void
+    {
+        Notification::fake();
+        Storage::fake();
+
+        $res = $this->actingAs($this->member())->post('/api/feedback', [
+            'type' => 'feature',
+            'title' => '영상 첨부 테스트',
+            'page' => '기타',
+            'files' => [UploadedFile::fake()->create('bug-repro.mp4', 2048, 'video/mp4')],
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        // 영상 여부 플래그 — 프론트가 img 대신 인라인 플레이어(video)로 렌더
+        $this->assertTrue($res->json('attachments.0.is_video'));
+
+        // 페이지에 플레이어 렌더 코드 포함
+        $this->actingAs($this->member())->get('/feedback')
+            ->assertOk()
+            ->assertSee('fb-att-vid', false)
+            ->assertSee('preload="metadata" controls', false);
+    }
+
+    public function test_허용되지_않는_파일_형식은_거부(): void
+    {
+        $this->actingAs($this->member())->post('/api/feedback', [
+            'type' => 'feature',
+            'title' => '실행파일 첨부',
+            'page' => '기타',
+            'files' => [UploadedFile::fake()->create('malware.exe', 100, 'application/x-msdownload')],
+        ], ['Accept' => 'application/json'])->assertUnprocessable();
+    }
+
     public function test_버그_제보_스크린샷_첨부_등록(): void
     {
         Notification::fake();
