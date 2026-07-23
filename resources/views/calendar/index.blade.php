@@ -590,7 +590,7 @@
     #modalOverlay .m-rail-rem-more { padding:4px 2px; font-size:11px; color:#a8a69e; }
     /* 헤더 — 시안형: 큰 제목 + dashed pill 버튼 */
     #modalOverlay .modal-date-badge { color:var(--m-muted); font-weight:600; letter-spacing:0; font-size:12px; }
-    #modalOverlay .modal-title-input { font-size:26px; font-weight:800; letter-spacing:-0.4px; color:var(--m-ink); }
+    #modalOverlay .modal-title-input { font-size:19px; font-weight:700; letter-spacing:-0.2px; color:var(--m-ink); }
     #modalOverlay .modal-title-input::placeholder { color:#b3b1aa; }
     #modalOverlay .assignee-btn { border:1px dashed #c1bfb8; border-radius:999px; padding:5px 13px; background:transparent; color:#6b6a63; margin-right:6px; }
     #modalOverlay .assignee-btn:hover { border-color:var(--m-accent); color:var(--m-accent); }
