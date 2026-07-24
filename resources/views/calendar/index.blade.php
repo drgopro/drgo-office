@@ -221,6 +221,8 @@
     @endforeach
     /* ── 컴팩트 월간 뷰 (네이버식 고밀도) ── */
     #monthCompactView { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+    /* 전체(컴팩트) 모드는 모바일 전용 — 데스크탑에선 버튼 숨김 */
+    @media (min-width: 769px) { #tabMonthC { display:none !important; } }
     .mc-weekdays { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--surface2); }
     .mc-weekdays span { text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); padding:5px 0; }
     .mc-weekdays span:first-child { color:var(--red); }
@@ -2338,7 +2340,8 @@ function init() {
         }
     }
     // 마지막으로 본 캘린더 모드 복원 (탭 UI/뷰 표시까지 switchView와 동일하게 반영)
-    const savedView=localStorage.getItem('calLastView');
+    let savedView=localStorage.getItem('calLastView');
+    if(savedView==='monthc'&&window.innerWidth>768) savedView='month'; // 전체 모드는 모바일 전용
     if(savedView&&['month','monthc','week','day','list'].includes(savedView)&&savedView!==currentView){
         currentView=savedView;
         const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
@@ -3108,8 +3111,6 @@ function renderMonthCompact(){
             (lanes[lane]=lanes[lane]||[]).push({s:_d(ev.start_date),e:evEnd(ev)});
             laneOf[ev.id]=lane;
         });
-        const shownLanes=Math.min(lanes.length,LANE_CAP);
-        const singleBudget=Math.max(1,Math.floor((rowH-HEAD-shownLanes*BAR)/CHIP));
 
         // 다일 연속 바 (레인 상한 초과분은 각 날짜 +N에 합산)
         let bars='';
@@ -3135,6 +3136,13 @@ function renderMonthCompact(){
             // 다른 달 날짜: 숫자만 흐리게 — 칩/+N 표시하지 않음 (시각적 소음 방지)
             const daySingles=cur?sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full)):[];
             const hiddenMulti=cur?weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length:0;
+            // 바 예약 공간은 이 날짜를 실제로 지나는 바의 최하단 레인까지만 — 바 없는 날은 칩이 위부터 채워짐
+            const dayLaneMax=weekMulti.reduce((mx,ev)=>{
+                if(laneOf[ev.id]<LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full) return Math.max(mx,laneOf[ev.id]);
+                return mx;
+            },-1);
+            const barSpace=(dayLaneMax+1)*BAR;
+            const singleBudget=Math.max(1,Math.floor((rowH-HEAD-barSpace)/CHIP));
             let show=daySingles, moreCnt=hiddenMulti;
             if(daySingles.length+hiddenMulti>singleBudget){
                 const cut=Math.max(0,singleBudget-1);
@@ -3145,7 +3153,7 @@ function renderMonthCompact(){
             const more=moreCnt>0?`<div class="mc-more" data-mcmore="${full}">+${moreCnt}</div>`:'';
             cellsHtml+=`<div class="mc-cell${cur?'':' other-month'}${full===ts?' today':''}" data-mcday="${full}">
                 <div class="mc-daynum-row"><span class="mc-daynum ${nc}">${dt.getDate()}</span>${holiday?`<span class="mc-holiday">${holiday}</span>`:''}</div>
-                <div class="mc-bars-space" style="height:${shownLanes*BAR}px"></div>
+                <div class="mc-bars-space" style="height:${barSpace}px"></div>
                 ${chips}${more}
             </div>`;
         });
