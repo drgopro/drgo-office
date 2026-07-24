@@ -3193,6 +3193,22 @@ document.getElementById('monthCompactView')?.addEventListener('click', e=>{
 });
 window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCompact(); });
 
+// ── 월간 뷰: 마우스 휠로 이전/다음 달 이동 (데스크탑 전용) ──
+(function(){
+    const mv=document.getElementById('monthView');
+    if(!mv) return;
+    let lock=0;
+    mv.addEventListener('wheel', e=>{
+        if(currentView!=='month'||window.innerWidth<=768) return; // 모바일 터치 스크롤 간섭 방지
+        if(Math.abs(e.deltaY)<=Math.abs(e.deltaX)) return;        // 가로 스크롤 무시
+        e.preventDefault();
+        const now=Date.now();
+        if(now-lock<400||Math.abs(e.deltaY)<15) return;           // 트랙팩 미세 스크롤 무시 + 연타 쿨다운
+        lock=now;
+        changePeriod(e.deltaY>0?1:-1);
+    }, {passive:false});
+})();
+
 // ── 컴팩트 뷰 모바일 하단 시트 — 날짜 선택 + 바 드래그/탭으로 리스트 열기 ──
 let mcSheetOpen=false, mcSelDate=null;
 function mcSelectDay(dateStr, expand){
