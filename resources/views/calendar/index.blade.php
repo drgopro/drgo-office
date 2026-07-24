@@ -249,12 +249,15 @@
     .mc-chip.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 20%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
     @endforeach
     @media (max-width: 768px) {
-        .mc-chip { font-size:9.5px; padding-left:3px; border-left-width:2px; }
-        .mc-bar { font-size:9px; }
+        #monthCompactView { margin-bottom:58px; } /* 하단 시트 바에 마지막 주가 가리지 않도록 */
+        .mc-chip { height:18px; line-height:16px; font-size:10px; padding-left:3px; border-left-width:2px; }
+        .mc-bar { font-size:9.5px; }
         .mc-daynum { font-size:10px; }
         .mc-holiday { display:none; }
     }
     /* 컴팩트 뷰 모바일 하단 시트 — 바를 올리면 선택일 리스트 */
+    .mc-backdrop { display:none; position:fixed; inset:0; z-index:59; background:rgba(0,0,0,0.35); }
+    .mc-backdrop.show { display:block; }
     .mc-sheet { display:none; position:fixed; left:0; right:0; bottom:0; z-index:60; background:var(--surface); border-top:1px solid var(--border); border-radius:16px 16px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,0.28); height:62vh; height:62dvh; transform:translateY(calc(100% - 50px)); transition:transform .25s ease; }
     .mc-sheet.open { transform:translateY(0); }
     .mc-sheet-handle { height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; cursor:pointer; touch-action:none; user-select:none; }
@@ -1290,6 +1293,7 @@
 <div id="monthCompactView" style="display:none;"></div>
 
 {{-- 컴팩트 뷰 모바일 하단 시트 — 바를 올리면 선택일 일정 리스트 (네이버 모바일 방식) --}}
+<div id="mcSheetBackdrop" class="mc-backdrop" onclick="mcSheetSet(false)"></div>
 <div id="mcSheet" class="mc-sheet">
     <div class="mc-sheet-handle" id="mcSheetHandle">
         <span class="mc-sheet-grip"></span>
@@ -2986,7 +2990,7 @@ function renderMonthCompact(){
     const gridStart=new Date(first); gridStart.setDate(1-first.getDay());
     const _d=v=>(v||'').substring(0,10);
 
-    // 균등 행 높이 — 6주가 화면 높이에 딱 맞도록 (모바일은 하단 시트 바 높이 제외 → 전체화면 그리드)
+    // 행 높이 — 데스크탑: 6주가 화면에 딱 맞게 / 모바일: 칩이 최대한 보이도록 넉넉하게 (그리드는 세로 스크롤)
     const mcMobile=window.innerWidth<=768;
     let rowH=92;
     const vTop=view.getBoundingClientRect().top;
@@ -2994,7 +2998,8 @@ function renderMonthCompact(){
         const reserve=mcMobile?26+54:26+16; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 하단 여백)
         rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/6));
     }
-    const CHIP=17, BAR=17, HEAD=20, LANE_CAP=3;
+    const CHIP=mcMobile?19:17, BAR=17, HEAD=20, LANE_CAP=3;
+    if(mcMobile) rowH=Math.max(rowH, HEAD+CHIP*6+4); // 모바일: 셀당 칩 6개 수준 확보 (네이버식 밀도)
 
     let html=`<div class="mc-weekdays">${['일','월','화','수','목','금','토'].map(d=>`<span>${d}</span>`).join('')}</div>`;
     for(let w=0;w<6;w++){
@@ -3093,6 +3098,8 @@ function mcSelectDay(dateStr, expand){
 function mcSheetSet(open){
     mcSheetOpen=open;
     document.getElementById('mcSheet')?.classList.toggle('open', open);
+    // 시트가 올라온 동안 뒷배경(그리드) 터치 차단 — 백드롭 탭 시 닫힘
+    document.getElementById('mcSheetBackdrop')?.classList.toggle('show', open);
 }
 // 컴팩트 뷰(모바일)일 때만 시트 표시 + 선택일 유지 (기본: 오늘)
 function mcSheetSync(){
