@@ -1173,13 +1173,18 @@
 @section('content')
 <div class="cal-header">
     <div class="cal-header-left">
-        <div class="month-label cal-title-xl" id="periodTitle"></div>
-        <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
-        <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
-        <button class="nav-btn" onclick="goToday()" style="font-size:12px;font-weight:600;width:auto;padding:0 14px;">오늘</button>
-        <button class="nav-btn" id="calRefreshBtn" onclick="refreshCalendar()" title="새로고침 (현재 보기 유지)">
-            <svg id="calRefreshIco" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
-        </button>
+        {{-- 모바일 전용: 연.월/이동/오늘/새로고침을 햄버거 안으로 (상단 공간 절약) --}}
+        <button class="nav-btn cal-hamburger" id="calHamBtn" onclick="toggleCalHam()" title="달력 이동">☰</button>
+        <span class="cal-mini-period" id="periodTitleMini" onclick="toggleCalHam()"></span>
+        <div class="cal-hl-items" id="calHlItems">
+            <div class="month-label cal-title-xl" id="periodTitle"></div>
+            <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
+            <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
+            <button class="nav-btn" onclick="goToday()" style="font-size:12px;font-weight:600;width:auto;padding:0 14px;">오늘</button>
+            <button class="nav-btn" id="calRefreshBtn" onclick="refreshCalendar()" title="새로고침 (현재 보기 유지)">
+                <svg id="calRefreshIco" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+            </button>
+        </div>
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         @if(!Auth::user()->isGuest())
@@ -1234,6 +1239,21 @@
     </div>
 </div>
 
+<style>
+    /* ── 모바일 헤더 축소 — 연.월/이동은 햄버거 드롭다운으로 (데스크탑은 기존 그대로) ── */
+    .cal-hamburger, .cal-mini-period { display:none; }
+    .cal-hl-items { display:contents; }
+    @media (max-width: 768px) {
+        .cal-hamburger { display:inline-flex; }
+        .cal-mini-period { display:inline-flex; align-items:center; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; }
+        .cal-header { justify-content:space-between; }
+        .cal-header-left { width:auto; justify-content:flex-start; position:relative; flex:0 0 auto; }
+        .cal-header-right { width:auto; border-top:none; padding-top:0; flex:1 1 auto; justify-content:flex-end; }
+        .cal-hl-items { display:none; position:absolute; left:0; top:calc(100% + 6px); z-index:40; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; box-shadow:0 8px 24px rgba(0,0,0,0.4); align-items:center; gap:8px; flex-wrap:nowrap; }
+        .cal-hl-items.open { display:flex; }
+        .cal-hl-items .month-label { min-width:0; font-size:15px; }
+    }
+</style>
 <script>(function(){var s=parseFloat(localStorage.getItem('calFontScale')||'1')||1;document.documentElement.style.setProperty('--cal-fz',s);})();</script>
 
 <div class="legend" id="filterBar">
@@ -2756,6 +2776,7 @@ function renderView() {
     else if (currentView==='list') renderAgenda();
     else renderTimeline();
     if(typeof renderCalSide==='function') renderCalSide();
+    if(typeof syncMiniPeriod==='function') syncMiniPeriod(); // 모바일 미니 연.월 라벨 갱신
 }
 
 // ── 이벤트 로드 ─────────────────────────────────────────────────
@@ -3007,7 +3028,10 @@ function renderMonthCompact(){
         const weekStart=fmt(days[0]), weekEnd=fmt(days[6]);
 
         // 다일 일정 레인 배정 (기존 월간 뷰와 동일 규칙 — 휴가/개인 우선)
-        const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
+        // 이번 달과 겹치지 않는(전·다음 달 전용) 일정은 제외 — 다른 달 칸이 어수선해지는 것 방지
+        const monthStartStr=fmt(first), monthEndStr=fmt(new Date(currentYear,currentMonth+1,0));
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart
+            &&_d(ev.start_date)<=monthEndStr&&evEnd(ev)>=monthStartStr);
         weekMulti.sort((a,b)=>((b.color==='red')-(a.color==='red'))||a.start_date.localeCompare(b.start_date)||b.end_date.localeCompare(a.end_date)||a.id-b.id);
         const laneOf={}, lanes=[];
         weekMulti.forEach(ev=>{
@@ -3040,8 +3064,9 @@ function renderMonthCompact(){
             const cur=dt.getMonth()===currentMonth;
             const holiday=getHoliday(full);
             const nc=i===0||holiday?'sun':i===6?'sat':'';
-            const daySingles=sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full));
-            const hiddenMulti=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length;
+            // 다른 달 날짜: 숫자만 흐리게 — 칩/+N 표시하지 않음 (시각적 소음 방지)
+            const daySingles=cur?sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full)):[];
+            const hiddenMulti=cur?weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length:0;
             let show=daySingles, moreCnt=hiddenMulti;
             if(daySingles.length+hiddenMulti>singleBudget){
                 const cut=Math.max(0,singleBudget-1);
@@ -6490,6 +6515,20 @@ document.addEventListener('click',e=>{
     const m=document.getElementById('calMenu');
     if(m&&!e.target.closest('.cal-menu')&&!e.target.closest('[onclick*="toggleCalMenu"]')) m.style.display='none';
 });
+// 모바일 햄버거 — 연.월/이동/오늘/새로고침 패널 토글
+function toggleCalHam(){
+    document.getElementById('calHlItems')?.classList.toggle('open');
+}
+document.addEventListener('click',e=>{
+    const p=document.getElementById('calHlItems');
+    if(p&&p.classList.contains('open')&&!e.target.closest('.cal-header-left')) p.classList.remove('open');
+});
+// 모바일 미니 연.월 라벨 — periodTitle 변경 시 동기화 ("7월"만 축약 표시)
+function syncMiniPeriod(){
+    const mini=document.getElementById('periodTitleMini');
+    const full=document.getElementById('periodTitle');
+    if(mini&&full) mini.textContent=(full.textContent||'').replace(/^\d+년\s*/,'');
+}
 async function importFile(type, input){
     const file=input.files[0];
     if(!file) return;
