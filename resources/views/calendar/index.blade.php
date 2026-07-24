@@ -1229,7 +1229,7 @@
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
         @endif
-        <div style="position:relative;">
+        <div style="position:relative;" id="calMoreWrap">
             <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:14px;">⋯</button>
             <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
                 {{-- 캘린더 이력 — 사용 빈도가 낮아 비활성화 (라우트는 유지, 필요 시 버튼만 복원) --}}
@@ -1328,6 +1328,12 @@
     <div class="cs-sec-title">담당자</div>
     <div id="csAssignees"></div>
     {{-- 삭제/변경 이력 버튼 제거 — 문장 로그 모달은 흔적 칩 클릭으로만 접근 --}}
+    {{-- 모바일: 점 세개(⋯) 메뉴 항목이 여기로 이동 (init에서 DOM 이동) --}}
+    <div id="csTools" style="display:none;">
+        <div class="cs-divider"></div>
+        <div class="cs-sec-title">도구</div>
+        <div id="csToolsBody"></div>
+    </div>
     </div>{{-- /calSideBody --}}
     <div id="csRail"></div>
     </div>{{-- /calSideSticky --}}
@@ -2320,6 +2326,17 @@ function init() {
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
+    // 모바일: ⋯ 메뉴 항목을 필터 패널(☰) 맨 하단 '도구' 섹션으로 이동
+    if(window.matchMedia('(max-width: 768px)').matches){
+        const menu=document.getElementById('calMenu');
+        const dst=document.getElementById('csToolsBody');
+        if(menu&&dst){
+            while(menu.firstChild) dst.appendChild(menu.firstChild);
+            document.getElementById('csTools').style.display='';
+            const wrap=document.getElementById('calMoreWrap');
+            if(wrap) wrap.style.display='none';
+        }
+    }
     // 마지막으로 본 캘린더 모드 복원 (탭 UI/뷰 표시까지 switchView와 동일하게 반영)
     const savedView=localStorage.getItem('calLastView');
     if(savedView&&['month','monthc','week','day','list'].includes(savedView)&&savedView!==currentView){
