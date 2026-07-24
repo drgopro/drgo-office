@@ -1226,9 +1226,8 @@
                 <button type="button" onclick="refreshCalendar();closeCalPicker()">새로고침</button>
             </div>
         </div>
-    </div>
-    <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         @if(!Auth::user()->isGuest())
+        {{-- 일정 검색 — 헤더 좌측 --}}
         <button class="nav-btn" id="calSearchBtn" onclick="toggleCalSearch()" title="일정 검색"><x-icon name="search" :size="14"/></button>
         <div class="cal-search-wrap" id="calSearchWrap" style="display:none;">
             <input class="cal-search-input" id="calSearchInput" placeholder="일정 검색 (Enter)" autocomplete="off"
@@ -1238,6 +1237,8 @@
                 onclick="const i=document.getElementById('calSearchInput');i.value='';this.classList.remove('show');i.focus();">✕</button>
         </div>
         @endif
+    </div>
+    <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         <div class="view-toggle-group">
             <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월</button>
             <button class="view-toggle-btn"        id="tabMonthC" onclick="switchView('monthc')" title="한 달 전체를 칩으로 한눈에">전체</button>
@@ -1297,12 +1298,16 @@
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
     @media (min-width: 769px) {
-        /* 데스크탑: ‹ 연.월 › 묶음을 헤더 정중앙에 — 화살표는 테두리 없이 타이틀 양옆 */
-        .cal-header .cal-center-nav { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; gap:4px; }
+        /* 데스크탑: [오늘] ‹ 연.월 › 묶음 — 화살표는 테두리 없이 타이틀 양옆 */
+        .cal-center-nav { display:flex; align-items:center; gap:4px; }
         .cal-center-nav .nav-btn { border:none; background:none; box-shadow:none; width:28px; height:28px; font-size:19px; color:var(--text-muted); }
         .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
         .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
         .cal-center-nav .cal-today-btn { width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; margin-right:6px; color:var(--text); }
+    }
+    /* 정중앙 고정은 넓은 화면에서만 — 좁은 폭에서 검색창/우측 컨트롤과 겹치는 버그 방지 */
+    @media (min-width: 1150px) {
+        .cal-header .cal-center-nav { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); }
     }
     @media (max-width: 768px) {
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
@@ -1315,6 +1320,10 @@
         .cal-header-right { width:100%; border-top:none; padding-top:0; justify-content:center; }
         .cal-mpicker { left:50%; transform:translateX(-50%); }
         .cal-hl-items { display:none; } /* 연.월/이동/오늘/새로고침 데스크탑 세트는 모바일에서 숨김 (피커로 대체) */
+        /* 모바일: 검색은 타이틀 행 우측 아이콘 (☰와 대칭), 입력창은 우측에서 펼침 */
+        .cal-header-left #calSearchBtn { position:absolute; right:0; top:50%; transform:translateY(-50%); }
+        .cal-header-left .cal-search-wrap { position:absolute; right:36px; top:50%; transform:translateY(-50%); z-index:6; }
+        .cal-header-left .cal-search-input { width:52vw; max-width:260px; }
         .cal-header .add-btn { display:none; } /* + 일정 추가는 플로팅 버튼으로 */
         #calSideFab { display:none !important; } /* 하단 좌측 필터 버튼 → 상단 ☰로 이동 */
         #calAddFab { display:flex; position:fixed; right:16px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:58; width:52px; height:52px; border-radius:50%; border:none; background:var(--accent); color:var(--accent-text); font-size:26px; font-weight:400; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.35); cursor:pointer; }
