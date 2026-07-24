@@ -63,7 +63,11 @@
 
     /* 일정 검색 */
     .cal-search-wrap { position:relative; flex-shrink:1; min-width:0; }
-    .cal-search-input { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:7px 12px; color:var(--text); font-size:12px; outline:none; width:170px; max-width:100%; transition:border-color .15s, width .2s; }
+    .cal-search-input { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:7px 26px 7px 12px; color:var(--text); font-size:12px; outline:none; width:170px; max-width:100%; transition:border-color .15s, width .2s; }
+    /* 검색어 전체 지우기 ✕ — 내용이 있을 때만 표시 */
+    .cal-search-clear { display:none; position:absolute; right:6px; top:50%; transform:translateY(-50%); width:18px; height:18px; border:none; border-radius:50%; background:var(--border); color:var(--text); font-size:10px; line-height:1; cursor:pointer; align-items:center; justify-content:center; padding:0; }
+    .cal-search-clear.show { display:inline-flex; }
+    .cal-search-clear:hover { background:var(--text-muted); color:var(--surface); }
     .cal-search-input:focus { border-color:var(--accent); width:220px; }
     .cal-search-results { position:absolute; top:calc(100% + 6px); right:0; width:340px; max-width:calc(100vw - 24px); max-height:420px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--card-shadow, 0 8px 32px rgba(0,0,0,0.3)); z-index:60; padding:6px; }
     .cal-sr-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; cursor:pointer; }
@@ -1215,7 +1219,10 @@
         <button class="nav-btn" id="calSearchBtn" onclick="toggleCalSearch()" title="일정 검색"><x-icon name="search" :size="14"/></button>
         <div class="cal-search-wrap" id="calSearchWrap" style="display:none;">
             <input class="cal-search-input" id="calSearchInput" placeholder="일정 검색 (Enter)" autocomplete="off"
+                oninput="document.getElementById('calSearchClear').classList.toggle('show', !!this.value)"
                 onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
+            <button type="button" class="cal-search-clear" id="calSearchClear" title="검색어 지우기"
+                onclick="const i=document.getElementById('calSearchInput');i.value='';this.classList.remove('show');i.focus();">✕</button>
         </div>
         @endif
         <div class="view-toggle-group">
