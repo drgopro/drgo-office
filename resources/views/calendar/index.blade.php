@@ -242,11 +242,12 @@
     .mc-chip.is-completed, .mc-bar.is-completed { opacity:0.4; }
     .mc-more { font-size:10px; font-weight:700; color:var(--text-muted); cursor:pointer; padding:0 4px; flex-shrink:0; line-height:14px; }
     .mc-more:hover { color:var(--accent); }
-    .mc-bar { position:absolute; z-index:4; height:15px; line-height:15px; font-size:10px; font-weight:600; padding:0 5px; border-radius:3px; white-space:nowrap; overflow:visible; cursor:pointer; box-sizing:border-box; }
+    .mc-bar { position:absolute; z-index:4; height:15px; line-height:13px; font-size:10px; font-weight:600; padding:0 5px 0 4px; border-radius:3px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); white-space:nowrap; overflow:visible; cursor:pointer; box-sizing:border-box; }
     .mc-bar span { display:block; overflow:hidden; text-overflow:ellipsis; }
+    {{-- 월간 뷰 단일 칩과 동일한 연한 틴트 (진한 배경은 작은 글씨 가독성 저하) --}}
     @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
-    .mc-bar.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); }
-    .mc-chip.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 20%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
+    .mc-bar.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
+    .mc-chip.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
     @endforeach
     @media (max-width: 768px) {
         #monthCompactView { margin-bottom:58px; } /* 하단 시트 바에 마지막 주가 가리지 않도록 */
@@ -2314,6 +2315,19 @@ function init() {
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
+    // 마지막으로 본 캘린더 모드 복원 (탭 UI/뷰 표시까지 switchView와 동일하게 반영)
+    const savedView=localStorage.getItem('calLastView');
+    if(savedView&&['month','monthc','week','day','list'].includes(savedView)&&savedView!==currentView){
+        currentView=savedView;
+        const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
+        document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById(TAB_IDS[savedView])?.classList.add('active');
+        document.getElementById('monthView').style.display=savedView==='month'?'':'none';
+        document.getElementById('monthCompactView').style.display=savedView==='monthc'?'':'none';
+        document.getElementById('timelineView').style.display=(savedView==='week'||savedView==='day')?'':'none';
+        document.getElementById('listView').style.display=savedView==='list'?'':'none';
+        const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display=savedView==='month'?'':'none';
+    }
     // 월간 표시 주 수 초기화 (저장값 복원)
     updateMwLabel();
     const mwCtl=document.getElementById('monthWeeksCtl');
@@ -2729,6 +2743,7 @@ window.addEventListener('resize',()=>{
 function switchView(view) {
     agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
     currentView = view;
+    try{ localStorage.setItem('calLastView', view); }catch(e){} // 마지막 본 모드 기억 (다음 방문 시 자동 복원)
     const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
     document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById(TAB_IDS[view])?.classList.add('active');
