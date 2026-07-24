@@ -1269,13 +1269,14 @@
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
     @media (max-width: 768px) {
-        .cal-hamburger { display:inline-flex; }
-        .cal-mini-nav { display:inline-flex; width:26px; height:26px; font-size:13px; }
-        .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:13.5px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
+        .cal-hamburger { display:inline-flex; position:absolute; left:0; top:50%; transform:translateY(-50%); }
+        .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
         .cal-mini-period::after { content:'▾'; font-size:10px; color:var(--text-muted); }
         .cal-header { justify-content:space-between; }
-        .cal-header-left { width:auto; justify-content:flex-start; position:relative; flex:0 0 auto; gap:4px; }
-        .cal-header-right { width:auto; border-top:none; padding-top:0; flex:1 1 auto; justify-content:flex-end; }
+        {{-- 연.월 중앙 정렬 — ☰는 좌측 고정, 좌우 화살표는 제거 (년/월 피커로 이동) --}}
+        .cal-header-left { width:100%; justify-content:center; position:relative; flex:1 1 100%; gap:4px; }
+        .cal-header-right { width:100%; border-top:none; padding-top:0; justify-content:center; }
+        .cal-mpicker { left:50%; transform:translateX(-50%); }
         .cal-hl-items { display:none; } /* 연.월/이동/오늘/새로고침 데스크탑 세트는 모바일에서 숨김 (피커로 대체) */
         .cal-header .add-btn { display:none; } /* + 일정 추가는 플로팅 버튼으로 */
         #calSideFab { display:none !important; } /* 하단 좌측 필터 버튼 → 상단 ☰로 이동 */
