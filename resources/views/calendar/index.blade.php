@@ -1304,10 +1304,13 @@
         .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
         .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
         .cal-center-nav .cal-today-btn { width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; margin-right:6px; color:var(--text); }
-        /* 우측 그룹을 헤더 직속으로 풀어 뷰 버튼만 줄바꿈 */
+        /* 우측 그룹을 헤더 직속으로 풀어 2행 구성: 1행 도구/타이틀/더보기, 2행 뷰 버튼+주 수 */
         .cal-header-right { display:contents !important; }
         #calMoreWrap { margin-left:auto; }
-        .view-toggle-group { order:10; flex-basis:100%; display:flex; justify-content:center; margin-top:2px; }
+        .cal-header::before { content:''; order:9; flex-basis:100%; height:0; } /* 행 구분선(줄바꿈) */
+        .view-toggle-group { order:10; margin-left:auto; }
+        #monthWeeksCtl { order:11; margin-right:auto; margin-left:8px; } /* 주 수 스텝퍼도 2행으로 — 1행 겹침 방지 */
+        .cal-search-input { width:150px; }
         /* + 일정 추가는 모바일처럼 우하단 플로팅 버튼으로 */
         .cal-header .add-btn { display:none; }
         #calAddFab { display:flex; position:fixed; right:24px; bottom:24px; z-index:58; width:52px; height:52px; border-radius:50%; border:none; background:var(--accent); color:var(--accent-text); font-size:26px; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.35); cursor:pointer; }
