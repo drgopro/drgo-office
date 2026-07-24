@@ -662,6 +662,8 @@
     #modalOverlay .m-secstat.done { color:var(--m-accent); }
     /* 요약 뷰 — 2a 스타일 2컬럼 카드 그리드 */
     #modalOverlay .lock-summary { gap:12px; padding:0; } /* modal-body 패딩만 사용 (이중 패딩 제거) */
+    /* 요약 모드: 우측 작성 현황 레일(208px)이 숨겨지므로 2열 그리드 해제 — 중간 해상도에서 좌측 쏠림 방지 */
+    #modalOverlay .modal-body.is-locked { display:flex; flex-direction:column; }
     #modalOverlay .ls-meta-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
     #modalOverlay .ls-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
     #modalOverlay .ls-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
@@ -704,7 +706,7 @@
         #modalOverlay .ls-c-equip { order:4; }
         #modalOverlay .ls-c-detail { order:5; }
         #modalOverlay .ls-c-special { order:6; }
-        #modalOverlay .ls-c-broadcast { order:7; }
+        #modalOverlay .ls-c-broadcast { order:0; } /* 방송 정보는 일시·장소보다 위 */
         #modalOverlay .ls-c-pay { order:8; }
         #modalOverlay .ls-c-proj { order:9; }
         #modalOverlay .ls-c-ship { order:10; }
@@ -4210,7 +4212,7 @@ function renderLockSummary(){
         pushTile('방송주제', topic === '기타' ? (topicEtc || '기타') : topic);
         pushTile('유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
         pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
-        if (tiles.length) left.push(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast'));
+        if (tiles.length) left.unshift(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast')); // 일시·장소보다 위에 표시
 
         // ④ 결제 · 진행 — 금액 크게 + 상태 칩(결제/주문/잔금/수령) + 배송 배지
         const amount = _val('g_estimate_amount');
