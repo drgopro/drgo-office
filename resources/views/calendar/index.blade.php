@@ -1331,6 +1331,10 @@
         .cal-header-left #calSearchBtn { position:absolute; right:0; top:50%; transform:translateY(-50%); }
         .cal-header-left .cal-search-wrap { position:absolute; right:36px; top:50%; transform:translateY(-50%); z-index:6; }
         .cal-header-left .cal-search-input { width:52vw; max-width:260px; }
+        /* 검색창이 열려 있는 동안 연.월 타이틀 숨김 — 겹침 방지 */
+        .cal-header.searching .cal-mini-period { visibility:hidden; }
+        /* 주 수 스텝퍼는 모바일에서 숨김 (월간 dots 뷰에선 의미 없음) */
+        #monthWeeksCtl { display:none !important; }
         .cal-header .add-btn { display:none; } /* + 일정 추가는 플로팅 버튼으로 */
         #calSideFab { display:none !important; } /* 하단 좌측 필터 버튼 → 상단 ☰로 이동 */
         #calAddFab { display:flex; position:fixed; right:16px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:58; width:52px; height:52px; border-radius:50%; border:none; background:var(--accent); color:var(--accent-text); font-size:26px; font-weight:400; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.35); cursor:pointer; }
@@ -2743,7 +2747,11 @@ function calFont(dir){
 }
 
 // ── 일정 검색 — Enter 시 목록 뷰 검색만 (자동완성 드롭다운은 리소스 절약 위해 제거) ──
-function closeCalSearch(){}
+function closeCalSearch(){
+    const w=document.getElementById('calSearchWrap');
+    if(w) w.style.display='none';
+    document.querySelector('.cal-header')?.classList.remove('searching');
+}
 // Enter → 검색 결과를 목록 뷰로 표시
 let agendaSearchQuery=null, agendaSearchResults=[];
 async function openSearchListView(){
@@ -2891,6 +2899,7 @@ function toggleCalSearch(){
     if(!w) return;
     const show=w.style.display==='none';
     w.style.display=show?'':'none';
+    document.querySelector('.cal-header')?.classList.toggle('searching', show); // 모바일: 열려 있는 동안 타이틀 숨김
     if(show) setTimeout(()=>document.getElementById('calSearchInput')?.focus(),0);
 }
 function goToday() {
