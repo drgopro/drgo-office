@@ -261,6 +261,7 @@
     .mc-sheet-grip { width:38px; height:4px; border-radius:2px; background:var(--border); }
     #mcSheetLabel { font-size:12.5px; font-weight:700; color:var(--text); }
     .mc-sheet-body { overflow-y:auto; height:calc(100% - 50px); padding:0 12px calc(20px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling:touch; }
+    .mc-sheet-body .mobile-day-events { border-top:none; padding:0; background:none; }
     .mc-cell.selected { outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px; }
     @media (min-width: 769px) { .mc-sheet { display:none !important; } }
 
@@ -1294,7 +1295,10 @@
         <span class="mc-sheet-grip"></span>
         <span id="mcSheetLabel"></span>
     </div>
-    <div class="mc-sheet-body" id="mcSheetBody"></div>
+    <div class="mc-sheet-body">
+        {{-- mobile-day-events 클래스: 기존 일별 리스트(mde-*) 스타일 스코프 재사용 --}}
+        <div class="mobile-day-events" id="mcSheetBody"></div>
+    </div>
 </div>
 
 {{-- 하루 일정 전체 보기 팝오버 (데스크탑 '+N건 더보기') --}}
@@ -3083,6 +3087,7 @@ function mcSelectDay(dateStr, expand){
     const label=document.getElementById('mcSheetLabel');
     if(label) label.textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]}) · ${cnt}건`;
     renderMobileDayEvents(dateStr, document.getElementById('mcSheetBody'));
+    document.querySelector('#mcSheetBody .mde-header')?.remove(); // 날짜는 핸들 바에 이미 표시 — 중복 제거
     if(expand) mcSheetSet(true);
 }
 function mcSheetSet(open){
