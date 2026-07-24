@@ -219,6 +219,42 @@
     @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
     .event-chip.single.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
     @endforeach
+    /* ── 컴팩트 월간 뷰 (네이버식 고밀도) ── */
+    #monthCompactView { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+    .mc-weekdays { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--surface2); }
+    .mc-weekdays span { text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); padding:5px 0; }
+    .mc-weekdays span:first-child { color:var(--red); }
+    .mc-week { position:relative; display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); }
+    .mc-week:last-child { border-bottom:none; }
+    .mc-cell { min-width:0; padding:1px 2px 2px; border-right:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column; gap:1px; cursor:pointer; }
+    .mc-cell:last-child { border-right:none; }
+    .mc-cell.other-month { opacity:0.45; }
+    .mc-cell.today { background:color-mix(in srgb, var(--accent) 7%, transparent); }
+    .mc-cell.today .mc-daynum { background:var(--accent); color:var(--accent-text); border-radius:50%; }
+    .mc-daynum-row { display:flex; align-items:center; gap:3px; height:19px; flex-shrink:0; min-width:0; }
+    .mc-daynum { font-size:11px; font-weight:600; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .mc-daynum.sun { color:var(--red); } .mc-daynum.sat { color:#5b8def; }
+    .mc-holiday { font-size:9px; color:var(--red); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .mc-bars-space { flex-shrink:0; }
+    .mc-chip { height:16px; line-height:14px; font-size:10.5px; padding:0 3px 0 4px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex-shrink:0; }
+    .mc-chip:hover { filter:brightness(1.15); }
+    .mc-chip .mc-time { opacity:0.7; font-size:9.5px; margin-right:2px; }
+    .mc-chip.is-completed, .mc-bar.is-completed { opacity:0.4; }
+    .mc-more { font-size:10px; font-weight:700; color:var(--text-muted); cursor:pointer; padding:0 4px; flex-shrink:0; line-height:14px; }
+    .mc-more:hover { color:var(--accent); }
+    .mc-bar { position:absolute; z-index:4; height:15px; line-height:15px; font-size:10px; font-weight:600; padding:0 5px; border-radius:3px; white-space:nowrap; overflow:visible; cursor:pointer; box-sizing:border-box; }
+    .mc-bar span { display:block; overflow:hidden; text-overflow:ellipsis; }
+    @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
+    .mc-bar.color-{{ $__ck }} { background:var(--chip-{{ $__ck }}-bg); color:var(--chip-{{ $__ck }}-text); }
+    .mc-chip.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 20%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
+    @endforeach
+    @media (max-width: 768px) {
+        .mc-chip { font-size:9.5px; padding-left:3px; border-left-width:2px; }
+        .mc-bar { font-size:9px; }
+        .mc-daynum { font-size:10px; }
+        .mc-holiday { display:none; }
+    }
+
     .chip-time { font-size:calc(12px * var(--cal-fz,1)); opacity:0.85; flex-shrink:0; margin-right:3px; }
     .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
     /* 배송 상태 아이콘 (✕ 미배송 / △ 일부 완료 / ○ 전부 완료) */
@@ -1142,6 +1178,7 @@
         @endif
         <div class="view-toggle-group">
             <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월</button>
+            <button class="view-toggle-btn"        id="tabMonthC" onclick="switchView('monthc')" title="한 달 전체를 칩으로 한눈에">전체</button>
             <button class="view-toggle-btn"        id="tabWeek"  onclick="switchView('week')">주</button>
             <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일</button>
             <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
@@ -1238,6 +1275,9 @@
         <div class="mobile-day-events" id="mobileDayEvents"></div>
     </div>
 </div>
+
+{{-- 컴팩트 월간 뷰 (네이버식 고밀도 — 모든 일정을 작은 칩으로 표시) --}}
+<div id="monthCompactView" style="display:none;"></div>
 
 {{-- 하루 일정 전체 보기 팝오버 (데스크탑 '+N건 더보기') --}}
 <div id="dayPopoverOverlay" class="day-popover-overlay" onclick="closeDayPopover()"></div>
@@ -2612,10 +2652,11 @@ window.addEventListener('resize',()=>{
 function switchView(view) {
     agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
     currentView = view;
-    const TAB_IDS={month:'tabMonth',week:'tabWeek',day:'tabDay',list:'tabList'};
+    const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
     document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById(TAB_IDS[view])?.classList.add('active');
     document.getElementById('monthView').style.display    = view==='month' ? '' : 'none';
+    document.getElementById('monthCompactView').style.display = view==='monthc' ? '' : 'none';
     document.getElementById('timelineView').style.display = (view==='week'||view==='day') ? '' : 'none';
     document.getElementById('listView').style.display     = view==='list' ? '' : 'none';
     // 글자 크기 조절은 월간 뷰에만 적용되므로 그 외 뷰에서는 버튼 숨김
@@ -2638,7 +2679,11 @@ function changePeriod(dir) {
         moveAgendaWeek(dir); // 목록 뷰: 7일 주 이동
         return;
     }
-    if (currentView==='month') {
+    if (currentView==='monthc') {
+        currentMonth += dir;
+        if (currentMonth>11){currentMonth=0;currentYear++;}
+        if (currentMonth<0) {currentMonth=11;currentYear--;}
+    } else if (currentView==='month') {
         if(monthWeeks<6){
             // 다중 주 모드: 표시 주 수만큼 이동 + 현재 월 상태 동기화
             ensureMultiWeekStart();
@@ -2680,6 +2725,7 @@ function goToday() {
 
 function renderView() {
     if (currentView==='month') renderMonth();
+    else if (currentView==='monthc') renderMonthCompact();
     else if (currentView==='list') renderAgenda();
     else renderTimeline();
     if(typeof renderCalSide==='function') renderCalSide();
@@ -2712,6 +2758,12 @@ async function loadEvents() {
         // 그리드에 보이는 범위 전체 (월 전체 42칸 또는 다중 주 N*7칸)
         const gs=monthGridStart();
         const ge=new Date(gs); ge.setDate(ge.getDate()+monthGridWeeks()*7-1);
+        start=fmt(gs); end=fmt(ge);
+    } else if (currentView==='monthc') {
+        // 컴팩트 월간: 항상 6주 고정 그리드
+        const first=new Date(currentYear,currentMonth,1);
+        const gs=new Date(first); gs.setDate(1-first.getDay());
+        const ge=new Date(gs); ge.setDate(gs.getDate()+41);
         start=fmt(gs); end=fmt(ge);
     } else if (currentView==='week') {
         start=fmt(currentWeekStart);
@@ -2901,6 +2953,94 @@ function renderAgenda(){
 function selectAgendaDate(full){ agendaSelectedDate=full; renderAgenda(); }
 
 // ── 월간 뷰 ─────────────────────────────────────────────────────
+// ── 컴팩트 월간 뷰 (네이버식 고밀도 — 균등 6주 셀 + 작은 칩 + "+N") ──
+function renderMonthCompact(){
+    const view=document.getElementById('monthCompactView');
+    if(!view) return;
+    const ts=todayStr();
+    document.getElementById('periodTitle').textContent=`${currentYear}년 ${currentMonth+1}월`;
+    const first=new Date(currentYear,currentMonth,1);
+    const gridStart=new Date(first); gridStart.setDate(1-first.getDay());
+    const _d=v=>(v||'').substring(0,10);
+
+    // 균등 행 높이 — 6주가 화면 높이에 딱 맞도록
+    let rowH=92;
+    const vTop=view.getBoundingClientRect().top;
+    if(window.innerHeight-vTop>400){
+        rowH=Math.max(72, Math.floor((window.innerHeight-vTop-26-16)/6)); // 요일 헤더 26 + 하단 여백
+    }
+    const CHIP=17, BAR=17, HEAD=20, LANE_CAP=3;
+
+    let html=`<div class="mc-weekdays">${['일','월','화','수','목','금','토'].map(d=>`<span>${d}</span>`).join('')}</div>`;
+    for(let w=0;w<6;w++){
+        const days=[...Array(7)].map((_,i)=>{const dt=new Date(gridStart);dt.setDate(gridStart.getDate()+w*7+i);return dt;});
+        const weekStart=fmt(days[0]), weekEnd=fmt(days[6]);
+
+        // 다일 일정 레인 배정 (기존 월간 뷰와 동일 규칙 — 휴가/개인 우선)
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
+        weekMulti.sort((a,b)=>((b.color==='red')-(a.color==='red'))||a.start_date.localeCompare(b.start_date)||b.end_date.localeCompare(a.end_date)||a.id-b.id);
+        const laneOf={}, lanes=[];
+        weekMulti.forEach(ev=>{
+            let lane=0;
+            while((lanes[lane]||[]).some(r=>!(evEnd(ev)<r.s||_d(ev.start_date)>r.e))) lane++;
+            (lanes[lane]=lanes[lane]||[]).push({s:_d(ev.start_date),e:evEnd(ev)});
+            laneOf[ev.id]=lane;
+        });
+        const shownLanes=Math.min(lanes.length,LANE_CAP);
+        const singleBudget=Math.max(1,Math.floor((rowH-HEAD-shownLanes*BAR)/CHIP));
+
+        // 다일 연속 바 (레인 상한 초과분은 각 날짜 +N에 합산)
+        let bars='';
+        weekMulti.forEach(ev=>{
+            const lane=laneOf[ev.id];
+            if(lane>=LANE_CAP) return;
+            const s=_d(ev.start_date)<weekStart?weekStart:_d(ev.start_date);
+            const e=evEnd(ev)>weekEnd?weekEnd:evEnd(ev);
+            const c0=days.findIndex(d=>fmt(d)===s), c1=days.findIndex(d=>fmt(d)===e);
+            if(c0<0||c1<0) return;
+            const label=_d(ev.start_date)>=weekStart||w===0?`<span>${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</span>`:'<span></span>';
+            bars+=`<div class="mc-bar color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}"
+                style="left:calc(${c0} * 100% / 7 + 2px); width:calc(${c1-c0+1} * 100% / 7 - 5px); top:${HEAD+lane*BAR}px;">${label}</div>`;
+        });
+
+        // 날짜 셀 + 단일 일정 칩
+        let cellsHtml='';
+        days.forEach((dt,i)=>{
+            const full=fmt(dt);
+            const cur=dt.getMonth()===currentMonth;
+            const holiday=getHoliday(full);
+            const nc=i===0||holiday?'sun':i===6?'sat':'';
+            const daySingles=sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full));
+            const hiddenMulti=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length;
+            let show=daySingles, moreCnt=hiddenMulti;
+            if(daySingles.length+hiddenMulti>singleBudget){
+                const cut=Math.max(0,singleBudget-1);
+                moreCnt=hiddenMulti+(daySingles.length-cut);
+                show=daySingles.slice(0,cut);
+            }
+            const chips=show.map(ev=>`<div class="mc-chip color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`).join('');
+            const more=moreCnt>0?`<div class="mc-more" data-mcmore="${full}">+${moreCnt}</div>`:'';
+            cellsHtml+=`<div class="mc-cell${cur?'':' other-month'}${full===ts?' today':''}" data-mcday="${full}">
+                <div class="mc-daynum-row"><span class="mc-daynum ${nc}">${dt.getDate()}</span>${holiday?`<span class="mc-holiday">${holiday}</span>`:''}</div>
+                <div class="mc-bars-space" style="height:${shownLanes*BAR}px"></div>
+                ${chips}${more}
+            </div>`;
+        });
+        html+=`<div class="mc-week" style="height:${rowH}px">${bars}${cellsHtml}</div>`;
+    }
+    view.innerHTML=html;
+}
+// 컴팩트 뷰 클릭 위임 — 칩=상세, +N/빈 셀=일별 팝업
+document.getElementById('monthCompactView')?.addEventListener('click', e=>{
+    const more=e.target.closest('[data-mcmore]');
+    if(more){ e.stopPropagation(); openDayPopover(more.dataset.mcmore, more); return; }
+    const chip=e.target.closest('[data-mcid]');
+    if(chip){ e.stopPropagation(); const ev=events.find(x=>String(x.id)===chip.dataset.mcid); if(ev) openDetailModal(ev); return; }
+    const cell=e.target.closest('[data-mcday]');
+    if(cell){ openDayPopover(cell.dataset.mcday, cell); }
+});
+window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCompact(); });
+
 function renderMonth() {
     const N=monthGridWeeks();
     const grid=document.getElementById('daysGrid'); grid.innerHTML='';
