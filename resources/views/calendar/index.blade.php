@@ -3237,25 +3237,38 @@ let mcListH=(()=>{ const v=parseInt(localStorage.getItem('mcDeskListH'),10); ret
 (function(){
     const rz=document.getElementById('mcListResizer');
     if(!rz) return;
-    let dragging=false, sy=0, sh=0;
+    let dragging=false, sy=0, sh=0, lastY=0, raf=0;
+    function applyDrag(){
+        raf=0;
+        // 위로 끌면 리스트가 커지고 그리드가 줄어듦 — 총 높이를 유지해 여백/끊김 없이 이동
+        mcListH=Math.max(120, Math.min(Math.round(window.innerHeight*0.7), sh+(sy-lastY)));
+        const dl=document.getElementById('mcDeskList');
+        if(dl) dl.style.maxHeight=mcListH+'px';
+        const view=document.getElementById('monthCompactView');
+        if(view){
+            const vTop=view.getBoundingClientRect().top;
+            const rowH=Math.max(72, Math.floor((window.innerHeight-vTop-26-14-mcListH-12)/6));
+            view.querySelectorAll('.mc-week').forEach(w=>w.style.height=rowH+'px');
+        }
+    }
     rz.addEventListener('mousedown', e=>{
         dragging=true; sy=e.clientY; sh=mcListH;
         document.body.style.cursor='row-resize';
+        document.body.style.userSelect='none';
         e.preventDefault();
     });
     window.addEventListener('mousemove', e=>{
         if(!dragging) return;
-        // 위로 끌면 리스트가 커지고 그리드가 줄어듦 (창을 가리지 않는 분할 방식)
-        mcListH=Math.max(120, Math.min(Math.round(window.innerHeight*0.7), sh+(sy-e.clientY)));
-        const dl=document.getElementById('mcDeskList');
-        if(dl) dl.style.maxHeight=mcListH+'px';
+        lastY=e.clientY;
+        if(!raf) raf=requestAnimationFrame(applyDrag); // 프레임당 1회만 반영
     });
     window.addEventListener('mouseup', ()=>{
         if(!dragging) return;
         dragging=false;
         document.body.style.cursor='';
+        document.body.style.userSelect='';
         try{ localStorage.setItem('mcDeskListH', mcListH); }catch(e){}
-        if(currentView==='monthc') renderMonthCompact(); // 그리드를 남은 공간에 맞게 재계산
+        if(currentView==='monthc') renderMonthCompact(); // 칩 표시 수/+N을 새 높이에 맞게 재계산
     });
 })();
 function mcSelectDay(dateStr, expand){
