@@ -286,6 +286,7 @@
     .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
     /* 특수 옵션 아이콘 (차량🚗·제품💼 등) — 제목 앞 */
     .opt-ic { font-size:12px; margin-right:2px; line-height:1; }
+    .opt-ic-arrow { color:var(--accent); font-weight:800; } /* 시기 요청 ←/→ 화살표 강조 */
     /* 확정 상태 한 글자 칩 — 제목 끝, 가시성 위해 다른 칩보다 크게 */
     .opt-chip.sched-end, .agenda-title .opt-chip.sched-end, .dp-title .opt-chip.sched-end, .mde-title .opt-chip.sched-end { margin-left:4px; margin-right:0; font-size:calc(11px * var(--cal-fz,1)); padding:0 4px; line-height:1.4; }
     /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
@@ -1758,7 +1759,7 @@
                         <div class="sched-opt-btn" data-sopt="confirmed"><span class="opt-icon">✅</span>확정</div>
                     </div>
                     <div class="sched-opt-desc" id="schedOptDesc"></div>
-                    {{-- 시기 요청 — 방문의뢰(gold) 전용, 미팅/내방(purple)에서는 확정 상태만 노출 --}}
+                    {{-- 시기 요청 — 방문의뢰(gold) + 스튜디오/촬영 카테고리 (setColor에서 토글) --}}
                     <div id="schedEventSection">
                         <div class="sched-opt-sub" style="margin-top:10px;">시기 요청 (복수 선택 가능)</div>
                         <div class="special-opts" id="schedEventOpts">
@@ -2289,13 +2290,15 @@ function updateSchedOptDesc(){
     if(el) el.textContent=a?(SCHED_OPT_DESCS[a.dataset.sopt]||''):'';
 }
 const SCHED_EVENT_CHIP_LABELS={fast:'빠른',urgent:'긴급',after:'이후'};
+// 시기 요청 전체 라벨 (아이콘 툴팁용 — 아이콘 맵 SCHED_EVENT_ICONS는 위에 정의됨)
+const SCHED_EVENT_FULL_LABELS={fast:'빠른 일정 희망',urgent:'긴급 일정',after:'날짜 이후 희망'};
 function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''}"${title?` title="${title}"`:''}>${label}</span>`; }
-// 특수옵션(아이콘) + 시기 요청 칩 묶음 — 주/일간·목록·팝업 뷰 공용 (확정 상태는 schedStatusChip으로 제목 끝에)
+// 시기 요청(아이콘) + 특수옵션(아이콘) 묶음 — 제목 앞에 표시, 전 뷰 공용 (확정 상태는 schedStatusChip으로 제목 끝에)
 function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
+    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic${o==='urgent'?'':' opt-ic-arrow'}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${SCHED_EVENT_ICONS[o]}</span>`; });
     (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic" title="${SPECIAL_OPT_LABELS[o]||o}">${SPECIAL_ICONS[o]}</span>`; });
-    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_CHIP_LABELS[o]) h+=optChip(SCHED_EVENT_CHIP_LABELS[o],o==='urgent'?'urgent':''); });
     return h;
 }
 // 확정 상태 — 한 글자 칩(확/목/희/제), 제목 끝에 붙임
@@ -2352,8 +2355,8 @@ function init() {
         document.getElementById('timelineView').style.display=(savedView==='week'||savedView==='day')?'':'none';
         document.getElementById('listView').style.display=savedView==='list'?'':'none';
         const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display=savedView==='month'?'':'none';
-        csLoadFilters(); // 복원된 뷰의 카테고리 필터 적용
     }
+    csLoadFilters(); // 현재(복원된) 뷰의 카테고리 필터 적용 — 연/월 설정 이후 시점
     // 월간 표시 주 수 초기화 (저장값 복원)
     updateMwLabel();
     const mwCtl=document.getElementById('monthWeeksCtl');
@@ -2411,9 +2414,9 @@ function csLoadFilters(){
     }
     hidden.filter(k => CS_CATS[k]).forEach(k => activeFilters.delete(k));
     document.querySelectorAll('#filterBar .filter-btn').forEach(b => b.classList.toggle('active', activeFilters.has(b.dataset.filter)));
-    if(typeof renderCalSide === 'function') renderCalSide();
+    // 사이드 패널 갱신 — init 이전(연/월 미설정)에는 건너뜀 (미니 달력 NaN 방지)
+    if(typeof renderCalSide === 'function' && typeof currentYear === 'number') renderCalSide();
 }
-csLoadFilters(); // 초기 로드 (기본 뷰 기준 — init의 뷰 복원 후 다시 호출됨)
 
 function csSaveHidden(){
     try{ localStorage.setItem(csHiddenKeyFor(), JSON.stringify(Object.keys(CS_CATS).filter(k => !activeFilters.has(k)))); }catch(e){}
@@ -3129,7 +3132,7 @@ function renderMonthCompact(){
             const e=evEnd(ev)>weekEnd?weekEnd:evEnd(ev);
             const c0=days.findIndex(d=>fmt(d)===s), c1=days.findIndex(d=>fmt(d)===e);
             if(c0<0||c1<0) return;
-            const label=_d(ev.start_date)>=weekStart||w===0?`<span>${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</span>`:'<span></span>';
+            const label=_d(ev.start_date)>=weekStart||w===0?`<span>${eventOptIconsHtml(ev)}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</span>`:'<span></span>';
             bars+=`<div class="mc-bar color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}"
                 style="left:calc(${c0} * 100% / 7 + 2px); width:calc(${c1-c0+1} * 100% / 7 - 5px); top:${HEAD+lane*BAR}px;">${label}</div>`;
         });
@@ -3157,7 +3160,7 @@ function renderMonthCompact(){
                 moreCnt=hiddenMulti+(daySingles.length-cut);
                 show=daySingles.slice(0,cut);
             }
-            const chips=show.map(ev=>`<div class="mc-chip color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`).join('');
+            const chips=show.map(ev=>`<div class="mc-chip color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${eventOptIconsHtml(ev)}${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`).join('');
             const more=moreCnt>0?`<div class="mc-more" data-mcmore="${full}">+${moreCnt}</div>`:'';
             cellsHtml+=`<div class="mc-cell${cur?'':' other-month'}${full===ts?' today':''}" data-mcday="${full}">
                 <div class="mc-daynum-row"><span class="mc-daynum ${nc}">${dt.getDate()}</span>${holiday?`<span class="mc-holiday">${holiday}</span>`:''}</div>
@@ -3809,13 +3812,15 @@ function setColor(c){
     document.querySelectorAll('.gold-only').forEach(s=>s.style.display=c==='gold'?'flex':'none');
     document.querySelectorAll('.teal-only').forEach(s=>s.style.display=c==='teal'?'flex':'none');
     document.querySelectorAll('.common-only').forEach(s=>s.style.display=(c!=='gold'&&c!=='teal')?'flex':'none');
-    // 일정 옵션 카드 — 확정 상태는 모든 카테고리에서 사용 (시기 요청·특수 옵션은 gold 전용 유지)
+    // 일정 옵션 카드 — 확정 상태는 모든 카테고리에서 사용
+    // 시기 요청·특수 옵션: 방문의뢰(gold) + 스튜디오/촬영 카테고리 (라벨 매칭 — 커스텀 키 대응)
     const soCard=document.getElementById('schedOptCard');
     if(soCard) soCard.style.display='flex';
+    const optExtra=c==='gold'||Object.keys(CS_CATS).some(k=>k===c&&/스튜디오|촬영/.test((CS_CATS[k]&&CS_CATS[k].label)||''));
     const seSec=document.getElementById('schedEventSection');
-    if(seSec) seSec.style.display=c==='gold'?'':'none';
+    if(seSec) seSec.style.display=optExtra?'':'none';
     const spGrp=document.getElementById('specialOptsGroup');
-    if(spGrp) spGrp.style.display=c==='gold'?'':'none';
+    if(spGrp) spGrp.style.display=optExtra?'':'none';
     // 사내업무(blue)/휴가·개인(red)은 의뢰자 검색 불필요 → 섹션 숨김
     const clientSec=document.getElementById('clientLinkSection');
     if(clientSec) clientSec.style.display=(c==='blue'||c==='red')?'none':'';
