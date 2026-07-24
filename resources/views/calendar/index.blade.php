@@ -1294,6 +1294,10 @@
     .cal-mpicker-grid button.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
+    @media (min-width: 769px) {
+        /* 데스크탑: 연.월 타이틀을 헤더 정중앙에 (이동/오늘 버튼은 좌측 유지) */
+        .cal-header .cal-hl-items .month-label { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; min-width:0; white-space:nowrap; }
+    }
     @media (max-width: 768px) {
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
         .cal-hamburger { display:inline-flex; align-items:center; justify-content:center; position:absolute; left:0; top:50%; transform:translateY(-50%); border:none; background:none; box-shadow:none; color:var(--text); padding:4px; cursor:pointer; }
