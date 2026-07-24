@@ -140,7 +140,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/events/trash/empty', [CalendarController::class, 'emptyTrash']);
         Route::match(['PUT', 'PATCH', 'POST'], '/api/events/{schedule}', [CalendarController::class, 'update'])->name('api.events.update');
         Route::delete('/api/events/{schedule}', [CalendarController::class, 'destroy'])->name('api.events.destroy');
-        Route::middleware('permission:calendar.backup')->group(function () {
+        // 캘린더 백업/가져오기 — 전체 일정 유출·대량 변경 가능성이 있어 관리자(master/admin) 전용
+        Route::middleware('role:master,admin')->group(function () {
             Route::get('/api/events/export/json', [CalendarController::class, 'exportJson']);
             Route::post('/api/events/import/json', [CalendarController::class, 'importJson']);
             Route::get('/api/events/export/ical', [CalendarController::class, 'exportIcal']);

@@ -1242,7 +1242,7 @@
                     <span id="calFontLabel" style="font-size:11px;color:var(--text-muted);min-width:34px;text-align:center;">100%</span>
                     <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
                 </div>
-                @if(Auth::user()->hasPermission('calendar.edit') && Auth::user()->hasPermission('calendar.backup'))
+                @if(Auth::user()->isAdmin())
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
                 <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
                 <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> iCal 내보내기</button>
@@ -1251,7 +1251,7 @@
                 @endif
             </div>
         </div>
-        @if(Auth::user()->hasPermission('calendar.edit') && Auth::user()->hasPermission('calendar.backup'))
+        @if(Auth::user()->isAdmin())
         <input type="file" id="jsonImportInput" accept=".json" style="display:none" onchange="importFile('json',this)">
         <input type="file" id="icalImportInput" accept=".ics,.ical" style="display:none" onchange="importFile('ical',this)">
         @endif
