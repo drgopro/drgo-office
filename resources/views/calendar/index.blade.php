@@ -266,7 +266,8 @@
     #mcSheetLabel { font-size:12.5px; font-weight:700; color:var(--text); }
     .mc-sheet-body { overflow-y:auto; height:calc(100% - 50px); padding:0 12px calc(20px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling:touch; }
     .mc-sheet-body .mobile-day-events { border-top:none; padding:0; background:none; }
-    .mc-cell.selected { outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px; }
+    /* 선택일: 테두리 대신 날짜 숫자만 강조 (오늘과 동일한 원형 배지) */
+    .mc-cell.selected .mc-daynum { background:var(--accent); color:var(--accent-text); border-radius:50%; }
     @media (min-width: 769px) { .mc-sheet { display:none !important; } }
 
     .chip-time { font-size:calc(12px * var(--cal-fz,1)); opacity:0.85; flex-shrink:0; margin-right:3px; }
@@ -1175,7 +1176,9 @@
 <div class="cal-header">
     <div class="cal-header-left">
         {{-- 모바일: ☰=필터 패널(사이드 리모컨), 연.월▾=년/월 피커, ‹›=기간 이동 --}}
-        <button class="nav-btn cal-hamburger" id="calHamBtn" onclick="csToggleMobile()" title="필터/미니 달력">☰</button>
+        <button class="cal-hamburger" id="calHamBtn" onclick="csToggleMobile()" title="필터/미니 달력">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
         <button class="nav-btn cal-mini-nav" onclick="changePeriod(-1)" title="이전">‹</button>
         <span class="cal-mini-period" id="periodTitleMini" onclick="toggleCalPicker(event)"></span>
         <button class="nav-btn cal-mini-nav" onclick="changePeriod(1)" title="다음">›</button>
@@ -1269,7 +1272,8 @@
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
     @media (max-width: 768px) {
-        .cal-hamburger { display:inline-flex; position:absolute; left:0; top:50%; transform:translateY(-50%); }
+        {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
+        .cal-hamburger { display:inline-flex; align-items:center; justify-content:center; position:absolute; left:0; top:50%; transform:translateY(-50%); border:none; background:none; box-shadow:none; color:var(--text); padding:4px; cursor:pointer; }
         .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
         .cal-mini-period::after { content:'▾'; font-size:10px; color:var(--text-muted); }
         .cal-header { justify-content:space-between; }
