@@ -224,8 +224,25 @@
     @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
     .event-chip.single.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
     @endforeach
+    /* ── 일별 리스트(mde) 스타일 — 모바일 하단 리스트/시트 + 데스크탑 컴팩트 하단 리스트 공용 ── */
+    .mobile-day-events .mde-header { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:10px; }
+    .mobile-day-events .mde-item { display:flex; align-items:flex-start; gap:10px; padding:12px 4px; border:none; border-bottom:1px solid var(--border); border-radius:0; margin-bottom:0; cursor:pointer; transition:background 0.15s; min-height:44px; }
+    .mobile-day-events .mde-item:last-child { border-bottom:none; }
+    .mobile-day-events .mde-item:hover { background:var(--surface2); }
+    .mobile-day-events .mde-time { width:42px; flex-shrink:0; font-size:12px; font-weight:700; color:var(--text-muted); padding-top:1px; }
+    .mobile-day-events .mde-bar { width:4px; align-self:stretch; min-height:30px; border-radius:2px; flex-shrink:0; }
+    .mobile-day-events .mde-info { flex:1; min-width:0; }
+    .mobile-day-events .mde-title-row { display:flex; align-items:flex-start; gap:8px; }
+    /* 긴 제목이 잘리지 않도록 폰트 축소 + 3줄까지 줄바꿈 허용 */
+    .mobile-day-events .mde-title { font-size:12px; font-weight:600; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
+    .mobile-day-events .mde-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mobile-day-events .mde-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .mobile-day-events .mde-empty { text-align:center; padding:20px; color:var(--text-muted); font-size:13px; }
+
     /* ── 컴팩트 월간 뷰 (네이버식 고밀도) ── */
     #monthCompactView { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+    /* 데스크탑 컴팩트: 그리드 아래 상시 선택일 리스트 */
+    #mcDeskList { display:none; margin-top:12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:12px 16px; max-height:280px; overflow-y:auto; }
     .mc-weekdays { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--surface2); }
     .mc-weekdays span { text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); padding:5px 0; }
     .mc-weekdays span:first-child { color:var(--red); }
@@ -1076,19 +1093,6 @@
 
         /* 하단 일정 리스트 */
         .mobile-day-events { display:block; padding:12px; border-top:1px solid var(--border); background:var(--surface); }
-        .mobile-day-events .mde-header { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:10px; }
-        .mobile-day-events .mde-item { display:flex; align-items:flex-start; gap:10px; padding:12px 4px; border:none; border-bottom:1px solid var(--border); border-radius:0; margin-bottom:0; cursor:pointer; transition:background 0.15s; min-height:44px; }
-        .mobile-day-events .mde-item:last-child { border-bottom:none; }
-        .mobile-day-events .mde-item:hover { background:var(--surface2); }
-        .mobile-day-events .mde-time { width:42px; flex-shrink:0; font-size:12px; font-weight:700; color:var(--text-muted); padding-top:1px; }
-        .mobile-day-events .mde-bar { width:4px; align-self:stretch; min-height:30px; border-radius:2px; flex-shrink:0; }
-        .mobile-day-events .mde-info { flex:1; min-width:0; }
-        .mobile-day-events .mde-title-row { display:flex; align-items:flex-start; gap:8px; }
-        /* 긴 제목이 잘리지 않도록 폰트 축소 + 3줄까지 줄바꿈 허용 */
-        .mobile-day-events .mde-title { font-size:12px; font-weight:600; flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; word-break:break-all; line-height:1.45; }
-        .mobile-day-events .mde-assignee { flex-shrink:0; font-size:11px; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:1px 8px; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .mobile-day-events .mde-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
-        .mobile-day-events .mde-empty { text-align:center; padding:20px; color:var(--text-muted); font-size:13px; }
 
         /* 다일 스판 칩 숨김 */
         .span-chip-overlay { display:none; }
@@ -1370,6 +1374,8 @@
 
 {{-- 컴팩트 월간 뷰 (네이버식 고밀도 — 모든 일정을 작은 칩으로 표시) --}}
 <div id="monthCompactView" style="display:none;"></div>
+{{-- 데스크탑 컴팩트: 그리드 아래 선택일 일정 리스트 (mde 스타일 재사용) --}}
+<div id="mcDeskList" class="mobile-day-events"></div>
 
 {{-- 컴팩트 뷰 모바일 하단 시트 — 바를 올리면 선택일 일정 리스트 (네이버 모바일 방식) --}}
 <div id="mcSheetBackdrop" class="mc-backdrop" onclick="mcSheetSet(false)"></div>
@@ -3110,7 +3116,7 @@ function renderMonthCompact(){
     let rowH=92;
     const vTop=view.getBoundingClientRect().top;
     if(window.innerHeight-vTop>360){
-        const reserve=mcMobile?26+54:26+16; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 하단 여백)
+        const reserve=mcMobile?26+54:26+16+230; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 하단 리스트 영역)
         rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/6));
     }
     const CHIP=mcMobile?19:17, BAR=17, HEAD=20, LANE_CAP=3;
@@ -3199,8 +3205,7 @@ document.getElementById('monthCompactView')?.addEventListener('click', e=>{
     if(chip){ e.stopPropagation(); const ev=events.find(x=>String(x.id)===chip.dataset.mcid); if(ev) openDetailModal(ev); return; }
     const cell=e.target.closest('[data-mcday]');
     if(cell){
-        if(isMobile) mcSelectDay(cell.dataset.mcday);
-        else openDayPopover(cell.dataset.mcday, cell);
+        mcSelectDay(cell.dataset.mcday); // 데스크탑: 하단 리스트 갱신 / 모바일: 시트 갱신
     }
 });
 window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCompact(); });
@@ -3227,13 +3232,18 @@ function mcSelectDay(dateStr, expand){
     mcSelDate=dateStr;
     document.querySelectorAll('.mc-cell.selected').forEach(c=>c.classList.remove('selected'));
     document.querySelector(`.mc-cell[data-mcday="${dateStr}"]`)?.classList.add('selected');
-    const d=new Date(dateStr+'T00:00:00');
-    const cnt=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)).length;
-    const label=document.getElementById('mcSheetLabel');
-    if(label) label.textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]}) · ${cnt}건`;
-    renderMobileDayEvents(dateStr, document.getElementById('mcSheetBody'));
-    document.querySelector('#mcSheetBody .mde-header')?.remove(); // 날짜는 핸들 바에 이미 표시 — 중복 제거
-    if(expand) mcSheetSet(true);
+    if(window.innerWidth<=768){
+        const d=new Date(dateStr+'T00:00:00');
+        const cnt=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)).length;
+        const label=document.getElementById('mcSheetLabel');
+        if(label) label.textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]}) · ${cnt}건`;
+        renderMobileDayEvents(dateStr, document.getElementById('mcSheetBody'));
+        document.querySelector('#mcSheetBody .mde-header')?.remove(); // 날짜는 핸들 바에 이미 표시 — 중복 제거
+        if(expand) mcSheetSet(true);
+    }else{
+        // 데스크탑: 그리드 아래 상시 리스트 갱신
+        renderMobileDayEvents(dateStr, document.getElementById('mcDeskList'));
+    }
 }
 function mcSheetSet(open){
     mcSheetOpen=open;
@@ -3245,10 +3255,14 @@ function mcSheetSet(open){
 function mcSheetSync(){
     const sheet=document.getElementById('mcSheet');
     if(!sheet) return;
-    const show=currentView==='monthc'&&window.innerWidth<=768;
+    const isMobile=window.innerWidth<=768;
+    const show=currentView==='monthc'&&isMobile;
     sheet.style.display=show?'block':'none';
-    if(show) mcSelectDay(mcSelDate||todayStr());
-    else mcSheetSet(false);
+    if(!show) mcSheetSet(false);
+    // 데스크탑 컴팩트: 그리드 아래 상시 리스트 표시
+    const dl=document.getElementById('mcDeskList');
+    if(dl) dl.style.display=(currentView==='monthc'&&!isMobile)?'block':'none';
+    if(currentView==='monthc') mcSelectDay(mcSelDate||todayStr());
     // 플로팅 + 버튼: 시트 바가 있는 컴팩트 뷰에선 바 위로 띄움
     const fab=document.getElementById('calAddFab');
     if(fab) fab.style.bottom=show?'calc(76px + env(safe-area-inset-bottom))':'calc(20px + env(safe-area-inset-bottom))';
