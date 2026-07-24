@@ -2791,10 +2791,13 @@ function renderAgendaSearch(){
         if(sd!==lastDate){
             lastDate=sd;
             const d=new Date(sd+'T00:00:00');
-            const dowCls=d.getDay()===0?'ad-sun':d.getDay()===6?'ad-sat':'';
+            const valid=!isNaN(d.getTime());
+            const dowCls=valid&&d.getDay()===0?'ad-sun':valid&&d.getDay()===6?'ad-sat':'';
+            // 연월일을 항상 표기 — 날짜 파싱이 실패해도 원본 문자열로 폴백
+            const dateLabel=valid?`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`:(sd||'날짜 미상');
             html+=`<div class="agenda-date-head" style="margin-top:6px;">
-                <span class="ad-d ${dowCls}">${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}</span>
-                <span class="ad-dow ${dowCls}">${AGENDA_DOW[d.getDay()]}요일</span>
+                <span class="ad-d ${dowCls}">${dateLabel}</span>
+                ${valid?`<span class="ad-dow ${dowCls}">${AGENDA_DOW[d.getDay()]}요일</span>`:''}
             </div>`;
         }
         const ed=(ev.end_date||'').substring(0,10);
