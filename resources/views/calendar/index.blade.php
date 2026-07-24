@@ -226,8 +226,6 @@
     @endforeach
     /* ── 컴팩트 월간 뷰 (네이버식 고밀도) ── */
     #monthCompactView { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
-    /* 전체(컴팩트) 모드는 모바일 전용 — 데스크탑에선 버튼 숨김 */
-    @media (min-width: 769px) { #tabMonthC { display:none !important; } }
     .mc-weekdays { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--surface2); }
     .mc-weekdays span { text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); padding:5px 0; }
     .mc-weekdays span:first-child { color:var(--red); }
@@ -2359,7 +2357,6 @@ function init() {
     }
     // 마지막으로 본 캘린더 모드 복원 (탭 UI/뷰 표시까지 switchView와 동일하게 반영)
     let savedView=localStorage.getItem('calLastView');
-    if(savedView==='monthc'&&window.innerWidth>768) savedView='month'; // 전체 모드는 모바일 전용
     if(savedView&&['month','monthc','week','day','list'].includes(savedView)&&savedView!==currentView){
         currentView=savedView;
         const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
