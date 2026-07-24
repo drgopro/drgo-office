@@ -2352,6 +2352,7 @@ function init() {
         document.getElementById('timelineView').style.display=(savedView==='week'||savedView==='day')?'':'none';
         document.getElementById('listView').style.display=savedView==='list'?'':'none';
         const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display=savedView==='month'?'':'none';
+        csLoadFilters(); // 복원된 뷰의 카테고리 필터 적용
     }
     // 월간 표시 주 수 초기화 (저장값 복원)
     updateMwLabel();
@@ -2396,20 +2397,26 @@ const CS_CATS = @json(\App\Models\CalendarCategory::map());
 const CS_HIDDEN_KEY = 'calHiddenCats';
 let csMiniY = null, csMiniM = null; // 미니 달력 표시 월
 
-// 저장된 숨김 카테고리 복원 (존재하는 키만)
-(function(){
-    try{
-        const hidden = JSON.parse(localStorage.getItem(CS_HIDDEN_KEY) || '[]');
-        hidden.filter(k => CS_CATS[k]).forEach(k => {
-            activeFilters.delete(k);
-            const btn = document.querySelector(`#filterBar .filter-btn[data-filter="${k}"]`);
-            if(btn) btn.classList.remove('active');
-        });
-    }catch(e){}
-})();
+// ── 뷰별 카테고리 필터 (개인 설정) — 월(전체 포함)/주/일/목록 각각 따로 저장 ──
+function csBucket(){ return currentView==='monthc' ? 'month' : (currentView||'month'); }
+function csHiddenKeyFor(){ return CS_HIDDEN_KEY+':'+csBucket(); }
+function csLoadFilters(){
+    // 전 카테고리 ON으로 초기화 후 현재 뷰의 숨김 목록 적용 (뷰별 저장값 없으면 구버전 공용 값 폴백)
+    Object.keys(CS_CATS).forEach(k => activeFilters.add(k));
+    activeFilters.add('holiday');
+    let hidden = null;
+    try{ hidden = JSON.parse(localStorage.getItem(csHiddenKeyFor()) || 'null'); }catch(e){}
+    if(!Array.isArray(hidden)){
+        try{ hidden = JSON.parse(localStorage.getItem(CS_HIDDEN_KEY) || '[]'); }catch(e){ hidden = []; }
+    }
+    hidden.filter(k => CS_CATS[k]).forEach(k => activeFilters.delete(k));
+    document.querySelectorAll('#filterBar .filter-btn').forEach(b => b.classList.toggle('active', activeFilters.has(b.dataset.filter)));
+    if(typeof renderCalSide === 'function') renderCalSide();
+}
+csLoadFilters(); // 초기 로드 (기본 뷰 기준 — init의 뷰 복원 후 다시 호출됨)
 
 function csSaveHidden(){
-    try{ localStorage.setItem(CS_HIDDEN_KEY, JSON.stringify(Object.keys(CS_CATS).filter(k => !activeFilters.has(k)))); }catch(e){}
+    try{ localStorage.setItem(csHiddenKeyFor(), JSON.stringify(Object.keys(CS_CATS).filter(k => !activeFilters.has(k)))); }catch(e){}
 }
 function csToggleCat(k){
     if(activeFilters.has(k)) activeFilters.delete(k); else activeFilters.add(k);
@@ -2769,6 +2776,7 @@ function switchView(view) {
     agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
     currentView = view;
     try{ localStorage.setItem('calLastView', view); }catch(e){} // 마지막 본 모드 기억 (다음 방문 시 자동 복원)
+    csLoadFilters(); // 뷰별 카테고리 필터 적용 (월/주/일/목록 각각 개인 설정)
     const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
     document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById(TAB_IDS[view])?.classList.add('active');
