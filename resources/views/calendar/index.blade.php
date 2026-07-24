@@ -1173,9 +1173,11 @@
 @section('content')
 <div class="cal-header">
     <div class="cal-header-left">
-        {{-- 모바일 전용: 연.월/이동/오늘/새로고침을 햄버거 안으로 (상단 공간 절약) --}}
-        <button class="nav-btn cal-hamburger" id="calHamBtn" onclick="toggleCalHam()" title="달력 이동">☰</button>
-        <span class="cal-mini-period" id="periodTitleMini" onclick="toggleCalHam()"></span>
+        {{-- 모바일: ☰=필터 패널(사이드 리모컨), 연.월▾=년/월 피커, ‹›=기간 이동 --}}
+        <button class="nav-btn cal-hamburger" id="calHamBtn" onclick="csToggleMobile()" title="필터/미니 달력">☰</button>
+        <button class="nav-btn cal-mini-nav" onclick="changePeriod(-1)" title="이전">‹</button>
+        <span class="cal-mini-period" id="periodTitleMini" onclick="toggleCalPicker(event)"></span>
+        <button class="nav-btn cal-mini-nav" onclick="changePeriod(1)" title="다음">›</button>
         <div class="cal-hl-items" id="calHlItems">
             <div class="month-label cal-title-xl" id="periodTitle"></div>
             <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
@@ -1184,6 +1186,19 @@
             <button class="nav-btn" id="calRefreshBtn" onclick="refreshCalendar()" title="새로고침 (현재 보기 유지)">
                 <svg id="calRefreshIco" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
             </button>
+        </div>
+        {{-- 년/월 피커 드롭다운 (모바일) --}}
+        <div id="calMonthPicker" class="cal-mpicker" style="display:none;">
+            <div class="cal-mpicker-year">
+                <button type="button" onclick="mpYear(-1)">‹</button>
+                <span id="mpYearLabel"></span>
+                <button type="button" onclick="mpYear(1)">›</button>
+            </div>
+            <div class="cal-mpicker-grid" id="mpGrid"></div>
+            <div class="cal-mpicker-foot">
+                <button type="button" onclick="goToday();closeCalPicker()">오늘</button>
+                <button type="button" onclick="refreshCalendar();closeCalPicker()">새로고침</button>
+            </div>
         </div>
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
@@ -1240,18 +1255,30 @@
 </div>
 
 <style>
-    /* ── 모바일 헤더 축소 — 연.월/이동은 햄버거 드롭다운으로 (데스크탑은 기존 그대로) ── */
-    .cal-hamburger, .cal-mini-period { display:none; }
+    /* ── 모바일 헤더 정리 — ☰=필터, 연.월▾=년/월 피커, + 는 플로팅 버튼 (데스크탑은 기존 그대로) ── */
+    .cal-hamburger, .cal-mini-period, .cal-mini-nav, #calAddFab { display:none; }
     .cal-hl-items { display:contents; }
+    .cal-mpicker { position:absolute; left:0; top:calc(100% + 6px); z-index:40; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:0 10px 28px rgba(0,0,0,0.45); width:250px; }
+    .cal-mpicker-year { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:10px; }
+    .cal-mpicker-year span { font-size:14.5px; font-weight:800; }
+    .cal-mpicker-year button { width:28px; height:28px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:14px; cursor:pointer; }
+    .cal-mpicker-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .cal-mpicker-grid button { padding:8px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12.5px; cursor:pointer; }
+    .cal-mpicker-grid button.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
+    .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
+    .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
     @media (max-width: 768px) {
         .cal-hamburger { display:inline-flex; }
-        .cal-mini-period { display:inline-flex; align-items:center; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; }
+        .cal-mini-nav { display:inline-flex; width:26px; height:26px; font-size:13px; }
+        .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:13.5px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
+        .cal-mini-period::after { content:'▾'; font-size:10px; color:var(--text-muted); }
         .cal-header { justify-content:space-between; }
-        .cal-header-left { width:auto; justify-content:flex-start; position:relative; flex:0 0 auto; }
+        .cal-header-left { width:auto; justify-content:flex-start; position:relative; flex:0 0 auto; gap:4px; }
         .cal-header-right { width:auto; border-top:none; padding-top:0; flex:1 1 auto; justify-content:flex-end; }
-        .cal-hl-items { display:none; position:absolute; left:0; top:calc(100% + 6px); z-index:40; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; box-shadow:0 8px 24px rgba(0,0,0,0.4); align-items:center; gap:8px; flex-wrap:nowrap; }
-        .cal-hl-items.open { display:flex; }
-        .cal-hl-items .month-label { min-width:0; font-size:15px; }
+        .cal-hl-items { display:none; } /* 연.월/이동/오늘/새로고침 데스크탑 세트는 모바일에서 숨김 (피커로 대체) */
+        .cal-header .add-btn { display:none; } /* + 일정 추가는 플로팅 버튼으로 */
+        #calSideFab { display:none !important; } /* 하단 좌측 필터 버튼 → 상단 ☰로 이동 */
+        #calAddFab { display:flex; position:fixed; right:16px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:58; width:52px; height:52px; border-radius:50%; border:none; background:var(--accent); color:var(--accent-text); font-size:26px; font-weight:400; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.35); cursor:pointer; }
     }
 </style>
 <script>(function(){var s=parseFloat(localStorage.getItem('calFontScale')||'1')||1;document.documentElement.style.setProperty('--cal-fz',s);})();</script>
@@ -1266,6 +1293,10 @@
     <div id="assigneeFilterChips" class="assignee-filter-chips"></div>
 </div>
 
+@if(Auth::user()->hasPermission('calendar.edit'))
+{{-- 모바일 플로팅 일정 추가 버튼 (화면을 따라다님) --}}
+<button type="button" id="calAddFab" onclick="openNewModal()" title="일정 추가">+</button>
+@endif
 <button type="button" id="calSideFab" onclick="csToggleMobile()" title="필터/미니 달력">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
 </button>
@@ -3134,6 +3165,9 @@ function mcSheetSync(){
     sheet.style.display=show?'block':'none';
     if(show) mcSelectDay(mcSelDate||todayStr());
     else mcSheetSet(false);
+    // 플로팅 + 버튼: 시트 바가 있는 컴팩트 뷰에선 바 위로 띄움
+    const fab=document.getElementById('calAddFab');
+    if(fab) fab.style.bottom=show?'calc(76px + env(safe-area-inset-bottom))':'calc(20px + env(safe-area-inset-bottom))';
 }
 (function(){
     const handle=document.getElementById('mcSheetHandle');
@@ -6515,19 +6549,43 @@ document.addEventListener('click',e=>{
     const m=document.getElementById('calMenu');
     if(m&&!e.target.closest('.cal-menu')&&!e.target.closest('[onclick*="toggleCalMenu"]')) m.style.display='none';
 });
-// 모바일 햄버거 — 연.월/이동/오늘/새로고침 패널 토글
-function toggleCalHam(){
-    document.getElementById('calHlItems')?.classList.toggle('open');
+// ── 모바일 년/월 피커 (연.월▾ 탭 → < 2026년 > + 1~12월 칩) ──
+let mpYearSel=null;
+function toggleCalPicker(e){
+    e?.stopPropagation();
+    const p=document.getElementById('calMonthPicker');
+    if(!p) return;
+    const show=p.style.display==='none';
+    if(show){ mpYearSel=currentYear; mpRender(); }
+    p.style.display=show?'':'none';
+}
+function closeCalPicker(){ const p=document.getElementById('calMonthPicker'); if(p) p.style.display='none'; }
+function mpYear(dir){ mpYearSel+=dir; mpRender(); }
+function mpRender(){
+    document.getElementById('mpYearLabel').textContent=mpYearSel+'년';
+    document.getElementById('mpGrid').innerHTML=[...Array(12)].map((_,m)=>
+        `<button type="button" class="${mpYearSel===currentYear&&m===currentMonth?'on':''}" onclick="mpPick(${m})">${m+1}월</button>`
+    ).join('');
+}
+function mpPick(m){
+    currentYear=mpYearSel; currentMonth=m;
+    const d=new Date(mpYearSel,m,1);
+    currentWeekStart=getWeekStart(d);
+    currentDay=new Date(d); currentDay.setHours(0,0,0,0);
+    multiWeekStart=getWeekStart(d);
+    agendaWeekStart=null; agendaSelectedDate=fmt(d);
+    closeCalPicker();
+    renderView(); loadEvents();
 }
 document.addEventListener('click',e=>{
-    const p=document.getElementById('calHlItems');
-    if(p&&p.classList.contains('open')&&!e.target.closest('.cal-header-left')) p.classList.remove('open');
+    const p=document.getElementById('calMonthPicker');
+    if(p&&p.style.display!=='none'&&!e.target.closest('#calMonthPicker')&&!e.target.closest('.cal-mini-period')) closeCalPicker();
 });
-// 모바일 미니 연.월 라벨 — periodTitle 변경 시 동기화 ("7월"만 축약 표시)
+// 모바일 미니 연.월 라벨 — periodTitle 변경 시 동기화 (연.월 전체 표시)
 function syncMiniPeriod(){
     const mini=document.getElementById('periodTitleMini');
     const full=document.getElementById('periodTitle');
-    if(mini&&full) mini.textContent=(full.textContent||'').replace(/^\d+년\s*/,'');
+    if(mini&&full) mini.textContent=full.textContent||'';
 }
 async function importFile(type, input){
     const file=input.files[0];
