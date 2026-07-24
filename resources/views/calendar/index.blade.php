@@ -1240,8 +1240,8 @@
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
         <div class="view-toggle-group">
-            <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월</button>
             <button class="view-toggle-btn"        id="tabMonthC" onclick="switchView('monthc')" title="한 달 전체를 칩으로 한눈에">전체</button>
+            <button class="view-toggle-btn active" id="tabMonth" onclick="switchView('month')">월</button>
             <button class="view-toggle-btn"        id="tabWeek"  onclick="switchView('week')">주</button>
             <button class="view-toggle-btn"        id="tabDay"   onclick="switchView('day')">일</button>
             <button class="view-toggle-btn"        id="tabList"  onclick="switchView('list')">목록</button>
@@ -1298,16 +1298,20 @@
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
     @media (min-width: 769px) {
-        /* 데스크탑: [오늘] ‹ 연.월 › 묶음 — 화살표는 테두리 없이 타이틀 양옆 */
-        .cal-center-nav { display:flex; align-items:center; gap:4px; }
+        /* 데스크탑 2행 헤더 — 1행: 좌측 도구 + 중앙 [오늘] ‹ 연.월 › + 우측 ⋯ / 2행: 뷰 버튼 중앙 */
+        .cal-header .cal-center-nav { position:absolute; left:50%; top:14px; transform:translateX(-50%); display:flex; align-items:center; gap:4px; }
         .cal-center-nav .nav-btn { border:none; background:none; box-shadow:none; width:28px; height:28px; font-size:19px; color:var(--text-muted); }
         .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
         .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
         .cal-center-nav .cal-today-btn { width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; margin-right:6px; color:var(--text); }
-    }
-    /* 정중앙 고정은 넓은 화면에서만 — 좁은 폭에서 검색창/우측 컨트롤과 겹치는 버그 방지 */
-    @media (min-width: 1150px) {
-        .cal-header .cal-center-nav { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); }
+        /* 우측 그룹을 헤더 직속으로 풀어 뷰 버튼만 줄바꿈 */
+        .cal-header-right { display:contents !important; }
+        #calMoreWrap { margin-left:auto; }
+        .view-toggle-group { order:10; flex-basis:100%; display:flex; justify-content:center; margin-top:2px; }
+        /* + 일정 추가는 모바일처럼 우하단 플로팅 버튼으로 */
+        .cal-header .add-btn { display:none; }
+        #calAddFab { display:flex; position:fixed; right:24px; bottom:24px; z-index:58; width:52px; height:52px; border-radius:50%; border:none; background:var(--accent); color:var(--accent-text); font-size:26px; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.35); cursor:pointer; }
+        #calAddFab:hover { filter:brightness(1.1); }
     }
     @media (max-width: 768px) {
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
