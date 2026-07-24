@@ -241,8 +241,11 @@
 
     /* ── 컴팩트 월간 뷰 (네이버식 고밀도) ── */
     #monthCompactView { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
-    /* 데스크탑 컴팩트: 그리드 아래 상시 선택일 리스트 */
-    #mcDeskList { display:none; margin-top:12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:12px 16px; max-height:280px; overflow-y:auto; }
+    /* 데스크탑 컴팩트: 그리드 아래 상시 선택일 리스트 — 높이는 드래그 핸들로 조절 */
+    #mcDeskList { display:none; border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:12px 16px; overflow-y:auto; }
+    #mcListResizer { display:none; height:14px; align-items:center; justify-content:center; cursor:row-resize; user-select:none; }
+    #mcListResizer::before { content:''; width:48px; height:4px; border-radius:2px; background:var(--border); transition:background .15s; }
+    #mcListResizer:hover::before { background:var(--text-muted); }
     .mc-weekdays { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--surface2); }
     .mc-weekdays span { text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); padding:5px 0; }
     .mc-weekdays span:first-child { color:var(--red); }
@@ -1374,7 +1377,8 @@
 
 {{-- 컴팩트 월간 뷰 (네이버식 고밀도 — 모든 일정을 작은 칩으로 표시) --}}
 <div id="monthCompactView" style="display:none;"></div>
-{{-- 데스크탑 컴팩트: 그리드 아래 선택일 일정 리스트 (mde 스타일 재사용) --}}
+{{-- 데스크탑 컴팩트: 그리드-리스트 분할 크기 조절 핸들 + 선택일 일정 리스트 (mde 스타일 재사용) --}}
+<div id="mcListResizer" title="드래그해서 리스트 높이 조절"></div>
 <div id="mcDeskList" class="mobile-day-events"></div>
 
 {{-- 컴팩트 뷰 모바일 하단 시트 — 바를 올리면 선택일 일정 리스트 (네이버 모바일 방식) --}}
@@ -3116,7 +3120,7 @@ function renderMonthCompact(){
     let rowH=92;
     const vTop=view.getBoundingClientRect().top;
     if(window.innerHeight-vTop>360){
-        const reserve=mcMobile?26+54:26+16+230; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 하단 리스트 영역)
+        const reserve=mcMobile?26+54:26+14+mcListH+12; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 핸들+리스트 영역)
         rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/6));
     }
     const CHIP=mcMobile?19:17, BAR=17, HEAD=20, LANE_CAP=3;
@@ -3228,6 +3232,32 @@ window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCo
 
 // ── 컴팩트 뷰 모바일 하단 시트 — 날짜 선택 + 바 드래그/탭으로 리스트 열기 ──
 let mcSheetOpen=false, mcSelDate=null;
+// 데스크탑 하단 리스트 높이 (드래그 핸들로 조절, 저장 유지)
+let mcListH=(()=>{ const v=parseInt(localStorage.getItem('mcDeskListH'),10); return (v>=120&&v<=800)?v:230; })();
+(function(){
+    const rz=document.getElementById('mcListResizer');
+    if(!rz) return;
+    let dragging=false, sy=0, sh=0;
+    rz.addEventListener('mousedown', e=>{
+        dragging=true; sy=e.clientY; sh=mcListH;
+        document.body.style.cursor='row-resize';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', e=>{
+        if(!dragging) return;
+        // 위로 끌면 리스트가 커지고 그리드가 줄어듦 (창을 가리지 않는 분할 방식)
+        mcListH=Math.max(120, Math.min(Math.round(window.innerHeight*0.7), sh+(sy-e.clientY)));
+        const dl=document.getElementById('mcDeskList');
+        if(dl) dl.style.maxHeight=mcListH+'px';
+    });
+    window.addEventListener('mouseup', ()=>{
+        if(!dragging) return;
+        dragging=false;
+        document.body.style.cursor='';
+        try{ localStorage.setItem('mcDeskListH', mcListH); }catch(e){}
+        if(currentView==='monthc') renderMonthCompact(); // 그리드를 남은 공간에 맞게 재계산
+    });
+})();
 function mcSelectDay(dateStr, expand){
     mcSelDate=dateStr;
     document.querySelectorAll('.mc-cell.selected').forEach(c=>c.classList.remove('selected'));
@@ -3259,9 +3289,12 @@ function mcSheetSync(){
     const show=currentView==='monthc'&&isMobile;
     sheet.style.display=show?'block':'none';
     if(!show) mcSheetSet(false);
-    // 데스크탑 컴팩트: 그리드 아래 상시 리스트 표시
+    // 데스크탑 컴팩트: 그리드 아래 상시 리스트 + 크기 조절 핸들 표시
+    const showDesk=currentView==='monthc'&&!isMobile;
     const dl=document.getElementById('mcDeskList');
-    if(dl) dl.style.display=(currentView==='monthc'&&!isMobile)?'block':'none';
+    if(dl){ dl.style.display=showDesk?'block':'none'; dl.style.maxHeight=mcListH+'px'; }
+    const rz=document.getElementById('mcListResizer');
+    if(rz) rz.style.display=showDesk?'flex':'none';
     if(currentView==='monthc') mcSelectDay(mcSelDate||todayStr());
     // 플로팅 + 버튼: 시트 바가 있는 컴팩트 뷰에선 바 위로 띄움
     const fab=document.getElementById('calAddFab');
