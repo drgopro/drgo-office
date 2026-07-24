@@ -143,6 +143,7 @@
     .day-popover-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:500; }
     .day-popover-overlay.open { display:block; }
     .day-popover { position:fixed; z-index:501; width:300px; max-height:60vh; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.4); padding:14px; }
+    @supports (height: 100dvh) { .day-popover { max-height:60dvh; } }
     .day-popover .dp-header { display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:700; margin-bottom:10px; position:sticky; top:0; background:var(--surface); }
     .day-popover .dp-close { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:0 4px; }
     .day-popover .dp-list { display:flex; flex-direction:column; gap:6px; }
@@ -477,10 +478,15 @@
     @endforeach
 
     /* ── 모달 ── */
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:200; backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
+    /* overflow-y:auto + wrapper margin:auto — 모달이 화면보다 커져도 상/하단이 잘리지 않고 오버레이 스크롤로 접근 가능 */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:200; backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; overflow-y:auto; }
     .modal-overlay.open { display:flex; }
-    .modal-wrapper { position:relative; display:flex; align-items:flex-start; gap:8px; max-height:92vh; }
+    .modal-wrapper { position:relative; display:flex; align-items:flex-start; gap:8px; max-height:92vh; margin:auto 0; }
     .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:660px; max-height:92vh; overflow-y:auto; animation:modalIn 0.22s ease; }
+    /* 모바일 주소창 등으로 100vh가 실제 가시 영역보다 큰 브라우저 대응 — 동적 뷰포트 기준 상한 */
+    @supports (height: 100dvh) {
+        .modal-wrapper, .modal { max-height: calc(100dvh - 40px); }
+    }
     .modal-external-btns { position:sticky; top:0; flex-shrink:0; display:flex; flex-direction:column; gap:8px; z-index:1; }
     .modal-external-close { background:var(--surface); border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
     .modal-external-close:hover { border-color:var(--red); color:var(--red); background:var(--surface2); }
