@@ -1203,9 +1203,11 @@
         <span class="cal-mini-period" id="periodTitleMini" onclick="toggleCalPicker(event)"></span>
         <button class="nav-btn cal-mini-nav" onclick="changePeriod(1)" title="다음">›</button>
         <div class="cal-hl-items" id="calHlItems">
-            <div class="month-label cal-title-xl" id="periodTitle"></div>
-            <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
-            <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
+            <span class="cal-center-nav">
+                <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
+                <div class="month-label cal-title-xl" id="periodTitle"></div>
+                <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
+            </span>
             <button class="nav-btn" onclick="goToday()" style="font-size:12px;font-weight:600;width:auto;padding:0 14px;">오늘</button>
             <button class="nav-btn" id="calRefreshBtn" onclick="refreshCalendar()" title="새로고침 (현재 보기 유지)">
                 <svg id="calRefreshIco" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
@@ -1295,8 +1297,11 @@
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
     @media (min-width: 769px) {
-        /* 데스크탑: 연.월 타이틀을 헤더 정중앙에 (이동/오늘 버튼은 좌측 유지) */
-        .cal-header .cal-hl-items .month-label { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; min-width:0; white-space:nowrap; }
+        /* 데스크탑: ‹ 연.월 › 묶음을 헤더 정중앙에 — 화살표는 테두리 없이 타이틀 양옆 */
+        .cal-header .cal-center-nav { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; gap:4px; }
+        .cal-center-nav .nav-btn { border:none; background:none; box-shadow:none; width:28px; height:28px; font-size:19px; color:var(--text-muted); }
+        .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
+        .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
     }
     @media (max-width: 768px) {
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
