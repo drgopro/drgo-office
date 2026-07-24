@@ -1204,11 +1204,11 @@
         <button class="nav-btn cal-mini-nav" onclick="changePeriod(1)" title="다음">›</button>
         <div class="cal-hl-items" id="calHlItems">
             <span class="cal-center-nav">
+                <button class="nav-btn cal-today-btn" onclick="goToday()">오늘</button>
                 <button class="nav-btn" onclick="changePeriod(-1)" title="이전">‹</button>
                 <div class="month-label cal-title-xl" id="periodTitle"></div>
                 <button class="nav-btn" onclick="changePeriod(1)" title="다음">›</button>
             </span>
-            <button class="nav-btn" onclick="goToday()" style="font-size:12px;font-weight:600;width:auto;padding:0 14px;">오늘</button>
             <button class="nav-btn" id="calRefreshBtn" onclick="refreshCalendar()" title="새로고침 (현재 보기 유지)">
                 <svg id="calRefreshIco" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
             </button>
@@ -1302,6 +1302,7 @@
         .cal-center-nav .nav-btn { border:none; background:none; box-shadow:none; width:28px; height:28px; font-size:19px; color:var(--text-muted); }
         .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
         .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
+        .cal-center-nav .cal-today-btn { width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; margin-right:6px; color:var(--text); }
     }
     @media (max-width: 768px) {
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
