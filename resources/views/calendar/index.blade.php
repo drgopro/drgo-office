@@ -254,6 +254,15 @@
         .mc-daynum { font-size:10px; }
         .mc-holiday { display:none; }
     }
+    /* 컴팩트 뷰 모바일 하단 시트 — 바를 올리면 선택일 리스트 */
+    .mc-sheet { display:none; position:fixed; left:0; right:0; bottom:0; z-index:60; background:var(--surface); border-top:1px solid var(--border); border-radius:16px 16px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,0.28); height:62vh; height:62dvh; transform:translateY(calc(100% - 50px)); transition:transform .25s ease; }
+    .mc-sheet.open { transform:translateY(0); }
+    .mc-sheet-handle { height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; cursor:pointer; touch-action:none; user-select:none; }
+    .mc-sheet-grip { width:38px; height:4px; border-radius:2px; background:var(--border); }
+    #mcSheetLabel { font-size:12.5px; font-weight:700; color:var(--text); }
+    .mc-sheet-body { overflow-y:auto; height:calc(100% - 50px); padding:0 12px calc(20px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling:touch; }
+    .mc-cell.selected { outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px; }
+    @media (min-width: 769px) { .mc-sheet { display:none !important; } }
 
     .chip-time { font-size:calc(12px * var(--cal-fz,1)); opacity:0.85; flex-shrink:0; margin-right:3px; }
     .chip-special { font-size:calc(11px * var(--cal-fz,1)); flex-shrink:0; letter-spacing:1px; }
@@ -1278,6 +1287,15 @@
 
 {{-- 컴팩트 월간 뷰 (네이버식 고밀도 — 모든 일정을 작은 칩으로 표시) --}}
 <div id="monthCompactView" style="display:none;"></div>
+
+{{-- 컴팩트 뷰 모바일 하단 시트 — 바를 올리면 선택일 일정 리스트 (네이버 모바일 방식) --}}
+<div id="mcSheet" class="mc-sheet">
+    <div class="mc-sheet-handle" id="mcSheetHandle">
+        <span class="mc-sheet-grip"></span>
+        <span id="mcSheetLabel"></span>
+    </div>
+    <div class="mc-sheet-body" id="mcSheetBody"></div>
+</div>
 
 {{-- 하루 일정 전체 보기 팝오버 (데스크탑 '+N건 더보기') --}}
 <div id="dayPopoverOverlay" class="day-popover-overlay" onclick="closeDayPopover()"></div>
@@ -2659,6 +2677,7 @@ function switchView(view) {
     document.getElementById('monthCompactView').style.display = view==='monthc' ? '' : 'none';
     document.getElementById('timelineView').style.display = (view==='week'||view==='day') ? '' : 'none';
     document.getElementById('listView').style.display     = view==='list' ? '' : 'none';
+    if(typeof mcSheetSync==='function') mcSheetSync(); // 컴팩트 뷰 하단 시트 표시/숨김
     // 글자 크기 조절은 월간 뷰에만 적용되므로 그 외 뷰에서는 버튼 숨김
     const fz=document.querySelector('.cal-fontsize'); if(fz) fz.style.display = view==='month' ? '' : 'none';
     // 표시 주 수 선택도 월간 뷰 전용
@@ -2963,11 +2982,13 @@ function renderMonthCompact(){
     const gridStart=new Date(first); gridStart.setDate(1-first.getDay());
     const _d=v=>(v||'').substring(0,10);
 
-    // 균등 행 높이 — 6주가 화면 높이에 딱 맞도록
+    // 균등 행 높이 — 6주가 화면 높이에 딱 맞도록 (모바일은 하단 시트 바 높이 제외 → 전체화면 그리드)
+    const mcMobile=window.innerWidth<=768;
     let rowH=92;
     const vTop=view.getBoundingClientRect().top;
-    if(window.innerHeight-vTop>400){
-        rowH=Math.max(72, Math.floor((window.innerHeight-vTop-26-16)/6)); // 요일 헤더 26 + 하단 여백
+    if(window.innerHeight-vTop>360){
+        const reserve=mcMobile?26+54:26+16; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 하단 여백)
+        rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/6));
     }
     const CHIP=17, BAR=17, HEAD=20, LANE_CAP=3;
 
@@ -3029,17 +3050,71 @@ function renderMonthCompact(){
         html+=`<div class="mc-week" style="height:${rowH}px">${bars}${cellsHtml}</div>`;
     }
     view.innerHTML=html;
+    mcSheetSync();
 }
-// 컴팩트 뷰 클릭 위임 — 칩=상세, +N/빈 셀=일별 팝업
+// 컴팩트 뷰 클릭 위임 — 칩=상세 / 데스크탑: +N·빈 셀=일별 팝업 / 모바일: 날짜 선택 → 하단 시트
 document.getElementById('monthCompactView')?.addEventListener('click', e=>{
+    const isMobile=window.innerWidth<=768;
     const more=e.target.closest('[data-mcmore]');
-    if(more){ e.stopPropagation(); openDayPopover(more.dataset.mcmore, more); return; }
+    if(more){
+        e.stopPropagation();
+        if(isMobile) mcSelectDay(more.dataset.mcmore, true);
+        else openDayPopover(more.dataset.mcmore, more);
+        return;
+    }
     const chip=e.target.closest('[data-mcid]');
     if(chip){ e.stopPropagation(); const ev=events.find(x=>String(x.id)===chip.dataset.mcid); if(ev) openDetailModal(ev); return; }
     const cell=e.target.closest('[data-mcday]');
-    if(cell){ openDayPopover(cell.dataset.mcday, cell); }
+    if(cell){
+        if(isMobile) mcSelectDay(cell.dataset.mcday);
+        else openDayPopover(cell.dataset.mcday, cell);
+    }
 });
 window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCompact(); });
+
+// ── 컴팩트 뷰 모바일 하단 시트 — 날짜 선택 + 바 드래그/탭으로 리스트 열기 ──
+let mcSheetOpen=false, mcSelDate=null;
+function mcSelectDay(dateStr, expand){
+    mcSelDate=dateStr;
+    document.querySelectorAll('.mc-cell.selected').forEach(c=>c.classList.remove('selected'));
+    document.querySelector(`.mc-cell[data-mcday="${dateStr}"]`)?.classList.add('selected');
+    const d=new Date(dateStr+'T00:00:00');
+    const cnt=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)).length;
+    const label=document.getElementById('mcSheetLabel');
+    if(label) label.textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]}) · ${cnt}건`;
+    renderMobileDayEvents(dateStr, document.getElementById('mcSheetBody'));
+    if(expand) mcSheetSet(true);
+}
+function mcSheetSet(open){
+    mcSheetOpen=open;
+    document.getElementById('mcSheet')?.classList.toggle('open', open);
+}
+// 컴팩트 뷰(모바일)일 때만 시트 표시 + 선택일 유지 (기본: 오늘)
+function mcSheetSync(){
+    const sheet=document.getElementById('mcSheet');
+    if(!sheet) return;
+    const show=currentView==='monthc'&&window.innerWidth<=768;
+    sheet.style.display=show?'block':'none';
+    if(show) mcSelectDay(mcSelDate||todayStr());
+    else mcSheetSet(false);
+}
+(function(){
+    const handle=document.getElementById('mcSheetHandle');
+    if(!handle) return;
+    let startY=null, moved=false;
+    handle.addEventListener('touchstart', e=>{ startY=e.touches[0].clientY; moved=false; }, {passive:true});
+    handle.addEventListener('touchmove', e=>{
+        if(startY===null) return;
+        if(Math.abs(e.touches[0].clientY-startY)>12) moved=true;
+    }, {passive:true});
+    handle.addEventListener('touchend', e=>{
+        if(startY===null) return;
+        const dy=e.changedTouches[0].clientY-startY;
+        mcSheetSet(moved ? dy<0 : !mcSheetOpen); // 위로 스와이프=열기, 아래=닫기, 탭=토글
+        startY=null;
+    });
+    handle.addEventListener('click', ()=>{ if(!('ontouchstart' in window)) mcSheetSet(!mcSheetOpen); });
+})();
 
 function renderMonth() {
     const N=monthGridWeeks();
@@ -3292,8 +3367,8 @@ function selectMobileDay(dateStr){
     renderMobileDayEvents(dateStr);
 }
 
-function renderMobileDayEvents(dateStr){
-    const container=document.getElementById('mobileDayEvents');
+function renderMobileDayEvents(dateStr, container){
+    container=container||document.getElementById('mobileDayEvents');
     if(!container) return;
     const dayEvs=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr))
         // 카테고리 순이 아니라 시간순 정렬: 종일 먼저, 그 다음 시작시간 오름차순

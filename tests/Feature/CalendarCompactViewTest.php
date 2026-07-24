@@ -25,4 +25,17 @@ class CalendarCompactViewTest extends TestCase
             ->assertSee('mc-bar', false)
             ->assertSee('data-mcmore', false);
     }
+
+    public function test_mobile_bottom_sheet_is_included(): void
+    {
+        // 모바일: 전체화면 그리드 + 하단 바를 올리면 선택일 리스트 (네이버 모바일 방식)
+        $user = User::factory()->create(['role' => 'member']);
+
+        $this->actingAs($user)->get('/calendar')
+            ->assertOk()
+            ->assertSee('id="mcSheet"', false)
+            ->assertSee('mcSheetHandle', false)
+            ->assertSee('function mcSelectDay', false)
+            ->assertSee("addEventListener('touchend'", false);
+    }
 }
