@@ -24,7 +24,7 @@ class ScheduleAttachmentController extends Controller
                 'mime_type' => $a->mime_type,
                 'file_size' => $a->file_size,
                 'url' => route('schedule-attachments.serve', $a),
-                'thumb_url' => str_starts_with((string) $a->mime_type, 'image/') ? route('schedule-attachments.thumb', $a) : null,
+                'thumb_url' => str_starts_with((string) $a->mime_type, 'image/') ? route('schedule-attachments.thumb', $a).'?v=2' : null,
             ])
         );
     }

@@ -379,7 +379,7 @@ class FeedbackController extends Controller
                 'file_name' => $a->file_name,
                 'is_video' => str_starts_with((string) $a->mime_type, 'video/'),
                 'url' => route('feedback-attachments.serve', $a),
-                'thumb_url' => route('feedback-attachments.thumb', $a),
+                'thumb_url' => route('feedback-attachments.thumb', $a).'?v=2',
             ])->all() : [],
         ];
     }

@@ -97,6 +97,13 @@ class ImageThumbnailService
             return null;
         }
 
+        // 생성 결과 검증 — 깨진 webp가 캐시되어 영구히 잘려 보이는 사고 방지 (디코딩 실패 시 원본 폴백)
+        $check = @imagecreatefromstring($out);
+        if ($check === false) {
+            return null;
+        }
+        imagedestroy($check);
+
         Storage::put($thumbPath, $out);
 
         return $thumbPath;
