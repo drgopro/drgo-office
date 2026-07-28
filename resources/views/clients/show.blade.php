@@ -293,11 +293,11 @@
                         <div>
                             <div class="field-mini">카테고리 *</div>
                             <select name="category">
+                                <option value="사진/이미지" selected>사진/이미지</option>
                                 <option value="현금영수증">현금영수증</option>
                                 <option value="사업자등록증">사업자등록증</option>
                                 <option value="계약서">계약서</option>
                                 <option value="견적서">견적서</option>
-                                <option value="사진/이미지">사진/이미지</option>
                                 <option value="기타">기타</option>
                             </select>
                         </div>
