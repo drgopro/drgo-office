@@ -188,7 +188,7 @@
 function searchAddress() {
     new daum.Postcode({
         oncomplete: function(data) {
-            let addr = data.roadAddress || data.jibunAddress;
+            let addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress; // 선택 유형 반영
             document.getElementById('address').value = addr;
             document.getElementById('address_detail').focus();
         }

@@ -1326,7 +1326,8 @@ function searchAddress(clientId) {
 function _openPostcode(clientId) {
     new daum.Postcode({
         oncomplete: function(data) {
-            document.getElementById('f-address-' + clientId).value = data.address;
+            // 사용자가 선택한 유형 반영 (R=도로명, J=지번)
+            document.getElementById('f-address-' + clientId).value = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
             document.getElementById('f-address_detail-' + clientId).focus();
         }
     }).open();
@@ -1723,6 +1724,10 @@ async function deleteClient(id) {
 // ── 새 의뢰자 ──
 function openNewClientModal() {
     document.getElementById('newClientOverlay').classList.add('open');
+    // 모든 입력 초기화 — 이전 등록 값(주소·메모 등)이 남지 않도록 전체 필드를 비움
+    document.querySelectorAll('#newClientOverlay input:not([type=checkbox]):not([type=radio]), #newClientOverlay textarea').forEach(el => { el.value = ''; });
+    document.querySelectorAll('#newClientOverlay input[type=checkbox], #newClientOverlay input[type=radio]').forEach(el => { el.checked = false; });
+    document.querySelectorAll('#newClientOverlay select').forEach(el => { el.selectedIndex = 0; });
     // 체크박스 그룹 렌더 (id='nc')
     document.getElementById('ncPlatformsWrap').innerHTML = renderCheckboxGroup('platforms', 'nc', PLATFORM_OPTIONS, [], '');
     document.getElementById('ncTopicsWrap').innerHTML = renderCheckboxGroup('topics', 'nc', TOPIC_OPTIONS, [], '');
@@ -1790,7 +1795,8 @@ function ncmRefresh() {
 function ncSearchAddress() {
     const fill = () => new daum.Postcode({
         oncomplete: d => {
-            document.getElementById('ncAddress').value = d.address;
+            // 사용자가 선택한 유형 반영 (R=도로명, J=지번)
+            document.getElementById('ncAddress').value = d.userSelectedType === 'R' ? d.roadAddress : d.jibunAddress;
             document.getElementById('ncAddressDetail').focus();
             ncmRefresh();
         },

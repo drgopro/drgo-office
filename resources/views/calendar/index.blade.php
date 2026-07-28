@@ -2690,6 +2690,8 @@ function buildChipHtml(ev){
     // 제목 (의뢰자 이름은 표시하지 않음). flex:1로 늘어나서 담당자 배지를 우측으로 밀어냄
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
     html+=`<span class="chip-title">${title}</span>`;
+    // 확정 상태 한 글자 칩(확/목/희/제) — 제목 끝 (다른 뷰와 동일 순서)
+    html+=schedStatusChip(ev);
     // 배송 상태: 수동 지정 우선, 없으면 등록만 ✕ / 일부 완료 △ / 전부 완료 ○
     html+=shipStatusIcon(ev);
     // 담당자 — chip 우측 정렬. 2명 이상이면 첫 번째 이름 + '+N' (전체 명단은 hover 즉시 툴팁)
@@ -6082,8 +6084,8 @@ async function confirmDeleteEvent(){
 function searchCalAddr(){
     if (typeof isLocked !== 'undefined' && isLocked) return; // 잠금 상태에선 변경 불가
     new daum.Postcode({oncomplete:function(data){
-        // 직접 입력 차단 — 검색된 주소(도로명 우선)로 교체
-        const addr=data.roadAddress||data.jibunAddress;
+        // 직접 입력 차단 — 검색에서 사용자가 선택한 유형(R=도로명, J=지번)으로 교체
+        const addr=data.userSelectedType==='R'?data.roadAddress:data.jibunAddress;
         document.getElementById('modalAddress').value=addr;
         document.getElementById('modalLocation').value=addr;
     }}).open();
@@ -6097,7 +6099,7 @@ function clearCalAddr(){
 function searchMoveFrom(){
     if (typeof isLocked !== 'undefined' && isLocked) return;
     new daum.Postcode({oncomplete:function(data){
-        const addr=data.roadAddress||data.jibunAddress;
+        const addr=data.userSelectedType==='R'?data.roadAddress:data.jibunAddress;
         document.getElementById('moveFromAddress').value=addr;
         document.getElementById('moveFromLocation').value=addr;
     }}).open();
