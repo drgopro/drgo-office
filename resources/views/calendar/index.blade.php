@@ -735,6 +735,7 @@
         #modalOverlay .ls-c-detail { order:5; }
         #modalOverlay .ls-c-special { order:6; }
         #modalOverlay .ls-c-broadcast { order:0; } /* 방송 정보는 일시·장소보다 위 */
+        #modalOverlay .ls-c-reqtopic { order:0; }  /* 의뢰 내용은 방송 정보 바로 다음 (DOM 순서) */
         #modalOverlay .ls-c-pay { order:8; }
         #modalOverlay .ls-c-proj { order:9; }
         #modalOverlay .ls-c-ship { order:10; }
@@ -4307,16 +4308,18 @@ function renderLockSummary(){
                 ${phone?`<a class="ls-call-btn" href="tel:${_esc(phone.replace(/[^0-9+]/g,''))}">전화</a>`:''}
             </div>`, '', 'ls-c-client'));
 
-        // ③ 방송 정보 — 미니 타일 (값 있는 것만)
+        // ③ 방송 정보 — 미니 타일 (값 있는 것만, 플랫폼 → 방송주제 → 경력 순)
         const tiles=[];
         const pushTile=(k,v)=>{ if(v) tiles.push(`<div class="ls-tile"><div class="ls-tile-k">${k}</div><div class="ls-tile-v">${_esc(v)}</div></div>`); };
         pushTile('플랫폼', platform === '기타' ? (platformEtc || '기타') : platform);
-        pushTile('경력', career);
-        pushTile('의뢰주제', reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic);
         pushTile('방송주제', topic === '기타' ? (topicEtc || '기타') : topic);
+        pushTile('경력', career);
         pushTile('유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
         pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
         if (tiles.length) left.unshift(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast')); // 일시·장소보다 위에 표시
+        // ③-1 의뢰 내용 — 별도 카드 (향후 카테고리별 세부 세팅 다중 작성으로 확장 예정)
+        const reqTopicVal = reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic;
+        if (reqTopicVal) left.splice(tiles.length ? 1 : 0, 0, lsCard('의뢰 내용', `<div class="ls-text-block">${_esc(reqTopicVal)}</div>`, '', 'ls-c-reqtopic'));
 
         // ④ 결제 · 진행 — 금액 크게 + 상태 칩(결제/주문/잔금/수령) + 배송 배지
         const amount = _val('g_estimate_amount');
