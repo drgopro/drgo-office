@@ -268,6 +268,16 @@ class ProjectController extends Controller
             $validated['tags'] = $this->normalizeTags($request->input('tags'));
         }
 
+        // 장비 항목 정의(__equip_items)는 관리자 이상만 변경 가능 — 멤버는 값 입력만, 정의는 기존 그대로 유지
+        if (isset($validated['custom_data']) && ! $request->user()->isAdmin()) {
+            $existingItems = $project->custom_data['__equip_items'] ?? null;
+            if ($existingItems === null) {
+                unset($validated['custom_data']['__equip_items']);
+            } else {
+                $validated['custom_data']['__equip_items'] = $existingItems;
+            }
+        }
+
         $project->update($validated);
 
         return response()->json(['success' => true, 'project' => $project]);

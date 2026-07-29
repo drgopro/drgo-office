@@ -2109,7 +2109,7 @@ function renderProjectCustomFields() {
         html += `<div class="pcf-section${isCollapsed ? ' collapsed' : ''}" data-section="${k}">
             <div class="pcf-sec-title" onclick="togglePcfSection('${k}')" title="클릭하여 접기/펼치기">
                 <span class="pcf-sec-toggle">▼</span>${pcfEsc(lbl)}
-                ${k === 'equipment' ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">⚙ 항목 편집</button>` : ''}
+                ${k === 'equipment' && PCF_CAN_MANAGE ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">⚙ 항목 편집</button>` : ''}
             </div>`;
 
         if (!hasSubsections) {
@@ -2119,7 +2119,7 @@ function renderProjectCustomFields() {
             sortedFields.forEach(f => { html += renderFieldHtml(f); });
             html += `</div>`;
             if (k === 'equipment' && !sortedFields.length) {
-                html += `<div style="font-size:12px; color:var(--text-muted);">등록된 장비 항목이 없습니다 — <b>⚙ 항목 편집</b>으로 이 프로젝트의 항목을 만들어 보세요.</div>`;
+                html += `<div style="font-size:12px; color:var(--text-muted);">${PCF_CAN_MANAGE ? '등록된 장비 항목이 없습니다 — <b>⚙ 항목 편집</b>으로 이 프로젝트의 항목을 만들어 보세요.' : '등록된 장비 항목이 없습니다.'}</div>`;
             }
         } else {
             // 소분류 있음 → 소분류별 서브카드. 소분류 정렬은 그룹 최대 priority DESC, 빈 소분류는 마지막
@@ -2281,6 +2281,7 @@ function pfaItems() {
 function pfaGlobalItems() { return projectFieldDefs.filter(f => (f.section||'') === 'equipment'); }
 
 function openPcfAdd() {
+    if (!PCF_CAN_MANAGE) return; // 장비 항목 편집은 관리자 이상 전용
     document.getElementById('pfaOverlay').style.display = 'flex';
     document.getElementById('pfaTypes').innerHTML = Object.entries(PFA_TYPES)
         .map(([k, lbl]) => `<button class="pfa-type-chip" data-t="${k}" onclick="pfaSetType('${k}')">${lbl}</button>`).join('');
