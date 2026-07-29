@@ -315,32 +315,10 @@
     /* 확정 상태 한 글자 칩 — 제목 끝, 가시성 위해 다른 칩보다 크게 */
     .opt-chip.sched-end, .agenda-title .opt-chip.sched-end, .dp-title .opt-chip.sched-end, .mde-title .opt-chip.sched-end { margin-left:4px; margin-right:0; font-size:calc(11px * var(--cal-fz,1)); padding:0 4px; line-height:1.4; }
 
-    /* ── 의뢰 세부 항목 3뎁스 피커 (타이틀 → 분류 → 세부 항목) ── */
-    .req-picker { display:flex; flex-direction:column; gap:6px; }
-    .rqp-title { border:1px solid var(--border); border-radius:9px; overflow:hidden; background:var(--surface); }
-    .rqp-head { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:13px; font-weight:700; user-select:none; }
-    .rqp-head:hover { background:var(--surface2); }
-    .rqp-caret { font-size:10px; color:var(--text-muted); transition:transform .15s; }
-    .rqp-title.open .rqp-caret { transform:rotate(90deg); }
-    .rqp-cnt { margin-left:auto; font-size:11px; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border-radius:9px; padding:1px 9px; }
-    .rqp-body { display:none; flex-direction:column; gap:9px; padding:4px 12px 11px; }
-    .rqp-title.open .rqp-body { display:flex; }
-    .rqp-cat-name { font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
-    .rqp-leafs { display:flex; flex-wrap:wrap; gap:6px; }
-    .rqp-leaf { padding:5px 11px; border-radius:8px; border:1px solid var(--border); font-size:12px; cursor:pointer; color:var(--text-muted); background:none; transition:all .12s; }
-    .rqp-leaf:hover { border-color:var(--accent); color:var(--text); }
-    .rqp-leaf.on { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:var(--accent); color:var(--accent); font-weight:700; }
-    .req-tag { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px; font-size:12px; background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 32%, transparent); color:var(--text); }
-    .req-tag .rq-sep { color:var(--text-muted); font-size:10px; }
-    .req-tag .rq-qbtn { border:none; background:none; cursor:pointer; font-size:12px; color:var(--text-muted); padding:0 2px; line-height:1; }
-    .req-tag .rq-qbtn:hover { color:var(--accent); }
-    /* 프리셋 관리 모달 */
-    .rqm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:950; align-items:center; justify-content:center; padding:16px; }
-    .rqm-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
-    .rqm-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:12.5px; }
-    .rqm-btn { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:11.5px; cursor:pointer; }
-    .rqm-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .rqm-btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; font-size:13px; padding:8px 18px; }
+    /* ── 세팅 항목 표시 (연결 프로젝트 의뢰 내용 불러오기 — 읽기 전용) ── */
+    .rqv-title { font-weight:700; font-size:12.5px; margin-top:4px; }
+    .rqv-line { color:var(--text-muted); margin-left:9px; font-size:12px; }
+    .rqv-src { font-size:10.5px; color:var(--text-muted); margin-top:4px; }
     /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
     .tl-ev-head { display:flex; align-items:center; gap:3px; min-width:0; }
     .tl-ev-head .opt-chip { margin-left:0; }
@@ -1455,29 +1433,6 @@
 </div>
 
 {{-- 하루 일정 전체 보기 팝오버 (데스크탑 '+N건 더보기') --}}
-{{-- 의뢰 세부 항목 프리셋 관리 (관리자 전용) --}}
-<div class="rqm-overlay" id="rqmOverlay" onclick="if(event.target===this)closeRqpManage()">
-    <div class="rqm-modal">
-        <div style="font-size:15px;font-weight:700;">의뢰 세부 항목 관리</div>
-        <div id="rqmList" style="display:flex;flex-direction:column;gap:6px;"></div>
-        <div style="border-top:1px dashed var(--border);"></div>
-        <div id="rqmFormTitle" style="font-size:12.5px;font-weight:700;">새 세팅 타이틀 추가</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-            <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">세팅 타이틀 <span style="color:var(--red)">*</span></span>
-            <input type="text" id="rqmTitle" class="field-input" placeholder="예: 처음 세팅, 세팅 개선, 이사 세팅">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-            <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">분류와 세부 항목 <span style="font-weight:400;">— 한 줄에 하나씩 <b>분류: 항목1, 항목2</b> 형식</span></span>
-            <textarea id="rqmChildren" class="field-textarea" style="min-height:120px;font-family:inherit;" placeholder="컴퓨터: 컴퓨터 문제해결&#10;오디오: 오디오 인터페이스 세팅, 마이크 세팅&#10;조명:"></textarea>
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;">
-            <button type="button" class="rqm-btn" id="rqmCancelBtn" onclick="rqmResetForm()" style="display:none;">수정 취소</button>
-            <button type="button" class="rqm-btn" onclick="closeRqpManage()">닫기</button>
-            <button type="button" class="rqm-btn primary" id="rqmSubmitBtn" onclick="rqmSubmit()">타이틀 추가</button>
-        </div>
-    </div>
-</div>
-
 <div id="dayPopoverOverlay" class="day-popover-overlay" onclick="closeDayPopover()"></div>
 <div id="dayPopover" class="day-popover" style="display:none;">
     <div class="dp-header">
@@ -1910,12 +1865,10 @@
                     </div>
                 </div>
                 <div class="field-group">
-                    <label class="field-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">세팅 항목 선택
-                        <span style="font-weight:400;font-size:10.5px;color:var(--text-muted);">타이틀 → 분류 → 세부 항목 순으로 선택</span>
-                        <button type="button" class="ship-mini-btn" id="reqPresetManageBtn" onclick="openRqpManage()" style="display:none;margin-left:auto;">⚙ 항목 관리</button>
+                    <label class="field-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">세팅 항목
+                        <span style="font-weight:400;font-size:10.5px;color:var(--text-muted);">연결된 프로젝트의 의뢰 내용에서 불러옴 — 작성/수정은 프로젝트 페이지에서</span>
                     </label>
-                    <div id="reqItemTags" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
-                    <div id="reqItemPicker" class="req-picker"></div>
+                    <div id="reqItemsView" style="font-size:12.5px;line-height:1.7;"></div>
                 </div>
                 <div class="field-group">
                     <label class="field-label">의뢰 세부항목 (자유 메모)</label>
@@ -2446,7 +2399,6 @@ function init() {
     currentWeekStart = getWeekStart(now);
     currentDay = new Date(now); currentDay.setHours(0,0,0,0);
     loadAssignees();
-    loadReqPresets(); // 의뢰 세부 항목 선택지 (3뎁스 프리셋)
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
     // 모바일: ⋯ 메뉴 항목을 필터 패널(☰) 맨 하단 '도구' 섹션으로 이동
     if(window.matchMedia('(max-width: 768px)').matches){
@@ -4405,21 +4357,14 @@ function renderLockSummary(){
         pushTile('유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
         pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
         if (tiles.length) left.unshift(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast')); // 일시·장소보다 위에 표시
-        // ③-1 의뢰 내용 — 주제 + 3뎁스 세팅 항목 선택 결과 (타이틀별 → 분류별 그룹)
+        // ③-1 의뢰 내용 — 주제 + 세팅 항목 (연결 프로젝트에서 불러오거나, 일정에 저장된 구버전 항목)
         const reqTopicVal = reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic;
-        if (reqTopicVal || reqItems.length) {
+        const lsReqItems = activeReqItems();
+        if (reqTopicVal || lsReqItems.length) {
             let reqBody = reqTopicVal ? `<div class="ls-text-block">${_esc(reqTopicVal)}</div>` : '';
-            if (reqItems.length) {
-                const byTitle = {};
-                reqItems.forEach(i => { (byTitle[i.t] = byTitle[i.t] || []).push(i); });
-                reqBody += Object.entries(byTitle).map(([t, items]) => {
-                    const byCat = {};
-                    items.forEach(i => { (byCat[i.c] = byCat[i.c] || []).push(i); });
-                    return `<div style="margin-top:7px;">
-                        <div style="font-size:12.5px;font-weight:700;">${_esc(t)}</div>
-                        ${Object.entries(byCat).map(([c, ls]) => `<div class="ls-sub" style="margin-left:9px;margin-top:2px;">· ${_esc(c)} — ${ls.map(i => _esc(i.d) + ((i.qty || 1) > 1 ? ` ×${i.qty}` : '')).join(', ')}</div>`).join('')}
-                    </div>`;
-                }).join('');
+            if (lsReqItems.length) {
+                reqBody += `<div style="margin-top:7px;">${reqItemsGroupedHtml(lsReqItems, 'rqv')}</div>`;
+                if (projReqItems.length) reqBody += `<div class="rqv-src">📁 연결된 프로젝트의 의뢰 내용</div>`;
             }
             left.splice(tiles.length ? 1 : 0, 0, lsCard('의뢰 내용', reqBody, '', 'ls-c-reqtopic'));
         }
@@ -4930,6 +4875,7 @@ function collectBrRental(){
 }
 function unlinkClient(){
     linkedClientId=null;linkedProjectId=null;
+    loadProjectReqItems(null); // 프로젝트 의뢰 내용 표시 해제
     document.getElementById('linkedClientInfo').style.display='none';
     document.getElementById('linkedClientName').textContent=''; // 잔여 텍스트가 저장 시 client_name으로 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
@@ -5211,164 +5157,48 @@ async function refreshShipments(){
     if(isLocked) renderLockSummary();
 }
 
-// ── 의뢰 세부 항목 3뎁스 피커 (타이틀 → 분류 → 세부 항목) — 선택 결과는 request_data.req_items ──
-let REQ_PRESETS=[];   // 서버 프리셋 [{id,title,children:{분류:[항목,...]}}]
-let reqItems=[];      // 현재 모달 선택 [{t:타이틀,c:분류,d:세부항목,qty}]
-let rqpOpenTitle=null;
+// ── 세팅 항목 (읽기 전용) — 연결된 프로젝트의 의뢰 내용(custom_data.__req_items)을 불러와 표시 ──
+let reqItems=[];       // 일정 자체에 저장된 선택 (구버전 호환 — 저장 시 그대로 보존)
+let projReqItems=[];   // 연결 프로젝트에서 불러온 의뢰 내용
+let projReqLoadedFor=null;
 
-async function loadReqPresets(){
+function activeReqItems(){ return projReqItems.length?projReqItems:reqItems; }
+
+async function loadProjectReqItems(pid){
+    if(!pid){ projReqItems=[]; projReqLoadedFor=null; renderReqView(); return; }
+    if(String(projReqLoadedFor)===String(pid)) return;
+    projReqLoadedFor=pid;
     try{
-        const res=await fetch('/api/request-item-presets',{headers:{'Accept':'application/json'}});
-        if(res.ok) REQ_PRESETS=await res.json();
-    }catch(e){}
-    renderReqPicker();
-}
-function reqItemFind(t,c,d){ return reqItems.find(x=>x.t===t&&x.c===c&&x.d===d); }
-
-function renderReqPicker(){
-    const el=document.getElementById('reqItemPicker');
-    if(!el) return;
-    const mBtn=document.getElementById('reqPresetManageBtn');
-    if(mBtn) mBtn.style.display=isCalAdmin?'':'none';
-    if(!REQ_PRESETS.length){
-        el.innerHTML=`<div style="font-size:12px;color:var(--text-muted);">등록된 선택지가 없습니다.${isCalAdmin?' <b>⚙ 항목 관리</b>에서 추가하세요.':''}</div>`;
-        renderReqTags();
-        return;
-    }
-    el.innerHTML=REQ_PRESETS.map((p,pi)=>{
-        const cnt=reqItems.filter(x=>x.t===p.title).length;
-        const open=rqpOpenTitle===p.title;
-        const cats=Object.entries(p.children||{});
-        return `<div class="rqp-title ${open?'open':''}">
-            <div class="rqp-head" onclick="rqpToggle(${pi})"><span class="rqp-caret">▶</span>${_esc(p.title)}${cnt?`<span class="rqp-cnt">${cnt}</span>`:''}</div>
-            <div class="rqp-body">${cats.length?cats.map(([c,leafs],ci)=>`
-                <div><div class="rqp-cat-name">${_esc(c)}</div>
-                <div class="rqp-leafs">${(leafs||[]).length?(leafs||[]).map((d,di)=>
-                    `<button type="button" class="rqp-leaf ${reqItemFind(p.title,c,d)?'on':''}" onclick="rqToggleLeaf(${pi},${ci},${di})">${_esc(d)}</button>`
-                ).join(''):'<span style="font-size:11px;color:var(--text-muted);">세부 항목 없음</span>'}</div></div>`).join('')
-                :'<div style="font-size:11.5px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
-        </div>`;
-    }).join('');
-    renderReqTags();
-}
-function rqpToggle(pi){
-    const t=REQ_PRESETS[pi]?.title;
-    rqpOpenTitle=rqpOpenTitle===t?null:t;
-    renderReqPicker();
-}
-function rqToggleLeaf(pi,ci,di){
-    const p=REQ_PRESETS[pi]; if(!p) return;
-    const c=Object.keys(p.children||{})[ci];
-    const d=((p.children||{})[c]||[])[di];
-    if(c===undefined||d===undefined) return;
-    const ex=reqItemFind(p.title,c,d);
-    if(ex){ reqItems=reqItems.filter(x=>x!==ex); }
-    else { reqItems.push({t:p.title,c,d,qty:1}); rqAutoPill(p.title); }
-    renderReqPicker();
+        const res=await fetch(`/api/projects/${pid}/request-items`,{headers:{'Accept':'application/json'}});
+        if(String(projReqLoadedFor)!==String(pid)) return; // 로딩 중 프로젝트 변경됨
+        projReqItems=res.ok?((await res.json()).req_items||[]):[];
+    }catch(e){ projReqItems=[]; }
+    renderReqView();
     if(isLocked&&typeof renderLockSummary==='function') renderLockSummary();
 }
-// 프리셋 타이틀과 일치하는 의뢰 주제 pill 자동 선택 (공백 무시 매칭 — '처음 세팅'↔'처음세팅')
-function rqAutoPill(title){
-    const norm=s=>String(s).replace(/\s+/g,'');
-    const g=document.getElementById('g_req_topic_group'); if(!g) return;
-    const btn=[...g.querySelectorAll('.radio-btn')].find(b=>norm(b.dataset.val||'')===norm(title));
-    if(btn&&!btn.classList.contains('active')) btn.click();
-}
-function rqQty(idx,delta){
-    const i=reqItems[idx]; if(!i) return;
-    i.qty=Math.max(1,(i.qty||1)+delta);
-    renderReqTags();
-}
-function rqRemove(idx){ reqItems.splice(idx,1); renderReqPicker(); }
-function renderReqTags(){
-    const el=document.getElementById('reqItemTags'); if(!el) return;
-    el.style.display=reqItems.length?'flex':'none';
-    el.innerHTML=reqItems.map((i,idx)=>`<span class="req-tag">
-        <b>${_esc(i.t)}</b><span class="rq-sep">›</span>${_esc(i.c)}<span class="rq-sep">›</span>${_esc(i.d)}
-        <button type="button" class="rq-qbtn" onclick="rqQty(${idx},-1)" title="수량 감소">−</button><b>×${i.qty||1}</b><button type="button" class="rq-qbtn" onclick="rqQty(${idx},1)" title="수량 증가">＋</button>
-        <button type="button" class="rq-qbtn" style="color:var(--red);" onclick="rqRemove(${idx})" title="제거">✕</button>
-    </span>`).join('');
-}
 
-// ── 프리셋 관리 모달 (관리자 전용) — 분류/항목은 '분류: 항목1, 항목2' 줄 단위 텍스트로 편집 ──
-let rqmEditId=null;
-function openRqpManage(){
-    if(!isCalAdmin) return;
-    document.getElementById('rqmOverlay').style.display='flex';
-    rqmResetForm();
-}
-function closeRqpManage(){ document.getElementById('rqmOverlay').style.display='none'; }
-function rqmRenderList(){
-    const list=document.getElementById('rqmList');
-    if(!REQ_PRESETS.length){ list.innerHTML='<div style="font-size:12px;color:var(--text-muted);">등록된 타이틀이 없습니다.</div>'; return; }
-    list.innerHTML=REQ_PRESETS.map((p,pi)=>{
-        const catCnt=Object.keys(p.children||{}).length;
-        const leafCnt=Object.values(p.children||{}).reduce((n,a)=>n+(a||[]).length,0);
-        return `<div class="rqm-row">
-            <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(p.title)}</b>
-            <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">분류 ${catCnt} · 항목 ${leafCnt}</span>
-            <button type="button" class="rqm-btn" onclick="rqmEdit(${pi})">수정</button>
-            <button type="button" class="rqm-btn" style="color:var(--red);" onclick="rqmDelete(${pi})">삭제</button>
-        </div>`;
+// 타이틀 → 분류별 그룹 HTML (모달 표시부·요약 뷰 공용)
+function reqItemsGroupedHtml(items,cls){
+    const byTitle={};
+    items.forEach(i=>{ (byTitle[i.t]=byTitle[i.t]||[]).push(i); });
+    return Object.entries(byTitle).map(([t,list])=>{
+        const byCat={};
+        list.forEach(i=>{ (byCat[i.c]=byCat[i.c]||[]).push(i); });
+        return `<div class="${cls}-title rqv-title">${_esc(t)}</div>`+Object.entries(byCat).map(([c,ls])=>
+            `<div class="${cls}-line rqv-line">· ${_esc(c)} — ${ls.map(i=>_esc(i.d)+((i.qty||1)>1?` ×${i.qty}`:'')).join(', ')}</div>`).join('');
     }).join('');
 }
-function rqmResetForm(){
-    rqmEditId=null;
-    document.getElementById('rqmFormTitle').textContent='새 세팅 타이틀 추가';
-    document.getElementById('rqmTitle').value='';
-    document.getElementById('rqmChildren').value='';
-    document.getElementById('rqmCancelBtn').style.display='none';
-    document.getElementById('rqmSubmitBtn').textContent='타이틀 추가';
-    rqmRenderList();
-}
-function rqmEdit(pi){
-    const p=REQ_PRESETS[pi]; if(!p) return;
-    rqmEditId=p.id;
-    document.getElementById('rqmFormTitle').textContent=`타이틀 수정 — ${p.title}`;
-    document.getElementById('rqmTitle').value=p.title;
-    document.getElementById('rqmChildren').value=Object.entries(p.children||{})
-        .map(([c,leafs])=>`${c}: ${(leafs||[]).join(', ')}`).join('\n');
-    document.getElementById('rqmCancelBtn').style.display='';
-    document.getElementById('rqmSubmitBtn').textContent='저장';
-    document.getElementById('rqmTitle').focus();
-}
-async function rqmDelete(pi){
-    const p=REQ_PRESETS[pi]; if(!p) return;
-    if(!confirm(`'${p.title}' 타이틀을 삭제할까요?\n선택지에서만 사라지며, 이미 일정에 저장된 선택 내용은 유지됩니다.`)) return;
-    const res=await fetch(`/api/admin/request-item-presets/${p.id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
-    if(!res.ok){ alert('삭제에 실패했습니다.'); return; }
-    if(rqmEditId===p.id) rqmEditId=null;
-    await loadReqPresets();
-    rqmResetForm();
-}
-// '분류: 항목1, 항목2' 줄 단위 텍스트 → children 객체
-function rqmParseChildren(text){
-    const out={};
-    text.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
-        const idx=line.indexOf(':');
-        const cat=(idx===-1?line:line.slice(0,idx)).trim();
-        const rest=idx===-1?'':line.slice(idx+1);
-        if(!cat) return;
-        out[cat]=rest.split(',').map(s=>s.trim()).filter(Boolean);
-    });
-    return out;
-}
-async function rqmSubmit(){
-    const title=document.getElementById('rqmTitle').value.trim();
-    if(!title){ alert('세팅 타이틀을 입력하세요.'); return; }
-    const children=rqmParseChildren(document.getElementById('rqmChildren').value);
-    const res=await fetch(rqmEditId?`/api/admin/request-item-presets/${rqmEditId}`:'/api/admin/request-item-presets',{
-        method:rqmEditId?'PATCH':'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({title,children}),
-    });
-    if(!res.ok){
-        const err=await res.json().catch(()=>({}));
-        alert(err.message||'저장에 실패했습니다.');
+
+function renderReqView(){
+    const el=document.getElementById('reqItemsView');
+    if(!el) return;
+    const items=activeReqItems();
+    if(!items.length){
+        el.innerHTML=`<span style="color:var(--text-muted);font-size:12px;">${linkedProjectId?'연결된 프로젝트에 작성된 의뢰 내용이 없습니다.':'프로젝트를 연결하면 의뢰 내용을 불러옵니다.'}</span>`;
         return;
     }
-    await loadReqPresets();
-    rqmResetForm();
+    el.innerHTML=reqItemsGroupedHtml(items,'rqv')
+        +`<div class="rqv-src">${projReqItems.length?'📁 연결된 프로젝트의 의뢰 내용':'이 일정에 저장된 항목 (구버전)'}</div>`;
 }
 
 function resetAttachments(){
@@ -5493,7 +5323,7 @@ function resetModalForm(){
     {const xw=document.getElementById('excludeWeekendsChk'); if(xw) xw.checked=false;}
     shipIconOverride=null; renderShipIconButtons();
     // 3뎁스 세팅 항목 선택 초기화
-    reqItems=[]; rqpOpenTitle=null; renderReqPicker();
+    reqItems=[]; projReqItems=[]; projReqLoadedFor=null; renderReqView();
     // 이사세팅 출발지 상태 초기화
     { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle(); }
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
@@ -6017,8 +5847,8 @@ function openEditModal(ev){
     }
     // 3뎁스 세팅 항목 선택 복원
     reqItems=Array.isArray(g.req_items)?g.req_items.filter(x=>x&&x.t&&x.c&&x.d).map(x=>({t:x.t,c:x.c,d:x.d,qty:Math.max(1,parseInt(x.qty,10)||1)})):[];
-    rqpOpenTitle=null;
-    renderReqPicker();
+    projReqItems=[]; projReqLoadedFor=null;
+    renderReqView();
     document.getElementById('g_req_detail').value=g.req_detail||'';
     // 이사세팅 출발지 복원 (address=도로명, location=도로명+상세)
     {
@@ -6050,6 +5880,7 @@ function openEditModal(ev){
         document.getElementById('linkedClientInfo').style.display='';
         document.getElementById('linkedClientLink').href='/clients/'+g.client_id;
         linkedProjectId=g.project_id||null;
+        loadProjectReqItems(linkedProjectId); // 프로젝트 의뢰 내용 불러오기
         loadClientProjects(g.client_id);
         if(!(g.nickname||g.name)) restoreLinkedClientName(g.client_id);
     }
@@ -6419,7 +6250,10 @@ function initAllRadioGroups(){
     document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;const was=btn.classList.contains('active');document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.remove('active'));if(!was)btn.classList.add('active');updateSchedOptDesc();});});
 
 // 프로젝트 선택 변경 시 결제 금액/잔금 연동 갱신
-document.getElementById('projectSelect')?.addEventListener('change',()=>syncProjectPaymentFields());
+document.getElementById('projectSelect')?.addEventListener('change',()=>{
+    syncProjectPaymentFields();
+    loadProjectReqItems(document.getElementById('projectSelect')?.value||null); // 선택한 프로젝트의 의뢰 내용 표시
+});
 
 // ── 2a 리디자인: gold/teal 폼을 섹션 카드로 그룹핑 (section-heading·divider 경계 기준) ──
 (function(){

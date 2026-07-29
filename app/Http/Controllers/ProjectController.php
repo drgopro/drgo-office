@@ -283,6 +283,16 @@ class ProjectController extends Controller
         return response()->json(['success' => true, 'project' => $project]);
     }
 
+    /** 캘린더 연동 — 프로젝트에 작성된 의뢰 내용(세팅 항목 선택, custom_data.__req_items) 조회 */
+    public function requestItems(Project $project): JsonResponse
+    {
+        $items = collect((array) ($project->custom_data['__req_items'] ?? []))
+            ->filter(fn ($i) => is_array($i) && ! empty($i['t']) && ! empty($i['c']) && ! empty($i['d']))
+            ->values();
+
+        return response()->json(['req_items' => $items]);
+    }
+
     /**
      * 결제 단계 — 이 프로젝트 또는 같은 의뢰자의 견적서 목록 (드롭다운용)
      */

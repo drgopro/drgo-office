@@ -299,6 +299,32 @@
     .pfa-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:2px; }
     .pfa-btn-ghost { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
     .pfa-btn-primary { padding:8px 20px; border-radius:8px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+
+    /* ── 의뢰 내용 3뎁스 피커 (타이틀 → 분류 → 세부 항목) ── */
+    .req-picker { display:flex; flex-direction:column; gap:6px; }
+    .rqp-title { border:1px solid var(--border); border-radius:9px; overflow:hidden; background:var(--surface); }
+    .rqp-head { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:13px; font-weight:700; user-select:none; }
+    .rqp-head:hover { background:var(--surface2); }
+    .rqp-caret { font-size:10px; color:var(--text-muted); transition:transform .15s; }
+    .rqp-title.open .rqp-caret { transform:rotate(90deg); }
+    .rqp-cnt { margin-left:auto; font-size:11px; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border-radius:9px; padding:1px 9px; }
+    .rqp-body { display:none; flex-direction:column; gap:9px; padding:4px 12px 11px; }
+    .rqp-title.open .rqp-body { display:flex; }
+    .rqp-cat-name { font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+    .rqp-leafs { display:flex; flex-wrap:wrap; gap:6px; }
+    .rqp-leaf { padding:5px 11px; border-radius:8px; border:1px solid var(--border); font-size:12px; cursor:pointer; color:var(--text-muted); background:none; transition:all .12s; }
+    .rqp-leaf:hover { border-color:var(--accent); color:var(--text); }
+    .rqp-leaf.on { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:var(--accent); color:var(--accent); font-weight:700; }
+    .req-tag { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px; font-size:12px; background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 32%, transparent); color:var(--text); }
+    .req-tag .rq-sep { color:var(--text-muted); font-size:10px; }
+    .req-tag .rq-qbtn { border:none; background:none; cursor:pointer; font-size:12px; color:var(--text-muted); padding:0 2px; line-height:1; }
+    .req-tag .rq-qbtn:hover { color:var(--accent); }
+    .rqm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:950; align-items:center; justify-content:center; padding:16px; }
+    .rqm-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
+    .rqm-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:12.5px; }
+    .rqm-btn { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:11.5px; cursor:pointer; }
+    .rqm-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .rqm-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; font-size:13px; padding:8px 18px; }
     /* ── 추가 정보 저장 상태 배지 + 수동 저장 버튼 ── */
     .pcf-badge { font-size:11.5px; font-weight:600; letter-spacing:0; }
     .pcf-badge.dirty { color:#d4a96a; }
@@ -918,6 +944,40 @@
             <button type="button" class="fb-h" data-hl="#eebefa" style="background:#eebefa"></button>
             <button type="button" class="fb-h" data-hl="#dee2e6" style="background:#dee2e6"></button>
             <button type="button" class="fb-h fb-reset" data-hl="" title="배경색 해제">⨯</button>
+        </div>
+
+        <!-- 의뢰 내용 (세팅 항목 선택) — 여기서 작성하면 연결된 캘린더 일정에 표시됨 -->
+        <div class="info-card full" id="reqItemsCard">
+            <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span>의뢰 내용 (세팅 항목)</span>
+                <span style="font-size:11px; font-weight:400; color:var(--text-muted);">타이틀 → 분류 → 세부 항목 선택 · 연결된 캘린더 일정에 표시됩니다</span>
+                <button type="button" class="pcf-save-btn" id="rqmManageBtn" onclick="openRqpManage()" style="display:none; margin-left:auto;">⚙ 선택지 관리</button>
+            </div>
+            <div id="reqItemTags" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:10px;"></div>
+            <div id="reqItemPicker" class="req-picker"></div>
+        </div>
+
+        {{-- 의뢰 세부 항목 선택지 관리 (관리자 전용) --}}
+        <div class="rqm-overlay" id="rqmOverlay" onclick="if(event.target===this)closeRqpManage()">
+            <div class="rqm-modal">
+                <div style="font-size:15px;font-weight:700;">의뢰 세부 항목 선택지 관리</div>
+                <div id="rqmList" style="display:flex;flex-direction:column;gap:6px;"></div>
+                <div style="border-top:1px dashed var(--border);"></div>
+                <div id="rqmFormTitle" style="font-size:12.5px;font-weight:700;">새 세팅 타이틀 추가</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">세팅 타이틀 <span style="color:var(--red)">*</span></span>
+                    <input type="text" id="rqmTitle" class="pcf-input" placeholder="예: 신규·이사 세팅, 세팅 추가·개선">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">분류와 세부 항목 <span style="font-weight:400;">— 한 줄에 하나씩 <b>분류: 항목1, 항목2</b> 형식</span></span>
+                    <textarea id="rqmChildren" class="pcf-input" style="min-height:120px;resize:vertical;" placeholder="컴퓨터: 컴퓨터 부품 교체, 컴퓨터 현장 조립&#10;오디오: DAW 세팅, 마이크 추가 설치"></textarea>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:8px;">
+                    <button type="button" class="rqm-btn" id="rqmCancelBtn" onclick="rqmResetForm()" style="display:none;">수정 취소</button>
+                    <button type="button" class="rqm-btn" onclick="closeRqpManage()">닫기</button>
+                    <button type="button" class="rqm-btn primary" id="rqmSubmitBtn" onclick="rqmSubmit()">타이틀 추가</button>
+                </div>
+            </div>
         </div>
 
         <!-- 추가 정보 (관리자 정의 동적 필드) -->
@@ -2441,6 +2501,168 @@ async function pcfAddSubmit() {
     renderProjectCustomFields();
 }
 
+// ── 의뢰 내용 (3뎁스 세팅 항목) — custom_data.__req_items에 저장, 연결된 캘린더 일정에 표시 ──
+let REQ_PRESETS = [];
+let rqpOpenTitle = null;
+let rqmEditId = null;
+
+function reqItems() {
+    if (!Array.isArray(projectCustomData.__req_items)) projectCustomData.__req_items = [];
+    return projectCustomData.__req_items;
+}
+function reqItemFind(t, c, d) { return reqItems().find(x => x && x.t === t && x.c === c && x.d === d); }
+
+async function loadReqPresets() {
+    try {
+        const res = await fetch('/api/request-item-presets', {headers:{'Accept':'application/json'}});
+        if (res.ok) REQ_PRESETS = await res.json();
+    } catch(e) {}
+    renderReqPicker();
+}
+
+function renderReqPicker() {
+    const el = document.getElementById('reqItemPicker');
+    if (!el) return;
+    const mBtn = document.getElementById('rqmManageBtn');
+    if (mBtn) mBtn.style.display = PCF_CAN_MANAGE ? '' : 'none';
+    if (!REQ_PRESETS.length) {
+        el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">등록된 선택지가 없습니다.${PCF_CAN_MANAGE ? ' <b>⚙ 선택지 관리</b>에서 추가하세요.' : ''}</div>`;
+        renderReqTags();
+        return;
+    }
+    el.innerHTML = REQ_PRESETS.map((p, pi) => {
+        const cnt = reqItems().filter(x => x && x.t === p.title).length;
+        const open = rqpOpenTitle === p.title;
+        const cats = Object.entries(p.children || {});
+        return `<div class="rqp-title ${open ? 'open' : ''}">
+            <div class="rqp-head" onclick="rqpToggle(${pi})"><span class="rqp-caret">▶</span>${pcfEsc(p.title)}${cnt ? `<span class="rqp-cnt">${cnt}</span>` : ''}</div>
+            <div class="rqp-body">${cats.length ? cats.map(([c, leafs], ci) => `
+                <div><div class="rqp-cat-name">${pcfEsc(c)}</div>
+                <div class="rqp-leafs">${(leafs || []).length ? (leafs || []).map((d, di) =>
+                    `<button type="button" class="rqp-leaf ${reqItemFind(p.title, c, d) ? 'on' : ''}" onclick="rqToggleLeaf(${pi},${ci},${di})">${pcfEsc(d)}</button>`
+                ).join('') : '<span style="font-size:11px;color:var(--text-muted);">세부 항목 없음</span>'}</div></div>`).join('')
+                : '<div style="font-size:11.5px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
+        </div>`;
+    }).join('');
+    renderReqTags();
+}
+function rqpToggle(pi) {
+    const t = REQ_PRESETS[pi]?.title;
+    rqpOpenTitle = rqpOpenTitle === t ? null : t;
+    renderReqPicker();
+}
+function rqToggleLeaf(pi, ci, di) {
+    const p = REQ_PRESETS[pi]; if (!p) return;
+    const c = Object.keys(p.children || {})[ci];
+    const d = ((p.children || {})[c] || [])[di];
+    if (c === undefined || d === undefined) return;
+    const ex = reqItemFind(p.title, c, d);
+    if (ex) { projectCustomData.__req_items = reqItems().filter(x => x !== ex); }
+    else { reqItems().push({ t: p.title, c, d, qty: 1 }); }
+    pcfScheduleSave();
+    renderReqPicker();
+}
+function rqQty(idx, delta) {
+    const i = reqItems()[idx]; if (!i) return;
+    i.qty = Math.max(1, (i.qty || 1) + delta);
+    pcfScheduleSave();
+    renderReqTags();
+}
+function rqRemove(idx) {
+    reqItems().splice(idx, 1);
+    pcfScheduleSave();
+    renderReqPicker();
+}
+function renderReqTags() {
+    const el = document.getElementById('reqItemTags'); if (!el) return;
+    const items = reqItems();
+    el.style.display = items.length ? 'flex' : 'none';
+    el.innerHTML = items.map((i, idx) => `<span class="req-tag">
+        <b>${pcfEsc(i.t)}</b><span class="rq-sep">›</span>${pcfEsc(i.c)}<span class="rq-sep">›</span>${pcfEsc(i.d)}
+        <button type="button" class="rq-qbtn" onclick="rqQty(${idx},-1)" title="수량 감소">−</button><b>×${i.qty || 1}</b><button type="button" class="rq-qbtn" onclick="rqQty(${idx},1)" title="수량 증가">＋</button>
+        <button type="button" class="rq-qbtn" style="color:var(--red);" onclick="rqRemove(${idx})" title="제거">✕</button>
+    </span>`).join('');
+}
+
+// ── 선택지 관리 모달 (관리자 전용) — '분류: 항목1, 항목2' 줄 단위 편집 ──
+function openRqpManage() {
+    if (!PCF_CAN_MANAGE) return;
+    document.getElementById('rqmOverlay').style.display = 'flex';
+    rqmResetForm();
+}
+function closeRqpManage() { document.getElementById('rqmOverlay').style.display = 'none'; }
+function rqmRenderList() {
+    const list = document.getElementById('rqmList');
+    if (!REQ_PRESETS.length) { list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">등록된 타이틀이 없습니다.</div>'; return; }
+    list.innerHTML = REQ_PRESETS.map((p, pi) => {
+        const catCnt = Object.keys(p.children || {}).length;
+        const leafCnt = Object.values(p.children || {}).reduce((n, a) => n + (a || []).length, 0);
+        return `<div class="rqm-row">
+            <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(p.title)}</b>
+            <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">분류 ${catCnt} · 항목 ${leafCnt}</span>
+            <button type="button" class="rqm-btn" onclick="rqmEdit(${pi})">수정</button>
+            <button type="button" class="rqm-btn" style="color:var(--red);" onclick="rqmDelete(${pi})">삭제</button>
+        </div>`;
+    }).join('');
+}
+function rqmResetForm() {
+    rqmEditId = null;
+    document.getElementById('rqmFormTitle').textContent = '새 세팅 타이틀 추가';
+    document.getElementById('rqmTitle').value = '';
+    document.getElementById('rqmChildren').value = '';
+    document.getElementById('rqmCancelBtn').style.display = 'none';
+    document.getElementById('rqmSubmitBtn').textContent = '타이틀 추가';
+    rqmRenderList();
+}
+function rqmEdit(pi) {
+    const p = REQ_PRESETS[pi]; if (!p) return;
+    rqmEditId = p.id;
+    document.getElementById('rqmFormTitle').textContent = `타이틀 수정 — ${p.title}`;
+    document.getElementById('rqmTitle').value = p.title;
+    document.getElementById('rqmChildren').value = Object.entries(p.children || {})
+        .map(([c, leafs]) => `${c}: ${(leafs || []).join(', ')}`).join('\n');
+    document.getElementById('rqmCancelBtn').style.display = '';
+    document.getElementById('rqmSubmitBtn').textContent = '저장';
+    document.getElementById('rqmTitle').focus();
+}
+async function rqmDelete(pi) {
+    const p = REQ_PRESETS[pi]; if (!p) return;
+    if (!confirm(`'${p.title}' 타이틀을 삭제할까요?\n선택지에서만 사라지며, 이미 작성된 의뢰 내용은 유지됩니다.`)) return;
+    const res = await fetch(`/api/admin/request-item-presets/${p.id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF_PJ, 'Accept': 'application/json' } });
+    if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+    if (rqmEditId === p.id) rqmEditId = null;
+    await loadReqPresets();
+    rqmResetForm();
+}
+function rqmParseChildren(text) {
+    const out = {};
+    text.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+        const idx = line.indexOf(':');
+        const cat = (idx === -1 ? line : line.slice(0, idx)).trim();
+        const rest = idx === -1 ? '' : line.slice(idx + 1);
+        if (!cat) return;
+        out[cat] = rest.split(',').map(s => s.trim()).filter(Boolean);
+    });
+    return out;
+}
+async function rqmSubmit() {
+    const title = document.getElementById('rqmTitle').value.trim();
+    if (!title) { alert('세팅 타이틀을 입력하세요.'); return; }
+    const children = rqmParseChildren(document.getElementById('rqmChildren').value);
+    const res = await fetch(rqmEditId ? `/api/admin/request-item-presets/${rqmEditId}` : '/api/admin/request-item-presets', {
+        method: rqmEditId ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_PJ, 'Accept': 'application/json' },
+        body: JSON.stringify({ title, children }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || '저장에 실패했습니다.');
+        return;
+    }
+    await loadReqPresets();
+    rqmResetForm();
+}
+
 let pcfSaveTimer = null;
 let pcfDirty = false; // 저장되지 않은 변경 존재 여부 (이탈 경고용)
 function pcfSetStatus(state) {
@@ -2490,6 +2712,7 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 loadProjectFieldsForShow();
+loadReqPresets(); // 의뢰 내용 (3뎁스 세팅 항목) 선택지
 
 // ──────────── 결제 내역 (history) ────────────
 let __payments = [];

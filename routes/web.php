@@ -122,6 +122,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/calendar/history', [CalendarController::class, 'historyIndex'])->name('calendar.history');
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
     Route::get('/api/request-item-presets', [RequestItemPresetController::class, 'index']); // 의뢰 세부 항목 선택지 (3뎁스 프리셋)
+    Route::get('/api/projects/{project}/request-items', [ProjectController::class, 'requestItems']); // 캘린더에서 프로젝트 의뢰 내용 불러오기
     Route::get('/api/events/search', [CalendarController::class, 'search']);
     Route::get('/api/events/history', [CalendarController::class, 'historyEvents']);
     Route::get('/api/events/change-log', [CalendarController::class, 'changeLog']); // 사이드바 삭제/변경 이력 (문장 로그)
