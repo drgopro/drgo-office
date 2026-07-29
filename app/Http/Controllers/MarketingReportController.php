@@ -15,6 +15,7 @@ use App\Models\RentalContract;
 use App\Models\Schedule;
 use App\Models\WorkType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -144,12 +145,14 @@ class MarketingReportController extends Controller
             'payment' => Project::where('stage', 'payment')->count(),
             'visit' => Project::whereIn('stage', ['visit', 'as'])->count(),
         ];
+        // 취소 사유 — 취소 카드와 동일 코호트(기간 내 유입 프로젝트 중 취소)로 집계해 합계가 항상 일치
+        // (기존 cancelled_at 기준은 과거 데이터 일괄 백필 시 특정 월에 전체 취소가 몰려 보이는 문제)
         $cancelReasons = collect();
-        if (Schema::hasColumn('projects', 'cancel_reason') && Schema::hasColumn('projects', 'cancelled_at')) {
-            $cancelReasons = Project::whereBetween('cancelled_at', [$fromDt, $toDt])
-                ->whereNotNull('cancel_reason')
-                ->select('cancel_reason', DB::raw('count(*) as cnt'))
-                ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason');
+        if (Schema::hasColumn('projects', 'cancel_reason')) {
+            $cancelReasons = Project::whereBetween('created_at', [$fromDt, $toDt])
+                ->where('stage', 'cancelled')
+                ->selectRaw("coalesce(nullif(cancel_reason, ''), '미기재') as reason, count(*) as cnt")
+                ->groupBy('reason')->orderByDesc('cnt')->pluck('cnt', 'reason');
         }
 
         // ── 매출 지표 ──
@@ -283,8 +286,45 @@ class MarketingReportController extends Controller
             ];
         }
 
+        // ── 일정 지표 (마케팅 사양서 기준) — RAW 매핑을 엑셀 추출과 공유 ──
+        $rawRows = $this->rawScheduleRows($from, $to);
+        $requestRows = $rawRows->reject(fn ($r) => $r['internal']); // 사내업무·휴가 제외 = 의뢰 건
+        $revenueRows = $requestRows->filter(fn ($r) => $r['amount'] > 0);
+        $hasAttr = fn ($r, $a) => in_array($a, $r['attrs'], true);
+        $schedStats = [
+            'total' => $requestRows->count(),
+            'all' => $rawRows->count(),
+            'revenue_cnt' => $revenueRows->count(),
+            'revenue_rate' => $requestRows->count() ? round($revenueRows->count() / $requestRows->count() * 100, 1) : 0,
+            'revenue_sum' => (int) $revenueRows->sum('amount'),
+            'avg_price' => $revenueRows->count() ? (int) round($revenueRows->sum('amount') / $revenueRows->count()) : 0,
+            'free_cnt' => $requestRows->count() - $revenueRows->count(),
+            'by_type' => $rawRows->countBy('type')->sortDesc()->all(),
+            'by_client_type' => $requestRows->groupBy(fn ($r) => $r['client_type'] !== '' ? $r['client_type'] : '미입력')
+                ->map(fn ($g) => ['cnt' => $g->count(), 'sum' => (int) $g->sum('amount')])
+                ->sortByDesc('cnt')->all(),
+            // 플랫폼×유형 교차 (의뢰 건, 플랫폼 미입력 제외)
+            'platform_types' => $requestRows->filter(fn ($r) => $r['platform'] !== '' && $r['platform'] !== '해당없음')
+                ->groupBy('platform')->map(fn ($g) => $g->countBy('type')->sortDesc()->all())
+                ->sortByDesc(fn ($types) => array_sum($types))->all(),
+            'by_assignee' => $requestRows->filter(fn ($r) => $r['main'] !== '')->countBy('main')->sortDesc()->all(),
+            'by_dow' => collect(['월', '화', '수', '목', '금', '토', '일'])
+                ->mapWithKeys(fn ($d) => [$d => $requestRows->where('dow', $d)->count()])->all(),
+            'by_region' => $requestRows->filter(fn ($r) => $r['region'] !== '' && $r['region'] !== '해당없음')
+                ->countBy('region')->sortDesc()->take(10)->all(),
+            'revisit_cnt' => $requestRows->filter(fn ($r) => $hasAttr($r, '재방문'))->count(),
+            'revisit_rate' => $requestRows->count() ? round($requestRows->filter(fn ($r) => $hasAttr($r, '재방문'))->count() / $requestRows->count() * 100, 1) : 0,
+            'rush_cnt' => $requestRows->filter(fn ($r) => $hasAttr($r, '급행'))->count(),
+            'rush_avg' => ($rushRows = $requestRows->filter(fn ($r) => $hasAttr($r, '급행') && $r['amount'] > 0))->count()
+                ? (int) round($rushRows->sum('amount') / $rushRows->count()) : 0,
+            'survey_cnt' => $requestRows->filter(fn ($r) => $hasAttr($r, '사전답사'))->count(),
+            'autopay_cnt' => $requestRows->filter(fn ($r) => $hasAttr($r, '자동결제'))->count(),
+            'autopay_sum' => (int) $requestRows->filter(fn ($r) => $hasAttr($r, '자동결제'))->sum('amount'),
+            'consulting_cnt' => $requestRows->filter(fn ($r) => mb_stripos($r['title'], '컨설팅') !== false)->count(),
+        ];
+
         return view('marketing-report.index', compact(
-            'from', 'to',
+            'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
             'totalConsults', 'reConsultCount',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
@@ -441,13 +481,13 @@ class MarketingReportController extends Controller
     }
 
     /**
-     * 일정통계 RAW 엑셀 — 마케팅부 추출 사양서(17컬럼, 1건=1행) 형식.
-     * 현재 입력 데이터에서 채울 수 있는 값은 매핑·정규화로 채우고, 입력이 없는 값은 공백(=누락)으로 출력.
+     * 마케팅 사양서 기준 일정 RAW 행 매핑 — 엑셀 추출과 통계 지표가 공유.
+     * 입력이 없는 값은 공백(=누락), 사내업무·휴가는 '해당없음' 규칙.
+     *
+     * @return Collection<int, array<string, mixed>>
      */
-    public function schedulesExportRaw(Request $request): StreamedResponse
+    private function rawScheduleRows(string $from, string $to): Collection
     {
-        $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
-        $to = $request->query('to', now()->endOfMonth()->format('Y-m-d'));
         $dows = ['일', '월', '화', '수', '목', '금', '토'];
         $catMap = CalendarCategory::map();
 
@@ -485,7 +525,7 @@ class MarketingReportController extends Controller
         // 유형 매핑 — 카테고리 라벨 + 원격/방송룸 모드 + 계약 동기화 출처
         $typeOf = function (Schedule $s) use ($catMap): string {
             $label = $catMap[$s->color]['label'] ?? $s->color;
-            if (in_array($s->source_type, ['rental_contract'], true)) {
+            if ($s->source_type === 'rental_contract') {
                 return '장비 렌탈';
             }
             if ($s->source_type === 'broadcast_contract') {
@@ -540,14 +580,11 @@ class MarketingReportController extends Controller
             }
             $tokens = explode(' ', $addr);
             $first = preg_replace('/(특별시|광역시|특별자치시|특별자치도)$/u', '', $tokens[0]);
-            $second = $tokens[1] ?? '';
 
-            return trim($first.' '.$second);
+            return trim($first.' '.($tokens[1] ?? ''));
         };
 
-        $header = ['일정ID', '날짜', '요일', '시작시간', '종료시간', '제목', '유형', '의뢰자 유형', '의뢰자명', '플랫폼', '경력', '결제금액', '속성', '상태', '주담당자', '보조담당자', '지역'];
-
-        $rows = $schedules->map(function (Schedule $s) use ($dows, $clients, $projects, $typeOf, $platformNorm, $regionOf, $clientKey, $firstSeen): array {
+        return $schedules->map(function (Schedule $s) use ($dows, $clients, $projects, $typeOf, $platformNorm, $regionOf, $clientKey, $firstSeen): array {
             $g = (array) ($s->request_data ?? []);
             $client = ! empty($g['client_id']) ? $clients->get($g['client_id']) : null;
             $type = $typeOf($s);
@@ -583,25 +620,43 @@ class MarketingReportController extends Controller
             $region = $regionOf((string) ($s->address ?: $s->location ?: ''));
 
             return [
-                'CAL-'.$s->start_date->format('Ym').'-'.str_pad((string) $s->id, 4, '0', STR_PAD_LEFT),
-                $s->start_date->format('Y-m-d'),
-                $dows[$s->start_date->dayOfWeek],
-                $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5),
-                $s->is_all_day ? '종일' : ($s->end_time ? substr((string) $s->end_time, 0, 5) : ''),
-                $s->title,
-                $type,
-                $clientType,
-                $isInternal ? '해당없음' : $clientName,
-                $isInternal ? '해당없음' : $platformNorm($platform),
-                $isInternal ? '해당없음' : $career,
-                (int) preg_replace('/\D/', '', (string) ($g['estimate_amount'] ?? '')),
-                implode(';', $attrs),
-                $s->completed_at ? '완료' : '예정',
-                (string) ($assignees[0] ?? ''),
-                $assignees->slice(1)->implode(';'),
-                $region !== '' ? $region : (($isInternal || $type === '원격') ? '해당없음' : ''),
+                'id_label' => 'CAL-'.$s->start_date->format('Ym').'-'.str_pad((string) $s->id, 4, '0', STR_PAD_LEFT),
+                'date' => $s->start_date->format('Y-m-d'),
+                'dow' => $dows[$s->start_date->dayOfWeek],
+                'start' => $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5),
+                'end' => $s->is_all_day ? '종일' : ($s->end_time ? substr((string) $s->end_time, 0, 5) : ''),
+                'title' => $s->title,
+                'type' => $type,
+                'internal' => $isInternal,
+                'client_type' => $clientType,
+                'client' => $isInternal ? '해당없음' : $clientName,
+                'platform' => $isInternal ? '해당없음' : $platformNorm($platform),
+                'career' => $isInternal ? '해당없음' : $career,
+                'amount' => (int) preg_replace('/\D/', '', (string) ($g['estimate_amount'] ?? '')),
+                'attrs' => $attrs,
+                'status' => $s->completed_at ? '완료' : '예정',
+                'main' => (string) ($assignees[0] ?? ''),
+                'subs' => $assignees->slice(1)->implode(';'),
+                'region' => $region !== '' ? $region : (($isInternal || $type === '원격') ? '해당없음' : ''),
             ];
         });
+    }
+
+    /**
+     * 일정통계 RAW 엑셀 — 마케팅부 추출 사양서(17컬럼, 1건=1행) 형식.
+     * 현재 입력 데이터에서 채울 수 있는 값은 매핑·정규화로 채우고, 입력이 없는 값은 공백(=누락)으로 출력.
+     */
+    public function schedulesExportRaw(Request $request): StreamedResponse
+    {
+        $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
+        $to = $request->query('to', now()->endOfMonth()->format('Y-m-d'));
+
+        $header = ['일정ID', '날짜', '요일', '시작시간', '종료시간', '제목', '유형', '의뢰자 유형', '의뢰자명', '플랫폼', '경력', '결제금액', '속성', '상태', '주담당자', '보조담당자', '지역'];
+        $rows = $this->rawScheduleRows($from, $to)->map(fn (array $r) => [
+            $r['id_label'], $r['date'], $r['dow'], $r['start'], $r['end'], $r['title'], $r['type'], $r['client_type'],
+            $r['client'], $r['platform'], $r['career'], $r['amount'], implode(';', $r['attrs']), $r['status'],
+            $r['main'], $r['subs'], $r['region'],
+        ]);
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();

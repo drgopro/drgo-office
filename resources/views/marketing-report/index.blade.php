@@ -187,6 +187,140 @@
         </div>
     </div>
 
+    {{-- 섹션 1.2: 일정 지표 (마케팅 사양서 기준 — 엑셀 샘플 출력과 동일 매핑) --}}
+    <div class="mk-section">
+        <div class="mk-section-title"><x-icon name="calendar" :size="15"/> 일정 지표 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(사양서 기준 · 사내업무/휴가 제외한 의뢰 건, 엑셀 샘플 출력과 동일 집계)</span></div>
+
+        <div class="mk-grid" style="margin-bottom:20px;">
+            <div class="mk-card">
+                <div class="mk-label">총 의뢰 건수</div>
+                <div class="mk-value">{{ number_format($schedStats['total']) }}</div>
+                <div class="mk-sub">전체 일정 {{ number_format($schedStats['all']) }}건 중</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">매출 발생</div>
+                <div class="mk-value">{{ number_format($schedStats['revenue_cnt']) }}건 <span style="font-size:13px;color:var(--text-muted);">({{ $schedStats['revenue_rate'] }}%)</span></div>
+                <div class="mk-sub">무상/미기재 {{ number_format($schedStats['free_cnt']) }}건</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">일정 기재 매출액</div>
+                <div class="mk-value">{{ number_format($schedStats['revenue_sum']) }}<span style="font-size:12px;">원</span></div>
+                <div class="mk-sub">건당 평균 {{ number_format($schedStats['avg_price']) }}원</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">재방문율</div>
+                <div class="mk-value">{{ $schedStats['revisit_rate'] }}%</div>
+                <div class="mk-sub">재방문 {{ number_format($schedStats['revisit_cnt']) }}건 (이력 자동 판정)</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">급행 · 사전답사</div>
+                <div class="mk-value">{{ $schedStats['rush_cnt'] }} · {{ $schedStats['survey_cnt'] }}건</div>
+                <div class="mk-sub">급행 평균 단가 {{ number_format($schedStats['rush_avg']) }}원</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">자동결제 · 컨설팅</div>
+                <div class="mk-value">{{ $schedStats['autopay_cnt'] }} · {{ $schedStats['consulting_cnt'] }}건</div>
+                <div class="mk-sub">자동결제 금액 {{ number_format($schedStats['autopay_sum']) }}원</div>
+            </div>
+        </div>
+
+        <div class="mk-two-col" style="margin-bottom:20px;">
+            {{-- 유형별 분포 (사양서 10종 기준) --}}
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">유형별 분포 <span style="font-weight:400;">(사내업무·휴가 포함 전체)</span></div>
+                <div class="mk-list">
+                    @forelse($schedStats['by_type'] as $type => $cnt)
+                        <div class="mk-bar">
+                            <div class="mk-bar-fill" style="width:{{ round($cnt / max(1, $schedStats['all']) * 100) }}%"></div>
+                            <span class="mk-bar-label">{{ $type }}</span>
+                            <span class="mk-bar-value">{{ $cnt }}건 ({{ round($cnt / max(1, $schedStats['all']) * 100) }}%)</span>
+                        </div>
+                    @empty
+                        <div style="font-size:12px;color:var(--text-muted);">기간 내 일정이 없습니다.</div>
+                    @endforelse
+                </div>
+            </div>
+            {{-- 의뢰자 유형별 건수·매출 --}}
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형별 건수 · 매출 <span style="font-weight:400;">(연결 프로젝트 기준, 미연결=미입력)</span></div>
+                <div class="mk-list">
+                    @forelse($schedStats['by_client_type'] as $ct => $d)
+                        <div class="mk-list-item">
+                            <span class="mk-list-label">{{ $ct }}</span>
+                            <span style="font-size:12px;color:var(--text-muted);">{{ number_format($d['sum']) }}원</span>
+                            <span class="mk-list-value">{{ $d['cnt'] }}건</span>
+                        </div>
+                    @empty
+                        <div style="font-size:12px;color:var(--text-muted);">의뢰 건이 없습니다.</div>
+                    @endforelse
+                </div>
+                <div style="font-size:12px; font-weight:600; margin:16px 0 10px; color:var(--text-muted);">담당자별 처리량 <span style="font-weight:400;">(주담당 기준)</span></div>
+                <div class="mk-list">
+                    @foreach(array_slice($schedStats['by_assignee'], 0, 8, true) as $name => $cnt)
+                        <div class="mk-bar">
+                            <div class="mk-bar-fill" style="width:{{ round($cnt / max(1, $schedStats['total']) * 100) }}%"></div>
+                            <span class="mk-bar-label">{{ $name }}</span>
+                            <span class="mk-bar-value">{{ $cnt }}건</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        {{-- 플랫폼 × 유형 교차 --}}
+        @if(count($schedStats['platform_types']))
+        @php
+            $ptCols = collect($schedStats['platform_types'])->flatMap(fn ($t) => array_keys($t))->unique()->values();
+        @endphp
+        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 × 유형 교차</div>
+        <div style="overflow-x:auto; margin-bottom:20px;">
+            <table class="mk-matrix">
+                <tr><th>플랫폼</th>@foreach($ptCols as $c)<th>{{ $c }}</th>@endforeach<th>합계</th></tr>
+                @foreach($schedStats['platform_types'] as $platform => $types)
+                    <tr>
+                        <th>{{ $platform }}</th>
+                        @foreach($ptCols as $c)
+                            <td class="{{ ($types[$c] ?? 0) ? 'cnt-cell' : 'cnt-zero' }}">{{ $types[$c] ?? '·' }}</td>
+                        @endforeach
+                        <td class="cnt-cell">{{ array_sum($types) }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
+        @endif
+
+        <div class="mk-two-col">
+            {{-- 요일별 부하 --}}
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">요일별 의뢰 부하</div>
+                <div class="mk-list">
+                    @foreach($schedStats['by_dow'] as $d => $cnt)
+                        <div class="mk-bar">
+                            <div class="mk-bar-fill" style="width:{{ round($cnt / max(1, max($schedStats['by_dow'])) * 100) }}%"></div>
+                            <span class="mk-bar-label">{{ $d }}</span>
+                            <span class="mk-bar-value">{{ $cnt }}건</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            {{-- 권역별 수요 --}}
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">권역별 수요 TOP 10 <span style="font-weight:400;">(주소 기반)</span></div>
+                <div class="mk-list">
+                    @forelse($schedStats['by_region'] as $region => $cnt)
+                        <div class="mk-bar">
+                            <div class="mk-bar-fill" style="width:{{ round($cnt / max(1, max($schedStats['by_region'] ?: [1])) * 100) }}%"></div>
+                            <span class="mk-bar-label">{{ $region }}</span>
+                            <span class="mk-bar-value">{{ $cnt }}건</span>
+                        </div>
+                    @empty
+                        <div style="font-size:12px;color:var(--text-muted);">주소가 입력된 의뢰 건이 없습니다.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- 섹션 1.5: 퍼널 분석 --}}
     <div class="mk-section">
         <div class="mk-section-title"><x-icon name="chart" :size="15"/> 퍼널 분석 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 내 유입된 문의 코호트)</span></div>
@@ -328,7 +462,7 @@
 
         @if(count($cancelReasons) > 0)
         <div style="margin-top:20px;">
-            <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">취소 사유</div>
+            <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">취소 사유 <span style="font-weight:400;">(기간 내 유입된 프로젝트 기준 — 위 취소 건수와 합계 일치)</span></div>
             <div class="mk-list">
                 @foreach($cancelReasons as $reason => $cnt)
                     <div class="mk-list-item">
