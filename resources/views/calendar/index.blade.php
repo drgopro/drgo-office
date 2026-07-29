@@ -268,7 +268,9 @@
     .mc-more { font-size:10px; font-weight:700; color:var(--text-muted); cursor:pointer; padding:0 4px; flex-shrink:0; line-height:14px; }
     .mc-more:hover { color:var(--accent); }
     .mc-bar { position:absolute; z-index:4; height:15px; line-height:13px; font-size:10px; font-weight:600; padding:0 5px 0 4px; border-radius:3px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); white-space:nowrap; overflow:visible; cursor:pointer; box-sizing:border-box; }
-    .mc-bar span { display:block; overflow:hidden; text-overflow:ellipsis; }
+    {{-- 라벨(직계 span)만 블록 처리 — 하위 span(확정 칩 등)까지 block이 되면 칩이 바 폭만큼 늘어짐 --}}
+    .mc-bar > span { display:block; overflow:hidden; text-overflow:ellipsis; }
+    .mc-bar .opt-chip.sched-end { font-size:9px; line-height:1.3; margin-left:3px; padding:0 3px; }
     {{-- 월간 뷰 단일 칩과 동일한 연한 틴트 (진한 배경은 작은 글씨 가독성 저하) --}}
     @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
     .mc-bar.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, transparent); border-left-color:var(--chip-{{ $__ck }}-bg); }
