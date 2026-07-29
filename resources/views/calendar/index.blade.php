@@ -1645,7 +1645,8 @@
             {{-- 배송 현황 (방문의뢰·촬영/스튜디오, 저장된 일정만) --}}
             <div class="field-section" id="shipmentSection" style="display:none;">
                 <div class="field-group">
-                    <label class="field-label" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;" onclick="toggleShipmentBody()">
+                    {{-- label이면 헤더 클릭이 내부 첫 버튼(○)으로 전달돼 배송 아이콘이 자동 지정됨 → div 사용 --}}
+                    <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;" onclick="toggleShipmentBody()">
                         <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
                         <span style="display:inline-flex;gap:4px;align-items:center;" onclick="event.stopPropagation();">
                             <span style="font-weight:400;font-size:10px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
@@ -1655,7 +1656,7 @@
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="" onclick="setShipIconOverride('')" title="제목에 표시 안 함">없음</button>
                             <button type="button" class="ship-mini-btn" onclick="refreshShipments()" title="배송상태 새로고침">🔄 새로고침</button>
                         </span>
-                    </label>
+                    </div>
                     <div id="shipmentBody" style="display:none;">
                         <div id="shipmentList"></div>
                         <div class="ship-add-row">
@@ -5040,9 +5041,11 @@ function renderShipIconButtons(){
     });
 }
 // 배송 아이콘 수동 지정 — 클릭 즉시 서버 반영 (부분 송장 업로드 시 완료 착각 방지)
+// 이미 선택된 아이콘을 다시 클릭하면 해제 (실수 클릭 복구)
 async function setShipIconOverride(v){
     if(!editingId||!canEditCalendar) return;
-    const val=v||null;
+    let val=v||null;
+    if(val&&val===shipIconOverride) val=null;
     if(!(await quickUpdateEvent({ship_icon_override:val}))) return;
     shipIconOverride=val;
     if(detailEvent) detailEvent.ship_icon_override=val;
