@@ -20,11 +20,16 @@ class RequestItemPresetTest extends TestCase
 
         $res->assertOk();
         $titles = collect($res->json())->pluck('title')->all();
-        $this->assertContains('처음 세팅', $titles);
-        $this->assertContains('이사 세팅', $titles);
+        // 서비스 가격표 시트 기준 동기화 데이터
+        $this->assertContains('신규·이사 세팅', $titles);
+        $this->assertContains('세팅 추가·개선', $titles);
+        $this->assertContains('원격 세팅', $titles);
         // children 트리 구조 확인 (2뎁스 분류 → 3뎁스 항목 배열)
-        $first = collect($res->json())->firstWhere('title', '처음 세팅');
-        $this->assertSame(['컴퓨터 문제해결'], $first['children']['컴퓨터']);
+        $first = collect($res->json())->firstWhere('title', '신규·이사 세팅');
+        $this->assertContains('마이크 추가 설치', $first['children']['오디오']);
+        $this->assertContains('스트림덱 세팅', $first['children']['기타']);
+        // 예시 시드는 실제 체계로 대체됨
+        $this->assertNotContains('처음 세팅', $titles);
     }
 
     public function test_admin_can_create_update_delete_preset(): void
