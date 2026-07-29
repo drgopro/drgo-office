@@ -24,10 +24,14 @@ class RequestItemPresetTest extends TestCase
         $this->assertContains('신규·이사 세팅', $titles);
         $this->assertContains('세팅 추가·개선', $titles);
         $this->assertContains('원격 세팅', $titles);
-        // children 트리 구조 확인 (2뎁스 분류 → 3뎁스 항목 배열)
+        // children 트리 구조 확인 — [{name, items}] 배열, 지정 순서로 정렬됨
         $first = collect($res->json())->firstWhere('title', '신규·이사 세팅');
-        $this->assertContains('마이크 추가 설치', $first['children']['오디오']);
-        $this->assertContains('스트림덱 세팅', $first['children']['기타']);
+        $this->assertSame(
+            ['기본 서비스', '의뢰 서비스', '컴퓨터', '카메라/조명', '오디오', '기타'],
+            collect($first['children'])->pluck('name')->all()
+        );
+        $audio = collect($first['children'])->firstWhere('name', '오디오');
+        $this->assertContains('마이크 추가 설치', $audio['items']);
         // 예시 시드는 실제 체계로 대체됨, 출장비(요금 항목)는 선택지에서 제외
         $this->assertNotContains('처음 세팅', $titles);
         $this->assertNotContains('출장비', $titles);
@@ -39,19 +43,19 @@ class RequestItemPresetTest extends TestCase
 
         $res = $this->actingAs($admin)->postJson('/api/admin/request-item-presets', [
             'title' => '철거 지원',
-            'children' => ['공통' => ['장비 철거', '폐기 지원']],
+            'children' => [['name' => '공통', 'items' => ['장비 철거', '폐기 지원']]],
         ]);
         $res->assertCreated();
         $id = $res->json('id');
 
         $this->actingAs($admin)->patchJson("/api/admin/request-item-presets/{$id}", [
             'title' => '철거/폐기 지원',
-            'children' => ['공통' => ['장비 철거']],
+            'children' => [['name' => '공통', 'items' => ['장비 철거']]],
         ])->assertOk();
 
         $preset = RequestItemPreset::find($id);
         $this->assertSame('철거/폐기 지원', $preset->title);
-        $this->assertSame(['장비 철거'], $preset->children['공통']);
+        $this->assertSame([['name' => '공통', 'items' => ['장비 철거']]], $preset->children);
 
         $this->actingAs($admin)->deleteJson("/api/admin/request-item-presets/{$id}")->assertOk();
         $this->assertNull(RequestItemPreset::find($id));

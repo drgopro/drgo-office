@@ -316,9 +316,10 @@
     .opt-chip.sched-end, .agenda-title .opt-chip.sched-end, .dp-title .opt-chip.sched-end, .mde-title .opt-chip.sched-end { margin-left:4px; margin-right:0; font-size:calc(11px * var(--cal-fz,1)); padding:0 4px; line-height:1.4; }
 
     /* ── 세팅 항목 표시 (연결 프로젝트 의뢰 내용 불러오기 — 읽기 전용) ── */
-    .rqv-title { font-weight:700; font-size:12.5px; margin-top:4px; }
-    .rqv-line { color:var(--text-muted); margin-left:9px; font-size:12px; }
-    .rqv-src { font-size:10.5px; color:var(--text-muted); margin-top:4px; }
+    .rqv-title { font-weight:700; font-size:13px; margin-top:6px; }
+    .rqv-cat { font-weight:700; font-size:12px; margin:7px 0 2px 7px; }
+    .rqv-item { color:var(--text-muted); font-size:12px; margin-left:15px; line-height:2; }
+    .rqv-src { font-size:10.5px; color:var(--text-muted); margin-top:7px; }
     /* 주간 시간대 이벤트 첫 줄: flex로 옵션 칩·제목·배송 아이콘 수직 중앙 정렬 */
     .tl-ev-head { display:flex; align-items:center; gap:3px; min-width:0; }
     .tl-ev-head .opt-chip { margin-left:0; }
@@ -4363,7 +4364,7 @@ function renderLockSummary(){
         if (reqTopicVal || lsReqItems.length) {
             let reqBody = reqTopicVal ? `<div class="ls-text-block">${_esc(reqTopicVal)}</div>` : '';
             if (lsReqItems.length) {
-                reqBody += `<div style="margin-top:7px;">${reqItemsGroupedHtml(lsReqItems, 'rqv')}</div>`;
+                reqBody += `<div style="margin-top:7px;">${reqItemsGroupedHtml(lsReqItems)}</div>`;
                 if (projReqItems.length) reqBody += `<div class="rqv-src">📁 연결된 프로젝트의 의뢰 내용</div>`;
             }
             left.splice(tiles.length ? 1 : 0, 0, lsCard('의뢰 내용', reqBody, '', 'ls-c-reqtopic'));
@@ -5178,14 +5179,22 @@ async function loadProjectReqItems(pid){
 }
 
 // 타이틀 → 분류별 그룹 HTML (모달 표시부·요약 뷰 공용)
-function reqItemsGroupedHtml(items,cls){
+// 분류는 지정 순서(기본 서비스→의뢰 서비스→컴퓨터→카메라/조명→오디오→기타)로 정렬, 항목은 - 접두사로 한 줄씩
+const RQV_CAT_ORDER=['기본 서비스','의뢰 서비스','컴퓨터','카메라/조명','오디오','기타'];
+function reqItemsGroupedHtml(items){
     const byTitle={};
     items.forEach(i=>{ (byTitle[i.t]=byTitle[i.t]||[]).push(i); });
     return Object.entries(byTitle).map(([t,list])=>{
         const byCat={};
         list.forEach(i=>{ (byCat[i.c]=byCat[i.c]||[]).push(i); });
-        return `<div class="${cls}-title rqv-title">${_esc(t)}</div>`+Object.entries(byCat).map(([c,ls])=>
-            `<div class="${cls}-line rqv-line">· ${_esc(c)} — ${ls.map(i=>_esc(i.d)+((i.qty||1)>1?` ×${i.qty}`:'')).join(', ')}</div>`).join('');
+        const cats=Object.entries(byCat).sort((a,b)=>{
+            const ia=RQV_CAT_ORDER.indexOf(a[0]), ib=RQV_CAT_ORDER.indexOf(b[0]);
+            return (ia===-1?999:ia)-(ib===-1?999:ib);
+        });
+        return `<div class="rqv-title">${_esc(t)}</div>`+cats.map(([c,ls])=>
+            `<div class="rqv-cat">${_esc(c)}</div>`
+            +ls.map(i=>`<div class="rqv-item">- ${_esc(i.d)}${(i.qty||1)>1?` ×${i.qty}`:''}</div>`).join('')
+        ).join('');
     }).join('');
 }
 
@@ -5197,7 +5206,7 @@ function renderReqView(){
         el.innerHTML=`<span style="color:var(--text-muted);font-size:12px;">${linkedProjectId?'연결된 프로젝트에 작성된 의뢰 내용이 없습니다.':'프로젝트를 연결하면 의뢰 내용을 불러옵니다.'}</span>`;
         return;
     }
-    el.innerHTML=reqItemsGroupedHtml(items,'rqv')
+    el.innerHTML=reqItemsGroupedHtml(items)
         +`<div class="rqv-src">${projReqItems.length?'📁 연결된 프로젝트의 의뢰 내용':'이 일정에 저장된 항목 (구버전)'}</div>`;
 }
 

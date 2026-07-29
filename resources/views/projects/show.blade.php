@@ -2533,13 +2533,13 @@ function renderReqPicker() {
     el.innerHTML = REQ_PRESETS.map((p, pi) => {
         const cnt = reqItems().filter(x => x && x.t === p.title).length;
         const open = rqpOpenTitle === p.title;
-        const cats = Object.entries(p.children || {});
+        const cats = p.children || []; // [{name, items}] — 배열 순서가 표시 순서
         return `<div class="rqp-title ${open ? 'open' : ''}">
             <div class="rqp-head" onclick="rqpToggle(${pi})"><span class="rqp-caret">▶</span>${pcfEsc(p.title)}${cnt ? `<span class="rqp-cnt">${cnt}</span>` : ''}</div>
-            <div class="rqp-body">${cats.length ? cats.map(([c, leafs], ci) => `
-                <div><div class="rqp-cat-name">${pcfEsc(c)}</div>
-                <div class="rqp-leafs">${(leafs || []).length ? (leafs || []).map((d, di) =>
-                    `<button type="button" class="rqp-leaf ${reqItemFind(p.title, c, d) ? 'on' : ''}" onclick="rqToggleLeaf(${pi},${ci},${di})">${pcfEsc(d)}</button>`
+            <div class="rqp-body">${cats.length ? cats.map((cat, ci) => `
+                <div><div class="rqp-cat-name">${pcfEsc(cat.name)}</div>
+                <div class="rqp-leafs">${(cat.items || []).length ? (cat.items || []).map((d, di) =>
+                    `<button type="button" class="rqp-leaf ${reqItemFind(p.title, cat.name, d) ? 'on' : ''}" onclick="rqToggleLeaf(${pi},${ci},${di})">${pcfEsc(d)}</button>`
                 ).join('') : '<span style="font-size:11px;color:var(--text-muted);">세부 항목 없음</span>'}</div></div>`).join('')
                 : '<div style="font-size:11.5px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
         </div>`;
@@ -2553,9 +2553,10 @@ function rqpToggle(pi) {
 }
 function rqToggleLeaf(pi, ci, di) {
     const p = REQ_PRESETS[pi]; if (!p) return;
-    const c = Object.keys(p.children || {})[ci];
-    const d = ((p.children || {})[c] || [])[di];
-    if (c === undefined || d === undefined) return;
+    const cat = (p.children || [])[ci];
+    const c = cat && cat.name;
+    const d = cat ? (cat.items || [])[di] : undefined;
+    if (!c || d === undefined) return;
     const ex = reqItemFind(p.title, c, d);
     if (ex) { projectCustomData.__req_items = reqItems().filter(x => x !== ex); }
     else { reqItems().push({ t: p.title, c, d, qty: 1 }); }
@@ -2595,8 +2596,8 @@ function rqmRenderList() {
     const list = document.getElementById('rqmList');
     if (!REQ_PRESETS.length) { list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">등록된 타이틀이 없습니다.</div>'; return; }
     list.innerHTML = REQ_PRESETS.map((p, pi) => {
-        const catCnt = Object.keys(p.children || {}).length;
-        const leafCnt = Object.values(p.children || {}).reduce((n, a) => n + (a || []).length, 0);
+        const catCnt = (p.children || []).length;
+        const leafCnt = (p.children || []).reduce((n, c) => n + ((c.items || []).length), 0);
         return `<div class="rqm-row">
             <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(p.title)}</b>
             <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">분류 ${catCnt} · 항목 ${leafCnt}</span>
@@ -2619,8 +2620,8 @@ function rqmEdit(pi) {
     rqmEditId = p.id;
     document.getElementById('rqmFormTitle').textContent = `타이틀 수정 — ${p.title}`;
     document.getElementById('rqmTitle').value = p.title;
-    document.getElementById('rqmChildren').value = Object.entries(p.children || {})
-        .map(([c, leafs]) => `${c}: ${(leafs || []).join(', ')}`).join('\n');
+    document.getElementById('rqmChildren').value = (p.children || [])
+        .map(c => `${c.name}: ${(c.items || []).join(', ')}`).join('\n');
     document.getElementById('rqmCancelBtn').style.display = '';
     document.getElementById('rqmSubmitBtn').textContent = '저장';
     document.getElementById('rqmTitle').focus();
@@ -2634,14 +2635,15 @@ async function rqmDelete(pi) {
     await loadReqPresets();
     rqmResetForm();
 }
+// 줄 순서가 곧 표시 순서 — [{name, items}] 배열로 반환
 function rqmParseChildren(text) {
-    const out = {};
+    const out = [];
     text.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
         const idx = line.indexOf(':');
         const cat = (idx === -1 ? line : line.slice(0, idx)).trim();
         const rest = idx === -1 ? '' : line.slice(idx + 1);
         if (!cat) return;
-        out[cat] = rest.split(',').map(s => s.trim()).filter(Boolean);
+        out.push({ name: cat, items: rest.split(',').map(s => s.trim()).filter(Boolean) });
     });
     return out;
 }

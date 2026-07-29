@@ -39,7 +39,7 @@ class RequestItemPresetController extends Controller
     }
 
     /**
-     * children = {"2뎁스 분류": ["3뎁스 항목", ...], ...}
+     * children = [{"name": "2뎁스 분류", "items": ["3뎁스 항목", ...]}, ...] — 배열 순서가 표시 순서.
      *
      * @return array<string, mixed>
      */
@@ -48,8 +48,9 @@ class RequestItemPresetController extends Controller
         return $request->validate([
             'title' => 'required|string|max:100',
             'children' => 'nullable|array',
-            'children.*' => 'array',
-            'children.*.*' => 'string|max:100',
+            'children.*.name' => 'required|string|max:50',
+            'children.*.items' => 'nullable|array',
+            'children.*.items.*' => 'string|max:100',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
         ]);
