@@ -31,6 +31,7 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
+use App\Http\Controllers\RequestItemPresetController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\TodoController;
@@ -120,6 +121,7 @@ Route::middleware('auth')->group(function () {
     Route::view('/calendar/widget', 'calendar.widget')->name('calendar.widget'); // 데스크탑 위젯용 컴팩트 뷰
     Route::get('/calendar/history', [CalendarController::class, 'historyIndex'])->name('calendar.history');
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
+    Route::get('/api/request-item-presets', [RequestItemPresetController::class, 'index']); // 의뢰 세부 항목 선택지 (3뎁스 프리셋)
     Route::get('/api/events/search', [CalendarController::class, 'search']);
     Route::get('/api/events/history', [CalendarController::class, 'historyEvents']);
     Route::get('/api/events/change-log', [CalendarController::class, 'changeLog']); // 사이드바 삭제/변경 이력 (문장 로그)
@@ -448,6 +450,11 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/admin/project-fields/{field}', [ProjectFieldDefinitionController::class, 'update']);
         Route::delete('/api/admin/project-fields/{field}', [ProjectFieldDefinitionController::class, 'destroy']);
         Route::post('/api/admin/project-fields/reorder', [ProjectFieldDefinitionController::class, 'reorder']);
+
+        // 캘린더 의뢰 세부 항목 프리셋 (master/admin 전용)
+        Route::post('/api/admin/request-item-presets', [RequestItemPresetController::class, 'store']);
+        Route::patch('/api/admin/request-item-presets/{preset}', [RequestItemPresetController::class, 'update']);
+        Route::delete('/api/admin/request-item-presets/{preset}', [RequestItemPresetController::class, 'destroy']);
 
         // 캘린더 카테고리 (master/admin 전용)
         Route::get('/api/admin/calendar-categories', [CalendarCategoryController::class, 'index']);
