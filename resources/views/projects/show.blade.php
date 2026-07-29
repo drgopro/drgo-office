@@ -930,13 +930,21 @@
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
         </div>
 
-        <!-- 장비 항목 편집 모달 — 이 프로젝트에만 적용되는 항목 생성/수정/삭제 -->
+        <!-- 장비 항목 편집 모달 — 프로젝트 전용 + 전체 공통(전역) 항목 생성/수정/삭제 -->
         <div class="pfa-overlay" id="pfaOverlay" onclick="if(event.target===this)closePcfAdd()">
             <div class="pfa-modal">
-                <div class="pfa-title">장비 항목 편집 <span style="font-size:11px;font-weight:600;color:var(--text-muted);">이 프로젝트에만 적용</span></div>
-                <div id="pfaList" style="display:flex;flex-direction:column;gap:6px;"></div>
+                <div class="pfa-title">장비 항목 편집</div>
+                <div id="pfaList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
                 <div style="border-top:1px dashed var(--border);"></div>
                 <div class="pfa-subtitle" id="pfaFormTitle" style="font-size:12.5px;font-weight:700;color:var(--text);">새 항목 추가</div>
+                <div class="pfa-group" id="pfaScopeGroup">
+                    <span class="pfa-lab">적용 범위</span>
+                    <div class="pfa-types">
+                        <button class="pfa-type-chip" data-s="local" onclick="pfaSetScope('local')">이 프로젝트에만</button>
+                        <button class="pfa-type-chip" data-s="global" id="pfaScopeGlobalBtn" onclick="pfaSetScope('global')">전체 프로젝트 공통</button>
+                    </div>
+                    <span style="font-size:11px;color:var(--text-muted);" id="pfaScopeHint"></span>
+                </div>
                 <div class="pfa-group">
                     <span class="pfa-lab">항목 이름 <span style="color:var(--red)">*</span></span>
                     <input type="text" id="pfaLabel" class="pcf-input" placeholder="예: 캡처보드, 프롬프터, 크로마키">
@@ -2259,56 +2267,78 @@ function pcfToggleChange(el) {
     pcfScheduleSave();
 }
 
-// ── 장비 항목 편집 — 이 프로젝트에만 적용되는 항목(custom_data.__equip_items) 생성/수정/삭제 ──
+// ── 장비 항목 편집 — 프로젝트 전용(custom_data.__equip_items) + 전체 공통(전역 필드 정의) 생성/수정/삭제 ──
 const PFA_TYPES = { toggle:'토글 (있음/없음)', checkbox:'체크박스 (다중 선택)', text:'수기 입력', select:'선택 목록', number:'숫자' };
 let pfaType = 'toggle';
-let pfaEditKey = null; // 수정 중인 항목 key (null이면 새 항목)
+let pfaScope = 'local';        // 신규 항목 적용 범위: local=이 프로젝트만 / global=전체 프로젝트 공통
+let pfaEditKey = null;         // 수정 중인 프로젝트 전용 항목 key
+let pfaEditGlobalId = null;    // 수정 중인 전역 항목 id (admin API)
 
 function pfaItems() {
     if (!Array.isArray(projectCustomData.__equip_items)) projectCustomData.__equip_items = [];
     return projectCustomData.__equip_items;
 }
+function pfaGlobalItems() { return projectFieldDefs.filter(f => (f.section||'') === 'equipment'); }
+
 function openPcfAdd() {
     document.getElementById('pfaOverlay').style.display = 'flex';
     document.getElementById('pfaTypes').innerHTML = Object.entries(PFA_TYPES)
         .map(([k, lbl]) => `<button class="pfa-type-chip" data-t="${k}" onclick="pfaSetType('${k}')">${lbl}</button>`).join('');
+    // 전체 공통 범위는 필드 정의 API 권한이 있는 관리자에게만 노출
+    document.getElementById('pfaScopeGlobalBtn').style.display = PCF_CAN_MANAGE ? '' : 'none';
     // 기존 장비 소분류(전역+로컬)를 자동완성 목록으로
     const subs = [...new Set(pcfAllDefs().filter(f => (f.section||'') === 'equipment').map(f => f.subsection).filter(Boolean))];
     document.getElementById('pfaSubList').innerHTML = subs.map(s => `<option value="${pcfEsc(s)}">`).join('');
     pfaResetForm();
 }
 function closePcfAdd() { document.getElementById('pfaOverlay').style.display = 'none'; }
+
+function pfaRowHtml(i, badgeHtml, btnsHtml) {
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">
+        <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(i.label)}</b>
+        ${badgeHtml}
+        <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">${PFA_TYPES[i.type]||i.type}${i.subsection?' · '+pcfEsc(i.subsection):''}</span>
+        ${btnsHtml}
+    </div>`;
+}
 function pfaRenderList() {
     const list = document.getElementById('pfaList');
-    const items = pfaItems();
-    if (!items.length) {
-        list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">이 프로젝트에 추가된 항목이 없습니다.</div>';
-        return;
-    }
-    list.innerHTML = items.map(i => `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">
-        <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(i.label)}</b>
-        <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">${PFA_TYPES[i.type]||i.type}${i.subsection?' · '+pcfEsc(i.subsection):''}</span>
-        <button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;" onclick="pfaEdit('${i.key}')">수정</button>
-        <button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;color:var(--red);" onclick="pfaDelete('${i.key}')">삭제</button>
-    </div>`).join('');
+    const localBadge = '<span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);">이 프로젝트</span>';
+    const globalBadge = '<span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--purple, #7c5cb0) 14%, transparent);color:var(--purple, #7c5cb0);">전체 공통</span>';
+    const btn = (fn, txt, danger) => `<button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;${danger?'color:var(--red);':''}" onclick="${fn}">${txt}</button>`;
+    let html = pfaItems().map(i => pfaRowHtml(i, localBadge, btn(`pfaEdit('${i.key}')`, '수정') + btn(`pfaDelete('${i.key}')`, '삭제', true))).join('');
+    html += pfaGlobalItems().map(i => pfaRowHtml(i, globalBadge,
+        PCF_CAN_MANAGE ? btn(`pfaEditGlobal(${i.id})`, '수정') + btn(`pfaDeleteGlobal(${i.id})`, '삭제', true)
+            : '<span style="flex-shrink:0;font-size:10.5px;color:var(--text-muted);">관리자만 편집</span>')).join('');
+    list.innerHTML = html || '<div style="font-size:12px;color:var(--text-muted);">등록된 장비 항목이 없습니다.</div>';
+}
+function pfaSetScope(s) {
+    if (s === 'global' && !PCF_CAN_MANAGE) return;
+    pfaScope = s;
+    document.querySelectorAll('#pfaScopeGroup .pfa-type-chip').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+    document.getElementById('pfaScopeHint').textContent = s === 'global'
+        ? '모든 프로젝트·의뢰자 화면의 장비 정보에 표시됩니다.'
+        : '이 프로젝트에만 표시됩니다. 다른 프로젝트에는 영향이 없습니다.';
 }
 function pfaResetForm() {
     pfaEditKey = null;
+    pfaEditGlobalId = null;
     document.getElementById('pfaFormTitle').textContent = '새 항목 추가';
+    document.getElementById('pfaScopeGroup').style.display = '';
     document.getElementById('pfaLabel').value = '';
     document.getElementById('pfaSub').value = '';
     document.getElementById('pfaOpts').value = '';
     document.getElementById('pfaQty').checked = false;
     document.getElementById('pfaCancelBtn').style.display = 'none';
     document.getElementById('pfaSubmitBtn').textContent = '항목 추가';
+    pfaSetScope('local');
     pfaSetType('toggle');
     pfaRenderList();
 }
-function pfaEdit(key) {
-    const i = pfaItems().find(x => x.key === key);
-    if (!i) return;
-    pfaEditKey = key;
-    document.getElementById('pfaFormTitle').textContent = `항목 수정 — ${i.label}`;
+// 수정 폼 공통 채우기 — 수정 중에는 적용 범위 변경 불가(범위 선택 숨김)
+function pfaFillForm(i, scopeLabel) {
+    document.getElementById('pfaFormTitle').textContent = `항목 수정 — ${i.label} (${scopeLabel})`;
+    document.getElementById('pfaScopeGroup').style.display = 'none';
     document.getElementById('pfaLabel').value = i.label;
     document.getElementById('pfaSub').value = i.subsection || '';
     document.getElementById('pfaOpts').value = (i.options || []).join(', ');
@@ -2317,6 +2347,20 @@ function pfaEdit(key) {
     document.getElementById('pfaSubmitBtn').textContent = '저장';
     pfaSetType(i.type || 'text');
     document.getElementById('pfaLabel').focus();
+}
+function pfaEdit(key) {
+    const i = pfaItems().find(x => x.key === key);
+    if (!i) return;
+    pfaEditKey = key;
+    pfaEditGlobalId = null;
+    pfaFillForm(i, '이 프로젝트');
+}
+function pfaEditGlobal(id) {
+    const i = pfaGlobalItems().find(x => x.id === id);
+    if (!i) return;
+    pfaEditGlobalId = id;
+    pfaEditKey = null;
+    pfaFillForm(i, '전체 공통');
 }
 function pfaDelete(key) {
     const i = pfaItems().find(x => x.key === key);
@@ -2327,6 +2371,26 @@ function pfaDelete(key) {
     pcfScheduleSave();
     renderProjectCustomFields();
 }
+async function pfaDeleteGlobal(id) {
+    const i = pfaGlobalItems().find(x => x.id === id);
+    if (!i || !confirm(`'${i.label}' 항목은 전체 공통 항목입니다.\n삭제하면 모든 프로젝트·의뢰자 화면에서 사라집니다. 삭제할까요?`)) return;
+    const res = await fetch(`/api/admin/project-fields/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': CSRF_PJ, 'Accept': 'application/json' },
+    });
+    if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+    if (pfaEditGlobalId === id) pfaEditGlobalId = null;
+    await pfaReloadGlobal();
+}
+// 전역 정의 갱신 → 목록/필드 다시 그림
+async function pfaReloadGlobal() {
+    try {
+        const res = await fetch('/api/project-fields/active', {headers:{'Accept':'application/json'}});
+        if (res.ok) projectFieldDefs = (await res.json()).filter(f => f.is_active);
+    } catch(e) {}
+    pfaResetForm();
+    renderProjectCustomFields();
+}
 function pfaSetType(t) {
     pfaType = t;
     document.querySelectorAll('#pfaTypes .pfa-type-chip').forEach(b => b.classList.toggle('on', b.dataset.t === t));
@@ -2334,7 +2398,7 @@ function pfaSetType(t) {
     // 수량은 토글/수기입력/선택목록에서만 의미 있음 (체크박스·숫자는 제외)
     document.getElementById('pfaQtyWrap').style.display = PCF_QTY_TYPES.includes(t) ? '' : 'none';
 }
-function pcfAddSubmit() {
+async function pcfAddSubmit() {
     const label = document.getElementById('pfaLabel').value.trim();
     if (!label) { alert('항목 이름을 입력하세요.'); return; }
     const opts = document.getElementById('pfaOpts').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
@@ -2346,6 +2410,25 @@ function pcfAddSubmit() {
         options: ['checkbox','select'].includes(pfaType) ? opts : null,
         has_quantity: PCF_QTY_TYPES.includes(pfaType) && document.getElementById('pfaQty').checked,
     };
+
+    // 전역(전체 공통) 항목 — admin API로 생성/수정
+    if (pfaEditGlobalId || (!pfaEditKey && pfaScope === 'global')) {
+        const url = pfaEditGlobalId ? `/api/admin/project-fields/${pfaEditGlobalId}` : '/api/admin/project-fields';
+        const res = await fetch(url, {
+            method: pfaEditGlobalId ? 'PATCH' : 'POST',
+            headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF_PJ, 'Accept':'application/json' },
+            body: JSON.stringify(pfaEditGlobalId ? data : { ...data, section: 'equipment', is_active: true }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.message || '저장에 실패했습니다.');
+            return;
+        }
+        await pfaReloadGlobal();
+        return;
+    }
+
+    // 프로젝트 전용 항목 — custom_data.__equip_items에 저장
     if (pfaEditKey) {
         const i = pfaItems().find(x => x.key === pfaEditKey);
         if (i) Object.assign(i, data);
