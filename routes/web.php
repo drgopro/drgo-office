@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
         Route::get('/marketing-report/revenue', [MarketingReportController::class, 'revenuePage'])->name('marketing-report.revenue');
         Route::get('/marketing-report/schedules-export', [MarketingReportController::class, 'schedulesExport'])->name('marketing-report.schedules-export');
+        Route::get('/marketing-report/schedules-export-raw', [MarketingReportController::class, 'schedulesExportRaw'])->name('marketing-report.schedules-export-raw');
         Route::get('/api/marketing-report/revenue-projects', [MarketingReportController::class, 'revenueProjects']);
     });
 

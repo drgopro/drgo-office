@@ -440,6 +440,194 @@ class MarketingReportController extends Controller
         ]);
     }
 
+    /**
+     * 일정통계 RAW 엑셀 — 마케팅부 추출 사양서(17컬럼, 1건=1행) 형식.
+     * 현재 입력 데이터에서 채울 수 있는 값은 매핑·정규화로 채우고, 입력이 없는 값은 공백(=누락)으로 출력.
+     */
+    public function schedulesExportRaw(Request $request): StreamedResponse
+    {
+        $from = $request->query('from', now()->startOfMonth()->format('Y-m-d'));
+        $to = $request->query('to', now()->endOfMonth()->format('Y-m-d'));
+        $dows = ['일', '월', '화', '수', '목', '금', '토'];
+        $catMap = CalendarCategory::map();
+
+        $schedules = Schedule::topLevel()->with('assignees:id,name')
+            ->whereBetween('start_date', [$from, $to])
+            ->orderBy('start_date')->orderBy('is_all_day', 'desc')->orderBy('start_time')->orderBy('id')
+            ->get();
+
+        // 연동 의뢰자/프로젝트 일괄 로딩 (의뢰자 유형·플랫폼 폴백)
+        $clientIds = $schedules->map(fn ($s) => data_get($s->request_data, 'client_id'))->filter()->unique();
+        $clients = Client::whereIn('id', $clientIds)->get()->keyBy('id');
+        $projectIds = $schedules->map(fn ($s) => data_get($s->request_data, 'project_id'))->filter()->unique();
+        $projects = Project::whereIn('id', $projectIds)->get(['id', 'client_scale'])->keyBy('id');
+
+        // 재방문 판정용 — 의뢰자 식별키별 최초 일정일 (기간 이전 이력 포함 전체 조회)
+        $clientKey = function (Schedule $s): ?string {
+            $cid = data_get($s->request_data, 'client_id');
+            if ($cid) {
+                return 'c'.$cid;
+            }
+            $name = trim((string) ($s->client_name ?: data_get($s->request_data, 'nickname') ?: data_get($s->request_data, 'name') ?: ''));
+
+            return $name !== '' ? 'n'.mb_strtolower($name) : null;
+        };
+        $firstSeen = [];
+        Schedule::topLevel()->orderBy('start_date')
+            ->get(['id', 'start_date', 'client_name', 'request_data'])
+            ->each(function (Schedule $s) use ($clientKey, &$firstSeen) {
+                $key = $clientKey($s);
+                if ($key && ! isset($firstSeen[$key])) {
+                    $firstSeen[$key] = $s->start_date->format('Y-m-d').'#'.$s->id;
+                }
+            });
+
+        // 유형 매핑 — 카테고리 라벨 + 원격/방송룸 모드 + 계약 동기화 출처
+        $typeOf = function (Schedule $s) use ($catMap): string {
+            $label = $catMap[$s->color]['label'] ?? $s->color;
+            if (in_array($s->source_type, ['rental_contract'], true)) {
+                return '장비 렌탈';
+            }
+            if ($s->source_type === 'broadcast_contract') {
+                return '방송룸 대여';
+            }
+
+            return match ($label) {
+                '방문의뢰' => '방문세팅',
+                '원격/방송룸' => data_get($s->remote_data, 'mode') === 'studio' ? '방송룸 대여' : '원격',
+                '촬영/스튜디오' => '촬영',
+                '미팅/내방' => '내방',
+                '사내업무' => '사내업무',
+                '휴가/개인' => '휴가/개인',
+                '렌탈' => '장비 렌탈',
+                '방송룸 대여' => '방송룸 대여',
+                default => $label,
+            };
+        };
+
+        $platformNorm = function (string $raw): string {
+            $v = mb_strtolower(trim($raw));
+            if ($v === '') {
+                return '';
+            }
+            if (str_contains($v, ',') || str_contains($v, '동시') || str_contains($v, '멀티')) {
+                return '동시';
+            }
+            foreach ([
+                '숲' => ['숲', 'soop', '아프리카', 'afreeca'],
+                '치지직' => ['치지직', 'chzzk'],
+                '유튜브' => ['유튜브', '유투브', 'youtube'],
+                '틱톡' => ['틱톡', 'tiktok'],
+                '팬더' => ['팬더', 'panda'],
+                '플렉스' => ['플렉스', 'flex'],
+                '팝콘' => ['팝콘', 'popkon'],
+            ] as $code => $variants) {
+                foreach ($variants as $needle) {
+                    if (str_contains($v, $needle)) {
+                        return $code;
+                    }
+                }
+            }
+
+            return '기타';
+        };
+
+        // 지역 — 주소에서 시/도 + 시/군/구 추출 (근사치)
+        $regionOf = function (string $addr): string {
+            $addr = trim(preg_replace('/\s+/', ' ', $addr));
+            if ($addr === '') {
+                return '';
+            }
+            $tokens = explode(' ', $addr);
+            $first = preg_replace('/(특별시|광역시|특별자치시|특별자치도)$/u', '', $tokens[0]);
+            $second = $tokens[1] ?? '';
+
+            return trim($first.' '.$second);
+        };
+
+        $header = ['일정ID', '날짜', '요일', '시작시간', '종료시간', '제목', '유형', '의뢰자 유형', '의뢰자명', '플랫폼', '경력', '결제금액', '속성', '상태', '주담당자', '보조담당자', '지역'];
+
+        $rows = $schedules->map(function (Schedule $s) use ($dows, $clients, $projects, $typeOf, $platformNorm, $regionOf, $clientKey, $firstSeen): array {
+            $g = (array) ($s->request_data ?? []);
+            $client = ! empty($g['client_id']) ? $clients->get($g['client_id']) : null;
+            $type = $typeOf($s);
+            $isInternal = in_array($type, ['사내업무', '휴가/개인'], true);
+
+            // 의뢰자 유형 — 연결 프로젝트 규모값 (엔터 구분은 현재 입력에 없음 → 공백)
+            $scale = ! empty($g['project_id']) ? ($projects->get($g['project_id'])->client_scale ?? null) : null;
+            $clientType = $isInternal ? '해당없음'
+                : (['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업'][$scale] ?? '');
+
+            $clientName = trim((string) ($s->client_name ?: ($g['nickname'] ?? '') ?: ($g['name'] ?? '') ?: ($client->nickname ?? '')));
+            $platform = trim((string) (($g['platform'] ?? '') ?: implode(', ', $client->platforms ?? []) ?: data_get($s->remote_data, 'platform', '')));
+            $career = trim((string) (($g['career'] ?? '') ?: ($client->career ?? '')));
+            $career = in_array($career, ['처음', '신규'], true) ? '처음' : (in_array($career, ['초보', '경력'], true) ? $career : '');
+
+            // 속성 — 급행/사전답사는 제목 표기, 자동결제는 계약 동기화 결제 일정, 재방문은 과거 이력 자동 판정
+            $attrs = [];
+            if (mb_stripos($s->title, '급행') !== false) {
+                $attrs[] = '급행';
+            }
+            if (mb_stripos($s->title, '답사') !== false) {
+                $attrs[] = '사전답사';
+            }
+            $key = $clientKey($s);
+            if (! $isInternal && $key && isset($firstSeen[$key]) && $firstSeen[$key] < $s->start_date->format('Y-m-d').'#'.$s->id) {
+                $attrs[] = '재방문';
+            }
+            if (in_array($s->source_type, ['rental_contract', 'broadcast_contract'], true) && str_contains($s->title, '결제')) {
+                $attrs[] = '자동결제';
+            }
+
+            $assignees = $s->assignees->pluck('name')->values();
+            $region = $regionOf((string) ($s->address ?: $s->location ?: ''));
+
+            return [
+                'CAL-'.$s->start_date->format('Ym').'-'.str_pad((string) $s->id, 4, '0', STR_PAD_LEFT),
+                $s->start_date->format('Y-m-d'),
+                $dows[$s->start_date->dayOfWeek],
+                $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5),
+                $s->is_all_day ? '종일' : ($s->end_time ? substr((string) $s->end_time, 0, 5) : ''),
+                $s->title,
+                $type,
+                $clientType,
+                $isInternal ? '해당없음' : $clientName,
+                $isInternal ? '해당없음' : $platformNorm($platform),
+                $isInternal ? '해당없음' : $career,
+                (int) preg_replace('/\D/', '', (string) ($g['estimate_amount'] ?? '')),
+                implode(';', $attrs),
+                $s->completed_at ? '완료' : '예정',
+                (string) ($assignees[0] ?? ''),
+                $assignees->slice(1)->implode(';'),
+                $region !== '' ? $region : (($isInternal || $type === '원격') ? '해당없음' : ''),
+            ];
+        });
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('일정통계 RAW');
+        $sheet->fromArray($header, null, 'A1');
+        $sheet->getStyle('A1:Q1')->getFont()->setBold(true);
+        $r = 2;
+        foreach ($rows as $row) {
+            $sheet->fromArray($row, null, "A{$r}");
+            $sheet->getCell("L{$r}")->setValue((int) $row[11]); // 결제금액은 숫자형 유지
+            $r++;
+        }
+        foreach (range('A', 'Q') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = "일정통계RAW_{$from}_{$to}.xlsx";
+
+        return new StreamedResponse(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename*=UTF-8''".rawurlencode($filename),
+        ]);
+    }
+
     /** 총 매출 드릴다운 — 기간 내 결제가 발생한 프로젝트별 순매출 목록 (JSON) */
     public function revenueProjects(Request $request)
     {
