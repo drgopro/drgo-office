@@ -3168,10 +3168,8 @@ function renderMonthCompact(){
         const weekStart=fmt(days[0]), weekEnd=fmt(days[6]);
 
         // 다일 일정 레인 배정 (기존 월간 뷰와 동일 규칙 — 휴가/개인 우선)
-        // 이번 달과 겹치지 않는(전·다음 달 전용) 일정은 제외 — 다른 달 칸이 어수선해지는 것 방지
-        const monthStartStr=fmt(first), monthEndStr=fmt(new Date(currentYear,currentMonth+1,0));
-        const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart
-            &&_d(ev.start_date)<=monthEndStr&&evEnd(ev)>=monthStartStr);
+        // 전·다음 달 일정도 표시 (다른 달 셀은 other-month 흐림으로 구분)
+        const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
         weekMulti.sort((a,b)=>((b.color==='red')-(a.color==='red'))||a.start_date.localeCompare(b.start_date)||b.end_date.localeCompare(a.end_date)||a.id-b.id);
         const laneOf={}, lanes=[];
         weekMulti.forEach(ev=>{
@@ -3202,9 +3200,9 @@ function renderMonthCompact(){
             const cur=dt.getMonth()===currentMonth;
             const holiday=getHoliday(full);
             const nc=i===0||holiday?'sun':i===6?'sat':'';
-            // 다른 달 날짜: 숫자만 흐리게 — 칩/+N 표시하지 않음 (시각적 소음 방지)
-            const daySingles=cur?sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full)):[];
-            const hiddenMulti=cur?weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length:0;
+            // 다른 달 날짜도 칩/+N 표시 (other-month 흐림 처리로 현재 달과 구분)
+            const daySingles=sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full));
+            const hiddenMulti=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length;
             // 바 예약 공간은 이 날짜를 실제로 지나는 바의 최하단 레인까지만 — 바 없는 날은 칩이 위부터 채워짐
             const dayLaneMax=weekMulti.reduce((mx,ev)=>{
                 if(laneOf[ev.id]<LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full) return Math.max(mx,laneOf[ev.id]);
@@ -3365,6 +3363,33 @@ function mcSheetSync(){
         startY=null;
     });
     handle.addEventListener('click', ()=>{ if(!('ontouchstart' in window)) mcSheetSet(!mcSheetOpen); });
+})();
+
+// 컴팩트 뷰 하단 리스트: 선택일 하루 이동 — 그리드 밖(6주 경계) 날짜면 달을 넘겨서 선택 유지
+function mcShiftDay(dir){
+    const base=mcSelDate||todayStr();
+    const d=new Date(base+'T00:00:00'); d.setDate(d.getDate()+dir);
+    const nd=fmt(d);
+    if(document.querySelector(`.mc-cell[data-mcday="${nd}"]`)){ mcSelectDay(nd); return; }
+    mcSelDate=nd; // renderMonthCompact→mcSheetSync가 이 날짜를 다시 선택함
+    currentYear=d.getFullYear(); currentMonth=d.getMonth();
+    renderView(); loadEvents();
+}
+// 하단 리스트 좌우 스와이프 — 왼쪽으로 밀면 다음 날, 오른쪽으로 밀면 이전 날 (모바일 시트·데스크탑 리스트 공용)
+(function(){
+    ['mcSheetBody','mcDeskList'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(!el) return;
+        let sx=null, sy=null;
+        el.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+        el.addEventListener('touchend', e=>{
+            if(sx===null) return;
+            const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+            sx=sy=null;
+            if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5) return; // 세로 스크롤·짧은 터치 무시
+            mcShiftDay(dx<0?1:-1);
+        }, {passive:true});
+    });
 })();
 
 function renderMonth() {
