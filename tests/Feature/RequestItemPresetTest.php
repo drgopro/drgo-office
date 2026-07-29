@@ -28,8 +28,9 @@ class RequestItemPresetTest extends TestCase
         $first = collect($res->json())->firstWhere('title', '신규·이사 세팅');
         $this->assertContains('마이크 추가 설치', $first['children']['오디오']);
         $this->assertContains('스트림덱 세팅', $first['children']['기타']);
-        // 예시 시드는 실제 체계로 대체됨
+        // 예시 시드는 실제 체계로 대체됨, 출장비(요금 항목)는 선택지에서 제외
         $this->assertNotContains('처음 세팅', $titles);
+        $this->assertNotContains('출장비', $titles);
     }
 
     public function test_admin_can_create_update_delete_preset(): void
