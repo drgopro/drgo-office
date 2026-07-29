@@ -28,4 +28,9 @@ class TodoFactory extends Factory
     {
         return $this->state(fn () => ['completed_at' => now()]);
     }
+
+    public function dueHeld(): static
+    {
+        return $this->state(fn () => ['due_date' => now()->addDays(3), 'due_held_at' => now()]);
+    }
 }

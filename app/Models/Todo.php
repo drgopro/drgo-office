@@ -20,6 +20,7 @@ class Todo extends Model
         'content',
         'priority',
         'due_date',
+        'due_held_at',
         'assignee_id',
         'schedule_id',
         'created_by',
@@ -32,6 +33,7 @@ class Todo extends Model
     {
         return [
             'due_date' => 'date',
+            'due_held_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
     }

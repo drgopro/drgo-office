@@ -300,7 +300,9 @@ class DashboardController extends Controller
         $myTodoCount = $myTodoAll->count();
         $myTodos = $myTodoAll->take(5)->map(function (Todo $t) {
             $dday = null;
-            if ($t->due_date) {
+            if ($t->due_held_at) {
+                $dday = '보류'; // 기한 보류 중 — 임박/지남 경고 없이 보류로 표시
+            } elseif ($t->due_date) {
                 $diff = (int) now()->startOfDay()->diffInDays($t->due_date->copy()->startOfDay(), false);
                 $dday = $diff < 0 ? abs($diff).'일 지남' : ($diff === 0 ? '오늘 마감' : 'D-'.$diff);
             }
@@ -310,7 +312,7 @@ class DashboardController extends Controller
                 'title' => $t->title,
                 'priority' => $t->priority,
                 'dday' => $dday,
-                'overdue' => $t->due_date && $t->due_date->lt(now()->startOfDay()),
+                'overdue' => ! $t->due_held_at && $t->due_date && $t->due_date->lt(now()->startOfDay()),
             ];
         });
 

@@ -366,6 +366,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api/todos/{todo}', [TodoController::class, 'update']);
     Route::patch('/api/todos/{todo}/assign', [TodoController::class, 'assign']);
     Route::patch('/api/todos/{todo}/complete', [TodoController::class, 'complete']);
+    Route::patch('/api/todos/{todo}/hold-due', [TodoController::class, 'holdDue']);
     Route::delete('/api/todos/{todo}', [TodoController::class, 'destroy']);
     Route::post('/api/todos/{todo}/attachments', [TodoController::class, 'storeAttachments']);
     Route::delete('/api/todo-attachments/{attachment}', [TodoController::class, 'destroyAttachment']);

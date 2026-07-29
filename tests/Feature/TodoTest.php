@@ -176,6 +176,63 @@ class TodoTest extends TestCase
         $this->assertNull($todo->fresh()->completed_at);
     }
 
+    public function test_hold_due_toggles(): void
+    {
+        $todo = Todo::factory()->create(['assignee_id' => $this->user->id, 'due_date' => now()->addDays(2)]);
+
+        $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}/hold-due")
+            ->assertOk()->assertJsonPath('due_held', true);
+        $this->assertNotNull($todo->fresh()->due_held_at);
+
+        $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}/hold-due")
+            ->assertOk()->assertJsonPath('due_held', false);
+        $this->assertNull($todo->fresh()->due_held_at);
+    }
+
+    public function test_hold_due_requires_due_date(): void
+    {
+        $todo = Todo::factory()->create(['assignee_id' => $this->user->id, 'due_date' => null]);
+
+        $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}/hold-due")
+            ->assertUnprocessable();
+        $this->assertNull($todo->fresh()->due_held_at);
+    }
+
+    public function test_member_cannot_hold_others_todo(): void
+    {
+        $todo = Todo::factory()->create(['due_date' => now()->addDays(2)]);
+
+        $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}/hold-due")
+            ->assertForbidden();
+    }
+
+    public function test_due_date_change_clears_hold(): void
+    {
+        $todo = Todo::factory()->dueHeld()->create(['assignee_id' => $this->user->id]);
+
+        // 기한 유지 → 보류 유지
+        $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}", [
+            'title' => '제목만 수정', 'priority' => 'medium',
+            'due_date' => $todo->due_date->format('Y-m-d'), 'assignee_id' => $this->user->id,
+        ])->assertOk();
+        $this->assertNotNull($todo->fresh()->due_held_at);
+
+        // 기한 변경 → 보류 해제
+        $this->actingAs($this->user)->patchJson("/api/todos/{$todo->id}", [
+            'title' => '기한 변경', 'priority' => 'medium',
+            'due_date' => now()->addDays(7)->format('Y-m-d'), 'assignee_id' => $this->user->id,
+        ])->assertOk();
+        $this->assertNull($todo->fresh()->due_held_at);
+    }
+
+    public function test_board_json_includes_due_held(): void
+    {
+        Todo::factory()->dueHeld()->create(['assignee_id' => $this->user->id]);
+
+        $res = $this->actingAs($this->user)->getJson('/api/todos');
+        $res->assertOk()->assertJsonPath('todos.0.due_held', true);
+    }
+
     public function test_destroy_removes_todo_and_attachment_files(): void
     {
         Storage::fake();

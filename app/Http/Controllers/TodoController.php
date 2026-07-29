@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Rules\SafeAttachment;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -49,6 +50,15 @@ class TodoController extends Controller
     {
         $this->authorizeTodo($todo);
         [$validated, $assigneeIds] = $this->validateTodo($request);
+
+        // 기한이 바뀌거나 없어지면 보류 상태는 초기화 (새 기한 기준으로 다시 관리)
+        $newDue = isset($validated['due_date']) && $validated['due_date']
+            ? Carbon::parse($validated['due_date'])->format('Y-m-d')
+            : null;
+        if ($newDue !== $todo->due_date?->format('Y-m-d')) {
+            $validated['due_held_at'] = null;
+        }
+
         $todo->update($validated);
         $todo->syncAssigneesOrdered($assigneeIds);
 
@@ -90,6 +100,18 @@ class TodoController extends Controller
         $todo->syncAssigneesOrdered([$target, ...$rest]);
 
         return response()->json(['ok' => true]);
+    }
+
+    /** 기한 보류 토글 — 기한이 지정된 할 일만 (보류 중에는 임박/지남 경고 대신 보류 표시) */
+    public function holdDue(Todo $todo)
+    {
+        $this->authorizeTodo($todo);
+        if (! $todo->due_date) {
+            return response()->json(['message' => '기한이 없는 할 일은 보류할 수 없습니다.'], 422);
+        }
+        $todo->update(['due_held_at' => $todo->due_held_at ? null : now()]);
+
+        return response()->json(['ok' => true, 'due_held' => (bool) $todo->due_held_at]);
     }
 
     /** 완료 토글 */
@@ -236,6 +258,8 @@ class TodoController extends Controller
             'content' => $t->content,
             'priority' => $t->priority,
             'due_date' => $t->due_date?->format('Y-m-d'),
+            'due_held' => (bool) $t->due_held_at,
+            'due_held_at' => $t->due_held_at?->format('Y.m.d H:i'),
             'assignee_id' => $t->assignee_id,
             'schedule_id' => $t->schedule_id,
             'assignee' => $t->assignee?->display_name ?? '알 수 없음',

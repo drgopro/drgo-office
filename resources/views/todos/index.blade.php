@@ -133,6 +133,7 @@
     .todo-due { font-size:10px; font-weight:700; padding:3px 9px; border-radius:9px; background:var(--surface2); color:var(--text-muted); }
     .todo-due.overdue { background:#fdecea; color:#c0392b; }
     .todo-due.today { background:#fdf1e3; color:#b26a00; }
+    .todo-due.held { background:#eef0f7; color:#5b6b95; }
     .todo-attach-n { font-size:10px; color:var(--text-muted); }
     .todo-card.done { opacity:0.6; }
     .todo-card.done .todo-card-title { text-decoration:line-through; }
@@ -311,6 +312,7 @@
         <div class="todo-modal-foot">
             <button type="button" class="todo-btn danger" onclick="deleteTodo()">삭제</button>
             <button type="button" class="todo-btn ghost" onclick="editTodo()">수정</button>
+            <button type="button" class="todo-btn ghost" id="tvHoldBtn" onclick="toggleHoldDue()">기한 보류</button>
             <button type="button" class="todo-btn success" id="tvCompleteBtn" onclick="toggleComplete()">완료 처리</button>
         </div>
     </div>
@@ -349,6 +351,7 @@ function dueDiff(t) {
 function dueChip(t) {
     if (!t.due_date) { return ''; }
     if (t.completed) { return `<span class="todo-due">${fmtDate(t.due_date)}</span>`; }
+    if (t.due_held) { return `<span class="todo-due held" title="기한 보류 중${t.due_held_at ? ' · ' + t.due_held_at : ''}">⏸ 보류</span>`; }
     const diff = dueDiff(t);
     if (diff < 0) { return `<span class="todo-due overdue">⚠ ${-diff}일 지남</span>`; }
     if (diff === 0) { return `<span class="todo-due today">오늘 마감</span>`; }
@@ -359,7 +362,7 @@ function dueChip(t) {
 function dueDateHtml(t) {
     if (!t.due_date) { return ''; }
     const diff = dueDiff(t);
-    const cls = t.completed ? '' : diff <= 0 ? 'imminent' : diff <= 3 ? 'soon' : '';
+    const cls = (t.completed || t.due_held) ? '' : diff <= 0 ? 'imminent' : diff <= 3 ? 'soon' : '';
     return `<span class="todo-lrow-due-date ${cls}">${fmtDate(t.due_date)}</span>`;
 }
 
@@ -537,6 +540,7 @@ function renderDetailPane() {
         <div class="tdp-actions">
             <button type="button" class="todo-btn danger" onclick="paneDelete()">삭제</button>
             <button type="button" class="todo-btn ghost" onclick="paneEdit()">수정</button>
+            ${t.due_date && !t.completed ? `<button type="button" class="todo-btn ghost" onclick="quickHoldDue(${t.id})">${t.due_held ? '보류 해제' : '기한 보류'}</button>` : ''}
             <button type="button" class="todo-btn success" onclick="quickComplete(${t.id})">${t.completed ? '완료 취소' : '완료 처리'}</button>
         </div>`;
     loadLinkCards();
@@ -963,6 +967,9 @@ function openTodoView(id) {
             <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
         </div>`).join('');
     document.getElementById('tvCompleteBtn').textContent = t.completed ? '완료 취소' : '완료 처리';
+    const holdBtn = document.getElementById('tvHoldBtn');
+    holdBtn.style.display = (t.due_date && !t.completed) ? '' : 'none';
+    holdBtn.textContent = t.due_held ? '보류 해제' : '기한 보류';
     document.getElementById('todoViewOverlay').classList.add('open');
     armModalHistory();
 }
@@ -986,6 +993,27 @@ async function quickComplete(id) {
     });
     if (!res.ok) { alert('처리에 실패했습니다.'); return; }
     await refreshBoard();
+}
+
+// 기한 보류 토글 — 상세 패널·카드 공용 (기한이 있는 미완료 할 일만 버튼 노출)
+async function quickHoldDue(id) {
+    const res = await fetch(`/api/todos/${id}/hold-due`, {
+        method: 'PATCH',
+        headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || '처리에 실패했습니다.');
+        return;
+    }
+    await refreshBoard();
+}
+
+// 상세 모달에서 보류 토글 — 갱신된 데이터로 모달을 다시 그림
+async function toggleHoldDue() {
+    const id = TODO_VIEW_ID;
+    await quickHoldDue(id);
+    if (id && TODOS.some(t => t.id === id)) { openTodoView(id); }
 }
 
 async function toggleComplete() {
