@@ -8,6 +8,7 @@ use App\Models\Schedule;
 use App\Models\Todo;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -18,6 +19,11 @@ class SmokeSeeder extends Seeder
 {
     public function run(): void
     {
+        // 안전장치 — 스모크 시드는 임시 sqlite 전용. 운영(mysql 등)에서는 절대 실행 금지.
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            throw new \RuntimeException('SmokeSeeder는 sqlite 전용입니다 — 운영 DB에서 실행이 차단되었습니다.');
+        }
+
         $user = User::create([
             'username' => 'smoke',
             'display_name' => '스모크',

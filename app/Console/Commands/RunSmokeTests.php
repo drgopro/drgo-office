@@ -32,6 +32,11 @@ class RunSmokeTests extends Command
             'APP_URL' => "http://127.0.0.1:{$port}",
             'CACHE_STORE' => 'file',
             'QUEUE_CONNECTION' => 'sync',
+            // 운영 서버의 config:cache가 자식 프로세스에서 env 오버라이드를 무력화하는 것 방지 —
+            // 캐시 파일 경로를 존재하지 않는 곳으로 돌려 .env + 위 오버라이드로 부팅시킴
+            'APP_CONFIG_CACHE' => $db.'.config.php',
+            'APP_ROUTES_CACHE' => $db.'.routes.php',
+            'APP_EVENTS_CACHE' => $db.'.events.php',
         ];
         $php = PHP_BINARY;
 
@@ -64,6 +69,13 @@ class RunSmokeTests extends Command
 
                 return self::FAILURE;
             }
+        }
+
+        // 안전 점검 — 마이그레이션이 실제로 임시 sqlite에 적용됐는지 확인 (운영 DB 오염 방지 이중 안전장치)
+        if (filesize($db) < 10240) {
+            $this->error('임시 sqlite에 마이그레이션이 적용되지 않았습니다 — 실행 중단 (config 캐시 확인 필요)');
+
+            return self::FAILURE;
         }
 
         $this->info("2/4 임시 서버 기동 (:{$port})");
