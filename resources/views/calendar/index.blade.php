@@ -263,7 +263,7 @@
     .mc-bars-space { flex-shrink:0; }
     .mc-chip { height:16px; line-height:14px; font-size:10.5px; padding:0 3px 0 4px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex-shrink:0; }
     .mc-chip:hover { filter:brightness(1.15); }
-    .mc-chip .mc-time { opacity:0.7; font-size:9.5px; margin-right:2px; }
+    .mc-chip .mc-time { display:inline-block; min-width:29px; opacity:0.7; font-size:9.5px; margin-right:2px; font-variant-numeric:tabular-nums; }
     .mc-chip.is-completed, .mc-bar.is-completed { opacity:0.4; }
     .mc-more { font-size:10px; font-weight:700; color:var(--text-muted); cursor:pointer; padding:0 4px; flex-shrink:0; line-height:14px; }
     .mc-more:hover { color:var(--accent); }
@@ -3208,6 +3208,10 @@ function renderMonthCompact(){
                 style="left:calc(${c0} * 100% / 7 + 2px); width:calc(${c1-c0+1} * 100% / 7 - 5px); top:${HEAD+lane*BAR}px;">${label}</div>`;
         });
 
+        // 이 주에서 실제 사용된 바 레인 수 — 모든 셀이 동일한 바 공간을 예약해 칩 시작 높이를 주 단위로 정렬
+        const weekLanes=Math.min(lanes.length, LANE_CAP);
+        const barSpace=weekLanes*BAR;
+
         // 날짜 셀 + 단일 일정 칩
         let cellsHtml='';
         days.forEach((dt,i)=>{
@@ -3218,12 +3222,6 @@ function renderMonthCompact(){
             // 다른 달 날짜도 칩/+N 표시 (other-month 흐림 처리로 현재 달과 구분)
             const daySingles=sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full));
             const hiddenMulti=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length;
-            // 바 예약 공간은 이 날짜를 실제로 지나는 바의 최하단 레인까지만 — 바 없는 날은 칩이 위부터 채워짐
-            const dayLaneMax=weekMulti.reduce((mx,ev)=>{
-                if(laneOf[ev.id]<LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full) return Math.max(mx,laneOf[ev.id]);
-                return mx;
-            },-1);
-            const barSpace=(dayLaneMax+1)*BAR;
             const singleBudget=Math.max(1,Math.floor((rowH-HEAD-barSpace)/CHIP));
             let show=daySingles, moreCnt=hiddenMulti;
             if(daySingles.length+hiddenMulti>singleBudget){
@@ -3231,7 +3229,8 @@ function renderMonthCompact(){
                 moreCnt=hiddenMulti+(daySingles.length-cut);
                 show=daySingles.slice(0,cut);
             }
-            const chips=show.map(ev=>`<div class="mc-chip color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${eventOptIconsHtml(ev)}${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`).join('');
+            // 시간을 칩 맨 앞 고정폭으로 — 아이콘 폭 차이로 시간 열이 어긋나지 않게 (시간 → 아이콘 → 제목 순)
+            const chips=show.map(ev=>`<div class="mc-chip color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`).join('');
             const more=moreCnt>0?`<div class="mc-more" data-mcmore="${full}">+${moreCnt}</div>`:'';
             cellsHtml+=`<div class="mc-cell${cur?'':' other-month'}${full===ts?' today':''}" data-mcday="${full}">
                 <div class="mc-daynum-row"><span class="mc-daynum ${nc}">${dt.getDate()}</span>${holiday?`<span class="mc-holiday">${holiday}</span>`:''}</div>
