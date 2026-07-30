@@ -35,6 +35,7 @@ use App\Http\Controllers\RequestItemPresetController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\TodoController;
+use App\Http\Controllers\UpdateNoteController;
 use App\Http\Controllers\VisitReportTemplateController;
 use App\Http\Controllers\WikiCategoryController;
 use App\Http\Controllers\WikiController;
@@ -470,6 +471,8 @@ Route::middleware('auth')->group(function () {
 
             return response(Artisan::output(), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
         });
+        // 배포 커밋 → 위키 '업데이트' 게시물 초안 자동 생성 (임시저장으로 만들어 검토 후 발행)
+        Route::get('/admin/update-note-draft', [UpdateNoteController::class, 'generateDraft'])->name('admin.update-note-draft');
         Route::get('/admin/normalize-log', function () {
             $path = storage_path('logs/normalize.log');
 

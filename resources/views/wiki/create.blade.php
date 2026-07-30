@@ -530,6 +530,11 @@ window.loadDraft=async function(id){
     setAutosaveStatus('임시저장 글 불러옴 — 등록 버튼을 눌러야 발행됩니다');
     closeDraftModal();
 };
+// 자동 생성된 초안 링크(?draft=)로 진입 시 해당 임시저장 글 바로 열기
+(function(){
+    const draftId = parseInt(new URLSearchParams(window.location.search).get('draft'), 10);
+    if (draftId) loadDraft(draftId);
+})();
 window.deleteDraft=async function(id){
     if(!confirm('이 임시저장 글을 삭제할까요?')) return;
     const res=await fetch('/wiki/'+id,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});

@@ -230,6 +230,9 @@
         <div class="wiki-sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
             <a href="{{ route('wiki.create') }}{{ request('cat') ? '?cat='.(int) request('cat') : '' }}" id="wikiNewBtn" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
             <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')"><x-icon name="gear" :size="13"/> 연결도 에디터</button>
+            @if(auth()->user()->isAdmin())
+                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="genUpdateNoteDraft()">⚡ 업데이트 초안 생성</button>
+            @endif
         </div>
     </div>
 
@@ -511,6 +514,15 @@ function filterCatId(id) {
     if (newBtn) newBtn.href = '/wiki/create' + (WIKI_CUR_CAT ? '?cat=' + WIKI_CUR_CAT : '');
     renderWikiTree();
     renderDocList();
+}
+// 배포 커밋 → 업데이트 게시물 초안 자동 생성 (관리자) — 생성 후 작성 화면에서 검토·발행
+function genUpdateNoteDraft() {
+    const today = new Date().toLocaleDateString('sv-SE');
+    const input = prompt('업데이트 노트로 만들 배포 날짜를 입력하세요.\n하루: ' + today + '\n기간: 2026-07-28~' + today, today);
+    if (!input) return;
+    const m = input.replaceAll(' ', '').match(/^(\d{4}-\d{2}-\d{2})(?:~(\d{4}-\d{2}-\d{2}))?$/);
+    if (!m) { alert('날짜 형식이 올바르지 않습니다.\n예: 2026-07-30 또는 2026-07-28~2026-07-30'); return; }
+    location.href = '/admin/update-note-draft?from=' + m[1] + '&to=' + (m[2] || m[1]);
 }
 // 해당 카테고리 + 하위 전체 id 집합
 function wikiDescendantSet(rootId) {
