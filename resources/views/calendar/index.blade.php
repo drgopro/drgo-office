@@ -887,6 +887,12 @@
     .ls-time { display:inline-flex; align-items:center; gap:8px; font-size:15px; color:var(--text); font-weight:500; padding:2px 0; }
     .ls-time-icon { font-size:18px; }
     .ls-type-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; background:var(--surface2); border:1px solid var(--border); font-size:13px; color:var(--text); font-weight:500; align-self:flex-start; }
+    /* 요약 뷰 확정 상태 퀵 피커 (제/희/목/확) */
+    .ls-sopt-pick { display:inline-flex; gap:5px; align-items:center; }
+    .ls-sopt-btn { padding:5px 12px; border-radius:999px; border:1.5px solid var(--border); background:none; color:var(--text-muted); font-size:12px; font-weight:700; cursor:pointer; transition:all .12s; }
+    .ls-sopt-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .ls-sopt-btn.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
+    .ls-sopt-btn.on[data-sopt="confirmed"] { background:#2f9e44; border-color:#2f9e44; color:#fff; }
     .ls-chips { display:flex; flex-wrap:wrap; gap:8px; }
     .ls-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:18px; background:var(--surface2); border:1px solid var(--border); font-size:13px; color:var(--text); font-weight:500; }
     .ls-chip-icon { opacity:0.95; }
@@ -4271,11 +4277,20 @@ function renderLockSummary(){
     const specialSel=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')]
         .map(b=>b.dataset.opt).filter(o=>SPECIAL_OPT_LABELS[o]);
     const specialPills=specialSel.map(o=>`<span class="ls-type-pill">${SPECIAL_ICONS[o]||''} ${_esc(SPECIAL_OPT_LABELS[o])}</span>`).join('');
-    const schedPills=[...document.querySelectorAll('#scheduleOpts .sched-opt-btn.active, #schedEventOpts .special-opt-btn.active')]
+    const schedEventPills=[...document.querySelectorAll('#schedEventOpts .special-opt-btn.active')]
         .map(b=>`<span class="ls-type-pill">${_esc(b.textContent.trim())}</span>`).join('');
+    // 확정 상태(제/희/목/확) — 요약 뷰에서 바로 지정/해제 (저장된 일정 + 편집 권한, 전 카테고리)
+    const curSopt=document.querySelector('#scheduleOpts .sched-opt-btn.active')?.dataset.sopt||'';
+    let schedPicker='';
+    if(editingId&&canEditCalendar){
+        schedPicker=`<span class="ls-sopt-pick" title="확정 상태 — 클릭해서 지정, 같은 값 다시 클릭 시 해제">${['suggest','hope','target','confirmed'].map(k=>
+            `<button type="button" class="ls-sopt-btn${curSopt===k?' on':''}" data-sopt="${k}" onclick="lsSetSchedOpt('${k}')">${SCHED_CHIP_LABELS[k]}</button>`).join('')}</span>`;
+    } else if(curSopt){
+        schedPicker=`<span class="ls-type-pill">${_esc(SCHED_FULL_LABELS[curSopt]||curSopt)}</span>`;
+    }
     // 의뢰자/프로젝트 줄과 일정 옵션 줄 분리
     const linkRow=(clientChipHtml||projectChipHtml||sourceChipHtml)?`<div class="ls-meta-row">${clientChipHtml}${projectChipHtml}${sourceChipHtml}</div>`:'';
-    const optRow=(schedPills||specialPills)?`<div class="ls-meta-row">${schedPills}${specialPills}</div>`:'';
+    const optRow=(schedPicker||schedEventPills||specialPills)?`<div class="ls-meta-row">${schedPicker}${schedEventPills}${specialPills}</div>`:'';
     const metaRow=linkRow+optRow;
 
     // ① 일시·장소 — 굵은 일시 + 굵은 주소 + 특수옵션 회색 라인
@@ -5101,6 +5116,21 @@ function renderShipIconButtons(){
         b.classList.toggle('primary', (b.dataset.sio||'')===(shipIconOverride||''));
     });
 }
+// 요약 뷰에서 확정 상태(제/희/목/확) 바로 지정 — 같은 값 다시 클릭하면 해제, 즉시 서버 반영
+async function lsSetSchedOpt(v){
+    if(!editingId||!canEditCalendar) return;
+    const cur=document.querySelector('#scheduleOpts .sched-opt-btn.active')?.dataset.sopt||null;
+    const val=v===cur?null:v;
+    if(!(await quickUpdateEvent({sched_opt:val}))) return;
+    // 폼 버튼 상태도 동기화 (요약 해제 후 편집·저장 시 일관성 유지)
+    document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.sopt===val));
+    updateSchedOptDesc();
+    if(detailEvent) detailEvent.sched_opt=val;
+    showCalToast(val?`확정 상태: ${SCHED_FULL_LABELS[val]}`:'확정 상태를 해제했습니다');
+    if(isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+    loadEvents();
+}
+
 // 배송 아이콘 수동 지정 — 클릭 즉시 서버 반영 (부분 송장 업로드 시 완료 착각 방지)
 // 이미 선택된 아이콘을 다시 클릭하면 해제 (실수 클릭 복구)
 async function setShipIconOverride(v){
