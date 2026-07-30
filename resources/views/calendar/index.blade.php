@@ -308,7 +308,8 @@
     .opt-chip { display:inline-flex; align-items:center; flex-shrink:0; font-size:calc(8px * var(--cal-fz,1)); font-weight:700; padding:0 3px; border-radius:4px; background:rgba(127,127,127,0.16); border:1px solid rgba(127,127,127,0.28); color:inherit; margin-left:2px; line-height:1.5; vertical-align:middle; }
     .opt-chip.accent { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:color-mix(in srgb, var(--accent) 40%, transparent); }
     .opt-chip.urgent { background:#ef444426; border-color:#ef444466; color:#e06c6c; }
-    .opt-chip.confirmed { background:#2f9e4426; border-color:#2f9e4466; color:#3fae54; }
+    /* 확정 칩 — 연한 틴트 대신 진한 배경으로 눈에 띄게 */
+    .opt-chip.confirmed { background:#2f9e44; border-color:#2f9e44; color:#fff; font-weight:800; }
     /* 리스트 계열 뷰: 옵션 칩을 타이틀 앞에 배치 — 폰트 축소 + 여백 방향 전환 */
     .agenda-title .opt-chip, .dp-title .opt-chip, .mde-title .opt-chip { font-size:8px; margin-left:0; margin-right:3px; }
     /* 특수 옵션 아이콘 (차량🚗·제품💼 등) — 제목 앞 */
