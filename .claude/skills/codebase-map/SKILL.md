@@ -14,6 +14,7 @@ Laravel 13 + Blade 단일 파일 뷰(인라인 CSS/JS) 구조. SPA 프레임워�
    `php extract-any.php <url-path> <out-dir>` → 각 `*.js`를 `node --check`
    (내부에서 master 유저로 인증 + DB 트랜잭션 롤백. `__project_show__` 인자는 임시 프로젝트 생성 후 상세 페이지 렌더)
 3. 테스트: `php artisan test --compact [파일]` (sqlite :memory:)
+3-1. UI 스모크: `php artisan smoke:run` — 임시 sqlite+SmokeSeeder+임시 서버로 핵심 8화면(캘린더 3뷰·모달, 프로젝트, 할일, 통계, 대시보드)을 Playwright로 렌더 검증 (JS 에러 0 확인). 크롬 경로 지정: `SMOKE_CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (이 원격 환경 기준)
 4. 커밋 메시지에 큰따옴표 금지 (PowerShell 인자 버그) — here-string `@'...'@` 사용
 
 ## 탭 셸 (레이아웃)
