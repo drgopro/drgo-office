@@ -35,6 +35,23 @@ class RunSmokeTests extends Command
         ];
         $php = PHP_BINARY;
 
+        $npx = PHP_OS_FAMILY === 'Windows' ? 'npx.cmd' : 'npx';
+
+        // 0. Playwright 브라우저 확인/설치 — SMOKE_CHROME(시스템 크롬 경로) 지정 시 생략.
+        //    이미 설치돼 있으면 즉시 통과하는 멱등 명령이라 매번 실행해도 비용이 없음.
+        if (! getenv('SMOKE_CHROME')) {
+            $this->info('0/4 Playwright 브라우저 확인 (최초 1회만 다운로드)');
+            $install = new Process([$npx, 'playwright', 'install', 'chromium'], base_path(), null, null, 900);
+            $install->run(function ($type, $buffer) {
+                $this->output->write($buffer);
+            });
+            if (! $install->isSuccessful()) {
+                $this->error('브라우저 설치 실패 — 수동으로 실행해 주세요: npx playwright install chromium');
+
+                return self::FAILURE;
+            }
+        }
+
         $this->info('1/4 마이그레이션·시드');
         foreach ([
             [$php, 'artisan', 'migrate', '--force', '--no-interaction'],
@@ -70,7 +87,6 @@ class RunSmokeTests extends Command
             }
 
             $this->info('3/4 Playwright 스모크 실행');
-            $npx = PHP_OS_FAMILY === 'Windows' ? 'npx.cmd' : 'npx';
             $test = new Process(
                 [$npx, 'playwright', 'test', '--config=playwright.config.js'],
                 base_path(),
