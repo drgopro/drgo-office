@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 
 // 일정 시작 전 웹푸시 알림 (매분)
 Schedule::command('schedules:notify')->everyMinute()->withoutOverlapping();
+Schedule::command('schedules:remind-stale')->dailyAt('09:10'); // 지난 미완료 일정 상태 정리 리마인드 (경과 1·3·7일차)
 
 // 미배송 송장 배송상태 갱신 (30분 주기)
 Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping();
