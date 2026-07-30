@@ -91,6 +91,25 @@ class ScheduleShipmentTest extends TestCase
         $this->assertArrayHasKey('kr.coupangls', $res->json('carriers'));
     }
 
+    public function test_opaque_tracker_internal_error_is_translated(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response(['errors' => [['message' => 'Internal error']]])]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
+            'carrier' => 'kr.coupangls',
+            'tracking_no' => '10325790701100',
+        ])->assertCreated();
+
+        $shipment = $schedule->shipments()->first();
+        $this->assertSame('error', $shipment->status);
+        $this->assertStringContainsString('직접 확인', $shipment->last_event);
+        $this->assertStringNotContainsString('Internal error', $shipment->last_event);
+    }
+
     public function test_invalid_carrier_rejected(): void
     {
         $user = User::factory()->create(['role' => 'master']);

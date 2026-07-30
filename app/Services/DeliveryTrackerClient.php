@@ -54,9 +54,14 @@ class DeliveryTrackerClient
 
         // GraphQL 에러 (NOT_FOUND = 송장 없음 등)
         if (! $res->ok() || ! empty($data['errors'])) {
-            $msg = data_get($data, 'errors.0.message') ?: '조회 실패 (송장번호/택배사 확인)';
+            $msg = (string) (data_get($data, 'errors.0.message') ?: '조회 실패 (송장번호/택배사 확인)');
 
-            return ['status' => 'error', 'last_event' => mb_substr((string) $msg, 0, 200), 'delivered_at' => null, 'raw' => $data];
+            // 추적기 내부 오류(스크래핑 실패·택배사 측 차단 등) — 원문 대신 행동 가능한 안내로 치환
+            if (in_array(strtolower(trim($msg)), ['internal error', 'internal server error'], true)) {
+                $msg = '택배사 응답을 읽지 못했습니다 — 송장번호 링크로 직접 확인해주세요 (추적 서비스 업데이트 필요 가능성)';
+            }
+
+            return ['status' => 'error', 'last_event' => mb_substr($msg, 0, 200), 'delivered_at' => null, 'raw' => $data];
         }
 
         $lastEvent = data_get($data, 'data.track.lastEvent');
