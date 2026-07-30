@@ -1,0 +1,276 @@
+{{-- 배송 현황·세팅 항목 표시·견적서 연동 --}}
+// ── 배송 현황 (송장 추적) — 방문의뢰(gold)·촬영/스튜디오(green), 저장된 일정만 ──
+const SHIP_COLORS=['gold','green'];
+let shipCache={shipments:[],carriers:{}};
+function toggleShipmentBody(force){
+    const body=document.getElementById('shipmentBody');
+    const caret=document.getElementById('shipCaret');
+    if(!body) return;
+    const open = force!==undefined ? force : body.style.display==='none';
+    body.style.display=open?'':'none';
+    if(caret) caret.textContent=open?'▾':'▸';
+}
+function updateShipmentSectionVisibility(){
+    const sec=document.getElementById('shipmentSection');
+    if(sec) sec.style.display=(editingId&&SHIP_COLORS.includes(currentColor))?'':'none';
+}
+async function loadShipments(){
+    if(!editingId||!SHIP_COLORS.includes(currentColor)) return;
+    const sid=editingId;
+    // 캐시 즉시 표시 → 백그라운드 최신화 (재열람 시 늦은 갱신으로 화면이 바뀌어 보이는 문제 완화)
+    const cached=swrGet('ship:'+sid);
+    if(cached){ shipCache=cached; renderShipments(); if(isLocked) renderLockSummary(); }
+    try{
+        const res=await fetch(`/api/schedules/${sid}/shipments`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        const data=await res.json();
+        if(String(editingId)!==String(sid)) return; // 로딩 중 다른 일정으로 전환됨
+        const changed=!cached||JSON.stringify(cached)!==JSON.stringify(data);
+        swrSet('ship:'+sid,data);
+        if(changed){ shipCache=data; renderShipments(); if(isLocked) renderLockSummary(); }
+    }catch(e){}
+}
+// 택배사별 실시간 조회 페이지 (송장번호 클릭 시 새 창) — {no} 자리에 송장번호 치환, 없으면 조회 페이지만 열기
+const CARRIER_TRACK_URLS={
+    'kr.cjlogistics':'https://trace.cjlogistics.com/next/tracking.html?wblNo={no}',
+    'kr.lotte':'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo={no}',
+    'kr.hanjin':'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2={no}',
+    'kr.logen':'https://www.ilogen.com/web/personal/trace/{no}',
+    'kr.epost':'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1={no}',
+    'kr.kdexp':'https://kdexp.com/service/delivery/etc/delivery.do?barcode={no}',
+    'kr.coupangls':'https://www.coupangls.com/', // 딥링크 미지원 — 조회 페이지를 열고 송장번호는 사이트에서 입력
+};
+function shipRowHtml(s){
+    const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:['✕','var(--red)']);
+    const evTxt=s.status==='delivered'?`배송완료${s.delivered_at?' · '+s.delivered_at:''}`:(s.last_event||'조회 대기');
+    const trackUrl=CARRIER_TRACK_URLS[s.carrier];
+    const trackHref=trackUrl?(trackUrl.includes('{no}')?trackUrl.replace('{no}',encodeURIComponent(s.tracking_no)):trackUrl):null;
+    const noHtml=trackHref
+        ? `<a class="ship-no ship-no-link" href="${trackHref}" target="_blank" rel="noopener" title="택배사 실시간 조회 열기" onclick="event.stopPropagation()">${_esc(s.tracking_no)} ↗</a>`
+        : `<span class="ship-no">${_esc(s.tracking_no)}</span>`;
+    return `<div class="ship-item">
+        <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
+        <span class="ship-carrier">${_esc(s.carrier_label)}</span>
+        ${noHtml}
+        <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
+        <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
+    </div>`;
+}
+let shipIconOverride=null; // 현재 열린 일정의 수동 배송 아이콘 (null=제목에 표시 안 함)
+function renderShipIconButtons(){
+    document.querySelectorAll('.ship-ico-btn').forEach(b=>{
+        b.classList.toggle('primary', (b.dataset.sio||'')===(shipIconOverride||''));
+    });
+}
+// 요약 뷰에서 확정 상태(제/희/목/확) 바로 지정 — 같은 값 다시 클릭하면 해제, 즉시 서버 반영
+async function lsSetSchedOpt(v){
+    if(!editingId||!canEditCalendar) return;
+    const cur=document.querySelector('#scheduleOpts .sched-opt-btn.active')?.dataset.sopt||null;
+    const val=v===cur?null:v;
+    if(!(await quickUpdateEvent({sched_opt:val}))) return;
+    // 폼 버튼 상태도 동기화 (요약 해제 후 편집·저장 시 일관성 유지)
+    document.querySelectorAll('#scheduleOpts .sched-opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.sopt===val));
+    updateSchedOptDesc();
+    if(detailEvent) detailEvent.sched_opt=val;
+    showCalToast(val?`확정 상태: ${SCHED_FULL_LABELS[val]}`:'확정 상태를 해제했습니다');
+    if(isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+    loadEvents();
+}
+
+// 배송 아이콘 수동 지정 — 클릭 즉시 서버 반영 (부분 송장 업로드 시 완료 착각 방지)
+// 이미 선택된 아이콘을 다시 클릭하면 해제 (실수 클릭 복구)
+async function setShipIconOverride(v){
+    if(!editingId||!canEditCalendar) return;
+    let val=v||null;
+    if(val&&val===shipIconOverride) val=null;
+    if(!(await quickUpdateEvent({ship_icon_override:val}))) return;
+    shipIconOverride=val;
+    if(detailEvent) detailEvent.ship_icon_override=val;
+    renderShipIconButtons();
+    updateModalShipBadge();
+    showCalToast(val?'제목 배송 아이콘을 지정했습니다':'제목 배송 아이콘을 해제했습니다');
+    if(isLocked&&typeof renderLockSummary==='function') renderLockSummary(); // 요약 뷰의 선택 상태 갱신
+    loadEvents();
+}
+// 모달 제목 옆 배송 상태 아이콘 — 수동 지정만 표시 (자동 판정 제거)
+function updateModalShipBadge(){
+    const badge=document.getElementById('modalShipBadge');
+    if(!badge) return;
+    if(shipIconOverride&&SHIP_ICON_MAP[shipIconOverride]){
+        const [ico,cls]=SHIP_ICON_MAP[shipIconOverride];
+        badge.textContent=ico;
+        badge.style.color=cls==='s-all'?'var(--green)':(cls==='s-part'?'#d78a2e':'var(--red)');
+        badge.title=SHIP_ICON_MAP[shipIconOverride][2];
+        badge.style.display='';
+        return;
+    }
+    badge.style.display='none'; badge.textContent='';
+}
+function renderShipments(){
+    const list=document.getElementById('shipmentList');
+    const sel=document.getElementById('shipCarrier');
+    const badge=document.getElementById('shipSummaryBadge');
+    if(!list) return;
+    if(sel) sel.innerHTML=Object.entries(shipCache.carriers||{}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    const ships=shipCache.shipments||[];
+    const done=ships.filter(s=>s.status==='delivered').length;
+    if(badge) badge.textContent=ships.length?`(${done}/${ships.length} 완료)`:'';
+    list.innerHTML=ships.length?ships.map(shipRowHtml).join(''):'<div class="ship-empty">등록된 송장이 없습니다. 택배사와 송장번호를 입력해 추가하세요.</div>';
+    updateModalShipBadge();
+}
+async function addShipment(){
+    if(!editingId) return;
+    const carrier=document.getElementById('shipCarrier').value;
+    const no=document.getElementById('shipTrackingNo').value.trim();
+    if(!no){alert('송장번호를 입력하세요.');return;}
+    const res=await fetch(`/api/schedules/${editingId}/shipments`,{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body:JSON.stringify({carrier,tracking_no:no}),
+    });
+    const data=await res.json().catch(()=>null);
+    if(!res.ok){alert((data&&data.message)||(data&&data.errors&&Object.values(data.errors).flat().join('\n'))||'등록 실패');return;}
+    document.getElementById('shipTrackingNo').value='';
+    shipCache=data; swrSet('ship:'+editingId,data); renderShipments(); loadEvents(); // 칩 아이콘 갱신
+}
+async function deleteShipment(id){
+    if(!confirm('이 송장을 삭제하시겠습니까?')) return;
+    const res=await fetch(`/api/schedule-shipments/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(!res.ok){alert('삭제 실패');return;}
+    shipCache=await res.json(); if(editingId) swrSet('ship:'+editingId,shipCache); renderShipments(); loadEvents();
+}
+async function refreshShipments(){
+    if(!editingId) return;
+    const res=await fetch(`/api/schedules/${editingId}/shipments/refresh`,{method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+    if(!res.ok){alert('배송상태 갱신 실패');return;}
+    shipCache=await res.json(); swrSet('ship:'+editingId,shipCache); renderShipments(); loadEvents();
+    if(isLocked) renderLockSummary();
+}
+
+// ── 세팅 항목 (읽기 전용) — 연결된 프로젝트의 의뢰 내용(custom_data.__req_items)을 불러와 표시 ──
+let reqItems=[];       // 일정 자체에 저장된 선택 (구버전 호환 — 저장 시 그대로 보존)
+let projReqItems=[];   // 연결 프로젝트에서 불러온 의뢰 내용
+let projReqLoadedFor=null;
+
+function activeReqItems(){ return projReqItems.length?projReqItems:reqItems; }
+
+async function loadProjectReqItems(pid){
+    if(!pid){ projReqItems=[]; projReqLoadedFor=null; renderReqView(); return; }
+    if(String(projReqLoadedFor)===String(pid)) return;
+    projReqLoadedFor=pid;
+    try{
+        const res=await fetch(`/api/projects/${pid}/request-items`,{headers:{'Accept':'application/json'}});
+        if(String(projReqLoadedFor)!==String(pid)) return; // 로딩 중 프로젝트 변경됨
+        projReqItems=res.ok?((await res.json()).req_items||[]):[];
+    }catch(e){ projReqItems=[]; }
+    renderReqView();
+    if(isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+}
+
+// 타이틀 → 분류별 그룹 HTML (모달 표시부·요약 뷰 공용)
+// 분류는 지정 순서(기본 서비스→의뢰 서비스→컴퓨터→카메라/조명→오디오→기타)로 정렬, 항목은 - 접두사로 한 줄씩
+const RQV_CAT_ORDER=['기본 서비스','의뢰 서비스','컴퓨터','카메라/조명','오디오','기타'];
+function reqItemsGroupedHtml(items){
+    const byTitle={};
+    items.forEach(i=>{ (byTitle[i.t]=byTitle[i.t]||[]).push(i); });
+    return Object.entries(byTitle).map(([t,list])=>{
+        const byCat={};
+        list.forEach(i=>{ (byCat[i.c]=byCat[i.c]||[]).push(i); });
+        const cats=Object.entries(byCat).sort((a,b)=>{
+            const ia=RQV_CAT_ORDER.indexOf(a[0]), ib=RQV_CAT_ORDER.indexOf(b[0]);
+            return (ia===-1?999:ia)-(ib===-1?999:ib);
+        });
+        return `<div class="rqv-title">${_esc(t)}</div>`+cats.map(([c,ls])=>
+            `<div class="rqv-cat">${_esc(c)}</div>`
+            +ls.map(i=>`<div class="rqv-item">- ${_esc(i.d)}${(i.qty||1)>1?` ×${i.qty}`:''}</div>`).join('')
+        ).join('');
+    }).join('');
+}
+
+function renderReqView(){
+    const el=document.getElementById('reqItemsView');
+    if(!el) return;
+    const items=activeReqItems();
+    if(!items.length){
+        el.innerHTML=`<span style="color:var(--text-muted);font-size:12px;">${linkedProjectId?'연결된 프로젝트에 작성된 의뢰 내용이 없습니다.':'프로젝트를 연결하면 의뢰 내용을 불러옵니다.'}</span>`;
+        return;
+    }
+    el.innerHTML=reqItemsGroupedHtml(items)
+        +`<div class="rqv-src">${projReqItems.length?'📁 연결된 프로젝트의 의뢰 내용':'이 일정에 저장된 항목 (구버전)'}</div>`;
+}
+
+function resetAttachments(){
+    pendingAttachments={quote:[],reference:[],room:[],general:[]};existingAttachments={quote:[],reference:[],room:[],general:[]};
+    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
+}
+
+// ── 견적서 연동 ──
+let estimateSearchTimer=null;
+function renderEstimateList(list){
+    const sm={created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
+    if(!list.length) return '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">결과 없음</div>';
+    return list.map(e=>{
+        const amt=e.total_amount?Number(e.total_amount).toLocaleString()+'원':'';
+        const date=e.created_at?(e.created_at.substring(0,10)):'';
+        const name=e.client_nickname||e.client_name||'(이름없음)';
+        return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectEstimate(${e.id},'${name.replace(/'/g,"\\'")}',${e.total_amount||0})">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;font-weight:600;">#${e.id}</span>
+                    <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+                    <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--text-muted);">
+                    ${amt?'<span style="color:var(--accent);">'+amt+'</span>':''}
+                    ${date?'<span>'+date+'</span>':''}
+                </div>
+            </div>
+            <button onclick="event.stopPropagation();window.open('/estimates/${e.id}/print','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
+        </div>`;
+    }).join('');
+}
+
+async function openEstimateSearch(){
+    document.getElementById('estimateSearchOverlay').style.display='flex';
+    document.getElementById('estimateSearchInput').value='';
+    document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로딩 중...</div>';
+    setTimeout(()=>document.getElementById('estimateSearchInput').focus(),50);
+    // 최근 목록 자동 로드
+    try{
+        const res=await fetch('/api/estimates');
+        if(res.ok){const data=await res.json();const list=data.data||data;document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);}
+    }catch(e){document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로드 실패</div>';}
+}
+function searchEstimates(query){
+    clearTimeout(estimateSearchTimer);
+    if(!query.trim()){openEstimateSearch();return;}
+    estimateSearchTimer=setTimeout(async()=>{
+        const res=await fetch(`/api/estimates?search=${encodeURIComponent(query)}`);if(!res.ok)return;
+        const data=await res.json();const list=data.data||data;
+        document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);
+    },300);
+}
+function selectEstimate(id,name,amount){
+    linkedEstimateId=id;
+    document.getElementById('linkedEstimateTitle').textContent=`#${id} ${name}`;
+    document.getElementById('linkedEstimateInfo').style.display='';
+    if(amount) document.getElementById('g_estimate_amount').value=amount.toLocaleString();
+    document.getElementById('estimateSearchOverlay').style.display='none';
+}
+function unlinkEstimate(){linkedEstimateId=null;document.getElementById('linkedEstimateInfo').style.display='none';}
+function openLinkedEstimate(){
+    if(!linkedEstimateId) return;
+    window.open(`/estimates/${linkedEstimateId}/print`,'estimate_print','width=900,height=700,scrollbars=yes,resizable=yes');
+}
+function extractEstimateAmount(){
+    if(!linkedEstimateId){alert('먼저 견적서를 불러와주세요.');return;}
+    fetch(`/api/estimates?search=${linkedEstimateId}`).then(r=>r.json()).then(data=>{
+        const list=data.data||data;const est=list.find(e=>e.id===linkedEstimateId);
+        if(est&&est.total_amount) document.getElementById('g_estimate_amount').value=Number(est.total_amount).toLocaleString();
+    });
+}
+
+function openHistoryFromEdit(){
+    if(!editingId) return;
+    openActivityLog('Schedule', editingId, '일정 수정 로그');
+}
+

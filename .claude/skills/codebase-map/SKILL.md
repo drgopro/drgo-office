@@ -27,7 +27,12 @@ Laravel 13 + Blade 단일 파일 뷰(인라인 CSS/JS) 구조. SPA 프레임워�
 - 페이지 상단: `@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')` 패턴
 - 고정 높이 내부 셸 패턴: `.proj-shell`(프로젝트)/`.crm-wrap`(의뢰자)/`.wiki-layout`(위키) = `calc(var(--full-h) - var(--chrome-h))`
 
-## 캘린더 — `resources/views/calendar/index.blade.php` (~7000줄 단일 파일)
+## 캘린더 — `resources/views/calendar/` (index는 골격, partials/js로 분할)
+
+- `index.blade.php` — 인클루드 골격만 (~38줄). 실제 코드는:
+  - `partials/` — styles-main, styles-light(라이트모드), layout(헤더/그리드/팝오버), modal(일정 모달), extras(보조 오버레이/라이트박스)
+  - `js/` — 01-core(전역·필터) · 02-chips-search · 03-events-agenda · 04-month-compact · 05-timeline-form · 06-lock-summary · 07-client-project · 08-ship-reqitems · 09-modal-open-edit · 10-save · 11-misc
+  - JS 조각들은 하나의 `<script>` 안에 이어 붙여져 렌더됨 — 전역 스코프 공유, 순서 의존 있음 (번호 순서 유지)
 
 - **뷰 5종**: `switchView('month'|'monthc'|'week'|'day'|'list')` — monthc=컴팩트(네이버식). 마지막 뷰 `localStorage.calLastView` 복원
 - 렌더 진입: `renderView()` → renderMonth / renderMonthCompact / renderTimeline / renderAgenda
