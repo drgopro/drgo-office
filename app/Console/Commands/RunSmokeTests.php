@@ -55,6 +55,9 @@ class RunSmokeTests extends Command
             'DB_CONNECTION' => 'sqlite',
             'DB_DATABASE' => $db,
             'APP_URL' => "http://127.0.0.1:{$port}",
+            // 운영 .env(APP_ENV=production)의 HTTPS 강제·secure 쿠키가 http 임시 서버를 깨뜨리는 것 방지
+            'APP_ENV' => 'local',
+            'SESSION_SECURE_COOKIE' => 'false',
             'CACHE_STORE' => 'file',
             'QUEUE_CONNECTION' => 'sync',
             // 운영 서버의 config:cache가 자식 프로세스에서 env 오버라이드를 무력화하는 것 방지 —
