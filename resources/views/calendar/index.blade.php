@@ -260,7 +260,9 @@
     .mc-daynum { font-size:11px; font-weight:600; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
     .mc-daynum.sun { color:var(--red); } .mc-daynum.sat { color:#5b8def; }
     .mc-holiday { font-size:9px; color:var(--red); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    .mc-bars-space { flex-shrink:0; }
+    /* 바 레인 자리 스페이서 + 레인에 삽입된 칩 — 높이 16 + 셀 gap 1 = 바 피치(17px)와 일치해야 함 */
+    .mc-slot { height:16px; flex-shrink:0; }
+    .mc-chip.in-lane { height:16px; line-height:14px; }
     .mc-chip { height:16px; line-height:14px; font-size:10.5px; padding:0 3px 0 4px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex-shrink:0; }
     .mc-chip:hover { filter:brightness(1.15); }
     .mc-chip .mc-time { display:inline-block; min-width:29px; opacity:0.7; font-size:9.5px; margin-right:2px; font-variant-numeric:tabular-nums; }
@@ -3208,11 +3210,7 @@ function renderMonthCompact(){
                 style="left:calc(${c0} * 100% / 7 + 2px); width:calc(${c1-c0+1} * 100% / 7 - 5px); top:${HEAD+lane*BAR}px;">${label}</div>`;
         });
 
-        // 이 주에서 실제 사용된 바 레인 수 — 모든 셀이 동일한 바 공간을 예약해 칩 시작 높이를 주 단위로 정렬
-        const weekLanes=Math.min(lanes.length, LANE_CAP);
-        const barSpace=weekLanes*BAR;
-
-        // 날짜 셀 + 단일 일정 칩
+        // 날짜 셀 + 단일 일정 칩 — 월간 뷰와 동일 배치: 바가 지나는 레인은 비우고, 빈 레인은 그날 단일 칩으로 채움
         let cellsHtml='';
         days.forEach((dt,i)=>{
             const full=fmt(dt);
@@ -3222,7 +3220,13 @@ function renderMonthCompact(){
             // 다른 달 날짜도 칩/+N 표시 (other-month 흐림 처리로 현재 달과 구분)
             const daySingles=sortByTime(events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)===_d(ev.start_date)&&_d(ev.start_date)===full));
             const hiddenMulti=weekMulti.filter(ev=>laneOf[ev.id]>=LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full).length;
-            const singleBudget=Math.max(1,Math.floor((rowH-HEAD-barSpace)/CHIP));
+            // 이 날짜를 지나는 표시 레인 집합 — 바 자리는 스페이서로 비우고 빈 레인엔 단일 칩 삽입
+            const laneSet=new Set();
+            weekMulti.forEach(ev=>{ if(laneOf[ev.id]<LANE_CAP&&_d(ev.start_date)<=full&&evEnd(ev)>=full) laneSet.add(laneOf[ev.id]); });
+            const laneRows=laneSet.size?Math.max(...laneSet)+1:0;
+            const freeLanes=laneRows-laneSet.size;
+            const extraCap=Math.max(0,Math.floor((rowH-HEAD-laneRows*BAR)/CHIP));
+            const singleBudget=Math.max(1,freeLanes+extraCap);
             let show=daySingles, moreCnt=hiddenMulti;
             if(daySingles.length+hiddenMulti>singleBudget){
                 const cut=Math.max(0,singleBudget-1);
@@ -3230,12 +3234,18 @@ function renderMonthCompact(){
                 show=daySingles.slice(0,cut);
             }
             // 시간을 칩 맨 앞 고정폭으로 — 아이콘 폭 차이로 시간 열이 어긋나지 않게 (시간 → 아이콘 → 제목 순)
-            const chips=show.map(ev=>`<div class="mc-chip color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`).join('');
+            const chipOf=(ev,inLane)=>`<div class="mc-chip${inLane?' in-lane':''} color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`;
+            let body='', si=0;
+            for(let L=0;L<laneRows;L++){
+                if(laneSet.has(L)) body+='<div class="mc-slot"></div>';
+                else if(si<show.length) body+=chipOf(show[si++],true);
+                else body+='<div class="mc-slot"></div>'; // 아래 레인의 바 자리 확보
+            }
+            while(si<show.length) body+=chipOf(show[si++],false);
             const more=moreCnt>0?`<div class="mc-more" data-mcmore="${full}">+${moreCnt}</div>`:'';
             cellsHtml+=`<div class="mc-cell${cur?'':' other-month'}${full===ts?' today':''}" data-mcday="${full}">
                 <div class="mc-daynum-row"><span class="mc-daynum ${nc}">${dt.getDate()}</span>${holiday?`<span class="mc-holiday">${holiday}</span>`:''}</div>
-                <div class="mc-bars-space" style="height:${barSpace}px"></div>
-                ${chips}${more}
+                ${body}${more}
             </div>`;
         });
         html+=`<div class="mc-week" style="height:${rowH}px">${bars}${cellsHtml}</div>`;
