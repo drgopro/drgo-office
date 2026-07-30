@@ -453,6 +453,17 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/admin/project-fields/{field}', [ProjectFieldDefinitionController::class, 'destroy']);
         Route::post('/api/admin/project-fields/reorder', [ProjectFieldDefinitionController::class, 'reorder']);
 
+        // UI 스모크 테스트 최근 실행 로그 — SSH 없이 브라우저로 결과 확인
+        Route::get('/admin/smoke-log', function () {
+            $path = storage_path('logs/smoke.log');
+
+            return response(
+                file_exists($path) ? file_get_contents($path) : '아직 smoke:run 실행 기록이 없습니다.',
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
+        });
+
         // 캘린더 의뢰 세부 항목 프리셋 (master/admin 전용)
         Route::post('/api/admin/request-item-presets', [RequestItemPresetController::class, 'store']);
         Route::patch('/api/admin/request-item-presets/{preset}', [RequestItemPresetController::class, 'update']);
