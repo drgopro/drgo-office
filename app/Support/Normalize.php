@@ -10,7 +10,7 @@ class Normalize
 {
     /** @var array<string, array<int, string>> 정식 표기 → 변형 표기들 (소문자 비교) */
     private const PLATFORM_VARIANTS = [
-        '숲' => ['숲', 'soop', '아프리카', '아프리카티비', '아프리카tv', 'afreeca', 'afreecatv'],
+        'SOOP' => ['soop', '숲', '아프리카', '아프리카티비', '아프리카tv', 'afreeca', 'afreecatv'],
         '치지직' => ['치지직', 'chzzk'],
         '유튜브' => ['유튜브', '유투브', 'youtube'],
         '틱톡' => ['틱톡', 'tiktok'],

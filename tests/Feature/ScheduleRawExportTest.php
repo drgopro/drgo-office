@@ -74,7 +74,7 @@ class ScheduleRawExportTest extends TestCase
         $this->assertSame('17:00', $visitRow[4]);
         $this->assertSame('방문세팅', $visitRow[6]);
         $this->assertSame('스튜디오', $visitRow[7]); // 프로젝트 client_scale
-        $this->assertSame('숲', $visitRow[9]);       // soop → 숲 정규화
+        $this->assertSame('SOOP', $visitRow[9]);       // soop·숲·아프리카 → SOOP 정규화
         $this->assertSame('처음', $visitRow[10]);    // 신규 → 처음 통합
         $this->assertEquals(2500000, $visitRow[11]);
         $this->assertSame('급행;재방문', $visitRow[12]); // 제목 급행 + 과거 이력 재방문

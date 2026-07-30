@@ -47,11 +47,11 @@ class NormalizeLegacyDataTest extends TestCase
         $this->artisan('data:normalize', ['--apply' => true])->assertSuccessful();
 
         $fresh = $client->fresh();
-        $this->assertSame(['숲', '팬더', '킥'], $fresh->platforms); // 킥(미지 값)은 보존
+        $this->assertSame(['SOOP', '팬더', '킥'], $fresh->platforms); // 킥(미지 값)은 보존
         $this->assertSame('처음', $fresh->career);
 
         $g = $schedule->fresh()->request_data;
-        $this->assertSame('숲', $g['platform']); // soop·아프리카 모두 숲 → 중복 제거
+        $this->assertSame('SOOP', $g['platform']); // soop·아프리카 모두 SOOP → 중복 제거
         $this->assertSame('처음', $g['career']);
     }
 }

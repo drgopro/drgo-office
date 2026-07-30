@@ -554,7 +554,7 @@ class MarketingReportController extends Controller
                 return '동시';
             }
             foreach ([
-                '숲' => ['숲', 'soop', '아프리카', 'afreeca'],
+                'SOOP' => ['soop', '숲', '아프리카', 'afreeca'],
                 '치지직' => ['치지직', 'chzzk'],
                 '유튜브' => ['유튜브', '유투브', 'youtube'],
                 '틱톡' => ['틱톡', 'tiktok'],
