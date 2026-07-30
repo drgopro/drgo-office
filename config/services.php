@@ -37,7 +37,10 @@ return [
 
     // 셀프호스팅 delivery-tracker (배송 추적)
     'delivery_tracker' => [
-        'url' => env('DELIVERY_TRACKER_URL'), // 예: http://127.0.0.1:8150
+        'url' => env('DELIVERY_TRACKER_URL'), // 셀프호스팅 인스턴스 (예: http://127.0.0.1:8150)
+        // 공식 호스팅 API (apis.tracker.delivery) — 키가 설정되면 셀프호스팅보다 우선 사용
+        'client_id' => env('DELIVERY_TRACKER_CLIENT_ID'),
+        'client_secret' => env('DELIVERY_TRACKER_CLIENT_SECRET'),
     ],
 
 ];

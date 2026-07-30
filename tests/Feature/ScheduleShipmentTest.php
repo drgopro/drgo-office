@@ -162,6 +162,30 @@ HTML;
         $this->assertStringContainsString('미등록', $shipment->last_event);
     }
 
+    public function test_hosted_api_used_when_api_key_configured(): void
+    {
+        config([
+            'services.delivery_tracker.url' => 'http://tracker.test',
+            'services.delivery_tracker.client_id' => 'cid123',
+            'services.delivery_tracker.client_secret' => 'sec456',
+        ]);
+        Http::fake(['apis.tracker.delivery/*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
+            'carrier' => 'kr.coupangls',
+            'tracking_no' => '10325790701100',
+        ])->assertCreated();
+
+        // 공식 API로 TRACKQL-API-KEY 헤더와 함께 호출됐는지 확인
+        Http::assertSent(fn ($req) => str_starts_with($req->url(), 'https://apis.tracker.delivery/graphql')
+            && $req->header('Authorization')[0] === 'TRACKQL-API-KEY cid123:sec456');
+
+        $this->assertSame('delivered', $schedule->shipments()->first()->status);
+    }
+
     public function test_invalid_carrier_rejected(): void
     {
         $user = User::factory()->create(['role' => 'master']);

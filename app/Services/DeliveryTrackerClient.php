@@ -34,18 +34,27 @@ class DeliveryTrackerClient
      */
     public function fetch(string $carrier, string $trackingNo): array
     {
-        $base = rtrim((string) config('services.delivery_tracker.url'), '/');
+        // 공식 호스팅 API 키가 있으면 apis.tracker.delivery 사용, 없으면 셀프호스팅 인스턴스
+        $clientId = (string) config('services.delivery_tracker.client_id');
+        $clientSecret = (string) config('services.delivery_tracker.client_secret');
+        $useHosted = $clientId !== '' && $clientSecret !== '';
+
+        $base = $useHosted
+            ? 'https://apis.tracker.delivery/graphql'
+            : rtrim((string) config('services.delivery_tracker.url'), '/');
         if (! $base) {
-            return ['status' => 'error', 'last_event' => '추적 서비스 미설정 (DELIVERY_TRACKER_URL)', 'delivered_at' => null, 'raw' => null];
+            return ['status' => 'error', 'last_event' => '추적 서비스 미설정 (DELIVERY_TRACKER_URL 또는 API 키)', 'delivered_at' => null, 'raw' => null];
         }
 
         try {
-            $res = Http::timeout(15)->connectTimeout(5)
-                ->acceptJson()
-                ->post($base, [
-                    'query' => self::TRACK_QUERY,
-                    'variables' => ['carrierId' => $carrier, 'trackingNumber' => $trackingNo],
-                ]);
+            $req = Http::timeout(15)->connectTimeout(5)->acceptJson();
+            if ($useHosted) {
+                $req = $req->withHeaders(['Authorization' => "TRACKQL-API-KEY {$clientId}:{$clientSecret}"]);
+            }
+            $res = $req->post($base, [
+                'query' => self::TRACK_QUERY,
+                'variables' => ['carrierId' => $carrier, 'trackingNumber' => $trackingNo],
+            ]);
         } catch (\Throwable $e) {
             return ['status' => 'error', 'last_event' => '추적 서비스 연결 실패', 'delivered_at' => null, 'raw' => null];
         }
