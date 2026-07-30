@@ -73,6 +73,24 @@ class ScheduleShipmentTest extends TestCase
         $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", $payload)->assertUnprocessable();
     }
 
+    public function test_coupang_carrier_accepted(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+
+        $res = $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
+            'carrier' => 'kr.coupangls',
+            'tracking_no' => '55550001112223',
+        ]);
+
+        $res->assertCreated();
+        $this->assertSame('쿠팡', $schedule->shipments()->first()->carrierLabel());
+        $this->assertArrayHasKey('kr.coupangls', $res->json('carriers'));
+    }
+
     public function test_invalid_carrier_rejected(): void
     {
         $user = User::factory()->create(['role' => 'master']);

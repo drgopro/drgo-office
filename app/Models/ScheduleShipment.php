@@ -33,6 +33,7 @@ class ScheduleShipment extends Model
         'kr.logen' => '로젠택배',
         'kr.epost' => '우체국택배',
         'kr.kdexp' => '경동택배',
+        'kr.coupangls' => '쿠팡',
     ];
 
     /** @return BelongsTo<Schedule, $this> */

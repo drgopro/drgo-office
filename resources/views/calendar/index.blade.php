@@ -5069,21 +5069,23 @@ async function loadShipments(){
         if(changed){ shipCache=data; renderShipments(); if(isLocked) renderLockSummary(); }
     }catch(e){}
 }
-// 택배사별 실시간 조회 페이지 (송장번호 클릭 시 새 창)
+// 택배사별 실시간 조회 페이지 (송장번호 클릭 시 새 창) — {no} 자리에 송장번호 치환, 없으면 조회 페이지만 열기
 const CARRIER_TRACK_URLS={
-    'kr.cjlogistics':'https://trace.cjlogistics.com/next/tracking.html?wblNo=',
-    'kr.lotte':'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo=',
-    'kr.hanjin':'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2=',
-    'kr.logen':'https://www.ilogen.com/web/personal/trace/',
-    'kr.epost':'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1=',
-    'kr.kdexp':'https://kdexp.com/service/delivery/etc/delivery.do?barcode=',
+    'kr.cjlogistics':'https://trace.cjlogistics.com/next/tracking.html?wblNo={no}',
+    'kr.lotte':'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo={no}',
+    'kr.hanjin':'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2={no}',
+    'kr.logen':'https://www.ilogen.com/web/personal/trace/{no}',
+    'kr.epost':'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1={no}',
+    'kr.kdexp':'https://kdexp.com/service/delivery/etc/delivery.do?barcode={no}',
+    'kr.coupangls':'https://www.coupangls.com/', // 딥링크 미지원 — 조회 페이지를 열고 송장번호는 사이트에서 입력
 };
 function shipRowHtml(s){
     const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:['✕','var(--red)']);
     const evTxt=s.status==='delivered'?`배송완료${s.delivered_at?' · '+s.delivered_at:''}`:(s.last_event||'조회 대기');
     const trackUrl=CARRIER_TRACK_URLS[s.carrier];
-    const noHtml=trackUrl
-        ? `<a class="ship-no ship-no-link" href="${trackUrl}${encodeURIComponent(s.tracking_no)}" target="_blank" rel="noopener" title="택배사 실시간 조회 열기" onclick="event.stopPropagation()">${_esc(s.tracking_no)} ↗</a>`
+    const trackHref=trackUrl?(trackUrl.includes('{no}')?trackUrl.replace('{no}',encodeURIComponent(s.tracking_no)):trackUrl):null;
+    const noHtml=trackHref
+        ? `<a class="ship-no ship-no-link" href="${trackHref}" target="_blank" rel="noopener" title="택배사 실시간 조회 열기" onclick="event.stopPropagation()">${_esc(s.tracking_no)} ↗</a>`
         : `<span class="ship-no">${_esc(s.tracking_no)}</span>`;
     return `<div class="ship-item">
         <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
