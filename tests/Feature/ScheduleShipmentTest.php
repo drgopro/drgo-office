@@ -94,7 +94,10 @@ class ScheduleShipmentTest extends TestCase
     public function test_opaque_tracker_internal_error_is_translated(): void
     {
         config(['services.delivery_tracker.url' => 'http://tracker.test']);
-        Http::fake(['tracker.test*' => Http::response(['errors' => [['message' => 'Internal error']]])]);
+        Http::fake([
+            'tracker.test*' => Http::response(['errors' => [['message' => 'Internal error']]]),
+            'www.coupangls.com/*' => Http::response('blocked', 403),
+        ]);
 
         $user = User::factory()->create(['role' => 'master']);
         $schedule = $this->makeSchedule();
@@ -108,6 +111,55 @@ class ScheduleShipmentTest extends TestCase
         $this->assertSame('error', $shipment->status);
         $this->assertStringContainsString('직접 확인', $shipment->last_event);
         $this->assertStringNotContainsString('Internal error', $shipment->last_event);
+    }
+
+    public function test_coupang_direct_fallback_parses_tracking_page(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        $html = <<<'HTML'
+<div class="tracking-detail"><table><thead><tr><th>시각</th><th>위치</th><th>상태</th></tr></thead><tbody>
+<tr><td>2026-07-29 09:10:00</td><td>안양HUB</td><td>집화</td></tr>
+<tr><td>2026-07-30 14:22:00</td><td>강남캠프</td><td>배송완료</td></tr>
+</tbody></table></div>
+HTML;
+        Http::fake([
+            'tracker.test*' => Http::response(['errors' => [['message' => 'Internal error']]]),
+            'www.coupangls.com/*' => Http::response($html),
+        ]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
+            'carrier' => 'kr.coupangls',
+            'tracking_no' => '10325790701100',
+        ])->assertCreated();
+
+        $shipment = $schedule->shipments()->first();
+        $this->assertSame('delivered', $shipment->status);
+        $this->assertStringContainsString('강남캠프', $shipment->last_event);
+        $this->assertNotNull($shipment->delivered_at);
+    }
+
+    public function test_coupang_direct_fallback_unregistered_waybill(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake([
+            'tracker.test*' => Http::response(['errors' => [['message' => 'Internal error']]]),
+            'www.coupangls.com/*' => Http::response('<div>운송장 미등록</div>'),
+        ]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
+            'carrier' => 'kr.coupangls',
+            'tracking_no' => '10325790701100',
+        ])->assertCreated();
+
+        $shipment = $schedule->shipments()->first();
+        $this->assertSame('pending', $shipment->status);
+        $this->assertStringContainsString('미등록', $shipment->last_event);
     }
 
     public function test_invalid_carrier_rejected(): void

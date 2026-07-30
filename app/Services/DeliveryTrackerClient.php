@@ -54,6 +54,11 @@ class DeliveryTrackerClient
 
         // GraphQL 에러 (NOT_FOUND = 송장 없음 등)
         if (! $res->ok() || ! empty($data['errors'])) {
+            // 쿠팡: 추적기 인스턴스가 구버전이거나 스크래핑에 실패하면 조회 페이지를 직접 파싱해 폴백
+            if ($carrier === 'kr.coupangls' && ($direct = $this->fetchCoupangDirect($trackingNo)) !== null) {
+                return $direct;
+            }
+
             $msg = (string) (data_get($data, 'errors.0.message') ?: '조회 실패 (송장번호/택배사 확인)');
 
             // 추적기 내부 오류(스크래핑 실패·택배사 측 차단 등) — 원문 대신 행동 가능한 안내로 치환
@@ -87,6 +92,71 @@ class DeliveryTrackerClient
             'last_event' => $text !== '' ? mb_substr($text, 0, 200) : null,
             'delivered_at' => $status === 'delivered' ? (data_get($lastEvent, 'time') ?? now()->toIso8601String()) : null,
             'raw' => $data,
+        ];
+    }
+
+    /**
+     * 쿠팡(CLS) 직접 조회 폴백 — coupangls.com 조회 모달을 파싱 (delivery-tracker 오픈소스와 동일 구조).
+     * 파싱 불가(차단·마크업 변경)면 null을 반환해 기존 오류 흐름으로 넘긴다.
+     *
+     * @return ?array{status:string, last_event:?string, delivered_at:?string, raw:?array}
+     */
+    private function fetchCoupangDirect(string $trackingNo): ?array
+    {
+        try {
+            $res = Http::timeout(15)->connectTimeout(5)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+                    'Accept-Language' => 'ko,ko-KR;q=0.9',
+                ])
+                ->get('https://www.coupangls.com/web/modal/invoice/'.rawurlencode($trackingNo));
+        } catch (\Throwable) {
+            return null;
+        }
+        if (! $res->ok()) {
+            return null;
+        }
+
+        $html = $res->body();
+        if (str_contains($html, '운송장 미등록') || stripos($html, 'waybill is not registered') !== false) {
+            return ['status' => 'pending', 'last_event' => '운송장 미등록 (집화 전)', 'delivered_at' => null, 'raw' => ['source' => 'coupang_direct']];
+        }
+
+        libxml_use_internal_errors(true);
+        $doc = new \DOMDocument;
+        if (! $doc->loadHTML('<?xml encoding="utf-8"?>'.$html)) {
+            return null;
+        }
+        $xp = new \DOMXPath($doc);
+        // .tracking-detail 테이블 행: [시각, 위치, 상태]
+        $rows = $xp->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' tracking-detail ')]//table//tbody//tr");
+        $events = [];
+        foreach ($rows as $row) {
+            $tds = $xp->query('.//td', $row);
+            if ($tds->length < 3) {
+                continue;
+            }
+            $events[] = [
+                'time' => trim($tds->item(0)->textContent),
+                'location' => trim($tds->item(1)->textContent),
+                'status' => trim($tds->item(2)->textContent),
+            ];
+        }
+        if (! $events) {
+            return null; // 마크업 변경/차단 페이지 — 기존 오류 흐름 유지
+        }
+
+        // 최신 이벤트 = 파싱 가능한 시각 기준 최댓값 (행 순서에 의존하지 않음)
+        usort($events, fn ($a, $b) => strtotime($a['time']) <=> strtotime($b['time']));
+        $last = end($events);
+        $delivered = str_contains($last['status'], '배송완료');
+        $text = trim(implode(' ', array_filter([$last['location'], $last['status']])));
+
+        return [
+            'status' => $delivered ? 'delivered' : 'in_transit',
+            'last_event' => $text !== '' ? mb_substr($text, 0, 200) : null,
+            'delivered_at' => $delivered ? (date(DATE_ATOM, strtotime($last['time']) ?: time())) : null,
+            'raw' => ['source' => 'coupang_direct', 'events' => array_slice($events, -5)],
         ];
     }
 
