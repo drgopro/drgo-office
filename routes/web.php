@@ -44,6 +44,7 @@ use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
 use App\Models\ProjectFieldDefinition;
 use App\Models\User;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
@@ -462,6 +463,12 @@ Route::middleware('auth')->group(function () {
                 200,
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );
+        });
+        // 스모크 데이터 정리 실행 — Forge 커맨드 입력 없이 브라우저 접속만으로 실행 (멱등이라 GET 허용)
+        Route::get('/admin/smoke-cleanup', function () {
+            Artisan::call('smoke:cleanup');
+
+            return response(Artisan::output(), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
         });
         Route::get('/admin/normalize-log', function () {
             $path = storage_path('logs/normalize.log');
