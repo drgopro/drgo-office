@@ -107,11 +107,20 @@ class RunSmokeTests extends Command
                 900,
             );
             $test->setTty(false);
-            $test->run(function ($type, $buffer) {
+            $collected = '';
+            $test->run(function ($type, $buffer) use (&$collected) {
+                $collected .= $buffer;
                 $this->output->write($buffer);
             });
 
             $this->info('4/4 정리');
+
+            // 크롬 구동용 시스템 라이브러리 누락 (Ubuntu 최초 1회) — 원인과 해결책 명시
+            if (! $test->isSuccessful() && str_contains($collected, 'error while loading shared libraries')) {
+                $this->newLine();
+                $this->error('브라우저 실행에 필요한 시스템 라이브러리가 없습니다. 서버에서 1회 실행해 주세요:');
+                $this->line('  sudo npx playwright install-deps chromium');
+            }
 
             return $test->isSuccessful() ? self::SUCCESS : self::FAILURE;
         } finally {
