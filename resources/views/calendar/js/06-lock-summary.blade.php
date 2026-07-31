@@ -268,6 +268,20 @@ function renderLockSummary(){
         if (special) right.push(lsCard('특이사항 · 필독', `<div class="ls-text-block" style="font-weight:600;">${_esc(special)}</div>`, '', 'ls-tinted ls-c-special'));
     }
 
+    // 원격/방송룸(teal): 대상자 · 의뢰 내용 · 메모 — 폼 입력값을 요약에도 노출
+    if (color === 'teal') {
+        const tealStudio = (_radio('teal_mode_group') || 'remote') === 'studio';
+        const tName = _val(tealStudio ? 't_studio_name' : 't_remote_name');
+        const tPlatform = _val(tealStudio ? 't_studio_platform' : 't_remote_platform');
+        const tContent = _val(tealStudio ? 't_studio_content' : 't_remote_content');
+        const tMemo = _val('t_desc');
+        left.push(lsCard(tealStudio ? '🎙 방송룸 이용자' : '🖥 원격 대상자', `
+            <div class="ls-big" style="font-size:15px;">${_esc(tName) || '<span style="color:var(--text-muted);font-weight:400;">— 미입력 —</span>'}</div>
+            ${tPlatform ? `<div class="ls-addr" style="margin-top:4px;">${_esc(tPlatform)}</div>` : ''}`, '', 'ls-c-client'));
+        if (tContent) left.push(lsCard(tealStudio ? '방송룸 이용 내용' : '원격 의뢰 내용', `<div class="ls-text-block">${_esc(tContent)}</div>`, '', 'ls-c-detail'));
+        if (tMemo) right.push(lsCard('메모', `<div class="ls-text-block" style="font-weight:600;">${_esc(tMemo)}</div>`, '', 'ls-tinted ls-c-special'));
+    }
+
     // 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계를 비동기 로드
     if (lsProjSummaryPid) {
         left.push(`<div class="ls-card ls-c-proj" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">

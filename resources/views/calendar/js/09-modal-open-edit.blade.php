@@ -586,7 +586,8 @@ function openEditModal(ev){
         onMoveNoFromToggle();
     }
     updateMoveSettingUI();
-    document.getElementById('g_special').value=g.special||'';
+    // 구버전 일정은 특이사항이 special_note 컬럼에만 있음 — 폴백 표시 (재저장 시 request_data로 이관됨)
+    document.getElementById('g_special').value=g.special||ev.special_note||'';
     if(g.specialReason) document.getElementById('specialReason').value=g.specialReason;
     if(typeof updateCarReasonUI==='function') updateCarReasonUI();
     if(g.paid) setRadio('g_paid_group',g.paid);
