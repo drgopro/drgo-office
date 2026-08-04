@@ -21,6 +21,10 @@
     .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:240px; }
     .toolbar input:focus { border-color:var(--accent); }
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
+    .cat-chip-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .cat-chip { padding:6px 14px; border:1px solid var(--border); border-radius:16px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+    .cat-chip:hover { color:var(--text); border-color:var(--accent); }
+    .cat-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
@@ -90,6 +94,7 @@
     .cat-add-inline button { background:var(--accent); color:var(--accent-text); border:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
     .sku-preview { font-size:12px; color:var(--accent); font-weight:600; padding:8px 12px; background:var(--surface2); border-radius:6px; margin-top:4px; }
     [data-theme="light"] .tab-btn.active { color:#fff; }
+    [data-theme="light"] .cat-chip.active { color:#fff; }
     [data-theme="light"] .btn-primary { color:#fff; }
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .cat-add-inline button { color:#fff; }
@@ -175,6 +180,7 @@
             <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 컴퓨존 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
             <button class="btn-primary" onclick="openProductModal()">+ 제품 등록</button>
         </div>
+        <div class="cat-chip-row" id="prodCatChips"></div>
         <div id="prodBulkBar" style="display:none; align-items:center; gap:10px; padding:10px 14px; background:rgba(212,188,150,0.08); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; flex-wrap:wrap;">
             <span style="font-size:13px; font-weight:600;">
                 <span id="prodBulkCount">0</span>개 선택됨
@@ -386,6 +392,7 @@ async function loadCategories() {
     const res = await fetch('/api/inventory/categories');
     catData = await res.json();
     renderCatTree();
+    renderProdCatChips(); // 카테고리 추가/삭제가 제품 필터 칩에도 반영되도록
 }
 function renderCatTree() {
     const el = document.getElementById('catTree');
@@ -730,13 +737,43 @@ async function refreshAllMarketPrices(btn) {
 // === 제품 관리 ===
 const prodSelection = new Set();
 
+// === 1차 카테고리 필터 (전체 포함) ===
+let prodCatFilter = parseInt(localStorage.getItem('invProdCatFilter'), 10) || null;
+
+function renderProdCatChips() {
+    const el = document.getElementById('prodCatChips');
+    if (!el) return;
+    // 저장된 필터의 카테고리가 삭제됐으면 전체로 복귀
+    if (prodCatFilter && !catData.some(c => c.id === prodCatFilter)) {
+        prodCatFilter = null;
+        localStorage.removeItem('invProdCatFilter');
+    }
+    el.innerHTML = `<button class="cat-chip ${prodCatFilter===null?'active':''}" onclick="setProdCatFilter(null)">전체</button>`
+        + catData.map(c => `<button class="cat-chip ${prodCatFilter===c.id?'active':''}" onclick="setProdCatFilter(${c.id})">${_esc(c.name)}</button>`).join('');
+}
+
+function setProdCatFilter(id) {
+    prodCatFilter = id;
+    if (id) localStorage.setItem('invProdCatFilter', id);
+    else localStorage.removeItem('invProdCatFilter');
+    renderProdCatChips();
+    loadProducts();
+}
+
 async function loadProducts() {
     const search = document.getElementById('productSearch').value;
-    const params = search ? '?search='+encodeURIComponent(search) : '';
+    const qs = new URLSearchParams();
+    if (search) qs.set('search', search);
+    if (prodCatFilter) qs.set('category_id', prodCatFilter); // 하위 카테고리 포함 (서버 필터)
+    const params = qs.toString() ? '?'+qs.toString() : '';
     const res = await fetch('/api/inventory/products'+params);
     allProducts = await res.json();
     const tb = document.getElementById('productBody');
-    if (!allProducts.length) { tb.innerHTML = '<tr><td colspan="11" class="empty-row">등록된 제품이 없습니다.</td></tr>'; clearProdSelection(); return; }
+    if (!allProducts.length) {
+        tb.innerHTML = `<tr><td colspan="11" class="empty-row">${search || prodCatFilter ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.'}</td></tr>`;
+        clearProdSelection();
+        return;
+    }
     // 화면에서 사라진 ID는 선택에서 제거
     const visibleIds = new Set(allProducts.map(p => p.id));
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
@@ -1034,7 +1071,7 @@ async function receiveOrder(id){
 const validTabs = ['stock','products','movements','orders','categories'];
 
 const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stock';
-fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; });
+fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); });
 switchTab(initTab);
 </script>
 @endpush
