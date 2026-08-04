@@ -82,6 +82,8 @@ class CompuzoneClient
             }
         }
 
+        $html = $this->normalizeHtml($html);
+
         $candidates = $this->priceCandidates($html);
         [$price, $strategy] = $this->pickPrice($candidates);
 
@@ -126,6 +128,24 @@ class CompuzoneClient
         $product->saveQuietly();
 
         return false;
+    }
+
+    /**
+     * 컴퓨존 안티 크롤링 대응 정규화.
+     * 실제 판매가는 숫자를 HTML 엔티티(&#57; 등)로 숨기고, display:none 요소에
+     * 가짜 가격(미끼)을 넣어두는 구조 — 미끼를 제거하고 엔티티 숫자를 복원한다.
+     */
+    private function normalizeHtml(string $html): string
+    {
+        // 1) display:none 단순 미끼 요소 제거 (내부에 태그가 없는 것만 — 구조 파괴 방지)
+        $html = preg_replace('/<(div|span)[^>]*display\s*:\s*none[^>]*>[^<]*<\/\1>/i', '', $html) ?? $html;
+
+        // 2) 엔티티로 숨긴 숫자 복원 — 숫자·콤마·마침표만 (태그 구조를 바꿀 수 있는 문자는 유지)
+        return preg_replace_callback('/&#(?:x([0-9a-fA-F]+)|([0-9]+));/', function (array $m): string {
+            $code = $m[1] !== '' ? (int) hexdec($m[1]) : (int) $m[2];
+
+            return (($code >= 48 && $code <= 57) || $code === 44 || $code === 46) ? chr($code) : $m[0];
+        }, $html) ?? $html;
     }
 
     /** 채택된 첫 후보의 [가격, 전략] — 없으면 [null, null] */
@@ -198,7 +218,24 @@ class CompuzoneClient
             }
         }
 
-        // 3) id/class에 prc·price가 들어간 요소 안의 숫자 — 속성명 + 주변 문맥으로 부가 금액 제외
+        // 3) 페이지 JS의 본품 가격 변수 — 컴퓨존은 표시 가격을 엔티티로 숨기지만
+        //    JS에는 평문 가격이 들어있음 (produc_price / regularPrice / All_Total_Price)
+        foreach ([
+            'produc_price' => '/var\s+produc_price\s*=\s*["\']([\d,]+)["\']/',
+            'regularPrice' => '/regularPrice\s*:\s*["\']?([\d,]+)/',
+            'All_Total_Price' => '/All_Total_Price\s*=\s*([\d,]+)\s*;/',
+        ] as $name => $pattern) {
+            if (preg_match($pattern, $html, $m)) {
+                $candidates[] = [
+                    'strategy' => 'js-var', 'raw' => trim($m[1]),
+                    'price' => $p = $this->sanitizePrice($m[1]),
+                    'context' => "JS 변수 {$name}",
+                    'rejected' => $p === null ? '정합성 범위 밖 (100원~1억)' : null,
+                ];
+            }
+        }
+
+        // 4) id/class에 prc·price가 들어간 요소 안의 숫자 — 속성명 + 주변 문맥으로 부가 금액 제외
         //    (적립금 숫자는 라벨(적립)이 형제 요소에 있는 경우가 많아 요소 앞 ±200바이트까지 본다)
         if (preg_match_all('/<[^>]+(?:id|class)=["\']([^"\']*(?:prc|price)[^"\']*)["\'][^>]*>([^<]{0,80})</i', $html, $m, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
             foreach ($m as $set) {
@@ -228,7 +265,7 @@ class CompuzoneClient
             }
         }
 
-        // 4) 가격 키워드 근방 "1,234,000원" 패턴 (숫자와 원 사이 닫는 태그 허용,
+        // 5) 가격 키워드 근방 "1,234,000원" 패턴 (숫자와 원 사이 닫는 태그 허용,
         //    키워드와 숫자 사이 최대 600자 — 중첩 마크업이 긴 가격 테이블 대응)
         if (preg_match_all('/(?:판매가|할인가|카드가|가격)[^가-힣]{0,600}?([\d,]{4,})(?:\s*<[^>]*>)*\s*원/u', $html, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
             foreach ($m as $set) {

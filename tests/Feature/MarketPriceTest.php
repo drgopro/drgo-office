@@ -216,6 +216,43 @@ class MarketPriceTest extends TestCase
         $this->assertSame(899000, $product->fresh()->market_price);
     }
 
+    public function test_refresh_reads_price_from_js_variable(): void
+    {
+        // 컴퓨존 실제 구조: 표시 가격은 엔티티로 숨기고 JS에 평문 가격이 존재
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body><script>'
+            .'function every_total_price(){ var produc_price = "949000"; }'
+            .'</script></body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(949000, $product->fresh()->market_price);
+    }
+
+    public function test_refresh_decodes_entity_price_and_skips_hidden_decoy(): void
+    {
+        // 컴퓨존 안티 크롤링 실제 구조: display:none 미끼(944,500) + 엔티티 인코딩 실가격(949,000)
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body>'
+            .'<div class="pd info_price"><h3 style="top: 29px;">판매가</h3>'
+            .'<div class="ct price_inner"><div class="inner_top"></div>'
+            .'<div class="price_real"><div style="display:none;">944,500</div>'
+            .'&#57;&#52;&#57;,&#48;&#48;&#48;<span class=\'unit\'>원</span></div>'
+            .'</div></div></body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(949000, $product->fresh()->market_price);
+    }
+
     public function test_refresh_allows_tags_between_price_and_won(): void
     {
         Http::fake(['*compuzone.co.kr*' => Http::response(
