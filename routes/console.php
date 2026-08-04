@@ -15,6 +15,9 @@ Schedule::command('schedules:remind-stale')->dailyAt('09:10'); // 지난 미완�
 // 미배송 송장 배송상태 갱신 (30분 주기)
 Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping();
 
+// 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
+Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();
+
 // 진행중 렌탈·방송룸 계약의 결제 반복 일정 자동 연장 (매월 1일)
 Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->withoutOverlapping();
 

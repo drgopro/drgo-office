@@ -197,6 +197,7 @@ trait LogsActivity
             // 제품
             'sku' => 'SKU', 'category_id' => '카테고리', 'unit' => '단위',
             'purchase_price' => '매입가', 'sale_price' => '판매가',
+            'market_price_url' => '시세URL', 'market_price' => '시세',
             'safety_stock' => '안전재고', 'current_stock' => '현재재고',
             'show_in_estimate' => '견적서노출',
             // 입출고

@@ -1,0 +1,214 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+class MarketPriceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private const COMPUZONE_URL = 'https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=12345';
+
+    private function master(): User
+    {
+        return User::factory()->create(['role' => 'master']);
+    }
+
+    private function makeProduct(array $attrs = []): Product
+    {
+        $cat = ProductCategory::firstOrCreate(
+            ['code' => 'PART', 'parent_id' => null],
+            ['name' => '부품', 'depth' => 1, 'sort_order' => 1]
+        );
+
+        return Product::create([
+            'sku' => $attrs['sku'] ?? 'PART-001',
+            'name' => '테스트 제품',
+            'category' => '부품',
+            'category_id' => $cat->id,
+            'purchase_price' => 100000,
+            'sale_price' => 150000,
+            'safety_stock' => 0,
+            'is_active' => true,
+            'show_in_estimate' => false,
+            ...$attrs,
+        ]);
+    }
+
+    private function updatePayload(Product $product, array $overrides = []): array
+    {
+        return [
+            'name' => $product->name,
+            'category_id' => $product->category_id,
+            'purchase_price' => $product->purchase_price,
+            'sale_price' => $product->sale_price,
+            'safety_stock' => $product->safety_stock,
+            'show_in_estimate' => $product->show_in_estimate,
+            ...$overrides,
+        ];
+    }
+
+    // === URL 검증 ===
+
+    public function test_market_price_url_rejects_non_compuzone_host(): void
+    {
+        $product = $this->makeProduct();
+
+        $this->actingAs($this->master())
+            ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
+                'market_price_url' => 'https://www.coupang.com/vp/products/123',
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('market_price_url');
+    }
+
+    public function test_market_price_url_saves_on_update(): void
+    {
+        $product = $this->makeProduct();
+
+        $this->actingAs($this->master())
+            ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
+                'market_price_url' => self::COMPUZONE_URL,
+            ]))
+            ->assertOk();
+
+        $this->assertSame(self::COMPUZONE_URL, $product->fresh()->market_price_url);
+    }
+
+    public function test_clearing_url_resets_market_price_fields(): void
+    {
+        $product = $this->makeProduct([
+            'market_price_url' => self::COMPUZONE_URL,
+            'market_price' => 123000,
+            'market_price_checked_at' => now(),
+            'market_price_error' => null,
+        ]);
+
+        $this->actingAs($this->master())
+            ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
+                'market_price_url' => null,
+            ]))
+            ->assertOk();
+
+        $fresh = $product->fresh();
+        $this->assertNull($fresh->market_price_url);
+        $this->assertNull($fresh->market_price);
+        $this->assertNull($fresh->market_price_checked_at);
+    }
+
+    // === 시세 갱신(파싱) ===
+
+    public function test_refresh_parses_og_price_meta(): void
+    {
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"><meta property="product:price:amount" content="1540000"></head><body></body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk()
+            ->assertJsonPath('market_price', 1540000);
+
+        $fresh = $product->fresh();
+        $this->assertSame(1540000, $fresh->market_price);
+        $this->assertNull($fresh->market_price_error);
+        $this->assertNotNull($fresh->market_price_checked_at);
+        // 매입가/판매가는 절대 건드리지 않음
+        $this->assertSame(100000, $fresh->purchase_price);
+        $this->assertSame(150000, $fresh->sale_price);
+    }
+
+    public function test_refresh_parses_keyword_price_text(): void
+    {
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body><div>판매가: 2,350,000원</div></body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(2350000, $product->fresh()->market_price);
+    }
+
+    public function test_refresh_parses_euc_kr_page(): void
+    {
+        $html = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=euc-kr"></head>'
+            .'<body><div>판매가 <b>987,000</b> 원 안내</div><div class="prc_t">987,000</div></body></html>';
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            mb_convert_encoding($html, 'EUC-KR', 'UTF-8'), 200, ['Content-Type' => 'text/html; charset=euc-kr']
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(987000, $product->fresh()->market_price);
+    }
+
+    public function test_refresh_blocked_403_keeps_existing_price_and_stores_error(): void
+    {
+        Http::fake(['*compuzone.co.kr*' => Http::response('blocked', 403)]);
+        $product = $this->makeProduct([
+            'market_price_url' => self::COMPUZONE_URL,
+            'market_price' => 999000,
+        ]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertUnprocessable();
+
+        $fresh = $product->fresh();
+        $this->assertSame(999000, $fresh->market_price); // 기존 시세 유지
+        $this->assertNotNull($fresh->market_price_error);
+        $this->assertStringContainsString('403', $fresh->market_price_error);
+    }
+
+    public function test_refresh_without_url_returns_422(): void
+    {
+        $product = $this->makeProduct();
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertUnprocessable();
+    }
+
+    public function test_refresh_requires_edit_permission(): void
+    {
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+        $member = User::factory()->create(['role' => 'member']);
+
+        $this->actingAs($member)
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertForbidden();
+    }
+
+    // === 커맨드 ===
+
+    public function test_command_refreshes_registered_products(): void
+    {
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"><meta property="product:price:amount" content="777000"></head><body></body></html>'
+        )]);
+        $a = $this->makeProduct(['sku' => 'PART-001', 'market_price_url' => self::COMPUZONE_URL]);
+        $b = $this->makeProduct(['sku' => 'PART-002', 'market_price_url' => self::COMPUZONE_URL.'&x=2']);
+        $noUrl = $this->makeProduct(['sku' => 'PART-003']);
+
+        $this->artisan('products:refresh-market-prices', ['--sleep' => 0])
+            ->expectsOutputToContain('성공 2건')
+            ->assertSuccessful();
+
+        $this->assertSame(777000, $a->fresh()->market_price);
+        $this->assertSame(777000, $b->fresh()->market_price);
+        $this->assertNull($noUrl->fresh()->market_price);
+    }
+}

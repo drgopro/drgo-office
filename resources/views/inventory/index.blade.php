@@ -166,6 +166,13 @@
     <div class="tab-panel" id="panel-products">
         <div class="toolbar">
             <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="loadProducts()">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-muted);white-space:nowrap;">
+                ⚠ 마진 경고 기준
+                <input type="number" id="marginWarnInput" min="0" max="99" value="{{ $marginWarnPercent }}" style="width:54px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12.5px;text-align:right;">
+                %
+                <button class="btn-outline btn-sm" onclick="saveMarginWarn()">저장</button>
+            </span>
+            <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 컴퓨존 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
             <button class="btn-primary" onclick="openProductModal()">+ 제품 등록</button>
         </div>
         <div id="prodBulkBar" style="display:none; align-items:center; gap:10px; padding:10px 14px; background:rgba(212,188,150,0.08); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; flex-wrap:wrap;">
@@ -181,8 +188,8 @@
         </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
-                <tbody id="productBody"><tr><td colspan="9" class="empty-row">로딩 중...</td></tr></tbody>
+                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">마진률</th><th class="text-right">시세<span style="font-weight:400;font-size:10.5px;color:var(--text-muted);"> 컴퓨존</span></th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
+                <tbody id="productBody"><tr><td colspan="11" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -269,6 +276,11 @@
                 <div class="field-label">판매가</div>
                 <input class="field-input" id="pSale" type="number" min="0">
             </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">시세 URL (컴퓨존)</div>
+            <input class="field-input" id="pMarketUrl" placeholder="https://www.compuzone.co.kr/... 제품 페이지 주소 (선택)">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록하면 컴퓨존 판매가를 매일 새벽 자동 조회해 시세 컬럼에 표시합니다.</div>
         </div>
         <div class="field-group">
             <div class="field-label">안전재고 (선택 · 이하 경고)</div>
@@ -638,6 +650,83 @@ async function loadStock() {
     </tr>`).join('');
 }
 
+// === 마진률 경고 ===
+let marginWarnPercent = {{ (int) $marginWarnPercent }};
+
+function marginCellHtml(p) {
+    const buy = Number(p.purchase_price), sell = Number(p.sale_price);
+    if (!(buy > 0) || !(sell > 0)) return '<span class="text-muted">-</span>';
+    const pct = (sell - buy) / sell * 100;
+    const txt = (Math.round(pct * 10) / 10) + '%';
+    if (pct < marginWarnPercent) return `<span class="text-warn" style="font-weight:600;" title="마진률이 경고 기준(${marginWarnPercent}%) 미만입니다">⚠ ${txt}</span>`;
+    return `<span>${txt}</span>`;
+}
+
+async function saveMarginWarn() {
+    const input = document.getElementById('marginWarnInput');
+    const percent = parseInt(input.value, 10);
+    if (isNaN(percent) || percent < 0 || percent > 99) { alert('0~99 사이 숫자를 입력해주세요.'); return; }
+    try {
+        const res = await fetch('/api/inventory/margin-threshold', { method:'POST', headers:H, body: JSON.stringify({ percent }) });
+        if (!res.ok) { const e = await res.json(); alert(e.message || '저장 실패'); return; }
+        marginWarnPercent = percent;
+        loadProducts();
+    } catch(e) { alert('네트워크 오류'); }
+}
+
+// === 컴퓨존 시세 ===
+function marketPriceCellHtml(p) {
+    if (!p.market_price_url) return '<span class="text-muted">-</span>';
+    const parts = [];
+    if (p.market_price != null) {
+        let diffHtml = '';
+        if (p.purchase_price > 0) {
+            const diff = (p.market_price - p.purchase_price) / p.purchase_price * 100;
+            const pct = Math.round(Math.abs(diff) * 10) / 10;
+            if (diff > 0) diffHtml = ` <span style="color:var(--red,#dc2626);font-size:11px;">▲${pct}%</span>`;
+            else if (diff < 0) diffHtml = ` <span style="color:var(--blue,#3b82f6);font-size:11px;">▼${pct}%</span>`;
+        }
+        const checked = p.market_price_checked_at ? fmtTime(p.market_price_checked_at) : '-';
+        parts.push(`<span title="컴퓨존 시세 · 매입가 대비 · 확인: ${checked}">${fmt(p.market_price)}${diffHtml}</span>`);
+    } else {
+        parts.push('<span class="text-muted">미조회</span>');
+    }
+    if (p.market_price_error) parts.push(`<span title="${_esc(p.market_price_error)}" style="cursor:help;">⚠</span>`);
+    parts.push(`<button class="btn-outline btn-sm" style="padding:2px 7px;" title="컴퓨존 시세 지금 갱신" onclick="refreshMarketPrice(${p.id}, this)">↻</button>`);
+    return parts.join(' ');
+}
+
+async function refreshMarketPrice(id, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    try {
+        const res = await fetch(`/api/inventory/products/${id}/refresh-market-price`, { method:'POST', headers:H });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) alert(data.message || `시세 조회 실패 (HTTP ${res.status})`);
+    } catch(e) { alert('네트워크 오류'); }
+    loadProducts();
+}
+
+// 전체 시세 갱신 — PHP 타임아웃 회피를 위해 브라우저에서 제품별로 순차 호출
+async function refreshAllMarketPrices(btn) {
+    const targets = allProducts.filter(p => p.market_price_url);
+    if (!targets.length) return alert('시세 URL이 등록된 제품이 없습니다.\n제품 수정에서 컴퓨존 제품 페이지 주소를 먼저 등록해주세요.');
+    if (!confirm(`${targets.length}개 제품의 컴퓨존 시세를 갱신할까요?\n(순차 조회라 다소 시간이 걸립니다)`)) return;
+    const origText = btn.textContent;
+    btn.disabled = true;
+    let fail = 0;
+    for (let i = 0; i < targets.length; i++) {
+        btn.textContent = `갱신 중 ${i+1}/${targets.length}`;
+        try {
+            const res = await fetch(`/api/inventory/products/${targets[i].id}/refresh-market-price`, { method:'POST', headers:H });
+            if (!res.ok) fail++;
+        } catch(e) { fail++; }
+    }
+    btn.disabled = false;
+    btn.textContent = origText;
+    await loadProducts();
+    if (fail) alert(`시세 갱신 완료 — ${fail}건 실패 (시세 컬럼의 ⚠ 아이콘에 사유가 표시됩니다)`);
+}
+
 // === 제품 관리 ===
 const prodSelection = new Set();
 
@@ -647,7 +736,7 @@ async function loadProducts() {
     const res = await fetch('/api/inventory/products'+params);
     allProducts = await res.json();
     const tb = document.getElementById('productBody');
-    if (!allProducts.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">등록된 제품이 없습니다.</td></tr>'; clearProdSelection(); return; }
+    if (!allProducts.length) { tb.innerHTML = '<tr><td colspan="11" class="empty-row">등록된 제품이 없습니다.</td></tr>'; clearProdSelection(); return; }
     // 화면에서 사라진 ID는 선택에서 제거
     const visibleIds = new Set(allProducts.map(p => p.id));
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
@@ -658,6 +747,8 @@ async function loadProducts() {
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${fmt(p.purchase_price)}</td>
         <td class="text-right">${fmt(p.sale_price)}</td>
+        <td class="text-right">${marginCellHtml(p)}</td>
+        <td class="text-right">${marketPriceCellHtml(p)}</td>
         <td class="text-right">${p.safety_stock||'-'}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td class="action-cell">
@@ -742,6 +833,7 @@ async function openProductModal(p) {
     document.getElementById('pName').value = p ? p.name : '';
     document.getElementById('pPurchase').value = p ? (p.purchase_price||'') : '';
     document.getElementById('pSale').value = p ? (p.sale_price||'') : '';
+    document.getElementById('pMarketUrl').value = p ? (p.market_price_url||'') : '';
     document.getElementById('pSafety').value = p ? (p.safety_stock||'') : '';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
@@ -758,6 +850,7 @@ const PRODUCT_FIELD_LABELS = {
     category_id: '카테고리',
     purchase_price: '매입가',
     sale_price: '판매가',
+    market_price_url: '시세 URL',
     safety_stock: '안전재고',
     memo: '메모',
     show_in_estimate: '견적서 노출',
@@ -783,6 +876,7 @@ async function saveProduct() {
         // 매입가는 비워두면 0으로 자동 저장
         purchase_price: parseInt(document.getElementById('pPurchase').value, 10) || 0,
         sale_price: document.getElementById('pSale').value || null,
+        market_price_url: document.getElementById('pMarketUrl').value.trim() || null,
         safety_stock: document.getElementById('pSafety').value || null,
         memo: document.getElementById('pMemo').value || null,
         show_in_estimate: document.getElementById('pEstimate').checked,

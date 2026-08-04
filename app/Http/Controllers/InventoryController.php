@@ -6,7 +6,9 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Models\StockMovement;
+use App\Services\CompuzoneClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +16,26 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
+    /** 마진률 경고 기준(%) 기본값 — 설정 미저장 시 사용 */
+    private const DEFAULT_MARGIN_WARN_PERCENT = 20;
+
     public function index()
     {
-        return view('inventory.index');
+        $marginWarnPercent = (int) Setting::get('inventory_margin_warn_percent', self::DEFAULT_MARGIN_WARN_PERCENT);
+
+        return view('inventory.index', compact('marginWarnPercent'));
+    }
+
+    /** 마진률 경고 기준(%) 저장 — 기준 미만 제품은 목록에서 경고 표시 */
+    public function updateMarginThreshold(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'percent' => 'required|integer|min:0|max:99',
+        ]);
+
+        Setting::set('inventory_margin_warn_percent', $validated['percent']);
+
+        return response()->json(['percent' => $validated['percent']]);
     }
 
     // === 카테고리 ===
@@ -213,6 +232,7 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
+            'market_price_url' => $this->marketPriceUrlRules(),
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
@@ -263,6 +283,7 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
+            'market_price_url' => $this->marketPriceUrlRules(),
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
@@ -271,6 +292,17 @@ class InventoryController extends Controller
         try {
             $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
             $cat = ProductCategory::findOrFail($validated['category_id']);
+
+            // 시세 URL 비움/변경 시 기존 시세 정보 리셋 (다른 제품 가격이 남지 않도록)
+            if (array_key_exists('market_price_url', $validated)) {
+                $newUrl = $validated['market_price_url'] ?: null;
+                $validated['market_price_url'] = $newUrl;
+                if ($newUrl !== $product->market_price_url) {
+                    $validated['market_price'] = null;
+                    $validated['market_price_checked_at'] = null;
+                    $validated['market_price_error'] = null;
+                }
+            }
 
             // NOT NULL 컬럼들은 null을 0으로 강제 (제공된 키에 한해서만 — sometimes 검증과 일관)
             if (array_key_exists('purchase_price', $validated)) {
@@ -301,6 +333,25 @@ class InventoryController extends Controller
                 'file' => basename($e->getFile()).':'.$e->getLine(),
             ], 500);
         }
+    }
+
+    /**
+     * 컴퓨존 시세 수동 갱신 — 성공 시 갱신된 제품, 실패 시 사유와 함께 422.
+     */
+    public function refreshMarketPrice(Product $product, CompuzoneClient $compuzone): JsonResponse
+    {
+        if (! $product->market_price_url) {
+            return response()->json(['message' => '시세 URL이 등록되지 않은 제품입니다.'], 422);
+        }
+
+        if (! $compuzone->refresh($product)) {
+            return response()->json([
+                'message' => $product->market_price_error ?? '시세 조회에 실패했습니다.',
+                'product' => $product->fresh()->load('inventory', 'categoryRelation'),
+            ], 422);
+        }
+
+        return response()->json($product->fresh()->load('inventory', 'categoryRelation'));
     }
 
     public function destroyProduct(Product $product)
@@ -499,6 +550,20 @@ class InventoryController extends Controller
     }
 
     // === 헬퍼 ===
+
+    /**
+     * 시세 URL 검증 규칙 — 컴퓨존 도메인만 허용.
+     *
+     * @return array<int, mixed>
+     */
+    private function marketPriceUrlRules(): array
+    {
+        return ['nullable', 'string', 'url', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
+            if ($value && ! app(CompuzoneClient::class)->isAllowedUrl($value)) {
+                $fail('컴퓨존(compuzone.co.kr) 주소만 등록할 수 있습니다.');
+            }
+        }];
+    }
 
     /**
      * SKU 자동 생성 — 2차 카테고리의 코드를 베이스로 사용 (정책)

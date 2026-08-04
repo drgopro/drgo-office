@@ -45,6 +45,8 @@ use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
 use App\Models\ProjectFieldDefinition;
 use App\Models\User;
+use App\Services\CompuzoneClient;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -300,6 +302,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/inventory/products', [InventoryController::class, 'storeProduct']);
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);
         Route::post('/api/inventory/products/bulk-estimate', [InventoryController::class, 'bulkSetEstimate']);
+        Route::post('/api/inventory/margin-threshold', [InventoryController::class, 'updateMarginThreshold']); // 마진률 경고 기준(%) 저장
+        Route::post('/api/inventory/products/{product}/refresh-market-price', [InventoryController::class, 'refreshMarketPrice']); // 컴퓨존 시세 수동 갱신
         Route::post('/api/inventory/products/bulk-delete', [InventoryController::class, 'bulkDeleteProducts']);
         Route::delete('/api/inventory/products/{product}', [InventoryController::class, 'destroyProduct']);
         Route::post('/api/inventory/movements', [InventoryController::class, 'storeMovement']);
@@ -470,6 +474,29 @@ Route::middleware('auth')->group(function () {
             Artisan::call('smoke:cleanup');
 
             return response(Artisan::output(), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+        });
+        // 컴퓨존 시세 크롤링 진단 — 서버에서 실제 fetch를 실행해 결과 확인 (스니펫은 compuzone-log에 기록)
+        Route::get('/admin/compuzone-probe', function (Request $request) {
+            $url = (string) $request->query('url');
+            if ($url === '') {
+                return response("url 파라미터가 필요합니다.\n예: /admin/compuzone-probe?url=https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=...", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+            }
+            $result = app(CompuzoneClient::class)->fetch($url, logProbe: true);
+
+            return response(
+                json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n\n원본 HTML 스니펫은 /admin/compuzone-log 에서 확인하세요.",
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
+        });
+        Route::get('/admin/compuzone-log', function () {
+            $path = storage_path('logs/compuzone.log');
+
+            return response(
+                file_exists($path) ? file_get_contents($path) : '아직 컴퓨존 시세 조회 기록이 없습니다.',
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
         });
         // 배포 커밋 → 위키 '업데이트' 게시물 초안 자동 생성 (임시저장으로 만들어 검토 후 발행)
         Route::get('/admin/update-note-draft', [UpdateNoteController::class, 'generateDraft'])->name('admin.update-note-draft');
