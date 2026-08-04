@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Project;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
@@ -24,7 +27,7 @@ class ExcelImportController extends Controller
         'products' => [
             // 카테고리는 4차까지 가능 — 코드 또는 이름으로 입력 가능, 가장 하위 단계만 채워도 됨
             // SKU 비어있으면 2차 카테고리 코드 기반으로 자동 생성됨
-            'headers' => ['SKU(비우면 자동)', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '카테고리4차(코드/이름)', '매입가', '판매가', '안전재고', '메모'],
+            'headers' => ['SKU(비우면 자동)', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '카테고리4차(코드/이름)', '매입가', '판매가', '재고수량', '안전재고', '메모'],
             'required' => ['제품명'],
         ],
         'clients' => [
@@ -330,8 +333,17 @@ class ExcelImportController extends Controller
             $parentId = $node->id;
         }
 
+        // 재고수량 — 빈 칸이면 건드리지 않음 (0과 구분)
+        $qtyRaw = $data['재고수량'] ?? null;
+        $qty = ($qtyRaw === null || $qtyRaw === '') ? null : max(0, (int) $qtyRaw);
+
+        // 기존 제품 매칭: SKU 우선, SKU가 비어있으면 제품명 — 재업로드 시 중복 생성 대신 업데이트
+        $existing = $sku !== ''
+            ? Product::where('sku', $sku)->first()
+            : Product::where('name', $name)->first();
+
         // SKU 비어있으면 2차 카테고리 코드 기반으로 자동 생성
-        if ($sku === '') {
+        if (! $existing && $sku === '') {
             if (! $categoryId) {
                 throw new \Exception('카테고리를 지정해야 SKU를 자동 생성할 수 있습니다.');
             }
@@ -339,19 +351,88 @@ class ExcelImportController extends Controller
             $sku = $this->autoGenerateSku($cat);
         }
 
-        Product::create([
-            'sku' => $sku,
-            'name' => $name,
-            'category_id' => $categoryId,
-            'category' => $categoryName,
-            'purchase_price' => (int) ($data['매입가'] ?? 0),
-            'sale_price' => (int) ($data['판매가'] ?? 0),
-            'safety_stock' => (int) ($data['안전재고'] ?? 0),
-            'memo' => $data['메모'] ?? null,
-            'is_active' => true,
+        return DB::transaction(function () use ($existing, $sku, $name, $categoryId, $categoryName, $data, $qty) {
+            if ($existing) {
+                // 빈 칸은 기존 값 유지 — 채워진 값만 덮어씀
+                $updates = ['name' => $name];
+                if ($categoryId) {
+                    $updates['category_id'] = $categoryId;
+                    $updates['category'] = $categoryName;
+                }
+                foreach (['매입가' => 'purchase_price', '판매가' => 'sale_price', '안전재고' => 'safety_stock'] as $col => $field) {
+                    if (($data[$col] ?? '') !== '' && $data[$col] !== null) {
+                        $updates[$field] = (int) $data[$col];
+                    }
+                }
+                if (($data['메모'] ?? '') !== '' && $data['메모'] !== null) {
+                    $updates['memo'] = $data['메모'];
+                }
+                $existing->update($updates);
+
+                if ($qty !== null) {
+                    $this->setImportedStock($existing, $qty);
+                }
+
+                return true;
+            }
+
+            $product = Product::create([
+                'sku' => $sku,
+                'name' => $name,
+                'category_id' => $categoryId,
+                'category' => $categoryName,
+                'purchase_price' => (int) ($data['매입가'] ?? 0),
+                'sale_price' => (int) ($data['판매가'] ?? 0),
+                'safety_stock' => (int) ($data['안전재고'] ?? 0),
+                'memo' => $data['메모'] ?? null,
+                'is_active' => true,
+            ]);
+
+            Inventory::create([
+                'product_id' => $product->id,
+                'quantity' => $qty ?? 0,
+                'last_updated_at' => now(),
+            ]);
+
+            if (($qty ?? 0) > 0) {
+                StockMovement::create([
+                    'product_id' => $product->id,
+                    'movement_type' => 'in',
+                    'quantity' => $qty,
+                    'quantity_after' => $qty,
+                    'user_id' => Auth::id(),
+                    'memo' => '엑셀 임포트 초기 재고',
+                ]);
+            }
+
+            return true;
+        });
+    }
+
+    /**
+     * 임포트 재고 반영 — 기존 수량과 다르면 조정(adjust) 이력을 남기고 갱신.
+     */
+    private function setImportedStock(Product $product, int $qty): void
+    {
+        $inventory = Inventory::firstOrCreate(
+            ['product_id' => $product->id],
+            ['quantity' => 0, 'last_updated_at' => now()]
+        );
+
+        if ($inventory->quantity === $qty) {
+            return;
+        }
+
+        StockMovement::create([
+            'product_id' => $product->id,
+            'movement_type' => 'adjust',
+            'quantity' => abs($qty - $inventory->quantity),
+            'quantity_after' => $qty,
+            'user_id' => Auth::id(),
+            'memo' => '엑셀 임포트 재고 반영',
         ]);
 
-        return true;
+        $inventory->update(['quantity' => $qty, 'last_updated_at' => now()]);
     }
 
     /**
