@@ -279,9 +279,11 @@
         </div>
         <div class="field-group">
             <div class="field-label">카테고리 *</div>
-            <div class="field-row-3">
+            <div class="field-row" style="margin-bottom:10px;">
                 <select class="field-select" id="pCat1" onchange="onCat1Change()"><option value="">1차 선택</option></select>
                 <select class="field-select" id="pCat2" onchange="onCat2Change()" disabled><option value="">2차 선택</option></select>
+            </div>
+            <div class="field-row">
                 <select class="field-select" id="pCat3" onchange="onCat3Change()" disabled><option value="">3차 선택</option></select>
                 <select class="field-select" id="pCat4" disabled><option value="">4차 선택</option></select>
             </div>
