@@ -194,6 +194,28 @@ class MarketPriceTest extends TestCase
         $this->assertSame(1320000, $product->fresh()->market_price);
     }
 
+    public function test_refresh_skips_addon_product_widget_price(): void
+    {
+        // 실제 오탐 사례 재현: 추가구성(선택상품) 위젯의 CPU쿨러 가격(13,200)이 먼저 나오고,
+        // 본품 판매가는 마크업 거리가 먼 가격 테이블에 있는 구조
+        $widget = '<!-- 클릭 시 하단 선택한 상품에 리스트 추가 --> <span class="pdtl_sel_info">'
+            .'<span class="pdtl_txt">[INTEL] 인텔 Laminar RM1 [CPU쿨러]</span>'
+            .'<span class="price">13,200원<span class=\'unit\'></span></span></span>';
+        $mainPrice = '<table><tr><th>판매가격</th>'
+            .str_repeat('<td class="pad_cell" style="width:10px"></td>', 10)
+            .'<td><em id="won_pd">899,000</em>원</td></tr></table>';
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body>'.$widget.$mainPrice.'</body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(899000, $product->fresh()->market_price);
+    }
+
     public function test_refresh_allows_tags_between_price_and_won(): void
     {
         Http::fake(['*compuzone.co.kr*' => Http::response(

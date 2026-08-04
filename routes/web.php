@@ -482,9 +482,33 @@ Route::middleware('auth')->group(function () {
                 return response("url 파라미터가 필요합니다.\n예: /admin/compuzone-probe?url=https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=...", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
             }
             $result = app(CompuzoneClient::class)->fetch($url, logProbe: true);
+            $html = $result['html'] ?? null;
+            unset($result['html']);
+
+            $out = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+            // &find=문자열 — 페이지 HTML에서 해당 문자열 주변(±300자)을 최대 10곳 출력 (셀렉터 보정용)
+            $find = (string) $request->query('find');
+            if ($find !== '') {
+                $out .= "\n\n=== '{$find}' 검색 결과 ===";
+                if ($html === null) {
+                    $out .= "\n(HTML을 받지 못했습니다)";
+                } else {
+                    $pos = 0;
+                    $n = 0;
+                    while ($n < 10 && ($pos = mb_strpos($html, $find, $pos)) !== false) {
+                        $n++;
+                        $out .= "\n--- #{$n} ---\n".mb_substr($html, max(0, $pos - 300), mb_strlen($find) + 600)."\n";
+                        $pos += mb_strlen($find);
+                    }
+                    if ($n === 0) {
+                        $out .= "\n(페이지 HTML에 없음 — 해당 값이 JS/AJAX로 나중에 로드되는 것일 수 있습니다)";
+                    }
+                }
+            }
 
             return response(
-                json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n\n원본 HTML 스니펫은 /admin/compuzone-log 에서 확인하세요.",
+                $out."\n\n원본 HTML 스니펫은 /admin/compuzone-log 에서 확인하세요. &find=판매가 처럼 붙이면 해당 문자열 주변 HTML을 볼 수 있습니다.",
                 200,
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );

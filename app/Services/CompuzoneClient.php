@@ -71,7 +71,8 @@ class CompuzoneClient
         }
 
         // 인코딩 변환 전이므로 바이트 기준으로 자른다 (EUC-KR 바이트에 mb_substr 사용 금지)
-        $html = substr($res->body(), 0, 400000);
+        // 컴퓨존 상세 페이지는 커서 본품 가격 영역이 뒤쪽에 있을 수 있음 — 넉넉히 자른다
+        $html = substr($res->body(), 0, 1500000);
 
         // 선언된 charset이 UTF-8이 아니면 변환 (컴퓨존은 EUC-KR)
         if (preg_match('/charset=["\']?([\w-]+)/i', $html, $cm) && strcasecmp($cm[1], 'utf-8') !== 0) {
@@ -89,11 +90,15 @@ class CompuzoneClient
             $this->log($url, $status, $price, $strategy, $detail);
         }
 
-        if ($price === null) {
-            return ['price' => null, 'error' => '페이지에서 가격을 찾지 못했습니다 (구조 변경 가능성)', 'http_status' => $status, 'strategy' => null, 'candidates' => $candidates];
+        $result = $price === null
+            ? ['price' => null, 'error' => '페이지에서 가격을 찾지 못했습니다 (구조 변경 가능성)', 'http_status' => $status, 'strategy' => null, 'candidates' => $candidates]
+            : ['price' => $price, 'error' => null, 'http_status' => $status, 'strategy' => $strategy, 'candidates' => $candidates];
+
+        if ($logProbe) {
+            $result['html'] = $html; // 진단용 — probe 라우트에서 find 검색 후 제거
         }
 
-        return ['price' => $price, 'error' => null, 'http_status' => $status, 'strategy' => $strategy, 'candidates' => $candidates];
+        return $result;
     }
 
     /**
@@ -206,9 +211,13 @@ class CompuzoneClient
                     $rejected = "부가 금액 속성 ({$am[0]})";
                 } elseif (($p = $this->sanitizePrice($pm[1])) === null) {
                     $rejected = '정합성 범위 밖 (100원~1억)';
-                } elseif (($kw = $this->negativeKeyword($around, ['적립', '마일리지', '포인트', '배송비'])) !== null) {
-                    // 넓은 창(±200B)이라 확실한 부가 금액 키워드만 본다
-                    $rejected = "부가 금액 문맥 ({$kw})";
+                } elseif (($kw = $this->negativeKeyword($around, [
+                    '적립', '마일리지', '포인트', '배송비',
+                    // 추가구성/연관상품 위젯의 다른 상품 가격 (pdtl_sel = 컴퓨존 선택상품 위젯)
+                    'pdtl_sel', '리스트 추가', '추가구성', '선택한 상품', '함께 구매', '관련상품', '연관상품',
+                ])) !== null) {
+                    // 넓은 창(±200B)이라 확실한 부가 금액/타상품 키워드만 본다
+                    $rejected = "부가 금액/타상품 문맥 ({$kw})";
                 }
                 $candidates[] = [
                     'strategy' => 'prc-element', 'raw' => $pm[1],
@@ -219,8 +228,9 @@ class CompuzoneClient
             }
         }
 
-        // 4) 가격 키워드 근방 "1,234,000원" 패턴 (숫자와 원 사이 닫는 태그 허용)
-        if (preg_match_all('/(?:판매가|할인가|카드가|가격)[^가-힣]{0,200}?([\d,]{4,})(?:\s*<[^>]*>)*\s*원/u', $html, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+        // 4) 가격 키워드 근방 "1,234,000원" 패턴 (숫자와 원 사이 닫는 태그 허용,
+        //    키워드와 숫자 사이 최대 600자 — 중첩 마크업이 긴 가격 테이블 대응)
+        if (preg_match_all('/(?:판매가|할인가|카드가|가격)[^가-힣]{0,600}?([\d,]{4,})(?:\s*<[^>]*>)*\s*원/u', $html, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
             foreach ($m as $set) {
                 // 앞 30B(적립가격 같은 합성어) + 뒤 80B(원 적립 등) 문맥으로 부가 금액 판별
                 $context = substr($html, max(0, $set[1][1] - 30), strlen($set[1][0]) + 110);
