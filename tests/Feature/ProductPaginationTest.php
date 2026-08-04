@@ -63,6 +63,33 @@ class ProductPaginationTest extends TestCase
         $res->assertOk()->assertJsonPath('total', 5)->assertJsonCount(5, 'data');
     }
 
+    public function test_stock_supports_pagination_and_category_filter(): void
+    {
+        $cat = $this->seedProducts(15);
+        $other = ProductCategory::create(['name' => '기타', 'code' => 'ETC', 'depth' => 1, 'sort_order' => 2]);
+        Product::create([
+            'sku' => 'ETC-001', 'name' => '기타 제품', 'category' => '기타', 'category_id' => $other->id,
+            'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        $user = User::factory()->create(['role' => 'master']);
+
+        // 페이지네이션 — 2페이지에 나머지 6개 (15+1=16개, 10개씩)
+        $res = $this->actingAs($user)->getJson('/api/inventory/stock?per_page=10&page=2');
+        $res->assertOk()
+            ->assertJsonPath('total', 16)
+            ->assertJsonPath('last_page', 2)
+            ->assertJsonCount(6, 'data');
+
+        // 카테고리 필터 + 페이지네이션 결합
+        $filtered = $this->actingAs($user)->getJson("/api/inventory/stock?per_page=10&category_id={$cat->id}");
+        $filtered->assertOk()->assertJsonPath('total', 15)->assertJsonCount(10, 'data');
+
+        // per_page 없으면 기존 배열 응답 유지
+        $plain = $this->actingAs($user)->getJson('/api/inventory/stock');
+        $plain->assertOk()->assertJsonCount(16);
+    }
+
     public function test_without_per_page_returns_plain_array(): void
     {
         $this->seedProducts(3);

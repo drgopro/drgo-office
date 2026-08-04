@@ -469,7 +469,11 @@ class InventoryController extends Controller
             });
         }
 
-        $products = $query->orderBy('sku')->get()->map(function ($p) {
+        if ($categoryId = $request->query('category_id')) {
+            $query->whereIn('category_id', $this->getCategoryDescendantIds((int) $categoryId));
+        }
+
+        $mapRow = function ($p) {
             $qty = $p->inventory?->quantity ?? 0;
 
             return [
@@ -483,9 +487,21 @@ class InventoryController extends Controller
                 'purchase_price' => $p->purchase_price,
                 'sale_price' => $p->sale_price,
             ];
-        });
+        };
 
-        return response()->json($products);
+        // per_page가 있으면 페이지네이션 응답 (products와 동일한 형태)
+        if ($perPage = (int) $request->query('per_page')) {
+            $page = $query->orderBy('sku')->paginate(min(max($perPage, 1), 200));
+
+            return response()->json([
+                'data' => collect($page->items())->map($mapRow)->values(),
+                'total' => $page->total(),
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+            ]);
+        }
+
+        return response()->json($query->orderBy('sku')->get()->map($mapRow));
     }
 
     // === 입출고 ===

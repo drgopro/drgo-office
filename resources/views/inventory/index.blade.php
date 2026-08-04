@@ -165,17 +165,25 @@
     <!-- 재고 현황 -->
     <div class="tab-panel active" id="panel-stock">
         <div class="toolbar">
-            <input type="text" id="stockSearch" placeholder="제품명/SKU 검색" oninput="loadStock()">
+            <input type="text" id="stockSearch" placeholder="제품명/SKU 검색" oninput="stockPage=1;loadStock()">
+            <select id="stockPerPage" onchange="setStockPerPage(this.value)" title="페이지당 표시 개수">
+                <option value="10">10개씩</option>
+                <option value="20">20개씩</option>
+                <option value="50">50개씩</option>
+                <option value="100">100개씩</option>
+            </select>
             <label style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:4px; cursor:pointer;">
-                <input type="checkbox" id="lowStockOnly" onchange="loadStock()" style="accent-color:var(--accent);"> 부족 재고만
+                <input type="checkbox" id="lowStockOnly" onchange="stockPage=1;loadStock()" style="accent-color:var(--accent);"> 부족 재고만
             </label>
         </div>
+        <div id="stockCatChips" style="margin-bottom:12px;"></div>
         <div class="data-card">
             <table class="data-table">
                 <thead><tr><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">현재 수량</th><th class="text-right">안전재고</th><th>상태</th></tr></thead>
                 <tbody id="stockBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
+        <div class="pager" id="stockPager"></div>
     </div>
 
     <!-- 제품 관리 -->
@@ -413,6 +421,7 @@ async function loadCategories() {
     catData = await res.json();
     renderCatTree();
     renderProdCatChips(); // 카테고리 추가/삭제가 제품 필터 칩에도 반영되도록
+    renderStockCatChips();
 }
 function renderCatTree() {
     const el = document.getElementById('catTree');
@@ -659,14 +668,40 @@ function onCat3Change() {
 }
 
 // === 재고 현황 ===
+let stockPage = 1;
+let stockPerPage = parseInt(localStorage.getItem('invStockPerPage'), 10) || 20;
+
+function setStockPerPage(v) {
+    stockPerPage = parseInt(v, 10) || 20;
+    localStorage.setItem('invStockPerPage', stockPerPage);
+    stockPage = 1;
+    loadStock();
+}
+
+function goStockPage(n) {
+    stockPage = n;
+    loadStock();
+}
+
 async function loadStock() {
     const search = document.getElementById('stockSearch').value;
     const low = document.getElementById('lowStockOnly').checked;
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (low) params.set('low_stock', '1');
+    const catId = stockCatFilterId();
+    if (catId) params.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
+    params.set('per_page', stockPerPage);
+    params.set('page', stockPage);
     const res = await fetch('/api/inventory/stock?'+params);
-    const data = await res.json();
+    const payload = await res.json();
+    const data = payload.data;
+    // 페이지 범위를 벗어나면 마지막 페이지로 클램프
+    if (!data.length && payload.total > 0 && stockPage > 1) {
+        stockPage = payload.last_page;
+        return loadStock();
+    }
+    renderPagerInto('stockPager', payload, 'goStockPage');
     const tb = document.getElementById('stockBody');
     if (!data.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>'; return; }
     tb.innerHTML = data.map(p => `<tr>
@@ -778,30 +813,22 @@ function prodCatFilterId() {
     return prodCatPath.length ? prodCatPath[prodCatPath.length - 1] : null;
 }
 
-// 경로의 각 id를 트리에서 검증하며 노드 체인 반환 — 삭제된 카테고리면 그 앞에서 절단
-function prodCatNodeChain() {
+// 공용: 계단식 카테고리 칩 렌더 — 경로(path)는 삭제된 카테고리 발견 시 in-place 절단됨
+function renderCatChipsInto(elId, path, setter) {
+    const el = document.getElementById(elId);
+    if (!el) return;
     const chain = [];
     let level = catData;
-    for (const id of prodCatPath) {
+    for (const id of path) {
         const node = (level || []).find(c => c.id === id);
         if (!node) break;
         chain.push(node);
         level = node.children || [];
     }
-    if (chain.length !== prodCatPath.length) {
-        prodCatPath = chain.map(n => n.id);
-        saveProdCatPath();
-    }
-    return chain;
-}
-
-function renderProdCatChips() {
-    const el = document.getElementById('prodCatChips');
-    if (!el) return;
-    const chain = prodCatNodeChain();
+    if (chain.length !== path.length) path.length = chain.length;
     let html = '<div class="cat-chip-row">'
-        + `<button class="cat-chip ${!prodCatPath.length?'active':''}" onclick="setProdCatPath(0,null)">전체</button>`
-        + catData.map(c => `<button class="cat-chip ${prodCatPath[0]===c.id?'active':''}" onclick="setProdCatPath(0,${c.id})">${_esc(c.name)}</button>`).join('')
+        + `<button class="cat-chip ${!path.length?'active':''}" onclick="${setter}(0,null)">전체</button>`
+        + catData.map(c => `<button class="cat-chip ${path[0]===c.id?'active':''}" onclick="${setter}(0,${c.id})">${_esc(c.name)}</button>`).join('')
         + '</div>';
     // 선택된 노드마다 하위가 있으면 다음 행 노출
     chain.forEach((node, i) => {
@@ -809,11 +836,16 @@ function renderProdCatChips() {
         if (!children.length) return;
         html += '<div class="cat-chip-row cat-chip-sub">'
             + '<span class="cat-chip-arrow">└</span>'
-            + `<button class="cat-chip ${prodCatPath.length===i+1?'active':''}" onclick="setProdCatPath(${i+1},null)">${_esc(node.name)} 전체</button>`
-            + children.map(c => `<button class="cat-chip ${prodCatPath[i+1]===c.id?'active':''}" onclick="setProdCatPath(${i+1},${c.id})">${_esc(c.name)}</button>`).join('')
+            + `<button class="cat-chip ${path.length===i+1?'active':''}" onclick="${setter}(${i+1},null)">${_esc(node.name)} 전체</button>`
+            + children.map(c => `<button class="cat-chip ${path[i+1]===c.id?'active':''}" onclick="${setter}(${i+1},${c.id})">${_esc(c.name)}</button>`).join('')
             + '</div>';
     });
     el.innerHTML = html;
+}
+
+function renderProdCatChips() {
+    renderCatChipsInto('prodCatChips', prodCatPath, 'setProdCatPath');
+    saveProdCatPath(); // 절단됐을 수 있으니 재저장
 }
 
 function setProdCatPath(depth, id) {
@@ -823,6 +855,33 @@ function setProdCatPath(depth, id) {
     prodPage = 1;
     renderProdCatChips();
     loadProducts();
+}
+
+// === 재고 현황 탭 카테고리 필터 ===
+let stockCatPath = [];
+try { stockCatPath = JSON.parse(localStorage.getItem('invStockCatPath')) || []; } catch(_) { stockCatPath = []; }
+
+function saveStockCatPath() {
+    if (stockCatPath.length) localStorage.setItem('invStockCatPath', JSON.stringify(stockCatPath));
+    else localStorage.removeItem('invStockCatPath');
+}
+
+function stockCatFilterId() {
+    return stockCatPath.length ? stockCatPath[stockCatPath.length - 1] : null;
+}
+
+function renderStockCatChips() {
+    renderCatChipsInto('stockCatChips', stockCatPath, 'setStockCatPath');
+    saveStockCatPath();
+}
+
+function setStockCatPath(depth, id) {
+    stockCatPath = stockCatPath.slice(0, depth);
+    if (id) stockCatPath.push(id);
+    saveStockCatPath();
+    stockPage = 1;
+    renderStockCatChips();
+    loadStock();
 }
 
 // === 페이징 ===
@@ -841,8 +900,9 @@ function goProdPage(n) {
     loadProducts();
 }
 
-function renderProdPager(p) {
-    const el = document.getElementById('prodPager');
+// 공용: 페이저 렌더
+function renderPagerInto(elId, p, goFn) {
+    const el = document.getElementById(elId);
     if (!el) return;
     if (!p.total) { el.innerHTML = ''; return; }
     const cur = p.current_page, last = p.last_page;
@@ -850,13 +910,15 @@ function renderProdPager(p) {
     const end = Math.min(last, start + 6);
     start = Math.max(1, end - 6);
     let html = `<span class="pager-info">총 ${p.total.toLocaleString()}개</span>`;
-    html += `<button class="pager-btn" ${cur === 1 ? 'disabled' : ''} onclick="goProdPage(${cur - 1})">‹</button>`;
+    html += `<button class="pager-btn" ${cur === 1 ? 'disabled' : ''} onclick="${goFn}(${cur - 1})">‹</button>`;
     for (let i = start; i <= end; i++) {
-        html += `<button class="pager-btn ${i === cur ? 'active' : ''}" onclick="goProdPage(${i})">${i}</button>`;
+        html += `<button class="pager-btn ${i === cur ? 'active' : ''}" onclick="${goFn}(${i})">${i}</button>`;
     }
-    html += `<button class="pager-btn" ${cur === last ? 'disabled' : ''} onclick="goProdPage(${cur + 1})">›</button>`;
+    html += `<button class="pager-btn" ${cur === last ? 'disabled' : ''} onclick="${goFn}(${cur + 1})">›</button>`;
     el.innerHTML = html;
 }
+
+function renderProdPager(p) { renderPagerInto('prodPager', p, 'goProdPage'); }
 
 // 현재 검색/카테고리 필터 조건의 쿼리스트링 (페이징 제외)
 function prodFilterParams() {
@@ -1187,8 +1249,9 @@ async function receiveOrder(id){
 const validTabs = ['stock','products','movements','orders','categories'];
 
 const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stock';
-fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); });
+fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); renderStockCatChips(); });
 document.getElementById('prodPerPage').value = String(prodPerPage);
+document.getElementById('stockPerPage').value = String(stockPerPage);
 switchTab(initTab);
 </script>
 @endpush
