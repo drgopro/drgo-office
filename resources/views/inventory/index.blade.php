@@ -131,7 +131,20 @@
     [data-theme="light"] .cat-add-inline input { background:#fff; border-color:#b8bcc8; }
     [data-theme="light"] .btn-outline { border-color:#b8bcc8; color:#4a5060; }
     [data-theme="light"] .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+    /* 모바일 카드형 리스트 (재고 현황·제품 관리) — 데스크탑에서는 숨김 */
+    .mob-cards { display:none; }
+    .mob-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+    .mob-card-top { display:flex; gap:10px; align-items:flex-start; }
+    .mob-card-top input[type="checkbox"] { width:17px; height:17px; margin-top:2px; accent-color:var(--accent); flex-shrink:0; }
+    .mob-card-title { font-weight:700; font-size:13.5px; line-height:1.45; word-break:break-all; }
+    .mob-card-sub { color:var(--text-muted); font-size:11.5px; margin-top:4px; }
+    .mob-card-line { font-size:12.5px; margin-top:7px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+    .mob-card-actions { display:flex; gap:6px; margin-top:11px; }
+    .mob-card-actions button { flex:1; padding:8px 0; font-size:12.5px; }
+    [data-theme="light"] .mob-card { border-color:#c8ccd4; }
     @media (max-width: 768px) {
+        #panel-stock .data-card, #panel-products .data-card { display:none; }
+        .mob-cards { display:block; }
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
         .data-table { min-width:600px; }
@@ -183,6 +196,7 @@
                 <tbody id="stockBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
+        <div class="mob-cards" id="stockCards"></div>
         <div class="pager" id="stockPager"></div>
     </div>
 
@@ -223,6 +237,7 @@
                 <tbody id="productBody"><tr><td colspan="11" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
+        <div class="mob-cards" id="productCards"></div>
         <div class="pager" id="prodPager"></div>
     </div>
 
@@ -703,13 +718,24 @@ async function loadStock() {
     }
     renderPagerInto('stockPager', payload, 'goStockPage');
     const tb = document.getElementById('stockBody');
-    if (!data.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>'; return; }
+    const cards = document.getElementById('stockCards');
+    if (!data.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>';
+        cards.innerHTML = '<div class="empty-row">데이터가 없습니다.</div>';
+        return;
+    }
     tb.innerHTML = data.map(p => `<tr>
         <td class="text-muted">${_esc(p.sku)}</td><td>${_esc(p.name)}</td><td class="text-muted">${_esc(p.category)||'-'}</td>
         <td class="text-right ${p.is_low?'text-warn':''}" style="font-weight:600;">${p.quantity}</td>
         <td class="text-right text-muted">${p.safety_stock||'-'}</td>
         <td>${p.is_low?'<span class="badge badge-low">부족</span>':'<span class="badge badge-ok">정상</span>'}</td>
     </tr>`).join('');
+    // 모바일 카드 (768px 이하에서 표시)
+    cards.innerHTML = data.map(p => `<div class="mob-card">
+        <div class="mob-card-title">${_esc(p.name)}</div>
+        <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}</div>
+        <div class="mob-card-line">수량 <b class="${p.is_low?'text-warn':''}">${p.quantity}</b> · 안전재고 ${p.safety_stock||'-'} ${p.is_low?'<span class="badge badge-low">부족</span>':'<span class="badge badge-ok">정상</span>'}</div>
+    </div>`).join('');
 }
 
 // === 마진률 경고 ===
@@ -944,9 +970,12 @@ async function loadProducts() {
     }
     renderProdPager(payload);
     const tb = document.getElementById('productBody');
+    const cards = document.getElementById('productCards');
     if (!allProducts.length) {
         const filtered = document.getElementById('productSearch').value || prodCatFilterId();
-        tb.innerHTML = `<tr><td colspan="11" class="empty-row">${filtered ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.'}</td></tr>`;
+        const msg = filtered ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.';
+        tb.innerHTML = `<tr><td colspan="11" class="empty-row">${msg}</td></tr>`;
+        cards.innerHTML = `<div class="empty-row">${msg}</div>`;
         clearProdSelection();
         return;
     }
@@ -970,6 +999,23 @@ async function loadProducts() {
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </td>
     </tr>`).join('');
+    // 모바일 카드 (768px 이하에서 표시) — 체크박스/버튼은 테이블과 동일 핸들러 공유
+    cards.innerHTML = allProducts.map(p => `<div class="mob-card" data-pid="${p.id}">
+        <div class="mob-card-top">
+            <input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)">
+            <div>
+                <div class="mob-card-title">${_esc(p.name)}</div>
+                <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}${p.safety_stock ? ' · 안전재고 '+p.safety_stock : ''}${p.show_in_estimate ? ' · <span class="badge badge-ok">노출</span>' : ''}</div>
+            </div>
+        </div>
+        <div class="mob-card-line">매입 ${fmt(p.purchase_price)} → 판매 ${fmt(p.sale_price)} · ${marginCellHtml(p)}</div>
+        <div class="mob-card-line">시세 ${marketPriceCellHtml(p)}</div>
+        <div class="mob-card-actions">
+            <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${_esc(p.name.replace(/'/g,"\\'"))} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋 로그</button>
+            <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
+            <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
+        </div>
+    </div>`).join('');
     updateProdBulkBar();
 }
 
