@@ -38,7 +38,7 @@ class CompuzoneClient
      * 상품 페이지 1건 조회 → 가격 추출. 절대 throw하지 않는다.
      *
      * @param  bool  $logProbe  true면 성공해도 진단 스니펫을 compuzone.log에 남긴다
-     * @return array{price:?int, error:?string, http_status:?int, strategy:?string}
+     * @return array{price:?int, error:?string, http_status:?int, strategy:?string, candidates?:array<int, array{strategy:string, raw:string, price:?int, context:string, rejected:?string}>}
      */
     public function fetch(string $url, bool $logProbe = false): array
     {
@@ -81,17 +81,19 @@ class CompuzoneClient
             }
         }
 
-        [$price, $strategy] = $this->extractPrice($html);
+        $candidates = $this->priceCandidates($html);
+        [$price, $strategy] = $this->pickPrice($candidates);
 
         if ($price === null || $logProbe) {
-            $this->log($url, $status, $price, $strategy, $this->priceSnippets($html));
+            $detail = "후보 목록:\n".$this->formatCandidates($candidates)."\n".$this->priceSnippets($html);
+            $this->log($url, $status, $price, $strategy, $detail);
         }
 
         if ($price === null) {
-            return ['price' => null, 'error' => '페이지에서 가격을 찾지 못했습니다 (구조 변경 가능성)', 'http_status' => $status, 'strategy' => null];
+            return ['price' => null, 'error' => '페이지에서 가격을 찾지 못했습니다 (구조 변경 가능성)', 'http_status' => $status, 'strategy' => null, 'candidates' => $candidates];
         }
 
-        return ['price' => $price, 'error' => null, 'http_status' => $status, 'strategy' => $strategy];
+        return ['price' => $price, 'error' => null, 'http_status' => $status, 'strategy' => $strategy, 'candidates' => $candidates];
     }
 
     /**
@@ -121,52 +123,137 @@ class CompuzoneClient
         return false;
     }
 
-    /**
-     * 다단계 가격 추출 폴백 체인 — 첫 성공 후보 채택.
-     *
-     * @return array{0:?int, 1:?string} [가격, 채택 전략]
-     */
-    private function extractPrice(string $html): array
+    /** 채택된 첫 후보의 [가격, 전략] — 없으면 [null, null] */
+    private function pickPrice(array $candidates): array
     {
-        // 1) meta og:price / product:price / itemprop=price
+        foreach ($candidates as $c) {
+            if ($c['rejected'] === null) {
+                return [$c['price'], $c['strategy']];
+            }
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * 다단계 가격 추출 — 모든 후보를 우선순위 순으로 나열하고 제외 사유를 남긴다.
+     * 적립금·배송비·쿠폰 같은 부가 금액이 판매가로 오인되는 것을 부정 문맥 필터로 방어.
+     *
+     * @return array<int, array{strategy:string, raw:string, price:?int, context:string, rejected:?string}>
+     */
+    public function priceCandidates(string $html): array
+    {
+        $candidates = [];
+        $add = function (string $strategy, string $raw, string $context) use (&$candidates): void {
+            $price = $this->sanitizePrice($raw);
+            $rejected = null;
+            if ($price === null) {
+                $rejected = '정합성 범위 밖 (100원~1억)';
+            } elseif (($kw = $this->negativeKeyword($context)) !== null) {
+                $rejected = "부가 금액 문맥 ({$kw})";
+            }
+            $candidates[] = [
+                'strategy' => $strategy,
+                'raw' => trim($raw),
+                'price' => $price,
+                'context' => $this->cleanContext($context),
+                'rejected' => $rejected,
+            ];
+        };
+
+        // 1) meta og:price / product:price / itemprop=price (신뢰 소스 — 문맥 필터 없이 정합성만)
         foreach ([
             '/<meta[^>]+(?:property|name)=["\'](?:og|product):price(?::amount)?["\'][^>]+content=["\']([^"\']+)["\']/i',
             '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\'](?:og|product):price(?::amount)?["\']/i',
             '/<[^>]+itemprop=["\']price["\'][^>]*content=["\']([^"\']+)["\']/i',
         ] as $pattern) {
-            if (preg_match($pattern, $html, $m) && ($p = $this->sanitizePrice($m[1])) !== null) {
-                return [$p, 'meta'];
+            if (preg_match_all($pattern, $html, $m)) {
+                foreach ($m[1] as $raw) {
+                    $candidates[] = [
+                        'strategy' => 'meta', 'raw' => trim($raw),
+                        'price' => $p = $this->sanitizePrice($raw),
+                        'context' => 'meta 태그',
+                        'rejected' => $p === null ? '정합성 범위 밖 (100원~1억)' : null,
+                    ];
+                }
             }
         }
 
-        // 2) JSON-LD "price"
+        // 2) JSON-LD "price" (신뢰 소스)
         if (preg_match_all('/<script[^>]+application\/ld\+json[^>]*>(.*?)<\/script>/si', $html, $blocks)) {
             foreach ($blocks[1] as $block) {
-                if (preg_match('/"price"\s*:\s*"?([\d,.]+)"?/', $block, $m) && ($p = $this->sanitizePrice($m[1])) !== null) {
-                    return [$p, 'json-ld'];
+                if (preg_match('/"price"\s*:\s*"?([\d,.]+)"?/', $block, $m)) {
+                    $candidates[] = [
+                        'strategy' => 'json-ld', 'raw' => trim($m[1]),
+                        'price' => $p = $this->sanitizePrice($m[1]),
+                        'context' => 'JSON-LD',
+                        'rejected' => $p === null ? '정합성 범위 밖 (100원~1억)' : null,
+                    ];
                 }
             }
         }
 
-        // 3) id/class에 prc·price가 들어간 요소 안의 숫자
-        if (preg_match_all('/<[^>]+(?:id|class)=["\'][^"\']*(?:prc|price)[^"\']*["\'][^>]*>([^<]{0,80})</i', $html, $m)) {
-            foreach ($m[1] as $text) {
-                if (preg_match('/([\d,]{4,})/', $text, $pm) && ($p = $this->sanitizePrice($pm[1])) !== null) {
-                    return [$p, 'prc-element'];
+        // 3) id/class에 prc·price가 들어간 요소 안의 숫자 — 속성명 + 주변 문맥으로 부가 금액 제외
+        //    (적립금 숫자는 라벨(적립)이 형제 요소에 있는 경우가 많아 요소 앞 ±200바이트까지 본다)
+        if (preg_match_all('/<[^>]+(?:id|class)=["\']([^"\']*(?:prc|price)[^"\']*)["\'][^>]*>([^<]{0,80})</i', $html, $m, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            foreach ($m as $set) {
+                if (! preg_match('/([\d,]{4,})/', $set[2][0], $pm)) {
+                    continue;
                 }
+                $around = substr($html, max(0, $set[0][1] - 200), strlen($set[0][0]) + 300);
+                $rejected = null;
+                if (preg_match('/point|mileage|save|ship|deliver|coupon/i', $set[1][0], $am)) {
+                    $rejected = "부가 금액 속성 ({$am[0]})";
+                } elseif (($p = $this->sanitizePrice($pm[1])) === null) {
+                    $rejected = '정합성 범위 밖 (100원~1억)';
+                } elseif (($kw = $this->negativeKeyword($around, ['적립', '마일리지', '포인트', '배송비'])) !== null) {
+                    // 넓은 창(±200B)이라 확실한 부가 금액 키워드만 본다
+                    $rejected = "부가 금액 문맥 ({$kw})";
+                }
+                $candidates[] = [
+                    'strategy' => 'prc-element', 'raw' => $pm[1],
+                    'price' => $this->sanitizePrice($pm[1]),
+                    'context' => $this->cleanContext($set[1][0].' | '.$around),
+                    'rejected' => $rejected,
+                ];
             }
         }
 
-        // 4) 가격 키워드 근방 200자 내 "1,234,000원" 패턴
-        if (preg_match_all('/(?:판매가|할인가|카드가|가격)[^가-힣]{0,200}?([\d,]{4,})\s*원/u', $html, $m)) {
-            foreach ($m[1] as $cand) {
-                if (($p = $this->sanitizePrice($cand)) !== null) {
-                    return [$p, 'keyword'];
-                }
+        // 4) 가격 키워드 근방 "1,234,000원" 패턴 (숫자와 원 사이 닫는 태그 허용)
+        if (preg_match_all('/(?:판매가|할인가|카드가|가격)[^가-힣]{0,200}?([\d,]{4,})(?:\s*<[^>]*>)*\s*원/u', $html, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+            foreach ($m as $set) {
+                // 앞 30B(적립가격 같은 합성어) + 뒤 80B(원 적립 등) 문맥으로 부가 금액 판별
+                $context = substr($html, max(0, $set[1][1] - 30), strlen($set[1][0]) + 110);
+                $add('keyword', $set[1][0], $context);
             }
         }
 
-        return [null, null];
+        return array_slice($candidates, 0, 20);
+    }
+
+    /**
+     * 부가 금액을 나타내는 문맥 키워드 — 걸리면 후보 제외.
+     *
+     * @param  array<int, string>|null  $keywords  검사할 키워드 (기본: 전체 목록)
+     */
+    private function negativeKeyword(string $context, ?array $keywords = null): ?string
+    {
+        $keywords ??= ['적립', '포인트', '마일리지', '배송비', '쿠폰', '할부', '렌탈', '중고', '혜택'];
+        foreach ($keywords as $kw) {
+            if (str_contains($context, $kw)) {
+                return $kw;
+            }
+        }
+
+        return null;
+    }
+
+    /** 로그/응답용 문맥 정리 — 공백 압축 + 바이트 절단으로 깨진 문자 제거 */
+    private function cleanContext(string $context): string
+    {
+        $context = preg_replace('/\s+/', ' ', $context) ?? $context;
+
+        return trim(mb_scrub($context));
     }
 
     /** 숫자 문자열 → 정합성 검사(100원~1억) 통과한 int, 실패 시 null */
@@ -175,6 +262,25 @@ class CompuzoneClient
         $num = (int) str_replace([',', '.'], '', trim($raw));
 
         return ($num >= self::MIN_PRICE && $num <= self::MAX_PRICE) ? $num : null;
+    }
+
+    /** 후보 목록을 로그용 텍스트로 — 어떤 값이 왜 채택/제외됐는지 한눈에 */
+    private function formatCandidates(array $candidates): string
+    {
+        if (! $candidates) {
+            return '(후보 없음)';
+        }
+
+        return implode("\n", array_map(
+            fn ($c, $i) => sprintf(
+                '#%d [%s] %s → %s | 문맥: %s',
+                $i + 1, $c['strategy'], $c['raw'],
+                $c['rejected'] !== null ? '제외: '.$c['rejected'] : '채택 가능',
+                mb_substr($c['context'], 0, 120)
+            ),
+            $candidates,
+            array_keys($candidates)
+        ));
     }
 
     /** 가격 마커 주변 ±400자 스니펫 — 서버에서 셀렉터 보정용 */

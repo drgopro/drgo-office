@@ -155,6 +155,59 @@ class MarketPriceTest extends TestCase
         $this->assertSame(987000, $product->fresh()->market_price);
     }
 
+    public function test_refresh_skips_mileage_point_amounts(): void
+    {
+        // 적립 포인트(13,200)가 판매가(880,000)보다 HTML상 먼저 나오는 페이지
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body>'
+            .'<div class="point_price"><span>13,200</span></div>'
+            .'<div>적립가격 13,200원</div>'
+            .str_repeat('<div>스펙 안내</div>', 20)
+            .'<div class="prc_t">880,000</div>'
+            .'</body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(880000, $product->fresh()->market_price);
+    }
+
+    public function test_refresh_skips_prc_element_near_mileage_label(): void
+    {
+        // 숫자는 prc 클래스 요소에 있지만 바로 앞 형제 요소에 적립 라벨이 있는 구조
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body>'
+            .'<dl><dt>적립 포인트</dt><dd class="prc_p">13,200</dd></dl>'
+            .str_repeat('<div>제품 상세 설명</div>', 20)
+            .'<div><em>판매가</em> <strong class="prc_c">1,320,000</strong></div>'
+            .'</body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(1320000, $product->fresh()->market_price);
+    }
+
+    public function test_refresh_allows_tags_between_price_and_won(): void
+    {
+        Http::fake(['*compuzone.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"></head><body><div>판매가 <span class="big">1,299,000</span>원</div></body></html>'
+        )]);
+        $product = $this->makeProduct(['market_price_url' => self::COMPUZONE_URL]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(1299000, $product->fresh()->market_price);
+    }
+
     public function test_refresh_blocked_403_keeps_existing_price_and_stores_error(): void
     {
         Http::fake(['*compuzone.co.kr*' => Http::response('blocked', 403)]);
