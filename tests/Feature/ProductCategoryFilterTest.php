@@ -49,4 +49,26 @@ class ProductCategoryFilterTest extends TestCase
         $all = $this->actingAs($user)->getJson('/api/inventory/products');
         $all->assertOk()->assertJsonCount(3);
     }
+
+    public function test_products_filter_by_mid_level_category(): void
+    {
+        $cpu = ProductCategory::create(['name' => 'CPU', 'code' => 'CPU', 'depth' => 1, 'sort_order' => 1]);
+        $intel = ProductCategory::create(['name' => '인텔', 'code' => 'INT', 'depth' => 2, 'sort_order' => 1, 'parent_id' => $cpu->id]);
+        $ultra = ProductCategory::create(['name' => '코어울트라', 'code' => 'ULT', 'depth' => 3, 'sort_order' => 1, 'parent_id' => $intel->id]);
+
+        $this->makeProduct($cpu, 'CPU-001', 'CPU 직속');
+        $this->makeProduct($intel, 'INT-001', '인텔 직속');
+        $this->makeProduct($ultra, 'ULT-001', '울트라 하위');
+
+        $user = User::factory()->create(['role' => 'master']);
+
+        // 2차(인텔) 선택 — 자신 + 3차 하위 포함, 1차 직속 제외
+        $res = $this->actingAs($user)->getJson("/api/inventory/products?category_id={$intel->id}");
+        $skus = collect($res->json())->pluck('sku')->all();
+        $this->assertEqualsCanonicalizing(['INT-001', 'ULT-001'], $skus);
+
+        // 3차(울트라) 선택 — 자신만
+        $res3 = $this->actingAs($user)->getJson("/api/inventory/products?category_id={$ultra->id}");
+        $this->assertEqualsCanonicalizing(['ULT-001'], collect($res3->json())->pluck('sku')->all());
+    }
 }

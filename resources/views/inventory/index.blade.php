@@ -27,10 +27,14 @@
     .pager-btn:hover:not(:disabled) { color:var(--text); border-color:var(--accent); }
     .pager-btn.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .pager-btn:disabled { opacity:0.4; cursor:default; }
-    .cat-chip-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .cat-chip-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .cat-chip-row + .cat-chip-row { margin-top:7px; }
+    .cat-chip-sub { padding-left:16px; }
+    .cat-chip-arrow { color:var(--text-muted); font-size:12px; }
     .cat-chip { padding:6px 14px; border:1px solid var(--border); border-radius:16px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; font-weight:600; cursor:pointer; transition:all 0.15s; }
     .cat-chip:hover { color:var(--text); border-color:var(--accent); }
     .cat-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
+    .cat-chip-sub .cat-chip { padding:4px 11px; font-size:12px; }
     .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
@@ -193,7 +197,7 @@
             <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 컴퓨존 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
             <button class="btn-primary" onclick="openProductModal()">+ 제품 등록</button>
         </div>
-        <div class="cat-chip-row" id="prodCatChips"></div>
+        <div id="prodCatChips" style="margin-bottom:12px;"></div>
         <div id="prodBulkBar" style="display:none; align-items:center; gap:10px; padding:10px 14px; background:rgba(212,188,150,0.08); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; flex-wrap:wrap;">
             <span style="font-size:13px; font-weight:600;">
                 <span id="prodBulkCount">0</span>개 선택됨
@@ -754,25 +758,66 @@ async function refreshAllMarketPrices(btn) {
 // === 제품 관리 ===
 const prodSelection = new Set();
 
-// === 1차 카테고리 필터 (전체 포함) ===
-let prodCatFilter = parseInt(localStorage.getItem('invProdCatFilter'), 10) || null;
+// === 카테고리 필터 — 계단식 칩 드릴다운 (1차 → 2차 → 3차 → 4차) ===
+// prodCatPath = 선택 경로 id 배열 (예: [CPU, 인텔]). 필터는 마지막 요소(하위 포함).
+let prodCatPath = [];
+try { prodCatPath = JSON.parse(localStorage.getItem('invProdCatPath')) || []; } catch(_) { prodCatPath = []; }
+// 구버전 단일 필터 키 마이그레이션
+const _legacyCatFilter = parseInt(localStorage.getItem('invProdCatFilter'), 10);
+if (_legacyCatFilter && !prodCatPath.length) { prodCatPath = [_legacyCatFilter]; }
+localStorage.removeItem('invProdCatFilter');
+
+function saveProdCatPath() {
+    if (prodCatPath.length) localStorage.setItem('invProdCatPath', JSON.stringify(prodCatPath));
+    else localStorage.removeItem('invProdCatPath');
+}
+
+function prodCatFilterId() {
+    return prodCatPath.length ? prodCatPath[prodCatPath.length - 1] : null;
+}
+
+// 경로의 각 id를 트리에서 검증하며 노드 체인 반환 — 삭제된 카테고리면 그 앞에서 절단
+function prodCatNodeChain() {
+    const chain = [];
+    let level = catData;
+    for (const id of prodCatPath) {
+        const node = (level || []).find(c => c.id === id);
+        if (!node) break;
+        chain.push(node);
+        level = node.children || [];
+    }
+    if (chain.length !== prodCatPath.length) {
+        prodCatPath = chain.map(n => n.id);
+        saveProdCatPath();
+    }
+    return chain;
+}
 
 function renderProdCatChips() {
     const el = document.getElementById('prodCatChips');
     if (!el) return;
-    // 저장된 필터의 카테고리가 삭제됐으면 전체로 복귀
-    if (prodCatFilter && !catData.some(c => c.id === prodCatFilter)) {
-        prodCatFilter = null;
-        localStorage.removeItem('invProdCatFilter');
-    }
-    el.innerHTML = `<button class="cat-chip ${prodCatFilter===null?'active':''}" onclick="setProdCatFilter(null)">전체</button>`
-        + catData.map(c => `<button class="cat-chip ${prodCatFilter===c.id?'active':''}" onclick="setProdCatFilter(${c.id})">${_esc(c.name)}</button>`).join('');
+    const chain = prodCatNodeChain();
+    let html = '<div class="cat-chip-row">'
+        + `<button class="cat-chip ${!prodCatPath.length?'active':''}" onclick="setProdCatPath(0,null)">전체</button>`
+        + catData.map(c => `<button class="cat-chip ${prodCatPath[0]===c.id?'active':''}" onclick="setProdCatPath(0,${c.id})">${_esc(c.name)}</button>`).join('')
+        + '</div>';
+    // 선택된 노드마다 하위가 있으면 다음 행 노출
+    chain.forEach((node, i) => {
+        const children = node.children || [];
+        if (!children.length) return;
+        html += '<div class="cat-chip-row cat-chip-sub">'
+            + '<span class="cat-chip-arrow">└</span>'
+            + `<button class="cat-chip ${prodCatPath.length===i+1?'active':''}" onclick="setProdCatPath(${i+1},null)">${_esc(node.name)} 전체</button>`
+            + children.map(c => `<button class="cat-chip ${prodCatPath[i+1]===c.id?'active':''}" onclick="setProdCatPath(${i+1},${c.id})">${_esc(c.name)}</button>`).join('')
+            + '</div>';
+    });
+    el.innerHTML = html;
 }
 
-function setProdCatFilter(id) {
-    prodCatFilter = id;
-    if (id) localStorage.setItem('invProdCatFilter', id);
-    else localStorage.removeItem('invProdCatFilter');
+function setProdCatPath(depth, id) {
+    prodCatPath = prodCatPath.slice(0, depth);
+    if (id) prodCatPath.push(id);
+    saveProdCatPath();
     prodPage = 1;
     renderProdCatChips();
     loadProducts();
@@ -816,7 +861,8 @@ function prodFilterParams() {
     const qs = new URLSearchParams();
     const search = document.getElementById('productSearch').value;
     if (search) qs.set('search', search);
-    if (prodCatFilter) qs.set('category_id', prodCatFilter); // 하위 카테고리 포함 (서버 필터)
+    const catId = prodCatFilterId();
+    if (catId) qs.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
     return qs;
 }
 
@@ -835,7 +881,7 @@ async function loadProducts() {
     renderProdPager(payload);
     const tb = document.getElementById('productBody');
     if (!allProducts.length) {
-        const filtered = document.getElementById('productSearch').value || prodCatFilter;
+        const filtered = document.getElementById('productSearch').value || prodCatFilterId();
         tb.innerHTML = `<tr><td colspan="11" class="empty-row">${filtered ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.'}</td></tr>`;
         clearProdSelection();
         return;
