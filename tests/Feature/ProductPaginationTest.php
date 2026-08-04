@@ -1,0 +1,76 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ProductPaginationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function seedProducts(int $count): ProductCategory
+    {
+        $cat = ProductCategory::create(['name' => '부품', 'code' => 'PART', 'depth' => 1, 'sort_order' => 1]);
+        for ($i = 1; $i <= $count; $i++) {
+            Product::create([
+                'sku' => sprintf('PART-%03d', $i),
+                'name' => "제품 {$i}",
+                'category' => '부품',
+                'category_id' => $cat->id,
+                'purchase_price' => 1000,
+                'sale_price' => 2000,
+                'safety_stock' => 0,
+                'is_active' => true,
+                'show_in_estimate' => false,
+            ]);
+        }
+
+        return $cat;
+    }
+
+    public function test_per_page_returns_paginated_response(): void
+    {
+        $this->seedProducts(25);
+        $user = User::factory()->create(['role' => 'master']);
+
+        $res = $this->actingAs($user)->getJson('/api/inventory/products?per_page=10&page=2');
+        $res->assertOk()
+            ->assertJsonPath('total', 25)
+            ->assertJsonPath('current_page', 2)
+            ->assertJsonPath('last_page', 3)
+            ->assertJsonCount(10, 'data');
+
+        // SKU 정렬 기준 2페이지 첫 항목 = PART-011
+        $this->assertSame('PART-011', $res->json('data.0.sku'));
+    }
+
+    public function test_pagination_combines_with_category_filter(): void
+    {
+        $cat = $this->seedProducts(5);
+        $other = ProductCategory::create(['name' => '기타', 'code' => 'ETC', 'depth' => 1, 'sort_order' => 2]);
+        Product::create([
+            'sku' => 'ETC-001', 'name' => '기타 제품', 'category' => '기타', 'category_id' => $other->id,
+            'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        $user = User::factory()->create(['role' => 'master']);
+
+        $res = $this->actingAs($user)->getJson("/api/inventory/products?per_page=10&category_id={$cat->id}");
+        $res->assertOk()->assertJsonPath('total', 5)->assertJsonCount(5, 'data');
+    }
+
+    public function test_without_per_page_returns_plain_array(): void
+    {
+        $this->seedProducts(3);
+        $user = User::factory()->create(['role' => 'master']);
+
+        // 기존 호출부 호환 — per_page 없으면 배열 그대로
+        $res = $this->actingAs($user)->getJson('/api/inventory/products');
+        $res->assertOk()->assertJsonCount(3);
+        $this->assertArrayNotHasKey('total', $res->json());
+    }
+}

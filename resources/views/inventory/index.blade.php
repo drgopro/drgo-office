@@ -21,6 +21,12 @@
     .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:240px; }
     .toolbar input:focus { border-color:var(--accent); }
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
+    .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+    .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
+    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
+    .pager-btn:hover:not(:disabled) { color:var(--text); border-color:var(--accent); }
+    .pager-btn.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
+    .pager-btn:disabled { opacity:0.4; cursor:default; }
     .cat-chip-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
     .cat-chip { padding:6px 14px; border:1px solid var(--border); border-radius:16px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; font-weight:600; cursor:pointer; transition:all 0.15s; }
     .cat-chip:hover { color:var(--text); border-color:var(--accent); }
@@ -95,6 +101,7 @@
     .sku-preview { font-size:12px; color:var(--accent); font-weight:600; padding:8px 12px; background:var(--surface2); border-radius:6px; margin-top:4px; }
     [data-theme="light"] .tab-btn.active { color:#fff; }
     [data-theme="light"] .cat-chip.active { color:#fff; }
+    [data-theme="light"] .pager-btn.active { color:#fff; }
     [data-theme="light"] .btn-primary { color:#fff; }
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .cat-add-inline button { color:#fff; }
@@ -170,7 +177,13 @@
     <!-- 제품 관리 -->
     <div class="tab-panel" id="panel-products">
         <div class="toolbar">
-            <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="loadProducts()">
+            <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="prodPage=1;loadProducts()">
+            <select id="prodPerPage" onchange="setProdPerPage(this.value)" title="페이지당 표시 개수">
+                <option value="10">10개씩</option>
+                <option value="20">20개씩</option>
+                <option value="50">50개씩</option>
+                <option value="100">100개씩</option>
+            </select>
             <span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-muted);white-space:nowrap;">
                 ⚠ 마진 경고 기준
                 <input type="number" id="marginWarnInput" min="0" max="99" value="{{ $marginWarnPercent }}" style="width:54px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12.5px;text-align:right;">
@@ -198,6 +211,7 @@
                 <tbody id="productBody"><tr><td colspan="11" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
+        <div class="pager" id="prodPager"></div>
     </div>
 
     <!-- 입출고 내역 -->
@@ -715,7 +729,10 @@ async function refreshMarketPrice(id, btn) {
 
 // 전체 시세 갱신 — PHP 타임아웃 회피를 위해 브라우저에서 제품별로 순차 호출
 async function refreshAllMarketPrices(btn) {
-    const targets = allProducts.filter(p => p.market_price_url);
+    // 페이징과 무관하게 현재 검색/카테고리 조건의 전체 제품 대상
+    const qs = prodFilterParams();
+    const listRes = await fetch('/api/inventory/products' + (qs.toString() ? '?'+qs.toString() : ''));
+    const targets = (await listRes.json()).filter(p => p.market_price_url);
     if (!targets.length) return alert('시세 URL이 등록된 제품이 없습니다.\n제품 수정에서 컴퓨존 제품 페이지 주소를 먼저 등록해주세요.');
     if (!confirm(`${targets.length}개 제품의 컴퓨존 시세를 갱신할까요?\n(순차 조회라 다소 시간이 걸립니다)`)) return;
     const origText = btn.textContent;
@@ -756,21 +773,70 @@ function setProdCatFilter(id) {
     prodCatFilter = id;
     if (id) localStorage.setItem('invProdCatFilter', id);
     else localStorage.removeItem('invProdCatFilter');
+    prodPage = 1;
     renderProdCatChips();
     loadProducts();
 }
 
-async function loadProducts() {
-    const search = document.getElementById('productSearch').value;
+// === 페이징 ===
+let prodPage = 1;
+let prodPerPage = parseInt(localStorage.getItem('invProdPerPage'), 10) || 20;
+
+function setProdPerPage(v) {
+    prodPerPage = parseInt(v, 10) || 20;
+    localStorage.setItem('invProdPerPage', prodPerPage);
+    prodPage = 1;
+    loadProducts();
+}
+
+function goProdPage(n) {
+    prodPage = n;
+    loadProducts();
+}
+
+function renderProdPager(p) {
+    const el = document.getElementById('prodPager');
+    if (!el) return;
+    if (!p.total) { el.innerHTML = ''; return; }
+    const cur = p.current_page, last = p.last_page;
+    let start = Math.max(1, cur - 3);
+    const end = Math.min(last, start + 6);
+    start = Math.max(1, end - 6);
+    let html = `<span class="pager-info">총 ${p.total.toLocaleString()}개</span>`;
+    html += `<button class="pager-btn" ${cur === 1 ? 'disabled' : ''} onclick="goProdPage(${cur - 1})">‹</button>`;
+    for (let i = start; i <= end; i++) {
+        html += `<button class="pager-btn ${i === cur ? 'active' : ''}" onclick="goProdPage(${i})">${i}</button>`;
+    }
+    html += `<button class="pager-btn" ${cur === last ? 'disabled' : ''} onclick="goProdPage(${cur + 1})">›</button>`;
+    el.innerHTML = html;
+}
+
+// 현재 검색/카테고리 필터 조건의 쿼리스트링 (페이징 제외)
+function prodFilterParams() {
     const qs = new URLSearchParams();
+    const search = document.getElementById('productSearch').value;
     if (search) qs.set('search', search);
     if (prodCatFilter) qs.set('category_id', prodCatFilter); // 하위 카테고리 포함 (서버 필터)
-    const params = qs.toString() ? '?'+qs.toString() : '';
-    const res = await fetch('/api/inventory/products'+params);
-    allProducts = await res.json();
+    return qs;
+}
+
+async function loadProducts() {
+    const qs = prodFilterParams();
+    qs.set('per_page', prodPerPage);
+    qs.set('page', prodPage);
+    const res = await fetch('/api/inventory/products?'+qs.toString());
+    const payload = await res.json();
+    allProducts = payload.data; // 현재 페이지 제품만
+    // 삭제 등으로 현재 페이지가 범위를 벗어나면 마지막 페이지로 클램프
+    if (!allProducts.length && payload.total > 0 && prodPage > 1) {
+        prodPage = payload.last_page;
+        return loadProducts();
+    }
+    renderProdPager(payload);
     const tb = document.getElementById('productBody');
     if (!allProducts.length) {
-        tb.innerHTML = `<tr><td colspan="11" class="empty-row">${search || prodCatFilter ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.'}</td></tr>`;
+        const filtered = document.getElementById('productSearch').value || prodCatFilter;
+        tb.innerHTML = `<tr><td colspan="11" class="empty-row">${filtered ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.'}</td></tr>`;
         clearProdSelection();
         return;
     }
@@ -986,9 +1052,11 @@ async function loadMovements() {
     </tr>`).join('');
 }
 async function openMovementModal() {
-    if (!allProducts.length) { const r = await fetch('/api/inventory/products'); allProducts = await r.json(); }
-    if (!allProjects.length) { const r = await fetch('/api/inventory/projects'); allProjects = await r.json(); }
-    document.getElementById('mProduct').innerHTML = allProducts.map(p=>`<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
+    // allProducts는 현재 페이지만 담고 있으므로 모달용 전체 목록은 별도 조회
+    const r = await fetch('/api/inventory/products');
+    const movProducts = await r.json();
+    if (!allProjects.length) { const pr = await fetch('/api/inventory/projects'); allProjects = await pr.json(); }
+    document.getElementById('mProduct').innerHTML = movProducts.map(p=>`<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
     document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('');
     document.getElementById('mType').value='in'; document.getElementById('mQty').value=1; document.getElementById('mMemo').value='';
     document.getElementById('mProject').value='';
@@ -1072,6 +1140,7 @@ const validTabs = ['stock','products','movements','orders','categories'];
 
 const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stock';
 fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); });
+document.getElementById('prodPerPage').value = String(prodPerPage);
 switchTab(initTab);
 </script>
 @endpush

@@ -220,6 +220,18 @@ class InventoryController extends Controller
             $query->whereIn('category_id', $ids);
         }
 
+        // per_page가 있으면 페이지네이션 응답 (없으면 기존처럼 전체 배열 — 견적서 등 기존 호출부 호환)
+        if ($perPage = (int) $request->query('per_page')) {
+            $page = $query->orderBy('sku')->paginate(min(max($perPage, 1), 200));
+
+            return response()->json([
+                'data' => $page->items(),
+                'total' => $page->total(),
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+            ]);
+        }
+
         return response()->json(
             $query->orderBy('sku')->get()
         );
