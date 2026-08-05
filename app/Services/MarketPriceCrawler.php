@@ -98,12 +98,15 @@ class MarketPriceCrawler
         $attempts = $this->urlVariants($url);
         $res = null;
         $lastError = null;
+        $options = ['force_ip_resolve' => 'v4']; // IPv6 라우팅이 깨진 서버의 접속 타임아웃 방지
+        if ($proxy = $this->proxyFor($vendorHost)) {
+            $options['proxy'] = $proxy; // 해외 IP 차단 판매처 → 국내 경유 프록시
+        }
         foreach ($attempts as $attemptUrl) {
             try {
-                // force_ip_resolve v4: IPv6 라우팅이 깨진 서버에서 발생하는 접속 타임아웃 방지
                 $res = Http::timeout(20)->connectTimeout(10)
                     ->retry(2, 700, throw: false)
-                    ->withOptions(['force_ip_resolve' => 'v4'])
+                    ->withOptions($options)
                     ->withHeaders([
                         'User-Agent' => self::USER_AGENT,
                         'Accept-Language' => 'ko,ko-KR;q=0.9',
@@ -205,6 +208,22 @@ class MarketPriceCrawler
 
             return (($code >= 48 && $code <= 57) || $code === 44 || $code === 46) ? chr($code) : $m[0];
         }, $html) ?? $html;
+    }
+
+    /**
+     * 판매처별 경유 프록시 결정 — MARKET_PRICE_PROXY 설정 시,
+     * MARKET_PRICE_PROXY_VENDORS(쉼표 구분, 빈 값=전체)에 해당하는 판매처만 적용.
+     */
+    public function proxyFor(string $vendorHost): ?string
+    {
+        $proxy = (string) config('services.market_price.proxy');
+        if ($proxy === '') {
+            return null;
+        }
+        $vendorKey = array_search($vendorHost, self::VENDORS, true);
+        $only = array_filter(array_map('trim', explode(',', (string) config('services.market_price.proxy_vendors'))));
+
+        return (! $only || in_array($vendorKey, $only, true)) ? $proxy : null;
     }
 
     /**

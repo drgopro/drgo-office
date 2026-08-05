@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductMarketPrice;
 use App\Models\User;
+use App\Services\MarketPriceCrawler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -296,6 +297,28 @@ class MarketPriceTest extends TestCase
 
         $this->refreshEndpoint($product)->assertOk();
         $this->assertSame(1150000, $product->fresh()->marketPrices->first()->price);
+    }
+
+    // === 프록시 설정 ===
+
+    public function test_proxy_applies_only_to_configured_vendors(): void
+    {
+        config([
+            'services.market_price.proxy' => 'http://relay.example:8888',
+            'services.market_price.proxy_vendors' => 'pcfactory',
+        ]);
+        $crawler = app(MarketPriceCrawler::class);
+
+        $this->assertSame('http://relay.example:8888', $crawler->proxyFor('pc-factory.co.kr'));
+        $this->assertNull($crawler->proxyFor('compuzone.co.kr'));
+
+        // 빈 값이면 전체 적용
+        config(['services.market_price.proxy_vendors' => '']);
+        $this->assertSame('http://relay.example:8888', $crawler->proxyFor('compuzone.co.kr'));
+
+        // 프록시 미설정이면 항상 null
+        config(['services.market_price.proxy' => null]);
+        $this->assertNull($crawler->proxyFor('pc-factory.co.kr'));
     }
 
     // === 커맨드 ===

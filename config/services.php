@@ -40,6 +40,13 @@ return [
         'token' => env('BANK_DEPOSIT_TOKEN'),
     ],
 
+    // 시세 크롤링 국내 경유 프록시 (해외 IP 차단 판매처용)
+    // 예: MARKET_PRICE_PROXY=http://user:pass@1.2.3.4:8888 / PROXY_VENDORS는 쉼표 구분(빈 값이면 전체)
+    'market_price' => [
+        'proxy' => env('MARKET_PRICE_PROXY'),
+        'proxy_vendors' => env('MARKET_PRICE_PROXY_VENDORS', 'pcfactory'),
+    ],
+
     // 셀프호스팅 delivery-tracker (배송 추적)
     'delivery_tracker' => [
         'url' => env('DELIVERY_TRACKER_URL'), // 셀프호스팅 인스턴스 (예: http://127.0.0.1:8150)
