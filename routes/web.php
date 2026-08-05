@@ -491,6 +491,18 @@ Route::middleware('auth')->group(function () {
             if ($url === '') {
                 return response("url 파라미터가 필요합니다.\n예: /admin/compuzone-probe?url=https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=...", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
             }
+            // &diag=1 — DNS/TCP 연결 진단만 수행 (해외 IP 차단 여부 판별)
+            if ($request->boolean('diag')) {
+                $diag = app(MarketPriceCrawler::class)->diagnoseConnectivity($url);
+
+                return response(
+                    "=== 연결 진단 ===\n".json_encode($diag, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+                    ."\n\n해석: tcp_443이 '실패 ... Timeout'이면 방화벽이 이 서버 IP를 차단 중일 가능성이 높습니다 (해외/데이터센터 IP 차단).",
+                    200,
+                    ['Content-Type' => 'text/plain; charset=UTF-8']
+                );
+            }
+
             $result = app(MarketPriceCrawler::class)->fetch($url, logProbe: true);
             $html = $result['html'] ?? null;
             unset($result['html']);

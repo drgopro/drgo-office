@@ -94,21 +94,30 @@ class MarketPriceCrawler
         }
         $vendor = self::ALLOWED_HOSTS[$vendorHost];
 
-        try {
-            // force_ip_resolve v4: IPv6 라우팅이 깨진 서버에서 발생하는 접속 타임아웃 방지
-            $res = Http::timeout(20)->connectTimeout(10)
-                ->retry(2, 700, throw: false)
-                ->withOptions(['force_ip_resolve' => 'v4'])
-                ->withHeaders([
-                    'User-Agent' => self::USER_AGENT,
-                    'Accept-Language' => 'ko,ko-KR;q=0.9',
-                    'Referer' => "https://www.{$vendorHost}/",
-                ])
-                ->get($url);
-        } catch (\Throwable $e) {
-            $this->log($url, null, null, null, '연결 실패: '.$e->getMessage());
-
-            return ['price' => null, 'error' => "{$vendor} 연결 실패: ".mb_substr($e->getMessage(), 0, 120), 'http_status' => null, 'strategy' => null];
+        // 연결 차단 대비 폴백 변형: 원본 → www 토글 → http (방화벽이 특정 호스트/포트만 막는 경우)
+        $attempts = $this->urlVariants($url);
+        $res = null;
+        $lastError = null;
+        foreach ($attempts as $attemptUrl) {
+            try {
+                // force_ip_resolve v4: IPv6 라우팅이 깨진 서버에서 발생하는 접속 타임아웃 방지
+                $res = Http::timeout(20)->connectTimeout(10)
+                    ->retry(2, 700, throw: false)
+                    ->withOptions(['force_ip_resolve' => 'v4'])
+                    ->withHeaders([
+                        'User-Agent' => self::USER_AGENT,
+                        'Accept-Language' => 'ko,ko-KR;q=0.9',
+                        'Referer' => "https://www.{$vendorHost}/",
+                    ])
+                    ->get($attemptUrl);
+                break;
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+                $this->log($attemptUrl, null, null, null, '연결 실패: '.$lastError);
+            }
+        }
+        if ($res === null) {
+            return ['price' => null, 'error' => "{$vendor} 연결 실패: ".mb_substr((string) $lastError, 0, 120), 'http_status' => null, 'strategy' => null];
         }
 
         $status = $res->status();
@@ -196,6 +205,63 @@ class MarketPriceCrawler
 
             return (($code >= 48 && $code <= 57) || $code === 44 || $code === 46) ? chr($code) : $m[0];
         }, $html) ?? $html;
+    }
+
+    /**
+     * 연결 폴백용 URL 변형 — 원본, www↔apex 토글, http 다운그레이드 순.
+     *
+     * @return array<int, string>
+     */
+    private function urlVariants(string $url): array
+    {
+        $variants = [$url];
+        $host = strtolower(parse_url($url)['host'] ?? '');
+        if ($host !== '') {
+            $toggled = str_starts_with($host, 'www.')
+                ? substr($host, 4)
+                : 'www.'.$host;
+            $variants[] = preg_replace('/^(https?:\/\/)'.preg_quote($host, '/').'/i', '$1'.$toggled, $url) ?? $url;
+        }
+        if (str_starts_with($url, 'https://')) {
+            $variants[] = 'http://'.substr($url, 8);
+        }
+
+        return array_values(array_unique($variants));
+    }
+
+    /**
+     * 판매처 연결 진단 — DNS 조회 + www/apex × 443/80 TCP 접속 테스트.
+     * probe 라우트의 &diag=1 에서 사용 (해외 IP 차단 여부 판별용).
+     *
+     * @return array<string, mixed>
+     */
+    public function diagnoseConnectivity(string $url): array
+    {
+        $host = strtolower(parse_url($url)['host'] ?? '');
+        if ($host === '') {
+            return ['error' => 'URL에서 호스트를 추출할 수 없습니다.'];
+        }
+        $apex = str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+        $result = [];
+        foreach (array_unique([$apex, 'www.'.$apex]) as $h) {
+            $records = @dns_get_record($h, DNS_A) ?: [];
+            $ips = array_values(array_filter(array_map(fn ($r) => $r['ip'] ?? null, $records)));
+            $entry = ['dns_a' => $ips ?: '(조회 실패)'];
+            foreach ([443, 80] as $port) {
+                $start = microtime(true);
+                $sock = @fsockopen($h, $port, $errno, $errstr, 5);
+                $ms = (int) ((microtime(true) - $start) * 1000);
+                if ($sock) {
+                    fclose($sock);
+                    $entry["tcp_{$port}"] = "연결 성공 ({$ms}ms)";
+                } else {
+                    $entry["tcp_{$port}"] = "실패 ({$ms}ms): ".($errstr ?: "errno {$errno}");
+                }
+            }
+            $result[$h] = $entry;
+        }
+
+        return $result;
     }
 
     /** 채택된 첫 후보의 [가격, 전략] — 없으면 [null, null] */
