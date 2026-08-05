@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Product;
+use App\Models\ProductMarketPrice;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -21,6 +21,26 @@ class MarketPriceCrawler
         'compuzone.co.kr' => '컴퓨존',
         'pc-factory.co.kr' => '피씨팩토리',
     ];
+
+    /** 판매처 키(DB vendor 값) → 루트 도메인 */
+    public const VENDORS = [
+        'compuzone' => 'compuzone.co.kr',
+        'pcfactory' => 'pc-factory.co.kr',
+    ];
+
+    /** 판매처 키 → 한글 라벨 */
+    public static function vendorLabel(string $vendorKey): string
+    {
+        return self::ALLOWED_HOSTS[self::VENDORS[$vendorKey] ?? ''] ?? $vendorKey;
+    }
+
+    /** URL이 해당 판매처 키의 도메인인지 검사 */
+    public function urlMatchesVendor(string $url, string $vendorKey): bool
+    {
+        $root = self::VENDORS[$vendorKey] ?? null;
+
+        return $root !== null && $this->vendorHost($url) === $root;
+    }
 
     /** 가격 정합성 범위 — 이 밖의 숫자는 가격 후보에서 제외 */
     private const MIN_PRICE = 100;
@@ -75,7 +95,10 @@ class MarketPriceCrawler
         $vendor = self::ALLOWED_HOSTS[$vendorHost];
 
         try {
-            $res = Http::timeout(15)->connectTimeout(5)
+            // force_ip_resolve v4: IPv6 라우팅이 깨진 서버에서 발생하는 접속 타임아웃 방지
+            $res = Http::timeout(20)->connectTimeout(10)
+                ->retry(2, 700, throw: false)
+                ->withOptions(['force_ip_resolve' => 'v4'])
                 ->withHeaders([
                     'User-Agent' => self::USER_AGENT,
                     'Accept-Language' => 'ko,ko-KR;q=0.9',
@@ -85,7 +108,7 @@ class MarketPriceCrawler
         } catch (\Throwable $e) {
             $this->log($url, null, null, null, '연결 실패: '.$e->getMessage());
 
-            return ['price' => null, 'error' => "{$vendor} 연결 실패 (타임아웃/네트워크)", 'http_status' => null, 'strategy' => null];
+            return ['price' => null, 'error' => "{$vendor} 연결 실패: ".mb_substr($e->getMessage(), 0, 120), 'http_status' => null, 'strategy' => null];
         }
 
         $status = $res->status();
@@ -132,28 +155,27 @@ class MarketPriceCrawler
     }
 
     /**
-     * 제품의 시세를 갱신해 저장. 성공 시에만 market_price를 덮어쓴다.
-     * 자동 갱신이 매일 돌기 때문에 활동 로그를 남기지 않는 saveQuietly를 쓴다.
+     * 판매처별 시세 행을 갱신해 저장. 성공 시에만 price를 덮어쓴다.
      */
-    public function refresh(Product $product): bool
+    public function refresh(ProductMarketPrice $row): bool
     {
-        if (! $product->market_price_url) {
+        if (! $row->url) {
             return false;
         }
 
-        $result = $this->fetch($product->market_price_url);
-        $product->market_price_checked_at = now();
+        $result = $this->fetch($row->url);
+        $row->checked_at = now();
 
         if ($result['price'] !== null) {
-            $product->market_price = $result['price'];
-            $product->market_price_error = null;
-            $product->saveQuietly();
+            $row->price = $result['price'];
+            $row->error = null;
+            $row->save();
 
             return true;
         }
 
-        $product->market_price_error = mb_substr((string) $result['error'], 0, 200);
-        $product->saveQuietly();
+        $row->error = mb_substr((string) $result['error'], 0, 200);
+        $row->save();
 
         return false;
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductMarketPrice;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\StockMovement;
@@ -205,7 +206,7 @@ class InventoryController extends Controller
             );
         }
 
-        $query = Product::with('inventory', 'categoryRelation')
+        $query = Product::with('inventory', 'categoryRelation', 'marketPrices')
             ->where('is_active', true);
 
         if ($search = $request->query('search')) {
@@ -244,11 +245,13 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
-            'market_price_url' => $this->marketPriceUrlRules(),
+            'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
+            'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
         ]);
+        $marketUrls = $this->pullMarketUrls($validated);
 
         try {
             $cat = ProductCategory::findOrFail($validated['category_id']);
@@ -274,7 +277,9 @@ class InventoryController extends Controller
                 'last_updated_at' => now(),
             ]);
 
-            return response()->json($product->load('inventory', 'categoryRelation'), 201);
+            $this->syncMarketPriceUrls($product, $marketUrls);
+
+            return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices'), 201);
         } catch (\Throwable $e) {
             report($e);
 
@@ -295,26 +300,17 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
-            'market_price_url' => $this->marketPriceUrlRules(),
+            'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
+            'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
         ]);
+        $marketUrls = $this->pullMarketUrls($validated);
 
         try {
             $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
             $cat = ProductCategory::findOrFail($validated['category_id']);
-
-            // 시세 URL 비움/변경 시 기존 시세 정보 리셋 (다른 제품 가격이 남지 않도록)
-            if (array_key_exists('market_price_url', $validated)) {
-                $newUrl = $validated['market_price_url'] ?: null;
-                $validated['market_price_url'] = $newUrl;
-                if ($newUrl !== $product->market_price_url) {
-                    $validated['market_price'] = null;
-                    $validated['market_price_checked_at'] = null;
-                    $validated['market_price_error'] = null;
-                }
-            }
 
             // NOT NULL 컬럼들은 null을 0으로 강제 (제공된 키에 한해서만 — sometimes 검증과 일관)
             if (array_key_exists('purchase_price', $validated)) {
@@ -335,7 +331,9 @@ class InventoryController extends Controller
             $validated['category'] = $cat->name;
             $product->update($validated);
 
-            return response()->json($product->load('inventory', 'categoryRelation'));
+            $this->syncMarketPriceUrls($product, $marketUrls);
+
+            return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices'));
         } catch (\Throwable $e) {
             report($e);
 
@@ -348,22 +346,32 @@ class InventoryController extends Controller
     }
 
     /**
-     * 컴퓨존 시세 수동 갱신 — 성공 시 갱신된 제품, 실패 시 사유와 함께 422.
+     * 시세 수동 갱신 — 등록된 모든 판매처(컴퓨존/피씨팩토리)를 순차 조회.
+     * 전부 실패하면 422, 하나라도 성공하면 200 (실패 사유는 판매처별 error에 남음).
      */
-    public function refreshMarketPrice(Product $product, MarketPriceCrawler $compuzone): JsonResponse
+    public function refreshMarketPrice(Product $product, MarketPriceCrawler $crawler): JsonResponse
     {
-        if (! $product->market_price_url) {
+        $rows = $product->marketPrices;
+        if ($rows->isEmpty()) {
             return response()->json(['message' => '시세 URL이 등록되지 않은 제품입니다.'], 422);
         }
 
-        if (! $compuzone->refresh($product)) {
-            return response()->json([
-                'message' => $product->market_price_error ?? '시세 조회에 실패했습니다.',
-                'product' => $product->fresh()->load('inventory', 'categoryRelation'),
-            ], 422);
+        $ok = 0;
+        $errors = [];
+        foreach ($rows as $row) {
+            if ($crawler->refresh($row)) {
+                $ok++;
+            } else {
+                $errors[] = MarketPriceCrawler::vendorLabel($row->vendor).': '.($row->error ?? '실패');
+            }
         }
 
-        return response()->json($product->fresh()->load('inventory', 'categoryRelation'));
+        $fresh = $product->fresh()->load('inventory', 'categoryRelation', 'marketPrices');
+        if ($ok === 0) {
+            return response()->json(['message' => implode("\n", $errors), 'product' => $fresh], 422);
+        }
+
+        return response()->json($fresh);
     }
 
     public function destroyProduct(Product $product)
@@ -580,17 +588,59 @@ class InventoryController extends Controller
     // === 헬퍼 ===
 
     /**
-     * 시세 URL 검증 규칙 — 지원 판매처(컴퓨존·피씨팩토리) 도메인만 허용.
+     * 시세 URL 검증 규칙 — 해당 판매처 도메인만 허용.
      *
      * @return array<int, mixed>
      */
-    private function marketPriceUrlRules(): array
+    private function marketPriceUrlRules(string $vendorKey): array
     {
-        return ['nullable', 'string', 'url', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
-            if ($value && ! app(MarketPriceCrawler::class)->isAllowedUrl($value)) {
-                $fail(MarketPriceCrawler::vendorLabels().' 주소만 등록할 수 있습니다.');
+        return ['nullable', 'string', 'url', 'max:500', function (string $attribute, mixed $value, \Closure $fail) use ($vendorKey) {
+            if ($value && ! app(MarketPriceCrawler::class)->urlMatchesVendor($value, $vendorKey)) {
+                $fail(MarketPriceCrawler::vendorLabel($vendorKey).' 도메인('.MarketPriceCrawler::VENDORS[$vendorKey].') 주소만 등록할 수 있습니다.');
             }
         }];
+    }
+
+    /**
+     * validated 배열에서 판매처별 시세 URL 입력을 분리해 반환.
+     *
+     * @return array<string, ?string> vendor => url|null
+     */
+    private function pullMarketUrls(array &$validated): array
+    {
+        $urls = [];
+        foreach (array_keys(MarketPriceCrawler::VENDORS) as $vendor) {
+            $key = 'market_price_url_'.$vendor;
+            if (array_key_exists($key, $validated)) {
+                $urls[$vendor] = trim((string) $validated[$key]) ?: null;
+                unset($validated[$key]);
+            }
+        }
+
+        return $urls;
+    }
+
+    /**
+     * 판매처별 시세 URL 반영 — 비우면 행 삭제, 변경 시 시세/오류 리셋, 동일하면 유지.
+     */
+    private function syncMarketPriceUrls(Product $product, array $marketUrls): void
+    {
+        foreach ($marketUrls as $vendor => $url) {
+            $row = $product->marketPrices()->where('vendor', $vendor)->first();
+
+            if ($url === null) {
+                $row?->delete();
+
+                continue;
+            }
+            if ($row && $row->url === $url) {
+                continue;
+            }
+            ProductMarketPrice::updateOrCreate(
+                ['product_id' => $product->id, 'vendor' => $vendor],
+                ['url' => $url, 'price' => null, 'checked_at' => null, 'error' => null]
+            );
+        }
     }
 
     /**

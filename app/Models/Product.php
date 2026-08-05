@@ -18,10 +18,6 @@ class Product extends Model
         'category_id',
         'purchase_price',
         'sale_price',
-        'market_price_url',
-        'market_price',
-        'market_price_checked_at',
-        'market_price_error',
         'safety_stock',
         'memo',
         'is_active',
@@ -31,12 +27,15 @@ class Product extends Model
     protected $casts = [
         'purchase_price' => 'integer',
         'sale_price' => 'integer',
-        'market_price' => 'integer',
-        'market_price_checked_at' => 'datetime',
         'safety_stock' => 'integer',
         'is_active' => 'boolean',
         'show_in_estimate' => 'boolean',
     ];
+
+    public function marketPrices()
+    {
+        return $this->hasMany(ProductMarketPrice::class);
+    }
 
     public function categoryRelation()
     {
