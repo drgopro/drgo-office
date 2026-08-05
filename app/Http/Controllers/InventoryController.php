@@ -246,7 +246,6 @@ class InventoryController extends Controller
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
-            'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
@@ -301,7 +300,6 @@ class InventoryController extends Controller
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
-            'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
@@ -346,7 +344,7 @@ class InventoryController extends Controller
     }
 
     /**
-     * 시세 수동 갱신 — 등록된 모든 판매처(컴퓨존/피씨팩토리)를 순차 조회.
+     * 시세 수동 갱신 — 등록된 모든 판매처를 순차 조회.
      * 전부 실패하면 422, 하나라도 성공하면 200 (실패 사유는 판매처별 error에 남음).
      */
     public function refreshMarketPrice(Product $product, MarketPriceCrawler $crawler): JsonResponse

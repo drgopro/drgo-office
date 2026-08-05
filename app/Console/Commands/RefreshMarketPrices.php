@@ -9,7 +9,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('products:refresh-market-prices {--limit=400} {--sleep=1500}')]
-#[Description('판매처(컴퓨존·피씨팩토리) 시세 URL이 등록된 제품의 시세를 일괄 갱신')]
+#[Description('판매처(컴퓨존) 시세 URL이 등록된 제품의 시세를 일괄 갱신')]
 class RefreshMarketPrices extends Command
 {
     public function handle(MarketPriceCrawler $crawler): int

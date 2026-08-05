@@ -16,16 +16,18 @@ use Illuminate\Support\Facades\Http;
  */
 class MarketPriceCrawler
 {
-    /** 허용 판매처 루트 도메인 → 라벨 (서브도메인 포함 매칭) */
+    /**
+     * 허용 판매처 루트 도메인 → 라벨 (서브도메인 포함 매칭).
+     * 피씨팩토리는 해외 IP 차단으로 지원 중단 — 재추가 시 여기와 VENDORS에
+     * 도메인을 등록하고 제품 모달에 URL 입력만 붙이면 된다.
+     */
     public const ALLOWED_HOSTS = [
         'compuzone.co.kr' => '컴퓨존',
-        'pc-factory.co.kr' => '피씨팩토리',
     ];
 
     /** 판매처 키(DB vendor 값) → 루트 도메인 */
     public const VENDORS = [
         'compuzone' => 'compuzone.co.kr',
-        'pcfactory' => 'pc-factory.co.kr',
     ];
 
     /** 판매처 키 → 한글 라벨 */

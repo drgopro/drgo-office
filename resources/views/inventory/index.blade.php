@@ -327,13 +327,9 @@
             </div>
         </div>
         <div class="field-group">
-            <div class="field-label">시세 URL — 컴퓨존</div>
+            <div class="field-label">시세 URL (컴퓨존)</div>
             <input class="field-input" id="pMarketUrlCompuzone" placeholder="https://www.compuzone.co.kr/... 제품 페이지 주소 (선택)">
-        </div>
-        <div class="field-group">
-            <div class="field-label">시세 URL — 피씨팩토리</div>
-            <input class="field-input" id="pMarketUrlPcfactory" placeholder="https://www.pc-factory.co.kr/... 제품 페이지 주소 (선택)">
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록한 판매처별 판매가를 매일 새벽 자동 조회해 시세 컬럼에 각각 표시합니다.</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록하면 컴퓨존 판매가를 매일 새벽 자동 조회해 시세 컬럼에 표시합니다.</div>
         </div>
         <div class="field-group">
             <div class="field-label">안전재고 (선택 · 이하 경고)</div>
@@ -767,7 +763,7 @@ async function saveMarginWarn() {
 }
 
 // === 컴퓨존 시세 ===
-const MARKET_VENDOR_LABELS = { compuzone: '컴퓨존', pcfactory: '팩토리' };
+const MARKET_VENDOR_LABELS = { compuzone: '컴퓨존' };
 
 // 판매처 한 곳의 시세 한 줄 (가격 + 매입가 대비 ▲▼ + 오류 ⚠)
 function marketVendorLineHtml(p, m) {
@@ -814,7 +810,7 @@ async function refreshAllMarketPrices(btn) {
     const qs = prodFilterParams();
     const listRes = await fetch('/api/inventory/products' + (qs.toString() ? '?'+qs.toString() : ''));
     const targets = (await listRes.json()).filter(p => (p.market_prices || []).length);
-    if (!targets.length) return alert('시세 URL이 등록된 제품이 없습니다.\n제품 수정에서 컴퓨존/피씨팩토리 제품 페이지 주소를 먼저 등록해주세요.');
+    if (!targets.length) return alert('시세 URL이 등록된 제품이 없습니다.\n제품 수정에서 컴퓨존 제품 페이지 주소를 먼저 등록해주세요.');
     if (!confirm(`${targets.length}개 제품의 시세를 갱신할까요?\n(순차 조회라 다소 시간이 걸립니다)`)) return;
     const origText = btn.textContent;
     btn.disabled = true;
@@ -1108,7 +1104,6 @@ async function openProductModal(p) {
     document.getElementById('pSale').value = p ? (p.sale_price||'') : '';
     const mps = (p && p.market_prices) || [];
     document.getElementById('pMarketUrlCompuzone').value = mps.find(m=>m.vendor==='compuzone')?.url || '';
-    document.getElementById('pMarketUrlPcfactory').value = mps.find(m=>m.vendor==='pcfactory')?.url || '';
     document.getElementById('pSafety').value = p ? (p.safety_stock||'') : '';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
@@ -1126,7 +1121,6 @@ const PRODUCT_FIELD_LABELS = {
     purchase_price: '매입가',
     sale_price: '판매가',
     market_price_url_compuzone: '시세 URL(컴퓨존)',
-    market_price_url_pcfactory: '시세 URL(피씨팩토리)',
     safety_stock: '안전재고',
     memo: '메모',
     show_in_estimate: '견적서 노출',
@@ -1153,7 +1147,6 @@ async function saveProduct() {
         purchase_price: parseInt(document.getElementById('pPurchase').value, 10) || 0,
         sale_price: document.getElementById('pSale').value || null,
         market_price_url_compuzone: document.getElementById('pMarketUrlCompuzone').value.trim() || null,
-        market_price_url_pcfactory: document.getElementById('pMarketUrlPcfactory').value.trim() || null,
         safety_stock: document.getElementById('pSafety').value || null,
         memo: document.getElementById('pMemo').value || null,
         show_in_estimate: document.getElementById('pEstimate').checked,

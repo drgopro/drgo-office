@@ -17,8 +17,6 @@ class MarketPriceTest extends TestCase
 
     private const COMPUZONE_URL = 'https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=12345';
 
-    private const PCFACTORY_URL = 'https://www.pc-factory.co.kr/shop/product_detail.html?pd_no=179677';
-
     private function master(): User
     {
         return User::factory()->create(['role' => 'master']);
@@ -93,96 +91,72 @@ class MarketPriceTest extends TestCase
             ->assertJsonValidationErrors('market_price_url_compuzone');
     }
 
-    public function test_market_price_url_rejects_vendor_mismatch(): void
+    public function test_market_price_url_rejects_unsupported_vendor_url(): void
     {
         $product = $this->makeProduct();
 
-        // 컴퓨존 칸에 피씨팩토리 주소 → 거부
+        // 지원 중단된 피씨팩토리 주소 → 거부
         $this->actingAs($this->master())
             ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
-                'market_price_url_compuzone' => self::PCFACTORY_URL,
+                'market_price_url_compuzone' => 'https://www.pc-factory.co.kr/shop/product_detail.html?pd_no=1',
             ]))
             ->assertUnprocessable()
             ->assertJsonValidationErrors('market_price_url_compuzone');
     }
 
-    public function test_both_vendor_urls_save_as_rows(): void
+    public function test_url_saves_as_vendor_row(): void
     {
         $product = $this->makeProduct();
 
         $this->actingAs($this->master())
             ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
                 'market_price_url_compuzone' => self::COMPUZONE_URL,
-                'market_price_url_pcfactory' => self::PCFACTORY_URL,
             ]))
             ->assertOk();
 
         $rows = $product->fresh()->marketPrices;
-        $this->assertCount(2, $rows);
+        $this->assertCount(1, $rows);
         $this->assertSame(self::COMPUZONE_URL, $rows->firstWhere('vendor', 'compuzone')->url);
-        $this->assertSame(self::PCFACTORY_URL, $rows->firstWhere('vendor', 'pcfactory')->url);
     }
 
     public function test_clearing_url_deletes_row_and_changing_resets_price(): void
     {
         $product = $this->makeProduct();
         $this->addMarketRow($product, 'compuzone', self::COMPUZONE_URL, ['price' => 111000, 'checked_at' => now()]);
-        $this->addMarketRow($product, 'pcfactory', self::PCFACTORY_URL, ['price' => 222000, 'checked_at' => now()]);
 
-        // 컴퓨존은 비우고(삭제), 피씨팩토리는 URL 변경(시세 리셋)
+        // URL 변경 → 시세 리셋
+        $this->actingAs($this->master())
+            ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
+                'market_price_url_compuzone' => self::COMPUZONE_URL.'&x=2',
+            ]))
+            ->assertOk();
+        $row = $product->fresh()->marketPrices->first();
+        $this->assertNull($row->price);
+        $this->assertNull($row->checked_at);
+
+        // URL 비움 → 행 삭제
         $this->actingAs($this->master())
             ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
                 'market_price_url_compuzone' => null,
-                'market_price_url_pcfactory' => self::PCFACTORY_URL.'&x=2',
             ]))
             ->assertOk();
-
-        $rows = $product->fresh()->marketPrices;
-        $this->assertCount(1, $rows);
-        $pcf = $rows->firstWhere('vendor', 'pcfactory');
-        $this->assertNull($pcf->price);
-        $this->assertNull($pcf->checked_at);
+        $this->assertCount(0, $product->fresh()->marketPrices);
     }
 
     // === 시세 갱신 ===
 
-    public function test_refresh_updates_both_vendors(): void
+    public function test_refresh_updates_vendor_row(): void
     {
-        Http::fake([
-            '*compuzone.co.kr*' => Http::response('<html><head><meta charset="utf-8"><meta property="product:price:amount" content="949000"></head><body></body></html>'),
-            '*pc-factory.co.kr*' => Http::response('<html><head><meta charset="utf-8"><meta property="og:price" content="940000"></head><body></body></html>'),
-        ]);
+        $this->fakeCompuzone('<html><head><meta charset="utf-8"><meta property="product:price:amount" content="949000"></head><body></body></html>');
         $product = $this->makeProduct();
         $this->addMarketRow($product, 'compuzone', self::COMPUZONE_URL);
-        $this->addMarketRow($product, 'pcfactory', self::PCFACTORY_URL);
 
         $this->refreshEndpoint($product)->assertOk();
 
-        $rows = $product->fresh()->marketPrices;
-        $this->assertSame(949000, $rows->firstWhere('vendor', 'compuzone')->price);
-        $this->assertSame(940000, $rows->firstWhere('vendor', 'pcfactory')->price);
+        $this->assertSame(949000, $product->fresh()->marketPrices->first()->price);
         // 매입가/판매가는 절대 건드리지 않음
         $this->assertSame(100000, $product->fresh()->purchase_price);
         $this->assertSame(150000, $product->fresh()->sale_price);
-    }
-
-    public function test_refresh_partial_failure_returns_ok_with_error_stored(): void
-    {
-        Http::fake([
-            '*compuzone.co.kr*' => Http::response('<html><head><meta charset="utf-8"><meta property="product:price:amount" content="949000"></head><body></body></html>'),
-            '*pc-factory.co.kr*' => Http::response('blocked', 403),
-        ]);
-        $product = $this->makeProduct();
-        $this->addMarketRow($product, 'compuzone', self::COMPUZONE_URL);
-        $this->addMarketRow($product, 'pcfactory', self::PCFACTORY_URL, ['price' => 930000]);
-
-        $this->refreshEndpoint($product)->assertOk(); // 하나라도 성공하면 200
-
-        $rows = $product->fresh()->marketPrices;
-        $this->assertSame(949000, $rows->firstWhere('vendor', 'compuzone')->price);
-        $pcf = $rows->firstWhere('vendor', 'pcfactory');
-        $this->assertSame(930000, $pcf->price); // 실패 시 기존 시세 유지
-        $this->assertStringContainsString('403', $pcf->error);
     }
 
     public function test_refresh_all_failed_returns_422(): void
@@ -287,29 +261,20 @@ class MarketPriceTest extends TestCase
         );
     }
 
-    public function test_pcfactory_refresh_parses_price(): void
-    {
-        Http::fake(['*pc-factory.co.kr*' => Http::response(
-            '<html><head><meta charset="utf-8"></head><body><div class="price_view">판매가 <strong>1,150,000</strong>원</div></body></html>'
-        )]);
-        $product = $this->makeProduct();
-        $this->addMarketRow($product, 'pcfactory', self::PCFACTORY_URL);
-
-        $this->refreshEndpoint($product)->assertOk();
-        $this->assertSame(1150000, $product->fresh()->marketPrices->first()->price);
-    }
-
     // === 프록시 설정 ===
 
     public function test_proxy_applies_only_to_configured_vendors(): void
     {
         config([
             'services.market_price.proxy' => 'http://relay.example:8888',
-            'services.market_price.proxy_vendors' => 'pcfactory',
+            'services.market_price.proxy_vendors' => 'compuzone',
         ]);
         $crawler = app(MarketPriceCrawler::class);
 
-        $this->assertSame('http://relay.example:8888', $crawler->proxyFor('pc-factory.co.kr'));
+        $this->assertSame('http://relay.example:8888', $crawler->proxyFor('compuzone.co.kr'));
+
+        // 목록에 없는 판매처면 미적용
+        config(['services.market_price.proxy_vendors' => 'other-vendor']);
         $this->assertNull($crawler->proxyFor('compuzone.co.kr'));
 
         // 빈 값이면 전체 적용
@@ -318,28 +283,26 @@ class MarketPriceTest extends TestCase
 
         // 프록시 미설정이면 항상 null
         config(['services.market_price.proxy' => null]);
-        $this->assertNull($crawler->proxyFor('pc-factory.co.kr'));
+        $this->assertNull($crawler->proxyFor('compuzone.co.kr'));
     }
 
     // === 커맨드 ===
 
     public function test_command_refreshes_vendor_rows(): void
     {
-        Http::fake([
-            '*compuzone.co.kr*' => Http::response('<html><head><meta charset="utf-8"><meta property="product:price:amount" content="777000"></head><body></body></html>'),
-            '*pc-factory.co.kr*' => Http::response('<html><head><meta charset="utf-8"><meta property="og:price" content="760000"></head><body></body></html>'),
-        ]);
-        $product = $this->makeProduct();
-        $czRow = $this->addMarketRow($product, 'compuzone', self::COMPUZONE_URL);
-        $pcfRow = $this->addMarketRow($product, 'pcfactory', self::PCFACTORY_URL);
-        $noUrl = $this->makeProduct(['sku' => 'PART-002']);
+        $this->fakeCompuzone('<html><head><meta charset="utf-8"><meta property="product:price:amount" content="777000"></head><body></body></html>');
+        $a = $this->makeProduct();
+        $b = $this->makeProduct(['sku' => 'PART-002']);
+        $rowA = $this->addMarketRow($a, 'compuzone', self::COMPUZONE_URL);
+        $rowB = $this->addMarketRow($b, 'compuzone', self::COMPUZONE_URL.'&x=2');
+        $noUrl = $this->makeProduct(['sku' => 'PART-003']);
 
         $this->artisan('products:refresh-market-prices', ['--sleep' => 0])
             ->expectsOutputToContain('성공 2건')
             ->assertSuccessful();
 
-        $this->assertSame(777000, $czRow->fresh()->price);
-        $this->assertSame(760000, $pcfRow->fresh()->price);
+        $this->assertSame(777000, $rowA->fresh()->price);
+        $this->assertSame(777000, $rowB->fresh()->price);
         $this->assertCount(0, $noUrl->fresh()->marketPrices);
     }
 }
