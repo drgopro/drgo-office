@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BankDepositController;
 use App\Http\Controllers\BroadcastRoomController;
 use App\Http\Controllers\CalendarCategoryController;
 use App\Http\Controllers\CalendarController;
@@ -49,6 +50,9 @@ use App\Services\CompuzoneClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+
+// 무통장입금 SMS 포워딩 웹훅 — 폰 앱에서 호출 (세션 인증 대신 시크릿 토큰, CSRF 제외)
+Route::post('/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -425,6 +429,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/wiki-categories/reorder', [WikiCategoryController::class, 'reorder']);
         Route::patch('/api/wiki-categories/{category}', [WikiCategoryController::class, 'update']);
         Route::delete('/api/wiki-categories/{category}', [WikiCategoryController::class, 'destroy']);
+    });
+
+    // 입금 내역 (팀 관리에서 deposits.view 권한 부여, admin 이상 항상 허용)
+    Route::middleware('permission:deposits.view')->group(function () {
+        Route::get('/deposits', [BankDepositController::class, 'index'])->name('deposits');
+        Route::get('/api/bank-deposits', [BankDepositController::class, 'list']);
     });
 
     // 관리자 (master, admin만)

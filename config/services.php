@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    // 무통장입금 SMS 포워딩 웹훅 인증 토큰
+    'bank_deposit' => [
+        'token' => env('BANK_DEPOSIT_TOKEN'),
+    ],
+
     // 셀프호스팅 delivery-tracker (배송 추적)
     'delivery_tracker' => [
         'url' => env('DELIVERY_TRACKER_URL'), // 셀프호스팅 인스턴스 (예: http://127.0.0.1:8150)

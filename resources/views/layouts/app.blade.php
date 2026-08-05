@@ -551,6 +551,9 @@ window.openTopTab = function(type, url, title) {
                 <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');" title="방송룸"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</a>
             @endif
             <div class="nav-group-gap"></div>
+            @if(Auth::user()->hasPermission('deposits.view'))
+                <a href="/deposits" class="{{ request()->is('deposits*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('deposits','/deposits');" title="입금 내역"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20M6 15h4"></path></svg>입금 내역</a>
+            @endif
             @if(in_array(Auth::user()->role, ['master','admin','member']))
                 <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');" title="통계"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>통계</a>
             @endif
@@ -646,7 +649,7 @@ window.drgoTabs = {
         profile:'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
         _default:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>',
     },
-    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', admin:'관리', profile:'마이페이지', guide:'가이드' },
+    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', deposits:'입금 내역', admin:'관리', profile:'마이페이지', guide:'가이드' },
 
     init() {
         // iframe 내부에서는 탭 시스템 비활성화
