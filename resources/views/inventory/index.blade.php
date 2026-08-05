@@ -216,7 +216,7 @@
                 %
                 <button class="btn-outline btn-sm" onclick="saveMarginWarn()">저장</button>
             </span>
-            <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 컴퓨존 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
+            <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 판매처 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
             <button class="btn-primary" onclick="openProductModal()">+ 제품 등록</button>
         </div>
         <div id="prodCatChips" style="margin-bottom:12px;"></div>
@@ -233,7 +233,7 @@
         </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">마진률</th><th class="text-right">시세<span style="font-weight:400;font-size:10.5px;color:var(--text-muted);"> 컴퓨존</span></th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
+                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">마진률</th><th class="text-right">시세</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
                 <tbody id="productBody"><tr><td colspan="11" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
@@ -327,9 +327,9 @@
             </div>
         </div>
         <div class="field-group">
-            <div class="field-label">시세 URL (컴퓨존)</div>
-            <input class="field-input" id="pMarketUrl" placeholder="https://www.compuzone.co.kr/... 제품 페이지 주소 (선택)">
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록하면 컴퓨존 판매가를 매일 새벽 자동 조회해 시세 컬럼에 표시합니다.</div>
+            <div class="field-label">시세 URL (컴퓨존·피씨팩토리)</div>
+            <input class="field-input" id="pMarketUrl" placeholder="compuzone.co.kr 또는 pc-factory.co.kr 제품 페이지 주소 (선택)">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록하면 해당 판매처의 판매가를 매일 새벽 자동 조회해 시세 컬럼에 표시합니다.</div>
         </div>
         <div class="field-group">
             <div class="field-label">안전재고 (선택 · 이하 경고)</div>
@@ -763,8 +763,16 @@ async function saveMarginWarn() {
 }
 
 // === 컴퓨존 시세 ===
+function marketVendorLabel(url) {
+    if (!url) return '시세';
+    if (url.includes('compuzone')) return '컴퓨존';
+    if (url.includes('pc-factory')) return '피씨팩토리';
+    return '시세';
+}
+
 function marketPriceCellHtml(p) {
     if (!p.market_price_url) return '<span class="text-muted">-</span>';
+    const vendor = marketVendorLabel(p.market_price_url);
     const parts = [];
     if (p.market_price != null) {
         let diffHtml = '';
@@ -775,12 +783,12 @@ function marketPriceCellHtml(p) {
             else if (diff < 0) diffHtml = ` <span style="color:var(--blue,#3b82f6);font-size:11px;">▼${pct}%</span>`;
         }
         const checked = p.market_price_checked_at ? fmtTime(p.market_price_checked_at) : '-';
-        parts.push(`<span title="컴퓨존 시세 · 매입가 대비 · 확인: ${checked}">${fmt(p.market_price)}${diffHtml}</span>`);
+        parts.push(`<span title="${vendor} 시세 · 매입가 대비 · 확인: ${checked}">${fmt(p.market_price)}${diffHtml}</span>`);
     } else {
         parts.push('<span class="text-muted">미조회</span>');
     }
     if (p.market_price_error) parts.push(`<span title="${_esc(p.market_price_error)}" style="cursor:help;">⚠</span>`);
-    parts.push(`<button class="btn-outline btn-sm" style="padding:2px 7px;" title="컴퓨존 시세 지금 갱신" onclick="refreshMarketPrice(${p.id}, this)">↻</button>`);
+    parts.push(`<button class="btn-outline btn-sm" style="padding:2px 7px;" title="${vendor} 시세 지금 갱신" onclick="refreshMarketPrice(${p.id}, this)">↻</button>`);
     return parts.join(' ');
 }
 
@@ -800,8 +808,8 @@ async function refreshAllMarketPrices(btn) {
     const qs = prodFilterParams();
     const listRes = await fetch('/api/inventory/products' + (qs.toString() ? '?'+qs.toString() : ''));
     const targets = (await listRes.json()).filter(p => p.market_price_url);
-    if (!targets.length) return alert('시세 URL이 등록된 제품이 없습니다.\n제품 수정에서 컴퓨존 제품 페이지 주소를 먼저 등록해주세요.');
-    if (!confirm(`${targets.length}개 제품의 컴퓨존 시세를 갱신할까요?\n(순차 조회라 다소 시간이 걸립니다)`)) return;
+    if (!targets.length) return alert('시세 URL이 등록된 제품이 없습니다.\n제품 수정에서 컴퓨존/피씨팩토리 제품 페이지 주소를 먼저 등록해주세요.');
+    if (!confirm(`${targets.length}개 제품의 시세를 갱신할까요?\n(순차 조회라 다소 시간이 걸립니다)`)) return;
     const origText = btn.textContent;
     btn.disabled = true;
     let fail = 0;

@@ -46,7 +46,7 @@ use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
 use App\Models\ProjectFieldDefinition;
 use App\Models\User;
-use App\Services\CompuzoneClient;
+use App\Services\MarketPriceCrawler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -485,13 +485,13 @@ Route::middleware('auth')->group(function () {
 
             return response(Artisan::output(), 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
         });
-        // 컴퓨존 시세 크롤링 진단 — 서버에서 실제 fetch를 실행해 결과 확인 (스니펫은 compuzone-log에 기록)
+        // 시세 크롤링 진단 (컴퓨존·피씨팩토리 공용) — 서버에서 실제 fetch를 실행해 결과 확인 (스니펫은 compuzone-log에 기록)
         Route::get('/admin/compuzone-probe', function (Request $request) {
             $url = (string) $request->query('url');
             if ($url === '') {
                 return response("url 파라미터가 필요합니다.\n예: /admin/compuzone-probe?url=https://www.compuzone.co.kr/product/product_detail.htm?ProductNo=...", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
             }
-            $result = app(CompuzoneClient::class)->fetch($url, logProbe: true);
+            $result = app(MarketPriceCrawler::class)->fetch($url, logProbe: true);
             $html = $result['html'] ?? null;
             unset($result['html']);
 

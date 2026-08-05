@@ -216,6 +216,30 @@ class MarketPriceTest extends TestCase
         $this->assertSame(899000, $product->fresh()->market_price);
     }
 
+    public function test_pcfactory_url_saves_and_refresh_parses_price(): void
+    {
+        $pcfUrl = 'https://www.pc-factory.co.kr/shop/product_detail.html?pd_no=179677';
+        Http::fake(['*pc-factory.co.kr*' => Http::response(
+            '<html><head><meta charset="utf-8"><meta property="og:price" content="1150000"></head>'
+            .'<body><div class="price_view">판매가 <strong>1,150,000</strong>원</div></body></html>'
+        )]);
+        $product = $this->makeProduct();
+
+        // 피씨팩토리 URL 저장 허용
+        $this->actingAs($this->master())
+            ->patchJson("/api/inventory/products/{$product->id}", $this->updatePayload($product, [
+                'market_price_url' => $pcfUrl,
+            ]))
+            ->assertOk();
+
+        // 시세 갱신 파싱
+        $this->actingAs($this->master())
+            ->postJson("/api/inventory/products/{$product->id}/refresh-market-price")
+            ->assertOk();
+
+        $this->assertSame(1150000, $product->fresh()->market_price);
+    }
+
     public function test_refresh_reads_price_from_js_variable(): void
     {
         // 컴퓨존 실제 구조: 표시 가격은 엔티티로 숨기고 JS에 평문 가격이 존재

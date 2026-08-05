@@ -6,15 +6,22 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Http;
 
 /**
- * 컴퓨존(compuzone.co.kr) 상품 페이지에서 판매가를 추출하는 크롤링 클라이언트.
+ * 판매처(컴퓨존·피씨팩토리 등) 상품 페이지에서 판매가를 추출하는 크롤링 클라이언트.
  *
  * 공식 API가 없어 HTML 파싱에 의존한다. 페이지 구조 변경·차단에 대비해
- * 가격 추출을 다단계 폴백으로 방어적으로 작성했고, 실패 시 원본 스니펫을
- * storage/logs/compuzone.log 에 남겨 서버에서 셀렉터를 보정할 수 있게 한다.
- * 파싱 로직 수정은 이 클래스 안에서만 이루어진다.
+ * 가격 추출을 다단계 폴백(사이트 범용)으로 방어적으로 작성했고, 실패 시 원본
+ * 스니펫을 storage/logs/compuzone.log 에 남겨 서버에서 셀렉터를 보정할 수 있다.
+ * 새 판매처 추가는 ALLOWED_HOSTS에 도메인만 등록하면 되고,
+ * 사이트별 특수 대응(js-var 등)이 필요하면 이 클래스 안에서만 수정한다.
  */
-class CompuzoneClient
+class MarketPriceCrawler
 {
+    /** 허용 판매처 루트 도메인 → 라벨 (서브도메인 포함 매칭) */
+    public const ALLOWED_HOSTS = [
+        'compuzone.co.kr' => '컴퓨존',
+        'pc-factory.co.kr' => '피씨팩토리',
+    ];
+
     /** 가격 정합성 범위 — 이 밖의 숫자는 가격 후보에서 제외 */
     private const MIN_PRICE = 100;
 
@@ -24,14 +31,33 @@ class CompuzoneClient
 
     private const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
-    /** 컴퓨존 도메인(서브도메인 포함) http/https URL만 허용 */
-    public function isAllowedUrl(string $url): bool
+    /** 허용 판매처의 루트 도메인 반환 (미허용 URL이면 null) */
+    public function vendorHost(string $url): ?string
     {
         $parts = parse_url($url);
         $host = strtolower($parts['host'] ?? '');
+        if (! in_array($parts['scheme'] ?? '', ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+        foreach (array_keys(self::ALLOWED_HOSTS) as $root) {
+            if ($host === $root || str_ends_with($host, '.'.$root)) {
+                return $root;
+            }
+        }
 
-        return in_array($parts['scheme'] ?? '', ['http', 'https'], true)
-            && ($host === 'compuzone.co.kr' || str_ends_with($host, '.compuzone.co.kr'));
+        return null;
+    }
+
+    /** 지원 판매처(컴퓨존·피씨팩토리) http/https URL만 허용 */
+    public function isAllowedUrl(string $url): bool
+    {
+        return $this->vendorHost($url) !== null;
+    }
+
+    /** 허용 판매처 라벨 나열 (검증 메시지용) — "컴퓨존, 피씨팩토리" */
+    public static function vendorLabels(): string
+    {
+        return implode(', ', array_values(self::ALLOWED_HOSTS));
     }
 
     /**
@@ -42,30 +68,32 @@ class CompuzoneClient
      */
     public function fetch(string $url, bool $logProbe = false): array
     {
-        if (! $this->isAllowedUrl($url)) {
-            return ['price' => null, 'error' => '컴퓨존 주소만 조회할 수 있습니다.', 'http_status' => null, 'strategy' => null];
+        $vendorHost = $this->vendorHost($url);
+        if ($vendorHost === null) {
+            return ['price' => null, 'error' => '지원하는 판매처('.self::vendorLabels().') 주소만 조회할 수 있습니다.', 'http_status' => null, 'strategy' => null];
         }
+        $vendor = self::ALLOWED_HOSTS[$vendorHost];
 
         try {
             $res = Http::timeout(15)->connectTimeout(5)
                 ->withHeaders([
                     'User-Agent' => self::USER_AGENT,
                     'Accept-Language' => 'ko,ko-KR;q=0.9',
-                    'Referer' => 'https://www.compuzone.co.kr/',
+                    'Referer' => "https://www.{$vendorHost}/",
                 ])
                 ->get($url);
         } catch (\Throwable $e) {
             $this->log($url, null, null, null, '연결 실패: '.$e->getMessage());
 
-            return ['price' => null, 'error' => '컴퓨존 연결 실패 (타임아웃/네트워크)', 'http_status' => null, 'strategy' => null];
+            return ['price' => null, 'error' => "{$vendor} 연결 실패 (타임아웃/네트워크)", 'http_status' => null, 'strategy' => null];
         }
 
         $status = $res->status();
         if (! $res->ok()) {
             $this->log($url, $status, null, null, mb_substr($res->body(), 0, 400));
             $error = $status === 403
-                ? '컴퓨존이 요청을 차단했습니다 (HTTP 403) — 잠시 후 다시 시도해주세요'
-                : "컴퓨존 응답 오류 (HTTP {$status})";
+                ? "{$vendor}이(가) 요청을 차단했습니다 (HTTP 403) — 잠시 후 다시 시도해주세요"
+                : "{$vendor} 응답 오류 (HTTP {$status})";
 
             return ['price' => null, 'error' => $error, 'http_status' => $status, 'strategy' => null];
         }

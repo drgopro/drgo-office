@@ -8,7 +8,7 @@ use App\Models\ProductCategory;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\StockMovement;
-use App\Services\CompuzoneClient;
+use App\Services\MarketPriceCrawler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -350,7 +350,7 @@ class InventoryController extends Controller
     /**
      * 컴퓨존 시세 수동 갱신 — 성공 시 갱신된 제품, 실패 시 사유와 함께 422.
      */
-    public function refreshMarketPrice(Product $product, CompuzoneClient $compuzone): JsonResponse
+    public function refreshMarketPrice(Product $product, MarketPriceCrawler $compuzone): JsonResponse
     {
         if (! $product->market_price_url) {
             return response()->json(['message' => '시세 URL이 등록되지 않은 제품입니다.'], 422);
@@ -580,15 +580,15 @@ class InventoryController extends Controller
     // === 헬퍼 ===
 
     /**
-     * 시세 URL 검증 규칙 — 컴퓨존 도메인만 허용.
+     * 시세 URL 검증 규칙 — 지원 판매처(컴퓨존·피씨팩토리) 도메인만 허용.
      *
      * @return array<int, mixed>
      */
     private function marketPriceUrlRules(): array
     {
         return ['nullable', 'string', 'url', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
-            if ($value && ! app(CompuzoneClient::class)->isAllowedUrl($value)) {
-                $fail('컴퓨존(compuzone.co.kr) 주소만 등록할 수 있습니다.');
+            if ($value && ! app(MarketPriceCrawler::class)->isAllowedUrl($value)) {
+                $fail(MarketPriceCrawler::vendorLabels().' 주소만 등록할 수 있습니다.');
             }
         }];
     }
