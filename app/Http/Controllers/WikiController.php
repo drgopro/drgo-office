@@ -132,7 +132,7 @@ class WikiController extends Controller
     {
         $wiki->load('creator', 'updater');
         if ($wiki->type === 'meeting') {
-            $wiki->load('comments.user:id,display_name,username');
+            $wiki->load('comments.user:id,display_name,username', 'comments.attachments');
         }
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
 
@@ -283,6 +283,8 @@ class WikiController extends Controller
         $validated = $request->validate([
             'body' => 'required|string|max:2000',
             'parent_id' => 'nullable|integer|exists:wiki_comments,id',
+            'files' => 'nullable|array|max:5',
+            'files.*' => ['file', 'max:25600', new SafeAttachment], // 파일당 25MB
         ]);
 
         $parent = null;
@@ -296,6 +298,19 @@ class WikiController extends Controller
             'parent_id' => $parent?->id,
             'body' => $validated['body'],
         ]);
+
+        // 첨부 파일 — wiki_id도 함께 연결해 고아 첨부 정리 대상에서 제외
+        foreach ($request->file('files', []) as $file) {
+            WikiAttachment::create([
+                'wiki_id' => $wiki->id,
+                'wiki_comment_id' => $comment->id,
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $file->store('wiki'),
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
 
         $this->sendCommentAlerts($wiki, $comment, $parent);
 
@@ -355,6 +370,13 @@ class WikiController extends Controller
         abort_unless($comment->user_id === Auth::id() || Auth::user()->isAdmin(), 403, '본인이 작성한 댓글만 삭제할 수 있습니다.');
 
         $wiki = $comment->wiki;
+
+        // 본 댓글 + 대댓글의 첨부 파일 정리 (행은 FK cascade로 삭제되므로 스토리지만)
+        $commentIds = WikiComment::where('parent_id', $comment->id)->pluck('id')->push($comment->id);
+        foreach (WikiAttachment::whereIn('wiki_comment_id', $commentIds)->get() as $attachment) {
+            Storage::delete($attachment->file_path);
+        }
+
         WikiComment::where('parent_id', $comment->id)->delete(); // 대댓글 함께 삭제
         $comment->delete();
 
@@ -493,5 +515,17 @@ class WikiController extends Controller
         }
 
         return Storage::response($attachment->file_path, $attachment->file_name, ImageThumbnailService::cacheHeaders());
+    }
+
+    // 이미지 썸네일 서빙 (댓글 첨부 미리보기용) — 이미지가 아니면 원본 응답
+    public function thumbFile(WikiAttachment $attachment, ImageThumbnailService $thumbs)
+    {
+        abort_unless(Storage::exists($attachment->file_path), 404);
+
+        if (! $attachment->isImage()) {
+            return Storage::response($attachment->file_path, $attachment->file_name, ImageThumbnailService::cacheHeaders());
+        }
+
+        return $thumbs->response($attachment->file_path, $attachment->file_name);
     }
 }

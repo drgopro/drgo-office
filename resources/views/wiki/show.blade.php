@@ -39,6 +39,15 @@
     .wiki-comment-edit-btns .cancel { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); padding:8px 16px; border-radius:8px; font-size:12px; cursor:pointer; }
     .wiki-comment-body { font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
     .wiki-comment-empty { padding:14px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:12px; text-align:center; }
+    .wiki-comment-atts { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center; }
+    .wiki-catt-img { width:84px; height:84px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:zoom-in; }
+    .wiki-catt-file { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); padding:5px 10px; border-radius:8px; }
+    .wiki-catt-file:hover { border-color:var(--accent); }
+    .wiki-catt-file span { color:var(--text-muted); font-size:11px; }
+    .wiki-comment-form-side { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+    .wiki-catt-add { display:flex; align-items:center; justify-content:center; gap:4px; border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+    .wiki-catt-add:hover { border-color:var(--accent); color:var(--accent); }
+    .wiki-catt-add .cnt { color:var(--accent); font-weight:700; }
     .wiki-comment-form { display:flex; gap:8px; margin-top:14px; align-items:flex-end; }
     .wiki-comment-form textarea { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:13px; outline:none; resize:vertical; min-height:64px; line-height:1.6; font-family:inherit; }
     .wiki-comment-form textarea:focus { border-color:var(--accent); }
@@ -316,22 +325,40 @@
                 @include('wiki.partials.comment', ['comment' => $reply, 'wiki' => $wiki, 'isReply' => true])
             @endforeach
             {{-- 답글 폼 (1뎁스) --}}
-            <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form wiki-reply-form" id="replyForm{{ $comment->id }}" style="display:none;" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
+            <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" enctype="multipart/form-data" class="wiki-comment-form wiki-reply-form" id="replyForm{{ $comment->id }}" style="display:none;" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
                 @csrf
                 <input type="hidden" name="parent_id" value="{{ $comment->id }}">
                 <textarea name="body" required maxlength="2000" rows="2" data-mention placeholder="답글을 입력하세요... (@이름 으로 멤버 호출)"></textarea>
-                <button type="submit">등록</button>
+                <span class="wiki-comment-form-side">
+                    <label class="wiki-catt-add" title="파일 첨부 (최대 5개, 개당 25MB)">📎<input type="file" name="files[]" multiple style="display:none;" onchange="wikiCattCount(this)"><span class="cnt"></span></label>
+                    <button type="submit">등록</button>
+                </span>
             </form>
         @empty
         <div class="wiki-comment-empty">첫 댓글을 남겨보세요.</div>
         @endforelse
-        <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" class="wiki-comment-form" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
+        <form method="POST" action="{{ route('wiki.comments.store', $wiki) }}" enctype="multipart/form-data" class="wiki-comment-form" onsubmit="const b=this.querySelector('button[type=submit]');if(b.disabled)return false;b.disabled=true;">
             @csrf
             <textarea name="body" required maxlength="2000" rows="3" data-mention placeholder="댓글을 입력하세요... (@이름 으로 멤버 호출)"></textarea>
-            <button type="submit">등록</button>
+            <span class="wiki-comment-form-side">
+                <label class="wiki-catt-add" title="파일 첨부 (최대 5개, 개당 25MB)">📎 파일<input type="file" name="files[]" multiple style="display:none;" onchange="wikiCattCount(this)"><span class="cnt"></span></label>
+                <button type="submit">등록</button>
+            </span>
         </form>
     </div>
     <script>
+    // 댓글 첨부 이미지 → 공용 이미지 뷰어 모달
+    function wikiCattOpen(el) {
+        try {
+            drgoViewer.open(JSON.parse(el.dataset.viewer), parseInt(el.dataset.idx, 10) || 0);
+        } catch (e) { window.open(el.src.replace('/thumb', ''), '_blank'); }
+    }
+    // 파일 선택 개수 표시 (5개 초과 시 경고)
+    function wikiCattCount(input) {
+        const n = input.files.length;
+        if (n > 5) { alert('파일은 최대 5개까지 첨부할 수 있습니다.'); input.value = ''; }
+        input.parentElement.querySelector('.cnt').textContent = input.files.length ? input.files.length : '';
+    }
     function toggleCommentEdit(id) {
         const body = document.getElementById('commentBody' + id);
         const form = document.getElementById('commentEdit' + id);

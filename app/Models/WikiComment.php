@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WikiComment extends Model
 {
@@ -30,5 +31,11 @@ class WikiComment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return HasMany<WikiAttachment, $this> */
+    public function attachments()
+    {
+        return $this->hasMany(WikiAttachment::class, 'wiki_comment_id');
     }
 }

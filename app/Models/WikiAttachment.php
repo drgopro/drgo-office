@@ -8,6 +8,7 @@ class WikiAttachment extends Model
 {
     protected $fillable = [
         'wiki_id',
+        'wiki_comment_id',
         'file_name',
         'file_path',
         'mime_type',
@@ -18,5 +19,15 @@ class WikiAttachment extends Model
     public function wiki()
     {
         return $this->belongsTo(Wiki::class);
+    }
+
+    public function comment()
+    {
+        return $this->belongsTo(WikiComment::class, 'wiki_comment_id');
+    }
+
+    public function isImage(): bool
+    {
+        return str_starts_with((string) $this->mime_type, 'image/');
     }
 }

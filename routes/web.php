@@ -415,6 +415,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/wiki-comments/{comment}', [WikiController::class, 'updateComment'])->name('wiki.comments.update');
     Route::delete('/wiki-comments/{comment}', [WikiController::class, 'destroyComment'])->name('wiki.comments.destroy');
     Route::get('/wiki-files/{attachment}', [WikiController::class, 'serveFile'])->name('wiki.file');
+    Route::get('/wiki-files/{attachment}/thumb', [WikiController::class, 'thumbFile'])->name('wiki.file.thumb');
     Route::get('/wiki-tools/broadcast-editor', fn () => view('wiki.tools.broadcast-editor'))->name('wiki.broadcast-editor');
     // 위키 템플릿 — 글 작성 시 불러오는 미리 만든 글 서식
     Route::get('/api/wiki-templates', [WikiTemplateController::class, 'index']);

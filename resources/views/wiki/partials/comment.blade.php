@@ -20,6 +20,22 @@
         </span>
     </div>
     <div class="wiki-comment-body" id="commentBody{{ $comment->id }}">{{ $comment->body }}</div>
+    @php
+        $cImages = $comment->attachments->filter(fn ($a) => $a->isImage())->values();
+        $cFiles = $comment->attachments->reject(fn ($a) => $a->isImage())->values();
+        $cViewer = $cImages->map(fn ($a) => ['src' => route('wiki.file', $a), 'filename' => $a->file_name]);
+    @endphp
+    @if($comment->attachments->isNotEmpty())
+    <div class="wiki-comment-atts">
+        @foreach($cImages as $i => $att)
+            <img class="wiki-catt-img" src="{{ route('wiki.file.thumb', $att) }}" alt="{{ $att->file_name }}" loading="lazy"
+                 data-viewer="{{ json_encode($cViewer) }}" data-idx="{{ $i }}" onclick="wikiCattOpen(this)">
+        @endforeach
+        @foreach($cFiles as $att)
+            <a class="wiki-catt-file" href="{{ route('wiki.file', $att) }}" target="_blank" rel="noopener">📎 {{ $att->file_name }} <span>({{ number_format(max(1, $att->file_size / 1024)) }}KB)</span></a>
+        @endforeach
+    </div>
+    @endif
     @if($comment->user_id === auth()->id() || auth()->user()->isAdmin())
     <form method="POST" action="{{ route('wiki.comments.update', $comment) }}" class="wiki-comment-form wiki-comment-edit-form" id="commentEdit{{ $comment->id }}" style="display:none;">
         @csrf @method('PATCH')
