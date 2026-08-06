@@ -330,7 +330,7 @@
                 <input type="hidden" name="parent_id" value="{{ $comment->id }}">
                 <textarea name="body" required maxlength="2000" rows="2" data-mention placeholder="답글을 입력하세요... (@이름 으로 멤버 호출)"></textarea>
                 <span class="wiki-comment-form-side">
-                    <label class="wiki-catt-add" title="파일 첨부 (최대 5개, 개당 25MB)">📎<input type="file" name="files[]" multiple style="display:none;" onchange="wikiCattCount(this)"><span class="cnt"></span></label>
+                    <label class="wiki-catt-add" title="파일 첨부 (최대 5개, 개당 25MB · 이미지 붙여넣기 가능)">📎<input type="file" name="files[]" multiple style="display:none;" onchange="wikiCattCount(this)"><span class="cnt"></span></label>
                     <button type="submit">등록</button>
                 </span>
             </form>
@@ -341,7 +341,7 @@
             @csrf
             <textarea name="body" required maxlength="2000" rows="3" data-mention placeholder="댓글을 입력하세요... (@이름 으로 멤버 호출)"></textarea>
             <span class="wiki-comment-form-side">
-                <label class="wiki-catt-add" title="파일 첨부 (최대 5개, 개당 25MB)">📎 파일<input type="file" name="files[]" multiple style="display:none;" onchange="wikiCattCount(this)"><span class="cnt"></span></label>
+                <label class="wiki-catt-add" title="파일 첨부 (최대 5개, 개당 25MB · 이미지 붙여넣기 가능)">📎 파일<input type="file" name="files[]" multiple style="display:none;" onchange="wikiCattCount(this)"><span class="cnt"></span></label>
                 <button type="submit">등록</button>
             </span>
         </form>
@@ -359,6 +359,38 @@
         if (n > 5) { alert('파일은 최대 5개까지 첨부할 수 있습니다.'); input.value = ''; }
         input.parentElement.querySelector('.cnt').textContent = input.files.length ? input.files.length : '';
     }
+    // 댓글/답글 입력창에 클립보드 이미지 붙여넣기 → 첨부로 추가
+    document.addEventListener('paste', function (e) {
+        const ta = e.target;
+        if (!(ta instanceof HTMLTextAreaElement)) return;
+        const form = ta.closest('form.wiki-comment-form');
+        const input = form && form.querySelector('input[type=file][name="files[]"]');
+        if (!input) return; // 수정 폼 등 첨부 미지원 폼은 통과
+
+        const items = e.clipboardData ? Array.from(e.clipboardData.items) : [];
+        const images = items
+            .filter(it => it.kind === 'file' && it.type.startsWith('image/'))
+            .map(it => it.getAsFile())
+            .filter(Boolean);
+        if (!images.length) return;
+
+        const dt = new DataTransfer();
+        Array.from(input.files).forEach(f => dt.items.add(f));
+        let added = 0;
+        images.forEach((f, i) => {
+            if (dt.items.length >= 5) return;
+            // 클립보드 캡처는 이름이 image.png로 고정 — 구분 가능한 이름 부여
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            dt.items.add(new File([f], `붙여넣기-${stamp}-${i + 1}.png`, { type: f.type }));
+            added++;
+        });
+        if (!added) { alert('파일은 최대 5개까지 첨부할 수 있습니다.'); return; }
+        input.files = dt.files;
+        wikiCattCount(input);
+
+        // 이미지 전용 붙여넣기면 텍스트 입력 이벤트 차단 (텍스트 동반 시 텍스트는 그대로 붙임)
+        if (!items.some(it => it.kind === 'string')) e.preventDefault();
+    });
     function toggleCommentEdit(id) {
         const body = document.getElementById('commentBody' + id);
         const form = document.getElementById('commentEdit' + id);
