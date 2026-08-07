@@ -74,7 +74,7 @@ class EstimateController extends Controller
             'product_items' => 'nullable|array',
             'service_items' => 'nullable|array',
             // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
-            'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold',
+            'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold,cancelled',
             'memo' => 'nullable|string',
         ]);
 
@@ -295,10 +295,12 @@ class EstimateController extends Controller
                 Log::warning("페이앱 결제금액 불일치: 견적서 #{$estimate->id} 견적 {$estimate->total_amount}원 vs 결제 {$paidPrice}원");
             }
         } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
-            if ($estimate->status === 'paid') {
-                $estimate->status = 'issued'; // 환불 → 발행완료로 복귀 (결제 버튼 다시 노출)
-            }
+            // 환불(승인취소) → 취소된 견적서로 표시. 기존 결제요청은 소진됐으므로 초기화
+            // (재결제가 필요하면 상태를 발행 완료로 바꾸면 새 결제요청이 자동 생성됨)
+            $estimate->status = 'cancelled';
             $estimate->payapp_paid_at = null;
+            $estimate->payapp_payurl = null;
+            $estimate->payapp_mul_no = null;
         } elseif (in_array($state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {
             $estimate->payapp_payurl = null;
         }

@@ -66,12 +66,18 @@ class Estimate extends Model
      * 의뢰자에게 전달하는 공개 견적서 링크.
      * 순번 ID 대신 난수 토큰(64자)을 사용해 주소 조작으로 다른 견적서를
      * 열람할 수 없다. 토큰은 최초 호출 시 생성 후 고정.
+     * ESTIMATE_PUBLIC_BASE_URL 설정 시 office 서브도메인 대신 그 도메인으로 발급.
      */
     public function publicUrl(): string
     {
         if (! $this->share_token) {
             $this->share_token = bin2hex(random_bytes(32));
             $this->saveQuietly();
+        }
+
+        $base = (string) config('services.estimate_share.base_url');
+        if ($base !== '') {
+            return rtrim($base, '/').'/estimate-view/'.$this->share_token;
         }
 
         return route('estimates.public', ['token' => $this->share_token]);

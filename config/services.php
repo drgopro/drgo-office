@@ -40,6 +40,12 @@ return [
         'token' => env('BANK_DEPOSIT_TOKEN'),
     ],
 
+    // 의뢰자용 공개 견적서 링크의 도메인 (office 서브도메인 노출 방지)
+    // 예: ESTIMATE_PUBLIC_BASE_URL=https://e.drgo.pro — 미설정 시 APP_URL 사용
+    'estimate_share' => [
+        'base_url' => env('ESTIMATE_PUBLIC_BASE_URL'),
+    ],
+
     // 페이앱 결제 연동 (견적서 결제) — 페이앱 판매자 설정에서 연동 KEY/VALUE 발급
     'payapp' => [
         'userid' => env('PAYAPP_USERID'),

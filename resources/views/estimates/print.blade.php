@@ -25,6 +25,7 @@
         .pay-btn { flex:1; max-width:420px; text-align:center; background:#3b5ea0; color:#fff; text-decoration:none; padding:14px 20px; border-radius:10px; font-size:16px; font-weight:800; }
         .pay-btn:active { filter:brightness(1.1); }
         .pay-done { flex:1; max-width:420px; text-align:center; background:#e8f5e8; color:#1a7a2a; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
+        .pay-cancelled { flex:1; max-width:420px; text-align:center; background:#f5eaea; color:#b03030; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
         .pay-print { background:none; border:1px solid #c8ccd4; color:#5a6070; padding:12px 16px; border-radius:10px; font-size:13px; cursor:pointer; }
         body.public-mode { padding-bottom:90px; }
         /* 의뢰자용 화면은 전체 글자를 한 단계 키움 (13px → 약 15px) */
@@ -85,6 +86,8 @@
 <div class="pay-bar no-print">
     @if($estimate->status === 'paid')
         <span class="pay-done">✅ 결제가 완료되었습니다. 감사합니다!</span>
+    @elseif($estimate->status === 'cancelled')
+        <span class="pay-cancelled">⛔ 결제가 취소된 견적서입니다</span>
     @elseif($estimate->status === 'issued' && $estimate->payapp_payurl)
         {{-- 결제 버튼은 발행완료 단계에서만 노출 --}}
         <a class="pay-btn" href="{{ $estimate->payapp_payurl }}" target="_blank" rel="noopener">💳 {{ number_format($estimate->total_amount) }}원 결제하기</a>

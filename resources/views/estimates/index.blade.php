@@ -30,6 +30,7 @@
     .badge-completed { background:#1a2a1a; color:#7ac87a; }
     .badge-issued { background:#241a2e; color:#b08ad4; }
     .badge-paid { background:#1a2a2a; color:#4ecdc4; }
+    .badge-cancelled { background:#242424; color:#909090; text-decoration:line-through; }
     .badge-hold { background:#2a1a1a; color:#c87a7a; }
 
     .action-cell { display:flex; gap:5px; align-items:center; }
@@ -50,6 +51,7 @@
     [data-theme="light"] .badge-completed { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .badge-issued    { background:#f0e8fa; color:#7a38b8; }
     [data-theme="light"] .badge-paid      { background:#e0f8f5; color:#0a8a70; }
+    [data-theme="light"] .badge-cancelled { background:#ececec; color:#808080; }
     [data-theme="light"] .badge-hold      { background:#ffe8e8; color:#c03838; }
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
@@ -78,6 +80,7 @@
             <option value="completed">작성 완료</option>
             <option value="issued">발행 완료</option>
             <option value="paid">결제 완료</option>
+            <option value="cancelled">결제 취소</option>
             <option value="hold">보류 중</option>
         </select>
     </div>
@@ -107,7 +110,7 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
-const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', issued:'발행 완료', paid:'결제 완료', hold:'보류 중'};
+const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', issued:'발행 완료', paid:'결제 완료', cancelled:'결제 취소', hold:'보류 중'};
 
 function fmt(n) { return n != null ? Number(n).toLocaleString() : '-'; }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ko-KR') : '-'; }

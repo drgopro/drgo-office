@@ -73,6 +73,16 @@ class EstimatePayAppTest extends TestCase
         $this->assertSame($estimate->publicUrl(), $estimate->fresh()->publicUrl());
     }
 
+    public function test_public_url_uses_configured_share_domain(): void
+    {
+        config(['services.estimate_share.base_url' => 'https://e.drgo.pro/']);
+        $estimate = $this->makeEstimate();
+
+        $url = $estimate->publicUrl();
+        $this->assertStringStartsWith('https://e.drgo.pro/estimate-view/', $url);
+        $this->assertStringNotContainsString('office', $url);
+    }
+
     public function test_public_view_shows_pay_button_only_when_issued(): void
     {
         $estimate = $this->makeEstimate(['payapp_payurl' => 'https://www.payapp.kr/L/abcdef']);
@@ -291,18 +301,49 @@ class EstimatePayAppTest extends TestCase
         $this->assertSame(4, $fresh->payapp_state); // 상태 원본은 기록
     }
 
-    public function test_feedback_refund_reverts_paid_status(): void
+    public function test_feedback_refund_marks_estimate_cancelled(): void
     {
         $estimate = $this->makeEstimate([
-            'payapp_mul_no' => '98765', 'status' => 'paid', 'payapp_paid_at' => now(),
+            'payapp_mul_no' => '98765', 'status' => 'paid',
+            'payapp_paid_at' => now(), 'payapp_payurl' => 'https://www.payapp.kr/L/abcdef',
         ]);
 
         $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, ['pay_state' => '9']))
             ->assertOk();
 
         $fresh = $estimate->fresh();
-        $this->assertSame('issued', $fresh->status); // 환불 → 발행완료 복귀 (결제 버튼 재노출)
+        $this->assertSame('cancelled', $fresh->status); // 환불 → 취소된 견적서
         $this->assertNull($fresh->payapp_paid_at);
+        $this->assertNull($fresh->payapp_payurl); // 소진된 결제요청 초기화
+        $this->assertNull($fresh->payapp_mul_no);
+    }
+
+    public function test_public_view_shows_cancelled_notice_without_pay_button(): void
+    {
+        $estimate = $this->makeEstimate(['status' => 'cancelled']);
+
+        $this->get($estimate->publicUrl())
+            ->assertOk()
+            ->assertSee('결제가 취소된 견적서입니다')
+            ->assertDontSee('결제하기');
+    }
+
+    public function test_cancelled_estimate_can_be_reissued_with_new_pay_request(): void
+    {
+        $this->fakePayAppSuccess();
+        $estimate = $this->makeEstimate(['status' => 'cancelled']);
+
+        // 재결제: 상태를 발행 완료로 바꾸면 새 결제요청 자동 생성
+        $this->actingAs($this->master())
+            ->patchJson("/api/estimates/{$estimate->id}", [
+                'status' => 'issued',
+                'product_items' => $estimate->product_items,
+            ])
+            ->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame('issued', $fresh->status);
+        $this->assertNotNull($fresh->payapp_payurl);
     }
 
     public function test_payapp_request_requires_estimates_edit_permission(): void
