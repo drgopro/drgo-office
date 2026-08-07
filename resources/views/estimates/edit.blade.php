@@ -87,17 +87,18 @@
 
         /* 하단 액션 */
         .panel-right-footer { padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
-        .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:none; }
-        .btn-save { background:var(--surface2); border:1px solid var(--border); color:var(--text); }
-        .btn-save:hover { border-color:var(--accent); }
-        .btn-issue { background:var(--accent); color:var(--accent-text); }
-        .btn-delete { background:none; border:1px solid var(--border); color:var(--red); }
-        .btn-delete:hover { border-color:var(--red); }
-        .btn-print { background:var(--blue); color:var(--accent-text); }
+        /* 버튼 위계: 저장(주요·채움) > 견적서 출력(보조·외곽선) > 삭제(위험·외곽선) > 로그(중립) */
+        .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:background 0.12s, border-color 0.12s, color 0.12s, filter 0.12s; }
+        .btn-save { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+        .btn-save:hover { filter:brightness(1.12); }
+        .btn-print { background:var(--surface); border-color:var(--accent); color:var(--accent); }
+        .btn-print:hover { background:rgba(59,94,160,0.09); }
+        .btn-delete { background:none; border-color:var(--border); color:var(--red); }
+        .btn-delete:hover { border-color:var(--red); background:rgba(192,56,56,0.07); }
+        .btn-ghost { background:none; border-color:var(--border); color:var(--text-muted); }
+        .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
         .save-indicator { font-size:11px; color:var(--text-muted); align-self:center; }
         [data-theme="light"] .cat-tab.active { color:#fff; }
-        [data-theme="light"] .btn-issue { color:#fff; }
-        [data-theme="light"] .btn-print { color:#fff; }
     </style>
 </head>
 <body>
@@ -177,10 +178,10 @@
 
     <div class="panel-right-footer">
         <span class="save-indicator" id="saveIndicator"></span>
-        <button class="btn" style="border:1px solid var(--border);color:var(--text-muted);background:none;" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">📋 로그</button>
+        <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">📋 로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
-        <button class="btn btn-print" onclick="printEstimate()">견적서 출력</button>
-        <button class="btn btn-save" onclick="saveEstimate()" style="background:var(--accent); color:var(--accent-text); font-weight:700;">저장</button>
+        <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
+        <button class="btn btn-save" onclick="saveEstimate()">저장</button>
     </div>
 </div>
 
