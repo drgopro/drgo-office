@@ -54,6 +54,11 @@ use Illuminate\Support\Facades\Route;
 // 무통장입금 SMS 포워딩 웹훅 — 폰 앱에서 호출 (세션 인증 대신 시크릿 토큰, CSRF 제외)
 Route::post('/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
 
+// 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요)
+Route::get('/estimate-view/{token}', [EstimateController::class, 'publicView'])->name('estimates.public');
+// 페이앱 결제 결과 통지 (feedbackurl — 연동 KEY/VALUE + 견적서 토큰으로 검증, CSRF 제외)
+Route::post('/api/payapp/feedback', [EstimateController::class, 'payappFeedback'])->name('payapp.feedback');
+
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
@@ -364,6 +369,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/estimates/{estimate}/edit', [EstimateController::class, 'edit'])->name('estimates.edit');
         Route::patch('/api/estimates/{estimate}', [EstimateController::class, 'update']);
         Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
+        Route::post('/api/estimates/{estimate}/payapp-request', [EstimateController::class, 'payappRequest']);
+        Route::post('/api/estimates/{estimate}/payapp-cancel', [EstimateController::class, 'payappCancel']);
         Route::delete('/api/estimates/{estimate}', [EstimateController::class, 'destroy']);
     });
     Route::middleware('permission:estimates.view')->group(function () {

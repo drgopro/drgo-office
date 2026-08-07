@@ -116,6 +116,17 @@
 <div class="panel-right">
     <div class="panel-right-header">
         <h2>견적서 #{{ $estimate->id }}</h2>
+        <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
+            @if($estimate->status === 'paid')
+                <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(36,138,56,0.12); color:var(--green); font-weight:700;">💳 결제 완료{{ $estimate->payapp_paid_at ? ' · '.$estimate->payapp_paid_at->format('m/d H:i') : '' }}</span>
+            @elseif($estimate->payapp_payurl)
+                <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(59,94,160,0.1); color:var(--accent); font-weight:700;">💳 결제 대기 중</span>
+                <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="payappCancel()">결제요청 취소</button>
+            @else
+                <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="payappRequest()">💳 결제요청 생성</button>
+            @endif
+            <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="copyPublicLink()">🔗 의뢰자 링크 복사</button>
+        </span>
         <select id="estStatus" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--text); font-size:12px; outline:none; cursor:pointer;">
             <option value="created" {{ $estimate->status === 'created' ? 'selected' : '' }}>생성</option>
             <option value="editing" {{ $estimate->status === 'editing' ? 'selected' : '' }}>수정 중</option>
@@ -189,6 +200,31 @@
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
 const estId = {{ $estimate->id }};
+const PUBLIC_URL = @json($estimate->publicUrl());
+
+// === 의뢰자 링크 / 페이앱 결제 ===
+function copyPublicLink() {
+    navigator.clipboard.writeText(PUBLIC_URL)
+        .then(() => alert('의뢰자용 견적서 링크가 복사되었습니다.\n카톡/문자로 전달하세요.\n\n' + PUBLIC_URL))
+        .catch(() => prompt('아래 링크를 복사하세요:', PUBLIC_URL));
+}
+
+async function payappRequest() {
+    if (!confirm('페이앱 결제요청을 생성할까요?\n의뢰자 링크 하단에 결제 버튼이 나타납니다.\n(주문 정보의 연락처와 총 견적 금액 기준)')) return;
+    const res = await fetch(`/api/estimates/${estId}/payapp-request`, { method:'POST', headers:H });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(d.message || `결제요청 실패 (HTTP ${res.status})`); return; }
+    alert('결제요청이 생성되었습니다.\n의뢰자 링크를 복사해 전달하세요.');
+    location.reload();
+}
+
+async function payappCancel() {
+    if (!confirm('결제요청을 취소할까요?\n의뢰자 링크의 결제 버튼이 사라집니다.')) return;
+    const res = await fetch(`/api/estimates/${estId}/payapp-cancel`, { method:'POST', headers:H });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(d.message || '취소 실패'); return; }
+    location.reload();
+}
 let clientId = {{ $estimate->client_id ?? 'null' }};
 let allProds = [], catData = [], cartItems = @json($estimate->product_items ?? []), svcItems = @json($estimate->service_items ?? []);
 
@@ -387,19 +423,8 @@ function updateTotals() {
 }
 
 // === 의뢰자 검색 ===
+// (검색 구현은 아래 async searchClients — 예전 미완성 중복 선언은 SyntaxError를 유발해 제거)
 let searchTimer;
-function searchClients(q) {
-    clearTimeout(searchTimer);
-    const el = document.getElementById('clientResults');
-    if (q.length < 1) { el.classList.remove('show'); return; }
-    searchTimer = setTimeout(async () => {
-        const res = await fetch('/api/inventory/products'); // reuse client search later
-        // Simple client search via existing API
-        const r = await fetch(`/clients?_format=json&search=${encodeURIComponent(q)}`);
-        // fallback: search clients directly
-        el.classList.remove('show');
-    }, 300);
-}
 function selectClient(client) {
     clientId = client.id;
     document.getElementById('cNickname').value = client.nickname || '';

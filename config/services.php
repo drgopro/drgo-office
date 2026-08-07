@@ -40,6 +40,14 @@ return [
         'token' => env('BANK_DEPOSIT_TOKEN'),
     ],
 
+    // 페이앱 결제 연동 (견적서 결제) — 페이앱 판매자 설정에서 연동 KEY/VALUE 발급
+    'payapp' => [
+        'userid' => env('PAYAPP_USERID'),
+        'linkkey' => env('PAYAPP_LINKKEY'),
+        'linkval' => env('PAYAPP_LINKVAL'),
+        'api_url' => env('PAYAPP_API_URL', 'https://api.payapp.kr/oapi/apiLoad.html'),
+    ],
+
     // 시세 크롤링 국내 경유 프록시 (해외 IP 차단 판매처용)
     // 예: MARKET_PRICE_PROXY=http://user:pass@1.2.3.4:8888 / PROXY_VENDORS는 쉼표 구분(빈 값이면 전체)
     'market_price' => [

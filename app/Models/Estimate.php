@@ -38,6 +38,12 @@ class Estimate extends Model
         'status',
         'validity_days',
         'issued_at',
+        'share_token',
+        'payapp_mul_no',
+        'payapp_payurl',
+        'payapp_state',
+        'payapp_requested_at',
+        'payapp_paid_at',
         'memo',
         'created_by',
     ];
@@ -51,7 +57,25 @@ class Estimate extends Model
         'total_amount' => 'integer',
         'validity_days' => 'integer',
         'issued_at' => 'datetime',
+        'payapp_state' => 'integer',
+        'payapp_requested_at' => 'datetime',
+        'payapp_paid_at' => 'datetime',
     ];
+
+    /**
+     * 의뢰자에게 전달하는 공개 견적서 링크.
+     * 순번 ID 대신 난수 토큰(64자)을 사용해 주소 조작으로 다른 견적서를
+     * 열람할 수 없다. 토큰은 최초 호출 시 생성 후 고정.
+     */
+    public function publicUrl(): string
+    {
+        if (! $this->share_token) {
+            $this->share_token = bin2hex(random_bytes(32));
+            $this->saveQuietly();
+        }
+
+        return route('estimates.public', ['token' => $this->share_token]);
+    }
 
     public function client()
     {

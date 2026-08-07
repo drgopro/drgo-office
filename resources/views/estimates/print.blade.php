@@ -20,6 +20,14 @@
         .no-print-bar button { background:#c8b08a; color:var(--accent-text); border:none; padding:8px 18px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
         .no-print-bar span { color:#aaa; font-size:12px; }
 
+        /* 의뢰자용 하단 결제 바 */
+        .pay-bar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #d8dce4; padding:12px 16px; display:flex; gap:10px; align-items:center; justify-content:center; z-index:100; box-shadow:0 -4px 16px rgba(0,0,0,0.08); }
+        .pay-btn { flex:1; max-width:420px; text-align:center; background:#3b5ea0; color:#fff; text-decoration:none; padding:14px 20px; border-radius:10px; font-size:16px; font-weight:800; }
+        .pay-btn:active { filter:brightness(1.1); }
+        .pay-done { flex:1; max-width:420px; text-align:center; background:#e8f5e8; color:#1a7a2a; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
+        .pay-print { background:none; border:1px solid #c8ccd4; color:#5a6070; padding:12px 16px; border-radius:10px; font-size:13px; cursor:pointer; }
+        body.public-mode { padding-bottom:90px; }
+
         .estimate-wrap { background:#fff; }
 
         /* 헤더 */
@@ -67,8 +75,19 @@
         .est-footer { margin-top:30px; padding-top:16px; border-top:1px solid #ddd; text-align:center; font-size:10px; color:#aaa; }
     </style>
 </head>
-<body>
+<body class="{{ !empty($publicMode) ? 'public-mode' : '' }}">
 
+@if(!empty($publicMode))
+{{-- 의뢰자용 하단 결제 바 --}}
+<div class="pay-bar no-print">
+    @if($estimate->status === 'paid')
+        <span class="pay-done">✅ 결제가 완료되었습니다. 감사합니다!</span>
+    @elseif($estimate->payapp_payurl)
+        <a class="pay-btn" href="{{ $estimate->payapp_payurl }}" target="_blank" rel="noopener">💳 {{ number_format($estimate->total_amount) }}원 결제하기</a>
+    @endif
+    <button class="pay-print" onclick="window.print()">🖨 인쇄</button>
+</div>
+@else
 <div class="no-print-bar no-print">
     <button onclick="window.print()">인쇄</button>
     <button onclick="savePNG()" style="background:#2d8a3e;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">PNG 저장</button>
@@ -99,8 +118,9 @@ function savePNG(){
     });
 }
 </script>
+@endif
 
-<div class="estimate-wrap" style="margin-top:50px;">
+<div class="estimate-wrap" style="margin-top:{{ !empty($publicMode) ? '0' : '50px' }};">
 
     <div class="est-header">
         <div class="est-title">견 적 서</div>

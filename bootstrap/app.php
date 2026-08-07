@@ -17,8 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [TabLayout::class]);
-        // 외부 기기(SMS 포워딩 앱)가 호출하는 웹훅 — 자체 토큰 인증 사용
-        $middleware->validateCsrfTokens(except: ['api/bank-deposits/ingest']);
+        // 외부에서 호출되는 웹훅 — 각자 자체 검증 사용 (SMS 포워딩 토큰 / 페이앱 연동 KEY)
+        $middleware->validateCsrfTokens(except: [
+            'api/bank-deposits/ingest',
+            'api/payapp/feedback',
+        ]);
         $middleware->alias([
             'role' => CheckRole::class,
             'permission' => CheckPermission::class,

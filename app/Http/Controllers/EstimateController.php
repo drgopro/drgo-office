@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Estimate;
 use App\Models\Setting;
+use App\Services\PayAppClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class EstimateController extends Controller
 {
@@ -122,6 +124,127 @@ class EstimateController extends Controller
         ]);
 
         return view('estimates.print', compact('estimate', 'settings'));
+    }
+
+    /**
+     * 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요, ID 추측 불가).
+     * 결제요청이 생성돼 있으면 하단에 페이앱 결제 버튼 노출.
+     */
+    public function publicView(string $token)
+    {
+        abort_if(strlen($token) < 32, 404);
+        $estimate = Estimate::where('share_token', $token)->firstOrFail();
+
+        $settings = Setting::getMany([
+            'seller_name', 'seller_biz_no', 'seller_address',
+            'seller_biz_type', 'seller_biz_item', 'seller_phone',
+        ]);
+
+        return view('estimates.print', [
+            'estimate' => $estimate,
+            'settings' => $settings,
+            'publicMode' => true,
+        ]);
+    }
+
+    /**
+     * 페이앱 결제요청 생성 — 공개 견적서의 결제 버튼 활성화.
+     * 금액/연락처 변경 후 다시 누르면 새 결제요청으로 교체된다.
+     */
+    public function payappRequest(Estimate $estimate, PayAppClient $payapp)
+    {
+        if ($estimate->status === 'paid') {
+            return response()->json(['message' => '이미 결제 완료된 견적서입니다.'], 422);
+        }
+
+        $result = $payapp->requestPayment($estimate);
+        if (! $result['ok']) {
+            return response()->json(['message' => $result['error']], 422);
+        }
+
+        $estimate->update([
+            'payapp_mul_no' => $result['mul_no'],
+            'payapp_payurl' => $result['payurl'],
+            'payapp_state' => 1,
+            'payapp_requested_at' => now(),
+            'payapp_paid_at' => null,
+        ]);
+
+        return response()->json([
+            'message' => '결제요청이 생성되었습니다.',
+            'payurl' => $result['payurl'],
+            'public_url' => $estimate->publicUrl(),
+        ]);
+    }
+
+    /** 페이앱 결제요청 취소 — 공개 견적서의 결제 버튼 비활성화 */
+    public function payappCancel(Estimate $estimate, PayAppClient $payapp)
+    {
+        if ($estimate->status === 'paid') {
+            return response()->json(['message' => '이미 결제 완료된 건은 페이앱 관리자에서 승인취소해주세요.'], 422);
+        }
+
+        $result = $payapp->cancelRequest($estimate);
+        if (! $result['ok']) {
+            return response()->json(['message' => $result['error']], 422);
+        }
+
+        $estimate->update([
+            'payapp_mul_no' => null,
+            'payapp_payurl' => null,
+            'payapp_state' => 16,
+        ]);
+
+        return response()->json(['message' => '결제요청이 취소되었습니다.']);
+    }
+
+    /**
+     * 페이앱 결제 결과 통지(feedbackurl) 수신 — 인증 세션 밖에서 호출됨.
+     * 검증 실패 시에도 200 외 응답으로 페이앱이 재시도하도록 둔다.
+     */
+    public function payappFeedback(Request $request, PayAppClient $payapp)
+    {
+        $payload = $request->all();
+        $estimate = null;
+        if ($id = (int) ($payload['var1'] ?? 0)) {
+            $estimate = Estimate::find($id);
+        }
+        if (! $estimate && ! empty($payload['mul_no'])) {
+            $estimate = Estimate::where('payapp_mul_no', $payload['mul_no'])->first();
+        }
+
+        $safePayload = collect($payload)->except(['linkkey', 'linkval'])->all();
+        if (! $estimate || ! $payapp->verifyFeedback($payload, $estimate)) {
+            $payapp->log('feedback-거부', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
+
+            return response('FAIL', 400);
+        }
+
+        $state = (int) ($payload['pay_state'] ?? 0);
+        $estimate->payapp_state = $state;
+
+        if ($state === PayAppClient::STATE_PAID) {
+            // 금액 대조 — 요청 후 견적이 수정된 경우 결제완료 처리 보류 (로그로 확인)
+            $paidPrice = (int) ($payload['price'] ?? 0);
+            if ($paidPrice === (int) $estimate->total_amount) {
+                $estimate->status = 'paid';
+                $estimate->payapp_paid_at = now();
+            } else {
+                Log::warning("페이앱 결제금액 불일치: 견적서 #{$estimate->id} 견적 {$estimate->total_amount}원 vs 결제 {$paidPrice}원");
+            }
+        } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
+            if ($estimate->status === 'paid') {
+                $estimate->status = 'completed';
+            }
+            $estimate->payapp_paid_at = null;
+        } elseif (in_array($state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {
+            $estimate->payapp_payurl = null;
+        }
+
+        $estimate->save();
+        $payapp->log('feedback-처리', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
+
+        return response('SUCCESS');
     }
 
     public function destroy(Estimate $estimate)
