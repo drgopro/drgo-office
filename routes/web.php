@@ -545,6 +545,16 @@ Route::middleware('auth')->group(function () {
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );
         });
+        // 페이앱 송수신 로그 열람 (결제 연동 진단용)
+        Route::get('/admin/payapp-log', function () {
+            $path = storage_path('logs/payapp.log');
+
+            return response(
+                file_exists($path) ? file_get_contents($path) : '아직 페이앱 송수신 기록이 없습니다.',
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
+        });
         Route::get('/admin/compuzone-log', function () {
             $path = storage_path('logs/compuzone.log');
 

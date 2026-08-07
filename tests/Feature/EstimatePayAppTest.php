@@ -73,15 +73,15 @@ class EstimatePayAppTest extends TestCase
         $this->assertSame($estimate->publicUrl(), $estimate->fresh()->publicUrl());
     }
 
-    public function test_public_view_shows_pay_button_only_when_requested(): void
+    public function test_public_view_shows_pay_button_only_when_issued(): void
     {
-        $estimate = $this->makeEstimate();
+        $estimate = $this->makeEstimate(['payapp_payurl' => 'https://www.payapp.kr/L/abcdef']);
 
-        // 결제요청 전 — 버튼 없음
+        // 작성완료 단계 — 결제요청이 있어도 버튼 없음 (발행 전)
         $this->get($estimate->publicUrl())->assertOk()->assertDontSee('결제하기');
 
-        // 결제요청 후 — 결제 버튼 + 페이앱 URL
-        $estimate->update(['payapp_payurl' => 'https://www.payapp.kr/L/abcdef']);
+        // 발행완료 단계 — 결제 버튼 노출
+        $estimate->update(['status' => 'issued']);
         $this->get($estimate->publicUrl())
             ->assertSee('1,500,000원 결제하기')
             ->assertSee('https://www.payapp.kr/L/abcdef', false);
@@ -89,6 +89,54 @@ class EstimatePayAppTest extends TestCase
         // 결제 완료 후 — 완료 표시
         $estimate->update(['status' => 'paid']);
         $this->get($estimate->publicUrl())->assertSee('결제가 완료되었습니다')->assertDontSee('결제하기');
+    }
+
+    public function test_issue_endpoint_sets_issued_and_creates_pay_request(): void
+    {
+        $this->fakePayAppSuccess();
+        $estimate = $this->makeEstimate();
+
+        $res = $this->actingAs($this->master())
+            ->postJson("/api/estimates/{$estimate->id}/issue")
+            ->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame('issued', $fresh->status);
+        $this->assertNotNull($fresh->issued_at);
+        $this->assertSame('https://www.payapp.kr/L/abcdef', $fresh->payapp_payurl);
+        $this->assertNull($res->json('payapp_warning'));
+    }
+
+    public function test_issue_without_payapp_config_still_issues_with_warning(): void
+    {
+        config(['services.payapp.userid' => '']);
+        $estimate = $this->makeEstimate();
+
+        $res = $this->actingAs($this->master())
+            ->postJson("/api/estimates/{$estimate->id}/issue")
+            ->assertOk();
+
+        $this->assertSame('issued', $estimate->fresh()->status);
+        $this->assertNotNull($res->json('payapp_warning'));
+        $this->assertNull($estimate->fresh()->payapp_payurl);
+    }
+
+    public function test_update_status_to_issued_auto_creates_pay_request(): void
+    {
+        $this->fakePayAppSuccess();
+        $estimate = $this->makeEstimate();
+
+        // 실제 편집 화면과 동일하게 항목과 함께 저장 (합계는 항목에서 재계산됨)
+        $this->actingAs($this->master())
+            ->patchJson("/api/estimates/{$estimate->id}", [
+                'status' => 'issued',
+                'product_items' => $estimate->product_items,
+            ])
+            ->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame('issued', $fresh->status);
+        $this->assertNotNull($fresh->payapp_payurl);
     }
 
     public function test_public_view_hides_internal_edit_link(): void
@@ -231,7 +279,7 @@ class EstimatePayAppTest extends TestCase
             ->assertOk();
 
         $fresh = $estimate->fresh();
-        $this->assertSame('completed', $fresh->status);
+        $this->assertSame('issued', $fresh->status); // 환불 → 발행완료 복귀 (결제 버튼 재노출)
         $this->assertNull($fresh->payapp_paid_at);
     }
 

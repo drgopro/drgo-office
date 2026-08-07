@@ -64,7 +64,7 @@ class EstimateController extends Controller
         return view('estimates.edit', compact('estimate', 'settings'));
     }
 
-    public function update(Request $request, Estimate $estimate)
+    public function update(Request $request, Estimate $estimate, PayAppClient $payapp)
     {
         $validated = $request->validate([
             'client_id' => 'nullable|exists:clients,id',
@@ -74,7 +74,7 @@ class EstimateController extends Controller
             'product_items' => 'nullable|array',
             'service_items' => 'nullable|array',
             // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
-            'status' => 'nullable|in:temp,created,editing,completed,paid,hold',
+            'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold',
             'memo' => 'nullable|string',
         ]);
 
@@ -87,14 +87,23 @@ class EstimateController extends Controller
                 $validated['status'] = 'created';
             }
 
+            $becameIssued = ($validated['status'] ?? null) === 'issued' && $estimate->status !== 'issued';
+
             $estimate->update([
                 ...$validated,
                 'product_total' => $productTotal,
                 'service_total' => $serviceTotal,
                 'total_amount' => $productTotal + $serviceTotal,
+                'issued_at' => $becameIssued ? now() : $estimate->issued_at,
             ]);
 
-            return response()->json($estimate->fresh());
+            // 발행완료로 전환 시 페이앱 결제요청 자동 생성 (실패해도 저장은 유지)
+            $warning = $becameIssued ? $this->ensurePayappRequest($estimate->fresh(), $payapp) : null;
+
+            return response()->json([
+                ...$estimate->fresh()->toArray(),
+                'payapp_warning' => $warning,
+            ]);
         } catch (\Throwable $e) {
             report($e);
 
@@ -106,14 +115,52 @@ class EstimateController extends Controller
         }
     }
 
-    public function issue(Estimate $estimate)
+    /**
+     * 발행완료 처리 — 의뢰자 페이지의 결제 버튼 활성화를 위해
+     * 페이앱 결제요청도 자동 생성한다 (실패해도 발행은 유지, 경고만 반환).
+     */
+    public function issue(Estimate $estimate, PayAppClient $payapp)
     {
         $estimate->update([
-            'status' => 'completed',
+            'status' => 'issued',
             'issued_at' => now(),
         ]);
 
-        return response()->json($estimate);
+        $warning = $this->ensurePayappRequest($estimate, $payapp);
+
+        return response()->json([
+            ...$estimate->fresh()->toArray(),
+            'payapp_warning' => $warning,
+            'public_url' => $estimate->publicUrl(),
+        ]);
+    }
+
+    /**
+     * 페이앱 결제요청이 없으면 생성 시도. 실패 사유를 경고 문자열로 반환 (성공 시 null).
+     */
+    private function ensurePayappRequest(Estimate $estimate, PayAppClient $payapp): ?string
+    {
+        if ($estimate->payapp_payurl) {
+            return null; // 이미 결제요청 있음
+        }
+        if (! $payapp->isConfigured()) {
+            return '페이앱 연동 정보가 설정되지 않아 결제 버튼 없이 발행됩니다.';
+        }
+
+        $result = $payapp->requestPayment($estimate);
+        if (! $result['ok']) {
+            return '결제요청 생성 실패: '.$result['error'];
+        }
+
+        $estimate->update([
+            'payapp_mul_no' => $result['mul_no'],
+            'payapp_payurl' => $result['payurl'],
+            'payapp_state' => 1,
+            'payapp_requested_at' => now(),
+            'payapp_paid_at' => null,
+        ]);
+
+        return null;
     }
 
     public function print(Estimate $estimate)
@@ -239,7 +286,7 @@ class EstimateController extends Controller
             }
         } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
             if ($estimate->status === 'paid') {
-                $estimate->status = 'completed';
+                $estimate->status = 'issued'; // 환불 → 발행완료로 복귀 (결제 버튼 다시 노출)
             }
             $estimate->payapp_paid_at = null;
         } elseif (in_array($state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {

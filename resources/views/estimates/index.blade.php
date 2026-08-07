@@ -28,6 +28,7 @@
     .badge-created { background:#2a2010; color:var(--accent); }
     .badge-editing { background:#1a1a2a; color:#8ab4c8; }
     .badge-completed { background:#1a2a1a; color:#7ac87a; }
+    .badge-issued { background:#241a2e; color:#b08ad4; }
     .badge-paid { background:#1a2a2a; color:#4ecdc4; }
     .badge-hold { background:#2a1a1a; color:#c87a7a; }
 
@@ -47,6 +48,7 @@
     [data-theme="light"] .badge-created   { background:#f0ebe2; color:#8a6d30; }
     [data-theme="light"] .badge-editing   { background:#e0f0ff; color:#2e6a9a; }
     [data-theme="light"] .badge-completed { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .badge-issued    { background:#f0e8fa; color:#7a38b8; }
     [data-theme="light"] .badge-paid      { background:#e0f8f5; color:#0a8a70; }
     [data-theme="light"] .badge-hold      { background:#ffe8e8; color:#c03838; }
     @media (max-width: 768px) {
@@ -74,6 +76,7 @@
             <option value="created">생성</option>
             <option value="editing">수정 중</option>
             <option value="completed">작성 완료</option>
+            <option value="issued">발행 완료</option>
             <option value="paid">결제 완료</option>
             <option value="hold">보류 중</option>
         </select>
@@ -104,7 +107,7 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
-const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', paid:'결제 완료', hold:'보류 중'};
+const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', issued:'발행 완료', paid:'결제 완료', hold:'보류 중'};
 
 function fmt(n) { return n != null ? Number(n).toLocaleString() : '-'; }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ko-KR') : '-'; }

@@ -131,6 +131,7 @@
             <option value="created" {{ $estimate->status === 'created' ? 'selected' : '' }}>생성</option>
             <option value="editing" {{ $estimate->status === 'editing' ? 'selected' : '' }}>수정 중</option>
             <option value="completed" {{ $estimate->status === 'completed' ? 'selected' : '' }}>작성 완료</option>
+            <option value="issued" {{ $estimate->status === 'issued' ? 'selected' : '' }}>발행 완료</option>
             <option value="paid" {{ $estimate->status === 'paid' ? 'selected' : '' }}>결제 완료</option>
             <option value="hold" {{ $estimate->status === 'hold' ? 'selected' : '' }}>보류 중</option>
         </select>
@@ -449,6 +450,13 @@ async function saveEstimate() {
     if (res.ok) {
         document.getElementById('saveIndicator').textContent = '저장됨 ' + new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
         if (window.opener) try { window.opener.loadEstimates?.(); } catch(e) {}
+        const d = await res.json().catch(() => ({}));
+        // 발행완료 전환 시 결제요청 자동 생성 결과 안내
+        if (d.payapp_warning) { alert(d.payapp_warning); }
+        else if (body.status === 'issued' && d.payapp_payurl) {
+            if (confirm('발행 완료 — 의뢰자 페이지에 결제 버튼이 활성화되었습니다.\n의뢰자 링크를 지금 복사할까요?')) copyPublicLink();
+            location.reload();
+        }
         return;
     }
     // 실패 — 어떤 필드/예외가 문제인지 표시

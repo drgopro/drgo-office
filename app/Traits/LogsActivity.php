@@ -252,7 +252,7 @@ trait LogsActivity
 
         // 상태 코드 → 한글
         if ($key === 'status') {
-            $statuses = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류', 'cancelled' => '취소'];
+            $statuses = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'issued' => '발행완료', 'paid' => '결제완료', 'hold' => '보류', 'cancelled' => '취소'];
 
             return $statuses[$value] ?? $value;
         }
