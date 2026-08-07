@@ -98,6 +98,25 @@ class EstimatePayAppTest extends TestCase
         $this->get($estimate->publicUrl())->assertDontSee(route('estimates.edit', $estimate), false);
     }
 
+    public function test_public_view_accepts_post_returnurl_redirect(): void
+    {
+        // 페이앱은 결제 후 returnurl로 POST 리다이렉트 — 405/419 없이 렌더돼야 함
+        $estimate = $this->makeEstimate(['status' => 'paid']);
+
+        $this->post($estimate->publicUrl(), ['dummy' => '1'])
+            ->assertOk()
+            ->assertSee('결제가 완료되었습니다');
+    }
+
+    public function test_feedback_get_precheck_returns_ok_without_processing(): void
+    {
+        // 페이앱의 feedbackurl 유효성 사전 점검(GET) — 405 없이 200
+        $estimate = $this->makeEstimate(['payapp_mul_no' => '98765']);
+
+        $this->get('/api/payapp/feedback')->assertOk();
+        $this->assertSame('completed', $estimate->fresh()->status); // 처리 없음
+    }
+
     // === 결제요청 생성/취소 ===
 
     public function test_payapp_request_stores_payurl(): void

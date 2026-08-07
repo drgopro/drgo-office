@@ -204,6 +204,11 @@ class EstimateController extends Controller
      */
     public function payappFeedback(Request $request, PayAppClient $payapp)
     {
+        // 페이앱의 URL 사전 점검(GET/빈 요청)은 처리 없이 통과
+        if (! $request->isMethod('post') || ! $request->has('pay_state')) {
+            return response('OK');
+        }
+
         $payload = $request->all();
         $estimate = null;
         if ($id = (int) ($payload['var1'] ?? 0)) {

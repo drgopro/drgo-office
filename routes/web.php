@@ -55,9 +55,11 @@ use Illuminate\Support\Facades\Route;
 Route::post('/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
 
 // 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요)
-Route::get('/estimate-view/{token}', [EstimateController::class, 'publicView'])->name('estimates.public');
+// POST도 허용: 페이앱이 결제 후 returnurl로 POST 리다이렉트함 (405 방지)
+Route::match(['get', 'post'], '/estimate-view/{token}', [EstimateController::class, 'publicView'])->name('estimates.public');
 // 페이앱 결제 결과 통지 (feedbackurl — 연동 KEY/VALUE + 견적서 토큰으로 검증, CSRF 제외)
-Route::post('/api/payapp/feedback', [EstimateController::class, 'payappFeedback'])->name('payapp.feedback');
+// GET도 허용: 페이앱이 URL 유효성 사전 점검 시 GET으로 접근 (405 방지)
+Route::match(['get', 'post'], '/api/payapp/feedback', [EstimateController::class, 'payappFeedback'])->name('payapp.feedback');
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);

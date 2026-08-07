@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/bank-deposits/ingest',
             'api/payapp/feedback',
+            'estimate-view/*', // 페이앱 returnurl POST 리다이렉트 수신
         ]);
         $middleware->alias([
             'role' => CheckRole::class,
