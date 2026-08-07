@@ -203,6 +203,15 @@ class EstimatePayAppTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_feedback_and_return_urls_forced_to_https(): void
+    {
+        // http 콜백은 https 리다이렉트에서 POST→GET 강등으로 통지가 유실됨
+        $payapp = app(PayAppClient::class);
+        $this->assertSame('https://office.drgo.pro/api/payapp/feedback', $payapp->forceHttps('http://office.drgo.pro/api/payapp/feedback'));
+        $this->assertSame('https://office.drgo.pro/x', $payapp->forceHttps('https://office.drgo.pro/x'));
+        $this->assertSame('http://localhost/x', $payapp->forceHttps('http://localhost/x')); // 로컬 테스트는 유지
+    }
+
     public function test_payapp_cancel_clears_payurl(): void
     {
         Http::fake(['api.payapp.kr/*' => Http::response('state=1')]);

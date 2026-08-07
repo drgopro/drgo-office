@@ -60,6 +60,8 @@ class PayAppClient
             ? mb_substr($firstItem, 0, 50).($count > 1 ? ' 외 '.($count - 1).'건' : '')
             : '견적서 #'.$estimate->id;
 
+        // http feedbackurl은 https 리다이렉트 과정에서 POST 통지가 GET으로 바뀌어
+        // 결제 데이터가 유실됨 — 반드시 https로 강제
         $result = $this->call([
             'cmd' => 'payrequest',
             'userid' => config('services.payapp.userid'),
@@ -67,8 +69,8 @@ class PayAppClient
             'price' => (int) $estimate->total_amount,
             'recvphone' => $phone,
             'smsuse' => $sendSms ? 'y' : 'n',
-            'feedbackurl' => route('payapp.feedback'),
-            'returnurl' => $estimate->publicUrl(),
+            'feedbackurl' => $this->forceHttps(route('payapp.feedback')),
+            'returnurl' => $this->forceHttps($estimate->publicUrl()),
             'var1' => (string) $estimate->id,
             'var2' => $this->feedbackToken($estimate),
         ]);
@@ -126,6 +128,16 @@ class PayAppClient
         }
 
         return true;
+    }
+
+    /** APP_URL이 http여도 외부 콜백 주소는 https로 (localhost 제외 — 테스트/로컬용) */
+    public function forceHttps(string $url): string
+    {
+        if (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            return $url;
+        }
+
+        return preg_replace('/^http:\/\//', 'https://', $url) ?? $url;
     }
 
     /** 견적서별 통지 위조 방지 토큰 (var2) */

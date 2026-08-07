@@ -251,8 +251,17 @@ class EstimateController extends Controller
      */
     public function payappFeedback(Request $request, PayAppClient $payapp)
     {
-        // 페이앱의 URL 사전 점검(GET/빈 요청)은 처리 없이 통과
+        // 페이앱의 URL 사전 점검(GET/빈 요청)은 처리 없이 통과 — 단 진단을 위해 기록
+        // (http→https 리다이렉트로 POST가 GET으로 강등되면 여기로 들어와 결제 데이터가 유실됨)
         if (! $request->isMethod('post') || ! $request->has('pay_state')) {
+            $payapp->log('feedback-사전점검', [], sprintf(
+                'method=%s ip=%s pay_state=%s query=%s',
+                $request->method(),
+                $request->ip(),
+                $request->input('pay_state', '(없음)'),
+                json_encode($request->except(['linkkey', 'linkval']), JSON_UNESCAPED_UNICODE)
+            ));
+
             return response('OK');
         }
 
