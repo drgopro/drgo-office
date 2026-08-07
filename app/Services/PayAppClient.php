@@ -109,25 +109,42 @@ class PayAppClient
     }
 
     /**
-     * feedbackurl 통지 검증 — 판매자 ID + 연동 KEY/VALUE + 견적서별 토큰 대조.
+     * feedbackurl 통지 검증 — 판매자 ID 일치 + (연동 KEY/VALUE 또는 var2 토큰) 대조.
+     * 페이앱이 통지에 연동키를 포함하지 않는 경우가 있어, APP_KEY 기반이라
+     * 위조가 불가능한 견적서별 var2 토큰 일치도 유효한 검증으로 인정한다.
      */
     public function verifyFeedback(array $payload, ?Estimate $estimate): bool
     {
         if (($payload['userid'] ?? null) !== config('services.payapp.userid')) {
             return false;
         }
-        // 페이앱은 통지에 연동 KEY/VALUE를 함께 보냄 — 둘 중 오는 값으로 대조
+
         $linkOk = (isset($payload['linkkey']) && hash_equals((string) config('services.payapp.linkkey'), (string) $payload['linkkey']))
             || (isset($payload['linkval']) && hash_equals((string) config('services.payapp.linkval'), (string) $payload['linkval']));
-        if (! $linkOk) {
-            return false;
-        }
-        // var2 = 견적서별 위조 방지 토큰
-        if ($estimate && isset($payload['var2']) && ! hash_equals($this->feedbackToken($estimate), (string) $payload['var2'])) {
-            return false;
-        }
 
-        return true;
+        $tokenOk = $estimate !== null
+            && isset($payload['var2'])
+            && hash_equals($this->feedbackToken($estimate), (string) $payload['var2']);
+
+        return $linkOk || $tokenOk;
+    }
+
+    /**
+     * 통지 검증 실패 원인 진단 문자열 (값 노출 없이 어느 검증이 왜 실패했는지만).
+     */
+    public function feedbackDiagnosis(array $payload, ?Estimate $estimate): string
+    {
+        return sprintf(
+            'userid_ok=%s linkkey수신=%s linkval수신=%s link_ok=%s var2수신=%s token_ok=%s estimate=%s',
+            ($payload['userid'] ?? null) === config('services.payapp.userid') ? 'Y' : 'N',
+            isset($payload['linkkey']) ? 'Y' : 'N',
+            isset($payload['linkval']) ? 'Y' : 'N',
+            ((isset($payload['linkkey']) && hash_equals((string) config('services.payapp.linkkey'), (string) $payload['linkkey']))
+                || (isset($payload['linkval']) && hash_equals((string) config('services.payapp.linkval'), (string) $payload['linkval']))) ? 'Y' : 'N',
+            isset($payload['var2']) ? 'Y' : 'N',
+            ($estimate !== null && isset($payload['var2']) && hash_equals($this->feedbackToken($estimate), (string) $payload['var2'])) ? 'Y' : 'N',
+            $estimate?->id ?? '(못찾음)'
+        );
     }
 
     /** APP_URL이 http여도 외부 콜백 주소는 https로 (localhost 제외 — 테스트/로컬용) */

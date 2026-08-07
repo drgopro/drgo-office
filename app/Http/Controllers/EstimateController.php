@@ -276,7 +276,8 @@ class EstimateController extends Controller
 
         $safePayload = collect($payload)->except(['linkkey', 'linkval'])->all();
         if (! $estimate || ! $payapp->verifyFeedback($payload, $estimate)) {
-            $payapp->log('feedback-거부', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
+            $payapp->log('feedback-거부', [], $payapp->feedbackDiagnosis($payload, $estimate)
+                ."\n".json_encode($safePayload, JSON_UNESCAPED_UNICODE));
 
             return response('FAIL', 400);
         }

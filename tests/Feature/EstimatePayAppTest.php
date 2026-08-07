@@ -255,12 +255,24 @@ class EstimatePayAppTest extends TestCase
         $this->assertNotNull($fresh->payapp_paid_at);
     }
 
-    public function test_feedback_rejects_wrong_link_credentials(): void
+    public function test_feedback_accepts_var2_token_without_link_credentials(): void
+    {
+        // 실제 운영 사례: 페이앱 통지에 linkkey/linkval이 없어도 var2 토큰이 맞으면 인정
+        $estimate = $this->makeEstimate(['payapp_mul_no' => '98765']);
+
+        $payload = $this->feedbackPayload($estimate);
+        unset($payload['linkkey'], $payload['linkval']);
+
+        $this->post('/api/payapp/feedback', $payload)->assertOk();
+        $this->assertSame('paid', $estimate->fresh()->status);
+    }
+
+    public function test_feedback_rejects_when_link_and_token_both_invalid(): void
     {
         $estimate = $this->makeEstimate(['payapp_mul_no' => '98765']);
 
         $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, [
-            'linkkey' => 'wrong', 'linkval' => 'wrong',
+            'linkkey' => 'wrong', 'linkval' => 'wrong', 'var2' => 'forged-token',
         ]))->assertStatus(400);
 
         $this->assertSame('completed', $estimate->fresh()->status);
