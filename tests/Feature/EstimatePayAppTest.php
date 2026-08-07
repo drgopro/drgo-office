@@ -185,7 +185,8 @@ class EstimatePayAppTest extends TestCase
             return str_contains($request->url(), 'api.payapp.kr')
                 && $request['cmd'] === 'payrequest'
                 && $request['price'] == 1500000
-                && $request['recvphone'] === '01012345678';
+                && $request['recvphone'] === '01012345678'
+                && $request['checkretry'] === 'y'; // 통지 유실 방지 재시도 옵션
         });
     }
 

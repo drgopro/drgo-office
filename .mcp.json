@@ -1,11 +1,9 @@
 {
     "mcpServers": {
-        "laravel-boost": {
-            "command": "php",
-            "args": [
-                "artisan",
-                "boost:mcp"
-            ]
+        "payapp": {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@payapp/payments-payapp"]
         }
     }
 }

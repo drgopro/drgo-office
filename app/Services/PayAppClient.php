@@ -71,6 +71,7 @@ class PayAppClient
             'smsuse' => $sendSms ? 'y' : 'n',
             'feedbackurl' => $this->forceHttps(route('payapp.feedback')),
             'returnurl' => $this->forceHttps($estimate->publicUrl()),
+            'checkretry' => 'y', // 통지 응답이 SUCCESS가 아니면 페이앱이 총 10회 재시도 (유실 방지)
             'var1' => (string) $estimate->id,
             'var2' => $this->feedbackToken($estimate),
         ]);
