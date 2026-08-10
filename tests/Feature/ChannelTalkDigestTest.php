@@ -38,6 +38,19 @@ class ChannelTalkDigestTest extends TestCase
         ]);
     }
 
+    /** 매니저 목록 + 그룹 메시지 fake (매니저 매칭 시 멘션 태그 검증용) */
+    private function fakeChannelApis(): void
+    {
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response([
+                'managers' => [
+                    ['id' => 'mgr-1', 'name' => '김담당', 'email' => 'kim@drgo.pro'],
+                ],
+            ]),
+            'api.channel.io/open/v5/groups/*' => Http::response(['message' => ['id' => '1']]),
+        ]);
+    }
+
     public function test_digest_sends_group_message_with_dday_schedules(): void
     {
         Http::fake(['api.channel.io/*' => Http::response(['message' => ['id' => '1']])]);
@@ -45,24 +58,130 @@ class ChannelTalkDigestTest extends TestCase
         $assignee = Assignee::create(['name' => '김담당', 'display_order' => 1, 'is_active' => true]);
         $schedule->assignees()->attach($assignee->id, ['sort_order' => 1]);
 
-        // 오늘/내일/비공개 일정은 제외 대상
+        // 오늘/내일/비공개/방문·원격 외 카테고리는 제외 대상
         $this->makeSchedule(['title' => '오늘 일정', 'start_date' => now()->format('Y-m-d')]);
         $this->makeSchedule(['title' => '비공개 일정', 'is_private' => true]);
+        $this->makeSchedule(['title' => '사내업무 일정', 'color' => 'blue']);
 
         $this->artisan('schedules:channeltalk-digest')
             ->expectsOutputToContain('발송 완료 — 1건')
             ->assertSuccessful();
 
         Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
             $text = $request['blocks'][0]['value'] ?? '';
 
-            return str_contains($request->url(), 'api.channel.io/open/v5/groups/')
-                && str_contains($request->url(), '/groups/@'.rawurlencode('오피스알림').'/messages') // @는 인코딩 금지
+            return str_contains($request->url(), '/groups/@'.rawurlencode('오피스알림').'/messages') // @는 인코딩 금지
                 && $request->hasHeader('x-access-key', 'test-key')
                 && str_contains($text, 'D-2 일정 알림')
                 && str_contains($text, '14:00 [방문의뢰] PC 세팅 방문 — 홍길동 (담당: 김담당)')
                 && ! str_contains($text, '오늘 일정')
-                && ! str_contains($text, '비공개 일정');
+                && ! str_contains($text, '비공개 일정')
+                && ! str_contains($text, '사내업무 일정');
+        });
+    }
+
+    public function test_digest_mentions_assignee_matched_by_email(): void
+    {
+        $this->fakeChannelApis();
+        $user = User::factory()->create(['email' => 'kim@drgo.pro']);
+        $schedule = $this->makeSchedule();
+        $assignee = Assignee::create(['name' => '김담당', 'display_order' => 1, 'is_active' => true, 'user_id' => $user->id]);
+        $schedule->assignees()->attach($assignee->id, ['sort_order' => 1]);
+
+        $this->artisan('schedules:channeltalk-digest')->assertSuccessful();
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+
+            // 이메일 매칭된 담당자는 매니저 멘션 태그로 표시
+            return str_contains($request['blocks'][0]['value'] ?? '', '<link type="manager" value="mgr-1">김담당</link>');
+        });
+    }
+
+    // === 담당자 추가/제거 알림 ===
+
+    public function test_assignee_added_sends_mention_notification(): void
+    {
+        $this->fakeChannelApis();
+        $user = User::factory()->create(['email' => 'kim@drgo.pro']);
+        $assignee = Assignee::create(['name' => '김담당', 'display_order' => 1, 'is_active' => true, 'user_id' => $user->id]);
+        $schedule = $this->makeSchedule();
+
+        $schedule->syncAssigneesOrdered([$assignee->id]);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+            $text = $request['blocks'][0]['value'] ?? '';
+
+            return str_contains($text, '🔔')
+                && str_contains($text, '<link type="manager" value="mgr-1">김담당</link>')
+                && str_contains($text, "'PC 세팅 방문'")
+                && str_contains($text, '담당자로 지정');
+        });
+    }
+
+    public function test_assignee_removed_sends_mention_notification(): void
+    {
+        $this->fakeChannelApis();
+        $assignee = Assignee::create(['name' => '김담당', 'display_order' => 1, 'is_active' => true]);
+        $schedule = $this->makeSchedule();
+        $schedule->assignees()->attach($assignee->id, ['sort_order' => 1]);
+
+        $schedule->syncAssigneesOrdered([]); // 전원 제거
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+            $text = $request['blocks'][0]['value'] ?? '';
+
+            return str_contains($text, '🔕') && str_contains($text, '담당에서 제외');
+        });
+    }
+
+    public function test_sync_with_notify_false_sends_nothing(): void
+    {
+        Http::fake();
+        $assignee = Assignee::create(['name' => '김담당', 'display_order' => 1, 'is_active' => true]);
+        $schedule = $this->makeSchedule();
+
+        $schedule->syncAssigneesOrdered([$assignee->id], notify: false); // 백업 가져오기 경로
+
+        Http::assertNothingSent();
+    }
+
+    // === 할 일 등록 알림 ===
+
+    public function test_todo_creation_sends_mention_notification(): void
+    {
+        $this->fakeChannelApis();
+        // 할 일 담당자는 User 직접 지정 — 본인 이메일로 매니저 매칭
+        $user = User::factory()->create(['email' => 'kim@drgo.pro', 'role' => 'member']);
+
+        $this->actingAs($user)->postJson('/api/todos', [
+            'title' => '견적서 발송',
+            'priority' => 'medium',
+            'assignee_id' => $user->id,
+            'due_date' => now()->addDays(4)->format('Y-m-d'),
+        ])->assertCreated();
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+            $text = $request['blocks'][0]['value'] ?? '';
+
+            return str_contains($text, '📌')
+                && str_contains($text, '<link type="manager" value="mgr-1">김담당</link>')
+                && str_contains($text, "새 할 일: '견적서 발송'")
+                && str_contains($text, '마감 '.now()->addDays(4)->format('m/d'));
         });
     }
 

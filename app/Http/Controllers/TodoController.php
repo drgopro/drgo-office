@@ -7,6 +7,7 @@ use App\Models\Todo;
 use App\Models\TodoAttachment;
 use App\Models\User;
 use App\Rules\SafeAttachment;
+use App\Services\ChannelTalkNotifier;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -42,6 +43,9 @@ class TodoController extends Controller
 
         $todo = Todo::create($validated);
         $todo->syncAssigneesOrdered($assigneeIds);
+
+        // 담당자에게 채널톡 멘션 알림 (실패해도 등록은 유지)
+        app(ChannelTalkNotifier::class)->todoCreated($todo->load('assignees', 'assignee'));
 
         return response()->json(['todo' => $this->present($todo->load('assignee.team', 'creator', 'attachments', 'assignees'))], 201);
     }

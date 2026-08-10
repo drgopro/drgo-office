@@ -1234,7 +1234,7 @@ class CalendarController extends Controller
                 'created_by' => Auth::id(),
             ]);
             if (! empty($item['assignee_ids'])) {
-                $schedule->syncAssigneesOrdered($item['assignee_ids']);
+                $schedule->syncAssigneesOrdered($item['assignee_ids'], notify: false); // 백업 가져오기 — 알림 폭탄 방지
             }
             $count++;
         }

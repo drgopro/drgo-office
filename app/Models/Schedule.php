@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ChannelTalkNotifier;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -100,7 +101,8 @@ class Schedule extends Model
             ->flatMap(fn ($c) => $c->assignees->pluck('id'))->unique()->all();
         $merged = array_values(array_unique([...$current, ...$childIds]));
         if ($merged !== $current) {
-            $this->syncAssigneesOrdered($merged);
+            // 하위 일정 담당 지정 시 이미 알림이 갔으므로 부모 합산은 중복 알림 방지
+            $this->syncAssigneesOrdered($merged, notify: false);
         }
     }
 
@@ -117,11 +119,17 @@ class Schedule extends Model
      *
      * @param  array<int, int|string>  $ids
      */
-    public function syncAssigneesOrdered(array $ids): void
+    public function syncAssigneesOrdered(array $ids, bool $notify = true): void
     {
-        $this->assignees()->sync(
+        $changes = $this->assignees()->sync(
             collect($ids)->values()->mapWithKeys(fn ($id, $i) => [(int) $id => ['sort_order' => $i]])->all()
         );
+
+        // 담당자 추가/제거 채널톡 알림 (백업 가져오기 등 대량 작업은 notify: false)
+        if ($notify && ($changes['attached'] || $changes['detached'])) {
+            app(ChannelTalkNotifier::class)
+                ->scheduleAssigneesChanged($this, $changes['attached'], $changes['detached']);
+        }
     }
 
     /**

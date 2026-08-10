@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Schedule;
 use App\Services\ChannelTalkClient;
+use App\Services\ChannelTalkNotifier;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -18,7 +19,10 @@ class SendChannelTalkDigest extends Command
         'red' => '휴가/개인', 'green' => '촬영/스튜디오', 'purple' => '미팅/내방',
     ];
 
-    public function handle(ChannelTalkClient $channelTalk): int
+    /** 다이제스트 대상 카테고리 — 방문의뢰(gold)·원격/방송룸(teal)만 */
+    private const DIGEST_COLORS = ['gold', 'teal'];
+
+    public function handle(ChannelTalkClient $channelTalk, ChannelTalkNotifier $notifier): int
     {
         if (! $channelTalk->isConfigured()) {
             $this->warn('채널톡 연동 정보가 없어 건너뜁니다 (.env CHANNELTALK_*)');
@@ -36,9 +40,10 @@ class SendChannelTalkDigest extends Command
         $days = (int) ($this->option('days') ?? config('services.channeltalk.remind_days', 2));
         $target = now()->addDays($days);
 
-        $schedules = Schedule::with('assignees')
+        $schedules = Schedule::with('assignees.user')
             ->whereDate('start_date', $target->format('Y-m-d'))
             ->where('is_private', false)
+            ->whereIn('color', self::DIGEST_COLORS) // 방문/원격만 아웃바운드
             ->orderBy('start_time')
             ->get();
 
@@ -53,7 +58,7 @@ class SendChannelTalkDigest extends Command
         foreach ($schedules as $s) {
             $time = $s->start_time ? substr($s->start_time, 0, 5) : '종일';
             $category = self::COLOR_LABELS[$s->color] ?? '';
-            $who = $s->assignees->pluck('name')->implode(', ');
+            $who = $s->assignees->isNotEmpty() ? $notifier->mentionList($s->assignees) : ''; // 담당자 멘션 → 개인 알림
             $line = "• {$time}".($category ? " [{$category}]" : '')." {$s->title}";
             if ($s->client_name) {
                 $line .= " — {$s->client_name}";
