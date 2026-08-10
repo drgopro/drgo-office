@@ -42,7 +42,7 @@ class TodoController extends Controller
         $validated['sort_order'] = (int) Todo::where('assignee_id', $validated['assignee_id'])->max('sort_order') + 1;
 
         $todo = Todo::create($validated);
-        $todo->syncAssigneesOrdered($assigneeIds);
+        $todo->syncAssigneesOrdered($assigneeIds, notify: false); // 아래 '새 할 일' 알림과 중복 방지
 
         // 담당자에게 채널톡 멘션 알림 (실패해도 등록은 유지)
         app(ChannelTalkNotifier::class)->todoCreated($todo->load('assignees', 'assignee'));

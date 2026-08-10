@@ -62,6 +62,29 @@ class ChannelTalkNotifier
         }
     }
 
+    /** 할 일 담당자 지정/제외 알림 (user id 배열) */
+    public function todoAssigneesChanged(Todo $todo, array $addedUserIds, array $removedUserIds): void
+    {
+        if (! $this->client->isConfigured() || (! $addedUserIds && ! $removedUserIds)) {
+            return;
+        }
+
+        try {
+            $due = $todo->due_date ? ' (마감 '.$todo->due_date->format('m/d').')' : '';
+
+            if ($addedUserIds) {
+                $users = User::whereIn('id', $addedUserIds)->get();
+                $this->client->sendGroupMessage("📌 {$this->mentionList($users)} — '{$todo->title}' 할 일의 담당자로 지정되었습니다{$due}");
+            }
+            if ($removedUserIds) {
+                $users = User::whereIn('id', $removedUserIds)->get();
+                $this->client->sendGroupMessage("🔕 {$this->mentionList($users)} — '{$todo->title}' 할 일의 담당에서 제외되었습니다");
+            }
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 할 일 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
     /**
      * 담당자 컬렉션 → 멘션 나열 ("멘션1, 멘션2").
      * 캘린더 담당자(Assignee — 연결 계정 이메일)와 할 일 담당자(User — 본인 이메일) 모두 지원.

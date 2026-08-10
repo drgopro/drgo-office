@@ -230,6 +230,55 @@ class ChannelTalkDigestTest extends TestCase
         });
     }
 
+    public function test_todo_assignee_change_notifies_added_and_removed(): void
+    {
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response([
+                'managers' => [
+                    ['id' => 'mgr-1', 'name' => '김담당', 'email' => 'kim@drgo.pro'],
+                    ['id' => 'mgr-2', 'name' => '박담당', 'email' => 'park@drgo.pro'],
+                ],
+            ]),
+            'api.channel.io/open/v5/groups/*' => Http::response(['message' => ['id' => '1']]),
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $kim = User::factory()->create(['email' => 'kim@drgo.pro']);
+        $park = User::factory()->create(['email' => 'park@drgo.pro']);
+
+        $res = $this->actingAs($admin)->postJson('/api/todos', [
+            'title' => '재고 정리', 'priority' => 'medium', 'assignee_id' => $kim->id,
+        ])->assertCreated();
+        $todoId = $res->json('todo.id');
+
+        // 담당자 교체: 김담당 → 박담당
+        $this->actingAs($admin)->patchJson("/api/todos/{$todoId}", [
+            'title' => '재고 정리', 'priority' => 'medium', 'assignee_id' => $park->id,
+        ])->assertOk();
+
+        // 새 담당자에게 지정 알림
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+            $text = $request['blocks'][0]['value'] ?? '';
+
+            return str_contains($text, '📌')
+                && str_contains($text, 'mgr-2')
+                && str_contains($text, "'재고 정리' 할 일의 담당자로 지정");
+        });
+        // 빠진 담당자에게 제외 알림
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+            $text = $request['blocks'][0]['value'] ?? '';
+
+            return str_contains($text, '🔕')
+                && str_contains($text, 'mgr-1')
+                && str_contains($text, "'재고 정리' 할 일의 담당에서 제외");
+        });
+    }
+
     public function test_digest_skips_when_no_schedules(): void
     {
         Http::fake();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ChannelTalkNotifier;
 use Database\Factories\TodoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -57,12 +58,18 @@ class Todo extends Model
      *
      * @param  array<int, int|string>  $ids
      */
-    public function syncAssigneesOrdered(array $ids): void
+    public function syncAssigneesOrdered(array $ids, bool $notify = true): void
     {
         $ids = collect($ids)->map(fn ($id) => (int) $id)->unique()->values();
-        $this->assignees()->sync($ids->mapWithKeys(fn ($id, $i) => [$id => ['sort_order' => $i]])->all());
+        $changes = $this->assignees()->sync($ids->mapWithKeys(fn ($id, $i) => [$id => ['sort_order' => $i]])->all());
         if ($ids->isNotEmpty() && $this->assignee_id !== $ids->first()) {
             $this->update(['assignee_id' => $ids->first()]);
+        }
+
+        // 담당자 지정/제외 채널톡 알림 (신규 등록은 '새 할 일' 알림과 중복 방지를 위해 notify: false)
+        if ($notify && ($changes['attached'] || $changes['detached'])) {
+            app(ChannelTalkNotifier::class)
+                ->todoAssigneesChanged($this, $changes['attached'], $changes['detached']);
         }
     }
 
