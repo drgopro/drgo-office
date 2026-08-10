@@ -70,10 +70,10 @@ class ChannelTalkNotifier
     {
         return collect($people)->map(function ($p) {
             if ($p instanceof User) {
-                return $this->client->managerMentionByEmail($p->email, $p->display_name ?? $p->username ?? '담당자');
+                return $this->client->managerMention($p->email, $p->display_name ?? $p->username ?? '담당자');
             }
 
-            return $this->client->managerMentionByEmail($p->user?->email, $p->name);
+            return $this->client->managerMention($p->user?->email, $p->name);
         })->implode(', ');
     }
 

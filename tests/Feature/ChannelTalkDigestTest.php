@@ -103,6 +103,51 @@ class ChannelTalkDigestTest extends TestCase
         });
     }
 
+    public function test_mention_matches_by_name_without_account_link(): void
+    {
+        // 계정 연결/이메일 없이 담당자 이름 = 매니저 이름만으로 멘션
+        $this->fakeChannelApis();
+        $schedule = $this->makeSchedule();
+        $assignee = Assignee::create(['name' => '김 담당', 'display_order' => 1, 'is_active' => true]); // 공백 있어도 매칭
+
+        $schedule->syncAssigneesOrdered([$assignee->id]);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+
+            return str_contains($request['blocks'][0]['value'] ?? '', '<link type="manager" value="mgr-1">김담당</link>');
+        });
+    }
+
+    public function test_mention_skipped_for_duplicate_manager_names(): void
+    {
+        // 동명이인 매니저 → 오태그 방지를 위해 멘션 없이 이름만
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response([
+                'managers' => [
+                    ['id' => 'mgr-1', 'name' => '김담당', 'email' => ''],
+                    ['id' => 'mgr-2', 'name' => '김담당', 'email' => ''],
+                ],
+            ]),
+            'api.channel.io/open/v5/groups/*' => Http::response(['message' => ['id' => '1']]),
+        ]);
+        $schedule = $this->makeSchedule();
+        $assignee = Assignee::create(['name' => '김담당', 'display_order' => 1, 'is_active' => true]);
+
+        $schedule->syncAssigneesOrdered([$assignee->id]);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/groups/')) {
+                return false;
+            }
+            $text = $request['blocks'][0]['value'] ?? '';
+
+            return str_contains($text, '김담당') && ! str_contains($text, '<link type="manager"');
+        });
+    }
+
     // === 담당자 추가/제거 알림 ===
 
     public function test_assignee_added_sends_mention_notification(): void

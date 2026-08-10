@@ -72,9 +72,9 @@ class ChannelTalkClient
     }
 
     /**
-     * 채널톡 매니저 목록 — 이메일(소문자) => [id, name] 맵 (10분 캐시).
+     * 채널톡 매니저 목록 (10분 캐시).
      *
-     * @return array<string, array{id:string, name:string}>
+     * @return array<int, array{id:string, name:string, email:string}>
      */
     public function managers(): array
     {
@@ -97,14 +97,16 @@ class ChannelTalkClient
                     return [];
                 }
 
-                $map = [];
+                $list = [];
                 foreach ($res->json('managers') ?? [] as $m) {
-                    if (! empty($m['email'])) {
-                        $map[strtolower($m['email'])] = ['id' => (string) $m['id'], 'name' => (string) ($m['name'] ?? '')];
-                    }
+                    $list[] = [
+                        'id' => (string) $m['id'],
+                        'name' => (string) ($m['name'] ?? ''),
+                        'email' => strtolower((string) ($m['email'] ?? '')),
+                    ];
                 }
 
-                return $map;
+                return $list;
             } catch (\Throwable $e) {
                 $this->log('매니저 조회 실패', '', $e->getMessage());
 
@@ -114,17 +116,49 @@ class ChannelTalkClient
     }
 
     /**
-     * 이메일로 매니저를 찾아 멘션 태그 생성 — 못 찾으면 이름만 일반 텍스트로.
+     * 매니저 멘션 태그 생성 — 이메일 일치 우선, 없으면 이름(공백 제거 후 완전 일치)으로 매칭.
+     * 동명이인이면 오태그 방지를 위해 멘션하지 않는다. 미매칭 시 이름만 일반 텍스트로.
      * 멘션된 매니저는 채널톡이 개인 알림(푸시)을 보낸다.
      */
-    public function managerMentionByEmail(?string $email, string $fallbackName): string
+    public function managerMention(?string $email, string $name): string
     {
-        $manager = $email ? ($this->managers()[strtolower($email)] ?? null) : null;
-        if (! $manager) {
-            return $fallbackName;
+        $managers = $this->managers();
+
+        // 1순위: 이메일 일치
+        if ($email) {
+            foreach ($managers as $m) {
+                if ($m['email'] !== '' && $m['email'] === strtolower($email)) {
+                    return $this->mentionTag($m, $name);
+                }
+            }
         }
 
+        // 2순위: 이름 일치 (정규화: 공백 제거 + 소문자) — 동명이인이면 멘션 생략
+        $needle = $this->normalizeName($name);
+        if ($needle !== '') {
+            $matches = array_values(array_filter($managers, fn ($m) => $this->normalizeName($m['name']) === $needle));
+            if (count($matches) === 1) {
+                return $this->mentionTag($matches[0], $name);
+            }
+        }
+
+        return $name;
+    }
+
+    /** @deprecated managerMention 사용 — 하위 호환용 */
+    public function managerMentionByEmail(?string $email, string $fallbackName): string
+    {
+        return $this->managerMention($email, $fallbackName);
+    }
+
+    private function mentionTag(array $manager, string $fallbackName): string
+    {
         return '<link type="manager" value="'.$manager['id'].'">'.($manager['name'] !== '' ? $manager['name'] : $fallbackName).'</link>';
+    }
+
+    private function normalizeName(string $name): string
+    {
+        return mb_strtolower(preg_replace('/\s+/u', '', $name) ?? $name);
     }
 
     /** channeltalk.log 기록 (액세스 키는 기록하지 않음) */
