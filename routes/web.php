@@ -46,6 +46,7 @@ use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
 use App\Models\ProjectFieldDefinition;
 use App\Models\User;
+use App\Services\ChannelTalkClient;
 use App\Services\MarketPriceCrawler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -541,6 +542,26 @@ Route::middleware('auth')->group(function () {
 
             return response(
                 $out."\n\n원본 HTML 스니펫은 /admin/compuzone-log 에서 확인하세요. &find=판매가 처럼 붙이면 해당 문자열 주변 HTML을 볼 수 있습니다.",
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
+        });
+        // 채널톡 연동 테스트 — 팀챗 그룹으로 테스트 메시지 발송
+        Route::get('/admin/channeltalk-test', function () {
+            $result = app(ChannelTalkClient::class)->sendGroupMessage('✅ 닥터고블린 오피스 ↔ 채널톡 연동 테스트 메시지입니다.');
+
+            return response(
+                ($result['ok'] ? '전송 성공 — 채널톡 팀챗 그룹을 확인하세요.' : '전송 실패: '.$result['error'])
+                ."\n\n상세 로그: /admin/channeltalk-log",
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
+        });
+        Route::get('/admin/channeltalk-log', function () {
+            $path = storage_path('logs/channeltalk.log');
+
+            return response(
+                file_exists($path) ? file_get_contents($path) : '아직 채널톡 발송 기록이 없습니다.',
                 200,
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );

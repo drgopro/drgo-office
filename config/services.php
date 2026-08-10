@@ -46,6 +46,16 @@ return [
         'base_url' => env('ESTIMATE_PUBLIC_BASE_URL'),
     ],
 
+    // 채널톡 팀챗 알림 — 채널톡 설정 > API 관리에서 액세스 키/시크릿 발급
+    // group: 메시지를 받을 팀챗 그룹 이름(또는 그룹 ID)
+    'channeltalk' => [
+        'access_key' => env('CHANNELTALK_ACCESS_KEY'),
+        'access_secret' => env('CHANNELTALK_ACCESS_SECRET'),
+        'group' => env('CHANNELTALK_GROUP'),
+        'bot_name' => env('CHANNELTALK_BOT_NAME', '오피스 알림'),
+        'remind_days' => env('CHANNELTALK_REMIND_DAYS', 2),
+    ],
+
     // 페이앱 결제 연동 (견적서 결제) — 페이앱 판매자 설정에서 연동 KEY/VALUE 발급
     'payapp' => [
         'userid' => env('PAYAPP_USERID'),

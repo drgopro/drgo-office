@@ -18,6 +18,9 @@ Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping
 // 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
 Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();
 
+// 채널톡 팀챗 일정 알림 — 2일 뒤 일정을 매일 아침 9시 발송 (미설정 시 자동 건너뜀)
+Schedule::command('schedules:channeltalk-digest')->dailyAt('09:00')->withoutOverlapping();
+
 // 진행중 렌탈·방송룸 계약의 결제 반복 일정 자동 연장 (매월 1일)
 Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->withoutOverlapping();
 
