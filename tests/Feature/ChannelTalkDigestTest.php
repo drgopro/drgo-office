@@ -57,7 +57,7 @@ class ChannelTalkDigestTest extends TestCase
             $text = $request['blocks'][0]['value'] ?? '';
 
             return str_contains($request->url(), 'api.channel.io/open/v5/groups/')
-                && str_contains($request->url(), rawurlencode('@오피스알림'))
+                && str_contains($request->url(), '/groups/@'.rawurlencode('오피스알림').'/messages') // @는 인코딩 금지
                 && $request->hasHeader('x-access-key', 'test-key')
                 && str_contains($text, 'D-2 일정 알림')
                 && str_contains($text, '14:00 [방문의뢰] PC 세팅 방문 — 홍길동 (담당: 김담당)')

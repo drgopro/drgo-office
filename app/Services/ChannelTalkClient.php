@@ -36,13 +36,12 @@ class ChannelTalkClient
         }
 
         $group = (string) config('services.channeltalk.group');
-        // 숫자면 그룹 ID, 아니면 그룹 이름(@주소 방식)
-        $groupPath = ctype_digit($group) ? $group : '@'.ltrim($group, '@');
-        $url = self::API_BASE.'/groups/'.rawurlencode($groupPath).'/messages';
+        // 숫자면 그룹 ID, 아니면 그룹 이름 — @ 접두는 인코딩하면 안 되고 이름만 인코딩
+        $groupPath = ctype_digit($group) ? rawurlencode($group) : '@'.rawurlencode(ltrim($group, '@'));
+        $url = self::API_BASE.'/groups/'.$groupPath.'/messages';
 
         try {
             $res = Http::timeout(10)->connectTimeout(5)
-                ->retry(2, 500, throw: false)
                 ->withHeaders([
                     'x-access-key' => config('services.channeltalk.access_key'),
                     'x-access-secret' => config('services.channeltalk.access_secret'),
@@ -58,7 +57,11 @@ class ChannelTalkClient
             return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
         }
 
-        $this->log($res->successful() ? '전송 성공' : '전송 실패 HTTP '.$res->status(), $text, mb_substr($res->body(), 0, 500));
+        $this->log(
+            $res->successful() ? '전송 성공' : '전송 실패 HTTP '.$res->status(),
+            $text,
+            'url='.$url."\n".mb_substr($res->body(), 0, 500)
+        );
 
         if (! $res->successful()) {
             return ['ok' => false, 'error' => '채널톡 응답 오류 (HTTP '.$res->status().'): '.mb_substr($res->body(), 0, 200)];
