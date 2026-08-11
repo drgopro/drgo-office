@@ -61,6 +61,7 @@
     .badge-ordered { background:#2a1a2a; color:#9b70c8; } .badge-received { background:#1a2a1a; color:#7ac87a; }
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
     .text-muted { color:var(--text-muted); font-size:12px; } .text-right { text-align:center; } .text-warn { color:var(--red); }
+    .data-table th.text-right { text-align:center; } /* 헤더도 값과 동일하게 중앙 정렬 (시세 등 숫자 컬럼) */
 
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
     .modal-overlay.open { display:flex; }
