@@ -62,6 +62,21 @@ class BankDepositTest extends TestCase
         $this->assertSame('김철수', $deposit->depositor_name);
     }
 
+    public function test_ingest_parses_real_kb_multiline_format(): void
+    {
+        // 실전 검증된 KB 알림 포맷 (2026-08-11, MacroDroid 알림 트리거 경유)
+        $sms = "[Web발신]\n[KB]08/11 14:20\n821337**680\n김지수\n입금\n104,000";
+        $this->ingest($sms)->assertCreated();
+
+        $deposit = BankDeposit::first();
+        $this->assertSame(104000, $deposit->amount);
+        $this->assertSame('김지수', $deposit->depositor_name);
+        $this->assertSame(8, $deposit->received_at->month);
+        $this->assertSame(11, $deposit->received_at->day);
+        $this->assertSame('14:20', $deposit->received_at->format('H:i'));
+        $this->assertNull($deposit->balance_after);
+    }
+
     public function test_ingest_keeps_raw_when_parse_fails(): void
     {
         $this->ingest('입금 관련 알 수 없는 형식의 문자')->assertCreated();
