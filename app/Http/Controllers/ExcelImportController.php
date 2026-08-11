@@ -414,6 +414,10 @@ class ExcelImportController extends Controller
      */
     private function setImportedStock(Product $product, int $qty): void
     {
+        if ($product->is_bundle) {
+            return; // 세트 상품은 자체 재고 없음 — 구성품에서 관리
+        }
+
         $inventory = Inventory::firstOrCreate(
             ['product_id' => $product->id],
             ['quantity' => 0, 'last_updated_at' => now()]

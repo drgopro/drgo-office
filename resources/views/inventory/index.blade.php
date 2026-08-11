@@ -57,6 +57,7 @@
     .badge-in { background:#1a2a1a; color:#7ac87a; } .badge-out { background:#2a1a1a; color:#c87a7a; }
     .badge-adjust { background:#1a1a2a; color:#8ab4c8; } .badge-return { background:#2a2010; color:var(--accent); }
     .badge-low { background:#2a1a1a; color:#c87a7a; } .badge-ok { background:#1a2a1a; color:#7ac87a; }
+    .badge-set { background:color-mix(in srgb, var(--accent2, #90bcd4) 18%, transparent); color:var(--accent2, #6a9cc0); cursor:help; }
     .badge-requested { background:#2a2010; color:var(--accent); } .badge-approved { background:#1a1a2a; color:#8ab4c8; }
     .badge-ordered { background:#2a1a2a; color:#9b70c8; } .badge-received { background:#1a2a1a; color:#7ac87a; }
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
@@ -294,9 +295,24 @@
             <div class="field-label">제품명 *</div>
             <input class="field-input" id="pName">
         </div>
+        <div class="field-group">
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                <input type="checkbox" id="pIsBundle" onchange="onBundleToggle()" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;">
+                세트 상품 <span style="color:var(--text-muted);font-size:11.5px;">(자체 재고 없음 — 출고 시 구성품 재고를 함께 소진)</span>
+            </label>
+        </div>
+        <div class="field-group" id="bundleSection" style="display:none; border:1px dashed var(--border); border-radius:8px; padding:10px 12px;">
+            <div class="field-label">구성품 * <span style="font-weight:400;color:var(--text-muted);">— 세트 1개당 필요 수량</span></div>
+            <div id="bundleRows"></div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+                <select class="field-select" id="bundleAddSelect" style="flex:1; min-width:0;"><option value="">구성품 선택…</option></select>
+                <button type="button" class="btn-outline btn-sm" onclick="addBundleRow()">+ 추가</button>
+            </div>
+            <div id="bundleSum" style="font-size:11.5px; color:var(--text-muted); margin-top:8px;"></div>
+        </div>
         <div class="field-row">
             <div class="field-group">
-                <div class="field-label">매입가</div>
+                <div class="field-label" id="pPurchaseLabel">매입가</div>
                 <input class="field-input" id="pPurchase" type="number" min="0" placeholder="비워두면 0원으로 저장">
             </div>
             <div class="field-group">
@@ -304,16 +320,16 @@
                 <input class="field-input" id="pSale" type="number" min="0">
             </div>
         </div>
-        <div class="field-group">
+        <div class="field-group" id="marketUrlGroup1">
             <div class="field-label">시세 URL — 컴퓨존</div>
             <input class="field-input" id="pMarketUrlCompuzone" placeholder="https://www.compuzone.co.kr/... 제품 페이지 주소 (선택)">
         </div>
-        <div class="field-group">
+        <div class="field-group" id="marketUrlGroup2">
             <div class="field-label">시세 URL — 피씨팩토리</div>
             <input class="field-input" id="pMarketUrlPcfactory" placeholder="https://www.pc-factory.co.kr/... 제품 페이지 주소 (선택)">
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록한 판매처별 판매가를 매일 새벽 자동 조회해 시세 컬럼에 각각 표시합니다.</div>
         </div>
-        <div class="field-group">
+        <div class="field-group" id="safetyGroup">
             <div class="field-label">안전재고 (선택 · 이하 경고)</div>
             <input class="field-input" id="pSafety" type="number" min="0" placeholder="비워두면 미사용">
         </div>
@@ -342,7 +358,7 @@
             <div class="modal-title">입출고 등록</div>
             <button class="modal-close" onclick="closeModal('movementModal')">×</button>
         </div>
-        <div class="field-group"><div class="field-label">제품 *</div><select class="field-select" id="mProduct"></select></div>
+        <div class="field-group"><div class="field-label">제품 *</div><select class="field-select" id="mProduct" onchange="onMovementProductChange()"></select></div>
         <div class="field-row">
             <div class="field-group"><div class="field-label">유형 *</div>
                 <select class="field-select" id="mType" onchange="onMovementTypeChange()"><option value="in">입고</option><option value="out">출고(대여)</option><option value="adjust">재고 조정</option><option value="return">반품(반납)</option></select>
@@ -869,11 +885,34 @@ function prodFilterParams() {
     return qs;
 }
 
-// 현재고 셀 — 안전재고 이하이면 경고색 + 부족 뱃지
+// 세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량)
+function bundleBuildable(p) {
+    const items = p.bundle_items || [];
+    if (!items.length) return 0;
+    return Math.min(...items.map(i => Math.floor(Math.max(0, i.component?.inventory?.quantity ?? 0) / Math.max(1, i.quantity))));
+}
+
+// 세트 구성품 툴팁 텍스트
+function bundleTooltip(p) {
+    return (p.bundle_items || []).map(i =>
+        `${i.component?.name || '#'+i.component_product_id} ×${i.quantity} (재고 ${i.component?.inventory?.quantity ?? 0})`
+    ).join('\n');
+}
+
+// 현재고 셀 — 안전재고 이하이면 경고색 + 부족 뱃지, 세트는 조립 가능 수
 function stockCellHtml(p) {
+    if (p.is_bundle) {
+        const b = bundleBuildable(p);
+        return `<span title="${_esc(bundleTooltip(p))}"><b class="${b === 0 ? 'text-warn' : ''}">${b}</b> <span class="text-muted" style="font-size:11px;">조립가능</span></span>`;
+    }
     const qty = p.inventory ? (p.inventory.quantity ?? 0) : 0;
     const low = p.safety_stock && qty <= p.safety_stock;
     return `<b class="${low ? 'text-warn' : ''}">${qty}</b>${low ? ' <span class="badge badge-low">부족</span>' : ''}`;
+}
+
+// 제품명 앞 세트 뱃지 (구성품 툴팁 포함)
+function bundleBadgeHtml(p) {
+    return p.is_bundle ? `<span class="badge badge-set" title="${_esc(bundleTooltip(p))}">세트</span> ` : '';
 }
 
 async function loadProducts() {
@@ -905,7 +944,7 @@ async function loadProducts() {
     tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
         <td class="text-muted">${_esc(p.sku)}</td>
-        <td class="text-wrap">${_esc(p.name)}</td>
+        <td class="text-wrap">${bundleBadgeHtml(p)}${_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${fmt(p.purchase_price)}</td>
         <td class="text-right">${fmt(p.sale_price)}</td>
@@ -925,7 +964,7 @@ async function loadProducts() {
         <div class="mob-card-top">
             <input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)">
             <div>
-                <div class="mob-card-title">${_esc(p.name)}</div>
+                <div class="mob-card-title">${bundleBadgeHtml(p)}${_esc(p.name)}</div>
                 <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}${p.safety_stock ? ' · 안전재고 '+p.safety_stock : ''}${p.show_in_estimate ? ' · <span class="badge badge-ok">노출</span>' : ''}</div>
             </div>
         </div>
@@ -1007,6 +1046,73 @@ async function bulkDeleteProducts() {
     prodSelection.clear();
     await loadProducts();
 }
+// === 세트 상품 (구성품) ===
+let BUNDLE_ITEMS = []; // [{product_id, name, sku, quantity, purchase_price}]
+let PICKER_PRODUCTS = null; // 구성품 선택용 전체 제품 캐시 (세트 제외)
+
+async function loadPickerProducts() {
+    const r = await fetch('/api/inventory/products');
+    PICKER_PRODUCTS = (await r.json()).filter(p => !p.is_bundle);
+}
+
+function onBundleToggle() {
+    const on = document.getElementById('pIsBundle').checked;
+    document.getElementById('bundleSection').style.display = on ? '' : 'none';
+    // 세트는 자체 재고/시세가 없음 — 관련 입력 숨김, 매입가는 구성품 합계로 자동
+    document.getElementById('safetyGroup').style.display = on ? 'none' : '';
+    document.getElementById('marketUrlGroup1').style.display = on ? 'none' : '';
+    document.getElementById('marketUrlGroup2').style.display = on ? 'none' : '';
+    const purchase = document.getElementById('pPurchase');
+    purchase.readOnly = on;
+    purchase.style.opacity = on ? '0.75' : '';
+    document.getElementById('pPurchaseLabel').textContent = on ? '매입가 (구성품 합계 자동)' : '매입가';
+    if (on) {
+        renderBundleRows();
+        if (!PICKER_PRODUCTS) loadPickerProducts().then(renderBundlePicker);
+        else renderBundlePicker();
+    }
+}
+
+function renderBundlePicker() {
+    const sel = document.getElementById('bundleAddSelect');
+    const used = new Set(BUNDLE_ITEMS.map(i => i.product_id));
+    const editId = +document.getElementById('pEditId').value || 0;
+    sel.innerHTML = '<option value="">구성품 선택…</option>' + (PICKER_PRODUCTS||[])
+        .filter(p => !used.has(p.id) && p.id !== editId)
+        .map(p => `<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
+}
+
+function addBundleRow() {
+    const sel = document.getElementById('bundleAddSelect');
+    const id = +sel.value;
+    if (!id) return;
+    const p = (PICKER_PRODUCTS||[]).find(x => x.id === id);
+    if (!p) return;
+    BUNDLE_ITEMS.push({ product_id: p.id, name: p.name, sku: p.sku, quantity: 1, purchase_price: p.purchase_price||0 });
+    renderBundleRows(); renderBundlePicker();
+}
+
+function removeBundleRow(idx) { BUNDLE_ITEMS.splice(idx, 1); renderBundleRows(); renderBundlePicker(); }
+function bundleQtyChange(idx, v) { BUNDLE_ITEMS[idx].quantity = Math.max(1, parseInt(v, 10)||1); updateBundleSum(); }
+
+function renderBundleRows() {
+    const box = document.getElementById('bundleRows');
+    box.innerHTML = BUNDLE_ITEMS.length ? BUNDLE_ITEMS.map((i, idx) => `
+        <div style="display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--border); font-size:13px;">
+            <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(i.name)} <span class="text-muted" style="font-size:11px;">${_esc(i.sku||'')}</span></span>
+            <input type="number" min="1" value="${i.quantity}" onchange="bundleQtyChange(${idx}, this.value)" style="width:64px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); text-align:center;">
+            <button type="button" class="btn-danger-sm" onclick="removeBundleRow(${idx})">✕</button>
+        </div>`).join('') : '<div class="text-muted" style="font-size:12px; padding:4px 0;">아직 구성품이 없습니다. 아래에서 추가해주세요.</div>';
+    updateBundleSum();
+}
+
+function updateBundleSum() {
+    const sum = BUNDLE_ITEMS.reduce((a, i) => a + (i.purchase_price||0) * i.quantity, 0);
+    document.getElementById('bundleSum').textContent = BUNDLE_ITEMS.length
+        ? `구성품 매입가 합계: ${sum.toLocaleString()}원 (매입가에 자동 반영)` : '';
+    if (document.getElementById('pIsBundle').checked) document.getElementById('pPurchase').value = sum || '';
+}
+
 async function openProductModal(p) {
     if (!catData.length) await loadCategories();
     document.getElementById('productModalTitle').textContent = p ? '제품 수정' : '제품 등록';
@@ -1020,6 +1126,18 @@ async function openProductModal(p) {
     document.getElementById('pSafety').value = p ? (p.safety_stock||'') : '';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
+    // 세트 상품 — 기존 제품은 세트 여부 변경 불가 (서버에서도 차단)
+    const bundleCheck = document.getElementById('pIsBundle');
+    bundleCheck.checked = p ? !!p.is_bundle : false;
+    bundleCheck.disabled = !!p;
+    BUNDLE_ITEMS = (p && p.bundle_items || []).map(i => ({
+        product_id: i.component_product_id,
+        name: i.component?.name || ('#'+i.component_product_id),
+        sku: i.component?.sku || '',
+        quantity: i.quantity,
+        purchase_price: i.component?.purchase_price || 0,
+    }));
+    onBundleToggle();
     populateCatDropdowns(p ? p.category_id : null);
     openModal('productModal');
 }
@@ -1039,6 +1157,8 @@ const PRODUCT_FIELD_LABELS = {
     memo: '메모',
     show_in_estimate: '견적서 노출',
     sku: 'SKU',
+    is_bundle: '세트 상품',
+    bundle_items: '구성품',
 };
 
 async function saveProduct() {
@@ -1065,7 +1185,14 @@ async function saveProduct() {
         safety_stock: document.getElementById('pSafety').value || null,
         memo: document.getElementById('pMemo').value || null,
         show_in_estimate: document.getElementById('pEstimate').checked,
+        is_bundle: document.getElementById('pIsBundle').checked,
+        bundle_items: document.getElementById('pIsBundle').checked
+            ? BUNDLE_ITEMS.map(i => ({ product_id: i.product_id, quantity: i.quantity }))
+            : [],
     };
+    if (body.is_bundle && !body.bundle_items.length) {
+        return alert('세트 상품은 구성품을 1개 이상 추가해야 합니다.');
+    }
     const url = id ? `/api/inventory/products/${id}` : '/api/inventory/products';
     const method = id ? 'PATCH' : 'POST';
 
@@ -1133,23 +1260,34 @@ async function loadMovements() {
         <td class="text-muted">${_esc(m.memo)||'-'}</td>
     </tr>`).join('');
 }
+let MOV_PRODUCTS = []; // 입출고 모달 제품 목록 (세트 여부 판단용)
+
 async function openMovementModal() {
     // allProducts는 현재 페이지만 담고 있으므로 모달용 전체 목록은 별도 조회
     const r = await fetch('/api/inventory/products');
-    const movProducts = await r.json();
+    MOV_PRODUCTS = await r.json();
     if (!allProjects.length) { const pr = await fetch('/api/inventory/projects'); allProjects = await pr.json(); }
-    document.getElementById('mProduct').innerHTML = movProducts.map(p=>`<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
+    document.getElementById('mProduct').innerHTML = MOV_PRODUCTS.map(p=>`<option value="${p.id}">${p.is_bundle?'[세트] ':''}${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
     document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('');
     document.getElementById('mType').value='in'; document.getElementById('mQty').value=1; document.getElementById('mMemo').value='';
     document.getElementById('mProject').value='';
-    onMovementTypeChange();
+    onMovementProductChange();
     openModal('movementModal');
+}
+// 세트 상품은 출고/반품만 가능 — 입고/조정 옵션 비활성화
+function onMovementProductChange() {
+    const p = MOV_PRODUCTS.find(x => x.id === +document.getElementById('mProduct').value);
+    const isBundle = !!(p && p.is_bundle);
+    const typeSel = document.getElementById('mType');
+    [...typeSel.options].forEach(o => { o.disabled = isBundle && (o.value === 'in' || o.value === 'adjust'); });
+    if (isBundle && (typeSel.value === 'in' || typeSel.value === 'adjust')) typeSel.value = 'out';
+    onMovementTypeChange();
 }
 function onMovementTypeChange() {
     const t = document.getElementById('mType').value;
     document.getElementById('mProjectGroup').style.display = (t==='out' || t==='return') ? 'block' : 'none';
 }
-async function saveMovement() {
+async function saveMovement(force) {
     const projectId = document.getElementById('mProject').value;
     const body = {
         product_id:+document.getElementById('mProduct').value,
@@ -1157,9 +1295,19 @@ async function saveMovement() {
         quantity:+document.getElementById('mQty').value,
         project_id: projectId ? +projectId : null,
         memo:document.getElementById('mMemo').value||null,
+        force: !!force,
     };
     const res = await fetch('/api/inventory/movements',{method:'POST',headers:H,body:JSON.stringify(body)});
-    if (!res.ok) { const e = await res.json(); alert(Object.values(e.errors||{}).flat().join('\n')||'오류 발생'); return; }
+    if (res.status === 409) {
+        // 세트 구성품 재고 부족 — 경고 후 진행 허용
+        const e = await res.json().catch(()=>({}));
+        const lines = (e.shortages||[]).map(s=>`• ${s.name}: 필요 ${s.need} / 보유 ${s.have}`).join('\n');
+        if (confirm(`구성품 재고가 부족합니다:\n\n${lines}\n\n그래도 출고할까요? (구성품 재고가 음수로 내려갑니다)`)) {
+            return saveMovement(true);
+        }
+        return;
+    }
+    if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message||Object.values(e.errors||{}).flat().join('\n')||'오류 발생'); return; }
     closeModal('movementModal'); loadMovements();
 }
 // === 발주 ===

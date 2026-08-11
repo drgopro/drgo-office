@@ -22,6 +22,7 @@ class Product extends Model
         'memo',
         'is_active',
         'show_in_estimate',
+        'is_bundle',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Product extends Model
         'safety_stock' => 'integer',
         'is_active' => 'boolean',
         'show_in_estimate' => 'boolean',
+        'is_bundle' => 'boolean',
     ];
 
     public function marketPrices()
@@ -50,5 +52,34 @@ class Product extends Model
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /** 세트 구성품 목록 (이 제품이 세트일 때) */
+    public function bundleItems()
+    {
+        return $this->hasMany(ProductBundleItem::class, 'bundle_product_id')->orderBy('sort_order');
+    }
+
+    /** 이 제품을 구성품으로 포함하는 세트들 (삭제 가드용) */
+    public function bundledIn()
+    {
+        return $this->hasMany(ProductBundleItem::class, 'component_product_id');
+    }
+
+    /**
+     * 세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량). 세트가 아니거나 구성품이 없으면 null.
+     * bundleItems.component.inventory가 eager load 되어 있어야 N+1이 없다.
+     */
+    public function buildableQuantity(): ?int
+    {
+        if (! $this->is_bundle || $this->bundleItems->isEmpty()) {
+            return $this->is_bundle ? 0 : null;
+        }
+
+        return (int) $this->bundleItems->map(function ($item) {
+            $stock = max(0, (int) ($item->component?->inventory?->quantity ?? 0));
+
+            return intdiv($stock, max(1, $item->quantity));
+        })->min();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventory;
 use App\Models\Product;
+use App\Models\ProductBundleItem;
 use App\Models\ProductCategory;
 use App\Models\ProductMarketPrice;
 use App\Models\Project;
@@ -206,7 +207,7 @@ class InventoryController extends Controller
             );
         }
 
-        $query = Product::with('inventory', 'categoryRelation', 'marketPrices')
+        $query = Product::with('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory')
             ->where('is_active', true);
 
         if ($search = $request->query('search')) {
@@ -257,8 +258,16 @@ class InventoryController extends Controller
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
+            'is_bundle' => 'boolean',
+            'bundle_items' => 'required_if:is_bundle,1|nullable|array|max:50',
+            'bundle_items.*.product_id' => 'required|integer|exists:products,id',
+            'bundle_items.*.quantity' => 'required|integer|min:1|max:999',
         ]);
         $marketUrls = $this->pullMarketUrls($validated);
+        $bundleItems = $this->pullBundleItems($request, $validated);
+        if ($bundleItems instanceof JsonResponse) {
+            return $bundleItems;
+        }
 
         try {
             $cat = ProductCategory::findOrFail($validated['category_id']);
@@ -276,17 +285,22 @@ class InventoryController extends Controller
                 'category' => $cat->name,
                 'is_active' => true,
                 'show_in_estimate' => $request->boolean('show_in_estimate'),
+                'is_bundle' => $request->boolean('is_bundle'),
             ]);
 
-            Inventory::create([
-                'product_id' => $product->id,
-                'quantity' => 0,
-                'last_updated_at' => now(),
-            ]);
+            // 세트 상품은 자체 재고 없음 — 구성품 재고를 소진 (일반 제품만 inventory 생성)
+            if (! $product->is_bundle) {
+                Inventory::create([
+                    'product_id' => $product->id,
+                    'quantity' => 0,
+                    'last_updated_at' => now(),
+                ]);
+            }
 
+            $this->syncBundleItems($product, $bundleItems);
             $this->syncMarketPriceUrls($product, $marketUrls);
 
-            return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices'), 201);
+            return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory'), 201);
         } catch (\Throwable $e) {
             report($e);
 
@@ -312,11 +326,25 @@ class InventoryController extends Controller
             'safety_stock' => 'nullable|integer|min:0',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
+            'is_bundle' => 'boolean',
+            'bundle_items' => 'required_if:is_bundle,1|nullable|array|max:50',
+            'bundle_items.*.product_id' => 'required|integer|exists:products,id',
+            'bundle_items.*.quantity' => 'required|integer|min:1|max:999',
         ]);
         $marketUrls = $this->pullMarketUrls($validated);
+        $bundleItems = $this->pullBundleItems($request, $validated, $product);
+        if ($bundleItems instanceof JsonResponse) {
+            return $bundleItems;
+        }
+
+        // 일반 제품 → 세트 전환은 재고/입출고 이력이 남아 혼선 방지를 위해 차단 (반대 방향도 동일)
+        if ($product->is_bundle !== $request->boolean('is_bundle')) {
+            return response()->json(['message' => '세트 여부는 등록 후 변경할 수 없습니다. 새 제품으로 등록해주세요.'], 422);
+        }
 
         try {
             $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
+            unset($validated['is_bundle']);
             $cat = ProductCategory::findOrFail($validated['category_id']);
 
             // NOT NULL 컬럼들은 null을 0으로 강제 (제공된 키에 한해서만 — sometimes 검증과 일관)
@@ -338,9 +366,10 @@ class InventoryController extends Controller
             $validated['category'] = $cat->name;
             $product->update($validated);
 
+            $this->syncBundleItems($product, $bundleItems);
             $this->syncMarketPriceUrls($product, $marketUrls);
 
-            return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices'));
+            return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory'));
         } catch (\Throwable $e) {
             report($e);
 
@@ -381,8 +410,65 @@ class InventoryController extends Controller
         return response()->json($fresh);
     }
 
+    /**
+     * 세트 구성품 입력 검증 — 자기 자신/세트 중첩 금지. 오류 시 JsonResponse 반환.
+     *
+     * @return array<int, array{product_id:int, quantity:int}>|JsonResponse
+     */
+    private function pullBundleItems(Request $request, array &$validated, ?Product $product = null): array|JsonResponse
+    {
+        $items = collect($validated['bundle_items'] ?? [])
+            ->map(fn ($i) => ['product_id' => (int) $i['product_id'], 'quantity' => (int) $i['quantity']])
+            ->unique('product_id')->values();
+        unset($validated['bundle_items']);
+
+        if (! $request->boolean('is_bundle')) {
+            return [];
+        }
+        if ($items->isEmpty()) {
+            return response()->json(['message' => '세트 상품은 구성품을 1개 이상 등록해야 합니다.'], 422);
+        }
+        if ($product && $items->contains('product_id', $product->id)) {
+            return response()->json(['message' => '세트에 자기 자신을 포함할 수 없습니다.'], 422);
+        }
+        $nested = Product::whereIn('id', $items->pluck('product_id'))->where('is_bundle', true)->pluck('name');
+        if ($nested->isNotEmpty()) {
+            return response()->json(['message' => '세트 안에 다른 세트를 포함할 수 없습니다: '.$nested->implode(', ')], 422);
+        }
+
+        return $items->all();
+    }
+
+    /** 세트 구성품 동기화 (세트가 아니면 전체 제거) */
+    private function syncBundleItems(Product $product, array $items): void
+    {
+        if (! $product->is_bundle) {
+            return;
+        }
+        DB::transaction(function () use ($product, $items) {
+            $product->bundleItems()->delete();
+            foreach (array_values($items) as $i => $item) {
+                ProductBundleItem::create([
+                    'bundle_product_id' => $product->id,
+                    'component_product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'sort_order' => $i,
+                ]);
+            }
+        });
+    }
+
     public function destroyProduct(Product $product)
     {
+        // 세트에 묶인 구성품은 삭제 차단 — 어떤 세트인지 안내
+        $bundleNames = Product::whereIn('id', $product->bundledIn()->pluck('bundle_product_id'))->pluck('name');
+        if ($bundleNames->isNotEmpty()) {
+            return response()->json([
+                'message' => "세트 상품에 포함된 제품이라 삭제할 수 없습니다.\n포함된 세트: ".$bundleNames->implode(', ')."\n세트에서 구성품을 먼저 제거해주세요.",
+            ], 422);
+        }
+
+        $product->bundleItems()->delete(); // 세트 삭제 시 구성 정의도 정리
         $product->delete();
 
         return response()->json(['message' => '삭제되었습니다.']);
@@ -418,6 +504,17 @@ class InventoryController extends Controller
             'ids.*' => 'integer|exists:products,id',
         ]);
 
+        // 함께 삭제되지 않는 세트에 묶인 구성품이 있으면 차단
+        $blocked = ProductBundleItem::whereIn('component_product_id', $validated['ids'])
+            ->whereNotIn('bundle_product_id', $validated['ids'])
+            ->with('bundle:id,name', 'component:id,name')->get();
+        if ($blocked->isNotEmpty()) {
+            $detail = $blocked->map(fn ($b) => ($b->component?->name ?? '?')." ← 세트 '".($b->bundle?->name ?? '?')."'")->unique()->implode("\n");
+
+            return response()->json(['message' => "세트 상품에 포함된 제품이 있어 삭제할 수 없습니다.\n{$detail}"], 422);
+        }
+
+        ProductBundleItem::whereIn('bundle_product_id', $validated['ids'])->delete();
         $count = Product::whereIn('id', $validated['ids'])->delete();
 
         return response()->json([
@@ -558,7 +655,16 @@ class InventoryController extends Controller
             'quantity' => 'required|integer|min:1',
             'project_id' => 'nullable|exists:projects,id',
             'memo' => 'nullable|string|max:500',
+            'force' => 'nullable|boolean', // 구성품 재고 부족 경고 확인 후 진행
         ]);
+        $force = (bool) ($validated['force'] ?? false);
+        unset($validated['force']);
+
+        // 세트 상품 — 구성품 재고를 함께 소진/복원 (출고·반품만 허용)
+        $product = Product::with('bundleItems.component.inventory')->findOrFail($validated['product_id']);
+        if ($product->is_bundle) {
+            return $this->storeBundleMovement($product, $validated, $force);
+        }
 
         return DB::transaction(function () use ($validated) {
             $inventory = Inventory::firstOrCreate(
@@ -590,6 +696,78 @@ class InventoryController extends Controller
 
             return response()->json($movement->load('product', 'user'), 201);
         });
+    }
+
+    /**
+     * 세트 상품 입출고 — 구성품 각각에 출고/반품 이력을 생성해 재고를 동기화.
+     * 부족 시 force 없이는 409 + shortages 목록으로 응답 (프론트에서 확인 후 재요청).
+     */
+    private function storeBundleMovement(Product $bundle, array $validated, bool $force): JsonResponse
+    {
+        if (! in_array($validated['movement_type'], ['out', 'return'], true)) {
+            return response()->json(['message' => '세트 상품은 출고/반품만 등록할 수 있습니다. 입고·조정은 구성품에서 관리해주세요.'], 422);
+        }
+        if ($bundle->bundleItems->isEmpty()) {
+            return response()->json(['message' => '구성품이 등록되지 않은 세트입니다. 제품 수정에서 구성품을 먼저 등록해주세요.'], 422);
+        }
+
+        $setQty = (int) $validated['quantity'];
+        $isOut = $validated['movement_type'] === 'out';
+
+        // 출고 시 부족 구성품 사전 점검 (경고 후 진행 허용 — force)
+        if ($isOut && ! $force) {
+            $shortages = $bundle->bundleItems->map(function ($item) use ($setQty) {
+                $need = $item->quantity * $setQty;
+                $have = (int) ($item->component?->inventory?->quantity ?? 0);
+
+                return $have < $need ? [
+                    'name' => $item->component?->name ?? '삭제된 제품',
+                    'need' => $need,
+                    'have' => $have,
+                ] : null;
+            })->filter()->values();
+
+            if ($shortages->isNotEmpty()) {
+                return response()->json([
+                    'message' => '구성품 재고가 부족합니다.',
+                    'shortages' => $shortages,
+                ], 409);
+            }
+        }
+
+        $movements = DB::transaction(function () use ($bundle, $validated, $setQty, $isOut) {
+            $label = sprintf("세트 '%s' ×%d %s", $bundle->name, $setQty, $isOut ? '출고' : '반품');
+            $userMemo = trim((string) ($validated['memo'] ?? ''));
+            $rows = [];
+
+            foreach ($bundle->bundleItems as $item) {
+                $inventory = Inventory::firstOrCreate(
+                    ['product_id' => $item->component_product_id],
+                    ['quantity' => 0, 'last_updated_at' => now()]
+                );
+                $qty = $item->quantity * $setQty;
+                $newQty = $inventory->quantity + ($isOut ? -$qty : $qty);
+
+                $rows[] = StockMovement::create([
+                    'product_id' => $item->component_product_id,
+                    'movement_type' => $validated['movement_type'],
+                    'quantity' => $qty,
+                    'quantity_after' => $newQty,
+                    'project_id' => $validated['project_id'] ?? null,
+                    'memo' => $userMemo !== '' ? "{$label} — {$userMemo}" : $label,
+                    'user_id' => Auth::id(),
+                ]);
+                $inventory->update(['quantity' => $newQty, 'last_updated_at' => now()]);
+            }
+
+            return $rows;
+        });
+
+        return response()->json([
+            'ok' => true,
+            'bundle' => $bundle->name,
+            'movements' => collect($movements)->map(fn ($m) => $m->load('product'))->values(),
+        ], 201);
     }
 
     // === 헬퍼 ===
