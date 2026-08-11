@@ -1032,6 +1032,7 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         const tab = btn.dataset.tab;
         document.querySelectorAll('#adminTabBar .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+        localStorage.setItem('adminLastTab', tab); // 새로고침 후 마지막 탭 복원용
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
         if (tab === 'assignees') loadAssigneesAdmin();
@@ -1041,6 +1042,13 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         }
     });
 });
+// 마지막 본 탭 복원 (기본: 로그인 기록)
+(function () {
+    const last = localStorage.getItem('adminLastTab');
+    if (last && last !== 'logs') {
+        document.querySelector('#adminTabBar .tab-btn[data-tab="' + last + '"]')?.click();
+    }
+})();
 
 // 프로젝트 설정 탭 내부 서브탭 전환 (legacy, projectFields 내부 — 호환용)
 function switchProjectSubTab(sub) {

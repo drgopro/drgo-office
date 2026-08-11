@@ -425,6 +425,7 @@ function switchTab(name, skipHash) {
     });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
     if (!skipHash) history.replaceState(null, '', '#'+name);
+    localStorage.setItem('invLastTab', name); // 새로고침 후 마지막 탭 복원용
     ({stock:loadStock,products:loadProducts,movements:loadMovements,orders:loadOrders,categories:loadCategories})[name]();
 }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -1313,7 +1314,10 @@ async function receiveOrder(id){
 // 초기
 const validTabs = ['stock','products','movements','orders','categories'];
 
-const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stock';
+// 우선순위: URL 해시 > 마지막 본 탭(localStorage) > 재고 현황
+const savedTab = localStorage.getItem('invLastTab');
+const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1)
+    : (validTabs.includes(savedTab) ? savedTab : 'stock');
 fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); renderStockCatChips(); });
 document.getElementById('prodPerPage').value = String(prodPerPage);
 document.getElementById('stockPerPage').value = String(stockPerPage);

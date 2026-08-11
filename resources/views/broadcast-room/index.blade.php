@@ -202,6 +202,7 @@ let allContracts = [], allUsages = [];
 function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    localStorage.setItem('brLastTab', tab); // 새로고침 후 마지막 탭 복원용
 }
 
 async function loadContracts() {
@@ -398,5 +399,7 @@ async function deleteUsage() {
 
 loadContracts();
 loadUsages();
+// 마지막 본 탭 복원
+if (localStorage.getItem('brLastTab') === 'usages') switchTab('usages');
 </script>
 @endpush
