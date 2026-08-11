@@ -53,7 +53,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 // 무통장입금 SMS 포워딩 웹훅 — 폰 앱에서 호출 (세션 인증 대신 시크릿 토큰, CSRF 제외)
-Route::post('/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
+// GET은 연결 테스트용 (?token=... 으로 브라우저에서 URL/토큰 확인)
+Route::match(['get', 'post'], '/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
 
 // 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요)
 // POST도 허용: 페이앱이 결제 후 returnurl로 POST 리다이렉트함 (405 방지)
@@ -562,6 +563,16 @@ Route::middleware('auth')->group(function () {
 
             return response(
                 file_exists($path) ? file_get_contents($path) : '아직 채널톡 발송 기록이 없습니다.',
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8']
+            );
+        });
+        // 입금 SMS 웹훅 수신 로그 열람 (포워딩 연동 진단용)
+        Route::get('/admin/deposit-log', function () {
+            $path = storage_path('logs/deposit.log');
+
+            return response(
+                file_exists($path) ? file_get_contents($path) : '아직 입금 웹훅 수신 기록이 없습니다. 폰에서 요청이 서버까지 도착하지 않았다는 뜻입니다.',
                 200,
                 ['Content-Type' => 'text/plain; charset=UTF-8']
             );

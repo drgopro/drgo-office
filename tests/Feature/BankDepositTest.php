@@ -87,6 +87,36 @@ class BankDepositTest extends TestCase
         $this->assertSame(1, BankDeposit::count());
     }
 
+    public function test_ingest_accepts_header_name_variants(): void
+    {
+        // 포워딩 앱에서 헤더 이름을 X-Deposits-Token(복수형) 등으로 잘못 입력해도 인증
+        $this->postJson('/api/bank-deposits/ingest', ['text' => self::KB_SMS], ['X-Deposits-Token' => 'test-secret'])
+            ->assertCreated();
+        $this->assertSame(1, BankDeposit::count());
+    }
+
+    public function test_ingest_accepts_alternative_body_keys_and_raw_fallback(): void
+    {
+        // message 키
+        $this->postJson('/api/bank-deposits/ingest', ['message' => self::KB_SMS], ['X-Deposit-Token' => 'test-secret'])
+            ->assertCreated();
+        // 알 수 없는 키 → 가장 긴 문자열 값 폴백
+        $this->postJson('/api/bank-deposits/ingest', ['from' => '15881688', 'smsBody' => '다른입금 999,000원 08/06 10:00 박영희'], ['X-Deposit-Token' => 'test-secret'])
+            ->assertCreated();
+        $this->assertSame(2, BankDeposit::count());
+    }
+
+    public function test_ingest_get_is_connection_test_only(): void
+    {
+        $this->getJson('/api/bank-deposits/ingest?token=test-secret')
+            ->assertOk()
+            ->assertJsonPath('token_valid', true);
+        $this->getJson('/api/bank-deposits/ingest?token=wrong')
+            ->assertOk()
+            ->assertJsonPath('token_valid', false);
+        $this->assertSame(0, BankDeposit::count());
+    }
+
     // === 목록 조회 ===
 
     private function seedDeposits(): void
