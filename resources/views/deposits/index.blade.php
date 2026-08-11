@@ -23,6 +23,7 @@
     .data-table td { padding:11px 12px; font-size:13px; border-bottom:1px solid var(--border); }
     .data-table tr:last-child td { border-bottom:none; }
     .text-right { text-align:right; }
+    .text-center { text-align:center !important; }
     .text-muted { color:var(--text-muted); font-size:12px; }
     .empty-row { text-align:center; color:var(--text-muted); padding:32px 0; font-size:13px; }
     .amt { font-weight:700; white-space:nowrap; }
@@ -90,8 +91,8 @@
                 <th class="sel-col"><input type="checkbox" id="depSelAll" onchange="toggleDepSelAll(this.checked)"></th>
                 <th style="width:150px;">입금 시간</th>
                 <th style="width:110px;">은행</th>
+                <th class="text-center" style="width:150px;">입금 금액</th>
                 <th>입금자명</th>
-                <th class="text-right" style="width:130px;">입금 금액</th>
             </tr></thead>
             <tbody id="depBody"><tr><td colspan="5" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
@@ -180,8 +181,8 @@ async function loadDeposits() {
         <td class="sel-col"><input type="checkbox" class="dep-sel" ${depSel.has(d.id)?'checked':''} onchange="toggleDepSel(${d.id}, this.checked)"></td>
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
+        <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
         <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
-        <td class="text-right amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
