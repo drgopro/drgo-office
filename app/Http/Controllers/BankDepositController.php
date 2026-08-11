@@ -194,4 +194,17 @@ class BankDepositController extends Controller
             'total_amount' => (int) $totalAmount, // 필터 조건 전체 합계 (페이지 무관)
         ]);
     }
+
+    /** 선택 삭제 — 입금 내역 페이지 접근 권한(deposits.view)과 동일 라우트 그룹에서 보호 */
+    public function destroyMany(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:500',
+            'ids.*' => 'integer|exists:bank_deposits,id',
+        ]);
+
+        $deleted = BankDeposit::whereIn('id', $validated['ids'])->delete();
+
+        return response()->json(['ok' => true, 'deleted' => $deleted]);
+    }
 }

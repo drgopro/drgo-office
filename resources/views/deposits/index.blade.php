@@ -25,8 +25,11 @@
     .text-right { text-align:right; }
     .text-muted { color:var(--text-muted); font-size:12px; }
     .empty-row { text-align:center; color:var(--text-muted); padding:32px 0; font-size:13px; }
-    .amt { font-weight:700; }
-    .raw-toggle { cursor:help; }
+    .amt { font-weight:700; white-space:nowrap; }
+    .sel-col { width:36px; text-align:center !important; }
+    .sel-col input, .mob-sel { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+    .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .btn-del:hover { background:var(--red); color:#fff; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
     .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
@@ -75,12 +78,20 @@
         </select>
     </div>
 
-    <div class="sum-line" id="depSummary"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+        <div class="sum-line" id="depSummary" style="margin-bottom:0;"></div>
+        <button class="btn-del" id="depDelBtn" style="display:none;" onclick="depDeleteSelected()">선택 삭제 (<span id="depDelCount">0</span>)</button>
+    </div>
 
     <div class="data-card">
         <table class="data-table">
-            <thead><tr><th>입금 시간</th><th>입금자명</th><th class="text-right">입금 금액</th><th>원문</th></tr></thead>
-            <tbody id="depBody"><tr><td colspan="5" class="empty-row">로딩 중...</td></tr></tbody>
+            <thead><tr>
+                <th class="sel-col"><input type="checkbox" id="depSelAll" onchange="toggleDepSelAll(this.checked)"></th>
+                <th style="width:150px;">입금 시간</th>
+                <th>입금자명</th>
+                <th class="text-right" style="width:130px;">입금 금액</th>
+            </tr></thead>
+            <tbody id="depBody"><tr><td colspan="4" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
     </div>
     <div class="mob-cards" id="depCards"></div>
@@ -154,25 +165,71 @@ async function loadDeposits() {
 
     const tb = document.getElementById('depBody');
     const cards = document.getElementById('depCards');
+    depSel.clear();
+    depPageIds = data.map(d => d.id);
+    updateDepSelUI();
     if (!data.length) {
         tb.innerHTML = '<tr><td colspan="4" class="empty-row">입금 내역이 없습니다.</td></tr>';
         cards.innerHTML = '<div class="empty-row">입금 내역이 없습니다.</div>';
         return;
     }
-    tb.innerHTML = data.map(d => `<tr>
+    // 행 전체에 원문 툴팁 (원문 컬럼 대신 마우스오버로 확인)
+    tb.innerHTML = data.map(d => `<tr title="${_esc(d.raw_text)}">
+        <td class="sel-col"><input type="checkbox" class="dep-sel" ${depSel.has(d.id)?'checked':''} onchange="toggleDepSel(${d.id}, this.checked)"></td>
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
         <td class="text-right amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-        <td class="text-muted raw-toggle" title="${_esc(d.raw_text)}">원문 보기</td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="mob-card-title">${_esc(d.depositor_name)||'(파싱 실패)'}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+                <input type="checkbox" class="mob-sel" ${depSel.has(d.id)?'checked':''} onchange="toggleDepSel(${d.id}, this.checked)">
+                <div class="mob-card-title">${_esc(d.depositor_name)||'(파싱 실패)'}</div>
+            </div>
             <div class="amt">${d.amount!=null ? fmt(d.amount)+'원' : '-'}</div>
         </div>
         <div class="mob-card-sub">${fmtDt(d.received_at)}</div>
-        <div class="mob-card-sub" style="word-break:break-all;">${_esc(d.raw_text)}</div>
     </div>`).join('');
+}
+
+// === 선택 삭제 ===
+const DEP_CSRF = '{{ csrf_token() }}';
+const depSel = new Set();
+let depPageIds = [];
+
+function toggleDepSel(id, on) {
+    on ? depSel.add(id) : depSel.delete(id);
+    updateDepSelUI();
+}
+
+function toggleDepSelAll(on) {
+    depPageIds.forEach(id => on ? depSel.add(id) : depSel.delete(id));
+    document.querySelectorAll('.dep-sel, .mob-sel').forEach(cb => { cb.checked = on; });
+    updateDepSelUI();
+}
+
+function updateDepSelUI() {
+    const btn = document.getElementById('depDelBtn');
+    btn.style.display = depSel.size ? '' : 'none';
+    document.getElementById('depDelCount').textContent = depSel.size;
+    const all = document.getElementById('depSelAll');
+    all.checked = depPageIds.length > 0 && depPageIds.every(id => depSel.has(id));
+}
+
+async function depDeleteSelected() {
+    if (!depSel.size) return;
+    if (!confirm(`선택한 입금 내역 ${depSel.size}건을 삭제하시겠습니까?\n삭제 후에는 되돌릴 수 없습니다.`)) return;
+    const res = await fetch('/api/bank-deposits', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': DEP_CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ ids: [...depSel] }),
+    });
+    if (!res.ok) {
+        alert('삭제에 실패했습니다. 새로고침 후 다시 시도해주세요.');
+        return;
+    }
+    depSel.clear();
+    loadDeposits();
 }
 
 document.getElementById('depPerPage').value = String(depPerPage);

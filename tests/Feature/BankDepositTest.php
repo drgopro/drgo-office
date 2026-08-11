@@ -157,6 +157,31 @@ class BankDepositTest extends TestCase
         $byAmount->assertOk()->assertJsonPath('total', 1);
     }
 
+    // === 선택 삭제 ===
+
+    public function test_destroy_many_deletes_selected(): void
+    {
+        $this->seedDeposits();
+        $user = User::factory()->create(['role' => 'master']);
+        $ids = BankDeposit::orderBy('id')->limit(2)->pluck('id')->all();
+
+        $this->actingAs($user)->deleteJson('/api/bank-deposits', ['ids' => $ids])
+            ->assertOk()
+            ->assertJsonPath('deleted', 2);
+        $this->assertSame(1, BankDeposit::count());
+    }
+
+    public function test_destroy_many_requires_permission(): void
+    {
+        $this->seedDeposits();
+        $memberNoPerm = User::factory()->create(['role' => 'member']);
+
+        $this->actingAs($memberNoPerm)
+            ->deleteJson('/api/bank-deposits', ['ids' => [BankDeposit::first()->id]])
+            ->assertForbidden();
+        $this->assertSame(3, BankDeposit::count());
+    }
+
     // === 권한 ===
 
     public function test_page_requires_deposits_view_permission(): void

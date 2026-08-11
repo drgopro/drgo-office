@@ -447,6 +447,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:deposits.view')->group(function () {
         Route::get('/deposits', [BankDepositController::class, 'index'])->name('deposits');
         Route::get('/api/bank-deposits', [BankDepositController::class, 'list']);
+        Route::delete('/api/bank-deposits', [BankDepositController::class, 'destroyMany']);
     });
 
     // 관리자 (master, admin만)
