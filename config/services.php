@@ -68,7 +68,7 @@ return [
     // 예: MARKET_PRICE_PROXY=http://user:pass@1.2.3.4:8888 / PROXY_VENDORS는 쉼표 구분(빈 값이면 전체)
     'market_price' => [
         'proxy' => env('MARKET_PRICE_PROXY'),
-        'proxy_vendors' => env('MARKET_PRICE_PROXY_VENDORS', ''),
+        'proxy_vendors' => env('MARKET_PRICE_PROXY_VENDORS', 'pcfactory'),
     ],
 
     // 셀프호스팅 delivery-tracker (배송 추적)
