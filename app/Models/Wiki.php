@@ -66,4 +66,18 @@ class Wiki extends Model
     {
         return $this->hasMany(WikiComment::class)->orderBy('created_at');
     }
+
+    /**
+     * 목록으로 돌아갈 때 이 문서의 분류가 선택되도록 하는 쿼리 파라미터.
+     *
+     * @return array{type?: string, cat?: int|string}
+     */
+    public function listFilterParams(): array
+    {
+        if ($this->type !== 'normal') {
+            return ['type' => $this->type];
+        }
+
+        return ['cat' => $this->category_id ?: 'uncat'];
+    }
 }

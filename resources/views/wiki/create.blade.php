@@ -75,8 +75,15 @@
 @endpush
 
 @section('content')
+@php
+    // 목록 복귀 링크 — 진입 시 보고 있던 분류(카테고리/특수유형) 유지
+    $wikiBackParams = array_filter([
+        'type' => array_key_exists(request('type', ''), \App\Models\Wiki::SPECIAL_TYPES) ? request('type') : null,
+        'cat' => ctype_digit((string) request('cat')) ? (int) request('cat') : null,
+    ]);
+@endphp
 <div class="wiki-wrap">
-    <a href="{{ route('wiki.index') }}" class="wiki-back">← 위키 목록</a>
+    <a href="{{ route('wiki.index', $wikiBackParams) }}" class="wiki-back">← 위키 목록</a>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 20px;">
         <h1 style="font-size:20px;font-weight:700;margin:0;">새 문서 작성</h1>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -180,7 +187,7 @@
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
-        <a href="{{ route('wiki.index') }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;">취소</a>
+        <a href="{{ route('wiki.index', $wikiBackParams) }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;">취소</a>
         <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
     </div>
 </div>

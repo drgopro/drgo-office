@@ -266,13 +266,14 @@ class WikiController extends Controller
         if (in_array($wiki->type, Wiki::ADMIN_ONLY_TYPES, true)) {
             abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 삭제할 수 있습니다.');
         }
+        $listFilter = $wiki->listFilterParams(); // 삭제 후에도 보던 분류가 선택된 목록으로 복귀
         $wiki->delete();
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true]);
         }
 
-        return redirect()->route('wiki.index')->with('success', '문서가 삭제되었습니다.');
+        return redirect()->route('wiki.index', $listFilter)->with('success', '문서가 삭제되었습니다.');
     }
 
     /** 댓글 작성 — 회의록(meeting) 유형 게시물에만 허용. 대댓글(1뎁스) + @멘션 알림 지원 */
