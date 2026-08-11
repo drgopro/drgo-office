@@ -69,6 +69,7 @@ class BankDepositController extends Controller
                 'received_at' => $parsed['received_at'],
                 'amount' => $parsed['amount'],
                 'depositor_name' => $parsed['depositor_name'],
+                'bank' => $parsed['bank'],
                 'balance_after' => $parsed['balance_after'],
                 'raw_text' => $text,
                 'source' => 'sms',

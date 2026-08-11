@@ -30,6 +30,7 @@
     .sel-col input, .mob-sel { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
     .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; }
     .btn-del:hover { background:var(--red); color:#fff; }
+    .bank-badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
     .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
@@ -88,10 +89,11 @@
             <thead><tr>
                 <th class="sel-col"><input type="checkbox" id="depSelAll" onchange="toggleDepSelAll(this.checked)"></th>
                 <th style="width:150px;">입금 시간</th>
+                <th style="width:110px;">은행</th>
                 <th>입금자명</th>
                 <th class="text-right" style="width:130px;">입금 금액</th>
             </tr></thead>
-            <tbody id="depBody"><tr><td colspan="4" class="empty-row">로딩 중...</td></tr></tbody>
+            <tbody id="depBody"><tr><td colspan="5" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
     </div>
     <div class="mob-cards" id="depCards"></div>
@@ -169,7 +171,7 @@ async function loadDeposits() {
     depPageIds = data.map(d => d.id);
     updateDepSelUI();
     if (!data.length) {
-        tb.innerHTML = '<tr><td colspan="4" class="empty-row">입금 내역이 없습니다.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="5" class="empty-row">입금 내역이 없습니다.</td></tr>';
         cards.innerHTML = '<div class="empty-row">입금 내역이 없습니다.</div>';
         return;
     }
@@ -177,6 +179,7 @@ async function loadDeposits() {
     tb.innerHTML = data.map(d => `<tr title="${_esc(d.raw_text)}">
         <td class="sel-col"><input type="checkbox" class="dep-sel" ${depSel.has(d.id)?'checked':''} onchange="toggleDepSel(${d.id}, this.checked)"></td>
         <td class="text-muted">${fmtDt(d.received_at)}</td>
+        <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
         <td class="text-right amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
     </tr>`).join('');
@@ -188,7 +191,7 @@ async function loadDeposits() {
             </div>
             <div class="amt">${d.amount!=null ? fmt(d.amount)+'원' : '-'}</div>
         </div>
-        <div class="mob-card-sub">${fmtDt(d.received_at)}</div>
+        <div class="mob-card-sub">${fmtDt(d.received_at)}${d.bank ? ' · '+_esc(d.bank) : ''}</div>
     </div>`).join('');
 }
 

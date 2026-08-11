@@ -17,8 +17,24 @@ class DepositSmsParser
     /** 이름 후보에서 제외할 키워드 */
     private const STOP_WORDS = ['KB', 'kb', '국민', '국민은행', '스타뱅킹', '입금', '출금', '잔액', '원', '전자금융'];
 
+    /** 은행 인식 패턴 (먼저 매칭되는 것 우선 — 구체적인 이름을 앞에) */
+    private const BANK_PATTERNS = [
+        '카카오뱅크' => ['카카오뱅크', '카뱅'],
+        '토스뱅크' => ['토스뱅크', '토스'],
+        '케이뱅크' => ['케이뱅크'],
+        '국민은행' => ['KB', '국민'],
+        '신한은행' => ['신한'],
+        '우리은행' => ['우리은행'],
+        '하나은행' => ['하나은행', '하나銀'],
+        '농협' => ['NH', '농협'],
+        '기업은행' => ['IBK', '기업은행'],
+        '새마을금고' => ['새마을'],
+        '우체국' => ['우체국'],
+        'SC제일은행' => ['SC제일'],
+    ];
+
     /**
-     * @return array{received_at:Carbon, amount:?int, depositor_name:?string, balance_after:?int}
+     * @return array{received_at:Carbon, amount:?int, depositor_name:?string, balance_after:?int, bank:?string}
      */
     public function parse(string $text): array
     {
@@ -27,7 +43,22 @@ class DepositSmsParser
             'amount' => $this->parseAmount($text),
             'depositor_name' => $this->parseName($text),
             'balance_after' => $this->parseBalance($text),
+            'bank' => $this->parseBank($text),
         ];
+    }
+
+    /** 문자 원문에서 은행명 인식 (미인식 시 null) */
+    public function parseBank(string $text): ?string
+    {
+        foreach (self::BANK_PATTERNS as $bank => $needles) {
+            foreach ($needles as $needle) {
+                if (str_contains($text, $needle)) {
+                    return $bank;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function parseDateTime(string $text): ?Carbon

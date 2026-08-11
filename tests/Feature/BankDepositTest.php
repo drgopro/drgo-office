@@ -71,10 +71,23 @@ class BankDepositTest extends TestCase
         $deposit = BankDeposit::first();
         $this->assertSame(104000, $deposit->amount);
         $this->assertSame('김지수', $deposit->depositor_name);
+        $this->assertSame('국민은행', $deposit->bank);
         $this->assertSame(8, $deposit->received_at->month);
         $this->assertSame(11, $deposit->received_at->day);
         $this->assertSame('14:20', $deposit->received_at->format('H:i'));
         $this->assertNull($deposit->balance_after);
+    }
+
+    public function test_ingest_detects_various_banks(): void
+    {
+        $this->ingest('신한 08/11 10:00 입금 50,000원 박영희')->assertCreated();
+        $this->assertSame('신한은행', BankDeposit::latest('id')->first()->bank);
+
+        $this->ingest('카카오뱅크 김민수님이 입금 30,000원')->assertCreated();
+        $this->assertSame('카카오뱅크', BankDeposit::latest('id')->first()->bank);
+
+        $this->ingest('어디서온지모를 입금 10,000원')->assertCreated();
+        $this->assertNull(BankDeposit::latest('id')->first()->bank);
     }
 
     public function test_ingest_keeps_raw_when_parse_fails(): void

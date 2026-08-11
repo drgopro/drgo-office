@@ -10,6 +10,7 @@ class BankDeposit extends Model
         'received_at',
         'amount',
         'depositor_name',
+        'bank',
         'balance_after',
         'raw_text',
         'source',
