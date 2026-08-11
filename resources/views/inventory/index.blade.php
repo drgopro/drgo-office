@@ -144,7 +144,7 @@
     .mob-card-actions button { flex:1; padding:8px 0; font-size:12.5px; }
     [data-theme="light"] .mob-card { border-color:#c8ccd4; }
     @media (max-width: 768px) {
-        #panel-stock .data-card, #panel-products .data-card { display:none; }
+        #panel-products .data-card { display:none; }
         .mob-cards { display:block; }
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
@@ -169,42 +169,19 @@
     </div>
 
     <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('stock')">재고 현황</button>
-        <button class="tab-btn" onclick="switchTab('products')">제품 관리</button>
+        <button class="tab-btn active" onclick="switchTab('products')">제품 관리</button>
         <button class="tab-btn" onclick="switchTab('movements')">입출고 내역</button>
         <button class="tab-btn" onclick="switchTab('orders')">발주 관리</button>
         <button class="tab-btn" onclick="switchTab('categories')">카테고리</button>
     </div>
 
-    <!-- 재고 현황 -->
-    <div class="tab-panel active" id="panel-stock">
-        <div class="toolbar">
-            <input type="text" id="stockSearch" placeholder="제품명/SKU 검색" oninput="stockPage=1;loadStock()">
-            <select id="stockPerPage" onchange="setStockPerPage(this.value)" title="페이지당 표시 개수">
-                <option value="10">10개씩</option>
-                <option value="20">20개씩</option>
-                <option value="50">50개씩</option>
-                <option value="100">100개씩</option>
-            </select>
-            <label style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:4px; cursor:pointer;">
-                <input type="checkbox" id="lowStockOnly" onchange="stockPage=1;loadStock()" style="accent-color:var(--accent);"> 부족 재고만
-            </label>
-        </div>
-        <div id="stockCatChips" style="margin-bottom:12px;"></div>
-        <div class="data-card">
-            <table class="data-table">
-                <thead><tr><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">현재 수량</th><th class="text-right">안전재고</th><th>상태</th></tr></thead>
-                <tbody id="stockBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
-            </table>
-        </div>
-        <div class="mob-cards" id="stockCards"></div>
-        <div class="pager" id="stockPager"></div>
-    </div>
-
-    <!-- 제품 관리 -->
-    <div class="tab-panel" id="panel-products">
+    <!-- 제품 관리 (재고 현황 통합) -->
+    <div class="tab-panel active" id="panel-products">
         <div class="toolbar">
             <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="prodPage=1;loadProducts()">
+            <label style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
+                <input type="checkbox" id="lowStockOnly" onchange="prodPage=1;loadProducts()" style="accent-color:var(--accent);"> ⚠ 부족 재고만
+            </label>
             <select id="prodPerPage" onchange="setProdPerPage(this.value)" title="페이지당 표시 개수">
                 <option value="10">10개씩</option>
                 <option value="20">20개씩</option>
@@ -234,8 +211,8 @@
         </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">마진률</th><th class="text-right">시세</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
-                <tbody id="productBody"><tr><td colspan="11" class="empty-row">로딩 중...</td></tr></tbody>
+                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">마진률</th><th class="text-right">시세</th><th class="text-right">현재고</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
+                <tbody id="productBody"><tr><td colspan="12" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
         <div class="mob-cards" id="productCards"></div>
@@ -420,13 +397,13 @@ function _esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 function switchTab(name, skipHash) {
     document.querySelectorAll('.tab-btn').forEach(b => {
-        const map = {stock:'현황',products:'제품',movements:'입출고',orders:'발주',categories:'카테고리'};
+        const map = {products:'제품',movements:'입출고',orders:'발주',categories:'카테고리'};
         b.classList.toggle('active', b.textContent.includes(map[name]));
     });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
     if (!skipHash) history.replaceState(null, '', '#'+name);
     localStorage.setItem('invLastTab', name); // 새로고침 후 마지막 탭 복원용
-    ({stock:loadStock,products:loadProducts,movements:loadMovements,orders:loadOrders,categories:loadCategories})[name]();
+    ({products:loadProducts,movements:loadMovements,orders:loadOrders,categories:loadCategories})[name]();
 }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -442,7 +419,6 @@ async function loadCategories() {
     catData = await res.json();
     renderCatTree();
     renderProdCatChips(); // 카테고리 추가/삭제가 제품 필터 칩에도 반영되도록
-    renderStockCatChips();
 }
 function renderCatTree() {
     const el = document.getElementById('catTree');
@@ -688,61 +664,7 @@ function onCat3Change() {
     updateSkuPreview();
 }
 
-// === 재고 현황 ===
-let stockPage = 1;
-let stockPerPage = parseInt(localStorage.getItem('invStockPerPage'), 10) || 20;
-
-function setStockPerPage(v) {
-    stockPerPage = parseInt(v, 10) || 20;
-    localStorage.setItem('invStockPerPage', stockPerPage);
-    stockPage = 1;
-    loadStock();
-}
-
-function goStockPage(n) {
-    stockPage = n;
-    loadStock();
-}
-
-async function loadStock() {
-    const search = document.getElementById('stockSearch').value;
-    const low = document.getElementById('lowStockOnly').checked;
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (low) params.set('low_stock', '1');
-    const catId = stockCatFilterId();
-    if (catId) params.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
-    params.set('per_page', stockPerPage);
-    params.set('page', stockPage);
-    const res = await fetch('/api/inventory/stock?'+params);
-    const payload = await res.json();
-    const data = payload.data;
-    // 페이지 범위를 벗어나면 마지막 페이지로 클램프
-    if (!data.length && payload.total > 0 && stockPage > 1) {
-        stockPage = payload.last_page;
-        return loadStock();
-    }
-    renderPagerInto('stockPager', payload, 'goStockPage');
-    const tb = document.getElementById('stockBody');
-    const cards = document.getElementById('stockCards');
-    if (!data.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>';
-        cards.innerHTML = '<div class="empty-row">데이터가 없습니다.</div>';
-        return;
-    }
-    tb.innerHTML = data.map(p => `<tr>
-        <td class="text-muted">${_esc(p.sku)}</td><td>${_esc(p.name)}</td><td class="text-muted">${_esc(p.category)||'-'}</td>
-        <td class="text-right ${p.is_low?'text-warn':''}" style="font-weight:600;">${p.quantity}</td>
-        <td class="text-right text-muted">${p.safety_stock||'-'}</td>
-        <td>${p.is_low?'<span class="badge badge-low">부족</span>':'<span class="badge badge-ok">정상</span>'}</td>
-    </tr>`).join('');
-    // 모바일 카드 (768px 이하에서 표시)
-    cards.innerHTML = data.map(p => `<div class="mob-card">
-        <div class="mob-card-title">${_esc(p.name)}</div>
-        <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}</div>
-        <div class="mob-card-line">수량 <b class="${p.is_low?'text-warn':''}">${p.quantity}</b> · 안전재고 ${p.safety_stock||'-'} ${p.is_low?'<span class="badge badge-low">부족</span>':'<span class="badge badge-ok">정상</span>'}</div>
-    </div>`).join('');
-}
+// (재고 현황 탭은 제품 관리에 통합됨 — 현재고 컬럼 + 부족 재고만 필터)
 
 // === 마진률 경고 ===
 let marginWarnPercent = {{ (int) $marginWarnPercent }};
@@ -900,32 +822,6 @@ function setProdCatPath(depth, id) {
 }
 
 // === 재고 현황 탭 카테고리 필터 ===
-let stockCatPath = [];
-try { stockCatPath = JSON.parse(localStorage.getItem('invStockCatPath')) || []; } catch(_) { stockCatPath = []; }
-
-function saveStockCatPath() {
-    if (stockCatPath.length) localStorage.setItem('invStockCatPath', JSON.stringify(stockCatPath));
-    else localStorage.removeItem('invStockCatPath');
-}
-
-function stockCatFilterId() {
-    return stockCatPath.length ? stockCatPath[stockCatPath.length - 1] : null;
-}
-
-function renderStockCatChips() {
-    renderCatChipsInto('stockCatChips', stockCatPath, 'setStockCatPath');
-    saveStockCatPath();
-}
-
-function setStockCatPath(depth, id) {
-    stockCatPath = stockCatPath.slice(0, depth);
-    if (id) stockCatPath.push(id);
-    saveStockCatPath();
-    stockPage = 1;
-    renderStockCatChips();
-    loadStock();
-}
-
 // === 페이징 ===
 let prodPage = 1;
 let prodPerPage = parseInt(localStorage.getItem('invProdPerPage'), 10) || 20;
@@ -967,9 +863,17 @@ function prodFilterParams() {
     const qs = new URLSearchParams();
     const search = document.getElementById('productSearch').value;
     if (search) qs.set('search', search);
+    if (document.getElementById('lowStockOnly').checked) qs.set('low_stock', '1');
     const catId = prodCatFilterId();
     if (catId) qs.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
     return qs;
+}
+
+// 현재고 셀 — 안전재고 이하이면 경고색 + 부족 뱃지
+function stockCellHtml(p) {
+    const qty = p.inventory ? (p.inventory.quantity ?? 0) : 0;
+    const low = p.safety_stock && qty <= p.safety_stock;
+    return `<b class="${low ? 'text-warn' : ''}">${qty}</b>${low ? ' <span class="badge badge-low">부족</span>' : ''}`;
 }
 
 async function loadProducts() {
@@ -990,7 +894,7 @@ async function loadProducts() {
     if (!allProducts.length) {
         const filtered = document.getElementById('productSearch').value || prodCatFilterId();
         const msg = filtered ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.';
-        tb.innerHTML = `<tr><td colspan="11" class="empty-row">${msg}</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="12" class="empty-row">${msg}</td></tr>`;
         cards.innerHTML = `<div class="empty-row">${msg}</div>`;
         clearProdSelection();
         return;
@@ -1007,6 +911,7 @@ async function loadProducts() {
         <td class="text-right">${fmt(p.sale_price)}</td>
         <td class="text-right">${marginCellHtml(p)}</td>
         <td class="text-right">${marketPriceCellHtml(p)}</td>
+        <td class="text-right">${stockCellHtml(p)}</td>
         <td class="text-right">${p.safety_stock||'-'}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td class="action-cell">
@@ -1025,6 +930,7 @@ async function loadProducts() {
             </div>
         </div>
         <div class="mob-card-line">매입 ${fmt(p.purchase_price)} → 판매 ${fmt(p.sale_price)} · ${marginCellHtml(p)}</div>
+        <div class="mob-card-line">재고 ${stockCellHtml(p)} · 안전재고 ${p.safety_stock||'-'}</div>
         <div class="mob-card-line">시세 ${marketPriceCellHtml(p)}</div>
         <div class="mob-card-actions">
             <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${_esc(p.name.replace(/'/g,"\\'"))} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋 로그</button>
@@ -1312,15 +1218,17 @@ async function receiveOrder(id){
 }
 
 // 초기
-const validTabs = ['stock','products','movements','orders','categories'];
+const validTabs = ['products','movements','orders','categories'];
 
-// 우선순위: URL 해시 > 마지막 본 탭(localStorage) > 재고 현황
-const savedTab = localStorage.getItem('invLastTab');
-const initTab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1)
-    : (validTabs.includes(savedTab) ? savedTab : 'stock');
-fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); renderStockCatChips(); });
+// 우선순위: URL 해시 > 마지막 본 탭(localStorage) > 제품 관리
+// 'stock'은 제품 관리로 통합됨 — 예전 해시/저장값은 products로 매핑
+const normTab = t => t === 'stock' ? 'products' : t;
+const savedTab = normTab(localStorage.getItem('invLastTab'));
+const hashTab = normTab(location.hash.slice(1));
+const initTab = validTabs.includes(hashTab) ? hashTab
+    : (validTabs.includes(savedTab) ? savedTab : 'products');
+fetch('/api/inventory/categories').then(r=>r.json()).then(d=>{ catData=d; renderProdCatChips(); });
 document.getElementById('prodPerPage').value = String(prodPerPage);
-document.getElementById('stockPerPage').value = String(stockPerPage);
 switchTab(initTab);
 </script>
 @endpush

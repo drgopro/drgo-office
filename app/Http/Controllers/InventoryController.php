@@ -221,6 +221,13 @@ class InventoryController extends Controller
             $query->whereIn('category_id', $ids);
         }
 
+        // 부족 재고만 (안전재고 이하) — 재고 현황 탭 통합으로 제품 관리에서 사용
+        if ($request->query('low_stock')) {
+            $query->whereHas('inventory', function ($q) {
+                $q->whereRaw('quantity <= (SELECT safety_stock FROM products WHERE products.id = inventories.product_id)');
+            });
+        }
+
         // per_page가 있으면 페이지네이션 응답 (없으면 기존처럼 전체 배열 — 견적서 등 기존 호출부 호환)
         if ($perPage = (int) $request->query('per_page')) {
             $page = $query->orderBy('sku')->paginate(min(max($perPage, 1), 200));

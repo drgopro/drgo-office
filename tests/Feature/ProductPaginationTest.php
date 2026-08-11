@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -30,6 +31,22 @@ class ProductPaginationTest extends TestCase
         }
 
         return $cat;
+    }
+
+    public function test_low_stock_filter_returns_only_low_products(): void
+    {
+        $cat = $this->seedProducts(3);
+        $user = User::factory()->create(['role' => 'master']);
+
+        // 1번 제품만 안전재고 이하 (재고 2 ≤ 안전재고 5), 2번은 여유, 3번은 안전재고 미설정
+        Product::where('sku', 'PART-001')->update(['safety_stock' => 5]);
+        Product::where('sku', 'PART-002')->update(['safety_stock' => 5]);
+        Inventory::create(['product_id' => Product::where('sku', 'PART-001')->first()->id, 'quantity' => 2]);
+        Inventory::create(['product_id' => Product::where('sku', 'PART-002')->first()->id, 'quantity' => 100]);
+
+        $res = $this->actingAs($user)->getJson('/api/inventory/products?per_page=20&low_stock=1');
+        $res->assertOk()->assertJsonPath('total', 1);
+        $this->assertSame('PART-001', $res->json('data.0.sku'));
     }
 
     public function test_per_page_returns_paginated_response(): void
