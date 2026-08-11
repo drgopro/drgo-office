@@ -79,7 +79,7 @@
 
     <div class="data-card">
         <table class="data-table">
-            <thead><tr><th>입금 시간</th><th>입금자명</th><th class="text-right">입금 금액</th><th class="text-right">잔액</th><th>원문</th></tr></thead>
+            <thead><tr><th>입금 시간</th><th>입금자명</th><th class="text-right">입금 금액</th><th>원문</th></tr></thead>
             <tbody id="depBody"><tr><td colspan="5" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
     </div>
@@ -155,7 +155,7 @@ async function loadDeposits() {
     const tb = document.getElementById('depBody');
     const cards = document.getElementById('depCards');
     if (!data.length) {
-        tb.innerHTML = '<tr><td colspan="5" class="empty-row">입금 내역이 없습니다.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="4" class="empty-row">입금 내역이 없습니다.</td></tr>';
         cards.innerHTML = '<div class="empty-row">입금 내역이 없습니다.</div>';
         return;
     }
@@ -163,7 +163,6 @@ async function loadDeposits() {
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
         <td class="text-right amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-        <td class="text-right text-muted">${d.balance_after!=null ? fmt(d.balance_after) : '-'}</td>
         <td class="text-muted raw-toggle" title="${_esc(d.raw_text)}">원문 보기</td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
@@ -171,7 +170,7 @@ async function loadDeposits() {
             <div class="mob-card-title">${_esc(d.depositor_name)||'(파싱 실패)'}</div>
             <div class="amt">${d.amount!=null ? fmt(d.amount)+'원' : '-'}</div>
         </div>
-        <div class="mob-card-sub">${fmtDt(d.received_at)}${d.balance_after!=null ? ' · 잔액 '+fmt(d.balance_after) : ''}</div>
+        <div class="mob-card-sub">${fmtDt(d.received_at)}</div>
         <div class="mob-card-sub" style="word-break:break-all;">${_esc(d.raw_text)}</div>
     </div>`).join('');
 }
