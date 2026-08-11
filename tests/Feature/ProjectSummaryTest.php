@@ -46,6 +46,46 @@ class ProjectSummaryTest extends TestCase
         $this->assertStringContainsString('2026-07-10', (string) $res->json('last_paid_at'));
     }
 
+    public function test_deleted_payment_does_not_resurrect_via_payment_info(): void
+    {
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '세팅 문의', 'stage' => 'consulting']);
+        $admin = $this->admin();
+
+        // 결제 기록 (payment_info + charge 트랜잭션 동시 생성)
+        $this->actingAs($admin)->postJson("/api/projects/{$project->id}/payment", [
+            'amount' => 1254900, 'paid_at' => '2026-07-08',
+        ])->assertSuccessful();
+        $payment = ProjectPayment::where('project_id', $project->id)->first();
+        $this->assertNotNull($payment);
+        $this->assertSame(1254900, (int) $project->fresh()->payment_info['amount']);
+
+        // 결제 삭제 → payment_info도 정리되어 요약에 유령 결제가 남지 않아야 함
+        $this->actingAs($admin)->deleteJson("/api/projects/{$project->id}/payments/{$payment->id}")
+            ->assertOk();
+        $this->assertNull($project->fresh()->payment_info);
+
+        $this->actingAs($admin)->getJson("/api/projects/{$project->id}/summary")
+            ->assertOk()
+            ->assertJsonPath('payments_count', 0)
+            ->assertJsonPath('paid_total', 0);
+    }
+
+    public function test_legacy_payment_info_fallback_still_works(): void
+    {
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        // 트랜잭션 도입 이전 형태 — recorded_at 없이 payment_info만 존재
+        $project = Project::create([
+            'client_id' => $client->id, 'name' => '구버전 프로젝트', 'stage' => 'payment',
+            'payment_info' => ['amount' => 300000, 'paid_at' => '2025-12-01'],
+        ]);
+
+        $this->actingAs($this->admin())->getJson("/api/projects/{$project->id}/summary")
+            ->assertOk()
+            ->assertJsonPath('payments_count', 1)
+            ->assertJsonPath('paid_total', 300000);
+    }
+
     public function test_summary_without_payments(): void
     {
         $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);

@@ -894,6 +894,12 @@ class ProjectController extends Controller
             ProjectBilling::find($billingId)?->refreshStatus(); // 입금 삭제 시 청구 잔금 재계산
         }
 
+        // 마지막 결제 삭제 시 payment_info(프리필 JSON)도 정리 — 남겨두면 요약의
+        // 구버전 폴백이 삭제된 결제를 '결제 1건'으로 되살려 보여준다 (유령 결제 버그)
+        if (! ProjectPayment::where('project_id', $project->id)->where('type', 'charge')->exists()) {
+            $project->update(['payment_info' => null]);
+        }
+
         return response()->json(['ok' => true]);
     }
 
