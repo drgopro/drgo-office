@@ -571,11 +571,19 @@ Route::middleware('auth')->group(function () {
         // 입금 SMS 웹훅 수신 로그 열람 (포워딩 연동 진단용)
         Route::get('/admin/deposit-log', function () {
             $path = storage_path('logs/deposit.log');
+            $body = file_exists($path) ? file_get_contents($path) : '아직 입금 웹훅 수신 기록이 없습니다. 폰에서 요청이 서버까지 도착하지 않았다는 뜻입니다.';
+
+            // 최신 기록이 위로 오도록 역순 정렬 + 캐시 금지 (새로고침 시 항상 최신)
+            $blocks = array_reverse(array_filter(explode("\n\n", trim($body))));
 
             return response(
-                file_exists($path) ? file_get_contents($path) : '아직 입금 웹훅 수신 기록이 없습니다. 폰에서 요청이 서버까지 도착하지 않았다는 뜻입니다.',
+                "(최신 기록이 맨 위)\n\n".implode("\n\n", $blocks),
                 200,
-                ['Content-Type' => 'text/plain; charset=UTF-8']
+                [
+                    'Content-Type' => 'text/plain; charset=UTF-8',
+                    'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                    'Pragma' => 'no-cache',
+                ]
             );
         });
         // 페이앱 송수신 로그 열람 (결제 연동 진단용)
