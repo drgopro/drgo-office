@@ -95,8 +95,10 @@
     @media (max-width:560px) { .todo-lrow-assignee, .todo-lrow .todo-team-label { display:none; } }
 
     /* ── 칸반 보드 ── */
-    .todo-board { display:flex; gap:14px; align-items:flex-start; overflow-x:auto; padding-bottom:14px; }
-    .todo-col { flex:0 0 280px; background:var(--surface); border:1px solid var(--border); border-radius:14px; min-height:120px; }
+    /* 보드 높이를 화면에 맞춰 고정(JS) — 가로 스크롤바가 페이지 최하단이 아니라 항상 화면 하단에 보이도록 */
+    .todo-board { display:flex; gap:14px; align-items:flex-start; overflow-x:auto; padding-bottom:6px; }
+    .todo-col { flex:0 0 280px; background:var(--surface); border:1px solid var(--border); border-radius:14px; min-height:120px; display:flex; flex-direction:column; max-height:100%; }
+    .todo-col-body { overflow-y:auto; }
     .todo-col.drag-over { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 5%, var(--surface)); }
     .todo-col.ghost { border-style:dashed; opacity:0.85; }
     .todo-col.ghost .todo-empty { padding:18px 10px; }
@@ -200,8 +202,9 @@
 
     @media (max-width:768px) {
         .todo-wrap { padding:16px 12px; }
-        .todo-board { flex-direction:column; }
-        .todo-col { flex:none; width:100%; }
+        .todo-board { flex-direction:column; max-height:none !important; }
+        .todo-col { flex:none; width:100%; max-height:none; }
+        .todo-col-body { overflow-y:visible; }
     }
 </style>
 @endpush
@@ -442,7 +445,18 @@ function renderBoard() {
     } else {
         board.innerHTML = boardHtml(todos);
     }
+    fitBoardHeight();
 }
+
+// 보드 높이를 화면 하단에 맞춤 — 컬럼은 내부 스크롤, 가로 스크롤바는 항상 화면 하단에 보임
+function fitBoardHeight() {
+    const board = document.getElementById('todoBoard');
+    if (!board) return;
+    if (TODO_VIEW !== 'board' || window.innerWidth <= 768) { board.style.maxHeight = ''; return; }
+    const top = board.getBoundingClientRect().top;
+    board.style.maxHeight = Math.max(240, window.innerHeight - top - 12) + 'px';
+}
+window.addEventListener('resize', fitBoardHeight);
 
 // 필터 상태에 따라 표시할 담당자 컬럼 제한 (null = 전체)
 function allowedColumnIds() {
