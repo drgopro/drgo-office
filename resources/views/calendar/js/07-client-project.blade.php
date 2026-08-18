@@ -184,11 +184,28 @@ function applyClientProjects(clientId,data){
     if(isLocked) renderLockSummary(); // 요약 뷰에 프로젝트명 반영
 }
 
+// 연동 의뢰자의 최신 상세 (의뢰자 주소 불러오기 버튼용)
+let linkedClientDetail=null;
+function updateClientAddrBtn(){
+    const b=document.getElementById('btnClientAddr');
+    if(b) b.style.display=(linkedClientDetail&&linkedClientDetail.address)?'':'none';
+}
+function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); }
+// 장소를 연동 의뢰자에 저장된 주소로 채움 (기존 입력 덮어씀 — 버튼을 눌렀다는 것이 의사 표시)
+function applyLinkedClientAddress(){
+    const d=linkedClientDetail;
+    if(!d||!d.address){ alert('연동된 의뢰자에 저장된 주소가 없습니다.'); return; }
+    document.getElementById('modalLocation').value=d.address;
+    document.getElementById('modalAddress').value=d.address;
+    const det=document.getElementById('modalLocationDetail');
+    if(det) det.value=d.address_detail||'';
+}
+
 async function loadClientProjects(clientId){
     const wrap=document.getElementById('projectSelectWrap');
     // 캐시 즉시 표시
     const cached=swrGet('clidet:'+clientId);
-    if(cached) applyClientProjects(clientId,cached);
+    if(cached){ applyClientProjects(clientId,cached); linkedClientDetail=cached; updateClientAddrBtn(); }
     try{
         const res=await fetch(`/api/clients/${clientId}/detail`);
         if(!res.ok){ if(!cached) wrap.style.display='none'; return cached; }
@@ -197,6 +214,8 @@ async function loadClientProjects(clientId){
         // 캐시와 다를 때만 다시 그림 (동일하면 재렌더 생략)
         if(!cached||JSON.stringify(cached.projects||[])!==JSON.stringify(data.projects||[])) applyClientProjects(clientId,data);
         if(!(data.projects||[]).length&&!cached) wrap.style.display='none';
+        // 항상 서버 최신값으로 갱신 — 의뢰자 주소 버튼이 수정 전 주소를 물고 있지 않도록
+        linkedClientDetail=data; updateClientAddrBtn();
         return data;
     }catch(e){ if(!cached) wrap.style.display='none'; return cached; }
 }
@@ -295,6 +314,7 @@ function collectBrRental(){
 }
 function unlinkClient(){
     linkedClientId=null;linkedProjectId=null;
+    resetLinkedClientDetail();
     loadProjectReqItems(null); // 프로젝트 의뢰 내용 표시 해제
     document.getElementById('linkedClientInfo').style.display='none';
     document.getElementById('linkedClientName').textContent=''; // 잔여 텍스트가 저장 시 client_name으로 새는 것 방지

@@ -23,6 +23,7 @@ function resetModalForm(){
     ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalAddress','moveFromLocation','moveFromDetail','moveFromAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 의뢰자/프로젝트/견적서/잠금/잔금
     linkedClientId=null;linkedProjectId=null;
+    resetLinkedClientDetail(); // 의뢰자 주소 버튼 숨김 + 이전 의뢰자 상세 제거
     document.getElementById('linkedClientInfo').style.display='none';
     document.getElementById('linkedClientName').textContent=''; // 이전 일정의 의뢰자명이 다음 일정에 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
