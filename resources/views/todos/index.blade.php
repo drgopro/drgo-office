@@ -130,6 +130,8 @@
     .todo-check.on { background:#2e7d32; border-color:#2e7d32; }
     .todo-check.on svg { opacity:1; stroke:#fff; }
     .todo-card-foot { display:flex; align-items:center; gap:6px; margin-top:8px; }
+    .todo-co-assignees { font-size:11px; color:var(--text-muted); margin:3px 0 0 28px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .todo-co-assignees b { color:var(--text); font-weight:700; }
     .todo-due { font-size:10px; font-weight:700; padding:3px 9px; border-radius:9px; background:var(--surface2); color:var(--text-muted); }
     .todo-due.overdue { background:#fdecea; color:#c0392b; }
     .todo-due.today { background:#fdf1e3; color:#b26a00; }
@@ -442,13 +444,31 @@ function renderBoard() {
     }
 }
 
-function boardHtml(todos) {
-    // 할 일이 있는 인원만 컬럼 생성
+// 필터 상태에 따라 표시할 담당자 컬럼 제한 (null = 전체)
+function allowedColumnIds() {
+    if (document.getElementById('todoMineOnly').checked) { return new Set([TODO_ME]); }
+    if (MFILTER.size) { return new Set(MFILTER); }
+    return null;
+}
+
+// 복수 담당 할 일은 각 담당자의 컬럼/섹션에 모두 표시
+function groupByEachAssignee(todos) {
+    const allowed = allowedColumnIds();
     const byAssignee = new Map();
     todos.forEach(t => {
-        if (!byAssignee.has(t.assignee_id)) { byAssignee.set(t.assignee_id, []); }
-        byAssignee.get(t.assignee_id).push(t);
+        const ids = (t.assignee_ids && t.assignee_ids.length) ? t.assignee_ids : [t.assignee_id];
+        ids.forEach(uid => {
+            if (allowed && !allowed.has(uid)) { return; }
+            if (!byAssignee.has(uid)) { byAssignee.set(uid, []); }
+            byAssignee.get(uid).push(t);
+        });
     });
+    return byAssignee;
+}
+
+function boardHtml(todos) {
+    // 할 일이 있는 인원만 컬럼 생성 — 복수 담당이면 각자의 컬럼에 모두 등장
+    const byAssignee = groupByEachAssignee(todos);
 
     return [...byAssignee.entries()].map(([uid, items]) => {
         const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
@@ -462,7 +482,7 @@ function boardHtml(todos) {
                 ${m.team ? `<span class="todo-col-team">${esc(m.team)}</span>` : ''}
                 <span class="todo-col-count">${openCount}</span>
             </div>
-            <div class="todo-col-body">${items.map(cardHtml).join('')}</div>
+            <div class="todo-col-body">${items.map(t => cardHtml(t, uid)).join('')}</div>
         </div>`;
     }).join('');
 }
@@ -471,12 +491,8 @@ const PRI_WEIGHT = { high: 0, medium: 1, low: 2 };
 let SELECTED_ID = null;
 
 function listHtml(todos) {
-    // 담당자별 섹션 그룹화
-    const byAssignee = new Map();
-    todos.forEach(t => {
-        if (!byAssignee.has(t.assignee_id)) { byAssignee.set(t.assignee_id, []); }
-        byAssignee.get(t.assignee_id).push(t);
-    });
+    // 담당자별 섹션 그룹화 — 복수 담당이면 각자의 섹션에 모두 등장
+    const byAssignee = groupByEachAssignee(todos);
 
     return [...byAssignee.entries()].map(([uid, items]) => {
         const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
@@ -596,8 +612,15 @@ document.addEventListener('click', e => {
     if (mf && mf.classList.contains('open') && !mf.contains(e.target)) { mf.classList.remove('open'); }
 });
 
-function cardHtml(t) {
+function cardHtml(t, colUid) {
     const priLabel = PRI_LABELS[t.priority] || t.priority;
+    // 복수 담당 — 담당자 전원을 카드에 나열 (현재 컬럼 담당자는 굵게)
+    const names = t.assignee_names || [];
+    const ids = t.assignee_ids || [];
+    const coLine = names.length > 1
+        ? `<div class="todo-co-assignees" title="담당자 ${esc(names.join(', '))}">👥 ${ids.map((id, i) =>
+            id === colUid ? `<b>${esc(names[i] || '')}</b>` : esc(names[i] || '')).join(' · ')}</div>`
+        : '';
     return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
         ondragstart="startCardDrag(event, ${t.id})"
         ondragend="endCardDrag(this)"
@@ -612,10 +635,10 @@ function cardHtml(t) {
             </button>
             <div class="todo-card-title">${esc(t.title)}</div>
         </div>
+        ${coLine}
         <div class="todo-card-foot">
             ${dueChip(t)}
             ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
-            ${(t.assignee_names || []).length > 1 ? `<span class="todo-due" title="${esc(t.assignee_names.join(', '))}">👥 +${t.assignee_names.length - 1}</span>` : ''}
             ${t.completed ? `<span class="todo-due">완료 ${t.completed_at}</span>` : ''}
         </div>
     </div>`;
@@ -684,7 +707,9 @@ async function dropTodo(ev, assigneeId) {
     const todo = TODOS.find(t => t.id === id);
     if (!todo) { return; }
 
-    const changed = todo.assignee_id !== assigneeId;
+    // 이미 담당자(대표든 공동이든)인 컬럼으로의 드롭은 순서 변경으로만 처리 —
+    // 복수 담당 카드가 여러 컬럼에 표시되므로, 자기 컬럼 내 정렬이 대표 변경으로 번지지 않게 함
+    const changed = !(todo.assignee_ids || [todo.assignee_id]).includes(assigneeId);
     if (changed && !IS_ADMIN) { return; } // 담당자 변경은 관리자 이상 (순서 변경은 누구나)
 
     if (changed) {
