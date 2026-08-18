@@ -44,6 +44,8 @@ class Project extends Model
         'is_payment_only',
         'assigned_user_id',
         'overview',
+        'address',
+        'address_detail',
         'visit_report',
         'as_deadline',
         'completed_at',

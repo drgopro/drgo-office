@@ -190,7 +190,35 @@ function updateClientAddrBtn(){
     const b=document.getElementById('btnClientAddr');
     if(b) b.style.display=(linkedClientDetail&&linkedClientDetail.address)?'':'none';
 }
-function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); }
+function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); }
+
+// 현재 선택된 프로젝트의 상세 (의뢰자 상세의 projects 배열에서 조회)
+function selectedProjectData(){
+    const wrap=document.getElementById('projectSelectWrap');
+    const pid=(wrap&&wrap.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null;
+    if(!pid||!linkedClientDetail) return null;
+    return (linkedClientDetail.projects||[]).find(p=>String(p.id)===String(pid))||null;
+}
+function updateProjAddrBtn(){
+    const b=document.getElementById('btnProjectAddr');
+    if(b){ const p=selectedProjectData(); b.style.display=(p&&p.address)?'':'none'; }
+}
+// 장소를 선택한 프로젝트의 세팅 장소로 채움 (버튼 클릭 = 덮어쓰기 의사 표시)
+function applyLinkedProjectAddress(){
+    const p=selectedProjectData();
+    if(!p||!p.address){ alert('선택한 프로젝트에 저장된 세팅 장소가 없습니다.\n프로젝트 상세의 세팅 장소에서 등록할 수 있습니다.'); return; }
+    document.getElementById('modalLocation').value=p.address;
+    document.getElementById('modalAddress').value=p.address;
+    const det=document.getElementById('modalLocationDetail');
+    if(det) det.value=p.address_detail||'';
+}
+// 프로젝트 선택 시 — 장소가 비어 있으면 프로젝트 세팅 장소로 자동 채움 (입력된 값은 덮지 않음)
+function autoFillProjectAddress(){
+    updateProjAddrBtn();
+    const p=selectedProjectData();
+    const loc=document.getElementById('modalLocation');
+    if(p&&p.address&&loc&&!loc.value.trim()) applyLinkedProjectAddress();
+}
 // 장소를 연동 의뢰자에 저장된 주소로 채움 (기존 입력 덮어씀 — 버튼을 눌렀다는 것이 의사 표시)
 function applyLinkedClientAddress(){
     const d=linkedClientDetail;
@@ -205,7 +233,7 @@ async function loadClientProjects(clientId){
     const wrap=document.getElementById('projectSelectWrap');
     // 캐시 즉시 표시
     const cached=swrGet('clidet:'+clientId);
-    if(cached){ applyClientProjects(clientId,cached); linkedClientDetail=cached; updateClientAddrBtn(); }
+    if(cached){ applyClientProjects(clientId,cached); linkedClientDetail=cached; updateClientAddrBtn(); updateProjAddrBtn(); }
     try{
         const res=await fetch(`/api/clients/${clientId}/detail`);
         if(!res.ok){ if(!cached) wrap.style.display='none'; return cached; }
@@ -215,7 +243,7 @@ async function loadClientProjects(clientId){
         if(!cached||JSON.stringify(cached.projects||[])!==JSON.stringify(data.projects||[])) applyClientProjects(clientId,data);
         if(!(data.projects||[]).length&&!cached) wrap.style.display='none';
         // 항상 서버 최신값으로 갱신 — 의뢰자 주소 버튼이 수정 전 주소를 물고 있지 않도록
-        linkedClientDetail=data; updateClientAddrBtn();
+        linkedClientDetail=data; updateClientAddrBtn(); updateProjAddrBtn();
         return data;
     }catch(e){ if(!cached) wrap.style.display='none'; return cached; }
 }

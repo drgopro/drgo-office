@@ -517,6 +517,27 @@
 
         <div class="info-card">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>세팅 장소 <span style="font-weight:400;font-size:11px;color:var(--text-muted);">— 의뢰자 주소와 별개, 캘린더 연동</span></span>
+                <button onclick="toggleAddrEdit()" id="addrEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
+            </div>
+            <div id="addrDisplay" style="font-size:13px; color:{{ $project->address ? 'var(--text)' : 'var(--text-muted)' }}; padding:4px 0;">
+                {{ $project->address ? $project->address.($project->address_detail ? ', '.$project->address_detail : '') : '세팅 장소가 지정되지 않았습니다.' }}
+            </div>
+            <div id="addrEdit" style="display:none;">
+                <div style="display:flex; gap:6px;">
+                    <input id="pjAddr" value="{{ $project->address }}" readonly placeholder="주소 검색 버튼으로 입력" onclick="searchProjectAddress()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;cursor:pointer;">
+                    <button onclick="searchProjectAddress()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 12px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;">🔍 검색</button>
+                </div>
+                <input id="pjAddrDetail" value="{{ $project->address_detail }}" placeholder="상세주소 (동/호수 등)" style="width:100%;margin-top:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;">
+                <div style="text-align:right;margin-top:8px;display:flex;gap:6px;justify-content:flex-end;">
+                    <button onclick="clearProjectAddress()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 12px;border-radius:7px;font-size:12px;cursor:pointer;">비우기</button>
+                    <button onclick="saveProjectAddress()" style="background:var(--accent);color:var(--accent-text);border:none;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>프로젝트 개요</span>
                 <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
             </div>
@@ -1546,6 +1567,51 @@ async function saveTags() {
     } catch (e) { alert('태그 저장 실패'); }
 }
 // 프로젝트 메모 인라인 수정
+// ── 세팅 장소 (프로젝트 주소) ──
+function toggleAddrEdit() {
+    const display = document.getElementById('addrDisplay');
+    const edit = document.getElementById('addrEdit');
+    const on = edit.style.display === 'none';
+    display.style.display = on ? 'none' : '';
+    edit.style.display = on ? 'block' : 'none';
+    document.getElementById('addrEditBtn').textContent = on ? '닫기' : '수정';
+}
+function searchProjectAddress() {
+    const open = () => new daum.Postcode({
+        oncomplete: function (data) {
+            document.getElementById('pjAddr').value = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+            document.getElementById('pjAddrDetail').focus();
+        },
+    }).open();
+    if (typeof daum === 'undefined' || !daum.Postcode) {
+        const script = document.createElement('script');
+        script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        script.onload = open;
+        document.head.appendChild(script);
+    } else { open(); }
+}
+function clearProjectAddress() {
+    document.getElementById('pjAddr').value = '';
+    document.getElementById('pjAddrDetail').value = '';
+}
+async function saveProjectAddress() {
+    const addr = document.getElementById('pjAddr').value.trim() || null;
+    const detail = document.getElementById('pjAddrDetail').value.trim() || null;
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/projects/{{ $project->id }}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            body: JSON.stringify({ address: addr, address_detail: addr ? detail : null }),
+        });
+        if (!res.ok) { alert('세팅 장소 저장에 실패했습니다.'); return; }
+        const display = document.getElementById('addrDisplay');
+        display.textContent = addr ? addr + (detail ? ', ' + detail : '') : '세팅 장소가 지정되지 않았습니다.';
+        display.style.color = addr ? 'var(--text)' : 'var(--text-muted)';
+        toggleAddrEdit();
+    } catch (e) { alert('네트워크 오류로 저장하지 못했습니다.'); }
+}
+
 function toggleMemoEdit() {
     const display = document.getElementById('memoDisplay');
     const edit = document.getElementById('memoEdit');

@@ -91,6 +91,7 @@
                             <button type="button" class="addr-search-btn" onclick="searchCalAddr()" title="주소 검색">🔍 주소 검색</button>
                             <button type="button" class="addr-search-btn" onclick="clearCalAddr()" title="주소 지우기">✕ 지우기</button>
                             <button type="button" class="addr-search-btn" id="btnClientAddr" style="display:none;" onclick="applyLinkedClientAddress()" title="연동된 의뢰자에 저장된 주소로 채우기">👤 의뢰자 주소</button>
+                            <button type="button" class="addr-search-btn" id="btnProjectAddr" style="display:none;" onclick="applyLinkedProjectAddress()" title="선택한 프로젝트의 세팅 장소로 채우기">📁 프로젝트 주소</button>
                             <span style="font-size:11px;color:var(--text-muted);">도로명은 검색으로만, 상세주소는 아래 직접 입력</span>
                         </div>
                         <input class="field-input" id="modalLocationDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">

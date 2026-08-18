@@ -296,6 +296,7 @@ function initAllRadioGroups(){
 document.getElementById('projectSelect')?.addEventListener('change',()=>{
     syncProjectPaymentFields();
     loadProjectReqItems(document.getElementById('projectSelect')?.value||null); // 선택한 프로젝트의 의뢰 내용 표시
+    autoFillProjectAddress(); // 장소 비어 있으면 프로젝트 세팅 장소 자동 채움 + 📁 버튼 토글
 });
 
 // ── 2a 리디자인: gold/teal 폼을 섹션 카드로 그룹핑 (section-heading·divider 경계 기준) ──

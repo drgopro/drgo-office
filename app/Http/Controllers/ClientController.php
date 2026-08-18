@@ -217,6 +217,8 @@ class ClientController extends Controller
                 'stage' => $p->stage,
                 'stage_label' => $p->stageLabel(),
                 'tags' => $p->tags ?? ['major' => [], 'minor' => []],
+                'address' => $p->address, // 세팅 장소 — 캘린더 장소 연동용
+                'address_detail' => $p->address_detail,
                 'created_at' => $p->created_at->format('Y.m.d'),
                 'consultations_count' => $p->consultations->count(),
             ]),

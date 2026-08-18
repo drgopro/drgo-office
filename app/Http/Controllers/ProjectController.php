@@ -245,6 +245,8 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:200',
             'overview' => 'nullable|string',
+            'address' => 'sometimes|nullable|string|max:300', // 세팅 장소 (의뢰자 주소와 별개)
+            'address_detail' => 'sometimes|nullable|string|max:200',
             'memo' => 'nullable|string', // 하위 호환
             'project_type' => 'sometimes|string|max:50|exists:consultation_types,key',
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
