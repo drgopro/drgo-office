@@ -69,6 +69,30 @@ class ProductStockEditTest extends TestCase
         $this->assertSame(4, $product->inventory->fresh()->quantity);
     }
 
+    public function test_movements_can_be_searched_by_product_name_or_sku(): void
+    {
+        foreach ([['PT-101', '케이블'], ['PT-102', '마이크']] as [$sku, $name]) {
+            $p = Product::create([
+                'sku' => $sku, 'name' => $name, 'category' => '부품', 'category_id' => $this->cat->id,
+                'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+                'is_active' => true, 'show_in_estimate' => false,
+            ]);
+            Inventory::create(['product_id' => $p->id, 'quantity' => 0, 'last_updated_at' => now()]);
+            $this->actingAs($this->master)->postJson('/api/inventory/movements', [
+                'product_id' => $p->id, 'movement_type' => 'in', 'quantity' => 3,
+            ])->assertCreated();
+        }
+
+        $byName = $this->actingAs($this->master)->getJson('/api/inventory/movements?search='.urlencode('케이블'));
+        $byName->assertOk();
+        $this->assertCount(1, $byName->json());
+        $this->assertSame('케이블', $byName->json('0.product.name'));
+
+        $bySku = $this->actingAs($this->master)->getJson('/api/inventory/movements?search=PT-102');
+        $bySku->assertOk();
+        $this->assertCount(1, $bySku->json());
+    }
+
     public function test_bundle_ignores_stock_quantity(): void
     {
         $component = Product::create([

@@ -674,6 +674,16 @@ class InventoryController extends Controller
             $query->where('product_id', $productId);
         }
 
+        // 제품명/SKU 검색 (삭제된 제품 포함 — 이력 보존)
+        if ($search = trim((string) $request->query('search', ''))) {
+            $query->whereHas('product', function ($q) use ($search) {
+                $q->withTrashed()->where(function ($w) use ($search) {
+                    $w->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%");
+                });
+            });
+        }
+
         return response()->json($query->limit(100)->get());
     }
 

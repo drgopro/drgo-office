@@ -226,6 +226,7 @@
     <!-- 입출고 내역 -->
     <div class="tab-panel" id="panel-movements">
         <div class="toolbar">
+            <input type="text" id="movementSearch" placeholder="제품명/SKU 검색" oninput="loadMovements()">
             <select id="movementType" onchange="loadMovements()">
                 <option value="">전체 유형</option>
                 <option value="in">입고</option><option value="out">출고</option><option value="adjust">조정</option><option value="return">반품</option>
@@ -368,7 +369,10 @@
             <div class="modal-title">입출고 등록</div>
             <button class="modal-close" onclick="closeModal('movementModal')">×</button>
         </div>
-        <div class="field-group"><div class="field-label">제품 *</div><select class="field-select" id="mProduct" onchange="onMovementProductChange()"></select></div>
+        <div class="field-group"><div class="field-label">제품 *</div>
+            <input class="field-input" id="mProductSearch" placeholder="제품명/SKU로 검색해서 좁히기" oninput="filterMovProductOptions()" style="margin-bottom:6px;">
+            <select class="field-select" id="mProduct" onchange="onMovementProductChange()"></select>
+        </div>
         <div class="field-row">
             <div class="field-group"><div class="field-label">유형 *</div>
                 <select class="field-select" id="mType" onchange="onMovementTypeChange()"><option value="in">입고</option><option value="out">출고(대여)</option><option value="adjust">재고 조정</option><option value="return">반품(반납)</option></select>
@@ -1259,8 +1263,12 @@ async function deleteProduct(id) {
 
 // === 입출고 ===
 async function loadMovements() {
+    const qs = new URLSearchParams();
     const type = document.getElementById('movementType').value;
-    const params = type ? '?type='+type : '';
+    const search = document.getElementById('movementSearch').value.trim();
+    if (type) qs.set('type', type);
+    if (search) qs.set('search', search);
+    const params = qs.toString() ? '?'+qs.toString() : '';
     const res = await fetch('/api/inventory/movements'+params);
     const data = await res.json();
     const tb = document.getElementById('movementBody');
@@ -1278,12 +1286,27 @@ async function loadMovements() {
 }
 let MOV_PRODUCTS = []; // 입출고 모달 제품 목록 (세트 여부 판단용)
 
+// 검색어로 제품 드롭다운 옵션을 좁힘 — 선택값이 목록에서 사라지면 첫 번째 매치로 이동
+function filterMovProductOptions() {
+    const q = document.getElementById('mProductSearch').value.trim().toLowerCase();
+    const sel = document.getElementById('mProduct');
+    const prev = sel.value;
+    const matches = !q ? MOV_PRODUCTS : MOV_PRODUCTS.filter(p =>
+        (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
+    sel.innerHTML = matches.length
+        ? matches.map(p=>`<option value="${p.id}">${p.is_bundle?'[세트] ':''}${_esc(p.name)} (${_esc(p.sku)})</option>`).join('')
+        : '<option value="">검색 결과 없음</option>';
+    if (matches.some(p => String(p.id) === prev)) sel.value = prev;
+    onMovementProductChange();
+}
+
 async function openMovementModal() {
     // allProducts는 현재 페이지만 담고 있으므로 모달용 전체 목록은 별도 조회
     const r = await fetch('/api/inventory/products');
     MOV_PRODUCTS = await r.json();
     if (!allProjects.length) { const pr = await fetch('/api/inventory/projects'); allProjects = await pr.json(); }
-    document.getElementById('mProduct').innerHTML = MOV_PRODUCTS.map(p=>`<option value="${p.id}">${p.is_bundle?'[세트] ':''}${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
+    document.getElementById('mProductSearch').value = '';
+    filterMovProductOptions();
     document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('');
     document.getElementById('mType').value='in'; document.getElementById('mQty').value=1; document.getElementById('mMemo').value='';
     document.getElementById('mProject').value='';
@@ -1305,6 +1328,7 @@ function onMovementTypeChange() {
 }
 async function saveMovement(force) {
     const projectId = document.getElementById('mProject').value;
+    if (!+document.getElementById('mProduct').value) { return alert('제품을 선택해주세요.'); }
     const body = {
         product_id:+document.getElementById('mProduct').value,
         movement_type:document.getElementById('mType').value,
