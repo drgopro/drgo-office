@@ -256,6 +256,7 @@ class InventoryController extends Controller
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
+            'stock_quantity' => 'nullable|integer|min:0', // 등록 시 초기 재고 (세트 제외)
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
@@ -263,6 +264,8 @@ class InventoryController extends Controller
             'bundle_items.*.product_id' => 'required|integer|exists:products,id',
             'bundle_items.*.quantity' => 'required|integer|min:1|max:999',
         ]);
+        $stockQuantity = $validated['stock_quantity'] ?? null;
+        unset($validated['stock_quantity']);
         $marketUrls = $this->pullMarketUrls($validated);
         $bundleItems = $this->pullBundleItems($request, $validated);
         if ($bundleItems instanceof JsonResponse) {
@@ -292,9 +295,19 @@ class InventoryController extends Controller
             if (! $product->is_bundle) {
                 Inventory::create([
                     'product_id' => $product->id,
-                    'quantity' => 0,
+                    'quantity' => (int) ($stockQuantity ?? 0),
                     'last_updated_at' => now(),
                 ]);
+                if ((int) ($stockQuantity ?? 0) > 0) {
+                    StockMovement::create([
+                        'product_id' => $product->id,
+                        'movement_type' => 'in',
+                        'quantity' => (int) $stockQuantity,
+                        'quantity_after' => (int) $stockQuantity,
+                        'user_id' => Auth::id(),
+                        'memo' => '제품 등록 초기 재고',
+                    ]);
+                }
             }
 
             $this->syncBundleItems($product, $bundleItems);
@@ -324,6 +337,7 @@ class InventoryController extends Controller
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
+            'stock_quantity' => 'nullable|integer|min:0', // 재고 직접 수정 — 다르면 조정(adjust) 이력 기록 (세트 제외)
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
@@ -331,6 +345,8 @@ class InventoryController extends Controller
             'bundle_items.*.product_id' => 'required|integer|exists:products,id',
             'bundle_items.*.quantity' => 'required|integer|min:1|max:999',
         ]);
+        $stockQuantity = $validated['stock_quantity'] ?? null;
+        unset($validated['stock_quantity']);
         $marketUrls = $this->pullMarketUrls($validated);
         $bundleItems = $this->pullBundleItems($request, $validated, $product);
         if ($bundleItems instanceof JsonResponse) {
@@ -365,6 +381,10 @@ class InventoryController extends Controller
 
             $validated['category'] = $cat->name;
             $product->update($validated);
+
+            if ($stockQuantity !== null && ! $product->is_bundle) {
+                $this->adjustStockTo($product, (int) $stockQuantity, '제품 수정에서 재고 조정');
+            }
 
             $this->syncBundleItems($product, $bundleItems);
             $this->syncMarketPriceUrls($product, $marketUrls);
@@ -408,6 +428,29 @@ class InventoryController extends Controller
         }
 
         return response()->json($fresh);
+    }
+
+    /** 재고를 목표 수량으로 조정 — 기존 수량과 다르면 adjust 이력을 남기고 갱신 (입출고 내역과 일관) */
+    private function adjustStockTo(Product $product, int $target, string $memo): void
+    {
+        DB::transaction(function () use ($product, $target, $memo) {
+            $inventory = Inventory::firstOrCreate(
+                ['product_id' => $product->id],
+                ['quantity' => 0, 'last_updated_at' => now()]
+            );
+            if ($inventory->quantity === $target) {
+                return;
+            }
+            StockMovement::create([
+                'product_id' => $product->id,
+                'movement_type' => 'adjust',
+                'quantity' => abs($target - $inventory->quantity),
+                'quantity_after' => $target,
+                'user_id' => Auth::id(),
+                'memo' => $memo,
+            ]);
+            $inventory->update(['quantity' => $target, 'last_updated_at' => now()]);
+        });
     }
 
     /**

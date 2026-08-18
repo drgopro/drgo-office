@@ -1,0 +1,90 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Inventory;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\StockMovement;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/** 제품 등록/수정 모달에서 재고 직접 수정 — 조정(adjust) 이력 자동 기록 */
+class ProductStockEditTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $master;
+
+    private ProductCategory $cat;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->master = User::factory()->create(['role' => 'master']);
+        $this->cat = ProductCategory::create(['name' => '부품', 'code' => 'PT', 'depth' => 1, 'sort_order' => 1]);
+    }
+
+    public function test_store_with_initial_stock_records_in_movement(): void
+    {
+        $res = $this->actingAs($this->master)->postJson('/api/inventory/products', [
+            'name' => '케이블', 'category_id' => $this->cat->id, 'stock_quantity' => 7,
+        ]);
+
+        $res->assertCreated();
+        $product = Product::find($res->json('id'));
+        $this->assertSame(7, $product->inventory->quantity);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id, 'movement_type' => 'in', 'quantity' => 7, 'quantity_after' => 7,
+        ]);
+    }
+
+    public function test_update_stock_records_adjust_movement(): void
+    {
+        $product = Product::create([
+            'sku' => 'PT-001', 'name' => '케이블', 'category' => '부품', 'category_id' => $this->cat->id,
+            'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        Inventory::create(['product_id' => $product->id, 'quantity' => 10, 'last_updated_at' => now()]);
+
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$product->id}", [
+            'name' => '케이블', 'category_id' => $this->cat->id, 'stock_quantity' => 4,
+        ])->assertOk();
+
+        $this->assertSame(4, $product->inventory->fresh()->quantity);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id, 'movement_type' => 'adjust', 'quantity' => 6, 'quantity_after' => 4,
+        ]);
+
+        // 같은 수량으로 저장하면 이력 없음 / null(미입력)이면 변경 없음
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$product->id}", [
+            'name' => '케이블', 'category_id' => $this->cat->id, 'stock_quantity' => 4,
+        ])->assertOk();
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$product->id}", [
+            'name' => '케이블', 'category_id' => $this->cat->id,
+        ])->assertOk();
+        $this->assertSame(1, StockMovement::where('product_id', $product->id)->count());
+        $this->assertSame(4, $product->inventory->fresh()->quantity);
+    }
+
+    public function test_bundle_ignores_stock_quantity(): void
+    {
+        $component = Product::create([
+            'sku' => 'PT-002', 'name' => '마이크', 'category' => '부품', 'category_id' => $this->cat->id,
+            'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        Inventory::create(['product_id' => $component->id, 'quantity' => 3, 'last_updated_at' => now()]);
+
+        $res = $this->actingAs($this->master)->postJson('/api/inventory/products', [
+            'name' => '세트', 'category_id' => $this->cat->id, 'is_bundle' => true,
+            'stock_quantity' => 99,
+            'bundle_items' => [['product_id' => $component->id, 'quantity' => 1]],
+        ]);
+
+        $res->assertCreated();
+        $this->assertNull(Product::find($res->json('id'))->inventory, '세트는 재고 입력을 무시');
+    }
+}

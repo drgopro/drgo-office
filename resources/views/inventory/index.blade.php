@@ -332,9 +332,16 @@
             <input class="field-input" id="pMarketUrlPcfactory" placeholder="https://www.pc-factory.co.kr/... 제품 페이지 주소 (선택)">
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">등록한 판매처별 판매가를 매일 새벽 자동 조회해 시세 컬럼에 각각 표시합니다.</div>
         </div>
-        <div class="field-group" id="safetyGroup">
-            <div class="field-label">안전재고 (선택 · 이하 경고)</div>
-            <input class="field-input" id="pSafety" type="number" min="0" placeholder="비워두면 미사용">
+        <div class="field-row" id="safetyGroup">
+            <div class="field-group">
+                <div class="field-label">현재고</div>
+                <input class="field-input" id="pStock" type="number" min="0" placeholder="비워두면 변경 없음">
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">수량을 바꾸면 입출고 내역에 '조정' 이력이 자동 기록됩니다.</div>
+            </div>
+            <div class="field-group">
+                <div class="field-label">안전재고 (선택 · 이하 경고)</div>
+                <input class="field-input" id="pSafety" type="number" min="0" placeholder="비워두면 미사용">
+            </div>
         </div>
         <div class="field-group">
             <div class="field-label">메모</div>
@@ -1127,6 +1134,9 @@ async function openProductModal(p) {
     document.getElementById('pMarketUrlCompuzone').value = mps.find(m=>m.vendor==='compuzone')?.url || '';
     document.getElementById('pMarketUrlPcfactory').value = mps.find(m=>m.vendor==='pcfactory')?.url || '';
     document.getElementById('pSafety').value = p ? (p.safety_stock||'') : '';
+    // 현재고 — 수정 시 현재 수량 표시 (비워두면 변경 없음), 신규는 초기 재고 입력
+    document.getElementById('pStock').value = p ? (p.inventory ? (p.inventory.quantity ?? 0) : '') : '';
+    document.getElementById('pStock').placeholder = p ? '비워두면 변경 없음' : '초기 재고 (비워두면 0)';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
     // 세트 상품 — 기존 제품은 세트 여부 변경 불가 (서버에서도 차단)
@@ -1157,6 +1167,7 @@ const PRODUCT_FIELD_LABELS = {
     market_price_url_compuzone: '시세 URL(컴퓨존)',
     market_price_url_pcfactory: '시세 URL(피씨팩토리)',
     safety_stock: '안전재고',
+    stock_quantity: '현재고',
     memo: '메모',
     show_in_estimate: '견적서 노출',
     sku: 'SKU',
@@ -1186,6 +1197,8 @@ async function saveProduct() {
         market_price_url_compuzone: document.getElementById('pMarketUrlCompuzone').value.trim() || null,
         market_price_url_pcfactory: document.getElementById('pMarketUrlPcfactory').value.trim() || null,
         safety_stock: document.getElementById('pSafety').value || null,
+        stock_quantity: document.getElementById('pIsBundle').checked ? null
+            : (document.getElementById('pStock').value !== '' ? parseInt(document.getElementById('pStock').value, 10) : null),
         memo: document.getElementById('pMemo').value || null,
         show_in_estimate: document.getElementById('pEstimate').checked,
         is_bundle: document.getElementById('pIsBundle').checked,
