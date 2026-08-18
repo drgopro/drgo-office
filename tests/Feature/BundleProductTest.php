@@ -196,11 +196,52 @@ class BundleProductTest extends TestCase
         $bundle = Product::with('bundleItems')->find($bundleId);
         $this->assertSame(2, $bundle->bundleItems->count());
         $this->assertSame(2, $bundle->bundleItems->firstWhere('component_product_id', $mic->id)->quantity);
+    }
 
-        // 세트 여부 자체는 변경 불가
-        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$bundleId}", [
-            'name' => '일반 전환 시도', 'category_id' => $this->cat->id, 'is_bundle' => false,
+    public function test_normal_product_converts_to_bundle_clearing_own_stock(): void
+    {
+        $mic = $this->makeComponent('마이크', 5);
+        $legacy = $this->makeComponent('구형 세트(일반 등록)', 3); // 자체 재고 3 보유
+
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$legacy->id}", [
+            'name' => $legacy->name, 'category_id' => $this->cat->id, 'is_bundle' => true,
+            'bundle_items' => [['product_id' => $mic->id, 'quantity' => 1]],
+        ])->assertOk();
+
+        $legacy = $legacy->fresh()->load('bundleItems.component.inventory');
+        $this->assertTrue($legacy->is_bundle);
+        $this->assertNull($legacy->inventory, '세트 전환 시 자체 inventory 제거');
+        $this->assertSame(5, $legacy->buildableQuantity());
+        // 자체 재고 3 → 0 정리 이력이 남음
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $legacy->id, 'movement_type' => 'adjust', 'quantity_after' => 0,
+        ]);
+    }
+
+    public function test_component_of_bundle_cannot_become_bundle(): void
+    {
+        $mic = $this->makeComponent('마이크', 5);
+        $this->makeBundle([['product_id' => $mic->id, 'quantity' => 1]])->assertCreated();
+
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$mic->id}", [
+            'name' => '마이크', 'category_id' => $this->cat->id, 'is_bundle' => true,
+            'bundle_items' => [['product_id' => $this->makeComponent('붐암', 1)->id, 'quantity' => 1]],
         ])->assertStatus(422);
+    }
+
+    public function test_bundle_converts_back_to_normal_product(): void
+    {
+        $mic = $this->makeComponent('마이크', 5);
+        $bundleId = $this->makeBundle([['product_id' => $mic->id, 'quantity' => 1]])->json('id');
+
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$bundleId}", [
+            'name' => '일반 전환', 'category_id' => $this->cat->id, 'is_bundle' => false,
+        ])->assertOk();
+
+        $product = Product::with('bundleItems', 'inventory')->find($bundleId);
+        $this->assertFalse($product->is_bundle);
+        $this->assertSame(0, $product->bundleItems->count(), '구성품 정의 삭제');
+        $this->assertSame(0, $product->inventory->quantity, '자체 재고 0부터 시작');
     }
 
     public function test_products_api_exposes_bundle_items_for_buildable_calc(): void

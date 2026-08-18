@@ -353,14 +353,19 @@ class InventoryController extends Controller
             return $bundleItems;
         }
 
-        // 일반 제품 → 세트 전환은 재고/입출고 이력이 남아 혼선 방지를 위해 차단 (반대 방향도 동일)
-        if ($product->is_bundle !== $request->boolean('is_bundle')) {
-            return response()->json(['message' => '세트 여부는 등록 후 변경할 수 없습니다. 새 제품으로 등록해주세요.'], 422);
+        // 세트 전환 검증 — 다른 세트의 구성품이면 세트가 될 수 없음 (중첩 방지)
+        $becomingBundle = $request->boolean('is_bundle');
+        if (! $product->is_bundle && $becomingBundle) {
+            $parentNames = Product::whereIn('id', $product->bundledIn()->pluck('bundle_product_id'))->pluck('name');
+            if ($parentNames->isNotEmpty()) {
+                return response()->json(['message' => '다른 세트의 구성품이라 세트로 전환할 수 없습니다.'."\n포함된 세트: ".$parentNames->implode(', ')], 422);
+            }
         }
 
         try {
+            $wasBundle = $product->is_bundle;
             $validated['show_in_estimate'] = $request->boolean('show_in_estimate');
-            unset($validated['is_bundle']);
+            $validated['is_bundle'] = $becomingBundle;
             $cat = ProductCategory::findOrFail($validated['category_id']);
 
             // NOT NULL 컬럼들은 null을 0으로 강제 (제공된 키에 한해서만 — sometimes 검증과 일관)
@@ -381,6 +386,25 @@ class InventoryController extends Controller
 
             $validated['category'] = $cat->name;
             $product->update($validated);
+
+            // 세트 ↔ 일반 전환 시 재고/구성 정리
+            if ($wasBundle !== $product->is_bundle) {
+                if ($product->is_bundle) {
+                    // 일반 → 세트: 자체 재고를 0으로 정리(조정 이력 기록) 후 inventory 제거
+                    if ($product->inventory) {
+                        $this->adjustStockTo($product, 0, "세트 전환 — 자체 재고 정리 ({$product->name})");
+                        $product->inventory()->delete();
+                        $product->unsetRelation('inventory');
+                    }
+                } else {
+                    // 세트 → 일반: 구성품 정의 삭제, 자체 재고 0부터 시작
+                    $product->bundleItems()->delete();
+                    Inventory::firstOrCreate(
+                        ['product_id' => $product->id],
+                        ['quantity' => 0, 'last_updated_at' => now()]
+                    );
+                }
+            }
 
             if ($stockQuantity !== null && ! $product->is_bundle) {
                 $this->adjustStockTo($product, (int) $stockQuantity, '제품 수정에서 재고 조정');
@@ -432,7 +456,8 @@ class InventoryController extends Controller
 
     /**
      * 입출고 내역 삭제 (관리자 이상) — ids 선택 삭제 또는 all=1 전체 비우기.
-     * 이력 기록만 지우며 재고 수량은 변경하지 않는다 (테스트 데이터 정리용).
+     * 삭제 후 영향받은 제품의 재고를 남은 이력으로 재계산한다
+     * (이력이 하나도 없으면 0 — 전체 비우기 시 모든 재고가 0으로 리셋).
      */
     public function destroyMovements(Request $request): JsonResponse
     {
@@ -444,11 +469,54 @@ class InventoryController extends Controller
             'all' => 'nullable|boolean',
         ]);
 
-        $deleted = ! empty($validated['all'])
-            ? StockMovement::query()->delete()
-            : StockMovement::whereIn('id', $validated['ids'])->delete();
+        $all = ! empty($validated['all']);
+        $affectedIds = $all
+            ? StockMovement::distinct()->pluck('product_id')
+            : StockMovement::whereIn('id', $validated['ids'])->distinct()->pluck('product_id');
+
+        $deleted = DB::transaction(function () use ($all, $validated, $affectedIds) {
+            $count = $all
+                ? StockMovement::query()->delete()
+                : StockMovement::whereIn('id', $validated['ids'])->delete();
+
+            foreach ($affectedIds as $productId) {
+                $this->recalculateStockFromMovements((int) $productId);
+            }
+
+            return $count;
+        });
 
         return response()->json(['ok' => true, 'deleted' => $deleted]);
+    }
+
+    /**
+     * 남은 입출고 이력을 시간순으로 재생해 재고 수량을 다시 계산.
+     * in/return은 +, out은 -, adjust는 절대값(quantity_after)으로 확정.
+     */
+    private function recalculateStockFromMovements(int $productId): void
+    {
+        // 세트 상품은 자체 재고 없음 — inventory 행을 만들지 않는다
+        if (Product::withTrashed()->find($productId)?->is_bundle) {
+            return;
+        }
+
+        $qty = 0;
+        StockMovement::where('product_id', $productId)
+            ->orderBy('created_at')->orderBy('id')
+            ->get(['movement_type', 'quantity', 'quantity_after'])
+            ->each(function ($m) use (&$qty) {
+                $qty = match ($m->movement_type) {
+                    'in', 'return' => $qty + $m->quantity,
+                    'out' => $qty - $m->quantity,
+                    'adjust' => (int) $m->quantity_after,
+                    default => $qty,
+                };
+            });
+
+        Inventory::updateOrCreate(
+            ['product_id' => $productId],
+            ['quantity' => $qty, 'last_updated_at' => now()]
+        );
     }
 
     /** 재고를 목표 수량으로 조정 — 기존 수량과 다르면 adjust 이력을 남기고 갱신 (입출고 내역과 일관) */

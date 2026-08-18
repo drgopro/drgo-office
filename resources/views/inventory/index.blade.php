@@ -1150,10 +1150,9 @@ async function openProductModal(p) {
     document.getElementById('pStock').placeholder = p ? '비워두면 변경 없음' : '초기 재고 (비워두면 0)';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
-    // 세트 상품 — 기존 제품은 세트 여부 변경 불가 (서버에서도 차단)
+    // 세트 상품 — 기존 제품도 전환 가능 (저장 시 재고/구성 정리 확인창)
     const bundleCheck = document.getElementById('pIsBundle');
     bundleCheck.checked = p ? !!p.is_bundle : false;
-    bundleCheck.disabled = !!p;
     BUNDLE_ITEMS = (p && p.bundle_items || []).map(i => ({
         product_id: i.component_product_id,
         name: i.component?.name || ('#'+i.component_product_id),
@@ -1219,6 +1218,14 @@ async function saveProduct() {
     };
     if (body.is_bundle && !body.bundle_items.length) {
         return alert('세트 상품은 구성품을 1개 이상 추가해야 합니다.');
+    }
+    // 세트 ↔ 일반 전환 확인 (기존 제품 수정 시)
+    const orig = id ? allProducts.find(x => x.id === +id) : null;
+    if (orig && !!orig.is_bundle !== body.is_bundle) {
+        const msg = body.is_bundle
+            ? '세트 상품으로 전환합니다.\n\n이 제품의 자체 재고는 0으로 정리되고(조정 이력 기록),\n앞으로는 구성품 재고로 관리됩니다. 계속할까요?'
+            : '일반 제품으로 전환합니다.\n\n구성품 구성이 삭제되고 자체 재고(0부터)로 관리됩니다. 계속할까요?';
+        if (!confirm(msg)) return;
     }
     const url = id ? `/api/inventory/products/${id}` : '/api/inventory/products';
     const method = id ? 'PATCH' : 'POST';
@@ -1317,14 +1324,14 @@ function updateMovSelUI() {
 }
 async function deleteSelectedMovements() {
     if (!movSel.size) return;
-    if (!confirm(`선택한 입출고 이력 ${movSel.size}건을 삭제할까요?\n(기록만 지워지고 재고 수량은 변하지 않습니다)`)) return;
+    if (!confirm(`선택한 입출고 이력 ${movSel.size}건을 삭제할까요?\n해당 제품의 재고가 남은 이력 기준으로 다시 계산됩니다.`)) return;
     const res = await fetch('/api/inventory/movements', { method:'DELETE', headers:H, body:JSON.stringify({ ids:[...movSel] }) });
     if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
     movSel.clear();
     loadMovements();
 }
 async function clearAllMovements() {
-    if (!confirm('입출고 이력을 전부 비울까요?\n(기록만 지워지고 재고 수량은 변하지 않습니다. 되돌릴 수 없습니다)')) return;
+    if (!confirm('입출고 이력을 전부 비울까요?\n⚠ 이력이 있던 모든 제품의 재고가 0으로 리셋됩니다. 되돌릴 수 없습니다.')) return;
     const res = await fetch('/api/inventory/movements', { method:'DELETE', headers:H, body:JSON.stringify({ all:true }) });
     if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
     movSel.clear();
