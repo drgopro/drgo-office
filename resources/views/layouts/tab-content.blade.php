@@ -13,6 +13,14 @@ document.documentElement.setAttribute('data-theme', 'light');
 /* tab-content 기본 CSS 변수 */
 :root { --bg:#111111; --surface:#1c1c1c; --surface2:#272727; --surface3:#333; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --accent2:#90bcd4; --accent-text:#1a1207; --red:#d48888; --green:#88d488; --blue:#8ab4c8; --gold:#c8b08a; --teal:#e8894a; --purple:#9b70c8; }
 body { font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; }
+/* 커스텀 스크롤바 — 투명 트랙 + 둥근 썸, 호버 시 진해짐 (탭 iframe 안 페이지 공통) */
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--text-muted) 32%, transparent); border-radius:10px; border:3px solid transparent; background-clip:padding-box; }
+::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--text-muted) 55%, transparent); border-width:2px; background-clip:padding-box; }
+::-webkit-scrollbar-corner { background:transparent; }
+/* Firefox 전용 폴백 (크롬에서 표준 속성을 쓰면 위 커스텀이 무시되므로 FF에만 적용) */
+@supports (-moz-appearance:none) { * { scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--text-muted) 40%, transparent) transparent; } }
 input, button, textarea, select { font-family:inherit; }
 [data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --accent-text:#ffffff; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
 /* 라이트모드 버튼/입력 보정 */
