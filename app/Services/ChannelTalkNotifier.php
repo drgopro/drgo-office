@@ -6,6 +6,7 @@ use App\Models\Assignee;
 use App\Models\Schedule;
 use App\Models\Todo;
 use App\Models\User;
+use App\Models\Wiki;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -82,6 +83,22 @@ class ChannelTalkNotifier
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 할 일 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /** 위키 공지사항 발행 알림 — 매니저 전원 멘션(@all 효과) */
+    public function wikiNoticePublished(Wiki $wiki): void
+    {
+        if (! $this->client->isConfigured()) {
+            return;
+        }
+
+        try {
+            $this->client->sendGroupMessage(
+                "📢 {$this->client->mentionAll()}\n새 공지사항이 등록되었습니다: '{$wiki->title}'\n".route('wiki.show', $wiki)
+            );
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 공지 알림 실패: '.$e->getMessage());
         }
     }
 

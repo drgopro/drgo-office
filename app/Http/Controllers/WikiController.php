@@ -9,6 +9,7 @@ use App\Models\WikiCategory;
 use App\Models\WikiComment;
 use App\Notifications\MentionAlert;
 use App\Rules\SafeAttachment;
+use App\Services\ChannelTalkNotifier;
 use App\Services\ImageThumbnailService;
 use App\Services\MentionService;
 use Illuminate\Http\Request;
@@ -159,6 +160,11 @@ class WikiController extends Controller
         $wiki = Wiki::create($validated);
         $this->linkPendingAttachments($wiki);
 
+        // 공지사항 발행 → 채널톡 전체 멘션 알림 (임시저장은 발행 시점에)
+        if ($wiki->type === 'notice' && ! $wiki->is_draft) {
+            app(ChannelTalkNotifier::class)->wikiNoticePublished($wiki);
+        }
+
         if ($request->wantsJson()) {
             return response()->json($wiki, 201);
         }
@@ -203,8 +209,14 @@ class WikiController extends Controller
             $this->syncCategoryName($validated);
         }
         $validated['updated_by'] = Auth::id();
+        $wasVisibleNotice = ! $wiki->is_draft && $wiki->type === 'notice';
         $wiki->update($validated);
         $this->linkPendingAttachments($wiki);
+
+        // 공지사항이 새로 노출되는 시점(임시저장 발행 / 공지 유형 전환)에만 알림 — 단순 내용 수정은 제외
+        if (! $wiki->is_draft && $wiki->type === 'notice' && ! $wasVisibleNotice) {
+            app(ChannelTalkNotifier::class)->wikiNoticePublished($wiki);
+        }
 
         if ($request->wantsJson()) {
             return response()->json($wiki);

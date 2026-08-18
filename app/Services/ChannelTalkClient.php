@@ -145,6 +145,17 @@ class ChannelTalkClient
         return $name;
     }
 
+    /**
+     * 전체 멘션 — 채널톡 오픈 API에 @all 태그가 없어 매니저 전원을 개별 멘션한다.
+     * (멘션된 매니저에게 각각 개인 알림이 가므로 @all과 동일한 효과)
+     */
+    public function mentionAll(): string
+    {
+        $tags = array_map(fn ($m) => $this->mentionTag($m, $m['name']), $this->managers());
+
+        return $tags ? implode(' ', $tags) : '@전체';
+    }
+
     /** @deprecated managerMention 사용 — 하위 호환용 */
     public function managerMentionByEmail(?string $email, string $fallbackName): string
     {
