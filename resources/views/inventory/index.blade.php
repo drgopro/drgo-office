@@ -315,7 +315,8 @@
         <div class="field-group" id="bundleSection" style="display:none; border:1px dashed var(--border); border-radius:8px; padding:10px 12px;">
             <div class="field-label">구성품 * <span style="font-weight:400;color:var(--text-muted);">— 세트 1개당 필요 수량</span></div>
             <div id="bundleRows"></div>
-            <div style="display:flex; gap:6px; margin-top:8px;">
+            <input class="field-input" id="bundleSearch" placeholder="제품명/SKU로 검색해서 좁히기" oninput="renderBundlePicker()" style="margin-top:8px;">
+            <div style="display:flex; gap:6px; margin-top:6px;">
                 <select class="field-select" id="bundleAddSelect" style="flex:1; min-width:0;"><option value="">구성품 선택…</option></select>
                 <button type="button" class="btn-outline btn-sm" onclick="addBundleRow()">+ 추가</button>
             </div>
@@ -1098,9 +1099,15 @@ function renderBundlePicker() {
     const sel = document.getElementById('bundleAddSelect');
     const used = new Set(BUNDLE_ITEMS.map(i => i.product_id));
     const editId = +document.getElementById('pEditId').value || 0;
-    sel.innerHTML = '<option value="">구성품 선택…</option>' + (PICKER_PRODUCTS||[])
+    const q = document.getElementById('bundleSearch').value.trim().toLowerCase();
+    const matches = (PICKER_PRODUCTS||[])
         .filter(p => !used.has(p.id) && p.id !== editId)
-        .map(p => `<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('');
+        .filter(p => !q || (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
+    sel.innerHTML = matches.length
+        ? '<option value="">구성품 선택…</option>' + matches.map(p => `<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('')
+        : '<option value="">검색 결과 없음</option>';
+    // 검색 결과가 하나면 바로 선택해둠 (추가 버튼만 누르면 되도록)
+    if (q && matches.length === 1) sel.value = String(matches[0].id);
 }
 
 function addBundleRow() {
@@ -1160,6 +1167,7 @@ async function openProductModal(p) {
         quantity: i.quantity,
         purchase_price: i.component?.purchase_price || 0,
     }));
+    document.getElementById('bundleSearch').value = '';
     onBundleToggle();
     populateCatDropdowns(p ? p.category_id : null);
     openModal('productModal');
