@@ -110,6 +110,8 @@
         ::-webkit-scrollbar-corner { background:transparent; }
         /* Firefox 전용 폴백 (크롬에서 표준 속성을 쓰면 위 커스텀이 무시되므로 FF에만 적용) */
         @supports (-moz-appearance:none) { * { scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, transparent) transparent; } }
+        /* 모달이 열려 있는 동안 배경 페이지 스크롤 잠금 — 이중 스크롤바 방지 (모달 자체만 스크롤) */
+        body:has(.modal-overlay.open), body:has(.todo-overlay.open) { overflow:hidden; }
 
         body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
         input, button, textarea, select { font-family:inherit; }
