@@ -44,12 +44,15 @@
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; table-layout:auto; }
-    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
-    .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
+    /* 밀도 압축 — 가로 스크롤 최소화 (패딩/폰트 축소) */
+    .data-table th { font-size:10.5px; color:var(--text-muted); font-weight:600; text-align:left; padding:9px 8px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table td { font-size:12.5px; padding:9px 8px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
+    .sku-cell { font-size:11px !important; letter-spacing:-0.2px; }
+    .action-cell button { padding:4px 7px !important; font-size:11.5px !important; }
     .data-table td.text-wrap { white-space:normal; word-break:keep-all; overflow-wrap:break-word; }
     /* 제품명/카테고리 최소 폭 — 좁은 해상도에서 한 글자씩 세로로 깨지는 대신 표가 가로 스크롤되도록 */
-    #panel-products .data-table th:nth-child(3), #panel-products .data-table td:nth-child(3) { min-width:220px; }
-    #panel-products .data-table th:nth-child(4), #panel-products .data-table td:nth-child(4) { min-width:90px; }
+    #panel-products .data-table th:nth-child(3), #panel-products .data-table td:nth-child(3) { min-width:170px; }
+    #panel-products .data-table th:nth-child(4), #panel-products .data-table td:nth-child(4) { min-width:76px; white-space:normal; word-break:keep-all; }
     .data-table .action-cell { white-space:nowrap; }
     .data-table .action-cell button { display:inline-flex; align-items:center; vertical-align:middle; }
     .data-table tr:last-child td { border-bottom:none; }
@@ -965,7 +968,7 @@ async function loadProducts() {
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
     tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
-        <td class="text-muted">${_esc(p.sku)}</td>
+        <td class="text-muted sku-cell">${_esc(p.sku)}</td>
         <td class="text-wrap">${bundleBadgeHtml(p)}${_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${fmt(p.purchase_price)}</td>
