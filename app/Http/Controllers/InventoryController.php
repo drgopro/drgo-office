@@ -430,6 +430,27 @@ class InventoryController extends Controller
         return response()->json($fresh);
     }
 
+    /**
+     * 입출고 내역 삭제 (관리자 이상) — ids 선택 삭제 또는 all=1 전체 비우기.
+     * 이력 기록만 지우며 재고 수량은 변경하지 않는다 (테스트 데이터 정리용).
+     */
+    public function destroyMovements(Request $request): JsonResponse
+    {
+        abort_unless(Auth::user()->isAdmin(), 403, '입출고 내역 삭제는 관리자만 가능합니다.');
+
+        $validated = $request->validate([
+            'ids' => 'required_without:all|nullable|array|min:1|max:500',
+            'ids.*' => 'integer|exists:stock_movements,id',
+            'all' => 'nullable|boolean',
+        ]);
+
+        $deleted = ! empty($validated['all'])
+            ? StockMovement::query()->delete()
+            : StockMovement::whereIn('id', $validated['ids'])->delete();
+
+        return response()->json(['ok' => true, 'deleted' => $deleted]);
+    }
+
     /** 재고를 목표 수량으로 조정 — 기존 수량과 다르면 adjust 이력을 남기고 갱신 (입출고 내역과 일관) */
     private function adjustStockTo(Product $product, int $target, string $memo): void
     {

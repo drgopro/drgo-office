@@ -231,12 +231,19 @@
                 <option value="">전체 유형</option>
                 <option value="in">입고</option><option value="out">출고</option><option value="adjust">조정</option><option value="return">반품</option>
             </select>
+            @if(auth()->user()->isAdmin())
+                <button class="btn-outline" id="movDelBtn" style="display:none;border-color:var(--red);color:var(--red);" onclick="deleteSelectedMovements()">선택 삭제 (<span id="movDelCount">0</span>)</button>
+                <button class="btn-outline" style="border-color:var(--red);color:var(--red);" onclick="clearAllMovements()">전체 비우기</button>
+            @endif
             <button class="btn-primary" onclick="openMovementModal()">+ 입출고 등록</button>
         </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th>일시</th><th>유형</th><th>제품</th><th class="text-right">수량</th><th class="text-right">변동 후</th><th>처리자</th><th>메모</th></tr></thead>
-                <tbody id="movementBody"><tr><td colspan="7" class="empty-row">로딩 중...</td></tr></tbody>
+                <thead><tr>
+                    @if(auth()->user()->isAdmin())<th style="width:34px;text-align:center;"><input type="checkbox" id="movSelAll" onchange="toggleMovSelAll(this.checked)" style="accent-color:var(--accent);"></th>@endif
+                    <th>일시</th><th>유형</th><th>제품</th><th class="text-right">수량</th><th class="text-right">변동 후</th><th>처리자</th><th>메모</th>
+                </tr></thead>
+                <tbody id="movementBody"><tr><td colspan="8" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -1262,6 +1269,10 @@ async function deleteProduct(id) {
 }
 
 // === 입출고 ===
+const MOV_IS_ADMIN = @json(auth()->user()->isAdmin());
+const movSel = new Set();
+let movPageIds = [];
+
 async function loadMovements() {
     const qs = new URLSearchParams();
     const type = document.getElementById('movementType').value;
@@ -1273,8 +1284,12 @@ async function loadMovements() {
     const data = await res.json();
     const tb = document.getElementById('movementBody');
     const typeMap = {in:'입고',out:'출고',adjust:'조정',return:'반품'};
-    if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty-row">내역이 없습니다.</td></tr>'; return; }
+    movSel.clear();
+    movPageIds = data.map(m => m.id);
+    updateMovSelUI();
+    if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">내역이 없습니다.</td></tr>'; return; }
     tb.innerHTML = data.map(m => `<tr>
+        ${MOV_IS_ADMIN ? `<td style="text-align:center;"><input type="checkbox" class="mov-sel" ${movSel.has(m.id)?'checked':''} onchange="toggleMovSel(${m.id}, this.checked)" style="accent-color:var(--accent);"></td>` : ''}
         <td class="text-muted">${fmtTime(m.created_at)}</td>
         <td><span class="badge badge-${m.movement_type}">${typeMap[m.movement_type]}</span></td>
         <td>${m.product?.name||'-'}</td>
@@ -1283,6 +1298,37 @@ async function loadMovements() {
         <td class="text-muted">${_esc(m.user?.display_name)||'-'}</td>
         <td class="text-muted">${_esc(m.memo)||'-'}</td>
     </tr>`).join('');
+}
+
+// === 입출고 내역 삭제 (관리자) — 이력만 지우며 재고 수량은 변하지 않음 ===
+function toggleMovSel(id, on) { on ? movSel.add(id) : movSel.delete(id); updateMovSelUI(); }
+function toggleMovSelAll(on) {
+    movPageIds.forEach(id => on ? movSel.add(id) : movSel.delete(id));
+    document.querySelectorAll('.mov-sel').forEach(cb => { cb.checked = on; });
+    updateMovSelUI();
+}
+function updateMovSelUI() {
+    const btn = document.getElementById('movDelBtn');
+    if (!btn) return;
+    btn.style.display = movSel.size ? '' : 'none';
+    document.getElementById('movDelCount').textContent = movSel.size;
+    const all = document.getElementById('movSelAll');
+    if (all) all.checked = movPageIds.length > 0 && movPageIds.every(id => movSel.has(id));
+}
+async function deleteSelectedMovements() {
+    if (!movSel.size) return;
+    if (!confirm(`선택한 입출고 이력 ${movSel.size}건을 삭제할까요?\n(기록만 지워지고 재고 수량은 변하지 않습니다)`)) return;
+    const res = await fetch('/api/inventory/movements', { method:'DELETE', headers:H, body:JSON.stringify({ ids:[...movSel] }) });
+    if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+    movSel.clear();
+    loadMovements();
+}
+async function clearAllMovements() {
+    if (!confirm('입출고 이력을 전부 비울까요?\n(기록만 지워지고 재고 수량은 변하지 않습니다. 되돌릴 수 없습니다)')) return;
+    const res = await fetch('/api/inventory/movements', { method:'DELETE', headers:H, body:JSON.stringify({ all:true }) });
+    if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+    movSel.clear();
+    loadMovements();
 }
 let MOV_PRODUCTS = []; // 입출고 모달 제품 목록 (세트 여부 판단용)
 

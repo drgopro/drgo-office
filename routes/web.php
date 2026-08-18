@@ -315,6 +315,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/inventory/products', [InventoryController::class, 'storeProduct']);
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);
         Route::post('/api/inventory/products/bulk-estimate', [InventoryController::class, 'bulkSetEstimate']);
+        Route::delete('/api/inventory/movements', [InventoryController::class, 'destroyMovements']); // 내부에서 admin 이상 재확인
         Route::post('/api/inventory/margin-threshold', [InventoryController::class, 'updateMarginThreshold']); // 마진률 경고 기준(%) 저장
         Route::post('/api/inventory/products/{product}/refresh-market-price', [InventoryController::class, 'refreshMarketPrice']); // 컴퓨존 시세 수동 갱신
         Route::post('/api/inventory/products/bulk-delete', [InventoryController::class, 'bulkDeleteProducts']);

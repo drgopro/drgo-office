@@ -6,6 +6,7 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\StockMovement;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -91,6 +92,40 @@ class ProductStockEditTest extends TestCase
         $bySku = $this->actingAs($this->master)->getJson('/api/inventory/movements?search=PT-102');
         $bySku->assertOk();
         $this->assertCount(1, $bySku->json());
+    }
+
+    public function test_movements_can_be_deleted_by_admin_only(): void
+    {
+        $p = Product::create([
+            'sku' => 'PT-201', 'name' => '허브', 'category' => '부품', 'category_id' => $this->cat->id,
+            'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        Inventory::create(['product_id' => $p->id, 'quantity' => 0, 'last_updated_at' => now()]);
+        foreach ([1, 2, 3] as $qty) {
+            $this->actingAs($this->master)->postJson('/api/inventory/movements', [
+                'product_id' => $p->id, 'movement_type' => 'in', 'quantity' => $qty,
+            ])->assertCreated();
+        }
+        $ids = StockMovement::pluck('id');
+
+        // 선택 삭제 — 이력만 지워지고 재고 수량은 유지
+        $this->actingAs($this->master)->deleteJson('/api/inventory/movements', ['ids' => [$ids[0]]])
+            ->assertOk()->assertJsonPath('deleted', 1);
+        $this->assertSame(2, StockMovement::count());
+        $this->assertSame(6, $p->inventory->fresh()->quantity);
+
+        // 편집 권한이 있어도 member는 삭제 불가 (관리자 이상)
+        $team = Team::create(['name' => '재고팀', 'slug' => 'stock-team', 'permissions' => ['inventory.view', 'inventory.edit']]);
+        $member = User::factory()->create(['role' => 'member', 'team_id' => $team->id]);
+        $this->actingAs($member)->deleteJson('/api/inventory/movements', ['ids' => [$ids[1]]])
+            ->assertForbidden();
+
+        // 전체 비우기
+        $this->actingAs($this->master)->deleteJson('/api/inventory/movements', ['all' => true])
+            ->assertOk();
+        $this->assertSame(0, StockMovement::count());
+        $this->assertSame(6, $p->inventory->fresh()->quantity);
     }
 
     public function test_bundle_ignores_stock_quantity(): void
