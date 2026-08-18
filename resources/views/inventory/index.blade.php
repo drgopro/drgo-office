@@ -39,8 +39,8 @@
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
-    .btn-danger-sm { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:5px 8px; }
-    .btn-danger-sm:hover { color:var(--red); }
+    .btn-danger-sm { background:var(--red, #dc2626); border:1px solid var(--red, #dc2626); color:#fff; font-size:12px; font-weight:600; cursor:pointer; padding:5px 10px; border-radius:6px; }
+    .btn-danger-sm:hover { filter:brightness(0.9); }
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; table-layout:auto; }
