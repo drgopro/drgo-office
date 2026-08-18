@@ -46,7 +46,10 @@
     .data-table { width:100%; border-collapse:collapse; table-layout:auto; }
     .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
-    .data-table td.text-wrap { white-space:normal; word-break:break-word; }
+    .data-table td.text-wrap { white-space:normal; word-break:keep-all; overflow-wrap:break-word; }
+    /* 제품명/카테고리 최소 폭 — 좁은 해상도에서 한 글자씩 세로로 깨지는 대신 표가 가로 스크롤되도록 */
+    #panel-products .data-table th:nth-child(3), #panel-products .data-table td:nth-child(3) { min-width:220px; }
+    #panel-products .data-table th:nth-child(4), #panel-products .data-table td:nth-child(4) { min-width:90px; }
     .data-table .action-cell { white-space:nowrap; }
     .data-table .action-cell button { display:inline-flex; align-items:center; vertical-align:middle; }
     .data-table tr:last-child td { border-bottom:none; }
