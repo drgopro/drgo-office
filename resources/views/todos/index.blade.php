@@ -449,12 +449,18 @@ function renderBoard() {
 }
 
 // 보드 높이를 화면 하단에 맞춤 — 컬럼은 내부 스크롤, 가로 스크롤바는 항상 화면 하단에 보임
+// 보드 뷰에서는 페이지 세로 스크롤을 아예 꺼서 스크롤바가 절대 이중으로 보이지 않게 함
 function fitBoardHeight() {
     const board = document.getElementById('todoBoard');
     if (!board) return;
-    if (TODO_VIEW !== 'board' || window.innerWidth <= 768) { board.style.maxHeight = ''; return; }
+    if (TODO_VIEW !== 'board' || window.innerWidth <= 768) {
+        board.style.maxHeight = '';
+        document.body.style.overflowY = '';
+        return;
+    }
     const top = board.getBoundingClientRect().top;
-    board.style.maxHeight = Math.max(240, window.innerHeight - top - 12) + 'px';
+    board.style.maxHeight = Math.max(240, window.innerHeight - top - 14) + 'px';
+    document.body.style.overflowY = 'hidden';
 }
 window.addEventListener('resize', fitBoardHeight);
 
