@@ -102,14 +102,14 @@
         * { margin:0; padding:0; box-sizing:border-box; }
 
         /* ── 스크롤바 ── */
-        /* 커스텀 스크롤바 — 투명 트랙 + 둥근 썸, 호버 시 진해짐 */
-        ::-webkit-scrollbar { width:10px; height:10px; }
+        /* 커스텀 스크롤바 — 심플: 투명 트랙 + 포인트 컬러 슬림 썸 */
+        ::-webkit-scrollbar { width:7px; height:7px; }
         ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--text-muted) 32%, transparent); border-radius:10px; border:3px solid transparent; background-clip:padding-box; }
-        ::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--text-muted) 55%, transparent); border-width:2px; background-clip:padding-box; }
+        ::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--accent) 55%, transparent); border-radius:6px; }
+        ::-webkit-scrollbar-thumb:hover { background:var(--accent); }
         ::-webkit-scrollbar-corner { background:transparent; }
         /* Firefox 전용 폴백 (크롬에서 표준 속성을 쓰면 위 커스텀이 무시되므로 FF에만 적용) */
-        @supports (-moz-appearance:none) { * { scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--text-muted) 40%, transparent) transparent; } }
+        @supports (-moz-appearance:none) { * { scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, transparent) transparent; } }
 
         body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; min-height:100vh; display:flex; flex-direction:column; transition:background 0.2s, color 0.2s; }
         input, button, textarea, select { font-family:inherit; }
