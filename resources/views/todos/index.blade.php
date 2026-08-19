@@ -93,6 +93,9 @@
     .lc-title { font-size:12.5px; font-weight:700; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-all; }
     .lc-desc { font-size:11px; color:var(--text-muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-all; }
     .lc-host { font-size:10.5px; color:var(--text-muted); opacity:0.8; }
+    /* 패널 배경(#fafbfc)과 소프트필 입력이 겹치지 않도록 패널 안 진행 단계 입력은 흰 배경 */
+    .tdp-checklist .tv-check-add input { background:#fff; }
+    .tdp-checklist .tv-check-row:hover { background:#f1f3f6; }
     .tdp-actions { display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:13px; }
     .tdp-actions .todo-btn { padding:8px 14px; font-size:12.5px; }
     .tdp-done-badge { background:#2e7d32; color:#fff; font-size:11px; font-weight:700; padding:3px 11px; border-radius:8px; }
@@ -627,6 +630,7 @@ function renderDetailPane() {
             ${t.completed ? `<span class="tdp-done-badge">완료</span><span>${t.completed_at}</span>` : ''}
         </div>
         <div class="todo-view-content">${contentHtml(t.content)}</div>
+        <div class="tdp-checklist">${checklistSectionHtml(t, 'pane')}</div>
         ${t.attachments.length ? `<div class="todo-attach-list">${t.attachments.map(a => `
             <div class="todo-attach-item">
                 ${a.mime_type && a.mime_type.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy" style="cursor:zoom-in;" onclick="event.stopPropagation(); todoLbOpen('${a.url}', ${t.id})">` : '📄'}
@@ -1117,15 +1121,16 @@ function openTodoView(id) {
 }
 
 // ── 체크리스트 (진행 단계) — 노션식: 클릭 인라인 수정 · Enter 연속 추가 · 드래그 정렬 ──
-function tvRenderChecklist(t) {
+// 상세 모달(ctx='tv')과 리스트 뷰 오른쪽 패널(ctx='pane')에서 공용으로 사용
+function checklistSectionHtml(t, ctx) {
     const list = t.checklist || [];
     const done = list.filter(c => c.done).length;
-    document.getElementById('tvChecklist').innerHTML = `
+    return `
         <div class="tv-section-title">진행 단계${list.length ? `<span class="tv-count">${done}/${list.length}</span>` : ''}</div>
         ${checklistProgressHtml(t, true)}
-        <div id="tvChecklistRows">
+        <div class="tv-check-rows">
         ${list.map(c => `<div class="tv-check-row ${c.done ? 'done' : ''}" data-cid="${c.id}" draggable="true"
-            ondragstart="checkDragStart(event, this)" ondragend="checkDragEnd(this)" ondragover="checkDragOver(event, this)">
+            ondragstart="checkDragStart(event, this)" ondragend="checkDragEnd(this, ${t.id})" ondragover="checkDragOver(event, this)">
             <span class="tv-check-handle" title="드래그하여 순서 변경">⠿</span>
             <button type="button" class="todo-check ${c.done ? 'on' : ''}" onclick="toggleChecklistItem(${c.id}, ${c.done ? 'false' : 'true'})" title="${c.done ? '완료 해제' : '완료'}">
                 <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
@@ -1136,9 +1141,13 @@ function tvRenderChecklist(t) {
         </div>`).join('')}
         </div>
         <div class="tv-check-add">
-            <input id="tvCheckAddInput" placeholder="+ 단계 추가 후 Enter (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();addChecklistItem();}">
-            <button type="button" class="todo-btn ghost" onclick="addChecklistItem()">추가</button>
+            <input id="${ctx}CheckAddInput" placeholder="+ 단계 추가 후 Enter (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();addChecklistItem(${t.id}, '${ctx}');}">
+            <button type="button" class="todo-btn ghost" onclick="addChecklistItem(${t.id}, '${ctx}')">추가</button>
         </div>`;
+}
+
+function tvRenderChecklist(t) {
+    document.getElementById('tvChecklist').innerHTML = checklistSectionHtml(t, 'tv');
 }
 
 // 제목 클릭 → 그 자리에서 수정 (Enter/포커스 아웃 = 저장, Esc = 취소)
@@ -1179,12 +1188,12 @@ function checkDragOver(ev, row) {
     const after = ev.clientY > box.top + box.height / 2;
     row.parentNode.insertBefore(CHECK_DRAG, after ? row.nextSibling : row);
 }
-async function checkDragEnd(row) {
+async function checkDragEnd(row, todoId) {
     row.classList.remove('dragging');
     if (!CHECK_DRAG) { return; }
     CHECK_DRAG = null;
-    const ids = [...document.querySelectorAll('#tvChecklistRows .tv-check-row')].map(r => parseInt(r.dataset.cid, 10));
-    if (ids.length) { await checklistApi(`/api/todos/${TODO_VIEW_ID}/checklist-reorder`, 'PATCH', { ids }); }
+    const ids = [...row.parentNode.querySelectorAll('.tv-check-row')].map(r => parseInt(r.dataset.cid, 10));
+    if (ids.length) { await checklistApi(`/api/todos/${todoId}/checklist-reorder`, 'PATCH', { ids }); }
 }
 
 async function checklistApi(url, method, body) {
@@ -1200,19 +1209,19 @@ async function checklistApi(url, method, body) {
     return true;
 }
 let CHECK_ADDING = false; // 한글 IME 등으로 Enter가 중복 발생해도 1회만 등록
-async function addChecklistItem() {
+async function addChecklistItem(todoId, ctx = 'tv') {
     if (CHECK_ADDING) { return; }
-    const input = document.getElementById('tvCheckAddInput');
+    const input = document.getElementById(ctx + 'CheckAddInput');
     const title = input.value.trim();
     if (!title) { return; }
     CHECK_ADDING = true;
     input.value = '';
     try {
-        await checklistApi(`/api/todos/${TODO_VIEW_ID}/checklist`, 'POST', { title });
+        await checklistApi(`/api/todos/${todoId}/checklist`, 'POST', { title });
     } finally {
         CHECK_ADDING = false;
     }
-    const again = document.getElementById('tvCheckAddInput');
+    const again = document.getElementById(ctx + 'CheckAddInput');
     if (again) { again.focus(); }
 }
 async function toggleChecklistItem(itemId, done) {
