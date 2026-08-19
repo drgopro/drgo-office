@@ -35,8 +35,8 @@
     /* 원문 보기 — 클릭 시 행 아래로 펼침 */
     .raw-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:11px; padding:3px 9px; cursor:pointer; white-space:nowrap; }
     .raw-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .dep-raw-row td { padding:0 12px 12px; }
-    .dep-raw-row pre { margin:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; }
+    .dep-raw { margin-top:9px; }
+    .dep-raw pre { margin:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
     .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
@@ -187,15 +187,17 @@ async function loadDeposits() {
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-        <td style="font-weight:600;"><div style="display:flex;align-items:center;gap:12px;">
-            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
-            ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
-        </div></td>
-    </tr>
-    ${d.raw_text ? `<tr class="dep-raw-row" id="depRaw${d.id}" style="display:none;"><td colspan="5">
-        <pre>${_esc(d.raw_text)}</pre>
-        <div style="text-align:right;margin-top:6px;"><button type="button" class="raw-btn" onclick="closeDepRaw(${d.id})">닫기</button></div>
-    </td></tr>` : ''}`).join('');
+        <td style="font-weight:600;">
+            <div style="display:flex;align-items:center;gap:22px;">
+                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
+                ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
+            </div>
+            ${d.raw_text ? `<div class="dep-raw" id="depRaw${d.id}" style="display:none;">
+                <pre>${_esc(d.raw_text)}</pre>
+                <div style="text-align:right;margin-top:6px;"><button type="button" class="raw-btn" onclick="closeDepRaw(${d.id})">닫기</button></div>
+            </div>` : ''}
+        </td>
+    </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
             <div style="display:flex;align-items:center;gap:9px;min-width:0;">
