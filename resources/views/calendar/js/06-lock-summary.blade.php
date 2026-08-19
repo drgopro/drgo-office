@@ -44,7 +44,8 @@ function _radioMulti(gid){
 // 이름 프리필이 되는 모바일웹 라우트 URL(route.nhn)을 사용 (데스크탑에서도 열림)
 const LS_HQ_ADDR='서울특별시 동작구 장승배기로 142'; // 동선 기본 출발지 (사무실)
 const kakaoMapUrl=q=>`https://map.kakao.com/?q=${encodeURIComponent(q)}`;
-const kakaoRouteUrl=(s,e)=>`https://map.kakao.com/?sName=${encodeURIComponent(s)}&eName=${encodeURIComponent(e)}`;
+// sName/eName은 현행 카카오맵에서 프리필이 안 됨 — 길찾기 탭의 rt1/rt2(이름) 파라미터 사용
+const kakaoRouteUrl=(s,e)=>`https://map.kakao.com/?map_type=TYPE_MAP&target=car&rt=,,,&rt1=${encodeURIComponent(s)}&rt2=${encodeURIComponent(e)}`;
 const naverMapUrl=q=>`https://map.naver.com/p/search/${encodeURIComponent(q)}`;
 const naverRouteUrl=(s,e)=>`https://m.map.naver.com/route.nhn?menu=route&sname=${encodeURIComponent(s)}&ename=${encodeURIComponent(e)}&pathType=3`;
 
