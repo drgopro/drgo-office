@@ -146,10 +146,12 @@ function renderLockSummary(){
     const carReasonLine=carReasonTxt?`<div class="ls-car-reason">🚗 차량 이용 사유 — ${_esc(carReasonTxt)}</div>`:'';
     const specialLine=(specialChipsArr.length||carReasonTxt)?`${specialChipsArr.length?`<div class="ls-spec-chips">${specialChipsArr.map(t=>`<span class="ls-spec-chip">${_esc(t)}</span>`).join('')}</div>`:''}${carReasonLine}`:'';
     const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
-            <a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">🔍 카카오 맵</a>
-            <a class="ls-action-btn primary" href="${kakaoRouteUrl(LS_HQ_ADDR, addr)}" target="_blank">🗺 동선 조회(카카오)</a>
-            <a class="ls-action-btn" href="${naverMapUrl(addr)}" target="_blank">🔍 네이버 맵</a>
-            <a class="ls-action-btn primary" href="${naverRouteUrl(LS_HQ_ADDR, addr)}" target="_blank">🗺 동선 조회(네이버)</a>
+            <a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">카카오 맵</a>
+            <a class="ls-action-btn primary" href="${kakaoRouteUrl(LS_HQ_ADDR, addr)}" target="_blank">동선 조회(카카오)</a>
+        </div>
+        <div class="ls-actions">
+            <a class="ls-action-btn" href="${naverMapUrl(addr)}" target="_blank">네이버 맵</a>
+            <a class="ls-action-btn primary" href="${naverRouteUrl(LS_HQ_ADDR, addr)}" target="_blank">동선 조회(네이버)</a>
         </div>` : '';
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
@@ -160,10 +162,10 @@ function renderLockSummary(){
                 <div class="ls-addr" style="margin-top:2px;">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div></div>
             ${specialLine}
             <div class="ls-actions" style="margin-top:8px;">
-                ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">🔍 출발지</a>` : ''}
-                ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">🔍 도착지</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="${kakaoRouteUrl(mfAddr, addr)}" target="_blank">🗺 출발→도착 동선(카카오)</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="${naverRouteUrl(mfAddr, addr)}" target="_blank">🗺 출발→도착 동선(네이버)</a>` : ''}
+                ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">출발지</a>` : ''}
+                ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">도착지</a>` : ''}
+                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="${kakaoRouteUrl(mfAddr, addr)}" target="_blank">출발→도착 동선(카카오)</a>` : ''}
+                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="${naverRouteUrl(mfAddr, addr)}" target="_blank">출발→도착 동선(네이버)</a>` : ''}
             </div>`, '', 'ls-c-time ls-time-card'));
     } else {
         // 미팅/내방: 장소를 내방 옵션(체크박스)으로 지정하면 location이 비므로 옵션 값을 장소로 표시
