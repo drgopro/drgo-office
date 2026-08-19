@@ -15,6 +15,17 @@
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
     .btn-outline.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
+    .dep-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); }
+    .dep-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
+    .dep-tab:hover { color:var(--text); }
+    .dep-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    /* 페이앱 상태 뱃지 */
+    .pa-badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+    .pa-badge.paid { background:#e7f6ec; color:#15803d; }
+    .pa-badge.waiting { background:#fef3e2; color:#b45309; }
+    .pa-badge.refunded, .pa-badge.req_cancelled { background:#fdeaea; color:#dc2626; }
+    .pa-link { font-size:12px; color:var(--accent); text-decoration:none; white-space:nowrap; }
+    .pa-link:hover { text-decoration:underline; }
     .sum-line { font-size:13px; color:var(--text-muted); margin-bottom:10px; }
     .sum-line b { color:var(--text); font-size:14px; }
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -66,6 +77,12 @@
         <div class="page-title">입금 내역</div>
     </div>
 
+    <div class="dep-tabs">
+        <button type="button" class="dep-tab active" id="depTabBtnDeposits" onclick="setDepTab('deposits')">입금 내역</button>
+        <button type="button" class="dep-tab" id="depTabBtnPayapp" onclick="setDepTab('payapp')">페이앱 결제현황</button>
+    </div>
+
+    <div id="depTabDeposits">
     <div class="toolbar">
         <span class="date-range">
             <input type="date" id="depFrom" onchange="depPage=1;loadDeposits()">
@@ -104,6 +121,44 @@
     </div>
     <div class="mob-cards" id="depCards"></div>
     <div class="pager" id="depPager"></div>
+    </div>
+
+    {{-- 페이앱 결제현황 — 결제요청이 발행된 견적서 기준 (페이앱 통지로 상태 갱신) --}}
+    <div id="depTabPayapp" style="display:none;">
+        <div class="toolbar">
+            <span class="date-range">
+                <input type="date" id="paFrom" onchange="paPage=1;loadPayapp()">
+                <span class="text-muted">~</span>
+                <input type="date" id="paTo" onchange="paPage=1;loadPayapp()">
+            </span>
+            <button class="btn-outline" onclick="paQuickRange(7)">7일</button>
+            <button class="btn-outline" onclick="paQuickRange(30)">30일</button>
+            <button class="btn-outline" onclick="paQuickRange(90)">3개월</button>
+            <select id="paStatus" onchange="paPage=1;loadPayapp()">
+                <option value="">전체 상태</option>
+                <option value="paid">결제완료</option>
+                <option value="waiting">결제 대기</option>
+                <option value="cancelled">취소·환불</option>
+            </select>
+            <input type="text" id="paSearch" placeholder="의뢰자/금액/견적번호 검색" oninput="paPage=1;loadPayapp()">
+        </div>
+        <div class="sum-line" id="paSummary"></div>
+        <div class="data-card">
+            <table class="data-table">
+                <thead><tr>
+                    <th style="width:140px;">요청 시간</th>
+                    <th style="width:100px;">상태</th>
+                    <th class="text-center" style="width:140px;">결제 금액</th>
+                    <th>의뢰자</th>
+                    <th style="width:140px;">결제 시간</th>
+                    <th style="width:130px;"></th>
+                </tr></thead>
+                <tbody id="paBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
+            </table>
+        </div>
+        <div class="mob-cards" id="paCards"></div>
+        <div class="pager" id="paPager"></div>
+    </div>
 </div>
 
 <script>
@@ -263,7 +318,105 @@ async function depDeleteSelected() {
     loadDeposits();
 }
 
+// === 페이앱 결제현황 탭 ===
+let paPage = 1;
+let paLoaded = false;
+
+function setDepTab(t) {
+    localStorage.setItem('depTab', t);
+    document.getElementById('depTabDeposits').style.display = t === 'payapp' ? 'none' : '';
+    document.getElementById('depTabPayapp').style.display = t === 'payapp' ? '' : 'none';
+    document.getElementById('depTabBtnDeposits').classList.toggle('active', t !== 'payapp');
+    document.getElementById('depTabBtnPayapp').classList.toggle('active', t === 'payapp');
+    if (t === 'payapp' && !paLoaded) { paLoaded = true; paQuickRange(90); }
+}
+
+function paQuickRange(days) {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(to.getDate() - days);
+    const iso = d => d.toISOString().slice(0, 10);
+    document.getElementById('paFrom').value = iso(from);
+    document.getElementById('paTo').value = iso(to);
+    paPage = 1;
+    loadPayapp();
+}
+
+function renderPaPager(p) {
+    const el = document.getElementById('paPager');
+    if (!p.total) { el.innerHTML = ''; return; }
+    const cur = p.current_page, last = p.last_page;
+    let start = Math.max(1, cur - 3);
+    const end = Math.min(last, start + 6);
+    start = Math.max(1, end - 6);
+    let html = `<span class="pager-info">총 ${p.total.toLocaleString()}건</span>`;
+    html += `<button class="pager-btn" ${cur===1?'disabled':''} onclick="goPaPage(${cur-1})">‹</button>`;
+    for (let i = start; i <= end; i++) html += `<button class="pager-btn ${i===cur?'active':''}" onclick="goPaPage(${i})">${i}</button>`;
+    html += `<button class="pager-btn" ${cur===last?'disabled':''} onclick="goPaPage(${cur+1})">›</button>`;
+    el.innerHTML = html;
+}
+function goPaPage(p) { paPage = p; loadPayapp(); }
+
+async function loadPayapp() {
+    const qs = new URLSearchParams();
+    const from = document.getElementById('paFrom').value;
+    const to = document.getElementById('paTo').value;
+    const search = document.getElementById('paSearch').value.trim();
+    const status = document.getElementById('paStatus').value;
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
+    if (search) qs.set('search', search);
+    if (status) qs.set('status', status);
+    qs.set('per_page', 20);
+    qs.set('page', paPage);
+
+    const res = await fetch('/api/payapp-payments?'+qs.toString());
+    if (!res.ok) return;
+    const payload = await res.json();
+    const data = payload.data;
+    if (!data.length && payload.total > 0 && paPage > 1) {
+        paPage = payload.last_page;
+        return loadPayapp();
+    }
+    renderPaPager(payload);
+    document.getElementById('paSummary').innerHTML =
+        `기간 내 결제요청 <b>${payload.total.toLocaleString()}건</b> · 결제완료 <b>${payload.paid_count.toLocaleString()}건</b> · 완료 합계 <b>${fmt(payload.paid_amount)}원</b>`;
+
+    const linkHtml = d => [
+        `<a class="pa-link" href="${_esc(d.estimate_url)}" target="_blank" rel="noopener">견적서 ↗</a>`,
+        d.payurl ? `<a class="pa-link" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지 ↗</a>` : '',
+    ].filter(Boolean).join(' · ');
+
+    const tb = document.getElementById('paBody');
+    const cards = document.getElementById('paCards');
+    if (!data.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">페이앱 결제요청 내역이 없습니다.</td></tr>';
+        cards.innerHTML = '<div class="empty-row">페이앱 결제요청 내역이 없습니다.</div>';
+        return;
+    }
+    tb.innerHTML = data.map(d => `<tr>
+        <td class="text-muted">${fmtDt(d.requested_at)}</td>
+        <td><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span></td>
+        <td class="text-center amt">${fmt(d.amount)}원</td>
+        <td style="font-weight:600;">${_esc(d.client_name)||'-'}${d.client_phone ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.client_phone)}</span>` : ''}
+            <span class="text-muted" style="font-weight:400;">· 견적서 #${d.id}</span></td>
+        <td class="text-muted">${d.paid_at ? fmtDt(d.paid_at) : '-'}</td>
+        <td>${linkHtml(d)}</td>
+    </tr>`).join('');
+    cards.innerHTML = data.map(d => `<div class="mob-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div class="mob-card-title">${_esc(d.client_name)||'견적서 #'+d.id}</div>
+            <div class="amt">${fmt(d.amount)}원</div>
+        </div>
+        <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span> ${fmtDt(d.requested_at)}</span>
+            <span>${linkHtml(d)}</span>
+        </div>
+    </div>`).join('');
+}
+
 document.getElementById('depPerPage').value = String(depPerPage);
 depQuickRange(30); // 기본: 최근 30일
+if (localStorage.getItem('depTab') === 'payapp') { setDepTab('payapp'); }
 </script>
 @endsection

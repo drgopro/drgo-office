@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BankDeposit;
+use App\Models\Estimate;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -239,5 +240,70 @@ class BankDepositTest extends TestCase
 
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin)->get('/deposits')->assertOk();
+    }
+
+    // === 페이앱 결제현황 ===
+
+    /** @param array<string, mixed> $attrs */
+    private function makePayappEstimate(User $creator, array $attrs = []): Estimate
+    {
+        return Estimate::create(array_merge([
+            'client_name' => '홍길동',
+            'client_phone' => '01012341234',
+            'total_amount' => 500000,
+            'status' => 'issued',
+            'payapp_mul_no' => 'MUL'.uniqid(),
+            'payapp_state' => 1,
+            'payapp_requested_at' => '2026-08-10 10:00:00',
+            'created_by' => $creator->id,
+        ], $attrs));
+    }
+
+    public function test_payapp_list_shows_requested_estimates_with_status(): void
+    {
+        $user = User::factory()->create(['role' => 'master']);
+        $paid = $this->makePayappEstimate($user, [
+            'status' => 'paid', 'payapp_state' => 4, 'payapp_paid_at' => '2026-08-10 11:00:00',
+        ]);
+        $this->makePayappEstimate($user, ['client_name' => '김대기', 'total_amount' => 200000]);
+        // 환불 통지 후에는 mul_no가 비워지지만 requested_at으로 목록에 남아야 함
+        $this->makePayappEstimate($user, [
+            'client_name' => '박환불', 'status' => 'cancelled', 'payapp_state' => 9, 'payapp_mul_no' => null,
+        ]);
+        Estimate::create(['client_name' => '미요청', 'total_amount' => 1000, 'status' => 'issued', 'created_by' => $user->id]);
+
+        $res = $this->actingAs($user)->getJson('/api/payapp-payments?from=2026-08-01&to=2026-08-31');
+        $res->assertOk()
+            ->assertJsonPath('total', 3)          // 결제요청 없는 견적서는 제외
+            ->assertJsonPath('paid_count', 1)
+            ->assertJsonPath('paid_amount', 500000);
+
+        $rows = collect($res->json('data'))->keyBy('client_name');
+        $this->assertSame('paid', $rows['홍길동']['status']['key']);
+        $this->assertSame('waiting', $rows['김대기']['status']['key']);
+        $this->assertSame('refunded', $rows['박환불']['status']['key']);
+        $this->assertSame($paid->fresh()->publicUrl(), $rows['홍길동']['estimate_url']);
+    }
+
+    public function test_payapp_list_filters_by_status_and_search(): void
+    {
+        $user = User::factory()->create(['role' => 'master']);
+        $this->makePayappEstimate($user, ['status' => 'paid', 'payapp_state' => 4, 'payapp_paid_at' => now()]);
+        $this->makePayappEstimate($user, ['client_name' => '김대기', 'total_amount' => 200000]);
+
+        $this->actingAs($user)->getJson('/api/payapp-payments?status=paid')
+            ->assertOk()->assertJsonPath('total', 1)->assertJsonPath('data.0.client_name', '홍길동');
+        $this->actingAs($user)->getJson('/api/payapp-payments?status=waiting')
+            ->assertOk()->assertJsonPath('total', 1)->assertJsonPath('data.0.client_name', '김대기');
+        $this->actingAs($user)->getJson('/api/payapp-payments?search='.urlencode('김대기'))
+            ->assertOk()->assertJsonPath('total', 1);
+        $this->actingAs($user)->getJson('/api/payapp-payments?search=200,000')
+            ->assertOk()->assertJsonPath('total', 1)->assertJsonPath('data.0.client_name', '김대기');
+    }
+
+    public function test_payapp_list_requires_deposits_view_permission(): void
+    {
+        $memberNoPerm = User::factory()->create(['role' => 'member']);
+        $this->actingAs($memberNoPerm)->getJson('/api/payapp-payments')->assertForbidden();
     }
 }

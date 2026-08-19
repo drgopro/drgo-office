@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankDeposit;
+use App\Models\Estimate;
 use App\Services\DepositSmsParser;
+use App\Services\PayAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -194,6 +196,99 @@ class BankDepositController extends Controller
             'last_page' => $page->lastPage(),
             'total_amount' => (int) $totalAmount, // 필터 조건 전체 합계 (페이지 무관)
         ]);
+    }
+
+    /**
+     * 페이앱 결제현황 — 결제요청이 발행된 견적서 기준.
+     * 페이앱은 결제내역 조회 API를 제공하지 않으므로(payrequest/paycancel 뿐),
+     * feedbackurl 통지로 갱신되는 우리 쪽 기록(estimates.payapp_*)을 보여준다.
+     */
+    public function payappList(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'from' => 'nullable|date',
+            'to' => 'nullable|date',
+            'search' => 'nullable|string|max:100',
+            'status' => 'nullable|in:paid,waiting,cancelled',
+            'per_page' => 'nullable|integer|min:1|max:200',
+            'page' => 'nullable|integer|min:1',
+        ]);
+
+        $query = Estimate::whereNotNull('payapp_requested_at');
+
+        if (! empty($validated['from'])) {
+            $query->where('payapp_requested_at', '>=', $validated['from'].' 00:00:00');
+        }
+        if (! empty($validated['to'])) {
+            $query->where('payapp_requested_at', '<=', $validated['to'].' 23:59:59');
+        }
+        if ($search = trim($validated['search'] ?? '')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('client_name', 'like', "%{$search}%")
+                    ->orWhere('client_nickname', 'like', "%{$search}%")
+                    ->orWhere('client_phone', 'like', "%{$search}%");
+                $numeric = (int) str_replace(',', '', $search);
+                if ($numeric > 0) {
+                    $q->orWhere('total_amount', $numeric)->orWhere('id', $numeric);
+                }
+            });
+        }
+        if (! empty($validated['status'])) {
+            $query->where(function ($q) use ($validated) {
+                match ($validated['status']) {
+                    'paid' => $q->whereNotNull('payapp_paid_at'),
+                    'cancelled' => $q->whereNull('payapp_paid_at')->where(function ($q2) {
+                        $q2->whereIn('payapp_state', [...PayAppClient::STATES_REFUNDED, ...PayAppClient::STATES_REQUEST_CANCELLED])
+                            ->orWhere('status', 'cancelled');
+                    }),
+                    'waiting' => $q->whereNull('payapp_paid_at')
+                        ->whereNotIn('payapp_state', [...PayAppClient::STATES_REFUNDED, ...PayAppClient::STATES_REQUEST_CANCELLED])
+                        ->where('status', '!=', 'cancelled'),
+                };
+            });
+        }
+
+        $paidQuery = (clone $query)->whereNotNull('payapp_paid_at');
+        $paidCount = (clone $paidQuery)->count();
+        $paidAmount = (int) $paidQuery->sum('total_amount');
+
+        $page = $query->orderByDesc('payapp_requested_at')->orderByDesc('id')
+            ->paginate((int) ($validated['per_page'] ?? 20));
+
+        return response()->json([
+            'data' => collect($page->items())->map(fn (Estimate $e) => [
+                'id' => $e->id,
+                'client_name' => $e->client_name ?: $e->client_nickname,
+                'client_phone' => $e->client_phone,
+                'amount' => (int) $e->total_amount,
+                'status' => $this->payappStatus($e),
+                'requested_at' => $e->payapp_requested_at?->format('Y-m-d H:i'),
+                'paid_at' => $e->payapp_paid_at?->format('Y-m-d H:i'),
+                'payurl' => $e->payapp_payurl,
+                'estimate_url' => $e->publicUrl(),
+            ])->all(),
+            'total' => $page->total(),
+            'current_page' => $page->currentPage(),
+            'last_page' => $page->lastPage(),
+            'paid_count' => $paidCount,
+            'paid_amount' => $paidAmount, // 필터 조건 내 결제완료 합계 (페이지 무관)
+        ]);
+    }
+
+    /** @return array{key:string, label:string} 페이앱 결제 상태 (통지 pay_state + 우리 상태 종합) */
+    private function payappStatus(Estimate $e): array
+    {
+        if ($e->payapp_paid_at) {
+            return ['key' => 'paid', 'label' => '결제완료'];
+        }
+        if (in_array((int) $e->payapp_state, PayAppClient::STATES_REFUNDED, true) || $e->status === 'cancelled') {
+            return ['key' => 'refunded', 'label' => '환불/취소'];
+        }
+        if (in_array((int) $e->payapp_state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {
+            return ['key' => 'req_cancelled', 'label' => '요청취소'];
+        }
+
+        return ['key' => 'waiting', 'label' => '결제 대기'];
     }
 
     /** 선택 삭제 — 입금 내역 페이지 접근 권한(deposits.view)과 동일 라우트 그룹에서 보호 */
