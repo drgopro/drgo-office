@@ -107,35 +107,37 @@
 
     /* ── 칸반 보드 ── */
     /* 보드 높이를 화면에 맞춰 고정(JS) — 가로 스크롤바가 페이지 최하단이 아니라 항상 화면 하단에 보이도록 */
-    .todo-board { display:flex; gap:14px; align-items:flex-start; overflow-x:auto; padding-bottom:6px; }
-    .todo-col { flex:0 0 280px; background:var(--surface); border:1px solid var(--border); border-radius:14px; min-height:120px; display:flex; flex-direction:column; max-height:100%; }
+    .todo-board { display:flex; gap:18px; align-items:flex-start; overflow-x:auto; padding-bottom:6px; }
+    .todo-col { flex:0 0 300px; background:#f8f9fb; border:none; box-shadow:0 0 0 1px rgba(18,26,42,0.04); border-radius:16px; min-height:120px; display:flex; flex-direction:column; max-height:100%; }
     .todo-col-body { overflow-y:auto; }
-    .todo-col.drag-over { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 5%, var(--surface)); }
-    .todo-col.ghost { border-style:dashed; opacity:0.85; }
+    .todo-col.drag-over { background:#eef3fd; box-shadow:0 0 0 1.5px rgba(37,99,235,0.45); }
+    .todo-col.ghost { background:#fbfcfd; box-shadow:none; border:1.5px dashed #c9d0da; opacity:0.9; }
     .todo-col.ghost .todo-empty { padding:18px 10px; }
-    .todo-col-head { display:flex; align-items:center; gap:8px; padding:14px 16px; border-bottom:1px solid var(--border); }
-    .todo-col-name { font-size:14px; font-weight:700; }
-    .todo-col-team { font-size:11px; color:var(--text-muted); }
-    .todo-col-count { margin-left:auto; font-size:12px; color:var(--text-muted); font-weight:600; }
-    .todo-col-body { padding:12px; display:flex; flex-direction:column; gap:10px; min-height:60px; }
+    .todo-col-head { display:flex; align-items:center; gap:8px; padding:16px 18px 10px; }
+    .todo-col-name { font-size:15px; font-weight:700; color:var(--td-text); }
+    .todo-col-team { font-size:12px; color:var(--td-muted); font-weight:600; }
+    .todo-col-count { margin-left:auto; font-size:13px; color:var(--td-muted); font-weight:700; }
+    .todo-col-body { padding:8px 14px 14px; display:flex; flex-direction:column; gap:12px; min-height:60px; }
 
     /* ── 카드 ── */
-    .todo-card { position:relative; background:#fff; border:none; border-radius:12px; padding:13px 15px 13px 19px; cursor:pointer; box-shadow:0 0 0 1px rgba(18,26,42,0.05), 0 1px 3px rgba(18,26,42,0.07); }
-    .todo-card:hover { box-shadow:0 0 0 1px rgba(18,26,42,0.08), 0 4px 12px rgba(18,26,42,0.10); }
-    .todo-card::before { content:''; position:absolute; left:7px; top:12px; bottom:12px; width:4px; border-radius:2px; background:var(--p-color, #d3d8e0); }
-    .todo-card.p-high { --p-color:#dc2626; }
-    .todo-card.p-medium { --p-color:#f59e0b; }
-    .todo-card.p-low { --p-color:#16a34a; }
+    .todo-card { position:relative; background:#fff; border:none; border-radius:14px; padding:16px 18px; cursor:pointer; box-shadow:0 0 0 1px rgba(18,26,42,0.05), 0 1px 2px rgba(18,26,42,0.05); transition:box-shadow .12s; }
+    .todo-card:hover { box-shadow:0 0 0 1px rgba(18,26,42,0.08), 0 6px 16px rgba(18,26,42,0.10); }
     .todo-card.dragging { opacity:0.45; }
-    .todo-card-meta { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
-    .todo-team-label { font-size:11px; color:var(--td-muted, #94a3b8); font-weight:600; }
+    /* 상단 행: 우선순위 점 + 팀 라벨 (왼쪽) · 우선순위 필 (오른쪽) */
+    .todo-card-meta { display:flex; align-items:center; gap:7px; margin-bottom:12px; }
+    .todo-card-meta .todo-pri { margin-left:auto; }
+    .todo-pri-dot { width:8px; height:8px; border-radius:999px; background:#d3d8e0; flex-shrink:0; }
+    .todo-card.p-high .todo-pri-dot { background:#dc2626; }
+    .todo-card.p-medium .todo-pri-dot { background:#f59e0b; }
+    .todo-card.p-low .todo-pri-dot { background:#16a34a; }
+    .todo-team-label { font-size:12px; color:var(--td-muted, #94a3b8); font-weight:600; }
     /* 우선순위 필 — 파스텔 (디자인 토큰) */
     .todo-pri { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; }
     .todo-pri.high { background:#fdeaea; color:#dc2626; }
     .todo-pri.medium { background:#fef3e2; color:#b45309; }
     .todo-pri.low { background:#e7f6ec; color:#15803d; }
-    .todo-card-title-row { display:flex; align-items:flex-start; gap:8px; }
-    .todo-card-title { font-size:13.5px; font-weight:700; line-height:1.45; word-break:break-word; color:var(--td-text, #1e293b); }
+    .todo-card-title-row { display:flex; align-items:flex-start; gap:10px; }
+    .todo-card-title { font-size:14.5px; font-weight:700; line-height:1.45; word-break:break-word; color:var(--td-text, #1e293b); }
     /* 원형 완료 체크 — 호버 시 미리보기, 완료 시 채워짐 */
     .todo-check { flex-shrink:0; width:19px; height:19px; border-radius:999px; border:1.5px solid #d3d8e0; background:#fff; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; margin-top:-1px; }
     .todo-check svg { width:11px; height:11px; fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:opacity 0.15s; }
@@ -143,13 +145,16 @@
     .todo-check:hover svg { opacity:1; stroke:#16a34a; }
     .todo-check.on { background:#16a34a; border-color:#16a34a; }
     .todo-check.on svg { opacity:1; stroke:#fff; }
-    .todo-card-foot { display:flex; align-items:center; gap:6px; margin-top:8px; }
-    .todo-co-assignees { font-size:11.5px; color:var(--td-muted, #94a3b8); margin:3px 0 0 28px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .todo-card-foot { display:flex; align-items:center; gap:7px; margin:10px 0 0 29px; flex-wrap:wrap; }
+    .todo-co-assignees { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--td-muted, #94a3b8); margin:8px 0 0 29px; }
+    .todo-co-assignees .tca-names { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .todo-co-assignees b { color:var(--td-text, #1e293b); font-weight:700; }
     .todo-co-assignees .a-done { color:#16a34a; }
+    /* 담당자 완료 카운트 필 (완료 0/2) */
+    .todo-cnt { flex-shrink:0; font-size:11px; font-weight:700; background:#f1f3f6; color:#334155; padding:3px 10px; border-radius:999px; white-space:nowrap; }
 
     /* 진행률 (체크리스트) */
-    .todo-progress { display:flex; align-items:center; gap:8px; margin:7px 0 0 28px; }
+    .todo-progress { display:flex; align-items:center; gap:8px; margin:8px 0 0 29px; }
     .todo-progress-bar { flex:1; height:5px; background:#eef0f3; border-radius:999px; overflow:hidden; }
     .todo-progress-bar span { display:block; height:100%; background:#1e293b; border-radius:999px; transition:width .2s; }
     .todo-progress-n { font-size:11px; color:var(--td-muted, #94a3b8); font-weight:600; white-space:nowrap; }
@@ -183,7 +188,7 @@
     .tv-check-add .todo-btn.ghost:hover { background:#e6e9ee; }
     .todo-due { font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; background:#f1f3f6; color:#475569; }
     .todo-due.overdue { background:#fdeaea; color:#dc2626; }
-    .todo-due.today { background:#fef3e2; color:#b45309; }
+    .todo-due.today, .todo-due.future { background:#fef3e2; color:#b45309; }
     .todo-due.held { background:#eef0f7; color:#5b6b95; }
     .todo-attach-n { font-size:12px; color:var(--td-muted, #94a3b8); }
     .todo-card.done { opacity:0.6; }
@@ -422,7 +427,7 @@ function dueChip(t) {
     const diff = dueDiff(t);
     if (diff < 0) { return `<span class="todo-due overdue">⚠ ${-diff}일 지남</span>`; }
     if (diff === 0) { return `<span class="todo-due today">오늘 마감</span>`; }
-    return `<span class="todo-due">D-${diff}</span>`;
+    return `<span class="todo-due future">D-${diff}</span>`;
 }
 
 // 리스트 뷰용 기한 날짜 — 임박 정도에 따라 색상 강조
@@ -719,20 +724,26 @@ function cardHtml(t, colUid) {
     const ids = t.assignee_ids || [];
     const doneIds = new Set(t.assignee_completed_ids || []);
     const coLine = names.length > 1
-        ? `<div class="todo-co-assignees" title="담당자 ${esc(names.join(', '))}">👥 ${ids.map((id, i) => {
+        ? `<div class="todo-co-assignees" title="담당자 ${esc(names.join(', '))}"><span class="tca-names">👥 ${ids.map((id, i) => {
             const nm = (doneIds.has(id) ? '<span class="a-done">✓' : '<span>') + esc(names[i] || '') + '</span>';
             return id === colUid ? `<b>${nm}</b>` : nm;
-        }).join(' · ')}</div>`
+        }).join(' · ')}</span>${!t.completed ? `<span class="todo-cnt">완료 ${doneIds.size}/${ids.length}</span>` : ''}</div>`
         : '';
     const myHalf = !t.completed && t.my_completed; // 내 몫은 완료, 다른 담당자 대기 중
     const checkTitle = isMyMultiToggle(t)
         ? (t.my_completed ? '내 완료 해제' : '내 완료 체크 (전원 완료 시 전체 완료)')
         : (t.completed ? '완료 취소' : '완료 처리');
+    const footChips = [
+        dueChip(t),
+        t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : '',
+        t.completed ? `<span class="todo-cnt">완료 ${t.completed_at}</span>` : '',
+    ].filter(Boolean).join('');
     return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
         ondragstart="startCardDrag(event, ${t.id})"
         ondragend="endCardDrag(this)"
         onclick="openTodoView(${t.id})">
         <div class="todo-card-meta">
+            <span class="todo-pri-dot"></span>
             ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
             <span class="todo-pri ${t.priority}">${priLabel}</span>
         </div>
@@ -744,12 +755,7 @@ function cardHtml(t, colUid) {
         </div>
         ${coLine}
         ${checklistProgressHtml(t)}
-        <div class="todo-card-foot">
-            ${dueChip(t)}
-            ${ids.length > 1 && !t.completed ? `<span class="todo-due">완료 ${doneIds.size}/${ids.length}</span>` : ''}
-            ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
-            ${t.completed ? `<span class="todo-due">완료 ${t.completed_at}</span>` : ''}
-        </div>
+        ${footChips ? `<div class="todo-card-foot">${footChips}</div>` : ''}
     </div>`;
 }
 
