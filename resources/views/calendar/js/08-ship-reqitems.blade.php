@@ -28,8 +28,20 @@ async function loadShipments(){
         const changed=!cached||JSON.stringify(cached)!==JSON.stringify(data);
         swrSet('ship:'+sid,data);
         if(changed){ shipCache=data; renderShipments(); if(isLocked) renderLockSummary(); }
+        // 배송완료인데 사업장 위치가 없는 송장 → 열람 시 1회 자동 백필 (서버가 60일/6시간 제한)
+        if(!shipLocBackfilled.has(sid)&&(data.shipments||[]).some(s=>s.status==='delivered'&&!s.last_location)){
+            shipLocBackfilled.add(sid);
+            try{
+                const r2=await fetch(`/api/schedules/${sid}/shipments/refresh`,{method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});
+                if(r2.ok){
+                    const d2=await r2.json();
+                    if(String(editingId)===String(sid)){ shipCache=d2; swrSet('ship:'+sid,d2); renderShipments(); if(isLocked) renderLockSummary(); }
+                }
+            }catch(e){}
+        }
     }catch(e){}
 }
+const shipLocBackfilled=new Set(); // 세션 내 일정별 1회만 시도
 // 택배사별 실시간 조회 페이지 (송장번호 클릭 시 새 창) — {no} 자리에 송장번호 치환, 없으면 조회 페이지만 열기
 const CARRIER_TRACK_URLS={
     'kr.cjlogistics':'https://trace.cjlogistics.com/next/tracking.html?wblNo={no}',

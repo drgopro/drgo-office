@@ -60,11 +60,24 @@ class ShipmentController extends Controller
         return response()->json($this->serialize($schedule));
     }
 
-    /** 일정의 미완료 송장 전체 추적 갱신 (상세 열람/수동 새로고침) */
+    /**
+     * 일정의 미완료 송장 전체 추적 갱신 (상세 열람/수동 새로고침).
+     * 배송완료 건도 사업장 위치가 비어 있으면 백필 재조회 (60일 내 완료, 6시간 간격 제한).
+     */
     public function refresh(Schedule $schedule): JsonResponse
     {
         $schedule->shipments()
-            ->where('status', '!=', 'delivered')
+            ->where(function ($q) {
+                $q->where('status', '!=', 'delivered')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'delivered')
+                            ->whereNull('last_location')
+                            ->where('delivered_at', '>=', now()->subDays(60))
+                            ->where(function ($q) {
+                                $q->whereNull('checked_at')->orWhere('checked_at', '<', now()->subHours(6));
+                            });
+                    });
+            })
             ->get()
             ->each(fn (ScheduleShipment $s) => $this->tracker->refresh($s));
 

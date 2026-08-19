@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Schedule;
+use App\Models\ScheduleShipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -232,6 +233,67 @@ HTML;
         $event = collect($response->json())->firstWhere('id', $schedule->id);
         $this->assertSame(1, $event['shipments_count']);
         $this->assertSame(1, $event['shipments_delivered_count']);
+    }
+
+    /** @param array<string, mixed> $attrs */
+    private function makeDeliveredShipment(Schedule $schedule, array $attrs = []): ScheduleShipment
+    {
+        return $schedule->shipments()->create(array_merge([
+            'carrier' => 'kr.cjlogistics',
+            'tracking_no' => '999888777666',
+            'status' => 'delivered',
+            'last_event' => '배송완료',
+            'last_location' => null,
+            'delivered_at' => now()->subDays(3),
+            'checked_at' => now()->subDay(),
+        ], $attrs));
+    }
+
+    public function test_refresh_backfills_location_for_delivered_shipment(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        $shipment = $this->makeDeliveredShipment($schedule);
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
+
+        $shipment->refresh();
+        $this->assertSame('delivered', $shipment->status);
+        $this->assertSame('강남2', $shipment->last_location);
+    }
+
+    public function test_backfill_failure_keeps_delivered_status(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response(['errors' => [['message' => 'NOT_FOUND: 조회 기간 만료']]])]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        $shipment = $this->makeDeliveredShipment($schedule);
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
+
+        $shipment->refresh();
+        $this->assertSame('delivered', $shipment->status); // 만료 응답이 완료 상태를 덮지 않음
+        $this->assertSame('배송완료', $shipment->last_event);
+        $this->assertNull($shipment->last_location);
+    }
+
+    public function test_backfill_skips_recently_checked_shipment(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        $this->makeDeliveredShipment($schedule, ['checked_at' => now()->subMinutes(10)]);
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
+
+        Http::assertNothingSent(); // 6시간 이내 재조회 안 함
     }
 
     public function test_delete_shipment(): void

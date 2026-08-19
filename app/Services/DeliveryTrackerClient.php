@@ -175,6 +175,14 @@ class DeliveryTrackerClient
     {
         $result = $this->fetch($shipment->carrier, $shipment->tracking_no);
 
+        // 배송완료 건의 재조회(사업장 위치 백필)에서 실패/후퇴 응답이 와도 완료 상태를 덮어쓰지 않음
+        if ($shipment->status === 'delivered' && $result['status'] !== 'delivered') {
+            $shipment->checked_at = now();
+            $shipment->save();
+
+            return $shipment;
+        }
+
         $shipment->status = $result['status'];
         $shipment->last_event = $result['last_event'];
         $shipment->last_location = $result['last_location'];
