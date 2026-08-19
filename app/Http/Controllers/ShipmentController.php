@@ -81,6 +81,7 @@ class ShipmentController extends Controller
             'tracking_no' => $s->tracking_no,
             'status' => $s->status,
             'last_event' => $s->last_event,
+            'last_location' => $s->last_location,
             'delivered_at' => $s->delivered_at?->format('Y-m-d H:i'),
             'checked_at' => $s->checked_at?->format('Y-m-d H:i'),
         ]);

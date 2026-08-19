@@ -30,7 +30,7 @@ class DeliveryTrackerClient
     /**
      * 송장 1건 조회 → 정규화된 상태 반환.
      *
-     * @return array{status:string, last_event:?string, delivered_at:?string, raw:?array}
+     * @return array{status:string, last_event:?string, last_location:?string, delivered_at:?string, raw:?array}
      */
     public function fetch(string $carrier, string $trackingNo): array
     {
@@ -43,7 +43,7 @@ class DeliveryTrackerClient
             ? 'https://apis.tracker.delivery/graphql'
             : rtrim((string) config('services.delivery_tracker.url'), '/');
         if (! $base) {
-            return ['status' => 'error', 'last_event' => '추적 서비스 미설정 (DELIVERY_TRACKER_URL 또는 API 키)', 'delivered_at' => null, 'raw' => null];
+            return ['status' => 'error', 'last_event' => '추적 서비스 미설정 (DELIVERY_TRACKER_URL 또는 API 키)', 'last_location' => null, 'delivered_at' => null, 'raw' => null];
         }
 
         try {
@@ -56,7 +56,7 @@ class DeliveryTrackerClient
                 'variables' => ['carrierId' => $carrier, 'trackingNumber' => $trackingNo],
             ]);
         } catch (\Throwable $e) {
-            return ['status' => 'error', 'last_event' => '추적 서비스 연결 실패', 'delivered_at' => null, 'raw' => null];
+            return ['status' => 'error', 'last_event' => '추적 서비스 연결 실패', 'last_location' => null, 'delivered_at' => null, 'raw' => null];
         }
 
         $data = $res->json();
@@ -75,12 +75,12 @@ class DeliveryTrackerClient
                 $msg = '택배사 응답을 읽지 못했습니다 — 송장번호 링크로 직접 확인해주세요 (추적 서비스 업데이트 필요 가능성)';
             }
 
-            return ['status' => 'error', 'last_event' => mb_substr($msg, 0, 200), 'delivered_at' => null, 'raw' => $data];
+            return ['status' => 'error', 'last_event' => mb_substr($msg, 0, 200), 'last_location' => null, 'delivered_at' => null, 'raw' => $data];
         }
 
         $lastEvent = data_get($data, 'data.track.lastEvent');
         if (! $lastEvent) {
-            return ['status' => 'pending', 'last_event' => '배송 정보 없음 (집화 전)', 'delivered_at' => null, 'raw' => $data];
+            return ['status' => 'pending', 'last_event' => '배송 정보 없음 (집화 전)', 'last_location' => null, 'delivered_at' => null, 'raw' => $data];
         }
 
         // TrackEventStatusCode → 내부 상태
@@ -91,14 +91,13 @@ class DeliveryTrackerClient
             default => 'pending', // UNKNOWN, INFORMATION_RECEIVED
         };
 
-        $text = trim(implode(' ', array_filter([
-            data_get($lastEvent, 'location.name'),
-            data_get($lastEvent, 'status.name') ?: data_get($lastEvent, 'description'),
-        ])));
+        $text = trim((string) (data_get($lastEvent, 'status.name') ?: data_get($lastEvent, 'description')));
+        $location = trim((string) data_get($lastEvent, 'location.name'));
 
         return [
             'status' => $status,
             'last_event' => $text !== '' ? mb_substr($text, 0, 200) : null,
+            'last_location' => $location !== '' ? mb_substr($location, 0, 120) : null,
             'delivered_at' => $status === 'delivered' ? (data_get($lastEvent, 'time') ?? now()->toIso8601String()) : null,
             'raw' => $data,
         ];
@@ -108,7 +107,7 @@ class DeliveryTrackerClient
      * 쿠팡(CLS) 직접 조회 폴백 — coupangls.com 조회 모달을 파싱 (delivery-tracker 오픈소스와 동일 구조).
      * 파싱 불가(차단·마크업 변경)면 null을 반환해 기존 오류 흐름으로 넘긴다.
      *
-     * @return ?array{status:string, last_event:?string, delivered_at:?string, raw:?array}
+     * @return ?array{status:string, last_event:?string, last_location:?string, delivered_at:?string, raw:?array}
      */
     private function fetchCoupangDirect(string $trackingNo): ?array
     {
@@ -128,7 +127,7 @@ class DeliveryTrackerClient
 
         $html = $res->body();
         if (str_contains($html, '운송장 미등록') || stripos($html, 'waybill is not registered') !== false) {
-            return ['status' => 'pending', 'last_event' => '운송장 미등록 (집화 전)', 'delivered_at' => null, 'raw' => ['source' => 'coupang_direct']];
+            return ['status' => 'pending', 'last_event' => '운송장 미등록 (집화 전)', 'last_location' => null, 'delivered_at' => null, 'raw' => ['source' => 'coupang_direct']];
         }
 
         libxml_use_internal_errors(true);
@@ -159,11 +158,11 @@ class DeliveryTrackerClient
         usort($events, fn ($a, $b) => strtotime($a['time']) <=> strtotime($b['time']));
         $last = end($events);
         $delivered = str_contains($last['status'], '배송완료');
-        $text = trim(implode(' ', array_filter([$last['location'], $last['status']])));
 
         return [
             'status' => $delivered ? 'delivered' : 'in_transit',
-            'last_event' => $text !== '' ? mb_substr($text, 0, 200) : null,
+            'last_event' => $last['status'] !== '' ? mb_substr($last['status'], 0, 200) : null,
+            'last_location' => $last['location'] !== '' ? mb_substr($last['location'], 0, 120) : null,
             'delivered_at' => $delivered ? (date(DATE_ATOM, strtotime($last['time']) ?: time())) : null,
             'raw' => ['source' => 'coupang_direct', 'events' => array_slice($events, -5)],
         ];
@@ -178,6 +177,7 @@ class DeliveryTrackerClient
 
         $shipment->status = $result['status'];
         $shipment->last_event = $result['last_event'];
+        $shipment->last_location = $result['last_location'];
         $shipment->checked_at = now();
         if ($result['delivered_at'] && ! $shipment->delivered_at) {
             $shipment->delivered_at = $result['delivered_at'];

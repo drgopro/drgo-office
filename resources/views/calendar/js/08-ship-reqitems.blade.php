@@ -48,10 +48,12 @@ function shipRowHtml(s){
     const noHtml=trackHref
         ? `<a class="ship-no ship-no-link" href="${trackHref}" target="_blank" rel="noopener" title="택배사 실시간 조회 열기" onclick="event.stopPropagation()">${_esc(s.tracking_no)} ↗</a>`
         : `<span class="ship-no">${_esc(s.tracking_no)}</span>`;
+    const locHtml=s.last_location?`<span class="ship-loc" title="마지막 처리 사업장: ${_esc(s.last_location)}">📍 ${_esc(s.last_location)}</span>`:'';
     return `<div class="ship-item">
         <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
         <span class="ship-carrier">${_esc(s.carrier_label)}</span>
         ${noHtml}
+        ${locHtml}
         <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
         <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
     </div>`;

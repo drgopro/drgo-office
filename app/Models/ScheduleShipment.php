@@ -13,6 +13,7 @@ class ScheduleShipment extends Model
         'tracking_no',
         'status',
         'last_event',
+        'last_location',
         'delivered_at',
         'checked_at',
         'raw',

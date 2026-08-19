@@ -57,7 +57,9 @@ class ScheduleShipmentTest extends TestCase
         $this->assertSame('123456789012', $shipment->tracking_no); // 하이픈 제거
         $this->assertSame('delivered', $shipment->status);
         $this->assertNotNull($shipment->delivered_at);
-        $this->assertStringContainsString('강남2', $shipment->last_event);
+        $this->assertSame('배송완료', $shipment->last_event);
+        $this->assertSame('강남2', $shipment->last_location); // 사업장 위치는 별도 필드
+        $response->assertJsonPath('shipments.0.last_location', '강남2');
     }
 
     public function test_duplicate_shipment_rejected(): void
@@ -137,7 +139,8 @@ HTML;
 
         $shipment = $schedule->shipments()->first();
         $this->assertSame('delivered', $shipment->status);
-        $this->assertStringContainsString('강남캠프', $shipment->last_event);
+        $this->assertSame('배송완료', $shipment->last_event);
+        $this->assertSame('강남캠프', $shipment->last_location); // 조회 페이지의 위치 컬럼
         $this->assertNotNull($shipment->delivered_at);
     }
 
