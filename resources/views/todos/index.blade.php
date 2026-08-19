@@ -190,13 +190,14 @@
     /* ── 모달 (등록/상세) ── */
     .todo-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:400; align-items:flex-start; justify-content:center; padding:6vh 16px 16px; overflow-y:auto; }
     .todo-overlay.open { display:flex; }
-    .todo-modal { width:100%; max-width:620px; background:#fff; border:none; border-radius:18px; box-shadow:0 24px 60px rgba(18,26,42,0.14), 0 2px 6px rgba(18,26,42,0.06); overflow:hidden; }
+    /* 모달은 화면을 넘지 않고 본문만 내부 스크롤 — 진행 단계·버튼이 항상 화면 안에 보이도록 */
+    .todo-modal { width:100%; max-width:620px; background:#fff; border:none; border-radius:18px; box-shadow:0 24px 60px rgba(18,26,42,0.14), 0 2px 6px rgba(18,26,42,0.06); overflow:hidden; display:flex; flex-direction:column; max-height:calc(100vh - 6vh - 32px); max-height:calc(100dvh - 6vh - 32px); }
     #todoViewOverlay .todo-modal { max-width:700px; }
-    .todo-modal-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:24px 32px 18px; border-bottom:none; }
+    .todo-modal-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:24px 32px 18px; border-bottom:none; flex-shrink:0; }
     .todo-modal-head h2 { font-size:19px; font-weight:700; letter-spacing:-0.01em; line-height:1.4; color:var(--td-text); }
     .todo-modal-close { flex-shrink:0; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:none; border:none; border-radius:8px; font-size:18px; color:var(--td-muted); cursor:pointer; padding:0; }
     .todo-modal-close:hover { background:#f4f5f7; color:#475569; }
-    .todo-modal-body { padding:2px 32px 8px; display:flex; flex-direction:column; gap:22px; }
+    .todo-modal-body { padding:2px 32px 8px; display:flex; flex-direction:column; gap:22px; flex:1 1 auto; min-height:0; overflow-y:auto; }
     .todo-field label { display:block; font-size:13px; font-weight:600; color:var(--td-label); margin-bottom:8px; }
     .todo-field label .req { color:#f43f5e; }
     .todo-field label .lbl-sub { font-weight:400; color:var(--td-muted); }
@@ -208,7 +209,7 @@
     .todo-field input:focus, .todo-field select:focus, .todo-field textarea:focus { box-shadow:var(--td-focus); background:#fff; }
     .todo-field-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
     @media (max-width:560px) { .todo-field-row { grid-template-columns:1fr; } }
-    .todo-modal-foot { display:flex; gap:10px; padding:22px 32px 26px; border-top:none; justify-content:flex-end; flex-wrap:wrap; }
+    .todo-modal-foot { display:flex; gap:10px; padding:22px 32px 26px; border-top:none; justify-content:flex-end; flex-wrap:wrap; flex-shrink:0; }
     /* 임시저장 배너 */
     .tf-draft-bar { display:flex; align-items:center; gap:8px; background:color-mix(in srgb, var(--accent) 8%, transparent); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius:9px; padding:8px 12px; font-size:12px; color:var(--text); }
     .tf-draft-bar button { border:none; border-radius:7px; padding:5px 11px; font-size:11.5px; font-weight:700; cursor:pointer; background:var(--accent); color:var(--accent-text); }
@@ -227,6 +228,8 @@
     /* 상세 보기 */
     .todo-view-meta { display:flex; align-items:center; gap:8px 14px; flex-wrap:wrap; font-size:14px; color:var(--td-label); }
     .todo-view-meta strong { color:var(--td-text); }
+    /* 내용이 길어도 진행 단계 섹션이 첫 화면에 보이도록 내용 박스는 자체 스크롤 */
+    #todoViewOverlay .todo-view-content { max-height:34vh; overflow-y:auto; }
     .todo-view-content { font-size:15px; line-height:1.75; white-space:pre-wrap; word-break:break-word; background:#f7f8fa; border-radius:12px; padding:18px 20px; color:#334155; }
     .todo-attach-list { display:flex; flex-direction:column; gap:8px; }
     .todo-attach-item { display:flex; align-items:center; gap:10px; font-size:14px; background:#fff; border:none; box-shadow:0 1px 2px rgba(18,26,42,0.05), 0 0 0 1px rgba(18,26,42,0.04); border-radius:10px; padding:11px 14px; }
