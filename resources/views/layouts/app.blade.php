@@ -4,7 +4,16 @@
 <script>
 /* 라이트 모드 고정 (다크모드 제거) */
 (function(){try{localStorage.removeItem('drgo_theme');}catch(e){}document.documentElement.setAttribute('data-theme','light');})();
+/* 날짜 입력 — 달력 아이콘이 아니라 칸 아무 곳이나 클릭해도 달력 표시 (전 페이지 공통) */
+document.addEventListener('click', function(e){
+    const el = e.target;
+    if (el instanceof HTMLInputElement && (el.type === 'date' || el.type === 'datetime-local' || el.type === 'month')
+        && !el.disabled && !el.readOnly && typeof el.showPicker === 'function') {
+        try { el.showPicker(); } catch (_) { /* 이미 열려 있거나 미지원 — 기본 동작 유지 */ }
+    }
+});
 </script>
+<style>input[type=date], input[type=datetime-local], input[type=month] { cursor:pointer; }</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">

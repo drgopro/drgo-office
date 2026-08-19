@@ -7,7 +7,16 @@ document.documentElement.setAttribute('data-theme', 'light');
     if (document.body) apply();
     else document.addEventListener('DOMContentLoaded', apply, { once:true });
 })();
+// 날짜 입력 — 달력 아이콘이 아니라 칸 아무 곳이나 클릭해도 달력 표시 (전 페이지 공통)
+document.addEventListener('click', function(e){
+    const el = e.target;
+    if (el instanceof HTMLInputElement && (el.type === 'date' || el.type === 'datetime-local' || el.type === 'month')
+        && !el.disabled && !el.readOnly && typeof el.showPicker === 'function') {
+        try { el.showPicker(); } catch (_) { /* 이미 열려 있거나 미지원 — 기본 동작 유지 */ }
+    }
+});
 </script>
+<style>input[type=date], input[type=datetime-local], input[type=month] { cursor:pointer; }</style>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 /* tab-content 기본 CSS 변수 */
