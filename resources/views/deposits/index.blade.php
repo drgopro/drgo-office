@@ -46,8 +46,8 @@
     /* 원문 보기 — 클릭 시 행 아래로 펼침 */
     .raw-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:11px; padding:3px 9px; cursor:pointer; white-space:nowrap; }
     .raw-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .dep-raw { flex:1; min-width:0; }
-    .dep-raw pre { margin:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
+    .dep-raw { flex:1; min-width:0; padding:0 10px; }
+    .dep-raw pre { margin:0; background:var(--surface2); border:none; border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
     .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
@@ -114,9 +114,10 @@
                 <th style="width:150px;">입금 시간</th>
                 <th style="width:110px;">은행</th>
                 <th class="text-center" style="width:150px;">입금 금액</th>
-                <th>입금자명</th>
+                <th style="width:180px;">입금자명</th>
+                <th>원문</th>
             </tr></thead>
-            <tbody id="depBody"><tr><td colspan="5" class="empty-row">로딩 중...</td></tr></tbody>
+            <tbody id="depBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
     </div>
     <div class="mob-cards" id="depCards"></div>
@@ -232,7 +233,7 @@ async function loadDeposits() {
     depPageIds = data.map(d => d.id);
     updateDepSelUI();
     if (!data.length) {
-        tb.innerHTML = '<tr><td colspan="5" class="empty-row">입금 내역이 없습니다.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">입금 내역이 없습니다.</td></tr>';
         cards.innerHTML = '<div class="empty-row">입금 내역이 없습니다.</div>';
         return;
     }
@@ -242,13 +243,11 @@ async function loadDeposits() {
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-        <td style="font-weight:600;">
-            <div style="display:flex;align-items:flex-start;gap:22px;">
-                <span style="flex-shrink:0;padding-top:3px;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
-                ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>
-                <div class="dep-raw" id="depRaw${d.id}" style="display:none;"><pre>${_esc(d.raw_text)}</pre></div>` : ''}
-            </div>
-        </td>
+        <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
+        <td>${d.raw_text ? `<div style="display:flex;align-items:flex-start;gap:12px;">
+            <div class="dep-raw" id="depRaw${d.id}" style="display:none;"><pre>${_esc(d.raw_text)}</pre></div>
+            <button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>
+        </div>` : ''}</td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
