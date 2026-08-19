@@ -344,8 +344,8 @@
     .ship-item .ship-no { font-size:12px; font-family:ui-monospace,Menlo,monospace; color:var(--text-muted); flex-shrink:0; }
     .ship-item .ship-no-link { text-decoration:none; color:var(--accent); cursor:pointer; }
     .ship-item .ship-no-link:hover { text-decoration:underline; }
-    .ship-item .ship-loc { font-size:11px; font-weight:700; color:var(--text-muted); background:var(--surface2); border-radius:999px; padding:2px 8px; flex-shrink:0; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .ship-item .ship-event { font-size:12px; color:var(--text-muted); flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ship-item .ship-loc { font-size:11px; font-weight:700; color:var(--text-muted); background:var(--surface2); border-radius:999px; padding:2px 8px; flex-shrink:1; min-width:0; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ship-item .ship-event { font-size:12px; color:var(--text-muted); flex:1; min-width:60px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .ship-item .ship-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 4px; flex-shrink:0; }
     .ship-item .ship-del:hover { color:var(--red); }
     .ship-empty { font-size:12px; color:var(--text-muted); padding:6px 2px; }
