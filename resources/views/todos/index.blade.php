@@ -134,6 +134,32 @@
     .todo-card-foot { display:flex; align-items:center; gap:6px; margin-top:8px; }
     .todo-co-assignees { font-size:11px; color:var(--text-muted); margin:3px 0 0 28px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .todo-co-assignees b { color:var(--text); font-weight:700; }
+    .todo-co-assignees .a-done { color:var(--green, #4caf50); }
+
+    /* 진행률 (체크리스트) */
+    .todo-progress { display:flex; align-items:center; gap:7px; margin:7px 0 0 28px; }
+    .todo-progress-bar { flex:1; height:5px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+    .todo-progress-bar span { display:block; height:100%; background:var(--accent); border-radius:4px; transition:width .2s; }
+    .todo-progress-n { font-size:10.5px; color:var(--text-muted); font-weight:600; white-space:nowrap; }
+
+    /* 내 완료만 체크된 상태 (전원 완료 대기) */
+    .todo-check.half { border-color:var(--green, #4caf50); color:var(--green, #4caf50); background:color-mix(in srgb, var(--green, #4caf50) 12%, transparent); }
+    .todo-check.half svg { opacity:0.9; }
+
+    /* 상세 모달 — 담당 현황 / 체크리스트 */
+    .tv-section-title { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:7px; }
+    .tv-assign-chips { display:flex; gap:6px; flex-wrap:wrap; }
+    .tv-assign-chip { font-size:12px; padding:4px 11px; border-radius:12px; border:1px solid var(--border); color:var(--text-muted); }
+    .tv-assign-chip.done { border-color:var(--green, #4caf50); color:var(--green, #4caf50); background:color-mix(in srgb, var(--green, #4caf50) 10%, transparent); }
+    .tv-check-row { display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px dashed var(--border); font-size:13px; }
+    .tv-check-row:last-of-type { border-bottom:none; }
+    .tv-check-row.done .tv-check-title { text-decoration:line-through; color:var(--text-muted); }
+    .tv-check-title { flex:1; min-width:0; }
+    .tv-check-by { font-size:10.5px; color:var(--text-muted); white-space:nowrap; }
+    .tv-check-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
+    .tv-check-del:hover { color:var(--red, #dc2626); }
+    .tv-check-add { display:flex; gap:6px; margin-top:8px; }
+    .tv-check-add input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
     .todo-due { font-size:10px; font-weight:700; padding:3px 9px; border-radius:9px; background:var(--surface2); color:var(--text-muted); }
     .todo-due.overdue { background:#fdecea; color:#c0392b; }
     .todo-due.today { background:#fdf1e3; color:#b26a00; }
@@ -312,6 +338,8 @@
         <div class="todo-modal-body">
             <div class="todo-view-meta" id="tvMeta"></div>
             <div class="todo-view-content" id="tvContent"></div>
+            <div id="tvAssignStatus"></div>
+            <div id="tvChecklist"></div>
             <div class="todo-attach-list" id="tvAttachments"></div>
         </div>
         <div class="todo-modal-foot">
@@ -530,6 +558,7 @@ function listHtml(todos) {
                 <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
             <span class="todo-lrow-title">${esc(t.title)}</span>
+            ${(t.checklist || []).length ? `<span class="todo-attach-n" title="진행 단계">☑ ${t.checklist.filter(c => c.done).length}/${t.checklist.length}</span>` : ''}
             ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
             ${(t.assignee_names || []).length > 1 ? `<span class="todo-attach-n" title="${esc(t.assignee_names.join(', '))}">👥 +${t.assignee_names.length - 1}</span>` : ''}
             <span class="todo-lrow-right">
@@ -632,15 +661,38 @@ document.addEventListener('click', e => {
     if (mf && mf.classList.contains('open') && !mf.contains(e.target)) { mf.classList.remove('open'); }
 });
 
+// 복수 담당 + 내가 담당이면 카드 체크 = '내 완료' 토글 (전원 완료 시 전체 완료)
+function isMyMultiToggle(t) {
+    return t && (t.assignee_ids || []).length > 1 && t.assignee_ids.includes(TODO_ME);
+}
+
+function checklistProgressHtml(t, noIndent) {
+    const list = t.checklist || [];
+    if (!list.length) return '';
+    const done = list.filter(c => c.done).length;
+    const pct = Math.round(done / list.length * 100);
+    return `<div class="todo-progress"${noIndent ? ' style="margin-left:0;"' : ''} title="진행 단계 ${done}/${list.length}">
+        <div class="todo-progress-bar"><span style="width:${pct}%"></span></div>
+        <span class="todo-progress-n">${done}/${list.length}</span>
+    </div>`;
+}
+
 function cardHtml(t, colUid) {
     const priLabel = PRI_LABELS[t.priority] || t.priority;
-    // 복수 담당 — 담당자 전원을 카드에 나열 (현재 컬럼 담당자는 굵게)
+    // 복수 담당 — 담당자 전원을 카드에 나열 (현재 컬럼 담당자는 굵게, 완료 체크한 사람은 ✓)
     const names = t.assignee_names || [];
     const ids = t.assignee_ids || [];
+    const doneIds = new Set(t.assignee_completed_ids || []);
     const coLine = names.length > 1
-        ? `<div class="todo-co-assignees" title="담당자 ${esc(names.join(', '))}">👥 ${ids.map((id, i) =>
-            id === colUid ? `<b>${esc(names[i] || '')}</b>` : esc(names[i] || '')).join(' · ')}</div>`
+        ? `<div class="todo-co-assignees" title="담당자 ${esc(names.join(', '))}">👥 ${ids.map((id, i) => {
+            const nm = (doneIds.has(id) ? '<span class="a-done">✓' : '<span>') + esc(names[i] || '') + '</span>';
+            return id === colUid ? `<b>${nm}</b>` : nm;
+        }).join(' · ')}</div>`
         : '';
+    const myHalf = !t.completed && t.my_completed; // 내 몫은 완료, 다른 담당자 대기 중
+    const checkTitle = isMyMultiToggle(t)
+        ? (t.my_completed ? '내 완료 해제' : '내 완료 체크 (전원 완료 시 전체 완료)')
+        : (t.completed ? '완료 취소' : '완료 처리');
     return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
         ondragstart="startCardDrag(event, ${t.id})"
         ondragend="endCardDrag(this)"
@@ -650,14 +702,16 @@ function cardHtml(t, colUid) {
             <span class="todo-pri ${t.priority}">${priLabel}</span>
         </div>
         <div class="todo-card-title-row">
-            <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
+            <button type="button" class="todo-check ${t.completed ? 'on' : ''} ${myHalf ? 'half' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${checkTitle}">
                 <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
             <div class="todo-card-title">${esc(t.title)}</div>
         </div>
         ${coLine}
+        ${checklistProgressHtml(t)}
         <div class="todo-card-foot">
             ${dueChip(t)}
+            ${ids.length > 1 && !t.completed ? `<span class="todo-due">완료 ${doneIds.size}/${ids.length}</span>` : ''}
             ${t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : ''}
             ${t.completed ? `<span class="todo-due">완료 ${t.completed_at}</span>` : ''}
         </div>
@@ -1011,12 +1065,73 @@ function openTodoView(id) {
             <a href="${a.url}" target="_blank" rel="noopener">${esc(a.file_name)}</a>
             <button type="button" class="todo-attach-del" onclick="deleteAttachment(${a.id})" title="첨부 삭제">✕</button>
         </div>`).join('');
-    document.getElementById('tvCompleteBtn').textContent = t.completed ? '완료 취소' : '완료 처리';
+    // 담당자별 완료 현황 (복수 담당)
+    const ids = t.assignee_ids || [];
+    const doneIds = new Set(t.assignee_completed_ids || []);
+    document.getElementById('tvAssignStatus').innerHTML = ids.length > 1 ? `
+        <div class="tv-section-title">담당자 완료 현황 ${doneIds.size}/${ids.length} — 전원 완료 시 자동 완료</div>
+        <div class="tv-assign-chips">${ids.map((id, i) =>
+            `<span class="tv-assign-chip ${doneIds.has(id) ? 'done' : ''}">${doneIds.has(id) ? '✓ ' : ''}${esc((t.assignee_names || [])[i] || '')}</span>`).join('')}
+        </div>` : '';
+    tvRenderChecklist(t);
+    const mine = isMyMultiToggle(t);
+    document.getElementById('tvCompleteBtn').textContent = mine
+        ? (t.my_completed ? '내 완료 해제' : '내 완료 체크')
+        : (t.completed ? '완료 취소' : '완료 처리');
     const holdBtn = document.getElementById('tvHoldBtn');
     holdBtn.style.display = (t.due_date && !t.completed) ? '' : 'none';
     holdBtn.textContent = t.due_held ? '보류 해제' : '기한 보류';
     document.getElementById('todoViewOverlay').classList.add('open');
     armModalHistory();
+}
+
+// ── 체크리스트 (진행 단계) ──
+function tvRenderChecklist(t) {
+    const list = t.checklist || [];
+    const done = list.filter(c => c.done).length;
+    document.getElementById('tvChecklist').innerHTML = `
+        <div class="tv-section-title">진행 단계 ${list.length ? `${done}/${list.length}` : ''}</div>
+        ${checklistProgressHtml(t, true)}
+        ${list.map(c => `<div class="tv-check-row ${c.done ? 'done' : ''}">
+            <button type="button" class="todo-check ${c.done ? 'on' : ''}" onclick="toggleChecklistItem(${c.id}, ${c.done ? 'false' : 'true'})" title="${c.done ? '완료 해제' : '완료'}">
+                <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+            </button>
+            <span class="tv-check-title">${esc(c.title)}</span>
+            ${c.done && c.done_by ? `<span class="tv-check-by">✓ ${esc(c.done_by)}</span>` : ''}
+            <button type="button" class="tv-check-del" onclick="deleteChecklistItem(${c.id})" title="단계 삭제">✕</button>
+        </div>`).join('')}
+        <div class="tv-check-add">
+            <input id="tvCheckAddInput" placeholder="진행 단계 추가 (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
+            <button type="button" class="todo-btn ghost" onclick="addChecklistItem()">추가</button>
+        </div>`;
+}
+
+async function checklistApi(url, method, body) {
+    const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '처리에 실패했습니다.'); return false; }
+    const id = TODO_VIEW_ID;
+    await refreshBoard();
+    if (id) { const t = TODOS.find(x => x.id === id); if (t) { openTodoView(id); } }
+    return true;
+}
+async function addChecklistItem() {
+    const input = document.getElementById('tvCheckAddInput');
+    const title = input.value.trim();
+    if (!title) { return; }
+    await checklistApi(`/api/todos/${TODO_VIEW_ID}/checklist`, 'POST', { title });
+    const again = document.getElementById('tvCheckAddInput');
+    if (again) { again.focus(); }
+}
+async function toggleChecklistItem(itemId, done) {
+    await checklistApi(`/api/todo-checklist/${itemId}`, 'PATCH', { done });
+}
+async function deleteChecklistItem(itemId) {
+    if (!confirm('이 진행 단계를 삭제할까요?')) { return; }
+    await checklistApi(`/api/todo-checklist/${itemId}`, 'DELETE');
 }
 function closeTodoView() {
     if (MODAL_HIST) { history.back(); } else { reallyCloseView(); }
@@ -1030,13 +1145,15 @@ function editTodo() {
     openTodoForm(t);
 }
 
-// 카드 체크박스로 즉시 완료 토글
+// 카드 체크박스로 즉시 완료 토글 — 복수 담당 + 내가 담당이면 '내 완료' 토글
 async function quickComplete(id) {
-    const res = await fetch(`/api/todos/${id}/complete`, {
+    const t = TODOS.find(x => x.id === id);
+    const url = isMyMultiToggle(t) ? `/api/todos/${id}/my-complete` : `/api/todos/${id}/complete`;
+    const res = await fetch(url, {
         method: 'PATCH',
         headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
     });
-    if (!res.ok) { alert('처리에 실패했습니다.'); return; }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); alert(e.message || '처리에 실패했습니다.'); return; }
     await refreshBoard();
 }
 
@@ -1062,13 +1179,12 @@ async function toggleHoldDue() {
 }
 
 async function toggleComplete() {
-    const res = await fetch(`/api/todos/${TODO_VIEW_ID}/complete`, {
-        method: 'PATCH',
-        headers: { 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
-    });
-    if (!res.ok) { alert('처리에 실패했습니다.'); return; }
-    closeTodoView();
-    await refreshBoard();
+    const id = TODO_VIEW_ID;
+    const wasMine = isMyMultiToggle(TODOS.find(x => x.id === id));
+    await quickComplete(id); // 스마트 라우팅 (내 완료/전체 완료) + 보드 갱신 포함
+    const t = TODOS.find(x => x.id === id);
+    // 내 완료 체크로 아직 전체 완료가 아니면 모달 유지(현황 갱신), 그 외에는 닫기
+    if (wasMine && t && !t.completed) { openTodoView(id); } else { closeTodoView(); }
 }
 
 async function deleteTodo() {

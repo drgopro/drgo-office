@@ -49,8 +49,32 @@ class Todo extends Model
     public function assignees()
     {
         return $this->belongsToMany(User::class, 'todo_assignees')
-            ->withPivot('sort_order')
+            ->withPivot('sort_order', 'completed_at')
             ->orderByPivot('sort_order');
+    }
+
+    /** 체크리스트 (진행 단계) */
+    public function checklistItems()
+    {
+        return $this->hasMany(TodoChecklistItem::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * 복수 담당 할 일의 전체 완료 상태 재계산 — 전원이 완료 체크하면 완료, 하나라도 풀리면 미완료.
+     * (단독 담당 할 일은 기존 완료 버튼 방식 그대로라 여기서 건드리지 않음)
+     */
+    public function refreshCompletionFromAssignees(): void
+    {
+        $pivots = $this->assignees()->get();
+        if ($pivots->count() <= 1) {
+            return;
+        }
+        $allDone = $pivots->every(fn ($u) => $u->pivot->completed_at !== null);
+        if ($allDone && ! $this->completed_at) {
+            $this->update(['completed_at' => now()]);
+        } elseif (! $allDone && $this->completed_at) {
+            $this->update(['completed_at' => null]);
+        }
     }
 
     /**
@@ -64,6 +88,11 @@ class Todo extends Model
         $changes = $this->assignees()->sync($ids->mapWithKeys(fn ($id, $i) => [$id => ['sort_order' => $i]])->all());
         if ($ids->isNotEmpty() && $this->assignee_id !== $ids->first()) {
             $this->update(['assignee_id' => $ids->first()]);
+        }
+
+        // 담당자 구성이 바뀌면 전원 완료 상태 재계산 (미완료 담당자가 빠져 남은 전원이 완료일 수 있음)
+        if ($changes['attached'] || $changes['detached']) {
+            $this->refreshCompletionFromAssignees();
         }
 
         // 담당자 지정/제외 채널톡 알림 (신규 등록은 '새 할 일' 알림과 중복 방지를 위해 notify: false)

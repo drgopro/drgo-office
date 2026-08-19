@@ -392,7 +392,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api/todos/{todo}', [TodoController::class, 'update']);
     Route::patch('/api/todos/{todo}/assign', [TodoController::class, 'assign']);
     Route::patch('/api/todos/{todo}/complete', [TodoController::class, 'complete']);
+    Route::patch('/api/todos/{todo}/my-complete', [TodoController::class, 'myComplete']); // 복수 담당 — 본인 완료 체크
     Route::patch('/api/todos/{todo}/hold-due', [TodoController::class, 'holdDue']);
+    Route::post('/api/todos/{todo}/checklist', [TodoController::class, 'storeChecklistItem']);
+    Route::patch('/api/todo-checklist/{item}', [TodoController::class, 'updateChecklistItem']);
+    Route::delete('/api/todo-checklist/{item}', [TodoController::class, 'destroyChecklistItem']);
     Route::delete('/api/todos/{todo}', [TodoController::class, 'destroy']);
     Route::post('/api/todos/{todo}/attachments', [TodoController::class, 'storeAttachments']);
     Route::delete('/api/todo-attachments/{attachment}', [TodoController::class, 'destroyAttachment']);

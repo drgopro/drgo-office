@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\Todo;
 use App\Models\TodoAttachment;
+use App\Models\TodoChecklistItem;
 use App\Models\User;
 use App\Rules\SafeAttachment;
 use App\Services\ChannelTalkNotifier;
@@ -118,13 +119,83 @@ class TodoController extends Controller
         return response()->json(['ok' => true, 'due_held' => (bool) $todo->due_held_at]);
     }
 
-    /** 완료 토글 */
+    /** 완료 토글 (전체) — 복수 담당 할 일이면 담당자별 체크도 함께 맞춰줌 (관리자 강제 완료 등) */
     public function complete(Todo $todo)
     {
         $this->authorizeTodo($todo);
-        $todo->update(['completed_at' => $todo->completed_at ? null : now()]);
+        $completing = ! $todo->completed_at;
+        $todo->update(['completed_at' => $completing ? now() : null]);
+        // 전체 완료/해제와 담당자별 체크 상태 동기화
+        $todo->assignees()->newPivotStatement()
+            ->where('todo_id', $todo->id)
+            ->update(['completed_at' => $completing ? now() : null]);
 
         return response()->json(['ok' => true, 'completed' => (bool) $todo->completed_at]);
+    }
+
+    /** 내 완료 토글 (복수 담당) — 전원이 완료하면 할 일 전체가 완료 처리 */
+    public function myComplete(Todo $todo)
+    {
+        $this->authorizeTodo($todo);
+        $userId = Auth::id();
+        if (! $todo->assignees()->where('users.id', $userId)->exists()) {
+            return response()->json(['message' => '담당자만 본인 완료 체크를 할 수 있습니다.'], 403);
+        }
+
+        $current = $todo->assignees()->where('users.id', $userId)->first()->pivot->completed_at;
+        $todo->assignees()->updateExistingPivot($userId, ['completed_at' => $current ? null : now()]);
+        $todo->refreshCompletionFromAssignees();
+        $todo->refresh();
+
+        return response()->json([
+            'ok' => true,
+            'my_completed' => ! $current,
+            'completed' => (bool) $todo->completed_at,
+        ]);
+    }
+
+    // ── 체크리스트 (진행 단계) ──
+
+    public function storeChecklistItem(Request $request, Todo $todo)
+    {
+        $this->authorizeTodo($todo);
+        $validated = $request->validate(['title' => 'required|string|max:200']);
+
+        $item = $todo->checklistItems()->create([
+            'title' => $validated['title'],
+            'sort_order' => (int) $todo->checklistItems()->max('sort_order') + 1,
+        ]);
+
+        return response()->json(['ok' => true, 'id' => $item->id], 201);
+    }
+
+    /** 체크리스트 항목 토글/제목 수정 */
+    public function updateChecklistItem(Request $request, TodoChecklistItem $item)
+    {
+        $this->authorizeTodo($item->todo);
+        $validated = $request->validate([
+            'done' => 'sometimes|boolean',
+            'title' => 'sometimes|string|max:200',
+        ]);
+
+        if (array_key_exists('done', $validated)) {
+            $item->done_at = $validated['done'] ? now() : null;
+            $item->done_by = $validated['done'] ? Auth::id() : null;
+        }
+        if (array_key_exists('title', $validated)) {
+            $item->title = $validated['title'];
+        }
+        $item->save();
+
+        return response()->json(['ok' => true, 'done' => (bool) $item->done_at]);
+    }
+
+    public function destroyChecklistItem(TodoChecklistItem $item)
+    {
+        $this->authorizeTodo($item->todo);
+        $item->delete();
+
+        return response()->json(['ok' => true]);
     }
 
     public function destroy(Todo $todo)
@@ -241,7 +312,7 @@ class TodoController extends Controller
     /** @return array<int, array<string, mixed>> */
     private function boardTodos(): array
     {
-        return Todo::with('assignee.team', 'creator', 'attachments', 'assignees')
+        return Todo::with('assignee.team', 'creator', 'attachments', 'assignees', 'checklistItems.doneBy')
             // 일반 멤버는 본인이 담당자로 포함된 할 일만 조회
             ->when(! Auth::user()->isAdmin(), fn ($q) => $q->where(fn ($w) => $w
                 ->where('assignee_id', Auth::id())
@@ -270,6 +341,17 @@ class TodoController extends Controller
             // 전체 담당자 (선택 순서대로) — 첫 번째가 대표(칸반 컬럼 기준)
             'assignee_ids' => $t->assignees->pluck('id')->values()->all() ?: [$t->assignee_id],
             'assignee_names' => $t->assignees->pluck('display_name')->values()->all() ?: [$t->assignee?->display_name ?? '알 수 없음'],
+            // 담당자별 완료 체크 (복수 담당 — 전원 완료 시 전체 완료)
+            'assignee_completed_ids' => $t->assignees->filter(fn ($u) => $u->pivot->completed_at)->pluck('id')->values()->all(),
+            'my_completed' => $t->assignees->firstWhere('id', Auth::id())?->pivot?->completed_at !== null
+                && $t->assignees->contains('id', Auth::id()),
+            // 체크리스트 진행 단계
+            'checklist' => ($t->relationLoaded('checklistItems') ? $t->checklistItems : collect())->map(fn ($c) => [
+                'id' => $c->id,
+                'title' => $c->title,
+                'done' => (bool) $c->done_at,
+                'done_by' => $c->doneBy?->display_name,
+            ])->values()->all(),
             'team' => $t->assignee?->team?->name,
             'creator' => $t->creator?->display_name,
             'completed' => (bool) $t->completed_at,
