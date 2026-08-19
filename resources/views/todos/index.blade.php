@@ -1109,7 +1109,7 @@ function tvRenderChecklist(t) {
         </div>`).join('')}
         </div>
         <div class="tv-check-add">
-            <input id="tvCheckAddInput" placeholder="+ 단계 추가 후 Enter (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
+            <input id="tvCheckAddInput" placeholder="+ 단계 추가 후 Enter (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();addChecklistItem();}">
             <button type="button" class="todo-btn ghost" onclick="addChecklistItem()">추가</button>
         </div>`;
 }
@@ -1131,7 +1131,7 @@ function editChecklistTitle(el, itemId) {
     };
     input.onkeydown = e => {
         e.stopPropagation();
-        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); input.blur(); }
         if (e.key === 'Escape') { cancelled = true; el.textContent = old; }
     };
     input.onclick = e => e.stopPropagation();
@@ -1172,11 +1172,19 @@ async function checklistApi(url, method, body) {
     if (id) { const t = TODOS.find(x => x.id === id); if (t) { openTodoView(id); } }
     return true;
 }
+let CHECK_ADDING = false; // 한글 IME 등으로 Enter가 중복 발생해도 1회만 등록
 async function addChecklistItem() {
+    if (CHECK_ADDING) { return; }
     const input = document.getElementById('tvCheckAddInput');
     const title = input.value.trim();
     if (!title) { return; }
-    await checklistApi(`/api/todos/${TODO_VIEW_ID}/checklist`, 'POST', { title });
+    CHECK_ADDING = true;
+    input.value = '';
+    try {
+        await checklistApi(`/api/todos/${TODO_VIEW_ID}/checklist`, 'POST', { title });
+    } finally {
+        CHECK_ADDING = false;
+    }
     const again = document.getElementById('tvCheckAddInput');
     if (again) { again.focus(); }
 }
