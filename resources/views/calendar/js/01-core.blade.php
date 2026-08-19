@@ -267,12 +267,30 @@ function csCatRow(k, on){
         <span class="cs-cat-label" onclick="csSoloCat('${k}')" title="이 카테고리만 보기">${(c.label||k).replace(/[<>&]/g,'')}</span>
     </div>`;
 }
-// '만 보기' — 해당 카테고리만 켜기, 이미 단독 상태면 전체 켜기로 복원
+// '만 보기' — 해당 카테고리만 켜기. 해제 시 전체가 아니라 '만 보기 이전의 선택 상태'로 복원 (뷰별 저장)
+const CS_PREV_KEY = 'calPrevCats';
+function csPrevKeyFor(){ return CS_PREV_KEY+':'+csBucket(); }
 function csSoloCat(k){
     const keys = Object.keys(CS_CATS);
     const isSolo = activeFilters.has(k) && keys.every(x => x === k || !activeFilters.has(x));
+    let targetOn;
+    if(!isSolo){
+        // 단독 보기 진입 — 현재 선택을 저장해둠 (이미 다른 카테고리 단독 상태면 최초 저장본 유지)
+        const onCats = keys.filter(x => activeFilters.has(x));
+        if(onCats.length > 1){
+            try{ localStorage.setItem(csPrevKeyFor(), JSON.stringify(onCats)); }catch(e){}
+        }
+        targetOn = new Set([k]);
+    }else{
+        // 단독 해제 — 이전 선택 복원 (저장본 없으면 전체)
+        let prev = null;
+        try{ prev = JSON.parse(localStorage.getItem(csPrevKeyFor()) || 'null'); }catch(e){}
+        const restored = Array.isArray(prev) ? prev.filter(x => CS_CATS[x]) : [];
+        targetOn = restored.length ? new Set(restored) : new Set(keys);
+        try{ localStorage.removeItem(csPrevKeyFor()); }catch(e){}
+    }
     keys.forEach(x => {
-        const on = isSolo || x === k;
+        const on = targetOn.has(x);
         if(on) activeFilters.add(x); else activeFilters.delete(x);
         const btn = document.querySelector(`#filterBar .filter-btn[data-filter="${x}"]`);
         if(btn) btn.classList.toggle('active', on);
