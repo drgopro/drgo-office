@@ -35,7 +35,7 @@
     /* 원문 보기 — 클릭 시 행 아래로 펼침 */
     .raw-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:11px; padding:3px 9px; cursor:pointer; white-space:nowrap; }
     .raw-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .dep-raw { margin-top:9px; }
+    .dep-raw { flex:1; min-width:0; }
     .dep-raw pre { margin:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
@@ -188,14 +188,11 @@ async function loadDeposits() {
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
         <td style="font-weight:600;">
-            <div style="display:flex;align-items:center;gap:22px;">
-                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
-                ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
+            <div style="display:flex;align-items:flex-start;gap:22px;">
+                <span style="flex-shrink:0;padding-top:3px;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
+                ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>
+                <div class="dep-raw" id="depRaw${d.id}" style="display:none;"><pre>${_esc(d.raw_text)}</pre></div>` : ''}
             </div>
-            ${d.raw_text ? `<div class="dep-raw" id="depRaw${d.id}" style="display:none;">
-                <pre>${_esc(d.raw_text)}</pre>
-                <div style="text-align:right;margin-top:6px;"><button type="button" class="raw-btn" onclick="closeDepRaw(${d.id})">닫기</button></div>
-            </div>` : ''}
         </td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
@@ -210,10 +207,7 @@ async function loadDeposits() {
             <span>${fmtDt(d.received_at)}${d.bank ? ' · '+_esc(d.bank) : ''}</span>
             ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtnM${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
         </div>
-        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;">
-            <pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre>
-            <div style="text-align:right;margin-top:6px;"><button type="button" class="raw-btn" onclick="closeDepRaw(${d.id})">닫기</button></div>
-        </div>` : ''}
+        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;"><pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre></div>` : ''}
     </div>`).join('');
 }
 
@@ -228,11 +222,6 @@ function toggleDepRaw(id, btn) {
     btn.textContent = open ? '원문 접기' : '원문 보기';
 }
 
-// 펼쳐진 원문 하단 '닫기' — 데스크탑/모바일 패널과 토글 버튼 라벨을 함께 원복
-function closeDepRaw(id) {
-    ['depRaw'+id, 'depRawM'+id].forEach(x => { const el = document.getElementById(x); if (el) { el.style.display = 'none'; } });
-    ['depRawBtn'+id, 'depRawBtnM'+id].forEach(x => { const b = document.getElementById(x); if (b) { b.textContent = '원문 보기'; } });
-}
 
 // === 선택 삭제 ===
 const DEP_CSRF = '{{ csrf_token() }}';
