@@ -259,6 +259,7 @@ class BankDepositController extends Controller
             'data' => collect($page->items())->map(fn (Estimate $e) => [
                 'id' => $e->id,
                 'client_name' => $e->client_name ?: $e->client_nickname,
+                'client_nickname' => $e->client_nickname,
                 'client_phone' => $e->client_phone,
                 'amount' => (int) $e->total_amount,
                 'status' => $this->payappStatus($e),

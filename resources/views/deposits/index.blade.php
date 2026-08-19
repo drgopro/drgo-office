@@ -24,8 +24,8 @@
     .pa-badge.paid { background:#e7f6ec; color:#15803d; }
     .pa-badge.waiting { background:#fef3e2; color:#b45309; }
     .pa-badge.refunded, .pa-badge.req_cancelled { background:#fdeaea; color:#dc2626; }
-    .pa-link { font-size:12px; color:var(--accent); text-decoration:none; white-space:nowrap; }
-    .pa-link:hover { text-decoration:underline; }
+    .pa-btn { display:inline-block; border:1px solid var(--border); border-radius:8px; padding:4px 11px; font-size:12px; color:var(--text-muted); text-decoration:none; white-space:nowrap; background:none; }
+    .pa-btn:hover { border-color:var(--accent); color:var(--accent); }
     .sum-line { font-size:13px; color:var(--text-muted); margin-bottom:10px; }
     .sum-line b { color:var(--text); font-size:14px; }
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -382,9 +382,11 @@ async function loadPayapp() {
         `기간 내 결제요청 <b>${payload.total.toLocaleString()}건</b> · 결제완료 <b>${payload.paid_count.toLocaleString()}건</b> · 완료 합계 <b>${fmt(payload.paid_amount)}원</b>`;
 
     const linkHtml = d => [
-        `<a class="pa-link" href="${_esc(d.estimate_url)}" target="_blank" rel="noopener">견적서 ↗</a>`,
-        d.payurl ? `<a class="pa-link" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지 ↗</a>` : '',
-    ].filter(Boolean).join(' · ');
+        `<a class="pa-btn" href="${_esc(d.estimate_url)}" target="_blank" rel="noopener">견적서</a>`,
+        d.payurl ? `<a class="pa-btn" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지</a>` : '',
+    ].filter(Boolean).join(' ');
+    // 닉네임이 이름과 다르면 함께 표시
+    const clientHtml = d => `${_esc(d.client_name)||'-'}${d.client_nickname && d.client_nickname !== d.client_name ? ` <span class="text-muted" style="font-weight:400;">(${_esc(d.client_nickname)})</span>` : ''}`;
 
     const tb = document.getElementById('paBody');
     const cards = document.getElementById('paCards');
@@ -397,14 +399,14 @@ async function loadPayapp() {
         <td class="text-muted">${fmtDt(d.requested_at)}</td>
         <td><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span></td>
         <td class="text-center amt">${fmt(d.amount)}원</td>
-        <td style="font-weight:600;">${_esc(d.client_name)||'-'}${d.client_phone ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.client_phone)}</span>` : ''}
+        <td style="font-weight:600;">${clientHtml(d)}${d.client_phone ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.client_phone)}</span>` : ''}
             <span class="text-muted" style="font-weight:400;">· 견적서 #${d.id}</span></td>
         <td class="text-muted">${d.paid_at ? fmtDt(d.paid_at) : '-'}</td>
         <td>${linkHtml(d)}</td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-            <div class="mob-card-title">${_esc(d.client_name)||'견적서 #'+d.id}</div>
+            <div class="mob-card-title">${clientHtml(d)||'견적서 #'+d.id}</div>
             <div class="amt">${fmt(d.amount)}원</div>
         </div>
         <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
