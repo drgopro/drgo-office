@@ -44,10 +44,27 @@ function _radioMulti(gid){
 // 이름 프리필이 되는 모바일웹 라우트 URL(route.nhn)을 사용 (데스크탑에서도 열림)
 const LS_HQ_ADDR='서울특별시 동작구 장승배기로 142'; // 동선 기본 출발지 (사무실)
 const kakaoMapUrl=q=>`https://map.kakao.com/?q=${encodeURIComponent(q)}`;
-// sName/eName은 현행 카카오맵에서 프리필이 안 됨 — 길찾기 탭의 rt1/rt2(이름) 파라미터 사용
+// sName/eName은 현행 카카오맵에서 프리필이 안 됨 — 길찾기 탭의 rt1/rt2(이름) 파라미터 사용 (지오코딩 실패 시 폴백)
 const kakaoRouteUrl=(s,e)=>`https://map.kakao.com/?map_type=TYPE_MAP&target=car&rt=,,,&rt1=${encodeURIComponent(s)}&rt2=${encodeURIComponent(e)}`;
 const naverMapUrl=q=>`https://map.naver.com/p/search/${encodeURIComponent(q)}`;
 const naverRouteUrl=(s,e)=>`https://m.map.naver.com/route.nhn?menu=route&sname=${encodeURIComponent(s)}&ename=${encodeURIComponent(e)}&pathType=3`;
+// 동선 조회 — 서버에서 주소를 좌표로 변환(카카오 로컬 API)해 프리필이 보장되는 공식 좌표 링크로 열기.
+// 키 미설정/변환 실패 시 이름 기반 URL로 폴백. 팝업 차단을 피하려고 탭을 먼저 연다.
+let LS_ROUTE_FROM='', LS_ROUTE_TO='';
+async function openRouteUrl(vendor){
+    const s=LS_ROUTE_FROM, e=LS_ROUTE_TO;
+    if(!s||!e) return;
+    const w=window.open('about:blank','_blank');
+    try{
+        const r=await fetch(`/api/geocode-route?from=${encodeURIComponent(s)}&to=${encodeURIComponent(e)}`,{headers:{'Accept':'application/json'}});
+        if(r.ok){
+            const d=await r.json();
+            const u=vendor==='kakao'?d.kakao_url:d.naver_url;
+            if(u){ w.location=u; return; }
+        }
+    }catch(err){}
+    w.location=(vendor==='kakao')?kakaoRouteUrl(s,e):naverRouteUrl(s,e);
+}
 
 let lsShipOpen=false; // 요약 뷰 배송 현황 펼침 여부 (기본 접힘)
 function lsToggleShip(){ lsShipOpen=!lsShipOpen; renderLockSummary(); }
@@ -146,14 +163,16 @@ function renderLockSummary(){
     const carReasonTxt=specialSel.includes('car')?_val('specialReason'):'';
     const carReasonLine=carReasonTxt?`<div class="ls-car-reason">🚗 차량 이용 사유 — ${_esc(carReasonTxt)}</div>`:'';
     const specialLine=(specialChipsArr.length||carReasonTxt)?`${specialChipsArr.length?`<div class="ls-spec-chips">${specialChipsArr.map(t=>`<span class="ls-spec-chip">${_esc(t)}</span>`).join('')}</div>`:''}${carReasonLine}`:'';
+    if (addr) { LS_ROUTE_FROM = LS_HQ_ADDR; LS_ROUTE_TO = addr; }
     const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
             <a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">카카오 맵</a>
-            <a class="ls-action-btn primary" href="${kakaoRouteUrl(LS_HQ_ADDR, addr)}" target="_blank">동선 조회(카카오)</a>
+            <a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('kakao')">동선 조회(카카오)</a>
         </div>
         <div class="ls-actions">
             <a class="ls-action-btn" href="${naverMapUrl(addr)}" target="_blank">네이버 맵</a>
-            <a class="ls-action-btn primary" href="${naverRouteUrl(LS_HQ_ADDR, addr)}" target="_blank">동선 조회(네이버)</a>
+            <a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('naver')">동선 조회(네이버)</a>
         </div>` : '';
+    if (isMove && mfAddr && addr) { LS_ROUTE_FROM = mfAddr; LS_ROUTE_TO = addr; }
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
             <div class="ls-big">${timeBig}${durTxt}</div>
@@ -165,8 +184,8 @@ function renderLockSummary(){
             <div class="ls-actions" style="margin-top:8px;">
                 ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">출발지</a>` : ''}
                 ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">도착지</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="${kakaoRouteUrl(mfAddr, addr)}" target="_blank">출발→도착 동선(카카오)</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="${naverRouteUrl(mfAddr, addr)}" target="_blank">출발→도착 동선(네이버)</a>` : ''}
+                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('kakao')">출발→도착 동선(카카오)</a>` : ''}
+                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('naver')">출발→도착 동선(네이버)</a>` : ''}
             </div>`, '', 'ls-c-time ls-time-card'));
     } else {
         // 미팅/내방: 장소를 내방 옵션(체크박스)으로 지정하면 location이 비므로 옵션 값을 장소로 표시

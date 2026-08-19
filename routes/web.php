@@ -18,6 +18,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LinkPreviewController;
@@ -142,6 +143,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/request-item-presets', [RequestItemPresetController::class, 'index']); // 의뢰 세부 항목 선택지 (3뎁스 프리셋)
     Route::get('/api/projects/{project}/request-items', [ProjectController::class, 'requestItems']); // 캘린더에서 프로젝트 의뢰 내용 불러오기
     Route::get('/api/events/search', [CalendarController::class, 'search']);
+    Route::get('/api/geocode-route', [GeocodeController::class, 'routeUrls']); // 지도 길찾기 좌표 링크
+
     Route::get('/api/events/history', [CalendarController::class, 'historyEvents']);
     Route::get('/api/events/change-log', [CalendarController::class, 'changeLog']); // 사이드바 삭제/변경 이력 (문장 로그)
     Route::get('/api/events/trashed', [CalendarController::class, 'trashed'])->middleware('permission:calendar.edit');

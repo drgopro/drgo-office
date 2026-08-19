@@ -72,6 +72,11 @@ return [
     ],
 
     // 셀프호스팅 delivery-tracker (배송 추적)
+    'kakao' => [
+        // 카카오 로컬 API(주소→좌표) — developers.kakao.com 앱의 REST API 키
+        'rest_key' => env('KAKAO_REST_API_KEY'),
+    ],
+
     'delivery_tracker' => [
         'url' => env('DELIVERY_TRACKER_URL'), // 셀프호스팅 인스턴스 (예: http://127.0.0.1:8150)
         // 공식 호스팅 API (apis.tracker.delivery) — 키가 설정되면 셀프호스팅보다 우선 사용
