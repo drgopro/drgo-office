@@ -190,6 +190,22 @@ class TodoController extends Controller
         return response()->json(['ok' => true, 'done' => (bool) $item->done_at]);
     }
 
+    /** 체크리스트 순서 변경 — 전달된 id 순서대로 sort_order 재부여 */
+    public function reorderChecklist(Request $request, Todo $todo)
+    {
+        $this->authorizeTodo($todo);
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        foreach (array_values($validated['ids']) as $i => $id) {
+            TodoChecklistItem::where('todo_id', $todo->id)->where('id', $id)->update(['sort_order' => $i + 1]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     public function destroyChecklistItem(TodoChecklistItem $item)
     {
         $this->authorizeTodo($item->todo);

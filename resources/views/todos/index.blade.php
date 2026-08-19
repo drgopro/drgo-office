@@ -151,10 +151,14 @@
     .tv-assign-chips { display:flex; gap:6px; flex-wrap:wrap; }
     .tv-assign-chip { font-size:12px; padding:4px 11px; border-radius:12px; border:1px solid var(--border); color:var(--text-muted); }
     .tv-assign-chip.done { border-color:var(--green, #4caf50); color:var(--green, #4caf50); background:color-mix(in srgb, var(--green, #4caf50) 10%, transparent); }
-    .tv-check-row { display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px dashed var(--border); font-size:13px; }
+    .tv-check-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed var(--border); font-size:13px; border-radius:6px; }
     .tv-check-row:last-of-type { border-bottom:none; }
     .tv-check-row.done .tv-check-title { text-decoration:line-through; color:var(--text-muted); }
-    .tv-check-title { flex:1; min-width:0; }
+    .tv-check-row.dragging { opacity:0.45; background:var(--surface2); }
+    .tv-check-handle { color:var(--text-muted); opacity:0; cursor:grab; font-size:12px; user-select:none; }
+    .tv-check-row:hover .tv-check-handle { opacity:0.7; }
+    .tv-check-title { flex:1; min-width:0; cursor:text; border-radius:5px; padding:1px 4px; margin:-1px -4px; }
+    .tv-check-title:hover { background:var(--surface2); }
     .tv-check-by { font-size:10.5px; color:var(--text-muted); white-space:nowrap; }
     .tv-check-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
     .tv-check-del:hover { color:var(--red, #dc2626); }
@@ -1085,25 +1089,75 @@ function openTodoView(id) {
     armModalHistory();
 }
 
-// ── 체크리스트 (진행 단계) ──
+// ── 체크리스트 (진행 단계) — 노션식: 클릭 인라인 수정 · Enter 연속 추가 · 드래그 정렬 ──
 function tvRenderChecklist(t) {
     const list = t.checklist || [];
     const done = list.filter(c => c.done).length;
     document.getElementById('tvChecklist').innerHTML = `
         <div class="tv-section-title">진행 단계 ${list.length ? `${done}/${list.length}` : ''}</div>
         ${checklistProgressHtml(t, true)}
-        ${list.map(c => `<div class="tv-check-row ${c.done ? 'done' : ''}">
+        <div id="tvChecklistRows">
+        ${list.map(c => `<div class="tv-check-row ${c.done ? 'done' : ''}" data-cid="${c.id}" draggable="true"
+            ondragstart="checkDragStart(event, this)" ondragend="checkDragEnd(this)" ondragover="checkDragOver(event, this)">
+            <span class="tv-check-handle" title="드래그하여 순서 변경">⠿</span>
             <button type="button" class="todo-check ${c.done ? 'on' : ''}" onclick="toggleChecklistItem(${c.id}, ${c.done ? 'false' : 'true'})" title="${c.done ? '완료 해제' : '완료'}">
                 <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
-            <span class="tv-check-title">${esc(c.title)}</span>
+            <span class="tv-check-title" onclick="editChecklistTitle(this, ${c.id})" title="클릭하여 수정">${esc(c.title)}</span>
             ${c.done && c.done_by ? `<span class="tv-check-by">✓ ${esc(c.done_by)}</span>` : ''}
             <button type="button" class="tv-check-del" onclick="deleteChecklistItem(${c.id})" title="단계 삭제">✕</button>
         </div>`).join('')}
+        </div>
         <div class="tv-check-add">
-            <input id="tvCheckAddInput" placeholder="진행 단계 추가 (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
+            <input id="tvCheckAddInput" placeholder="+ 단계 추가 후 Enter (예: 전파인증 서류 접수)" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
             <button type="button" class="todo-btn ghost" onclick="addChecklistItem()">추가</button>
         </div>`;
+}
+
+// 제목 클릭 → 그 자리에서 수정 (Enter/포커스 아웃 = 저장, Esc = 취소)
+function editChecklistTitle(el, itemId) {
+    if (el.querySelector('input')) { return; }
+    const old = el.textContent;
+    el.innerHTML = `<input value="${esc(old)}" style="width:100%;background:var(--surface2);border:1px solid var(--accent);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;outline:none;">`;
+    const input = el.firstChild;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    let cancelled = false;
+    input.onblur = async () => {
+        if (cancelled) { return; }
+        const v = input.value.trim();
+        if (!v || v === old) { el.textContent = old; return; }
+        await checklistApi(`/api/todo-checklist/${itemId}`, 'PATCH', { title: v });
+    };
+    input.onkeydown = e => {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { cancelled = true; el.textContent = old; }
+    };
+    input.onclick = e => e.stopPropagation();
+}
+
+// 드래그 정렬 — 놓는 즉시 순서 저장
+let CHECK_DRAG = null;
+function checkDragStart(ev, row) {
+    CHECK_DRAG = row;
+    row.classList.add('dragging');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.stopPropagation(); // 카드 드래그(담당자 변경)와 충돌 방지
+}
+function checkDragOver(ev, row) {
+    ev.preventDefault();
+    if (!CHECK_DRAG || CHECK_DRAG === row) { return; }
+    const box = row.getBoundingClientRect();
+    const after = ev.clientY > box.top + box.height / 2;
+    row.parentNode.insertBefore(CHECK_DRAG, after ? row.nextSibling : row);
+}
+async function checkDragEnd(row) {
+    row.classList.remove('dragging');
+    if (!CHECK_DRAG) { return; }
+    CHECK_DRAG = null;
+    const ids = [...document.querySelectorAll('#tvChecklistRows .tv-check-row')].map(r => parseInt(r.dataset.cid, 10));
+    if (ids.length) { await checklistApi(`/api/todos/${TODO_VIEW_ID}/checklist-reorder`, 'PATCH', { ids }); }
 }
 
 async function checklistApi(url, method, body) {

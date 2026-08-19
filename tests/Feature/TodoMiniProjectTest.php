@@ -117,6 +117,24 @@ class TodoMiniProjectTest extends TestCase
         $this->assertSame(1, TodoChecklistItem::where('todo_id', $todo->id)->count());
     }
 
+    public function test_checklist_can_be_reordered(): void
+    {
+        $todo = $this->makeTodo([$this->admin->id]);
+        foreach (['서류 준비', '접수', '수령'] as $title) {
+            $this->actingAs($this->admin)->postJson("/api/todos/{$todo->id}/checklist", ['title' => $title]);
+        }
+        $ids = TodoChecklistItem::where('todo_id', $todo->id)->orderBy('sort_order')->pluck('id')->all();
+
+        $this->actingAs($this->admin)->patchJson("/api/todos/{$todo->id}/checklist-reorder", [
+            'ids' => [$ids[2], $ids[0], $ids[1]],
+        ])->assertOk();
+
+        $this->assertSame(
+            ['수령', '서류 준비', '접수'],
+            TodoChecklistItem::where('todo_id', $todo->id)->orderBy('sort_order')->pluck('title')->all()
+        );
+    }
+
     public function test_checklist_requires_todo_access(): void
     {
         $todo = $this->makeTodo([$this->admin->id]);
