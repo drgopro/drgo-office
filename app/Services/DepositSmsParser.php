@@ -108,7 +108,21 @@ class DepositSmsParser
 
     private function parseName(string $text): ?string
     {
-        // 대괄호 태그·계좌 마스킹·금액·날짜/시각 제거 후 남는 한글/영문 토큰에서 추출
+        // 1순위: KB 멀티라인 포맷 — '입금' 줄 바로 앞 줄이 입금자명.
+        // 법인명((주)OOO, 특수문자·마스킹 포함)도 문자 종류와 무관하게 그대로 인식.
+        $lines = array_values(array_filter(array_map('trim', preg_split('/\r?\n/u', $text) ?: [])));
+        foreach ($lines as $i => $line) {
+            if ($i > 0 && preg_match('/^입금\b|^입금$/u', $line)) {
+                $cand = $lines[$i - 1];
+                $isAccountOrDate = preg_match('/[\d*]{6,}/u', $cand) || preg_match('/\d{1,2}\/\d{1,2}/', $cand);
+                if (! $isAccountOrDate && mb_strlen($cand) >= 2 && mb_strlen($cand) <= 40
+                    && ! in_array($cand, self::STOP_WORDS, true)) {
+                    return mb_substr($cand, 0, 30);
+                }
+            }
+        }
+
+        // 2순위: 대괄호 태그·계좌 마스킹·금액·날짜/시각 제거 후 남는 한글/영문 토큰에서 추출
         $clean = preg_replace([
             '/\[[^\]]*\]/u',                 // [KB], [Web발신] 등
             '/[\d*]{6,}[\d*\-]*/u',          // 계좌번호 마스킹 (902002**333)

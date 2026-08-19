@@ -78,6 +78,19 @@ class BankDepositTest extends TestCase
         $this->assertNull($deposit->balance_after);
     }
 
+    public function test_ingest_parses_corporate_depositor_names(): void
+    {
+        // 법인명 — 특수문자/마스킹/괄호가 섞여도 '입금' 직전 줄을 이름으로 인식
+        foreach ([
+            '(주)패러블엔터테인먼트' => "[Web발신]\n[KB]08/18 10:00\n821337**680\n(주)패러블엔터테인먼트\n입금\n1,000,000",
+            '(주)패러블엔터테인먼*' => "[Web발신]\n[KB]08/18 10:01\n821337**680\n(주)패러블엔터테인먼*\n입금\n1,000,001",
+            'A&B미디어' => "[Web발신]\n[KB]08/18 10:02\n821337**680\nA&B미디어\n입금\n1,000,002",
+        ] as $expected => $sms) {
+            $this->ingest($sms)->assertCreated();
+            $this->assertSame($expected, BankDeposit::latest('id')->first()->depositor_name);
+        }
+    }
+
     public function test_ingest_detects_various_banks(): void
     {
         $this->ingest('신한 08/11 10:00 입금 50,000원 박영희')->assertCreated();
