@@ -32,6 +32,11 @@
     .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; }
     .btn-del:hover { background:var(--red); color:#fff; }
     .bank-badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
+    /* 원문 보기 — 클릭 시 행 아래로 펼침 */
+    .raw-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:11px; padding:3px 9px; cursor:pointer; white-space:nowrap; }
+    .raw-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .dep-raw-row td { padding:0 12px 12px; }
+    .dep-raw-row pre { margin:0; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
     .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
@@ -176,14 +181,18 @@ async function loadDeposits() {
         cards.innerHTML = '<div class="empty-row">입금 내역이 없습니다.</div>';
         return;
     }
-    // 행 전체에 원문 툴팁 (원문 컬럼 대신 마우스오버로 확인)
-    tb.innerHTML = data.map(d => `<tr title="${_esc(d.raw_text)}">
+    // 원문은 '원문 보기' 클릭 시 행 아래로 펼침
+    tb.innerHTML = data.map(d => `<tr>
         <td class="sel-col"><input type="checkbox" class="dep-sel" ${depSel.has(d.id)?'checked':''} onchange="toggleDepSel(${d.id}, this.checked)"></td>
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-        <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
-    </tr>`).join('');
+        <td style="font-weight:600;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
+            ${d.raw_text ? `<button type="button" class="raw-btn" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
+        </div></td>
+    </tr>
+    ${d.raw_text ? `<tr class="dep-raw-row" id="depRaw${d.id}" style="display:none;"><td colspan="5"><pre>${_esc(d.raw_text)}</pre></td></tr>` : ''}`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
             <div style="display:flex;align-items:center;gap:9px;min-width:0;">
@@ -192,8 +201,23 @@ async function loadDeposits() {
             </div>
             <div class="amt">${d.amount!=null ? fmt(d.amount)+'원' : '-'}</div>
         </div>
-        <div class="mob-card-sub">${fmtDt(d.received_at)}${d.bank ? ' · '+_esc(d.bank) : ''}</div>
+        <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span>${fmtDt(d.received_at)}${d.bank ? ' · '+_esc(d.bank) : ''}</span>
+            ${d.raw_text ? `<button type="button" class="raw-btn" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
+        </div>
+        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;"><pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre></div>` : ''}
     </div>`).join('');
+}
+
+// 원문 펼침/접힘 — 테이블 행(depRaw{id})과 모바일 카드(depRawM{id}) 공용
+function toggleDepRaw(id, btn) {
+    const el = document.getElementById('depRaw'+id) || null;
+    const elM = document.getElementById('depRawM'+id) || null;
+    const target = btn.closest('.mob-card') ? elM : el;
+    if (!target) { return; }
+    const open = target.style.display === 'none';
+    target.style.display = open ? '' : 'none';
+    btn.textContent = open ? '원문 접기' : '원문 보기';
 }
 
 // === 선택 삭제 ===
