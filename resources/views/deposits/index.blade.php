@@ -187,12 +187,15 @@ async function loadDeposits() {
         <td class="text-muted">${fmtDt(d.received_at)}</td>
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-        <td style="font-weight:600;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <td style="font-weight:600;"><div style="display:flex;align-items:center;gap:12px;">
             <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</span>
-            ${d.raw_text ? `<button type="button" class="raw-btn" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
+            ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
         </div></td>
     </tr>
-    ${d.raw_text ? `<tr class="dep-raw-row" id="depRaw${d.id}" style="display:none;"><td colspan="5"><pre>${_esc(d.raw_text)}</pre></td></tr>` : ''}`).join('');
+    ${d.raw_text ? `<tr class="dep-raw-row" id="depRaw${d.id}" style="display:none;"><td colspan="5">
+        <pre>${_esc(d.raw_text)}</pre>
+        <div style="text-align:right;margin-top:6px;"><button type="button" class="raw-btn" onclick="closeDepRaw(${d.id})">닫기</button></div>
+    </td></tr>` : ''}`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
             <div style="display:flex;align-items:center;gap:9px;min-width:0;">
@@ -203,9 +206,12 @@ async function loadDeposits() {
         </div>
         <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <span>${fmtDt(d.received_at)}${d.bank ? ' · '+_esc(d.bank) : ''}</span>
-            ${d.raw_text ? `<button type="button" class="raw-btn" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
+            ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtnM${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
         </div>
-        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;"><pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre></div>` : ''}
+        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;">
+            <pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre>
+            <div style="text-align:right;margin-top:6px;"><button type="button" class="raw-btn" onclick="closeDepRaw(${d.id})">닫기</button></div>
+        </div>` : ''}
     </div>`).join('');
 }
 
@@ -218,6 +224,12 @@ function toggleDepRaw(id, btn) {
     const open = target.style.display === 'none';
     target.style.display = open ? '' : 'none';
     btn.textContent = open ? '원문 접기' : '원문 보기';
+}
+
+// 펼쳐진 원문 하단 '닫기' — 데스크탑/모바일 패널과 토글 버튼 라벨을 함께 원복
+function closeDepRaw(id) {
+    ['depRaw'+id, 'depRawM'+id].forEach(x => { const el = document.getElementById(x); if (el) { el.style.display = 'none'; } });
+    ['depRawBtn'+id, 'depRawBtnM'+id].forEach(x => { const b = document.getElementById(x); if (b) { b.textContent = '원문 보기'; } });
 }
 
 // === 선택 삭제 ===
