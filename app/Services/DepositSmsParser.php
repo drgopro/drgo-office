@@ -117,7 +117,7 @@ class DepositSmsParser
                 $isAccountOrDate = preg_match('/[\d*]{6,}/u', $cand) || preg_match('/\d{1,2}\/\d{1,2}/', $cand);
                 if (! $isAccountOrDate && mb_strlen($cand) >= 2 && mb_strlen($cand) <= 40
                     && ! in_array($cand, self::STOP_WORDS, true)) {
-                    return mb_substr($cand, 0, 30);
+                    return $this->tidyName(mb_substr($cand, 0, 30));
                 }
             }
         }
@@ -144,10 +144,24 @@ class DepositSmsParser
             }
             // 한글 또는 영문으로만 구성된 토큰만 이름 후보로 인정
             if (preg_match('/^[가-힣a-zA-Z()]+$/u', $token)) {
-                return $token;
+                return $this->tidyName($token);
             }
         }
 
         return null;
+    }
+
+    /** 은행 문자에서 잘리거나 구버전 파서에서 깎인 괄호 정리 — "주)OOO" → "(주)OOO", 안 닫힌 괄호는 닫아줌 */
+    private function tidyName(string $name): string
+    {
+        $name = trim($name);
+        if (str_starts_with($name, '주)')) {
+            $name = '('.$name;
+        }
+        if (substr_count($name, '(') > substr_count($name, ')')) {
+            $name .= ')';
+        }
+
+        return $name;
     }
 }

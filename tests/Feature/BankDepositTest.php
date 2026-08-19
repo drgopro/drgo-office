@@ -85,6 +85,9 @@ class BankDepositTest extends TestCase
             '(주)패러블엔터테인먼트' => "[Web발신]\n[KB]08/18 10:00\n821337**680\n(주)패러블엔터테인먼트\n입금\n1,000,000",
             '(주)패러블엔터테인먼*' => "[Web발신]\n[KB]08/18 10:01\n821337**680\n(주)패러블엔터테인먼*\n입금\n1,000,001",
             'A&B미디어' => "[Web발신]\n[KB]08/18 10:02\n821337**680\nA&B미디어\n입금\n1,000,002",
+            // 은행이 상호를 자르면서 여는 괄호가 잘리거나 안 닫힌 경우 — 괄호 정리
+            '(주)에이치케이코퍼' => "[Web발신]\n[KB]08/18 10:03\n821337**680\n주)에이치케이코퍼\n입금\n1,000,003",
+            '조신영(조신몽컴)' => "[Web발신]\n[KB]08/18 10:04\n821337**680\n조신영(조신몽컴\n입금\n1,000,004",
         ] as $expected => $sms) {
             $this->ingest($sms)->assertCreated();
             $this->assertSame($expected, BankDeposit::latest('id')->first()->depositor_name);
