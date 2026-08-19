@@ -551,6 +551,7 @@ window.openTopTab = function(type, url, title) {
             @if(Auth::user()->hasPermission('estimates.view'))
                 <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('estimates','/estimates');" title="견적서"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</a>
             @endif
+            <div class="nav-group-gap"></div>
             <div class="nav-group-label">지식 · 자산</div>
             @if(Auth::user()->hasPermission('inventory.view'))
                 <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');" title="재고"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</a>
