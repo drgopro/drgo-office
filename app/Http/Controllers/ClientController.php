@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\ClientContact;
 use App\Models\ClientMemo;
 use App\Models\ProjectFieldDefinition;
 use Illuminate\Http\Request;
@@ -125,7 +126,7 @@ class ClientController extends Controller
     // JSON 상세 API (탭 내 로드)
     public function detail(Client $client)
     {
-        $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator');
+        $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator', 'contacts');
 
         // 장비 정보 연동 — 최신 프로젝트 우선, 비어 있으면 장비 정보가 적힌 가장 최근 프로젝트로 폴백
         $lastProjectEquipment = null;
@@ -233,6 +234,13 @@ class ClientController extends Controller
                 'download_url' => route('documents.download', $d),
                 'created_at' => $d->created_at->format('Y.m.d H:i:s'),
             ]),
+            'contacts' => $client->contacts->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'phone' => $c->phone,
+                'relation' => $c->relation,
+                'memo' => $c->memo,
+            ]),
             'memos' => $client->memos->map(fn ($m) => [
                 'id' => $m->id,
                 'content' => $m->content,
@@ -327,7 +335,12 @@ class ClientController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('nickname', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    // 관계자(매니저 등) 이름/연락처로도 의뢰자 검색
+                    ->orWhereHas('contacts', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -348,6 +361,46 @@ class ClientController extends Controller
             'per_page' => $paginated->perPage(),
             'total' => $paginated->total(),
         ]);
+    }
+
+    // 관계자(매니저 등) 추가 — 의뢰자당 최대 10명
+    public function storeContact(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'relation' => 'nullable|string|max:50',
+            'memo' => 'nullable|string|max:500',
+        ]);
+
+        if ($client->contacts()->count() >= ClientContact::MAX_PER_CLIENT) {
+            return response()->json(['message' => '관계자는 의뢰자당 최대 '.ClientContact::MAX_PER_CLIENT.'명까지 등록할 수 있습니다.'], 422);
+        }
+
+        $contact = $client->contacts()->create($validated);
+
+        return response()->json($contact, 201);
+    }
+
+    public function updateContact(Request $request, ClientContact $contact)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'relation' => 'nullable|string|max:50',
+            'memo' => 'nullable|string|max:500',
+        ]);
+
+        $contact->update($validated);
+
+        return response()->json($contact);
+    }
+
+    public function destroyContact(ClientContact $contact)
+    {
+        $contact->delete();
+
+        return response()->json(['message' => '삭제되었습니다.']);
     }
 
     // 메모 추가
@@ -392,12 +445,28 @@ class ClientController extends Controller
             ->where(function ($query) use ($q) {
                 $query->where('name', 'like', "%{$q}%")
                     ->orWhere('nickname', 'like', "%{$q}%")
-                    ->orWhere('phone', 'like', "%{$q}%");
+                    ->orWhere('phone', 'like', "%{$q}%")
+                    ->orWhereHas('contacts', function ($cq) use ($q) {
+                        $cq->where('name', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%");
+                    });
             })
+            ->with(['contacts' => function ($cq) use ($q) {
+                $cq->where('name', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%");
+            }])
             ->limit(10)
             ->get(['id', 'name', 'nickname', 'phone']);
 
-        return response()->json($clients);
+        // 관계자로 매칭된 경우 어떤 관계자로 걸렸는지 병기 (예: 김실장 (실장))
+        return response()->json($clients->map(function ($c) {
+            $matched = $c->contacts->first();
+            $arr = $c->only(['id', 'name', 'nickname', 'phone']);
+            $arr['matched_contact'] = $matched
+                ? trim($matched->name.($matched->relation ? " ({$matched->relation})" : ''))
+                : null;
+            unset($c->contacts);
+
+            return $arr;
+        }));
     }
 
     // 삭제

@@ -1121,6 +1121,23 @@ function renderClientContent(id) {
             </div>
             </div>{{-- /edit-info --}}
 
+            <!-- 관계자 · 매니저 (의뢰자당 최대 10명, 검색에 함께 매칭) -->
+            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+                <div class="field-label" style="margin:0 0 10px; font-size:12px; font-weight:600;">관계자 · 매니저
+                    <span style="font-weight:400; color:var(--text-muted);">최대 10명 · 이름/연락처가 의뢰자 검색에 함께 매칭됩니다</span>
+                </div>
+                <div id="contact-list-${id}">${renderClientContacts(d.contacts || [], id)}</div>
+                <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
+                    <input class="field-input" id="ct-name-${id}" placeholder="이름 *" style="flex:1; min-width:100px;">
+                    <input class="field-input" id="ct-phone-${id}" placeholder="연락처" style="flex:1; min-width:120px;">
+                    <input class="field-input" id="ct-rel-${id}" placeholder="관계 (매니저/실장…)" style="flex:1; min-width:120px;">
+                    <input class="field-input" id="ct-memo-${id}" placeholder="메모" style="flex:2; min-width:130px;">
+                    <input type="hidden" id="ct-edit-${id}" value="">
+                    <button class="btn-save" id="ct-save-${id}" onclick="saveClientContact(${id})" style="white-space:nowrap;">+ 매니저 추가</button>
+                    <button class="btn-save" id="ct-cancel-${id}" onclick="resetContactForm(${id})" style="display:none; background:var(--surface2); color:var(--text-muted); white-space:nowrap;">취소</button>
+                </div>
+            </div>
+
             <!-- 메모 (인라인 스레드) -->
             <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
                 <div class="field-label" style="margin:0 0 10px; font-size:12px; font-weight:600;">메모</div>
@@ -2330,6 +2347,76 @@ function toggleMoreMemos(clientId) {
     const isHidden = rest.style.display === 'none';
     rest.style.display = isHidden ? 'block' : 'none';
     toggle.querySelector('button').textContent = isHidden ? '접기' : `+ ${rest.children.length}개 더 보기`;
+}
+
+// ── 관계자 · 매니저 (의뢰자당 최대 10명) ──
+const CLIENT_CONTACTS = {}; // clientId → contacts[]
+
+function renderClientContacts(contacts, clientId) {
+    CLIENT_CONTACTS[clientId] = contacts;
+    if (!contacts.length) return '<div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12px;">등록된 관계자가 없습니다.</div>';
+    return contacts.map(c => `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px;">
+        <b>${_esc(c.name)}</b>
+        ${c.relation ? `<span style="font-size:11px; padding:2px 9px; border-radius:10px; background:var(--surface2); color:var(--text-muted);">${_esc(c.relation)}</span>` : ''}
+        <span style="color:var(--text-muted);">${_esc(c.phone||'')}</span>
+        ${c.memo ? `<span style="color:var(--text-muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${_esc(c.memo)}</span>` : ''}
+        <span style="margin-left:auto; display:flex; gap:4px; flex-shrink:0;">
+            <button onclick="editClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
+            <button onclick="deleteClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--red);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+        </span>
+    </div>`).join('');
+}
+
+function resetContactForm(clientId) {
+    ['name','phone','rel','memo'].forEach(k => document.getElementById(`ct-${k}-${clientId}`).value = '');
+    document.getElementById(`ct-edit-${clientId}`).value = '';
+    document.getElementById(`ct-save-${clientId}`).textContent = '+ 매니저 추가';
+    document.getElementById(`ct-cancel-${clientId}`).style.display = 'none';
+}
+
+function editClientContact(clientId, contactId) {
+    const c = (CLIENT_CONTACTS[clientId] || []).find(x => x.id === contactId);
+    if (!c) return;
+    document.getElementById(`ct-name-${clientId}`).value = c.name || '';
+    document.getElementById(`ct-phone-${clientId}`).value = c.phone || '';
+    document.getElementById(`ct-rel-${clientId}`).value = c.relation || '';
+    document.getElementById(`ct-memo-${clientId}`).value = c.memo || '';
+    document.getElementById(`ct-edit-${clientId}`).value = contactId;
+    document.getElementById(`ct-save-${clientId}`).textContent = '수정 저장';
+    document.getElementById(`ct-cancel-${clientId}`).style.display = '';
+}
+
+async function saveClientContact(clientId) {
+    const name = document.getElementById(`ct-name-${clientId}`).value.trim();
+    if (!name) return alert('이름을 입력해주세요.');
+    const body = JSON.stringify({
+        name,
+        phone: document.getElementById(`ct-phone-${clientId}`).value.trim() || null,
+        relation: document.getElementById(`ct-rel-${clientId}`).value.trim() || null,
+        memo: document.getElementById(`ct-memo-${clientId}`).value.trim() || null,
+    });
+    const editId = document.getElementById(`ct-edit-${clientId}`).value;
+    const res = await fetch(editId ? `/api/client-contacts/${editId}` : `/api/clients/${clientId}/contacts`, {
+        method: editId ? 'PATCH' : 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return alert(data.message || '저장에 실패했습니다.');
+    const list = CLIENT_CONTACTS[clientId] || [];
+    CLIENT_CONTACTS[clientId] = editId ? list.map(c => c.id === data.id ? data : c) : [...list, data];
+    document.getElementById(`contact-list-${clientId}`).innerHTML = renderClientContacts(CLIENT_CONTACTS[clientId], clientId);
+    resetContactForm(clientId);
+}
+
+async function deleteClientContact(clientId, contactId) {
+    if (!confirm('이 관계자를 삭제할까요?')) return;
+    const res = await fetch(`/api/client-contacts/${contactId}`, {
+        method:'DELETE', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    });
+    if (!res.ok) return alert('삭제에 실패했습니다.');
+    CLIENT_CONTACTS[clientId] = (CLIENT_CONTACTS[clientId] || []).filter(c => c.id !== contactId);
+    document.getElementById(`contact-list-${clientId}`).innerHTML = renderClientContacts(CLIENT_CONTACTS[clientId], clientId);
 }
 
 async function addMemo(clientId, from) {

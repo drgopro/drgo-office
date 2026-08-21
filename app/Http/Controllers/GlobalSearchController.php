@@ -34,16 +34,28 @@ class GlobalSearchController extends Controller
             $items = Client::where(fn ($w) => $w
                 ->where('name', 'like', $like)
                 ->orWhere('nickname', 'like', $like)
-                ->orWhere('phone', 'like', $like))
+                ->orWhere('phone', 'like', $like)
+                ->orWhereHas('contacts', fn ($cq) => $cq
+                    ->where('name', 'like', $like)->orWhere('phone', 'like', $like)))
+                ->with(['contacts' => fn ($cq) => $cq
+                    ->where('name', 'like', $like)->orWhere('phone', 'like', $like)])
                 ->orderByDesc('updated_at')->limit(5)
                 ->get(['id', 'name', 'nickname', 'phone'])
-                ->map(fn ($c) => [
-                    'label' => $c->nickname ?: $c->name,
-                    'sub' => trim(($c->name && $c->nickname ? $c->name.' · ' : '').($c->phone ?? '')),
-                    'nav' => 'clients',
-                    'url' => '/clients?open='.$c->id,
-                    'client_id' => $c->id,
-                ]);
+                ->map(function ($c) {
+                    $matched = $c->contacts->first(); // 관계자(매니저)로 매칭된 경우 병기
+                    $sub = trim(($c->name && $c->nickname ? $c->name.' · ' : '').($c->phone ?? ''));
+                    if ($matched) {
+                        $sub = trim($sub.($sub ? ' · ' : '').'관계자 '.$matched->name.($matched->relation ? " ({$matched->relation})" : ''));
+                    }
+
+                    return [
+                        'label' => $c->nickname ?: $c->name,
+                        'sub' => $sub,
+                        'nav' => 'clients',
+                        'url' => '/clients?open='.$c->id,
+                        'client_id' => $c->id,
+                    ];
+                });
             if ($items->isNotEmpty()) {
                 $sections[] = ['key' => 'clients', 'label' => '의뢰자', 'items' => $items];
             }

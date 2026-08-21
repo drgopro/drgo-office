@@ -67,6 +67,12 @@ class Client extends Model
         return $this->hasMany(ClientMemo::class)->orderByDesc('created_at');
     }
 
+    /** 관계자(매니저/실장 등) — 검색 매칭에도 사용 */
+    public function contacts()
+    {
+        return $this->hasMany(ClientContact::class)->orderBy('id');
+    }
+
     public function estimates()
     {
         return $this->hasMany(Estimate::class)->orderByDesc('created_at');
