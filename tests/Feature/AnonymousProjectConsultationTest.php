@@ -54,9 +54,9 @@ class AnonymousProjectConsultationTest extends TestCase
             'client_id' => $client->id, 'name' => '연동 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting',
         ]);
 
-        // 익명 — 간소화 뷰 클래스 적용, 연동 — 미적용
-        $this->actingAs($user)->get("/projects/{$anon->id}")->assertOk()->assertSee('anon-proj');
-        $this->actingAs($user)->get("/projects/{$linked->id}")->assertOk()->assertDontSee('anon-proj');
+        // 익명 — 간소화 뷰 클래스 적용, 연동 — 미적용 (CSS 선택자 텍스트와 구분되게 class 속성으로 검사)
+        $this->actingAs($user)->get("/projects/{$anon->id}")->assertOk()->assertSee('page-wrap anon-proj', false);
+        $this->actingAs($user)->get("/projects/{$linked->id}")->assertOk()->assertDontSee('page-wrap anon-proj', false);
     }
 
     public function test_consultation_still_updates_last_contact_for_linked_client(): void
