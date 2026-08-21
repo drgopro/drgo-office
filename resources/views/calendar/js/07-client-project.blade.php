@@ -223,11 +223,38 @@ function autoFillProjectAddress(){
 function applyLinkedClientAddress(){
     const d=linkedClientDetail;
     if(!d||!d.address){ alert('연동된 의뢰자에 저장된 주소가 없습니다.'); return; }
-    document.getElementById('modalLocation').value=d.address;
-    document.getElementById('modalAddress').value=d.address;
-    const det=document.getElementById('modalLocationDetail');
-    if(det) det.value=d.address_detail||'';
+    const extras=(d.extra_addresses||[]).filter(a=>a&&a.address);
+    if(!extras.length){ _applyClientAddr(d.address,d.address_detail); return; }
+    // 주소가 여러 개 — 어떤 주소를 넣을지 선택
+    openClientAddrPicker([
+        {label:'주소 1 (메인)', address:d.address, address_detail:d.address_detail},
+        ...extras.map((a,i)=>({label:`주소 ${i+2}`, address:a.address, address_detail:a.address_detail})),
+    ]);
 }
+function _applyClientAddr(addr,det){
+    document.getElementById('modalLocation').value=addr;
+    document.getElementById('modalAddress').value=addr;
+    const el=document.getElementById('modalLocationDetail');
+    if(el) el.value=det||'';
+}
+function openClientAddrPicker(list){
+    closeClientAddrPicker();
+    const ov=document.createElement('div');
+    ov.id='clientAddrPicker';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.onclick=e=>{ if(e.target===ov) closeClientAddrPicker(); };
+    ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;padding:20px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px;">어떤 주소를 넣을까요?</div>
+        ${list.map((a,i)=>`<button type="button" data-i="${i}" style="display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;color:var(--text);font-size:13px;cursor:pointer;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${a.label}</div>
+            <div>${_esc(a.address)}${a.address_detail?`, ${_esc(a.address_detail)}`:''}</div>
+        </button>`).join('')}
+        <div style="text-align:right;margin-top:4px;"><button type="button" onclick="closeClientAddrPicker()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;">취소</button></div>
+    </div>`;
+    ov.querySelectorAll('button[data-i]').forEach(b=>{ b.onclick=()=>{ const a=list[parseInt(b.dataset.i,10)]; _applyClientAddr(a.address,a.address_detail); closeClientAddrPicker(); }; });
+    document.body.appendChild(ov);
+}
+function closeClientAddrPicker(){ const el=document.getElementById('clientAddrPicker'); if(el) el.remove(); }
 
 async function loadClientProjects(clientId){
     const wrap=document.getElementById('projectSelectWrap');

@@ -18,6 +18,7 @@ class Client extends Model
         'phones',
         'address',
         'address_detail',
+        'extra_addresses',
         'grade',
         'platforms',
         'platform_etc',
@@ -40,6 +41,7 @@ class Client extends Model
     ];
 
     protected $casts = [
+        'extra_addresses' => 'array',
         'phones' => 'array',
         'platforms' => 'array',
         'content_types' => 'array',

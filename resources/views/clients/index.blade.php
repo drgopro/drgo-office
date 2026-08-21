@@ -1064,12 +1064,14 @@ function renderClientContent(id) {
                         </div>
                         <div><div class="ncm-label">최초 등록일</div><input class="field-input" data-ce-skip value="${d.created_at||''}" readonly style="opacity:0.7; cursor:not-allowed;"></div>
                     </div>
-                    <div style="margin-top:14px;"><div class="ncm-label">주소</div>
+                    <div style="margin-top:14px;"><div class="ncm-label">주소 1 <span style="font-weight:400;">메인 · 최대 4개까지 추가 가능</span></div>
                         <div style="display:flex; gap:8px;">
                             <input class="field-input" id="f-address-${id}" value="${_esc(d.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
                             <button class="ncm-btn primary" style="white-space:nowrap;" onclick="searchAddress(${id})">주소 검색</button>
                         </div>
                         <input class="field-input" id="f-address_detail-${id}" value="${_esc(d.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+                        <div id="xaddr-list-${id}">${renderExtraAddrRows(d.extra_addresses||[], id)}</div>
+                        <button class="ncm-btn" id="xaddr-add-${id}" onclick="addExtraAddr(${id})" style="margin-top:10px; ${(d.extra_addresses||[]).length>=3?'display:none;':''}">+ 주소 추가</button>
                     </div>
                     <div style="margin-top:14px;"><div class="ncm-label">특이사항</div>
                         <textarea class="field-input field-textarea" id="f-important_memo-${id}">${_esc(d.important_memo||'')}</textarea>
@@ -1332,23 +1334,68 @@ function renderEstimateList(estimates, clientId) {
 }
 
 // ── 주소 검색 (Daum Postcode) ──
-function searchAddress(clientId) {
+function searchAddress(clientId, xIdx) {
     if (typeof daum === 'undefined' || !daum.Postcode) {
         // 다음 주소 API 동적 로드
         const script = document.createElement('script');
         script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-        script.onload = () => _openPostcode(clientId);
+        script.onload = () => _openPostcode(clientId, xIdx);
         document.head.appendChild(script);
     } else {
-        _openPostcode(clientId);
+        _openPostcode(clientId, xIdx);
     }
 }
-function _openPostcode(clientId) {
+
+// ── 추가 주소 (주소 2~4) ──
+function renderExtraAddrRows(list, clientId) {
+    return (list || []).map((a, idx) => `<div style="margin-top:12px;">
+        <div class="ncm-label" style="display:flex; align-items:center; gap:8px;">주소 ${idx+2}
+            <button onclick="removeExtraAddr(${clientId}, ${idx})" style="background:none;border:1px solid var(--border);color:var(--red);padding:1px 9px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <input class="field-input" id="f-xaddr-${clientId}-${idx}" value="${_esc(a.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${clientId}, ${idx})">
+            <button class="ncm-btn primary" style="white-space:nowrap;" onclick="searchAddress(${clientId}, ${idx})">주소 검색</button>
+        </div>
+        <input class="field-input" id="f-xaddr_detail-${clientId}-${idx}" value="${_esc(a.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+    </div>`).join('');
+}
+function collectExtraAddrs(clientId) {
+    const out = [];
+    for (let i = 0; i < 3; i++) {
+        const el = document.getElementById(`f-xaddr-${clientId}-${i}`);
+        if (!el) break;
+        out.push({ address: el.value.trim(), address_detail: (document.getElementById(`f-xaddr_detail-${clientId}-${i}`)?.value || '').trim() });
+    }
+    return out;
+}
+function _redrawExtraAddrs(clientId, list) {
+    document.getElementById(`xaddr-list-${clientId}`).innerHTML = renderExtraAddrRows(list, clientId);
+    const addBtn = document.getElementById(`xaddr-add-${clientId}`);
+    if (addBtn) addBtn.style.display = list.length >= 3 ? 'none' : '';
+}
+function addExtraAddr(clientId) {
+    const list = collectExtraAddrs(clientId);
+    if (list.length >= 3) return;
+    list.push({ address: '', address_detail: '' });
+    _redrawExtraAddrs(clientId, list);
+}
+function removeExtraAddr(clientId, idx) {
+    const list = collectExtraAddrs(clientId);
+    list.splice(idx, 1);
+    _redrawExtraAddrs(clientId, list);
+}
+function _openPostcode(clientId, xIdx) {
     new daum.Postcode({
         oncomplete: function(data) {
             // 사용자가 선택한 유형 반영 (R=도로명, J=지번)
-            document.getElementById('f-address-' + clientId).value = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
-            document.getElementById('f-address_detail-' + clientId).focus();
+            const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+            if (xIdx === undefined || xIdx === null) {
+                document.getElementById('f-address-' + clientId).value = addr;
+                document.getElementById('f-address_detail-' + clientId).focus();
+            } else {
+                document.getElementById(`f-xaddr-${clientId}-${xIdx}`).value = addr;
+                document.getElementById(`f-xaddr_detail-${clientId}-${xIdx}`).focus();
+            }
         }
     }).open();
 }
@@ -1682,6 +1729,7 @@ async function saveClient(id) {
         gender: document.getElementById(`f-gender-${id}`)?.value || null,
         address: document.getElementById(`f-address-${id}`)?.value || '',
         address_detail: document.getElementById(`f-address_detail-${id}`)?.value || '',
+        extra_addresses: collectExtraAddrs(id).filter(a => a.address),
         important_memo: document.getElementById(`f-imp-memo-${id}`)?.value || document.getElementById(`f-important_memo-${id}`)?.value || '',
         memo: document.getElementById(`f-memo-${id}`)?.value || '',
         ...(() => {
@@ -1986,7 +2034,8 @@ function renderClientView(d) {
         ${cvField('유입경로', CV_SRC[d.inflow_source] || '')}
         ${cvField('의뢰자 유형', CV_TYPE[d.client_type] || '')}
         ${cvField('등록일', d.created_at)}
-        ${cvField('주소', addr, true)}
+        ${cvField((d.extra_addresses||[]).length ? '주소 1 (메인)' : '주소', addr, true)}
+        ${(d.extra_addresses||[]).map((a, i) => cvField(`주소 ${i+2}`, [a.address, a.address_detail].filter(Boolean).join(', '), true)).join('')}
         ${cvField('특이사항', d.important_memo, true)}
     </div>`;
     // 방송 정보

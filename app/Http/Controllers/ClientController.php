@@ -59,6 +59,9 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
+            'extra_addresses.*.address' => 'nullable|string|max:300',
+            'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
@@ -100,6 +103,9 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
+            'extra_addresses.*.address' => 'nullable|string|max:300',
+            'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
@@ -191,6 +197,7 @@ class ClientController extends Controller
             'phone' => $client->phone,
             'address' => $client->address,
             'address_detail' => $client->address_detail,
+            'extra_addresses' => $client->extra_addresses ?? [],
             'grade' => $client->grade,
             'platforms' => $client->platforms ?? [],
             'platform_etc' => $client->platform_etc,
@@ -268,6 +275,9 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
+            'extra_addresses.*.address' => 'nullable|string|max:300',
+            'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
@@ -285,6 +295,13 @@ class ClientController extends Controller
             'personality' => 'nullable|string|max:500',
             'budget_style' => 'nullable|string|max:500',
         ]);
+        // 추가 주소 정리 — 주소가 빈 행 제거, 최대 3개, 없으면 null
+        if (array_key_exists('extra_addresses', $validated)) {
+            $validated['extra_addresses'] = collect($validated['extra_addresses'] ?? [])
+                ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? ''))])
+                ->filter(fn ($a) => $a['address'] !== '')
+                ->slice(0, 3)->values()->all() ?: null;
+        }
 
         $client->update($validated);
 
@@ -314,9 +331,19 @@ class ClientController extends Controller
             'affiliation' => 'nullable|string|max:200',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
+            'extra_addresses.*.address' => 'nullable|string|max:300',
+            'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
         ]);
+        // 추가 주소 정리 — 주소가 빈 행 제거, 최대 3개, 없으면 null
+        if (array_key_exists('extra_addresses', $validated)) {
+            $validated['extra_addresses'] = collect($validated['extra_addresses'] ?? [])
+                ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? ''))])
+                ->filter(fn ($a) => $a['address'] !== '')
+                ->slice(0, 3)->values()->all() ?: null;
+        }
 
         $validated['assigned_user_id'] = Auth::id();
         $validated['status'] = 'active';
