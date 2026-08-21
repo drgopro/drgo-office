@@ -222,11 +222,26 @@ class InventoryController extends Controller
             $query->whereIn('category_id', $ids);
         }
 
-        // 부족 재고만 (안전재고 이하) — 재고 현황 탭 통합으로 제품 관리에서 사용
-        if ($request->query('low_stock')) {
+        // 재고 수량 필터 — zero(0개) / low(안전재고 이하) / gte·lte(N개 기준)
+        // 세트 상품은 자체 재고 대신 조립 가능 수(min(구성품 재고 ÷ 필요 수량)) 기준으로 동일 적용
+        $stockOp = (string) $request->query('stock_op');
+        if ($stockOp === 'low' || $request->query('low_stock')) { // low_stock은 구버전 파라미터 호환
             $query->whereHas('inventory', function ($q) {
                 $q->whereRaw('quantity <= (SELECT safety_stock FROM products WHERE products.id = inventories.product_id)');
             });
+        } elseif (in_array($stockOp, ['zero', 'gte', 'lte'], true)) {
+            $effectiveStock = '(CASE WHEN products.is_bundle = 1 THEN COALESCE((
+                SELECT MIN(FLOOR(COALESCE(ci.quantity, 0) / pbi.quantity))
+                FROM product_bundle_items pbi
+                LEFT JOIN inventories ci ON ci.product_id = pbi.component_product_id
+                WHERE pbi.bundle_product_id = products.id
+            ), 0) ELSE COALESCE((SELECT i.quantity FROM inventories i WHERE i.product_id = products.id), 0) END)';
+            $val = max(0, (int) $request->query('stock_val', 0));
+            match ($stockOp) {
+                'zero' => $query->whereRaw("{$effectiveStock} = 0"),
+                'gte' => $query->whereRaw("{$effectiveStock} >= ?", [$val]),
+                'lte' => $query->whereRaw("{$effectiveStock} <= ?", [$val]),
+            };
         }
 
         // per_page가 있으면 페이지네이션 응답 (없으면 기존처럼 전체 배열 — 견적서 등 기존 호출부 호환)

@@ -195,9 +195,14 @@
     <div class="tab-panel active" id="panel-products">
         <div class="toolbar">
             <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="prodPage=1;loadProducts()">
-            <label style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
-                <input type="checkbox" id="lowStockOnly" onchange="prodPage=1;loadProducts()" style="accent-color:var(--accent);"> ⚠ 부족 재고만
-            </label>
+            <select id="stockFilterOp" onchange="onStockFilterChange()" title="재고 수량으로 필터 (세트는 조립 가능 수 기준)">
+                <option value="">재고 전체</option>
+                <option value="zero">재고 0개</option>
+                <option value="low">부족 (안전재고 이하)</option>
+                <option value="gte">N개 이상</option>
+                <option value="lte">N개 이하</option>
+            </select>
+            <input type="number" id="stockFilterVal" min="0" placeholder="N" style="display:none; width:74px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:12.5px; text-align:right;" oninput="prodPage=1;saveStockFilter();loadProducts()">
             <select id="prodPerPage" onchange="setProdPerPage(this.value)" title="페이지당 표시 개수">
                 <option value="10">10개씩</option>
                 <option value="20">20개씩</option>
@@ -915,11 +920,35 @@ function prodFilterParams() {
     const qs = new URLSearchParams();
     const search = document.getElementById('productSearch').value;
     if (search) qs.set('search', search);
-    if (document.getElementById('lowStockOnly').checked) qs.set('low_stock', '1');
+    // 재고 수량 필터 — zero/low/gte/lte (+N)
+    const op = document.getElementById('stockFilterOp').value;
+    if (op) {
+        qs.set('stock_op', op);
+        if (op === 'gte' || op === 'lte') qs.set('stock_val', document.getElementById('stockFilterVal').value || '0');
+    }
     const catId = prodCatFilterId();
     if (catId) qs.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
     return qs;
 }
+
+// 재고 필터 변경 — N 입력칸 표시 토글 + 저장 + 재조회
+function onStockFilterChange() {
+    const op = document.getElementById('stockFilterOp').value;
+    document.getElementById('stockFilterVal').style.display = (op === 'gte' || op === 'lte') ? '' : 'none';
+    prodPage = 1;
+    saveStockFilter();
+    loadProducts();
+}
+function saveStockFilter() {
+    localStorage.setItem('invStockOp', document.getElementById('stockFilterOp').value);
+    localStorage.setItem('invStockVal', document.getElementById('stockFilterVal').value);
+}
+(function restoreStockFilter() {
+    const op = localStorage.getItem('invStockOp') || '';
+    document.getElementById('stockFilterOp').value = op;
+    document.getElementById('stockFilterVal').value = localStorage.getItem('invStockVal') || '';
+    document.getElementById('stockFilterVal').style.display = (op === 'gte' || op === 'lte') ? '' : 'none';
+})();
 
 // 세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량)
 function bundleBuildable(p) {
@@ -1230,7 +1259,19 @@ function updateBundleSum() {
     document.getElementById('bundleSum').textContent = BUNDLE_ITEMS.length
         ? `구성품 매입가 합계: ${sum.toLocaleString()}원 (매입가에 자동 반영)` : '';
     if (document.getElementById('pIsBundle').checked) document.getElementById('pPurchase').value = sum || '';
+    updateSaleHint();
 }
+
+// 판매가가 비어 있으면 매입가 기준 적정 판매가를 placeholder로 안내
+// 마진율 정의는 목록과 동일: (판매가-매입가)/판매가 → 적정가 = 매입가 ÷ 0.9 (100원 단위 올림)
+function updateSaleHint() {
+    const sale = document.getElementById('pSale');
+    const buy = parseInt(document.getElementById('pPurchase').value, 10) || 0;
+    sale.placeholder = (buy > 0)
+        ? `적정 판매가는 ${(Math.ceil(buy / 0.9 / 100) * 100).toLocaleString()}원입니다 (마진 10%)`
+        : '';
+}
+document.getElementById('pPurchase').addEventListener('input', updateSaleHint);
 
 async function openProductModal(p) {
     if (!catData.length) await loadCategories();
@@ -1239,6 +1280,7 @@ async function openProductModal(p) {
     document.getElementById('pName').value = p ? p.name : '';
     document.getElementById('pPurchase').value = p ? (p.purchase_price||'') : '';
     document.getElementById('pSale').value = p ? (p.sale_price||'') : '';
+    updateSaleHint();
     const mps = (p && p.market_prices) || [];
     document.getElementById('pMarketUrlCompuzone').value = mps.find(m=>m.vendor==='compuzone')?.url || '';
     document.getElementById('pMarketUrlPcfactory').value = mps.find(m=>m.vendor==='pcfactory')?.url || '';

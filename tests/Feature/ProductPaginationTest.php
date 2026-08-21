@@ -117,4 +117,48 @@ class ProductPaginationTest extends TestCase
         $res->assertOk()->assertJsonCount(3);
         $this->assertArrayNotHasKey('total', $res->json());
     }
+
+    // === 재고 수량 필터 (zero / gte / lte, 세트는 조립 가능 수 기준) ===
+
+    public function test_stock_quantity_filters(): void
+    {
+        $cat = $this->seedProducts(3); // PART-001~003
+        $user = User::factory()->create(['role' => 'master']);
+        $products = Product::orderBy('sku')->get();
+        // 재고: 001=0(인벤토리 없음), 002=3, 003=10
+        Inventory::create(['product_id' => $products[1]->id, 'quantity' => 3, 'last_updated_at' => now()]);
+        Inventory::create(['product_id' => $products[2]->id, 'quantity' => 10, 'last_updated_at' => now()]);
+
+        $names = fn (string $qs) => collect($this->actingAs($user)
+            ->getJson('/api/inventory/products?per_page=20&'.$qs)->assertOk()->json('data'))->pluck('sku')->all();
+
+        $this->assertSame(['PART-001'], $names('stock_op=zero'));
+        $this->assertSame(['PART-002', 'PART-003'], $names('stock_op=gte&stock_val=3'));
+        $this->assertSame(['PART-001', 'PART-002'], $names('stock_op=lte&stock_val=5'));
+    }
+
+    public function test_stock_filter_uses_buildable_count_for_bundles(): void
+    {
+        $cat = $this->seedProducts(2); // 구성품 2개
+        $user = User::factory()->create(['role' => 'master']);
+        $parts = Product::orderBy('sku')->get();
+        Inventory::create(['product_id' => $parts[0]->id, 'quantity' => 6, 'last_updated_at' => now()]);
+        Inventory::create(['product_id' => $parts[1]->id, 'quantity' => 9, 'last_updated_at' => now()]);
+
+        // 세트: 구성품1 ×2, 구성품2 ×3 → 조립 가능 수 = min(6/2, 9/3) = 3
+        $bundle = Product::create([
+            'sku' => 'SET-001', 'name' => '세트', 'category' => '부품', 'category_id' => $cat->id,
+            'purchase_price' => 0, 'sale_price' => 0, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false, 'is_bundle' => true,
+        ]);
+        $bundle->bundleItems()->create(['component_product_id' => $parts[0]->id, 'quantity' => 2]);
+        $bundle->bundleItems()->create(['component_product_id' => $parts[1]->id, 'quantity' => 3]);
+
+        $skus = fn (string $qs) => collect($this->actingAs($user)
+            ->getJson('/api/inventory/products?per_page=20&'.$qs)->assertOk()->json('data'))->pluck('sku')->all();
+
+        $this->assertContains('SET-001', $skus('stock_op=gte&stock_val=3')); // 조립가능 3 ≥ 3
+        $this->assertNotContains('SET-001', $skus('stock_op=gte&stock_val=4'));
+        $this->assertNotContains('SET-001', $skus('stock_op=zero'));
+    }
 }

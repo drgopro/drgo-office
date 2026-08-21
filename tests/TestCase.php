@@ -22,6 +22,8 @@ abstract class TestCase extends BaseTestCase
                 'regexp',
                 fn ($pattern, $value) => preg_match('/'.$pattern.'/u', (string) $value) === 1 ? 1 : 0
             );
+            // FLOOR — PHP 내장 sqlite에 수학 함수가 없을 수 있음 (재고 필터의 세트 조립 가능 수 계산)
+            $connection->getPdo()->sqliteCreateFunction('floor', fn ($v) => floor((float) $v));
             $connection->getPdo()->sqliteCreateFunction(
                 'substring_index',
                 function ($value, $delim, $count) {
