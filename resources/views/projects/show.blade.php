@@ -99,6 +99,10 @@
     .step-label.active { color:var(--accent); font-weight:600; }
 
     .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    /* 익명(의뢰자 미연동) 프로젝트 — 프로젝트명 확인 + 상담 이력만 남기는 간소화 뷰 */
+    .anon-proj .process-wrap { display:none !important; }
+    .anon-proj .info-grid > .info-card:not(.anon-keep) { display:none !important; }
+    .anon-proj .info-grid > .info-card.anon-keep { grid-column:1 / -1; }
     .info-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .info-card.full { grid-column:1/-1; }
     .pj-tags { display:flex; flex-wrap:wrap; gap:5px; }
@@ -345,7 +349,7 @@
         'url'  => route('project-documents.serve', $d),
     ]);
 @endphp
-<div class="page-wrap">
+<div class="page-wrap {{ $project->client_id ? '' : 'anon-proj' }}">
 
     @if(session('success'))
         <div class="success-msg">{{ session('success') }}</div>
@@ -476,7 +480,7 @@
     @endif
 
     <div class="info-grid">
-        <div class="info-card">
+        <div class="info-card anon-keep">
             <div class="card-title">의뢰자 정보</div>
             @if($project->client)
             <div class="info-row">
@@ -1054,7 +1058,7 @@
 
         <!-- 상담 이력 -->
         @php $consultations = $project->consultations->load('authorUser', 'consultant'); @endphp
-        <div class="info-card full">
+        <div class="info-card full anon-keep">
             <div class="card-title" style="display:flex;justify-content:space-between;align-items:center; gap:8px; flex-wrap:wrap;">
                 <span>상담 이력 ({{ $consultations->count() }}건)</span>
                 <div style="display:flex; gap:8px; align-items:center;">

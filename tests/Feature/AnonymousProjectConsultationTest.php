@@ -42,6 +42,23 @@ class AnonymousProjectConsultationTest extends TestCase
         $this->assertSame('전화 상담 내용', $c->content);
     }
 
+    public function test_anonymous_project_page_uses_simplified_view(): void
+    {
+        $user = User::factory()->create(['role' => 'master']);
+        $anon = Project::create([
+            'client_id' => null, 'manual_client_name' => '익명 문의자',
+            'name' => '익명 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting',
+        ]);
+        $client = Client::create(['nickname' => '연동 의뢰자', 'grade' => 'normal']);
+        $linked = Project::create([
+            'client_id' => $client->id, 'name' => '연동 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting',
+        ]);
+
+        // 익명 — 간소화 뷰 클래스 적용, 연동 — 미적용
+        $this->actingAs($user)->get("/projects/{$anon->id}")->assertOk()->assertSee('anon-proj');
+        $this->actingAs($user)->get("/projects/{$linked->id}")->assertOk()->assertDontSee('anon-proj');
+    }
+
     public function test_consultation_still_updates_last_contact_for_linked_client(): void
     {
         $user = User::factory()->create(['role' => 'master']);
