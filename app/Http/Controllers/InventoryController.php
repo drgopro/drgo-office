@@ -607,6 +607,55 @@ class InventoryController extends Controller
     }
 
     /**
+     * 전체 편집 — 목록에서 인라인으로 고친 제품들을 일괄 저장.
+     * 재고(stock_quantity)는 세트가 아닌 제품만, 값이 달라진 경우 조정 이력을 남긴다.
+     */
+    public function bulkEditProducts(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1|max:200',
+            'items.*.id' => 'required|integer|exists:products,id',
+            'items.*.name' => 'sometimes|required|string|max:200',
+            'items.*.purchase_price' => 'sometimes|nullable|numeric|min:0',
+            'items.*.sale_price' => 'sometimes|nullable|numeric|min:0',
+            'items.*.safety_stock' => 'sometimes|nullable|integer|min:0',
+            'items.*.stock_quantity' => 'sometimes|nullable|integer|min:0',
+        ], [
+            'items.*.name.required' => '제품명은 비울 수 없습니다.',
+        ]);
+
+        $updated = 0;
+        DB::transaction(function () use ($validated, &$updated) {
+            foreach ($validated['items'] as $item) {
+                $product = Product::find($item['id']);
+                if (! $product) {
+                    continue;
+                }
+
+                $fields = [];
+                if (array_key_exists('name', $item)) {
+                    $fields['name'] = $item['name'];
+                }
+                foreach (['purchase_price', 'sale_price', 'safety_stock'] as $f) {
+                    if (array_key_exists($f, $item)) {
+                        $fields[$f] = (int) ($item[$f] ?? 0);
+                    }
+                }
+                if ($fields) {
+                    $product->update($fields);
+                }
+
+                if (array_key_exists('stock_quantity', $item) && $item['stock_quantity'] !== null && ! $product->is_bundle) {
+                    $this->adjustStockTo($product, (int) $item['stock_quantity'], "전체 편집 — 재고 조정 ({$product->name})");
+                }
+                $updated++;
+            }
+        });
+
+        return response()->json(['message' => "{$updated}개 제품이 저장되었습니다.", 'count' => $updated]);
+    }
+
+    /**
      * 선택된 제품들의 show_in_estimate 일괄 변경
      */
     public function bulkSetEstimate(Request $request): JsonResponse

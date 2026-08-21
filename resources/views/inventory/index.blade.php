@@ -48,6 +48,11 @@
     .data-table th { font-size:10.5px; color:var(--text-muted); font-weight:600; text-align:left; padding:9px 8px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table td { font-size:12.5px; padding:9px 8px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
     .sku-cell { font-size:11px !important; letter-spacing:-0.2px; }
+    /* 전체 편집 모드 인라인 입력폼 */
+    .pe-input { width:100%; min-width:120px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-size:12px; color:var(--text); outline:none; }
+    .pe-input:focus { border-color:var(--accent); }
+    .pe-input.pe-num { min-width:64px; max-width:96px; text-align:right; }
+    .pe-input.pe-invalid { border-color:var(--red, #dc2626); }
     .action-cell button { padding:4px 7px !important; font-size:11.5px !important; }
     .data-table td.text-wrap { white-space:normal; word-break:keep-all; overflow-wrap:break-word; }
     /* 제품명/카테고리 최소 폭 — 좁은 해상도에서 한 글자씩 세로로 깨지는 대신 표가 가로 스크롤되도록 */
@@ -202,7 +207,9 @@
                 <button class="btn-outline btn-sm" onclick="saveMarginWarn()">저장</button>
             </span>
             <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 판매처 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
-            <button class="btn-primary" onclick="openProductModal()">+ 제품 등록</button>
+            <button class="btn-outline" id="prodEditToggle" onclick="toggleProdEditMode()" title="목록에서 제품명·가격·재고를 바로 고쳐 일괄 저장">✎ 전체 편집</button>
+            <button class="btn-primary" id="prodEditSave" style="display:none;" onclick="saveProdEdits(this)">일괄 저장</button>
+            <button class="btn-primary" id="prodAddBtn" onclick="openProductModal()">+ 제품 등록</button>
         </div>
         <div id="prodCatChips" style="margin-bottom:12px;"></div>
         <div id="prodBulkBar" style="display:none; align-items:center; gap:10px; padding:10px 14px; background:rgba(212,188,150,0.08); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; flex-wrap:wrap;">
@@ -941,6 +948,9 @@ function bundleBadgeHtml(p) {
 }
 
 async function loadProducts() {
+    // 편집 모드에서 검색/페이지 이동으로 재렌더되면 미저장 변경이 사라짐 — 확인 후 진행
+    if (PROD_EDIT_MODE && document.querySelector('#productBody .pe-input') && collectProdEdits().length &&
+        !confirm('저장하지 않은 변경 사항이 있습니다. 이동하면 사라집니다. 계속할까요?')) return;
     const qs = prodFilterParams();
     qs.set('per_page', prodPerPage);
     qs.set('page', prodPage);
@@ -966,17 +976,18 @@ async function loadProducts() {
     // 화면에서 사라진 ID는 선택에서 제거
     const visibleIds = new Set(allProducts.map(p => p.id));
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
+    const E = PROD_EDIT_MODE; // 전체 편집 모드 — 값 셀을 입력폼으로 렌더
     tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
         <td class="text-muted sku-cell">${_esc(p.sku)}</td>
-        <td class="text-wrap">${bundleBadgeHtml(p)}${_esc(p.name)}</td>
+        <td class="text-wrap">${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
-        <td class="text-right">${fmt(p.purchase_price)}</td>
-        <td class="text-right">${fmt(p.sale_price)}</td>
+        <td class="text-right">${E ? peInput(p,'purchase_price',p.purchase_price??0) : fmt(p.purchase_price)}</td>
+        <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : fmt(p.sale_price)}</td>
         <td class="text-right">${marginCellHtml(p)}</td>
         <td class="text-right">${marketPriceCellHtml(p)}</td>
-        <td class="text-right">${stockCellHtml(p)}</td>
-        <td class="text-right">${p.safety_stock||'-'}</td>
+        <td class="text-right">${E && !p.is_bundle ? peInput(p,'stock_quantity',p.inventory?(p.inventory.quantity??0):0) : stockCellHtml(p)}</td>
+        <td class="text-right">${E ? peInput(p,'safety_stock',p.safety_stock??0) : (p.safety_stock||'-')}</td>
         <td>${p.show_in_estimate ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td class="action-cell">
             <button class="btn-outline btn-sm" onclick="if(typeof openActivityLog==='function')openActivityLog('Product',${p.id},'${_esc(p.name.replace(/'/g,"\\'"))} 수정 로그');else alert('로그 기능을 사용할 수 없습니다.');">📋</button>
@@ -1003,6 +1014,70 @@ async function loadProducts() {
         </div>
     </div>`).join('');
     updateProdBulkBar();
+}
+
+// === 전체 편집 (인라인 일괄 수정) ===
+let PROD_EDIT_MODE = false;
+
+function peInput(p, field, value, type = 'number') {
+    const cls = type === 'number' ? 'pe-input pe-num' : 'pe-input';
+    return `<input class="${cls}" type="${type}" ${type==='number'?'min="0"':''} data-id="${p.id}" data-field="${field}" value="${_esc(String(value ?? ''))}">`;
+}
+
+// 편집 모드에서 입력폼의 값이 원본과 달라진 행 수집
+function collectProdEdits() {
+    const byId = new Map(allProducts.map(p => [p.id, p]));
+    const items = new Map();
+    document.querySelectorAll('#productBody .pe-input').forEach(inp => {
+        const id = parseInt(inp.dataset.id, 10);
+        const p = byId.get(id);
+        if (!p) return;
+        const field = inp.dataset.field;
+        const raw = inp.value.trim();
+        const current = field === 'name' ? (p.name ?? '')
+            : field === 'stock_quantity' ? (p.inventory ? (p.inventory.quantity ?? 0) : 0)
+            : (p[field] ?? 0);
+        const next = field === 'name' ? raw : (raw === '' ? 0 : parseInt(raw, 10));
+        if (field === 'name' && raw === '') { inp.classList.add('pe-invalid'); return; }
+        inp.classList.remove('pe-invalid');
+        if (String(next) === String(current)) return;
+        if (!items.has(id)) items.set(id, { id });
+        items.get(id)[field] = next;
+    });
+    return [...items.values()];
+}
+
+function toggleProdEditMode() {
+    if (PROD_EDIT_MODE && collectProdEdits().length &&
+        !confirm('저장하지 않은 변경 사항이 있습니다. 편집을 취소할까요?')) return;
+    PROD_EDIT_MODE = !PROD_EDIT_MODE;
+    document.getElementById('prodEditToggle').textContent = PROD_EDIT_MODE ? '✕ 편집 취소' : '✎ 전체 편집';
+    document.getElementById('prodEditSave').style.display = PROD_EDIT_MODE ? '' : 'none';
+    loadProducts();
+}
+
+async function saveProdEdits(btn) {
+    const items = collectProdEdits();
+    if (document.querySelector('#productBody .pe-invalid')) { alert('제품명은 비울 수 없습니다.'); return; }
+    if (!items.length) { alert('변경된 내용이 없습니다.'); return; }
+    if (!confirm(`${items.length}개 제품의 변경 사항을 저장할까요?`)) return;
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/inventory/products/bulk-edit', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify({ items }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.message || (data.errors ? Object.values(data.errors).flat().join('\n') : '저장에 실패했습니다.')); return; }
+        PROD_EDIT_MODE = false;
+        document.getElementById('prodEditToggle').textContent = '✎ 전체 편집';
+        document.getElementById('prodEditSave').style.display = 'none';
+        await loadProducts();
+        alert(data.message || '저장되었습니다.');
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 // === 일괄 선택/액션 ===

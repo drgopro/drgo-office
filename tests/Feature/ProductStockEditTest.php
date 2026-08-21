@@ -174,4 +174,58 @@ class ProductStockEditTest extends TestCase
         $res->assertCreated();
         $this->assertNull(Product::find($res->json('id'))->inventory, '세트는 재고 입력을 무시');
     }
+
+    // === 전체 편집 (일괄 저장) ===
+
+    private function makeSimpleProduct(string $name, int $qty = 0): Product
+    {
+        $product = Product::create([
+            'sku' => 'PT-'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT),
+            'name' => $name, 'category' => '부품', 'category_id' => $this->cat->id,
+            'purchase_price' => 1000, 'sale_price' => 2000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        Inventory::create(['product_id' => $product->id, 'quantity' => $qty, 'last_updated_at' => now()]);
+
+        return $product;
+    }
+
+    public function test_bulk_edit_updates_fields_and_records_stock_adjust(): void
+    {
+        $a = $this->makeSimpleProduct('케이블A', 5);
+        $b = $this->makeSimpleProduct('케이블B', 3);
+
+        $this->actingAs($this->master)->patchJson('/api/inventory/products/bulk-edit', [
+            'items' => [
+                ['id' => $a->id, 'name' => '케이블A-개명', 'purchase_price' => 1500, 'sale_price' => 2500, 'stock_quantity' => 9],
+                ['id' => $b->id, 'safety_stock' => 4],
+            ],
+        ])->assertOk()->assertJsonPath('count', 2);
+
+        $a->refresh();
+        $this->assertSame('케이블A-개명', $a->name);
+        $this->assertSame(1500, (int) $a->purchase_price);
+        $this->assertSame(2500, (int) $a->sale_price);
+        $this->assertSame(9, $a->inventory->quantity);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $a->id, 'movement_type' => 'adjust', 'quantity' => 4, 'quantity_after' => 9,
+        ]);
+        // 재고를 안 바꾼 제품은 조정 이력 없음
+        $this->assertSame(4, (int) $b->fresh()->safety_stock);
+        $this->assertSame(0, StockMovement::where('product_id', $b->id)->count());
+    }
+
+    public function test_bulk_edit_rejects_empty_name_and_requires_permission(): void
+    {
+        $a = $this->makeSimpleProduct('케이블C');
+
+        $this->actingAs($this->master)->patchJson('/api/inventory/products/bulk-edit', [
+            'items' => [['id' => $a->id, 'name' => '']],
+        ])->assertStatus(422);
+
+        $noPerm = User::factory()->create(['role' => 'member']);
+        $this->actingAs($noPerm)->patchJson('/api/inventory/products/bulk-edit', [
+            'items' => [['id' => $a->id, 'name' => 'x']],
+        ])->assertForbidden();
+    }
 }
