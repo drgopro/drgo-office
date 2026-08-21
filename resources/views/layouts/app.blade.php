@@ -557,11 +557,11 @@ window.openTopTab = function(type, url, title) {
                 <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');" title="재고"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</a>
             @endif
             <a href="/wiki" class="{{ request()->is('wiki*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki');" title="위키"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>위키</a>
-            @if(Auth::user()->hasPermission('inventory.view'))
+            @if(Auth::user()->hasPermission('rental.view'))
                 <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');" title="장비 위치"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>장비 위치</a>
-            @endif
-            @if(Auth::user()->hasPermission('clients.view'))
                 <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');" title="렌탈"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</a>
+            @endif
+            @if(Auth::user()->hasPermission('broadcast.view'))
                 <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');" title="방송룸"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</a>
             @endif
             <div class="nav-group-gap"></div>

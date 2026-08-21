@@ -317,8 +317,12 @@
         <div class="sidebar-list" id="clientList"></div>
         <div class="sidebar-pagination" id="clientPagination"></div>
         <div style="display:flex; gap:6px; margin:8px;">
+            @if(Auth::user()->hasPermission('clients.edit'))
             <div class="sidebar-add" style="flex:1; margin:0;" onclick="openNewClientModal()">+ 의뢰자 등록</div>
+            @endif
+            @if(Auth::user()->isAdmin())
             <div class="sidebar-add" style="flex:0; margin:0; white-space:nowrap;" onclick="openExcelImportModal('clients','의뢰자')"><x-icon name="download" :size="13"/> 엑셀</div>
+            @endif
         </div>
     </div>
 
@@ -509,6 +513,10 @@
 @include('partials.tag-picker-assets')
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+// 팀 권한 — 편집 권한이 없으면 수정/추가/삭제 UI를 렌더하지 않음 (서버도 403으로 차단)
+const CAN_CLIENT_EDIT = @json(Auth::user()->hasPermission('clients.edit'));
+const CAN_PROJECT_EDIT = @json(Auth::user()->hasPermission('projects.edit'));
+const CAN_DOC_EDIT = @json(Auth::user()->hasPermission('documents.edit'));
 // 프로젝트 태그 위젯(공용 CrmTagPicker) — 컨테이너만 렌더, 삽입 후 init
 function renderTagPicker(id){
     return `<div class="field" style="margin-top:10px;"><div class="crm-tagpick" data-key="client-${id}" data-major="[]" data-minor="[]"></div></div>`;
@@ -990,10 +998,11 @@ function renderClientContent(id) {
             </div>
             <div class="detail-actions">
                 <button class="btn-log" onclick="openActivityLog('Client',${id},'${_esc((d.name||'').replace(/'/g,"\\'"))} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
+                ${CAN_CLIENT_EDIT ? `
                 <button class="btn-save" id="ce-edit-${id}" onclick="clientEditMode(${id},true)">수정</button>
                 <button class="btn-save" id="ce-save-${id}" style="display:none;" onclick="saveClient(${id})">저장</button>
                 <button class="btn-log" id="ce-cancel-${id}" style="display:none;" onclick="clientEditMode(${id},false)">취소</button>
-                <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>
+                <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>` : ''}
             </div>
         </div>
 
@@ -1132,6 +1141,7 @@ function renderClientContent(id) {
                     <span style="font-weight:400; color:var(--text-muted);">최대 10명 · 이름/연락처가 의뢰자 검색에 함께 매칭됩니다</span>
                 </div>
                 <div id="contact-list-${id}">${renderClientContacts(d.contacts || [], id)}</div>
+                ${CAN_CLIENT_EDIT ? `
                 <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
                     <input class="field-input" id="ct-name-${id}" placeholder="이름 *" style="flex:1; min-width:100px;">
                     <input class="field-input" id="ct-phone-${id}" placeholder="연락처" style="flex:1; min-width:120px;" oninput="this.value = formatPhoneInput(this.value)">
@@ -1140,16 +1150,17 @@ function renderClientContent(id) {
                     <input type="hidden" id="ct-edit-${id}" value="">
                     <button class="btn-save" id="ct-save-${id}" onclick="saveClientContact(${id})" style="white-space:nowrap;">+ 매니저 추가</button>
                     <button class="btn-save" id="ct-cancel-${id}" onclick="resetContactForm(${id})" style="display:none; background:var(--surface2); color:var(--text-muted); white-space:nowrap;">취소</button>
-                </div>
+                </div>` : ''}
             </div>
 
             <!-- 메모 (인라인 스레드) -->
             <div class="info-narrow" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
                 <div class="field-label" style="margin:0 0 10px; font-size:12px; font-weight:600;">메모</div>
+                ${CAN_CLIENT_EDIT ? `
                 <div style="display:flex; gap:8px; margin-bottom:12px;">
                     <textarea class="field-input" id="info-memo-input-${id}" rows="1" placeholder="메모를 입력하세요..." style="flex:1; resize:none; min-height:34px;" onfocus="this.rows=2" onblur="if(!this.value)this.rows=1"></textarea>
                     <button class="btn-save" onclick="addMemo(${id}, 'info')" style="align-self:flex-end; white-space:nowrap; padding:7px 14px;">추가</button>
-                </div>
+                </div>` : ''}
                 <div id="info-memos-${id}">${renderInfoMemos(d.memos, id)}</div>
             </div>
         </div>
@@ -1161,7 +1172,7 @@ function renderClientContent(id) {
                     <option value="desc">최신 순</option>
                     <option value="asc">오래된 순</option>
                 </select>
-                <button class="btn-save" onclick="openProjectForm(${id})">+ 프로젝트</button>
+                ${CAN_PROJECT_EDIT ? `<button class="btn-save" onclick="openProjectForm(${id})">+ 프로젝트</button>` : ''}
             </div>
             <div id="project-form-${id}" style="display:none; margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
                 <div class="form-grid">
@@ -1215,6 +1226,7 @@ function renderClientContent(id) {
 
         <!-- 첨부파일 -->
         <div class="sub-panel" id="sub-docs-${id}">
+            ${CAN_DOC_EDIT ? `
             <div style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                     <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--accent); color:var(--accent-text); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
@@ -1233,7 +1245,7 @@ function renderClientContent(id) {
                     <button type="button" class="btn-save" id="doc-upload-btn-${id}" onclick="uploadDocs(${id})" disabled style="padding:7px 16px;">업로드</button>
                 </div>
                 <div id="doc-preview-${id}" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-            </div>
+            </div>` : ''}
             <div id="doc-list-${id}">
                 ${renderDocList(d.documents, id)}
             </div>
@@ -1248,10 +1260,11 @@ function renderClientContent(id) {
 
         <!-- 메모 (전체) -->
         <div class="sub-panel" id="sub-memo-${id}">
+            ${CAN_CLIENT_EDIT ? `
             <div style="display:flex; gap:8px; margin-bottom:16px;">
                 <textarea class="field-input" id="new-memo-${id}" rows="2" placeholder="메모를 입력하세요..." style="flex:1; resize:vertical;"></textarea>
                 <button class="btn-save" onclick="addMemo(${id}, 'full')" style="align-self:flex-end; white-space:nowrap;">메모 추가</button>
-            </div>
+            </div>` : ''}
             <div id="memo-thread-${id}">${renderMemoThread(d.memos, id)}</div>
         </div>
         `;
@@ -1274,8 +1287,8 @@ function renderProjectList(projects, clientId, order) {
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
-                ${p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
-                <button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>
+                ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
+                ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
             </div>
         </div>
     `).join('');
@@ -1946,7 +1959,7 @@ function renderMemoItem(m, clientId) {
                     <span style="font-size:12px; font-weight:600;">${_esc(m.user_name)}</span>
                     <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
                 </div>
-                <button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
+                ${CAN_CLIENT_EDIT ? `<button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>` : ''}
             </div>
             <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${_esc(m.content)}</div>
         </div>
@@ -2426,10 +2439,10 @@ function renderClientContacts(contacts, clientId) {
         ${c.relation ? `<span style="font-size:11px; padding:2px 9px; border-radius:10px; background:var(--surface2); color:var(--text-muted);">${_esc(c.relation)}</span>` : ''}
         <span style="color:var(--text-muted);">${_esc(c.phone||'')}</span>
         ${c.memo ? `<span style="color:var(--text-muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${_esc(c.memo)}</span>` : ''}
-        <span style="margin-left:auto; display:flex; gap:4px; flex-shrink:0;">
+        ${CAN_CLIENT_EDIT ? `<span style="margin-left:auto; display:flex; gap:4px; flex-shrink:0;">
             <button onclick="editClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
             <button onclick="deleteClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--red);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
-        </span>
+        </span>` : ''}
     </div>`).join('');
 }
 

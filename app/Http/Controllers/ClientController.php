@@ -130,9 +130,16 @@ class ClientController extends Controller
     }
 
     // JSON 상세 API (탭 내 로드)
+    /** 연락처·주소 열람 권한 (팀 관리 > 의뢰자 > 연락처·주소 조회, admin 이상 항상 허용) */
+    private function canViewPii(): bool
+    {
+        return Auth::user()?->hasPermission('clients.pii') ?? false;
+    }
+
     public function detail(Client $client)
     {
         $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator', 'contacts');
+        $pii = $this->canViewPii();
 
         // 장비 정보 연동 — 최신 프로젝트 우선, 비어 있으면 장비 정보가 적힌 가장 최근 프로젝트로 폴백
         $lastProjectEquipment = null;
@@ -194,10 +201,11 @@ class ClientController extends Controller
             'id' => $client->id,
             'name' => $client->name,
             'nickname' => $client->nickname,
-            'phone' => $client->phone,
-            'address' => $client->address,
-            'address_detail' => $client->address_detail,
-            'extra_addresses' => $client->extra_addresses ?? [],
+            'phone' => $pii ? $client->phone : null,
+            'address' => $pii ? $client->address : null,
+            'address_detail' => $pii ? $client->address_detail : null,
+            'extra_addresses' => $pii ? ($client->extra_addresses ?? []) : [],
+            'can_view_pii' => $pii,
             'grade' => $client->grade,
             'platforms' => $client->platforms ?? [],
             'platform_etc' => $client->platform_etc,
@@ -225,8 +233,8 @@ class ClientController extends Controller
                 'stage' => $p->stage,
                 'stage_label' => $p->stageLabel(),
                 'tags' => $p->tags ?? ['major' => [], 'minor' => []],
-                'address' => $p->address, // 세팅 장소 — 캘린더 장소 연동용
-                'address_detail' => $p->address_detail,
+                'address' => $pii ? $p->address : null, // 세팅 장소 — 캘린더 장소 연동용
+                'address_detail' => $pii ? $p->address_detail : null,
                 'created_at' => $p->created_at->format('Y.m.d'),
                 'consultations_count' => $p->consultations->count(),
             ]),
@@ -244,7 +252,7 @@ class ClientController extends Controller
             'contacts' => $client->contacts->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
-                'phone' => $c->phone,
+                'phone' => $pii ? $c->phone : null,
                 'relation' => $c->relation,
                 'memo' => $c->memo,
             ]),
@@ -301,6 +309,12 @@ class ClientController extends Controller
                 ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? ''))])
                 ->filter(fn ($a) => $a['address'] !== '')
                 ->slice(0, 3)->values()->all() ?: null;
+        }
+
+        // 연락처·주소 열람 권한이 없으면 화면에 빈 값으로 보이므로,
+        // 저장 시 기존 값이 빈 값으로 덮어써지지 않게 해당 필드는 제외
+        if (! $this->canViewPii()) {
+            unset($validated['phone'], $validated['address'], $validated['address_detail'], $validated['extra_addresses']);
         }
 
         $client->update($validated);
@@ -381,8 +395,17 @@ class ClientController extends Controller
         $paginated = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['id', 'name', 'nickname', 'phone', 'grade', 'status', 'platforms']);
 
+        $pii = $this->canViewPii();
+
         return response()->json([
-            'data' => $paginated->items(),
+            'data' => collect($paginated->items())->map(function ($c) use ($pii) {
+                $arr = $c->toArray();
+                if (! $pii) {
+                    $arr['phone'] = null;
+                }
+
+                return $arr;
+            })->all(),
             'current_page' => $paginated->currentPage(),
             'last_page' => $paginated->lastPage(),
             'per_page' => $paginated->perPage(),
@@ -417,6 +440,11 @@ class ClientController extends Controller
             'relation' => 'nullable|string|max:50',
             'memo' => 'nullable|string|max:500',
         ]);
+
+        // 연락처 열람 권한이 없으면 빈 값으로 기존 연락처를 지우지 않게 제외
+        if (! $this->canViewPii()) {
+            unset($validated['phone']);
+        }
 
         $contact->update($validated);
 
@@ -484,9 +512,14 @@ class ClientController extends Controller
             ->get(['id', 'name', 'nickname', 'phone']);
 
         // 관계자로 매칭된 경우 어떤 관계자로 걸렸는지 병기 (예: 김실장 (실장))
-        return response()->json($clients->map(function ($c) {
+        $pii = $this->canViewPii();
+
+        return response()->json($clients->map(function ($c) use ($pii) {
             $matched = $c->contacts->first();
             $arr = $c->only(['id', 'name', 'nickname', 'phone']);
+            if (! $pii) {
+                $arr['phone'] = null;
+            }
             $arr['matched_contact'] = $matched
                 ? trim($matched->name.($matched->relation ? " ({$matched->relation})" : ''))
                 : null;

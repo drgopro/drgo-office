@@ -308,9 +308,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/movements', [InventoryController::class, 'movements']);
         Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
-        Route::get('/rental-equipment', [RentalEquipmentController::class, 'index'])->name('rental-equipment');
-        Route::get('/api/rental/board', [RentalEquipmentController::class, 'board']);
-        Route::get('/api/rental/lookup', [RentalEquipmentController::class, 'lookup']);
     });
     Route::middleware('permission:inventory.edit')->group(function () {
         Route::post('/api/inventory/categories', [InventoryController::class, 'storeCategory']);
@@ -331,7 +328,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/inventory/orders', [PurchaseOrderController::class, 'store']);
         Route::patch('/api/inventory/orders/{order}', [PurchaseOrderController::class, 'update']);
         Route::post('/api/inventory/orders/{order}/receive', [PurchaseOrderController::class, 'receive']);
+    });
 
+    // 렌탈 (장비 위치 + 월 렌탈 계약) — 팀 관리의 '렌탈' 권한
+    Route::middleware('permission:rental.view')->group(function () {
+        Route::get('/rental-equipment', [RentalEquipmentController::class, 'index'])->name('rental-equipment');
+        Route::get('/api/rental/board', [RentalEquipmentController::class, 'board']);
+        Route::get('/api/rental/lookup', [RentalEquipmentController::class, 'lookup']);
+        Route::get('/rental-contracts', [RentalContractController::class, 'index'])->name('rental-contracts');
+        Route::get('/api/rental-contracts', [RentalContractController::class, 'list']);
+        Route::get('/api/rental-contracts/search-clients', [RentalContractController::class, 'searchClients']);
+    });
+    Route::middleware('permission:rental.edit')->group(function () {
         Route::post('/api/rental/items', [RentalEquipmentController::class, 'storeItem']);
         Route::patch('/api/rental/items/{item}', [RentalEquipmentController::class, 'updateItem']);
         Route::delete('/api/rental/items/{item}', [RentalEquipmentController::class, 'destroyItem']);
@@ -346,27 +354,18 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/rental/categories/{category}', [RentalEquipmentController::class, 'destroyCategory']);
         Route::post('/api/rental/assign', [RentalEquipmentController::class, 'assign']);
         Route::post('/api/rental/assign-group', [RentalEquipmentController::class, 'assignGroup']);
-    });
-
-    // 렌탈 계약 (월 단위)
-    Route::middleware('permission:clients.view')->group(function () {
-        Route::get('/rental-contracts', [RentalContractController::class, 'index'])->name('rental-contracts');
-        Route::get('/api/rental-contracts', [RentalContractController::class, 'list']);
-        Route::get('/api/rental-contracts/search-clients', [RentalContractController::class, 'searchClients']);
-    });
-    Route::middleware('permission:clients.edit')->group(function () {
         Route::post('/api/rental-contracts', [RentalContractController::class, 'store']);
         Route::patch('/api/rental-contracts/{contract}', [RentalContractController::class, 'update']);
         Route::delete('/api/rental-contracts/{contract}', [RentalContractController::class, 'destroy']);
     });
 
-    // 방송룸
-    Route::middleware('permission:clients.view')->group(function () {
+    // 방송룸 — 팀 관리의 '방송룸' 권한
+    Route::middleware('permission:broadcast.view')->group(function () {
         Route::get('/broadcast-room', [BroadcastRoomController::class, 'index'])->name('broadcast-room');
         Route::get('/api/broadcast-room/contracts', [BroadcastRoomController::class, 'contracts']);
         Route::get('/api/broadcast-room/usages', [BroadcastRoomController::class, 'usages']);
     });
-    Route::middleware('permission:clients.edit')->group(function () {
+    Route::middleware('permission:broadcast.edit')->group(function () {
         Route::post('/api/broadcast-room/contracts', [BroadcastRoomController::class, 'storeContract']);
         Route::patch('/api/broadcast-room/contracts/{contract}', [BroadcastRoomController::class, 'updateContract']);
         Route::delete('/api/broadcast-room/contracts/{contract}', [BroadcastRoomController::class, 'destroyContract']);

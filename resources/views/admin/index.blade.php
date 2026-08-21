@@ -996,10 +996,12 @@ const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const currentRole = @json(Auth::user()->role);
 const PERM_GROUPS = [
     { title: '캘린더', perms: [{ key: 'calendar.view', label: '조회' }, { key: 'calendar.edit', label: '편집' }, { key: 'calendar.backup', label: '백업/내보내기' }] },
-    { title: '의뢰자', perms: [{ key: 'clients.view', label: '조회' }, { key: 'clients.edit', label: '편집' }] },
+    { title: '의뢰자', perms: [{ key: 'clients.view', label: '조회' }, { key: 'clients.pii', label: '연락처·주소 조회' }, { key: 'clients.edit', label: '편집' }] },
     { title: '프로젝트', perms: [{ key: 'projects.view', label: '조회' }, { key: 'projects.edit', label: '편집' }] },
     { title: '태그', perms: [{ key: 'tags.manage', label: '태그 수정(소분류 추가/삭제)' }] },
     { title: '재고', perms: [{ key: 'inventory.view', label: '조회' }, { key: 'inventory.edit', label: '편집' }] },
+    { title: '렌탈 (장비 위치 · 렌탈 계약)', perms: [{ key: 'rental.view', label: '조회' }, { key: 'rental.edit', label: '편집' }] },
+    { title: '방송룸', perms: [{ key: 'broadcast.view', label: '조회' }, { key: 'broadcast.edit', label: '편집' }] },
     { title: '견적서', perms: [{ key: 'estimates.view', label: '조회' }, { key: 'estimates.edit', label: '편집' }] },
     { title: '입금 내역', perms: [{ key: 'deposits.view', label: '조회' }, { key: 'deposits.cancel', label: '결제 취소 (페이앱)' }] },
     { title: '통계', perms: [{ key: 'stats.view', label: '조회' }] },
