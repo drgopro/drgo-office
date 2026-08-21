@@ -206,8 +206,8 @@
                 %
                 <button class="btn-outline btn-sm" onclick="saveMarginWarn()">저장</button>
             </span>
-            <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 판매처 가격을 순차 조회합니다">↻ 전체 시세 갱신</button>
-            <button class="btn-outline" id="prodEditToggle" onclick="toggleProdEditMode()" title="목록에서 제품명·가격·재고를 바로 고쳐 일괄 저장">✎ 전체 편집</button>
+            <button class="btn-outline" onclick="refreshAllMarketPrices(this)" title="시세 URL이 등록된 제품의 판매처 가격을 순차 조회합니다">전체 시세 갱신</button>
+            <button class="btn-outline" id="prodEditToggle" onclick="toggleProdEditMode()" title="목록에서 제품명·가격·재고를 바로 고쳐 일괄 저장">전체 편집</button>
             <button class="btn-primary" id="prodEditSave" style="display:none;" onclick="saveProdEdits(this)">일괄 저장</button>
             <button class="btn-primary" id="prodAddBtn" onclick="openProductModal()">+ 제품 등록</button>
         </div>
@@ -1051,7 +1051,7 @@ function toggleProdEditMode() {
     if (PROD_EDIT_MODE && collectProdEdits().length &&
         !confirm('저장하지 않은 변경 사항이 있습니다. 편집을 취소할까요?')) return;
     PROD_EDIT_MODE = !PROD_EDIT_MODE;
-    document.getElementById('prodEditToggle').textContent = PROD_EDIT_MODE ? '✕ 편집 취소' : '✎ 전체 편집';
+    document.getElementById('prodEditToggle').textContent = PROD_EDIT_MODE ? '편집 취소' : '전체 편집';
     document.getElementById('prodEditSave').style.display = PROD_EDIT_MODE ? '' : 'none';
     loadProducts();
 }
@@ -1071,7 +1071,7 @@ async function saveProdEdits(btn) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) { alert(data.message || (data.errors ? Object.values(data.errors).flat().join('\n') : '저장에 실패했습니다.')); return; }
         PROD_EDIT_MODE = false;
-        document.getElementById('prodEditToggle').textContent = '✎ 전체 편집';
+        document.getElementById('prodEditToggle').textContent = '전체 편집';
         document.getElementById('prodEditSave').style.display = 'none';
         await loadProducts();
         alert(data.message || '저장되었습니다.');
