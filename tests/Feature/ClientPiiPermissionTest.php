@@ -103,16 +103,16 @@ class ClientPiiPermissionTest extends TestCase
         ]);
         $range = '?start='.now()->subDay()->toDateString().'&end='.now()->addDay()->toDateString();
 
-        // 권한 없음 — 캘린더에서도 주소/연락처 마스킹 (지역명 location은 유지)
+        // 권한 없음 — 연락처는 감추고 주소는 시·구·동 단위까지만 표시
         $user = $this->userWith(['calendar.view', 'clients.view']);
         $ev = collect($this->actingAs($user)->getJson('/api/events'.$range)->assertOk()->json())->firstWhere('id', $schedule->id);
-        $this->assertNull($ev['address']);
+        $this->assertSame('서울시 동작구', $ev['address']); // 도로명·번지 절삭
         $this->assertSame('', $ev['request_data']['phone']);
-        $this->assertSame('', $ev['request_data']['move_from_address']);
+        $this->assertSame('서울시 강남구', $ev['request_data']['move_from_address']);
         $this->assertSame('서울 동작구', $ev['location']);
 
         $detail = $this->actingAs($user)->getJson("/api/events/{$schedule->id}/detail")->assertOk()->json();
-        $this->assertNull($detail['address']);
+        $this->assertSame('서울시 동작구', $detail['address']);
         $this->assertSame('', $detail['request_data']['phone']);
 
         // 권한 있음 — 그대로 표시
@@ -120,6 +120,27 @@ class ClientPiiPermissionTest extends TestCase
         $ev2 = collect($this->actingAs($piiUser)->getJson('/api/events'.$range)->assertOk()->json())->firstWhere('id', $schedule->id);
         $this->assertSame('서울시 동작구 장승배기로 142', $ev2['address']);
         $this->assertSame('010-1234-5678', $ev2['request_data']['phone']);
+    }
+
+    public function test_calendar_address_truncation_handles_various_formats(): void
+    {
+        $creator = User::factory()->create(['role' => 'master']);
+        $cases = [
+            '서울특별시 동작구 상도동 123-4 5층' => '서울특별시 동작구 상도동', // 지번 주소 — 동까지
+            '경기 성남시 분당구 판교역로 166' => '경기 성남시 분당구', // 도로명 주소 — 구까지
+            '충남 아산시 배방읍 광장로 210' => '충남 아산시 배방읍', // 읍/면 단위 유지
+        ];
+        $range = '?start='.now()->subDay()->toDateString().'&end='.now()->addDay()->toDateString();
+        $user = $this->userWith(['calendar.view']);
+
+        foreach ($cases as $full => $expected) {
+            $s = Schedule::create([
+                'title' => '주소 케이스', 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+                'is_all_day' => true, 'color' => 'gold', 'address' => $full, 'created_by' => $creator->id,
+            ]);
+            $ev = collect($this->actingAs($user)->getJson('/api/events'.$range)->assertOk()->json())->firstWhere('id', $s->id);
+            $this->assertSame($expected, $ev['address'], "원본: {$full}");
+        }
     }
 
     public function test_backfill_grants_pii_to_existing_view_teams(): void

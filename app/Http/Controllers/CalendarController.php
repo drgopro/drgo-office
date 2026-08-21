@@ -94,30 +94,69 @@ class CalendarController extends Controller
         return Auth::user()?->hasPermission('clients.pii') ?? false;
     }
 
-    /** 일정 배열에서 주소·연락처 마스킹 — address 컬럼 + 의뢰 데이터의 전화/출발지 주소 */
+    /**
+     * 일정 배열에서 연락처·상세 주소 마스킹 — 전화번호는 감추고,
+     * 주소(도착지·이사 출발지)는 시·군·구·동(읍/면) 단위까지만 남긴다.
+     */
     private function maskEventPii(array $event): array
     {
-        $event['address'] = null;
+        $event['address'] = $this->truncateAddressToDistrict($event['address'] ?? null);
         if (is_array($event['request_data'] ?? null)) {
-            foreach (['phone', 'move_from_address'] as $key) {
-                if (! empty($event['request_data'][$key])) {
-                    $event['request_data'][$key] = '';
-                }
+            if (! empty($event['request_data']['phone'])) {
+                $event['request_data']['phone'] = '';
+            }
+            if (! empty($event['request_data']['move_from_address'])) {
+                $event['request_data']['move_from_address'] = (string) $this->truncateAddressToDistrict($event['request_data']['move_from_address']);
             }
         }
 
         return $event;
     }
 
-    /** 수정 이력 등 중첩 구조에서 주소/연락처 키를 재귀적으로 마스킹 */
+    /** 주소를 시·군·구·동(읍/면) 단위까지만 남김 — 도로명·번지·상세는 비노출 */
+    private function truncateAddressToDistrict(?string $address): ?string
+    {
+        if (! $address) {
+            return null;
+        }
+        $kept = [];
+        foreach (preg_split('/\s+/u', trim($address)) ?: [] as $token) {
+            $isRegionAlias = preg_match('/^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)$/u', $token);
+            $endsWithUnit = preg_match('/(시|도|군|구|동|읍|면)$/u', $token) && ! preg_match('/^\d/u', $token);
+            if (! $isRegionAlias && ! $endsWithUnit) {
+                break; // 도로명/번지/건물명부터는 상세 주소 — 중단
+            }
+            $kept[] = $token;
+        }
+
+        return $kept ? implode(' ', $kept) : null;
+    }
+
+    /** 주소 값(문자열 또는 {old,new} 등 중첩 배열)의 문자열을 모두 시·구·동 단위로 절삭 */
+    private function truncateAddressLeaves(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return $this->truncateAddressToDistrict($value);
+        }
+        if (is_array($value)) {
+            return array_map(fn ($v) => $this->truncateAddressLeaves($v), $value);
+        }
+
+        return $value;
+    }
+
+    /** 수정 이력 등 중첩 구조에서 연락처는 감추고 주소는 시·구·동까지만 남김 */
     private function scrubPiiDeep(mixed $value): mixed
     {
         if (! is_array($value)) {
             return $value;
         }
         foreach ($value as $k => $v) {
-            if (in_array($k, ['address', 'phone', 'move_from_address'], true)) {
+            if ($k === 'phone') {
                 $value[$k] = null;
+            } elseif (in_array($k, ['address', 'move_from_address'], true)) {
+                // 이력의 {old, new} 구조까지 — 문자열 값을 모두 시·구·동 단위로 절삭
+                $value[$k] = $this->truncateAddressLeaves($v);
             } else {
                 $value[$k] = $this->scrubPiiDeep($v);
             }
