@@ -143,6 +143,8 @@
                 <option value="cancelled">취소·환불</option>
             </select>
             <input type="text" id="paSearch" placeholder="의뢰자/금액/견적번호 검색" oninput="paPage=1;loadPayapp()">
+            <button class="btn-outline" onclick="document.getElementById('paImportFile').click()" title="페이앱 판매자 페이지 → 결제내역에서 다운로드한 엑셀을 업로드하면 과거 내역(취소건 포함)을 가져옵니다">엑셀 가져오기</button>
+            <input type="file" id="paImportFile" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importPayappExcel(this)">
         </div>
         <div class="sum-line" id="paSummary"></div>
         <div class="data-card">
@@ -356,6 +358,23 @@ function renderPaPager(p) {
     el.innerHTML = html;
 }
 function goPaPage(p) { paPage = p; loadPayapp(); }
+
+// 페이앱 결제내역 엑셀 업로드 — 과거 내역(취소건 포함) 백필
+async function importPayappExcel(input) {
+    const f = input.files[0];
+    input.value = '';
+    if (!f) return;
+    const fd = new FormData();
+    fd.append('file', f);
+    const res = await fetch('/api/payapp-payments/import', {
+        method: 'POST', headers: { 'X-CSRF-TOKEN': DEP_CSRF, 'Accept': 'application/json' }, body: fd,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.message || '가져오기에 실패했습니다.'); return; }
+    alert(data.message || '가져오기 완료');
+    paPage = 1;
+    loadPayapp();
+}
 
 async function loadPayapp() {
     const qs = new URLSearchParams();

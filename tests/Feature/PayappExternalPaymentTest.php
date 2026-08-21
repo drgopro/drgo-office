@@ -6,7 +6,10 @@ use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 /** 페이앱 자체(외부) 결제 — 기본 FEEDBACK URL 웹훅 수집 + 결제현황 병합 표시 */
@@ -113,5 +116,47 @@ class PayappExternalPaymentTest extends TestCase
 
         $this->externalFeedback(['pay_state' => 9])->assertOk(); // 상태 변경 — 다시 중계
         Http::assertSentCount(2);
+    }
+
+    public function test_excel_import_backfills_payments_including_cancellations(): void
+    {
+        $user = User::factory()->create(['role' => 'master']);
+
+        // 페이앱 결제내역 엑셀 형태 재현 — 헤더 + 승인/승인취소/요청취소
+        $sheet = (new Spreadsheet)->getActiveSheet();
+        $sheet->fromArray([
+            ['결제요청일', '결제상태', '결제금액', '구매자명', '휴대폰번호', '상품명', '결제수단', '결제요청번호'],
+            ['2026-08-05 14:20:00', '승인', '150,000', '김구매', '01011112222', '방송 장비A', '신용카드', 'H100'],
+            ['2026-08-07 10:00:00', '승인취소', '90,000', '박취소', '01033334444', '방송 장비B', '신용카드', 'H101'],
+            ['2026-08-09 09:30:00', '요청취소', '50,000', '이대기', '01055557777', '케이블', '카카오페이', 'H102'],
+        ], null, 'A1');
+        $path = tempnam(sys_get_temp_dir(), 'payapp_').'.xlsx';
+        (new Xlsx($sheet->getParent()))->save($path);
+
+        $res = $this->actingAs($user)->post('/api/payapp-payments/import', [
+            'file' => new UploadedFile($path, 'payapp_202608.xlsx', null, null, true),
+        ])->assertOk();
+        $this->assertSame(3, $res->json('created'));
+
+        $paid = PayappPayment::where('mul_no', 'H100')->first();
+        $this->assertSame(4, $paid->pay_state);
+        $this->assertSame(150000, $paid->price);
+        $this->assertNotNull($paid->paid_at);
+        $this->assertSame('2026-08-05', $paid->created_at->format('Y-m-d')); // 목록 정렬용 결제일
+
+        $this->assertSame(9, PayappPayment::where('mul_no', 'H101')->value('pay_state')); // 승인취소 → 환불
+        $this->assertSame(8, PayappPayment::where('mul_no', 'H102')->value('pay_state')); // 요청취소
+
+        // 재업로드 — 중복 생성 없음
+        $res2 = $this->actingAs($user)->post('/api/payapp-payments/import', [
+            'file' => new UploadedFile($path, 'payapp_202608.xlsx', null, null, true),
+        ])->assertOk();
+        $this->assertSame(0, $res2->json('created'));
+        $this->assertSame(3, PayappPayment::count());
+
+        // 결제현황 목록에 취소건 포함 표시
+        $list = $this->actingAs($user)->getJson('/api/payapp-payments?from=2026-08-01&to=2026-08-31')->assertOk();
+        $this->assertSame(3, $list->json('total'));
+        $this->assertSame(1, $list->json('paid_count'));
     }
 }

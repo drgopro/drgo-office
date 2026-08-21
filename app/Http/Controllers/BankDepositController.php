@@ -7,9 +7,12 @@ use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Services\DepositSmsParser;
 use App\Services\PayAppClient;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class BankDepositController extends Controller
 {
@@ -346,6 +349,136 @@ class BankDepositController extends Controller
         }
 
         return ['key' => 'waiting', 'label' => '결제 대기'];
+    }
+
+    /**
+     * 페이앱 결제내역 엑셀 가져오기 — 판매자 페이지에서 다운로드한 파일 업로드.
+     * 페이앱은 결제내역 조회 API가 없어 과거 내역(취소건 포함)은 이 방식으로 백필.
+     * 헤더 키워드로 컬럼을 유연하게 인식하고, 요청번호(없으면 내용 해시) 기준 upsert.
+     */
+    public function payappImport(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file']);
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (! in_array($ext, ['xlsx', 'xls', 'csv'], true)) {
+            return response()->json(['message' => 'xlsx, xls, csv 파일만 지원합니다.'], 422);
+        }
+
+        try {
+            if ($ext === 'csv') {
+                $reader = IOFactory::createReader('Csv');
+                $reader->setInputEncoding('UTF-8');
+            } else {
+                $reader = IOFactory::createReaderForFile($file->getRealPath());
+            }
+            $rows = $reader->load($file->getRealPath())->getActiveSheet()->toArray(null, true, true, false);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => '파일을 읽을 수 없습니다: '.$e->getMessage()], 422);
+        }
+
+        // 헤더 행 탐지 — '상태'와 금액류 키워드가 함께 있는 첫 행
+        $headerIdx = null;
+        $cols = [];
+        $find = function (array $header, array $keywords): ?int {
+            foreach ($keywords as $kw) {
+                foreach ($header as $i => $h) {
+                    if ($h !== null && str_contains((string) $h, $kw)) {
+                        return $i;
+                    }
+                }
+            }
+
+            return null;
+        };
+        foreach (array_slice($rows, 0, 10, true) as $i => $row) {
+            $joined = implode(' ', array_map(strval(...), array_filter($row, fn ($v) => $v !== null)));
+            if (str_contains($joined, '상태') && (str_contains($joined, '금액') || str_contains($joined, '상품'))) {
+                $headerIdx = $i;
+                $cols = [
+                    'mul_no' => $find($row, ['결제요청번호', '요청번호', '승인번호', '거래번호']),
+                    'status' => $find($row, ['결제상태', '상태']),
+                    'price' => $find($row, ['결제금액', '요청금액', '금액']),
+                    'goodname' => $find($row, ['상품명', '상품정보', '내용']),
+                    'buyer' => $find($row, ['구매자', '고객명', '이름', '성명']),
+                    'phone' => $find($row, ['휴대폰', '휴대전화', '연락처', '전화']),
+                    'pay_type' => $find($row, ['결제수단', '결제방법']),
+                    'date' => $find($row, ['결제일', '승인일', '요청일', '일시', '날짜']),
+                ];
+                break;
+            }
+        }
+        if ($headerIdx === null || $cols['status'] === null || $cols['price'] === null) {
+            return response()->json(['message' => "헤더를 인식하지 못했습니다. 페이앱 결제내역 엑셀 파일인지 확인해주세요.\n(필요 컬럼: 상태·금액, 권장: 요청번호·구매자·상품명·결제일)"], 422);
+        }
+
+        $cell = fn (array $row, ?int $idx) => $idx !== null ? trim((string) ($row[$idx] ?? '')) : '';
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+        foreach (array_slice($rows, $headerIdx + 1, null, true) as $row) {
+            $statusText = $cell($row, $cols['status']);
+            $price = (int) preg_replace('/\D+/', '', $cell($row, $cols['price']));
+            if ($statusText === '' && $price === 0) {
+                continue; // 빈 행
+            }
+
+            // 상태 텍스트 → pay_state (승인취소/환불 판정을 승인보다 먼저)
+            $state = match (true) {
+                str_contains($statusText, '승인취소') || str_contains($statusText, '환불') => 9,
+                str_contains($statusText, '취소') => 8,
+                str_contains($statusText, '승인') || str_contains($statusText, '완료') => 4,
+                default => 1,
+            };
+
+            // 결제일 파싱 — 엑셀 날짜 셀(숫자) 또는 문자열
+            $rawDate = $cols['date'] !== null ? ($row[$cols['date']] ?? null) : null;
+            $when = null;
+            if (is_numeric($rawDate) && (float) $rawDate > 20000) {
+                $when = Carbon::instance(ExcelDate::excelToDateTimeObject((float) $rawDate));
+            } elseif (is_string($rawDate) && trim($rawDate) !== '') {
+                try {
+                    $when = Carbon::parse(str_replace(['.', '/'], '-', trim($rawDate)));
+                } catch (\Throwable) {
+                    $when = null;
+                }
+            }
+
+            $mulNo = $cell($row, $cols['mul_no']);
+            if ($mulNo === '') {
+                // 요청번호가 없는 양식 — 내용 기반 해시로 중복 방지 키 생성
+                $mulNo = 'IMP-'.substr(hash('sha256', implode('|', [
+                    $when?->format('Y-m-d H:i') ?? '', $price,
+                    $cell($row, $cols['buyer']), $cell($row, $cols['goodname']),
+                ])), 0, 20);
+            }
+
+            $payment = PayappPayment::firstOrNew(['mul_no' => $mulNo]);
+            $isNew = ! $payment->exists;
+            $payment->fill([
+                'pay_state' => $state,
+                'price' => $price ?: $payment->price,
+                'goodname' => mb_substr($cell($row, $cols['goodname']), 0, 200) ?: $payment->goodname,
+                'buyer' => mb_substr($cell($row, $cols['buyer']), 0, 100) ?: $payment->buyer,
+                'recvphone' => mb_substr($cell($row, $cols['phone']), 0, 30) ?: $payment->recvphone,
+                'pay_type' => mb_substr($cell($row, $cols['pay_type']), 0, 30) ?: $payment->pay_type,
+            ]);
+            if ($state === 4 && ! $payment->paid_at) {
+                $payment->paid_at = $when ?? now();
+            }
+            $payment->save();
+            // 목록 정렬/기간 필터가 결제일 기준이 되도록 수신 시각을 결제일로 지정
+            if ($when && $isNew) {
+                $payment->forceFill(['created_at' => $when])->saveQuietly();
+            }
+            $isNew ? $created++ : $updated++;
+        }
+
+        return response()->json([
+            'message' => "가져오기 완료 — 신규 {$created}건, 갱신 {$updated}건".($skipped ? ", 건너뜀 {$skipped}건" : ''),
+            'created' => $created,
+            'updated' => $updated,
+        ]);
     }
 
     /** 선택 삭제 — 입금 내역 페이지 접근 권한(deposits.view)과 동일 라우트 그룹에서 보호 */

@@ -462,6 +462,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/bank-deposits', [BankDepositController::class, 'list']);
         Route::delete('/api/bank-deposits', [BankDepositController::class, 'destroyMany']);
         Route::get('/api/payapp-payments', [BankDepositController::class, 'payappList']);
+        Route::post('/api/payapp-payments/import', [BankDepositController::class, 'payappImport']); // 페이앱 결제내역 엑셀 백필
     });
 
     // 관리자 (master, admin만)
