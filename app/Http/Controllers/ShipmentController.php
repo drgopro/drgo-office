@@ -62,25 +62,24 @@ class ShipmentController extends Controller
 
     /**
      * 일정의 미완료 송장 전체 추적 갱신 (상세 열람/수동 새로고침).
-     * 추적 API 호출량 제한 보호 — 등록 후 15일이 지난 송장은 더 이상 조회하지
-     * 않고 송장번호·마지막 상태만 유지한다 (야간 일괄 갱신과 동일 기준).
-     * 배송완료 건도 사업장 위치가 비어 있으면 백필 재조회 (15일 내 완료, 6시간 간격 제한).
+     * 추적 API 호출량 제한 보호 — 배송완료 후 15일이 지난 송장은 더 이상
+     * 실시간 조회하지 않는다 (송장번호·마지막 상태만 유지). 미완료 송장은
+     * 아직 배송 중이므로 계속 추적한다.
+     * 배송완료 건의 사업장 위치 백필도 같은 15일 안에서만 (6시간 간격 제한).
      */
     public function refresh(Schedule $schedule): JsonResponse
     {
         $schedule->shipments()
             ->where(function ($q) {
-                $q->where(function ($q) {
-                    $q->where('status', '!=', 'delivered')
-                        ->where('created_at', '>=', now()->subDays(15));
-                })->orWhere(function ($q) {
-                    $q->where('status', 'delivered')
-                        ->whereNull('last_location')
-                        ->where('delivered_at', '>=', now()->subDays(15))
-                        ->where(function ($q) {
-                            $q->whereNull('checked_at')->orWhere('checked_at', '<', now()->subHours(6));
-                        });
-                });
+                $q->where('status', '!=', 'delivered')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'delivered')
+                            ->whereNull('last_location')
+                            ->where('delivered_at', '>=', now()->subDays(15))
+                            ->where(function ($q) {
+                                $q->whereNull('checked_at')->orWhere('checked_at', '<', now()->subHours(6));
+                            });
+                    });
             })
             ->get()
             ->each(fn (ScheduleShipment $s) => $this->tracker->refresh($s));

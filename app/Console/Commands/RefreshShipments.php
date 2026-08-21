@@ -20,9 +20,9 @@ class RefreshShipments extends Command
             return self::SUCCESS;
         }
 
-        // 배송 완료 건은 다시 조회하지 않음. 오래된(15일+) 미완료 건도 제외해 호출량 낭비 방지.
+        // 배송 완료 건은 다시 조회하지 않음. 오래된(30일+) 미완료 건도 제외해 호출량 낭비 방지.
         $pending = ScheduleShipment::where('status', '!=', 'delivered')
-            ->where('created_at', '>=', now()->subDays(15))
+            ->where('created_at', '>=', now()->subDays(30))
             ->get();
 
         $updated = 0;

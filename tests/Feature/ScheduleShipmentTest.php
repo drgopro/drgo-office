@@ -296,26 +296,30 @@ HTML;
         Http::assertNothingSent(); // 6시간 이내 재조회 안 함
     }
 
-    public function test_refresh_skips_shipments_older_than_15_days(): void
+    public function test_tracking_stops_15_days_after_delivery(): void
     {
         config(['services.delivery_tracker.url' => 'http://tracker.test']);
         Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
 
         $user = User::factory()->create(['role' => 'master']);
         $schedule = $this->makeSchedule();
-        // 등록 20일 지난 미완료 송장 — 추적 API 호출량 보호를 위해 더 이상 조회하지 않음
+        // 배송완료 후 20일 지난 위치 없는 송장 — 더 이상 실시간 조회하지 않음
+        $done = $this->makeDeliveredShipment($schedule, ['delivered_at' => now()->subDays(20)]);
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
+        Http::assertNothingSent();
+        $this->assertNull($done->fresh()->last_location);
+
+        // 등록이 오래돼도 아직 미완료(배송 중)인 송장은 계속 추적
         $old = $schedule->shipments()->create([
             'carrier' => 'kr.cjlogistics', 'tracking_no' => '111222333444',
             'status' => 'in_transit', 'last_event' => '간선 상차',
         ]);
         $old->forceFill(['created_at' => now()->subDays(20)])->saveQuietly();
-        // 완료 20일 지난 위치 없는 송장 — 백필 대상에서도 제외
-        $this->makeDeliveredShipment($schedule, ['tracking_no' => '555666777888', 'delivered_at' => now()->subDays(20)]);
 
         $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
-
-        Http::assertNothingSent();
-        $this->assertSame('간선 상차', $old->fresh()->last_event); // 마지막 상태는 그대로 유지
+        Http::assertSentCount(1);
+        $this->assertSame('delivered', $old->fresh()->status); // fake 응답으로 완료 갱신됨
     }
 
     public function test_delete_shipment(): void
