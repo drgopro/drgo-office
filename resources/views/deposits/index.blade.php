@@ -26,6 +26,8 @@
     .pa-badge.refunded, .pa-badge.req_cancelled { background:#fdeaea; color:#dc2626; }
     .pa-btn { display:block; width:96px; text-align:center; border:none; border-radius:8px; padding:6px 0; font-size:12px; font-weight:600; color:var(--text-muted); text-decoration:none; white-space:nowrap; background:var(--surface2); }
     .pa-btn:hover { color:var(--accent); background:var(--border); }
+    .pa-btn.danger { color:#b45309; cursor:pointer; }
+    .pa-btn.danger:hover { color:#dc2626; background:#fdeaea; }
     .pa-btns { display:inline-flex; flex-direction:column; gap:6px; }
     .sum-line { font-size:13px; color:var(--text-muted); margin-bottom:10px; }
     .sum-line b { color:var(--text); font-size:14px; }
@@ -402,10 +404,12 @@ async function loadPayapp() {
         `기간 내 결제요청 <b>${payload.total.toLocaleString()}건</b> · 결제완료 <b>${payload.paid_count.toLocaleString()}건</b> · 완료 합계 <b>${fmt(payload.paid_amount)}원</b>`;
 
     const linkHtml = d => {
+        const paid = d.status.key === 'paid';
         const btns = [
             d.estimate_url ? `<a class="pa-btn" href="${_esc(d.estimate_url)}" target="_blank" rel="noopener">견적서</a>` : '',
             d.payurl ? `<a class="pa-btn" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지</a>` : '',
             d.receipt_url ? `<a class="pa-btn" href="${_esc(d.receipt_url)}" target="_blank" rel="noopener">매출전표</a>` : '',
+            d.can_cancel ? `<button class="pa-btn danger" onclick="payappCancelRow('${d.source}', ${d.id ?? 'null'}, '${_esc(d.mul_no || '')}', ${paid})">${paid ? '결제 취소' : '요청 취소'}</button>` : '',
         ].filter(Boolean).join('');
         return btns ? `<div class="pa-btns">${btns}</div>` : '';
     };
@@ -440,6 +444,22 @@ async function loadPayapp() {
             <span>${linkHtml(d)}</span>
         </div>
     </div>`).join('');
+}
+
+// 결제 대기 → 요청 철회, 결제완료 → 승인취소 (정산 후엔 서버가 환불 요청으로 자동 접수)
+async function payappCancelRow(source, id, mulNo, paid) {
+    const msg = paid
+        ? '결제완료 건을 취소(환불)할까요?\n정산이 끝난 결제는 페이앱에 환불 요청으로 접수됩니다.'
+        : '결제 대기 중인 요청을 취소할까요?\n의뢰자에게 보낸 결제 링크가 비활성화됩니다.';
+    if (!confirm(msg)) return;
+    const res = await fetch('/api/payapp-payments/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': DEP_CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ source, id, mul_no: mulNo || null }),
+    });
+    const j = await res.json().catch(() => ({}));
+    alert(j.message || (res.ok ? '처리되었습니다.' : '취소에 실패했습니다.'));
+    if (res.ok) loadPayapp();
 }
 
 document.getElementById('depPerPage').value = String(depPerPage);

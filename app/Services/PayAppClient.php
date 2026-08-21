@@ -95,19 +95,43 @@ class PayAppClient
             return ['ok' => false, 'error' => '취소할 결제요청이 없습니다.'];
         }
 
-        $result = $this->call([
-            'cmd' => 'paycancel',
-            'userid' => config('services.payapp.userid'),
-            'linkkey' => config('services.payapp.linkkey'),
-            'mul_no' => $estimate->payapp_mul_no,
-            'cancelmemo' => '견적서 #'.$estimate->id.' 결제요청 취소',
-        ]);
+        return $this->cancelByMulNo($estimate->payapp_mul_no, '견적서 #'.$estimate->id.' 결제요청 취소');
+    }
 
-        if (($result['state'] ?? null) !== '1') {
-            return ['ok' => false, 'error' => '페이앱 오류: '.($result['errorMessage'] ?? $result['errormessage'] ?? '알 수 없는 응답')];
+    /**
+     * 결제요청 번호(mul_no) 기반 취소 — 결제 대기 요청 철회와 정산 전 승인취소는
+     * paycancel, 이미 정산된 결제는 paycancel이 거부되므로 $allowRefundRequest면
+     * paycancelreq(환불 요청 접수)로 폴백한다.
+     *
+     * @return array{ok:bool, refund_requested?:bool, error?:string}
+     */
+    public function cancelByMulNo(string $mulNo, string $memo, bool $allowRefundRequest = false): array
+    {
+        if ($mulNo === '') {
+            return ['ok' => false, 'error' => '취소할 결제요청 번호가 없습니다.'];
         }
 
-        return ['ok' => true];
+        $base = [
+            'userid' => config('services.payapp.userid'),
+            'linkkey' => config('services.payapp.linkkey'),
+            'mul_no' => $mulNo,
+            'cancelmemo' => $memo,
+        ];
+
+        $result = $this->call(['cmd' => 'paycancel'] + $base);
+        if (($result['state'] ?? null) === '1') {
+            return ['ok' => true, 'refund_requested' => false];
+        }
+        $firstError = $result['errorMessage'] ?? $result['errormessage'] ?? '알 수 없는 응답';
+
+        if ($allowRefundRequest) {
+            $result = $this->call(['cmd' => 'paycancelreq'] + $base);
+            if (($result['state'] ?? null) === '1') {
+                return ['ok' => true, 'refund_requested' => true];
+            }
+        }
+
+        return ['ok' => false, 'error' => '페이앱 오류: '.$firstError];
     }
 
     /**

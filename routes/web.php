@@ -463,6 +463,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/bank-deposits', [BankDepositController::class, 'destroyMany']);
         Route::get('/api/payapp-payments', [BankDepositController::class, 'payappList']);
         Route::post('/api/payapp-payments/import', [BankDepositController::class, 'payappImport']); // 페이앱 결제내역 엑셀 백필
+        Route::post('/api/payapp-payments/cancel', [BankDepositController::class, 'payappCancel']); // 결제 대기 철회 / 결제 취소·환불 요청
     });
 
     // 관리자 (master, admin만)

@@ -239,21 +239,27 @@ class BankDepositController extends Controller
                 });
             })
             ->get()
-            ->map(fn (Estimate $e) => [
-                'source' => 'estimate',
-                'id' => $e->id,
-                'client_name' => $e->client_name ?: $e->client_nickname,
-                'client_nickname' => $e->client_nickname,
-                'client_phone' => $e->client_phone,
-                'goodname' => null,
-                'amount' => (int) $e->total_amount,
-                'status' => $this->payappStatus($e),
-                'sort_at' => $e->payapp_requested_at,
-                'paid_at' => $e->payapp_paid_at?->format('Y-m-d H:i'),
-                'payurl' => $e->payapp_payurl,
-                'estimate_url' => $e->publicUrl(),
-                'receipt_url' => null,
-            ]);
+            ->map(function (Estimate $e) {
+                $status = $this->payappStatus($e);
+
+                return [
+                    'source' => 'estimate',
+                    'id' => $e->id,
+                    'client_name' => $e->client_name ?: $e->client_nickname,
+                    'client_nickname' => $e->client_nickname,
+                    'client_phone' => $e->client_phone,
+                    'goodname' => null,
+                    'amount' => (int) $e->total_amount,
+                    'status' => $status,
+                    'sort_at' => $e->payapp_requested_at,
+                    'paid_at' => $e->payapp_paid_at?->format('Y-m-d H:i'),
+                    'payurl' => $e->payapp_payurl,
+                    'estimate_url' => $e->publicUrl(),
+                    'receipt_url' => null,
+                    'mul_no' => $e->payapp_mul_no,
+                    'can_cancel' => $e->payapp_mul_no && in_array($status['key'], ['waiting', 'paid'], true),
+                ];
+            });
 
         // ② 페이앱 자체(외부) 결제 — 수신 시각 기준
         $externalRows = PayappPayment::query()
@@ -270,21 +276,29 @@ class BankDepositController extends Controller
                 });
             })
             ->get()
-            ->map(fn (PayappPayment $p) => [
-                'source' => 'payapp',
-                'id' => null,
-                'client_name' => $p->buyer,
-                'client_nickname' => null,
-                'client_phone' => $p->recvphone,
-                'goodname' => $p->goodname,
-                'amount' => (int) $p->price,
-                'status' => $this->externalPayappStatus($p),
-                'sort_at' => $p->created_at,
-                'paid_at' => $p->paid_at?->format('Y-m-d H:i'),
-                'payurl' => null,
-                'estimate_url' => null,
-                'receipt_url' => $p->csturl,
-            ]);
+            ->map(function (PayappPayment $p) {
+                $status = $this->externalPayappStatus($p);
+
+                return [
+                    'source' => 'payapp',
+                    'id' => null,
+                    'client_name' => $p->buyer,
+                    'client_nickname' => null,
+                    'client_phone' => $p->recvphone,
+                    'goodname' => $p->goodname,
+                    'amount' => (int) $p->price,
+                    'status' => $status,
+                    'sort_at' => $p->created_at,
+                    'paid_at' => $p->paid_at?->format('Y-m-d H:i'),
+                    'payurl' => null,
+                    'estimate_url' => null,
+                    'receipt_url' => $p->csturl,
+                    'mul_no' => $p->mul_no,
+                    // 엑셀 백필 건(IMP-)은 페이앱 요청번호가 없어 API 취소 불가
+                    'can_cancel' => ! str_starts_with((string) $p->mul_no, 'IMP-')
+                        && in_array($status['key'], ['waiting', 'paid'], true),
+                ];
+            });
 
         $rows = $estimateRows->concat($externalRows)->sortByDesc('sort_at')->values();
 
@@ -317,6 +331,85 @@ class BankDepositController extends Controller
             'paid_count' => $paidRows->count(),
             'paid_amount' => (int) $paidRows->sum('amount'), // 필터 조건 내 결제완료 합계 (페이지 무관)
         ]);
+    }
+
+    /**
+     * 결제현황에서 취소 — 결제 대기는 요청 철회, 결제완료는 승인취소(paycancel).
+     * 정산이 끝난 결제는 paycancel이 거부되므로 환불 요청(paycancelreq)으로 자동 폴백.
+     */
+    public function payappCancel(Request $request, PayAppClient $payapp): JsonResponse
+    {
+        $validated = $request->validate([
+            'source' => 'required|in:estimate,payapp',
+            'id' => 'required_if:source,estimate|nullable|integer',
+            'mul_no' => 'required_if:source,payapp|nullable|string|max:100',
+        ]);
+
+        if ($validated['source'] === 'estimate') {
+            $estimate = Estimate::findOrFail($validated['id']);
+            $statusKey = $this->payappStatus($estimate)['key'];
+            if (! in_array($statusKey, ['waiting', 'paid'], true)) {
+                return response()->json(['message' => '이미 취소/환불 처리된 건입니다.'], 422);
+            }
+            if (! $estimate->payapp_mul_no) {
+                return response()->json(['message' => '취소할 결제요청 번호가 없습니다.'], 422);
+            }
+
+            $result = $payapp->cancelByMulNo(
+                $estimate->payapp_mul_no,
+                '견적서 #'.$estimate->id.' '.($statusKey === 'paid' ? '결제 취소' : '결제요청 취소'),
+                allowRefundRequest: $statusKey === 'paid',
+            );
+            if (! $result['ok']) {
+                return response()->json(['message' => $result['error']], 422);
+            }
+            if (! empty($result['refund_requested'])) {
+                // 정산 완료 건 — 페이앱이 환불을 처리하면 통지(feedback)로 상태가 갱신됨
+                return response()->json(['message' => '정산이 완료된 결제라 페이앱에 환불 요청을 접수했습니다. 페이앱에서 처리되면 상태가 자동 갱신됩니다.']);
+            }
+
+            if ($statusKey === 'paid') {
+                $estimate->update([
+                    'status' => 'cancelled',
+                    'payapp_state' => 9,
+                    'payapp_paid_at' => null,
+                    'payapp_payurl' => null,
+                    'payapp_mul_no' => null,
+                ]);
+
+                return response()->json(['message' => '결제가 취소되었습니다.']);
+            }
+
+            $estimate->update(['payapp_mul_no' => null, 'payapp_payurl' => null, 'payapp_state' => 16]);
+
+            return response()->json(['message' => '결제요청이 취소되었습니다.']);
+        }
+
+        // 페이앱 자체(외부) 결제
+        $payment = PayappPayment::where('mul_no', $validated['mul_no'])->firstOrFail();
+        if (str_starts_with((string) $payment->mul_no, 'IMP-')) {
+            return response()->json(['message' => '엑셀로 가져온 건은 결제요청 번호가 없어 여기서 취소할 수 없습니다. 페이앱 판매자 페이지에서 취소해주세요.'], 422);
+        }
+        $statusKey = $this->externalPayappStatus($payment)['key'];
+        if (! in_array($statusKey, ['waiting', 'paid'], true)) {
+            return response()->json(['message' => '이미 취소/환불 처리된 건입니다.'], 422);
+        }
+
+        $result = $payapp->cancelByMulNo(
+            $payment->mul_no,
+            '오피스 결제현황에서 '.($statusKey === 'paid' ? '결제 취소' : '결제요청 취소'),
+            allowRefundRequest: $statusKey === 'paid',
+        );
+        if (! $result['ok']) {
+            return response()->json(['message' => $result['error']], 422);
+        }
+        if (! empty($result['refund_requested'])) {
+            return response()->json(['message' => '정산이 완료된 결제라 페이앱에 환불 요청을 접수했습니다. 페이앱에서 처리되면 상태가 자동 갱신됩니다.']);
+        }
+
+        $payment->update(['pay_state' => $statusKey === 'paid' ? 9 : 8]);
+
+        return response()->json(['message' => $statusKey === 'paid' ? '결제가 취소되었습니다.' : '결제요청이 취소되었습니다.']);
     }
 
     /** @return array{key:string, label:string} 페이앱 결제 상태 (통지 pay_state + 우리 상태 종합) */

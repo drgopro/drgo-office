@@ -54,7 +54,7 @@ class EstimatePayAppTest extends TestCase
         $url = $estimate->publicUrl();
 
         $this->assertStringContainsString('/estimate-view/', $url);
-        $this->assertStringNotContainsString('/estimate-view/'.$estimate->id, $url); // 순번 ID 미노출
+        $this->assertNotSame((string) $estimate->id, basename($url)); // 순번 ID 미노출 (토큰이 우연히 id로 시작해도 오탐 없게)
 
         $this->get($url)->assertOk()->assertSee('견 적 서')->assertSee('홍길동');
     }
