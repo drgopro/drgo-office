@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Estimate;
 use App\Models\PayappPayment;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -50,7 +51,7 @@ class PayappCancelTest extends TestCase
         Http::assertSent(fn ($req) => $req['cmd'] === 'paycancel' && $req['mul_no'] === 'MUL100');
 
         $estimate->refresh();
-        $this->assertNull($estimate->payapp_mul_no);
+        $this->assertSame('MUL100', $estimate->payapp_mul_no); // 이후 취소 통보가 외부 결제로 중복 기록되지 않도록 유지
         $this->assertNull($estimate->payapp_payurl);
         $this->assertSame(16, (int) $estimate->payapp_state);
     }
@@ -71,7 +72,7 @@ class PayappCancelTest extends TestCase
         $this->assertSame('cancelled', $estimate->status);
         $this->assertSame(9, (int) $estimate->payapp_state);
         $this->assertNull($estimate->payapp_paid_at);
-        $this->assertNull($estimate->payapp_mul_no);
+        $this->assertSame('MUL100', $estimate->payapp_mul_no);
     }
 
     public function test_settled_payment_falls_back_to_refund_request(): void
@@ -149,6 +150,27 @@ class PayappCancelTest extends TestCase
             ->postJson('/api/payapp-payments/cancel', ['source' => 'payapp', 'mul_no' => 'EXT300'])
             ->assertStatus(422);
         Http::assertNothingSent();
+    }
+
+    public function test_cancel_requires_deposits_cancel_permission(): void
+    {
+        Http::fake(['api.payapp.kr/*' => Http::response('state=1')]);
+        $estimate = $this->makeEstimate();
+
+        // deposits.view만 있는 팀원 — 목록은 보이지만 취소는 불가
+        $team = Team::create(['name' => '입금조회팀', 'slug' => 'deposit-view-only', 'permissions' => ['deposits.view']]);
+        $viewer = User::factory()->create(['role' => 'staff', 'team_id' => $team->id]);
+        $this->actingAs($viewer)->getJson('/api/payapp-payments')->assertOk();
+        $this->actingAs($viewer)
+            ->postJson('/api/payapp-payments/cancel', ['source' => 'estimate', 'id' => $estimate->id])
+            ->assertForbidden();
+        Http::assertNothingSent();
+
+        // deposits.cancel 부여 — 허용
+        $team->update(['permissions' => ['deposits.view', 'deposits.cancel']]);
+        $this->actingAs($viewer->fresh())
+            ->postJson('/api/payapp-payments/cancel', ['source' => 'estimate', 'id' => $estimate->id])
+            ->assertOk();
     }
 
     public function test_list_exposes_can_cancel_flag(): void

@@ -1001,7 +1001,7 @@ const PERM_GROUPS = [
     { title: '태그', perms: [{ key: 'tags.manage', label: '태그 수정(소분류 추가/삭제)' }] },
     { title: '재고', perms: [{ key: 'inventory.view', label: '조회' }, { key: 'inventory.edit', label: '편집' }] },
     { title: '견적서', perms: [{ key: 'estimates.view', label: '조회' }, { key: 'estimates.edit', label: '편집' }] },
-    { title: '입금 내역', perms: [{ key: 'deposits.view', label: '조회' }] },
+    { title: '입금 내역', perms: [{ key: 'deposits.view', label: '조회' }, { key: 'deposits.cancel', label: '결제 취소 (페이앱)' }] },
     { title: '통계', perms: [{ key: 'stats.view', label: '조회' }] },
     { title: '문서', perms: [{ key: 'documents.edit', label: '편집' }] },
 ];

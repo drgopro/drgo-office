@@ -6,6 +6,7 @@ use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Models\Setting;
 use App\Services\PayAppClient;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -237,8 +238,8 @@ class EstimateController extends Controller
             return response()->json(['message' => $result['error']], 422);
         }
 
+        // mul_no는 남겨 페이앱의 취소 통보가 외부 결제로 중복 기록되지 않게 함
         $estimate->update([
-            'payapp_mul_no' => null,
             'payapp_payurl' => null,
             'payapp_state' => 16,
         ]);
@@ -305,12 +306,11 @@ class EstimateController extends Controller
                 Log::warning("페이앱 결제금액 불일치: 견적서 #{$estimate->id} 견적 {$estimate->total_amount}원 vs 결제 {$paidPrice}원");
             }
         } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
-            // 환불(승인취소) → 취소된 견적서로 표시. 기존 결제요청은 소진됐으므로 초기화
-            // (재결제가 필요하면 상태를 발행 완료로 바꾸면 새 결제요청이 자동 생성됨)
+            // 환불(승인취소) → 취소된 견적서로 표시. payurl만 비워 재결제는 발행 완료로
+            // 변경 시 자동 생성. mul_no는 남겨 이후 통보가 외부 결제로 중복 기록되지 않게 함
             $estimate->status = 'cancelled';
             $estimate->payapp_paid_at = null;
             $estimate->payapp_payurl = null;
-            $estimate->payapp_mul_no = null;
         } elseif (in_array($state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {
             $estimate->payapp_payurl = null;
         }
@@ -338,6 +338,24 @@ class EstimateController extends Controller
 
         $state = (int) ($payload['pay_state'] ?? 0);
         $payment = PayappPayment::firstOrNew(['mul_no' => (string) $payload['mul_no']]);
+
+        // 역행 통보 무시 — 이미 취소/환불로 기록된 결제에 '결제완료'가 뒤늦게 오는 건
+        // 페이앱 재시도가 순서 뒤바뀌어 도착한 것 (같은 결제번호의 재결제는 존재하지 않음)
+        $cancelledStates = array_merge(PayAppClient::STATES_REFUNDED, PayAppClient::STATES_REQUEST_CANCELLED);
+        if ($payment->exists && in_array($payment->pay_state, $cancelledStates, true) && $state === PayAppClient::STATE_PAID) {
+            $payapp->log('feedback-역행무시', [], sprintf('mul_no=%s 기존상태=%d 수신상태=%d — 취소 이후의 결제완료 통보는 무시', $payment->mul_no, $payment->pay_state, $state));
+
+            return response('SUCCESS');
+        }
+
+        $parseTime = static function (?string $value): ?Carbon {
+            try {
+                return $value ? Carbon::parse($value) : null;
+            } catch (\Throwable) {
+                return null;
+            }
+        };
+
         $payment->fill([
             'pay_state' => $state,
             'price' => (int) ($payload['price'] ?? 0) ?: $payment->price,
@@ -348,8 +366,10 @@ class EstimateController extends Controller
             'card_name' => mb_substr((string) ($payload['card_name'] ?? ''), 0, 60) ?: $payment->card_name,
             'csturl' => mb_substr((string) ($payload['csturl'] ?? ''), 0, 500) ?: $payment->csturl,
         ]);
+        // 실제 요청/결제 시각 — 통보가 재시도로 늦게 와도 수신 시각이 아닌 원래 시각으로 표시
+        $payment->requested_at = $parseTime($payload['reqdate'] ?? null) ?? $payment->requested_at ?? now();
         if ($state === PayAppClient::STATE_PAID && ! $payment->paid_at) {
-            $payment->paid_at = now();
+            $payment->paid_at = $parseTime($payload['pay_date'] ?? null) ?? now();
         }
         $payment->save();
 

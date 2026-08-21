@@ -261,10 +261,12 @@ class BankDepositController extends Controller
                 ];
             });
 
-        // ② 페이앱 자체(외부) 결제 — 수신 시각 기준
+        // ② 페이앱 자체(외부) 결제 — 실제 요청 시각(requested_at, 없으면 수신 시각) 기준.
+        // 견적서 결제요청과 같은 결제번호는 제외 (통보가 늦게 재시도돼도 중복 표시 방지)
         $externalRows = PayappPayment::query()
-            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->where('created_at', '<=', $to))
+            ->whereNotIn('mul_no', Estimate::whereNotNull('payapp_mul_no')->select('payapp_mul_no'))
+            ->when($from, fn ($q) => $q->whereRaw('COALESCE(requested_at, created_at) >= ?', [$from]))
+            ->when($to, fn ($q) => $q->whereRaw('COALESCE(requested_at, created_at) <= ?', [$to]))
             ->when($search !== '', function ($q) use ($search, $numeric) {
                 $q->where(function ($q) use ($search, $numeric) {
                     $q->where('buyer', 'like', "%{$search}%")
@@ -288,7 +290,7 @@ class BankDepositController extends Controller
                     'goodname' => $p->goodname,
                     'amount' => (int) $p->price,
                     'status' => $status,
-                    'sort_at' => $p->created_at,
+                    'sort_at' => $p->requested_at ?? $p->created_at,
                     'paid_at' => $p->paid_at?->format('Y-m-d H:i'),
                     'payurl' => null,
                     'estimate_url' => null,
@@ -368,19 +370,19 @@ class BankDepositController extends Controller
                 return response()->json(['message' => '정산이 완료된 결제라 페이앱에 환불 요청을 접수했습니다. 페이앱에서 처리되면 상태가 자동 갱신됩니다.']);
             }
 
+            // mul_no는 남겨 페이앱의 취소 통보가 외부 결제로 중복 기록되지 않게 함
             if ($statusKey === 'paid') {
                 $estimate->update([
                     'status' => 'cancelled',
                     'payapp_state' => 9,
                     'payapp_paid_at' => null,
                     'payapp_payurl' => null,
-                    'payapp_mul_no' => null,
                 ]);
 
                 return response()->json(['message' => '결제가 취소되었습니다.']);
             }
 
-            $estimate->update(['payapp_mul_no' => null, 'payapp_payurl' => null, 'payapp_state' => 16]);
+            $estimate->update(['payapp_payurl' => null, 'payapp_state' => 16]);
 
             return response()->json(['message' => '결제요청이 취소되었습니다.']);
         }
@@ -558,6 +560,9 @@ class BankDepositController extends Controller
             ]);
             if ($state === 4 && ! $payment->paid_at) {
                 $payment->paid_at = $when ?? now();
+            }
+            if ($when && ! $payment->requested_at) {
+                $payment->requested_at = $when;
             }
             $payment->save();
             // 목록 정렬/기간 필터가 결제일 기준이 되도록 수신 시각을 결제일로 지정

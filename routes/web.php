@@ -463,6 +463,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/bank-deposits', [BankDepositController::class, 'destroyMany']);
         Route::get('/api/payapp-payments', [BankDepositController::class, 'payappList']);
         Route::post('/api/payapp-payments/import', [BankDepositController::class, 'payappImport']); // 페이앱 결제내역 엑셀 백필
+    });
+    // 페이앱 결제 취소 — 실제 환불이 발생하므로 별도 권한 (팀 관리에서 부여, admin 이상 항상 허용)
+    Route::middleware('permission:deposits.cancel')->group(function () {
         Route::post('/api/payapp-payments/cancel', [BankDepositController::class, 'payappCancel']); // 결제 대기 철회 / 결제 취소·환불 요청
     });
 

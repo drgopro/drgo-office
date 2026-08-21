@@ -116,6 +116,58 @@ class PayappExternalPaymentTest extends TestCase
         $this->assertSame('payapp', $search->json('data.0.source'));
     }
 
+    public function test_external_feedback_records_real_request_and_pay_times(): void
+    {
+        // 통보가 재시도로 늦게 도착해도 수신 시각이 아니라 통보의 실제 요청/결제 시각으로 기록
+        $this->externalFeedback([
+            'reqdate' => '2026-08-21 18:09:37',
+            'pay_date' => '2026-08-21 18:10:24',
+        ])->assertOk();
+
+        $p = PayappPayment::where('mul_no', 'EXT12345')->first();
+        $this->assertSame('2026-08-21 18:09:37', $p->requested_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-08-21 18:10:24', $p->paid_at->format('Y-m-d H:i:s'));
+
+        $user = User::factory()->create(['role' => 'master']);
+        $row = $this->actingAs($user)->getJson('/api/payapp-payments')->assertOk()->json('data.0');
+        $this->assertSame('2026-08-21 18:09', $row['requested_at']); // 목록도 실제 요청 시각 기준
+    }
+
+    public function test_stale_paid_notification_after_cancel_is_ignored(): void
+    {
+        // 환불(64) 기록 후 순서가 뒤바뀐 결제완료(4) 재시도 통보 — 상태를 되돌리지 않음
+        $this->externalFeedback(['pay_state' => 64])->assertOk();
+        $this->externalFeedback(['pay_state' => 4])->assertOk();
+
+        $this->assertSame(1, PayappPayment::count());
+        $this->assertSame(64, PayappPayment::where('mul_no', 'EXT12345')->value('pay_state'));
+    }
+
+    public function test_estimate_refund_notification_does_not_duplicate_as_external(): void
+    {
+        // 견적서 결제가 환불되면 mul_no를 유지 — 같은 결제번호의 후속/재시도 통보가
+        // 페이앱 자체 결제로 중복 기록되지 않고, 결제현황에도 한 줄만 남는다
+        $user = User::factory()->create(['role' => 'master']);
+        $estimate = Estimate::create([
+            'client_name' => '견적환불', 'client_phone' => '01012341234', 'total_amount' => 500000,
+            'status' => 'paid', 'payapp_mul_no' => 'MULR1', 'payapp_state' => 4,
+            'payapp_requested_at' => now()->subHour(), 'payapp_paid_at' => now()->subHour(),
+            'created_by' => $user->id,
+        ]);
+
+        // 실제 공통 통보처럼 연동 KEY 동봉 (견적서 연결 통보는 연동키 또는 var2 토큰 검증 필요)
+        $refund = ['mul_no' => 'MULR1', 'pay_state' => 9, 'price' => 500000, 'buyer' => '견적환불', 'linkkey' => 'test-linkkey'];
+        $this->externalFeedback($refund)->assertOk();
+        $this->externalFeedback($refund)->assertOk(); // 재시도 통보
+
+        $this->assertSame(0, PayappPayment::count());
+        $this->assertSame('cancelled', $estimate->fresh()->status);
+
+        $res = $this->actingAs($user)->getJson('/api/payapp-payments')->assertOk();
+        $this->assertSame(1, $res->json('total'));
+        $this->assertSame('estimate', $res->json('data.0.source'));
+    }
+
     public function test_feedback_is_relayed_to_cafe24_once_per_state(): void
     {
         config(['services.payapp.relay_url' => 'https://drgoblinpro.cafe24.com/shop/payapp/payapp_feedbackurl.php']);

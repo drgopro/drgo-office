@@ -315,7 +315,7 @@ class EstimatePayAppTest extends TestCase
         $this->assertSame('cancelled', $fresh->status); // 환불 → 취소된 견적서
         $this->assertNull($fresh->payapp_paid_at);
         $this->assertNull($fresh->payapp_payurl); // 소진된 결제요청 초기화
-        $this->assertNull($fresh->payapp_mul_no);
+        $this->assertSame('98765', $fresh->payapp_mul_no); // 이후 통보가 외부 결제로 중복 기록되지 않도록 유지
     }
 
     public function test_public_view_shows_cancelled_notice_without_pay_button(): void

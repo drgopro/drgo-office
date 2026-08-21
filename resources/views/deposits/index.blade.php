@@ -284,6 +284,8 @@ function toggleDepRaw(id, btn) {
 
 // === 선택 삭제 ===
 const DEP_CSRF = '{{ csrf_token() }}';
+// 페이앱 결제 취소 권한 (팀 관리 > 입금 내역 > 결제 취소)
+const PA_CAN_CANCEL = @json(Auth::user()->hasPermission('deposits.cancel'));
 const depSel = new Set();
 let depPageIds = [];
 
@@ -409,12 +411,15 @@ async function loadPayapp() {
             d.estimate_url ? `<a class="pa-btn" href="${_esc(d.estimate_url)}" target="_blank" rel="noopener">견적서</a>` : '',
             d.payurl ? `<a class="pa-btn" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지</a>` : '',
             d.receipt_url ? `<a class="pa-btn" href="${_esc(d.receipt_url)}" target="_blank" rel="noopener">매출전표</a>` : '',
-            d.can_cancel ? `<button class="pa-btn danger" onclick="payappCancelRow('${d.source}', ${d.id ?? 'null'}, '${_esc(d.mul_no || '')}', ${paid})">${paid ? '결제 취소' : '요청 취소'}</button>` : '',
+            d.can_cancel && PA_CAN_CANCEL ? `<button class="pa-btn danger" onclick="payappCancelRow('${d.source}', ${d.id ?? 'null'}, '${_esc(d.mul_no || '')}', ${paid})">${paid ? '결제 취소' : '요청 취소'}</button>` : '',
         ].filter(Boolean).join('');
         return btns ? `<div class="pa-btns">${btns}</div>` : '';
     };
     // 닉네임이 이름과 다르면 함께 표시
     const clientHtml = d => `${_esc(d.client_name)||'-'}${d.client_nickname && d.client_nickname !== d.client_name ? ` <span class="text-muted" style="font-weight:400;">(${_esc(d.client_nickname)})</span>` : ''}`;
+    // 결제 ID(페이앱 결제요청 번호) — 같은 결제가 중복으로 보이는지 식별용 (엑셀 백필 해시는 제외)
+    const payIdHtml = d => d.mul_no && !String(d.mul_no).startsWith('IMP-')
+        ? ` <span class="text-muted" style="font-weight:400;">· ID ${_esc(d.mul_no)}</span>` : '';
 
     const tb = document.getElementById('paBody');
     const cards = document.getElementById('paCards');
@@ -430,7 +435,7 @@ async function loadPayapp() {
         <td style="font-weight:600;">${clientHtml(d)}${d.client_phone ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.client_phone)}</span>` : ''}
             ${d.source === 'payapp'
                 ? `<span class="pa-badge" style="background:#eef0f3;color:#475569;margin-left:6px;">페이앱 자체</span>${d.goodname ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.goodname)}</span>` : ''}`
-                : `<span class="text-muted" style="font-weight:400;">· 견적서 #${d.id}</span>`}</td>
+                : `<span class="text-muted" style="font-weight:400;">· 견적서 #${d.id}</span>`}${payIdHtml(d)}</td>
         <td class="text-muted">${d.paid_at ? fmtDt(d.paid_at) : '-'}</td>
         <td>${linkHtml(d)}</td>
     </tr>`).join('');
@@ -440,7 +445,7 @@ async function loadPayapp() {
             <div class="amt">${fmt(d.amount)}원</div>
         </div>
         <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <span><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span> ${fmtDt(d.requested_at)}</span>
+            <span><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span> ${fmtDt(d.requested_at)}${payIdHtml(d)}</span>
             <span>${linkHtml(d)}</span>
         </div>
     </div>`).join('');

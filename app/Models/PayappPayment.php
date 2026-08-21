@@ -18,11 +18,13 @@ class PayappPayment extends Model
         'card_name',
         'csturl',
         'paid_at',
+        'requested_at',
     ];
 
     protected $casts = [
         'pay_state' => 'integer',
         'price' => 'integer',
         'paid_at' => 'datetime',
+        'requested_at' => 'datetime',
     ];
 }
