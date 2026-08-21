@@ -525,10 +525,18 @@ function closeNewProjectModal() { document.getElementById('newProjectOverlay').s
 // 단순 결제 토글 — ON이면 유형/규모/작업유형/메모 숨김 + 스위치 시각 갱신
 function togglePaymentOnly(checked) {
     document.getElementById('npPaymentOnlyRow')?.classList.toggle('is-on', checked);
-    ['npTypeRow', 'npScaleRow', 'npMemoRow'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = checked ? 'none' : (id === 'npScaleRow' ? 'grid' : 'block');
-    });
+    applyNpSimplify();
+}
+
+// 폼 간소화 — 단순 결제: 유형/규모/메모 숨김, 익명(의뢰자명 확인 불가): 유형까지만 남기고 규모/메모/태그 숨김
+function applyNpSimplify() {
+    const payOnly = document.getElementById('npPaymentOnly').checked;
+    const noClient = document.getElementById('npNoClient').checked;
+    const set = (id, disp, hide) => { const el = document.getElementById(id); if (el) el.style.display = hide ? 'none' : disp; };
+    set('npTypeRow', 'block', payOnly);
+    set('npScaleRow', 'grid', payOnly || noClient);
+    set('npMemoRow', 'block', payOnly || noClient);
+    set('npTagRow', 'block', noClient);
 }
 
 function updateNpWorkType() {
@@ -576,6 +584,7 @@ function toggleNpNoClient() {
         document.getElementById('npClientSearch').value = '';
         document.getElementById('npClientPicked').style.display = 'none';
     }
+    applyNpSimplify();
 }
 
 async function submitNewProject() {
