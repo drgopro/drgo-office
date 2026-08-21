@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
+use App\Models\PayappPayment;
 use App\Models\Setting;
 use App\Services\PayAppClient;
 use Illuminate\Http\Request;
@@ -275,7 +276,14 @@ class EstimateController extends Controller
         }
 
         $safePayload = collect($payload)->except(['linkkey', 'linkval'])->all();
-        if (! $estimate || ! $payapp->verifyFeedback($payload, $estimate)) {
+
+        // 견적서와 연결되지 않은 통지 — 페이앱 자체(외부) 결제로 기록
+        // (판매자 설정의 기본 FEEDBACK URL을 이 주소로 지정하면 페이앱에서 직접 만든 결제도 통지됨)
+        if (! $estimate) {
+            return $this->recordExternalPayappPayment($payload, $safePayload, $payapp);
+        }
+
+        if (! $payapp->verifyFeedback($payload, $estimate)) {
             $payapp->log('feedback-거부', [], $payapp->feedbackDiagnosis($payload, $estimate)
                 ."\n".json_encode($safePayload, JSON_UNESCAPED_UNICODE));
 
@@ -307,6 +315,43 @@ class EstimateController extends Controller
 
         $estimate->save();
         $payapp->log('feedback-처리', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
+
+        return response('SUCCESS');
+    }
+
+    /**
+     * 페이앱 자체(외부) 결제 통지 기록 — mul_no 기준 upsert.
+     * userid 일치 필수, 연동키가 실려 왔다면 반드시 일치해야 함.
+     */
+    private function recordExternalPayappPayment(array $payload, array $safePayload, PayAppClient $payapp)
+    {
+        $useridOk = ($payload['userid'] ?? null) === config('services.payapp.userid');
+        $linkSent = isset($payload['linkkey']) || isset($payload['linkval']);
+        if (! $useridOk || empty($payload['mul_no']) || ($linkSent && ! $payapp->verifyFeedback($payload, null))) {
+            $payapp->log('feedback-거부', [], $payapp->feedbackDiagnosis($payload, null)
+                ."\n".json_encode($safePayload, JSON_UNESCAPED_UNICODE));
+
+            return response('FAIL', 400);
+        }
+
+        $state = (int) ($payload['pay_state'] ?? 0);
+        $payment = PayappPayment::firstOrNew(['mul_no' => (string) $payload['mul_no']]);
+        $payment->fill([
+            'pay_state' => $state,
+            'price' => (int) ($payload['price'] ?? 0) ?: $payment->price,
+            'goodname' => mb_substr((string) ($payload['goodname'] ?? ''), 0, 200) ?: $payment->goodname,
+            'buyer' => mb_substr((string) ($payload['buyer'] ?? $payload['buyername'] ?? ''), 0, 100) ?: $payment->buyer,
+            'recvphone' => mb_substr((string) ($payload['recvphone'] ?? ''), 0, 30) ?: $payment->recvphone,
+            'pay_type' => mb_substr((string) ($payload['pay_type'] ?? ''), 0, 30) ?: $payment->pay_type,
+            'card_name' => mb_substr((string) ($payload['card_name'] ?? ''), 0, 60) ?: $payment->card_name,
+            'csturl' => mb_substr((string) ($payload['csturl'] ?? ''), 0, 500) ?: $payment->csturl,
+        ]);
+        if ($state === PayAppClient::STATE_PAID && ! $payment->paid_at) {
+            $payment->paid_at = now();
+        }
+        $payment->save();
+
+        $payapp->log('feedback-외부결제', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
 
         return response('SUCCESS');
     }

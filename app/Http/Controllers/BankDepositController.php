@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\BankDeposit;
 use App\Models\Estimate;
+use App\Models\PayappPayment;
 use App\Services\DepositSmsParser;
 use App\Services\PayAppClient;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -199,9 +201,10 @@ class BankDepositController extends Controller
     }
 
     /**
-     * 페이앱 결제현황 — 결제요청이 발행된 견적서 기준.
-     * 페이앱은 결제내역 조회 API를 제공하지 않으므로(payrequest/paycancel 뿐),
-     * feedbackurl 통지로 갱신되는 우리 쪽 기록(estimates.payapp_*)을 보여준다.
+     * 페이앱 결제현황 — 두 소스 병합.
+     * ① 견적서 결제요청(estimates.payapp_*, feedback으로 갱신)
+     * ② 페이앱 자체(외부) 결제(payapp_payments, 판매자 설정의 기본 FEEDBACK URL 웹훅으로 수집)
+     * 페이앱은 결제내역 조회 API가 없어 웹훅 수집분만 표시 가능.
      */
     public function payappList(Request $request): JsonResponse
     {
@@ -213,66 +216,103 @@ class BankDepositController extends Controller
             'per_page' => 'nullable|integer|min:1|max:200',
             'page' => 'nullable|integer|min:1',
         ]);
+        $from = ! empty($validated['from']) ? $validated['from'].' 00:00:00' : null;
+        $to = ! empty($validated['to']) ? $validated['to'].' 23:59:59' : null;
+        $search = trim($validated['search'] ?? '');
+        $numeric = (int) str_replace(',', '', $search);
 
-        $query = Estimate::whereNotNull('payapp_requested_at');
-
-        if (! empty($validated['from'])) {
-            $query->where('payapp_requested_at', '>=', $validated['from'].' 00:00:00');
-        }
-        if (! empty($validated['to'])) {
-            $query->where('payapp_requested_at', '<=', $validated['to'].' 23:59:59');
-        }
-        if ($search = trim($validated['search'] ?? '')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('client_name', 'like', "%{$search}%")
-                    ->orWhere('client_nickname', 'like', "%{$search}%")
-                    ->orWhere('client_phone', 'like', "%{$search}%");
-                $numeric = (int) str_replace(',', '', $search);
-                if ($numeric > 0) {
-                    $q->orWhere('total_amount', $numeric)->orWhere('id', $numeric);
-                }
-            });
-        }
-        if (! empty($validated['status'])) {
-            $query->where(function ($q) use ($validated) {
-                match ($validated['status']) {
-                    'paid' => $q->whereNotNull('payapp_paid_at'),
-                    'cancelled' => $q->whereNull('payapp_paid_at')->where(function ($q2) {
-                        $q2->whereIn('payapp_state', [...PayAppClient::STATES_REFUNDED, ...PayAppClient::STATES_REQUEST_CANCELLED])
-                            ->orWhere('status', 'cancelled');
-                    }),
-                    'waiting' => $q->whereNull('payapp_paid_at')
-                        ->whereNotIn('payapp_state', [...PayAppClient::STATES_REFUNDED, ...PayAppClient::STATES_REQUEST_CANCELLED])
-                        ->where('status', '!=', 'cancelled'),
-                };
-            });
-        }
-
-        $paidQuery = (clone $query)->whereNotNull('payapp_paid_at');
-        $paidCount = (clone $paidQuery)->count();
-        $paidAmount = (int) $paidQuery->sum('total_amount');
-
-        $page = $query->orderByDesc('payapp_requested_at')->orderByDesc('id')
-            ->paginate((int) ($validated['per_page'] ?? 20));
-
-        return response()->json([
-            'data' => collect($page->items())->map(fn (Estimate $e) => [
+        // ① 견적서 결제요청
+        $estimateRows = Estimate::whereNotNull('payapp_requested_at')
+            ->when($from, fn ($q) => $q->where('payapp_requested_at', '>=', $from))
+            ->when($to, fn ($q) => $q->where('payapp_requested_at', '<=', $to))
+            ->when($search !== '', function ($q) use ($search, $numeric) {
+                $q->where(function ($q) use ($search, $numeric) {
+                    $q->where('client_name', 'like', "%{$search}%")
+                        ->orWhere('client_nickname', 'like', "%{$search}%")
+                        ->orWhere('client_phone', 'like', "%{$search}%");
+                    if ($numeric > 0) {
+                        $q->orWhere('total_amount', $numeric)->orWhere('id', $numeric);
+                    }
+                });
+            })
+            ->get()
+            ->map(fn (Estimate $e) => [
+                'source' => 'estimate',
                 'id' => $e->id,
                 'client_name' => $e->client_name ?: $e->client_nickname,
                 'client_nickname' => $e->client_nickname,
                 'client_phone' => $e->client_phone,
+                'goodname' => null,
                 'amount' => (int) $e->total_amount,
                 'status' => $this->payappStatus($e),
-                'requested_at' => $e->payapp_requested_at?->format('Y-m-d H:i'),
+                'sort_at' => $e->payapp_requested_at,
                 'paid_at' => $e->payapp_paid_at?->format('Y-m-d H:i'),
                 'payurl' => $e->payapp_payurl,
                 'estimate_url' => $e->publicUrl(),
-            ])->all(),
-            'total' => $page->total(),
-            'current_page' => $page->currentPage(),
-            'last_page' => $page->lastPage(),
-            'paid_count' => $paidCount,
-            'paid_amount' => $paidAmount, // 필터 조건 내 결제완료 합계 (페이지 무관)
+                'receipt_url' => null,
+            ]);
+
+        // ② 페이앱 자체(외부) 결제 — 수신 시각 기준
+        $externalRows = PayappPayment::query()
+            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to, fn ($q) => $q->where('created_at', '<=', $to))
+            ->when($search !== '', function ($q) use ($search, $numeric) {
+                $q->where(function ($q) use ($search, $numeric) {
+                    $q->where('buyer', 'like', "%{$search}%")
+                        ->orWhere('goodname', 'like', "%{$search}%")
+                        ->orWhere('recvphone', 'like', "%{$search}%");
+                    if ($numeric > 0) {
+                        $q->orWhere('price', $numeric);
+                    }
+                });
+            })
+            ->get()
+            ->map(fn (PayappPayment $p) => [
+                'source' => 'payapp',
+                'id' => null,
+                'client_name' => $p->buyer,
+                'client_nickname' => null,
+                'client_phone' => $p->recvphone,
+                'goodname' => $p->goodname,
+                'amount' => (int) $p->price,
+                'status' => $this->externalPayappStatus($p),
+                'sort_at' => $p->created_at,
+                'paid_at' => $p->paid_at?->format('Y-m-d H:i'),
+                'payurl' => null,
+                'estimate_url' => null,
+                'receipt_url' => $p->csturl,
+            ]);
+
+        $rows = $estimateRows->concat($externalRows)->sortByDesc('sort_at')->values();
+
+        if (! empty($validated['status'])) {
+            $keys = match ($validated['status']) {
+                'paid' => ['paid'],
+                'waiting' => ['waiting'],
+                'cancelled' => ['refunded', 'req_cancelled'],
+            };
+            $rows = $rows->filter(fn ($r) => in_array($r['status']['key'], $keys, true))->values();
+        }
+
+        $paidRows = $rows->filter(fn ($r) => $r['status']['key'] === 'paid');
+        $perPage = (int) ($validated['per_page'] ?? 20);
+        $page = max(1, (int) ($validated['page'] ?? 1));
+        $total = $rows->count();
+        $items = $rows->slice(($page - 1) * $perPage, $perPage)->values()
+            ->map(function ($r) {
+                $r['requested_at'] = $r['sort_at'] instanceof CarbonInterface ? $r['sort_at']->format('Y-m-d H:i') : (string) $r['sort_at'];
+                unset($r['sort_at']);
+
+                return $r;
+            });
+
+        return response()->json([
+            'data' => $items->all(),
+            'total' => $total,
+            'current_page' => $page,
+            'last_page' => max(1, (int) ceil($total / $perPage)),
+            'paid_count' => $paidRows->count(),
+            'paid_amount' => (int) $paidRows->sum('amount'), // 필터 조건 내 결제완료 합계 (페이지 무관)
         ]);
     }
 
@@ -287,6 +327,22 @@ class BankDepositController extends Controller
         }
         if (in_array((int) $e->payapp_state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {
             return ['key' => 'req_cancelled', 'label' => '요청취소'];
+        }
+
+        return ['key' => 'waiting', 'label' => '결제 대기'];
+    }
+
+    /** @return array{key:string, label:string} 페이앱 자체(외부) 결제 상태 */
+    private function externalPayappStatus(PayappPayment $p): array
+    {
+        if (in_array($p->pay_state, PayAppClient::STATES_REFUNDED, true)) {
+            return ['key' => 'refunded', 'label' => '환불/취소'];
+        }
+        if (in_array($p->pay_state, PayAppClient::STATES_REQUEST_CANCELLED, true)) {
+            return ['key' => 'req_cancelled', 'label' => '요청취소'];
+        }
+        if ($p->paid_at || $p->pay_state === PayAppClient::STATE_PAID) {
+            return ['key' => 'paid', 'label' => '결제완료'];
         }
 
         return ['key' => 'waiting', 'label' => '결제 대기'];
