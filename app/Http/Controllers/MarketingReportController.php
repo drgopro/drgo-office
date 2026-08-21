@@ -139,11 +139,14 @@ class MarketingReportController extends Controller
         ];
 
         // ── 파이프라인 (현재 진행 중인 건 스냅샷, 날짜 무관) ──
+        // 익명(의뢰자 미연동) 프로젝트는 상담 접수용이므로 진행 중 집계에서 제외
+        // (상담 건수에는 consulted_at 기준으로 정상 포함됨)
+        $inProgress = fn () => Project::whereNotNull('client_id');
         $pipeline = [
-            'consulting' => Project::where('stage', 'consulting')->count(),
-            'estimate' => Project::whereIn('stage', ['equipment', 'proposal', 'estimate'])->count(),
-            'payment' => Project::where('stage', 'payment')->count(),
-            'visit' => Project::whereIn('stage', ['visit', 'as'])->count(),
+            'consulting' => $inProgress()->where('stage', 'consulting')->count(),
+            'estimate' => $inProgress()->whereIn('stage', ['equipment', 'proposal', 'estimate'])->count(),
+            'payment' => $inProgress()->where('stage', 'payment')->count(),
+            'visit' => $inProgress()->whereIn('stage', ['visit', 'as'])->count(),
         ];
         // 취소 사유 — 취소 카드와 동일 코호트(기간 내 유입 프로젝트 중 취소)로 집계해 합계가 항상 일치
         // (기존 cancelled_at 기준은 과거 데이터 일괄 백필 시 특정 월에 전체 취소가 몰려 보이는 문제)

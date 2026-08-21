@@ -75,4 +75,22 @@ class AnonymousProjectConsultationTest extends TestCase
         $this->assertSame($client->id, Consultation::where('project_id', $project->id)->value('client_id'));
         $this->assertNotNull($client->fresh()->last_contact_at);
     }
+
+    public function test_anonymous_project_counts_in_consults_but_not_in_pipeline(): void
+    {
+        $user = User::factory()->create(['role' => 'master']);
+        $anon = Project::create([
+            'client_id' => null, 'manual_client_name' => '익명 문의자',
+            'name' => '익명 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting',
+        ]);
+        $this->actingAs($user)->post("/projects/{$anon->id}/consultations", $this->payload());
+
+        $client = Client::create(['nickname' => '연동 의뢰자', 'grade' => 'normal']);
+        Project::create(['client_id' => $client->id, 'name' => '연동 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting']);
+
+        $res = $this->actingAs($user)->get('/marketing-report')->assertOk();
+        $data = $res->viewData('pipeline');
+        $this->assertSame(1, $data['consulting']); // 익명 제외, 연동 프로젝트만 진행 중으로 집계
+        $this->assertSame(1, $res->viewData('totalConsults')); // 상담 건수에는 익명 상담 포함
+    }
 }
