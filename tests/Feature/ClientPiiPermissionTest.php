@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Schedule;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -89,6 +90,36 @@ class ClientPiiPermissionTest extends TestCase
         ])->assertOk();
         $this->assertSame('010-9999-8888', $contact->fresh()->phone);
         $this->assertSame('총괄', $contact->fresh()->relation);
+    }
+
+    public function test_calendar_events_and_detail_mask_address_and_phone_without_pii(): void
+    {
+        $schedule = Schedule::create([
+            'title' => '방문 세팅', 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+            'is_all_day' => true, 'color' => 'gold', 'client_name' => '홍길동',
+            'address' => '서울시 동작구 장승배기로 142', 'location' => '서울 동작구',
+            'request_data' => ['nickname' => '홍길동', 'phone' => '010-1234-5678', 'move_from_address' => '서울시 강남구 테헤란로 1'],
+            'created_by' => User::factory()->create(['role' => 'master'])->id,
+        ]);
+        $range = '?start='.now()->subDay()->toDateString().'&end='.now()->addDay()->toDateString();
+
+        // 권한 없음 — 캘린더에서도 주소/연락처 마스킹 (지역명 location은 유지)
+        $user = $this->userWith(['calendar.view', 'clients.view']);
+        $ev = collect($this->actingAs($user)->getJson('/api/events'.$range)->assertOk()->json())->firstWhere('id', $schedule->id);
+        $this->assertNull($ev['address']);
+        $this->assertSame('', $ev['request_data']['phone']);
+        $this->assertSame('', $ev['request_data']['move_from_address']);
+        $this->assertSame('서울 동작구', $ev['location']);
+
+        $detail = $this->actingAs($user)->getJson("/api/events/{$schedule->id}/detail")->assertOk()->json();
+        $this->assertNull($detail['address']);
+        $this->assertSame('', $detail['request_data']['phone']);
+
+        // 권한 있음 — 그대로 표시
+        $piiUser = $this->userWith(['calendar.view', 'clients.view', 'clients.pii']);
+        $ev2 = collect($this->actingAs($piiUser)->getJson('/api/events'.$range)->assertOk()->json())->firstWhere('id', $schedule->id);
+        $this->assertSame('서울시 동작구 장승배기로 142', $ev2['address']);
+        $this->assertSame('010-1234-5678', $ev2['request_data']['phone']);
     }
 
     public function test_backfill_grants_pii_to_existing_view_teams(): void

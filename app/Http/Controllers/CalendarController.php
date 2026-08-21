@@ -80,9 +80,50 @@ class CalendarController extends Controller
                 'color' => $e->color,
                 'completed_at' => $e->completed_at,
             ]);
+        } elseif (! $this->canViewClientPii()) {
+            // 연락처·주소 조회 권한이 없는 팀 — 의뢰자 페이지와 동일하게 캘린더에서도 마스킹
+            $events = $events->map(fn ($e) => $this->maskEventPii($e->toArray()));
         }
 
         return $events;
+    }
+
+    /** 의뢰자 연락처·주소 조회 권한 (팀 관리 > 의뢰자 > 연락처·주소 조회, admin 이상 항상 허용) */
+    private function canViewClientPii(): bool
+    {
+        return Auth::user()?->hasPermission('clients.pii') ?? false;
+    }
+
+    /** 일정 배열에서 주소·연락처 마스킹 — address 컬럼 + 의뢰 데이터의 전화/출발지 주소 */
+    private function maskEventPii(array $event): array
+    {
+        $event['address'] = null;
+        if (is_array($event['request_data'] ?? null)) {
+            foreach (['phone', 'move_from_address'] as $key) {
+                if (! empty($event['request_data'][$key])) {
+                    $event['request_data'][$key] = '';
+                }
+            }
+        }
+
+        return $event;
+    }
+
+    /** 수정 이력 등 중첩 구조에서 주소/연락처 키를 재귀적으로 마스킹 */
+    private function scrubPiiDeep(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+        foreach ($value as $k => $v) {
+            if (in_array($k, ['address', 'phone', 'move_from_address'], true)) {
+                $value[$k] = null;
+            } else {
+                $value[$k] = $this->scrubPiiDeep($v);
+            }
+        }
+
+        return $value;
     }
 
     // 일정 검색 (제목/의뢰자/장소/주소, 전체 기간)
@@ -734,7 +775,12 @@ class CalendarController extends Controller
     {
         $schedule->load('assignees', 'creator');
 
-        return response()->json($schedule);
+        $data = $schedule->toArray();
+        if (! $this->canViewClientPii()) {
+            $data = $this->maskEventPii($data);
+        }
+
+        return response()->json($data);
     }
 
     // 수정내역 API (소프트삭제된 일정도 조회 가능)
@@ -742,10 +788,11 @@ class CalendarController extends Controller
     {
         $schedule = Schedule::withTrashed()->findOrFail($id);
 
+        $pii = $this->canViewClientPii();
         $changes = $schedule->changes()->with('user')->get()->map(fn ($c) => [
             'id' => $c->id,
             'action' => $c->action,
-            'changes' => $c->changes,
+            'changes' => $pii ? $c->changes : $this->scrubPiiDeep($c->changes),
             'reason' => $c->reason,
             'user_name' => $c->user?->display_name ?? '알 수 없음',
             'created_at' => $c->created_at->format('Y.m.d H:i'),
