@@ -267,6 +267,8 @@ class EstimateController extends Controller
         }
 
         $payload = $request->all();
+        // 기존 카페24 공통 통보 스크립트로 중계 — 우리 검증/처리와 무관하게 원본 전달
+        $payapp->relayFeedback($payload);
         $estimate = null;
         if ($id = (int) ($payload['var1'] ?? 0)) {
             $estimate = Estimate::find($id);

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Estimate;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -107,6 +108,33 @@ class PayAppClient
         }
 
         return ['ok' => true];
+    }
+
+    /**
+     * 결제 통보를 기존 카페24 공통 통보 스크립트로 중계.
+     * 공통 통보 URL을 오피스로 바꾸면 카페24가 통보를 못 받게 되므로, 받은 통보를
+     * 원본 그대로 전달한다. 견적서 결제는 개별 feedbackurl과 공통 통보가 중복
+     * 수신될 수 있어 (결제번호+상태) 기준으로 1회만 중계한다. 실패해도 통보
+     * 처리 자체에는 영향을 주지 않는다 (payapp.log로 진단).
+     */
+    public function relayFeedback(array $payload): void
+    {
+        $url = (string) config('services.payapp.relay_url');
+        if ($url === '' || empty($payload['mul_no'])) {
+            return;
+        }
+        $dedupKey = sprintf('payapp-relay:%s:%s', $payload['mul_no'], $payload['pay_state'] ?? '');
+        if (! Cache::add($dedupKey, 1, now()->addDay())) {
+            return; // 같은 결제·같은 상태는 이미 중계함
+        }
+
+        try {
+            $res = Http::asForm()->timeout(5)->connectTimeout(3)->post($url, $payload);
+            $this->log('feedback-중계', [], sprintf('%s → HTTP %d (mul_no=%s state=%s)',
+                $url, $res->status(), $payload['mul_no'], $payload['pay_state'] ?? '-'));
+        } catch (\Throwable $e) {
+            $this->log('feedback-중계실패', [], $url.' — '.$e->getMessage());
+        }
     }
 
     /**

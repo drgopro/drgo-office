@@ -62,6 +62,8 @@ return [
         'linkkey' => env('PAYAPP_LINKKEY'),
         'linkval' => env('PAYAPP_LINKVAL'),
         'api_url' => env('PAYAPP_API_URL', 'https://api.payapp.kr/oapi/apiLoad.html'),
+        // 공통 통보 URL을 오피스로 바꾼 뒤에도 기존 카페24 스크립트가 통보를 계속 받도록 중계
+        'relay_url' => env('PAYAPP_FEEDBACK_RELAY_URL', 'https://drgoblinpro.cafe24.com/shop/payapp/payapp_feedbackurl.php'),
     ],
 
     // 시세 크롤링 국내 경유 프록시 (해외 IP 차단 판매처용)

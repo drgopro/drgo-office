@@ -6,6 +6,7 @@ use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /** 페이앱 자체(외부) 결제 — 기본 FEEDBACK URL 웹훅 수집 + 결제현황 병합 표시 */
@@ -98,5 +99,19 @@ class PayappExternalPaymentTest extends TestCase
         $search = $this->actingAs($user)->getJson('/api/payapp-payments?search='.urlencode('홍외부'))->assertOk();
         $this->assertSame(1, $search->json('total'));
         $this->assertSame('payapp', $search->json('data.0.source'));
+    }
+
+    public function test_feedback_is_relayed_to_cafe24_once_per_state(): void
+    {
+        config(['services.payapp.relay_url' => 'https://drgoblinpro.cafe24.com/shop/payapp/payapp_feedbackurl.php']);
+        Http::fake(['drgoblinpro.cafe24.com/*' => Http::response('SUCCESS')]);
+
+        $this->externalFeedback()->assertOk();
+        $this->externalFeedback()->assertOk(); // 같은 결제·같은 상태 재통지 — 중계는 1회만
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'cafe24.com') && $req['mul_no'] === 'EXT12345');
+
+        $this->externalFeedback(['pay_state' => 9])->assertOk(); // 상태 변경 — 다시 중계
+        Http::assertSentCount(2);
     }
 }
