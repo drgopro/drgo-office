@@ -53,6 +53,7 @@
     .pe-input:focus { border-color:var(--accent); }
     .pe-input.pe-num { min-width:80px; max-width:112px; text-align:right; -moz-appearance:textfield; appearance:textfield; }
     .pe-input.pe-num::-webkit-outer-spin-button, .pe-input.pe-num::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .pe-input.pe-num.pe-sm { min-width:0; width:56px; }
     .pe-input.pe-invalid { border-color:var(--red, #dc2626); }
     /* 편집 모드에서는 입력창이 있는 칸 아무 곳이나 클릭해도 수정 시작 */
     #productBody td:has(.pe-input) { cursor:text; }
@@ -1031,7 +1032,8 @@ document.getElementById('productBody').addEventListener('click', e => {
 });
 
 function peInput(p, field, value, type = 'number') {
-    const cls = type === 'number' ? 'pe-input pe-num' : 'pe-input';
+    let cls = type === 'number' ? 'pe-input pe-num' : 'pe-input';
+    if (field === 'stock_quantity' || field === 'safety_stock') { cls += ' pe-sm'; } // 재고류는 짧은 폭
     return `<input class="${cls}" type="${type}" ${type==='number'?'min="0"':''} data-id="${p.id}" data-field="${field}" value="${_esc(String(value ?? ''))}">`;
 }
 
