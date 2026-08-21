@@ -28,7 +28,8 @@ class ConsultationController extends Controller
 
         Consultation::create($validated);
 
-        $project->client->update(['last_contact_at' => now()]);
+        // 익명(의뢰자 미연동) 프로젝트는 의뢰자 최근 연락일 갱신 생략
+        $project->client?->update(['last_contact_at' => now()]);
 
         return back()->with('success', '상담 이력이 등록되었습니다.');
     }
