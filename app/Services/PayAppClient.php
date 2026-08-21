@@ -165,6 +165,8 @@ class PayAppClient
      * feedbackurl 통지 검증 — 판매자 ID 일치 + (연동 KEY/VALUE 또는 var2 토큰) 대조.
      * 페이앱이 통지에 연동키를 포함하지 않는 경우가 있어, APP_KEY 기반이라
      * 위조가 불가능한 견적서별 var2 토큰 일치도 유효한 검증으로 인정한다.
+     * env에 KEY/VALUE가 서로 뒤바뀌어 저장된 경우도 잦아 교차 일치도 인정한다
+     * (둘 다 같은 판매자 설정 화면의 비밀값이라 보안 수준은 동일).
      */
     public function verifyFeedback(array $payload, ?Estimate $estimate): bool
     {
@@ -172,28 +174,57 @@ class PayAppClient
             return false;
         }
 
-        $linkOk = (isset($payload['linkkey']) && hash_equals((string) config('services.payapp.linkkey'), (string) $payload['linkkey']))
-            || (isset($payload['linkval']) && hash_equals((string) config('services.payapp.linkval'), (string) $payload['linkval']));
-
         $tokenOk = $estimate !== null
             && isset($payload['var2'])
             && hash_equals($this->feedbackToken($estimate), (string) $payload['var2']);
 
-        return $linkOk || $tokenOk;
+        $link = $this->linkMatch($payload);
+        if ($link === 'SWAP' && Cache::add('payapp-linkswap-warned', 1, now()->addDay())) {
+            $this->log('feedback-연동키뒤바뀜', [], 'env의 PAYAPP_LINKKEY와 PAYAPP_LINKVAL이 서로 뒤바뀌어 있습니다. 값을 맞바꿔 저장해주세요 (검증은 통과 처리 중).');
+        }
+
+        return $link !== 'N' || $tokenOk;
+    }
+
+    /**
+     * 연동 KEY/VALUE 대조 결과 — 'Y'(정상 일치), 'SWAP'(env에 서로 뒤바뀌어 저장됨), 'N'(불일치).
+     */
+    private function linkMatch(array $payload): string
+    {
+        $confKey = (string) config('services.payapp.linkkey');
+        $confVal = (string) config('services.payapp.linkval');
+        $recvKey = (string) ($payload['linkkey'] ?? '');
+        $recvVal = (string) ($payload['linkval'] ?? '');
+
+        if (($recvKey !== '' && $confKey !== '' && hash_equals($confKey, $recvKey))
+            || ($recvVal !== '' && $confVal !== '' && hash_equals($confVal, $recvVal))) {
+            return 'Y';
+        }
+        if (($recvKey !== '' && $confVal !== '' && hash_equals($confVal, $recvKey))
+            || ($recvVal !== '' && $confKey !== '' && hash_equals($confKey, $recvVal))) {
+            return 'SWAP';
+        }
+
+        return 'N';
     }
 
     /**
      * 통지 검증 실패 원인 진단 문자열 (값 노출 없이 어느 검증이 왜 실패했는지만).
+     * link_ok=SWAP이면 env의 PAYAPP_LINKKEY/LINKVAL이 서로 뒤바뀐 것 (검증은 통과시킴).
+     * 길이 표기(수신/설정)로 어느 값이 판매자 설정과 다른지 가늠할 수 있다.
      */
     public function feedbackDiagnosis(array $payload, ?Estimate $estimate): string
     {
         return sprintf(
-            'userid_ok=%s linkkey수신=%s linkval수신=%s link_ok=%s var2수신=%s token_ok=%s estimate=%s',
+            'userid_ok=%s linkkey수신=%s linkval수신=%s link_ok=%s key길이(수신/설정)=%d/%d val길이(수신/설정)=%d/%d var2수신=%s token_ok=%s estimate=%s',
             ($payload['userid'] ?? null) === config('services.payapp.userid') ? 'Y' : 'N',
             isset($payload['linkkey']) ? 'Y' : 'N',
             isset($payload['linkval']) ? 'Y' : 'N',
-            ((isset($payload['linkkey']) && hash_equals((string) config('services.payapp.linkkey'), (string) $payload['linkkey']))
-                || (isset($payload['linkval']) && hash_equals((string) config('services.payapp.linkval'), (string) $payload['linkval']))) ? 'Y' : 'N',
+            $this->linkMatch($payload),
+            strlen((string) ($payload['linkkey'] ?? '')),
+            strlen((string) config('services.payapp.linkkey')),
+            strlen((string) ($payload['linkval'] ?? '')),
+            strlen((string) config('services.payapp.linkval')),
             isset($payload['var2']) ? 'Y' : 'N',
             ($estimate !== null && isset($payload['var2']) && hash_equals($this->feedbackToken($estimate), (string) $payload['var2'])) ? 'Y' : 'N',
             $estimate?->id ?? '(못찾음)'

@@ -72,6 +72,18 @@ class PayappExternalPaymentTest extends TestCase
         $this->assertSame(1, PayappPayment::count());
     }
 
+    public function test_external_feedback_accepts_env_with_swapped_link_key_value(): void
+    {
+        // env에 연동 KEY/VALUE가 서로 뒤바뀌어 저장된 흔한 실수 — 교차 일치도 유효한 검증으로 인정
+        config([
+            'services.payapp.linkkey' => 'test-linkval',
+            'services.payapp.linkval' => 'test-linkkey',
+        ]);
+
+        $this->externalFeedback(['linkkey' => 'test-linkkey', 'linkval' => 'test-linkval'])->assertOk();
+        $this->assertSame(1, PayappPayment::count());
+    }
+
     public function test_payapp_list_merges_estimate_and_external_rows(): void
     {
         $user = User::factory()->create(['role' => 'master']);
