@@ -49,10 +49,13 @@
     .data-table td { font-size:12.5px; padding:9px 8px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
     .sku-cell { font-size:11px !important; letter-spacing:-0.2px; }
     /* 전체 편집 모드 인라인 입력폼 */
-    .pe-input { width:100%; min-width:120px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-size:12px; color:var(--text); outline:none; }
+    .pe-input { width:100%; min-width:120px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:12.5px; color:var(--text); outline:none; }
     .pe-input:focus { border-color:var(--accent); }
-    .pe-input.pe-num { min-width:64px; max-width:96px; text-align:right; }
+    .pe-input.pe-num { min-width:80px; max-width:112px; text-align:right; -moz-appearance:textfield; appearance:textfield; }
+    .pe-input.pe-num::-webkit-outer-spin-button, .pe-input.pe-num::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
     .pe-input.pe-invalid { border-color:var(--red, #dc2626); }
+    /* 편집 모드에서는 입력창이 있는 칸 아무 곳이나 클릭해도 수정 시작 */
+    #productBody td:has(.pe-input) { cursor:text; }
     .action-cell button { padding:4px 7px !important; font-size:11.5px !important; }
     .data-table td.text-wrap { white-space:normal; word-break:keep-all; overflow-wrap:break-word; }
     /* 제품명/카테고리 최소 폭 — 좁은 해상도에서 한 글자씩 세로로 깨지는 대신 표가 가로 스크롤되도록 */
@@ -1018,6 +1021,14 @@ async function loadProducts() {
 
 // === 전체 편집 (인라인 일괄 수정) ===
 let PROD_EDIT_MODE = false;
+
+// 칸(td) 아무 곳이나 클릭하면 그 칸의 입력창으로 포커스
+document.getElementById('productBody').addEventListener('click', e => {
+    if (!PROD_EDIT_MODE) { return; }
+    const td = e.target.closest('td');
+    const inp = td && td.querySelector('.pe-input');
+    if (inp && e.target !== inp) { inp.focus(); inp.select(); }
+});
 
 function peInput(p, field, value, type = 'number') {
     const cls = type === 'number' ? 'pe-input pe-num' : 'pe-input';
