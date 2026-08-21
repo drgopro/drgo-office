@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Team;
 use App\Models\User;
 use App\Models\Wiki;
 use App\Models\WikiAttachment;
@@ -22,7 +23,8 @@ class WikiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Wiki::published()->with('creator', 'updater')->withCount('comments');
+        $me = Auth::user();
+        $query = Wiki::published()->visibleTo($me)->with('creator', 'updater')->withCount('comments');
 
         // 검색어 — 그룹으로 묶어 기간/작성자 필터와 AND 유지 (mysql 외 드라이버는 like 폴백)
         if ($search = trim((string) $request->query('search'))) {
@@ -56,16 +58,16 @@ class WikiController extends Controller
 
         // 고정 문서 우선, 그다음 작성시간 최신순 (수정해도 목록 순서 유지)
         $wikis = $query->orderByDesc('is_pinned')->orderByDesc('created_at')->get();
-        $categories = Wiki::published()->select('category')->distinct()->orderBy('category')->pluck('category');
+        $categories = Wiki::published()->visibleTo($me)->select('category')->distinct()->orderBy('category')->pluck('category');
         // 카테고리별 직접 문서 수 (트리 배지용) — 공지/업데이트는 카테고리 체계와 별개
-        $catCounts = Wiki::published()->whereNotNull('category_id')->selectRaw('category_id, count(*) as c')
+        $catCounts = Wiki::published()->visibleTo($me)->whereNotNull('category_id')->selectRaw('category_id, count(*) as c')
             ->groupBy('category_id')->pluck('c', 'category_id');
-        $uncategorized = Wiki::published()->whereNull('category_id')->where('type', 'normal')->count();
+        $uncategorized = Wiki::published()->visibleTo($me)->whereNull('category_id')->where('type', 'normal')->count();
         // 특수 유형(공지사항/업데이트) 문서 수
-        $typeCounts = Wiki::published()->whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
+        $typeCounts = Wiki::published()->visibleTo($me)->whereIn('type', array_keys(Wiki::SPECIAL_TYPES))
             ->selectRaw('type, count(*) as c')->groupBy('type')->pluck('c', 'type');
         // 검색 필터 작성자 옵션 — 문서를 작성한 적 있는 사용자만
-        $authors = User::whereIn('id', Wiki::published()->whereNotNull('created_by')->distinct()->pluck('created_by'))
+        $authors = User::whereIn('id', Wiki::published()->visibleTo($me)->whereNotNull('created_by')->distinct()->pluck('created_by'))
             ->orderBy('display_name')->get(['id', 'display_name']);
 
         return view('wiki.index', compact('wikis', 'categories', 'tree', 'catCounts', 'uncategorized', 'typeCounts', 'authors'));
@@ -95,8 +97,9 @@ class WikiController extends Controller
     {
         $categories = Wiki::select('category')->distinct()->orderBy('category')->pluck('category');
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
+        $teams = Team::orderBy('name')->get(['id', 'name']);
 
-        return view('wiki.create', compact('categories', 'tree'));
+        return view('wiki.create', compact('categories', 'tree', 'teams'));
     }
 
     /**
@@ -131,17 +134,20 @@ class WikiController extends Controller
 
     public function show(Wiki $wiki)
     {
+        abort_unless($wiki->canView(Auth::user()), 403, '이 문서를 열람할 권한이 없습니다.');
         $wiki->load('creator', 'updater');
         if ($wiki->type === 'meeting') {
             $wiki->load('comments.user:id,display_name,username', 'comments.attachments');
         }
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
+        $teams = Team::orderBy('name')->get(['id', 'name']);
 
-        return view('wiki.show', compact('wiki', 'tree'));
+        return view('wiki.show', compact('wiki', 'tree', 'teams'));
     }
 
     public function store(Request $request)
     {
+        abort_if(Auth::user()->isGuest(), 403, '게스트는 문서를 작성할 수 없습니다.');
         $validated = $request->validate([
             'title' => 'required|string|max:200',
             'category' => 'nullable|string|max:50',
@@ -150,7 +156,10 @@ class WikiController extends Controller
             'content' => 'required|string',
             'is_pinned' => 'boolean',
             'is_draft' => 'boolean', // 자동저장 = 임시저장 (목록 미노출)
+            'allowed_team_ids' => 'nullable|array', // 열람 허용 팀 (비면 전체 공개)
+            'allowed_team_ids.*' => 'integer|exists:teams,id',
         ]);
+        $validated['allowed_team_ids'] = array_values($validated['allowed_team_ids'] ?? []) ?: null;
 
         $this->syncCategoryName($validated);
         $this->applySpecialType($validated);
@@ -174,6 +183,7 @@ class WikiController extends Controller
 
     public function update(Request $request, Wiki $wiki)
     {
+        abort_if(Auth::user()->isGuest(), 403, '게스트는 문서를 수정할 수 없습니다.');
         $validated = $request->validate([
             'title' => 'sometimes|string|max:200',
             'category' => 'sometimes|nullable|string|max:50',
@@ -182,7 +192,12 @@ class WikiController extends Controller
             'content' => 'sometimes|string',
             'is_pinned' => 'boolean',
             'is_draft' => 'sometimes|boolean',
+            'allowed_team_ids' => 'sometimes|nullable|array',
+            'allowed_team_ids.*' => 'integer|exists:teams,id',
         ]);
+        if (array_key_exists('allowed_team_ids', $validated)) {
+            $validated['allowed_team_ids'] = array_values($validated['allowed_team_ids'] ?? []) ?: null;
+        }
 
         // 임시저장 → 발행 시점에 작성일을 현재로 (며칠 묵힌 초안이 목록 아래에 묻히지 않도록)
         if ($wiki->is_draft && array_key_exists('is_draft', $validated) && ! $validated['is_draft']) {
@@ -275,6 +290,7 @@ class WikiController extends Controller
 
     public function destroy(Request $request, Wiki $wiki)
     {
+        abort_if(Auth::user()->isGuest(), 403, '게스트는 문서를 삭제할 수 없습니다.');
         if (in_array($wiki->type, Wiki::ADMIN_ONLY_TYPES, true)) {
             abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 삭제할 수 있습니다.');
         }
@@ -291,6 +307,7 @@ class WikiController extends Controller
     /** 댓글 작성 — 회의록(meeting) 유형 게시물에만 허용. 대댓글(1뎁스) + @멘션 알림 지원 */
     public function storeComment(Request $request, Wiki $wiki)
     {
+        abort_unless($wiki->canView(Auth::user()), 403, '이 문서를 열람할 권한이 없습니다.');
         abort_unless($wiki->type === 'meeting', 403, '댓글은 회의록 게시물에만 작성할 수 있습니다.');
 
         $validated = $request->validate([

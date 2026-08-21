@@ -568,7 +568,7 @@ window.openTopTab = function(type, url, title) {
             @if(Auth::user()->hasPermission('deposits.view'))
                 <a href="/deposits" class="{{ request()->is('deposits*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('deposits','/deposits');" title="입금 내역"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20M6 15h4"></path></svg>입금 내역</a>
             @endif
-            @if(in_array(Auth::user()->role, ['master','admin','member']))
+            @if(Auth::user()->hasPermission('stats.view'))
                 <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');" title="통계"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>통계</a>
             @endif
             @if(in_array(Auth::user()->role, ['master','admin','member']))

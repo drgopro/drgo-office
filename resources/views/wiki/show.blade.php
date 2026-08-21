@@ -195,6 +195,9 @@
                 @endif
             </div>
             <div class="wiki-meta">
+                @if(!empty($wiki->allowed_team_ids))
+                    <span title="열람 제한 문서">🔒 {{ $teams->whereIn('id', array_map('intval', $wiki->allowed_team_ids))->pluck('name')->join(', ') }} 열람</span>
+                @endif
                 <span>작성: {{ $wiki->creator?->display_name ?? '알 수 없음' }} · {{ $wiki->created_at->format('Y.m.d H:i') }}</span>
                 @if($wiki->updated_by && $wiki->updated_at->gt($wiki->created_at->addMinutes(1)))
                     <span>수정: {{ $wiki->updater?->display_name ?? '' }} · {{ $wiki->updated_at->format('Y.m.d H:i') }}</span>
@@ -202,7 +205,7 @@
             </div>
         </div>
         @php
-            $canEditWiki = ! in_array($wiki->type, \App\Models\Wiki::ADMIN_ONLY_TYPES, true) || auth()->user()->isAdmin();
+            $canEditWiki = $wiki->canEdit(auth()->user());
         @endphp
         <div class="wiki-actions" id="viewActions">
             <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
@@ -224,7 +227,8 @@
         <div class="wiki-content view-mode" id="viewContent">{!! Str::markdown($wiki->content ?? '', ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
     @endif
 
-    <!-- 수정 모드 -->
+    <!-- 수정 모드 — 수정 권한이 있는 사용자에게만 렌더 -->
+    @if($canEditWiki)
     <div class="edit-form" id="editForm">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
             <div style="font-size:14px;font-weight:700;">문서 수정</div>
@@ -275,6 +279,19 @@
             </div>
         </div>
 
+        {{-- 열람 권한 — 팀을 선택하면 그 팀(+작성자·관리자)만 볼 수 있음. 비우면 전체 공개 --}}
+        <div class="field-group" style="margin-bottom:14px;">
+            <div class="field-label">열람 권한 <span style="font-weight:400;color:var(--text-muted);">선택한 팀만 열람 (아무것도 선택하지 않으면 전체 공개)</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;">
+                @foreach($teams as $t)
+                    <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;border:1px solid var(--border);border-radius:999px;padding:6px 13px;">
+                        <input type="checkbox" class="edit-allowed-team" value="{{ $t->id }}" @checked(in_array($t->id, array_map('intval', $wiki->allowed_team_ids ?? [])))>
+                        {{ $t->name }}
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
         <div class="tiptap-wrap">
             <div class="tiptap-toolbar" id="toolbar">
                 <button onclick="editor.chain().focus().toggleHeading({level:1}).run()" title="제목 1">H1</button>
@@ -310,6 +327,7 @@
             <button onclick="saveWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
         </div>
     </div>
+    @endif
 
     @if($wiki->type === 'meeting')
     <!-- 댓글 — 회의록 전용 -->
@@ -530,7 +548,7 @@ const ResizableImage = Image.extend({
 const wikiContent = @json($wiki->content);
 
 window.editor = new Editor({
-    element: document.getElementById('editor'),
+    element: document.getElementById('editor') || document.createElement('div'), // 수정 권한 없으면 편집 폼 미렌더 — 더미 엘리먼트로 초기화
     extensions: [
         StarterKit.configure({ heading: { levels: [1,2,3] } }),
         ResizableImage.configure({ inline: false, allowBase64: true }),
@@ -727,7 +745,8 @@ async function doSaveWiki(silent) {
         const res = await fetch('{{ route("wiki.update", $wiki) }}', {
             method:'PATCH',
             headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-            body:JSON.stringify({ title, type:wikiType, category_id:wikiType==='normal'?categoryId:null, content:html, is_pinned:isPinned?1:0 }),
+            body:JSON.stringify({ title, type:wikiType, category_id:wikiType==='normal'?categoryId:null, content:html, is_pinned:isPinned?1:0,
+                allowed_team_ids:[...document.querySelectorAll('.edit-allowed-team:checked')].map(c=>parseInt(c.value,10)) }),
         });
         if (!res.ok) {
             if(!silent){ try { const err=await res.json(); alert(err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패')); } catch(e) { alert('저장 실패'); } }

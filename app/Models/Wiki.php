@@ -24,6 +24,7 @@ class Wiki extends Model
         'diagram_data',
         'is_pinned',
         'is_draft',
+        'allowed_team_ids',
         'sort_order',
         'created_by',
         'updated_by',
@@ -32,6 +33,7 @@ class Wiki extends Model
     protected $casts = [
         'is_pinned' => 'boolean',
         'is_draft' => 'boolean',
+        'allowed_team_ids' => 'array',
         'diagram_data' => 'array',
     ];
 
@@ -39,6 +41,44 @@ class Wiki extends Model
     public function scopePublished($query)
     {
         return $query->where('is_draft', false);
+    }
+
+    /** 열람 권한 필터 — 관리자는 전체, 그 외에는 전체 공개 + 본인 작성 + 소속 팀 허용 문서만 */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->whereNull('allowed_team_ids')->orWhere('created_by', $user->id);
+            if ($user->team_id) {
+                $q->orWhereJsonContains('allowed_team_ids', (int) $user->team_id);
+            }
+        });
+    }
+
+    /** 이 문서를 열람할 수 있는가 — 전체 공개 / 작성자 / 관리자 / 허용 팀 소속 */
+    public function canView(User $user): bool
+    {
+        if ($user->isAdmin() || $this->created_by === $user->id || empty($this->allowed_team_ids)) {
+            return true;
+        }
+
+        return $user->team_id && in_array((int) $user->team_id, array_map('intval', $this->allowed_team_ids), true);
+    }
+
+    /** 이 문서를 수정/삭제할 수 있는가 — 게스트 불가, 공지/업데이트는 관리자만 */
+    public function canEdit(User $user): bool
+    {
+        if ($user->isGuest()) {
+            return false;
+        }
+        if (in_array($this->type, self::ADMIN_ONLY_TYPES, true)) {
+            return $user->isAdmin();
+        }
+
+        return true;
     }
 
     public function creator()

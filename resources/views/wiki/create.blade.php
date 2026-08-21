@@ -156,6 +156,19 @@
         </div>
     </div>
 
+    {{-- 열람 권한 — 팀을 선택하면 그 팀(+작성자·관리자)만 볼 수 있음. 비우면 전체 공개 --}}
+    <div class="field-group" style="margin-bottom:14px;">
+        <div class="field-label">열람 권한 <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0;">선택한 팀만 열람 (아무것도 선택하지 않으면 전체 공개)</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:6px 0;">
+            @foreach($teams as $t)
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;border:1px solid var(--border);border-radius:999px;padding:6px 13px;">
+                    <input type="checkbox" class="wiki-allowed-team" value="{{ $t->id }}">
+                    {{ $t->name }}
+                </label>
+            @endforeach
+        </div>
+    </div>
+
     <div class="tiptap-wrap">
         <div class="tiptap-toolbar" id="toolbar">
             <button onclick="editor.chain().focus().toggleHeading({level:1}).run()" title="제목 1">H1</button>
@@ -468,7 +481,8 @@ async function doSaveWiki(silent){
     try{
         const wikiType=document.getElementById('wikiType')?.value||'normal';
         // 자동저장(silent)은 임시저장(is_draft=1) — 목록에 노출되지 않고, 등록 버튼을 눌러야 발행됨
-        const body=JSON.stringify({title,category_id:wikiType==='normal'?categoryId:null,type:wikiType,content:html,is_pinned:isPinned?1:0,is_draft:silent?1:0});
+        const body=JSON.stringify({title,category_id:wikiType==='normal'?categoryId:null,type:wikiType,content:html,is_pinned:isPinned?1:0,is_draft:silent?1:0,
+            allowed_team_ids:[...document.querySelectorAll('.wiki-allowed-team:checked')].map(c=>parseInt(c.value,10))});
         let res;
         if(!WIKI_CREATED_ID){
             res=await fetch('{{ route("wiki.store") }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body});

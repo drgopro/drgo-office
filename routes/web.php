@@ -98,8 +98,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
     Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
 
-    // 마케팅 통계 (master/admin/member 접근 가능, guest 차단)
-    Route::middleware('role:master,admin,member')->group(function () {
+    // 마케팅 통계 — 팀 권한(stats.view)으로 제어 (master/admin은 항상 허용)
+    Route::middleware('permission:stats.view')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
         Route::get('/marketing-report/revenue', [MarketingReportController::class, 'revenuePage'])->name('marketing-report.revenue');
         Route::get('/marketing-report/schedules-export', [MarketingReportController::class, 'schedulesExport'])->name('marketing-report.schedules-export');

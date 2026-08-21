@@ -85,7 +85,7 @@ class GlobalSearchController extends Controller
         }
 
         // 위키
-        $items = Wiki::published()->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('content', 'like', $like))
+        $items = Wiki::published()->visibleTo(Auth::user())->where(fn ($w) => $w->where('title', 'like', $like)->orWhere('content', 'like', $like))
             ->orderByDesc('created_at')->limit(5)
             ->get(['id', 'title', 'category', 'created_at'])
             ->map(fn ($w) => [
