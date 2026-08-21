@@ -296,6 +296,28 @@ HTML;
         Http::assertNothingSent(); // 6시간 이내 재조회 안 함
     }
 
+    public function test_refresh_skips_shipments_older_than_a_month(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        // 등록 40일 지난 미완료 송장 — 추적 API 호출량 보호를 위해 더 이상 조회하지 않음
+        $old = $schedule->shipments()->create([
+            'carrier' => 'kr.cjlogistics', 'tracking_no' => '111222333444',
+            'status' => 'in_transit', 'last_event' => '간선 상차',
+        ]);
+        $old->forceFill(['created_at' => now()->subDays(40)])->saveQuietly();
+        // 완료 40일 지난 위치 없는 송장 — 백필 대상에서도 제외
+        $this->makeDeliveredShipment($schedule, ['tracking_no' => '555666777888', 'delivered_at' => now()->subDays(40)]);
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
+
+        Http::assertNothingSent();
+        $this->assertSame('간선 상차', $old->fresh()->last_event); // 마지막 상태는 그대로 유지
+    }
+
     public function test_delete_shipment(): void
     {
         config(['services.delivery_tracker.url' => null]);
