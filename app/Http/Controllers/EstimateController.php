@@ -96,7 +96,9 @@ class EstimateController extends Controller
             'product_items.*.qty' => 'required|integer|min:1|max:9999',
             'product_items.*.subtotal' => 'required|numeric|min:0',
             'product_items.*.time_required' => 'nullable|string|max:50',
+            'product_items.*.use_time' => 'nullable|boolean', // 소요시간 입력폼 사용 여부 (제품 설정 스냅샷)
             'product_items.*.manual' => 'nullable|boolean',
+            'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
             'service_items' => 'nullable|array|max:100',
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',
@@ -221,6 +223,12 @@ class EstimateController extends Controller
         ]);
 
         return view('estimates.print', compact('estimate', 'settings'));
+    }
+
+    /** 주문/배송 운송장 등록 — 견적서 편집에서 새 창으로 연다 */
+    public function shipmentsPage(Estimate $estimate)
+    {
+        return view('estimates.shipments', compact('estimate'));
     }
 
     /** 직인 이미지 스트리밍 — 내부 인쇄·의뢰자 공개 견적서 공용 (토큰·로그인 불필요) */

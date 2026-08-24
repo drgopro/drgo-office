@@ -290,7 +290,9 @@ function addToCart(productId) {
             product_id: p.id, sku: p.sku, category: p.category,
             category_root: p.category_root || p.category,
             name: p.group_id && p.option_name ? `${p.group_name} (${p.option_name})` : p.name,
-            purchase_price: p.purchase_price || 0, sale_price: price, qty: 1, time_required: '', subtotal: price, manual: false,
+            purchase_price: p.purchase_price || 0, sale_price: price, qty: 1,
+            time_required: p.use_time_required ? (p.time_required || '') : '', use_time: !!p.use_time_required,
+            subtotal: price, manual: false,
         });
     }
     renderCart();
@@ -301,7 +303,7 @@ function addManualItem() {
     const price = Math.max(0, parseInt(document.getElementById('miPrice').value) || 0);
     const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
     const miCat = document.getElementById('miCat').value.trim() || '기타';
-    cartItems.push({ product_id: null, sku: '', category: miCat, category_root: miCat, name, purchase_price: 0, sale_price: price, qty, time_required: '', subtotal: price * qty, manual: true });
+    cartItems.push({ product_id: null, sku: '', category: miCat, category_root: miCat, name, purchase_price: 0, sale_price: price, qty, time_required: '', use_time: false, subtotal: price * qty, manual: true });
     ['miName','miPrice'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('miQty').value = 1;
     renderCart();

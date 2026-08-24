@@ -88,6 +88,13 @@
         .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
         .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
         .cart-row-num { color:var(--accent); font-weight:600; }
+        /* 주문/배송 모드 — 주문완료 표시(제품명 옅은 녹색 배경) + 토글 버튼 */
+        td.cell-name.ordered { background:#e4f2e4; }
+        .btn-order { padding:3px 11px; font-size:11px; font-weight:600; border-radius:6px; border:1px solid #7cb87c; background:var(--surface); color:var(--green); cursor:pointer; white-space:nowrap; }
+        .btn-order:hover { background:#eef7ee; }
+        .btn-order.cancel { border-color:#c9d2dc; color:var(--text-muted); }
+        .btn-order.cancel:hover { border-color:var(--red); color:var(--red); background:var(--surface); }
+        #orderModeBtn.mode-on { background:var(--navy); color:#fff; border-color:var(--navy); }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
         .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
         .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
@@ -180,6 +187,7 @@
     <div class="panel-right-header">
         <h2>견적서 #{{ $estimate->id }}</h2>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
+            <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">🚚 주문/배송</button>
             @if($estimate->status === 'paid')
                 <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(36,138,56,0.12); color:var(--green); font-weight:700;">💳 결제 완료{{ $estimate->payapp_paid_at ? ' · '.$estimate->payapp_paid_at->format('m/d H:i') : '' }}</span>
             @elseif($estimate->status === 'cancelled')
@@ -231,9 +239,10 @@
 
         <!-- 장바구니 -->
         <div class="cart-section">
-            <h4 style="display:flex; align-items:center; gap:8px;">제품 항목
+            <h4 style="display:flex; align-items:center; gap:8px;"><span id="cartTitle">제품 항목</span>
                 <span style="margin-left:auto;">
-                    <button class="btn-add-svc" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
+                    <button class="btn-add-svc" id="btnSavePreset" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
+                    <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">🚚 운송장 추가</button>
                 </span>
             </h4>
             <table class="cart-table">
@@ -512,7 +521,9 @@ function addToCart(productId) {
             purchase_price: p.purchase_price || 0,
             sale_price: price,
             qty: 1,
-            time_required: '',
+            // 소요시간 — '소요시간 사용' 제품만 입력폼 표시, 제품의 기본값을 프리필
+            time_required: p.use_time_required ? (p.time_required || '') : '',
+            use_time: !!p.use_time_required,
             subtotal: price,
         });
     }
@@ -534,6 +545,28 @@ function rebuildFromBlocks(order, map) {
     order.forEach(c => cartItems.push(...map[c]));
 }
 
+// === 주문/배송 모드 — 편집 잠금 + 항목별 주문완료 체크 + 운송장 등록 ===
+let orderMode = false;
+
+function toggleOrderMode() {
+    orderMode = !orderMode;
+    document.getElementById('orderModeBtn').classList.toggle('mode-on', orderMode);
+    document.getElementById('cartTitle').textContent = orderMode ? '주문/배송 현황' : '제품 항목';
+    document.getElementById('btnSavePreset').style.display = orderMode ? 'none' : '';
+    document.getElementById('btnShipments').style.display = orderMode ? '' : 'none';
+    renderCart();
+}
+
+function toggleOrdered(idx) {
+    cartItems[idx].ordered = !cartItems[idx].ordered;
+    renderCart();
+    saveEstimate(true); // 주문완료 표시는 즉시 저장 (알림 없이)
+}
+
+function openShipments() {
+    window.open(`/estimates/${estId}/shipments`, `shipments_${estId}`, 'width=620,height=680,scrollbars=yes,resizable=yes');
+}
+
 function renderCart() {
     const tb = document.getElementById('cartBody');
     if (!cartItems.length) {
@@ -548,27 +581,37 @@ function renderCart() {
         const items = map[cat];
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
         html += `<tr class="cart-cat-header" data-gidx="${gIdx}">
-            <td colspan="4"><span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> ${_escE(cat)}</td>
-            <td colspan="4" style="text-align:right;"><button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button></td>
+            <td colspan="4">${orderMode ? '' : `<span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> `}${_escE(cat)}</td>
+            <td colspan="4" style="text-align:right;">${orderMode ? '' : `<button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button>`}</td>
         </tr>`;
         items.forEach(item => {
             const idx = cartItems.indexOf(item);
             globalIdx++;
-            html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
-                <td><span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> <span class="cart-row-num">${globalIdx}</span></td>
-                <td style="font-size:10px; color:var(--text-muted); cursor:pointer;" onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)">${item.category||''}</td>
-                <td>${item.name}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
-                <td><input class="time-input" value="${item.time_required||''}" onchange="cartItems[${idx}].time_required=this.value"></td>
-                <td class="text-right">${fmt(item.sale_price)}원</td>
-                <td>
-                    <div class="qty-ctrl">
+            // 소요시간 입력폼 — '소요시간 사용' 제품만 표시 (구버전 항목은 값이 있으면 표시)
+            const showTime = item.use_time !== undefined ? item.use_time : !!item.time_required;
+            const timeCell = !showTime ? ''
+                : (orderMode ? `<span style="font-size:11px; color:var(--text-muted);">${_escE(item.time_required || '')}</span>`
+                    : `<input class="time-input" value="${_escE(item.time_required || '')}" onchange="cartItems[${idx}].time_required=this.value">`);
+            const qtyCell = orderMode ? `<span style="padding-left:6px;">${item.qty}</span>`
+                : `<div class="qty-ctrl">
                         <button onclick="changeQty(${idx},-1)">−</button>
                         <input value="${item.qty}" onchange="setQty(${idx},+this.value)">
                         <button onclick="changeQty(${idx},1)">+</button>
-                    </div>
-                </td>
+                    </div>`;
+            const lastCell = orderMode
+                ? (item.ordered
+                    ? `<button class="btn-order cancel" onclick="toggleOrdered(${idx})" title="주문완료 표시 해제">취소</button>`
+                    : `<button class="btn-order" onclick="toggleOrdered(${idx})">주문완료</button>`)
+                : `<button class="btn-remove" onclick="removeItem(${idx})">×</button>`;
+            html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
+                <td>${orderMode ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
+                <td style="font-size:10px; color:var(--text-muted); ${orderMode ? '' : 'cursor:pointer;'}" ${orderMode ? '' : `onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)"`}>${item.category||''}</td>
+                <td class="cell-name ${item.ordered ? 'ordered' : ''}" ${item.ordered ? 'title="주문완료"' : ''}>${item.name}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
+                <td>${timeCell}</td>
+                <td class="text-right">${fmt(item.sale_price)}원</td>
+                <td>${qtyCell}</td>
                 <td class="text-right" style="font-weight:600;">${fmt(item.subtotal)}원</td>
-                <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
+                <td>${lastCell}</td>
             </tr>`;
         });
         html += `<tr class="cart-subtotal"><td colspan="6">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
@@ -686,7 +729,7 @@ function addManualItem() {
     const miCat = document.getElementById('miCat').value.trim() || '기타';
     cartItems.push({
         product_id: null, sku: '', category: miCat, category_root: miCat,
-        name, purchase_price: 0, sale_price: price, qty, time_required: '', subtotal: price * qty, manual: true,
+        name, purchase_price: 0, sale_price: price, qty, time_required: '', use_time: false, subtotal: price * qty, manual: true,
     });
     ['miName','miPrice'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('miQty').value = 1;
@@ -802,7 +845,7 @@ async function loadClientProjects(cid, selectedId) {
 }
 
 // === 저장/발행/삭제 ===
-async function saveEstimate() {
+async function saveEstimate(silent = false) {
     const body = {
         client_id: clientId,
         project_id: +document.getElementById('cProject').value || null,
@@ -826,7 +869,7 @@ async function saveEstimate() {
             if (confirm('발행 완료 — 의뢰자 페이지에 결제 버튼이 활성화되었습니다.\n의뢰자 링크를 지금 복사할까요?')) copyPublicLink();
             location.reload();
         }
-        else { alert('저장되었습니다.'); }
+        else if (!silent) { alert('저장되었습니다.'); }
         return;
     }
     // 실패 — 어떤 필드/예외가 문제인지 표시

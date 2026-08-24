@@ -9,6 +9,7 @@ class ScheduleShipment extends Model
 {
     protected $fillable = [
         'schedule_id',
+        'estimate_id',
         'carrier',
         'tracking_no',
         'status',
@@ -41,6 +42,12 @@ class ScheduleShipment extends Model
     public function schedule(): BelongsTo
     {
         return $this->belongsTo(Schedule::class);
+    }
+
+    /** @return BelongsTo<Estimate, $this> */
+    public function estimate(): BelongsTo
+    {
+        return $this->belongsTo(Estimate::class);
     }
 
     public function carrierLabel(): string

@@ -98,4 +98,10 @@ class Estimate extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /** 주문/배송 운송장 — 캘린더 일정 송장과 동일한 추적 파이프라인 공유 */
+    public function shipments()
+    {
+        return $this->hasMany(ScheduleShipment::class);
+    }
 }

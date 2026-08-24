@@ -23,6 +23,8 @@ class Product extends Model
         'safety_stock',
         'memo',
         'search_tags',
+        'time_required',
+        'use_time_required',
         'is_active',
         'show_in_estimate',
         'is_bundle',
@@ -35,6 +37,7 @@ class Product extends Model
         'is_active' => 'boolean',
         'show_in_estimate' => 'boolean',
         'is_bundle' => 'boolean',
+        'use_time_required' => 'boolean',
     ];
 
     public function marketPrices()

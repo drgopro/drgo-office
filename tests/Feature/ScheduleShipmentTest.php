@@ -244,7 +244,7 @@ HTML;
             'status' => 'delivered',
             'last_event' => '배송완료',
             'last_location' => null,
-            'delivered_at' => now()->subDays(3),
+            'delivered_at' => now()->subDay(), // 배송완료 후 2일 이내만 위치 백필 대상
             'checked_at' => now()->subDay(),
         ], $attrs));
     }

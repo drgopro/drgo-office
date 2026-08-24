@@ -323,6 +323,8 @@ class InventoryController extends Controller
             'stock_quantity' => 'nullable|integer|min:0', // 등록 시 초기 재고 (세트 제외)
             'memo' => 'nullable|string',
             'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
+            'time_required' => 'nullable|string|max:50', // 견적서 소요시간 기본값
+            'use_time_required' => 'boolean', // 견적서에서 소요시간 입력폼 표시 여부
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
             'bundle_items' => 'required_if:is_bundle,1|nullable|array|max:50',
@@ -407,6 +409,8 @@ class InventoryController extends Controller
             'option_name' => 'sometimes|nullable|string|max:60',
             'memo' => 'nullable|string',
             'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
+            'time_required' => 'nullable|string|max:50', // 견적서 소요시간 기본값
+            'use_time_required' => 'boolean', // 견적서에서 소요시간 입력폼 표시 여부
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
             'bundle_items' => 'required_if:is_bundle,1|nullable|array|max:50',
@@ -819,6 +823,9 @@ class InventoryController extends Controller
                 'group_name' => $p->group?->name,
                 'option_name' => $p->option_name,
                 'search_tags' => $p->search_tags,
+                // 소요시간 — use_time_required가 켜진 제품만 견적서에서 입력폼 표시
+                'time_required' => $p->time_required,
+                'use_time_required' => (bool) $p->use_time_required,
             ];
         });
 

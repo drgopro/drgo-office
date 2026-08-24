@@ -24,6 +24,7 @@ class EstimatePresetController extends Controller
         'items.*.sale_price' => 'nullable|numeric|min:0',
         'items.*.qty' => 'nullable|integer|min:1|max:999',
         'items.*.time_required' => 'nullable|string|max:50',
+        'items.*.use_time' => 'nullable|boolean',
         'items.*.manual' => 'nullable|boolean',
     ];
 
@@ -109,6 +110,7 @@ class EstimatePresetController extends Controller
                 'sale_price' => $price,
                 'qty' => $qty,
                 'time_required' => $i['time_required'] ?? '',
+                'use_time' => (bool) ($i['use_time'] ?? false),
                 'subtotal' => $price * $qty,
                 'manual' => (bool) ($i['manual'] ?? false),
             ];

@@ -387,6 +387,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/estimates/{estimate}', [EstimateController::class, 'update']);
         Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
         Route::get('/api/estimate-client-projects/{client}', [EstimateController::class, 'clientProjects']); // 프로젝트 연동(선택)용 목록
+        // 주문/배송 운송장 — 새 창 등록 페이지 + API (일정 송장과 동일한 추적 파이프라인)
+        Route::get('/estimates/{estimate}/shipments', [EstimateController::class, 'shipmentsPage'])->name('estimates.shipments');
+        Route::get('/api/estimates/{estimate}/shipments', [ShipmentController::class, 'indexForEstimate']);
+        Route::post('/api/estimates/{estimate}/shipments', [ShipmentController::class, 'storeForEstimate']);
+        Route::post('/api/estimates/{estimate}/shipments/refresh', [ShipmentController::class, 'refreshForEstimate']);
+        Route::delete('/api/estimate-shipments/{shipment}', [ShipmentController::class, 'destroyForEstimate']);
         Route::post('/api/estimates/{estimate}/payapp-request', [EstimateController::class, 'payappRequest']);
         Route::post('/api/estimates/{estimate}/payapp-cancel', [EstimateController::class, 'payappCancel']);
         Route::delete('/api/estimates/{estimate}', [EstimateController::class, 'destroy']);

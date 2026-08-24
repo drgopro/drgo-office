@@ -57,10 +57,10 @@
 
         /* 상단 정보 2박스 */
         .info-cols { display:flex; gap:14px; margin-bottom:20px; }
-        .info-box { flex:1; border:1px solid var(--line); border-radius:8px; padding:16px 20px 14px; background:#fff; position:relative; }
-        /* 직인 — 판매처 글자 뒤 배경으로 우측 정렬 */
-        .seller-stamp { position:absolute; right:72px; top:50%; transform:translateY(-50%); width:88px; max-height:88px; object-fit:contain; opacity:0.9; z-index:0; pointer-events:none; }
-        .info-box h3, .info-box .info-table { position:relative; z-index:1; }
+        .info-box { flex:1; border:1px solid var(--line); border-radius:8px; padding:16px 20px 14px; background:#fff; position:relative; z-index:0; }
+        /* 직인 — 상호명 텍스트 끝에 살짝 걸치는 위치, 글자 뒤 배경 (z-index:-1 + info-box가 스택 컨텍스트) */
+        .biz-name-wrap { position:relative; display:inline-block; }
+        .seller-stamp { position:absolute; left:100%; top:50%; transform:translate(-40%,-50%); width:84px; max-height:84px; object-fit:contain; opacity:0.88; z-index:-1; pointer-events:none; }
         .info-box.wide { flex:1.5; }
         .info-box h3 { font-size:11px; font-weight:700; letter-spacing:0.18em; color:var(--slate); margin-bottom:11px; }
         .info-table { width:100%; border-collapse:collapse; }
@@ -115,7 +115,7 @@
             .est-title { font-size:22px; }
             .band-meta { text-align:left; }
             .info-cols { flex-direction:column; }
-            .seller-stamp { width:72px; max-height:72px; right:28px; }
+            .seller-stamp { width:64px; max-height:64px; }
             /* 좁은 화면에서는 No.·소요시간 열을 숨겨 제품명 공간 확보.
                display:none은 셀이 열 슬롯에서 빠져 뒤 셀들이 한 칸씩 밀리므로,
                폭 0 + 내용 숨김으로 열을 접는다 */
@@ -222,13 +222,10 @@ function savePNG(){
             </table>
         </div>
         <div class="info-box wide">
-            @if(!empty($settings['seller_stamp_path']))
-                <img class="seller-stamp" src="{{ route('seller.stamp') }}?v={{ substr(md5($settings['seller_stamp_path']), 0, 8) }}" alt="">
-            @endif
             <h3>판매처</h3>
             <table class="info-table">
                 <tr><td class="label">사업자번호</td><td class="value">{{ $settings['seller_biz_no'] ?? '-' }}</td></tr>
-                <tr><td class="label">상호명</td><td class="value">{{ $settings['seller_name'] ?? '-' }}</td></tr>
+                <tr><td class="label">상호명</td><td class="value"><span class="biz-name-wrap">{{ $settings['seller_name'] ?? '-' }}@if(!empty($settings['seller_stamp_path']))<img class="seller-stamp" src="{{ route('seller.stamp') }}?v={{ substr(md5($settings['seller_stamp_path']), 0, 8) }}" alt="">@endif</span></td></tr>
                 <tr><td class="label">주소</td><td class="value">{{ $settings['seller_address'] ?? '-' }}</td></tr>
                 <tr><td class="label">업태 · 종목</td><td class="value">{{ $bizLine }}</td></tr>
                 <tr><td class="label">대표전화</td><td class="value">{{ $settings['seller_phone'] ?? '-' }}</td></tr>

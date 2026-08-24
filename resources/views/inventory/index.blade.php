@@ -387,6 +387,16 @@
             <input class="field-input" id="pSearchTags" placeholder="야마하, yamaha">
         </div>
         <div class="field-group">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; white-space:nowrap;">
+                    <input type="checkbox" id="pUseTime" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;" onchange="document.getElementById('pTimeRequired').style.display = this.checked ? '' : 'none';">
+                    소요시간 사용
+                </label>
+                <input class="field-input" id="pTimeRequired" placeholder="기본 소요시간 (예: 2시간)" style="flex:1; display:none;">
+            </div>
+            <div style="font-weight:400; color:var(--text-muted); font-size:11.5px; margin-top:4px;">체크한 제품만 견적서에서 소요시간 입력폼이 표시됩니다</div>
+        </div>
+        <div class="field-group">
             <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
                 <input type="checkbox" id="pEstimate" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;">
                 견적서에 노출
@@ -1437,6 +1447,9 @@ async function openProductModal(p) {
     document.getElementById('pStock').placeholder = p ? '비워두면 변경 없음' : '초기 재고 (비워두면 0)';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pSearchTags').value = p ? (p.search_tags||'') : '';
+    document.getElementById('pUseTime').checked = p ? !!p.use_time_required : false;
+    document.getElementById('pTimeRequired').value = p ? (p.time_required||'') : '';
+    document.getElementById('pTimeRequired').style.display = (p && p.use_time_required) ? '' : 'none';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
     // 세트 상품 — 기존 제품도 전환 가능 (저장 시 재고/구성 정리 확인창)
     const bundleCheck = document.getElementById('pIsBundle');
@@ -1467,6 +1480,8 @@ const PRODUCT_FIELD_LABELS = {
     market_price_url_pcfactory: '시세 URL(피씨팩토리)',
     safety_stock: '안전재고',
     stock_quantity: '현재고',
+    time_required: '소요시간',
+    use_time_required: '소요시간 사용',
     memo: '메모',
     show_in_estimate: '견적서 노출',
     sku: 'SKU',
@@ -1500,6 +1515,8 @@ async function saveProduct() {
             : (document.getElementById('pStock').value !== '' ? parseInt(document.getElementById('pStock').value, 10) : null),
         memo: document.getElementById('pMemo').value || null,
         search_tags: document.getElementById('pSearchTags').value.trim() || null,
+        time_required: document.getElementById('pTimeRequired').value.trim() || null,
+        use_time_required: document.getElementById('pUseTime').checked,
         show_in_estimate: document.getElementById('pEstimate').checked,
         is_bundle: document.getElementById('pIsBundle').checked,
         bundle_items: document.getElementById('pIsBundle').checked
