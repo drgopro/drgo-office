@@ -300,7 +300,8 @@ function filterProducts() {
     }
     if (search) {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search)
-            || (p.group_name && p.group_name.toLowerCase().includes(search)) || (p.option_name && p.option_name.toLowerCase().includes(search)));
+            || (p.group_name && p.group_name.toLowerCase().includes(search)) || (p.option_name && p.option_name.toLowerCase().includes(search))
+            || (p.search_tags && p.search_tags.toLowerCase().includes(search)));
     }
 
     // 옵션 그룹은 하나의 카드로 병합 — 클릭 시 옵션(블랙/화이트 등)을 골라 추가

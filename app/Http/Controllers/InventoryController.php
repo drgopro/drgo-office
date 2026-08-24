@@ -215,7 +215,8 @@ class InventoryController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhere('search_tags', 'like', "%{$search}%"); // 숨은 검색 태그
             });
         }
 
@@ -311,6 +312,7 @@ class InventoryController extends Controller
             'safety_stock' => 'nullable|integer|min:0',
             'stock_quantity' => 'nullable|integer|min:0', // 등록 시 초기 재고 (세트 제외)
             'memo' => 'nullable|string',
+            'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
             'bundle_items' => 'required_if:is_bundle,1|nullable|array|max:50',
@@ -394,6 +396,7 @@ class InventoryController extends Controller
             'group_id' => 'sometimes|nullable|integer|exists:product_groups,id', // null 전달 시 그룹에서 제외
             'option_name' => 'sometimes|nullable|string|max:60',
             'memo' => 'nullable|string',
+            'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
             'bundle_items' => 'required_if:is_bundle,1|nullable|array|max:50',
@@ -773,7 +776,8 @@ class InventoryController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhere('search_tags', 'like', "%{$search}%"); // 숨은 검색 태그
             });
         }
 
@@ -798,6 +802,7 @@ class InventoryController extends Controller
                 'group_id' => $p->group_id,
                 'group_name' => $p->group?->name,
                 'option_name' => $p->option_name,
+                'search_tags' => $p->search_tags,
             ];
         });
 
@@ -814,7 +819,8 @@ class InventoryController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhere('search_tags', 'like', "%{$search}%"); // 숨은 검색 태그
             });
         }
 
@@ -879,7 +885,8 @@ class InventoryController extends Controller
             $query->whereHas('product', function ($q) use ($search) {
                 $q->withTrashed()->where(function ($w) use ($search) {
                     $w->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%");
+                        ->orWhere('sku', 'like', "%{$search}%")
+                        ->orWhere('search_tags', 'like', "%{$search}%");
                 });
             });
         }

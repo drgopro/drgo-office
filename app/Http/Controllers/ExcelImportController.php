@@ -27,7 +27,7 @@ class ExcelImportController extends Controller
         'products' => [
             // 카테고리는 4차까지 가능 — 코드 또는 이름으로 입력 가능, 가장 하위 단계만 채워도 됨
             // SKU 비어있으면 2차 카테고리 코드 기반으로 자동 생성됨
-            'headers' => ['SKU(비우면 자동)', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '카테고리4차(코드/이름)', '매입가', '판매가', '재고수량', '안전재고', '메모'],
+            'headers' => ['SKU(비우면 자동)', '제품명', '카테고리1차(코드/이름)', '카테고리2차(코드/이름)', '카테고리3차(코드/이름)', '카테고리4차(코드/이름)', '매입가', '판매가', '재고수량', '안전재고', '메모', '검색태그(쉼표 구분)'],
             'required' => ['제품명'],
         ],
         'clients' => [
@@ -307,6 +307,7 @@ class ExcelImportController extends Controller
                 str_contains($k, '안전') => '안전재고',
                 str_contains($k, '재고') || $k === '수량' || str_contains($k, '현재고') => '재고수량',
                 str_contains($k, '메모') || str_contains($k, '비고') => '메모',
+                str_contains($k, '태그') || str_contains($k, '검색어') => '검색태그',
                 str_contains($k, '카테고리1') || str_contains($k, '1차') => '카테고리1차(코드/이름)',
                 str_contains($k, '카테고리2') || str_contains($k, '2차') => '카테고리2차(코드/이름)',
                 str_contains($k, '카테고리3') || str_contains($k, '3차') => '카테고리3차(코드/이름)',
@@ -412,6 +413,9 @@ class ExcelImportController extends Controller
                 if (($data['메모'] ?? '') !== '' && $data['메모'] !== null) {
                     $updates['memo'] = $data['메모'];
                 }
+                if (($data['검색태그'] ?? '') !== '' && $data['검색태그'] !== null) {
+                    $updates['search_tags'] = mb_substr((string) $data['검색태그'], 0, 300);
+                }
                 $existing->update($updates);
 
                 if ($qty !== null) {
@@ -430,6 +434,7 @@ class ExcelImportController extends Controller
                 'sale_price' => $this->cellToInt($data['판매가'] ?? null) ?? 0,
                 'safety_stock' => $this->cellToInt($data['안전재고'] ?? null) ?? 0,
                 'memo' => $data['메모'] ?? null,
+                'search_tags' => ($data['검색태그'] ?? '') !== '' ? mb_substr((string) $data['검색태그'], 0, 300) : null,
                 'is_active' => true,
             ]);
 

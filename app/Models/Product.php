@@ -22,6 +22,7 @@ class Product extends Model
         'sale_price',
         'safety_stock',
         'memo',
+        'search_tags',
         'is_active',
         'show_in_estimate',
         'is_bundle',

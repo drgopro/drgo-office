@@ -45,7 +45,7 @@
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; table-layout:auto; }
     /* 밀도 압축 — 가로 스크롤 최소화 (패딩/폰트 축소) */
-    .data-table th { font-size:10.5px; color:var(--text-muted); font-weight:600; text-align:left; padding:9px 8px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table th { font-size:10.5px; color:var(--text-muted); font-weight:600; text-align:center; padding:9px 8px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table td { font-size:12.5px; padding:9px 8px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
     .sku-cell { font-size:11px !important; letter-spacing:-0.2px; }
     /* 전체 편집 모드 인라인 입력폼 */
@@ -381,6 +381,10 @@
         <div class="field-group">
             <div class="field-label">메모</div>
             <input class="field-input" id="pMemo">
+        </div>
+        <div class="field-group">
+            <div class="field-label">검색 태그 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 화면에는 표시되지 않고 검색에만 사용 (쉼표 구분, 예: 야마하, yamaha, 오디오믹서)</span></div>
+            <input class="field-input" id="pSearchTags" placeholder="야마하, yamaha">
         </div>
         <div class="field-group">
             <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
@@ -1084,7 +1088,7 @@ async function loadProducts() {
         return `<tr data-gid="${g.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button,input')) toggleGroup(${g.id})">
         <td><input type="checkbox" ${children.every(c => prodSelection.has(c.id)) ? 'checked' : ''} onchange="toggleGroupSelection(${g.id}, this.checked)" title="그룹 전체 선택"></td>
         <td class="text-muted sku-cell"></td>
-        <td class="text-wrap"><span class="grp-arrow grp-toggle" data-gid="${g.id}">${opened ? '▾' : '▸'}</span><b>${_esc(g.name)}</b> <span class="badge badge-optcount">옵션 ${children.length}종</span> <span class="text-muted" style="font-size:11.5px;">${children.map(c => _esc(c.option_name || c.name)).join(' / ')}</span></td>
+        <td class="text-wrap"><span class="grp-arrow grp-toggle" data-gid="${g.id}">${opened ? '▾' : '▸'}</span><b>${_esc(g.name)}</b><span class="badge badge-optcount" style="margin-left:5px;">옵션 ${children.length}종</span></td>
         <td class="text-muted text-wrap">${children[0]?.category || '-'}</td>
         <td class="text-right text-muted">${range(purchases)}</td>
         <td class="text-right text-muted">${range(sales)}</td>
@@ -1127,8 +1131,8 @@ async function loadProducts() {
         <div class="mob-card-top">
             <span class="grp-arrow" data-gid="${g.id}" style="margin-top:2px;">${opened ? '▾' : '▸'}</span>
             <div>
-                <div class="mob-card-title">${_esc(g.name)} <span class="badge badge-optcount">옵션 ${children.length}종</span></div>
-                <div class="mob-card-sub">${children.map(c => _esc(c.option_name || c.name)).join(' / ')} · 재고 합계 ${qty}</div>
+                <div class="mob-card-title">${_esc(g.name)}<span class="badge badge-optcount" style="margin-left:5px;">옵션 ${children.length}종</span></div>
+                <div class="mob-card-sub">재고 합계 ${qty}</div>
             </div>
         </div>
         <div class="mob-card-actions">
@@ -1365,7 +1369,7 @@ function renderBundlePicker() {
     const q = document.getElementById('bundleSearch').value.trim().toLowerCase();
     const matches = (PICKER_PRODUCTS||[])
         .filter(p => !used.has(p.id) && p.id !== editId)
-        .filter(p => !q || (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
+        .filter(p => !q || (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.search_tags||'').toLowerCase().includes(q));
     sel.innerHTML = matches.length
         ? '<option value="">구성품 선택…</option>' + matches.map(p => `<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('')
         : '<option value="">검색 결과 없음</option>';
@@ -1432,6 +1436,7 @@ async function openProductModal(p) {
     document.getElementById('pStock').value = p ? (p.inventory ? (p.inventory.quantity ?? 0) : '') : '';
     document.getElementById('pStock').placeholder = p ? '비워두면 변경 없음' : '초기 재고 (비워두면 0)';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
+    document.getElementById('pSearchTags').value = p ? (p.search_tags||'') : '';
     document.getElementById('pEstimate').checked = p ? !!p.show_in_estimate : false;
     // 세트 상품 — 기존 제품도 전환 가능 (저장 시 재고/구성 정리 확인창)
     const bundleCheck = document.getElementById('pIsBundle');
@@ -1494,6 +1499,7 @@ async function saveProduct() {
         stock_quantity: document.getElementById('pIsBundle').checked ? null
             : (document.getElementById('pStock').value !== '' ? parseInt(document.getElementById('pStock').value, 10) : null),
         memo: document.getElementById('pMemo').value || null,
+        search_tags: document.getElementById('pSearchTags').value.trim() || null,
         show_in_estimate: document.getElementById('pEstimate').checked,
         is_bundle: document.getElementById('pIsBundle').checked,
         bundle_items: document.getElementById('pIsBundle').checked
@@ -1629,7 +1635,7 @@ function filterMovProductOptions() {
     const sel = document.getElementById('mProduct');
     const prev = sel.value;
     const matches = !q ? MOV_PRODUCTS : MOV_PRODUCTS.filter(p =>
-        (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
+        (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.search_tags||'').toLowerCase().includes(q));
     sel.innerHTML = matches.length
         ? matches.map(p=>`<option value="${p.id}">${p.is_bundle?'[세트] ':''}${_esc(p.name)} (${_esc(p.sku)})</option>`).join('')
         : '<option value="">검색 결과 없음</option>';
