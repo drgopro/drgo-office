@@ -200,7 +200,7 @@
     <!-- 제품 관리 (재고 현황 통합) -->
     <div class="tab-panel active" id="panel-products">
         <div class="toolbar">
-            <input type="text" id="productSearch" placeholder="제품명/SKU 검색" oninput="prodPage=1;loadProducts()">
+            <input type="text" id="productSearch" placeholder="제품명/SKU 검색 후 Enter" onkeydown="if(event.key==='Enter'){prodPage=1;loadProducts();}">
             <select id="stockFilterOp" onchange="onStockFilterChange()" title="재고 수량으로 필터 (세트는 조립 가능 수 기준)">
                 <option value="">재고 전체</option>
                 <option value="zero">재고 0개</option>
@@ -252,7 +252,7 @@
     <!-- 입출고 내역 -->
     <div class="tab-panel" id="panel-movements">
         <div class="toolbar">
-            <input type="text" id="movementSearch" placeholder="제품명/SKU 검색" oninput="loadMovements()">
+            <input type="text" id="movementSearch" placeholder="제품명/SKU 검색 후 Enter" onkeydown="if(event.key==='Enter'){loadMovements();}">
             <select id="movementType" onchange="loadMovements()">
                 <option value="">전체 유형</option>
                 <option value="in">입고</option><option value="out">출고</option><option value="adjust">조정</option><option value="return">반품</option>
