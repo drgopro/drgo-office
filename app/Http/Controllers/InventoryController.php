@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductBundleItem;
@@ -851,6 +852,44 @@ class InventoryController extends Controller
             ->get();
 
         return response()->json($projects);
+    }
+
+    /**
+     * 출고 대상 프로젝트를 찾기 위한 의뢰자 검색 — 캘린더처럼 의뢰자를 먼저 찾고
+     * 연결된 프로젝트를 고르는 방식. 재고 권한만으로 쓸 수 있게 이름/닉네임과
+     * 연결 프로젝트 목록만 반환한다 (연락처 등 상세 정보는 미포함).
+     */
+    public function clientsForMovement(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '') {
+            return response()->json([]);
+        }
+
+        $clients = Client::where('status', '!=', 'blacklist')
+            ->where(function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%")
+                    ->orWhere('nickname', 'like', "%{$q}%")
+                    ->orWhere('phone', 'like', "%{$q}%")
+                    ->orWhereHas('contacts', function ($cq) use ($q) {
+                        $cq->where('name', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%");
+                    });
+            })
+            ->with(['projects' => fn ($p) => $p->select('id', 'client_id', 'name', 'stage')
+                ->whereNull('completed_at')->orderByDesc('id')])
+            ->limit(10)
+            ->get(['id', 'name', 'nickname']);
+
+        return response()->json($clients->map(fn (Client $c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'nickname' => $c->nickname,
+            'projects' => $c->projects->map(fn (Project $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'stage_label' => $p->stageLabel(),
+            ])->values(),
+        ]));
     }
 
     public function storeMovement(Request $request)

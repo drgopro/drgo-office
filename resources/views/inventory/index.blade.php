@@ -407,8 +407,13 @@
             <div class="field-group"><div class="field-label">수량 *</div><input class="field-input" id="mQty" type="number" min="1" value="1"></div>
         </div>
         <div class="field-group" id="mProjectGroup" style="display:none;">
-            <div class="field-label">스튜디오(프로젝트)</div>
-            <select class="field-select" id="mProject"><option value="">선택 없음 (본사/창고)</option></select>
+            <div class="field-label">의뢰자 · 프로젝트</div>
+            <div style="position:relative;">
+                <input class="field-input" id="mClientSearch" placeholder="의뢰자 이름/닉네임/연락처 검색" autocomplete="off" oninput="mvClientSearchInput()">
+                <button type="button" id="mClientClear" onclick="mvClearClient()" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px;">✕</button>
+                <div id="mClientResults" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:50; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;"></div>
+            </div>
+            <select class="field-select" id="mProject" style="margin-top:8px;"><option value="">선택 없음 (본사/창고)</option></select>
         </div>
         <div class="field-group"><div class="field-label">메모</div><input class="field-input" id="mMemo" placeholder="사유 또는 참고사항"></div>
         <div class="modal-actions">
@@ -1501,11 +1506,59 @@ async function openMovementModal() {
     if (!allProjects.length) { const pr = await fetch('/api/inventory/projects'); allProjects = await pr.json(); }
     document.getElementById('mProductSearch').value = '';
     filterMovProductOptions();
-    document.getElementById('mProject').innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('');
+    mvClearClient();
     document.getElementById('mType').value='in'; document.getElementById('mQty').value=1; document.getElementById('mMemo').value='';
-    document.getElementById('mProject').value='';
     onMovementProductChange();
     openModal('movementModal');
+}
+
+// === 출고 대상 의뢰자 검색 → 연결 프로젝트 선택 (캘린더와 동일한 흐름) ===
+let mvSearchTimer = null;
+function mvClientSearchInput() {
+    clearTimeout(mvSearchTimer);
+    const q = document.getElementById('mClientSearch').value.trim();
+    if (!q) { mvClearClient(); return; }
+    mvSearchTimer = setTimeout(() => mvClientSearch(q), 250);
+}
+async function mvClientSearch(q) {
+    const res = await fetch('/api/inventory/movement-clients?q='+encodeURIComponent(q));
+    if (!res.ok) return;
+    const clients = await res.json();
+    const box = document.getElementById('mClientResults');
+    if (!clients.length) {
+        box.innerHTML = '<div style="padding:10px 12px; font-size:12px; color:var(--text-muted);">검색 결과가 없습니다.</div>';
+    } else {
+        box.innerHTML = clients.map(c => {
+            const label = _esc(c.nickname || c.name || '') + (c.name && c.nickname && c.name !== c.nickname ? ` <span style="color:var(--text-muted); font-weight:400;">(${_esc(c.name)})</span>` : '');
+            const cnt = c.projects.length ? `프로젝트 ${c.projects.length}건` : '진행 중 프로젝트 없음';
+            return `<div onclick='mvSelectClient(${JSON.stringify(c).replace(/'/g, '&#39;')})' style="padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">
+                <b>${label}</b> <span style="font-size:11px; color:var(--text-muted);">· ${cnt}</span>
+            </div>`;
+        }).join('');
+    }
+    box.style.display = 'block';
+}
+function mvSelectClient(c) {
+    document.getElementById('mClientResults').style.display = 'none';
+    document.getElementById('mClientSearch').value = (c.nickname || c.name || '') + (c.name && c.nickname && c.name !== c.nickname ? ` (${c.name})` : '');
+    document.getElementById('mClientClear').style.display = 'block';
+    const sel = document.getElementById('mProject');
+    if (!c.projects.length) {
+        sel.innerHTML = '<option value="">선택 없음 (본사/창고)</option><option value="" disabled>이 의뢰자에게 진행 중인 프로젝트가 없습니다</option>';
+        return;
+    }
+    sel.innerHTML = '<option value="">선택 없음 (본사/창고)</option>'
+        + c.projects.map(p=>`<option value="${p.id}">${_esc(p.name)}${p.stage_label?` · ${_esc(p.stage_label)}`:''}</option>`).join('');
+    if (c.projects.length === 1) sel.value = String(c.projects[0].id); // 하나뿐이면 자동 선택
+}
+// 검색을 지우면 전체 프로젝트 목록으로 복귀 (의뢰자 없는 출고도 가능)
+function mvClearClient() {
+    document.getElementById('mClientSearch').value = '';
+    document.getElementById('mClientClear').style.display = 'none';
+    document.getElementById('mClientResults').style.display = 'none';
+    const sel = document.getElementById('mProject');
+    sel.innerHTML = '<option value="">선택 없음 (본사/창고)</option>' + allProjects.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('');
+    sel.value = '';
 }
 // 세트 상품은 출고/반품만 가능 — 입고/조정 옵션 비활성화
 function onMovementProductChange() {
