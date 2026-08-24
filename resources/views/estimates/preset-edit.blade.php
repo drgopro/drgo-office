@@ -9,7 +9,8 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root, [data-theme="dark"] { --bg:#111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --red:#d48888; --green:#88d488; }
-        [data-theme="light"] { --bg:#f4f5f7; --surface:#fff; --surface2:#eceef2; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent-text:#fff; --red:#c03838; --green:#248a38; }
+        [data-theme="light"] { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#6b7684; --accent:#2e6cb5; --accent-text:#fff; --red:#c03838; --green:#248a38; --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
+        :root, [data-theme="dark"] { --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; display:flex; height:100vh; overflow:hidden; }
         input, button, textarea, select { font-family:inherit; }
@@ -18,17 +19,17 @@
         .panel-left { width:420px; border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
         .panel-left-header { padding:14px 16px; border-bottom:1px solid var(--border); }
         .panel-left-header h3 { font-size:14px; font-weight:700; margin-bottom:10px; }
-        .cat-tabs { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
-        .cat-tab { padding:4px 10px; font-size:11px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); cursor:pointer; }
-        .cat-tab.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
-        .search-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; }
+        .cat-tabs { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:9px; }
+        .cat-tab { padding:4px 11px; font-size:11px; border:1px solid #b9cbe0; border-radius:7px; background:var(--surface); color:var(--accent); font-weight:600; cursor:pointer; }
+        .cat-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+        .search-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; }
         .search-input:focus { border-color:var(--accent); }
-        .product-list { flex:1; overflow-y:auto; padding:8px; }
-        .product-item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:8px; cursor:pointer; transition:background 0.1s; font-size:13px; }
+        .product-list { flex:1; overflow-y:auto; padding:4px 8px; }
+        .product-item { display:flex; justify-content:space-between; align-items:center; padding:10px 8px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; font-size:13px; }
         .product-item:hover { background:var(--surface2); }
-        .product-item .pi-name { flex:1; }
-        .product-item .pi-cat { font-size:10px; color:var(--text-muted); margin-top:2px; }
-        .product-item .pi-price { font-size:12px; color:var(--accent); font-weight:600; white-space:nowrap; margin-left:10px; }
+        .product-item .pi-name { flex:1; font-weight:600; }
+        .product-item .pi-cat { font-size:10.5px; color:var(--text-muted); margin-top:3px; font-weight:400; }
+        .product-item .pi-price { font-size:12.5px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
         .product-item .pi-stock { font-size:10px; margin-left:8px; }
         .pi-stock.low { color:var(--red); }
         .pi-stock.ok { color:var(--text-muted); }
@@ -39,23 +40,27 @@
 
         /* 우측 — 프리셋 */
         .panel-right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-        .panel-right-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center; }
-        .panel-right-header h2 { font-size:16px; font-weight:700; white-space:nowrap; }
+        .panel-right-header { background:var(--surface); padding:13px 20px; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center; }
+        .panel-right-header h2 { font-size:17px; font-weight:800; color:var(--navy); white-space:nowrap; }
         .title-input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:14px; font-weight:600; outline:none; }
         .title-input:focus { border-color:var(--accent); }
-        .est-body { flex:1; overflow-y:auto; padding:20px; }
-        .cart-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
-        .cart-section h4 { font-size:12px; color:var(--accent); font-weight:600; margin-bottom:12px; letter-spacing:0.05em; }
-        .cart-table { width:100%; border-collapse:collapse; }
-        .cart-table th { font-size:10px; color:var(--text-muted); font-weight:600; text-align:left; padding:8px 6px; border-bottom:1px solid var(--border); }
-        .cart-table td { font-size:12px; padding:8px 6px; border-bottom:1px solid var(--border); }
+        .est-body { flex:1; overflow-y:auto; padding:20px; background:var(--bg); }
+        .cart-section { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:16px 18px; margin-bottom:14px; }
+        .cart-section h4 { font-size:12px; color:var(--slate); font-weight:700; margin-bottom:12px; letter-spacing:0.08em; }
+        .cart-table { width:100%; border-collapse:separate; border-spacing:0; }
+        .cart-table th { font-size:11px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; }
+        .cart-table td { font-size:12.5px; padding:9px 6px; border-bottom:1px solid var(--border); }
         .cart-table tr:last-child td { border-bottom:none; }
-        .cart-cat-header { background:var(--surface2); }
-        .cart-cat-header td { font-size:11px; font-weight:600; color:var(--accent); padding:6px; }
-        .cart-subtotal td { font-size:12px; font-weight:700; text-align:right; padding:6px; border-top:1px solid var(--border); }
-        .qty-ctrl { display:flex; align-items:center; gap:2px; }
-        .qty-ctrl button { width:22px; height:22px; border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:4px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
-        .qty-ctrl input { width:36px; text-align:center; background:var(--surface2); border:1px solid var(--border); border-radius:4px; color:var(--text); font-size:12px; padding:2px; outline:none; }
+        /* 대분류 밴드 — 슬레이트 배경 + 우측 소계 */
+        .cart-cat-header td { background:var(--slate); color:#fff; font-size:12px; font-weight:700; padding:8px 10px; border-bottom:none; }
+        .cart-cat-header td:first-child { border-radius:6px 0 0 6px; }
+        .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
+        .cart-cat-header .cat-sub { color:var(--slate-lt); font-weight:700; font-size:11.5px; }
+        .cart-row-num { color:var(--accent); font-weight:600; }
+        .qty-ctrl { display:flex; align-items:center; gap:3px; }
+        .qty-ctrl button { width:22px; height:22px; border:1px solid #9db8d4; background:var(--surface); color:var(--accent); border-radius:50%; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+        .qty-ctrl button:hover { background:var(--surface2); }
+        .qty-ctrl input { width:34px; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; padding:3px 2px; outline:none; }
         .btn-remove { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; }
         .btn-remove:hover { color:var(--red); }
         .text-right { text-align:right; }
@@ -64,13 +69,14 @@
         .svc-row input:focus { border-color:var(--accent); }
         .btn-add-svc { background:none; border:1px dashed var(--border); color:var(--text-muted); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
         .btn-add-svc:hover { border-color:var(--accent); color:var(--accent); }
-        .total-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; }
-        .total-row { display:flex; justify-content:space-between; font-size:16px; font-weight:700; color:var(--accent); }
-        .panel-right-footer { padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+        .total-section { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:16px 18px; }
+        .total-row { display:flex; justify-content:space-between; font-size:18px; font-weight:800; color:var(--navy); }
+        .panel-right-footer { background:var(--surface); padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
         .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; }
-        .btn-save { background:var(--accent); color:var(--accent-text); }
-        .btn-ghost { background:none; border-color:var(--border); color:var(--text-muted); }
-        .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+        .btn-save { background:var(--navy); color:#fff; font-weight:700; }
+        .btn-save:hover { filter:brightness(1.25); }
+        .btn-ghost { background:var(--surface); border-color:#d9dee5; color:var(--text-muted); }
+        .btn-ghost:hover { border-color:var(--slate); color:var(--slate); }
     </style>
 </head>
 <body>
@@ -212,7 +218,7 @@ function filterProducts() {
         const prices = g.options.map(o => Number(o.sale_price) || 0);
         const mn = Math.min(...prices), mx = Math.max(...prices);
         return `<div class="product-item" onclick="openOptionPicker(${g.id})">
-            <div><div class="pi-name">${g.name} <span style="font-size:10px; color:#5e81f4; border:1px solid rgba(94,129,244,0.45); border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
+            <div><div class="pi-name">${g.name} <span style="font-size:10px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
             <div class="pi-cat">${g.options.map(o => o.option_name || o.name).join(' / ')}</div></div>
             <div style="text-align:right;"><div class="pi-price">${mn === mx ? fmt(mn) : fmt(mn)+'~'+fmt(mx)}원</div></div>
         </div>`;
@@ -275,14 +281,14 @@ function renderCart() {
     });
     let html = '', globalIdx = 0;
     for (const [cat, items] of Object.entries(grouped)) {
-        html += `<tr class="cart-cat-header"><td colspan="7">${_escE(cat)}</td></tr>`;
-        let catTotal = 0;
+        // 소계는 대분류 밴드 우측에 표시 (별도 소계 행 없음)
+        const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
+        html += `<tr class="cart-cat-header"><td colspan="3">${_escE(cat)}</td><td colspan="4" style="text-align:right;"><span class="cat-sub">소계 ${fmt(catTotal)}원</span></td></tr>`;
         items.forEach(item => {
             const idx = cartItems.indexOf(item);
-            catTotal += item.subtotal;
             globalIdx++;
             html += `<tr>
-                <td>${globalIdx}</td>
+                <td><span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
                 <td>${_escE(item.name)}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
                 <td class="text-right"><input type="number" min="0" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
@@ -295,7 +301,6 @@ function renderCart() {
                 <td><button class="btn-remove" onclick="cartItems.splice(${idx},1); renderCart();">×</button></td>
             </tr>`;
         });
-        html += `<tr class="cart-subtotal"><td colspan="5">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     }
     tb.innerHTML = html;
     updateTotals();
