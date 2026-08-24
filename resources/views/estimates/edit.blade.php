@@ -187,7 +187,7 @@
     <div class="panel-right-header">
         <h2>견적서 #{{ $estimate->id }}</h2>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
-            <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">🚚 주문/배송</button>
+            <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">주문/배송</button>
             @if($estimate->status === 'paid')
                 <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(36,138,56,0.12); color:var(--green); font-weight:700;">💳 결제 완료{{ $estimate->payapp_paid_at ? ' · '.$estimate->payapp_paid_at->format('m/d H:i') : '' }}</span>
             @elseif($estimate->status === 'cancelled')
@@ -196,9 +196,9 @@
                 <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(59,94,160,0.1); color:var(--accent); font-weight:700;">💳 결제 대기 중</span>
                 <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="payappCancel()">결제요청 취소</button>
             @else
-                <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="payappRequest()">💳 결제요청 생성</button>
+                <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="payappRequest()">결제요청 생성</button>
             @endif
-            <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="copyPublicLink()">🔗 의뢰자 링크 복사</button>
+            <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="copyPublicLink()">의뢰자 링크 복사</button>
         </span>
         <select id="estStatus" style="background:var(--navy); border:1px solid var(--navy); border-radius:8px; padding:6px 12px; color:#fff; font-size:12px; font-weight:700; outline:none; cursor:pointer;">
             <option value="created" {{ $estimate->status === 'created' ? 'selected' : '' }}>생성</option>
@@ -242,7 +242,7 @@
             <h4 style="display:flex; align-items:center; gap:8px;"><span id="cartTitle">제품 항목</span>
                 <span style="margin-left:auto;">
                     <button class="btn-add-svc" id="btnSavePreset" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
-                    <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">🚚 운송장 추가</button>
+                    <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">운송장 추가</button>
                 </span>
             </h4>
             <table class="cart-table">
@@ -292,7 +292,7 @@
 
     <div class="panel-right-footer">
         <span class="save-indicator" id="saveIndicator"></span>
-        <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">📋 로그</button>
+        <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
