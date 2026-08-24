@@ -20,7 +20,9 @@
         .panel-left { width:420px; border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
         .panel-left-header { padding:14px 16px; border-bottom:1px solid var(--border); }
         .panel-left-header h3 { font-size:14px; font-weight:700; margin-bottom:10px; }
-        .cat-tabs { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:9px; }
+        .cat-tabs { display:flex; flex-direction:column; gap:5px; margin-bottom:9px; }
+        .cat-tab-row { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+        .cat-tab-arrow { color:var(--text-muted); font-size:11px; margin-right:1px; }
         .cat-tab { padding:4px 11px; font-size:11px; border:1px solid #b9cbe0; border-radius:7px; background:var(--surface); color:var(--accent); font-weight:600; cursor:pointer; }
         .cat-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
         .search-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; }
@@ -142,7 +144,7 @@
     <div class="panel-left-header">
         <h3>제품 리스트</h3>
         <div class="cat-tabs" id="catTabs">
-            <button class="cat-tab active" onclick="filterCat(null)">전체</button>
+            <div class="cat-tab-row"><button class="cat-tab active" onclick="setCatPath(0,null)">전체</button></div>
         </div>
         <input class="search-input" id="prodSearch" placeholder="제품명/SKU 검색" oninput="filterProducts()">
     </div>
@@ -350,19 +352,43 @@ function isProductMissing(item) {
     return !window.__allProdIds.has(item.product_id);
 }
 
+// === 카테고리 드릴다운 필터 — 1차 칩 선택 시 하위 카테고리 칩 행이 열린다 (재고 페이지와 동일 UX) ===
+let catPath = [];
+let activeCatId = null;
+
 function buildCatTabs() {
-    const tabs = document.getElementById('catTabs');
-    tabs.innerHTML = '<button class="cat-tab active" onclick="filterCat(null)">전체</button>';
-    catData.forEach(c => {
-        tabs.innerHTML += `<button class="cat-tab" onclick="filterCat(${c.id})">${c.name}</button>`;
+    const el = document.getElementById('catTabs');
+    // 선택 경로를 트리에서 다시 찾는다 (삭제된 카테고리는 경로 절단)
+    const chain = [];
+    let level = catData;
+    for (const id of catPath) {
+        const node = (level || []).find(c => c.id === id);
+        if (!node) break;
+        chain.push(node);
+        level = node.children || [];
+    }
+    if (chain.length !== catPath.length) catPath.length = chain.length;
+    activeCatId = catPath.length ? catPath[catPath.length - 1] : null;
+
+    let html = '<div class="cat-tab-row">'
+        + `<button class="cat-tab ${!catPath.length ? 'active' : ''}" onclick="setCatPath(0,null)">전체</button>`
+        + catData.map(c => `<button class="cat-tab ${catPath[0] === c.id ? 'active' : ''}" onclick="setCatPath(0,${c.id})">${_escE(c.name)}</button>`).join('')
+        + '</div>';
+    chain.forEach((node, i) => {
+        const children = node.children || [];
+        if (!children.length) return;
+        html += '<div class="cat-tab-row"><span class="cat-tab-arrow">└</span>'
+            + `<button class="cat-tab ${catPath.length === i + 1 ? 'active' : ''}" onclick="setCatPath(${i + 1},null)">${_escE(node.name)} 전체</button>`
+            + children.map(c => `<button class="cat-tab ${catPath[i + 1] === c.id ? 'active' : ''}" onclick="setCatPath(${i + 1},${c.id})">${_escE(c.name)}</button>`).join('')
+            + '</div>';
     });
+    el.innerHTML = html;
 }
 
-let activeCatId = null;
-function filterCat(id) {
-    activeCatId = id;
-    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
+function setCatPath(depth, id) {
+    catPath = catPath.slice(0, depth);
+    if (id) catPath.push(id);
+    buildCatTabs();
     filterProducts();
 }
 
@@ -450,13 +476,21 @@ function closeOptionPicker() {
     document.getElementById('optionPickerOverlay').style.display = 'none';
 }
 
+// 트리 어느 깊이의 카테고리든 자기 자신 + 모든 하위 ID를 수집 (2·3차 선택 필터용)
 function getCatDescendants(id) {
-    let ids = [id];
-    function walk(cats) {
-        cats.forEach(c => { if (c.id === id || ids.includes(c.parent_id ?? -1)) { ids.push(c.id); } if (c.children) walk(c.children); });
-    }
-    catData.forEach(c => { if (c.id === id) { ids.push(c.id); (c.children||[]).forEach(c2 => { ids.push(c2.id); (c2.children||[]).forEach(c3 => ids.push(c3.id)); }); } });
-    return [...new Set(ids)];
+    const find = nodes => {
+        for (const n of nodes || []) {
+            if (n.id === id) return n;
+            const f = find(n.children);
+            if (f) return f;
+        }
+        return null;
+    };
+    const ids = [];
+    const collect = n => { ids.push(n.id); (n.children || []).forEach(collect); };
+    const node = find(catData);
+    if (node) collect(node); else ids.push(id);
+    return ids;
 }
 
 // === 장바구니 ===
