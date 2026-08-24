@@ -42,7 +42,7 @@ class EstimatePresetController extends Controller
     public function index(): JsonResponse
     {
         return response()->json(
-            EstimatePreset::with('creator:id,name,display_name')
+            EstimatePreset::with('creator')
                 ->orderByDesc('updated_at')
                 ->get()
                 ->map(fn (EstimatePreset $p) => [

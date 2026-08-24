@@ -126,6 +126,31 @@ class EstimatePresetTest extends TestCase
         $this->assertStringContainsString('오디오 소계', $html);
         $this->assertStringContainsString('1,300,000', $html); // 비디오 소계 금액
         $this->assertStringNotContainsString('웹캠 소계', $html);
+        // 저장된 항목 순서 = 출력 순서 (드래그 정렬 반영) — 비디오가 오디오보다 먼저
+        $this->assertLessThan(mb_strpos($html, '오디오 소계'), mb_strpos($html, '비디오 소계'));
+    }
+
+    public function test_internal_memo_saved_but_hidden_from_client_estimate(): void
+    {
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'service_total' => 0, 'total_amount' => 0,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'memo' => '의뢰자 안내 메모', 'internal_memo' => '내부: 할인 15% 협의됨 - 대외비',
+        ])->assertOk();
+        $this->assertSame('내부: 할인 15% 협의됨 - 대외비', $estimate->fresh()->internal_memo);
+
+        // 내부 인쇄 미리보기·의뢰자 공개 링크 모두 내부 비고 미노출, 일반 메모는 노출
+        $print = $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/print")->assertOk()->getContent();
+        $this->assertStringContainsString('의뢰자 안내 메모', $print);
+        $this->assertStringNotContainsString('대외비', $print);
+
+        $public = $this->get($estimate->fresh()->publicUrl())->assertOk()->getContent();
+        $this->assertStringContainsString('의뢰자 안내 메모', $public);
+        $this->assertStringNotContainsString('대외비', $public);
     }
 
     public function test_estimate_products_expose_root_category(): void

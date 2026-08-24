@@ -76,6 +76,12 @@
         .cart-table tr:last-child td { border-bottom:none; }
         .cart-cat-header { background:var(--surface2); }
         .cart-cat-header td { font-size:11px; font-weight:600; color:var(--accent); padding:6px; }
+        /* 드래그 정렬 — 대분류/항목 순서 변경 */
+        .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; }
+        .drag-handle:active { cursor:grabbing; }
+        .cat-rename-btn { background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-size:11px; padding:1px 7px; cursor:pointer; }
+        .cat-rename-btn:hover { border-color:var(--accent); color:var(--accent); }
+        tr.drop-hint td { border-top:2px solid var(--accent) !important; }
         .cart-subtotal td { font-size:12px; font-weight:700; text-align:right; padding:6px; border-top:1px solid var(--border); }
         .qty-ctrl { display:flex; align-items:center; gap:2px; }
         .qty-ctrl button { width:22px; height:22px; border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:4px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
@@ -241,8 +247,14 @@
 
         <!-- 메모 -->
         <div class="cart-section">
-            <h4>메모</h4>
+            <h4>메모 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 의뢰자 견적서에 표시됩니다</span></h4>
             <textarea id="estMemo" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; resize:vertical; min-height:60px;">{{ $estimate->memo }}</textarea>
+        </div>
+
+        <!-- 내부 비고 (직원 전용) -->
+        <div class="cart-section" style="border-style:dashed;">
+            <h4>내부 비고 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 직원만 볼 수 있고 의뢰자 견적서·출력물에는 표시되지 않습니다</span></h4>
+            <textarea id="estInternalMemo" placeholder="예: 협의된 할인 조건, 후속 조치, 담당자 참고사항" style="width:100%; background:var(--surface2); border:1px dashed var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; resize:vertical; min-height:60px;">{{ $estimate->internal_memo }}</textarea>
         </div>
     </div>
 
@@ -452,6 +464,21 @@ function addToCart(productId) {
     renderCart();
 }
 
+// 대분류 블록 분해 — 배열 순서(= 저장/출력 순서)를 유지한 그룹 시퀀스
+function groupBlocks() {
+    const order = [], map = {};
+    cartItems.forEach(item => {
+        const cat = item.category_root || item.category || '기타';
+        if (!map[cat]) { map[cat] = []; order.push(cat); }
+        map[cat].push(item);
+    });
+    return { order, map };
+}
+function rebuildFromBlocks(order, map) {
+    cartItems.length = 0;
+    order.forEach(c => cartItems.push(...map[c]));
+}
+
 function renderCart() {
     const tb = document.getElementById('cartBody');
     if (!cartItems.length) {
@@ -460,24 +487,22 @@ function renderCart() {
         return;
     }
 
-    const grouped = {};
-    cartItems.forEach(item => {
-        const cat = item.category_root || item.category || '기타'; // 1차 대분류 소계
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(item);
-    });
-
+    const { order, map } = groupBlocks();
     let html = '', globalIdx = 0;
-    for (const [cat, items] of Object.entries(grouped)) {
-        html += `<tr class="cart-cat-header"><td colspan="8">${cat}</td></tr>`;
+    order.forEach((cat, gIdx) => {
+        const items = map[cat];
+        html += `<tr class="cart-cat-header" data-gidx="${gIdx}">
+            <td colspan="7"><span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> ${_escE(cat)}</td>
+            <td style="text-align:right;"><button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button></td>
+        </tr>`;
         let catTotal = 0;
-        items.forEach((item, i) => {
+        items.forEach(item => {
             const idx = cartItems.indexOf(item);
             catTotal += item.subtotal;
             globalIdx++;
-            html += `<tr>
-                <td>${globalIdx}</td>
-                <td style="font-size:10px; color:var(--text-muted);">${item.category||''}</td>
+            html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
+                <td><span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> ${globalIdx}</td>
+                <td style="font-size:10px; color:var(--text-muted); cursor:pointer;" onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)">${item.category||''}</td>
                 <td>${item.name}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
                 <td><input value="${item.time_required||''}" onchange="cartItems[${idx}].time_required=this.value" style="width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:11px; outline:none;"></td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
@@ -492,11 +517,96 @@ function renderCart() {
                 <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
             </tr>`;
         });
-        html += `<tr class="cart-subtotal"><td colspan="6">${cat} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
-    }
+        html += `<tr class="cart-subtotal"><td colspan="6">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
+    });
     tb.innerHTML = html;
     updateTotals();
 }
+
+// === 대분류 이름 수정 / 항목별 대분류 변경 ===
+function renameCategory(gIdx) {
+    const { order, map } = groupBlocks();
+    const cat = order[gIdx];
+    if (cat === undefined) return;
+    const name = prompt('대분류 이름을 입력하세요.\n견적서 출력에 이 이름으로 표시됩니다. (예: 게임용 PC / 송출용 PC)', cat);
+    if (!name || !name.trim() || name.trim() === cat) return;
+    map[cat].forEach(it => { it.category_root = name.trim(); });
+    renderCart();
+}
+function changeItemCategory(idx) {
+    const item = cartItems[idx];
+    if (!item) return;
+    const cur = item.category_root || item.category || '기타';
+    const name = prompt('이 항목의 대분류를 입력하세요.\n새 이름을 입력하면 새 대분류 그룹으로 분리됩니다.', cur);
+    if (!name || !name.trim() || name.trim() === cur) return;
+    item.category_root = name.trim();
+    renderCart();
+}
+
+// === 드래그 정렬 — 대분류 블록/항목 (핸들 ⠿ 로 드래그) ===
+let __dragCat = null, __dragItem = null;
+(function initCartDnD() {
+    const tb = document.getElementById('cartBody');
+    tb.addEventListener('dragstart', e => {
+        const h = e.target.closest('.drag-handle');
+        if (!h) return;
+        __dragCat = h.dataset.dragCat !== undefined ? +h.dataset.dragCat : null;
+        __dragItem = h.dataset.dragItem !== undefined ? +h.dataset.dragItem : null;
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    tb.addEventListener('dragover', e => {
+        if (__dragCat === null && __dragItem === null) return;
+        e.preventDefault();
+        const tr = e.target.closest('tr');
+        tb.querySelectorAll('tr.drop-hint').forEach(r => r.classList.remove('drop-hint'));
+        if (tr) tr.classList.add('drop-hint');
+    });
+    tb.addEventListener('dragleave', () => {});
+    tb.addEventListener('drop', e => {
+        e.preventDefault();
+        tb.querySelectorAll('tr.drop-hint').forEach(r => r.classList.remove('drop-hint'));
+        const tr = e.target.closest('tr');
+        if (!tr) { __dragCat = __dragItem = null; return; }
+        const { order, map } = groupBlocks();
+
+        if (__dragCat !== null) {
+            // 대분류 블록 이동 — 대상 행이 속한 그룹 위치로
+            const targetG = tr.dataset.gidx !== undefined ? +tr.dataset.gidx : null;
+            if (targetG !== null && targetG !== __dragCat) {
+                const moved = order.splice(__dragCat, 1)[0];
+                // 제거 후 그대로 targetG에 삽입 — 아래로 끌면 대상 뒤, 위로 끌면 대상 앞 (자연스러운 이동)
+                order.splice(targetG, 0, moved);
+                rebuildFromBlocks(order, map);
+                renderCart();
+            }
+        } else if (__dragItem !== null) {
+            const item = cartItems[__dragItem];
+            if (item) {
+                if (tr.dataset.itemIdx !== undefined && +tr.dataset.itemIdx !== __dragItem) {
+                    // 항목 위로 드롭 — 그 항목 앞에 삽입, 대분류도 대상 그룹으로
+                    const target = cartItems[+tr.dataset.itemIdx];
+                    cartItems.splice(__dragItem, 1);
+                    const tIdx = cartItems.indexOf(target);
+                    item.category_root = target.category_root || target.category || '기타';
+                    cartItems.splice(tIdx, 0, item);
+                    renderCart();
+                } else if (tr.dataset.gidx !== undefined && tr.dataset.itemIdx === undefined) {
+                    // 대분류 헤더/소계 위로 드롭 — 그 그룹 맨 뒤로 이동
+                    const cat = order[+tr.dataset.gidx];
+                    if (cat !== undefined) {
+                        cartItems.splice(__dragItem, 1);
+                        item.category_root = cat;
+                        const { order: o2, map: m2 } = groupBlocks();
+                        if (m2[cat]) { m2[cat].push(item); } else { o2.push(cat); m2[cat] = [item]; }
+                        rebuildFromBlocks(o2, m2);
+                        renderCart();
+                    }
+                }
+            }
+        }
+        __dragCat = __dragItem = null;
+    });
+})();
 
 function changeQty(idx, delta) {
     cartItems[idx].qty = Math.max(1, cartItems[idx].qty + delta);
@@ -553,7 +663,11 @@ async function saveAsPreset() {
         method: 'POST', headers: H,
         body: JSON.stringify({ title: title.trim(), items: cartItems }),
     });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '프리셋 저장에 실패했습니다.'); }
+    if (!res.ok) {
+        const e = await res.json().catch(()=>({}));
+        const detail = e.errors ? '\n' + Object.values(e.errors).flat().join('\n') : '';
+        return alert((e.message || '프리셋 저장에 실패했습니다.') + detail + `\n(HTTP ${res.status})`);
+    }
     alert('프리셋으로 저장되었습니다. 우측 프리셋 목록과 견적서 목록의 [프리셋] 탭에서 관리할 수 있습니다.');
     loadPresetPanel();
 }
@@ -645,6 +759,7 @@ async function saveEstimate() {
         service_items: svcItems.filter(s => s.name),
         status: document.getElementById('estStatus').value,
         memo: document.getElementById('estMemo').value || null,
+        internal_memo: document.getElementById('estInternalMemo').value || null,
     };
     const res = await fetch(`/api/estimates/${estId}`, {method:'PATCH', headers:H, body:JSON.stringify(body)});
     if (res.ok) {

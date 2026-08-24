@@ -45,6 +45,7 @@ class Estimate extends Model
         'payapp_requested_at',
         'payapp_paid_at',
         'memo',
+        'internal_memo',
         'created_by',
     ];
 

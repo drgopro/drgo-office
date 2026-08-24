@@ -310,7 +310,11 @@ async function savePreset() {
         method: presetId ? 'PATCH' : 'POST', headers: H,
         body: JSON.stringify({ title, items: cartItems }),
     });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '저장에 실패했습니다.'); }
+    if (!res.ok) {
+        const e = await res.json().catch(()=>({}));
+        const detail = e.errors ? '\n' + Object.values(e.errors).flat().join('\n') : '';
+        return alert((e.message || '저장에 실패했습니다.') + detail + `\n(HTTP ${res.status})`);
+    }
     if (window.opener) { try { window.opener.loadPresets?.(); } catch(e) {} }
     alert('저장되었습니다.');
     window.close();

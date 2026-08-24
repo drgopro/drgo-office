@@ -80,6 +80,7 @@ class EstimateController extends Controller
             // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
             'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold,cancelled',
             'memo' => 'nullable|string',
+            'internal_memo' => 'nullable|string', // 직원용 내부 비고 — 의뢰자 견적서에 미표시
         ]);
 
         try {
