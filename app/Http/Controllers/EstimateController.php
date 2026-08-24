@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\PayappPayment;
+use App\Models\Project;
 use App\Models\Setting;
 use App\Services\PayAppClient;
 use Carbon\Carbon;
@@ -82,13 +83,40 @@ class EstimateController extends Controller
             'client_name' => 'nullable|string|max:100',
             'client_nickname' => 'nullable|string|max:100',
             'client_phone' => 'nullable|string|max:50',
-            'product_items' => 'nullable|array',
-            'service_items' => 'nullable|array',
+            'product_items' => 'nullable|array|max:300',
+            // 스냅샷 필드 전체를 규칙에 포함 — 누락 필드가 저장되면 출력물 렌더에서 500이 나고,
+            // 규칙에 없는 키는 validated()에서 걸러져 데이터가 유실되므로 양쪽 모두를 방지
+            'product_items.*.product_id' => 'nullable|integer',
+            'product_items.*.sku' => 'nullable|string|max:100',
+            'product_items.*.category' => 'nullable|string|max:100',
+            'product_items.*.category_root' => 'nullable|string|max:100',
+            'product_items.*.name' => 'required|string|max:200',
+            'product_items.*.purchase_price' => 'nullable|numeric|min:0',
+            'product_items.*.sale_price' => 'required|numeric|min:0',
+            'product_items.*.qty' => 'required|integer|min:1|max:9999',
+            'product_items.*.subtotal' => 'required|numeric|min:0',
+            'product_items.*.time_required' => 'nullable|string|max:50',
+            'product_items.*.manual' => 'nullable|boolean',
+            'service_items' => 'nullable|array|max:100',
+            'service_items.*.name' => 'required|string|max:200',
+            'service_items.*.amount' => 'required|numeric|min:0',
             // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
             'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold,cancelled',
             'memo' => 'nullable|string',
             'internal_memo' => 'nullable|string', // 직원용 내부 비고 — 의뢰자 견적서에 미표시
         ]);
+
+        // 연동 정합성 — 프로젝트는 이 견적서의 의뢰자 소유여야 한다 (타 의뢰자 프로젝트 연결 방지)
+        if (! empty($validated['project_id'])) {
+            $ownerClientId = Project::whereKey($validated['project_id'])->value('client_id');
+            $clientId = array_key_exists('client_id', $validated) ? $validated['client_id'] : $estimate->client_id;
+            if (! $clientId || (int) $ownerClientId !== (int) $clientId) {
+                return response()->json([
+                    'message' => '프로젝트 연동은 선택한 의뢰자의 프로젝트만 가능합니다.',
+                    'errors' => ['project_id' => ['선택한 의뢰자의 프로젝트가 아닙니다.']],
+                ], 422);
+            }
+        }
 
         try {
             $productTotal = (int) collect($validated['product_items'] ?? [])->sum('subtotal');

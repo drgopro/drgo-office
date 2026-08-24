@@ -59,7 +59,7 @@
         .info-cols { display:flex; gap:14px; margin-bottom:20px; }
         .info-box { flex:1; border:1px solid var(--line); border-radius:8px; padding:16px 20px 14px; background:#fff; position:relative; }
         /* 직인 — 판매처 글자 뒤 배경으로 우측 정렬 */
-        .seller-stamp { position:absolute; right:18px; top:50%; transform:translateY(-50%); width:88px; max-height:88px; object-fit:contain; opacity:0.9; z-index:0; pointer-events:none; }
+        .seller-stamp { position:absolute; right:72px; top:50%; transform:translateY(-50%); width:88px; max-height:88px; object-fit:contain; opacity:0.9; z-index:0; pointer-events:none; }
         .info-box h3, .info-box .info-table { position:relative; z-index:1; }
         .info-box.wide { flex:1.5; }
         .info-box h3 { font-size:11px; font-weight:700; letter-spacing:0.18em; color:var(--slate); margin-bottom:11px; }
@@ -115,7 +115,7 @@
             .est-title { font-size:22px; }
             .band-meta { text-align:left; }
             .info-cols { flex-direction:column; }
-            .seller-stamp { width:72px; max-height:72px; right:12px; }
+            .seller-stamp { width:72px; max-height:72px; right:28px; }
             /* 좁은 화면에서는 No.·소요시간 열을 숨겨 제품명 공간 확보.
                display:none은 셀이 열 슬롯에서 빠져 뒤 셀들이 한 칸씩 밀리므로,
                폭 0 + 내용 숨김으로 열을 접는다 */
