@@ -33,6 +33,10 @@
         .pi-stock.low { color:var(--red); }
         .pi-stock.ok { color:var(--text-muted); }
 
+        /* 패널 폭 조절 리사이저 */
+        .panel-resizer { width:6px; margin:0 -3px; cursor:col-resize; flex-shrink:0; z-index:20; background:transparent; transition:background 0.12s; }
+        .panel-resizer:hover, .panel-resizer.active { background:var(--accent); opacity:0.45; }
+
         /* 우측 — 프리셋 */
         .panel-right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
         .panel-right-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center; }
@@ -80,6 +84,7 @@
     </div>
     <div class="product-list" id="productList"></div>
 </div>
+<div class="panel-resizer" id="rzLeft" title="드래그해서 제품 리스트 폭 조절"></div>
 
 <div class="panel-right">
     <div class="panel-right-header">
@@ -319,6 +324,29 @@ async function savePreset() {
     alert('저장되었습니다.');
     window.close();
 }
+
+// 패널 폭 드래그 조절 (견적서 편집과 동일 키 공유)
+(function initPanelResize() {
+    const L = document.querySelector('.panel-left');
+    const lw = parseInt(localStorage.getItem('estPanelLeftW'));
+    if (lw) L.style.width = Math.min(Math.max(lw, 240), 680) + 'px';
+    const rz = document.getElementById('rzLeft');
+    rz.addEventListener('mousedown', e => {
+        e.preventDefault();
+        rz.classList.add('active');
+        document.body.style.userSelect = 'none';
+        const move = ev => { L.style.width = Math.min(Math.max(ev.clientX, 240), 680) + 'px'; };
+        const up = () => {
+            rz.classList.remove('active');
+            document.body.style.userSelect = '';
+            localStorage.setItem('estPanelLeftW', parseInt(L.style.width));
+            document.removeEventListener('mousemove', move);
+            document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+    });
+})();
 
 loadInitial();
 </script>

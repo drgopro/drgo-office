@@ -39,8 +39,13 @@
 
         /* 최우측 — 프리셋 패널 (클릭해서 품목 담기). 마크업 위치와 무관하게 order로 최우측 고정 */
         .panel-left { order:0; }
-        .panel-right { order:1; }
-        .panel-presets { order:2; width:210px; border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; background:var(--surface); }
+        #rzLeft { order:1; }
+        .panel-right { order:2; }
+        #rzRight { order:3; }
+        .panel-presets { order:4; width:210px; border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; background:var(--surface); }
+        /* 패널 폭 조절 리사이저 — 드래그로 제품 리스트/프리셋 폭 변경 (localStorage에 기억) */
+        .panel-resizer { width:6px; margin:0 -3px; cursor:col-resize; flex-shrink:0; z-index:20; background:transparent; transition:background 0.12s; }
+        .panel-resizer:hover, .panel-resizer.active { background:var(--accent); opacity:0.45; }
         .panel-presets-header { padding:14px 14px 10px; border-bottom:1px solid var(--border); }
         .panel-presets-header h3 { font-size:14px; font-weight:700; }
         .preset-list { flex:1; overflow-y:auto; padding:8px; }
@@ -77,8 +82,11 @@
         .cart-cat-header { background:var(--surface2); }
         .cart-cat-header td { font-size:11px; font-weight:600; color:var(--accent); padding:6px; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
-        .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; }
+        .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
         .drag-handle:active { cursor:grabbing; }
+        /* 핸들·번호·금액 줄바꿈 방지 — 가로 정렬 유지 */
+        .cart-table td { vertical-align:middle; }
+        .cart-table td:first-child, .cart-table td.text-right, .cart-cat-header td { white-space:nowrap; }
         .cat-rename-btn { background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-size:11px; padding:1px 7px; cursor:pointer; }
         .cat-rename-btn:hover { border-color:var(--accent); color:var(--accent); }
         tr.drop-hint td { border-top:2px solid var(--accent) !important; }
@@ -130,6 +138,9 @@
     </div>
     <div class="product-list" id="productList"></div>
 </div>
+
+<div class="panel-resizer" id="rzLeft" title="드래그해서 제품 리스트 폭 조절"></div>
+<div class="panel-resizer" id="rzRight" title="드래그해서 프리셋 패널 폭 조절"></div>
 
 <!-- 프리셋 패널 (우측) — 클릭하면 품목이 견적서에 담김, 여러 개 눌러 조립 -->
 <div class="panel-presets">
@@ -820,6 +831,40 @@ loadProducts();
 renderCart();
 renderServices();
 loadPresetPanel();
+
+// === 패널 폭 드래그 조절 — 제품 리스트/프리셋 패널 (폭은 브라우저에 기억) ===
+(function initPanelResize() {
+    const L = document.querySelector('.panel-left');
+    const P = document.querySelector('.panel-presets');
+    const lw = parseInt(localStorage.getItem('estPanelLeftW'));
+    if (lw) L.style.width = Math.min(Math.max(lw, 240), 680) + 'px';
+    const pw = parseInt(localStorage.getItem('estPanelPresetsW'));
+    if (pw) P.style.width = Math.min(Math.max(pw, 140), 440) + 'px';
+
+    function bind(rz, apply, save) {
+        rz.addEventListener('mousedown', e => {
+            e.preventDefault();
+            rz.classList.add('active');
+            document.body.style.userSelect = 'none';
+            const move = ev => apply(ev.clientX);
+            const up = () => {
+                rz.classList.remove('active');
+                document.body.style.userSelect = '';
+                save();
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', up);
+            };
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', up);
+        });
+    }
+    bind(document.getElementById('rzLeft'),
+        x => { L.style.width = Math.min(Math.max(x, 240), 680) + 'px'; },
+        () => localStorage.setItem('estPanelLeftW', parseInt(L.style.width)));
+    bind(document.getElementById('rzRight'),
+        x => { P.style.width = Math.min(Math.max(window.innerWidth - x, 140), 440) + 'px'; },
+        () => localStorage.setItem('estPanelPresetsW', parseInt(P.style.width)));
+})();
 if (clientId) loadClientProjects(clientId, {{ $estimate->project_id ?? 'null' }});
 
 document.addEventListener('click', e => {
