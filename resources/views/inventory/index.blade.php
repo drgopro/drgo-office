@@ -1039,10 +1039,21 @@ async function loadProducts() {
     const visibleIds = new Set(allProducts.map(p => p.id));
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
     const E = PROD_EDIT_MODE; // 전체 편집 모드 — 값 셀을 입력폼으로 렌더
-    tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
+
+    // 옵션 그룹은 대표 행 하나로 접어서 표시 — 펼치면 안에서 옵션(자식) 행이 보임
+    const seq = [];
+    const seenGroups = new Set();
+    allProducts.forEach(p => {
+        if (!p.group_id) { seq.push({ p }); return; }
+        if (seenGroups.has(p.group_id)) return;
+        seenGroups.add(p.group_id);
+        seq.push({ group: p.group || { id: p.group_id, name: p.name }, children: allProducts.filter(x => x.group_id === p.group_id) });
+    });
+
+    const prodRowHtml = (p, child) => `<tr data-pid="${p.id}" ${child ? `data-gchild="${p.group_id}" style="${(E || expandedGroups.has(p.group_id)) ? '' : 'display:none;'} background:var(--surface2);"` : ''}>
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
-        <td class="text-muted sku-cell">${_esc(p.sku)}</td>
-        <td class="text-wrap">${groupChipHtml(p)}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
+        <td class="text-muted sku-cell">${child ? '<span style="opacity:0.45;">└</span> ' : ''}${_esc(p.sku)}</td>
+        <td class="text-wrap">${child ? optionChipHtml(p) : ''}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${E ? peInput(p,'purchase_price',p.purchase_price??0) : fmt(p.purchase_price)}</td>
         <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : fmt(p.sale_price)}</td>
@@ -1056,13 +1067,41 @@ async function loadProducts() {
             <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </td>
-    </tr>`).join('');
+    </tr>`;
+
+    const groupHeaderRowHtml = (g, children) => {
+        const opened = E || expandedGroups.has(g.id);
+        const qty = children.reduce((s, c) => s + (c.inventory?.quantity ?? 0), 0);
+        const sales = children.map(c => Number(c.sale_price) || 0);
+        const purchases = children.map(c => Number(c.purchase_price) || 0);
+        const range = arr => { const mn = Math.min(...arr), mx = Math.max(...arr); return mn === mx ? fmt(mn) : fmt(mn)+'~'+fmt(mx); };
+        return `<tr data-gid="${g.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button,input')) toggleGroup(${g.id})">
+        <td><input type="checkbox" ${children.every(c => prodSelection.has(c.id)) ? 'checked' : ''} onchange="toggleGroupSelection(${g.id}, this.checked)" title="그룹 전체 선택"></td>
+        <td class="text-muted"><span class="grp-arrow" data-gid="${g.id}">${opened ? '▾' : '▸'}</span></td>
+        <td class="text-wrap"><b>${_esc(g.name)}</b> <span class="badge" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35);">옵션 ${children.length}종</span> <span class="text-muted" style="font-size:11.5px;">${children.map(c => _esc(c.option_name || c.name)).join(' / ')}</span></td>
+        <td class="text-muted text-wrap">${children[0]?.category || '-'}</td>
+        <td class="text-right text-muted">${range(purchases)}</td>
+        <td class="text-right text-muted">${range(sales)}</td>
+        <td class="text-right text-muted">-</td>
+        <td class="text-right text-muted">-</td>
+        <td class="text-right"><b>${qty}</b></td>
+        <td class="text-right text-muted">-</td>
+        <td>${children.every(c => c.show_in_estimate) ? '<span class="badge badge-ok">노출</span>' : ''}</td>
+        <td class="action-cell">
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation(); ungroupProducts(${g.id}, '${_esc(g.name).replace(/'/g,'&#39;')}')">그룹 해제</button>
+        </td>
+    </tr>`;
+    };
+
+    tb.innerHTML = seq.map(e => e.p ? prodRowHtml(e.p, false)
+        : groupHeaderRowHtml(e.group, e.children) + e.children.map(c => prodRowHtml(c, true)).join('')).join('');
+
     // 모바일 카드 (768px 이하에서 표시) — 체크박스/버튼은 테이블과 동일 핸들러 공유
-    cards.innerHTML = allProducts.map(p => `<div class="mob-card" data-pid="${p.id}">
+    const prodCardHtml = (p, child) => `<div class="mob-card" data-pid="${p.id}" ${child ? `data-gchild="${p.group_id}" style="${(E || expandedGroups.has(p.group_id)) ? '' : 'display:none;'} margin-left:14px;"` : ''}>
         <div class="mob-card-top">
             <input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)">
             <div>
-                <div class="mob-card-title">${groupChipHtml(p)}${bundleBadgeHtml(p)}${_esc(p.name)}</div>
+                <div class="mob-card-title">${child ? optionChipHtml(p) : ''}${bundleBadgeHtml(p)}${_esc(p.name)}</div>
                 <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}${p.safety_stock ? ' · 안전재고 '+p.safety_stock : ''}${p.show_in_estimate ? ' · <span class="badge badge-ok">노출</span>' : ''}</div>
             </div>
         </div>
@@ -1074,8 +1113,45 @@ async function loadProducts() {
             <button class="btn-outline btn-sm" onclick='editProduct(${p.id})'>수정</button>
             <button class="btn-danger-sm" onclick="deleteProduct(${p.id})">삭제</button>
         </div>
-    </div>`).join('');
+    </div>`;
+    const groupCardHtml = (g, children) => {
+        const opened = E || expandedGroups.has(g.id);
+        const qty = children.reduce((s, c) => s + (c.inventory?.quantity ?? 0), 0);
+        return `<div class="mob-card" data-gid="${g.id}" onclick="if(!event.target.closest('button,input')) toggleGroup(${g.id})" style="cursor:pointer;">
+        <div class="mob-card-top">
+            <span class="grp-arrow" data-gid="${g.id}" style="margin-top:2px;">${opened ? '▾' : '▸'}</span>
+            <div>
+                <div class="mob-card-title">${_esc(g.name)} <span class="badge" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35);">옵션 ${children.length}종</span></div>
+                <div class="mob-card-sub">${children.map(c => _esc(c.option_name || c.name)).join(' / ')} · 재고 합계 ${qty}</div>
+            </div>
+        </div>
+        <div class="mob-card-actions">
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation(); ungroupProducts(${g.id}, '${_esc(g.name).replace(/'/g,'&#39;')}')">그룹 해제</button>
+        </div>
+    </div>`;
+    };
+    cards.innerHTML = seq.map(e => e.p ? prodCardHtml(e.p, false)
+        : groupCardHtml(e.group, e.children) + e.children.map(c => prodCardHtml(c, true)).join('')).join('');
     updateProdBulkBar();
+}
+
+// 그룹 펼침 상태 (페이지 이동해도 유지)
+const expandedGroups = new Set();
+function toggleGroup(gid) {
+    const open = expandedGroups.has(gid);
+    open ? expandedGroups.delete(gid) : expandedGroups.add(gid);
+    document.querySelectorAll(`[data-gchild="${gid}"]`).forEach(el => { el.style.display = open ? 'none' : ''; });
+    document.querySelectorAll(`.grp-arrow[data-gid="${gid}"]`).forEach(el => { el.textContent = open ? '▸' : '▾'; });
+}
+function toggleGroupSelection(gid, checked) {
+    allProducts.filter(p => p.group_id === gid).forEach(p => {
+        toggleProductSelection(p.id, checked);
+        document.querySelectorAll(`.prod-row-check[data-id="${p.id}"]`).forEach(cb => cb.checked = checked);
+    });
+}
+function optionChipHtml(p) {
+    if (!p.option_name) return '';
+    return `<span class="badge" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35); margin-right:6px;">${_esc(p.option_name)}</span>`;
 }
 
 // === 전체 편집 (인라인 일괄 수정) ===
@@ -1185,10 +1261,6 @@ function updateProdBulkBar() {
     }
 }
 // === 옵션 그룹 (블랙/화이트 등 같은 상품 묶기) ===
-function groupChipHtml(p) {
-    if (!p.group) return '';
-    return `<span class="badge" title="옵션 그룹 — 클릭하면 그룹 전체를 해제합니다" onclick="event.stopPropagation(); ungroupProducts(${p.group.id}, '${_esc(p.group.name).replace(/'/g,'&#39;')}')" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35); cursor:pointer; margin-right:6px;">${_esc(p.group.name)}${p.option_name?` · ${_esc(p.option_name)}`:''}</span>`;
-}
 function openGroupModal() {
     if (prodSelection.size < 2) return alert('그룹으로 묶을 제품을 2개 이상 선택해주세요.');
     const items = [...prodSelection].map(id => allProducts.find(p => p.id === id)).filter(Boolean);

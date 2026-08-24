@@ -246,9 +246,12 @@ class InventoryController extends Controller
             };
         }
 
+        // 옵션 그룹 구성원이 목록에서 이웃하도록 그룹 대표 SKU 기준으로 묶어 정렬
+        $groupClusterOrder = 'COALESCE((SELECT MIN(p2.sku) FROM products p2 WHERE p2.group_id = products.group_id AND p2.is_active = 1), products.sku)';
+
         // per_page가 있으면 페이지네이션 응답 (없으면 기존처럼 전체 배열 — 견적서 등 기존 호출부 호환)
         if ($perPage = (int) $request->query('per_page')) {
-            $page = $query->orderBy('sku')->paginate(min(max($perPage, 1), 200));
+            $page = $query->orderByRaw($groupClusterOrder)->orderBy('sku')->paginate(min(max($perPage, 1), 200));
 
             return response()->json([
                 'data' => $page->items(),
@@ -259,7 +262,7 @@ class InventoryController extends Controller
         }
 
         return response()->json(
-            $query->orderBy('sku')->get()
+            $query->orderByRaw($groupClusterOrder)->orderBy('sku')->get()
         );
     }
 
