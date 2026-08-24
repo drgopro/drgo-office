@@ -418,7 +418,7 @@ function filterProducts() {
         <div class="product-item" onclick="openOptionPicker(${g.id})">
             <div>
                 <div class="pi-name">${g.name} <span style="font-size:10px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
-                <div class="pi-cat">${g.options.map(o => o.option_name || o.name).join(' / ')}</div>
+                <div class="pi-cat">${g.options[0]?.category_path || g.options[0]?.category || ''} · ${g.options.map(o => o.option_name || o.name).join(' / ')}</div>
             </div>
             <div style="text-align:right;">
                 <div class="pi-price">${mn === mx ? fmt(mn) : fmt(mn) + '~' + fmt(mx)}원</div>
