@@ -191,6 +191,12 @@
                     <label>연락처</label>
                     <input id="cPhone" value="{{ $estimate->client_phone }}">
                 </div>
+                <div class="field">
+                    <label>프로젝트 연동 (선택)</label>
+                    <select id="cProject" disabled style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; cursor:pointer;">
+                        <option value="">의뢰자 선택 후 지정 가능</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -433,6 +439,7 @@ function addToCart(productId) {
             product_id: p.id,
             sku: p.sku,
             category: p.category,
+            category_root: p.category_root || p.category, // 1차 대분류 — 소계 그룹 기준
             // 옵션 그룹 상품은 '그룹명 (옵션명)'으로 구분해 견적에 표시
             name: p.group_id && p.option_name ? `${p.group_name} (${p.option_name})` : p.name,
             purchase_price: p.purchase_price || 0,
@@ -455,7 +462,7 @@ function renderCart() {
 
     const grouped = {};
     cartItems.forEach(item => {
-        const cat = item.category || '기타';
+        const cat = item.category_root || item.category || '기타'; // 1차 대분류 소계
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(item);
     });
@@ -512,8 +519,9 @@ function addManualItem() {
     if (!name) return alert('제품명을 입력해주세요.');
     const price = Math.max(0, parseInt(document.getElementById('miPrice').value) || 0);
     const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
+    const miCat = document.getElementById('miCat').value.trim() || '기타';
     cartItems.push({
-        product_id: null, sku: '', category: document.getElementById('miCat').value.trim() || '기타',
+        product_id: null, sku: '', category: miCat, category_root: miCat,
         name, purchase_price: 0, sale_price: price, qty, time_required: '', subtotal: price * qty, manual: true,
     });
     ['miName','miPrice'].forEach(id => document.getElementById(id).value = '');
@@ -572,6 +580,7 @@ function applyPresetById(id) {
         if (cur) {
             item.name = cur.group_id && cur.option_name ? `${cur.group_name} (${cur.option_name})` : cur.name;
             item.category = cur.category || item.category;
+            item.category_root = cur.category_root || item.category_root || item.category;
             item.sku = cur.sku;
             item.sale_price = Number(cur.sale_price) || 0;
             item.purchase_price = Number(cur.purchase_price) || 0;
@@ -605,12 +614,30 @@ function selectClient(client) {
     document.getElementById('cName').value = client.name || '';
     document.getElementById('cPhone').value = client.phone || '';
     document.getElementById('clientResults').classList.remove('show');
+    loadClientProjects(clientId, null);
+}
+
+// 의뢰자의 진행 중 프로젝트를 연동 선택지로 로드 (선택 사항 — '연동 안 함'이 기본)
+async function loadClientProjects(cid, selectedId) {
+    const sel = document.getElementById('cProject');
+    if (!cid) {
+        sel.innerHTML = '<option value="">의뢰자 선택 후 지정 가능</option>';
+        sel.disabled = true;
+        return;
+    }
+    const res = await fetch(`/api/estimate-client-projects/${cid}`, { headers: { 'Accept': 'application/json' } });
+    const projects = res.ok ? await res.json() : [];
+    sel.innerHTML = '<option value="">연동 안 함</option>' + projects.map(p =>
+        `<option value="${p.id}">${_escE(p.name)}${p.stage_label ? ` · ${_escE(p.stage_label)}` : ''}</option>`).join('');
+    sel.disabled = false;
+    if (selectedId && projects.some(p => p.id === selectedId)) sel.value = String(selectedId);
 }
 
 // === 저장/발행/삭제 ===
 async function saveEstimate() {
     const body = {
         client_id: clientId,
+        project_id: +document.getElementById('cProject').value || null,
         client_name: document.getElementById('cName').value || null,
         client_nickname: document.getElementById('cNickname').value || null,
         client_phone: document.getElementById('cPhone').value || null,
@@ -678,6 +705,7 @@ loadProducts();
 renderCart();
 renderServices();
 loadPresetPanel();
+if (clientId) loadClientProjects(clientId, {{ $estimate->project_id ?? 'null' }});
 
 document.addEventListener('click', e => {
     if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults').classList.remove('show');

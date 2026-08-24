@@ -384,6 +384,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/estimates/{estimate}/edit', [EstimateController::class, 'edit'])->name('estimates.edit');
         Route::patch('/api/estimates/{estimate}', [EstimateController::class, 'update']);
         Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
+        Route::get('/api/estimate-client-projects/{client}', [EstimateController::class, 'clientProjects']); // 프로젝트 연동(선택)용 목록
         Route::post('/api/estimates/{estimate}/payapp-request', [EstimateController::class, 'payappRequest']);
         Route::post('/api/estimates/{estimate}/payapp-cancel', [EstimateController::class, 'payappCancel']);
         Route::delete('/api/estimates/{estimate}', [EstimateController::class, 'destroy']);

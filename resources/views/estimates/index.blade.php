@@ -382,7 +382,7 @@ async function pmSearchProducts() {
 function pmAddProduct(p) {
     const name = p.group_id && p.option_name ? `${p.group_name} (${p.option_name})` : p.name;
     pmItems.push({
-        product_id: p.id, sku: p.sku, category: p.category || '기타', name,
+        product_id: p.id, sku: p.sku, category: p.category || '기타', category_root: p.category_root || p.category || '기타', name,
         purchase_price: p.purchase_price || 0, sale_price: Number(p.sale_price) || 0,
         qty: 1, time_required: '', subtotal: Number(p.sale_price) || 0, manual: false,
     });
@@ -392,8 +392,9 @@ function pmAddManual() {
     const name = document.getElementById('pmMiName').value.trim();
     if (!name) return alert('제품명을 입력해주세요.');
     const price = Math.max(0, parseInt(document.getElementById('pmMiPrice').value) || 0);
+    const miCat = document.getElementById('pmMiCat').value.trim() || '기타';
     pmItems.push({
-        product_id: null, sku: '', category: document.getElementById('pmMiCat').value.trim() || '기타',
+        product_id: null, sku: '', category: miCat, category_root: miCat,
         name, purchase_price: 0, sale_price: price, qty: 1, time_required: '', subtotal: price, manual: true,
     });
     ['pmMiName','pmMiPrice'].forEach(i => document.getElementById(i).value = '');

@@ -163,7 +163,8 @@ function savePNG(){
 
     @php
         $items = $estimate->product_items ?? [];
-        $grouped = collect($items)->groupBy('category');
+        // 1차(대분류) 카테고리 기준 소계 — 구버전 항목은 저장된 category로 폴백
+        $grouped = collect($items)->groupBy(fn ($i) => $i['category_root'] ?? $i['category'] ?? '기타');
         $services = $estimate->service_items ?? [];
     @endphp
 

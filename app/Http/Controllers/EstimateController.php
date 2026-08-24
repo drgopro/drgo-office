@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Models\Setting;
@@ -70,6 +71,7 @@ class EstimateController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'nullable|exists:clients,id',
+            'project_id' => 'nullable|exists:projects,id', // 의뢰자 프로젝트 연동 (선택)
             'client_name' => 'nullable|string|max:100',
             'client_nickname' => 'nullable|string|max:100',
             'client_phone' => 'nullable|string|max:50',
@@ -163,6 +165,16 @@ class EstimateController extends Controller
         ]);
 
         return null;
+    }
+
+    /** 견적서 편집에서 의뢰자 연동 프로젝트 선택용 — 진행 중 프로젝트만 (연동은 선택 사항) */
+    public function clientProjects(Client $client)
+    {
+        return response()->json(
+            $client->projects()->whereNull('completed_at')->orderByDesc('id')
+                ->get(['id', 'name', 'stage', 'client_id'])
+                ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'stage_label' => $p->stageLabel()])
+        );
     }
 
     public function print(Estimate $estimate)

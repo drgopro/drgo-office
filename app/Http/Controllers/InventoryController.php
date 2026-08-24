@@ -779,7 +779,7 @@ class InventoryController extends Controller
 
     public function estimateProducts(Request $request)
     {
-        $query = Product::with('inventory', 'categoryRelation', 'group')
+        $query = Product::with('inventory', 'categoryRelation.parent.parent.parent', 'group')
             ->where('is_active', true)
             ->where('show_in_estimate', true);
 
@@ -793,11 +793,18 @@ class InventoryController extends Controller
         }
 
         $products = $query->orderBy('sku')->get()->map(function ($p) {
+            // 1차(대분류) 카테고리명 — 견적서 대분류 소계용
+            $root = $p->categoryRelation;
+            while ($root && $root->parent) {
+                $root = $root->parent;
+            }
+
             return [
                 'id' => $p->id,
                 'sku' => $p->sku,
                 'name' => $p->name,
                 'category' => $p->category,
+                'category_root' => $root?->name ?? $p->category,
                 'category_id' => $p->category_id,
                 'sale_price' => $p->sale_price,
                 'purchase_price' => $p->purchase_price,
