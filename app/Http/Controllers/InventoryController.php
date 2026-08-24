@@ -7,6 +7,7 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductBundleItem;
 use App\Models\ProductCategory;
+use App\Models\ProductGroup;
 use App\Models\ProductMarketPrice;
 use App\Models\Project;
 use App\Models\Setting;
@@ -208,7 +209,7 @@ class InventoryController extends Controller
             );
         }
 
-        $query = Product::with('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory')
+        $query = Product::with('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory', 'group')
             ->where('is_active', true);
 
         if ($search = $request->query('search')) {
@@ -260,6 +261,39 @@ class InventoryController extends Controller
         return response()->json(
             $query->orderBy('sku')->get()
         );
+    }
+
+    /**
+     * 옵션 그룹 생성 — 기존 제품(ID 유지)들을 자식으로 묶는다.
+     * 예: '카메라X 블랙'·'카메라X 화이트' → 그룹 '카메라X' (옵션: 블랙/화이트)
+     */
+    public function storeProductGroup(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:200',
+            'items' => 'required|array|min:1|max:50',
+            'items.*.id' => 'required|integer|exists:products,id',
+            'items.*.option_name' => 'required|string|max:60',
+        ]);
+
+        $group = ProductGroup::create(['name' => $validated['name']]);
+        foreach ($validated['items'] as $item) {
+            Product::where('id', $item['id'])->update([
+                'group_id' => $group->id,
+                'option_name' => $item['option_name'],
+            ]);
+        }
+
+        return response()->json($group->load('products:id,group_id,name,option_name'), 201);
+    }
+
+    /** 옵션 그룹 해제 — 자식 제품은 그대로 두고 묶음만 푼다 */
+    public function destroyProductGroup(ProductGroup $group): JsonResponse
+    {
+        $group->products()->update(['group_id' => null, 'option_name' => null]);
+        $group->delete();
+
+        return response()->json(['message' => '그룹이 해제되었습니다.']);
     }
 
     public function storeProduct(Request $request)
@@ -354,6 +388,8 @@ class InventoryController extends Controller
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
             'stock_quantity' => 'nullable|integer|min:0', // 재고 직접 수정 — 다르면 조정(adjust) 이력 기록 (세트 제외)
+            'group_id' => 'sometimes|nullable|integer|exists:product_groups,id', // null 전달 시 그룹에서 제외
+            'option_name' => 'sometimes|nullable|string|max:60',
             'memo' => 'nullable|string',
             'show_in_estimate' => 'boolean',
             'is_bundle' => 'boolean',
@@ -363,6 +399,9 @@ class InventoryController extends Controller
         ]);
         $stockQuantity = $validated['stock_quantity'] ?? null;
         unset($validated['stock_quantity']);
+        if (array_key_exists('group_id', $validated) && $validated['group_id'] === null) {
+            $validated['option_name'] = null; // 그룹 제외 시 옵션명도 정리
+        }
         $marketUrls = $this->pullMarketUrls($validated);
         $bundleItems = $this->pullBundleItems($request, $validated, $product);
         if ($bundleItems instanceof JsonResponse) {
@@ -724,7 +763,7 @@ class InventoryController extends Controller
 
     public function estimateProducts(Request $request)
     {
-        $query = Product::with('inventory', 'categoryRelation')
+        $query = Product::with('inventory', 'categoryRelation', 'group')
             ->where('is_active', true)
             ->where('show_in_estimate', true);
 
@@ -752,6 +791,10 @@ class InventoryController extends Controller
                 'quantity' => $p->inventory?->quantity ?? 0,
                 'safety_stock' => $p->safety_stock,
                 'is_low' => $p->safety_stock && ($p->inventory?->quantity ?? 0) <= $p->safety_stock,
+                // 옵션 그룹 — 견적서 패널에서 그룹 하나로 묶어 옵션 선택으로 추가
+                'group_id' => $p->group_id,
+                'group_name' => $p->group?->name,
+                'option_name' => $p->option_name,
             ];
         });
 

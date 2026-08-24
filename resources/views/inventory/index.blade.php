@@ -226,6 +226,7 @@
                 <span id="prodBulkCount">0</span>개 선택됨
             </span>
             <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; align-items:center;">
+                <button class="btn-outline btn-sm" onclick="openGroupModal()">옵션 그룹으로 묶기</button>
                 <button class="btn-outline btn-sm" onclick="bulkSetEstimate(true)"><x-icon name="check" :size="13"/> 견적서 노출 ON</button>
                 <button class="btn-outline btn-sm" onclick="bulkSetEstimate(false)"><x-icon name="close" :size="13"/> 견적서 노출 OFF</button>
                 <button class="btn-outline btn-sm" onclick="clearProdSelection()">선택 해제</button>
@@ -419,6 +420,29 @@
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('movementModal')">취소</button>
             <button class="btn-save" onclick="saveMovement()">등록</button>
+        </div>
+    </div>
+</div>
+
+<!-- 옵션 그룹 묶기 모달 — 기존 제품(ID 유지)들을 하나의 상품으로 묶고 옵션명 지정 -->
+<div class="modal-overlay" id="groupModal">
+    <div class="modal" style="width:520px;">
+        <div class="modal-header">
+            <div class="modal-title">옵션 그룹으로 묶기</div>
+            <button class="modal-close" onclick="closeModal('groupModal')">×</button>
+        </div>
+        <div class="field-group">
+            <div class="field-label">그룹(대표) 상품명 *</div>
+            <input class="field-input" id="gName" placeholder="예: 카메라 X100">
+        </div>
+        <div class="field-group">
+            <div class="field-label">선택된 제품별 옵션명 *</div>
+            <div id="gItems" style="display:flex; flex-direction:column; gap:6px;"></div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('groupModal')">취소</button>
+            <button class="btn-save" onclick="saveProductGroup()">그룹 만들기</button>
         </div>
     </div>
 </div>
@@ -1018,7 +1042,7 @@ async function loadProducts() {
     tb.innerHTML = allProducts.map(p => `<tr data-pid="${p.id}">
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
         <td class="text-muted sku-cell">${_esc(p.sku)}</td>
-        <td class="text-wrap">${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
+        <td class="text-wrap">${groupChipHtml(p)}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${E ? peInput(p,'purchase_price',p.purchase_price??0) : fmt(p.purchase_price)}</td>
         <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : fmt(p.sale_price)}</td>
@@ -1038,7 +1062,7 @@ async function loadProducts() {
         <div class="mob-card-top">
             <input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)">
             <div>
-                <div class="mob-card-title">${bundleBadgeHtml(p)}${_esc(p.name)}</div>
+                <div class="mob-card-title">${groupChipHtml(p)}${bundleBadgeHtml(p)}${_esc(p.name)}</div>
                 <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}${p.safety_stock ? ' · 안전재고 '+p.safety_stock : ''}${p.show_in_estimate ? ' · <span class="badge badge-ok">노출</span>' : ''}</div>
             </div>
         </div>
@@ -1160,6 +1184,42 @@ function updateProdBulkBar() {
         selAll.checked = allProducts.every(p => prodSelection.has(p.id));
     }
 }
+// === 옵션 그룹 (블랙/화이트 등 같은 상품 묶기) ===
+function groupChipHtml(p) {
+    if (!p.group) return '';
+    return `<span class="badge" title="옵션 그룹 — 클릭하면 그룹 전체를 해제합니다" onclick="event.stopPropagation(); ungroupProducts(${p.group.id}, '${_esc(p.group.name).replace(/'/g,'&#39;')}')" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35); cursor:pointer; margin-right:6px;">${_esc(p.group.name)}${p.option_name?` · ${_esc(p.option_name)}`:''}</span>`;
+}
+function openGroupModal() {
+    if (prodSelection.size < 2) return alert('그룹으로 묶을 제품을 2개 이상 선택해주세요.');
+    const items = [...prodSelection].map(id => allProducts.find(p => p.id === id)).filter(Boolean);
+    if (items.some(p => p.group)) return alert('이미 그룹에 속한 제품이 포함돼 있습니다. 먼저 그룹을 해제해주세요.');
+    // 그룹명 제안: 첫 제품명에서 색상어 제거 없이 그대로 (수정 가능)
+    document.getElementById('gName').value = items[0]?.name || '';
+    document.getElementById('gItems').innerHTML = items.map(p => `
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span></span>
+            <input class="field-input g-opt" data-id="${p.id}" placeholder="옵션명 (예: 블랙)" style="width:160px; padding:7px 10px; font-size:12.5px;">
+        </div>`).join('');
+    openModal('groupModal');
+}
+async function saveProductGroup() {
+    const name = document.getElementById('gName').value.trim();
+    if (!name) return alert('그룹 상품명을 입력해주세요.');
+    const items = [...document.querySelectorAll('#gItems .g-opt')].map(i => ({ id: +i.dataset.id, option_name: i.value.trim() }));
+    if (items.some(i => !i.option_name)) return alert('모든 제품에 옵션명을 입력해주세요.');
+    const res = await fetch('/api/inventory/product-groups', { method:'POST', headers:H, body: JSON.stringify({ name, items }) });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '그룹 생성에 실패했습니다.'); }
+    closeModal('groupModal');
+    clearProdSelection();
+    loadProducts();
+}
+async function ungroupProducts(groupId, groupName) {
+    if (!confirm(`'${groupName}' 그룹을 해제할까요?\n제품·재고는 그대로 두고 묶음만 풀립니다.`)) return;
+    const res = await fetch(`/api/inventory/product-groups/${groupId}`, { method:'DELETE', headers:H });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '해제에 실패했습니다.'); }
+    loadProducts();
+}
+
 async function bulkSetEstimate(show) {
     if (!prodSelection.size) return;
     const ids = [...prodSelection];

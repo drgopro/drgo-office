@@ -113,6 +113,17 @@
     <div class="product-list" id="productList"></div>
 </div>
 
+<!-- 옵션 선택 팝업 (옵션 그룹 상품) -->
+<div id="optionPickerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeOptionPicker()">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(380px, 100%); max-height:70vh; display:flex; flex-direction:column;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border);">
+            <div style="font-size:14px; font-weight:700;" id="optPickerTitle">옵션 선택</div>
+            <button onclick="closeOptionPicker()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">×</button>
+        </div>
+        <div id="optPickerList" style="overflow-y:auto; padding:8px;"></div>
+    </div>
+</div>
+
 <div class="panel-right">
     <div class="panel-right-header">
         <h2>견적서 #{{ $estimate->id }}</h2>
@@ -288,10 +299,26 @@ function filterProducts() {
         filtered = filtered.filter(p => ids.includes(p.category_id));
     }
     if (search) {
-        filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search));
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search)
+            || (p.group_name && p.group_name.toLowerCase().includes(search)) || (p.option_name && p.option_name.toLowerCase().includes(search)));
     }
 
-    list.innerHTML = filtered.map(p => `
+    // 옵션 그룹은 하나의 카드로 병합 — 클릭 시 옵션(블랙/화이트 등)을 골라 추가
+    const seenGroups = new Set();
+    const entries = [];
+    filtered.forEach(p => {
+        if (!p.group_id) { entries.push({ single: p }); return; }
+        if (seenGroups.has(p.group_id)) return;
+        seenGroups.add(p.group_id);
+        // 검색이 한 옵션만 매칭해도 그룹의 전체 옵션을 보여준다
+        const options = allProds.filter(x => x.group_id === p.group_id);
+        entries.push({ group: { id: p.group_id, name: p.group_name || p.name, options } });
+    });
+
+    list.innerHTML = entries.map(e => {
+        if (e.single) {
+            const p = e.single;
+            return `
         <div class="product-item" onclick="addToCart(${p.id})">
             <div>
                 <div class="pi-name">${p.name}</div>
@@ -301,8 +328,46 @@ function filterProducts() {
                 <div class="pi-price">${fmt(p.sale_price)}원</div>
                 <div class="pi-stock ${p.is_low?'low':'ok'}">재고 ${p.quantity}</div>
             </div>
-        </div>
-    `).join('') || '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">제품이 없습니다.</div>';
+        </div>`;
+        }
+        const g = e.group;
+        const prices = g.options.map(o => Number(o.sale_price) || 0);
+        const mn = Math.min(...prices), mx = Math.max(...prices);
+        const totalQty = g.options.reduce((s, o) => s + (o.quantity || 0), 0);
+        return `
+        <div class="product-item" onclick="openOptionPicker(${g.id})">
+            <div>
+                <div class="pi-name">${g.name} <span style="font-size:10px; color:#5e81f4; border:1px solid rgba(94,129,244,0.45); border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
+                <div class="pi-cat">${g.options.map(o => o.option_name || o.name).join(' / ')}</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="pi-price">${mn === mx ? fmt(mn) : fmt(mn) + '~' + fmt(mx)}원</div>
+                <div class="pi-stock ${totalQty > 0 ? 'ok' : 'low'}">재고 ${totalQty}</div>
+            </div>
+        </div>`;
+    }).join('') || '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">제품이 없습니다.</div>';
+}
+
+// === 옵션 선택 (그룹 상품) ===
+function openOptionPicker(groupId) {
+    const options = allProds.filter(p => p.group_id === groupId);
+    if (!options.length) return;
+    document.getElementById('optPickerTitle').textContent = (options[0].group_name || '') + ' — 옵션 선택';
+    document.getElementById('optPickerList').innerHTML = options.map(o => `
+        <div class="product-item" onclick="addToCart(${o.id}); closeOptionPicker();">
+            <div>
+                <div class="pi-name">${o.option_name || o.name}</div>
+                <div class="pi-cat">${o.sku}</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="pi-price">${fmt(o.sale_price)}원</div>
+                <div class="pi-stock ${o.is_low ? 'low' : 'ok'}">재고 ${o.quantity}</div>
+            </div>
+        </div>`).join('');
+    document.getElementById('optionPickerOverlay').style.display = 'flex';
+}
+function closeOptionPicker() {
+    document.getElementById('optionPickerOverlay').style.display = 'none';
 }
 
 function getCatDescendants(id) {
@@ -327,7 +392,8 @@ function addToCart(productId) {
             product_id: p.id,
             sku: p.sku,
             category: p.category,
-            name: p.name,
+            // 옵션 그룹 상품은 '그룹명 (옵션명)'으로 구분해 견적에 표시
+            name: p.group_id && p.option_name ? `${p.group_name} (${p.option_name})` : p.name,
             purchase_price: p.purchase_price || 0,
             sale_price: price,
             qty: 1,

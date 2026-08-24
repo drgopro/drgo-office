@@ -16,6 +16,8 @@ class Product extends Model
         'name',
         'category',
         'category_id',
+        'group_id',
+        'option_name',
         'purchase_price',
         'sale_price',
         'safety_stock',
@@ -42,6 +44,12 @@ class Product extends Model
     public function categoryRelation()
     {
         return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    /** 옵션 그룹 (블랙/화이트 등 같은 상품 묶음) */
+    public function group()
+    {
+        return $this->belongsTo(ProductGroup::class, 'group_id');
     }
 
     public function inventory()
