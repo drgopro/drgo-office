@@ -13,7 +13,7 @@
             @page { margin:15mm; }
         }
         @media screen {
-            body { padding:30px; max-width:760px; margin:0 auto; }
+            body { padding:30px; max-width:960px; margin:0 auto; }
         }
 
         .no-print-bar { position:fixed; top:0; left:0; right:0; background:#222; padding:10px 20px; display:flex; gap:10px; align-items:center; z-index:100; }
@@ -55,7 +55,15 @@
         /* 제품 테이블 */
         .est-table { width:100%; border-collapse:collapse; margin-bottom:4px; }
         .est-table th { background:#f0ede8; border:1px solid #d8d0c4; padding:7px 8px; font-size:10px; font-weight:700; text-align:center; color:#555; letter-spacing:0.05em; }
-        .est-table td { border:1px solid #ddd; padding:7px 8px; font-size:11px; }
+        .est-table td { border:1px solid #ddd; padding:7px 8px; font-size:11px; word-break:keep-all; }
+        /* 금액·수량은 줄바꿈 금지 — 제품명이 남는 폭을 모두 사용 */
+        .est-table td.text-right, .est-table td.text-center { white-space:nowrap; }
+        .est-table col.col-no { width:35px; }
+        .est-table col.col-cat { width:90px; }
+        .est-table col.col-time { width:60px; }
+        .est-table col.col-price { width:90px; }
+        .est-table col.col-qty { width:40px; }
+        .est-table col.col-total { width:100px; }
         .est-table .cat-header td { background:#f8f6f2; font-weight:700; font-size:11px; color:#555; border-left:3px solid #c8b08a; }
         .est-table .subtotal-row td { background:#f5f3ef; font-weight:700; font-size:11px; text-align:right; }
         .text-right { text-align:right; }
@@ -68,6 +76,34 @@
         .total-amount .currency { font-size:18px; }
         .total-label { font-size:13px; color:#666; margin-right:12px; }
         .total-note { font-size:11px; color:#c44; margin-top:4px; }
+
+        /* 모바일 반응형 — 의뢰자가 휴대폰으로 열람할 때 */
+        @media screen and (max-width: 640px) {
+            body { padding:14px 10px; }
+            body.public-mode .estimate-wrap { zoom:1; } /* 확대가 좁은 화면을 더 좁게 만들지 않도록 해제 */
+            .est-title { font-size:21px; }
+            .info-cols { flex-direction:column; gap:18px; }
+            .validity-bar { flex-direction:column; gap:4px; }
+            /* 좁은 화면에서는 No.·소요시간 열을 숨겨 제품명 공간 확보 */
+            /* display:none은 셀이 열 슬롯에서 빠져 뒤 셀들이 한 칸씩 밀리므로,
+               폭 0 + 내용 숨김으로 열을 접는다 */
+            .est-table col.col-no, .est-table col.col-time { width:0; }
+            .est-table th.col-no, .est-table th.col-time,
+            .est-table td.col-no, .est-table td.col-time {
+                padding:0; border:none; font-size:0; line-height:0; overflow:hidden;
+            }
+            /* 고정 레이아웃 + 강제 줄바꿈 허용 — 모델명 같은 긴 영문/숫자 문자열이 화면을 밀어내지 않게 */
+            .est-table { table-layout:fixed; }
+            .est-table td { overflow-wrap:anywhere; }
+            .est-table td.text-right, .est-table td.text-center { white-space:normal; }
+            .est-table th, .est-table td { padding:6px 5px; font-size:10.5px; }
+            .est-table col.col-cat { width:56px; }
+            .est-table col.col-price { width:70px; }
+            .est-table col.col-qty { width:36px; }
+            .est-table col.col-total { width:76px; }
+            .total-amount { font-size:24px; }
+            .total-amount .currency { font-size:14px; }
+        }
         .total-items { font-size:11px; color:#888; margin-top:2px; }
 
         /* 메모 */
@@ -169,15 +205,25 @@ function savePNG(){
     @endphp
 
     <table class="est-table">
+        {{-- table-layout:fixed에서 숨김 열 폭을 확실히 제어하기 위해 colgroup으로 폭 지정 --}}
+        <colgroup>
+            <col class="col-no">
+            <col class="col-cat">
+            <col class="col-name">
+            <col class="col-time">
+            <col class="col-price">
+            <col class="col-qty">
+            <col class="col-total">
+        </colgroup>
         <thead>
             <tr>
-                <th style="width:35px;">No.</th>
-                <th style="width:65px;">분류</th>
+                <th class="col-no">No.</th>
+                <th class="col-cat">분류</th>
                 <th>제품명</th>
-                <th style="width:65px;">소요시간</th>
-                <th style="width:85px;">판매가</th>
-                <th style="width:40px;">수량</th>
-                <th style="width:95px;">합계</th>
+                <th class="col-time">소요시간</th>
+                <th class="col-price">판매가</th>
+                <th class="col-qty">수량</th>
+                <th class="col-total">합계</th>
             </tr>
         </thead>
         <tbody>
@@ -187,10 +233,10 @@ function savePNG(){
                 @foreach($catItems as $item)
                     @php $globalIdx++; @endphp
                     <tr>
-                        <td class="text-center">{{ $globalIdx }}</td>
+                        <td class="text-center col-no">{{ $globalIdx }}</td>
                         <td style="font-size:10px; color:#666;">{{ $item['category'] ?? '' }}</td>
                         <td>{{ $item['name'] }}</td>
-                        <td class="text-center">{{ $item['time_required'] ?? '' }}</td>
+                        <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
                         <td class="text-right">{{ number_format($item['sale_price']) }}원</td>
                         <td class="text-center">{{ $item['qty'] }}</td>
                         <td class="text-right" style="font-weight:600;">{{ number_format($item['subtotal']) }}원</td>
@@ -207,10 +253,10 @@ function savePNG(){
                 @foreach($services as $svc)
                     @php $globalIdx++; @endphp
                     <tr>
-                        <td class="text-center">{{ $globalIdx }}</td>
+                        <td class="text-center col-no">{{ $globalIdx }}</td>
                         <td style="font-size:10px; color:#666;">서비스</td>
                         <td>{{ $svc['name'] }}</td>
-                        <td></td>
+                        <td class="col-time"></td>
                         <td class="text-right">{{ number_format($svc['amount']) }}원</td>
                         <td class="text-center">1</td>
                         <td class="text-right" style="font-weight:600;">{{ number_format($svc['amount']) }}원</td>

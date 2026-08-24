@@ -221,7 +221,7 @@ async function exportEstimate(id, type) {
                 if (bar) bar.style.display = 'none';
                 if (el) el.style.marginTop = '0';
 
-                const srcCanvas = await html2canvas(el, { scale:2, useCORS:true, backgroundColor:'#fff', windowWidth:820 });
+                const srcCanvas = await html2canvas(el, { scale:2, useCORS:true, backgroundColor:'#fff', windowWidth:1000 }); // 견적서 화면 폭(960px) 기준 캡처
 
                 // 여백 80px (scale:2 기준 40px * 2)
                 const pad = 80;
