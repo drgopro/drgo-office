@@ -76,6 +76,8 @@
     .badge-requested { background:#2a2010; color:var(--accent); } .badge-approved { background:#1a1a2a; color:#8ab4c8; }
     .badge-ordered { background:#2a1a2a; color:#9b70c8; } .badge-received { background:#1a2a1a; color:#7ac87a; }
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
+    /* 옵션 그룹 행의 '옵션 N종' — 상품명을 가리지 않도록 무채색 */
+    .badge-optcount { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:600; }
     .text-muted { color:var(--text-muted); font-size:12px; } .text-right { text-align:center; } .text-warn { color:var(--red); }
     .data-table th.text-right { text-align:center; } /* 헤더도 값과 동일하게 중앙 정렬 (시세 등 숫자 컬럼) */
 
@@ -1078,7 +1080,7 @@ async function loadProducts() {
         return `<tr data-gid="${g.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button,input')) toggleGroup(${g.id})">
         <td><input type="checkbox" ${children.every(c => prodSelection.has(c.id)) ? 'checked' : ''} onchange="toggleGroupSelection(${g.id}, this.checked)" title="그룹 전체 선택"></td>
         <td class="text-muted"><span class="grp-arrow" data-gid="${g.id}">${opened ? '▾' : '▸'}</span></td>
-        <td class="text-wrap"><b>${_esc(g.name)}</b> <span class="badge" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35);">옵션 ${children.length}종</span> <span class="text-muted" style="font-size:11.5px;">${children.map(c => _esc(c.option_name || c.name)).join(' / ')}</span></td>
+        <td class="text-wrap"><b>${_esc(g.name)}</b> <span class="badge badge-optcount">옵션 ${children.length}종</span> <span class="text-muted" style="font-size:11.5px;">${children.map(c => _esc(c.option_name || c.name)).join(' / ')}</span></td>
         <td class="text-muted text-wrap">${children[0]?.category || '-'}</td>
         <td class="text-right text-muted">${range(purchases)}</td>
         <td class="text-right text-muted">${range(sales)}</td>
@@ -1121,7 +1123,7 @@ async function loadProducts() {
         <div class="mob-card-top">
             <span class="grp-arrow" data-gid="${g.id}" style="margin-top:2px;">${opened ? '▾' : '▸'}</span>
             <div>
-                <div class="mob-card-title">${_esc(g.name)} <span class="badge" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35);">옵션 ${children.length}종</span></div>
+                <div class="mob-card-title">${_esc(g.name)} <span class="badge badge-optcount">옵션 ${children.length}종</span></div>
                 <div class="mob-card-sub">${children.map(c => _esc(c.option_name || c.name)).join(' / ')} · 재고 합계 ${qty}</div>
             </div>
         </div>
