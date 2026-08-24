@@ -792,6 +792,7 @@ async function saveEstimate() {
             if (confirm('발행 완료 — 의뢰자 페이지에 결제 버튼이 활성화되었습니다.\n의뢰자 링크를 지금 복사할까요?')) copyPublicLink();
             location.reload();
         }
+        else { alert('저장되었습니다.'); }
         return;
     }
     // 실패 — 어떤 필드/예외가 문제인지 표시

@@ -169,6 +169,30 @@ class EstimatePresetTest extends TestCase
         $this->assertSame('비디오 › R 시리즈', $rows[0]['category_path']); // 계층 경로 (1차 › 2차)
     }
 
+    public function test_estimate_public_url_endpoint_for_list_copy(): void
+    {
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'service_total' => 0, 'total_amount' => 0,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $this->assertNull($estimate->share_token);
+
+        // 조회 권한(estimates.view)으로 접근 가능 — 토큰이 없으면 생성해서 반환
+        $team = Team::create(['name' => '견적조회팀', 'slug' => 'est-view2', 'permissions' => ['estimates.view']]);
+        $viewer = User::factory()->create(['role' => 'staff', 'team_id' => $team->id]);
+        $url = $this->actingAs($viewer)->getJson("/api/estimates/{$estimate->id}/public-url")
+            ->assertOk()->json('public_url');
+
+        $token = $estimate->fresh()->share_token;
+        $this->assertNotNull($token);
+        $this->assertStringContainsString($token, $url);
+
+        // 재호출 시 토큰 고정 (링크가 바뀌지 않음)
+        $again = $this->actingAs($this->admin)->getJson("/api/estimates/{$estimate->id}/public-url")->assertOk()->json('public_url');
+        $this->assertSame($url, $again);
+    }
+
     public function test_estimate_saves_manual_items_as_snapshot(): void
     {
         // 수기 품목(product_id 없음)도 견적서 product_items에 작성 시점 가격으로 저장

@@ -37,6 +37,7 @@
     .btn-act { padding:5px 11px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; border:none; transition:opacity 0.15s; }
     .btn-act:hover { opacity:0.85; }
     .btn-act-edit { background:var(--surface2); border:1px solid var(--border); color:var(--text); }
+    .btn-act-link { background:var(--surface); border:1px solid var(--border); color:var(--accent); }
     .btn-act-edit:hover { border-color:var(--accent); color:var(--accent); }
     .btn-act-print { background:var(--blue); color:#fff; }
     .btn-act-delete { background:var(--red); color:#fff; }
@@ -168,6 +169,7 @@ async function loadEstimates() {
             <td onclick="event.stopPropagation()">
                 <div class="action-cell">
                     <button class="btn-act btn-act-edit" onclick="openEstimate(${e.id})">수정</button>
+                    <button class="btn-act btn-act-link" onclick="copyEstimateLink(${e.id})" title="의뢰자용 견적서 링크 복사">🔗 링크</button>
                     <div class="print-dropdown">
                         <button class="btn-act btn-act-print" onclick="togglePrintMenu(event,${e.id})">출력 ▾</button>
                         <div class="print-dropdown-menu" id="printMenu-${e.id}">
@@ -204,9 +206,33 @@ function togglePrintMenu(e, id) {
     e.stopPropagation();
     const menu = document.getElementById(`printMenu-${id}`);
     document.querySelectorAll('.print-dropdown-menu.show').forEach(m => { if(m!==menu) m.classList.remove('show'); });
+    const willShow = !menu.classList.contains('show');
     menu.classList.toggle('show');
+    if (willShow) {
+        // 목록 카드의 overflow에 잘리지 않도록 뷰포트 기준(fixed)으로 띄운다
+        const r = e.currentTarget.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = (r.bottom + 4) + 'px';
+        menu.style.left = 'auto';
+        menu.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+    }
 }
 document.addEventListener('click', () => document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show')));
+// 스크롤하면 fixed 메뉴 위치가 어긋나므로 닫는다
+window.addEventListener('scroll', () => document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show')), true);
+
+// 의뢰자용 공개 링크 복사 — 토큰이 없으면 서버에서 생성해 받아온다
+async function copyEstimateLink(id) {
+    const res = await fetch(`/api/estimates/${id}/public-url`, { headers: H });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.public_url) { alert(d.message || '링크를 가져오지 못했습니다.'); return; }
+    try {
+        await navigator.clipboard.writeText(d.public_url);
+        alert('의뢰자용 견적서 링크가 복사되었습니다.\n카톡/문자로 전달하세요.\n\n' + d.public_url);
+    } catch (e) {
+        prompt('아래 링크를 복사하세요:', d.public_url);
+    }
+}
 
 async function exportEstimate(id, type) {
     document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show'));

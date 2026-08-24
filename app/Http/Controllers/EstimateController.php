@@ -40,6 +40,12 @@ class EstimateController extends Controller
         return response()->json($query->limit(100)->get());
     }
 
+    /** 의뢰자 공개 링크 — 목록의 링크 복사 버튼용 (토큰이 없으면 생성) */
+    public function publicLink(Estimate $estimate)
+    {
+        return response()->json(['public_url' => $estimate->publicUrl()]);
+    }
+
     public function store()
     {
         $estimate = Estimate::create([

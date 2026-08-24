@@ -393,6 +393,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/estimates', [EstimateController::class, 'index'])->name('estimates');
         Route::get('/api/estimates', [EstimateController::class, 'estimates']);
         Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
+        Route::get('/api/estimates/{estimate}/public-url', [EstimateController::class, 'publicLink']); // 목록 링크 복사용
         Route::get('/api/estimate-presets', [EstimatePresetController::class, 'index']); // 견적 프리셋 목록 (불러오기)
     });
     // 견적 프리셋 관리 (생성/수정/삭제)
