@@ -16,8 +16,9 @@
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
-    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
-    .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); }
+    /* 중간 해상도에서 셀 내용이 줄바꿈으로 깨지지 않도록 — 좁으면 카드가 가로 스크롤 */
+    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--surface2); }
     .empty-row { text-align:center; padding:40px !important; color:var(--text-muted); font-size:13px; }
@@ -34,7 +35,7 @@
     .badge-hold { background:#2a1a1a; color:#c87a7a; }
 
     .action-cell { display:flex; gap:5px; align-items:center; }
-    .btn-act { padding:5px 11px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; border:none; transition:opacity 0.15s; }
+    .btn-act { padding:5px 11px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; border:none; transition:opacity 0.15s; white-space:nowrap; }
     .btn-act:hover { opacity:0.85; }
     .btn-act-edit { background:var(--surface2); border:1px solid var(--border); color:var(--text); }
     .btn-act-link { background:var(--surface); border:1px solid var(--border); color:var(--accent); }
@@ -169,7 +170,7 @@ async function loadEstimates() {
             <td onclick="event.stopPropagation()">
                 <div class="action-cell">
                     <button class="btn-act btn-act-edit" onclick="openEstimate(${e.id})">수정</button>
-                    <button class="btn-act btn-act-link" onclick="copyEstimateLink(${e.id})" title="의뢰자용 견적서 링크 복사">🔗 링크</button>
+                    <button class="btn-act btn-act-link" onclick="copyEstimateLink(${e.id})" title="의뢰자용 견적서 링크 복사">링크</button>
                     <div class="print-dropdown">
                         <button class="btn-act btn-act-print" onclick="togglePrintMenu(event,${e.id})">출력 ▾</button>
                         <div class="print-dropdown-menu" id="printMenu-${e.id}">

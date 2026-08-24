@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -22,7 +23,7 @@ class AdminController extends Controller
         $sellerSettings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
-            'calendar_visit_options', 'project_cancel_reasons',
+            'seller_stamp_path', 'calendar_visit_options', 'project_cancel_reasons',
         ]);
 
         return view('admin.index', compact('logs', 'sellerSettings'));
@@ -48,6 +49,39 @@ class AdminController extends Controller
         }
 
         return response()->json(['message' => '저장되었습니다.']);
+    }
+
+    /** 직인 이미지 업로드 — 견적서 판매처 영역 배경으로 표시 */
+    public function uploadSellerStamp(Request $request)
+    {
+        $request->validate(
+            ['stamp' => 'required|image|mimes:png,jpg,jpeg,webp|max:2048'],
+            [],
+            ['stamp' => '직인 이미지'],
+        );
+
+        $old = Setting::get('seller_stamp_path');
+        $path = $request->file('stamp')->store('stamps');
+        if (! $path) {
+            return response()->json(['message' => '직인 저장에 실패했습니다.'], 500);
+        }
+
+        Setting::set('seller_stamp_path', $path);
+        if ($old && $old !== $path) {
+            Storage::delete($old);
+        }
+
+        return response()->json(['message' => '직인이 등록되었습니다.']);
+    }
+
+    public function deleteSellerStamp()
+    {
+        if ($old = Setting::get('seller_stamp_path')) {
+            Storage::delete($old);
+        }
+        Setting::set('seller_stamp_path', null);
+
+        return response()->json(['message' => '직인이 삭제되었습니다.']);
     }
 
     // ── 사용자 관리 ──

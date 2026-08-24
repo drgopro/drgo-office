@@ -948,6 +948,16 @@
                 <div class="field-label">대표전화</div>
                 <input class="field-input" id="sellerPhone" value="{{ $sellerSettings['seller_phone'] ?? '' }}">
             </div>
+            <div class="field-group">
+                <div class="field-label">직인 이미지 — 견적서 판매처 영역 우측에 글자 뒤 배경으로 표시됩니다 (배경 투명 PNG 권장, 2MB 이하)</div>
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <img id="stampPreview" src="{{ !empty($sellerSettings['seller_stamp_path']) ? route('seller.stamp').'?v='.substr(md5($sellerSettings['seller_stamp_path']), 0, 8) : '' }}"
+                         style="width:72px; height:72px; object-fit:contain; border:1px solid var(--border); border-radius:8px; background:#fff; {{ empty($sellerSettings['seller_stamp_path']) ? 'display:none;' : '' }}">
+                    <input type="file" id="stampFile" accept="image/png,image/jpeg,image/webp" style="font-size:12px; max-width:230px;">
+                    <button class="btn-save" style="margin:0;" onclick="uploadSellerStamp()">직인 업로드</button>
+                    <button class="btn-save" style="margin:0; background:none; border:1px solid var(--border); color:var(--red); {{ empty($sellerSettings['seller_stamp_path']) ? 'display:none;' : '' }}" id="stampDeleteBtn" onclick="deleteSellerStamp()">직인 삭제</button>
+                </div>
+            </div>
             <div style="display:flex; align-items:center;">
                 <button class="btn-save" onclick="saveSellerSettings()">저장</button>
                 <span class="save-msg" id="sellerSaveMsg">저장되었습니다.</span>
@@ -1689,6 +1699,42 @@ async function saveSellerSettings() {
     const msg = document.getElementById('sellerSaveMsg');
     msg.style.display = 'inline';
     setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+// ── 직인 이미지 ──
+async function uploadSellerStamp() {
+    const file = document.getElementById('stampFile').files[0];
+    if (!file) return alert('직인 이미지 파일을 선택해주세요.');
+    const fd = new FormData();
+    fd.append('stamp', file);
+    const res = await fetch('/api/admin/seller-stamp', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: fd,
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const detail = d.errors ? '\n' + Object.values(d.errors).flat().join('\n') : '';
+        return alert((d.message || '업로드에 실패했습니다.') + detail);
+    }
+    const img = document.getElementById('stampPreview');
+    img.src = '/seller-stamp?v=' + Date.now();
+    img.style.display = '';
+    document.getElementById('stampDeleteBtn').style.display = '';
+    document.getElementById('stampFile').value = '';
+    alert(d.message || '직인이 등록되었습니다.');
+}
+async function deleteSellerStamp() {
+    if (!confirm('직인 이미지를 삭제할까요? 견적서에서 표시되지 않게 됩니다.')) return;
+    const res = await fetch('/api/admin/seller-stamp', {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) return alert(d.message || '삭제에 실패했습니다.');
+    document.getElementById('stampPreview').style.display = 'none';
+    document.getElementById('stampDeleteBtn').style.display = 'none';
+    alert(d.message || '직인이 삭제되었습니다.');
 }
 
 // ── 내방 옵션 ──

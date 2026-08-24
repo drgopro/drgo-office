@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class EstimateController extends Controller
 {
@@ -188,10 +189,19 @@ class EstimateController extends Controller
     {
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
-            'seller_biz_type', 'seller_biz_item', 'seller_phone',
+            'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
         ]);
 
         return view('estimates.print', compact('estimate', 'settings'));
+    }
+
+    /** 직인 이미지 스트리밍 — 내부 인쇄·의뢰자 공개 견적서 공용 (토큰·로그인 불필요) */
+    public function sellerStamp()
+    {
+        $path = Setting::get('seller_stamp_path');
+        abort_if(! $path || ! Storage::exists($path), 404);
+
+        return Storage::response($path, 'seller-stamp', ['Cache-Control' => 'public, max-age=3600']);
     }
 
     /**
@@ -205,7 +215,7 @@ class EstimateController extends Controller
 
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
-            'seller_biz_type', 'seller_biz_item', 'seller_phone',
+            'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
         ]);
 
         return view('estimates.print', [
