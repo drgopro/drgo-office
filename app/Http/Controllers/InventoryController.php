@@ -200,6 +200,20 @@ class InventoryController extends Controller
 
     // === 제품 ===
 
+    /**
+     * 띄어쓰기·대소문자 무시 검색 — 'EOS R50 V'도 'r50v'로 검색되게
+     * 이름/SKU/검색태그의 공백을 제거해 비교한다 (LIKE는 collation상 대소문자 무시).
+     */
+    private function applyCompactSearch($query, string $search): void
+    {
+        $compact = '%'.str_replace(' ', '', $search).'%';
+        $query->where(function ($q) use ($compact) {
+            $q->whereRaw("REPLACE(name, ' ', '') LIKE ?", [$compact])
+                ->orWhereRaw("REPLACE(sku, ' ', '') LIKE ?", [$compact])
+                ->orWhereRaw("REPLACE(COALESCE(search_tags, ''), ' ', '') LIKE ?", [$compact]);
+        });
+    }
+
     public function products(Request $request)
     {
         // id_only=1 — 가벼운 ID 리스트만 (견적서 편집의 '삭제된 제품' 마커 판정용)
@@ -213,11 +227,7 @@ class InventoryController extends Controller
             ->where('is_active', true);
 
         if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%")
-                    ->orWhere('search_tags', 'like', "%{$search}%"); // 숨은 검색 태그
-            });
+            $this->applyCompactSearch($query, $search);
         }
 
         if ($categoryId = $request->query('category_id')) {
@@ -774,11 +784,7 @@ class InventoryController extends Controller
             ->where('show_in_estimate', true);
 
         if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%")
-                    ->orWhere('search_tags', 'like', "%{$search}%"); // 숨은 검색 태그
-            });
+            $this->applyCompactSearch($query, $search);
         }
 
         if ($categoryId = $request->query('category_id')) {
@@ -817,11 +823,7 @@ class InventoryController extends Controller
             ->where('is_active', true);
 
         if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%")
-                    ->orWhere('search_tags', 'like', "%{$search}%"); // 숨은 검색 태그
-            });
+            $this->applyCompactSearch($query, $search);
         }
 
         if ($request->query('low_stock')) {
@@ -883,11 +885,8 @@ class InventoryController extends Controller
         // 제품명/SKU 검색 (삭제된 제품 포함 — 이력 보존)
         if ($search = trim((string) $request->query('search', ''))) {
             $query->whereHas('product', function ($q) use ($search) {
-                $q->withTrashed()->where(function ($w) use ($search) {
-                    $w->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%")
-                        ->orWhere('search_tags', 'like', "%{$search}%");
-                });
+                $q->withTrashed();
+                $this->applyCompactSearch($q, $search);
             });
         }
 

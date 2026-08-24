@@ -45,6 +45,27 @@ class ProductSearchTagTest extends TestCase
         $this->assertCount(0, $none);
     }
 
+    public function test_search_ignores_spaces_and_case(): void
+    {
+        Product::create([
+            'sku' => 'AUD-002', 'name' => 'EOS R50 V', 'category' => '오디오', 'category_id' => $this->product->category_id,
+            'purchase_price' => 500000, 'sale_price' => 600000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => true,
+        ]);
+
+        // 띄어쓰기 없이 소문자로 검색해도 'EOS R50 V' 매칭
+        foreach (['r50v', 'R50V', 'eosr50 v', 'eos r50v'] as $q) {
+            $rows = $this->actingAs($this->admin)->getJson('/api/inventory/products?search='.urlencode($q))->assertOk()->json();
+            $this->assertCount(1, $rows, "검색어: {$q}");
+            $this->assertSame('EOS R50 V', $rows[0]['name'], "검색어: {$q}");
+        }
+
+        // 태그 검색도 띄어쓰기 무시 ('야마하' 태그 → '야 마하'는 아니고 공백 제거 기준)
+        $tagged = $this->actingAs($this->admin)->getJson('/api/inventory/products?search='.urlencode('오디오 믹서'))->assertOk()->json();
+        $this->assertCount(1, $tagged);
+        $this->assertSame($this->product->id, $tagged[0]['id']);
+    }
+
     public function test_tags_can_be_saved_via_product_update(): void
     {
         $this->actingAs($this->admin)->patchJson("/api/inventory/products/{$this->product->id}", [

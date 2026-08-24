@@ -299,9 +299,11 @@ function filterProducts() {
         filtered = filtered.filter(p => ids.includes(p.category_id));
     }
     if (search) {
-        filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search)
-            || (p.group_name && p.group_name.toLowerCase().includes(search)) || (p.option_name && p.option_name.toLowerCase().includes(search))
-            || (p.search_tags && p.search_tags.toLowerCase().includes(search)));
+        // 띄어쓰기·대소문자 무시 — 'EOS R50 V'도 'r50v'로 매칭
+        const norm = s => (s || '').toLowerCase().replace(/\s+/g, '');
+        const q = norm(search);
+        filtered = filtered.filter(p => norm(p.name).includes(q) || norm(p.sku).includes(q)
+            || norm(p.group_name).includes(q) || norm(p.option_name).includes(q) || norm(p.search_tags).includes(q));
     }
 
     // 옵션 그룹은 하나의 카드로 병합 — 클릭 시 옵션(블랙/화이트 등)을 골라 추가

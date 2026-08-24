@@ -1369,7 +1369,7 @@ function renderBundlePicker() {
     const q = document.getElementById('bundleSearch').value.trim().toLowerCase();
     const matches = (PICKER_PRODUCTS||[])
         .filter(p => !used.has(p.id) && p.id !== editId)
-        .filter(p => !q || (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.search_tags||'').toLowerCase().includes(q));
+        .filter(p => { const nq = q.replace(/\s+/g, ''); const nrm = s => (s||'').toLowerCase().replace(/\s+/g, ''); return !nq || nrm(p.name).includes(nq) || nrm(p.sku).includes(nq) || nrm(p.search_tags).includes(nq); });
     sel.innerHTML = matches.length
         ? '<option value="">구성품 선택…</option>' + matches.map(p => `<option value="${p.id}">${_esc(p.name)} (${_esc(p.sku)})</option>`).join('')
         : '<option value="">검색 결과 없음</option>';
@@ -1634,8 +1634,10 @@ function filterMovProductOptions() {
     const q = document.getElementById('mProductSearch').value.trim().toLowerCase();
     const sel = document.getElementById('mProduct');
     const prev = sel.value;
-    const matches = !q ? MOV_PRODUCTS : MOV_PRODUCTS.filter(p =>
-        (p.name||'').toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q) || (p.search_tags||'').toLowerCase().includes(q));
+    const nq = q.replace(/\s+/g, ''); // 띄어쓰기 무시 매칭
+    const nrm = s => (s||'').toLowerCase().replace(/\s+/g, '');
+    const matches = !nq ? MOV_PRODUCTS : MOV_PRODUCTS.filter(p =>
+        nrm(p.name).includes(nq) || nrm(p.sku).includes(nq) || nrm(p.search_tags).includes(nq));
     sel.innerHTML = matches.length
         ? matches.map(p=>`<option value="${p.id}">${p.is_bundle?'[세트] ':''}${_esc(p.name)} (${_esc(p.sku)})</option>`).join('')
         : '<option value="">검색 결과 없음</option>';
