@@ -66,11 +66,6 @@
     .est-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
     .est-tab:hover { color:var(--text); }
     .est-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
-    /* 프리셋 모달 입력 */
-    .pm-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
-    .pm-input:focus { border-color:var(--accent); }
-    .pm-result { display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:4px; cursor:pointer; font-size:12.5px; }
-    .pm-result:hover { border-color:var(--accent); }
 </style>
 @endpush
 
@@ -131,49 +126,6 @@
     </div>{{-- /tabList --}}
 </div>
 
-{{-- 프리셋 생성/수정 모달 --}}
-<div id="presetModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closePresetModal()">
-    <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(680px, 100%); max-height:85vh; display:flex; flex-direction:column;">
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border);">
-            <div style="font-size:15px; font-weight:700;" id="presetModalTitle">프리셋 만들기</div>
-            <button onclick="closePresetModal()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">×</button>
-        </div>
-        <div style="padding:14px 18px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">
-            <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프리셋 제목 *</div>
-                <input class="pm-input" id="pmTitle" placeholder="예: 스튜디오 기본 세팅">
-            </div>
-            <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">제품 검색으로 추가 <span style="opacity:0.8;">— 검색 후 Enter, 결과 클릭 시 담김</span></div>
-                <input class="pm-input" id="pmSearch" placeholder="제품명/SKU/검색태그 후 Enter" onkeydown="if(event.key==='Enter')pmSearchProducts()">
-                <div id="pmSearchResults" style="max-height:160px; overflow-y:auto; margin-top:6px;"></div>
-            </div>
-            <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">수기 품목 추가 (일회성 — 제품 관리 미등록)</div>
-                <div style="display:flex; gap:6px;">
-                    <input class="pm-input" id="pmMiCat" placeholder="카테고리" style="flex:1;">
-                    <input class="pm-input" id="pmMiName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')pmAddManual()">
-                    <input class="pm-input" id="pmMiPrice" type="number" min="0" placeholder="판매가" style="flex:1;">
-                    <button class="btn-act btn-act-edit" onclick="pmAddManual()" style="white-space:nowrap;">+ 추가</button>
-                </div>
-            </div>
-            <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">담긴 품목 <span id="pmCount"></span></div>
-                <table class="data-table" style="font-size:12.5px;">
-                    <thead><tr><th>분류</th><th>제품명</th><th class="text-right">판매가</th><th style="width:70px;">수량</th><th class="text-right">합계</th><th style="width:34px;"></th></tr></thead>
-                    <tbody id="pmItems"><tr><td colspan="6" class="empty-row" style="padding:16px;">아직 담긴 품목이 없습니다.</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-        <div style="padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-            <span id="pmTotal" style="font-weight:700;"></span>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-act" onclick="closePresetModal()" style="border:1px solid var(--border); color:var(--text-muted);">취소</button>
-                <button class="btn-primary" onclick="savePreset()" style="padding:8px 18px;">저장</button>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
 
 @push('scripts')
@@ -349,87 +301,12 @@ async function loadPresets() {
     </tr>`).join('');
 }
 
-// === 프리셋 생성/수정 모달 ===
-let pmItems = [], pmEditId = null;
+// 프리셋 만들기/수정 — 견적서 편집과 동일한 레이아웃의 새 창
 function openPresetModal(id) {
-    pmEditId = id;
-    const p = id ? PRESETS.find(x => x.id === id) : null;
-    pmItems = p ? p.items.map(i => ({ ...i })) : [];
-    document.getElementById('presetModalTitle').textContent = p ? '프리셋 수정' : '프리셋 만들기';
-    document.getElementById('pmTitle').value = p ? p.title : '';
-    document.getElementById('pmSearch').value = '';
-    document.getElementById('pmSearchResults').innerHTML = '';
-    ['pmMiCat','pmMiName','pmMiPrice'].forEach(i => document.getElementById(i).value = '');
-    renderPmItems();
-    document.getElementById('presetModalOverlay').style.display = 'flex';
+    const url = id ? `/estimate-presets/${id}/edit` : '/estimate-presets/create';
+    window.open(url, id ? `preset_${id}` : 'preset_new', 'width=1200,height=800,scrollbars=yes,resizable=yes');
 }
-function closePresetModal() { document.getElementById('presetModalOverlay').style.display = 'none'; }
 
-async function pmSearchProducts() {
-    const q = document.getElementById('pmSearch').value.trim();
-    if (!q) { document.getElementById('pmSearchResults').innerHTML = ''; return; }
-    const res = await fetch('/api/inventory/estimate-products?search=' + encodeURIComponent(q));
-    if (!res.ok) return;
-    const prods = await res.json();
-    document.getElementById('pmSearchResults').innerHTML = prods.length ? prods.map(p => {
-        const label = p.group_id && p.option_name ? `${p.group_name} (${p.option_name})` : p.name;
-        return `<div class="pm-result" onclick='pmAddProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})'>
-            <span>${_esc(label)} <span style="color:var(--text-muted); font-size:11px;">${_esc(p.sku)}</span></span>
-            <span style="color:var(--text-muted);">${fmt(p.sale_price)}원 · 재고 ${p.quantity}</span>
-        </div>`;
-    }).join('') : '<div class="empty-row" style="padding:12px;">검색 결과가 없습니다.</div>';
-}
-function pmAddProduct(p) {
-    const name = p.group_id && p.option_name ? `${p.group_name} (${p.option_name})` : p.name;
-    pmItems.push({
-        product_id: p.id, sku: p.sku, category: p.category || '기타', category_root: p.category_root || p.category || '기타', name,
-        purchase_price: p.purchase_price || 0, sale_price: Number(p.sale_price) || 0,
-        qty: 1, time_required: '', subtotal: Number(p.sale_price) || 0, manual: false,
-    });
-    renderPmItems();
-}
-function pmAddManual() {
-    const name = document.getElementById('pmMiName').value.trim();
-    if (!name) return alert('제품명을 입력해주세요.');
-    const price = Math.max(0, parseInt(document.getElementById('pmMiPrice').value) || 0);
-    const miCat = document.getElementById('pmMiCat').value.trim() || '기타';
-    pmItems.push({
-        product_id: null, sku: '', category: miCat, category_root: miCat,
-        name, purchase_price: 0, sale_price: price, qty: 1, time_required: '', subtotal: price, manual: true,
-    });
-    ['pmMiName','pmMiPrice'].forEach(i => document.getElementById(i).value = '');
-    renderPmItems();
-}
-function renderPmItems() {
-    const tb = document.getElementById('pmItems');
-    document.getElementById('pmCount').textContent = pmItems.length ? `${pmItems.length}개` : '';
-    if (!pmItems.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="empty-row" style="padding:16px;">아직 담긴 품목이 없습니다.</td></tr>';
-        document.getElementById('pmTotal').textContent = '';
-        return;
-    }
-    tb.innerHTML = pmItems.map((it, i) => `<tr>
-        <td class="text-muted">${_esc(it.category || '')}</td>
-        <td>${_esc(it.name)}${it.manual || !it.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
-        <td class="text-right"><input type="number" min="0" value="${it.sale_price}" onchange="pmItems[${i}].sale_price=Math.max(0,+this.value||0); pmItems[${i}].subtotal=pmItems[${i}].sale_price*pmItems[${i}].qty; renderPmItems();" style="width:90px; text-align:right;" class="pm-input"></td>
-        <td><input type="number" min="1" value="${it.qty}" onchange="pmItems[${i}].qty=Math.max(1,+this.value||1); pmItems[${i}].subtotal=pmItems[${i}].sale_price*pmItems[${i}].qty; renderPmItems();" style="width:58px; text-align:center;" class="pm-input"></td>
-        <td class="text-right" style="font-weight:600;">${fmt(it.subtotal)}원</td>
-        <td><button onclick="pmItems.splice(${i},1); renderPmItems();" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px;">×</button></td>
-    </tr>`).join('');
-    document.getElementById('pmTotal').textContent = '합계 ' + fmt(pmItems.reduce((s, i) => s + (i.subtotal || 0), 0)) + '원';
-}
-async function savePreset() {
-    const title = document.getElementById('pmTitle').value.trim();
-    if (!title) return alert('프리셋 제목을 입력해주세요.');
-    if (!pmItems.length) return alert('품목을 1개 이상 담아주세요.');
-    const res = await fetch(pmEditId ? `/api/estimate-presets/${pmEditId}` : '/api/estimate-presets', {
-        method: pmEditId ? 'PATCH' : 'POST', headers: H,
-        body: JSON.stringify({ title, items: pmItems }),
-    });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '저장에 실패했습니다.'); }
-    closePresetModal();
-    loadPresets();
-}
 async function deletePreset(id) {
     if (!confirm('이 프리셋을 삭제할까요? 이미 작성된 견적서에는 영향이 없습니다.')) return;
     await fetch(`/api/estimate-presets/${id}`, { method: 'DELETE', headers: H });

@@ -27,6 +27,18 @@ class EstimatePresetController extends Controller
         'items.*.manual' => 'nullable|boolean',
     ];
 
+    /** 프리셋 만들기 — 견적서 편집과 동일한 레이아웃의 새 창 */
+    public function create()
+    {
+        return view('estimates.preset-edit', ['preset' => null]);
+    }
+
+    /** 프리셋 수정 페이지 */
+    public function editPage(EstimatePreset $preset)
+    {
+        return view('estimates.preset-edit', compact('preset'));
+    }
+
     public function index(): JsonResponse
     {
         return response()->json(
