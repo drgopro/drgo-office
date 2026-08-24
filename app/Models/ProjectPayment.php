@@ -19,6 +19,8 @@ class ProjectPayment extends Model
         'items',
         'method',
         'paid_at',
+        'refund_requested_at',
+        'refunded_at',
         'memo',
         'recorded_by',
     ];
@@ -26,6 +28,8 @@ class ProjectPayment extends Model
     protected $casts = [
         'items' => 'array',
         'paid_at' => 'date:Y-m-d',
+        'refund_requested_at' => 'datetime',
+        'refunded_at' => 'datetime',
         'amount' => 'integer',
     ];
 

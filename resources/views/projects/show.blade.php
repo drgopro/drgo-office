@@ -643,6 +643,41 @@
             <div id="paymentHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
 
+        <!-- 환불 정보 수정 모달 -->
+        <div id="refundEditOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:210; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) this.style.display='none'">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(440px, 100%); padding:20px;">
+                <div style="font-size:15px; font-weight:700; margin-bottom:14px;">환불 정보 수정</div>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 금액 (원)</div>
+                        <input type="number" id="reAmount" min="1" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
+                        <input type="text" id="reMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <div style="flex:1;">
+                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 요청 일시</div>
+                            <input type="datetime-local" id="reReqAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 완료 일시</div>
+                            <input type="datetime-local" id="reDoneAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 사유</div>
+                        <textarea id="reMemo" rows="2" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+                    <button type="button" onclick="document.getElementById('refundEditOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveRefundEdit()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 환불 모달 -->
         <div id="refundModalOverlay" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) drgoModalMinimize(this, '↩ 환불 / 결제 취소', '↩')">
             <div class="modal" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto;">
@@ -679,6 +714,16 @@
                     <div>
                         <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
                         <input type="text" id="refundMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        <div style="display:flex; gap:8px; margin-top:10px;">
+                            <div style="flex:1;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 요청 일시</div>
+                                <input type="datetime-local" id="refundRequestedAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 완료 일시</div>
+                                <input type="datetime-local" id="refundedAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:space-between; padding:14px 20px; border-top:1px solid var(--border);">
@@ -2882,7 +2927,7 @@ function renderPaymentHistory() {
                     ${fullyRefunded ? '<span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    ${isCharge ? `<button onclick="editPayment(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>` : ''}
+                    ${isCharge ? `<button onclick="editPayment(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>` : `<button onclick="openRefundEdit(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>`}
                     ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'refund')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">환불</button>` : ''}
                     ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'cancel')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">결제 취소</button>` : ''}
                     <button onclick="deletePayment(${p.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
@@ -2890,6 +2935,8 @@ function renderPaymentHistory() {
             </div>
             <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
                 <span>📅 ${p.paid_at || p.created_at}</span>
+                ${!isCharge && p.refund_requested_at ? `<span>· 환불 요청 ${p.refund_requested_at}</span>` : ''}
+                ${!isCharge && p.refunded_at ? `<span>· 환불 완료 ${p.refunded_at}</span>` : ''}
                 ${p.method ? `<span>· ${_escPh(p.method)}</span>` : ''}
                 ${p.estimate_id ? `<a href="#" onclick="event.preventDefault(); window.open('/estimates/${p.estimate_id}/print', 'estimate_${p.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">· 📄 견적서 #${p.estimate_id} 보기</a>` : ''}
                 ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
@@ -2937,6 +2984,8 @@ function openRefundModal(chargeId, type) {
 
     document.getElementById('refundReason').value = '';
     document.getElementById('refundMethod').value = charge.method || '';
+    document.getElementById('refundRequestedAt').value = '';
+    document.getElementById('refundedAt').value = '';
     document.getElementById('refundModalOverlay').style.display = 'flex';
 }
 
@@ -3013,6 +3062,42 @@ function updateRefundPreview() {
     document.getElementById('refundAmountPreview').textContent = _fmtPh(amount) + '원';
 }
 
+// === 환불 정보 수정 (환불/취소 행) ===
+let __refundEditId = null;
+function openRefundEdit(id) {
+    const p = (__payments || []).find(x => x.id === id);
+    if (!p) return;
+    __refundEditId = id;
+    document.getElementById('reAmount').value = Math.abs(p.amount || 0);
+    document.getElementById('reMethod').value = p.method || '';
+    document.getElementById('reMemo').value = p.memo || '';
+    document.getElementById('reReqAt').value = p.refund_requested_at ? p.refund_requested_at.replace(' ', 'T') : '';
+    document.getElementById('reDoneAt').value = p.refunded_at ? p.refunded_at.replace(' ', 'T') : '';
+    document.getElementById('refundEditOverlay').style.display = 'flex';
+}
+async function saveRefundEdit() {
+    const amount = parseInt(document.getElementById('reAmount').value || 0);
+    if (!amount || amount < 1) return alert('환불 금액을 입력해 주세요.');
+    const body = {
+        amount,
+        method: document.getElementById('reMethod').value || null,
+        memo: document.getElementById('reMemo').value || null,
+        refund_requested_at: document.getElementById('reReqAt').value || null,
+        refunded_at: document.getElementById('reDoneAt').value || null,
+    };
+    const res = await fetch(`/api/projects/{{ $project->id }}/payments/${__refundEditId}`, {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        return alert(e.message || e.error || '저장에 실패했습니다.');
+    }
+    document.getElementById('refundEditOverlay').style.display = 'none';
+    await loadPaymentHistory();
+}
+
 async function submitRefund(type) {
     const ctx = __refundContext;
     if (!ctx) return;
@@ -3034,6 +3119,8 @@ async function submitRefund(type) {
         amount: isManual ? directAmount : null,
         reason: document.getElementById('refundReason').value || null,
         method: document.getElementById('refundMethod').value || null,
+        refund_requested_at: document.getElementById('refundRequestedAt').value || null,
+        refunded_at: document.getElementById('refundedAt').value || null,
     };
     const res = await fetch(`/api/projects/{{ $project->id }}/payments/refund`, {
         method: 'POST',

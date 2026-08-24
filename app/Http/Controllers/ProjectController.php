@@ -646,6 +646,8 @@ class ProjectController extends Controller
                 'items' => $r->items ?? [],
                 'method' => $r->method,
                 'paid_at' => $r->paid_at?->format('Y-m-d'),
+                'refund_requested_at' => $r->refund_requested_at?->format('Y-m-d H:i'),
+                'refunded_at' => $r->refunded_at?->format('Y-m-d H:i'),
                 'memo' => $r->memo,
                 'recorder' => $r->recorder?->display_name,
                 'created_at' => $r->created_at->format('Y-m-d H:i'),
@@ -769,7 +771,7 @@ class ProjectController extends Controller
             return response()->json(['error' => '해당 프로젝트의 결제가 아닙니다.'], 404);
         }
         if ($payment->type !== 'charge') {
-            return response()->json(['error' => '환불/취소 항목은 수정할 수 없습니다. 삭제 후 재처리하세요.'], 422);
+            return $this->updateRefundRow($request, $payment);
         }
 
         $validated = $request->validate([
@@ -905,6 +907,43 @@ class ProjectController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * 환불/취소 행 수정 — 금액(양수 입력, 부모 결제의 환불 가능 한도 검증)·수단·사유와
+     * 환불 요청 일시·환불 완료 일시를 수정한다.
+     */
+    private function updateRefundRow(Request $request, ProjectPayment $payment): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'nullable|integer|min:1',
+            'method' => 'nullable|string|max:50',
+            'memo' => 'nullable|string|max:1000',
+            'paid_at' => 'nullable|date',
+            'refund_requested_at' => 'nullable|date',
+            'refunded_at' => 'nullable|date',
+        ]);
+
+        if (isset($validated['amount'])) {
+            $parent = ProjectPayment::find($payment->parent_payment_id);
+            if ($parent) {
+                $otherRefunded = abs((int) ProjectPayment::where('parent_payment_id', $parent->id)
+                    ->whereIn('type', ['refund', 'cancel'])
+                    ->where('id', '!=', $payment->id)
+                    ->sum('amount'));
+                if ($parent->amount < $validated['amount'] + $otherRefunded) {
+                    $max = number_format($parent->amount - $otherRefunded);
+
+                    return response()->json(['message' => "환불 가능 금액({$max}원)을 초과합니다."], 422);
+                }
+            }
+            $validated['amount'] = -abs($validated['amount']); // 환불은 음수로 저장
+        }
+
+        $payment->update($validated);
+        $payment->billing?->refreshStatus(); // 환불 금액 변경 시 청구 잔금 재계산
+
+        return response()->json(['ok' => true, 'payment' => $payment->fresh('recorder')]);
+    }
+
     public function refundPayment(Request $request, Project $project): JsonResponse
     {
         $validated = $request->validate([
@@ -917,6 +956,8 @@ class ProjectController extends Controller
             'amount' => 'nullable|integer|min:0',
             'reason' => 'nullable|string|max:500',
             'method' => 'nullable|string|max:30',
+            'refund_requested_at' => 'nullable|date',
+            'refunded_at' => 'nullable|date',
         ]);
 
         $parent = ProjectPayment::where('project_id', $project->id)
@@ -969,6 +1010,8 @@ class ProjectController extends Controller
             'items' => $items ?: null,
             'method' => $validated['method'] ?? $parent->method,
             'paid_at' => now()->toDateString(),
+            'refund_requested_at' => $validated['refund_requested_at'] ?? null,
+            'refunded_at' => $validated['refunded_at'] ?? null,
             'memo' => $validated['reason'] ?? null,
             'recorded_by' => Auth::id(),
         ]);
