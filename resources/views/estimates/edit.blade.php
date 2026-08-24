@@ -85,8 +85,11 @@
         .cart-cat-header td:first-child { border-radius:6px 0 0 6px; }
         .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
         .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
-        .cart-cat-header .cat-sub { color:var(--slate-lt); font-weight:700; font-size:11.5px; }
         .cart-row-num { color:var(--accent); font-weight:600; }
+        /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
+        .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
+        .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
+        .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:11px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
         .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
@@ -399,7 +402,7 @@ function filterProducts() {
         <div class="product-item" onclick="addToCart(${p.id})">
             <div>
                 <div class="pi-name">${p.name}</div>
-                <div class="pi-cat">${p.sku} · ${p.category||''}</div>
+                <div class="pi-cat">${p.sku} · ${p.category_path || p.category || ''}</div>
             </div>
             <div style="text-align:right;">
                 <div class="pi-price">${fmt(p.sale_price)}원</div>
@@ -509,11 +512,10 @@ function renderCart() {
     let html = '', globalIdx = 0;
     order.forEach((cat, gIdx) => {
         const items = map[cat];
-        // 소계는 대분류 밴드 우측에 표시 (별도 소계 행 없음)
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
         html += `<tr class="cart-cat-header" data-gidx="${gIdx}">
             <td colspan="4"><span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> ${_escE(cat)}</td>
-            <td colspan="4" style="text-align:right;"><span class="cat-sub">소계 ${fmt(catTotal)}원</span><button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button></td>
+            <td colspan="4" style="text-align:right;"><button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button></td>
         </tr>`;
         items.forEach(item => {
             const idx = cartItems.indexOf(item);
@@ -535,6 +537,7 @@ function renderCart() {
                 <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
             </tr>`;
         });
+        html += `<tr class="cart-subtotal"><td colspan="6">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     });
     tb.innerHTML = html;
     updateTotals();

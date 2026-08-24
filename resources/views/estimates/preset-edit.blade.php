@@ -55,8 +55,11 @@
         .cart-cat-header td { background:var(--slate); color:#fff; font-size:12px; font-weight:700; padding:8px 10px; border-bottom:none; }
         .cart-cat-header td:first-child { border-radius:6px 0 0 6px; }
         .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
-        .cart-cat-header .cat-sub { color:var(--slate-lt); font-weight:700; font-size:11.5px; }
         .cart-row-num { color:var(--accent); font-weight:600; }
+        /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
+        .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
+        .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
+        .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .qty-ctrl { display:flex; align-items:center; gap:3px; }
         .qty-ctrl button { width:22px; height:22px; border:1px solid #9db8d4; background:var(--surface); color:var(--accent); border-radius:50%; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
         .qty-ctrl button:hover { background:var(--surface2); }
@@ -210,7 +213,7 @@ function filterProducts() {
         if (e.single) {
             const p = e.single;
             return `<div class="product-item" onclick="addToCart(${p.id})">
-                <div><div class="pi-name">${p.name}</div><div class="pi-cat">${p.sku} · ${p.category||''}</div></div>
+                <div><div class="pi-name">${p.name}</div><div class="pi-cat">${p.sku} · ${p.category_path || p.category || ''}</div></div>
                 <div style="text-align:right;"><div class="pi-price">${fmt(p.sale_price)}원</div><div class="pi-stock ${p.is_low?'low':'ok'}">재고 ${p.quantity}</div></div>
             </div>`;
         }
@@ -281,9 +284,8 @@ function renderCart() {
     });
     let html = '', globalIdx = 0;
     for (const [cat, items] of Object.entries(grouped)) {
-        // 소계는 대분류 밴드 우측에 표시 (별도 소계 행 없음)
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
-        html += `<tr class="cart-cat-header"><td colspan="3">${_escE(cat)}</td><td colspan="4" style="text-align:right;"><span class="cat-sub">소계 ${fmt(catTotal)}원</span></td></tr>`;
+        html += `<tr class="cart-cat-header"><td colspan="7">${_escE(cat)}</td></tr>`;
         items.forEach(item => {
             const idx = cartItems.indexOf(item);
             globalIdx++;
@@ -301,6 +303,7 @@ function renderCart() {
                 <td><button class="btn-remove" onclick="cartItems.splice(${idx},1); renderCart();">×</button></td>
             </tr>`;
         });
+        html += `<tr class="cart-subtotal"><td colspan="5">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     }
     tb.innerHTML = html;
     updateTotals();

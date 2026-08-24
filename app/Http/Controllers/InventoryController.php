@@ -793,10 +793,12 @@ class InventoryController extends Controller
         }
 
         $products = $query->orderBy('sku')->get()->map(function ($p) {
-            // 1차(대분류) 카테고리명 — 견적서 대분류 소계용
-            $root = $p->categoryRelation;
-            while ($root && $root->parent) {
-                $root = $root->parent;
+            // 카테고리 체인 (말단 → 1차) — 대분류 소계·계층 경로 표시용
+            $chain = [];
+            $node = $p->categoryRelation;
+            while ($node) {
+                $chain[] = $node->name;
+                $node = $node->parent;
             }
 
             return [
@@ -804,7 +806,8 @@ class InventoryController extends Controller
                 'sku' => $p->sku,
                 'name' => $p->name,
                 'category' => $p->category,
-                'category_root' => $root?->name ?? $p->category,
+                'category_root' => $chain !== [] ? end($chain) : $p->category,
+                'category_path' => $chain !== [] ? implode(' › ', array_reverse($chain)) : $p->category,
                 'category_id' => $p->category_id,
                 'sale_price' => $p->sale_price,
                 'purchase_price' => $p->purchase_price,

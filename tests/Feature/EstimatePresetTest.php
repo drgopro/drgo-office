@@ -166,6 +166,7 @@ class EstimatePresetTest extends TestCase
         $rows = $this->actingAs($this->admin)->getJson('/api/inventory/estimate-products')->assertOk()->json();
         $this->assertSame('R 시리즈', $rows[0]['category']);
         $this->assertSame('비디오', $rows[0]['category_root']);
+        $this->assertSame('비디오 › R 시리즈', $rows[0]['category_path']); // 계층 경로 (1차 › 2차)
     }
 
     public function test_estimate_saves_manual_items_as_snapshot(): void
