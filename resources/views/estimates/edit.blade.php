@@ -36,6 +36,18 @@
 
         /* 우측 — 견적서 */
         .panel-right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+        /* 최우측 — 프리셋 패널 (클릭해서 품목 담기). 마크업 위치와 무관하게 order로 최우측 고정 */
+        .panel-left { order:0; }
+        .panel-right { order:1; }
+        .panel-presets { order:2; width:210px; border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; background:var(--surface); }
+        .panel-presets-header { padding:14px 14px 10px; border-bottom:1px solid var(--border); }
+        .panel-presets-header h3 { font-size:14px; font-weight:700; }
+        .preset-list { flex:1; overflow-y:auto; padding:8px; }
+        .preset-item { padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; cursor:pointer; transition:border-color 0.1s, background 0.1s; }
+        .preset-item:hover { border-color:var(--accent); background:var(--surface2); }
+        .preset-name { font-size:12.5px; font-weight:600; line-height:1.4; word-break:keep-all; }
+        .preset-total { font-size:12px; color:var(--accent); font-weight:600; margin-top:3px; }
         .panel-right-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
         .panel-right-header h2 { font-size:16px; font-weight:700; }
         .est-status { font-size:11px; padding:3px 10px; border-radius:4px; font-weight:600; }
@@ -113,6 +125,17 @@
     <div class="product-list" id="productList"></div>
 </div>
 
+<!-- 프리셋 패널 (우측) — 클릭하면 품목이 견적서에 담김, 여러 개 눌러 조립 -->
+<div class="panel-presets">
+    <div class="panel-presets-header">
+        <h3>프리셋</h3>
+        <label style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
+            <input type="checkbox" id="presetReplaceMode" style="width:13px; height:13px;"> 불러올 때 기존 품목 비우기
+        </label>
+    </div>
+    <div class="preset-list" id="presetPanelList"><div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">로딩 중...</div></div>
+</div>
+
 <!-- 옵션 선택 팝업 (옵션 그룹 상품) -->
 <div id="optionPickerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeOptionPicker()">
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(380px, 100%); max-height:70vh; display:flex; flex-direction:column;">
@@ -173,24 +196,39 @@
 
         <!-- 장바구니 -->
         <div class="cart-section">
-            <h4>제품 항목</h4>
+            <h4 style="display:flex; align-items:center; gap:8px;">제품 항목
+                <span style="margin-left:auto;">
+                    <button class="btn-add-svc" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
+                </span>
+            </h4>
             <table class="cart-table">
                 <thead><tr><th>번호</th><th>분류</th><th>제품명</th><th>소요시간</th><th class="text-right">판매가</th><th>수량</th><th class="text-right">합계</th><th></th></tr></thead>
                 <tbody id="cartBody"><tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">좌측에서 제품을 선택하세요</td></tr></tbody>
             </table>
         </div>
 
-        <!-- 서비스 항목 -->
+        <!-- 수기 제품 추가 — 일회성 품목 (제품 관리에 등록하지 않고 견적서 데이터로만 저장) -->
         <div class="cart-section">
-            <h4>서비스 항목</h4>
+            <h4>수기 제품 추가 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 자주 취급하지 않는 제품·임의 견적용. 제품 관리에 등록되지 않고 작성 시점 가격으로 견적서에 저장됩니다</span></h4>
+            <div class="svc-row">
+                <input id="miCat" placeholder="카테고리" style="flex:1;">
+                <input id="miName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')addManualItem()">
+                <input id="miPrice" type="number" min="0" placeholder="판매가" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
+                <input id="miQty" type="number" min="1" value="1" title="수량" style="width:56px;">
+                <button class="btn-add-svc" style="width:auto; padding:6px 14px;" onclick="addManualItem()">+ 추가</button>
+            </div>
+        </div>
+
+        <!-- 서비스 항목 (구버전 견적서 호환 — 저장된 항목이 있을 때만 표시) -->
+        <div class="cart-section" id="svcSection" style="display:none;">
+            <h4>서비스 항목 <span style="color:var(--text-muted); font-weight:400;">(구버전 — 새 항목은 위의 수기 제품 추가를 사용하세요)</span></h4>
             <div id="svcList"></div>
-            <button class="btn-add-svc" onclick="addServiceItem()">+ 서비스 항목 추가</button>
         </div>
 
         <!-- 합계 -->
         <div class="total-section">
             <div class="total-row"><span>제품 소계</span><span id="productTotal">0원</span></div>
-            <div class="total-row"><span>서비스 소계</span><span id="serviceTotal">0원</span></div>
+            <div class="total-row" id="svcTotalRow" style="display:none;"><span>서비스 소계</span><span id="serviceTotal">0원</span></div>
             <div class="total-row grand"><span>총 견적 금액</span><span id="grandTotal">0원</span></div>
             <div class="total-items">총 항목 수: <span id="totalItems">0</span>개 (부가세 포함)</div>
         </div>
@@ -433,7 +471,7 @@ function renderCart() {
             html += `<tr>
                 <td>${globalIdx}</td>
                 <td style="font-size:10px; color:var(--text-muted);">${item.category||''}</td>
-                <td>${item.name}${isProductMissing(item) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
+                <td>${item.name}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:10px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}</td>
                 <td><input value="${item.time_required||''}" onchange="cartItems[${idx}].time_required=this.value" style="width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:11px; outline:none;"></td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>
@@ -468,12 +506,25 @@ function removeItem(idx) {
     renderCart();
 }
 
-// === 서비스 항목 ===
-function addServiceItem() {
-    svcItems.push({name:'', amount:0});
-    renderServices();
+// === 수기 제품 추가 — 일회성 품목 (제품 관리 미등록, 장바구니에 스냅샷으로 저장) ===
+function addManualItem() {
+    const name = document.getElementById('miName').value.trim();
+    if (!name) return alert('제품명을 입력해주세요.');
+    const price = Math.max(0, parseInt(document.getElementById('miPrice').value) || 0);
+    const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
+    cartItems.push({
+        product_id: null, sku: '', category: document.getElementById('miCat').value.trim() || '기타',
+        name, purchase_price: 0, sale_price: price, qty, time_required: '', subtotal: price * qty, manual: true,
+    });
+    ['miName','miPrice'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('miQty').value = 1;
+    renderCart();
 }
+
+// === 서비스 항목 (구버전 호환 — 저장된 항목이 있을 때만 표시/수정) ===
 function renderServices() {
+    document.getElementById('svcSection').style.display = svcItems.length ? '' : 'none';
+    document.getElementById('svcTotalRow').style.display = svcItems.length ? '' : 'none';
     const el = document.getElementById('svcList');
     el.innerHTML = svcItems.map((s, i) => `
         <div class="svc-row">
@@ -484,6 +535,56 @@ function renderServices() {
     `).join('');
     updateTotals();
 }
+
+// === 견적 프리셋 — 저장/불러오기 (여러 개 선택해 조립, 추가/교체) ===
+async function saveAsPreset() {
+    if (!cartItems.length) return alert('저장할 품목이 없습니다. 먼저 제품을 담아주세요.');
+    const title = prompt('프리셋 제목을 입력해주세요.', '');
+    if (!title || !title.trim()) return;
+    const res = await fetch('/api/estimate-presets', {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ title: title.trim(), items: cartItems }),
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '프리셋 저장에 실패했습니다.'); }
+    alert('프리셋으로 저장되었습니다. 우측 프리셋 목록과 견적서 목록의 [프리셋] 탭에서 관리할 수 있습니다.');
+    loadPresetPanel();
+}
+
+let PRESETS = [];
+async function loadPresetPanel() {
+    const res = await fetch('/api/estimate-presets', { headers: { 'Accept': 'application/json' } });
+    PRESETS = res.ok ? await res.json() : [];
+    const list = document.getElementById('presetPanelList');
+    list.innerHTML = PRESETS.length ? PRESETS.map(p => `
+        <div class="preset-item" onclick="applyPresetById(${p.id})" title="클릭하면 품목 ${p.item_count}개가 견적서에 담깁니다">
+            <div class="preset-name">${_escE(p.title)}</div>
+            <div class="preset-total">${fmt(p.total)}원</div>
+        </div>`).join('') : '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">저장된 프리셋이 없습니다.<br>품목을 담은 뒤 [현재 품목을 프리셋으로 저장]을 눌러 만들 수 있습니다.</div>';
+}
+// 프리셋 클릭 → 품목 담기. 여러 프리셋을 연속 클릭해 조립할 수 있고,
+// product_id가 살아있는 품목은 현재 판매가/이름으로 갱신 (수기·삭제 제품은 저장본 유지)
+function applyPresetById(id) {
+    const preset = PRESETS.find(p => p.id === id);
+    if (!preset) return;
+    const items = (preset.items || []).map(it => {
+        const item = { ...it };
+        const cur = it.product_id ? allProds.find(p => p.id === it.product_id) : null;
+        if (cur) {
+            item.name = cur.group_id && cur.option_name ? `${cur.group_name} (${cur.option_name})` : cur.name;
+            item.category = cur.category || item.category;
+            item.sku = cur.sku;
+            item.sale_price = Number(cur.sale_price) || 0;
+            item.purchase_price = Number(cur.purchase_price) || 0;
+        }
+        item.qty = Math.max(1, parseInt(item.qty) || 1);
+        item.subtotal = (Number(item.sale_price) || 0) * item.qty;
+        return item;
+    });
+    if (document.getElementById('presetReplaceMode').checked) { cartItems.length = 0; }
+    cartItems.push(...items);
+    renderCart();
+}
+function _escE(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // === 합계 ===
 function updateTotals() {
@@ -576,6 +677,7 @@ async function searchClients(q) {
 loadProducts();
 renderCart();
 renderServices();
+loadPresetPanel();
 
 document.addEventListener('click', e => {
     if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults').classList.remove('show');

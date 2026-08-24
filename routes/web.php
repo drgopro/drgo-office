@@ -16,6 +16,7 @@ use App\Http\Controllers\ConsultationTypeController;
 use App\Http\Controllers\CrmDemoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
+use App\Http\Controllers\EstimatePresetController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GeocodeController;
@@ -391,6 +392,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/estimates', [EstimateController::class, 'index'])->name('estimates');
         Route::get('/api/estimates', [EstimateController::class, 'estimates']);
         Route::get('/estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
+        Route::get('/api/estimate-presets', [EstimatePresetController::class, 'index']); // 견적 프리셋 목록 (불러오기)
+    });
+    // 견적 프리셋 관리 (생성/수정/삭제)
+    Route::middleware('permission:estimates.edit')->group(function () {
+        Route::post('/api/estimate-presets', [EstimatePresetController::class, 'store']);
+        Route::patch('/api/estimate-presets/{preset}', [EstimatePresetController::class, 'update']);
+        Route::delete('/api/estimate-presets/{preset}', [EstimatePresetController::class, 'destroy']);
     });
 
     // 할 일 — 담당자별 칸반 보드
