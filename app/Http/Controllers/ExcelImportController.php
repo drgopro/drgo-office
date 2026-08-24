@@ -291,8 +291,50 @@ class ExcelImportController extends Controller
         ]);
     }
 
+    /**
+     * 제품 엑셀 컬럼 유연 인식 — 템플릿 헤더가 아니어도 '재고', '재고 수량', '수량',
+     * '매입 가격' 등 키워드로 표준 키에 매핑한다 (표준 키가 이미 있으면 그대로 둠).
+     */
+    private function normalizeProductColumns(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            $k = mb_strtolower(preg_replace('/\s+/u', '', (string) $key));
+            $canon = match (true) {
+                str_contains($k, 'sku') => 'SKU',
+                str_contains($k, '제품명') || str_contains($k, '상품명') || str_contains($k, '품명') => '제품명',
+                str_contains($k, '매입') && ! str_contains($k, '처') => '매입가',
+                str_contains($k, '판매') && ! str_contains($k, '처') && ! str_contains($k, '상태') => '판매가',
+                str_contains($k, '안전') => '안전재고',
+                str_contains($k, '재고') || $k === '수량' || str_contains($k, '현재고') => '재고수량',
+                str_contains($k, '메모') || str_contains($k, '비고') => '메모',
+                str_contains($k, '카테고리1') || str_contains($k, '1차') => '카테고리1차(코드/이름)',
+                str_contains($k, '카테고리2') || str_contains($k, '2차') => '카테고리2차(코드/이름)',
+                str_contains($k, '카테고리3') || str_contains($k, '3차') => '카테고리3차(코드/이름)',
+                str_contains($k, '카테고리4') || str_contains($k, '4차') => '카테고리4차(코드/이름)',
+                default => null,
+            };
+            if ($canon !== null && ! array_key_exists($canon, $data)) {
+                $data[$canon] = $value;
+            }
+        }
+
+        return $data;
+    }
+
+    /** 셀 값 → 정수 (쉼표·'개'·'원' 등 비숫자 문자 허용). 빈 값은 null */
+    private function cellToInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $digits = preg_replace('/[^\d-]/', '', (string) $value);
+
+        return $digits === '' || $digits === '-' ? null : (int) $digits;
+    }
+
     private function importProduct(array $data, bool $autoCreate = true): bool
     {
+        $data = $this->normalizeProductColumns($data);
         $name = $data['제품명'] ?? null;
         $sku = trim((string) ($data['SKU(비우면 자동)'] ?? $data['SKU'] ?? ''));
         if (! $name) {
@@ -334,8 +376,10 @@ class ExcelImportController extends Controller
         }
 
         // 재고수량 — 빈 칸이면 건드리지 않음 (0과 구분)
-        $qtyRaw = $data['재고수량'] ?? null;
-        $qty = ($qtyRaw === null || $qtyRaw === '') ? null : max(0, (int) $qtyRaw);
+        $qty = $this->cellToInt($data['재고수량'] ?? null);
+        if ($qty !== null) {
+            $qty = max(0, $qty);
+        }
 
         // 기존 제품 매칭: SKU 우선, SKU가 비어있으면 제품명 — 재업로드 시 중복 생성 대신 업데이트
         $existing = $sku !== ''
@@ -360,8 +404,9 @@ class ExcelImportController extends Controller
                     $updates['category'] = $categoryName;
                 }
                 foreach (['매입가' => 'purchase_price', '판매가' => 'sale_price', '안전재고' => 'safety_stock'] as $col => $field) {
-                    if (($data[$col] ?? '') !== '' && $data[$col] !== null) {
-                        $updates[$field] = (int) $data[$col];
+                    $v = $this->cellToInt($data[$col] ?? null);
+                    if ($v !== null) {
+                        $updates[$field] = $v;
                     }
                 }
                 if (($data['메모'] ?? '') !== '' && $data['메모'] !== null) {
@@ -381,9 +426,9 @@ class ExcelImportController extends Controller
                 'name' => $name,
                 'category_id' => $categoryId,
                 'category' => $categoryName,
-                'purchase_price' => (int) ($data['매입가'] ?? 0),
-                'sale_price' => (int) ($data['판매가'] ?? 0),
-                'safety_stock' => (int) ($data['안전재고'] ?? 0),
+                'purchase_price' => $this->cellToInt($data['매입가'] ?? null) ?? 0,
+                'sale_price' => $this->cellToInt($data['판매가'] ?? null) ?? 0,
+                'safety_stock' => $this->cellToInt($data['안전재고'] ?? null) ?? 0,
                 'memo' => $data['메모'] ?? null,
                 'is_active' => true,
             ]);
