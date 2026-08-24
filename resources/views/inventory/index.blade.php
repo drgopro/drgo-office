@@ -78,6 +78,10 @@
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
     /* 옵션 그룹 행의 '옵션 N종' — 상품명을 가리지 않도록 무채색 */
     .badge-optcount { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:600; }
+    /* 그룹 펼침 화살표 — 제품명 앞 고정폭 자리 (자식 행은 같은 폭의 빈 칸으로 라인 정렬) */
+    .grp-toggle { display:inline-block; width:18px; color:var(--text-muted); font-size:11px; }
+    /* 자식 행 옵션명 칩 — 무채색 + 고정폭으로 제품명 시작 위치 정렬 */
+    .badge-opt { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); display:inline-block; min-width:46px; text-align:center; margin-right:8px; font-weight:600; }
     .text-muted { color:var(--text-muted); font-size:12px; } .text-right { text-align:center; } .text-warn { color:var(--red); }
     .data-table th.text-right { text-align:center; } /* 헤더도 값과 동일하게 중앙 정렬 (시세 등 숫자 컬럼) */
 
@@ -1054,8 +1058,8 @@ async function loadProducts() {
 
     const prodRowHtml = (p, child) => `<tr data-pid="${p.id}" ${child ? `data-gchild="${p.group_id}" style="${(E || expandedGroups.has(p.group_id)) ? '' : 'display:none;'} background:var(--surface2);"` : ''}>
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
-        <td class="text-muted sku-cell">${child ? '<span style="opacity:0.45;">└</span> ' : ''}${_esc(p.sku)}</td>
-        <td class="text-wrap">${child ? optionChipHtml(p) : ''}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
+        <td class="text-muted sku-cell">${_esc(p.sku)}</td>
+        <td class="text-wrap">${child ? '<span class="grp-toggle"></span>'+optionChipHtml(p) : ''}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${E ? peInput(p,'purchase_price',p.purchase_price??0) : fmt(p.purchase_price)}</td>
         <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : fmt(p.sale_price)}</td>
@@ -1079,8 +1083,8 @@ async function loadProducts() {
         const range = arr => { const mn = Math.min(...arr), mx = Math.max(...arr); return mn === mx ? fmt(mn) : fmt(mn)+'~'+fmt(mx); };
         return `<tr data-gid="${g.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button,input')) toggleGroup(${g.id})">
         <td><input type="checkbox" ${children.every(c => prodSelection.has(c.id)) ? 'checked' : ''} onchange="toggleGroupSelection(${g.id}, this.checked)" title="그룹 전체 선택"></td>
-        <td class="text-muted"><span class="grp-arrow" data-gid="${g.id}">${opened ? '▾' : '▸'}</span></td>
-        <td class="text-wrap"><b>${_esc(g.name)}</b> <span class="badge badge-optcount">옵션 ${children.length}종</span> <span class="text-muted" style="font-size:11.5px;">${children.map(c => _esc(c.option_name || c.name)).join(' / ')}</span></td>
+        <td class="text-muted sku-cell"></td>
+        <td class="text-wrap"><span class="grp-arrow grp-toggle" data-gid="${g.id}">${opened ? '▾' : '▸'}</span><b>${_esc(g.name)}</b> <span class="badge badge-optcount">옵션 ${children.length}종</span> <span class="text-muted" style="font-size:11.5px;">${children.map(c => _esc(c.option_name || c.name)).join(' / ')}</span></td>
         <td class="text-muted text-wrap">${children[0]?.category || '-'}</td>
         <td class="text-right text-muted">${range(purchases)}</td>
         <td class="text-right text-muted">${range(sales)}</td>
@@ -1153,7 +1157,7 @@ function toggleGroupSelection(gid, checked) {
 }
 function optionChipHtml(p) {
     if (!p.option_name) return '';
-    return `<span class="badge" style="background:rgba(94,129,244,0.12); color:#5e81f4; border:1px solid rgba(94,129,244,0.35); margin-right:6px;">${_esc(p.option_name)}</span>`;
+    return `<span class="badge badge-opt">${_esc(p.option_name)}</span>`;
 }
 
 // === 전체 편집 (인라인 일괄 수정) ===
