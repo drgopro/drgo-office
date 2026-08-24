@@ -2,18 +2,31 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>견적서 #{{ $estimate->id }}</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
+        :root {
+            --navy:#1d2d3d;      /* 헤더·합계 밴드 */
+            --slate:#416180;     /* 대분류 밴드·라벨 */
+            --slate-lt:#8fa8c0;  /* 네이비 위 보조 텍스트 */
+            --ink:#1d1f20;
+            --line:#e6e8ec;
+            --muted:#6b7684;
+        }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:"Pretendard Variable",Pretendard,'Malgun Gothic','Apple SD Gothic Neo',-apple-system,sans-serif; background:#fff; color:#222; font-size:13px; }
+        body {
+            font-family:"Pretendard Variable",Pretendard,'Malgun Gothic','Apple SD Gothic Neo',-apple-system,sans-serif;
+            background:#f2f2f3; color:var(--ink); font-size:13px;
+            -webkit-print-color-adjust:exact; print-color-adjust:exact;
+        }
         @media print {
-            body { padding:0; }
+            body { padding:0; background:#fff; }
             .no-print { display:none !important; }
-            @page { margin:15mm; }
+            @page { margin:12mm; }
         }
         @media screen {
-            body { padding:30px; max-width:960px; margin:0 auto; }
+            body { padding:30px 20px; max-width:1020px; margin:0 auto; }
         }
 
         .no-print-bar { position:fixed; top:0; left:0; right:0; background:#222; padding:10px 20px; display:flex; gap:10px; align-items:center; z-index:100; }
@@ -28,64 +41,79 @@
         .pay-cancelled { flex:1; max-width:420px; text-align:center; background:#f5eaea; color:#b03030; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
         .pay-print { background:none; border:1px solid #c8ccd4; color:#5a6070; padding:12px 16px; border-radius:10px; font-size:13px; cursor:pointer; }
         body.public-mode { padding-bottom:90px; }
-        /* 의뢰자용 화면은 전체 글자를 한 단계 키움 (13px → 약 15px) */
+        /* 의뢰자용 화면은 전체 글자를 한 단계 키움 */
         body.public-mode .estimate-wrap { zoom:1.15; }
         @media print { body.public-mode .estimate-wrap { zoom:1; } }
 
-        .estimate-wrap { background:#fff; }
+        .estimate-wrap { background:transparent; }
 
-        /* 헤더 */
-        .est-header { text-align:center; margin-bottom:28px; padding-bottom:16px; border-bottom:3px double #333; }
-        .est-title { font-size:26px; font-weight:800; letter-spacing:0.1em; color:#111; }
-        .est-subtitle { font-size:12px; color:#888; margin-top:6px; }
+        /* 상단 네이비 밴드 — 제목 + 작성/발행/유효 */
+        .est-band { background:var(--navy); border-radius:8px; padding:20px 24px 18px; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:16px; }
+        .est-title { font-size:32px; font-weight:700; letter-spacing:0.22em; color:#f2f2f3; }
+        .est-subtitle { font-size:11px; font-weight:600; letter-spacing:0.24em; color:var(--slate-lt); margin-top:7px; }
+        .band-meta { text-align:right; display:flex; flex-direction:column; gap:5px; font-size:12px; white-space:nowrap; }
+        .band-meta .m-label { color:var(--slate-lt); margin-right:8px; font-size:11px; letter-spacing:0.08em; font-weight:600; }
+        .band-meta .m-value { display:inline-block; background:var(--slate); color:#fff; font-weight:600; font-size:11.5px; padding:2px 9px; border-radius:4px; }
 
-        /* 상단 정보 2열 */
-        .info-cols { display:flex; gap:30px; margin-bottom:24px; }
-        .info-col { flex:1; }
-        .info-col h3 { font-size:13px; font-weight:700; color:#333; margin-bottom:12px; padding-bottom:6px; border-bottom:2px solid #333; }
+        /* 상단 정보 2박스 */
+        .info-cols { display:flex; gap:14px; margin-bottom:20px; }
+        .info-box { flex:1; border:1px solid var(--line); border-radius:8px; padding:16px 20px 14px; background:#fff; }
+        .info-box.wide { flex:1.5; }
+        .info-box h3 { font-size:11px; font-weight:700; letter-spacing:0.18em; color:var(--slate); margin-bottom:11px; }
         .info-table { width:100%; border-collapse:collapse; }
-        .info-table td { padding:5px 0; font-size:12px; vertical-align:top; }
-        .info-table .label { color:#666; width:65px; font-weight:600; }
-        .info-table .value { color:#222; }
-        .info-table .value-box { border:1px solid #ddd; padding:4px 10px; border-radius:3px; display:inline-block; min-width:140px; background:#fafafa; }
-
-        /* 유효기간 */
-        .validity-bar { background:#f8f6f2; border:1px solid #e8e0d4; border-radius:6px; padding:8px 14px; margin-bottom:20px; font-size:11px; color:#666; display:flex; justify-content:space-between; }
+        .info-table td { padding:4.5px 0; font-size:12px; vertical-align:top; }
+        .info-table .label { color:#7f94ab; width:84px; font-weight:600; }
+        .info-table .value { color:var(--ink); font-weight:600; }
 
         /* 제품 테이블 */
-        .est-table { width:100%; border-collapse:collapse; margin-bottom:4px; }
-        .est-table th { background:#f0ede8; border:1px solid #d8d0c4; padding:7px 8px; font-size:10px; font-weight:700; text-align:center; color:#555; letter-spacing:0.05em; }
-        .est-table td { border:1px solid #ddd; padding:7px 8px; font-size:11px; word-break:keep-all; }
+        .est-table { width:100%; border-collapse:separate; border-spacing:0; margin-bottom:4px; }
+        .est-table th { padding:9px 10px 11px; font-size:11px; font-weight:700; color:var(--slate); letter-spacing:0.12em; text-align:left; border-top:1px solid var(--navy); border-bottom:2px solid var(--navy); background:#fff; }
+        .est-table th.col-time, .est-table th.col-qty { text-align:center; }
+        .est-table th.col-price, .est-table th.col-total { text-align:right; }
+        .est-table td { padding:10px; font-size:12.5px; background:#fff; border-bottom:1px solid var(--line); word-break:keep-all; }
         /* 금액·수량은 줄바꿈 금지 — 제품명이 남는 폭을 모두 사용 */
         .est-table td.text-right, .est-table td.text-center { white-space:nowrap; }
-        .est-table col.col-no { width:35px; }
-        .est-table col.col-cat { width:90px; }
-        .est-table col.col-time { width:60px; }
-        .est-table col.col-price { width:90px; }
-        .est-table col.col-qty { width:40px; }
-        .est-table col.col-total { width:100px; }
-        .est-table .cat-header td { background:#f8f6f2; font-weight:700; font-size:11px; color:#555; border-left:3px solid #c8b08a; }
-        .est-table .subtotal-row td { background:#f5f3ef; font-weight:700; font-size:11px; text-align:right; }
+        .est-table col.col-no { width:44px; }
+        .est-table col.col-cat { width:120px; }
+        .est-table col.col-time { width:70px; }
+        .est-table col.col-price { width:110px; }
+        .est-table col.col-qty { width:50px; }
+        .est-table col.col-total { width:120px; }
+        .grp-gap td { background:transparent; border:none; height:12px; padding:0; }
+        .cat-header td { background:var(--slate); color:#fff; font-weight:700; font-size:12.5px; letter-spacing:0.05em; padding:9px 14px; border:none; border-radius:6px; }
+        .cell-no { color:var(--slate); font-weight:600; font-size:12px; }
+        .cell-cat { color:#4a6580; font-size:11.5px; font-weight:600; }
+        .cell-name { font-weight:600; }
+        .cell-total { font-weight:700; }
+        .subtotal-row td { background:#f2f4f6; border-bottom:1px solid #dfe3e8; padding:10px 12px; font-size:12.5px; font-weight:700; color:var(--navy); }
+        .subtotal-row .sub-label { text-align:right; letter-spacing:0.05em; border-radius:0 0 0 6px; }
+        .subtotal-row td:last-child { border-radius:0 0 6px 0; }
         .text-right { text-align:right; }
         .text-center { text-align:center; }
 
-        /* 합계 */
-        .total-wrap { margin-top:20px; text-align:right; }
-        .total-box { display:inline-block; text-align:right; }
-        .total-amount { font-size:32px; font-weight:800; color:#111; }
-        .total-amount .currency { font-size:18px; }
-        .total-label { font-size:13px; color:#666; margin-right:12px; }
-        .total-note { font-size:11px; color:#c44; margin-top:4px; }
+        /* 소요시간이 하나도 없으면 열 자체를 접는다 */
+        .est-table.no-time col.col-time { width:0; }
+        .est-table.no-time th.col-time, .est-table.no-time td.col-time {
+            padding:0; border:none; font-size:0; line-height:0; overflow:hidden;
+        }
+
+        /* 합계 네이비 밴드 */
+        .total-bar { margin-top:16px; background:var(--navy); border-radius:8px; padding:16px 22px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+        .total-bar .t-label { font-size:12px; font-weight:700; letter-spacing:0.2em; color:#f2f2f3; margin-right:12px; }
+        .total-bar .t-sub { font-size:11px; font-weight:600; color:var(--slate-lt); }
+        .total-amount { font-size:30px; font-weight:700; color:#fff; white-space:nowrap; }
+        .total-amount .currency { font-size:15px; font-weight:600; }
 
         /* 모바일 반응형 — 의뢰자가 휴대폰으로 열람할 때 */
         @media screen and (max-width: 640px) {
-            body { padding:14px 10px; }
+            body { padding:12px 8px; }
             body.public-mode .estimate-wrap { zoom:1; } /* 확대가 좁은 화면을 더 좁게 만들지 않도록 해제 */
-            .est-title { font-size:21px; }
-            .info-cols { flex-direction:column; gap:18px; }
-            .validity-bar { flex-direction:column; gap:4px; }
-            /* 좁은 화면에서는 No.·소요시간 열을 숨겨 제품명 공간 확보 */
-            /* display:none은 셀이 열 슬롯에서 빠져 뒤 셀들이 한 칸씩 밀리므로,
+            .est-band { flex-direction:column; align-items:flex-start; gap:12px; padding:16px 16px 14px; }
+            .est-title { font-size:22px; }
+            .band-meta { text-align:left; }
+            .info-cols { flex-direction:column; }
+            /* 좁은 화면에서는 No.·소요시간 열을 숨겨 제품명 공간 확보.
+               display:none은 셀이 열 슬롯에서 빠져 뒤 셀들이 한 칸씩 밀리므로,
                폭 0 + 내용 숨김으로 열을 접는다 */
             .est-table col.col-no, .est-table col.col-time { width:0; }
             .est-table th.col-no, .est-table th.col-time,
@@ -96,23 +124,23 @@
             .est-table { table-layout:fixed; }
             .est-table td { overflow-wrap:anywhere; }
             .est-table td.text-right, .est-table td.text-center { white-space:normal; }
-            .est-table th, .est-table td { padding:6px 5px; font-size:10.5px; }
+            .est-table th, .est-table td { padding:7px 5px; font-size:10.5px; }
             .est-table col.col-cat { width:56px; }
             .est-table col.col-price { width:70px; }
             .est-table col.col-qty { width:36px; }
             .est-table col.col-total { width:76px; }
-            .total-amount { font-size:24px; }
-            .total-amount .currency { font-size:14px; }
+            .total-bar { padding:13px 16px; }
+            .total-amount { font-size:21px; }
+            .total-amount .currency { font-size:12px; }
         }
-        .total-items { font-size:11px; color:#888; margin-top:2px; }
 
         /* 메모 */
-        .memo-section { margin-top:20px; padding:12px 14px; background:#f8f6f2; border-radius:6px; border:1px solid #e8e0d4; }
-        .memo-section h4 { font-size:11px; color:#888; margin-bottom:4px; }
-        .memo-section p { font-size:12px; color:#444; white-space:pre-wrap; }
+        .memo-section { margin-top:16px; padding:14px 18px; background:#f6f7f9; border-radius:10px; border:1px solid var(--line); }
+        .memo-section h4 { font-size:11px; font-weight:700; letter-spacing:0.15em; color:var(--slate); margin-bottom:6px; }
+        .memo-section p { font-size:12px; color:#3a3f45; white-space:pre-wrap; }
 
         /* 푸터 */
-        .est-footer { margin-top:30px; padding-top:16px; border-top:1px solid #ddd; text-align:center; font-size:10px; color:#aaa; }
+        .est-footer { margin-top:22px; text-align:center; font-size:10.5px; color:#9aa1ab; }
     </style>
 </head>
 <body class="{{ !empty($publicMode) ? 'public-mode' : '' }}">
@@ -146,12 +174,12 @@
 function savePNG(){
     const el=document.querySelector('.estimate-wrap');
     const pad=100; // 50px * scale2
-    html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true}).then(src=>{
+    html2canvas(el,{scale:2,backgroundColor:'#f2f2f3',useCORS:true}).then(src=>{
         const c=document.createElement('canvas');
         c.width=src.width+pad*2;
         c.height=src.height+pad*2;
         const ctx=c.getContext('2d');
-        ctx.fillStyle='#fff';
+        ctx.fillStyle='#f2f2f3';
         ctx.fillRect(0,0,c.width,c.height);
         ctx.drawImage(src,pad,pad);
         const link=document.createElement('a');
@@ -165,36 +193,40 @@ function savePNG(){
 
 <div class="estimate-wrap" style="margin-top:{{ !empty($publicMode) ? '0' : '50px' }};">
 
-    <div class="est-header">
-        <div class="est-title">견 적 서</div>
-        <div class="est-subtitle">ESTIMATE</div>
+    <div class="est-band">
+        <div>
+            <div class="est-title">견 적 서</div>
+            <div class="est-subtitle">ESTIMATE{{ !empty($settings['seller_name']) ? ' · '.$settings['seller_name'] : '' }}</div>
+        </div>
+        <div class="band-meta">
+            <div><span class="m-label">작성일</span><span class="m-value">{{ $estimate->created_at->format('Y-m-d') }}</span></div>
+            <div><span class="m-label">발행일시</span><span class="m-value">{{ $estimate->updated_at->format('Y-m-d H:i') }}</span></div>
+            <div><span class="m-label">견적유효</span><span class="m-value">발행일로부터 {{ $estimate->validity_days }}일간</span></div>
+        </div>
     </div>
 
+    @php
+        $bizLine = trim(implode(' · ', array_filter([$settings['seller_biz_type'] ?? null, $settings['seller_biz_item'] ?? null]))) ?: '-';
+    @endphp
     <div class="info-cols">
-        <div class="info-col">
+        <div class="info-box">
             <h3>주문 정보</h3>
             <table class="info-table">
-                <tr><td class="label">닉네임</td><td class="value"><span class="value-box">{{ $estimate->client_nickname ?: '-' }}</span></td></tr>
-                <tr><td class="label">이 름</td><td class="value"><span class="value-box">{{ $estimate->client_name ?: '-' }}</span></td></tr>
-                <tr><td class="label">연락처</td><td class="value"><span class="value-box">{{ $estimate->client_phone ?: '-' }}</span></td></tr>
+                <tr><td class="label">닉네임</td><td class="value">{{ $estimate->client_nickname ?: '-' }}</td></tr>
+                <tr><td class="label">이름</td><td class="value">{{ $estimate->client_name ?: '-' }}</td></tr>
+                <tr><td class="label">연락처</td><td class="value">{{ $estimate->client_phone ?: '-' }}</td></tr>
             </table>
         </div>
-        <div class="info-col">
+        <div class="info-box wide">
             <h3>판매처</h3>
             <table class="info-table">
                 <tr><td class="label">사업자번호</td><td class="value">{{ $settings['seller_biz_no'] ?? '-' }}</td></tr>
                 <tr><td class="label">상호명</td><td class="value">{{ $settings['seller_name'] ?? '-' }}</td></tr>
                 <tr><td class="label">주소</td><td class="value">{{ $settings['seller_address'] ?? '-' }}</td></tr>
-                <tr><td class="label">업태</td><td class="value">{{ $settings['seller_biz_type'] ?? '-' }}</td></tr>
-                <tr><td class="label">종목</td><td class="value">{{ $settings['seller_biz_item'] ?? '-' }}</td></tr>
+                <tr><td class="label">업태 · 종목</td><td class="value">{{ $bizLine }}</td></tr>
                 <tr><td class="label">대표전화</td><td class="value">{{ $settings['seller_phone'] ?? '-' }}</td></tr>
             </table>
         </div>
-    </div>
-
-    <div class="validity-bar">
-        <span>• 견적유효 : 발행일로부터 {{ $estimate->validity_days }}일간</span>
-        <span>작성일 : {{ $estimate->created_at->format('Y-m-d') }} | 발행일시 : {{ $estimate->updated_at->format('Y-m-d H:i') }}</span>
     </div>
 
     @php
@@ -202,9 +234,11 @@ function savePNG(){
         // 1차(대분류) 카테고리 기준 소계 — 구버전 항목은 저장된 category로 폴백
         $grouped = collect($items)->groupBy(fn ($i) => $i['category_root'] ?? $i['category'] ?? '기타');
         $services = $estimate->service_items ?? [];
+        // 소요시간이 전부 비어 있으면 열 자체를 접는다
+        $hasTime = collect($items)->contains(fn ($i) => trim((string) ($i['time_required'] ?? '')) !== '');
     @endphp
 
-    <table class="est-table">
+    <table class="est-table {{ $hasTime ? '' : 'no-time' }}">
         {{-- table-layout:fixed에서 숨김 열 폭을 확실히 제어하기 위해 colgroup으로 폭 지정 --}}
         <colgroup>
             <col class="col-no">
@@ -217,7 +251,7 @@ function savePNG(){
         </colgroup>
         <thead>
             <tr>
-                <th class="col-no">No.</th>
+                <th class="col-no">NO.</th>
                 <th class="col-cat">분류</th>
                 <th>제품명</th>
                 <th class="col-time">소요시간</th>
@@ -229,54 +263,55 @@ function savePNG(){
         <tbody>
             @php $globalIdx = 0; @endphp
             @foreach($grouped as $category => $catItems)
+                <tr class="grp-gap"><td colspan="7"></td></tr>
                 <tr class="cat-header"><td colspan="7">{{ $category ?: '기타' }}</td></tr>
                 @foreach($catItems as $item)
                     @php $globalIdx++; @endphp
                     <tr>
-                        <td class="text-center col-no">{{ $globalIdx }}</td>
-                        <td style="font-size:10px; color:#666;">{{ $item['category'] ?? '' }}</td>
-                        <td>{{ $item['name'] }}</td>
+                        <td class="cell-no col-no">{{ $globalIdx }}</td>
+                        <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
+                        <td class="cell-name">{{ $item['name'] }}</td>
                         <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
                         <td class="text-right">{{ number_format($item['sale_price']) }}원</td>
                         <td class="text-center">{{ $item['qty'] }}</td>
-                        <td class="text-right" style="font-weight:600;">{{ number_format($item['subtotal']) }}원</td>
+                        <td class="text-right cell-total">{{ number_format($item['subtotal']) }}원</td>
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
-                    <td colspan="6" style="text-align:right;">{{ $category ?: '기타' }} 소계 :</td>
+                    <td colspan="6" class="sub-label">{{ $category ?: '기타' }} 소계</td>
                     <td class="text-right">{{ number_format($catItems->sum('subtotal')) }}원</td>
                 </tr>
             @endforeach
 
             @if(count($services))
+                <tr class="grp-gap"><td colspan="7"></td></tr>
                 <tr class="cat-header"><td colspan="7">서비스</td></tr>
                 @foreach($services as $svc)
                     @php $globalIdx++; @endphp
                     <tr>
-                        <td class="text-center col-no">{{ $globalIdx }}</td>
-                        <td style="font-size:10px; color:#666;">서비스</td>
-                        <td>{{ $svc['name'] }}</td>
+                        <td class="cell-no col-no">{{ $globalIdx }}</td>
+                        <td class="cell-cat">서비스</td>
+                        <td class="cell-name">{{ $svc['name'] }}</td>
                         <td class="col-time"></td>
                         <td class="text-right">{{ number_format($svc['amount']) }}원</td>
                         <td class="text-center">1</td>
-                        <td class="text-right" style="font-weight:600;">{{ number_format($svc['amount']) }}원</td>
+                        <td class="text-right cell-total">{{ number_format($svc['amount']) }}원</td>
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
-                    <td colspan="6" style="text-align:right;">서비스 소계 :</td>
+                    <td colspan="6" class="sub-label">서비스 소계</td>
                     <td class="text-right">{{ number_format($estimate->service_total) }}원</td>
                 </tr>
             @endif
         </tbody>
     </table>
 
-    <div class="total-wrap">
-        <div class="total-box">
-            <span class="total-label">총 견적 금액</span>
-            <span class="total-amount">{{ number_format($estimate->total_amount) }}<span class="currency">원</span></span>
-            <div class="total-note">(부가세 포함)</div>
-            <div class="total-items">총 항목 수 : {{ count($items) + count($services) }}개 (수량 미포함)</div>
+    <div class="total-bar">
+        <div>
+            <span class="t-label">총 견적 금액</span>
+            <span class="t-sub">부가세 포함 · 총 {{ count($items) + count($services) }}개 항목 (수량 미포함)</span>
         </div>
+        <div class="total-amount">{{ number_format($estimate->total_amount) }}<span class="currency"> 원</span></div>
     </div>
 
     @if($estimate->memo)
@@ -287,7 +322,7 @@ function savePNG(){
     @endif
 
     <div class="est-footer">
-        {{ $settings['seller_name'] ?? '' }} | {{ $settings['seller_phone'] ?? '' }} | {{ $settings['seller_address'] ?? '' }}
+        {{ collect([$settings['seller_name'] ?? null, $settings['seller_phone'] ?? null, $settings['seller_address'] ?? null])->filter()->implode(' · ') }}
     </div>
 
 </div>
