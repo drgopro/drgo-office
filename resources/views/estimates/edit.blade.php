@@ -244,7 +244,7 @@
             <h4 style="display:flex; align-items:center; gap:8px;"><span id="cartTitle">제품 항목</span>
                 <span style="margin-left:auto;">
                     <button class="btn-add-svc" id="btnSavePreset" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
-                    <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">운송장 추가</button>
+                    <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">배송 정보</button>
                 </span>
             </h4>
             <table class="cart-table">

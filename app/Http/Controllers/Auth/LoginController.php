@@ -7,6 +7,8 @@ use App\Models\LoginLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -26,6 +28,16 @@ class LoginController extends Controller
             'password' => 'required|string',
         ]);
 
+        // 브루트포스 방어 — 계정+IP 기준 1분에 5회 실패 시 잠금
+        $throttleKey = Str::lower($request->username).'|'.$request->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return back()->withErrors([
+                'username' => "로그인 시도가 너무 많습니다. {$seconds}초 후 다시 시도해주세요.",
+            ])->onlyInput('username');
+        }
+
         $credentials = [
             'username' => $request->username,
             'password' => $request->password,
@@ -33,6 +45,7 @@ class LoginController extends Controller
         ];
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
 
             Auth::user()->update(['last_login_at' => now()]);
@@ -47,6 +60,8 @@ class LoginController extends Controller
 
             return redirect()->intended(route('dashboard'));
         }
+
+        RateLimiter::hit($throttleKey, 60);
 
         // 실패 로그
         $user = User::where('username', $request->username)->first();

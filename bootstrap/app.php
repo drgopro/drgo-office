@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TabLayout;
 use App\Services\ServerErrorNotifier;
 use Illuminate\Foundation\Application;
@@ -16,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
-        $middleware->web(append: [TabLayout::class]);
+        $middleware->web(append: [TabLayout::class, SecurityHeaders::class]);
         // 외부에서 호출되는 웹훅 — 각자 자체 검증 사용 (SMS 포워딩 토큰 / 페이앱 연동 KEY)
         $middleware->validateCsrfTokens(except: [
             'api/bank-deposits/ingest',
