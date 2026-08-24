@@ -826,6 +826,8 @@ class InventoryController extends Controller
                 // 소요시간 — use_time_required가 켜진 제품만 견적서에서 입력폼 표시
                 'time_required' => $p->time_required,
                 'use_time_required' => (bool) $p->use_time_required,
+                // 제품 메모 — 빌더 주문/배송 뷰 전용 (견적서 스냅샷에 저장하지 않아 출력물에 노출되지 않음)
+                'memo' => $p->memo,
             ];
         });
 
