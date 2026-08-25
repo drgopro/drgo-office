@@ -3264,7 +3264,7 @@ async function openEstimateInfoModal() {
         return `<label style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); cursor:pointer;">
             <input type="checkbox" value="${e.id}" ${checked?'checked':''} class="est-cb">
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600;">#${e.id} · ${pcfEsc(name)} <span style="font-size:11px; color:var(--text-muted); font-weight:400;">${e.is_linked?'★ 연결됨':''}</span></div>
+                <div style="font-size:13px; font-weight:600;">#${e.no ?? e.id} · ${pcfEsc(name)} <span style="font-size:11px; color:var(--text-muted); font-weight:400;">${e.is_linked?'★ 연결됨':''}</span></div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${(e.total_amount||0).toLocaleString()}원 · ${status} · ${e.issued_at||e.created_at||'-'} · 상품 ${e.items_summary.products}건/서비스 ${e.items_summary.services}건</div>
             </div>
             <a href="/estimates/${e.id}/edit" target="_blank" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; text-decoration:none;" onclick="event.stopPropagation();">열기 ↗</a>
@@ -3318,7 +3318,7 @@ async function openPaymentModal(prefillPayment) {
             const tag = e.is_linked ? '★' : '';
             const status = ({temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류'})[e.status] || e.status;
             const name = e.client_nickname || e.client_name || '의뢰자';
-            return `<option value="${e.id}">${tag}#${e.id} · ${pcfEsc(name)} · ${(e.total_amount||0).toLocaleString()}원 (${status})</option>`;
+            return `<option value="${e.id}">${tag}#${e.no ?? e.id} · ${pcfEsc(name)} · ${(e.total_amount||0).toLocaleString()}원 (${status})</option>`;
         }).join('');
 
     // 수정 모드: prefillPayment로 복원 / 신규(+결제 추가): 항상 빈 모달 (직전 결제 prefill 금지 — 중복 방지)

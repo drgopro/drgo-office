@@ -23,7 +23,16 @@ class Estimate extends Model
 {
     use LogsActivity;
 
+    /** 화면 표시용 번호 — 발급 전(temp)이나 구버전 행은 id로 폴백 */
+    protected $appends = ['display_no'];
+
+    public function getDisplayNoAttribute(): int
+    {
+        return $this->estimate_no ?? $this->id;
+    }
+
     protected $fillable = [
+        'estimate_no',
         'client_id',
         'project_id',
         'client_name',

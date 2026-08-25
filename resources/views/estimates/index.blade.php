@@ -159,7 +159,7 @@ async function loadEstimates() {
     tb.innerHTML = data.map(e => {
         const itemCount = (e.product_items||[]).length + (e.service_items||[]).length;
         return `<tr>
-            <td class="text-muted">#${e.id}</td>
+            <td class="text-muted">#${e.display_no ?? e.id}</td>
             <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}</td>
             <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원</td>
             <td class="text-muted">${itemCount}건</td>

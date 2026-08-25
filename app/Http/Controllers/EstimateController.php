@@ -35,7 +35,8 @@ class EstimateController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('client_name', 'like', "%{$search}%")
                     ->orWhere('client_nickname', 'like', "%{$search}%")
-                    ->orWhere('id', $search);
+                    ->orWhere('id', $search)
+                    ->orWhere('estimate_no', $search);
             });
         }
 
@@ -139,6 +140,9 @@ class EstimateController extends Controller
                 'issued_at' => $becameIssued ? now() : $estimate->issued_at,
             ]);
 
+            // 첫 실제 저장(temp 탈출) 시 표시 번호 발급 — 만들고 버린 견적서는 번호를 쓰지 않는다
+            $this->assignEstimateNo($estimate->fresh());
+
             // 발행완료로 전환 시 페이앱 결제요청 자동 생성 (실패해도 저장은 유지)
             $warning = $becameIssued ? $this->ensurePayappRequest($estimate->fresh(), $payapp) : null;
 
@@ -158,6 +162,23 @@ class EstimateController extends Controller
     }
 
     /**
+     * 표시 번호 발급 — 첫 실제 저장(temp 탈출) 때 현재 최대 번호+1.
+     * unique 제약이 동시 저장의 중복 번호를 막고, 충돌(23000)이 나면
+     * 최대값을 다시 읽어 재시도한다.
+     */
+    private function assignEstimateNo(Estimate $estimate): void
+    {
+        if ($estimate->estimate_no || $estimate->status === 'temp') {
+            return;
+        }
+
+        retry(3, function () use ($estimate) {
+            $estimate->estimate_no = (int) Estimate::max('estimate_no') + 1;
+            $estimate->saveQuietly();
+        }, 30);
+    }
+
+    /**
      * 발행완료 처리 — 의뢰자 페이지의 결제 버튼 활성화를 위해
      * 페이앱 결제요청도 자동 생성한다 (실패해도 발행은 유지, 경고만 반환).
      */
@@ -167,6 +188,7 @@ class EstimateController extends Controller
             'status' => 'issued',
             'issued_at' => now(),
         ]);
+        $this->assignEstimateNo($estimate);
 
         $warning = $this->ensurePayappRequest($estimate, $payapp);
 

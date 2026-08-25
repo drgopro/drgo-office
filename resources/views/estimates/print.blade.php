@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>견적서 #{{ $estimate->id }}</title>
+    <title>견적서 #{{ $estimate->display_no }}</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root {
@@ -171,7 +171,7 @@
     @else
         <span style="padding:8px 18px;background:#888;color:#fff;border-radius:6px;font-size:13px;font-weight:700;display:inline-block;cursor:not-allowed;">결제완료 (수정불가)</span>
     @endif
-    <span>견적서 #{{ $estimate->id }} | {{ $estimate->updated_at->format('Y-m-d H:i') }}</span>
+    <span>견적서 #{{ $estimate->display_no }} | {{ $estimate->updated_at->format('Y-m-d H:i') }}</span>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
@@ -187,7 +187,7 @@ function savePNG(){
         ctx.fillRect(0,0,c.width,c.height);
         ctx.drawImage(src,pad,pad);
         const link=document.createElement('a');
-        link.download='견적서_{{ $estimate->id }}_{{ $estimate->client_name ?? "drgo" }}.png';
+        link.download='견적서_{{ $estimate->display_no }}_{{ $estimate->client_name ?? "drgo" }}.png';
         link.href=c.toDataURL('image/png');
         link.click();
     });

@@ -312,9 +312,10 @@ class ProjectController extends Controller
         });
         $estimates = $query->orderByDesc('id')
             ->limit(50)
-            ->get(['id', 'client_name', 'client_nickname', 'total_amount', 'product_total', 'service_total', 'status', 'issued_at', 'created_at', 'product_items', 'service_items', 'project_id'])
+            ->get(['id', 'estimate_no', 'client_name', 'client_nickname', 'total_amount', 'product_total', 'service_total', 'status', 'issued_at', 'created_at', 'product_items', 'service_items', 'project_id'])
             ->map(fn ($e) => [
                 'id' => $e->id,
+                'no' => $e->display_no,
                 'client_name' => $e->client_name,
                 'client_nickname' => $e->client_nickname,
                 'total_amount' => $e->total_amount,
@@ -610,9 +611,10 @@ class ProjectController extends Controller
         $linkedEstimates = Estimate::where('project_id', $project->id)
             ->orderByDesc('id')
             ->limit(5)
-            ->get(['id', 'total_amount', 'status', 'issued_at', 'created_at'])
+            ->get(['id', 'estimate_no', 'total_amount', 'status', 'issued_at', 'created_at'])
             ->map(fn ($e) => [
                 'id' => $e->id,
+                'no' => $e->display_no,
                 'total_amount' => (int) $e->total_amount,
                 'status' => $estimateStatus[$e->status] ?? $e->status,
                 'date' => ($e->issued_at ?? $e->created_at)?->format('Y-m-d'),

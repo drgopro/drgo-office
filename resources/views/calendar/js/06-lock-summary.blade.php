@@ -419,7 +419,7 @@ async function lsLoadProjectSummary(pid){
             <div style="margin-top:8px;">
                 <div class="ls-info-label">연동 견적서</div>
                 ${p.estimates.map(e=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;">
-                    <a href="/estimates/${e.id}/edit" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">#${e.id}</a>
+                    <a href="/estimates/${e.id}/edit" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">#${e.no ?? e.id}</a>
                     <span>${fmt(e.total_amount)}원</span>
                     <span class="ls-type-pill">${_esc(e.status)}</span>
                     ${e.date?`<span style="color:var(--text-muted);font-size:11px;">${_esc(e.date)}</span>`:''}

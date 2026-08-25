@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>견적서 #{{ $estimate->id }} - 닥터고블린 오피스</title>
+    <title>{{ $estimate->estimate_no ? "견적서 #".$estimate->estimate_no : ($estimate->status === "temp" ? "새 견적서" : "견적서 #".$estimate->display_no) }} - 닥터고블린 오피스</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root, [data-theme="dark"] { --bg:#111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --red:#d48888; --green:#88d488; --blue:#8ab4c8; }
@@ -187,7 +187,7 @@
 
 <div class="panel-right">
     <div class="panel-right-header">
-        <h2>견적서 #{{ $estimate->id }}</h2>
+        <h2 id="estTitleNo">{{ $estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no }}</h2>
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
             <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">주문/배송</button>
@@ -295,7 +295,7 @@
 
     <div class="panel-right-footer">
         <span class="save-indicator" id="saveIndicator"></span>
-        <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->id }} 수정 로그')">로그</button>
+        <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
@@ -879,6 +879,11 @@ async function saveEstimate(silent = false) {
         document.getElementById('saveIndicator').textContent = '저장됨 ' + new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
         if (window.opener) try { window.opener.loadEstimates?.(); } catch(e) {}
         const d = await res.json().catch(() => ({}));
+        // 첫 저장 시 발급된 견적서 번호를 헤더/창 제목에 반영
+        if (d.display_no) {
+            document.getElementById('estTitleNo').textContent = '견적서 #' + d.display_no;
+            document.title = '견적서 #' + d.display_no + ' - 닥터고블린 오피스';
+        }
         // 발행완료 전환 시 결제요청 자동 생성 결과 안내
         if (d.payapp_warning) { alert(d.payapp_warning); }
         else if (body.status === 'issued' && d.payapp_payurl) {

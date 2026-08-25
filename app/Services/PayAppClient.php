@@ -59,7 +59,7 @@ class PayAppClient
         $count = count($estimate->product_items ?? []) + count($estimate->service_items ?? []);
         $goodname = $firstItem
             ? mb_substr($firstItem, 0, 50).($count > 1 ? ' 외 '.($count - 1).'건' : '')
-            : '견적서 #'.$estimate->id;
+            : '견적서 #'.$estimate->display_no;
 
         // http feedbackurl은 https 리다이렉트 과정에서 POST 통지가 GET으로 바뀌어
         // 결제 데이터가 유실됨 — 반드시 https로 강제

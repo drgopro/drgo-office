@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>주문/배송 운송장 - 견적서 #{{ $estimate->id }}</title>
+    <title>주문/배송 운송장 - 견적서 #{{ $estimate->display_no }}</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#6b7684; --accent:#2e6cb5; --red:#c03838; --green:#248a38; --navy:#1d2d3d; --slate:#416180; }
@@ -43,7 +43,7 @@
     </style>
 </head>
 <body>
-    <h2>주문/배송 운송장 — 견적서 #{{ $estimate->id }}</h2>
+    <h2>주문/배송 운송장 — 견적서 #{{ $estimate->display_no }}</h2>
 
     <div class="card">
         <h4>등록된 운송장
