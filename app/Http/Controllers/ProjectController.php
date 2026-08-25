@@ -236,7 +236,9 @@ class ProjectController extends Controller
             return response()->json(['message' => '변경되었습니다.']);
         }
 
-        return back()->with('success', '단계가 변경되었습니다.');
+        // back() 금지 — 알림 폴링 등 비-AJAX GET이 세션의 이전 URL을 오염시키면
+        // JSON 응답 페이지로 이동해버린다. 항상 프로젝트 상세로 명시 리다이렉트.
+        return redirect()->route('projects.show', $project)->with('success', '단계가 변경되었습니다.');
     }
 
     // 프로젝트 부분 수정 (이름, 프로젝트 개요 등)

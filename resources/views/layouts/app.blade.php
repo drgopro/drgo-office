@@ -1366,7 +1366,8 @@ let notifItems = [];
 function notifEsc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 async function notifFetch(){
     try{
-        const res = await fetch('/api/notifications', {headers:{'Accept':'application/json'}});
+        {{-- X-Requested-With: 폴링 GET이 세션의 '이전 URL'을 덮어써 back() 리다이렉트가 알림 JSON으로 가는 것을 방지 --}}
+        const res = await fetch('/api/notifications', {headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
         if(!res.ok) return;
         const d = await res.json();
         notifItems = d.items || [];
