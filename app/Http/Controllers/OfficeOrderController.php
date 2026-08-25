@@ -57,6 +57,7 @@ class OfficeOrderController extends Controller
                         'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b) => [
                             'name' => $b['name'] ?? '',
                             'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
+                            'price' => (int) ($b['price'] ?? 0), // 구성품 단가 — 부분환불 계산용 참고치
                         ])->values()->all(),
                     ])
                     ->filter(fn ($i) => $i['ordered'])

@@ -1826,7 +1826,7 @@ function renderOrders() {
                        <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
                 // 세트 항목 — 구성품(총 수량 반영)을 제품명 아래 회색으로 표시 (구성 단위 구매 확인용)
                 const bundleLine = (it.bundle_items||[]).length
-                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성: ${it.bundle_items.map(b=>`${_esc(b.name)} ×${b.qty}`).join(' · ')}</div>` : '';
+                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성: ${it.bundle_items.map(b=>`${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}`).join(' · ')}</div>` : '';
                 return `<tr style="background:var(--surface2);">
                     <td></td>
                     <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${bundleLine}</td>

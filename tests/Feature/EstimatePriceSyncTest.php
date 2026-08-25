@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Estimate;
 use App\Models\Product;
+use App\Models\ProductBundleItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -103,5 +104,43 @@ class EstimatePriceSyncTest extends TestCase
         $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk();
 
         $this->assertSame(1000000, (int) $estimate->fresh()->product_items[0]['sale_price']);
+    }
+
+    public function test_bundle_component_prices_backfilled_even_when_locked(): void
+    {
+        // 세트 + 구성품 구성
+        $mic = Product::create(['sku' => 'MIC-1', 'name' => '세트 마이크', 'category' => '오디오',
+            'purchase_price' => 10000, 'sale_price' => 20000, 'is_active' => true, 'show_in_estimate' => false]);
+        $set = Product::create(['sku' => 'SET-1', 'name' => '방송 세트', 'category' => '방송장비',
+            'purchase_price' => 0, 'sale_price' => 150000, 'is_bundle' => true, 'is_active' => true, 'show_in_estimate' => true]);
+        ProductBundleItem::create(['bundle_product_id' => $set->id, 'component_product_id' => $mic->id, 'quantity' => 2]);
+
+        // 가격 필드가 없던 구버전 스냅샷 (결제 완료 = 가격 잠금 상태)
+        $estimate = Estimate::create([
+            'status' => 'paid',
+            'product_items' => [[
+                'product_id' => $set->id, 'name' => '방송 세트', 'category' => '방송장비',
+                'sale_price' => 150000, 'qty' => 1, 'subtotal' => 150000,
+                'bundle_items' => [['name' => '세트 마이크', 'qty' => 2]],
+            ]],
+            'service_items' => [], 'product_total' => 150000, 'service_total' => 0, 'total_amount' => 150000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $origUpdated = $estimate->updated_at;
+
+        $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk();
+
+        $fresh = $estimate->fresh();
+        $item = $fresh->product_items[0];
+        // 누락된 구성품 가격은 백필, 본 품목 단가·합계·updated_at(발행일시)은 불변
+        $this->assertSame(20000, (int) $item['bundle_items'][0]['price']);
+        $this->assertSame(150000, (int) $item['sale_price']);
+        $this->assertSame(150000, (int) $fresh->total_amount);
+        $this->assertTrue($fresh->updated_at->equalTo($origUpdated));
+
+        // 잠금 상태에서 이미 기록된 구성품 가격은 제품가가 바뀌어도 불변
+        $mic->update(['sale_price' => 99000]);
+        $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk();
+        $this->assertSame(20000, (int) $estimate->fresh()->product_items[0]['bundle_items'][0]['price']);
     }
 }

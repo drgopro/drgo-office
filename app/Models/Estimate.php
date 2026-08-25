@@ -84,13 +84,13 @@ class Estimate extends Model
     /**
      * 품목 단가를 현재 제품 판매가·매입가로 동기화 (가격 잠금 상태 제외).
      * 가격 외 스냅샷 필드(이름·카테고리 등)와 수동 항목·삭제된 제품 항목은 건드리지 않는다.
+     * 잠금 상태(발행/결제/취소)에서도 세트 구성품의 '누락된' 참고 가격만은 백필한다
+     * — 부분환불 계산에 필요하지만 가격 필드 도입 전 스냅샷에는 없기 때문 (기존 값은 불변).
      * 변경이 있을 때만 저장하며, 저장 여부를 반환.
      */
     public function syncSnapshotPrices(): bool
     {
-        if (in_array($this->status, self::PRICE_LOCKED_STATUSES, true)) {
-            return false;
-        }
+        $locked = in_array($this->status, self::PRICE_LOCKED_STATUSES, true);
 
         $items = $this->product_items ?? [];
         $ids = collect($items)->pluck('product_id')->filter()->unique()->values();
@@ -98,7 +98,7 @@ class Estimate extends Model
             return false;
         }
 
-        $products = Product::whereIn('id', $ids)->get(['id', 'sale_price', 'purchase_price'])->keyBy('id');
+        $products = Product::with('bundleItems.component')->whereIn('id', $ids)->get()->keyBy('id');
         $changed = false;
         foreach ($items as &$item) {
             $product = ! empty($item['product_id']) ? $products->get($item['product_id']) : null;
@@ -108,17 +108,39 @@ class Estimate extends Model
             $newSale = (int) $product->sale_price;
             $newPurchase = (int) $product->purchase_price;
             $qty = max(1, (int) ($item['qty'] ?? 1));
-            if ((int) ($item['sale_price'] ?? 0) !== $newSale || (int) ($item['purchase_price'] ?? 0) !== $newPurchase) {
+            if (! $locked && ((int) ($item['sale_price'] ?? 0) !== $newSale || (int) ($item['purchase_price'] ?? 0) !== $newPurchase)) {
                 $item['sale_price'] = $newSale;
                 $item['purchase_price'] = $newPurchase;
                 $item['subtotal'] = $newSale * $qty;
                 $changed = true;
+            }
+            // 세트 구성품 참고 가격 — 구버전 스냅샷 백필 + 변동 반영 (부분환불 계산용).
+            // 잠금 상태에서는 이미 기록된 값은 보존하고 '누락'만 채운다.
+            if ($product->is_bundle && ! empty($item['bundle_items']) && is_array($item['bundle_items'])) {
+                $components = $product->bundleItems->keyBy(fn ($bi) => $bi->component?->name ?? '');
+                foreach ($item['bundle_items'] as $bIdx => $b) {
+                    $newPrice = (int) ($components->get($b['name'] ?? '')?->component?->sale_price ?? 0);
+                    $current = (int) ($b['price'] ?? 0);
+                    if ($newPrice > 0 && ($locked ? $current === 0 : $current !== $newPrice)) {
+                        $item['bundle_items'][$bIdx]['price'] = $newPrice;
+                        $changed = true;
+                    }
+                }
             }
         }
         unset($item);
 
         if (! $changed) {
             return false;
+        }
+
+        if ($locked) {
+            // 잠금 상태의 백필은 구성품 참고 가격만 — 합계·발행일시(updated_at)는 건드리지 않는다
+            $this->timestamps = false;
+            $this->forceFill(['product_items' => $items])->save();
+            $this->timestamps = true;
+
+            return true;
         }
 
         $productTotal = (int) collect($items)->sum('subtotal');
