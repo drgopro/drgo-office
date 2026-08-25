@@ -882,7 +882,19 @@ function applyPresetById(id) {
         return item;
     });
     if (document.getElementById('presetReplaceMode').checked) { cartItems.length = 0; }
-    cartItems.push(...items);
+    // 이미 담긴 품목은 행을 늘리지 않고 수량을 더한다 — 제품 클릭(addToCart)과 동일 동작
+    // (프리셋을 다시 누르면 같은 항목이 행으로 중복 생성되던 버그 수정)
+    items.forEach(item => {
+        const existing = item.product_id
+            ? cartItems.find(i => i.product_id === item.product_id)
+            : cartItems.find(i => !i.product_id && i.name === item.name && Number(i.sale_price) === Number(item.sale_price));
+        if (existing) {
+            existing.qty += item.qty;
+            existing.subtotal = Number(existing.sale_price) * existing.qty;
+        } else {
+            cartItems.push(item);
+        }
+    });
     renderCart();
 }
 function _escE(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
