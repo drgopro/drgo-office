@@ -80,6 +80,7 @@
         .svc-row input:focus { border-color:var(--accent); }
         .btn-add-svc { background:none; border:1px dashed var(--border); color:var(--text-muted); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
         .btn-add-svc:hover { border-color:var(--accent); color:var(--accent); }
+        #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
         .total-section { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:16px 18px; }
         .total-row { display:flex; justify-content:space-between; font-size:18px; font-weight:800; color:var(--navy); }
         .panel-right-footer { background:var(--surface); padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
@@ -121,7 +122,9 @@
 
     <div class="est-body">
         <div class="cart-section">
-            <h4>프리셋 품목</h4>
+            <h4 style="display:flex; align-items:center;">프리셋 품목
+                <button class="btn-add-svc" id="btnSortMode" style="width:auto; padding:5px 12px; margin-left:auto; letter-spacing:0;" onclick="toggleSortMode()" title="켜면 ⠿ 핸들 드래그로 항목/대분류 순서를 바꿀 수 있습니다">순서 변경</button>
+            </h4>
             <table class="cart-table">
                 <thead><tr><th>번호</th><th>분류</th><th>제품명</th><th class="text-right">판매가</th><th>수량</th><th class="text-right">합계</th><th></th></tr></thead>
                 <tbody id="cartBody"></tbody>
@@ -344,6 +347,16 @@ function addManualItem() {
     renderCart();
 }
 
+// 순서 변경 모드 — 드래그 핸들 표시 토글 (견적서 편집과 동일 설정 공유)
+let sortMode = localStorage.getItem('estSortMode') === '1';
+function toggleSortMode() {
+    sortMode = !sortMode;
+    try { localStorage.setItem('estSortMode', sortMode ? '1' : '0'); } catch (e) {}
+    document.getElementById('btnSortMode').classList.toggle('on', sortMode);
+    renderCart();
+}
+document.getElementById('btnSortMode').classList.toggle('on', sortMode);
+
 // 대분류 블록 헬퍼 — 드래그 정렬/블록 정돈 공용 (견적서 편집과 동일)
 function groupBlocks() {
     const order = [], map = {};
@@ -373,12 +386,12 @@ function renderCart() {
     order.forEach((cat, gIdx) => {
         const items = map[cat];
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
-        html += `<tr class="cart-cat-header" data-gidx="${gIdx}"><td colspan="7"><span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> ${_escE(cat)}</td></tr>`;
+        html += `<tr class="cart-cat-header" data-gidx="${gIdx}"><td colspan="7">${sortMode ? `<span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> ` : ''}${_escE(cat)}</td></tr>`;
         items.forEach(item => {
             const idx = cartItems.indexOf(item);
             globalIdx++;
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
-                <td><span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> <span class="cart-row-num">${globalIdx}</span></td>
+                <td>${sortMode ? `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> ` : ''}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
                 <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:9px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
                 <td class="text-right"><input type="number" min="0" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>

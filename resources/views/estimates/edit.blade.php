@@ -106,6 +106,7 @@
         .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:12.5px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
+        #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
         /* 세트 구성품 접기/펼치기 (빌더 전용) */
         .bundle-toggle { background:none; border:1px solid #9db8d4; color:var(--accent); border-radius:4px; font-size:10.5px; padding:0 6px; cursor:pointer; margin-left:5px; vertical-align:middle; }
         .bundle-toggle:hover { background:var(--surface2); }
@@ -262,6 +263,7 @@
         <div class="cart-section">
             <h4 style="display:flex; align-items:center; gap:8px;"><span id="cartTitle">제품 항목</span>
                 <span style="margin-left:auto;">
+                    <button class="btn-add-svc" id="btnSortMode" style="width:auto; padding:5px 12px;" onclick="toggleSortMode()" title="켜면 ⠿ 핸들 드래그로 항목/대분류 순서를 바꿀 수 있습니다 (모바일 스크롤 오작동 방지를 위해 기본 꺼짐)">순서 변경</button>
                     <button class="btn-add-svc" id="btnSavePreset" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
                     <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">배송 정보</button>
                 </span>
@@ -620,6 +622,16 @@ function rebuildFromBlocks(order, map) {
     order.forEach(c => cartItems.push(...map[c]));
 }
 
+// === 순서 변경 모드 — 드래그 핸들 표시 토글 (기본 꺼짐: 모바일 스크롤 중 오이동 방지) ===
+let sortMode = localStorage.getItem('estSortMode') === '1';
+function toggleSortMode() {
+    sortMode = !sortMode;
+    try { localStorage.setItem('estSortMode', sortMode ? '1' : '0'); } catch (e) {}
+    document.getElementById('btnSortMode').classList.toggle('on', sortMode);
+    renderCart();
+}
+document.getElementById('btnSortMode').classList.toggle('on', sortMode);
+
 // === 주문/배송 모드 — 편집 잠금 + 항목별 주문완료 체크 + 운송장 등록 ===
 let orderMode = false;
 
@@ -629,6 +641,7 @@ function toggleOrderMode() {
     document.getElementById('orderModeLabel').style.display = orderMode ? '' : 'none';
     document.getElementById('cartTitle').textContent = orderMode ? '주문/배송 현황' : '제품 항목';
     document.getElementById('btnSavePreset').style.display = orderMode ? 'none' : '';
+    document.getElementById('btnSortMode').style.display = orderMode ? 'none' : '';
     document.getElementById('btnShipments').style.display = orderMode ? '' : 'none';
     renderCart();
 }
@@ -660,7 +673,7 @@ function renderCart() {
         const items = map[cat];
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
         html += `<tr class="cart-cat-header" data-gidx="${gIdx}">
-            <td colspan="4">${orderMode ? '' : `<span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> `}${_escE(cat)}</td>
+            <td colspan="4">${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> `}${_escE(cat)}</td>
             <td colspan="4" style="text-align:right;">${orderMode ? '' : `<button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button>`}</td>
         </tr>`;
         items.forEach(item => {
@@ -686,7 +699,7 @@ function renderCart() {
             const prodMemo = orderMode && item.product_id ? (allProds.find(x => x.id === item.product_id)?.memo || '') : '';
             const memoLine = prodMemo ? `<div style="font-size:12px; color:var(--text-muted); font-weight:400; margin-top:3px; white-space:pre-line;">${_escE(prodMemo)}</div>` : '';
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
-                <td>${orderMode ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
+                <td>${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:12px; color:var(--text-muted); ${orderMode ? '' : 'cursor:pointer;'}" ${orderMode ? '' : `onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)"`}>${item.category||''}</td>
                 <td class="cell-name"><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="주문완료"' : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}</td>
                 <td>${timeCell}</td>
