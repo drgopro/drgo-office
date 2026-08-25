@@ -166,10 +166,34 @@ HTML;
         $this->assertStringContainsString('미등록', $shipment->last_event);
     }
 
-    public function test_hosted_api_used_when_api_key_configured(): void
+    public function test_self_hosted_url_preferred_over_hosted_api_key(): void
     {
+        // 셀프호스팅 URL이 있으면 API 키가 남아 있어도 셀프호스팅을 사용 (비용 0원)
         config([
             'services.delivery_tracker.url' => 'http://tracker.test',
+            'services.delivery_tracker.client_id' => 'cid123',
+            'services.delivery_tracker.client_secret' => 'sec456',
+        ]);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
+            'carrier' => 'kr.coupangls',
+            'tracking_no' => '10325790701100',
+        ])->assertCreated();
+
+        Http::assertSent(fn ($req) => str_starts_with($req->url(), 'http://tracker.test')
+            && empty($req->header('Authorization')));
+
+        $this->assertSame('delivered', $schedule->shipments()->first()->status);
+    }
+
+    public function test_hosted_api_used_when_only_api_key_configured(): void
+    {
+        config([
+            'services.delivery_tracker.url' => null,
             'services.delivery_tracker.client_id' => 'cid123',
             'services.delivery_tracker.client_secret' => 'sec456',
         ]);

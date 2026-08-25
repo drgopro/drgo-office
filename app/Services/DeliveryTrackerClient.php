@@ -34,14 +34,14 @@ class DeliveryTrackerClient
      */
     public function fetch(string $carrier, string $trackingNo): array
     {
-        // 공식 호스팅 API 키가 있으면 apis.tracker.delivery 사용, 없으면 셀프호스팅 인스턴스
+        // 셀프호스팅 우선 — DELIVERY_TRACKER_URL이 있으면 그 인스턴스를 사용 (비용 0원),
+        // 없을 때만 공식 호스팅 API(apis.tracker.delivery, 키 필요)로 폴백
         $clientId = (string) config('services.delivery_tracker.client_id');
         $clientSecret = (string) config('services.delivery_tracker.client_secret');
-        $useHosted = $clientId !== '' && $clientSecret !== '';
+        $selfUrl = rtrim((string) config('services.delivery_tracker.url'), '/');
+        $useHosted = $selfUrl === '' && $clientId !== '' && $clientSecret !== '';
 
-        $base = $useHosted
-            ? 'https://apis.tracker.delivery/graphql'
-            : rtrim((string) config('services.delivery_tracker.url'), '/');
+        $base = $selfUrl !== '' ? $selfUrl : ($useHosted ? 'https://apis.tracker.delivery/graphql' : '');
         if (! $base) {
             return ['status' => 'error', 'last_event' => '추적 서비스 미설정 (DELIVERY_TRACKER_URL 또는 API 키)', 'last_location' => null, 'delivered_at' => null, 'raw' => null];
         }

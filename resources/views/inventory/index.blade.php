@@ -1782,6 +1782,11 @@ function toggleOrderGroup(k) {
     if (expandedOrders.has(k)) expandedOrders.delete(k); else expandedOrders.add(k);
     renderOrders();
 }
+const expandedShipments = new Set(); // 운송장 펼침 상태 (견적서 id)
+function toggleShipments(id) {
+    if (expandedShipments.has(id)) expandedShipments.delete(id); else expandedShipments.add(id);
+    renderOrders();
+}
 const SHIP_ST = { delivered:['배송완료','badge-ok'], in_transit:['이동 중','badge-ordered'], out_for_delivery:['배송 출발','badge-ordered'], at_pickup:['인수','badge-ordered'], pending:['집화 전','badge-requested'], error:['조회 오류','badge-low'], unknown:['조회 전','badge-requested'] };
 function renderOrders() {
     const tb = document.getElementById('orderBody');
@@ -1823,10 +1828,12 @@ function renderOrders() {
                 </tr>`;
             }).join('');
             if (o.type === 'estimate') {
-                // 송장별 한 줄씩 + 상태 문구는 셀 안에서 줄바꿈 — 가로 스크롤 방지
-                const ships = (o.shipments||[]).map(s => {
+                // 운송장 — 기본 접힘: 개수만 표시, 클릭하면 송장별 한 줄씩 펼침 (긴 문구는 줄바꿈)
+                const shipCount = (o.shipments||[]).length;
+                const sOpen = expandedShipments.has(o.id);
+                const ships = !sOpen ? '' : (o.shipments||[]).map(s => {
                     const [label, cls] = SHIP_ST[s.status] || SHIP_ST.unknown;
-                    return `<div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:2px 0;">
+                    return `<div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:3px 0;">
                         <b style="white-space:nowrap;">${_esc(s.carrier_label)}</b>
                         <span style="white-space:nowrap;">${_esc(s.tracking_no)}</span>
                         <span class="badge ${cls}">${label}</span>
@@ -1834,11 +1841,9 @@ function renderOrders() {
                         ${s.delivered_at ? `<span class="text-muted" style="white-space:nowrap;">${s.delivered_at}</span>` : ''}
                     </div>`;
                 }).join('');
-                html += `<tr style="background:var(--surface2);"><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12px;">
-                    <div style="display:flex; gap:10px; align-items:baseline;">
-                        <span class="text-muted" style="font-weight:700; white-space:nowrap;">운송장</span>
-                        <div style="flex:1; min-width:0;">${ships || '<span class="text-muted">등록된 운송장이 없습니다 — 견적서의 배송 정보에서 추가할 수 있습니다.</span>'}</div>
-                    </div>
+                html += `<tr style="background:var(--surface2);" ${shipCount ? `onclick="toggleShipments(${o.id})"` : ''}><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12px; text-align:left; ${shipCount ? 'cursor:pointer;' : ''}">
+                    ${shipCount ? `<span class="grp-arrow">${sOpen ? '▾' : '▸'}</span><span class="text-muted" style="font-weight:700;">운송장 ${shipCount}건</span>` : '<span class="text-muted">등록된 운송장이 없습니다 — 견적서의 배송 정보에서 추가할 수 있습니다.</span>'}
+                    ${sOpen ? `<div style="margin-top:4px;">${ships}</div>` : ''}
                 </td></tr>`;
             }
         }

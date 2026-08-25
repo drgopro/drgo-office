@@ -6,14 +6,13 @@ set -euo pipefail
 # 목적: 유료 호스팅 API(apis.tracker.delivery) 대신 같은 엔진의 오픈소스
 #       추적 서버를 이 서버 안에서 직접 돌린다 (외부 API 비용 0원).
 #
-# 오피스 앱은 이미 셀프호스팅을 지원한다 (DeliveryTrackerClient):
-#   - DELIVERY_TRACKER_CLIENT_ID/SECRET 이 있으면 → 유료 호스팅 사용
-#   - 없고 DELIVERY_TRACKER_URL 만 있으면     → 셀프호스팅 사용
+# 오피스 앱은 셀프호스팅을 우선 사용한다 (DeliveryTrackerClient):
+#   - DELIVERY_TRACKER_URL 이 있으면          → 셀프호스팅 사용 (키가 남아 있어도 무시)
+#   - 없고 DELIVERY_TRACKER_CLIENT_ID/SECRET 만 있으면 → 유료 호스팅 사용
 #
 # 설치 후 Forge env 변경:
-#   1) DELIVERY_TRACKER_CLIENT_ID / DELIVERY_TRACKER_CLIENT_SECRET 삭제
-#   2) DELIVERY_TRACKER_URL=http://127.0.0.1:8150/graphql 추가
-#   3) Deploy Now → 배송 정보 창에서 '배송상태 새로고침'으로 확인
+#   1) DELIVERY_TRACKER_URL=http://127.0.0.1:8150/graphql 추가 (키 삭제는 선택)
+#   2) Deploy Now → 배송 정보 창에서 '배송상태 새로고침'으로 확인
 #
 # 사용법 (Forge 서버 SSH):
 #   bash install-delivery-tracker.sh
