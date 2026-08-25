@@ -44,6 +44,25 @@ class EstimateController extends Controller
         return response()->json($query->limit(100)->get());
     }
 
+    /** 항목별 환불 후보 목록 — 프로젝트 환불 모달이 견적서 항목을 보고 선택 (잔여 수량 포함) */
+    public function refundItems(Estimate $estimate)
+    {
+        return response()->json([
+            'estimate_id' => $estimate->id,
+            'no' => $estimate->display_no,
+            'title' => $estimate->title,
+            'items' => collect($estimate->product_items ?? [])->map(fn ($i, $idx) => [
+                'index' => $idx,
+                'name' => $i['name'] ?? '',
+                'qty' => (int) ($i['qty'] ?? 1),
+                'sale_price' => (int) ($i['sale_price'] ?? 0),
+                'refund_qty' => (int) ($i['refund_qty'] ?? 0),
+                'refund_amount' => (int) ($i['refund_amount'] ?? 0),
+                'refunded' => ! empty($i['refunded']),
+            ])->values(),
+        ]);
+    }
+
     /** 빌더 1분 자동 임시저장 — 정식 저장과 별개 스냅샷 (저장 시 비워짐) */
     public function saveDraft(Request $request, Estimate $estimate)
     {
@@ -130,6 +149,11 @@ class EstimateController extends Controller
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모
             'product_items.*.purchase_amount' => 'nullable|numeric|min:0', // 주문 내역의 구매 금액
+            // 항목별 환불/결제취소 기록 — 프로젝트 환불·주문 내역 수동 체크 (빌더 저장 시 유실 방지)
+            'product_items.*.refunded' => 'nullable|boolean',
+            'product_items.*.refund_qty' => 'nullable|integer|min:0',
+            'product_items.*.refund_amount' => 'nullable|numeric|min:0',
+            'product_items.*.refunded_at' => 'nullable|string|max:20',
             // 세트 구성품 스냅샷 — 빌더 전용 표시 (출력물·의뢰자 견적서에는 세트 한 줄만)
             'product_items.*.bundle_items' => 'nullable|array|max:50',
             'product_items.*.bundle_items.*.name' => 'required|string|max:200',

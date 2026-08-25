@@ -53,6 +53,10 @@ class OfficeOrderController extends Controller
                         'purchase_source' => $i['purchase_source'] ?? '',
                         'memo' => $i['order_memo'] ?? '',
                         'ordered' => ! empty($i['ordered']),
+                        // 환불/결제취소 기록 — 수동 체크 + 프로젝트 환불 연동 공용
+                        'refunded' => ! empty($i['refunded']),
+                        'refund_amount' => (int) ($i['refund_amount'] ?? 0),
+                        'sale_subtotal' => (int) ($i['subtotal'] ?? 0), // 환불액 기본값(판매가 합계) 참고용
                         // 세트 구성품 — 세트 주문완료 시 구성 단위 구매 확인용
                         'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b) => [
                             'name' => $b['name'] ?? '',
@@ -155,6 +159,8 @@ class OfficeOrderController extends Controller
             'amount' => 'nullable|numeric|min:0', // 구매 금액 (빈 값이면 미기록으로 초기화)
             'purchase_source' => 'nullable|string|max:100',
             'memo' => 'nullable|string|max:500',
+            'refunded' => 'nullable|boolean', // 환불/결제취소 수동 체크
+            'refund_amount' => 'nullable|numeric|min:0',
         ]);
 
         $items = $estimate->product_items ?? [];
@@ -168,6 +174,17 @@ class OfficeOrderController extends Controller
             $items[$validated['index']]['purchase_amount'] = (int) $validated['amount'];
         } else {
             unset($items[$validated['index']]['purchase_amount']);
+        }
+        // 환불/결제취소 수동 체크 — refunded 키가 요청에 있을 때만 갱신 (해제 시 기록 초기화)
+        if ($request->has('refunded')) {
+            if ($request->boolean('refunded')) {
+                $items[$validated['index']]['refunded'] = true;
+                $items[$validated['index']]['refund_amount'] = (int) ($validated['refund_amount'] ?? 0);
+                $items[$validated['index']]['refunded_at'] = $items[$validated['index']]['refunded_at'] ?? now()->format('Y-m-d H:i');
+            } else {
+                unset($items[$validated['index']]['refunded'], $items[$validated['index']]['refund_amount'],
+                    $items[$validated['index']]['refund_qty'], $items[$validated['index']]['refunded_at']);
+            }
         }
         $estimate->forceFill(['product_items' => $items])->save();
 

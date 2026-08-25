@@ -154,6 +154,39 @@ class Estimate extends Model
     }
 
     /**
+     * 항목별 환불/결제취소 기록 — 프로젝트 환불 처리·주문 내역 수동 체크가 호출.
+     * refunds: [{index:int, qty:int, amount:int}] — 해당 스냅샷 항목에 누적 기록.
+     * 금액 원장은 ProjectPayment가 담당하므로 여기서는 표시용 기록만 남기며,
+     * 발행일시(updated_at)와 품목 단가·합계는 건드리지 않는다.
+     *
+     * @param  array<int, array{index:int, qty?:int, amount?:int}>  $refunds
+     */
+    public function applyItemRefunds(array $refunds): bool
+    {
+        $items = $this->product_items ?? [];
+        $changed = false;
+        foreach ($refunds as $r) {
+            $idx = (int) ($r['index'] ?? -1);
+            if (! array_key_exists($idx, $items)) {
+                continue;
+            }
+            $items[$idx]['refunded'] = true;
+            $items[$idx]['refund_qty'] = (int) ($items[$idx]['refund_qty'] ?? 0) + max(0, (int) ($r['qty'] ?? 0));
+            $items[$idx]['refund_amount'] = (int) ($items[$idx]['refund_amount'] ?? 0) + max(0, (int) ($r['amount'] ?? 0));
+            $items[$idx]['refunded_at'] = now()->format('Y-m-d H:i');
+            $changed = true;
+        }
+        if (! $changed) {
+            return false;
+        }
+        $this->timestamps = false;
+        $this->forceFill(['product_items' => $items])->save();
+        $this->timestamps = true;
+
+        return true;
+    }
+
+    /**
      * 의뢰자에게 전달하는 공개 견적서 링크.
      * 순번 ID 대신 난수 토큰(64자)을 사용해 주소 조작으로 다른 견적서를
      * 열람할 수 없다. 토큰은 최초 호출 시 생성 후 고정.

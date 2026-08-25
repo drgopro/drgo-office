@@ -1817,19 +1817,25 @@ function renderOrders() {
         if (open) {
             html += (o.items||[]).map(it => {
                 const noteCells = o.type === 'estimate'
-                    ? `<td colspan="3"><div style="display:flex; gap:6px; align-items:center;">
+                    ? `<td colspan="3"><div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                        <input class="oi-amt field-input" type="number" min="0" style="padding:6px 9px; font-size:12px; width:118px; text-align:right;" placeholder="${it.default_amount ? fmt(it.default_amount) : '구매 금액'}" title="구매 금액 (비우면 미기록 — 흐린 값은 매입가×수량 참고치)" value="${it.amount ?? ''}" onclick="event.stopPropagation()">
                        <input class="oi-src field-input" style="padding:6px 9px; font-size:12px; width:130px;" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()">
                        <input class="oi-memo field-input" style="padding:6px 9px; font-size:12px; flex:1; min-width:80px;" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
+                       <label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; white-space:nowrap; cursor:pointer;" title="환불/결제취소 수동 체크 — 프로젝트에서 환불 처리하면 자동으로 표시됩니다" onclick="event.stopPropagation()">
+                           <input type="checkbox" class="oi-ref" ${it.refunded ? 'checked' : ''} onchange="this.closest('td').querySelector('.oi-refamt').style.display=this.checked?'':'none'">환불/취소</label>
+                       <input class="oi-refamt field-input" type="number" min="0" style="padding:6px 9px; font-size:12px; width:110px; text-align:right; ${it.refunded ? '' : 'display:none;'}" placeholder="${it.sale_subtotal ? fmt(it.sale_subtotal) : '환불액'}" title="환불 금액 (판매가 합계: ${fmt(it.sale_subtotal||0)}원)" value="${it.refunded && it.refund_amount ? it.refund_amount : ''}" onclick="event.stopPropagation()">
                        <button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button></div></td>`
                     : `<td class="text-right">${it.amount != null ? fmt(it.amount)+'원' : '<span class="text-muted">-</span>'}</td>
                        <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
                 // 세트 항목 — 구성품(총 수량 반영)을 제품명 아래 회색으로 표시 (구성 단위 구매 확인용)
+                // 세트 구성 — 한 줄씩 세로 나열
                 const bundleLine = (it.bundle_items||[]).length
-                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성: ${it.bundle_items.map(b=>`${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}`).join(' · ')}</div>` : '';
+                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map(b=>`<div style="padding:1px 0 0 10px;">└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}</div>`).join('')}</div>` : '';
+                const refundBadge = it.refunded
+                    ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
                 return `<tr style="background:var(--surface2);">
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${bundleLine}</td>
+                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${bundleLine}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
                 </tr>`;
@@ -1864,18 +1870,25 @@ function renderOrders() {
 async function saveEstimateItemNote(estimateId, index, btn) {
     const tr = btn.closest('tr');
     const amtRaw = tr.querySelector('.oi-amt').value.trim();
+    const refunded = tr.querySelector('.oi-ref').checked;
+    const refAmtRaw = tr.querySelector('.oi-refamt').value.trim();
     const body = {
         index,
         amount: amtRaw === '' ? null : Math.max(0, parseInt(amtRaw) || 0),
         purchase_source: tr.querySelector('.oi-src').value.trim(),
         memo: tr.querySelector('.oi-memo').value.trim(),
+        refunded,
+        refund_amount: refunded && refAmtRaw !== '' ? Math.max(0, parseInt(refAmtRaw) || 0) : null,
     };
     const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
     if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
     // 로컬 데이터에도 반영 — 재렌더 시 값·합계 유지
     const row = ORDER_ROWS.find(o => o.type === 'estimate' && o.id === estimateId);
     const item = row?.items.find(i => i.index === index);
-    if (item) { item.amount = body.amount; item.purchase_source = body.purchase_source; item.memo = body.memo; }
+    if (item) {
+        item.amount = body.amount; item.purchase_source = body.purchase_source; item.memo = body.memo;
+        item.refunded = refunded; item.refund_amount = body.refund_amount || 0;
+    }
     btn.textContent = '저장됨';
     setTimeout(() => { btn.textContent = '저장'; renderOrders(); }, 900);
 }

@@ -971,6 +971,7 @@ class ProjectController extends Controller
             'items.*.name' => 'nullable|string|max:200',
             'items.*.qty' => 'nullable|integer|min:0',
             'items.*.price' => 'nullable|integer|min:0',
+            'items.*.estimate_item_index' => 'nullable|integer|min:0', // 견적서 항목 연동 — 스냅샷에 환불 기록
             'amount' => 'nullable|integer|min:0',
             'reason' => 'nullable|string|max:500',
             'method' => 'nullable|string|max:30',
@@ -1034,6 +1035,20 @@ class ProjectController extends Controller
             'recorded_by' => Auth::id(),
         ]);
         $row->billing?->refreshStatus();
+
+        // 견적서 연동 — 선택된 견적서 항목에 환불 기록 (어떤 항목을 얼마 환불했는지 표시용)
+        if ($parent->estimate_id) {
+            $refunds = collect($items)
+                ->filter(fn ($i) => isset($i['estimate_item_index']))
+                ->map(fn ($i) => [
+                    'index' => (int) $i['estimate_item_index'],
+                    'qty' => (int) ($i['qty'] ?? 0),
+                    'amount' => ((int) ($i['qty'] ?? 1)) * ((int) ($i['price'] ?? 0)),
+                ])->values()->all();
+            if ($refunds !== []) {
+                Estimate::find($parent->estimate_id)?->applyItemRefunds($refunds);
+            }
+        }
 
         return response()->json([
             'ok' => true,

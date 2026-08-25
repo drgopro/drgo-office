@@ -2947,30 +2947,54 @@ function renderPaymentHistory() {
     }).join('');
 }
 
-function openRefundModal(chargeId, type) {
+async function openRefundModal(chargeId, type) {
     const charge = __payments.find(p => p.id === chargeId);
     if (!charge) return alert('결제 정보를 찾을 수 없습니다.');
 
     // 환불 가능 잔여액
     const refundable = charge.amount - charge.refunded_amount;
 
-    // 환불할 항목 후보 (charge.items 그대로, qty는 환불 가능 max로)
-    // 추후 견적서 연동 시 source_estimate_item_id가 있으면 표기
-    const items = (charge.items || []).map(it => ({
+    // 환불할 항목 후보 — 기본은 charge.items
+    let items = (charge.items || []).map(it => ({
         name: it.name || '항목',
         qty: it.qty || 1,
         price: it.price || 0,
         maxQty: it.qty || 1,
         checked: false,
-        source_estimate_item_id: it.source_estimate_item_id || null,
+        estimate_item_index: it.estimate_item_index ?? null,
     }));
+    let sourceLabel = '';
+
+    // 견적서 연동 결제 — 견적서 항목을 그대로 보고 선택 (기환불 수량 차감, 환불 시 견적서에도 기록)
+    if (charge.estimate_id) {
+        try {
+            const res = await fetch(`/api/estimates/${charge.estimate_id}/refund-items`, { headers: { 'Accept': 'application/json' } });
+            if (res.ok) {
+                const d = await res.json();
+                const estItems = (d.items || []).map(it => ({
+                    name: it.name,
+                    qty: Math.max(1, it.qty - it.refund_qty),
+                    price: it.sale_price,
+                    maxQty: Math.max(0, it.qty - it.refund_qty),
+                    checked: false,
+                    estimate_item_index: it.index,
+                    refundedNote: it.refund_qty > 0 || it.refund_amount > 0
+                        ? `기환불 ${it.refund_qty > 0 ? it.refund_qty + '개 · ' : ''}${_fmtPh(it.refund_amount)}원` : '',
+                })).filter(it => it.maxQty > 0);
+                if (estItems.length) {
+                    items = estItems;
+                    sourceLabel = ` · 견적서 #${d.no} 항목`;
+                }
+            }
+        } catch (e) {}
+    }
     __refundContext = { chargeId, type, charge, refundable, items, manualMode: !items.length };
 
     document.getElementById('refundModalTitle').textContent = type === 'cancel' ? '⚠ 결제 취소' : '↩ 환불';
     document.getElementById('refundChargeMeta').innerHTML = `
         원 결제: <b style="color:var(--accent);">${_fmtPh(charge.amount)}원</b> (${charge.paid_at || charge.created_at})
         · 환불 가능 잔여: <b style="color:var(--red);">${_fmtPh(refundable)}원</b>
-        ${charge.method ? '· ' + _escPh(charge.method) : ''}
+        ${charge.method ? '· ' + _escPh(charge.method) : ''}${_escPh(sourceLabel)}
     `;
     // 항목이 없으면 수기 입력 모드만 활성화
     const hasItems = items.length > 0;
@@ -3027,7 +3051,7 @@ function renderRefundItems() {
     wrap.innerHTML = ctx.items.map((it, i) => {
         return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
             <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
-            <div style="flex:1; font-size:13px;">${_escPh(it.name)}</div>
+            <div style="flex:1; font-size:13px;">${_escPh(it.name)}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
                 <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
@@ -3104,7 +3128,7 @@ async function submitRefund(type) {
     const isManual = ctx.manualMode;
     const selectedItems = isManual ? [] : ctx.items.filter(it => it.checked).map(it => ({
         name: it.name, qty: it.qty, price: it.price,
-        source_estimate_item_id: it.source_estimate_item_id,
+        estimate_item_index: it.estimate_item_index ?? null,
     }));
     const directAmount = isManual ? parseInt(document.getElementById('refundManualAmount').value || 0) : 0;
 
