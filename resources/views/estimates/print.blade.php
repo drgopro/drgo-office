@@ -148,19 +148,34 @@
         .memo-section h4 { font-size:11px; font-weight:700; letter-spacing:0.15em; color:var(--slate); margin-bottom:6px; }
         .memo-section p { font-size:12px; color:#3a3f45; white-space:pre-wrap; }
 
+        /* 환불/결제취소 표시 — 문서 기록의 일부라 인쇄에도 포함 */
+        .refund-tag { display:inline-block; margin-left:6px; font-size:10px; font-weight:700; color:#b03030; border:1px solid #b03030; border-radius:3px; padding:0 5px; vertical-align:1px; white-space:nowrap; }
+        .refund-detail { margin-top:3px; font-size:10.5px; color:#b03030; }
+        .refund-detail div { padding-top:1px; }
+        .refund-bar { margin-top:10px; background:#f5eaea; border:1px solid #e3c9c9; border-radius:8px; padding:12px 22px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+        .refund-bar .t-label { font-size:12px; font-weight:700; letter-spacing:0.2em; color:#b03030; margin-right:12px; }
+        .refund-bar .t-sub { font-size:11px; font-weight:600; color:#b98686; }
+        .refund-amount { font-size:22px; font-weight:700; color:#b03030; white-space:nowrap; }
+        .refund-amount .currency { font-size:13px; font-weight:600; }
+
         /* 푸터 */
         .est-footer { margin-top:22px; text-align:center; font-size:10.5px; color:#9aa1ab; }
     </style>
 </head>
 <body class="{{ !empty($publicMode) ? 'public-mode' : '' }}">
 
+@php
+    // 환불/결제취소 합계 — 항목별 환불 기록(세트 구성품 환불 포함, 부모에 합산됨)
+    $refundTotal = collect($estimate->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
+@endphp
+
 @if(!empty($publicMode))
 {{-- 의뢰자용 하단 결제 바 --}}
 <div class="pay-bar no-print">
     @if($estimate->status === 'paid')
-        <span class="pay-done">✅ 결제가 완료되었습니다. 감사합니다!</span>
+        <span class="pay-done">✅ 결제가 완료되었습니다. 감사합니다!{{ $refundTotal > 0 ? ' (일부 환불 '.number_format($refundTotal).'원)' : '' }}</span>
     @elseif($estimate->status === 'cancelled')
-        <span class="pay-cancelled">⛔ 결제가 취소된 견적서입니다</span>
+        <span class="pay-cancelled">⛔ 결제가 취소된 견적서입니다{{ $refundTotal > 0 ? ' · 환불 '.number_format($refundTotal).'원' : '' }}</span>
     @elseif($estimate->status === 'issued' && $estimate->payapp_payurl)
         {{-- 결제 버튼은 발행완료 단계에서만 노출 --}}
         <a class="pay-btn" href="{{ $estimate->payapp_payurl }}" target="_blank" rel="noopener">💳 {{ number_format($estimate->total_amount) }}원 결제하기</a>
@@ -284,11 +299,25 @@ function savePNG(){
                 <tr class="grp-gap"><td colspan="7"></td></tr>
                 <tr class="cat-header"><td colspan="7">{{ $category ?: '기타' }}</td></tr>
                 @foreach($catItems as $item)
-                    @php $globalIdx++; @endphp
+                    @php
+                        $globalIdx++;
+                        // 환불 표시 — 항목 태그 + 세트는 환불된 구성품만 아래 작게 (세트 구성 전체는 비공개 유지)
+                        $itemRefunded = ! empty($item['refunded']) || (int) ($item['refund_qty'] ?? 0) > 0 || (int) ($item['refund_amount'] ?? 0) > 0;
+                        $refundedParts = collect($item['bundle_items'] ?? [])
+                            ->filter(fn ($b) => (int) ($b['refund_qty'] ?? 0) > 0 || (int) ($b['refund_amount'] ?? 0) > 0);
+                    @endphp
                     <tr>
                         <td class="cell-no col-no">{{ $globalIdx }}</td>
                         <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
-                        <td class="cell-name">{{ $item['name'] }}</td>
+                        <td class="cell-name">{{ $item['name'] }}@if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
+                            @if($refundedParts->isNotEmpty())
+                                <div class="refund-detail">
+                                    @foreach($refundedParts as $b)
+                                        <div>└ {{ $b['name'] ?? '' }} 환불 {{ (int) ($b['refund_qty'] ?? 0) > 0 ? $b['refund_qty'].'개' : '' }}{{ (int) ($b['refund_amount'] ?? 0) > 0 ? ' · '.number_format($b['refund_amount']).'원' : '' }}</div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
                         <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
                         <td class="text-right">{{ number_format($item['sale_price']) }}원</td>
                         <td class="text-center">{{ $item['qty'] }}</td>
@@ -331,6 +360,17 @@ function savePNG(){
         </div>
         <div class="total-amount">{{ number_format($estimate->total_amount) }}<span class="currency"> 원</span></div>
     </div>
+
+    @if($refundTotal > 0)
+        {{-- 부분환불/결제취소 반영 — 총 견적 금액은 그대로 두고 환불 합계를 별도 표기 --}}
+        <div class="refund-bar">
+            <div>
+                <span class="t-label">환불 합계</span>
+                <span class="t-sub">환불 반영 후 {{ number_format(max(0, (int) $estimate->total_amount - $refundTotal)) }}원</span>
+            </div>
+            <div class="refund-amount">−{{ number_format($refundTotal) }}<span class="currency"> 원</span></div>
+        </div>
+    @endif
 
     @if($estimate->memo)
         <div class="memo-section">

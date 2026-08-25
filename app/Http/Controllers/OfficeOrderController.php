@@ -170,16 +170,23 @@ class OfficeOrderController extends Controller
     {
         $validated = $request->validate([
             'index' => 'required|integer|min:0',
+            'bundle_index' => 'nullable|integer|min:0', // 세트 구성품 단위 환불 체크
             'amount' => 'nullable|numeric|min:0', // 구매 금액 (빈 값이면 미기록으로 초기화)
             'purchase_source' => 'nullable|string|max:100',
             'memo' => 'nullable|string|max:500',
             'refunded' => 'nullable|boolean', // 환불/결제취소 수동 체크
+            'refund_qty' => 'nullable|integer|min:0', // 구성품 환불 수량
             'refund_amount' => 'nullable|numeric|min:0',
         ]);
 
         $items = $estimate->product_items ?? [];
         if (! array_key_exists($validated['index'], $items)) {
             return response()->json(['message' => '항목을 찾을 수 없습니다. 목록을 새로고침해 주세요.'], 422);
+        }
+
+        // 세트 구성품 환불 — 구성품에 수량/금액 기록, 항목에는 구성품 합산만 반영 (구매 필드는 건드리지 않음)
+        if (array_key_exists('bundle_index', $validated) && $validated['bundle_index'] !== null) {
+            return $this->updateBundleItemRefund($estimate, $items, $validated, $request->boolean('refunded'));
         }
 
         $items[$validated['index']]['purchase_source'] = $validated['purchase_source'] ?? '';
@@ -200,6 +207,53 @@ class OfficeOrderController extends Controller
                     $items[$validated['index']]['refund_qty'], $items[$validated['index']]['refunded_at']);
             }
         }
+        $estimate->forceFill(['product_items' => $items])->save();
+
+        return response()->json(['message' => '저장되었습니다.']);
+    }
+
+    /**
+     * 세트 구성품 단위 수동 환불 체크 — 구성품에 refund_qty/refund_amount 기록.
+     * 항목(부모)의 환불 금액은 구성품 합산으로 재계산해 프로젝트 환불 기록과 같은 구조를 유지하고,
+     * 해제 시 구성품 기록을 지운 뒤 남은 합산이 0이면 항목 표시도 함께 초기화한다.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function updateBundleItemRefund(Estimate $estimate, array $items, array $validated, bool $refunded): JsonResponse
+    {
+        $idx = (int) $validated['index'];
+        $bIdx = (int) $validated['bundle_index'];
+        $bundles = $items[$idx]['bundle_items'] ?? [];
+        if (! array_key_exists($bIdx, $bundles)) {
+            return response()->json(['message' => '세트 구성품을 찾을 수 없습니다. 목록을 새로고침해 주세요.'], 422);
+        }
+
+        $beforeAmount = (int) ($bundles[$bIdx]['refund_amount'] ?? 0);
+        if ($refunded) {
+            $totalQty = max(1, (int) ($bundles[$bIdx]['qty'] ?? 1)) * max(1, (int) ($items[$idx]['qty'] ?? 1));
+            $qty = min($totalQty, max(0, (int) ($validated['refund_qty'] ?? $totalQty)));
+            $price = (int) ($bundles[$bIdx]['price'] ?? 0);
+            $bundles[$bIdx]['refund_qty'] = $qty ?: $totalQty;
+            $bundles[$bIdx]['refund_amount'] = ($validated['refund_amount'] ?? null) !== null
+                ? (int) $validated['refund_amount']
+                : $price * ($qty ?: $totalQty);
+        } else {
+            unset($bundles[$bIdx]['refund_qty'], $bundles[$bIdx]['refund_amount']);
+        }
+        $items[$idx]['bundle_items'] = array_values($bundles);
+
+        // 항목 표시 — 구성품 변경분만큼 델타 반영 (세트 전체 환불 기록과 병존 가능하도록 합산 재계산 대신 증감)
+        $afterAmount = (int) ($bundles[$bIdx]['refund_amount'] ?? 0);
+        $parentAmount = max(0, (int) ($items[$idx]['refund_amount'] ?? 0) + ($afterAmount - $beforeAmount));
+        $anyBundleQty = collect($items[$idx]['bundle_items'])->contains(fn ($b) => (int) ($b['refund_qty'] ?? 0) > 0);
+        if ($parentAmount > 0 || $anyBundleQty || (int) ($items[$idx]['refund_qty'] ?? 0) > 0) {
+            $items[$idx]['refunded'] = true;
+            $items[$idx]['refund_amount'] = $parentAmount;
+            $items[$idx]['refunded_at'] = $items[$idx]['refunded_at'] ?? now()->format('Y-m-d H:i');
+        } else {
+            unset($items[$idx]['refunded'], $items[$idx]['refund_amount'], $items[$idx]['refunded_at']);
+        }
+
         $estimate->forceFill(['product_items' => $items])->save();
 
         return response()->json(['message' => '저장되었습니다.']);

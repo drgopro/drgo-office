@@ -230,4 +230,76 @@ class PaymentSyncTest extends TestCase
             ->assertOk()->json('items.0.bundle_items');
         $this->assertSame(1, $bundle[0]['refund_qty']);
     }
+
+    public function test_order_history_manual_bundle_component_refund(): void
+    {
+        $items = $this->estimate->product_items;
+        $items[0]['ordered'] = true;
+        $items[0]['bundle_items'] = [
+            ['name' => '렌즈', 'qty' => 1, 'price' => 30000],
+            ['name' => '삼각대', 'qty' => 1, 'price' => 20000],
+        ];
+        $this->estimate->forceFill(['product_items' => $items, 'status' => 'paid'])->save();
+
+        // 구성품 체크 — 수량 2(세트 2개 × 구성 1개), 금액 비우면 단가×수량 자동
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$this->estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 0, 'refunded' => true, 'refund_qty' => 2,
+        ])->assertOk();
+
+        $item = $this->estimate->fresh()->product_items[0];
+        $this->assertSame(2, (int) $item['bundle_items'][0]['refund_qty']);
+        $this->assertSame(60000, (int) $item['bundle_items'][0]['refund_amount']);
+        // 부모 항목에 합산 표시
+        $this->assertTrue((bool) $item['refunded']);
+        $this->assertSame(60000, (int) $item['refund_amount']);
+
+        // 금액 직접 지정
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$this->estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 1, 'refunded' => true, 'refund_qty' => 1, 'refund_amount' => 15000,
+        ])->assertOk();
+        $item = $this->estimate->fresh()->product_items[0];
+        $this->assertSame(15000, (int) $item['bundle_items'][1]['refund_amount']);
+        $this->assertSame(75000, (int) $item['refund_amount']);
+
+        // 해제 — 구성품 기록 초기화 + 부모 합산 차감, 모두 해제되면 부모 표시도 초기화
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$this->estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 0, 'refunded' => false,
+        ])->assertOk();
+        $item = $this->estimate->fresh()->product_items[0];
+        $this->assertArrayNotHasKey('refund_qty', $item['bundle_items'][0]);
+        $this->assertSame(15000, (int) $item['refund_amount']);
+
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$this->estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 1, 'refunded' => false,
+        ])->assertOk();
+        $item = $this->estimate->fresh()->product_items[0];
+        $this->assertArrayNotHasKey('refunded', $item);
+    }
+
+    public function test_public_estimate_view_shows_refund_details(): void
+    {
+        $items = $this->estimate->product_items;
+        $items[0]['bundle_items'] = [['name' => '렌즈', 'qty' => 1, 'price' => 30000, 'refund_qty' => 1, 'refund_amount' => 30000]];
+        $items[0]['refunded'] = true;
+        $items[0]['refund_amount'] = 30000;
+        $this->estimate->forceFill(['product_items' => $items, 'status' => 'paid'])->save();
+
+        $res = $this->get($this->estimate->publicUrl())->assertOk();
+        // 항목 환불 태그 + 환불된 구성품 + 환불 합계 밴드 (환불 반영 후 금액)
+        $res->assertSee('환불 30,000원', false)
+            ->assertSee('렌즈 환불 1개', false)
+            ->assertSee('환불 합계', false)
+            ->assertSee('환불 반영 후 220,000원', false)
+            ->assertSee('일부 환불 30,000원', false);
+        // 환불 안 된 구성품 이름은 의뢰자 견적서에 비노출 유지
+        $this->assertStringNotContainsString('삼각대', $res->getContent());
+    }
+
+    public function test_public_estimate_view_hides_refund_ui_when_no_refund(): void
+    {
+        $this->estimate->forceFill(['status' => 'paid'])->save();
+        $res = $this->get($this->estimate->publicUrl())->assertOk();
+        $this->assertStringNotContainsString('환불 합계', $res->getContent());
+        $this->assertStringNotContainsString('<span class="refund-tag">', $res->getContent());
+    }
 }

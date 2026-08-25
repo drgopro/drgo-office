@@ -1832,10 +1832,22 @@ function renderOrders() {
                        <button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button></div></td>`
                     : `<td class="text-right">${it.amount != null ? fmt(it.amount)+'원' : '<span class="text-muted">-</span>'}</td>
                        <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
-                // 세트 항목 — 구성품(총 수량 반영)을 제품명 아래 회색으로 표시 (구성 단위 구매 확인용)
-                // 세트 구성 — 한 줄씩 세로 나열
+                // 세트 항목 — 구성품(총 수량 반영)을 제품명 아래 한 줄씩 세로 나열 (구성 단위 구매 확인용)
+                // 견적서 항목이면 구성품 단위 환불/결제취소 수동 체크 (부분환불 — 수량/금액 지정)
                 const bundleLine = (it.bundle_items||[]).length
-                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map(b=>`<div style="padding:1px 0 0 10px;">└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}${b.refund_qty>0||b.refund_amount>0?` <span style="color:var(--red, #dc2626); font-weight:700;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>`:''}</div>`).join('')}</div>` : '';
+                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map((b,bi)=>{
+                        const bRef = b.refund_qty>0||b.refund_amount>0;
+                        const badge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
+                        const ctrl = o.type==='estimate'
+                            ? ` <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; margin-left:6px; white-space:nowrap;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
+                                   <input type="checkbox" class="ob-ref" ${bRef?'checked':''} onchange="this.closest('[data-brow]').querySelector('.ob-wrap').style.display=this.checked?'':'none'">환불</label
+                               ><span class="ob-wrap" style="${bRef?'':'display:none;'}"
+                               ><input class="ob-qty field-input" type="number" min="1" max="${b.qty}" value="${b.refund_qty||b.qty}" style="width:52px; padding:3px 6px; font-size:11px; text-align:right; margin-left:4px;" title="환불 수량 (총 ${b.qty}개)" onclick="event.stopPropagation()"
+                               ><input class="ob-amt field-input" type="number" min="0" value="${bRef&&b.refund_amount?b.refund_amount:''}" placeholder="${b.price?fmt(b.price*(b.refund_qty||b.qty)):'환불액'}" style="width:92px; padding:3px 6px; font-size:11px; text-align:right; margin-left:3px;" title="환불 금액 (비우면 단가×수량으로 자동 계산)" onclick="event.stopPropagation()"
+                               ></span><button class="btn-outline btn-sm" style="padding:2px 8px; font-size:11px; margin-left:4px;" onclick="event.stopPropagation(); saveBundleRefund(${o.id}, ${it.index}, ${bi}, this)">저장</button>`
+                            : '';
+                        return `<div style="padding:2px 0 0 10px;" data-brow>└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}${badge}${ctrl}</div>`;
+                    }).join('')}</div>` : '';
                 const refundBadge = it.refunded
                     ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
                 // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게
@@ -1899,6 +1911,21 @@ async function saveEstimateItemNote(estimateId, index, btn) {
     }
     btn.textContent = '저장됨';
     setTimeout(() => { btn.textContent = '저장'; renderOrders(); }, 900);
+}
+// 세트 구성품 단위 환불 저장 — 체크 해제 시 기록 초기화, 저장 후 서버 합산(항목 표시) 반영 위해 재조회
+async function saveBundleRefund(estimateId, index, bundleIndex, btn) {
+    const row = btn.closest('[data-brow]');
+    const refunded = row.querySelector('.ob-ref').checked;
+    const amtRaw = row.querySelector('.ob-amt').value.trim();
+    const body = {
+        index, bundle_index: bundleIndex, refunded,
+        refund_qty: refunded ? Math.max(1, parseInt(row.querySelector('.ob-qty').value) || 1) : null,
+        refund_amount: refunded && amtRaw !== '' ? Math.max(0, parseInt(amtRaw) || 0) : null,
+    };
+    const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
+    btn.textContent = '저장됨';
+    setTimeout(loadOrders, 600);
 }
 function openOrderCreate() { window.open('/inventory/orders/new', 'office_order_new', 'width=780,height=640,scrollbars=yes,resizable=yes'); }
 function openOrderEdit(id) { window.open(`/inventory/orders/${id}/edit`, 'office_order_'+id, 'width=780,height=640,scrollbars=yes,resizable=yes'); }
