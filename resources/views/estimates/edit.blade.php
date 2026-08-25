@@ -161,7 +161,6 @@
         <div style="display:flex; gap:6px;">
             <input class="search-input" id="prodSearch" placeholder="제품명/SKU 검색" oninput="filterProducts()" style="flex:1; width:auto; min-width:0;">
             <select id="prodSort" onchange="onProdSortChange()" title="제품 리스트 정렬" style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 6px; color:var(--text); font-size:12px; outline:none; cursor:pointer; max-width:120px;">
-                <option value="">기본순</option>
                 <option value="name_asc">제품명 ㄱ→ㅎ</option>
                 <option value="name_desc">제품명 ㅎ→ㄱ</option>
                 <option value="price_asc">가격 낮은순</option>
@@ -455,8 +454,7 @@ function setCatPath(depth, id) {
 
 // 제품 리스트 정렬 — 제품명/가격/등록일, 선택은 브라우저에 기억
 function sortProds(list) {
-    const v = document.getElementById('prodSort')?.value || '';
-    if (!v) return list;
+    const v = document.getElementById('prodSort')?.value || 'name_asc';
     const dir = v.endsWith('_desc') ? -1 : 1;
     const arr = [...list];
     if (v.startsWith('name')) arr.sort((a, b) => dir * String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
@@ -468,7 +466,7 @@ function onProdSortChange() {
     try { localStorage.setItem('estProdSort', document.getElementById('prodSort').value); } catch (e) {}
     filterProducts();
 }
-try { const _ps = localStorage.getItem('estProdSort'); if (_ps) document.getElementById('prodSort').value = _ps; } catch (e) {}
+try { const _ps = localStorage.getItem('estProdSort'); if (_ps && document.querySelector(`#prodSort option[value="${_ps}"]`)) document.getElementById('prodSort').value = _ps; } catch (e) {}
 
 function filterProducts() {
     const search = document.getElementById('prodSearch').value.toLowerCase();
