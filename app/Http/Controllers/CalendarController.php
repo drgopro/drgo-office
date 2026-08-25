@@ -293,11 +293,18 @@ class CalendarController extends Controller
     private function syncEstimatePaidFromSchedule(Schedule $schedule): void
     {
         $g = $schedule->request_data ?? [];
-        if (($g['paid'] ?? '') !== '결제완료' || empty($g['estimate_id'])) {
+        if (empty($g['estimate_id'])) {
             return;
         }
         $estimate = Estimate::find($g['estimate_id']);
-        if (! $estimate || in_array($estimate->status, ['paid', 'cancelled', 'temp'], true)) {
+        if (! $estimate) {
+            return;
+        }
+
+        // 환불 표시 자가 치유 — 표시 기능 배포 전에 기록된 환불이나 나중에 연동된 견적서도 저장 시 반영
+        EstimatePaymentSync::syncRefundDisplay($estimate);
+
+        if (($g['paid'] ?? '') !== '결제완료' || in_array($estimate->status, ['paid', 'cancelled', 'temp'], true)) {
             return;
         }
         $estimate->forceFill(['status' => 'paid'])->save();

@@ -299,6 +299,37 @@ class PaymentSyncTest extends TestCase
         $this->assertArrayNotHasKey('refunded', $item);
     }
 
+    public function test_schedule_save_self_heals_refund_display(): void
+    {
+        // 표시 기능 배포 전에 기록된 환불 — 일정 request_data에 estimate_refund 없음
+        $this->estimate->forceFill(['status' => 'paid'])->save();
+        $this->estimate->applyItemRefunds([['index' => 1, 'qty' => 1, 'amount' => 50000]]);
+        $schedule = $this->linkedSchedule('결제완료');
+        $this->assertNull(data_get($schedule->request_data, 'estimate_refund'));
+
+        // 일정을 다시 저장하면 환불 표시가 채워진다
+        $this->actingAs($this->admin)->putJson("/api/events/{$schedule->id}", [
+            'title' => $schedule->title,
+            'start_date' => '2026-08-25', 'end_date' => '2026-08-25',
+            'is_all_day' => true, 'color' => 'gold',
+            'request_data' => $schedule->request_data,
+        ])->assertOk();
+        $this->assertSame('50,000', data_get($schedule->fresh()->request_data, 'estimate_refund'));
+    }
+
+    public function test_backfill_migration_fills_existing_refunds(): void
+    {
+        $this->estimate->forceFill(['status' => 'paid'])->save();
+        $this->estimate->applyItemRefunds([['index' => 0, 'qty' => 2, 'amount' => 200000]]);
+        $schedule = $this->linkedSchedule('결제완료');
+        $this->assertNull(data_get($schedule->request_data, 'estimate_refund'));
+
+        $migration = require database_path('migrations/2026_08_25_235500_backfill_estimate_refund_display.php');
+        $migration->up();
+
+        $this->assertSame('200,000', data_get($schedule->fresh()->request_data, 'estimate_refund'));
+    }
+
     public function test_public_estimate_view_shows_refund_details(): void
     {
         $items = $this->estimate->product_items;
