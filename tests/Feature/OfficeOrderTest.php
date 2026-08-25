@@ -1,0 +1,142 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Estimate;
+use App\Models\OfficeOrder;
+use App\Models\ScheduleShipment;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/**
+ * 재고 관리 > 주문 내역 — 견적서 주문완료 건 자동 파생 + 직접 주문 CRUD
+ * + 견적서 항목별 구매처/메모 기록 + 운송장 노출.
+ */
+class OfficeOrderTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->admin = User::factory()->create(['role' => 'master']);
+    }
+
+    private function makeOrderedEstimate(): Estimate
+    {
+        return Estimate::create([
+            'status' => 'created', 'title' => '스튜디오 구축', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['product_id' => 1, 'name' => '카메라', 'sale_price' => 100000, 'qty' => 2, 'subtotal' => 200000, 'ordered' => true],
+                ['product_id' => 2, 'name' => '마이크', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000], // 주문 전 — 리스트 미포함
+            ],
+            'service_items' => [], 'product_total' => 250000, 'service_total' => 0, 'total_amount' => 250000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+    }
+
+    public function test_estimate_with_ordered_item_appears_with_shipments(): void
+    {
+        $estimate = $this->makeOrderedEstimate();
+        ScheduleShipment::create([
+            'estimate_id' => $estimate->id, 'carrier' => 'kr.cjlogistics', 'tracking_no' => '123456789',
+            'status' => 'in_transit', 'last_event' => '간선 이동 중',
+        ]);
+        // 주문완료 항목이 없는 견적서는 리스트에 나오지 않는다
+        Estimate::create([
+            'status' => 'created', 'product_items' => [['name' => '모니터', 'sale_price' => 1, 'qty' => 1, 'subtotal' => 1]],
+            'service_items' => [], 'product_total' => 1, 'service_total' => 0, 'total_amount' => 1,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json();
+
+        $this->assertCount(1, $rows);
+        $row = $rows[0];
+        $this->assertSame('estimate', $row['type']);
+        $this->assertSame('스튜디오 구축', $row['title']);
+        $this->assertSame('고블린', $row['client']);
+        // 주문완료 항목만, 원본 인덱스 유지
+        $this->assertCount(1, $row['items']);
+        $this->assertSame('카메라', $row['items'][0]['name']);
+        $this->assertSame(0, $row['items'][0]['index']);
+        // 운송장 포함
+        $this->assertCount(1, $row['shipments']);
+        $this->assertSame('123456789', $row['shipments'][0]['tracking_no']);
+        $this->assertSame('in_transit', $row['shipments'][0]['status']);
+    }
+
+    public function test_manual_order_crud_and_grouping(): void
+    {
+        $created = $this->actingAs($this->admin)->postJson('/api/inventory/office-orders', [
+            'title' => '8월 사무실 간식',
+            'items' => [
+                ['name' => '커피 캡슐', 'qty' => 3, 'purchase_source' => '쿠팡', 'memo' => '연한 맛'],
+                ['name' => '탄산수', 'qty' => 2],
+            ],
+        ])->assertCreated()->json();
+
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json();
+        $this->assertCount(1, $rows);
+        $this->assertSame('manual', $rows[0]['type']);
+        $this->assertSame('8월 사무실 간식', $rows[0]['title']);
+        $this->assertCount(2, $rows[0]['items']);
+        $this->assertSame('쿠팡', $rows[0]['items'][0]['purchase_source']);
+
+        // 수정
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/{$created['id']}", [
+            'title' => '8월 간식 (수정)', 'items' => [['name' => '커피 캡슐', 'qty' => 5]],
+        ])->assertOk();
+        $fresh = OfficeOrder::findOrFail($created['id']);
+        $this->assertSame('8월 간식 (수정)', $fresh->title);
+        $this->assertSame(5, $fresh->items[0]['qty']);
+
+        // 항목 없는 저장은 422
+        $this->actingAs($this->admin)->postJson('/api/inventory/office-orders', ['title' => 'X', 'items' => []])
+            ->assertStatus(422);
+
+        // 삭제
+        $this->actingAs($this->admin)->deleteJson("/api/inventory/office-orders/{$created['id']}")->assertOk();
+        $this->assertNull(OfficeOrder::find($created['id']));
+    }
+
+    public function test_estimate_item_note_saves_into_snapshot_and_survives_builder_save(): void
+    {
+        $estimate = $this->makeOrderedEstimate();
+
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'purchase_source' => '컴퓨존', 'memo' => '8/26 발주 완료',
+        ])->assertOk();
+
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertSame('컴퓨존', $item['purchase_source']);
+        $this->assertSame('8/26 발주 완료', $item['order_memo']);
+
+        // 빌더 저장(PATCH)이 스냅샷 필드를 유실하지 않는다 (검증 규칙 포함 확인)
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $estimate->fresh()->product_items,
+        ])->assertOk();
+        $item2 = $estimate->fresh()->product_items[0];
+        $this->assertSame('컴퓨존', $item2['purchase_source']);
+        $this->assertSame('8/26 발주 완료', $item2['order_memo']);
+
+        // 범위 밖 인덱스는 422
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 99, 'purchase_source' => 'X',
+        ])->assertStatus(422);
+    }
+
+    public function test_order_page_requires_inventory_permission(): void
+    {
+        $guest = User::factory()->create(['role' => 'guest']);
+        $this->actingAs($guest)->getJson('/api/inventory/office-orders')->assertForbidden();
+        $this->actingAs($guest)->get('/inventory/orders/new')->assertForbidden();
+
+        $this->actingAs($this->admin)->get('/inventory/orders/new')->assertOk()->assertSee('주문 추가');
+        $order = OfficeOrder::create(['title' => 'T', 'items' => [['name' => 'A', 'qty' => 1]], 'created_by' => $this->admin->id]);
+        $this->actingAs($this->admin)->get("/inventory/orders/{$order->id}/edit")->assertOk()->assertSee('주문 수정');
+    }
+}

@@ -25,6 +25,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LinkPreviewController;
 use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OfficeOrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
@@ -312,6 +313,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
         Route::get('/api/inventory/movement-clients', [InventoryController::class, 'clientsForMovement']); // 출고 대상 의뢰자 검색 (연결 프로젝트 포함)
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);
+        Route::get('/api/inventory/office-orders', [OfficeOrderController::class, 'index']); // 주문 내역 (견적 파생 + 직접 주문)
     });
     Route::middleware('permission:inventory.edit')->group(function () {
         Route::post('/api/inventory/categories', [InventoryController::class, 'storeCategory']);
@@ -334,6 +336,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/inventory/orders', [PurchaseOrderController::class, 'store']);
         Route::patch('/api/inventory/orders/{order}', [PurchaseOrderController::class, 'update']);
         Route::post('/api/inventory/orders/{order}/receive', [PurchaseOrderController::class, 'receive']);
+        // 주문 내역 — 직접 주문(새 창) + 견적서 항목 구매처/메모
+        Route::get('/inventory/orders/new', [OfficeOrderController::class, 'createPage'])->name('office-orders.create');
+        Route::get('/inventory/orders/{order}/edit', [OfficeOrderController::class, 'editPage'])->name('office-orders.edit');
+        Route::post('/api/inventory/office-orders', [OfficeOrderController::class, 'store']);
+        Route::patch('/api/inventory/office-orders/{order}', [OfficeOrderController::class, 'update']);
+        Route::delete('/api/inventory/office-orders/{order}', [OfficeOrderController::class, 'destroy']);
+        Route::patch('/api/inventory/office-orders/estimate/{estimate}/item-note', [OfficeOrderController::class, 'updateEstimateItemNote']);
     });
 
     // 렌탈 (장비 위치 + 월 렌탈 계약) — 팀 관리의 '렌탈' 권한

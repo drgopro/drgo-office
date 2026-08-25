@@ -202,7 +202,7 @@
     <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTab('products')">제품 관리</button>
         <button class="tab-btn" onclick="switchTab('movements')">입출고 내역</button>
-        <button class="tab-btn" onclick="switchTab('orders')">발주 관리</button>
+        <button class="tab-btn" onclick="switchTab('orders')">주문 내역</button>
         <button class="tab-btn" onclick="switchTab('categories')">카테고리</button>
     </div>
 
@@ -284,19 +284,19 @@
         </div>
     </div>
 
-    <!-- 발주 관리 -->
+    <!-- 주문 내역 — 견적서 주문완료 건 + 직접 주문 (그룹 → 펼치면 항목) -->
     <div class="tab-panel" id="panel-orders">
         <div class="toolbar">
-            <select id="orderStatus" onchange="loadOrders()">
-                <option value="">전체 상태</option>
-                <option value="requested">요청</option><option value="approved">승인</option><option value="ordered">발주</option><option value="received">입고완료</option><option value="cancelled">취소</option>
-            </select>
-            <button class="btn-primary" onclick="openOrderModal()">+ 발주 요청</button>
+            <span class="text-muted" style="font-size:12px;">견적서에서 '주문완료' 표시된 건은 자동으로 나타납니다. 항목을 펼쳐 구매처·메모를 기록하세요.</span>
+            <span style="margin-left:auto; display:flex; gap:8px;">
+                <button class="btn-outline" onclick="loadOrders()">새로고침</button>
+                <button class="btn-primary" onclick="openOrderCreate()">+ 주문 추가</button>
+            </span>
         </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th>번호</th><th>거래처</th><th>품목</th><th class="text-right">금액</th><th>상태</th><th>요청자</th><th>예정일</th><th></th></tr></thead>
-                <tbody id="orderBody"><tr><td colspan="8" class="empty-row">로딩 중...</td></tr></tbody>
+                <thead><tr><th style="width:110px;">유형</th><th>주문명</th><th>항목</th><th>의뢰자/등록자</th><th>최근 수정</th><th style="width:170px;"></th></tr></thead>
+                <tbody id="orderBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -477,29 +477,6 @@
     </div>
 </div>
 
-<!-- 발주 등록 모달 -->
-<div class="modal-overlay" id="orderModal">
-    <div class="modal" style="width:600px;">
-        <div class="modal-header">
-            <div class="modal-title">발주 요청</div>
-            <button class="modal-close" onclick="closeModal('orderModal')">×</button>
-        </div>
-        <div class="field-row">
-            <div class="field-group"><div class="field-label">거래처 *</div><input class="field-input" id="oSupplier"></div>
-            <div class="field-group"><div class="field-label">예정일</div><input class="field-input" id="oDate" type="date"></div>
-        </div>
-        <div class="field-group">
-            <div class="field-label">품목 *</div>
-            <div class="order-items" id="orderItems"></div>
-            <button class="btn-add-item" onclick="addOrderItem()">+ 품목 추가</button>
-        </div>
-        <div class="field-group"><div class="field-label">메모</div><input class="field-input" id="oMemo"></div>
-        <div class="modal-actions">
-            <button class="btn-cancel" onclick="closeModal('orderModal')">취소</button>
-            <button class="btn-save" onclick="saveOrder()">요청</button>
-        </div>
-    </div>
-</div>
 @endsection
 
 @push('scripts')
@@ -513,7 +490,7 @@ function _esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 function switchTab(name, skipHash) {
     document.querySelectorAll('.tab-btn').forEach(b => {
-        const map = {products:'제품',movements:'입출고',orders:'발주',categories:'카테고리'};
+        const map = {products:'제품',movements:'입출고',orders:'주문 내역',categories:'카테고리'};
         b.classList.toggle('active', b.textContent.includes(map[name]));
     });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
@@ -1791,59 +1768,91 @@ async function saveMovement(force) {
     if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message||Object.values(e.errors||{}).flat().join('\n')||'오류 발생'); return; }
     closeModal('movementModal'); loadMovements();
 }
-// === 발주 ===
+// === 주문 내역 — 견적서 주문완료 건 + 직접 주문 (그룹 1건 → 펼치면 항목) ===
+let ORDER_ROWS = [];
+const expandedOrders = new Set(); // 'estimate-3' / 'manual-5'
 async function loadOrders() {
-    const status = document.getElementById('orderStatus').value;
-    const res = await fetch('/api/inventory/orders'+(status?'?status='+status:''));
-    const data = await res.json();
+    const res = await fetch('/api/inventory/office-orders');
+    ORDER_ROWS = res.ok ? await res.json() : [];
+    renderOrders();
+}
+function loadOfficeOrders() { loadOrders(); } // 새 창(주문 추가/수정) 저장 후 갱신 콜백
+function orderKey(o) { return o.type + '-' + o.id; }
+function toggleOrderGroup(k) {
+    if (expandedOrders.has(k)) expandedOrders.delete(k); else expandedOrders.add(k);
+    renderOrders();
+}
+const SHIP_ST = { delivered:['배송완료','badge-ok'], in_transit:['이동 중','badge-ordered'], out_for_delivery:['배송 출발','badge-ordered'], at_pickup:['인수','badge-ordered'], pending:['집화 전','badge-requested'], error:['조회 오류','badge-low'], unknown:['조회 전','badge-requested'] };
+function renderOrders() {
     const tb = document.getElementById('orderBody');
-    const stMap = {requested:'요청',approved:'승인',ordered:'발주',received:'입고완료',cancelled:'취소'};
-    if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">발주 내역이 없습니다.</td></tr>'; return; }
-    tb.innerHTML = data.map(o => {
-        const itemNames = (o.items||[]).map(i=>i.name||`#${i.product_id}`).join(', ');
-        const acts = [];
-        if (o.status==='requested') acts.push(`<button class="btn-outline btn-sm" onclick="updateOrder(${o.id},'approved')">승인</button>`);
-        if (o.status==='approved') acts.push(`<button class="btn-outline btn-sm" onclick="updateOrder(${o.id},'ordered')">발주</button>`);
-        if (o.status==='ordered') acts.push(`<button class="btn-outline btn-sm" onclick="receiveOrder(${o.id})">입고처리</button>`);
-        if (['requested','approved'].includes(o.status)) acts.push(`<button class="btn-danger-sm" onclick="updateOrder(${o.id},'cancelled')">취소</button>`);
-        return `<tr><td class="text-muted">#${o.id}</td><td>${o.supplier}</td>
-            <td class="text-muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${itemNames}</td>
-            <td class="text-right">${fmt(o.total_amount)}</td><td><span class="badge badge-${o.status}">${stMap[o.status]}</span></td>
-            <td class="text-muted">${o.requester?.display_name||'-'}</td><td class="text-muted">${fmtDate(o.expected_date)}</td>
-            <td>${acts.join(' ')}</td></tr>`;
+    if (!ORDER_ROWS.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">주문 내역이 없습니다. 견적서에서 주문완료 표시를 하거나 주문 추가 버튼으로 등록하세요.</td></tr>';
+        return;
+    }
+    tb.innerHTML = ORDER_ROWS.map(o => {
+        const k = orderKey(o), open = expandedOrders.has(k);
+        const badge = o.type === 'estimate'
+            ? `<span class="badge badge-ordered">견적서 #${o.no}</span>`
+            : '<span class="badge badge-requested">직접 주문</span>';
+        const who = o.type === 'estimate' ? (o.client || '-') : (o.creator || '-');
+        const acts = o.type === 'estimate'
+            ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/estimates/${o.id}/edit','est_${o.id}')">견적서 열기</button>`
+            : `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); openOrderEdit(${o.id})">수정</button>
+               <button class="btn-danger-sm" onclick="event.stopPropagation(); deleteOfficeOrder(${o.id})">삭제</button>`;
+        let html = `<tr style="cursor:pointer;" onclick="toggleOrderGroup('${k}')">
+            <td>${badge}</td>
+            <td><span class="grp-arrow">${open ? '▾' : '▸'}</span><b>${_esc(o.title)}</b></td>
+            <td class="text-muted">${(o.items||[]).length}개 품목</td>
+            <td class="text-muted">${_esc(who)}</td>
+            <td class="text-muted">${o.updated_at}</td>
+            <td class="action-cell">${acts}</td>
+        </tr>`;
+        if (open) {
+            html += (o.items||[]).map(it => {
+                const noteCells = o.type === 'estimate'
+                    ? `<td><input class="oi-src field-input" style="padding:6px 9px; font-size:12px;" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()"></td>
+                       <td colspan="2"><div style="display:flex; gap:6px;"><input class="oi-memo field-input" style="padding:6px 9px; font-size:12px; flex:1;" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
+                       <button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button></div></td>`
+                    : `<td class="text-muted">${_esc(it.purchase_source) || '-'}</td>
+                       <td class="text-muted" colspan="2">${_esc(it.memo) || '-'}</td>`;
+                return `<tr style="background:var(--surface2);">
+                    <td></td>
+                    <td style="padding-left:26px;">${_esc(it.name)}</td>
+                    <td class="text-muted">${it.qty}개</td>
+                    ${noteCells}
+                </tr>`;
+            }).join('');
+            if (o.type === 'estimate') {
+                const ships = (o.shipments||[]).map(s => {
+                    const [label, cls] = SHIP_ST[s.status] || SHIP_ST.unknown;
+                    return `<span style="margin-right:14px; white-space:nowrap;"><b>${_esc(s.carrier_label)}</b> ${_esc(s.tracking_no)} <span class="badge ${cls}">${label}</span>${s.last_event ? ` <span class="text-muted">${_esc(s.last_event)}</span>` : ''}${s.delivered_at ? ` <span class="text-muted">${s.delivered_at}</span>` : ''}</span>`;
+                }).join('');
+                html += `<tr style="background:var(--surface2);"><td></td><td colspan="5" style="padding-left:26px; font-size:12px;">
+                    <span class="text-muted" style="font-weight:700; margin-right:10px;">운송장</span>${ships || '<span class="text-muted">등록된 운송장이 없습니다 — 견적서의 배송 정보에서 추가할 수 있습니다.</span>'}
+                </td></tr>`;
+            }
+        }
+        return html;
     }).join('');
 }
-async function openOrderModal() {
-    if (!allProducts.length) { const r=await fetch('/api/inventory/products'); allProducts=await r.json(); }
-    document.getElementById('oSupplier').value=''; document.getElementById('oDate').value=''; document.getElementById('oMemo').value='';
-    document.getElementById('orderItems').innerHTML=''; addOrderItem(); openModal('orderModal');
+async function saveEstimateItemNote(estimateId, index, btn) {
+    const tr = btn.closest('tr');
+    const body = { index, purchase_source: tr.querySelector('.oi-src').value.trim(), memo: tr.querySelector('.oi-memo').value.trim() };
+    const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
+    // 로컬 데이터에도 반영 — 재렌더 시 값 유지
+    const row = ORDER_ROWS.find(o => o.type === 'estimate' && o.id === estimateId);
+    const item = row?.items.find(i => i.index === index);
+    if (item) { item.purchase_source = body.purchase_source; item.memo = body.memo; }
+    btn.textContent = '저장됨';
+    setTimeout(() => { btn.textContent = '저장'; }, 1500);
 }
-function addOrderItem() {
-    const div=document.getElementById('orderItems'), row=document.createElement('div'); row.className='order-item-row';
-    row.innerHTML=`<select>${allProducts.map(p=>`<option value="${p.id}">${_esc(p.name)}</option>`).join('')}</select>
-        <input type="number" min="1" value="1" placeholder="수량"><input type="number" min="0" value="0" placeholder="단가">
-        <button class="btn-remove-item" onclick="this.parentElement.remove()">×</button>`;
-    div.appendChild(row);
-}
-async function saveOrder() {
-    const items=[...document.querySelectorAll('#orderItems .order-item-row')].map(r=>{
-        const sel=r.querySelector('select'),ins=r.querySelectorAll('input');
-        return {product_id:+sel.value,name:sel.options[sel.selectedIndex].text,qty:+ins[0].value,unit_price:+ins[1].value};
-    }).filter(i=>i.qty>0);
-    if (!items.length){alert('품목을 추가해주세요.');return;}
-    const body={supplier:document.getElementById('oSupplier').value,items,expected_date:document.getElementById('oDate').value||null,memo:document.getElementById('oMemo').value||null};
-    const res=await fetch('/api/inventory/orders',{method:'POST',headers:H,body:JSON.stringify(body)});
-    if(!res.ok){const e=await res.json();alert(Object.values(e.errors||{}).flat().join('\n')||'오류 발생');return;}
-    closeModal('orderModal'); loadOrders();
-}
-async function updateOrder(id,status){
-    if(status==='cancelled'&&!confirm('발주를 취소할까요?'))return;
-    await fetch(`/api/inventory/orders/${id}`,{method:'PATCH',headers:H,body:JSON.stringify({status})}); loadOrders();
-}
-async function receiveOrder(id){
-    if(!confirm('입고 처리하시겠습니까? 재고가 자동으로 반영됩니다.'))return;
-    const res=await fetch(`/api/inventory/orders/${id}/receive`,{method:'POST',headers:H});
-    if(!res.ok){const e=await res.json();alert(e.message||'오류 발생');return;} loadOrders();
+function openOrderCreate() { window.open('/inventory/orders/new', 'office_order_new', 'width=780,height=640,scrollbars=yes,resizable=yes'); }
+function openOrderEdit(id) { window.open(`/inventory/orders/${id}/edit`, 'office_order_'+id, 'width=780,height=640,scrollbars=yes,resizable=yes'); }
+async function deleteOfficeOrder(id) {
+    if (!confirm('이 주문 건을 삭제할까요?')) return;
+    await fetch(`/api/inventory/office-orders/${id}`, { method:'DELETE', headers:H });
+    loadOrders();
 }
 
 // 초기
