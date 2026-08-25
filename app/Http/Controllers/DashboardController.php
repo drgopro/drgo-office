@@ -220,7 +220,7 @@ class DashboardController extends Controller
             ->where(fn ($q) => $q->whereDate('end_date', '>=', $today)->orWhereNull('end_date'))
             ->where(fn ($q) => $q->where('is_private', false)->orWhere('created_by', auth()->id()))
             ->orderByDesc('is_all_day')->orderBy('start_time')
-            ->limit(8)->get()
+            ->get()
             ->map(fn ($s) => [
                 'id' => $s->id,
                 'title' => $s->title ?: '(제목 없음)',

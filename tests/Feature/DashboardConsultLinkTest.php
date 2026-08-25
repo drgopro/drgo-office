@@ -81,6 +81,25 @@ class DashboardConsultLinkTest extends TestCase
             ->assertSee('업데이트');
     }
 
+    public function test_today_schedules_show_all_without_limit(): void
+    {
+        // 오늘 일정이 8건을 넘어도 전부 표시 (기존 limit 8 제거 회귀 방지)
+        $user = User::factory()->create(['role' => 'admin']);
+        foreach (range(1, 12) as $i) {
+            Schedule::create([
+                'title' => "오늘 일정 {$i}번", 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+                'color' => 'gold', 'is_all_day' => true,
+            ]);
+        }
+
+        $res = $this->actingAs($user)->get('/');
+
+        $res->assertOk();
+        foreach (range(1, 12) as $i) {
+            $res->assertSee("오늘 일정 {$i}번");
+        }
+    }
+
     public function test_my_todo_card_shows_own_incomplete_todos(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
