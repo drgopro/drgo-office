@@ -108,4 +108,24 @@ class ProductGroupTest extends TestCase
             'name' => 'X', 'items' => [['id' => $this->black->id, 'option_name' => '블랙']],
         ])->assertForbidden();
     }
+
+    public function test_grouped_only_filter_returns_only_group_members(): void
+    {
+        $this->makeGroup();
+        Product::create([
+            'sku' => 'MIC-001', 'name' => '단독 마이크', 'category' => '오디오',
+            'purchase_price' => 10000, 'sale_price' => 20000,
+            'is_active' => true, 'show_in_estimate' => true,
+        ]);
+
+        $all = $this->actingAs($this->admin)->getJson('/api/inventory/products?per_page=50')->assertOk()->json('data');
+        $this->assertCount(3, $all);
+
+        $grouped = $this->actingAs($this->admin)->getJson('/api/inventory/products?per_page=50&grouped_only=1')->assertOk()->json('data');
+        $names = array_column($grouped, 'name');
+        $this->assertCount(2, $grouped);
+        $this->assertContains('카메라 X100 블랙', $names);
+        $this->assertContains('카메라 X100 화이트', $names);
+        $this->assertNotContains('단독 마이크', $names);
+    }
 }

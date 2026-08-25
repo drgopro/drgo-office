@@ -235,6 +235,11 @@ class InventoryController extends Controller
             $query->whereIn('category_id', $ids);
         }
 
+        // 옵션 그룹으로 묶인 제품만 (제품 탭 '옵션 그룹만' 필터)
+        if ($request->boolean('grouped_only')) {
+            $query->whereNotNull('group_id');
+        }
+
         // 재고 수량 필터 — zero(0개) / low(안전재고 이하) / gte·lte(N개 기준)
         // 세트 상품은 자체 재고 대신 조립 가능 수(min(구성품 재고 ÷ 필요 수량)) 기준으로 동일 적용
         $stockOp = (string) $request->query('stock_op');

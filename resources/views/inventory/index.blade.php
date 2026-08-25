@@ -7,6 +7,9 @@
     .page-wrap { padding:24px; max-width:1480px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .page-title { font-size:22px; font-weight:700; }
+    .inv-menu-item { display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer; white-space:nowrap; }
+    .inv-menu-item:hover { background:var(--surface2); }
+    #groupOnlyBtn.on { background:var(--accent); color:#fff; border-color:var(--accent); }
 
     /* 탭 */
     .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:20px; }
@@ -186,8 +189,14 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">재고 관리</div>
-        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('products','제품')"><x-icon name="download" :size="14"/> 엑셀 가져오기</button>
-        <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Product,ProductCategory,StockMovement,PurchaseOrder',0,'재고 전체 수정 로그')"><x-icon name="clip" :size="14"/> 수정 로그</button>
+        {{-- ⋮ 더보기 메뉴 — 엑셀 가져오기 / 수정 로그 --}}
+        <div style="position:relative;" id="invMoreWrap">
+            <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:8px;font-size:15px;line-height:1;cursor:pointer;" onclick="toggleInvMenu(event)" title="더보기">⋮</button>
+            <div id="invMenu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.14); min-width:150px; z-index:120; overflow:hidden;">
+                <button class="inv-menu-item" onclick="closeInvMenu(); openExcelImportModal('products','제품')">엑셀 가져오기</button>
+                <button class="inv-menu-item" onclick="closeInvMenu(); openActivityLog('Product,ProductCategory,StockMovement,PurchaseOrder',0,'재고 전체 수정 로그')">수정 로그</button>
+            </div>
+        </div>
     </div>
 
     <div class="tab-bar">
@@ -209,6 +218,7 @@
                 <option value="lte">N개 이하</option>
             </select>
             <input type="number" id="stockFilterVal" min="0" placeholder="N" style="display:none; width:74px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:12.5px; text-align:right;" oninput="prodPage=1;saveStockFilter();loadProducts()">
+            <button class="btn-outline" id="groupOnlyBtn" onclick="toggleGroupOnly()" title="옵션 그룹으로 묶인 제품만 표시">옵션 그룹만</button>
             <select id="prodPerPage" onchange="setProdPerPage(this.value)" title="페이지당 표시 개수">
                 <option value="10">10개씩</option>
                 <option value="20">20개씩</option>
@@ -977,8 +987,29 @@ function prodFilterParams() {
     }
     const catId = prodCatFilterId();
     if (catId) qs.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
+    if (groupOnly) qs.set('grouped_only', '1'); // 옵션 그룹으로 묶인 제품만
     return qs;
 }
+
+// ── 옵션 그룹만 보기 토글 (선택은 브라우저에 기억) ──
+let groupOnly = localStorage.getItem('invGroupOnly') === '1';
+function toggleGroupOnly() {
+    groupOnly = !groupOnly;
+    localStorage.setItem('invGroupOnly', groupOnly ? '1' : '0');
+    document.getElementById('groupOnlyBtn').classList.toggle('on', groupOnly);
+    prodPage = 1;
+    loadProducts();
+}
+document.getElementById('groupOnlyBtn').classList.toggle('on', groupOnly);
+
+// ── ⋮ 더보기 메뉴 (엑셀 가져오기/수정 로그) ──
+function toggleInvMenu(e) {
+    e.stopPropagation();
+    const m = document.getElementById('invMenu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+}
+function closeInvMenu() { document.getElementById('invMenu').style.display = 'none'; }
+document.addEventListener('click', e => { if (!e.target.closest('#invMoreWrap')) closeInvMenu(); });
 
 // 재고 필터 변경 — N 입력칸 표시 토글 + 저장 + 재조회
 function onStockFilterChange() {
