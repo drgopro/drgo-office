@@ -828,6 +828,8 @@ class InventoryController extends Controller
                 'use_time_required' => (bool) $p->use_time_required,
                 // 제품 메모 — 빌더 주문/배송 뷰 전용 (견적서 스냅샷에 저장하지 않아 출력물에 노출되지 않음)
                 'memo' => $p->memo,
+                // 등록일 — 제품 리스트 정렬용
+                'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
             ];
         });
 
