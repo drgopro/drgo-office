@@ -129,6 +129,7 @@ class EstimateController extends Controller
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모
+            'product_items.*.purchase_amount' => 'nullable|numeric|min:0', // 주문 내역의 구매 금액
             'service_items' => 'nullable|array|max:100',
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',

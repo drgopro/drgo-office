@@ -20,6 +20,7 @@ class OfficeOrderController extends Controller
         'items' => 'required|array|min:1|max:100',
         'items.*.name' => 'required|string|max:200',
         'items.*.qty' => 'nullable|integer|min:1|max:9999',
+        'items.*.amount' => 'nullable|numeric|min:0', // 구매 금액 (총액)
         'items.*.purchase_source' => 'nullable|string|max:100',
         'items.*.memo' => 'nullable|string|max:500',
     ];
@@ -46,6 +47,9 @@ class OfficeOrderController extends Controller
                         'index' => $idx,
                         'name' => $i['name'] ?? '',
                         'qty' => (int) ($i['qty'] ?? 1),
+                        // 구매 금액 — 직접 기록한 값. 미기록 시 참고용 기본값(매입가×수량)을 placeholder로
+                        'amount' => isset($i['purchase_amount']) ? (int) $i['purchase_amount'] : null,
+                        'default_amount' => (int) ($i['purchase_price'] ?? 0) * max(1, (int) ($i['qty'] ?? 1)),
                         'purchase_source' => $i['purchase_source'] ?? '',
                         'memo' => $i['order_memo'] ?? '',
                         'ordered' => ! empty($i['ordered']),
@@ -79,6 +83,7 @@ class OfficeOrderController extends Controller
                 'items' => collect($o->items ?? [])->map(fn ($i) => [
                     'name' => $i['name'] ?? '',
                     'qty' => (int) ($i['qty'] ?? 1),
+                    'amount' => isset($i['amount']) && $i['amount'] !== '' ? (int) $i['amount'] : null,
                     'purchase_source' => $i['purchase_source'] ?? '',
                     'memo' => $i['memo'] ?? '',
                 ])->values(),
@@ -141,6 +146,7 @@ class OfficeOrderController extends Controller
     {
         $validated = $request->validate([
             'index' => 'required|integer|min:0',
+            'amount' => 'nullable|numeric|min:0', // 구매 금액 (빈 값이면 미기록으로 초기화)
             'purchase_source' => 'nullable|string|max:100',
             'memo' => 'nullable|string|max:500',
         ]);
@@ -152,6 +158,11 @@ class OfficeOrderController extends Controller
 
         $items[$validated['index']]['purchase_source'] = $validated['purchase_source'] ?? '';
         $items[$validated['index']]['order_memo'] = $validated['memo'] ?? '';
+        if (($validated['amount'] ?? null) !== null && $validated['amount'] !== '') {
+            $items[$validated['index']]['purchase_amount'] = (int) $validated['amount'];
+        } else {
+            unset($items[$validated['index']]['purchase_amount']);
+        }
         $estimate->forceFill(['product_items' => $items])->save();
 
         return response()->json(['message' => '저장되었습니다.']);
@@ -164,6 +175,7 @@ class OfficeOrderController extends Controller
         return collect($items)->map(fn ($i) => [
             'name' => trim((string) $i['name']),
             'qty' => max(1, (int) ($i['qty'] ?? 1)),
+            'amount' => isset($i['amount']) && $i['amount'] !== '' && $i['amount'] !== null ? max(0, (int) $i['amount']) : null,
             'purchase_source' => trim((string) ($i['purchase_source'] ?? '')),
             'memo' => trim((string) ($i['memo'] ?? '')),
         ])->values()->all();

@@ -23,6 +23,7 @@
         .item-row input:focus { border-color:var(--accent); }
         .w-name { flex:2.2; min-width:0; }
         .w-qty { width:64px; text-align:right; }
+        .w-amt { width:110px; text-align:right; }
         .w-src { flex:1.2; min-width:0; }
         .w-memo { flex:1.8; min-width:0; }
         .btn-x { background:none; border:none; color:var(--text-muted); font-size:15px; cursor:pointer; flex:none; }
@@ -55,7 +56,7 @@
 <div class="card">
     <h4>주문 항목</h4>
     <div class="item-head">
-        <span class="w-name">제품명 *</span><span class="w-qty">수량</span><span class="w-src">구매처</span><span class="w-memo">메모</span><span style="width:18px;"></span>
+        <span class="w-name">제품명 *</span><span class="w-qty">수량</span><span class="w-amt">구매 금액</span><span class="w-src">구매처</span><span class="w-memo">메모</span><span style="width:18px;"></span>
     </div>
     <div id="itemRows"></div>
     <button class="btn-plus" onclick="addRow()">+ 항목 추가</button>
@@ -80,6 +81,7 @@ function addRow(it) {
     div.innerHTML = `
         <input class="w-name" placeholder="제품명" maxlength="200" value="${_esc(it.name||'')}">
         <input class="w-qty" type="number" min="1" value="${parseInt(it.qty)||1}">
+        <input class="w-amt" type="number" min="0" placeholder="금액" value="${it.amount ?? ''}">
         <input class="w-src" placeholder="구매처 (예: 쿠팡)" maxlength="100" value="${_esc(it.purchase_source||'')}">
         <input class="w-memo" placeholder="메모" maxlength="500" value="${_esc(it.memo||'')}">
         <button class="btn-x" onclick="this.parentElement.remove()" title="항목 삭제">×</button>`;
@@ -91,8 +93,10 @@ async function saveOrder(btn) {
     const title = document.getElementById('orderTitle').value.trim();
     if (!title) return alert('주문명을 입력해주세요.');
     const items = [...document.querySelectorAll('#itemRows .item-row')].map(r => {
-        const [name, qty, src, memo] = r.querySelectorAll('input');
-        return { name: name.value.trim(), qty: Math.max(1, parseInt(qty.value)||1), purchase_source: src.value.trim(), memo: memo.value.trim() };
+        const [name, qty, amt, src, memo] = r.querySelectorAll('input');
+        return { name: name.value.trim(), qty: Math.max(1, parseInt(qty.value)||1),
+            amount: amt.value.trim() === '' ? null : Math.max(0, parseInt(amt.value)||0),
+            purchase_source: src.value.trim(), memo: memo.value.trim() };
     }).filter(i => i.name);
     if (!items.length) return alert('항목을 1개 이상 입력해주세요.');
 

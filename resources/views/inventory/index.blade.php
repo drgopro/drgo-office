@@ -1804,10 +1804,12 @@ function renderOrders() {
             ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/estimates/${o.id}/edit','est_${o.id}')">견적서 열기</button>`
             : `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); openOrderEdit(${o.id})">수정</button>
                <button class="btn-danger-sm" onclick="event.stopPropagation(); deleteOfficeOrder(${o.id})">삭제</button>`;
+        // 구매 금액 합계 — 기록값 우선, 견적서 항목은 미기록 시 매입가×수량 참고치로 합산
+        const orderTotal = (o.items||[]).reduce((s, it) => s + (it.amount ?? (o.type === 'estimate' ? (it.default_amount || 0) : 0)), 0);
         let html = `<tr style="cursor:pointer;" onclick="toggleOrderGroup('${k}')">
             <td>${badge}</td>
             <td><span class="grp-arrow">${open ? '▾' : '▸'}</span><b>${_esc(o.title)}</b></td>
-            <td class="text-muted">${(o.items||[]).length}개 품목</td>
+            <td class="text-muted">${(o.items||[]).length}개 품목${orderTotal > 0 ? ` · <b style="color:var(--text);">${fmt(orderTotal)}원</b>` : ''}</td>
             <td class="text-muted">${_esc(who)}</td>
             <td class="text-muted">${o.type === 'manual' && o.order_date ? `주문일 ${o.order_date}` : o.updated_at}</td>
             <td class="action-cell">${acts}</td>
@@ -1815,11 +1817,13 @@ function renderOrders() {
         if (open) {
             html += (o.items||[]).map(it => {
                 const noteCells = o.type === 'estimate'
-                    ? `<td><input class="oi-src field-input" style="padding:6px 9px; font-size:12px;" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()"></td>
-                       <td colspan="2"><div style="display:flex; gap:6px;"><input class="oi-memo field-input" style="padding:6px 9px; font-size:12px; flex:1;" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
+                    ? `<td colspan="3"><div style="display:flex; gap:6px; align-items:center;">
+                       <input class="oi-amt field-input" type="number" min="0" style="padding:6px 9px; font-size:12px; width:118px; text-align:right;" placeholder="${it.default_amount ? fmt(it.default_amount) : '구매 금액'}" title="구매 금액 (비우면 미기록 — 흐린 값은 매입가×수량 참고치)" value="${it.amount ?? ''}" onclick="event.stopPropagation()">
+                       <input class="oi-src field-input" style="padding:6px 9px; font-size:12px; width:130px;" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()">
+                       <input class="oi-memo field-input" style="padding:6px 9px; font-size:12px; flex:1; min-width:80px;" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
                        <button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button></div></td>`
-                    : `<td class="text-muted">${_esc(it.purchase_source) || '-'}</td>
-                       <td class="text-muted" colspan="2">${_esc(it.memo) || '-'}</td>`;
+                    : `<td class="text-right">${it.amount != null ? fmt(it.amount)+'원' : '<span class="text-muted">-</span>'}</td>
+                       <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
                 return `<tr style="background:var(--surface2);">
                     <td></td>
                     <td style="padding-left:26px;">${_esc(it.name)}</td>
@@ -1856,15 +1860,21 @@ function renderOrders() {
 }
 async function saveEstimateItemNote(estimateId, index, btn) {
     const tr = btn.closest('tr');
-    const body = { index, purchase_source: tr.querySelector('.oi-src').value.trim(), memo: tr.querySelector('.oi-memo').value.trim() };
+    const amtRaw = tr.querySelector('.oi-amt').value.trim();
+    const body = {
+        index,
+        amount: amtRaw === '' ? null : Math.max(0, parseInt(amtRaw) || 0),
+        purchase_source: tr.querySelector('.oi-src').value.trim(),
+        memo: tr.querySelector('.oi-memo').value.trim(),
+    };
     const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
     if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
-    // 로컬 데이터에도 반영 — 재렌더 시 값 유지
+    // 로컬 데이터에도 반영 — 재렌더 시 값·합계 유지
     const row = ORDER_ROWS.find(o => o.type === 'estimate' && o.id === estimateId);
     const item = row?.items.find(i => i.index === index);
-    if (item) { item.purchase_source = body.purchase_source; item.memo = body.memo; }
+    if (item) { item.amount = body.amount; item.purchase_source = body.purchase_source; item.memo = body.memo; }
     btn.textContent = '저장됨';
-    setTimeout(() => { btn.textContent = '저장'; }, 1500);
+    setTimeout(() => { btn.textContent = '저장'; renderOrders(); }, 900);
 }
 function openOrderCreate() { window.open('/inventory/orders/new', 'office_order_new', 'width=780,height=640,scrollbars=yes,resizable=yes'); }
 function openOrderEdit(id) { window.open(`/inventory/orders/${id}/edit`, 'office_order_'+id, 'width=780,height=640,scrollbars=yes,resizable=yes'); }

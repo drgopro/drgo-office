@@ -75,7 +75,7 @@ class OfficeOrderTest extends TestCase
         $created = $this->actingAs($this->admin)->postJson('/api/inventory/office-orders', [
             'title' => '8월 사무실 간식',
             'items' => [
-                ['name' => '커피 캡슐', 'qty' => 3, 'purchase_source' => '쿠팡', 'memo' => '연한 맛'],
+                ['name' => '커피 캡슐', 'qty' => 3, 'amount' => 45000, 'purchase_source' => '쿠팡', 'memo' => '연한 맛'],
                 ['name' => '탄산수', 'qty' => 2],
             ],
         ])->assertCreated()->json();
@@ -86,6 +86,9 @@ class OfficeOrderTest extends TestCase
         $this->assertSame('8월 사무실 간식', $rows[0]['title']);
         $this->assertCount(2, $rows[0]['items']);
         $this->assertSame('쿠팡', $rows[0]['items'][0]['purchase_source']);
+        // 구매 금액 — 입력값 보존, 미입력은 null
+        $this->assertSame(45000, $rows[0]['items'][0]['amount']);
+        $this->assertNull($rows[0]['items'][1]['amount']);
         // 주문일 미지정 시 오늘로 기본 저장
         $this->assertSame(now()->toDateString(), $rows[0]['order_date']);
 
@@ -118,12 +121,18 @@ class OfficeOrderTest extends TestCase
         $estimate = $this->makeOrderedEstimate();
 
         $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
-            'index' => 0, 'purchase_source' => '컴퓨존', 'memo' => '8/26 발주 완료',
+            'index' => 0, 'amount' => 178000, 'purchase_source' => '컴퓨존', 'memo' => '8/26 발주 완료',
         ])->assertOk();
 
         $item = $estimate->fresh()->product_items[0];
         $this->assertSame('컴퓨존', $item['purchase_source']);
         $this->assertSame('8/26 발주 완료', $item['order_memo']);
+        $this->assertSame(178000, $item['purchase_amount']);
+
+        // 리스트에 금액과 참고치(매입가×수량) 노출
+        $listed = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json()[0];
+        $this->assertSame(178000, $listed['items'][0]['amount']);
+        $this->assertArrayHasKey('default_amount', $listed['items'][0]);
 
         // 빌더 저장(PATCH)이 스냅샷 필드를 유실하지 않는다 (검증 규칙 포함 확인)
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
