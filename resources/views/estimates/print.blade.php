@@ -220,7 +220,9 @@ function savePNG(){
     <div class="est-band">
         <div>
             <div class="est-title">견 적 서</div>
-            <div class="est-subtitle">ESTIMATE{{ !empty($settings['seller_name']) ? ' · '.$settings['seller_name'] : '' }}</div>
+            @if(!empty($settings['seller_name']))
+                <div class="est-subtitle">{{ $settings['seller_name'] }}</div>
+            @endif
         </div>
         <div class="band-meta">
             <div><span class="m-label">작성일</span><span class="m-value">{{ $estimate->created_at->format('Y-m-d') }}</span></div>
