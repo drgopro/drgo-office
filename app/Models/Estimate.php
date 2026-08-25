@@ -56,6 +56,8 @@ class Estimate extends Model
         'payapp_paid_at',
         'memo',
         'internal_memo',
+        'draft',
+        'draft_saved_at',
         'created_by',
     ];
 
@@ -71,6 +73,8 @@ class Estimate extends Model
         'payapp_state' => 'integer',
         'payapp_requested_at' => 'datetime',
         'payapp_paid_at' => 'datetime',
+        'draft' => 'array',
+        'draft_saved_at' => 'datetime',
     ];
 
     /**

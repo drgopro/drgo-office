@@ -298,6 +298,8 @@
 
     <div class="panel-right-footer">
         <span class="save-indicator" id="saveIndicator"></span>
+        <button class="btn btn-ghost" onclick="loadDraft()">임시저장 불러오기</button>
+        <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
         <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
@@ -897,8 +899,8 @@ async function loadClientProjects(cid, selectedId) {
 }
 
 // === 저장/발행/삭제 ===
-async function saveEstimate(silent = false) {
-    const body = {
+function buildEstimateBody() {
+    return {
         title: estTitleValue,
         client_id: clientId,
         project_id: +document.getElementById('cProject').value || null,
@@ -911,8 +913,13 @@ async function saveEstimate(silent = false) {
         memo: document.getElementById('estMemo').value || null,
         internal_memo: document.getElementById('estInternalMemo').value || null,
     };
+}
+
+async function saveEstimate(silent = false) {
+    const body = buildEstimateBody();
     const res = await fetch(`/api/estimates/${estId}`, {method:'PATCH', headers:H, body:JSON.stringify(body)});
     if (res.ok) {
+        lastSnapshot = JSON.stringify(body);
         document.getElementById('saveIndicator').textContent = '저장됨 ' + new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
         if (window.opener) try { window.opener.loadEstimates?.(); } catch(e) {}
         const d = await res.json().catch(() => ({}));
@@ -943,6 +950,56 @@ async function saveEstimate(silent = false) {
     if (err.exception) parts.push(`예외: ${err.exception}`);
     if (err.file) parts.push(`위치: ${err.file}`);
     alert(`저장 실패 (${res.status})\n\n` + (parts.length ? parts.join('\n') : '(빈 응답)'));
+}
+
+// === 1분 자동 임시저장 (정식 저장과 별개 스냅샷) + 불러오기 + 초기화 ===
+let lastSnapshot = null; // 마지막 저장/임시저장 시점의 내용 — 변경 없으면 임시저장 생략
+
+async function autoSaveDraft() {
+    if (document.getElementById('estTitleInput')) return; // 제목 편집 중에는 건너뜀
+    const body = buildEstimateBody();
+    const snap = JSON.stringify(body);
+    if (snap === lastSnapshot) return;
+    try {
+        const res = await fetch(`/api/estimates/${estId}/draft`, {method:'POST', headers:H, body:JSON.stringify({draft: body})});
+        if (!res.ok) return;
+        const d = await res.json().catch(() => ({}));
+        lastSnapshot = snap;
+        document.getElementById('saveIndicator').textContent = (d.saved_at || new Date().toLocaleTimeString('ko-KR',{hour12:false})) + ' 임시저장';
+    } catch(e) { /* 네트워크 일시 오류 — 다음 주기에 재시도 */ }
+}
+setInterval(autoSaveDraft, 60000);
+
+async function loadDraft() {
+    const res = await fetch(`/api/estimates/${estId}/draft`, {headers:{'Accept':'application/json'}});
+    const d = res.ok ? await res.json() : {};
+    if (!d.draft) { alert('임시저장된 내용이 없습니다.\n(정식 저장을 하면 임시저장본은 비워집니다)'); return; }
+    if (!confirm(`${d.saved_at} 임시저장본을 불러올까요?\n현재 화면의 내용은 대체됩니다.`)) return;
+    applyEstimateBody(d.draft);
+    document.getElementById('saveIndicator').textContent = d.saved_at.slice(11) + ' 임시저장본 불러옴 — 저장을 눌러야 반영됩니다';
+}
+
+function applyEstimateBody(b) {
+    estTitleValue = b.title || null;
+    renderEstTitle();
+    clientId = b.client_id || null;
+    document.getElementById('cName').value = b.client_name || '';
+    document.getElementById('cNickname').value = b.client_nickname || '';
+    document.getElementById('cPhone').value = b.client_phone || '';
+    if (b.status) document.getElementById('estStatus').value = b.status;
+    document.getElementById('estMemo').value = b.memo || '';
+    document.getElementById('estInternalMemo').value = b.internal_memo || '';
+    cartItems = b.product_items || [];
+    svcItems = b.service_items || [];
+    renderCart();
+    renderServices();
+    loadClientProjects(clientId, b.project_id || null);
+}
+
+function resetEstimate() {
+    if (!confirm('견적 내용을 모두 지우고 새로 작성할까요?\n저장 버튼을 눌러야 실제로 반영됩니다.')) return;
+    applyEstimateBody({ status: document.getElementById('estStatus').value });
+    document.getElementById('saveIndicator').textContent = '초기화됨 — 저장을 눌러야 반영됩니다';
 }
 
 function printEstimate() {
@@ -1011,7 +1068,9 @@ loadPresetPanel();
         x => { P.style.width = Math.min(Math.max(window.innerWidth - x, 140), 440) + 'px'; },
         () => localStorage.setItem('estPanelPresetsW', parseInt(P.style.width)));
 })();
-if (clientId) loadClientProjects(clientId, {{ $estimate->project_id ?? 'null' }});
+// 초기 상태를 임시저장 기준점으로 — 프로젝트 셀렉트가 채워진 뒤 스냅샷을 찍어야 헛 임시저장이 안 생긴다
+Promise.resolve(clientId ? loadClientProjects(clientId, {{ $estimate->project_id ?? 'null' }}) : null)
+    .then(() => { lastSnapshot = JSON.stringify(buildEstimateBody()); });
 
 document.addEventListener('click', e => {
     if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults').classList.remove('show');

@@ -44,6 +44,30 @@ class EstimateController extends Controller
         return response()->json($query->limit(100)->get());
     }
 
+    /** 빌더 1분 자동 임시저장 — 정식 저장과 별개 스냅샷 (저장 시 비워짐) */
+    public function saveDraft(Request $request, Estimate $estimate)
+    {
+        $request->validate([
+            'draft' => 'required|array',
+            'draft.product_items' => 'nullable|array|max:300',
+            'draft.service_items' => 'nullable|array|max:100',
+        ]);
+
+        // validated()는 중첩 규칙에 있는 키만 남기므로 스냅샷 전체는 원본 입력에서 가져온다
+        $estimate->update(['draft' => $request->input('draft'), 'draft_saved_at' => now()]);
+
+        return response()->json(['saved_at' => $estimate->draft_saved_at->format('H:i:s')]);
+    }
+
+    /** 임시저장 불러오기 — 저장된 스냅샷과 시각 반환 */
+    public function getDraft(Estimate $estimate)
+    {
+        return response()->json([
+            'draft' => $estimate->draft,
+            'saved_at' => $estimate->draft_saved_at?->format('Y-m-d H:i:s'),
+        ]);
+    }
+
     /** 의뢰자 공개 링크 — 목록의 링크 복사 버튼용 (토큰이 없으면 생성) */
     public function publicLink(Estimate $estimate)
     {
@@ -140,6 +164,9 @@ class EstimateController extends Controller
                 'service_total' => $serviceTotal,
                 'total_amount' => $productTotal + $serviceTotal,
                 'issued_at' => $becameIssued ? now() : $estimate->issued_at,
+                // 정식 저장되면 자동 임시저장본은 더 이상 최신이 아니므로 비운다
+                'draft' => null,
+                'draft_saved_at' => null,
             ]);
 
             // 첫 실제 저장(temp 탈출) 시 표시 번호 발급 — 만들고 버린 견적서는 번호를 쓰지 않는다
