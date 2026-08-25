@@ -323,6 +323,9 @@ function renderCart() {
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(item);
     });
+    // 배열을 대분류 블록 단위로 연속 정돈 — 블록 첫 항목 삭제 시 분류 순서 점프 방지
+    cartItems.length = 0;
+    Object.values(grouped).forEach(arr => cartItems.push(...arr));
     let html = '', globalIdx = 0;
     for (const [cat, items] of Object.entries(grouped)) {
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);

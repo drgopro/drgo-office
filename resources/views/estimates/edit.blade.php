@@ -580,6 +580,9 @@ function renderCart() {
     }
 
     const { order, map } = groupBlocks();
+    // 배열을 대분류 블록 단위로 연속 정돈 — 담은 순서가 뒤섞여 있으면(PC→비디오→PC)
+    // 블록의 첫 항목 삭제 시 '첫 등장 순서'가 바뀌어 분류가 최상위로 점프한다
+    rebuildFromBlocks(order, map);
     let html = '', globalIdx = 0;
     order.forEach((cat, gIdx) => {
         const items = map[cat];
