@@ -1055,6 +1055,9 @@ class ProjectController extends Controller
             // 전액 환불/취소가 됐으면 견적서를 '결제 취소'로, 연동 캘린더는 '미결제'로 동기화
             if ($amount >= $refundable && ($est = Estimate::find($parent->estimate_id))) {
                 EstimatePaymentSync::estimateCancelled($est);
+            } elseif ($refunds !== [] && ($est = Estimate::find($parent->estimate_id))) {
+                // 부분환불 — 연동 캘린더 일정에 환불 합계 표시만 갱신
+                EstimatePaymentSync::syncRefundDisplay($est);
             }
         }
 

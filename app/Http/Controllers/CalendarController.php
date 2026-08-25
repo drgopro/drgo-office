@@ -616,11 +616,15 @@ class CalendarController extends Controller
             ]);
         }
 
-        // 캘린더 잔금 청구 연결 id는 서버가 관리 — 클라이언트가 재전송한 request_data에 승계 (중복 청구 방지)
+        // 캘린더 잔금 청구 연결 id·견적서 환불 표시는 서버가 관리 — 클라이언트가 재전송한 request_data에 승계
         if (isset($validated['request_data']) && is_array($validated['request_data'])) {
             $prevBillingId = data_get($schedule->request_data, 'balance_billing_id');
             if ($prevBillingId && empty($validated['request_data']['balance_billing_id'])) {
                 $validated['request_data']['balance_billing_id'] = $prevBillingId;
+            }
+            $prevRefund = data_get($schedule->request_data, 'estimate_refund');
+            if ($prevRefund && empty($validated['request_data']['estimate_refund'])) {
+                $validated['request_data']['estimate_refund'] = $prevRefund;
             }
         }
 

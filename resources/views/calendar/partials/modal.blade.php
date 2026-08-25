@@ -440,6 +440,8 @@
                             <button type="button" id="g_estimate_btn" onclick="extractEstimateAmount()" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔍 추출</button>
                             <span id="g_estimate_status" style="font-size:11px;color:var(--text-muted);white-space:nowrap;"></span>
                         </div>
+                        {{-- 연동 견적서 환불 합계 — 프로젝트 환불·주문 내역 체크 시 자동 표시 (읽기 전용) --}}
+                        <div id="g_estimate_refund_view" data-amt="" style="display:none;margin-top:5px;font-size:12px;font-weight:700;color:var(--red, #dc2626);"></div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px;flex-wrap:wrap;">

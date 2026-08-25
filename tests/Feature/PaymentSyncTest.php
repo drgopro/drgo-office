@@ -158,6 +158,28 @@ class PaymentSyncTest extends TestCase
 
         $this->assertSame('paid', $this->estimate->fresh()->status);
         $this->assertSame('결제완료', data_get($schedule->fresh()->request_data, 'paid'));
+        // 부분환불 합계가 캘린더 일정에 표시용으로 기록됨
+        $this->assertSame('50,000', data_get($schedule->fresh()->request_data, 'estimate_refund'));
+    }
+
+    public function test_manual_refund_check_syncs_calendar_display(): void
+    {
+        $items = $this->estimate->product_items;
+        $items[0]['ordered'] = true;
+        $this->estimate->forceFill(['product_items' => $items, 'status' => 'paid'])->save();
+        $schedule = $this->linkedSchedule('결제완료');
+
+        // 주문 내역 수동 체크 → 캘린더 일정에 환불 합계 표시
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$this->estimate->id}/item-note", [
+            'index' => 1, 'refunded' => true, 'refund_amount' => 50000,
+        ])->assertOk();
+        $this->assertSame('50,000', data_get($schedule->fresh()->request_data, 'estimate_refund'));
+
+        // 해제 → 표시 제거
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$this->estimate->id}/item-note", [
+            'index' => 1, 'refunded' => false,
+        ])->assertOk();
+        $this->assertNull(data_get($schedule->fresh()->request_data, 'estimate_refund'));
     }
 
     public function test_full_refund_with_ledger_records_cancel_and_marks_all_items(): void
@@ -191,6 +213,7 @@ class PaymentSyncTest extends TestCase
         $this->assertSame(1, (int) $fresh->product_items[1]['refund_qty']);
         $this->assertSame(50000, (int) $fresh->product_items[1]['refund_amount']);
         $this->assertSame('미결제', data_get($schedule->fresh()->request_data, 'paid'));
+        $this->assertSame('250,000', data_get($schedule->fresh()->request_data, 'estimate_refund'));
     }
 
     public function test_bundle_component_partial_refund_records_snapshot(): void

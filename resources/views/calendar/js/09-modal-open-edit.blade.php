@@ -32,6 +32,7 @@ function resetModalForm(){
     document.getElementById('clientSearchInput').value='';
     linkedEstimateId=null;
     document.getElementById('linkedEstimateInfo').style.display='none';
+    {const rv=document.getElementById('g_estimate_refund_view'); if(rv){rv.dataset.amt='';rv.textContent='';rv.style.display='none';}} // 이전 일정 환불 표시 잔여 제거
     document.getElementById('catQuickPick')?.remove(); // 카테고리 빠른 변경 팝업 잔여 제거
     // 대여 이력 등록 초기화 (표시 여부는 setColor→updateBrRentalUI가 결정)
     {const bc=document.getElementById('brRentalChk'); if(bc) bc.checked=false;
@@ -594,6 +595,14 @@ function openEditModal(ev){
     if(typeof updateCarReasonUI==='function') updateCarReasonUI();
     if(g.paid) setRadio('g_paid_group',g.paid);
     document.getElementById('g_estimate_amount').value=_fmtAmt(g.estimate_amount||'');
+    // 연동 견적서 환불 합계 — 있으면 결제된 금액 아래 빨간 글씨로 (읽기 전용, 견적서 환불 기록과 자동 동기화)
+    const refundView=document.getElementById('g_estimate_refund_view');
+    if(refundView){
+        const refund=(g.estimate_refund||'').toString().trim();
+        refundView.dataset.amt=refund;
+        refundView.textContent=refund?`환불 ${refund}원 (견적서 환불 기록)`:'';
+        refundView.style.display=refund?'':'none';
+    }
     if(g.order){setRadio('g_order_group',g.order);handleConditional('g_order_group');}
     if(g.balance){setRadio('g_balance_group',g.balance);handleConditional('g_balance_group');}
     document.getElementById('g_balance_amount').value=_fmtAmt(g.balance_amount||'');

@@ -6,6 +6,7 @@ use App\Models\Estimate;
 use App\Models\OfficeOrder;
 use App\Models\Product;
 use App\Models\ScheduleShipment;
+use App\Services\EstimatePaymentSync;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -208,6 +209,9 @@ class OfficeOrderController extends Controller
             }
         }
         $estimate->forceFill(['product_items' => $items])->save();
+        if ($request->has('refunded')) {
+            EstimatePaymentSync::syncRefundDisplay($estimate->fresh());
+        }
 
         return response()->json(['message' => '저장되었습니다.']);
     }
@@ -255,6 +259,7 @@ class OfficeOrderController extends Controller
         }
 
         $estimate->forceFill(['product_items' => $items])->save();
+        EstimatePaymentSync::syncRefundDisplay($estimate->fresh());
 
         return response()->json(['message' => '저장되었습니다.']);
     }

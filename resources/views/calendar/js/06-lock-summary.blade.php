@@ -274,6 +274,15 @@ function renderLockSummary(){
             left.push(lsCard('진행 상태', `<div class="ls-state-chips" style="margin-top:0;">${payChips||'<span class="ls-sub" style="margin:0;">— 표시할 상태 없음 —</span>'}</div>`,
                 lsShips.length?`배송 ${lsShipsDone}/${lsShips.length} 완료`:'', 'ls-c-state'));
         }
+        // 연동 견적서 환불 합계 — 있으면 결제 금액 아래 빨간 줄로 (환불 반영 후 금액 포함)
+        const lsRefund = document.getElementById('g_estimate_refund_view')?.dataset.amt || '';
+        const lsRefundLine = (() => {
+            if (!lsRefund) return '';
+            const a = parseInt((amount||'').replace(/[^\d]/g,'')) || 0;
+            const r = parseInt(lsRefund.replace(/[^\d]/g,'')) || 0;
+            const after = a > r && r > 0 ? ` · 환불 반영 후 ${(a-r).toLocaleString()}원` : '';
+            return `<div style="margin-top:6px;font-size:12.5px;font-weight:700;color:var(--red,#dc2626);">환불 ${_esc(lsRefund)}원${after}</div>`;
+        })();
         left.push(lsCard('결제 금액', `
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span class="ls-amount-big">${amount?_esc(_fmtAmt(amount))+'원':'<span style="font-size:13px;color:var(--text-muted);font-weight:400;">결제 금액 미입력</span>'}</span>
@@ -282,6 +291,7 @@ function renderLockSummary(){
                     ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
                 </span>
             </div>
+            ${lsRefundLine}
             ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}`,
             '', 'ls-c-pay'));
 
