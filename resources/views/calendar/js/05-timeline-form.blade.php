@@ -331,7 +331,12 @@ let assigneeShowAll=false; // 본인 외 나머지 펼침 여부
 function toggleAssigneePanel(){
     assigneePanelOpen=!assigneePanelOpen;
     document.getElementById('assigneeList').style.display=assigneePanelOpen?'flex':'none';
-    if(assigneePanelOpen){ assigneeShowAll=false; renderAssigneeList(); }
+    if(assigneePanelOpen){
+        assigneeShowAll=false; renderAssigneeList();
+        // 캘린더는 상주 탭이라 목록이 페이지 로드 시점 스냅샷 — 열 때마다 최신화
+        // (관리 페이지에서 방금 추가한 외부 담당자도 새로고침 없이 반영)
+        loadAssignees().then(()=>{ if(assigneePanelOpen) renderAssigneeList(); }).catch(()=>{});
+    }
 }
 function updateAssigneeBtn(){
     const btn=document.getElementById('assigneeBtn');
@@ -399,7 +404,11 @@ let notifyPanelOpen=false;
 function toggleNotifyPanel(){
     notifyPanelOpen=!notifyPanelOpen;
     document.getElementById('notifyList').style.display=notifyPanelOpen?'flex':'none';
-    if(notifyPanelOpen) renderNotifyList();
+    if(notifyPanelOpen){
+        renderNotifyList();
+        // 담당자 패널과 동일 — 열 때마다 목록 최신화 (상주 탭 스냅샷 문제)
+        loadAssignees().then(()=>{ if(notifyPanelOpen) renderNotifyList(); }).catch(()=>{});
+    }
 }
 function updateNotifyBtn(){
     const btn=document.getElementById('notifyBtn');
