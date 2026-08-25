@@ -341,13 +341,22 @@ function renderCart() {
                     <button onclick="changeQty(${idx},1)">+</button>
                 </div></td>
                 <td class="text-right" style="font-weight:600;">${fmt(item.subtotal)}원</td>
-                <td><button class="btn-remove" onclick="cartItems.splice(${idx},1); renderCart();">×</button></td>
+                <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
             </tr>`;
         });
         html += `<tr class="cart-subtotal"><td colspan="5">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     }
     tb.innerHTML = html;
     updateTotals();
+}
+// 더블클릭/성급한 재클릭 방지 — 삭제로 행이 위로 당겨지면 두 번째 클릭이 다른 항목의 ×에 떨어짐
+let __lastRemoveAt = 0;
+function removeItem(idx) {
+    const now = Date.now();
+    if (now - __lastRemoveAt < 400) return;
+    __lastRemoveAt = now;
+    cartItems.splice(idx, 1);
+    renderCart();
 }
 function changeQty(idx, d) { cartItems[idx].qty = Math.max(1, cartItems[idx].qty + d); cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty; renderCart(); }
 function setQty(idx, v) { cartItems[idx].qty = Math.max(1, parseInt(v)||1); cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty; renderCart(); }

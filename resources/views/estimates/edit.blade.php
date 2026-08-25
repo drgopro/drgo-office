@@ -722,7 +722,13 @@ function setQty(idx, val) {
     cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty;
     renderCart();
 }
+// 더블클릭/성급한 재클릭 방지 — 삭제로 행이 위로 당겨지면 같은 좌표의 두 번째 클릭이
+// 다른 분류의 × 버튼에 떨어져 엉뚱한 항목까지 지워진다 (분류 마지막 항목 삭제 시 3줄 이동)
+let __lastRemoveAt = 0;
 function removeItem(idx) {
+    const now = Date.now();
+    if (now - __lastRemoveAt < 400) return;
+    __lastRemoveAt = now;
     cartItems.splice(idx, 1);
     renderCart();
 }
