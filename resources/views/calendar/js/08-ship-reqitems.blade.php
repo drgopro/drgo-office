@@ -50,7 +50,7 @@ const CARRIER_TRACK_URLS={
     'kr.logen':'https://www.ilogen.com/web/personal/trace/{no}',
     'kr.epost':'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1={no}',
     'kr.kdexp':'https://kdexp.com/service/delivery/etc/delivery.do?barcode={no}',
-    'kr.coupangls':'https://www.coupangls.com/', // 딥링크 미지원 — 조회 페이지를 열고 송장번호는 사이트에서 입력
+    'kr.coupangls':'https://www.coupangls.com/web/modal/invoice/{no}', // 조회 모달 딥링크 — 송장번호 자동 입력
 };
 function shipRowHtml(s){
     const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:['✕','var(--red)']);

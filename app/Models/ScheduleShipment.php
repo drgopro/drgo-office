@@ -38,6 +38,25 @@ class ScheduleShipment extends Model
         'kr.coupangls' => '쿠팡',
     ];
 
+    /** 택배사 공식 조회 페이지 딥링크 — {no}에 송장번호가 채워져 바로 조회된다 */
+    public const TRACKING_URLS = [
+        'kr.cjlogistics' => 'https://trace.cjlogistics.com/next/tracking.html?wblNo={no}',
+        'kr.lotte' => 'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo={no}',
+        'kr.hanjin' => 'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2={no}',
+        'kr.logen' => 'https://www.ilogen.com/web/personal/trace/{no}',
+        'kr.epost' => 'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1={no}',
+        'kr.kdexp' => 'https://kdexp.com/service/delivery/etc/delivery.do?barcode={no}',
+        'kr.coupangls' => 'https://www.coupangls.com/web/modal/invoice/{no}',
+    ];
+
+    /** 이 송장의 택배사 조회 페이지 URL (미지원 택배사는 null) */
+    public function trackingUrl(): ?string
+    {
+        $template = self::TRACKING_URLS[$this->carrier] ?? null;
+
+        return $template ? str_replace('{no}', rawurlencode((string) $this->tracking_no), $template) : null;
+    }
+
     /** @return BelongsTo<Schedule, $this> */
     public function schedule(): BelongsTo
     {

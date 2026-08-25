@@ -67,6 +67,7 @@ class OfficeOrderTest extends TestCase
         $this->assertCount(1, $row['shipments']);
         $this->assertSame('123456789', $row['shipments'][0]['tracking_no']);
         $this->assertSame('in_transit', $row['shipments'][0]['status']);
+        $this->assertStringContainsString('123456789', $row['shipments'][0]['tracking_url']);
     }
 
     public function test_manual_order_crud_and_grouping(): void

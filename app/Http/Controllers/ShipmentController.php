@@ -154,6 +154,7 @@ class ShipmentController extends Controller
             'carrier' => $s->carrier,
             'carrier_label' => $s->carrierLabel(),
             'tracking_no' => $s->tracking_no,
+            'tracking_url' => $s->trackingUrl(), // 택배사 조회 페이지 (송장번호 자동 입력)
             'status' => $s->status,
             'last_event' => $s->last_event,
             'last_location' => $s->last_location,

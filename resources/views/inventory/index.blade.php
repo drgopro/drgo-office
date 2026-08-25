@@ -1835,10 +1835,14 @@ function renderOrders() {
                     const [label, cls] = SHIP_ST[s.status] || SHIP_ST.unknown;
                     return `<div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:3px 0;">
                         <b style="white-space:nowrap;">${_esc(s.carrier_label)}</b>
-                        <span style="white-space:nowrap;">${_esc(s.tracking_no)}</span>
+                        ${s.tracking_url
+                            ? `<a href="${_esc(s.tracking_url)}" target="_blank" rel="noopener" title="택배사 조회 페이지 열기 (송장번호 자동 입력)" style="white-space:nowrap; color:var(--accent); text-decoration:none;" onclick="event.stopPropagation()" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${_esc(s.tracking_no)} ↗</a>`
+                            : `<span style="white-space:nowrap;">${_esc(s.tracking_no)}</span>`}
                         <span class="badge ${cls}">${label}</span>
+                        ${s.last_location ? `<span style="white-space:nowrap;" title="마지막 처리 사업장">📍 ${_esc(s.last_location)}</span>` : ''}
                         ${s.last_event ? `<span class="text-muted" style="white-space:normal; word-break:break-word; max-width:560px;">${_esc(s.last_event)}</span>` : ''}
                         ${s.delivered_at ? `<span class="text-muted" style="white-space:nowrap;">${s.delivered_at}</span>` : ''}
+                        ${s.checked_at ? `<span class="text-muted" style="white-space:nowrap; font-size:11px;" title="마지막 추적 갱신 시각">갱신 ${s.checked_at}</span>` : ''}
                     </div>`;
                 }).join('');
                 html += `<tr style="background:var(--surface2);" ${shipCount ? `onclick="toggleShipments(${o.id})"` : ''}><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12px; text-align:left; ${shipCount ? 'cursor:pointer;' : ''}">

@@ -19,6 +19,8 @@
         .ship-row:last-child { border-bottom:none; }
         .ship-carrier { font-weight:700; white-space:nowrap; }
         .ship-no { font-family:monospace; font-size:12.5px; }
+        .ship-no-link { color:var(--accent); text-decoration:none; }
+        .ship-no-link:hover { text-decoration:underline; }
         .badge { font-size:10.5px; padding:2px 8px; border-radius:4px; font-weight:700; white-space:nowrap; }
         .badge-delivered { background:#e8f5e8; color:#248a38; }
         .badge-moving { background:#e0f0ff; color:#2e6a9a; }
@@ -86,7 +88,9 @@ function renderList(data) {
     el.innerHTML = data.shipments.map(s => `
         <div class="ship-row">
             <span class="ship-carrier">${_esc(s.carrier_label)}</span>
-            <span class="ship-no">${_esc(s.tracking_no)}</span>
+            ${s.tracking_url
+                ? `<a class="ship-no ship-no-link" href="${_esc(s.tracking_url)}" target="_blank" rel="noopener" title="택배사 조회 페이지 열기 (송장번호 자동 입력)">${_esc(s.tracking_no)} ↗</a>`
+                : `<span class="ship-no">${_esc(s.tracking_no)}</span>`}
             ${statusBadge(s.status)}
             <span class="ship-event">${_esc([s.last_event, s.last_location].filter(Boolean).join(' · '))}${s.delivered_at ? ' · ' + _esc(s.delivered_at) : ''}</span>
             <button class="btn-x" title="삭제" onclick="removeShipment(${s.id})">×</button>

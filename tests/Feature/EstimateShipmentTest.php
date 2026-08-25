@@ -60,6 +60,8 @@ class EstimateShipmentTest extends TestCase
         $this->assertCount(1, $res['shipments']);
         $this->assertSame('123456789012', $res['shipments'][0]['tracking_no']);
         $this->assertSame('delivered', $res['shipments'][0]['status']);
+        // 택배사 조회 딥링크 — 송장번호가 채워진 URL
+        $this->assertSame('https://trace.cjlogistics.com/next/tracking.html?wblNo=123456789012', $res['shipments'][0]['tracking_url']);
         $this->assertArrayHasKey('kr.cjlogistics', $res['carriers']);
 
         // 중복 등록 거부

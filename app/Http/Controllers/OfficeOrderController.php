@@ -55,8 +55,11 @@ class OfficeOrderController extends Controller
                 'shipments' => $e->shipments->map(fn (ScheduleShipment $s) => [
                     'carrier_label' => $s->carrierLabel(),
                     'tracking_no' => $s->tracking_no,
+                    'tracking_url' => $s->trackingUrl(),
                     'status' => $s->status,
                     'last_event' => $s->last_event,
+                    'last_location' => $s->last_location, // 마지막 처리 사업장
+                    'checked_at' => $s->checked_at?->format('m/d H:i'), // 마지막 추적 갱신 시각
                     'delivered_at' => $s->delivered_at?->format('m/d H:i'),
                 ])->values(),
                 'updated_at' => $e->updated_at->format('Y-m-d H:i'),
