@@ -106,6 +106,11 @@
         .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:12.5px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
+        /* 세트 구성품 접기/펼치기 (빌더 전용) */
+        .bundle-toggle { background:none; border:1px solid #9db8d4; color:var(--accent); border-radius:4px; font-size:10.5px; padding:0 6px; cursor:pointer; margin-left:5px; vertical-align:middle; }
+        .bundle-toggle:hover { background:var(--surface2); }
+        .bundle-sub td { background:var(--surface2); font-size:12px; color:var(--text-muted); padding:5px 6px; }
+        .bundle-sub .bs-qty { color:var(--accent); font-weight:600; }
         .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
         .drag-handle:active { cursor:grabbing; }
         /* 핸들·번호·금액 줄바꿈 방지 — 가로 정렬 유지 */
@@ -593,6 +598,8 @@ function addToCart(productId) {
             time_required: p.use_time_required ? (p.time_required || '') : '',
             use_time: !!p.use_time_required,
             subtotal: price,
+            // 세트 구성품 스냅샷 — 빌더에서 접기/펼치기 (출력물·의뢰자 견적서에는 세트 한 줄만)
+            bundle_items: p.is_bundle && (p.bundle_items || []).length ? p.bundle_items : undefined,
         });
     }
     renderCart();
@@ -681,13 +688,20 @@ function renderCart() {
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${orderMode ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:12px; color:var(--text-muted); ${orderMode ? '' : 'cursor:pointer;'}" ${orderMode ? '' : `onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)"`}>${item.category||''}</td>
-                <td class="cell-name"><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="주문완료"' : ''}>${item.name}</span>${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}</td>
+                <td class="cell-name"><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="주문완료"' : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>${qtyCell}</td>
                 <td class="text-right" style="font-weight:600;">${fmt(item.subtotal)}원</td>
                 <td>${lastCell}</td>
             </tr>`;
+            // 세트 구성품 펼침 — 내부 확인용 (출력물·의뢰자 견적서에는 표시되지 않음)
+            if ((item.bundle_items || []).length && __bundleOpen.has(item)) {
+                html += item.bundle_items.map(b => `<tr class="bundle-sub" data-gidx="${gIdx}">
+                    <td></td><td></td>
+                    <td colspan="6">└ ${_escE(b.name)} <span class="bs-qty">×${b.qty}${item.qty > 1 ? ` · 총 ${b.qty * item.qty}개` : ''}</span></td>
+                </tr>`).join('');
+            }
         });
         html += `<tr class="cart-subtotal"><td colspan="6">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     });
@@ -790,6 +804,15 @@ function setQty(idx, val) {
     cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty;
     renderCart();
 }
+// 세트 구성품 접기/펼치기 — 항목 객체 기준 (재렌더에도 상태 유지, 저장 데이터에는 미포함)
+const __bundleOpen = new WeakSet();
+function toggleBundle(idx) {
+    const item = cartItems[idx];
+    if (!item) return;
+    if (__bundleOpen.has(item)) __bundleOpen.delete(item); else __bundleOpen.add(item);
+    renderCart();
+}
+
 // 더블클릭/성급한 재클릭 방지 — 삭제로 행이 위로 당겨지면 같은 좌표의 두 번째 클릭이
 // 다른 분류의 × 버튼에 떨어져 엉뚱한 항목까지 지워진다 (분류 마지막 항목 삭제 시 3줄 이동)
 let __lastRemoveAt = 0;
@@ -876,6 +899,7 @@ function applyPresetById(id) {
             item.sku = cur.sku;
             item.sale_price = Number(cur.sale_price) || 0;
             item.purchase_price = Number(cur.purchase_price) || 0;
+            if (cur.is_bundle && (cur.bundle_items || []).length) item.bundle_items = cur.bundle_items;
         }
         item.qty = Math.max(1, parseInt(item.qty) || 1);
         item.subtotal = (Number(item.sale_price) || 0) * item.qty;

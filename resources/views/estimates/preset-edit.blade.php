@@ -326,6 +326,8 @@ function addToCart(productId) {
             purchase_price: p.purchase_price || 0, sale_price: price, qty: 1,
             time_required: p.use_time_required ? (p.time_required || '') : '', use_time: !!p.use_time_required,
             subtotal: price, manual: false,
+            // 세트 구성품 스냅샷 — 견적서 빌더에서 접기/펼치기로 표시
+            bundle_items: p.is_bundle && (p.bundle_items || []).length ? p.bundle_items : undefined,
         });
     }
     renderCart();
@@ -378,7 +380,7 @@ function renderCart() {
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td><span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> <span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
-                <td>${_escE(item.name)}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
+                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:9px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
                 <td class="text-right"><input type="number" min="0" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
                 <td><div class="qty-ctrl">
                     <button onclick="changeQty(${idx},-1)">−</button>

@@ -788,7 +788,7 @@ class InventoryController extends Controller
 
     public function estimateProducts(Request $request)
     {
-        $query = Product::with('inventory', 'categoryRelation.parent.parent.parent', 'group')
+        $query = Product::with('inventory', 'categoryRelation.parent.parent.parent', 'group', 'bundleItems.component')
             ->where('is_active', true)
             ->where('show_in_estimate', true);
 
@@ -835,6 +835,11 @@ class InventoryController extends Controller
                 'memo' => $p->memo,
                 // 등록일 — 제품 리스트 정렬용
                 'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
+                // 세트 구성품 — 빌더에서 접기/펼치기로 표시 (의뢰자 견적서·출력물에는 세트 한 줄만)
+                'is_bundle' => (bool) $p->is_bundle,
+                'bundle_items' => $p->is_bundle
+                    ? $p->bundleItems->map(fn ($bi) => ['name' => $bi->component?->name ?? '(삭제된 구성품)', 'qty' => max(1, (int) $bi->quantity)])->values()
+                    : [],
             ];
         });
 

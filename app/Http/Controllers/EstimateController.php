@@ -130,6 +130,10 @@ class EstimateController extends Controller
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모
             'product_items.*.purchase_amount' => 'nullable|numeric|min:0', // 주문 내역의 구매 금액
+            // 세트 구성품 스냅샷 — 빌더 전용 표시 (출력물·의뢰자 견적서에는 세트 한 줄만)
+            'product_items.*.bundle_items' => 'nullable|array|max:50',
+            'product_items.*.bundle_items.*.name' => 'required|string|max:200',
+            'product_items.*.bundle_items.*.qty' => 'nullable|integer|min:1|max:999',
             'service_items' => 'nullable|array|max:100',
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',

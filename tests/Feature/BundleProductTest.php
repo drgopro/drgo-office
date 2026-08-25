@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Estimate;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductBundleItem;
@@ -254,5 +255,43 @@ class BundleProductTest extends TestCase
         $this->assertNotNull($bundle);
         $this->assertSame(2, $bundle['bundle_items'][0]['quantity']);
         $this->assertSame(6, $bundle['bundle_items'][0]['component']['inventory']['quantity']);
+    }
+
+    public function test_estimate_products_expose_bundle_components_and_print_hides_them(): void
+    {
+        $mic = $this->makeComponent('세트용 마이크', 5);
+        $arm = $this->makeComponent('세트용 붐암', 3);
+        $res = $this->makeBundle([
+            ['product_id' => $mic->id, 'quantity' => 1],
+            ['product_id' => $arm->id, 'quantity' => 2],
+        ], '스트리밍 세트');
+        Product::find($res->json('id'))->update(['show_in_estimate' => true]);
+
+        // 견적서 제품 API에 구성품 스냅샷 포함
+        $rows = $this->actingAs($this->master)->getJson('/api/inventory/estimate-products')->assertOk()->json();
+        $set = collect($rows)->firstWhere('name', '스트리밍 세트');
+        $this->assertTrue($set['is_bundle']);
+        $this->assertSame(['세트용 마이크', '세트용 붐암'], array_column($set['bundle_items'], 'name'));
+        $this->assertSame(2, $set['bundle_items'][1]['qty']);
+
+        // 견적서 저장 시 bundle_items 스냅샷 보존 + 출력물에는 세트 한 줄만 (구성품 미노출)
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'service_total' => 0, 'total_amount' => 0,
+            'validity_days' => 3, 'created_by' => $this->master->id,
+        ]);
+        $this->actingAs($this->master)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => [[
+                'product_id' => $set['id'], 'name' => '스트리밍 세트', 'category' => '방송장비',
+                'sale_price' => 150000, 'qty' => 1, 'subtotal' => 150000,
+                'bundle_items' => $set['bundle_items'],
+            ]],
+        ])->assertOk();
+
+        $saved = $estimate->fresh()->product_items[0];
+        $this->assertSame('세트용 마이크', $saved['bundle_items'][0]['name']);
+
+        $this->actingAs($this->master)->get("/estimates/{$estimate->id}/print")
+            ->assertOk()->assertSee('스트리밍 세트')->assertDontSee('세트용 마이크');
     }
 }
