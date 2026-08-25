@@ -888,16 +888,12 @@
     <div class="tab-panel" id="panel-visitOptions">
         <div class="settings-form">
             <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
-                캘린더에서 <b>미팅/내방</b> 카테고리를 선택하면 주소 검색 위에 나타나는 <b>체크박스 선택지</b>를 관리합니다.<br>
+                캘린더에서 <b>미팅/내방·사내업무</b> 카테고리를 선택하면 주소 검색 위에 나타나는 <b>체크박스 선택지</b>를 관리합니다.<br>
                 한 줄에 하나씩 입력하세요. (체크 시 주소 검색은 숨겨집니다)
             </div>
             <div class="field-group">
                 <div class="field-label">내방 옵션 (한 줄에 하나)</div>
                 <textarea class="field-input" id="visitOptionsText" rows="7" placeholder="예:&#10;사무실 방문&#10;화상 미팅&#10;외부 미팅" style="resize:vertical; line-height:1.7; font-family:inherit;">{{ $sellerSettings['calendar_visit_options'] ?? '' }}</textarea>
-            </div>
-            <div class="field-group">
-                <div class="field-label">사내 업무 장소 (한 줄에 하나) <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 캘린더의 사내업무 카테고리에서 장소 선택지로 표시됩니다</span></div>
-                <textarea class="field-input" id="officeLocationsText" rows="5" placeholder="예:&#10;신사무실&#10;구사무실" style="resize:vertical; line-height:1.7; font-family:inherit;">{{ $sellerSettings['calendar_office_locations'] ?? '' }}</textarea>
             </div>
             <div style="display:flex; align-items:center;">
                 <button class="btn-save" onclick="saveVisitOptions()">저장</button>
@@ -1746,7 +1742,7 @@ async function saveVisitOptions() {
     await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ calendar_visit_options: document.getElementById('visitOptionsText').value, calendar_office_locations: document.getElementById('officeLocationsText').value })
+        body: JSON.stringify({ calendar_visit_options: document.getElementById('visitOptionsText').value })
     });
     const msg = document.getElementById('visitOptionsSaveMsg');
     msg.style.display = 'inline';

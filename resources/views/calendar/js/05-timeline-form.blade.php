@@ -289,13 +289,13 @@ function setColor(c){
     if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
 }
 
-// ── 미팅/내방 옵션 · 사내업무(blue) 장소 — 카테고리별 선택지 목록 공유 UI ──
+// ── 미팅/내방 · 사내업무(blue) 옵션 선택 UI — 목록은 '내방 옵션' 설정 공유 ──
 function renderVisitOpts(){
     const list=document.getElementById('visitOptsList');
     if(!list) return;
     const isOffice=currentColor==='blue';
-    const opts=isOffice?(CAL_OFFICE_LOCATIONS||[]):(CAL_VISIT_OPTIONS||[]);
-    const empty=isOffice?'관리 → 설정에서 사내 업무 장소를 추가하세요.':'관리 → 설정에서 내방 옵션을 추가하세요.';
+    const opts=CAL_VISIT_OPTIONS||[];
+    const empty='관리 → 설정에서 내방 옵션을 추가하세요.';
     // 카테고리 전환으로 재렌더돼도 이미 체크된 값은 유지 (수정 열기 시 복원 보존)
     const prevChecked=[...list.querySelectorAll('input:checked')].map(i=>i.value);
     list.innerHTML=opts.map(opt=>{
