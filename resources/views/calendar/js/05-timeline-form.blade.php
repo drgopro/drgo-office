@@ -289,20 +289,28 @@ function setColor(c){
     if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
 }
 
-// ── 미팅/내방 옵션 ──
+// ── 미팅/내방 옵션 · 사내업무(blue) 장소 — 카테고리별 선택지 목록 공유 UI ──
 function renderVisitOpts(){
     const list=document.getElementById('visitOptsList');
     if(!list) return;
-    list.innerHTML=(CAL_VISIT_OPTIONS||[]).map(opt=>{
+    const isOffice=currentColor==='blue';
+    const opts=isOffice?(CAL_OFFICE_LOCATIONS||[]):(CAL_VISIT_OPTIONS||[]);
+    const empty=isOffice?'관리 → 설정에서 사내 업무 장소를 추가하세요.':'관리 → 설정에서 내방 옵션을 추가하세요.';
+    // 카테고리 전환으로 재렌더돼도 이미 체크된 값은 유지 (수정 열기 시 복원 보존)
+    const prevChecked=[...list.querySelectorAll('input:checked')].map(i=>i.value);
+    list.innerHTML=opts.map(opt=>{
         const v=String(opt).replace(/"/g,'&quot;'); const t=String(opt).replace(/</g,'&lt;');
         return `<label class="visit-opt"><input type="checkbox" value="${v}" onchange="onVisitOptChange()">${t}</label>`;
-    }).join('') || '<span style="font-size:12px;color:var(--text-muted);">관리 → 설정에서 내방 옵션을 추가하세요.</span>';
+    }).join('') || `<span style="font-size:12px;color:var(--text-muted);">${empty}</span>`;
+    list.querySelectorAll('input').forEach(cb=>{ if(prevChecked.includes(cb.value)) cb.checked=true; });
+    const label=document.getElementById('visitOptsLabel');
+    if(label) label.textContent=isOffice?'장소 선택':'내방 옵션';
 }
 function applyVisitOptsUI(){
     const sec=document.getElementById('visitOptsSection');
     const addr=document.getElementById('addressBlock');
     if(!sec||!addr) return;
-    if(currentColor==='purple'){ sec.style.display=''; onVisitOptChange(); }
+    if(currentColor==='purple'||currentColor==='blue'){ renderVisitOpts(); sec.style.display=''; onVisitOptChange(); }
     else { sec.style.display='none'; addr.style.display=''; }
 }
 function onVisitOptChange(){

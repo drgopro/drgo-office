@@ -25,6 +25,8 @@ const isCalAdmin = @json(Auth::user()->isAdmin());
 const INITIAL_EVENTS = @json($initialEvents ?? null);
 const CAL_USER_ID = @json(Auth::id());
 const CAL_VISIT_OPTIONS = @json(collect(explode("\n", (string) \App\Models\Setting::get('calendar_visit_options', '')))->map(fn ($s) => trim($s))->filter()->values());
+// 사내업무(blue) 장소 선택지 — 관리 → 설정의 '사내 업무 장소' (예: 신사무실, 구사무실)
+const CAL_OFFICE_LOCATIONS = @json(collect(explode("\n", (string) \App\Models\Setting::get('calendar_office_locations', '')))->map(fn ($s) => trim($s))->filter()->values());
 const HOURS = Array.from({length:14}, (_,i) => i+9); // 9시~22시
 
 let currentYear, currentMonth, currentWeekStart, currentDay;

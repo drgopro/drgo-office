@@ -105,8 +105,8 @@ async function doSaveEvent(){
     const schedEventOpts=[...document.querySelectorAll('#schedEventOpts .special-opt-btn.active')].map(b=>b.dataset.seopt);
     const schedOpt=(()=>{const a=document.querySelector('#scheduleOpts .sched-opt-btn.active');return a?a.dataset.sopt:null;})();
     let specialOpts=[...document.querySelectorAll('#specialOpts .special-opt-btn.active')].map(b=>b.dataset.opt);
-    // 미팅/내방 옵션(체크박스)도 special_opts에 함께 저장
-    if(currentColor==='purple'){ specialOpts=specialOpts.concat([...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value)); }
+    // 미팅/내방 옵션·사내업무 장소(체크박스)도 special_opts에 함께 저장
+    if(currentColor==='purple'||currentColor==='blue'){ specialOpts=specialOpts.concat([...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value)); }
 
     const data={
         title:document.getElementById('modalTitle').value.trim()||'(제목 없음)',

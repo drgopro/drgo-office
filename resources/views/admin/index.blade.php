@@ -895,6 +895,10 @@
                 <div class="field-label">내방 옵션 (한 줄에 하나)</div>
                 <textarea class="field-input" id="visitOptionsText" rows="7" placeholder="예:&#10;사무실 방문&#10;화상 미팅&#10;외부 미팅" style="resize:vertical; line-height:1.7; font-family:inherit;">{{ $sellerSettings['calendar_visit_options'] ?? '' }}</textarea>
             </div>
+            <div class="field-group">
+                <div class="field-label">사내 업무 장소 (한 줄에 하나) <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 캘린더의 사내업무 카테고리에서 장소 선택지로 표시됩니다</span></div>
+                <textarea class="field-input" id="officeLocationsText" rows="5" placeholder="예:&#10;신사무실&#10;구사무실" style="resize:vertical; line-height:1.7; font-family:inherit;">{{ $sellerSettings['calendar_office_locations'] ?? '' }}</textarea>
+            </div>
             <div style="display:flex; align-items:center;">
                 <button class="btn-save" onclick="saveVisitOptions()">저장</button>
                 <span class="save-msg" id="visitOptionsSaveMsg">저장되었습니다.</span>
@@ -1742,7 +1746,7 @@ async function saveVisitOptions() {
     await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ calendar_visit_options: document.getElementById('visitOptionsText').value })
+        body: JSON.stringify({ calendar_visit_options: document.getElementById('visitOptionsText').value, calendar_office_locations: document.getElementById('officeLocationsText').value })
     });
     const msg = document.getElementById('visitOptionsSaveMsg');
     msg.style.display = 'inline';

@@ -51,10 +51,10 @@
             {{-- 2a 리디자인: 좌측 폼 컬럼 --}}
             <div class="m-main">
 
-            {{-- 미팅/내방 옵션 (미팅/내방 카테고리 전용) --}}
+            {{-- 미팅/내방 옵션 · 사내업무 장소 (카테고리별 선택지) --}}
             <div class="field-section" id="visitOptsSection" style="display:none;">
                 <div class="field-group">
-                    <label class="field-label">내방 옵션</label>
+                    <label class="field-label" id="visitOptsLabel">내방 옵션</label>
                     <div class="visit-opts" id="visitOptsList"></div>
                 </div>
             </div>
