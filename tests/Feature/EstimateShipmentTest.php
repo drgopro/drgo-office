@@ -108,6 +108,21 @@ class EstimateShipmentTest extends TestCase
         $this->assertSame('1시간', $items[1]['time_required']);
     }
 
+    public function test_hosted_api_auth_failure_shows_actionable_message(): void
+    {
+        // 공식 호스팅 API 키 만료 — 원문 오류 대신 조치 가능한 한국어 안내로 치환
+        config(['services.delivery_tracker.client_id' => 'cid', 'services.delivery_tracker.client_secret' => 'sec']);
+        Http::fake(['apis.tracker.delivery/*' => Http::response(['errors' => [['message' => 'Invalid or expired token.']]])]);
+
+        $res = $this->actingAs($this->admin)->postJson("/api/estimates/{$this->estimate->id}/shipments", [
+            'carrier' => 'kr.hanjin', 'tracking_no' => '537445583065',
+        ])->assertCreated()->json();
+
+        $this->assertSame('error', $res['shipments'][0]['status']);
+        $this->assertStringContainsString('추적 API 인증 실패', $res['shipments'][0]['last_event']);
+        $this->assertStringContainsString('DELIVERY_TRACKER_CLIENT_ID', $res['shipments'][0]['last_event']);
+    }
+
     public function test_product_time_required_settings_flow_to_estimate_api(): void
     {
         $cat = ProductCategory::create(['name' => '설치', 'code' => 'SVC', 'depth' => 1, 'sort_order' => 1]);

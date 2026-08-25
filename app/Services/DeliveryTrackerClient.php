@@ -75,6 +75,11 @@ class DeliveryTrackerClient
                 $msg = '택배사 응답을 읽지 못했습니다 — 송장번호 링크로 직접 확인해주세요 (추적 서비스 업데이트 필요 가능성)';
             }
 
+            // 호스팅 API 인증 실패 — 키 만료/오류. 관리자가 조치할 수 있게 안내로 치환
+            if (stripos($msg, 'invalid or expired token') !== false || $res->status() === 401) {
+                $msg = '추적 API 인증 실패 — tracker.delivery API 키가 만료되었거나 잘못되었습니다. 관리자가 새 키를 발급해 환경변수(DELIVERY_TRACKER_CLIENT_ID/SECRET)를 갱신해야 합니다';
+            }
+
             return ['status' => 'error', 'last_event' => mb_substr($msg, 0, 200), 'last_location' => null, 'delivered_at' => null, 'raw' => $data];
         }
 
