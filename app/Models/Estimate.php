@@ -33,6 +33,7 @@ class Estimate extends Model
 
     protected $fillable = [
         'estimate_no',
+        'title',
         'client_id',
         'project_id',
         'client_name',

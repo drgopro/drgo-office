@@ -129,6 +129,34 @@ class EstimateValidationTest extends TestCase
         $this->assertSame([], $summary2['estimates']);
     }
 
+    public function test_title_saves_and_renders_on_print_with_client_name(): void
+    {
+        // 제목 저장 → 출력물 상단 헤더에 제목 + 의뢰자 이름 표시
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'title' => '스트리밍 스튜디오 구축 견적', 'client_name' => '홍길동',
+        ])->assertOk();
+        $this->assertSame('스트리밍 스튜디오 구축 견적', $this->estimate->fresh()->title);
+
+        $this->actingAs($this->admin)->get("/estimates/{$this->estimate->id}/print")
+            ->assertOk()
+            ->assertSeeInOrder(['스트리밍 스튜디오 구축 견적', '의뢰자 · 홍길동']);
+
+        // 제목이 없으면 헤더 블록 자체가 렌더되지 않는다
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", ['title' => null])->assertOk();
+        $this->actingAs($this->admin)->get("/estimates/{$this->estimate->id}/print")
+            ->assertOk()->assertDontSee('스트리밍 스튜디오 구축 견적')->assertDontSee('의뢰자 ·');
+
+        // 201자 제목은 422
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'title' => str_repeat('가', 201),
+        ])->assertStatus(422)->assertJsonValidationErrors(['title']);
+
+        // 목록 검색이 제목으로도 걸린다
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", ['title' => '스튜디오 구축'])->assertOk();
+        $found = $this->actingAs($this->admin)->getJson('/api/estimates?search=스튜디오')->assertOk()->json();
+        $this->assertContains($this->estimate->id, array_column($found, 'id'));
+    }
+
     public function test_rejects_nonexistent_linked_ids_without_sql_error(): void
     {
         // 존재하지 않는 FK들 — SQL 제약 오류(500) 대신 422

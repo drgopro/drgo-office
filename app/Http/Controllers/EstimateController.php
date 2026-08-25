@@ -35,6 +35,7 @@ class EstimateController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('client_name', 'like', "%{$search}%")
                     ->orWhere('client_nickname', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
                     ->orWhere('id', $search)
                     ->orWhere('estimate_no', $search);
             });
@@ -81,6 +82,7 @@ class EstimateController extends Controller
         $validated = $request->validate([
             'client_id' => 'nullable|exists:clients,id',
             'project_id' => 'nullable|exists:projects,id', // 의뢰자 프로젝트 연동 (선택)
+            'title' => 'nullable|string|max:200', // 견적서 제목 — 출력물 상단 헤더에 표시
             'client_name' => 'nullable|string|max:100',
             'client_nickname' => 'nullable|string|max:100',
             'client_phone' => 'nullable|string|max:50',

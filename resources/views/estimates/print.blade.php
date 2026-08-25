@@ -55,6 +55,11 @@
         .band-meta .m-label { color:var(--slate-lt); margin-right:8px; font-size:11px; letter-spacing:0.08em; font-weight:600; }
         .band-meta .m-value { display:inline-block; background:var(--slate); color:#fff; font-weight:600; font-size:11.5px; padding:2px 9px; border-radius:4px; }
 
+        /* 견적서 제목 헤더 — 밴드 아래, 제목 + 의뢰자 이름 */
+        .doc-head { padding:2px 4px 12px; border-bottom:2px solid var(--navy); margin-bottom:16px; }
+        .doc-head .doc-title { font-size:20px; font-weight:700; color:var(--ink); line-height:1.35; word-break:keep-all; }
+        .doc-head .doc-client { font-size:12.5px; font-weight:600; color:var(--slate); margin-top:5px; }
+
         /* 상단 정보 2박스 */
         .info-cols { display:flex; gap:14px; margin-bottom:20px; }
         .info-box { flex:1; border:1px solid var(--line); border-radius:8px; padding:16px 20px 14px; background:#fff; position:relative; z-index:0; }
@@ -208,6 +213,15 @@ function savePNG(){
             <div><span class="m-label">견적유효</span><span class="m-value">발행일로부터 {{ $estimate->validity_days }}일간</span></div>
         </div>
     </div>
+
+    @if($estimate->title)
+        <div class="doc-head">
+            <div class="doc-title">{{ $estimate->title }}</div>
+            @if($estimate->client_name)
+                <div class="doc-client">의뢰자 · {{ $estimate->client_name }}</div>
+            @endif
+        </div>
+    @endif
 
     @php
         $bizLine = trim(implode(' · ', array_filter([$settings['seller_biz_type'] ?? null, $settings['seller_biz_item'] ?? null]))) ?: '-';

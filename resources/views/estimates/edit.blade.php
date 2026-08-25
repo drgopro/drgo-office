@@ -188,6 +188,7 @@
 <div class="panel-right">
     <div class="panel-right-header">
         <h2 id="estTitleNo">{{ $estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no }}</h2>
+        <input id="estTitle" value="{{ $estimate->title }}" placeholder="견적서 제목 (출력물 상단에 표시)" maxlength="200" style="flex:1; min-width:120px; max-width:320px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:13px; outline:none;">
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
             <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">주문/배송</button>
@@ -863,6 +864,7 @@ async function loadClientProjects(cid, selectedId) {
 // === 저장/발행/삭제 ===
 async function saveEstimate(silent = false) {
     const body = {
+        title: document.getElementById('estTitle').value.trim() || null,
         client_id: clientId,
         project_id: +document.getElementById('cProject').value || null,
         client_name: document.getElementById('cName').value || null,
