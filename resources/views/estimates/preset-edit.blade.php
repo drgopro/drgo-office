@@ -64,6 +64,9 @@
         .drag-handle:active { cursor:grabbing; }
         .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
         tr.drop-hint td { border-top:2px solid var(--accent) !important; }
+        tr.drag-preview { pointer-events:none; }
+        tr.drag-preview td { opacity:0.6; background:rgba(46,108,181,0.10) !important; }
+        tr.drag-src td { opacity:0.35; }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
         .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
         .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
@@ -404,16 +407,44 @@ function renderCart() {
                 <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
             </tr>`;
         });
-        html += `<tr class="cart-subtotal"><td colspan="5">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
+        html += `<tr class="cart-subtotal" data-gidx="${gIdx}"><td colspan="5">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     });
     tb.innerHTML = html;
     updateTotals();
 }
 
-// === 드래그 정렬 — 대분류 블록/항목 (핸들 ⠿ 로 드래그, 견적서 편집과 동일) ===
-let __dragCat = null, __dragItem = null;
+// === 드래그 정렬 — 이동될 위치를 60% 미리보기 행으로 표시 (핸들 ⠿ 로 드래그) ===
+let __dragCat = null, __dragItem = null, __previewEl = null;
+function __clearDragUi() {
+    if (__previewEl) { __previewEl.remove(); __previewEl = null; }
+    document.querySelectorAll('#cartBody tr.drag-src').forEach(r => r.classList.remove('drag-src'));
+}
 (function initCartDnD() {
     const tb = document.getElementById('cartBody');
+
+    function srcRow() {
+        return __dragItem !== null
+            ? tb.querySelector(`tr[data-item-idx="${__dragItem}"]`)
+            : tb.querySelector(`tr.cart-cat-header[data-gidx="${__dragCat}"]`);
+    }
+    // 미리보기 행 — 드래그 중인 행의 복제본 (60% 투명, 히트테스트 제외)
+    function ensurePreview() {
+        if (__previewEl) return __previewEl;
+        const s = srcRow();
+        if (!s) return null;
+        s.classList.add('drag-src');
+        const c = s.cloneNode(true);
+        c.classList.add('drag-preview');
+        c.classList.remove('drag-src');
+        c.removeAttribute('data-item-idx');
+        c.removeAttribute('data-gidx');
+        __previewEl = c;
+        return c;
+    }
+    function groupRows(g) {
+        return [...tb.querySelectorAll(`tr[data-gidx="${g}"]`)].filter(r => !r.classList.contains('drag-preview'));
+    }
+
     tb.addEventListener('dragstart', e => {
         const h = e.target.closest('.drag-handle');
         if (!h) return;
@@ -421,57 +452,83 @@ let __dragCat = null, __dragItem = null;
         __dragItem = h.dataset.dragItem !== undefined ? +h.dataset.dragItem : null;
         e.dataTransfer.effectAllowed = 'move';
     });
+
     tb.addEventListener('dragover', e => {
         if (__dragCat === null && __dragItem === null) return;
         e.preventDefault();
         const tr = e.target.closest('tr');
-        tb.querySelectorAll('tr.drop-hint').forEach(r => r.classList.remove('drop-hint'));
-        if (tr) tr.classList.add('drop-hint');
+        if (!tr || tr.classList.contains('drag-preview') || tr.classList.contains('drag-src')) return;
+        const pv = ensurePreview();
+        if (!pv) return;
+        if (__dragItem !== null) {
+            // 항목: 행 중간선 기준 — 위쪽 절반이면 그 행 앞, 아래 절반이면 그 행 뒤
+            const r = tr.getBoundingClientRect();
+            if (e.clientY > r.top + r.height / 2) tr.after(pv); else tr.before(pv);
+        } else {
+            // 대분류: 대상 그룹 블록 전체의 중간선 기준으로 그룹 앞/뒤에
+            if (tr.dataset.gidx === undefined) return;
+            const g = +tr.dataset.gidx;
+            if (g === __dragCat) return;
+            const rows = groupRows(g);
+            if (!rows.length) return;
+            const top = rows[0].getBoundingClientRect().top;
+            const bottom = rows[rows.length - 1].getBoundingClientRect().bottom;
+            if (e.clientY > (top + bottom) / 2) rows[rows.length - 1].after(pv); else rows[0].before(pv);
+        }
     });
+
     tb.addEventListener('drop', e => {
         e.preventDefault();
-        tb.querySelectorAll('tr.drop-hint').forEach(r => r.classList.remove('drop-hint'));
-        const tr = e.target.closest('tr');
-        if (!tr) { __dragCat = __dragItem = null; return; }
-        const { order, map } = groupBlocks();
-
-        if (__dragCat !== null) {
-            // 대분류 블록 이동 — 대상 행이 속한 그룹 위치로
-            const targetG = tr.dataset.gidx !== undefined ? +tr.dataset.gidx : null;
-            if (targetG !== null && targetG !== __dragCat) {
-                const moved = order.splice(__dragCat, 1)[0];
-                order.splice(targetG, 0, moved);
-                rebuildFromBlocks(order, map);
-                renderCart();
-            }
-        } else if (__dragItem !== null) {
-            const item = cartItems[__dragItem];
-            if (item) {
-                if (tr.dataset.itemIdx !== undefined && +tr.dataset.itemIdx !== __dragItem) {
-                    // 항목 위로 드롭 — 그 항목 앞에 삽입, 대분류도 대상 그룹으로
-                    const target = cartItems[+tr.dataset.itemIdx];
-                    cartItems.splice(__dragItem, 1);
-                    const tIdx = cartItems.indexOf(target);
-                    item.category_root = target.category_root || target.category || '기타';
-                    cartItems.splice(tIdx, 0, item);
-                    renderCart();
-                } else if (tr.dataset.gidx !== undefined && tr.dataset.itemIdx === undefined) {
-                    // 대분류 헤더 위로 드롭 — 그 그룹 맨 뒤로 이동
-                    const cat = order[+tr.dataset.gidx];
-                    if (cat !== undefined) {
-                        cartItems.splice(__dragItem, 1);
-                        item.category_root = cat;
-                        const { order: o2, map: m2 } = groupBlocks();
-                        if (m2[cat]) { m2[cat].push(item); } else { o2.push(cat); m2[cat] = [item]; }
-                        rebuildFromBlocks(o2, m2);
-                        renderCart();
-                    }
-                }
-            }
+        if (__previewEl && __previewEl.isConnected) {
+            if (__dragItem !== null) applyItemDrop(); else applyCatDrop();
         }
+        __clearDragUi();
         __dragCat = __dragItem = null;
+        renderCart();
     });
+
+    // 항목 드롭 — 미리보기 위치 그대로 반영 (다음 항목 앞 삽입, 없으면 해당 그룹 맨 뒤)
+    function applyItemDrop() {
+        const item = cartItems[__dragItem];
+        if (!item) return;
+        let n = __previewEl.nextElementSibling, beforeItem = null;
+        while (n) {
+            if (n.classList.contains('cart-cat-header')) break;
+            if (n.dataset.itemIdx !== undefined && !n.classList.contains('drag-src')) { beforeItem = cartItems[+n.dataset.itemIdx]; break; }
+            n = n.nextElementSibling;
+        }
+        let p = __previewEl.previousElementSibling, gIdx = null;
+        while (p) { if (p.dataset.gidx !== undefined && !p.classList.contains('drag-src')) { gIdx = +p.dataset.gidx; break; } p = p.previousElementSibling; }
+        const { order } = groupBlocks();
+        const cat = beforeItem ? (beforeItem.category_root || beforeItem.category || '기타') : (gIdx !== null ? order[gIdx] : null);
+        if (cat == null || beforeItem === item) return;
+        cartItems.splice(cartItems.indexOf(item), 1);
+        item.category_root = cat;
+        if (beforeItem) {
+            cartItems.splice(cartItems.indexOf(beforeItem), 0, item);
+        } else {
+            const { order: o2, map: m2 } = groupBlocks();
+            if (m2[cat]) { m2[cat].push(item); } else { o2.push(cat); m2[cat] = [item]; }
+            rebuildFromBlocks(o2, m2);
+        }
+    }
+
+    // 대분류 드롭 — 미리보기 다음 헤더 그룹 앞으로, 없으면 맨 뒤로
+    function applyCatDrop() {
+        const { order, map } = groupBlocks();
+        let n = __previewEl.nextElementSibling, nextG = null;
+        while (n) { if (n.classList.contains('cart-cat-header') && n.dataset.gidx !== undefined) { nextG = +n.dataset.gidx; break; } n = n.nextElementSibling; }
+        if (order[__dragCat] === undefined) return;
+        const moved = order.splice(__dragCat, 1)[0];
+        let target = order.length;
+        if (nextG !== null) target = nextG > __dragCat ? nextG - 1 : nextG;
+        order.splice(target, 0, moved);
+        rebuildFromBlocks(order, map);
+    }
 })();
+// ESC 등으로 드래그가 취소돼도 미리보기/흐림 정리
+document.addEventListener('dragend', () => { __clearDragUi(); __dragCat = __dragItem = null; });
+
 
 // 드래그 정렬 중 자동 스크롤 — 긴 프리셋에서도 위/아래로 이동 가능 (견적서 편집과 동일)
 let __dndY = null, __dndScrollTimer = null;
