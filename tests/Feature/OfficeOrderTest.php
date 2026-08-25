@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Estimate;
 use App\Models\OfficeOrder;
+use App\Models\Product;
 use App\Models\ScheduleShipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,6 +67,14 @@ class OfficeOrderTest extends TestCase
         // 운송장 포함
         $this->assertCount(1, $row['shipments']);
         $this->assertSame('123456789', $row['shipments'][0]['tracking_no']);
+        // 제품 관리의 메모(판매처 등)가 항목에 붙는다
+        Product::create(['sku' => 'CAM-9', 'name' => '카메라', 'category' => '비디오',
+            'purchase_price' => 1, 'sale_price' => 2, 'memo' => '판매처: 컴퓨존', 'is_active' => true, 'show_in_estimate' => true]);
+        $items = $estimate->product_items;
+        $items[0]['product_id'] = Product::where('sku', 'CAM-9')->value('id');
+        $estimate->forceFill(['product_items' => $items])->save();
+        $row2 = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->json('0');
+        $this->assertSame('판매처: 컴퓨존', $row2['items'][0]['product_memo']);
         $this->assertSame('in_transit', $row['shipments'][0]['status']);
         $this->assertStringContainsString('123456789', $row['shipments'][0]['tracking_url']);
     }

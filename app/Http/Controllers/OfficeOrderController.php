@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Estimate;
 use App\Models\OfficeOrder;
+use App\Models\Product;
 use App\Models\ScheduleShipment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,12 +30,21 @@ class OfficeOrderController extends Controller
     public function index(): JsonResponse
     {
         // 주문완료 항목이 있는 견적서 — 스냅샷 JSON이라 PHP에서 필터 (전체 로드 방지: 최근 200건)
-        $estimateRows = Estimate::with(['shipments' => fn ($q) => $q->orderBy('id')])
+        $orderedEstimates = Estimate::with(['shipments' => fn ($q) => $q->orderBy('id')])
             ->where('status', '!=', 'temp')
             ->orderByDesc('updated_at')
             ->limit(200)
             ->get()
-            ->filter(fn (Estimate $e) => collect($e->product_items ?? [])->contains(fn ($i) => ! empty($i['ordered'])))
+            ->filter(fn (Estimate $e) => collect($e->product_items ?? [])->contains(fn ($i) => ! empty($i['ordered'])));
+
+        // 제품 메모(직원용, 판매처 등) — 주문완료 항목의 제품에서 한 번에 조회
+        $productMemos = Product::whereIn('id', $orderedEstimates
+            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])
+                ->filter(fn ($i) => ! empty($i['ordered']))->pluck('product_id'))
+            ->filter()->unique()->values())
+            ->pluck('memo', 'id');
+
+        $estimateRows = $orderedEstimates
             ->map(fn (Estimate $e) => [
                 'type' => 'estimate',
                 'id' => $e->id,
@@ -47,6 +57,8 @@ class OfficeOrderController extends Controller
                         'index' => $idx,
                         'name' => $i['name'] ?? '',
                         'qty' => (int) ($i['qty'] ?? 1),
+                        // 제품 관리의 메모 (판매처 등 직원용) — 제품명 아래 표시
+                        'product_memo' => ! empty($i['product_id']) ? ($productMemos[$i['product_id']] ?? null) : null,
                         // 구매 금액 — 직접 기록한 값. 미기록 시 참고용 기본값(매입가×수량)을 placeholder로
                         'amount' => isset($i['purchase_amount']) ? (int) $i['purchase_amount'] : null,
                         'default_amount' => (int) ($i['purchase_price'] ?? 0) * max(1, (int) ($i['qty'] ?? 1)),

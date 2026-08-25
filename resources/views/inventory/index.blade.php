@@ -1833,9 +1833,12 @@ function renderOrders() {
                     ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map(b=>`<div style="padding:1px 0 0 10px;">└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}</div>`).join('')}</div>` : '';
                 const refundBadge = it.refunded
                     ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
+                // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게
+                const prodMemo = it.product_memo
+                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:pre-line;">${_esc(it.product_memo)}</div>` : '';
                 return `<tr style="background:var(--surface2);">
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${bundleLine}</td>
+                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${prodMemo}${bundleLine}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
                 </tr>`;
