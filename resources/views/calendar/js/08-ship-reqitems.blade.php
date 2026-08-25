@@ -275,13 +275,38 @@ function openLinkedEstimate(){
     if(!linkedEstimateId) return;
     window.open(`/estimates/${linkedEstimateId}/print`,'estimate_print','width=900,height=700,scrollbars=yes,resizable=yes');
 }
-function extractEstimateAmount(){
-    if(!linkedEstimateId){alert('먼저 견적서를 불러와주세요.');return;}
-    fetch(`/api/estimates?search=${linkedEstimateId}`).then(r=>r.json()).then(data=>{
-        const list=data.data||data;const est=list.find(e=>e.id===linkedEstimateId);
-        if(est&&est.total_amount) document.getElementById('g_estimate_amount').value=Number(est.total_amount).toLocaleString();
-    });
+// 연동 견적서 총액 조회 — 검색 API에서 id로 찾음 (estimate_id가 문자열로 저장된 구데이터 대비 느슨 비교)
+async function fetchLinkedEstimateTotal(){
+    if(!linkedEstimateId) return null;
+    try{
+        const res=await fetch(`/api/estimates?search=${linkedEstimateId}`);
+        if(!res.ok) return null;
+        const data=await res.json();const list=data.data||data;
+        const est=(list||[]).find(e=>e.id==linkedEstimateId);
+        return est&&est.total_amount?Number(est.total_amount):null;
+    }catch(e){ return null; }
 }
+function _setEstimateStatus(msg){
+    const st=document.getElementById('g_estimate_status');
+    if(st){ st.textContent=msg; if(msg) setTimeout(()=>{ st.textContent=''; },4000); }
+}
+async function extractEstimateAmount(){
+    if(!linkedEstimateId){alert('먼저 견적서를 불러와주세요.');return;}
+    const total=await fetchLinkedEstimateTotal();
+    if(total){ document.getElementById('g_estimate_amount').value=total.toLocaleString(); _setEstimateStatus('견적서 금액 불러옴'); }
+    else { _setEstimateStatus('금액 조회 실패 — 견적서 확인 필요'); }
+}
+// 결제완료 선택 시 — 금액이 비어 있으면 연동 견적서 총액을 자동 입력 (0원 기록 방지)
+async function autofillEstimateAmountIfEmpty(){
+    const inp=document.getElementById('g_estimate_amount');
+    if(!linkedEstimateId||!inp||inp.value.trim()) return;
+    const total=await fetchLinkedEstimateTotal();
+    if(total&&!inp.value.trim()){ inp.value=total.toLocaleString(); _setEstimateStatus('연동 견적서 금액 자동 입력됨'); }
+}
+document.getElementById('g_paid_group')?.addEventListener('click', e=>{
+    const btn=e.target.closest('.radio-btn');
+    if(btn&&btn.dataset.val==='결제완료') autofillEstimateAmountIfEmpty();
+});
 
 function openHistoryFromEdit(){
     if(!editingId) return;

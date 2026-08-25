@@ -157,6 +157,19 @@ class EstimateValidationTest extends TestCase
         $this->assertContains($this->estimate->id, array_column($found, 'id'));
     }
 
+    public function test_estimates_search_by_raw_id_returns_total_amount(): void
+    {
+        // 캘린더 '결제 금액 자동 입력/추출'이 의존 — id 검색으로 총액 조회
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'product_items' => [['name' => '카메라', 'sale_price' => 250000, 'qty' => 1, 'subtotal' => 250000]],
+        ])->assertOk();
+
+        $found = $this->actingAs($this->admin)->getJson("/api/estimates?search={$this->estimate->id}")->assertOk()->json();
+        $row = collect($found)->firstWhere('id', $this->estimate->id);
+        $this->assertNotNull($row, 'id 검색으로 견적서를 찾아야 함');
+        $this->assertSame(250000, (int) $row['total_amount']);
+    }
+
     public function test_rejects_nonexistent_linked_ids_without_sql_error(): void
     {
         // 존재하지 않는 FK들 — SQL 제약 오류(500) 대신 422

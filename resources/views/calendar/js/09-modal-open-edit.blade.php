@@ -597,7 +597,11 @@ function openEditModal(ev){
     if(g.order){setRadio('g_order_group',g.order);handleConditional('g_order_group');}
     if(g.balance){setRadio('g_balance_group',g.balance);handleConditional('g_balance_group');}
     document.getElementById('g_balance_amount').value=_fmtAmt(g.balance_amount||'');
-    if(g.estimate_id){linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';}
+    if(g.estimate_id){
+        linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';
+        // 결제완료인데 금액이 비어 있으면(0원 기록 방지) 연동 견적서 총액 자동 입력
+        if(g.paid==='결제완료'&&!(g.estimate_amount||'').toString().trim()&&typeof autofillEstimateAmountIfEmpty==='function') autofillEstimateAmountIfEmpty();
+    }
     // 의뢰자/프로젝트 연결 복원
     if(g.client_id){
         linkedClientId=g.client_id;
