@@ -59,6 +59,11 @@
         .cart-cat-header td:first-child { border-radius:6px 0 0 6px; }
         .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
         .cart-row-num { color:var(--accent); font-weight:600; }
+        /* 드래그 정렬 (견적서 편집과 동일) */
+        .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
+        .drag-handle:active { cursor:grabbing; }
+        .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
+        tr.drop-hint td { border-top:2px solid var(--accent) !important; }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
         .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
         .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
@@ -337,6 +342,21 @@ function addManualItem() {
     renderCart();
 }
 
+// 대분류 블록 헬퍼 — 드래그 정렬/블록 정돈 공용 (견적서 편집과 동일)
+function groupBlocks() {
+    const order = [], map = {};
+    cartItems.forEach(item => {
+        const cat = item.category_root || item.category || '기타';
+        if (!map[cat]) { map[cat] = []; order.push(cat); }
+        map[cat].push(item);
+    });
+    return { order, map };
+}
+function rebuildFromBlocks(order, map) {
+    cartItems.length = 0;
+    order.forEach(c => cartItems.push(...map[c]));
+}
+
 function renderCart() {
     const tb = document.getElementById('cartBody');
     if (!cartItems.length) {
@@ -344,24 +364,19 @@ function renderCart() {
         updateTotals();
         return;
     }
-    const grouped = {};
-    cartItems.forEach(item => {
-        const cat = item.category_root || item.category || '기타';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(item);
-    });
+    const { order, map } = groupBlocks();
     // 배열을 대분류 블록 단위로 연속 정돈 — 블록 첫 항목 삭제 시 분류 순서 점프 방지
-    cartItems.length = 0;
-    Object.values(grouped).forEach(arr => cartItems.push(...arr));
+    rebuildFromBlocks(order, map);
     let html = '', globalIdx = 0;
-    for (const [cat, items] of Object.entries(grouped)) {
+    order.forEach((cat, gIdx) => {
+        const items = map[cat];
         const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
-        html += `<tr class="cart-cat-header"><td colspan="7">${_escE(cat)}</td></tr>`;
+        html += `<tr class="cart-cat-header" data-gidx="${gIdx}"><td colspan="7"><span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> ${_escE(cat)}</td></tr>`;
         items.forEach(item => {
             const idx = cartItems.indexOf(item);
             globalIdx++;
-            html += `<tr>
-                <td><span class="cart-row-num">${globalIdx}</span></td>
+            html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
+                <td><span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> <span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
                 <td>${_escE(item.name)}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
                 <td class="text-right"><input type="number" min="0" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
@@ -375,10 +390,73 @@ function renderCart() {
             </tr>`;
         });
         html += `<tr class="cart-subtotal"><td colspan="5">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
-    }
+    });
     tb.innerHTML = html;
     updateTotals();
 }
+
+// === 드래그 정렬 — 대분류 블록/항목 (핸들 ⠿ 로 드래그, 견적서 편집과 동일) ===
+let __dragCat = null, __dragItem = null;
+(function initCartDnD() {
+    const tb = document.getElementById('cartBody');
+    tb.addEventListener('dragstart', e => {
+        const h = e.target.closest('.drag-handle');
+        if (!h) return;
+        __dragCat = h.dataset.dragCat !== undefined ? +h.dataset.dragCat : null;
+        __dragItem = h.dataset.dragItem !== undefined ? +h.dataset.dragItem : null;
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    tb.addEventListener('dragover', e => {
+        if (__dragCat === null && __dragItem === null) return;
+        e.preventDefault();
+        const tr = e.target.closest('tr');
+        tb.querySelectorAll('tr.drop-hint').forEach(r => r.classList.remove('drop-hint'));
+        if (tr) tr.classList.add('drop-hint');
+    });
+    tb.addEventListener('drop', e => {
+        e.preventDefault();
+        tb.querySelectorAll('tr.drop-hint').forEach(r => r.classList.remove('drop-hint'));
+        const tr = e.target.closest('tr');
+        if (!tr) { __dragCat = __dragItem = null; return; }
+        const { order, map } = groupBlocks();
+
+        if (__dragCat !== null) {
+            // 대분류 블록 이동 — 대상 행이 속한 그룹 위치로
+            const targetG = tr.dataset.gidx !== undefined ? +tr.dataset.gidx : null;
+            if (targetG !== null && targetG !== __dragCat) {
+                const moved = order.splice(__dragCat, 1)[0];
+                order.splice(targetG, 0, moved);
+                rebuildFromBlocks(order, map);
+                renderCart();
+            }
+        } else if (__dragItem !== null) {
+            const item = cartItems[__dragItem];
+            if (item) {
+                if (tr.dataset.itemIdx !== undefined && +tr.dataset.itemIdx !== __dragItem) {
+                    // 항목 위로 드롭 — 그 항목 앞에 삽입, 대분류도 대상 그룹으로
+                    const target = cartItems[+tr.dataset.itemIdx];
+                    cartItems.splice(__dragItem, 1);
+                    const tIdx = cartItems.indexOf(target);
+                    item.category_root = target.category_root || target.category || '기타';
+                    cartItems.splice(tIdx, 0, item);
+                    renderCart();
+                } else if (tr.dataset.gidx !== undefined && tr.dataset.itemIdx === undefined) {
+                    // 대분류 헤더 위로 드롭 — 그 그룹 맨 뒤로 이동
+                    const cat = order[+tr.dataset.gidx];
+                    if (cat !== undefined) {
+                        cartItems.splice(__dragItem, 1);
+                        item.category_root = cat;
+                        const { order: o2, map: m2 } = groupBlocks();
+                        if (m2[cat]) { m2[cat].push(item); } else { o2.push(cat); m2[cat] = [item]; }
+                        rebuildFromBlocks(o2, m2);
+                        renderCart();
+                    }
+                }
+            }
+        }
+        __dragCat = __dragItem = null;
+    });
+})();
 // 더블클릭/성급한 재클릭 방지 — 삭제로 행이 위로 당겨지면 두 번째 클릭이 다른 항목의 ×에 떨어짐
 let __lastRemoveAt = 0;
 function removeItem(idx) {
