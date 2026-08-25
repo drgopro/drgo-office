@@ -794,6 +794,29 @@ let __dragCat = null, __dragItem = null;
     });
 })();
 
+// 드래그 정렬 중 자동 스크롤 — 포인터가 장바구니 스크롤 영역 위/아래 가장자리에 가까우면
+// 스크롤 (HTML5 DnD는 내부 스크롤 컨테이너를 자동 스크롤하지 않아 긴 견적서에서 이동 불가)
+let __dndY = null, __dndScrollTimer = null;
+function __stopDndScroll() { clearInterval(__dndScrollTimer); __dndScrollTimer = null; __dndY = null; }
+document.addEventListener('dragover', e => {
+    if (__dragCat === null && __dragItem === null) return;
+    __dndY = e.clientY;
+    if (__dndScrollTimer) return;
+    const scroller = document.querySelector('.est-body');
+    if (!scroller) return;
+    __dndScrollTimer = setInterval(() => {
+        if (__dndY === null) return;
+        const r = scroller.getBoundingClientRect();
+        const EDGE = 70, MAX = 20; // 가장자리 70px 이내에서 근접할수록 빨라짐 (최대 20px/tick)
+        let dy = 0;
+        if (__dndY < r.top + EDGE) dy = -Math.ceil((r.top + EDGE - __dndY) / EDGE * MAX);
+        else if (__dndY > r.bottom - EDGE) dy = Math.ceil((__dndY - (r.bottom - EDGE)) / EDGE * MAX);
+        if (dy) scroller.scrollTop += dy;
+    }, 40);
+});
+document.addEventListener('dragend', __stopDndScroll);
+document.addEventListener('drop', __stopDndScroll);
+
 function changeQty(idx, delta) {
     cartItems[idx].qty = Math.max(1, cartItems[idx].qty + delta);
     cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty;

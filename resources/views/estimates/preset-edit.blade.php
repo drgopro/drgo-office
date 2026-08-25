@@ -459,6 +459,28 @@ let __dragCat = null, __dragItem = null;
         __dragCat = __dragItem = null;
     });
 })();
+
+// 드래그 정렬 중 자동 스크롤 — 긴 프리셋에서도 위/아래로 이동 가능 (견적서 편집과 동일)
+let __dndY = null, __dndScrollTimer = null;
+function __stopDndScroll() { clearInterval(__dndScrollTimer); __dndScrollTimer = null; __dndY = null; }
+document.addEventListener('dragover', e => {
+    if (__dragCat === null && __dragItem === null) return;
+    __dndY = e.clientY;
+    if (__dndScrollTimer) return;
+    const scroller = document.querySelector('.est-body');
+    if (!scroller) return;
+    __dndScrollTimer = setInterval(() => {
+        if (__dndY === null) return;
+        const r = scroller.getBoundingClientRect();
+        const EDGE = 70, MAX = 20;
+        let dy = 0;
+        if (__dndY < r.top + EDGE) dy = -Math.ceil((r.top + EDGE - __dndY) / EDGE * MAX);
+        else if (__dndY > r.bottom - EDGE) dy = Math.ceil((__dndY - (r.bottom - EDGE)) / EDGE * MAX);
+        if (dy) scroller.scrollTop += dy;
+    }, 40);
+});
+document.addEventListener('dragend', __stopDndScroll);
+document.addEventListener('drop', __stopDndScroll);
 // 더블클릭/성급한 재클릭 방지 — 삭제로 행이 위로 당겨지면 두 번째 클릭이 다른 항목의 ×에 떨어짐
 let __lastRemoveAt = 0;
 function removeItem(idx) {
