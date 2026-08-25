@@ -68,6 +68,7 @@
     .todo-lrow-right .todo-pri { font-size:12px; padding:4px 10px; }
     .todo-lrow-right .todo-due { font-size:12px; padding:4px 10px; }
     .todo-lrow-due-date { font-size:13px; color:var(--td-muted); font-weight:600; }
+    .todo-lrow-created { font-size:11.5px; color:var(--td-muted); white-space:nowrap; }
     .todo-lrow-due-date.imminent { color:#dc2626; }  /* 오늘 마감·기한 지남 */
     .todo-lrow-due-date.soon { color:#b45309; }      /* D-3 이내 */
     .todo-lrow-assignee { font-size:13.5px; color:var(--td-text); font-weight:600; }
@@ -603,6 +604,7 @@ function listHtml(todos) {
             <span class="todo-lrow-right">
                 ${t.team ? `<span class="todo-team-label">${esc(t.team)}</span>` : ''}
                 <span class="todo-pri ${t.priority}">${PRI_LABELS[t.priority] || t.priority}</span>
+                ${t.created_at ? `<span class="todo-lrow-created" title="등록일">등록 ${t.created_at.slice(0, 10)}</span>` : ''}
                 ${dueDateHtml(t)}
                 ${dueChip(t)}
             </span>
@@ -736,6 +738,7 @@ function cardHtml(t, colUid) {
     const footChips = [
         dueChip(t),
         t.attachments.length ? `<span class="todo-attach-n">📎 ${t.attachments.length}</span>` : '',
+        t.created_at ? `<span class="todo-attach-n" title="등록일">등록 ${t.created_at.slice(0, 10)}</span>` : '',
         t.completed ? `<span class="todo-cnt">완료 ${t.completed_at}</span>` : '',
     ].filter(Boolean).join('');
     return `<div class="todo-card p-${t.priority} ${t.completed ? 'done' : ''}" draggable="true" data-id="${t.id}"
