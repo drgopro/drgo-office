@@ -6,6 +6,7 @@ use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
 use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\ProjectBilling;
 use App\Models\RentalContract;
 use App\Models\Schedule;
@@ -13,6 +14,7 @@ use App\Models\ScheduleChange;
 use App\Notifications\ScheduleCreated;
 use App\Notifications\ScheduleUpdated;
 use App\Services\ContractCalendarSync;
+use App\Services\EstimatePaymentSync;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -279,8 +281,27 @@ class CalendarController extends Controller
 
         $this->notifyAssigneesOfCreation($schedule);
         $this->syncBalanceBilling($schedule);
+        $this->syncEstimatePaidFromSchedule($schedule);
 
         return response()->json($schedule, 201);
+    }
+
+    /**
+     * 캘린더에서 결제완료로 저장 → 연동 견적서를 결제완료로 승격 (프로젝트 결제 내역·주문 내역까지 전파).
+     * 이미 paid/cancelled/temp인 견적서는 건드리지 않는다.
+     */
+    private function syncEstimatePaidFromSchedule(Schedule $schedule): void
+    {
+        $g = $schedule->request_data ?? [];
+        if (($g['paid'] ?? '') !== '결제완료' || empty($g['estimate_id'])) {
+            return;
+        }
+        $estimate = Estimate::find($g['estimate_id']);
+        if (! $estimate || in_array($estimate->status, ['paid', 'cancelled', 'temp'], true)) {
+            return;
+        }
+        $estimate->forceFill(['status' => 'paid'])->save();
+        EstimatePaymentSync::estimatePaid($estimate, '캘린더 결제완료');
     }
 
     /**
@@ -605,6 +626,7 @@ class CalendarController extends Controller
 
         $schedule->update($validated);
         $this->syncBalanceBilling($schedule);
+        $this->syncEstimatePaidFromSchedule($schedule);
 
         if (isset($validated['assignees'])) {
             $schedule->syncAssigneesOrdered($validated['assignees']);

@@ -719,7 +719,7 @@ function renderCart() {
                     const price = Number(b.price) || 0;
                     return `<tr class="bundle-sub" data-gidx="${gIdx}">
                         <td></td><td></td>
-                        <td><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="세트 주문완료"' : ''}>└ ${_escE(b.name)}</span></td>
+                        <td><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="세트 주문완료"' : ''}>└ ${_escE(b.name)}</span>${(b.refund_qty>0||b.refund_amount>0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="구성품 부분환불">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : ''}</td>
                         <td></td>
                         <td class="text-right">${price ? fmt(price) + '원' : ''}</td>
                         <td><span class="bs-qty" style="padding-left:6px;" title="세트당 ${b.qty}개 × 세트 ${item.qty}개">${totQty}</span></td>

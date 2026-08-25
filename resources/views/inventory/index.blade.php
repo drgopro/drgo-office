@@ -1796,8 +1796,13 @@ function renderOrders() {
     }
     tb.innerHTML = ORDER_ROWS.map(o => {
         const k = orderKey(o), open = expandedOrders.has(k);
+        // 견적서 결제 상태 — 결제완료/결제취소만 표시 (프로젝트·캘린더와 동기화됨)
+        const stBadge = o.type === 'estimate'
+            ? (o.status === 'paid' ? ' <span class="badge badge-ok">결제완료</span>'
+                : o.status === 'cancelled' ? ' <span class="badge badge-low">결제취소</span>' : '')
+            : '';
         const badge = o.type === 'estimate'
-            ? `<span class="badge badge-ordered">견적서 #${o.no}</span>`
+            ? `<span class="badge badge-ordered">견적서 #${o.no}</span>${stBadge}`
             : '<span class="badge badge-requested">직접 주문</span>';
         const who = o.type === 'estimate' ? (o.client || '-') : (o.creator || '-');
         const acts = o.type === 'estimate'
@@ -1830,7 +1835,7 @@ function renderOrders() {
                 // 세트 항목 — 구성품(총 수량 반영)을 제품명 아래 회색으로 표시 (구성 단위 구매 확인용)
                 // 세트 구성 — 한 줄씩 세로 나열
                 const bundleLine = (it.bundle_items||[]).length
-                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map(b=>`<div style="padding:1px 0 0 10px;">└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}</div>`).join('')}</div>` : '';
+                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map(b=>`<div style="padding:1px 0 0 10px;">└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}${b.refund_qty>0||b.refund_amount>0?` <span style="color:var(--red, #dc2626); font-weight:700;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>`:''}</div>`).join('')}</div>` : '';
                 const refundBadge = it.refunded
                     ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
                 // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게

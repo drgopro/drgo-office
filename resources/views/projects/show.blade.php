@@ -2971,16 +2971,27 @@ async function openRefundModal(chargeId, type) {
             const res = await fetch(`/api/estimates/${charge.estimate_id}/refund-items`, { headers: { 'Accept': 'application/json' } });
             if (res.ok) {
                 const d = await res.json();
-                const estItems = (d.items || []).map(it => ({
-                    name: it.name,
-                    qty: Math.max(1, it.qty - it.refund_qty),
-                    price: it.sale_price,
-                    maxQty: Math.max(0, it.qty - it.refund_qty),
-                    checked: false,
-                    estimate_item_index: it.index,
-                    refundedNote: it.refund_qty > 0 || it.refund_amount > 0
-                        ? `기환불 ${it.refund_qty > 0 ? it.refund_qty + '개 · ' : ''}${_fmtPh(it.refund_amount)}원` : '',
-                })).filter(it => it.maxQty > 0);
+                const estItems = [];
+                (d.items || []).forEach(it => {
+                    const remain = Math.max(0, it.qty - it.refund_qty);
+                    const note = it.refund_qty > 0 || it.refund_amount > 0
+                        ? `기환불 ${it.refund_qty > 0 ? it.refund_qty + '개 · ' : ''}${_fmtPh(it.refund_amount)}원` : '';
+                    if (remain > 0) estItems.push({
+                        name: it.name, qty: Math.max(1, remain), price: it.sale_price, maxQty: remain,
+                        checked: false, estimate_item_index: it.index, refundedNote: note,
+                    });
+                    // 세트 구성품 — 하위 항목 단위 부분환불 (가격이 있는 구성품만)
+                    (it.bundle_items || []).forEach(b => {
+                        const bRemain = Math.max(0, b.qty - b.refund_qty);
+                        if (bRemain <= 0 || !b.price) return;
+                        estItems.push({
+                            name: b.name, sub: true, qty: Math.max(1, bRemain), price: b.price, maxQty: bRemain,
+                            checked: false, estimate_item_index: it.index, bundle_index: b.bundle_index,
+                            refundedNote: b.refund_qty > 0 || b.refund_amount > 0
+                                ? `기환불 ${b.refund_qty}개 · ${_fmtPh(b.refund_amount)}원` : '',
+                        });
+                    });
+                });
                 if (estItems.length) {
                     items = estItems;
                     sourceLabel = ` · 견적서 #${d.no} 항목`;
@@ -3049,9 +3060,9 @@ function renderRefundItems() {
         return;
     }
     wrap.innerHTML = ctx.items.map((it, i) => {
-        return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+        return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; ${it.sub ? 'margin-left:22px; ' : ''}background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
             <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
-            <div style="flex:1; font-size:13px;">${_escPh(it.name)}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
+            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">세트 구성품</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
                 <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
@@ -3129,6 +3140,7 @@ async function submitRefund(type) {
     const selectedItems = isManual ? [] : ctx.items.filter(it => it.checked).map(it => ({
         name: it.name, qty: it.qty, price: it.price,
         estimate_item_index: it.estimate_item_index ?? null,
+        bundle_index: it.bundle_index ?? null,
     }));
     const directAmount = isManual ? parseInt(document.getElementById('refundManualAmount').value || 0) : 0;
 

@@ -32,7 +32,7 @@ class CalendarVisitOptionsTest extends TestCase
 
         $this->actingAs($user)->get('/calendar')
             ->assertOk()
-            ->assertSee("visitOptsSel=(color==='purple')", false)
+            ->assertSee("visitOptsSel=(color==='purple'||color==='blue')", false)
             ->assertSee('#visitOptsList input:checked', false);
     }
 }

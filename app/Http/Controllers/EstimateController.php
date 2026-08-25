@@ -7,6 +7,7 @@ use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Services\EstimatePaymentSync;
 use App\Services\PayAppClient;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -59,6 +60,15 @@ class EstimateController extends Controller
                 'refund_qty' => (int) ($i['refund_qty'] ?? 0),
                 'refund_amount' => (int) ($i['refund_amount'] ?? 0),
                 'refunded' => ! empty($i['refunded']),
+                // 세트 구성품 — 하위 항목 단위 부분환불용 (총 수량 = 구성 수량 × 세트 수량)
+                'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b, $bIdx) => [
+                    'bundle_index' => $bIdx,
+                    'name' => $b['name'] ?? '',
+                    'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
+                    'price' => (int) ($b['price'] ?? 0),
+                    'refund_qty' => (int) ($b['refund_qty'] ?? 0),
+                    'refund_amount' => (int) ($b['refund_amount'] ?? 0),
+                ])->values(),
             ])->values(),
         ]);
     }
@@ -159,6 +169,8 @@ class EstimateController extends Controller
             'product_items.*.bundle_items.*.name' => 'required|string|max:200',
             'product_items.*.bundle_items.*.qty' => 'nullable|integer|min:1|max:999',
             'product_items.*.bundle_items.*.price' => 'nullable|numeric|min:0',
+            'product_items.*.bundle_items.*.refund_qty' => 'nullable|integer|min:0', // 구성품 부분환불 기록
+            'product_items.*.bundle_items.*.refund_amount' => 'nullable|numeric|min:0',
             'service_items' => 'nullable|array|max:100',
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',
@@ -190,6 +202,8 @@ class EstimateController extends Controller
             }
 
             $becameIssued = ($validated['status'] ?? null) === 'issued' && $estimate->status !== 'issued';
+            $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
+            $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
 
             $estimate->update([
                 ...$validated,
@@ -207,6 +221,13 @@ class EstimateController extends Controller
 
             // 발행완료로 전환 시 페이앱 결제요청 자동 생성 (실패해도 저장은 유지)
             $warning = $becameIssued ? $this->ensurePayappRequest($estimate->fresh(), $payapp) : null;
+
+            // 결제완료/결제취소 수동 전환 — 프로젝트 결제 내역·캘린더 일정에 전파
+            if ($becamePaid) {
+                EstimatePaymentSync::estimatePaid($estimate->fresh(), '수동 기록');
+            } elseif ($becameCancelled) {
+                EstimatePaymentSync::estimateCancelled($estimate->fresh());
+            }
 
             return response()->json([
                 ...$estimate->fresh()->toArray(),
@@ -467,6 +488,15 @@ class EstimateController extends Controller
         }
 
         $estimate->save();
+
+        // 결제 상태 전파 — 프로젝트 결제 내역(원장)·캘린더 일정 표시 동기화
+        if ($state === PayAppClient::STATE_PAID && $estimate->status === 'paid') {
+            EstimatePaymentSync::estimatePaid($estimate);
+        } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
+            // 페이앱 전액환불 — 남은 금액의 취소 트랜잭션 기록 + 전 항목 환불 표시
+            EstimatePaymentSync::estimateCancelled($estimate, recordLedger: true);
+        }
+
         $payapp->log('feedback-처리', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
 
         return response('SUCCESS');

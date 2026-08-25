@@ -170,9 +170,18 @@ class Estimate extends Model
             if (! array_key_exists($idx, $items)) {
                 continue;
             }
+            $qty = max(0, (int) ($r['qty'] ?? 0));
+            $amount = max(0, (int) ($r['amount'] ?? 0));
+            // 세트 구성품 단위 부분환불 — bundle_index가 있으면 구성품에 수량 기록, 항목에는 금액만 합산
+            if (isset($r['bundle_index']) && isset($items[$idx]['bundle_items'][(int) $r['bundle_index']])) {
+                $b = (int) $r['bundle_index'];
+                $items[$idx]['bundle_items'][$b]['refund_qty'] = (int) ($items[$idx]['bundle_items'][$b]['refund_qty'] ?? 0) + $qty;
+                $items[$idx]['bundle_items'][$b]['refund_amount'] = (int) ($items[$idx]['bundle_items'][$b]['refund_amount'] ?? 0) + $amount;
+            } else {
+                $items[$idx]['refund_qty'] = (int) ($items[$idx]['refund_qty'] ?? 0) + $qty;
+            }
             $items[$idx]['refunded'] = true;
-            $items[$idx]['refund_qty'] = (int) ($items[$idx]['refund_qty'] ?? 0) + max(0, (int) ($r['qty'] ?? 0));
-            $items[$idx]['refund_amount'] = (int) ($items[$idx]['refund_amount'] ?? 0) + max(0, (int) ($r['amount'] ?? 0));
+            $items[$idx]['refund_amount'] = (int) ($items[$idx]['refund_amount'] ?? 0) + $amount;
             $items[$idx]['refunded_at'] = now()->format('Y-m-d H:i');
             $changed = true;
         }

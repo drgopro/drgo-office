@@ -74,6 +74,8 @@ class OfficeOrderController extends Controller
                             'name' => $b['name'] ?? '',
                             'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
                             'price' => (int) ($b['price'] ?? 0), // 구성품 단가 — 부분환불 계산용 참고치
+                            'refund_qty' => (int) ($b['refund_qty'] ?? 0), // 구성품 부분환불 기록
+                            'refund_amount' => (int) ($b['refund_amount'] ?? 0),
                         ])->values()->all(),
                     ])
                     ->filter(fn ($i) => $i['ordered'])

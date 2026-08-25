@@ -11,6 +11,7 @@ use App\Models\ProjectPayment;
 use App\Models\ProjectSubtag;
 use App\Models\Schedule;
 use App\Models\WorkType;
+use App\Services\EstimatePaymentSync;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -972,6 +973,7 @@ class ProjectController extends Controller
             'items.*.qty' => 'nullable|integer|min:0',
             'items.*.price' => 'nullable|integer|min:0',
             'items.*.estimate_item_index' => 'nullable|integer|min:0', // 견적서 항목 연동 — 스냅샷에 환불 기록
+            'items.*.bundle_index' => 'nullable|integer|min:0', // 세트 구성품 부분환불 — 구성품 인덱스
             'amount' => 'nullable|integer|min:0',
             'reason' => 'nullable|string|max:500',
             'method' => 'nullable|string|max:30',
@@ -1042,11 +1044,17 @@ class ProjectController extends Controller
                 ->filter(fn ($i) => isset($i['estimate_item_index']))
                 ->map(fn ($i) => [
                     'index' => (int) $i['estimate_item_index'],
+                    'bundle_index' => $i['bundle_index'] ?? null, // 세트 구성품 부분환불
                     'qty' => (int) ($i['qty'] ?? 0),
                     'amount' => ((int) ($i['qty'] ?? 1)) * ((int) ($i['price'] ?? 0)),
                 ])->values()->all();
             if ($refunds !== []) {
                 Estimate::find($parent->estimate_id)?->applyItemRefunds($refunds);
+            }
+
+            // 전액 환불/취소가 됐으면 견적서를 '결제 취소'로, 연동 캘린더는 '미결제'로 동기화
+            if ($amount >= $refundable && ($est = Estimate::find($parent->estimate_id))) {
+                EstimatePaymentSync::estimateCancelled($est);
             }
         }
 
