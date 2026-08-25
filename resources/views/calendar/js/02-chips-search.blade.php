@@ -1,7 +1,7 @@
 {{-- 칩 생성·툴팁·뷰 전환·글자 크기·검색 --}}
 // ── 이벤트 칩 생성 헬퍼 ──
-const SPECIAL_ICONS={car:'🚗',brief:'💼',group:'👥',ladder:'▤',pet:'🐾'};
-const SPECIAL_OPT_LABELS={car:'차량 이용 필요',brief:'들고 갈 제품 있음',group:'2인필수 작업',ladder:'사다리 필요',pet:'반려동물 있음'};
+const SPECIAL_ICONS={car:'🚗',brief:'💼',group:'👥',ladder:'▤',pet:'🐾',external_operator:'🎛'};
+const SPECIAL_OPT_LABELS={car:'차량 이용 필요',brief:'들고 갈 제품 있음',group:'2인필수 작업',ladder:'사다리 필요',pet:'반려동물 있음',external_operator:'외부 오퍼레이터'};
 const SCHED_ICONS={suggest:'💬',hope:'🙏',target:'🎯'};
 function buildChipHtml(ev){
     let html='';

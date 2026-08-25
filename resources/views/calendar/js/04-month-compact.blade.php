@@ -29,7 +29,7 @@ function renderMonthCompact(){
         // 다일 일정 레인 배정 (기존 월간 뷰와 동일 규칙 — 휴가/개인 우선)
         // 전·다음 달 일정도 표시 (다른 달 셀은 other-month 흐림으로 구분)
         const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
-        weekMulti.sort((a,b)=>((b.color==='red')-(a.color==='red'))||a.start_date.localeCompare(b.start_date)||b.end_date.localeCompare(a.end_date)||a.id-b.id);
+        weekMulti.sort((a,b)=>(isTopEv(b)-isTopEv(a))||((b.color==='red')-(a.color==='red'))||a.start_date.localeCompare(b.start_date)||b.end_date.localeCompare(a.end_date)||a.id-b.id);
         const laneOf={}, lanes=[];
         weekMulti.forEach(ev=>{
             let lane=0;
@@ -302,8 +302,8 @@ function renderMonth() {
 
         // ── 이 주에 걸친 다일 일정에 고정 레인(행) 배정 → 바가 같은 행을 유지해 정렬됨 ──
         const _d=v=>(v||'').substring(0,10); // 날짜 정규화 (시간 접미 방어)
-        // 휴가/개인(red)은 리스트 상단 우선 — 레인 배정을 먼저 받아 위쪽 바를 차지 (주 단위 고정이라 바 연속성 유지)
-        const redFirst=(a,b)=>((b.color==='red')-(a.color==='red'));
+        // 외부 오퍼레이터 최상위 → 휴가/개인(red) 상단 우선 — 레인 배정을 먼저 받아 위쪽 바를 차지 (주 단위 고정이라 바 연속성 유지)
+        const redFirst=(a,b)=>(isTopEv(b)-isTopEv(a))||((b.color==='red')-(a.color==='red'));
         const weekMulti=events.filter(ev=>isFiltered(ev)&&!ev.parent_id&&evEnd(ev)!==_d(ev.start_date)&&_d(ev.start_date)<=weekEnd&&evEnd(ev)>=weekStart);
         weekMulti.sort((a,b)=> redFirst(a,b) || a.start_date.localeCompare(b.start_date) || b.end_date.localeCompare(a.end_date) || a.id-b.id);
         const laneOf={};
@@ -515,6 +515,8 @@ function renderMobileDayEvents(dateStr, container){
     const dayEvs=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr))
         // 카테고리 순이 아니라 시간순 정렬: 종일 먼저, 그 다음 시작시간 오름차순
         .sort((a,b)=>{
+            const aTop=isTopEv(a)?0:1, bTop=isTopEv(b)?0:1;
+            if(aTop!==bTop) return aTop-bTop;
             const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
             if(aAll!==bAll) return aAll-bAll;
             const at=(a.start_time||'99:99'), bt=(b.start_time||'99:99');

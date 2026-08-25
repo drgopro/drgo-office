@@ -383,6 +383,8 @@
                         <div class="special-opt-btn" data-opt="group"><span class="opt-icon">👥</span>2인필수 작업</div>
                         <div class="special-opt-btn" data-opt="ladder"><span class="opt-icon">▤</span>사다리 필요</div>
                         <div class="special-opt-btn" data-opt="pet"><span class="opt-icon">🐾</span>반려동물 있음</div>
+                        {{-- 스튜디오/촬영 전용 — 체크 시 항시 종일 일정 + 모든 뷰 최상단 표시 --}}
+                        <div class="special-opt-btn" data-opt="external_operator" id="extOperatorBtn" style="display:none;" title="체크하면 종일 일정으로 고정되고 전체/월/주/일 뷰 맨 위에 표시됩니다"><span class="opt-icon">🎛</span>외부 오퍼레이터</div>
                     </div>
                     <div id="specialReasonWrap" style="display:none;margin-top:6px;">
                         <input class="field-input" id="specialReason" placeholder="차량 이용 사유 입력 (예: 장비 운반, 주차 공간 필요)" style="font-size:13px;">

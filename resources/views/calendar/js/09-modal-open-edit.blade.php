@@ -503,6 +503,7 @@ function openEditModal(ev){
         // 미팅/내방 옵션 체크 복원
         document.querySelectorAll('#visitOptsList input').forEach(cb=>{ cb.checked=opts.includes(cb.value); });
         applyVisitOptsUI();
+        if(typeof applyExtOperatorUI==='function') applyExtOperatorUI(); // 외부 오퍼레이터 복원 시 종일 고정 재적용
     }
     if(ev.sched_after_reason) document.getElementById('schedAfterReason').value=ev.sched_after_reason;
     // 공통 필드

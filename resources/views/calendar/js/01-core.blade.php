@@ -93,6 +93,8 @@ function chipColor(c){
     if(c==='holiday') return 'var(--chip-red-bg)';
     return (window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[c])?`var(--chip-${c}-bg)`:'var(--accent)';
 }
+// 최상위 우선 일정 — 스튜디오 카테고리의 '외부 오퍼레이터' 체크 일정은 전체/월/주/일 어디서든 맨 위
+function isTopEv(ev){ return !!ev && Array.isArray(ev.special_opts) && ev.special_opts.includes('external_operator'); }
 // 배송 상태 인라인 아이콘 — 수동 지정만 표시 (자동 판정 제거: 일부 송장만 등록해도
 // 전부 도착하면 완료(○)로 보여 착각을 유발하던 문제 → 담당자가 직접 지정)
 const SHIP_ICON_MAP={all:['○','s-all','배송 완료'],part:['△','s-part','부분 배송'],none:['✕','s-none','미배송']};

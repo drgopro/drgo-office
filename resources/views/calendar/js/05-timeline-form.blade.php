@@ -47,7 +47,7 @@ function renderTimeline() {
         const isToday=ds===ts;
         const cell=document.createElement('div');
         cell.className='tl-allday-cell'+(isToday?' today-col':'');
-        events.filter(ev=>isFiltered(ev)&&ev.is_all_day&&evCoversDate(ev,ds)).forEach(ev=>{
+        events.filter(ev=>isFiltered(ev)&&ev.is_all_day&&evCoversDate(ev,ds)).sort((a,b)=>isTopEv(b)-isTopEv(a)).forEach(ev=>{
             const chip=document.createElement('div');
             chip.className=`event-chip color-${ev.color}`+(ev.completed_at?' is-completed':'');
             chip.style.marginBottom='2px';
@@ -267,11 +267,19 @@ function setColor(c){
     // 시기 요청·특수 옵션: 방문의뢰(gold) + 스튜디오/촬영 카테고리 (라벨 매칭 — 커스텀 키 대응)
     const soCard=document.getElementById('schedOptCard');
     if(soCard) soCard.style.display='flex';
-    const optExtra=c==='gold'||Object.keys(CS_CATS).some(k=>k===c&&/스튜디오|촬영/.test((CS_CATS[k]&&CS_CATS[k].label)||''));
+    const isStudioCat=Object.keys(CS_CATS).some(k=>k===c&&/스튜디오|촬영/.test((CS_CATS[k]&&CS_CATS[k].label)||''));
+    const optExtra=c==='gold'||isStudioCat;
     const seSec=document.getElementById('schedEventSection');
     if(seSec) seSec.style.display=optExtra?'':'none';
     const spGrp=document.getElementById('specialOptsGroup');
     if(spGrp) spGrp.style.display=optExtra?'':'none';
+    // 외부 오퍼레이터 체크는 스튜디오/촬영 카테고리에서만 노출 — 다른 카테고리로 바꾸면 체크도 해제
+    const extBtn=document.getElementById('extOperatorBtn');
+    if(extBtn){
+        extBtn.style.display=isStudioCat?'':'none';
+        if(!isStudioCat) extBtn.classList.remove('active');
+        applyExtOperatorUI();
+    }
     // 사내업무(blue)/휴가·개인(red)은 의뢰자 검색 불필요 → 섹션 숨김
     const clientSec=document.getElementById('clientLinkSection');
     if(clientSec) clientSec.style.display=(c==='blue'||c==='red')?'none':'';
@@ -455,8 +463,25 @@ function renderNotifyList(){
 // ── 종일 토글 ──
 function toggleAllDay(){
     if(isLocked) return;
+    if(isExtOperatorChecked()) return; // 외부 오퍼레이터는 항시 종일 고정
     isAllDay=!isAllDay;
     document.getElementById('alldayTrack').classList.toggle('on',isAllDay);
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display=isAllDay?'none':'');
+}
+
+// ── 외부 오퍼레이터(스튜디오 전용) — 체크 시 항시 종일 일정으로 고정 (시간 입력 불필요) ──
+function isExtOperatorChecked(){
+    const b=document.getElementById('extOperatorBtn');
+    return !!(b&&b.style.display!=='none'&&b.classList.contains('active'));
+}
+function applyExtOperatorUI(){
+    const on=isExtOperatorChecked();
+    if(on&&!isAllDay){
+        isAllDay=true;
+        document.getElementById('alldayTrack').classList.add('on');
+        document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='none');
+    }
+    const track=document.getElementById('alldayTrack');
+    if(track){ track.style.pointerEvents=on?'none':''; track.style.opacity=on?'0.55':''; }
 }
 

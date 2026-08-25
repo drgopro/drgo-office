@@ -135,6 +135,11 @@ async function doSaveEvent(){
         request_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
         remote_data:currentColor==='teal'?collectTealFields():null,
     };
+    // 외부 오퍼레이터 체크 시 항시 종일 일정으로 저장 (UI에서도 고정되지만 이중 방어)
+    if(specialOpts.includes('external_operator')){
+        data.is_all_day=true; data.start_time=null; data.end_time=null;
+    }
+
     // 대여 이력 등록 (방송룸/렌탈 신규 등록 + 체크 시)
     {
         const br=collectBrRental();
@@ -422,7 +427,7 @@ function scheduleRailUpdate(){ clearTimeout(__mRailTimer); __mRailTimer=setTimeo
         .observe(mo,{attributes:true,attributeFilter:['class']});
 })();
     // specialOpts (멀티 토글)
-    document.querySelectorAll('#specialOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');updateCarReasonUI();});});
+    document.querySelectorAll('#specialOpts .special-opt-btn').forEach(btn=>{btn.addEventListener('click',()=>{if(isLocked)return;btn.classList.toggle('active');updateCarReasonUI();if(btn.dataset.opt==='external_operator'&&typeof applyExtOperatorUI==='function')applyExtOperatorUI();});});
     document.getElementById('specialReason')?.addEventListener('input',updateCarReasonUI);
     // 잔금 금액 변경 시 배너 업데이트
     document.getElementById('g_balance_amount')?.addEventListener('input',updateBalanceBanner);

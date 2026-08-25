@@ -61,9 +61,11 @@ async function loadAssignees() {
     }
 }
 
-// 종일 먼저 → 시작시간 오름차순 정렬 (월간 셀·팝오버·모바일 공용)
+// 외부 오퍼레이터 최상단 → 종일 먼저 → 시작시간 오름차순 정렬 (월간 셀·팝오버·모바일 공용)
 function sortByTime(list){
     return [...list].sort((a,b)=>{
+        const aTop=isTopEv(a)?0:1, bTop=isTopEv(b)?0:1;
+        if(aTop!==bTop) return aTop-bTop;
         const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
         if(aAll!==bAll) return aAll-bAll;
         return (a.start_time||'99:99').localeCompare(b.start_time||'99:99');
