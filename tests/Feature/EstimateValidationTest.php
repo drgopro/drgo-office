@@ -107,6 +107,28 @@ class EstimateValidationTest extends TestCase
         $this->assertSame($myProject->id, $this->estimate->fresh()->project_id);
     }
 
+    public function test_project_summary_exposes_linked_estimates_for_calendar(): void
+    {
+        // 캘린더 '연결 프로젝트 요약' 카드가 쓰는 summary API에 연동 견적서 노출
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '스튜디오 세팅', 'project_type' => 'visit', 'stage' => 'consulting']);
+
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'client_id' => $client->id, 'project_id' => $project->id,
+            'product_items' => [['name' => '카메라', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000]],
+        ])->assertOk();
+
+        $summary = $this->actingAs($this->admin)->getJson("/api/projects/{$project->id}/summary")->assertOk()->json();
+        $this->assertCount(1, $summary['estimates']);
+        $this->assertSame($this->estimate->id, $summary['estimates'][0]['id']);
+        $this->assertSame(100000, $summary['estimates'][0]['total_amount']);
+
+        // 미연동 프로젝트는 빈 배열
+        $other = Project::create(['client_id' => $client->id, 'name' => '다른 건', 'project_type' => 'visit', 'stage' => 'consulting']);
+        $summary2 = $this->actingAs($this->admin)->getJson("/api/projects/{$other->id}/summary")->assertOk()->json();
+        $this->assertSame([], $summary2['estimates']);
+    }
+
     public function test_rejects_nonexistent_linked_ids_without_sql_error(): void
     {
         // 존재하지 않는 FK들 — SQL 제약 오류(500) 대신 422

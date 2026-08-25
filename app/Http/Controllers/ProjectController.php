@@ -605,6 +605,19 @@ class ProjectController extends Controller
             ->get()
             ->sum(fn ($b) => $b->balance());
 
+        // 이 프로젝트에 연동된 견적서 — 캘린더 프로젝트 요약 카드에 표시
+        $estimateStatus = ['temp' => '작성중', 'created' => '완성', 'editing' => '수정중', 'completed' => '작성 완료', 'issued' => '발행 완료', 'paid' => '결제완료', 'cancelled' => '결제 취소', 'hold' => '보류'];
+        $linkedEstimates = Estimate::where('project_id', $project->id)
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'total_amount', 'status', 'issued_at', 'created_at'])
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'total_amount' => (int) $e->total_amount,
+                'status' => $estimateStatus[$e->status] ?? $e->status,
+                'date' => ($e->issued_at ?? $e->created_at)?->format('Y-m-d'),
+            ]);
+
         return response()->json([
             'outstanding_balance' => $outstanding,
             'id' => $project->id,
@@ -616,6 +629,7 @@ class ProjectController extends Controller
             'paid_total' => $chargedTotal - $refundedTotal,
             'payments_count' => $paymentsCount,
             'last_paid_at' => $lastPaidAt,
+            'estimates' => $linkedEstimates,
         ]);
     }
 

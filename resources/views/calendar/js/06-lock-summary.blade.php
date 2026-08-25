@@ -414,7 +414,17 @@ async function lsLoadProjectSummary(pid){
                        <div class="ls-info-label" style="margin-top:3px;">결제 ${p.payments_count}건${p.refunded_total>0?` · 환불/취소 ${fmt(p.refunded_total)}원 반영`:''}${p.last_paid_at?` · 최근 ${_esc(p.last_paid_at)}`:''}</div>`
                     : `<div class="ls-text-block muted">— 결제 내역 없음 —</div>`}
                 ${p.outstanding_balance>0?`<div class="ls-info-label" style="margin-top:4px;color:var(--red);font-weight:700;">💸 미수 잔금 ${fmt(p.outstanding_balance)}원</div>`:''}
-            </div>`;
+            </div>
+            ${(p.estimates&&p.estimates.length)?`
+            <div style="margin-top:8px;">
+                <div class="ls-info-label">연동 견적서</div>
+                ${p.estimates.map(e=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;">
+                    <a href="/estimates/${e.id}/edit" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">#${e.id}</a>
+                    <span>${fmt(e.total_amount)}원</span>
+                    <span class="ls-type-pill">${_esc(e.status)}</span>
+                    ${e.date?`<span style="color:var(--text-muted);font-size:11px;">${_esc(e.date)}</span>`:''}
+                </div>`).join('')}
+            </div>`:''}`;
     }catch(e){ /* 네트워크 오류 — 로딩 문구 유지 */ }
 }
 
