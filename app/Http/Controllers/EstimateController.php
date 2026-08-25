@@ -92,6 +92,7 @@ class EstimateController extends Controller
 
     public function edit(Estimate $estimate)
     {
+        $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
         $estimate->load('client', 'creator');
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
@@ -268,6 +269,7 @@ class EstimateController extends Controller
 
     public function print(Estimate $estimate)
     {
+        $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
@@ -299,6 +301,7 @@ class EstimateController extends Controller
     {
         abort_if(strlen($token) < 32, 404);
         $estimate = Estimate::where('share_token', $token)->firstOrFail();
+        $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
 
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',

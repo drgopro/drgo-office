@@ -9,15 +9,16 @@ use Illuminate\Database\Eloquent\Model;
  * 견적서 — 스냅샷 정책 (중요)
  *
  * product_items / service_items는 견적서 작성 시점의 제품/서비스 정보를
- * 그대로 JSON으로 보존합니다.
+ * JSON으로 보존합니다.
  * - 항목 형식: { product_id, sku, category, name, purchase_price, sale_price, qty, subtotal, time_required }
  * - product_id는 참조만 — 출력/계산은 JSON의 name/sale_price/subtotal에 의존
- * - 제품 가격·이름이 바뀌어도 기존 견적서는 변하지 않음
  * - 제품이 삭제(soft delete)되어도 기존 견적서의 항목 정보는 그대로 유지
  *
- * 절대 하지 말 것:
- *  - product_id로 Product 테이블을 다시 조회해 name/price를 덮어쓰는 코드
- *  - 견적서 표시/인쇄 시 현재 Product를 join 하는 쿼리
+ * 단가 동기화 정책 (syncSnapshotPrices):
+ * - 발행 완료(issued)/결제 완료(paid)/결제 취소(cancelled) 이후에는 그 시점 가격을 영구 보존 (아카이브)
+ *   — 발행 후에도 갱신하면 페이앱 결제요청 금액과 어긋나므로 issued부터 고정
+ * - 그 이전 상태에서는 열람(빌더/출력/공개 링크) 시 현재 제품 판매가·매입가로 갱신
+ * - 이름/카테고리 등 가격 외 스냅샷 필드는 어떤 상태에서도 덮어쓰지 않는다
  */
 class Estimate extends Model
 {
@@ -76,6 +77,59 @@ class Estimate extends Model
         'draft' => 'array',
         'draft_saved_at' => 'datetime',
     ];
+
+    /** 이 상태들부터는 품목 단가를 고정 보존 — 발행 후 갱신하면 결제요청 금액과 어긋난다 */
+    public const PRICE_LOCKED_STATUSES = ['issued', 'paid', 'cancelled'];
+
+    /**
+     * 품목 단가를 현재 제품 판매가·매입가로 동기화 (가격 잠금 상태 제외).
+     * 가격 외 스냅샷 필드(이름·카테고리 등)와 수동 항목·삭제된 제품 항목은 건드리지 않는다.
+     * 변경이 있을 때만 저장하며, 저장 여부를 반환.
+     */
+    public function syncSnapshotPrices(): bool
+    {
+        if (in_array($this->status, self::PRICE_LOCKED_STATUSES, true)) {
+            return false;
+        }
+
+        $items = $this->product_items ?? [];
+        $ids = collect($items)->pluck('product_id')->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return false;
+        }
+
+        $products = Product::whereIn('id', $ids)->get(['id', 'sale_price', 'purchase_price'])->keyBy('id');
+        $changed = false;
+        foreach ($items as &$item) {
+            $product = ! empty($item['product_id']) ? $products->get($item['product_id']) : null;
+            if (! $product) {
+                continue;
+            }
+            $newSale = (int) $product->sale_price;
+            $newPurchase = (int) $product->purchase_price;
+            $qty = max(1, (int) ($item['qty'] ?? 1));
+            if ((int) ($item['sale_price'] ?? 0) !== $newSale || (int) ($item['purchase_price'] ?? 0) !== $newPurchase) {
+                $item['sale_price'] = $newSale;
+                $item['purchase_price'] = $newPurchase;
+                $item['subtotal'] = $newSale * $qty;
+                $changed = true;
+            }
+        }
+        unset($item);
+
+        if (! $changed) {
+            return false;
+        }
+
+        $productTotal = (int) collect($items)->sum('subtotal');
+        $this->forceFill([
+            'product_items' => $items,
+            'product_total' => $productTotal,
+            'total_amount' => $productTotal + (int) $this->service_total,
+        ])->save();
+
+        return true;
+    }
 
     /**
      * 의뢰자에게 전달하는 공개 견적서 링크.
