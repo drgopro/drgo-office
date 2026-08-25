@@ -59,6 +59,9 @@
         .preset-total { font-size:13.5px; color:var(--accent); font-weight:700; margin-top:4px; }
         .panel-right-header { background:var(--surface); padding:13px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
         .panel-right-header h2 { font-size:18px; font-weight:800; color:var(--navy); }
+        /* 헤더 제목 인라인 편집 — 텍스트 클릭으로 수정 */
+        #estTitleNo:hover { background:var(--surface2); box-shadow:0 0 0 1px var(--border); }
+        #estTitleInput { font-size:18px; font-weight:800; color:var(--navy); background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:2px 6px; margin-left:-6px; outline:none; flex:1; min-width:160px; max-width:420px; font-family:inherit; }
         .est-status { font-size:11px; padding:3px 10px; border-radius:4px; font-weight:600; }
         .est-body { flex:1; overflow-y:auto; padding:20px; background:var(--bg); }
 
@@ -187,8 +190,7 @@
 
 <div class="panel-right">
     <div class="panel-right-header">
-        <h2 id="estTitleNo">{{ $estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no }}</h2>
-        <input id="estTitle" value="{{ $estimate->title }}" placeholder="견적서 제목 (출력물 상단에 표시)" maxlength="200" style="flex:1; min-width:120px; max-width:320px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:13px; outline:none;">
+        <h2 id="estTitleNo" onclick="editEstTitle()" style="cursor:text; border-radius:6px; padding:2px 6px; margin-left:-6px;" title="클릭해서 견적서 제목 수정 (출력물 상단에 표시)">{{ $estimate->title ?: ($estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no) }}</h2>
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
             <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">주문/배송</button>
@@ -308,6 +310,39 @@ const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
 const estId = {{ $estimate->id }};
 const PUBLIC_URL = @json($estimate->publicUrl());
+
+// === 견적서 제목 — 헤더 텍스트 클릭으로 인라인 편집 (제목 없으면 '견적서 #N' 표시) ===
+let estTitleValue = @json($estimate->title);
+let estNoText = @json($estimate->status === 'temp' && ! $estimate->estimate_no ? '새 견적서' : '견적서 #'.$estimate->display_no);
+function renderEstTitle() {
+    document.getElementById('estTitleNo').textContent = estTitleValue || estNoText;
+}
+function editEstTitle() {
+    if (document.getElementById('estTitleInput')) return;
+    const h = document.getElementById('estTitleNo');
+    const inp = document.createElement('input');
+    inp.id = 'estTitleInput';
+    inp.value = estTitleValue || '';
+    inp.maxLength = 200;
+    inp.placeholder = estNoText + ' — 제목 입력';
+    h.style.display = 'none';
+    h.after(inp);
+    inp.focus();
+    let done = false;
+    const commit = (save) => {
+        if (done) return;
+        done = true;
+        if (save) estTitleValue = inp.value.trim() || null;
+        inp.remove();
+        h.style.display = '';
+        renderEstTitle();
+    };
+    inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+        else if (e.key === 'Escape') { commit(false); }
+    });
+    inp.addEventListener('blur', () => commit(true));
+}
 
 // === 의뢰자 링크 / 페이앱 결제 ===
 function copyPublicLink() {
@@ -864,7 +899,7 @@ async function loadClientProjects(cid, selectedId) {
 // === 저장/발행/삭제 ===
 async function saveEstimate(silent = false) {
     const body = {
-        title: document.getElementById('estTitle').value.trim() || null,
+        title: estTitleValue,
         client_id: clientId,
         project_id: +document.getElementById('cProject').value || null,
         client_name: document.getElementById('cName').value || null,
@@ -883,7 +918,8 @@ async function saveEstimate(silent = false) {
         const d = await res.json().catch(() => ({}));
         // 첫 저장 시 발급된 견적서 번호를 헤더/창 제목에 반영
         if (d.display_no) {
-            document.getElementById('estTitleNo').textContent = '견적서 #' + d.display_no;
+            estNoText = '견적서 #' + d.display_no;
+            renderEstTitle();
             document.title = '견적서 #' + d.display_no + ' - 닥터고블린 오피스';
         }
         // 발행완료 전환 시 결제요청 자동 생성 결과 안내
