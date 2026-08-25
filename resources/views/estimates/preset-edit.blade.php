@@ -65,7 +65,7 @@
         .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
         tr.drop-hint td { border-top:2px solid var(--accent) !important; }
         tr.drag-preview { pointer-events:none; }
-        tr.drag-preview td { opacity:0.6; background:rgba(46,108,181,0.10) !important; }
+        tr.drag-preview td { opacity:0.8; background:rgba(46,108,181,0.10) !important; }
         tr.drag-src td { opacity:0.35; }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
         .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
@@ -396,7 +396,7 @@ function renderCart() {
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${sortMode ? `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> ` : ''}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
-                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:9px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
+                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:9px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
                 <td class="text-right"><input type="number" min="0" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
                 <td><div class="qty-ctrl">
                     <button onclick="changeQty(${idx},-1)">−</button>

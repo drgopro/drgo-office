@@ -53,6 +53,11 @@ class OfficeOrderController extends Controller
                         'purchase_source' => $i['purchase_source'] ?? '',
                         'memo' => $i['order_memo'] ?? '',
                         'ordered' => ! empty($i['ordered']),
+                        // 세트 구성품 — 세트 주문완료 시 구성 단위 구매 확인용
+                        'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b) => [
+                            'name' => $b['name'] ?? '',
+                            'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
+                        ])->values()->all(),
                     ])
                     ->filter(fn ($i) => $i['ordered'])
                     ->values(),

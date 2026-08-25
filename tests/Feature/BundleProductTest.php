@@ -273,6 +273,7 @@ class BundleProductTest extends TestCase
         $this->assertTrue($set['is_bundle']);
         $this->assertSame(['세트용 마이크', '세트용 붐암'], array_column($set['bundle_items'], 'name'));
         $this->assertSame(2, $set['bundle_items'][1]['qty']);
+        $this->assertSame(20000, $set['bundle_items'][0]['price']); // 구성품 판매가 포함
 
         // 견적서 저장 시 bundle_items 스냅샷 보존 + 출력물에는 세트 한 줄만 (구성품 미노출)
         $estimate = Estimate::create([
@@ -290,6 +291,7 @@ class BundleProductTest extends TestCase
 
         $saved = $estimate->fresh()->product_items[0];
         $this->assertSame('세트용 마이크', $saved['bundle_items'][0]['name']);
+        $this->assertSame(20000, (int) $saved['bundle_items'][0]['price']); // 가격 스냅샷 보존
 
         $this->actingAs($this->master)->get("/estimates/{$estimate->id}/print")
             ->assertOk()->assertSee('스트리밍 세트')->assertDontSee('세트용 마이크');

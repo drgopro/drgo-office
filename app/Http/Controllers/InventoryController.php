@@ -838,7 +838,11 @@ class InventoryController extends Controller
                 // 세트 구성품 — 빌더에서 접기/펼치기로 표시 (의뢰자 견적서·출력물에는 세트 한 줄만)
                 'is_bundle' => (bool) $p->is_bundle,
                 'bundle_items' => $p->is_bundle
-                    ? $p->bundleItems->map(fn ($bi) => ['name' => $bi->component?->name ?? '(삭제된 구성품)', 'qty' => max(1, (int) $bi->quantity)])->values()
+                    ? $p->bundleItems->map(fn ($bi) => [
+                        'name' => $bi->component?->name ?? '(삭제된 구성품)',
+                        'qty' => max(1, (int) $bi->quantity),
+                        'price' => (int) ($bi->component?->sale_price ?? 0), // 구성품 판매가 — 빌더 참고 표시용
+                    ])->values()
                     : [],
             ];
         });

@@ -121,7 +121,7 @@
         .cat-rename-btn:hover { border-color:#fff; color:#fff; }
         tr.drop-hint td { border-top:2px solid var(--accent) !important; }
         tr.drag-preview { pointer-events:none; }
-        tr.drag-preview td { opacity:0.6; background:rgba(46,108,181,0.10) !important; }
+        tr.drag-preview td { opacity:0.8; background:rgba(46,108,181,0.10) !important; }
         tr.drag-src td { opacity:0.35; }
         .qty-ctrl { display:flex; align-items:center; gap:3px; }
         .qty-ctrl button { width:22px; height:22px; border:1px solid #9db8d4; background:var(--surface); color:var(--accent); border-radius:50%; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
@@ -712,11 +712,21 @@ function renderCart() {
                 <td>${lastCell}</td>
             </tr>`;
             // 세트 구성품 펼침 — 내부 확인용 (출력물·의뢰자 견적서에는 표시되지 않음)
+            // 세트가 주문완료면 구성품도 주문완료로 표시. 가격은 구성품 판매가 참고치.
             if ((item.bundle_items || []).length && __bundleOpen.has(item)) {
-                html += item.bundle_items.map(b => `<tr class="bundle-sub" data-gidx="${gIdx}">
-                    <td></td><td></td>
-                    <td colspan="6">└ ${_escE(b.name)} <span class="bs-qty">×${b.qty}${item.qty > 1 ? ` · 총 ${b.qty * item.qty}개` : ''}</span></td>
-                </tr>`).join('');
+                html += item.bundle_items.map(b => {
+                    const totQty = b.qty * item.qty;
+                    const price = Number(b.price) || 0;
+                    return `<tr class="bundle-sub" data-gidx="${gIdx}">
+                        <td></td><td></td>
+                        <td><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="세트 주문완료"' : ''}>└ ${_escE(b.name)}</span></td>
+                        <td></td>
+                        <td class="text-right">${price ? fmt(price) + '원' : ''}</td>
+                        <td><span class="bs-qty" style="padding-left:6px;" title="세트당 ${b.qty}개 × 세트 ${item.qty}개">${totQty}</span></td>
+                        <td class="text-right">${price ? fmt(price * totQty) + '원' : ''}</td>
+                        <td></td>
+                    </tr>`;
+                }).join('');
             }
         });
         html += `<tr class="cart-subtotal" data-gidx="${gIdx}"><td colspan="6">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;

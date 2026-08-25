@@ -30,6 +30,7 @@ class EstimatePresetController extends Controller
         'items.*.bundle_items' => 'nullable|array|max:50',
         'items.*.bundle_items.*.name' => 'required|string|max:200',
         'items.*.bundle_items.*.qty' => 'nullable|integer|min:1|max:999',
+        'items.*.bundle_items.*.price' => 'nullable|numeric|min:0',
     ];
 
     /** 프리셋 만들기 — 견적서 편집과 동일한 레이아웃의 새 창 */
@@ -119,7 +120,7 @@ class EstimatePresetController extends Controller
                 'manual' => (bool) ($i['manual'] ?? false),
                 // 세트 구성품 스냅샷 유지 (빌더 접기/펼치기 표시용)
                 'bundle_items' => collect($i['bundle_items'] ?? [])
-                    ->map(fn ($b) => ['name' => (string) ($b['name'] ?? ''), 'qty' => max(1, (int) ($b['qty'] ?? 1))])
+                    ->map(fn ($b) => ['name' => (string) ($b['name'] ?? ''), 'qty' => max(1, (int) ($b['qty'] ?? 1)), 'price' => (int) ($b['price'] ?? 0)])
                     ->filter(fn ($b) => $b['name'] !== '')->values()->all(),
             ];
         })->values()->all();

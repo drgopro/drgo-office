@@ -134,6 +134,7 @@ class EstimateController extends Controller
             'product_items.*.bundle_items' => 'nullable|array|max:50',
             'product_items.*.bundle_items.*.name' => 'required|string|max:200',
             'product_items.*.bundle_items.*.qty' => 'nullable|integer|min:1|max:999',
+            'product_items.*.bundle_items.*.price' => 'nullable|numeric|min:0',
             'service_items' => 'nullable|array|max:100',
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',
