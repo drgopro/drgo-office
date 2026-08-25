@@ -17,11 +17,13 @@ class OfficeOrder extends Model
     protected $fillable = [
         'title',
         'items',
+        'order_date',
         'created_by',
     ];
 
     protected $casts = [
         'items' => 'array',
+        'order_date' => 'date',
     ];
 
     /** @return BelongsTo<User, $this> */

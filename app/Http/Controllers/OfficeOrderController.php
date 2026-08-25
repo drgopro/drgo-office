@@ -72,6 +72,7 @@ class OfficeOrderController extends Controller
                 'id' => $o->id,
                 'title' => $o->title,
                 'creator' => $o->creator?->display_name,
+                'order_date' => ($o->order_date ?? $o->created_at)->format('Y-m-d'),
                 'items' => collect($o->items ?? [])->map(fn ($i) => [
                     'name' => $i['name'] ?? '',
                     'qty' => (int) ($i['qty'] ?? 1),
@@ -100,11 +101,12 @@ class OfficeOrderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate(['title' => 'required|string|max:200'] + self::ITEM_RULES);
+        $validated = $request->validate(['title' => 'required|string|max:200', 'order_date' => 'nullable|date'] + self::ITEM_RULES);
 
         $order = OfficeOrder::create([
             'title' => $validated['title'],
             'items' => $this->normalizeItems($request->input('items')),
+            'order_date' => $validated['order_date'] ?? now()->toDateString(), // 미지정 시 오늘
             'created_by' => Auth::id(),
         ]);
 
@@ -113,11 +115,12 @@ class OfficeOrderController extends Controller
 
     public function update(Request $request, OfficeOrder $order): JsonResponse
     {
-        $request->validate(['title' => 'required|string|max:200'] + self::ITEM_RULES);
+        $validated = $request->validate(['title' => 'required|string|max:200', 'order_date' => 'nullable|date'] + self::ITEM_RULES);
 
         $order->update([
             'title' => $request->input('title'),
             'items' => $this->normalizeItems($request->input('items')),
+            'order_date' => $validated['order_date'] ?? $order->order_date ?? now()->toDateString(),
         ]);
 
         return response()->json($order);

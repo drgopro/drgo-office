@@ -40,8 +40,16 @@
 <h2>{{ $order ? '주문 수정' : '주문 추가' }} <span style="font-size:11.5px; color:var(--text-muted); font-weight:400;">— 사무실 비품·간식 등 견적서와 무관한 주문 건</span></h2>
 
 <div class="card">
-    <h4>주문명</h4>
-    <input class="field-input" id="orderTitle" placeholder="예: 8월 사무실 간식 주문 *" maxlength="200" value="{{ $order->title ?? '' }}">
+    <div style="display:flex; gap:14px;">
+        <div style="flex:1;">
+            <h4>주문명</h4>
+            <input class="field-input" id="orderTitle" placeholder="예: 8월 사무실 간식 주문 *" maxlength="200" value="{{ $order->title ?? '' }}">
+        </div>
+        <div style="width:170px;">
+            <h4>주문일</h4>
+            <input class="field-input" id="orderDate" type="date" value="{{ ($order->order_date ?? now())->format('Y-m-d') }}">
+        </div>
+    </div>
 </div>
 
 <div class="card">
@@ -89,8 +97,9 @@ async function saveOrder(btn) {
     if (!items.length) return alert('항목을 1개 이상 입력해주세요.');
 
     btn.disabled = true;
+    const order_date = document.getElementById('orderDate').value || null;
     const res = await fetch(orderId ? `/api/inventory/office-orders/${orderId}` : '/api/inventory/office-orders', {
-        method: orderId ? 'PATCH' : 'POST', headers: H, body: JSON.stringify({ title, items }),
+        method: orderId ? 'PATCH' : 'POST', headers: H, body: JSON.stringify({ title, items, order_date }),
     }).catch(() => null);
     btn.disabled = false;
     if (!res || !res.ok) {

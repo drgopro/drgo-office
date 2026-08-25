@@ -1804,7 +1804,7 @@ function renderOrders() {
             <td><span class="grp-arrow">${open ? '▾' : '▸'}</span><b>${_esc(o.title)}</b></td>
             <td class="text-muted">${(o.items||[]).length}개 품목</td>
             <td class="text-muted">${_esc(who)}</td>
-            <td class="text-muted">${o.updated_at}</td>
+            <td class="text-muted">${o.type === 'manual' && o.order_date ? `주문일 ${o.order_date}` : o.updated_at}</td>
             <td class="action-cell">${acts}</td>
         </tr>`;
         if (open) {
@@ -1823,12 +1823,22 @@ function renderOrders() {
                 </tr>`;
             }).join('');
             if (o.type === 'estimate') {
+                // 송장별 한 줄씩 + 상태 문구는 셀 안에서 줄바꿈 — 가로 스크롤 방지
                 const ships = (o.shipments||[]).map(s => {
                     const [label, cls] = SHIP_ST[s.status] || SHIP_ST.unknown;
-                    return `<span style="margin-right:14px; white-space:nowrap;"><b>${_esc(s.carrier_label)}</b> ${_esc(s.tracking_no)} <span class="badge ${cls}">${label}</span>${s.last_event ? ` <span class="text-muted">${_esc(s.last_event)}</span>` : ''}${s.delivered_at ? ` <span class="text-muted">${s.delivered_at}</span>` : ''}</span>`;
+                    return `<div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:2px 0;">
+                        <b style="white-space:nowrap;">${_esc(s.carrier_label)}</b>
+                        <span style="white-space:nowrap;">${_esc(s.tracking_no)}</span>
+                        <span class="badge ${cls}">${label}</span>
+                        ${s.last_event ? `<span class="text-muted" style="white-space:normal; word-break:break-word; max-width:560px;">${_esc(s.last_event)}</span>` : ''}
+                        ${s.delivered_at ? `<span class="text-muted" style="white-space:nowrap;">${s.delivered_at}</span>` : ''}
+                    </div>`;
                 }).join('');
-                html += `<tr style="background:var(--surface2);"><td></td><td colspan="5" style="padding-left:26px; font-size:12px;">
-                    <span class="text-muted" style="font-weight:700; margin-right:10px;">운송장</span>${ships || '<span class="text-muted">등록된 운송장이 없습니다 — 견적서의 배송 정보에서 추가할 수 있습니다.</span>'}
+                html += `<tr style="background:var(--surface2);"><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12px;">
+                    <div style="display:flex; gap:10px; align-items:baseline;">
+                        <span class="text-muted" style="font-weight:700; white-space:nowrap;">운송장</span>
+                        <div style="flex:1; min-width:0;">${ships || '<span class="text-muted">등록된 운송장이 없습니다 — 견적서의 배송 정보에서 추가할 수 있습니다.</span>'}</div>
+                    </div>
                 </td></tr>`;
             }
         }

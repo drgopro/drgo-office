@@ -85,6 +85,15 @@ class OfficeOrderTest extends TestCase
         $this->assertSame('8월 사무실 간식', $rows[0]['title']);
         $this->assertCount(2, $rows[0]['items']);
         $this->assertSame('쿠팡', $rows[0]['items'][0]['purchase_source']);
+        // 주문일 미지정 시 오늘로 기본 저장
+        $this->assertSame(now()->toDateString(), $rows[0]['order_date']);
+
+        // 주문일 지정 저장
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/{$created['id']}", [
+            'title' => '8월 사무실 간식', 'order_date' => '2026-08-20',
+            'items' => [['name' => '커피 캡슐', 'qty' => 3]],
+        ])->assertOk();
+        $this->assertSame('2026-08-20', OfficeOrder::findOrFail($created['id'])->order_date->toDateString());
 
         // 수정
         $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/{$created['id']}", [
