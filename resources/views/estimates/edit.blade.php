@@ -795,10 +795,12 @@ function __clearDragUi() {
         e.dataTransfer.effectAllowed = 'move';
     });
 
-    tb.addEventListener('dragover', e => {
+    // dragover/drop은 document에 바인딩 — 미리보기 행은 pointer-events:none이라
+    // 그 위에서 놓으면 이벤트 타깃이 tbody 밖(table)이 되어 tbody 리스너로는 드롭이 거부된다
+    document.addEventListener('dragover', e => {
         if (__dragCat === null && __dragItem === null) return;
         e.preventDefault();
-        const tr = e.target.closest('tr');
+        const tr = e.target.closest ? e.target.closest('#cartBody tr') : null;
         if (!tr || tr.classList.contains('drag-preview') || tr.classList.contains('drag-src')) return;
         const pv = ensurePreview();
         if (!pv) return;
@@ -819,7 +821,8 @@ function __clearDragUi() {
         }
     });
 
-    tb.addEventListener('drop', e => {
+    document.addEventListener('drop', e => {
+        if (__dragCat === null && __dragItem === null) return;
         e.preventDefault();
         if (__previewEl && __previewEl.isConnected) {
             if (__dragItem !== null) applyItemDrop(); else applyCatDrop();
@@ -841,8 +844,17 @@ function __clearDragUi() {
         }
         let p = __previewEl.previousElementSibling, gIdx = null;
         while (p) { if (p.dataset.gidx !== undefined && !p.classList.contains('drag-src')) { gIdx = +p.dataset.gidx; break; } p = p.previousElementSibling; }
-        const { order } = groupBlocks();
-        const cat = beforeItem ? (beforeItem.category_root || beforeItem.category || '기타') : (gIdx !== null ? order[gIdx] : null);
+        const { order, map } = groupBlocks();
+        let cat = beforeItem ? (beforeItem.category_root || beforeItem.category || '기타') : (gIdx !== null ? order[gIdx] : null);
+        // 테이블 최상단(첫 헤더 위)에 놓으면 — 다음 헤더 그룹의 맨 앞으로
+        if (cat == null) {
+            let h = __previewEl.nextElementSibling;
+            while (h && !(h.classList.contains('cart-cat-header') && h.dataset.gidx !== undefined)) h = h.nextElementSibling;
+            if (h && order[+h.dataset.gidx] !== undefined) {
+                cat = order[+h.dataset.gidx];
+                beforeItem = (map[cat] || [])[0] || null;
+            }
+        }
         if (cat == null || beforeItem === item) return;
         cartItems.splice(cartItems.indexOf(item), 1);
         item.category_root = cat;
