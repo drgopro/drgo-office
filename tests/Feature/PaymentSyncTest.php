@@ -418,6 +418,37 @@ class PaymentSyncTest extends TestCase
         $this->assertSame(300000, $charge->amount);
     }
 
+    public function test_estimate_linked_billing_cannot_be_completed_manually(): void
+    {
+        // 연동 청구 생성
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'product_items' => $this->estimate->product_items,
+        ])->assertOk();
+        $billing = ProjectBilling::where('estimate_id', $this->estimate->id)->first();
+
+        // 수동 완료 처리 시도 → 거부, 상태 유지
+        $this->actingAs($this->admin)->patchJson("/api/project-billings/{$billing->id}", [
+            'status' => 'paid',
+        ])->assertUnprocessable();
+        $this->assertSame('unpaid', $billing->fresh()->status);
+
+        // 일반(수기) 청구는 여전히 수동 완료 가능
+        $manual = ProjectBilling::create([
+            'project_id' => $this->project->id, 'amount' => 30000,
+            'billed_at' => now()->format('Y-m-d'), 'status' => 'unpaid', 'created_by' => $this->admin->id,
+        ]);
+        $this->actingAs($this->admin)->patchJson("/api/project-billings/{$manual->id}", [
+            'status' => 'paid',
+        ])->assertOk();
+        $this->assertSame('paid', $manual->fresh()->status);
+
+        // 견적서 결제완료 → 연동 청구는 자동으로 완료
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'product_items' => $this->estimate->fresh()->product_items, 'status' => 'paid',
+        ])->assertOk();
+        $this->assertSame('paid', $billing->fresh()->status);
+    }
+
     public function test_unlinking_project_removes_clean_billing(): void
     {
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [

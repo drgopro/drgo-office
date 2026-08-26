@@ -2875,11 +2875,11 @@ function renderBillingBlock() {
                 </div>
                 <div style="display:flex; gap:6px;">
                     ${b.status!=='paid' ? `<button onclick="recordBillingPayment(${b.id}, ${b.balance})" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">입금 기록</button>` : ''}
-                    ${b.status!=='paid' ? `<button onclick="markBillingPaid(${b.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">완료 처리</button>` : ''}
+                    ${b.status!=='paid' && !b.estimate_id ? `<button onclick="markBillingPaid(${b.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">완료 처리</button>` : ''}
                     <button onclick="deleteBilling(${b.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
                 </div>
             </div>
-            <div style="margin-top:4px; font-size:11px; color:var(--text-muted);">📅 청구일 ${b.billed_at||'-'}${b.memo?` · 📝 ${_escPh(b.memo)}`:''}</div>
+            <div style="margin-top:4px; font-size:11px; color:var(--text-muted);">📅 청구일 ${b.billed_at||'-'}${b.memo?` · 📝 ${_escPh(b.memo)}`:''}${b.estimate_id?` · <a href="#" onclick="event.preventDefault(); window.open('/estimates/${b.estimate_id}/print', 'estimate_${b.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">📄 견적서 #${b.estimate_no||b.estimate_id}</a> <span title="견적서 연동 청구는 수동 완료할 수 없습니다">— 견적서 결제완료 시 자동 완료</span>`:''}</div>
         </div>`).join('')}
     </div>`;
 }

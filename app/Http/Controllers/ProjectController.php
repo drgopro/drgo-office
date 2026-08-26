@@ -729,6 +729,11 @@ class ProjectController extends Controller
                     'memo' => $b->memo,
                     'paid_total' => $b->paidTotal(),
                     'balance' => $b->balance(),
+                    // 견적서 연동 청구 — 수동 완료 불가, 견적서 결제완료 시 자동 완료
+                    'estimate_id' => $b->estimate_id,
+                    'estimate_no' => $b->estimate_id
+                        ? ($estimateNos[$b->estimate_id] ?? Estimate::find($b->estimate_id)?->display_no ?? $b->estimate_id)
+                        : null,
                 ]),
         ]);
     }
@@ -773,6 +778,13 @@ class ProjectController extends Controller
             'memo' => 'nullable|string|max:500',
             'status' => ['sometimes', Rule::in(ProjectBilling::STATUSES)],
         ]);
+
+        // 견적서 연동 청구 — 수동 완료(상태 직접 지정) 금지. 견적서에서 결제완료 처리해야 자동 완료된다
+        if (array_key_exists('status', $validated) && $billing->estimate_id) {
+            return response()->json([
+                'message' => '견적서 연동 청구는 수동으로 완료할 수 없습니다. 견적서에서 결제완료 처리하면 자동으로 완료됩니다.',
+            ], 422);
+        }
 
         $billing->update($validated);
         if (! array_key_exists('status', $validated) && array_key_exists('amount', $validated)) {
