@@ -685,8 +685,14 @@ class ProjectController extends Controller
         }
 
         // 화면 표시용 견적서 번호 — 실제 id 대신 목록과 동일한 표시 번호(#display_no)로 통일
-        $estimateNos = Estimate::whereIn('id', $rows->pluck('estimate_id')->filter()->unique())
-            ->get()->pluck('display_no', 'id');
+        $linkedEstimates = Estimate::whereIn('id', $rows->pluck('estimate_id')->filter()->unique())
+            ->get()->keyBy('id');
+        $estimateNos = $linkedEstimates->map(fn ($e) => $e->display_no);
+
+        // 견적서별 결제(charge) 합계 — 결제 기록 후 견적서에 항목이 추가돼 총액이 커진 경우
+        // '차액 미결제'를 표시하기 위한 계산 (원장은 실결제 기준이므로 자동 기록하지 않음)
+        $chargeSumByEstimate = $rows->where('type', 'charge')->filter(fn ($r) => $r->estimate_id)
+            ->groupBy('estimate_id')->map(fn ($g) => (int) $g->sum('amount'));
 
         return response()->json([
             'payments' => $rows->map(fn ($r) => [
@@ -696,6 +702,11 @@ class ProjectController extends Controller
                 'type' => $r->type,
                 'estimate_id' => $r->estimate_id,
                 'estimate_no' => $r->estimate_id ? ($estimateNos[$r->estimate_id] ?? $r->estimate_id) : null,
+                // 견적 총액과 결제 합계의 차액 (charge 행에만 의미) — 결제 후 견적서에 항목이 추가된 경우 표시용
+                'estimate_total' => $r->type === 'charge' && $r->estimate_id
+                    ? (int) ($linkedEstimates[$r->estimate_id]->total_amount ?? 0) : null,
+                'estimate_unpaid_diff' => $r->type === 'charge' && $r->estimate_id && isset($linkedEstimates[$r->estimate_id])
+                    ? max(0, (int) $linkedEstimates[$r->estimate_id]->total_amount - ($chargeSumByEstimate[$r->estimate_id] ?? 0)) : 0,
                 'amount' => $r->amount,
                 'items' => $r->items ?? [],
                 'method' => $r->method,

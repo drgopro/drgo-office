@@ -385,6 +385,32 @@ class PaymentSyncTest extends TestCase
         $this->assertSame(46, $row['estimate_no']);
     }
 
+    public function test_payments_api_reports_unpaid_diff_when_estimate_grew_after_charge(): void
+    {
+        // 결제 기록(200,000) 후 견적서 총액이 250,000으로 커진 상황 — 차액 50,000 미결제 표시
+        ProjectPayment::create([
+            'project_id' => $this->project->id, 'type' => 'charge', 'estimate_id' => $this->estimate->id,
+            'amount' => 200000, 'paid_at' => now()->toDateString(), 'recorded_by' => $this->admin->id,
+        ]);
+
+        $row = $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/payments")
+            ->assertOk()->json('payments.0');
+        $this->assertSame(250000, $row['estimate_total']);
+        $this->assertSame(50000, $row['estimate_unpaid_diff']);
+
+        // 차액만큼 추가 결제를 수동 기록하면 차액 0
+        ProjectPayment::create([
+            'project_id' => $this->project->id, 'type' => 'charge', 'estimate_id' => $this->estimate->id,
+            'amount' => 50000, 'paid_at' => now()->toDateString(), 'recorded_by' => $this->admin->id,
+        ]);
+        $rows = $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/payments")->json('payments');
+        foreach ($rows as $r) {
+            $this->assertSame(0, $r['estimate_unpaid_diff']);
+        }
+    }
+
     public function test_public_estimate_view_shows_refund_details(): void
     {
         $items = $this->estimate->product_items;

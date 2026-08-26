@@ -2947,6 +2947,9 @@ function renderPaymentHistory() {
                 ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
             </div>
             ${itemsHtml}
+            ${isCharge && (p.estimate_unpaid_diff||0) > 0 ? `<div style="margin-top:8px; padding:7px 10px; background:rgba(232,137,74,0.10); border:1px solid rgba(232,137,74,0.4); border-radius:8px; font-size:12px; color:#e8894a;" title="결제 기록 후 견적서에 항목이 추가되어 총액이 커졌습니다. 실제 추가 결제를 받았다면 [+ 결제 추가]로 기록하세요.">
+                ⚠ 견적 총액 ${_fmtPh(p.estimate_total)}원 · 결제 합계 ${_fmtPh(p.estimate_total - p.estimate_unpaid_diff)}원 · <b>차액 ${_fmtPh(p.estimate_unpaid_diff)}원 미결제</b>
+            </div>` : ''}
             ${p.memo ? `<div style="margin-top:6px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 ${_escPh(p.memo)}</div>` : ''}
         </div>`;
     }).join('');
