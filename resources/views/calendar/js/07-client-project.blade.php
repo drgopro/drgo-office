@@ -98,20 +98,10 @@ function applyClientDetail(d){
     // 연락처 보강 (검색 결과에 전화번호가 없던 경우)
     const gPhone=document.getElementById('g_phone');
     if(gPhone&&!gPhone.value.trim()&&d.phone) gPhone.value=d.phone;
-    // 주소 → 장소 (도로명) + 상세주소
-    // 빈 칸이면 채우고 알림, 이미 입력한 주소와 다르면 어떤 주소를 쓸지 선택 팝업 (조용한 덮어쓰기/구주소 유입 방지)
-    const loc=document.getElementById('modalLocation');
-    if(loc&&d.address){
-        const cur=loc.value.trim();
-        if(!cur){
-            loc.value=d.address;
-            document.getElementById('modalAddress').value=d.address;
-            const det=document.getElementById('modalLocationDetail');
-            if(det&&!det.value.trim()&&d.address_detail) det.value=d.address_detail;
-            if(typeof showCalToast==='function') showCalToast('의뢰자 정보의 주소를 불러왔습니다 — 다른 곳이면 주소 검색으로 변경하세요');
-        } else if(cur!==d.address.trim()){
-            openAddrConflictPicker(cur,(document.getElementById('modalLocationDetail')?.value||'').trim(),d);
-        }
+    // 주소는 자동으로 채우지 않는다 — 의뢰자 정보의 구주소가 몰래 들어가는 것 방지.
+    // 필요 시 '👤 의뢰자 주소'/'📁 프로젝트 주소' 버튼이나 주소 검색(수기)으로 명시적으로 채운다.
+    if(d.address&&!document.getElementById('modalLocation')?.value.trim()&&typeof showCalToast==='function'){
+        showCalToast('의뢰자에 저장된 주소가 있습니다 — 필요하면 장소의 👤 의뢰자 주소 버튼으로 불러오세요');
     }
     // teal(원격/방송룸): 플랫폼 텍스트 필드 채움 (양쪽 모드, 기타 직접입력 포함)
     if(currentColor==='teal'){
@@ -219,12 +209,9 @@ function applyLinkedProjectAddress(){
     const det=document.getElementById('modalLocationDetail');
     if(det) det.value=p.address_detail||'';
 }
-// 프로젝트 선택 시 — 장소가 비어 있으면 프로젝트 세팅 장소로 자동 채움 (입력된 값은 덮지 않음)
+// 프로젝트 선택 시 — 주소 자동 채움 없이 📁 버튼 토글만 (채움은 버튼 클릭 = 명시적 의사 표시)
 function autoFillProjectAddress(){
     updateProjAddrBtn();
-    const p=selectedProjectData();
-    const loc=document.getElementById('modalLocation');
-    if(p&&p.address&&loc&&!loc.value.trim()) applyLinkedProjectAddress();
 }
 // 장소를 연동 의뢰자에 저장된 주소로 채움 (기존 입력 덮어씀 — 버튼을 눌렀다는 것이 의사 표시)
 function applyLinkedClientAddress(){
@@ -262,45 +249,6 @@ function openClientAddrPicker(list){
     document.body.appendChild(ov);
 }
 function closeClientAddrPicker(){ const el=document.getElementById('clientAddrPicker'); if(el) el.remove(); }
-
-// 의뢰자 연동 시 현재 입력 주소와 의뢰자 정보 주소가 다를 때 — 어떤 주소를 쓸지 선택
-// (의뢰자 정보에는 이전 주소가 남아 있을 수 있어, 조용히 덮어쓰지 않고 반드시 물어본다)
-function openAddrConflictPicker(curAddr,curDetail,d){
-    closeClientAddrPicker();
-    const extras=(d.extra_addresses||[]).filter(a=>a&&a.address);
-    const ov=document.createElement('div');
-    ov.id='clientAddrPicker';
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';
-    ov.onclick=e=>{ if(e.target===ov) closeClientAddrPicker(); };
-    const rowStyle='display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;color:var(--text);font-size:13px;cursor:pointer;';
-    ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:500px;width:100%;padding:20px;">
-        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">⚠ 의뢰자 정보의 주소와 현재 입력한 주소가 다릅니다</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">의뢰자 정보에는 이전(구) 주소가 남아 있을 수 있습니다. 이번 일정에 쓸 주소를 선택하세요.</div>
-        <button type="button" data-pick="keep" style="${rowStyle}border-color:var(--accent);">
-            <div style="font-size:11px;color:var(--accent);margin-bottom:3px;">현재 입력한 주소 유지 (권장)</div>
-            <div>${_esc(curAddr)}${curDetail?`, ${_esc(curDetail)}`:''}</div>
-        </button>
-        <button type="button" data-pick="0" style="${rowStyle}">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">의뢰자 정보 주소 1 (메인)</div>
-            <div>${_esc(d.address)}${d.address_detail?`, ${_esc(d.address_detail)}`:''}</div>
-        </button>
-        ${extras.map((a,i)=>`<button type="button" data-pick="${i+1}" style="${rowStyle}">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">의뢰자 정보 주소 ${i+2}</div>
-            <div>${_esc(a.address)}${a.address_detail?`, ${_esc(a.address_detail)}`:''}</div>
-        </button>`).join('')}
-    </div>`;
-    ov.querySelectorAll('button[data-pick]').forEach(b=>{
-        b.onclick=()=>{
-            const v=b.dataset.pick;
-            if(v!=='keep'){
-                const a=v==='0'?{address:d.address,address_detail:d.address_detail}:extras[parseInt(v,10)-1];
-                _applyClientAddr(a.address,a.address_detail);
-            }
-            closeClientAddrPicker();
-        };
-    });
-    document.body.appendChild(ov);
-}
 
 async function loadClientProjects(clientId){
     const wrap=document.getElementById('projectSelectWrap');
