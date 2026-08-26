@@ -563,10 +563,11 @@ function openEditModal(ev){
         }
     }
     document.getElementById('g_equipment').value=g.equipment||'';
-    // 의뢰주제: "처음세팅, 추가세팅, 직접입력값" → pill 선택 + 기타 입력
+    // 의뢰주제: "처음세팅, 세팅개선, 직접입력값" → pill 선택 + 기타 입력
     if(g.req_topic){
-        const known=['처음세팅','추가세팅','이사세팅','렌탈','기타'];
-        const vals=g.req_topic.split(',').map(v=>v.trim());
+        const known=['처음세팅','세팅개선','이사세팅','렌탈','기타'];
+        // 구데이터의 '추가세팅'은 '세팅개선'으로 승계 (재저장 시 새 이름으로 저장됨)
+        const vals=g.req_topic.split(',').map(v=>v.trim()).map(v=>v==='추가세팅'?'세팅개선':v);
         const pillVals=vals.map(v=>known.includes(v)?v:'기타');
         setMultiRadio('g_req_topic_group',[...new Set(pillVals)]);
         const etcVals=vals.filter(v=>!known.includes(v));

@@ -407,7 +407,7 @@
                     <div style="display:flex;gap:6px;align-items:center;">
                         <div class="radio-group" id="g_req_topic_group">
                             <div class="radio-btn" data-val="처음세팅">처음세팅</div>
-                            <div class="radio-btn" data-val="추가세팅">추가세팅</div>
+                            <div class="radio-btn" data-val="세팅개선">세팅개선</div>
                             <div class="radio-btn" data-val="이사세팅">이사세팅</div>
                             <div class="radio-btn" data-val="렌탈">렌탈</div>
                             <div class="radio-btn" data-val="기타">기타</div>
