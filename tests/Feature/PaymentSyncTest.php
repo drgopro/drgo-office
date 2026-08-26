@@ -95,6 +95,45 @@ class PaymentSyncTest extends TestCase
         $this->assertSame(1, ProjectPayment::where('estimate_id', $this->estimate->id)->where('type', 'charge')->count());
     }
 
+    public function test_calendar_paid_promotes_all_linked_estimates(): void
+    {
+        // 추가 견적 — 한 일정에 견적서 두 개 연동 (estimate_ids)
+        $second = Estimate::create([
+            'status' => 'issued', 'client_id' => $this->estimate->client_id, 'project_id' => $this->project->id,
+            'product_items' => [['product_id' => 3, 'name' => '추가 조명', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000]],
+            'service_items' => [], 'product_total' => 100000, 'service_total' => 0, 'total_amount' => 100000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->postJson('/api/events', [
+            'title' => '고블린 방문',
+            'start_date' => '2026-08-25', 'end_date' => '2026-08-25',
+            'is_all_day' => true, 'color' => 'gold',
+            'request_data' => [
+                'client_id' => $this->project->client_id, 'project_id' => $this->project->id,
+                'nickname' => '고블린', 'name' => '', 'phone' => '',
+                'estimate_id' => $this->estimate->id,
+                'estimate_ids' => [$this->estimate->id, $second->id],
+                'paid' => '결제완료',
+            ],
+        ])->assertCreated();
+
+        // 두 견적서 모두 결제완료 승격 + 각각 charge 기록
+        $this->assertSame('paid', $this->estimate->fresh()->status);
+        $this->assertSame('paid', $second->fresh()->status);
+        $this->assertSame(2, ProjectPayment::where('type', 'charge')->count());
+
+        // 일정 표시 금액은 전체 합계 (250,000 + 100,000)
+        $g = Schedule::first()->request_data;
+        $this->assertSame('350,000', $g['estimate_amount']);
+
+        // 두 번째 견적서 부분환불 → 일정 환불 표시는 전체 연동 견적서 합산
+        $this->estimate->applyItemRefunds([['index' => 1, 'qty' => 1, 'amount' => 50000]]);
+        $second->applyItemRefunds([['index' => 0, 'qty' => 1, 'amount' => 100000]]);
+        EstimatePaymentSync::syncRefundDisplay($second->fresh());
+        $this->assertSame('150,000', data_get(Schedule::first()->request_data, 'estimate_refund'));
+    }
+
     public function test_estimate_manual_paid_syncs_project_charge_and_calendar(): void
     {
         $schedule = $this->linkedSchedule();

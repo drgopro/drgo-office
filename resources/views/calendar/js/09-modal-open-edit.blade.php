@@ -30,8 +30,9 @@ function resetModalForm(){
     {const psel=document.getElementById('projectSelect'); if(psel) psel.innerHTML='';} // 이전 일정의 프로젝트가 다음 일정에 새는 것 방지
     syncProjectPaymentFields(); // 연동 해제 — 결제/잔금 수기 입력 복원
     document.getElementById('clientSearchInput').value='';
-    linkedEstimateId=null;
+    linkedEstimateIds=[]; linkedEstimateMeta={};
     document.getElementById('linkedEstimateInfo').style.display='none';
+    {const ll=document.getElementById('linkedEstimateList'); if(ll) ll.innerHTML='';}
     {const rv=document.getElementById('g_estimate_refund_view'); if(rv){rv.dataset.amt='';rv.textContent='';rv.style.display='none';}} // 이전 일정 환불 표시 잔여 제거
     document.getElementById('catQuickPick')?.remove(); // 카테고리 빠른 변경 팝업 잔여 제거
     // 대여 이력 등록 초기화 (표시 여부는 setColor→updateBrRentalUI가 결정)
@@ -611,11 +612,16 @@ function openEditModal(ev){
     if(g.order){setRadio('g_order_group',g.order);handleConditional('g_order_group');}
     if(g.balance){setRadio('g_balance_group',g.balance);handleConditional('g_balance_group');}
     document.getElementById('g_balance_amount').value=_fmtAmt(g.balance_amount||'');
-    if(g.estimate_id){
-        linkedEstimateId=g.estimate_id;document.getElementById('linkedEstimateTitle').textContent=`#${g.estimate_id}`;document.getElementById('linkedEstimateInfo').style.display='';
-        if(typeof refreshLinkedEstimateLabel==='function') refreshLinkedEstimateLabel(); // 표시 번호(#display_no)로 라벨 갱신
-        // 결제완료인데 금액이 비어 있으면(0원 기록 방지) 연동 견적서 총액 자동 입력
-        if(g.paid==='결제완료'&&!(g.estimate_amount||'').toString().trim()&&typeof autofillEstimateAmountIfEmpty==='function') autofillEstimateAmountIfEmpty();
+    {
+        // 다중 견적서 연동 복원 — estimate_ids(신규) + estimate_id(구데이터 하위 호환)
+        const restoredIds=[...new Set([...(Array.isArray(g.estimate_ids)?g.estimate_ids:[]), ...(g.estimate_id?[g.estimate_id]:[])].filter(Boolean))];
+        if(restoredIds.length){
+            linkedEstimateIds=restoredIds;
+            renderLinkedEstimates();
+            if(typeof refreshLinkedEstimateLabels==='function') refreshLinkedEstimateLabels(); // 표시 번호·이름·총액 갱신
+            // 결제완료인데 금액이 비어 있으면(0원 기록 방지) 연동 견적서 총액 합계 자동 입력
+            if(g.paid==='결제완료'&&!(g.estimate_amount||'').toString().trim()&&typeof autofillEstimateAmountIfEmpty==='function') autofillEstimateAmountIfEmpty();
+        }
     }
     // 의뢰자/프로젝트 연결 복원
     if(g.client_id){

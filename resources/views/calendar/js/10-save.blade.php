@@ -41,7 +41,9 @@ function collectGoldFields(){
         balance_amount:document.getElementById('g_balance_amount').value.trim(),
         // 결제 금액/잔금이 프로젝트 결제 연동 값이면 표시 — 서버가 캘린더발 청구 생성을 건너뜀 (이중 청구 방지)
         balance_source:projPayLinked?'project':'',
-        estimate_id:linkedEstimateId,
+        // 다중 견적서 연동 — estimate_id는 첫 번째(하위 호환), 전체는 estimate_ids
+        estimate_id:linkedEstimateIds[0]??null,
+        estimate_ids:linkedEstimateIds.length?[...linkedEstimateIds]:null,
         client_id:linkedClientId,
         // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
         project_id:(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,

@@ -293,22 +293,25 @@ class CalendarController extends Controller
     private function syncEstimatePaidFromSchedule(Schedule $schedule): void
     {
         $g = $schedule->request_data ?? [];
-        if (empty($g['estimate_id'])) {
-            return;
-        }
-        $estimate = Estimate::find($g['estimate_id']);
-        if (! $estimate) {
+        $estimates = Estimate::whereIn('id', EstimatePaymentSync::scheduleEstimateIds($g))->get();
+        if ($estimates->isEmpty()) {
             return;
         }
 
         // 환불 표시 자가 치유 — 표시 기능 배포 전에 기록된 환불이나 나중에 연동된 견적서도 저장 시 반영
-        EstimatePaymentSync::syncRefundDisplay($estimate);
+        EstimatePaymentSync::syncRefundDisplay($estimates->first());
 
-        if (($g['paid'] ?? '') !== '결제완료' || in_array($estimate->status, ['paid', 'cancelled', 'temp'], true)) {
+        if (($g['paid'] ?? '') !== '결제완료') {
             return;
         }
-        $estimate->forceFill(['status' => 'paid'])->save();
-        EstimatePaymentSync::estimatePaid($estimate, '캘린더 결제완료');
+        // 연동된 모든 견적서를 결제완료로 승격 (이미 paid/cancelled/temp인 것은 건드리지 않음)
+        foreach ($estimates as $estimate) {
+            if (in_array($estimate->status, ['paid', 'cancelled', 'temp'], true)) {
+                continue;
+            }
+            $estimate->forceFill(['status' => 'paid'])->save();
+            EstimatePaymentSync::estimatePaid($estimate, '캘린더 결제완료');
+        }
     }
 
     /**
@@ -632,6 +635,11 @@ class CalendarController extends Controller
             $prevRefund = data_get($schedule->request_data, 'estimate_refund');
             if ($prevRefund && empty($validated['request_data']['estimate_refund'])) {
                 $validated['request_data']['estimate_refund'] = $prevRefund;
+            }
+            // 다중 견적서 연동 — 배포 전에 열려 있던 탭이 estimate_ids 없이 재저장해도 유실 방지
+            $prevEstIds = data_get($schedule->request_data, 'estimate_ids');
+            if (is_array($prevEstIds) && $prevEstIds !== [] && ! array_key_exists('estimate_ids', $validated['request_data'])) {
+                $validated['request_data']['estimate_ids'] = $prevEstIds;
             }
         }
 

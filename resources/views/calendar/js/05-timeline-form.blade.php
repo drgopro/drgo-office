@@ -166,7 +166,7 @@ const COLOR_NAMES = (function(){
     Object.keys(cats).forEach(k => { o[k] = cats[k].label; });
     return o;
 })();
-let isAllDay=false, isLocked=false, linkedEstimateId=null;
+let isAllDay=false, isLocked=false, linkedEstimateIds=[], linkedEstimateMeta={}; // 다중 견적서 연동 (id 배열 + 표시용 메타)
 
 function initRadioGroup(gid, opts){
     const g=document.getElementById(gid); if(!g) return;

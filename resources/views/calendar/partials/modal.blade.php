@@ -491,17 +491,13 @@
                         📄 견적서 이미지를 클릭 또는 드래그하여 추가
                     </div>
                     <div class="img-grid" id="quoteGrid"></div>
+                    {{-- 연결된 견적서 — 추가 견적 등 여러 개 연동 가능, 견적서별 보기/해제 --}}
                     <div id="linkedEstimateInfo" style="display:none;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <span style="font-size:11px;color:var(--text-muted);">연결된 견적서</span>
-                                <div style="font-size:13px;font-weight:600;" id="linkedEstimateTitle"></div>
-                            </div>
-                            <div style="display:flex;gap:6px;">
-                                <button type="button" onclick="openLinkedEstimate()" class="estimate-btn" data-always-active style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);cursor:pointer;">보기</button>
-                                <button type="button" onclick="unlinkEstimate()" data-always-active style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
-                            </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <span style="font-size:11px;color:var(--text-muted);">연결된 견적서</span>
+                            <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:11px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
                         </div>
+                        <div id="linkedEstimateList" style="margin-top:4px;"></div>
                     </div>
                 </div>
                 <div class="img-upload-group">

@@ -261,50 +261,74 @@ function searchEstimates(query){
         document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);
     },300);
 }
+// 여러 견적서 연동 — 선택 시 목록에 추가 (중복 방지), 견적서별 보기/해제
 function selectEstimate(id,name,amount,no){
-    linkedEstimateId=id;
-    document.getElementById('linkedEstimateTitle').textContent=`#${no??id} ${name}`;
-    document.getElementById('linkedEstimateInfo').style.display='';
-    if(amount) document.getElementById('g_estimate_amount').value=amount.toLocaleString();
+    if(!linkedEstimateIds.some(x=>String(x)===String(id))) linkedEstimateIds.push(id);
+    linkedEstimateMeta[id]={display_no:no??id,name:name||'',total:Number(amount)||0};
+    renderLinkedEstimates();
     document.getElementById('estimateSearchOverlay').style.display='none';
+    // 금액 칸이 비어 있으면 연동 견적서 총액 합계로 채움
+    const inp=document.getElementById('g_estimate_amount');
+    const sum=linkedEstimatesTotal();
+    if(inp&&!inp.value.trim()&&sum) inp.value=sum.toLocaleString();
 }
-function unlinkEstimate(){linkedEstimateId=null;document.getElementById('linkedEstimateInfo').style.display='none';}
-function openLinkedEstimate(){
-    if(!linkedEstimateId) return;
-    window.open(`/estimates/${linkedEstimateId}/print`,'estimate_print','width=900,height=700,scrollbars=yes,resizable=yes');
+function unlinkEstimate(id){
+    linkedEstimateIds = id===undefined ? [] : linkedEstimateIds.filter(x=>String(x)!==String(id));
+    renderLinkedEstimates();
 }
-// 연동 견적서 조회 — 검색 API에서 id로 찾음 (estimate_id가 문자열로 저장된 구데이터 대비 느슨 비교)
-async function fetchLinkedEstimate(){
-    if(!linkedEstimateId) return null;
-    try{
-        const res=await fetch(`/api/estimates?search=${linkedEstimateId}`);
-        if(!res.ok) return null;
-        const data=await res.json();const list=data.data||data;
-        return (list||[]).find(e=>e.id==linkedEstimateId)||null;
-    }catch(e){ return null; }
+function openLinkedEstimate(id){
+    const t=id??linkedEstimateIds[0];
+    if(!t) return;
+    window.open(`/estimates/${t}/print`,'estimate_print_'+t,'width=900,height=700,scrollbars=yes,resizable=yes');
 }
-async function fetchLinkedEstimateTotal(){
-    const est=await fetchLinkedEstimate();
-    return est&&est.total_amount?Number(est.total_amount):null;
+function linkedEstimatesTotal(){
+    return linkedEstimateIds.reduce((s,id)=>s+((linkedEstimateMeta[id]||{}).total||0),0);
 }
-// 기존 일정 복원 시 연동 라벨을 실제 id 대신 목록과 같은 표시 번호(#display_no)로 갱신
-async function refreshLinkedEstimateLabel(){
-    const targetId=linkedEstimateId;
-    const est=await fetchLinkedEstimate();
-    if(!est||String(linkedEstimateId)!==String(targetId)) return;
-    const el=document.getElementById('linkedEstimateTitle');
-    if(el){
-        const name=est.client_nickname||est.client_name||'';
-        el.textContent=`#${est.display_no??est.id}${name?' '+name:''}`;
-        if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+function renderLinkedEstimates(){
+    const wrap=document.getElementById('linkedEstimateInfo');
+    const list=document.getElementById('linkedEstimateList');
+    if(!wrap||!list) return;
+    if(!linkedEstimateIds.length){wrap.style.display='none';list.innerHTML='';return;}
+    wrap.style.display='';
+    list.innerHTML=linkedEstimateIds.map(id=>{
+        const m=linkedEstimateMeta[id]||{};
+        const label=`#${m.display_no??id}${m.name?' '+_esc(m.name):''}`;
+        const amt=m.total?` · ${m.total.toLocaleString()}원`:'';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;">
+            <div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}<span style="font-weight:400;color:var(--text-muted);">${amt}</span></div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button type="button" onclick="openLinkedEstimate(${id})" data-always-active style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);cursor:pointer;">보기</button>
+                <button type="button" onclick="unlinkEstimate(${id})" data-always-active style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
+            </div></div>`;
+    }).join('');
+    if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+}
+// 연동 견적서 메타(표시 번호·이름·총액) 최신화 — 복원 직후·금액 추출 전 호출
+async function refreshLinkedEstimateLabels(){
+    for(const id of [...linkedEstimateIds]){
+        try{
+            const res=await fetch(`/api/estimates?search=${id}`);
+            if(!res.ok) continue;
+            const data=await res.json();const list=data.data||data;
+            const est=(list||[]).find(e=>e.id==id); // 문자열 id 구데이터 대비 느슨 비교
+            if(est) linkedEstimateMeta[id]={display_no:est.display_no??est.id,name:est.client_nickname||est.client_name||'',total:Number(est.total_amount)||0};
+        }catch(e){}
     }
+    renderLinkedEstimates();
+}
+// 연동 견적서 총액 합계 (메타 최신화 후) — 결제 금액 추출/자동 입력용
+async function fetchLinkedEstimateTotal(){
+    if(!linkedEstimateIds.length) return null;
+    await refreshLinkedEstimateLabels();
+    const sum=linkedEstimatesTotal();
+    return sum>0?sum:null;
 }
 function _setEstimateStatus(msg){
     const st=document.getElementById('g_estimate_status');
     if(st){ st.textContent=msg; if(msg) setTimeout(()=>{ st.textContent=''; },4000); }
 }
 async function extractEstimateAmount(){
-    if(!linkedEstimateId){alert('먼저 견적서를 불러와주세요.');return;}
+    if(!linkedEstimateIds.length){alert('먼저 견적서를 불러와주세요.');return;}
     const total=await fetchLinkedEstimateTotal();
     if(total){ document.getElementById('g_estimate_amount').value=total.toLocaleString(); _setEstimateStatus('견적서 금액 불러옴'); }
     else { _setEstimateStatus('금액 조회 실패 — 견적서 확인 필요'); }
@@ -312,7 +336,7 @@ async function extractEstimateAmount(){
 // 결제완료 선택 시 — 금액이 비어 있으면 연동 견적서 총액을 자동 입력 (0원 기록 방지)
 async function autofillEstimateAmountIfEmpty(){
     const inp=document.getElementById('g_estimate_amount');
-    if(!linkedEstimateId||!inp||inp.value.trim()) return;
+    if(!linkedEstimateIds.length||!inp||inp.value.trim()) return;
     const total=await fetchLinkedEstimateTotal();
     if(total&&!inp.value.trim()){ inp.value=total.toLocaleString(); _setEstimateStatus('연동 견적서 금액 자동 입력됨'); }
 }

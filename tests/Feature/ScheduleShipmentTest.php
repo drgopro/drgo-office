@@ -380,6 +380,29 @@ HTML;
         $this->assertSame('111111111111', $bySource['estimate']['tracking_no']);
     }
 
+    public function test_schedule_merges_shipments_from_multiple_linked_estimates(): void
+    {
+        config(['services.delivery_tracker.url' => null]);
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        $first = $this->makeLinkedEstimate($schedule);
+        $second = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'service_total' => 0, 'total_amount' => 0,
+            'validity_days' => 3, 'created_by' => $schedule->created_by,
+        ]);
+        $schedule->forceFill(['request_data' => ['estimate_id' => $first->id, 'estimate_ids' => [$first->id, $second->id]]])->save();
+
+        $first->shipments()->create(['carrier' => 'kr.cjlogistics', 'tracking_no' => '111111111111', 'status' => 'in_transit']);
+        $second->shipments()->create(['carrier' => 'kr.lotte', 'tracking_no' => '222222222222', 'status' => 'pending']);
+
+        $data = $this->actingAs($user)->getJson("/api/schedules/{$schedule->id}/shipments")->assertOk()->json();
+
+        $this->assertCount(2, $data['shipments']);
+        $this->assertEqualsCanonicalizing([$first->id, $second->id], $data['estimate_ids']);
+        $this->assertEqualsCanonicalizing(['111111111111', '222222222222'], collect($data['shipments'])->pluck('tracking_no')->all());
+    }
+
     public function test_schedule_refresh_also_refreshes_estimate_shipments(): void
     {
         config(['services.delivery_tracker.url' => 'http://tracker.test']);

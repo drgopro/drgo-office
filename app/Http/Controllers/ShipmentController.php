@@ -6,6 +6,8 @@ use App\Models\Estimate;
 use App\Models\Schedule;
 use App\Models\ScheduleShipment;
 use App\Services\DeliveryTrackerClient;
+use App\Services\EstimatePaymentSync;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,7 +110,7 @@ class ShipmentController extends Controller
     public function refresh(Schedule $schedule): JsonResponse
     {
         $this->refreshPending($schedule->shipments());
-        if ($estimate = $this->linkedEstimate($schedule)) {
+        foreach ($this->linkedEstimates($schedule) as $estimate) {
             $this->refreshPending($estimate->shipments());
         }
 
@@ -150,29 +152,41 @@ class ShipmentController extends Controller
     private function serialize(Schedule $schedule): array
     {
         $data = $this->serializeRows($schedule->shipments());
-        $estimate = $this->linkedEstimate($schedule);
-        if (! $estimate) {
+        $estimates = $this->linkedEstimates($schedule);
+        if ($estimates->isEmpty()) {
             return $data;
         }
 
-        $estRows = collect($this->serializeRows($estimate->shipments())['shipments'])
-            ->map(fn ($s) => $s + ['source' => 'estimate']);
-        $estKeys = $estRows->map(fn ($s) => $s['carrier'].'|'.$s['tracking_no'])->flip();
+        // 연동된 모든 견적서의 송장 병합 — 같은 택배사·송장번호 중복은 한 번만
+        $estRows = collect();
+        $seen = [];
+        foreach ($estimates as $estimate) {
+            foreach ($this->serializeRows($estimate->shipments())['shipments'] as $s) {
+                $key = $s['carrier'].'|'.$s['tracking_no'];
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $estRows->push($s + ['source' => 'estimate', 'estimate_id' => $estimate->id]);
+            }
+        }
         $ownRows = collect($data['shipments'])
-            ->filter(fn ($s) => ! $estKeys->has($s['carrier'].'|'.$s['tracking_no']))
+            ->filter(fn ($s) => ! isset($seen[$s['carrier'].'|'.$s['tracking_no']]))
             ->map(fn ($s) => $s + ['source' => 'schedule']);
 
         $data['shipments'] = $ownRows->concat($estRows)->values()->all();
-        $data['estimate_id'] = $estimate->id;
+        $data['estimate_id'] = $estimates->first()->id;
+        $data['estimate_ids'] = $estimates->pluck('id')->all();
 
         return $data;
     }
 
-    private function linkedEstimate(Schedule $schedule): ?Estimate
+    /** @return Collection<int, Estimate> */
+    private function linkedEstimates(Schedule $schedule)
     {
-        $id = (int) data_get($schedule->request_data, 'estimate_id');
+        $ids = EstimatePaymentSync::scheduleEstimateIds($schedule->request_data ?? []);
 
-        return $id ? Estimate::find($id) : null;
+        return Estimate::whereIn('id', $ids)->get();
     }
 
     /**
