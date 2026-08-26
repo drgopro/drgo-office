@@ -72,7 +72,9 @@
                         <textarea class="field-input field-textarea" id="moveFromLocation" placeholder="주소 검색 버튼으로 입력하세요" autocomplete="off" rows="2" readonly onclick="searchMoveFrom()" style="min-height:40px;resize:none;cursor:pointer;background:var(--surface2);"></textarea>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                             <button type="button" class="addr-search-btn" onclick="searchMoveFrom()" title="주소 검색">🔍 주소 검색</button>
-                            <button type="button" class="addr-search-btn" onclick="clearMoveFrom()" title="주소 지우기">✕ 지우기</button>
+                            <button type="button" class="addr-search-btn" onclick="clearMoveFrom()" title="주소 지우기 (상세주소 포함)">✕ 지우기</button>
+                            <button type="button" class="addr-search-btn" id="btnClientAddrFrom" style="display:none;" onclick="applyLinkedClientAddress('from')" title="연동된 의뢰자에 저장된 주소를 출발지로 채우기">👤 의뢰자 주소</button>
+                            <button type="button" class="addr-search-btn" id="btnProjectAddrFrom" style="display:none;" onclick="applyLinkedProjectAddress('from')" title="선택한 프로젝트의 세팅 장소를 출발지로 채우기">📁 프로젝트 주소</button>
                         </div>
                         <input class="field-input" id="moveFromDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">
                     </div>

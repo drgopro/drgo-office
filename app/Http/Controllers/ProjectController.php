@@ -231,7 +231,14 @@ class ProjectController extends Controller
             $data['cancelled_at'] = now();
         }
 
+        $becameDone = $request->stage === 'done' && $project->stage !== 'done';
         $project->update($data);
+
+        // 세팅 완료 — 프로젝트의 세팅 장소가 의뢰자 정보 주소와 다르면 의뢰자 주소를 최신화.
+        // 변경 전/후 값은 의뢰자 활동 로그에 자동 기록되어 어떤 값에서 바뀌었는지 추적 가능
+        if ($becameDone) {
+            $this->syncClientAddressFromProject($project);
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['message' => '변경되었습니다.']);
@@ -240,6 +247,29 @@ class ProjectController extends Controller
         // back() 금지 — 알림 폴링 등 비-AJAX GET이 세션의 이전 URL을 오염시키면
         // JSON 응답 페이지로 이동해버린다. 항상 프로젝트 상세로 명시 리다이렉트.
         return redirect()->route('projects.show', $project)->with('success', '단계가 변경되었습니다.');
+    }
+
+    /**
+     * 프로젝트 완료 시 의뢰자 주소 최신화 — 세팅이 끝난 장소가 의뢰자의 현재 주소이므로,
+     * 프로젝트의 세팅 장소가 의뢰자 정보와 다르면 덮어쓴다. Client는 LogsActivity로
+     * 변경 전/후 값이 활동 로그에 남아 이전 주소를 추적할 수 있다.
+     */
+    private function syncClientAddressFromProject(Project $project): void
+    {
+        $client = $project->client;
+        if (! $client || trim((string) $project->address) === '') {
+            return;
+        }
+        $changes = [];
+        if ((string) $client->address !== (string) $project->address) {
+            $changes['address'] = $project->address;
+        }
+        if ((string) ($client->address_detail ?? '') !== (string) ($project->address_detail ?? '')) {
+            $changes['address_detail'] = $project->address_detail;
+        }
+        if ($changes !== []) {
+            $client->update($changes);
+        }
     }
 
     // 프로젝트 부분 수정 (이름, 프로젝트 개요 등)

@@ -243,6 +243,7 @@ function clearCalAddr(){
     if (typeof isLocked !== 'undefined' && isLocked) return;
     document.getElementById('modalAddress').value='';
     document.getElementById('modalLocation').value='';
+    const det=document.getElementById('modalLocationDetail'); if(det) det.value=''; // 상세주소도 함께 초기화
 }
 // 이사세팅 출발지 주소 검색/지우기
 function searchMoveFrom(){
@@ -257,6 +258,7 @@ function clearMoveFrom(){
     if (typeof isLocked !== 'undefined' && isLocked) return;
     document.getElementById('moveFromAddress').value='';
     document.getElementById('moveFromLocation').value='';
+    const det=document.getElementById('moveFromDetail'); if(det) det.value=''; // 상세주소도 함께 초기화
 }
 // '출발지 없음' 토글 — 출발지 입력 숨김/비움, 도착지 라벨은 유지
 function onMoveNoFromToggle(){

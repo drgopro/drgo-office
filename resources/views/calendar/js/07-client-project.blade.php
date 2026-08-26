@@ -184,8 +184,8 @@ function applyClientProjects(clientId,data){
 // 연동 의뢰자의 최신 상세 (의뢰자 주소 불러오기 버튼용)
 let linkedClientDetail=null;
 function updateClientAddrBtn(){
-    const b=document.getElementById('btnClientAddr');
-    if(b) b.style.display=(linkedClientDetail&&linkedClientDetail.address)?'':'none';
+    const show=(linkedClientDetail&&linkedClientDetail.address)?'':'none';
+    ['btnClientAddr','btnClientAddrFrom'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
 }
 function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); }
 
@@ -197,41 +197,47 @@ function selectedProjectData(){
     return (linkedClientDetail.projects||[]).find(p=>String(p.id)===String(pid))||null;
 }
 function updateProjAddrBtn(){
-    const b=document.getElementById('btnProjectAddr');
-    if(b){ const p=selectedProjectData(); b.style.display=(p&&p.address)?'':'none'; }
+    const p=selectedProjectData();
+    const show=(p&&p.address)?'':'none';
+    ['btnProjectAddr','btnProjectAddrFrom'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
 }
-// 장소를 선택한 프로젝트의 세팅 장소로 채움 (버튼 클릭 = 덮어쓰기 의사 표시)
-function applyLinkedProjectAddress(){
+// 선택한 프로젝트의 세팅 장소로 채움 (버튼 클릭 = 덮어쓰기 의사 표시). target='from'이면 출발지에
+function applyLinkedProjectAddress(target){
     const p=selectedProjectData();
     if(!p||!p.address){ alert('선택한 프로젝트에 저장된 세팅 장소가 없습니다.\n프로젝트 상세의 세팅 장소에서 등록할 수 있습니다.'); return; }
-    document.getElementById('modalLocation').value=p.address;
-    document.getElementById('modalAddress').value=p.address;
-    const det=document.getElementById('modalLocationDetail');
-    if(det) det.value=p.address_detail||'';
+    _applyClientAddr(p.address,p.address_detail,target);
 }
 // 프로젝트 선택 시 — 주소 자동 채움 없이 📁 버튼 토글만 (채움은 버튼 클릭 = 명시적 의사 표시)
 function autoFillProjectAddress(){
     updateProjAddrBtn();
 }
-// 장소를 연동 의뢰자에 저장된 주소로 채움 (기존 입력 덮어씀 — 버튼을 눌렀다는 것이 의사 표시)
-function applyLinkedClientAddress(){
+// 연동 의뢰자에 저장된 주소로 채움 (기존 입력 덮어씀 — 버튼을 눌렀다는 것이 의사 표시).
+// target='from'이면 이사세팅 출발지에, 아니면 장소(도착지)에 채운다
+function applyLinkedClientAddress(target){
     const d=linkedClientDetail;
     if(!d||!d.address){ alert('연동된 의뢰자에 저장된 주소가 없습니다.'); return; }
     const extras=(d.extra_addresses||[]).filter(a=>a&&a.address);
-    if(!extras.length){ _applyClientAddr(d.address,d.address_detail); return; }
+    if(!extras.length){ _applyClientAddr(d.address,d.address_detail,target); return; }
     // 주소가 여러 개 — 어떤 주소를 넣을지 선택
     openClientAddrPicker([
         {label:'주소 1 (메인)', address:d.address, address_detail:d.address_detail},
         ...extras.map((a,i)=>({label:`주소 ${i+2}`, address:a.address, address_detail:a.address_detail})),
-    ]);
+    ],target);
 }
-function _applyClientAddr(addr,det){
+function _applyClientAddr(addr,det,target){
+    if(target==='from'){
+        document.getElementById('moveFromLocation').value=addr;
+        document.getElementById('moveFromAddress').value=addr;
+        const el=document.getElementById('moveFromDetail');
+        if(el) el.value=det||'';
+        return;
+    }
     document.getElementById('modalLocation').value=addr;
     document.getElementById('modalAddress').value=addr;
     const el=document.getElementById('modalLocationDetail');
     if(el) el.value=det||'';
 }
-function openClientAddrPicker(list){
+function openClientAddrPicker(list,target){
     closeClientAddrPicker();
     const ov=document.createElement('div');
     ov.id='clientAddrPicker';
@@ -245,7 +251,7 @@ function openClientAddrPicker(list){
         </button>`).join('')}
         <div style="text-align:right;margin-top:4px;"><button type="button" onclick="closeClientAddrPicker()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;">취소</button></div>
     </div>`;
-    ov.querySelectorAll('button[data-i]').forEach(b=>{ b.onclick=()=>{ const a=list[parseInt(b.dataset.i,10)]; _applyClientAddr(a.address,a.address_detail); closeClientAddrPicker(); }; });
+    ov.querySelectorAll('button[data-i]').forEach(b=>{ b.onclick=()=>{ const a=list[parseInt(b.dataset.i,10)]; _applyClientAddr(a.address,a.address_detail,target); closeClientAddrPicker(); }; });
     document.body.appendChild(ov);
 }
 function closeClientAddrPicker(){ const el=document.getElementById('clientAddrPicker'); if(el) el.remove(); }
