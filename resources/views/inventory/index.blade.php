@@ -1834,29 +1834,38 @@ function renderOrders() {
                        <button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button></div></td>`
                     : `<td class="text-right">${it.amount != null ? fmt(it.amount)+'원' : '<span class="text-muted">-</span>'}</td>
                        <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
-                // 세트 항목 — 구성품(총 수량 반영)을 제품명 아래 한 줄씩 세로 나열 (구성 단위 구매 확인용)
-                // 견적서 항목이면 구성품 단위 환불/결제취소 수동 체크 (부분환불 — 수량/금액 지정)
-                const bundleLine = (it.bundle_items||[]).length
-                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map((b,bi)=>{
-                        const bRef = b.refund_qty>0||b.refund_amount>0;
-                        const ordBadge = b.ordered
-                            ? (b.source === '사무실 발송'
-                                ? ' <span class="badge badge-direct" style="font-size:10px;" title="사무실에서 직접 발송">직접발송</span>'
-                                : ' <span class="badge badge-ok" style="font-size:10px;" title="구성품 주문완료">주문완료</span>')
-                            : '';
-                        const badge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
-                        const ctrl = o.type==='estimate'
-                            ? `<input class="ob-src field-input" value="${_esc(b.source)}" placeholder="구매처" maxlength="100" style="width:110px; padding:3px 6px; font-size:11px; margin-left:8px;" title="구성품 구매처 — 직접발송이면 '사무실 발송'" onclick="event.stopPropagation()"
-                               ><input class="ob-memo field-input" value="${_esc(b.memo)}" placeholder="메모" maxlength="500" style="width:170px; padding:3px 6px; font-size:11px; margin-left:3px;" title="구성품별 주문 메모" onclick="event.stopPropagation()"
-                               > <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; margin-left:4px; white-space:nowrap;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
-                                   <input type="checkbox" class="ob-ref" ${bRef?'checked':''} onchange="this.closest('[data-brow]').querySelector('.ob-wrap').style.display=this.checked?'':'none'">환불</label
-                               ><span class="ob-wrap" style="${bRef?'':'display:none;'}"
-                               ><input class="ob-qty field-input" type="number" min="1" max="${b.qty}" value="${b.refund_qty||b.qty}" style="width:52px; padding:3px 6px; font-size:11px; text-align:right; margin-left:4px;" title="환불 수량 (총 ${b.qty}개)" onclick="event.stopPropagation()"
-                               ><input class="ob-amt field-input" type="number" min="0" value="${bRef&&b.refund_amount?b.refund_amount:''}" placeholder="${b.price?fmt(b.price*(b.refund_qty||b.qty)):'환불액'}" style="width:92px; padding:3px 6px; font-size:11px; text-align:right; margin-left:3px;" title="환불 금액 (비우면 단가×수량으로 자동 계산)" onclick="event.stopPropagation()"
-                               ></span><button class="btn-outline btn-sm" style="padding:2px 8px; font-size:11px; margin-left:4px;" onclick="event.stopPropagation(); saveBundleRefund(${o.id}, ${it.index}, ${bi}, this)">저장</button>`
-                            : '';
-                        return `<div style="padding:2px 0 0 10px;" data-brow>└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}${ordBadge}${badge}${ctrl}</div>`;
-                    }).join('')}</div>` : '';
+                // 세트 구성 — 전용 행(전체 폭)에 고정 열 그리드로 나열해 구성품끼리 열이 맞게 정렬
+                // 견적서 항목이면 구성품 단위 구매처/메모 + 환불 수동 체크 (부분환불 — 수량/금액 지정)
+                const bGridCols = 'minmax(220px,1.4fr) 130px minmax(150px,1fr) 58px 60px 100px 56px';
+                const bundleRow = (it.bundle_items||[]).length
+                    ? `<tr style="background:var(--surface2);"><td></td><td colspan="5" style="padding:4px 12px 8px 40px; white-space:normal;">
+                        <div class="text-muted" style="font-size:11px; font-weight:700; padding-bottom:3px;">세트 구성</div>
+                        ${it.bundle_items.map((b,bi)=>{
+                            const bRef = b.refund_qty>0||b.refund_amount>0;
+                            const ordBadge = b.ordered
+                                ? (b.source === '사무실 발송'
+                                    ? ' <span class="badge badge-direct" style="font-size:10px;" title="사무실에서 직접 발송">직접발송</span>'
+                                    : ' <span class="badge badge-ok" style="font-size:10px;" title="구성품 주문완료">주문완료</span>')
+                                : '';
+                            const refBadge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700; white-space:nowrap;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
+                            const nameCell = `<div style="min-width:0; white-space:normal; word-break:break-word;">└ ${_esc(b.name)} <span class="text-muted" style="white-space:nowrap;">×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}</span>${ordBadge}${refBadge}</div>`;
+                            if (o.type !== 'estimate') {
+                                return `<div data-brow style="padding:2px 0;">${nameCell}</div>`;
+                            }
+                            // 열 구성: 이름 | 구매처 | 메모 | 환불체크 | 수량 | 환불액 | 저장 (수량·환불액은 체크 시에만 활성)
+                            const inp = 'padding:4px 7px; font-size:11.5px; width:100%; box-sizing:border-box;';
+                            return `<div data-brow style="display:grid; grid-template-columns:${bGridCols}; gap:4px 8px; align-items:center; padding:2px 0;">
+                                ${nameCell}
+                                <input class="ob-src field-input" value="${_esc(b.source)}" placeholder="구매처" maxlength="100" style="${inp}" title="구성품 구매처 — 직접발송이면 '사무실 발송'" onclick="event.stopPropagation()">
+                                <input class="ob-memo field-input" value="${_esc(b.memo)}" placeholder="메모" maxlength="500" style="${inp}" title="구성품별 주문 메모" onclick="event.stopPropagation()">
+                                <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; white-space:nowrap; font-size:11.5px;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
+                                    <input type="checkbox" class="ob-ref" ${bRef?'checked':''} onchange="const r=this.closest('[data-brow]'); r.querySelectorAll('.ob-qty,.ob-amt').forEach(x=>{x.disabled=!this.checked; x.style.opacity=this.checked?'':'0.35';})">환불</label>
+                                <input class="ob-qty field-input" type="number" min="1" max="${b.qty}" value="${b.refund_qty||b.qty}" ${bRef?'':'disabled'} style="${inp} text-align:right; ${bRef?'':'opacity:0.35;'}" title="환불 수량 (총 ${b.qty}개)" onclick="event.stopPropagation()">
+                                <input class="ob-amt field-input" type="number" min="0" value="${bRef&&b.refund_amount?b.refund_amount:''}" ${bRef?'':'disabled'} placeholder="${b.price?fmt(b.price*(b.refund_qty||b.qty)):'환불액'}" style="${inp} text-align:right; ${bRef?'':'opacity:0.35;'}" title="환불 금액 (비우면 단가×수량으로 자동 계산)" onclick="event.stopPropagation()">
+                                <button class="btn-outline btn-sm" style="padding:3px 8px; font-size:11px;" onclick="event.stopPropagation(); saveBundleRefund(${o.id}, ${it.index}, ${bi}, this)">저장</button>
+                            </div>`;
+                        }).join('')}
+                    </td></tr>` : '';
                 const refundBadge = it.refunded
                     ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
                 // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게
@@ -1864,10 +1873,10 @@ function renderOrders() {
                     ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:pre-line;">${_esc(it.product_memo)}</div>` : '';
                 return `<tr style="background:var(--surface2);">
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${prodMemo}${bundleLine}</td>
+                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${prodMemo}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
-                </tr>`;
+                </tr>${bundleRow}`;
             }).join('');
             if (o.type === 'estimate') {
                 // 운송장 — 기본 접힘: 개수만 표시, 클릭하면 송장별 한 줄씩 펼침 (긴 문구는 줄바꿈)

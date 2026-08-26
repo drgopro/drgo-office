@@ -738,7 +738,9 @@ function renderCart() {
                 <td>${timeCell}</td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>${qtyCell}</td>
-                <td class="text-right" style="font-weight:600;">${fmt(item.subtotal)}원</td>
+                <td class="text-right" style="font-weight:600;">${(Number(item.refund_amount)||0) > 0
+                    ? `<span style="text-decoration:line-through; color:var(--text-muted); font-weight:400;">${fmt(item.subtotal)}원</span><div style="color:var(--red); font-weight:700;" title="환불 ${fmt(item.refund_amount)}원 반영 후 금액">${fmt(Math.max(0, item.subtotal - item.refund_amount))}원</div>`
+                    : `${fmt(item.subtotal)}원`}</td>
                 <td>${lastCell}</td>
             </tr>`;
             // 세트 구성품 펼침 — 내부 확인용 (출력물·의뢰자 견적서에는 표시되지 않음)
@@ -760,7 +762,11 @@ function renderCart() {
                         <td></td>
                         <td class="text-right">${price ? fmt(price) + '원' : ''}</td>
                         <td><span class="bs-qty" style="padding-left:6px;" title="세트당 ${b.qty}개 × 세트 ${item.qty}개">${totQty}</span></td>
-                        <td class="text-right">${price ? fmt(price * totQty) + '원' : ''}</td>
+                        <td class="text-right">${price
+                            ? ((Number(b.refund_amount)||0) > 0
+                                ? `<span style="text-decoration:line-through; color:var(--text-muted);">${fmt(price * totQty)}원</span><div style="color:var(--red); font-weight:700;" title="환불 ${fmt(b.refund_amount)}원 반영 후 금액">${fmt(Math.max(0, price * totQty - b.refund_amount))}원</div>`
+                                : fmt(price * totQty) + '원')
+                            : ''}</td>
                         <td>${bBtns}</td>
                     </tr>`;
                 }).join('');
