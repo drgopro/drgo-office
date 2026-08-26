@@ -125,41 +125,25 @@ function updateModalShipBadge(){
 }
 function renderShipments(){
     const list=document.getElementById('shipmentList');
-    const sel=document.getElementById('shipCarrier');
     const badge=document.getElementById('shipSummaryBadge');
     if(!list) return;
-    if(sel) sel.innerHTML=Object.entries(shipCache.carriers||{}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
     const ships=shipCache.shipments||[];
     const done=ships.filter(s=>s.status==='delivered').length;
     if(badge) badge.textContent=ships.length?`(${done}/${ships.length} 완료)`:'';
-    // 견적서 연동 일정 — 송장 입력은 견적서 주문/배송으로 일원화 (캘린더는 표시 전용)
+    // 송장 입력은 견적서 주문/배송으로 일원화 — 캘린더는 표시 전용
     const linkedEst=shipCache.estimate_id||null;
-    const addRow=document.getElementById('shipAddRow');
-    const estNote=document.getElementById('shipEstimateNote');
-    if(addRow) addRow.style.display=linkedEst?'none':'';
-    if(estNote){
-        estNote.style.display=linkedEst?'flex':'none';
-        const btn=document.getElementById('shipEstimateOpenBtn');
-        if(btn) btn.onclick=()=>window.open(`/estimates/${linkedEst}/shipments`,'est_ship_'+linkedEst,'width=900,height=720,scrollbars=yes,resizable=yes');
+    const noteText=document.getElementById('shipEstimateNoteText');
+    const btn=document.getElementById('shipEstimateOpenBtn');
+    if(noteText) noteText.textContent=linkedEst?'송장은 연동된 견적서의 주문/배송에서 입력합니다.':'송장은 견적서의 주문/배송에서 입력합니다. 일정에 견적서를 연동하면 자동으로 표시됩니다.';
+    if(btn){
+        btn.style.display=linkedEst?'':'none';
+        if(linkedEst) btn.onclick=()=>window.open(`/estimates/${linkedEst}/shipments`,'est_ship_'+linkedEst,'width=900,height=720,scrollbars=yes,resizable=yes');
     }
     list.innerHTML=ships.length?ships.map(shipRowHtml).join('')
-        :`<div class="ship-empty">${linkedEst?'등록된 송장이 없습니다. 연동된 견적서의 주문/배송에서 입력하세요.':'등록된 송장이 없습니다. 택배사와 송장번호를 입력해 추가하세요.'}</div>`;
+        :`<div class="ship-empty">${linkedEst?'등록된 송장이 없습니다. 연동된 견적서의 주문/배송에서 입력하세요.':'등록된 송장이 없습니다. 견적서에서 입력한 송장이 여기에 표시됩니다.'}</div>`;
     updateModalShipBadge();
 }
-async function addShipment(){
-    if(!editingId) return;
-    const carrier=document.getElementById('shipCarrier').value;
-    const no=document.getElementById('shipTrackingNo').value.trim();
-    if(!no){alert('송장번호를 입력하세요.');return;}
-    const res=await fetch(`/api/schedules/${editingId}/shipments`,{
-        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        body:JSON.stringify({carrier,tracking_no:no}),
-    });
-    const data=await res.json().catch(()=>null);
-    if(!res.ok){alert((data&&data.message)||(data&&data.errors&&Object.values(data.errors).flat().join('\n'))||'등록 실패');return;}
-    document.getElementById('shipTrackingNo').value='';
-    shipCache=data; swrSet('ship:'+editingId,data); renderShipments(); loadEvents(); // 칩 아이콘 갱신
-}
+// 송장 등록은 견적서 주문/배송으로 일원화 — 캘린더 직접 등록 UI 제거됨 (과거 등록분 삭제만 가능)
 async function deleteShipment(id){
     if(!confirm('이 송장을 삭제하시겠습니까?')) return;
     const res=await fetch(`/api/schedule-shipments/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}});

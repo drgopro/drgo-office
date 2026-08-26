@@ -207,15 +207,10 @@
                     </div>
                     <div id="shipmentBody" style="display:none;">
                         <div id="shipmentList"></div>
-                        <div class="ship-add-row" id="shipAddRow">
-                            <select class="ship-input" id="shipCarrier" style="flex:0 0 130px;"></select>
-                            <input class="ship-input" id="shipTrackingNo" placeholder="송장번호" inputmode="numeric" style="flex:1;min-width:0;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addShipment();}">
-                            <button type="button" class="ship-mini-btn primary" onclick="addShipment()">+ 등록</button>
-                        </div>
-                        {{-- 견적서 연동 일정 — 송장 입력은 견적서 주문/배송으로 일원화, 캘린더는 표시만 --}}
-                        <div id="shipEstimateNote" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 2px;font-size:12px;color:var(--text-muted);">
-                            <span>송장은 연동된 견적서의 주문/배송에서 입력합니다.</span>
-                            <button type="button" class="ship-mini-btn" id="shipEstimateOpenBtn">견적서 배송 정보 열기</button>
+                        {{-- 송장 입력은 견적서 주문/배송으로 일원화 — 캘린더는 표시 전용 --}}
+                        <div id="shipEstimateNote" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 2px;font-size:12px;color:var(--text-muted);">
+                            <span id="shipEstimateNoteText">송장은 견적서의 주문/배송에서 입력합니다.</span>
+                            <button type="button" class="ship-mini-btn" id="shipEstimateOpenBtn" style="display:none;">견적서 배송 정보 열기</button>
                         </div>
                     </div>
                 </div>
