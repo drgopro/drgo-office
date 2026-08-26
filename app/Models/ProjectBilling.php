@@ -15,6 +15,7 @@ class ProjectBilling extends Model
 
     protected $fillable = [
         'project_id',
+        'estimate_id',
         'amount',
         'billed_at',
         'status',

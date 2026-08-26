@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Estimate;
+use App\Models\ProjectBilling;
 use App\Models\ProjectPayment;
 use App\Models\Schedule;
 use Illuminate\Database\Eloquent\Collection;
@@ -43,7 +44,63 @@ class EstimatePaymentSync
             ]);
         }
 
+        // 미수 청구가 연동돼 있으면 실제 결제된 금액으로 확정하고 charge와 연결 → 청구 상태 '결제됨'
+        $billing = ProjectBilling::where('estimate_id', $estimate->id)->first();
+        $charge = ProjectPayment::where('estimate_id', $estimate->id)->where('type', 'charge')->first();
+        if ($billing && $charge) {
+            if ($billing->payments()->count() === 0 && (int) $billing->amount !== (int) $charge->amount) {
+                $billing->update(['amount' => (int) $charge->amount]); // 청구액을 결제된 금액으로
+            }
+            if (! $charge->billing_id) {
+                $charge->update(['billing_id' => $billing->id]);
+            }
+            $billing->refreshStatus();
+        }
+
         self::syncSchedules($estimate, '결제완료');
+    }
+
+    /**
+     * 견적서 ↔ 프로젝트 청구 동기화 — 프로젝트에 연동된 미결제 견적서를 '미수 청구'로 자동 등록.
+     * - 미결제 상태(작성중/발행완료 등): 청구 생성, 입금 전이면 금액·프로젝트를 견적서 최신값으로 유지
+     * - 결제완료: 건드리지 않음 (estimatePaid가 charge 연결로 '결제됨' 처리)
+     * - 결제취소·연동 해제·임시: 입금 이력이 없는 청구만 제거
+     */
+    public static function syncProjectBilling(Estimate $estimate): void
+    {
+        $billing = ProjectBilling::where('estimate_id', $estimate->id)->first();
+        if ($estimate->status === 'paid') {
+            return;
+        }
+
+        $active = $estimate->project_id
+            && (int) $estimate->total_amount > 0
+            && ! in_array($estimate->status, ['paid', 'cancelled', 'temp'], true);
+
+        if ($active) {
+            if ($billing) {
+                // 입금 전(미입금)일 때만 금액/프로젝트 최신화 — 입금이 시작된 청구는 건드리지 않음
+                if ($billing->paidTotal() === 0 && $billing->status === 'unpaid'
+                    && ((int) $billing->amount !== (int) $estimate->total_amount || (int) $billing->project_id !== (int) $estimate->project_id)) {
+                    $billing->update([
+                        'project_id' => $estimate->project_id,
+                        'amount' => (int) $estimate->total_amount,
+                    ]);
+                }
+            } else {
+                ProjectBilling::create([
+                    'project_id' => $estimate->project_id,
+                    'estimate_id' => $estimate->id,
+                    'amount' => (int) $estimate->total_amount,
+                    'billed_at' => now()->format('Y-m-d'),
+                    'status' => 'unpaid',
+                    'memo' => "견적서 #{$estimate->display_no} 연동 청구",
+                    'created_by' => Auth::id(),
+                ]);
+            }
+        } elseif ($billing && $billing->payments()->count() === 0 && $billing->status !== 'paid') {
+            $billing->delete();
+        }
     }
 
     /**
