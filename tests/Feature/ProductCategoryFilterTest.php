@@ -71,4 +71,22 @@ class ProductCategoryFilterTest extends TestCase
         $res3 = $this->actingAs($user)->getJson("/api/inventory/products?category_id={$ultra->id}");
         $this->assertEqualsCanonicalizing(['ULT-001'], collect($res3->json())->pluck('sku')->all());
     }
+
+    public function test_category_rename_propagates_to_product_list(): void
+    {
+        $cpu = ProductCategory::create(['name' => 'CPU', 'code' => 'CPU', 'depth' => 1, 'sort_order' => 1]);
+        $gpu = ProductCategory::create(['name' => 'GPU', 'code' => 'GPU', 'depth' => 1, 'sort_order' => 2]);
+        $p1 = $this->makeProduct($cpu, 'CPU-001', '프로세서');
+        $p2 = $this->makeProduct($gpu, 'GPU-001', '그래픽카드');
+
+        $user = User::factory()->create(['role' => 'master']);
+
+        // 카테고리명 변경 — 소속 제품의 표시용 카테고리명도 즉시 갱신 (제품 재저장 불필요)
+        $this->actingAs($user)->patchJson("/api/inventory/categories/{$cpu->id}", [
+            'name' => '프로세서(CPU)', 'code' => 'CPU',
+        ])->assertOk();
+
+        $this->assertSame('프로세서(CPU)', $p1->fresh()->category);
+        $this->assertSame('GPU', $p2->fresh()->category); // 다른 카테고리는 그대로
+    }
 }

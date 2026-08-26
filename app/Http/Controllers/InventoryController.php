@@ -104,7 +104,14 @@ class InventoryController extends Controller
             return response()->json(['message' => '같은 부모 내에 동일한 코드가 이미 있습니다.'], 422);
         }
 
+        $nameChanged = $category->name !== $validated['name'];
         $category->update($validated);
+
+        // 제품에는 카테고리명이 문자열로도 저장돼 있어(목록 표시용) 이름 변경 시 함께 갱신 —
+        // 제품을 하나씩 다시 저장하지 않아도 목록에 새 이름이 바로 반영된다
+        if ($nameChanged) {
+            Product::where('category_id', $category->id)->update(['category' => $category->name]);
+        }
 
         return response()->json($category);
     }
