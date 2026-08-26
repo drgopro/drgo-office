@@ -30,18 +30,22 @@ class OfficeOrderController extends Controller
     /** 주문 내역 통합 리스트 — 견적서 파생 + 직접 주문, 최신순 */
     public function index(): JsonResponse
     {
+        // 항목 또는 세트 구성품 단위 주문완료 여부 (구성품만 주문돼도 주문 내역에 노출)
+        $isOrdered = fn ($i) => ! empty($i['ordered'])
+            || collect($i['bundle_items'] ?? [])->contains(fn ($b) => ! empty($b['ordered']));
+
         // 주문완료 항목이 있는 견적서 — 스냅샷 JSON이라 PHP에서 필터 (전체 로드 방지: 최근 200건)
         $orderedEstimates = Estimate::with(['shipments' => fn ($q) => $q->orderBy('id')])
             ->where('status', '!=', 'temp')
             ->orderByDesc('updated_at')
             ->limit(200)
             ->get()
-            ->filter(fn (Estimate $e) => collect($e->product_items ?? [])->contains(fn ($i) => ! empty($i['ordered'])));
+            ->filter(fn (Estimate $e) => collect($e->product_items ?? [])->contains($isOrdered));
 
         // 제품 메모(직원용, 판매처 등) — 주문완료 항목의 제품에서 한 번에 조회
         $productMemos = Product::whereIn('id', $orderedEstimates
             ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])
-                ->filter(fn ($i) => ! empty($i['ordered']))->pluck('product_id'))
+                ->filter($isOrdered)->pluck('product_id'))
             ->filter()->unique()->values())
             ->pluck('memo', 'id');
 
@@ -70,16 +74,19 @@ class OfficeOrderController extends Controller
                         'refunded' => ! empty($i['refunded']),
                         'refund_amount' => (int) ($i['refund_amount'] ?? 0),
                         'sale_subtotal' => (int) ($i['subtotal'] ?? 0), // 환불액 기본값(판매가 합계) 참고용
-                        // 세트 구성품 — 세트 주문완료 시 구성 단위 구매 확인용
+                        // 세트 구성품 — 구성 단위 주문완료/구매처/메모 관리 (직접발송='사무실 발송')
                         'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b) => [
                             'name' => $b['name'] ?? '',
                             'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
                             'price' => (int) ($b['price'] ?? 0), // 구성품 단가 — 부분환불 계산용 참고치
+                            'ordered' => ! empty($b['ordered']) || ! empty($i['ordered']), // 세트 전체 주문완료 포함
+                            'source' => $b['source'] ?? '',
+                            'memo' => $b['memo'] ?? '',
                             'refund_qty' => (int) ($b['refund_qty'] ?? 0), // 구성품 부분환불 기록
                             'refund_amount' => (int) ($b['refund_amount'] ?? 0),
                         ])->values()->all(),
                     ])
-                    ->filter(fn ($i) => $i['ordered'])
+                    ->filter($isOrdered)
                     ->values(),
                 'shipments' => $e->shipments->map(fn (ScheduleShipment $s) => [
                     'carrier_label' => $s->carrierLabel(),
@@ -185,9 +192,9 @@ class OfficeOrderController extends Controller
             return response()->json(['message' => '항목을 찾을 수 없습니다. 목록을 새로고침해 주세요.'], 422);
         }
 
-        // 세트 구성품 환불 — 구성품에 수량/금액 기록, 항목에는 구성품 합산만 반영 (구매 필드는 건드리지 않음)
+        // 세트 구성품 — 구성품에 구매처/메모/환불 기록 (항목의 구매 필드는 건드리지 않음)
         if (array_key_exists('bundle_index', $validated) && $validated['bundle_index'] !== null) {
-            return $this->updateBundleItemRefund($estimate, $items, $validated, $request->boolean('refunded'));
+            return $this->updateBundleItemNote($request, $estimate, $items, $validated);
         }
 
         $items[$validated['index']]['purchase_source'] = $validated['purchase_source'] ?? '';
@@ -217,14 +224,15 @@ class OfficeOrderController extends Controller
     }
 
     /**
-     * 세트 구성품 단위 수동 환불 체크 — 구성품에 refund_qty/refund_amount 기록.
+     * 세트 구성품 단위 기록 — 구매처(source)/메모(memo)와 수동 환불 체크(refund_qty/refund_amount).
      * 항목(부모)의 환불 금액은 구성품 합산으로 재계산해 프로젝트 환불 기록과 같은 구조를 유지하고,
      * 해제 시 구성품 기록을 지운 뒤 남은 합산이 0이면 항목 표시도 함께 초기화한다.
      *
      * @param  array<int, array<string, mixed>>  $items
      */
-    private function updateBundleItemRefund(Estimate $estimate, array $items, array $validated, bool $refunded): JsonResponse
+    private function updateBundleItemNote(Request $request, Estimate $estimate, array $items, array $validated): JsonResponse
     {
+        $refunded = $request->boolean('refunded');
         $idx = (int) $validated['index'];
         $bIdx = (int) $validated['bundle_index'];
         $bundles = $items[$idx]['bundle_items'] ?? [];
@@ -232,7 +240,22 @@ class OfficeOrderController extends Controller
             return response()->json(['message' => '세트 구성품을 찾을 수 없습니다. 목록을 새로고침해 주세요.'], 422);
         }
 
+        // 구매처/메모 — 요청에 키가 있을 때만 갱신 (환불만 보내는 구버전 화면 호환)
+        if ($request->has('purchase_source')) {
+            $bundles[$bIdx]['source'] = trim((string) ($validated['purchase_source'] ?? ''));
+        }
+        if ($request->has('memo')) {
+            $bundles[$bIdx]['memo'] = trim((string) ($validated['memo'] ?? ''));
+        }
+
         $beforeAmount = (int) ($bundles[$bIdx]['refund_amount'] ?? 0);
+        if (! $request->has('refunded')) {
+            // 환불 상태 변경 없이 구매처/메모만 저장
+            $items[$idx]['bundle_items'] = array_values($bundles);
+            $estimate->forceFill(['product_items' => $items])->save();
+
+            return response()->json(['message' => '저장되었습니다.']);
+        }
         if ($refunded) {
             $totalQty = max(1, (int) ($bundles[$bIdx]['qty'] ?? 1)) * max(1, (int) ($items[$idx]['qty'] ?? 1));
             $qty = min($totalQty, max(0, (int) ($validated['refund_qty'] ?? $totalQty)));

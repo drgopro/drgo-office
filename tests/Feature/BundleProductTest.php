@@ -296,4 +296,76 @@ class BundleProductTest extends TestCase
         $this->actingAs($this->master)->get("/estimates/{$estimate->id}/print")
             ->assertOk()->assertSee('스트리밍 세트')->assertDontSee('세트용 마이크');
     }
+
+    private function makeBundleEstimate(): Estimate
+    {
+        return Estimate::create([
+            'status' => 'created',
+            'product_items' => [[
+                'product_id' => 1, 'name' => '스트리밍 세트', 'sale_price' => 150000, 'qty' => 1, 'subtotal' => 150000,
+                'bundle_items' => [
+                    ['name' => '캡처보드', 'qty' => 1, 'price' => 100000],
+                    ['name' => '마이크', 'qty' => 2, 'price' => 25000],
+                ],
+            ]],
+            'service_items' => [], 'product_total' => 150000, 'service_total' => 0, 'total_amount' => 150000,
+            'validity_days' => 3, 'created_by' => $this->master->id,
+        ]);
+    }
+
+    public function test_component_ordered_and_direct_ship_fields_persist_on_builder_save(): void
+    {
+        $estimate = $this->makeBundleEstimate();
+        $items = $estimate->product_items;
+        // 빌더 직접발송: 구성품 개별 주문완료 + 구매처 '사무실 발송'
+        $items[0]['bundle_items'][0]['ordered'] = true;
+        $items[0]['bundle_items'][0]['source'] = '사무실 발송';
+        $items[0]['bundle_items'][1]['memo'] = '이번 주 내 발주';
+
+        $this->actingAs($this->master)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $items,
+        ])->assertOk();
+
+        $b = $estimate->fresh()->product_items[0]['bundle_items'];
+        $this->assertTrue((bool) $b[0]['ordered']);
+        $this->assertSame('사무실 발송', $b[0]['source']);
+        $this->assertSame('이번 주 내 발주', $b[1]['memo']);
+    }
+
+    public function test_component_only_order_appears_in_order_history(): void
+    {
+        $estimate = $this->makeBundleEstimate();
+        $items = $estimate->product_items;
+        $items[0]['bundle_items'][0]['ordered'] = true; // 세트 자체는 미주문, 구성품만 주문완료
+        $items[0]['bundle_items'][0]['source'] = '사무실 발송';
+        $estimate->forceFill(['product_items' => $items])->save();
+
+        $row = $this->actingAs($this->master)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $this->assertSame($estimate->id, $row['id']);
+        $this->assertFalse($row['items'][0]['ordered']);
+        $this->assertTrue($row['items'][0]['bundle_items'][0]['ordered']);
+        $this->assertSame('사무실 발송', $row['items'][0]['bundle_items'][0]['source']);
+        $this->assertFalse($row['items'][0]['bundle_items'][1]['ordered']);
+    }
+
+    public function test_order_history_saves_component_source_and_memo(): void
+    {
+        $estimate = $this->makeBundleEstimate();
+        $items = $estimate->product_items;
+        $items[0]['ordered'] = true;
+        $items[0]['bundle_items'][0]['refund_qty'] = 1; // 기존 환불 기록은 보존돼야 함
+        $items[0]['bundle_items'][0]['refund_amount'] = 100000;
+        $estimate->forceFill(['product_items' => $items])->save();
+
+        // 환불 키 없이 구매처/메모만 저장 — 환불 기록 불변
+        $this->actingAs($this->master)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 0, 'purchase_source' => '사무실 발송', 'memo' => '재고분 발송',
+        ])->assertOk();
+
+        $b = $estimate->fresh()->product_items[0]['bundle_items'][0];
+        $this->assertSame('사무실 발송', $b['source']);
+        $this->assertSame('재고분 발송', $b['memo']);
+        $this->assertSame(1, (int) $b['refund_qty']);
+        $this->assertSame(100000, (int) $b['refund_amount']);
+    }
 }

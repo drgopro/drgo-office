@@ -1837,16 +1837,19 @@ function renderOrders() {
                 const bundleLine = (it.bundle_items||[]).length
                     ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map((b,bi)=>{
                         const bRef = b.refund_qty>0||b.refund_amount>0;
+                        const ordBadge = b.ordered ? ' <span class="badge badge-ordered" style="font-size:10px;" title="구성품 주문완료">주문완료</span>' : '';
                         const badge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
                         const ctrl = o.type==='estimate'
-                            ? ` <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; margin-left:6px; white-space:nowrap;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
+                            ? `<input class="ob-src field-input" value="${_esc(b.source)}" placeholder="구매처" maxlength="100" style="width:110px; padding:3px 6px; font-size:11px; margin-left:8px;" title="구성품 구매처 — 직접발송이면 '사무실 발송'" onclick="event.stopPropagation()"
+                               ><input class="ob-memo field-input" value="${_esc(b.memo)}" placeholder="메모" maxlength="500" style="width:170px; padding:3px 6px; font-size:11px; margin-left:3px;" title="구성품별 주문 메모" onclick="event.stopPropagation()"
+                               > <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; margin-left:4px; white-space:nowrap;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
                                    <input type="checkbox" class="ob-ref" ${bRef?'checked':''} onchange="this.closest('[data-brow]').querySelector('.ob-wrap').style.display=this.checked?'':'none'">환불</label
                                ><span class="ob-wrap" style="${bRef?'':'display:none;'}"
                                ><input class="ob-qty field-input" type="number" min="1" max="${b.qty}" value="${b.refund_qty||b.qty}" style="width:52px; padding:3px 6px; font-size:11px; text-align:right; margin-left:4px;" title="환불 수량 (총 ${b.qty}개)" onclick="event.stopPropagation()"
                                ><input class="ob-amt field-input" type="number" min="0" value="${bRef&&b.refund_amount?b.refund_amount:''}" placeholder="${b.price?fmt(b.price*(b.refund_qty||b.qty)):'환불액'}" style="width:92px; padding:3px 6px; font-size:11px; text-align:right; margin-left:3px;" title="환불 금액 (비우면 단가×수량으로 자동 계산)" onclick="event.stopPropagation()"
                                ></span><button class="btn-outline btn-sm" style="padding:2px 8px; font-size:11px; margin-left:4px;" onclick="event.stopPropagation(); saveBundleRefund(${o.id}, ${it.index}, ${bi}, this)">저장</button>`
                             : '';
-                        return `<div style="padding:2px 0 0 10px;" data-brow>└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}${badge}${ctrl}</div>`;
+                        return `<div style="padding:2px 0 0 10px;" data-brow>└ ${_esc(b.name)} ×${b.qty}${Number(b.price)?` (${fmt(b.price)}원)`:''}${ordBadge}${badge}${ctrl}</div>`;
                     }).join('')}</div>` : '';
                 const refundBadge = it.refunded
                     ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
@@ -1912,13 +1915,15 @@ async function saveEstimateItemNote(estimateId, index, btn) {
     btn.textContent = '저장됨';
     setTimeout(() => { btn.textContent = '저장'; renderOrders(); }, 900);
 }
-// 세트 구성품 단위 환불 저장 — 체크 해제 시 기록 초기화, 저장 후 서버 합산(항목 표시) 반영 위해 재조회
+// 세트 구성품 단위 저장 — 구매처/메모 + 환불 체크(해제 시 기록 초기화), 저장 후 서버 합산 반영 위해 재조회
 async function saveBundleRefund(estimateId, index, bundleIndex, btn) {
     const row = btn.closest('[data-brow]');
     const refunded = row.querySelector('.ob-ref').checked;
     const amtRaw = row.querySelector('.ob-amt').value.trim();
     const body = {
         index, bundle_index: bundleIndex, refunded,
+        purchase_source: row.querySelector('.ob-src').value.trim(),
+        memo: row.querySelector('.ob-memo').value.trim(),
         refund_qty: refunded ? Math.max(1, parseInt(row.querySelector('.ob-qty').value) || 1) : null,
         refund_amount: refunded && amtRaw !== '' ? Math.max(0, parseInt(amtRaw) || 0) : null,
     };

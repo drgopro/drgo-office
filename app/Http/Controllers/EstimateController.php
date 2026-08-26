@@ -171,6 +171,9 @@ class EstimateController extends Controller
             'product_items.*.bundle_items.*.price' => 'nullable|numeric|min:0',
             'product_items.*.bundle_items.*.refund_qty' => 'nullable|integer|min:0', // 구성품 부분환불 기록
             'product_items.*.bundle_items.*.refund_amount' => 'nullable|numeric|min:0',
+            'product_items.*.bundle_items.*.ordered' => 'nullable|boolean', // 구성품 개별 주문완료
+            'product_items.*.bundle_items.*.source' => 'nullable|string|max:100', // 구성품 구매처 (직접발송='사무실 발송')
+            'product_items.*.bundle_items.*.memo' => 'nullable|string|max:500', // 구성품별 주문 메모
             'service_items' => 'nullable|array|max:100',
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',
