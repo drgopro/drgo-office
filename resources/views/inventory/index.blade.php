@@ -1908,7 +1908,7 @@ function renderOrders() {
                             }
                             // 열 구성: 이름 | 구매처 | 메모 | 환불체크 | 수량 | 환불액 | 저장 (수량·환불액은 체크 시에만 활성)
                             const inp = 'padding:4px 7px; font-size:11.5px; width:100%; box-sizing:border-box;';
-                            return `<div data-brow style="display:grid; grid-template-columns:${bGridCols}; gap:4px 8px; align-items:center; padding:2px 0;">
+                            return `<div data-brow="${o.id}:${it.index}:${bi}" style="display:grid; grid-template-columns:${bGridCols}; gap:4px 8px; align-items:center; padding:2px 0;">
                                 ${nameCell}
                                 <input class="ob-src field-input" value="${_esc(b.source)}" placeholder="구매처" maxlength="100" style="${inp}" title="구성품 구매처 — 직접발송이면 '사무실 발송'" onclick="event.stopPropagation()">
                                 <input class="ob-memo field-input" value="${_esc(b.memo)}" placeholder="메모" maxlength="500" style="${inp}" title="구성품별 주문 메모" onclick="event.stopPropagation()">
@@ -1925,7 +1925,7 @@ function renderOrders() {
                 // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게
                 const prodMemo = it.product_memo
                     ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:pre-line;">${_esc(it.product_memo)}</div>` : '';
-                return `<tr style="background:var(--surface2);">
+                return `<tr style="background:var(--surface2);" ${o.type==='estimate'?`data-oik="${o.id}:${it.index}"`:''}>
                     <td></td>
                     <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${prodMemo}</td>
                     <td class="text-muted">${it.qty}개</td>
@@ -1959,6 +1959,48 @@ function renderOrders() {
         return html;
     }).join('');
 }
+// === 편집값 보존 — 한 항목 저장 후 재렌더/재조회 시 다른 행에 입력 중이던 값이 초기화되지 않도록 ===
+function captureOrderEdits() {
+    const snap = { items: {}, bundles: {} };
+    document.querySelectorAll('#orderBody tr[data-oik]').forEach(tr => {
+        if (!tr.querySelector('.oi-amt')) return;
+        snap.items[tr.dataset.oik] = {
+            amt: tr.querySelector('.oi-amt').value, src: tr.querySelector('.oi-src').value,
+            memo: tr.querySelector('.oi-memo').value, ref: tr.querySelector('.oi-ref').checked,
+            refamt: tr.querySelector('.oi-refamt').value,
+        };
+    });
+    document.querySelectorAll('#orderBody [data-brow]').forEach(r => {
+        if (!r.querySelector('.ob-src')) return;
+        snap.bundles[r.dataset.brow] = {
+            src: r.querySelector('.ob-src').value, memo: r.querySelector('.ob-memo').value,
+            ref: r.querySelector('.ob-ref').checked, qty: r.querySelector('.ob-qty').value,
+            amt: r.querySelector('.ob-amt').value,
+        };
+    });
+    return snap;
+}
+function restoreOrderEdits(snap) {
+    if (!snap) return;
+    document.querySelectorAll('#orderBody tr[data-oik]').forEach(tr => {
+        const s = snap.items[tr.dataset.oik];
+        if (!s || !tr.querySelector('.oi-amt')) return;
+        tr.querySelector('.oi-amt').value = s.amt; tr.querySelector('.oi-src').value = s.src;
+        tr.querySelector('.oi-memo').value = s.memo;
+        const ref = tr.querySelector('.oi-ref'); ref.checked = s.ref;
+        const refamt = tr.querySelector('.oi-refamt');
+        refamt.value = s.refamt; refamt.style.display = s.ref ? '' : 'none';
+    });
+    document.querySelectorAll('#orderBody [data-brow]').forEach(r => {
+        const s = snap.bundles[r.dataset.brow];
+        if (!s || !r.querySelector('.ob-src')) return;
+        r.querySelector('.ob-src').value = s.src; r.querySelector('.ob-memo').value = s.memo;
+        const ref = r.querySelector('.ob-ref'); ref.checked = s.ref;
+        r.querySelectorAll('.ob-qty,.ob-amt').forEach(x => { x.disabled = !s.ref; x.style.opacity = s.ref ? '' : '0.35'; });
+        r.querySelector('.ob-qty').value = s.qty; r.querySelector('.ob-amt').value = s.amt;
+    });
+}
+
 async function saveEstimateItemNote(estimateId, index, btn) {
     const tr = btn.closest('tr');
     const amtRaw = tr.querySelector('.oi-amt').value.trim();
@@ -1982,7 +2024,13 @@ async function saveEstimateItemNote(estimateId, index, btn) {
         item.refunded = refunded; item.refund_amount = body.refund_amount || 0;
     }
     btn.textContent = '저장됨';
-    setTimeout(() => { btn.textContent = '저장'; renderOrders(); }, 900);
+    setTimeout(() => {
+        btn.textContent = '저장';
+        // 다른 행에서 입력 중이던 값 보존 후 재렌더 (배지·합계만 갱신되고 편집 중 값은 유지)
+        const snap = captureOrderEdits();
+        renderOrders();
+        restoreOrderEdits(snap);
+    }, 900);
 }
 // 세트 구성품 단위 저장 — 구매처/메모 + 환불 체크(해제 시 기록 초기화), 저장 후 서버 합산 반영 위해 재조회
 async function saveBundleRefund(estimateId, index, bundleIndex, btn) {
@@ -1999,7 +2047,11 @@ async function saveBundleRefund(estimateId, index, bundleIndex, btn) {
     const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
     if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
     btn.textContent = '저장됨';
-    setTimeout(loadOrders, 600);
+    // 서버 합산(항목 표시) 반영 위해 재조회하되, 다른 행에서 입력 중이던 값은 보존
+    const snap = captureOrderEdits();
+    delete snap.bundles[`${estimateId}:${index}:${bundleIndex}`]; // 방금 저장한 줄은 서버 값으로
+    await loadOrders();
+    restoreOrderEdits(snap);
 }
 function openOrderCreate() { window.open('/inventory/orders/new', 'office_order_new', 'width=780,height=640,scrollbars=yes,resizable=yes'); }
 function openOrderEdit(id) { window.open(`/inventory/orders/${id}/edit`, 'office_order_'+id, 'width=780,height=640,scrollbars=yes,resizable=yes'); }
