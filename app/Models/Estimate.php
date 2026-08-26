@@ -114,6 +114,16 @@ class Estimate extends Model
                 $item['subtotal'] = $newSale * $qty;
                 $changed = true;
             }
+            // 담은 뒤에 세트로 바뀐 제품 — 스냅샷에 구성이 없으면 현재 세트 구성을 백필해
+            // 빌더 펼치기·부분환불에서 세트로 보이게 한다 (잠금 상태 포함, 발행일시 불변)
+            if ($product->is_bundle && empty($item['bundle_items']) && $product->bundleItems->isNotEmpty()) {
+                $item['bundle_items'] = $product->bundleItems->map(fn ($bi) => [
+                    'name' => $bi->component?->name ?? '(삭제된 구성품)',
+                    'qty' => max(1, (int) $bi->quantity),
+                    'price' => (int) ($bi->component?->sale_price ?? 0),
+                ])->values()->all();
+                $changed = true;
+            }
             // 세트 구성품 참고 가격 — 구버전 스냅샷 백필 + 변동 반영 (부분환불 계산용).
             // 잠금 상태에서는 이미 기록된 값은 보존하고 '누락'만 채운다.
             if ($product->is_bundle && ! empty($item['bundle_items']) && is_array($item['bundle_items'])) {

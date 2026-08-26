@@ -143,4 +143,36 @@ class EstimatePriceSyncTest extends TestCase
         $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk();
         $this->assertSame(20000, (int) $estimate->fresh()->product_items[0]['bundle_items'][0]['price']);
     }
+
+    public function test_product_turned_into_bundle_after_snapshot_backfills_composition(): void
+    {
+        // 일반 제품으로 견적서에 담김 (스냅샷에 bundle_items 없음)
+        $estimate = $this->makeEstimate('created');
+        $origUpdatedPaid = null;
+
+        // 이후 제품이 세트로 전환
+        $mic = Product::create(['sku' => 'MIC-2', 'name' => '구성 마이크', 'category' => '방송장비',
+            'purchase_price' => 10000, 'sale_price' => 30000, 'is_active' => true, 'show_in_estimate' => false]);
+        $this->product->update(['is_bundle' => true]);
+        ProductBundleItem::create(['bundle_product_id' => $this->product->id, 'component_product_id' => $mic->id, 'quantity' => 2]);
+
+        // 빌더 열람 시 현재 세트 구성이 스냅샷에 백필됨
+        $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk();
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertCount(1, $item['bundle_items']);
+        $this->assertSame('구성 마이크', $item['bundle_items'][0]['name']);
+        $this->assertSame(2, (int) $item['bundle_items'][0]['qty']);
+        $this->assertSame(30000, (int) $item['bundle_items'][0]['price']);
+
+        // 잠금(결제완료) 견적서도 구성은 백필되되 단가·합계·발행일시는 불변
+        $locked = $this->makeEstimate('paid');
+        $origUpdatedPaid = $locked->updated_at;
+        $this->product->update(['sale_price' => 1500000]);
+        $this->actingAs($this->admin)->get("/estimates/{$locked->id}/edit")->assertOk();
+        $freshLocked = $locked->fresh();
+        $this->assertSame('구성 마이크', $freshLocked->product_items[0]['bundle_items'][0]['name']);
+        $this->assertSame(1000000, (int) $freshLocked->product_items[0]['sale_price']);
+        $this->assertSame(2150000, (int) $freshLocked->total_amount);
+        $this->assertTrue($freshLocked->updated_at->equalTo($origUpdatedPaid));
+    }
 }
