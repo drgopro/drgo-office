@@ -323,6 +323,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/inventory/categories/{category}', [InventoryController::class, 'destroyCategory']);
         Route::post('/api/inventory/products', [InventoryController::class, 'storeProduct']);
         Route::post('/api/inventory/product-groups', [InventoryController::class, 'storeProductGroup']); // 옵션 그룹 묶기
+        Route::patch('/api/inventory/product-groups/{group}', [InventoryController::class, 'updateProductGroup']); // 그룹 수정 (이름/구성/옵션명)
         Route::delete('/api/inventory/product-groups/{group}', [InventoryController::class, 'destroyProductGroup']); // 그룹 해제
         Route::patch('/api/inventory/products/bulk-edit', [InventoryController::class, 'bulkEditProducts']); // 전체 편집 일괄 저장 ({product}보다 먼저 매칭돼야 함)
         Route::patch('/api/inventory/products/{product}', [InventoryController::class, 'updateProduct']);

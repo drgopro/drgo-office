@@ -128,4 +128,71 @@ class ProductGroupTest extends TestCase
         $this->assertContains('카메라 X100 화이트', $names);
         $this->assertNotContains('단독 마이크', $names);
     }
+
+    public function test_group_update_renames_and_reconfigures_members(): void
+    {
+        $group = $this->makeGroup();
+        $silver = Product::create([
+            'sku' => 'CAM-003', 'name' => '카메라 X100 실버', 'category' => '카메라', 'category_id' => $this->black->category_id,
+            'purchase_price' => 100000, 'sale_price' => 170000, 'safety_stock' => 1,
+            'is_active' => true, 'show_in_estimate' => true,
+        ]);
+
+        // 그룹명 변경 + 화이트 제외 + 실버 편입 + 옵션명 변경
+        $this->actingAs($this->admin)->patchJson("/api/inventory/product-groups/{$group->id}", [
+            'name' => '카메라 X100 (신형)',
+            'items' => [
+                ['id' => $this->black->id, 'option_name' => '블랙 에디션'],
+                ['id' => $silver->id, 'option_name' => '실버'],
+            ],
+        ])->assertOk();
+
+        $this->assertSame('카메라 X100 (신형)', $group->fresh()->name);
+        $this->assertSame('블랙 에디션', $this->black->fresh()->option_name);
+        $this->assertSame($group->id, $silver->fresh()->group_id);
+        // 제외된 화이트는 그룹에서 해제되고 제품·재고는 유지
+        $white = $this->white->fresh();
+        $this->assertNull($white->group_id);
+        $this->assertNull($white->option_name);
+        $this->assertSame(5, $white->inventory->quantity);
+    }
+
+    public function test_group_update_rejects_member_of_other_group(): void
+    {
+        $group = $this->makeGroup();
+        $other = Product::create([
+            'sku' => 'MIC-001', 'name' => '마이크 블랙', 'category' => '카메라', 'category_id' => $this->black->category_id,
+            'purchase_price' => 10000, 'sale_price' => 20000, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => true,
+        ]);
+        $otherGroup = ProductGroup::create(['name' => '마이크']);
+        $other->update(['group_id' => $otherGroup->id, 'option_name' => '블랙']);
+
+        $this->actingAs($this->admin)->patchJson("/api/inventory/product-groups/{$group->id}", [
+            'name' => '카메라 X100',
+            'items' => [
+                ['id' => $this->black->id, 'option_name' => '블랙'],
+                ['id' => $other->id, 'option_name' => '마이크'],
+            ],
+        ])->assertUnprocessable();
+        $this->assertSame($otherGroup->id, $other->fresh()->group_id);
+    }
+
+    public function test_products_sort_by_header_key(): void
+    {
+        // 판매가 내림차순 — 화이트(160,000)가 블랙(150,000)보다 먼저
+        $rows = $this->actingAs($this->admin)
+            ->getJson('/api/inventory/products?per_page=50&sort=sale_price&dir=desc')
+            ->assertOk()->json('data');
+        $prices = array_map(fn ($p) => (int) $p['sale_price'], $rows);
+        $sorted = $prices;
+        rsort($sorted);
+        $this->assertSame($sorted, $prices);
+
+        // 현재고 오름차순 — 블랙(3)이 화이트(5)보다 먼저
+        $rows2 = $this->actingAs($this->admin)
+            ->getJson('/api/inventory/products?per_page=50&sort=stock&dir=asc')
+            ->assertOk()->json('data');
+        $this->assertSame('CAM-001', $rows2[0]['sku']);
+    }
 }

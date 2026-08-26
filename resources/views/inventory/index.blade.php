@@ -79,6 +79,11 @@
     .badge-requested { background:#2a2010; color:var(--accent); } .badge-approved { background:#1a1a2a; color:#8ab4c8; }
     .badge-ordered { background:#2a1a2a; color:#9b70c8; } .badge-received { background:#1a2a1a; color:#7ac87a; }
     .badge-direct { background:#2a2010; color:#e0a04a; } /* 직접발송(사무실 발송) — 주문완료(초록)와 구분되는 주황 */
+    /* 제품 목록 헤더 정렬 — 클릭 시 오름/내림차순 토글, 활성 헤더에 방향 화살표 */
+    th.p-sort { cursor:pointer; user-select:none; }
+    th.p-sort:hover { color:var(--accent); }
+    th.p-sort[data-dir="asc"]::after { content:" ▲"; font-size:9px; color:var(--accent); }
+    th.p-sort[data-dir="desc"]::after { content:" ▼"; font-size:9px; color:var(--accent); }
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
     /* 옵션 그룹 행의 '옵션 N종' — 상품명을 가리지 않도록 무채색 */
     .badge-optcount { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:600; }
@@ -253,7 +258,7 @@
         </div>
         <div class="data-card">
             <table class="data-table">
-                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th>SKU</th><th>제품명</th><th>카테고리</th><th class="text-right">매입가</th><th class="text-right">판매가</th><th class="text-right">마진률</th><th class="text-right">시세</th><th class="text-right">현재고</th><th class="text-right">안전재고</th><th>견적</th><th></th></tr></thead>
+                <thead><tr><th style="width:30px;"><input type="checkbox" id="prodSelectAll" onchange="toggleSelectAllProducts(this.checked)" title="전체 선택"></th><th class="p-sort" data-psort="sku" onclick="sortProducts('sku')">SKU</th><th class="p-sort" data-psort="name" onclick="sortProducts('name')">제품명</th><th class="p-sort" data-psort="category" onclick="sortProducts('category')">카테고리</th><th class="text-right p-sort" data-psort="purchase_price" onclick="sortProducts('purchase_price')">매입가</th><th class="text-right p-sort" data-psort="sale_price" onclick="sortProducts('sale_price')">판매가</th><th class="text-right p-sort" data-psort="margin" onclick="sortProducts('margin')">마진률</th><th class="text-right p-sort" data-psort="market" onclick="sortProducts('market')">시세</th><th class="text-right p-sort" data-psort="stock" onclick="sortProducts('stock')">현재고</th><th class="text-right p-sort" data-psort="safety_stock" onclick="sortProducts('safety_stock')">안전재고</th><th>견적</th><th></th></tr></thead>
                 <tbody id="productBody"><tr><td colspan="12" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
@@ -460,7 +465,7 @@
 <div class="modal-overlay" id="groupModal">
     <div class="modal" style="width:520px;">
         <div class="modal-header">
-            <div class="modal-title">옵션 그룹으로 묶기</div>
+            <div class="modal-title" id="groupModalTitle">옵션 그룹으로 묶기</div>
             <button class="modal-close" onclick="closeModal('groupModal')">×</button>
         </div>
         <div class="field-group">
@@ -468,13 +473,13 @@
             <input class="field-input" id="gName" placeholder="예: 카메라 X100">
         </div>
         <div class="field-group">
-            <div class="field-label">선택된 제품별 옵션명 *</div>
+            <div class="field-label">구성 제품별 옵션명 *</div>
             <div id="gItems" style="display:flex; flex-direction:column; gap:6px;"></div>
-            <div style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.</div>
+            <div id="gItemsNote" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.</div>
         </div>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('groupModal')">취소</button>
-            <button class="btn-save" onclick="saveProductGroup()">그룹 만들기</button>
+            <button class="btn-save" id="groupSaveBtn" onclick="saveProductGroup()">그룹 만들기</button>
         </div>
     </div>
 </div>
@@ -967,7 +972,25 @@ function prodFilterParams() {
     const catId = prodCatFilterId();
     if (catId) qs.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
     if (groupOnly) qs.set('grouped_only', '1'); // 옵션 그룹으로 묶인 제품만
+    if (prodSort) { qs.set('sort', prodSort.key); qs.set('dir', prodSort.dir); } // 헤더 클릭 정렬
     return qs;
+}
+
+// === 헤더 클릭 정렬 — 같은 헤더를 다시 누르면 방향 토글, 마지막 정렬은 기억 ===
+let prodSort = (() => { try { return JSON.parse(localStorage.getItem('invProdSort') || 'null'); } catch (e) { return null; } })();
+function sortProducts(key) {
+    prodSort = (prodSort && prodSort.key === key)
+        ? (prodSort.dir === 'asc' ? { key, dir: 'desc' } : null) // asc → desc → 해제(기본 정렬)
+        : { key, dir: 'asc' };
+    try { prodSort ? localStorage.setItem('invProdSort', JSON.stringify(prodSort)) : localStorage.removeItem('invProdSort'); } catch (e) {}
+    prodPage = 1;
+    loadProducts();
+}
+function updateProdSortHeads() {
+    document.querySelectorAll('th.p-sort').forEach(th => {
+        if (prodSort && th.dataset.psort === prodSort.key) th.dataset.dir = prodSort.dir;
+        else delete th.dataset.dir;
+    });
 }
 
 // ── 옵션 그룹만 보기 토글 (선택은 브라우저에 기억) ──
@@ -1055,6 +1078,7 @@ async function loadProducts() {
         return loadProducts();
     }
     renderProdPager(payload);
+    updateProdSortHeads();
     const tb = document.getElementById('productBody');
     const cards = document.getElementById('productCards');
     if (!allProducts.length) {
@@ -1118,6 +1142,7 @@ async function loadProducts() {
         <td class="text-right text-muted">-</td>
         <td>${children.every(c => c.show_in_estimate) ? '<span class="badge badge-ok">노출</span>' : ''}</td>
         <td class="action-cell">
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation(); openGroupEditModal(${g.id})" title="그룹 상품명·옵션명·구성 수정">수정</button>
             <button class="btn-outline btn-sm" onclick="event.stopPropagation(); ungroupProducts(${g.id}, '${_esc(g.name).replace(/'/g,'&#39;')}')">그룹 해제</button>
         </td>
     </tr>`;
@@ -1156,6 +1181,7 @@ async function loadProducts() {
             </div>
         </div>
         <div class="mob-card-actions">
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation(); openGroupEditModal(${g.id})">수정</button>
             <button class="btn-outline btn-sm" onclick="event.stopPropagation(); ungroupProducts(${g.id}, '${_esc(g.name).replace(/'/g,'&#39;')}')">그룹 해제</button>
         </div>
     </div>`;
@@ -1291,26 +1317,54 @@ function updateProdBulkBar() {
     }
 }
 // === 옵션 그룹 (블랙/화이트 등 같은 상품 묶기) ===
+let __editGroupId = null; // null=새 그룹 만들기, 값 있으면 해당 그룹 수정
+function _groupItemRow(p, optVal, extra = '') {
+    return `<div style="display:flex; align-items:center; gap:8px;" data-grow="${p.id}">
+        <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span>${extra}</span>
+        <input class="field-input g-opt" data-id="${p.id}" value="${_esc(optVal || '')}" placeholder="옵션명 (예: 블랙)" style="width:150px; padding:7px 10px; font-size:12.5px;">
+        <label style="display:inline-flex; align-items:center; gap:3px; font-size:11.5px; color:var(--text-muted); white-space:nowrap; cursor:pointer;" title="체크하면 이 제품을 그룹에서 뺍니다 (제품·재고는 유지)">
+            <input type="checkbox" class="g-del">제외</label>
+    </div>`;
+}
 function openGroupModal() {
     if (prodSelection.size < 2) return alert('그룹으로 묶을 제품을 2개 이상 선택해주세요.');
     const items = [...prodSelection].map(id => allProducts.find(p => p.id === id)).filter(Boolean);
     if (items.some(p => p.group)) return alert('이미 그룹에 속한 제품이 포함돼 있습니다. 먼저 그룹을 해제해주세요.');
+    __editGroupId = null;
+    document.getElementById('groupModalTitle').textContent = '옵션 그룹으로 묶기';
+    document.getElementById('groupSaveBtn').textContent = '그룹 만들기';
+    document.getElementById('gItemsNote').textContent = '재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.';
     // 그룹명 제안: 첫 제품명에서 색상어 제거 없이 그대로 (수정 가능)
     document.getElementById('gName').value = items[0]?.name || '';
-    document.getElementById('gItems').innerHTML = items.map(p => `
-        <div style="display:flex; align-items:center; gap:8px;">
-            <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span></span>
-            <input class="field-input g-opt" data-id="${p.id}" placeholder="옵션명 (예: 블랙)" style="width:160px; padding:7px 10px; font-size:12.5px;">
-        </div>`).join('');
+    document.getElementById('gItems').innerHTML = items.map(p => _groupItemRow(p, '')).join('');
+    openModal('groupModal');
+}
+// 그룹 수정 — 그룹명·옵션명 변경, 구성 제외, 체크해둔 미그룹 제품 편입
+function openGroupEditModal(groupId) {
+    __editGroupId = groupId;
+    const members = allProducts.filter(p => p.group_id === groupId);
+    const additions = [...prodSelection].map(id => allProducts.find(p => p.id === id))
+        .filter(p => p && !p.group_id && !members.includes(p));
+    document.getElementById('groupModalTitle').textContent = '옵션 그룹 수정';
+    document.getElementById('groupSaveBtn').textContent = '저장';
+    document.getElementById('gItemsNote').textContent = '제품을 새로 편입하려면 목록에서 제품을 체크한 뒤 수정을 다시 여세요. \'제외\'를 체크하면 그룹에서 빠집니다 (제품·재고는 유지).';
+    document.getElementById('gName').value = members[0]?.group?.name || '';
+    document.getElementById('gItems').innerHTML =
+        members.map(p => _groupItemRow(p, p.option_name)).join('') +
+        additions.map(p => _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:10px;">추가</span>')).join('');
     openModal('groupModal');
 }
 async function saveProductGroup() {
     const name = document.getElementById('gName').value.trim();
     if (!name) return alert('그룹 상품명을 입력해주세요.');
-    const items = [...document.querySelectorAll('#gItems .g-opt')].map(i => ({ id: +i.dataset.id, option_name: i.value.trim() }));
+    const items = [...document.querySelectorAll('#gItems [data-grow]')]
+        .filter(r => !r.querySelector('.g-del')?.checked)
+        .map(r => { const i = r.querySelector('.g-opt'); return { id: +i.dataset.id, option_name: i.value.trim() }; });
+    if (!items.length) return alert('구성 제품이 최소 1개 필요합니다. 그룹을 없애려면 [그룹 해제]를 사용하세요.');
     if (items.some(i => !i.option_name)) return alert('모든 제품에 옵션명을 입력해주세요.');
-    const res = await fetch('/api/inventory/product-groups', { method:'POST', headers:H, body: JSON.stringify({ name, items }) });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || '그룹 생성에 실패했습니다.'); }
+    const url = __editGroupId ? `/api/inventory/product-groups/${__editGroupId}` : '/api/inventory/product-groups';
+    const res = await fetch(url, { method: __editGroupId ? 'PATCH' : 'POST', headers:H, body: JSON.stringify({ name, items }) });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); return alert(e.message || (__editGroupId ? '그룹 수정에 실패했습니다.' : '그룹 생성에 실패했습니다.')); }
     closeModal('groupModal');
     clearProdSelection();
     loadProducts();

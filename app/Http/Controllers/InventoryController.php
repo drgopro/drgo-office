@@ -247,20 +247,21 @@ class InventoryController extends Controller
             $query->whereNotNull('group_id');
         }
 
+        // 유효 재고 식 — 세트 상품은 자체 재고 대신 조립 가능 수(min(구성품 재고 ÷ 필요 수량))
+        $effectiveStock = '(CASE WHEN products.is_bundle = 1 THEN COALESCE((
+            SELECT MIN(FLOOR(COALESCE(ci.quantity, 0) / pbi.quantity))
+            FROM product_bundle_items pbi
+            LEFT JOIN inventories ci ON ci.product_id = pbi.component_product_id
+            WHERE pbi.bundle_product_id = products.id
+        ), 0) ELSE COALESCE((SELECT i.quantity FROM inventories i WHERE i.product_id = products.id), 0) END)';
+
         // 재고 수량 필터 — zero(0개) / low(안전재고 이하) / gte·lte(N개 기준)
-        // 세트 상품은 자체 재고 대신 조립 가능 수(min(구성품 재고 ÷ 필요 수량)) 기준으로 동일 적용
         $stockOp = (string) $request->query('stock_op');
         if ($stockOp === 'low' || $request->query('low_stock')) { // low_stock은 구버전 파라미터 호환
             $query->whereHas('inventory', function ($q) {
                 $q->whereRaw('quantity <= (SELECT safety_stock FROM products WHERE products.id = inventories.product_id)');
             });
         } elseif (in_array($stockOp, ['zero', 'gte', 'lte'], true)) {
-            $effectiveStock = '(CASE WHEN products.is_bundle = 1 THEN COALESCE((
-                SELECT MIN(FLOOR(COALESCE(ci.quantity, 0) / pbi.quantity))
-                FROM product_bundle_items pbi
-                LEFT JOIN inventories ci ON ci.product_id = pbi.component_product_id
-                WHERE pbi.bundle_product_id = products.id
-            ), 0) ELSE COALESCE((SELECT i.quantity FROM inventories i WHERE i.product_id = products.id), 0) END)';
             $val = max(0, (int) $request->query('stock_val', 0));
             match ($stockOp) {
                 'zero' => $query->whereRaw("{$effectiveStock} = 0"),
@@ -272,9 +273,28 @@ class InventoryController extends Controller
         // 옵션 그룹 구성원이 목록에서 이웃하도록 그룹 대표 SKU 기준으로 묶어 정렬
         $groupClusterOrder = 'COALESCE((SELECT MIN(p2.sku) FROM products p2 WHERE p2.group_id = products.group_id AND p2.is_active = 1), products.sku)';
 
+        // 헤더 클릭 정렬 — 허용 키만 SQL 식으로 매핑 (미지정 시 기본: 그룹 묶음 + SKU)
+        $sortMap = [
+            'sku' => 'products.sku',
+            'name' => 'products.name',
+            'category' => 'products.category',
+            'purchase_price' => 'products.purchase_price',
+            'sale_price' => 'products.sale_price',
+            'safety_stock' => 'products.safety_stock',
+            'margin' => 'CASE WHEN products.sale_price > 0 THEN (products.sale_price - products.purchase_price) * 1.0 / products.sale_price ELSE NULL END',
+            'market' => '(SELECT MIN(pmp.price) FROM product_market_prices pmp WHERE pmp.product_id = products.id)',
+            'stock' => $effectiveStock,
+        ];
+        $sortKey = (string) $request->query('sort');
+        $sortDir = strtolower((string) $request->query('dir')) === 'desc' ? 'DESC' : 'ASC';
+        if (isset($sortMap[$sortKey])) {
+            $query->orderByRaw($sortMap[$sortKey].' '.$sortDir);
+        }
+        $query->orderByRaw($groupClusterOrder)->orderBy('sku');
+
         // per_page가 있으면 페이지네이션 응답 (없으면 기존처럼 전체 배열 — 견적서 등 기존 호출부 호환)
         if ($perPage = (int) $request->query('per_page')) {
-            $page = $query->orderByRaw($groupClusterOrder)->orderBy('sku')->paginate(min(max($perPage, 1), 200));
+            $page = $query->paginate(min(max($perPage, 1), 200));
 
             return response()->json([
                 'data' => $page->items(),
@@ -284,9 +304,7 @@ class InventoryController extends Controller
             ]);
         }
 
-        return response()->json(
-            $query->orderByRaw($groupClusterOrder)->orderBy('sku')->get()
-        );
+        return response()->json($query->get());
     }
 
     /**
@@ -311,6 +329,39 @@ class InventoryController extends Controller
         }
 
         return response()->json($group->load('products:id,group_id,name,option_name'), 201);
+    }
+
+    /**
+     * 옵션 그룹 수정 — 그룹(대표) 상품명·구성 제품·옵션명 재정의.
+     * 목록에서 빠진 기존 구성원은 그룹에서 해제되고(제품·재고는 유지), 새 제품은 편입된다.
+     */
+    public function updateProductGroup(Request $request, ProductGroup $group): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:200',
+            'items' => 'required|array|min:1|max:50',
+            'items.*.id' => 'required|integer|exists:products,id',
+            'items.*.option_name' => 'required|string|max:60',
+        ]);
+
+        // 다른 그룹 소속 제품은 편입 불가 (먼저 그 그룹에서 빼야 함)
+        $ids = collect($validated['items'])->pluck('id')->map(fn ($v) => (int) $v);
+        $conflict = Product::whereIn('id', $ids)
+            ->whereNotNull('group_id')->where('group_id', '!=', $group->id)->exists();
+        if ($conflict) {
+            return response()->json(['message' => '이미 다른 그룹에 속한 제품이 포함돼 있습니다. 먼저 해당 그룹에서 제외해주세요.'], 422);
+        }
+
+        $group->update(['name' => $validated['name']]);
+        $group->products()->whereNotIn('id', $ids)->update(['group_id' => null, 'option_name' => null]);
+        foreach ($validated['items'] as $item) {
+            Product::where('id', $item['id'])->update([
+                'group_id' => $group->id,
+                'option_name' => $item['option_name'],
+            ]);
+        }
+
+        return response()->json($group->load('products:id,group_id,name,option_name'));
     }
 
     /** 옵션 그룹 해제 — 자식 제품은 그대로 두고 묶음만 푼다 */
