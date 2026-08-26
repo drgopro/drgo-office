@@ -6,7 +6,6 @@ use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Models\Project;
-use App\Models\ProjectBilling;
 use App\Models\Setting;
 use App\Services\EstimatePaymentSync;
 use App\Services\PayAppClient;
@@ -568,11 +567,8 @@ class EstimateController extends Controller
 
     public function destroy(Estimate $estimate)
     {
-        // 연동 청구 정리 — 입금 이력이 없는 미수 청구만 (입금된 청구는 기록 보존)
-        ProjectBilling::where('estimate_id', $estimate->id)
-            ->where('status', 'unpaid')
-            ->whereDoesntHave('payments')
-            ->delete();
+        // 삭제 전파 — 미수 청구·프로젝트 견적/계약 카드·캘린더 연동에서 정리
+        EstimatePaymentSync::estimateDeleted($estimate);
         $estimate->delete();
 
         return response()->json(['message' => '삭제되었습니다.']);

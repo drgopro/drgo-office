@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Estimate;
+use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\ProjectPayment;
 use App\Models\Schedule;
@@ -58,6 +59,52 @@ class EstimatePaymentSync
         }
 
         self::syncSchedules($estimate, '결제완료');
+    }
+
+    /**
+     * 견적서 삭제 전파 — 프로젝트·캘린더에 남은 연동 흔적 정리.
+     * - 입금 이력 없는 미수 청구 삭제 (입금·결제된 청구는 기록 보존)
+     * - 프로젝트 견적/계약 카드(stage_data.estimate.estimate_ids)에서 제거
+     * - 연동 캘린더 일정의 estimate_id/estimate_ids에서 제거 + 환불 표시 재계산
+     *   (결제 여부·금액 표시는 이력이므로 유지)
+     */
+    public static function estimateDeleted(Estimate $estimate): void
+    {
+        ProjectBilling::where('estimate_id', $estimate->id)
+            ->where('status', 'unpaid')
+            ->whereDoesntHave('payments')
+            ->delete();
+
+        if ($estimate->project_id && ($project = Project::find($estimate->project_id))) {
+            $sdata = $project->stage_data ?? [];
+            $ids = $sdata['estimate']['estimate_ids'] ?? null;
+            if (is_array($ids)) {
+                $kept = collect($ids)->filter(fn ($v) => (int) $v !== (int) $estimate->id)->values()->all();
+                if (count($kept) !== count($ids)) {
+                    $sdata['estimate']['estimate_ids'] = $kept;
+                    $project->update(['stage_data' => $sdata]);
+                }
+            }
+        }
+
+        self::linkedSchedules($estimate)->each(function (Schedule $s) use ($estimate) {
+            $g = $s->request_data ?? [];
+            if (is_array($g['estimate_ids'] ?? null)) {
+                $g['estimate_ids'] = collect($g['estimate_ids'])
+                    ->filter(fn ($v) => (int) $v !== (int) $estimate->id)->values()->all();
+            }
+            if ((int) ($g['estimate_id'] ?? 0) === (int) $estimate->id) {
+                $g['estimate_id'] = ($g['estimate_ids'] ?? [])[0] ?? null;
+            }
+            if (empty($g['estimate_id'])) {
+                unset($g['estimate_id']);
+            }
+            if (empty($g['estimate_ids'])) {
+                unset($g['estimate_ids']);
+            }
+            $g = self::withRefund($g, $changed);
+            $s->update(['request_data' => $g]);
+        });
     }
 
     /**

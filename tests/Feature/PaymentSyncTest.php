@@ -463,6 +463,28 @@ class PaymentSyncTest extends TestCase
         $this->assertNull(ProjectBilling::where('estimate_id', $this->estimate->id)->first());
     }
 
+    public function test_deleting_estimate_cleans_project_and_calendar_links(): void
+    {
+        // 연동 청구 + 프로젝트 견적/계약 카드 + 캘린더 일정 연동 상태에서 삭제
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'product_items' => $this->estimate->product_items,
+        ])->assertOk();
+        $this->project->update(['stage_data' => ['estimate' => ['estimate_ids' => [$this->estimate->id, 999]]]]);
+        $schedule = $this->linkedSchedule();
+        $g = $schedule->request_data;
+        $g['estimate_ids'] = [$this->estimate->id];
+        $schedule->forceFill(['request_data' => $g])->save();
+
+        $this->actingAs($this->admin)->deleteJson("/api/estimates/{$this->estimate->id}")->assertOk();
+
+        // 미수 청구 삭제 + 견적/계약 카드에서 제거 (다른 id는 유지) + 일정 연동 해제
+        $this->assertNull(ProjectBilling::where('estimate_id', $this->estimate->id)->first());
+        $this->assertSame([999], data_get($this->project->fresh()->stage_data, 'estimate.estimate_ids'));
+        $sg = $schedule->fresh()->request_data;
+        $this->assertArrayNotHasKey('estimate_id', $sg);
+        $this->assertArrayNotHasKey('estimate_ids', $sg);
+    }
+
     public function test_payments_api_reports_unpaid_diff_when_estimate_grew_after_charge(): void
     {
         // 결제 기록(200,000) 후 견적서 총액이 250,000으로 커진 상황 — 차액 50,000 미결제 표시

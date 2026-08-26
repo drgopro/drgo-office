@@ -619,7 +619,11 @@
             @endphp
             <div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
             @foreach(($estimateData['estimate_ids'] ?? []) as $eid)
-                <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $estimateNos[$eid] ?? $eid }}</a>
+                @if(isset($estimateNos[$eid]))
+                    <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $estimateNos[$eid] }}</a>
+                @else
+                    <span style="color:var(--text-muted);">→ 삭제된 견적서</span>
+                @endif
             @endforeach
             </div>
             @if(!empty($estimateData['note']))
@@ -2943,7 +2947,9 @@ function renderPaymentHistory() {
                 ${!isCharge && p.refund_requested_at ? `<span>· 환불 요청 ${p.refund_requested_at}</span>` : ''}
                 ${!isCharge && p.refunded_at ? `<span>· 환불 완료 ${p.refunded_at}</span>` : ''}
                 ${p.method ? `<span>· ${_escPh(p.method)}</span>` : ''}
-                ${p.estimate_id ? `<a href="#" onclick="event.preventDefault(); window.open('/estimates/${p.estimate_id}/print', 'estimate_${p.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">· 📄 견적서 #${p.estimate_no || p.estimate_id} 보기</a>` : ''}
+                ${p.estimate_id ? (p.estimate_deleted
+                    ? `<span style="color:var(--text-muted);">· 📄 견적서(삭제됨)</span>`
+                    : `<a href="#" onclick="event.preventDefault(); window.open('/estimates/${p.estimate_id}/print', 'estimate_${p.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">· 📄 견적서 #${p.estimate_no || p.estimate_id} 보기</a>`) : ''}
                 ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
             </div>
             ${itemsHtml}

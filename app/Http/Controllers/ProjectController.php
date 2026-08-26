@@ -702,6 +702,7 @@ class ProjectController extends Controller
                 'type' => $r->type,
                 'estimate_id' => $r->estimate_id,
                 'estimate_no' => $r->estimate_id ? ($estimateNos[$r->estimate_id] ?? $r->estimate_id) : null,
+                'estimate_deleted' => $r->estimate_id && ! isset($linkedEstimates[$r->estimate_id]),
                 // 견적 총액과 결제 합계의 차액 (charge 행에만 의미) — 결제 후 견적서에 항목이 추가된 경우 표시용
                 'estimate_total' => $r->type === 'charge' && $r->estimate_id
                     ? (int) ($linkedEstimates[$r->estimate_id]->total_amount ?? 0) : null,
