@@ -108,6 +108,9 @@ class ShipmentController extends Controller
     public function refresh(Schedule $schedule): JsonResponse
     {
         $this->refreshPending($schedule->shipments());
+        if ($estimate = $this->linkedEstimate($schedule)) {
+            $this->refreshPending($estimate->shipments());
+        }
 
         return response()->json($this->serialize($schedule));
     }
@@ -137,10 +140,39 @@ class ShipmentController extends Controller
         return $this->serializeRows($estimate->shipments());
     }
 
-    /** @return array{shipments: array<int, array<string, mixed>>, carriers: array<string, string>} */
+    /**
+     * 일정 송장 + 연동 견적서(request_data.estimate_id) 송장 병합 — 송장 입력은 견적서
+     * 주문/배송으로 일원화하고 캘린더는 표시만 한다. 과거에 일정에 직접 등록한 송장은
+     * 그대로 보이되, 같은 택배사·송장번호가 견적서에도 있으면 견적서 쪽만 남긴다.
+     *
+     * @return array{shipments: array<int, array<string, mixed>>, carriers: array<string, string>, estimate_id?: int}
+     */
     private function serialize(Schedule $schedule): array
     {
-        return $this->serializeRows($schedule->shipments());
+        $data = $this->serializeRows($schedule->shipments());
+        $estimate = $this->linkedEstimate($schedule);
+        if (! $estimate) {
+            return $data;
+        }
+
+        $estRows = collect($this->serializeRows($estimate->shipments())['shipments'])
+            ->map(fn ($s) => $s + ['source' => 'estimate']);
+        $estKeys = $estRows->map(fn ($s) => $s['carrier'].'|'.$s['tracking_no'])->flip();
+        $ownRows = collect($data['shipments'])
+            ->filter(fn ($s) => ! $estKeys->has($s['carrier'].'|'.$s['tracking_no']))
+            ->map(fn ($s) => $s + ['source' => 'schedule']);
+
+        $data['shipments'] = $ownRows->concat($estRows)->values()->all();
+        $data['estimate_id'] = $estimate->id;
+
+        return $data;
+    }
+
+    private function linkedEstimate(Schedule $schedule): ?Estimate
+    {
+        $id = (int) data_get($schedule->request_data, 'estimate_id');
+
+        return $id ? Estimate::find($id) : null;
     }
 
     /**

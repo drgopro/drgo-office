@@ -61,13 +61,16 @@ function shipRowHtml(s){
         ? `<a class="ship-no ship-no-link" href="${trackHref}" target="_blank" rel="noopener" title="택배사 실시간 조회 열기" onclick="event.stopPropagation()">${_esc(s.tracking_no)} ↗</a>`
         : `<span class="ship-no">${_esc(s.tracking_no)}</span>`;
     const locHtml=s.last_location?`<span class="ship-loc" title="마지막 처리 사업장: ${_esc(s.last_location)}">📍 ${_esc(s.last_location)}</span>`:'';
+    // 견적서에서 등록된 송장 — 캘린더는 표시만 (삭제·수정은 견적서 주문/배송에서)
+    const fromEst=s.source==='estimate';
     return `<div class="ship-item">
         <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
         <span class="ship-carrier">${_esc(s.carrier_label)}</span>
         ${noHtml}
+        ${fromEst?'<span style="font-size:10px;color:var(--text-muted);border:1px solid var(--border);border-radius:3px;padding:0 4px;white-space:nowrap;" title="연동된 견적서의 주문/배송에서 등록된 송장">견적서</span>':''}
         ${locHtml}
         <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
-        <button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>
+        ${fromEst?'':`<button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>`}
     </div>`;
 }
 let shipIconOverride=null; // 현재 열린 일정의 수동 배송 아이콘 (null=제목에 표시 안 함)
@@ -129,7 +132,18 @@ function renderShipments(){
     const ships=shipCache.shipments||[];
     const done=ships.filter(s=>s.status==='delivered').length;
     if(badge) badge.textContent=ships.length?`(${done}/${ships.length} 완료)`:'';
-    list.innerHTML=ships.length?ships.map(shipRowHtml).join(''):'<div class="ship-empty">등록된 송장이 없습니다. 택배사와 송장번호를 입력해 추가하세요.</div>';
+    // 견적서 연동 일정 — 송장 입력은 견적서 주문/배송으로 일원화 (캘린더는 표시 전용)
+    const linkedEst=shipCache.estimate_id||null;
+    const addRow=document.getElementById('shipAddRow');
+    const estNote=document.getElementById('shipEstimateNote');
+    if(addRow) addRow.style.display=linkedEst?'none':'';
+    if(estNote){
+        estNote.style.display=linkedEst?'flex':'none';
+        const btn=document.getElementById('shipEstimateOpenBtn');
+        if(btn) btn.onclick=()=>window.open(`/estimates/${linkedEst}/shipments`,'est_ship_'+linkedEst,'width=900,height=720,scrollbars=yes,resizable=yes');
+    }
+    list.innerHTML=ships.length?ships.map(shipRowHtml).join('')
+        :`<div class="ship-empty">${linkedEst?'등록된 송장이 없습니다. 연동된 견적서의 주문/배송에서 입력하세요.':'등록된 송장이 없습니다. 택배사와 송장번호를 입력해 추가하세요.'}</div>`;
     updateModalShipBadge();
 }
 async function addShipment(){

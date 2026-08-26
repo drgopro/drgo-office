@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Estimate;
 use App\Models\Schedule;
 use App\Models\ScheduleShipment;
 use App\Models\User;
@@ -344,6 +345,54 @@ HTML;
         $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
         Http::assertSentCount(1);
         $this->assertSame('delivered', $old->fresh()->status); // fake 응답으로 완료 갱신됨
+    }
+
+    private function makeLinkedEstimate(Schedule $schedule): Estimate
+    {
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'service_total' => 0, 'total_amount' => 0,
+            'validity_days' => 3, 'created_by' => $schedule->created_by,
+        ]);
+        $schedule->forceFill(['request_data' => ['estimate_id' => $estimate->id]])->save();
+
+        return $estimate;
+    }
+
+    public function test_schedule_shipments_include_linked_estimate_shipments(): void
+    {
+        config(['services.delivery_tracker.url' => null]);
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        $estimate = $this->makeLinkedEstimate($schedule);
+
+        // 견적서 송장 + 일정에 직접 등록된 과거 송장 + 양쪽 중복 송장
+        $estimate->shipments()->create(['carrier' => 'kr.cjlogistics', 'tracking_no' => '111111111111', 'status' => 'in_transit']);
+        $schedule->shipments()->create(['carrier' => 'kr.lotte', 'tracking_no' => '222222222222', 'status' => 'pending']);
+        $schedule->shipments()->create(['carrier' => 'kr.cjlogistics', 'tracking_no' => '111111111111', 'status' => 'pending']); // 중복 — 견적서 쪽만 남음
+
+        $data = $this->actingAs($user)->getJson("/api/schedules/{$schedule->id}/shipments")->assertOk()->json();
+
+        $this->assertSame($estimate->id, $data['estimate_id']);
+        $this->assertCount(2, $data['shipments']);
+        $bySource = collect($data['shipments'])->keyBy('source');
+        $this->assertSame('222222222222', $bySource['schedule']['tracking_no']);
+        $this->assertSame('111111111111', $bySource['estimate']['tracking_no']);
+    }
+
+    public function test_schedule_refresh_also_refreshes_estimate_shipments(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+
+        $user = User::factory()->create(['role' => 'master']);
+        $schedule = $this->makeSchedule();
+        $estimate = $this->makeLinkedEstimate($schedule);
+        $shipment = $estimate->shipments()->create(['carrier' => 'kr.cjlogistics', 'tracking_no' => '333333333333', 'status' => 'in_transit']);
+
+        $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments/refresh")->assertOk();
+
+        $this->assertSame('delivered', $shipment->fresh()->status);
     }
 
     public function test_delete_shipment(): void
