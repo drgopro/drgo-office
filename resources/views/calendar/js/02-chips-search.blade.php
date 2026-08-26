@@ -77,7 +77,7 @@ function closeCalSearch(){
     document.querySelector('.cal-header')?.classList.remove('searching');
 }
 // Enter → 검색 결과를 목록 뷰로 표시
-let agendaSearchQuery=null, agendaSearchResults=[];
+let agendaSearchQuery=null, agendaSearchResults=[], preSearchView=null; // 검색 전 보던 뷰 — 초기화 시 복귀
 async function openSearchListView(){
     const q=document.getElementById('calSearchInput').value.trim();
     if(!q) return;
@@ -88,13 +88,17 @@ async function openSearchListView(){
         if(!res.ok) return;
         agendaSearchResults=await res.json();
     }catch(e){ return; }
-    if(currentView!=='list') switchView('list'); // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
+    if(currentView!=='list'){ preSearchView=currentView; switchView('list'); } // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
     agendaSearchQuery=q;
     renderAgenda();
 }
+// 검색 초기화 — 검색어를 지우고 검색 전에 보던 뷰(월/주/일 등)로 돌아가 전체 일정 표시
 function clearAgendaSearch(){
     agendaSearchQuery=null; agendaSearchResults=[];
     const inp=document.getElementById('calSearchInput'); if(inp) inp.value='';
+    const clr=document.getElementById('calSearchClear'); if(clr) clr.classList.remove('show');
+    const back=preSearchView; preSearchView=null;
+    if(back&&back!=='list'){ switchView(back); return; } // switchView가 renderView+loadEvents 수행
     renderView(); loadEvents();
 }
 // 검색 결과 항목 클릭 → 상세 API로 전체 데이터 로드 후 모달 오픈
@@ -114,7 +118,7 @@ function renderAgendaSearch(){
     const list=agendaSearchResults;
     let html=`<div class="agenda-search-head">
         <span>🔍 <b>"${_esc(agendaSearchQuery)}"</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
-        <button type="button" class="ship-mini-btn" onclick="clearAgendaSearch()">✕ 검색 해제</button>
+        <button type="button" class="ship-mini-btn primary" onclick="clearAgendaSearch()" title="검색을 끝내고 전체 일정으로 돌아갑니다">✕ 검색 초기화</button>
     </div>`;
     if(!list.length){
         html+='<div class="agenda-empty">검색 결과가 없습니다.</div>';
