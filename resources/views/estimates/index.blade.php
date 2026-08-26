@@ -194,7 +194,16 @@ async function createEstimate() {
 }
 
 function openEstimate(id) {
-    window.open(`/estimates/${id}/edit`, `estimate_${id}`, 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    // 마지막으로 닫은 빌더 창 크기로 열기 (빌더 페이지가 localStorage에 저장) — 화면보다 크면 화면에 맞춤
+    let w = 1200, h = 800;
+    try {
+        const s = JSON.parse(localStorage.getItem('estWinSize') || 'null');
+        if (s && s.w >= 600 && s.h >= 400) {
+            w = Math.min(s.w, screen.availWidth || s.w);
+            h = Math.min(s.h, screen.availHeight || s.h);
+        }
+    } catch (e) {}
+    window.open(`/estimates/${id}/edit`, `estimate_${id}`, `width=${w},height=${h},scrollbars=yes,resizable=yes`);
 }
 
 async function deleteEstimate(id) {

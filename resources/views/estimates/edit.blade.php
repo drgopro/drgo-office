@@ -1202,6 +1202,15 @@ async function autoSaveDraft() {
 }
 setInterval(autoSaveDraft, 60000);
 
+// === 창 크기 기억 — 다음에 견적서를 열 때 마지막 크기로 (목록의 openEstimate가 읽음) ===
+(function rememberWindowSize() {
+    const save = () => { try { localStorage.setItem('estWinSize', JSON.stringify({ w: window.outerWidth, h: window.outerHeight })); } catch (e) {} };
+    let t = null;
+    window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(save, 400); });
+    window.addEventListener('beforeunload', save);
+    save();
+})();
+
 async function loadDraft() {
     const res = await fetch(`/api/estimates/${estId}/draft`, {headers:{'Accept':'application/json'}});
     const d = res.ok ? await res.json() : {};
