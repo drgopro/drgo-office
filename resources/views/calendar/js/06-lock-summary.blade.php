@@ -116,8 +116,8 @@ function renderLockSummary(){
         ? `${sDate} (종일)`
         : `${sDate}${eDate&&eDate!==sDate?' ~ '+eDate:''}  ${sTime} ~ ${eTime}`;
 
-    // 이사세팅 출발지
-    const isMove = color==='gold' && getMultiRadio('g_req_topic_group').includes('이사세팅');
+    // 출발지 입력 (이사세팅 등) — 토글 상태 기준 (복원 시 데이터·이사세팅 체크로 자동 켜짐)
+    const isMove = color==='gold' && !!document.getElementById('moveFromToggle')?.checked;
     const mfLoc = [_val('moveFromLocation'), _val('moveFromDetail')].filter(Boolean).join(' ');
     const mfAddr = document.getElementById('moveFromAddress')?.value || '';
 

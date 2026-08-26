@@ -140,11 +140,13 @@ function schedStatusChip(ev){
     if(!ev||!ev.sched_opt||!SCHED_CHIP_LABELS[ev.sched_opt]) return '';
     return optChip(SCHED_CHIP_LABELS[ev.sched_opt],(ev.sched_opt==='confirmed'?'confirmed':'accent')+' sched-end',SCHED_FULL_LABELS[ev.sched_opt]);
 }
-// 이사세팅 여부
+// 출발지/도착지 표시 여부 — 이사세팅 체크 또는 출발지 데이터가 저장된 일정
 function isMoveSetting(ev){
     if(!ev || ev.color!=='gold') return false;
-    const rt=(ev.request_data&&ev.request_data.req_topic)||'';
-    return rt.split(',').map(s=>s.trim()).includes('이사세팅');
+    const g=ev.request_data||{};
+    const rt=g.req_topic||'';
+    if(rt.split(',').map(s=>s.trim()).includes('이사세팅')) return true;
+    return !!(g.move_from_location||g.move_from_address||g.move_no_from);
 }
 // 이사세팅 출발/도착 2줄 HTML (리스트용) — 이사세팅 아닐 땐 빈 문자열
 function moveAddrLinesHtml(ev){

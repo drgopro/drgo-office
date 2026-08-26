@@ -48,8 +48,10 @@ function resetModalForm(){
     shipIconOverride=null; renderShipIconButtons();
     // 3뎁스 세팅 항목 선택 초기화
     reqItems=[]; projReqItems=[]; projReqLoadedFor=null; renderReqView();
-    // 이사세팅 출발지 상태 초기화
-    { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle(); }
+    // 출발지 입력 상태 초기화
+    { const nf=document.getElementById('moveNoFrom'); if(nf) nf.checked=false; onMoveNoFromToggle();
+      const tg=document.getElementById('moveFromToggle'); if(tg) tg.checked=false;
+      if(typeof __prevMoveTopic!=='undefined') __prevMoveTopic=false; }
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display='');
     document.getElementById('notifSelect').value='60';
     // 반복 UI 초기화 (체크 해제 상태로, 편집 시 loadEventToModal이 그룹 소속이면 숨김)
@@ -587,6 +589,9 @@ function openEditModal(ev){
         const noFrom=document.getElementById('moveNoFrom');
         if(noFrom){ noFrom.checked = !!g.move_no_from; }
         onMoveNoFromToggle();
+        // 출발지 데이터가 있으면 토글 복원 (이사세팅 체크 복원 시에는 syncMoveToggleWithTopic이 이미 켬)
+        const tg=document.getElementById('moveFromToggle');
+        if(tg&&(mfRoad||mfLoc||g.move_no_from)) tg.checked=true;
     }
     updateMoveSettingUI();
     // 구버전 일정은 특이사항이 special_note 컬럼에만 있음 — 폴백 표시 (재저장 시 request_data로 이관됨)

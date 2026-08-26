@@ -228,9 +228,9 @@ function handleConditional(gid){
         const hasMatch=[...g.querySelectorAll('.radio-btn.active')].some(b=>triggerVals.includes(b.dataset.val));
         wrap.classList.toggle('visible',hasMatch);
     }
-    // 의뢰주제 이사세팅 → 출발지/도착지 UI
+    // 의뢰주제 이사세팅 체크/해제 → 출발지 입력 토글 동기화 (토글은 수동으로도 켜고 끌 수 있음)
     if(gid==='g_req_topic_group'){
-        updateMoveSettingUI();
+        syncMoveToggleWithTopic();
     }
     // (배송완료 O/X 필드는 제거됨 — 제목 배송 아이콘 수동 지정으로 대체)
     // 잔금 O → 금액

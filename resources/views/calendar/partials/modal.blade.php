@@ -84,7 +84,13 @@
             {{-- 장소 (이사세팅 시 '도착지'로 라벨 전환) --}}
             <div class="field-section" id="addressBlock">
                 <div class="field-group">
-                    <label class="field-label" for="modalLocation"><span id="addrBlockLabel">장소</span> <span class="req" id="addrReqMark">*</span></label>
+                    <label class="field-label" for="modalLocation" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                        <span><span id="addrBlockLabel">장소</span> <span class="req" id="addrReqMark">*</span></span>
+                        {{-- 출발지 입력 토글 — 이사세팅·프로젝트 연동과 무관하게 출발지/도착지 입력 (방문의뢰 전용) --}}
+                        <label id="moveFromToggleWrap" style="display:none;align-items:center;gap:5px;font-weight:400;font-size:12px;color:var(--text-muted);cursor:pointer;" title="체크하면 출발지 입력칸이 열리고 이 장소는 '도착지'가 됩니다 (이사세팅 시 자동 체크)">
+                            <input type="checkbox" id="moveFromToggle" onchange="updateMoveSettingUI()"> 🚚 출발지 입력
+                        </label>
+                    </label>
                     <div class="location-input-wrap">
                         <textarea class="field-input field-textarea" id="modalLocation" placeholder="주소 검색 버튼으로 입력하세요" autocomplete="off" rows="2" readonly onclick="searchCalAddr()" style="min-height:40px;resize:none;cursor:pointer;background:var(--surface2);"></textarea>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">

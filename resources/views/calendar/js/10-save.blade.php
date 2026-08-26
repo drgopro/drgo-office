@@ -45,10 +45,10 @@ function collectGoldFields(){
         client_id:linkedClientId,
         // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
         project_id:(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,
-        // 이사세팅 출발지 (도착지는 기존 address/location 사용). '출발지 없음' 체크 시 빈 값
-        move_no_from:document.getElementById('moveNoFrom')?.checked||false,
-        move_from_address:document.getElementById('moveNoFrom')?.checked?'':(document.getElementById('moveFromAddress')?.value.trim()||''),
-        move_from_location:document.getElementById('moveNoFrom')?.checked?'':[document.getElementById('moveFromLocation')?.value.trim(),document.getElementById('moveFromDetail')?.value.trim()].filter(Boolean).join(' '),
+        // 출발지 (도착지는 기존 address/location 사용). 토글 꺼짐/'출발지 없음' 체크 시 빈 값
+        move_no_from:(document.getElementById('moveFromToggle')?.checked&&document.getElementById('moveNoFrom')?.checked)||false,
+        move_from_address:(!document.getElementById('moveFromToggle')?.checked||document.getElementById('moveNoFrom')?.checked)?'':(document.getElementById('moveFromAddress')?.value.trim()||''),
+        move_from_location:(!document.getElementById('moveFromToggle')?.checked||document.getElementById('moveNoFrom')?.checked)?'':[document.getElementById('moveFromLocation')?.value.trim(),document.getElementById('moveFromDetail')?.value.trim()].filter(Boolean).join(' '),
     };
 }
 function collectTealFields(){
@@ -270,14 +270,29 @@ function onMoveNoFromToggle(){
         ['moveFromLocation','moveFromDetail','moveFromAddress'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     }
 }
-// 의뢰주제=이사세팅 → 출발지 블록 노출 + 기존 주소 라벨을 '도착지'로
+// 출발지 입력 토글 → 출발지 블록 노출 + 기존 주소 라벨을 '도착지'로.
+// 이사세팅·프로젝트 연동과 무관하게 방문의뢰(gold)면 언제든 켤 수 있고,
+// 의뢰 주제에서 이사세팅을 체크/해제하면 토글도 함께 켜지고 꺼진다 (수동 변경 가능).
+let __prevMoveTopic=false;
 function updateMoveSettingUI(){
-    const isMove = currentColor==='gold' && getMultiRadio('g_req_topic_group').includes('이사세팅');
+    const isGold=currentColor==='gold';
+    const tw=document.getElementById('moveFromToggleWrap');
+    if(tw) tw.style.display=isGold?'inline-flex':'none';
+    const tg=document.getElementById('moveFromToggle');
+    const isMove = isGold && !!(tg&&tg.checked);
     const mb=document.getElementById('moveFromBlock');
     const lbl=document.getElementById('addrBlockLabel');
     if(mb) mb.style.display=isMove?'':'none';
-    // 이사세팅이면 항상 '도착지 (이사 후 장소)' — 출발지 유무와 무관
+    // 출발지 입력 중이면 항상 '도착지 (이사 후 장소)' — 출발지 유무와 무관
     if(lbl) lbl.textContent=isMove?'도착지 (이사 후 장소)':'장소';
+}
+// 의뢰 주제의 이사세팅 체크 변화 → 출발지 토글 동기화 (사용자가 토글을 따로 조작한 경우는 유지)
+function syncMoveToggleWithTopic(){
+    const nowMove=getMultiRadio('g_req_topic_group').includes('이사세팅');
+    const tg=document.getElementById('moveFromToggle');
+    if(tg&&nowMove!==__prevMoveTopic) tg.checked=nowMove;
+    __prevMoveTopic=nowMove;
+    updateMoveSettingUI();
 }
 
 // ── 라디오 그룹 초기화 ──
