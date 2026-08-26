@@ -330,6 +330,22 @@ class PaymentSyncTest extends TestCase
         $this->assertSame('200,000', data_get($schedule->fresh()->request_data, 'estimate_refund'));
     }
 
+    public function test_payments_api_exposes_estimate_display_no(): void
+    {
+        // 실제 id와 표시 번호가 다른 견적서 — 화면에는 표시 번호로 통일
+        $this->estimate->forceFill(['estimate_no' => 46])->save();
+        ProjectPayment::create([
+            'project_id' => $this->project->id, 'type' => 'charge', 'estimate_id' => $this->estimate->id,
+            'amount' => 250000, 'paid_at' => now()->toDateString(), 'recorded_by' => $this->admin->id,
+        ]);
+
+        $row = $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/payments")
+            ->assertOk()->json('payments.0');
+        $this->assertSame($this->estimate->id, $row['estimate_id']);
+        $this->assertSame(46, $row['estimate_no']);
+    }
+
     public function test_public_estimate_view_shows_refund_details(): void
     {
         $items = $this->estimate->product_items;

@@ -612,9 +612,14 @@
                 <span>📝 견적/계약</span>
                 <button type="button" onclick="openEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
             </div>
+            @php
+                // 표시 번호(#display_no)로 통일 — 실제 id는 링크에만 사용
+                $estimateNos = \App\Models\Estimate::whereIn('id', $estimateData['estimate_ids'] ?? [])
+                    ->get()->pluck('display_no', 'id');
+            @endphp
             <div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
             @foreach(($estimateData['estimate_ids'] ?? []) as $eid)
-                <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $eid }}</a>
+                <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $estimateNos[$eid] ?? $eid }}</a>
             @endforeach
             </div>
             @if(!empty($estimateData['note']))
@@ -2938,7 +2943,7 @@ function renderPaymentHistory() {
                 ${!isCharge && p.refund_requested_at ? `<span>· 환불 요청 ${p.refund_requested_at}</span>` : ''}
                 ${!isCharge && p.refunded_at ? `<span>· 환불 완료 ${p.refunded_at}</span>` : ''}
                 ${p.method ? `<span>· ${_escPh(p.method)}</span>` : ''}
-                ${p.estimate_id ? `<a href="#" onclick="event.preventDefault(); window.open('/estimates/${p.estimate_id}/print', 'estimate_${p.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">· 📄 견적서 #${p.estimate_id} 보기</a>` : ''}
+                ${p.estimate_id ? `<a href="#" onclick="event.preventDefault(); window.open('/estimates/${p.estimate_id}/print', 'estimate_${p.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">· 📄 견적서 #${p.estimate_no || p.estimate_id} 보기</a>` : ''}
                 ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
             </div>
             ${itemsHtml}

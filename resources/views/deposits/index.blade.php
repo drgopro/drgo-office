@@ -435,13 +435,13 @@ async function loadPayapp() {
         <td style="font-weight:600;">${clientHtml(d)}${d.client_phone ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.client_phone)}</span>` : ''}
             ${d.source === 'payapp'
                 ? `<span class="pa-badge" style="background:#eef0f3;color:#475569;margin-left:6px;">페이앱 자체</span>${d.goodname ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.goodname)}</span>` : ''}`
-                : `<span class="text-muted" style="font-weight:400;">· 견적서 #${d.id}</span>`}${payIdHtml(d)}</td>
+                : `<span class="text-muted" style="font-weight:400;">· 견적서 #${d.no ?? d.id}</span>`}${payIdHtml(d)}</td>
         <td class="text-muted">${d.paid_at ? fmtDt(d.paid_at) : '-'}</td>
         <td>${linkHtml(d)}</td>
     </tr>`).join('');
     cards.innerHTML = data.map(d => `<div class="mob-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-            <div class="mob-card-title">${clientHtml(d) || (d.source === 'payapp' ? _esc(d.goodname||'페이앱 결제') : '견적서 #'+d.id)}</div>
+            <div class="mob-card-title">${clientHtml(d) || (d.source === 'payapp' ? _esc(d.goodname||'페이앱 결제') : '견적서 #'+(d.no ?? d.id))}</div>
             <div class="amt">${fmt(d.amount)}원</div>
         </div>
         <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">

@@ -245,6 +245,8 @@ class BankDepositController extends Controller
                 return [
                     'source' => 'estimate',
                     'id' => $e->id,
+                    'no' => $e->display_no, // 화면 표시용 견적서 번호 — 목록과 동일
+
                     'client_name' => $e->client_name ?: $e->client_nickname,
                     'client_nickname' => $e->client_nickname,
                     'client_phone' => $e->client_phone,

@@ -225,9 +225,9 @@ function renderEstimateList(list){
         const date=e.created_at?(e.created_at.substring(0,10)):'';
         const name=e.client_nickname||e.client_name||'(이름없음)';
         return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-            <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectEstimate(${e.id},'${name.replace(/'/g,"\\'")}',${e.total_amount||0})">
+            <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectEstimate(${e.id},'${name.replace(/'/g,"\\'")}',${e.total_amount||0},${e.display_no??e.id})">
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <span style="font-size:13px;font-weight:600;">#${e.id}</span>
+                    <span style="font-size:13px;font-weight:600;">#${e.display_no??e.id}</span>
                     <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
                     <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
                 </div>
@@ -261,9 +261,9 @@ function searchEstimates(query){
         document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);
     },300);
 }
-function selectEstimate(id,name,amount){
+function selectEstimate(id,name,amount,no){
     linkedEstimateId=id;
-    document.getElementById('linkedEstimateTitle').textContent=`#${id} ${name}`;
+    document.getElementById('linkedEstimateTitle').textContent=`#${no??id} ${name}`;
     document.getElementById('linkedEstimateInfo').style.display='';
     if(amount) document.getElementById('g_estimate_amount').value=amount.toLocaleString();
     document.getElementById('estimateSearchOverlay').style.display='none';
@@ -273,16 +273,31 @@ function openLinkedEstimate(){
     if(!linkedEstimateId) return;
     window.open(`/estimates/${linkedEstimateId}/print`,'estimate_print','width=900,height=700,scrollbars=yes,resizable=yes');
 }
-// 연동 견적서 총액 조회 — 검색 API에서 id로 찾음 (estimate_id가 문자열로 저장된 구데이터 대비 느슨 비교)
-async function fetchLinkedEstimateTotal(){
+// 연동 견적서 조회 — 검색 API에서 id로 찾음 (estimate_id가 문자열로 저장된 구데이터 대비 느슨 비교)
+async function fetchLinkedEstimate(){
     if(!linkedEstimateId) return null;
     try{
         const res=await fetch(`/api/estimates?search=${linkedEstimateId}`);
         if(!res.ok) return null;
         const data=await res.json();const list=data.data||data;
-        const est=(list||[]).find(e=>e.id==linkedEstimateId);
-        return est&&est.total_amount?Number(est.total_amount):null;
+        return (list||[]).find(e=>e.id==linkedEstimateId)||null;
     }catch(e){ return null; }
+}
+async function fetchLinkedEstimateTotal(){
+    const est=await fetchLinkedEstimate();
+    return est&&est.total_amount?Number(est.total_amount):null;
+}
+// 기존 일정 복원 시 연동 라벨을 실제 id 대신 목록과 같은 표시 번호(#display_no)로 갱신
+async function refreshLinkedEstimateLabel(){
+    const targetId=linkedEstimateId;
+    const est=await fetchLinkedEstimate();
+    if(!est||String(linkedEstimateId)!==String(targetId)) return;
+    const el=document.getElementById('linkedEstimateTitle');
+    if(el){
+        const name=est.client_nickname||est.client_name||'';
+        el.textContent=`#${est.display_no??est.id}${name?' '+name:''}`;
+        if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+    }
 }
 function _setEstimateStatus(msg){
     const st=document.getElementById('g_estimate_status');

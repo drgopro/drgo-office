@@ -654,6 +654,10 @@ class ProjectController extends Controller
             }
         }
 
+        // 화면 표시용 견적서 번호 — 실제 id 대신 목록과 동일한 표시 번호(#display_no)로 통일
+        $estimateNos = Estimate::whereIn('id', $rows->pluck('estimate_id')->filter()->unique())
+            ->get()->pluck('display_no', 'id');
+
         return response()->json([
             'payments' => $rows->map(fn ($r) => [
                 'id' => $r->id,
@@ -661,6 +665,7 @@ class ProjectController extends Controller
                 'billing_id' => $r->billing_id,
                 'type' => $r->type,
                 'estimate_id' => $r->estimate_id,
+                'estimate_no' => $r->estimate_id ? ($estimateNos[$r->estimate_id] ?? $r->estimate_id) : null,
                 'amount' => $r->amount,
                 'items' => $r->items ?? [],
                 'method' => $r->method,
