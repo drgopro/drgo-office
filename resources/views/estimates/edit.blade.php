@@ -99,6 +99,11 @@
         .btn-order:hover { background:#eef7ee; }
         .btn-order.cancel { border-color:#c9d2dc; color:var(--text-muted); }
         .btn-order.cancel:hover { border-color:var(--red); color:var(--red); background:var(--surface); }
+        /* 직접발송(사무실 발송) — 주문완료(초록)와 시각 구분되는 주황 계열 */
+        .btn-order.direct { border-color:#e0a04a; color:#d78a2e; }
+        .btn-order.direct:hover { background:#fdf3e5; }
+        .name-ordered.direct { background:#fdeeda; }
+        .office-ship-badge { font-size:10.5px; color:#d78a2e; border:1px solid #e0a04a; border-radius:3px; padding:0 5px; }
         #orderModeBtn.mode-on { background:var(--navy); color:#fff; border-color:var(--navy); }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
         .cart-subtotal td { background:#f2f4f6; font-size:14px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
@@ -721,7 +726,7 @@ function renderCart() {
                 ? (item.ordered
                     ? `<button class="btn-order cancel" onclick="toggleOrdered(${idx})" title="주문완료 표시 해제">취소</button>`
                     : `<button class="btn-order" onclick="toggleOrdered(${idx})">주문완료</button>
-                       <button class="btn-order" onclick="directShip(${idx})" title="사무실에서 발송하는 제품 — 주문완료 + 구매처 '사무실 발송' 자동 기록" style="margin-top:3px;">직접발송</button>`)
+                       <button class="btn-order direct" onclick="directShip(${idx})" title="사무실에서 발송하는 제품 — 주문완료 + 구매처 '사무실 발송' 자동 기록" style="margin-top:3px;">직접발송</button>`)
                 : `<button class="btn-remove" onclick="removeItem(${idx})">×</button>`;
             // 주문/배송 뷰 전용 — 제품 메모를 제품명 아래 회색으로 (스냅샷에 저장하지 않아 출력물 미노출)
             const prodMemo = orderMode && item.product_id ? (allProds.find(x => x.id === item.product_id)?.memo || '') : '';
@@ -729,7 +734,7 @@ function renderCart() {
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:12px; color:var(--text-muted); ${orderMode ? '' : 'cursor:pointer;'}" ${orderMode ? '' : `onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)"`}>${item.category||''}</td>
-                <td class="cell-name"><span class="${item.ordered ? 'name-ordered' : ''}" ${item.ordered ? 'title="주문완료"' : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span style="font-size:10.5px; color:var(--navy); border:1px solid var(--slate); border-radius:3px; padding:0 5px;" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}</td>
+                <td class="cell-name"><span class="${item.ordered ? 'name-ordered' + (item.purchase_source === '사무실 발송' ? ' direct' : '') : ''}" ${item.ordered ? `title="${item.purchase_source === '사무실 발송' ? '직접발송 (사무실 발송)' : '주문완료'}"` : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>${qtyCell}</td>
@@ -748,10 +753,10 @@ function renderCart() {
                     const bBtns = !orderMode ? '' : item.ordered ? '' : (b.ordered
                         ? `<button class="btn-order cancel" onclick="toggleBundleOrdered(${idx},${bIdx})" title="구성품 주문완료 해제">취소</button>`
                         : `<button class="btn-order" onclick="toggleBundleOrdered(${idx},${bIdx})">주문완료</button>
-                           <button class="btn-order" onclick="bundleDirectShip(${idx},${bIdx})" title="사무실에서 발송 — 주문완료 + 구매처 '사무실 발송' 기록" style="margin-top:3px;">직접발송</button>`);
+                           <button class="btn-order direct" onclick="bundleDirectShip(${idx},${bIdx})" title="사무실에서 발송 — 주문완료 + 구매처 '사무실 발송' 기록" style="margin-top:3px;">직접발송</button>`);
                     return `<tr class="bundle-sub" data-gidx="${gIdx}">
                         <td></td><td></td>
-                        <td><span class="${bOrdered ? 'name-ordered' : ''}" ${bOrdered ? `title="${item.ordered ? '세트 주문완료' : '구성품 주문완료'}"` : ''}>└ ${_escE(b.name)}</span>${b.source ? ` <span style="font-size:10.5px; color:var(--navy); border:1px solid var(--slate); border-radius:3px; padding:0 4px;" title="구성품 구매처">${_escE(b.source)}</span>` : ''}${(b.refund_qty>0||b.refund_amount>0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="구성품 부분환불">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : ''}${orderMode && b.memo ? `<div style="font-size:11.5px; color:var(--text-muted); font-weight:400; margin-top:2px; white-space:pre-line;">${_escE(b.memo)}</div>` : ''}</td>
+                        <td><span class="${bOrdered ? 'name-ordered' + (b.source === '사무실 발송' ? ' direct' : '') : ''}" ${bOrdered ? `title="${b.source === '사무실 발송' ? '직접발송 (사무실 발송)' : (item.ordered ? '세트 주문완료' : '구성품 주문완료')}"` : ''}>└ ${_escE(b.name)}</span>${b.source ? ` <span class="office-ship-badge" title="구성품 구매처">${_escE(b.source)}</span>` : ''}${(b.refund_qty>0||b.refund_amount>0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="구성품 부분환불">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : ''}${orderMode && b.memo ? `<div style="font-size:11.5px; color:var(--text-muted); font-weight:400; margin-top:2px; white-space:pre-line;">${_escE(b.memo)}</div>` : ''}</td>
                         <td></td>
                         <td class="text-right">${price ? fmt(price) + '원' : ''}</td>
                         <td><span class="bs-qty" style="padding-left:6px;" title="세트당 ${b.qty}개 × 세트 ${item.qty}개">${totQty}</span></td>

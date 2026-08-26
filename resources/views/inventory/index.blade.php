@@ -78,6 +78,7 @@
     .badge-set { background:color-mix(in srgb, var(--accent2, #90bcd4) 18%, transparent); color:var(--accent2, #6a9cc0); cursor:help; }
     .badge-requested { background:#2a2010; color:var(--accent); } .badge-approved { background:#1a1a2a; color:#8ab4c8; }
     .badge-ordered { background:#2a1a2a; color:#9b70c8; } .badge-received { background:#1a2a1a; color:#7ac87a; }
+    .badge-direct { background:#2a2010; color:#e0a04a; } /* 직접발송(사무실 발송) — 주문완료(초록)와 구분되는 주황 */
     .badge-cancelled { background:var(--surface2); color:var(--text-muted); }
     /* 옵션 그룹 행의 '옵션 N종' — 상품명을 가리지 않도록 무채색 */
     .badge-optcount { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:600; }
@@ -145,6 +146,7 @@
     [data-theme="light"] .badge-requested { background:#fff3e0; color:#a06800; }
     [data-theme="light"] .badge-approved  { background:#e0f0ff; color:#2e6a9a; }
     [data-theme="light"] .badge-ordered   { background:#f0e8ff; color:#5c2e90; }
+    [data-theme="light"] .badge-direct    { background:#fdeeda; color:#b06a10; }
     [data-theme="light"] .badge-received  { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .badge-cancelled { background:#e8eaef; color:#5a6070; }
     /* 입력/테이블 라이트모드 */
@@ -1837,7 +1839,11 @@ function renderOrders() {
                 const bundleLine = (it.bundle_items||[]).length
                     ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:normal;">세트 구성:${it.bundle_items.map((b,bi)=>{
                         const bRef = b.refund_qty>0||b.refund_amount>0;
-                        const ordBadge = b.ordered ? ' <span class="badge badge-ordered" style="font-size:10px;" title="구성품 주문완료">주문완료</span>' : '';
+                        const ordBadge = b.ordered
+                            ? (b.source === '사무실 발송'
+                                ? ' <span class="badge badge-direct" style="font-size:10px;" title="사무실에서 직접 발송">직접발송</span>'
+                                : ' <span class="badge badge-ok" style="font-size:10px;" title="구성품 주문완료">주문완료</span>')
+                            : '';
                         const badge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
                         const ctrl = o.type==='estimate'
                             ? `<input class="ob-src field-input" value="${_esc(b.source)}" placeholder="구매처" maxlength="100" style="width:110px; padding:3px 6px; font-size:11px; margin-left:8px;" title="구성품 구매처 — 직접발송이면 '사무실 발송'" onclick="event.stopPropagation()"
