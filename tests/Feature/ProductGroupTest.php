@@ -178,6 +178,46 @@ class ProductGroupTest extends TestCase
         $this->assertSame($otherGroup->id, $other->fresh()->group_id);
     }
 
+    public function test_group_creation_rejects_already_grouped_product(): void
+    {
+        $group = $this->makeGroup();
+        $solo = Product::create([
+            'sku' => 'MIC-001', 'name' => '단독 마이크', 'category' => '오디오',
+            'purchase_price' => 10000, 'sale_price' => 20000,
+            'is_active' => true, 'show_in_estimate' => true,
+        ]);
+
+        // 이미 그룹에 속한 블랙을 새 그룹으로 가져오려 하면 거부
+        $this->actingAs($this->admin)->postJson('/api/inventory/product-groups', [
+            'name' => '새 그룹',
+            'items' => [
+                ['id' => $this->black->id, 'option_name' => '블랙'],
+                ['id' => $solo->id, 'option_name' => '마이크'],
+            ],
+        ])->assertUnprocessable();
+
+        $this->assertSame(1, ProductGroup::count());
+        $this->assertSame($group->id, $this->black->fresh()->group_id);
+        $this->assertNull($solo->fresh()->group_id);
+    }
+
+    public function test_products_group_id_filter_returns_only_members(): void
+    {
+        $group = $this->makeGroup();
+        Product::create([
+            'sku' => 'MIC-001', 'name' => '단독 마이크', 'category' => '오디오',
+            'purchase_price' => 10000, 'sale_price' => 20000,
+            'is_active' => true, 'show_in_estimate' => true,
+        ]);
+
+        $rows = $this->actingAs($this->admin)
+            ->getJson("/api/inventory/products?per_page=200&group_id={$group->id}")
+            ->assertOk()->json('data');
+        $skus = array_column($rows, 'sku');
+        sort($skus);
+        $this->assertSame(['CAM-001', 'CAM-002'], $skus);
+    }
+
     public function test_products_sort_by_header_key(): void
     {
         // 판매가 내림차순 — 화이트(160,000)가 블랙(150,000)보다 먼저

@@ -477,6 +477,11 @@
             <div id="gItems" style="display:flex; flex-direction:column; gap:6px;"></div>
             <div id="gItemsNote" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.</div>
         </div>
+        <div class="field-group">
+            <div class="field-label">제품 검색해서 추가</div>
+            <input class="field-input" id="gSearch" placeholder="제품명·SKU로 검색" autocomplete="off" oninput="searchGroupCandidates()">
+            <div id="gSearchResults" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-height:180px; overflow-y:auto;"></div>
+        </div>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('groupModal')">취소</button>
             <button class="btn-save" id="groupSaveBtn" onclick="saveProductGroup()">그룹 만들기</button>
@@ -1327,32 +1332,86 @@ function _groupItemRow(p, optVal, extra = '') {
     </div>`;
 }
 function openGroupModal() {
-    if (prodSelection.size < 2) return alert('그룹으로 묶을 제품을 2개 이상 선택해주세요.');
+    if (prodSelection.size < 1) return alert('그룹으로 묶을 제품을 선택해주세요. (아래 검색으로 더 추가할 수 있습니다)');
     const items = [...prodSelection].map(id => allProducts.find(p => p.id === id)).filter(Boolean);
     if (items.some(p => p.group)) return alert('이미 그룹에 속한 제품이 포함돼 있습니다. 먼저 그룹을 해제해주세요.');
     __editGroupId = null;
     document.getElementById('groupModalTitle').textContent = '옵션 그룹으로 묶기';
     document.getElementById('groupSaveBtn').textContent = '그룹 만들기';
-    document.getElementById('gItemsNote').textContent = '재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.';
+    document.getElementById('gItemsNote').textContent = '재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다. 다른 제품은 아래 검색으로 찾아 추가하세요.';
     // 그룹명 제안: 첫 제품명에서 색상어 제거 없이 그대로 (수정 가능)
     document.getElementById('gName').value = items[0]?.name || '';
     document.getElementById('gItems').innerHTML = items.map(p => _groupItemRow(p, '')).join('');
+    resetGroupSearch();
     openModal('groupModal');
 }
-// 그룹 수정 — 그룹명·옵션명 변경, 구성 제외, 체크해둔 미그룹 제품 편입
-function openGroupEditModal(groupId) {
+// 그룹 수정 — 그룹명·옵션명 변경, 구성 제외, 검색·체크로 제품 편입
+async function openGroupEditModal(groupId) {
     __editGroupId = groupId;
-    const members = allProducts.filter(p => p.group_id === groupId);
+    // 구성원은 서버에서 전부 조회 — 현재 페이지에 안 보이는 구성원이 저장 시 빠지는 것 방지
+    let members = [];
+    try {
+        const res = await fetch(`/api/inventory/products?per_page=200&group_id=${groupId}`, { headers: H });
+        if (res.ok) members = (await res.json()).data || [];
+    } catch (e) { /* 아래 페이지 데이터 폴백 */ }
+    if (!members.length) members = allProducts.filter(p => p.group_id === groupId);
+    const memberIds = new Set(members.map(p => p.id));
     const additions = [...prodSelection].map(id => allProducts.find(p => p.id === id))
-        .filter(p => p && !p.group_id && !members.includes(p));
+        .filter(p => p && !p.group_id && !memberIds.has(p.id));
     document.getElementById('groupModalTitle').textContent = '옵션 그룹 수정';
     document.getElementById('groupSaveBtn').textContent = '저장';
-    document.getElementById('gItemsNote').textContent = '제품을 새로 편입하려면 목록에서 제품을 체크한 뒤 수정을 다시 여세요. \'제외\'를 체크하면 그룹에서 빠집니다 (제품·재고는 유지).';
+    document.getElementById('gItemsNote').textContent = '\'제외\'를 체크하면 그룹에서 빠집니다 (제품·재고는 유지). 다른 제품은 아래 검색으로 찾아 추가하세요.';
     document.getElementById('gName').value = members[0]?.group?.name || '';
     document.getElementById('gItems').innerHTML =
         members.map(p => _groupItemRow(p, p.option_name)).join('') +
         additions.map(p => _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:10px;">추가</span>')).join('');
+    resetGroupSearch();
     openModal('groupModal');
+}
+// 그룹 모달 내 제품 검색 — 목록 페이지와 무관하게 서버 검색으로 후보를 찾아 즉시 편입
+let __gSearchTimer = null;
+const __gSearchCache = {}; // 검색 결과 제품 캐시 (추가 버튼 클릭 시 사용)
+function resetGroupSearch() {
+    const inp = document.getElementById('gSearch');
+    const box = document.getElementById('gSearchResults');
+    if (inp) inp.value = '';
+    if (box) box.innerHTML = '';
+}
+function searchGroupCandidates() {
+    clearTimeout(__gSearchTimer);
+    __gSearchTimer = setTimeout(runGroupSearch, 300);
+}
+async function runGroupSearch() {
+    const q = document.getElementById('gSearch').value.trim();
+    const box = document.getElementById('gSearchResults');
+    if (!q) { box.innerHTML = ''; return; }
+    const res = await fetch(`/api/inventory/products?per_page=20&search=${encodeURIComponent(q)}`, { headers: H });
+    if (!res.ok) return;
+    const rows = (await res.json()).data || [];
+    if (document.getElementById('gSearch').value.trim() !== q) return; // 입력이 바뀌었으면 낡은 응답 무시
+    const inModal = new Set([...document.querySelectorAll('#gItems [data-grow]')].map(r => +r.dataset.grow));
+    box.innerHTML = rows.map(p => {
+        __gSearchCache[p.id] = p;
+        let action;
+        if (inModal.has(p.id)) {
+            action = '<span class="text-muted" style="font-size:11.5px; white-space:nowrap;">구성에 있음</span>';
+        } else if (p.group_id && p.group_id !== __editGroupId) {
+            action = `<span class="text-muted" style="font-size:11.5px; white-space:nowrap;" title="먼저 해당 그룹에서 제외해야 합니다">다른 그룹: ${_esc(p.group?.name || '')}</span>`;
+        } else {
+            action = `<button class="btn-outline btn-sm" onclick="addGroupCandidate(${p.id})">추가</button>`;
+        }
+        return `<div style="display:flex; align-items:center; gap:8px; padding:4px 2px;">
+            <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span></span>
+            ${action}
+        </div>`;
+    }).join('') || '<div class="text-muted" style="font-size:12px; padding:4px 2px;">검색 결과가 없습니다.</div>';
+}
+function addGroupCandidate(id) {
+    const p = __gSearchCache[id];
+    if (!p || document.querySelector(`#gItems [data-grow="${id}"]`)) return;
+    document.getElementById('gItems').insertAdjacentHTML('beforeend',
+        _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:10px;">추가</span>'));
+    runGroupSearch(); // 방금 넣은 제품을 '구성에 있음'으로 갱신
 }
 async function saveProductGroup() {
     const name = document.getElementById('gName').value.trim();
@@ -1361,6 +1420,7 @@ async function saveProductGroup() {
         .filter(r => !r.querySelector('.g-del')?.checked)
         .map(r => { const i = r.querySelector('.g-opt'); return { id: +i.dataset.id, option_name: i.value.trim() }; });
     if (!items.length) return alert('구성 제품이 최소 1개 필요합니다. 그룹을 없애려면 [그룹 해제]를 사용하세요.');
+    if (!__editGroupId && items.length < 2) return alert('옵션 그룹은 제품 2개 이상으로 만들 수 있습니다. 검색으로 제품을 더 추가해주세요.');
     if (items.some(i => !i.option_name)) return alert('모든 제품에 옵션명을 입력해주세요.');
     const url = __editGroupId ? `/api/inventory/product-groups/${__editGroupId}` : '/api/inventory/product-groups';
     const res = await fetch(url, { method: __editGroupId ? 'PATCH' : 'POST', headers:H, body: JSON.stringify({ name, items }) });

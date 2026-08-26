@@ -247,6 +247,11 @@ class InventoryController extends Controller
             $query->whereNotNull('group_id');
         }
 
+        // 특정 그룹의 구성원만 (그룹 수정 모달 — 페이지에 없는 구성원도 전부 불러온다)
+        if ($groupId = (int) $request->query('group_id')) {
+            $query->where('group_id', $groupId);
+        }
+
         // 유효 재고 식 — 세트 상품은 자체 재고 대신 조립 가능 수(min(구성품 재고 ÷ 필요 수량))
         $effectiveStock = '(CASE WHEN products.is_bundle = 1 THEN COALESCE((
             SELECT MIN(FLOOR(COALESCE(ci.quantity, 0) / pbi.quantity))
@@ -319,6 +324,12 @@ class InventoryController extends Controller
             'items.*.id' => 'required|integer|exists:products,id',
             'items.*.option_name' => 'required|string|max:60',
         ]);
+
+        // 이미 그룹에 속한 제품은 새 그룹으로 가져올 수 없다 (먼저 기존 그룹에서 제외)
+        $ids = collect($validated['items'])->pluck('id')->map(fn ($v) => (int) $v);
+        if (Product::whereIn('id', $ids)->whereNotNull('group_id')->exists()) {
+            return response()->json(['message' => '이미 다른 그룹에 속한 제품이 포함돼 있습니다. 먼저 해당 그룹에서 제외해주세요.'], 422);
+        }
 
         $group = ProductGroup::create(['name' => $validated['name']]);
         foreach ($validated['items'] as $item) {
