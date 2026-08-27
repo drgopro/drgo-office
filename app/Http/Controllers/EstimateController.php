@@ -295,6 +295,8 @@ class EstimateController extends Controller
             'client_name' => 'nullable|string|max:100',
             'client_nickname' => 'nullable|string|max:100',
             'client_phone' => 'nullable|string|max:50',
+            'ship_address' => 'nullable|string|max:300', // 배송받을 주소 — 내부용 (의뢰자 견적서 미표시)
+            'ship_entrance' => 'nullable|string|max:200', // 공동현관 출입 정보 — 내부용
             'product_items' => 'nullable|array|max:300',
             // 스냅샷 필드 전체를 규칙에 포함 — 누락 필드가 저장되면 출력물 렌더에서 500이 나고,
             // 규칙에 없는 키는 validated()에서 걸러져 데이터가 유실되므로 양쪽 모두를 방지

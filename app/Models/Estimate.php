@@ -41,6 +41,8 @@ class Estimate extends Model
         'client_name',
         'client_nickname',
         'client_phone',
+        'ship_address',
+        'ship_entrance',
         'product_items',
         'service_items',
         'product_total',

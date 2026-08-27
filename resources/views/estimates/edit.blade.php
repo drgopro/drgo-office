@@ -430,6 +430,17 @@
                     </select>
                 </div>
             </div>
+            {{-- 배송지 정보 — 내부 확인용 (의뢰자용 견적서·출력물에는 표시되지 않음) --}}
+            <div class="client-row" style="margin-top:10px;">
+                <div class="field" style="flex:2;">
+                    <label>배송받을 주소 <span style="color:var(--text-muted); font-weight:400;">— 내부용, 의뢰자 견적서 미표시</span></label>
+                    <input id="sAddr" value="{{ $estimate->ship_address }}" maxlength="300" placeholder="예: 서울 강남구 ○○로 12, 101동 1001호">
+                </div>
+                <div class="field" style="flex:1;">
+                    <label>공동현관 정보</label>
+                    <input id="sEntrance" value="{{ $estimate->ship_entrance }}" maxlength="200" placeholder="예: #1234* / 경비실 호출">
+                </div>
+            </div>
         </div>
 
         <!-- 장바구니 -->
@@ -1457,6 +1468,8 @@ function buildEstimateBody() {
         client_name: document.getElementById('cName').value || null,
         client_nickname: document.getElementById('cNickname').value || null,
         client_phone: document.getElementById('cPhone').value || null,
+        ship_address: document.getElementById('sAddr').value || null,
+        ship_entrance: document.getElementById('sEntrance').value || null,
         product_items: cartItems,
         service_items: svcItems.filter(s => s.name),
         status: document.getElementById('estStatus').value,
