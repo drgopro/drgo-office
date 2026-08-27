@@ -167,6 +167,7 @@
 
         /* ── 모바일 (768px 이하): 1열 + 하단 고정 합계 바 + 제품/프리셋 풀스크린 시트 ── */
         .m-only { display:none; }
+        .m-only-block { display:none; }
         @media (max-width:768px) {
             body { flex-direction:column; height:100dvh; }
             .panel-resizer { display:none; }
@@ -264,6 +265,35 @@
             #mAddProductsBtn { display:flex; align-items:center; justify-content:center; flex-grow:1; flex-basis:56%; height:46px; border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap; }
             .panel-right-footer .btn-save { flex-basis:30%; height:46px; font-size:15px; border-radius:10px; white-space:nowrap; }
             .save-indicator { flex-basis:100%; order:-1; text-align:right; }
+
+            /* 빈 카트: '+ 제품 추가' / 데스크탑 안내 문구 교체 */
+            .d-only { display:none; }
+            .m-only-block { display:inline-block; }
+            .m-add-inline { margin-top:10px; padding:11px 22px; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:block; margin-left:auto; margin-right:auto; }
+
+            /* 임시저장/초기화/로그/삭제 → '더보기' 시트로 이동 */
+            .m-more-item { display:none !important; }
+            #mMoreBtn { display:block; }
+
+            /* 수기 제품 추가 — 인라인 입력줄 대신 시트 열기 버튼 */
+            #manualRow { display:none; }
+            #mManualOpenBtn { display:block; width:100%; padding:12px; border:1px dashed #9db8d4; background:var(--surface); color:var(--accent); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+
+            /* 더보기/수기 시트 공통 */
+            body.m-more-open #mMoreOverlay, body.m-manual-open #mManualOverlay { display:block; position:fixed; inset:0; z-index:70; background:rgba(17,24,32,0.42); }
+            body.m-more-open #mMoreSheet, body.m-manual-open #mManualSheet { display:block; position:fixed; left:0; right:0; bottom:0; z-index:71; background:var(--surface); border-radius:18px 18px 0 0; padding:8px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow:0 -10px 30px rgba(0,0,0,0.2); }
+            .m-sheet-grip { width:44px; height:5px; border-radius:3px; background:var(--border); margin:4px auto 10px; }
+            .m-more-head { display:flex; align-items:center; justify-content:space-between; font-size:15px; font-weight:800; color:var(--navy); margin-bottom:10px; }
+            .m-more-head button { background:none; border:none; font-size:20px; color:var(--text-muted); cursor:pointer; padding:2px 6px; }
+            .m-more-row { display:flex; justify-content:space-between; align-items:center; width:100%; background:none; border:none; border-top:1px solid var(--border); padding:14px 2px; font-size:14.5px; font-weight:600; color:var(--text); cursor:pointer; text-align:left; }
+            .m-more-row span { font-size:12px; color:var(--text-muted); font-weight:400; }
+            .m-more-danger, .m-more-danger span { color:var(--red); }
+            .m-more-close { width:100%; margin-top:10px; padding:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+            .m-field { display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
+            .m-field label { font-size:12px; color:var(--text-muted); font-weight:600; }
+            .m-field input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:11px 12px; font-size:14px; color:var(--text); outline:none; }
+            .m-field #mmQty { padding:9px 2px; text-align:center; }
+            .m-field .qty-ctrl button { width:34px; height:38px; border-radius:8px; }
         }
     </style>
 </head>
@@ -311,7 +341,7 @@
 </div>
 <div id="mSheetFoot" class="m-only">
     <div class="m-total-row"><span>담긴 항목 <span class="m-items">0</span>개</span><span class="m-grand">0원</span></div>
-    <button onclick="mCloseSheet()">견적으로 돌아가기</button>
+    <button onclick="mCloseSheet()">담기 완료 (<span class="m-items">0</span>)</button>
 </div>
 
 <!-- 옵션 선택 팝업 (옵션 그룹 상품) -->
@@ -391,14 +421,18 @@
             </h4>
             <table class="cart-table">
                 <thead><tr><th>번호</th><th>분류</th><th>제품명</th><th>소요시간</th><th class="text-right">판매가</th><th>수량</th><th class="text-right">합계</th><th></th></tr></thead>
-                <tbody id="cartBody"><tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">좌측에서 제품을 선택하세요</td></tr></tbody>
+                <tbody id="cartBody"><tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">
+                    <span class="d-only">좌측에서 제품을 선택하세요</span>
+                    <span class="m-only-block">아직 담긴 제품이 없습니다<br><button class="m-add-inline" onclick="mOpenSheet()">+ 제품 추가</button></span>
+                </td></tr></tbody>
             </table>
         </div>
 
         <!-- 수기 제품 추가 — 일회성 품목 (제품 관리에 등록하지 않고 견적서 데이터로만 저장) -->
         <div class="cart-section">
             <h4>수기 제품 추가 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 자주 취급하지 않는 제품·임의 견적용. 제품 관리에 등록되지 않고 작성 시점 가격으로 견적서에 저장됩니다</span></h4>
-            <div class="svc-row">
+            <button id="mManualOpenBtn" class="m-only" onclick="mOpenManualSheet()">+ 수기 제품 추가</button>
+            <div class="svc-row" id="manualRow">
                 <input id="miCat" placeholder="카테고리" style="flex:1;">
                 <input id="miName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miPrice" type="number" min="0" placeholder="판매가" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
@@ -437,13 +471,50 @@
     <div class="panel-right-footer">
         <div id="mTotalBar" class="m-only"><span>합계 · 항목 <span class="m-items">0</span>개</span><span class="m-grand">0원</span></div>
         <span class="save-indicator" id="saveIndicator"></span>
-        <button class="btn btn-ghost" onclick="loadDraft()">임시저장 불러오기</button>
-        <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
-        <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
-        <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
+        <button class="btn btn-ghost m-more-item" onclick="loadDraft()">임시저장 불러오기</button>
+        <button class="btn btn-ghost m-more-item" onclick="resetEstimate()">초기화</button>
+        <button class="btn btn-ghost m-more-item" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
+        <button class="btn btn-delete m-more-item" onclick="deleteEstimate()">삭제</button>
+        <button id="mMoreBtn" class="btn btn-ghost m-only" onclick="mOpenMoreSheet()">더보기</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
+    </div>
+</div>
+
+<!-- 모바일 '더보기' 시트 — 문서 관리 (임시저장·로그·초기화·삭제). 파괴적 액션은 맨 아래 빨간색 -->
+<div id="mMoreOverlay" class="m-only" onclick="mCloseMoreSheet()"></div>
+<div id="mMoreSheet" class="m-only">
+    <div class="m-sheet-grip"></div>
+    <div class="m-more-head">더보기 <button onclick="mCloseMoreSheet()" title="닫기">×</button></div>
+    <button class="m-more-row" onclick="mCloseMoreSheet(); loadDraft()">임시저장 불러오기 <span>마지막 저장본</span></button>
+    <button class="m-more-row" onclick="mCloseMoreSheet(); openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그 <span>변경 이력</span></button>
+    <button class="m-more-row" onclick="mCloseMoreSheet(); resetEstimate()">초기화 <span>품목·입력 비우기</span></button>
+    <button class="m-more-row m-more-danger" onclick="mCloseMoreSheet(); deleteEstimate()">삭제 <span>이 견적서 삭제</span></button>
+    <button class="m-more-close" onclick="mCloseMoreSheet()">닫기</button>
+</div>
+
+<!-- 모바일 '수기 제품 추가' 시트 — 데스크탑 인라인 4칸 입력을 세로 폼으로 -->
+<div id="mManualOverlay" class="m-only" onclick="mCloseManualSheet()"></div>
+<div id="mManualSheet" class="m-only">
+    <div class="m-sheet-grip"></div>
+    <div class="m-more-head">수기 제품 추가 <button onclick="mCloseManualSheet()" title="닫기">×</button></div>
+    <div style="font-size:12px; color:var(--text-muted); margin:-4px 0 10px;">자주 취급하지 않는 제품·임의 견적용. 제품 관리에 등록되지 않고 작성 시점 가격으로 견적서에 저장됩니다.</div>
+    <div class="m-field"><label>제품명 *</label><input id="mmName" placeholder="예: 조명 스탠드 커스텀 브라켓" maxlength="200"></div>
+    <div class="m-field"><label>카테고리</label><input id="mmCat" placeholder="예: 조명 (선택)" maxlength="100"></div>
+    <div style="display:flex; gap:10px;">
+        <div class="m-field" style="flex:1;"><label>판매가</label><input id="mmPrice" type="number" min="0" placeholder="0"></div>
+        <div class="m-field"><label>수량</label>
+            <div class="qty-ctrl" style="gap:6px;">
+                <button type="button" onclick="const i=document.getElementById('mmQty'); i.value=Math.max(1,(+i.value||1)-1)">−</button>
+                <input id="mmQty" type="number" min="1" value="1" style="width:44px;">
+                <button type="button" onclick="const i=document.getElementById('mmQty'); i.value=(+i.value||1)+1">+</button>
+            </div>
+        </div>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="mCloseManualSheet()">취소</button>
+        <button class="btn btn-save" style="flex:2;" onclick="mSubmitManual()">견적서에 추가</button>
     </div>
 </div>
 
@@ -806,7 +877,10 @@ function openShipments() {
 function renderCart() {
     const tb = document.getElementById('cartBody');
     if (!cartItems.length) {
-        tb.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">좌측에서 제품을 선택하세요</td></tr>';
+        tb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">
+            <span class="d-only">좌측에서 제품을 선택하세요</span>
+            <span class="m-only-block">아직 담긴 제품이 없습니다<br><button class="m-add-inline" onclick="mOpenSheet()">+ 제품 추가</button></span>
+        </td></tr>`;
         updateTotals();
         return;
     }
@@ -1231,6 +1305,25 @@ function mSetSheetTab(tab) {
     document.body.classList.toggle('m-tab-presets', tab === 'presets');
     document.getElementById('mTabProducts').classList.toggle('active', tab !== 'presets');
     document.getElementById('mTabPresets').classList.toggle('active', tab === 'presets');
+}
+// 모바일 '더보기' 시트 — 임시저장/로그/초기화/삭제
+function mOpenMoreSheet() { document.body.classList.add('m-more-open'); }
+function mCloseMoreSheet() { document.body.classList.remove('m-more-open'); }
+// 모바일 '수기 제품 추가' 시트 — 값을 데스크탑 인라인 입력에 복사해 동일 로직(addManualItem) 재사용
+function mOpenManualSheet() {
+    ['mmName','mmCat','mmPrice'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('mmQty').value = 1;
+    document.body.classList.add('m-manual-open');
+    document.getElementById('mmName').focus();
+}
+function mCloseManualSheet() { document.body.classList.remove('m-manual-open'); }
+function mSubmitManual() {
+    document.getElementById('miName').value = document.getElementById('mmName').value;
+    document.getElementById('miCat').value = document.getElementById('mmCat').value;
+    document.getElementById('miPrice').value = document.getElementById('mmPrice').value;
+    document.getElementById('miQty').value = document.getElementById('mmQty').value || 1;
+    addManualItem();
+    if (document.getElementById('miName').value === '') mCloseManualSheet(); // 성공 시 입력이 비워짐
 }
 
 // === 의뢰자 검색 ===

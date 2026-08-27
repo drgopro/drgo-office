@@ -188,6 +188,35 @@
         .tab-btn { font-size:12px; padding:8px 4px; }
         .modal { width:95vw; max-width:95vw; padding:16px; }
         .field-row, .field-row-3 { grid-template-columns:1fr; }
+
+        /* 주문 내역 → 카드형 리스트 (가로 스크롤 제거) */
+        #orderCard { overflow:visible; background:none; border:none; border-radius:0; }
+        #orderCard .data-table, #orderCard tbody { display:block; min-width:0 !important; }
+        #orderCard thead { display:none; }
+        #orderCard tr { display:flex; flex-wrap:wrap; align-items:center; row-gap:5px; }
+        #orderCard td { display:block; border-bottom:none; padding:1px 4px 1px 0 !important; white-space:normal !important; font-size:12.5px; }
+        #orderCard td:empty { display:none; }
+        #orderCard td.empty-row { flex-basis:100%; text-align:center; padding:16px 4px !important; }
+        #orderCard tr:hover td { background:none; }
+        /* 그룹 행 = 카드 (배지 / 제목 / 메타 / 버튼) */
+        #orderCard tr[onclick*="toggleOrderGroup"] { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin:10px 0 4px; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(1) { flex-basis:100%; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(2) { flex-basis:100%; font-size:15px; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(3),
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(4),
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(5) { font-size:11.5px; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(4)::before,
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(5)::before { content:"· "; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td.action-cell { flex-basis:100%; margin-top:4px; }
+        #orderCard .action-cell { display:flex; gap:6px; }
+        #orderCard .action-cell .btn-outline, #orderCard .action-cell .btn-danger-sm { flex-grow:1; padding:9px 10px; font-size:12.5px; }
+        /* 펼친 상세 행 = 카드 아래 이어지는 패널 */
+        #orderCard tr:not([onclick*="toggleOrderGroup"]):not(:first-child) { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0 0 4px; }
+        #orderCard tr[data-oik] td:nth-child(2), #orderCard tr td.text-wrap { flex-basis:100%; font-weight:600; }
+        #orderCard tr td[colspan="3"], #orderCard tr td[colspan="5"] { flex-basis:100%; }
+        /* 세트 구성 그리드 → 2열 (이름은 전체 폭) */
+        #orderCard [data-brow] { grid-template-columns:repeat(2, minmax(0,1fr)) !important; padding:6px 0 !important; border-bottom:1px dashed var(--border); }
+        #orderCard [data-brow] > div:first-child { grid-column:1 / -1; }
     }
 </style>
 @endpush
@@ -300,7 +329,7 @@
                 <button class="btn-primary" onclick="openOrderCreate()">+ 주문 추가</button>
             </span>
         </div>
-        <div class="data-card">
+        <div class="data-card" id="orderCard">
             <table class="data-table">
                 <thead><tr><th style="width:110px;">유형</th><th>주문명</th><th>항목</th><th>의뢰자/등록자</th><th>최근 수정</th><th style="width:170px;"></th></tr></thead>
                 <tbody id="orderBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
