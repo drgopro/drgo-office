@@ -1464,9 +1464,12 @@ async function saveEstimate(silent = false) {
             renderEstTitle();
             document.title = '견적서 #' + d.display_no + ' - 닥터고블린 오피스';
         }
-        // 발행완료 전환 시 결제요청 자동 생성 결과 안내
+        // 발행완료 '전환' 시에만 결제 버튼 안내 — 이미 발행 완료인 견적서의 조용한 저장
+        // (주문완료/직접발송 토글 등)에서는 팝업·새로고침이 뜨지 않아야 한다
+        const becameIssued = body.status === 'issued' && lastSavedStatus !== 'issued';
+        lastSavedStatus = body.status;
         if (d.payapp_warning) { alert(d.payapp_warning); }
-        else if (body.status === 'issued' && d.payapp_payurl) {
+        else if (!silent && becameIssued && d.payapp_payurl) {
             if (confirm('발행 완료 — 의뢰자 페이지에 결제 버튼이 활성화되었습니다.\n의뢰자 링크를 지금 복사할까요?')) copyPublicLink();
             location.reload();
         }
@@ -1489,6 +1492,7 @@ async function saveEstimate(silent = false) {
 
 // === 1분 자동 임시저장 (정식 저장과 별개 스냅샷) + 불러오기 + 초기화 ===
 let lastSnapshot = null; // 마지막 저장/임시저장 시점의 내용 — 변경 없으면 임시저장 생략
+let lastSavedStatus = @json($estimate->status); // 발행완료 '전환' 감지용 — 전환 저장에만 안내 팝업
 
 async function autoSaveDraft() {
     if (document.getElementById('estTitleInput')) return; // 제목 편집 중에는 건너뜀
