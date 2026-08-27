@@ -7,6 +7,7 @@ use App\Models\OfficeOrder;
 use App\Models\Product;
 use App\Models\ScheduleShipment;
 use App\Services\EstimatePaymentSync;
+use App\Services\EstimateStockSync;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -188,6 +189,7 @@ class OfficeOrderController extends Controller
         ]);
 
         $items = $estimate->product_items ?? [];
+        $beforeItems = $items; // 직접발송 재고 연동 — 변경 전 스냅샷
         if (! array_key_exists($validated['index'], $items)) {
             return response()->json(['message' => '항목을 찾을 수 없습니다. 목록을 새로고침해 주세요.'], 422);
         }
@@ -216,6 +218,7 @@ class OfficeOrderController extends Controller
             }
         }
         $estimate->forceFill(['product_items' => $items])->save();
+        EstimateStockSync::apply($estimate, $beforeItems, $items);
         if ($request->has('refunded')) {
             EstimatePaymentSync::syncRefundDisplay($estimate->fresh());
         }
@@ -233,6 +236,7 @@ class OfficeOrderController extends Controller
     private function updateBundleItemNote(Request $request, Estimate $estimate, array $items, array $validated): JsonResponse
     {
         $refunded = $request->boolean('refunded');
+        $beforeItems = $items; // 직접발송 재고 연동 — 변경 전 스냅샷
         $idx = (int) $validated['index'];
         $bIdx = (int) $validated['bundle_index'];
         $bundles = $items[$idx]['bundle_items'] ?? [];
@@ -253,6 +257,7 @@ class OfficeOrderController extends Controller
             // 환불 상태 변경 없이 구매처/메모만 저장
             $items[$idx]['bundle_items'] = array_values($bundles);
             $estimate->forceFill(['product_items' => $items])->save();
+            EstimateStockSync::apply($estimate, $beforeItems, $items);
 
             return response()->json(['message' => '저장되었습니다.']);
         }
@@ -282,6 +287,7 @@ class OfficeOrderController extends Controller
         }
 
         $estimate->forceFill(['product_items' => $items])->save();
+        EstimateStockSync::apply($estimate, $beforeItems, $items);
         EstimatePaymentSync::syncRefundDisplay($estimate->fresh());
 
         return response()->json(['message' => '저장되었습니다.']);

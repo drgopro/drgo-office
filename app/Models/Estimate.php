@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\EstimateStockSync;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
@@ -175,6 +176,7 @@ class Estimate extends Model
     public function applyItemRefunds(array $refunds): bool
     {
         $items = $this->product_items ?? [];
+        $before = $items; // 직접발송 재고 복원 판단용 — 변경 전 스냅샷
         $changed = false;
         foreach ($refunds as $r) {
             $idx = (int) ($r['index'] ?? -1);
@@ -202,6 +204,8 @@ class Estimate extends Model
         $this->timestamps = false;
         $this->forceFill(['product_items' => $items])->save();
         $this->timestamps = true;
+        // 직접발송으로 나갔던 수량이 환불되면 그만큼 재고 복원
+        EstimateStockSync::apply($this, $before, $items);
 
         return true;
     }

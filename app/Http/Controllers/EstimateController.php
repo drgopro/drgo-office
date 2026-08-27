@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Services\EstimatePaymentSync;
+use App\Services\EstimateStockSync;
 use App\Services\PayAppClient;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -313,6 +314,7 @@ class EstimateController extends Controller
             $becameIssued = ($validated['status'] ?? null) === 'issued' && $estimate->status !== 'issued';
             $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
+            $oldItemsForStock = $estimate->product_items; // 직접발송 재고 연동 — 저장 전 스냅샷
 
             $estimate->update([
                 ...$validated,
@@ -324,6 +326,11 @@ class EstimateController extends Controller
                 'draft' => null,
                 'draft_saved_at' => null,
             ]);
+
+            // 직접발송 재고 연동 — 스냅샷이 실제로 전송된 저장에서만 전/후 비교로 차감·복원
+            if (array_key_exists('product_items', $validated)) {
+                EstimateStockSync::apply($estimate, $oldItemsForStock, $estimate->fresh()->product_items);
+            }
 
             // 첫 실제 저장(temp 탈출) 시 표시 번호 발급 — 만들고 버린 견적서는 번호를 쓰지 않는다
             $this->assignEstimateNo($estimate->fresh());
@@ -673,8 +680,9 @@ class EstimateController extends Controller
 
     public function destroy(Estimate $estimate)
     {
-        // 삭제 전파 — 미수 청구·프로젝트 견적/계약 카드·캘린더 연동에서 정리
+        // 삭제 전파 — 미수 청구·프로젝트 견적/계약 카드·캘린더 연동에서 정리 + 직접발송 재고 복원
         EstimatePaymentSync::estimateDeleted($estimate);
+        EstimateStockSync::release($estimate);
         $estimate->delete();
 
         return response()->json(['message' => '삭제되었습니다.']);
