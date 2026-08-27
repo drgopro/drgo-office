@@ -164,6 +164,96 @@
         .btn-ghost:hover { border-color:var(--slate); color:var(--slate); }
         .save-indicator { font-size:11px; color:var(--text-muted); align-self:center; }
         [data-theme="light"] .cat-tab.active { color:#fff; }
+
+        /* ── 모바일 (768px 이하): 1열 + 하단 고정 합계 바 + 제품/프리셋 풀스크린 시트 ── */
+        .m-only { display:none; }
+        @media (max-width:768px) {
+            body { flex-direction:column; height:100dvh; }
+            .panel-resizer { display:none; }
+
+            /* 제품/프리셋 패널 → 풀스크린 시트 (기본 숨김, 열릴 때만 표시) */
+            .panel-left, .panel-presets { display:none; }
+            body.m-sheet-open .panel-left,
+            body.m-sheet-open.m-tab-presets .panel-presets {
+                display:flex; position:fixed; left:0; right:0; top:106px; bottom:0; z-index:60;
+                width:auto; border:none; background:var(--surface); padding-bottom:118px;
+            }
+            body.m-sheet-open.m-tab-presets .panel-left { display:none; }
+            #mSheetBackdrop { display:none; }
+            body.m-sheet-open #mSheetBackdrop { display:block; position:fixed; inset:0; z-index:58; background:rgba(17,24,32,0.42); }
+            body.m-sheet-open #mSheetTabs {
+                display:flex; position:fixed; left:0; right:0; top:52px; z-index:61; gap:6px;
+                background:var(--surface); border-radius:18px 18px 0 0; padding:14px 16px 10px;
+                border-bottom:1px solid var(--border);
+            }
+            #mSheetTabs button { flex:1; height:38px; border:1px solid #b9cbe0; background:var(--surface); color:var(--accent); border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+            #mSheetTabs button.active { background:var(--navy); border-color:var(--navy); color:#fff; font-weight:700; }
+            body.m-sheet-open #mSheetFoot {
+                display:flex; flex-direction:column; gap:9px; position:fixed; left:0; right:0; bottom:0; z-index:61;
+                background:var(--surface); border-top:1px solid var(--border); padding:11px 16px calc(14px + env(safe-area-inset-bottom));
+            }
+            #mSheetFoot .m-total-row { display:flex; align-items:baseline; font-size:12.5px; color:var(--text-muted); }
+            #mSheetFoot .m-grand { margin-left:auto; font-size:17px; font-weight:800; color:var(--navy); }
+            #mSheetFoot > button { height:48px; border:1px solid var(--navy); background:var(--navy); color:#fff; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
+
+            /* 견적(가운데) 패널이 기본 화면 */
+            .panel-right-header { flex-wrap:wrap; gap:8px; padding:11px 14px; }
+            .client-row { flex-direction:column; gap:8px; }
+            .panel-right-content { padding:12px 12px 8px; }
+            .cart-section, .total-section { padding:13px 14px; }
+
+            /* 장바구니 테이블 → 2줄 카드 (카테고리 헤더 밴드는 그대로) */
+            .cart-table thead { display:none; }
+            .cart-table, .cart-table tbody { display:block; }
+            .cart-table tr { display:flex; flex-wrap:wrap; align-items:center; }
+            .cart-table td { display:block; border-bottom:none !important; padding:2px 3px; }
+            .cart-table td:empty { display:none; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) {
+                background:var(--surface); border:1px solid #e3e6eb; border-radius:10px;
+                padding:10px 12px; margin:8px 0; row-gap:4px;
+            }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(1) { order:0; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(2) { order:1; font-size:11.5px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td.cell-name { order:2; flex-basis:100%; font-size:15px; font-weight:600; white-space:normal; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(4) { order:3; flex-basis:100%; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(5) { order:4; font-size:13px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(5)::after { content:"×"; color:var(--text-muted); margin-left:7px; font-size:12px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(6) { order:5; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(6)::after { content:"="; color:var(--text-muted); margin-left:5px; font-size:12px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(7) { order:6; font-size:14.5px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(8) { order:7; margin-left:auto; padding-right:0; }
+            /* 편집 모드(수량 스테퍼 행): ×/= 기호 생략 + 금액 우측 정렬로 한 줄 유지 */
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub):has(.qty-ctrl) td:nth-child(5)::after,
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub):has(.qty-ctrl) td:nth-child(6)::after { content:""; margin:0; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub):has(.qty-ctrl) td:nth-child(7) { margin-left:auto; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub):has(.qty-ctrl) td:nth-child(8) { order:1; margin-left:auto; }
+            /* 상태 태그·취소 버튼 하단 정렬 + 터치 타깃 */
+            .qty-ctrl button { width:30px; height:30px; font-size:14px; }
+            .qty-ctrl input { width:38px; padding:6px 2px; }
+            .btn-order { padding:7px 13px; font-size:12.5px; }
+            .btn-remove { font-size:17px; padding:4px 8px; }
+            .cart-cat-header { background:var(--slate); border-radius:8px; padding:2px 6px; margin-top:12px; }
+            .cart-cat-header td { background:none; border-radius:0 !important; }
+            .cart-cat-header td:first-child { flex:1; }
+            .cart-subtotal { background:#f2f4f6; border-radius:8px; padding:2px 6px; margin:6px 0 2px; }
+            .cart-subtotal td { background:none; border-radius:0 !important; }
+            .cart-subtotal td:first-child { flex:1; text-align:left; }
+            .bundle-sub { background:var(--surface2); border-radius:8px; padding:6px 10px; margin:2px 0 2px 14px; row-gap:2px; }
+            .bundle-sub td { background:none !important; }
+            .bundle-sub td:nth-child(3) { flex-basis:100%; white-space:normal; }
+            .bundle-sub td:nth-child(8) { margin-left:auto; }
+            /* 순서 변경(드래그)은 모바일에서 숨김 — 기존 정책 유지 */
+            #btnSortMode { display:none !important; }
+
+            /* 하단 고정 바: 합계 + 제품 담기 + 저장 (보조 버튼은 윗줄에 작게) */
+            .panel-right-footer { flex-wrap:wrap; padding:10px 14px calc(14px + env(safe-area-inset-bottom)); gap:6px; }
+            .panel-right-footer .btn { padding:7px 10px; font-size:12px; }
+            #mTotalBar { display:flex; flex-basis:100%; align-items:baseline; font-size:12.5px; color:var(--text-muted); }
+            #mTotalBar .m-grand { margin-left:auto; font-size:20px; font-weight:800; color:var(--navy); }
+            #mAddProductsBtn { display:flex; align-items:center; justify-content:center; flex:1; height:46px; border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
+            .panel-right-footer .btn-save { height:46px; min-width:104px; font-size:15px; border-radius:10px; }
+            .save-indicator { flex-basis:100%; order:-1; text-align:right; }
+        }
     </style>
 </head>
 <body>
@@ -200,6 +290,17 @@
         </label>
     </div>
     <div class="preset-list" id="presetPanelList"><div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">로딩 중...</div></div>
+</div>
+
+<!-- 모바일 시트 크롬 — 제품/프리셋 패널을 풀스크린 시트로 감싸는 배경·탭·하단 바 (768px 이하 전용) -->
+<div id="mSheetBackdrop" class="m-only" onclick="mCloseSheet()"></div>
+<div id="mSheetTabs" class="m-only">
+    <button id="mTabProducts" class="active" onclick="mSetSheetTab('products')">제품</button>
+    <button id="mTabPresets" onclick="mSetSheetTab('presets')">프리셋</button>
+</div>
+<div id="mSheetFoot" class="m-only">
+    <div class="m-total-row"><span>담긴 항목 <span class="m-items">0</span>개</span><span class="m-grand">0원</span></div>
+    <button onclick="mCloseSheet()">견적으로 돌아가기</button>
 </div>
 
 <!-- 옵션 선택 팝업 (옵션 그룹 상품) -->
@@ -323,12 +424,14 @@
     </div>
 
     <div class="panel-right-footer">
+        <div id="mTotalBar" class="m-only"><span>합계 · 항목 <span class="m-items">0</span>개</span><span class="m-grand">0원</span></div>
         <span class="save-indicator" id="saveIndicator"></span>
         <button class="btn btn-ghost" onclick="loadDraft()">임시저장 불러오기</button>
         <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
         <button class="btn btn-ghost" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
         <button class="btn btn-delete" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
+        <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
     </div>
 </div>
@@ -1100,6 +1203,23 @@ function updateTotals() {
     document.getElementById('serviceTotal').textContent = fmt(st)+'원';
     document.getElementById('grandTotal').textContent = fmt(pt+st)+'원';
     document.getElementById('totalItems').textContent = cartItems.length + svcItems.filter(s=>s.name).length;
+    // 모바일 하단 고정 바·시트 하단 요약 미러링
+    document.querySelectorAll('.m-grand').forEach(el => { el.textContent = fmt(pt+st)+'원'; });
+    document.querySelectorAll('.m-items').forEach(el => { el.textContent = cartItems.length + svcItems.filter(s=>s.name).length; });
+}
+
+// === 모바일 제품/프리셋 시트 (768px 이하 전용 — 데스크탑에선 항상 닫힘 상태) ===
+function mOpenSheet() {
+    document.body.classList.add('m-sheet-open');
+    mSetSheetTab('products');
+}
+function mCloseSheet() {
+    document.body.classList.remove('m-sheet-open', 'm-tab-presets');
+}
+function mSetSheetTab(tab) {
+    document.body.classList.toggle('m-tab-presets', tab === 'presets');
+    document.getElementById('mTabProducts').classList.toggle('active', tab !== 'presets');
+    document.getElementById('mTabPresets').classList.toggle('active', tab === 'presets');
 }
 
 // === 의뢰자 검색 ===
