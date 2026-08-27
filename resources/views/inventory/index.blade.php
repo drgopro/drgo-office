@@ -215,6 +215,7 @@
         #orderCard td[colspan="3"] > div { row-gap:7px; }
         #orderCard td[colspan="3"] .oi-amt,
         #orderCard td[colspan="3"] .oi-src { flex:1 1 40% !important; width:auto !important; min-width:0; }
+        #orderCard td[colspan="3"] .oi-src { text-align:right; } /* 구매금액과 같은 우측 정렬 */
         #orderCard td[colspan="3"] .oi-memo { flex:1 1 100% !important; }
         #orderCard td[colspan="3"] label { margin-right:auto; }
         #orderCard td[colspan="3"] .oi-refamt { width:110px !important; }
