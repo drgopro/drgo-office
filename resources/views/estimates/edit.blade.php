@@ -431,7 +431,10 @@
 
         <!-- 수기 제품 추가 — 일회성 품목 (제품 관리에 등록하지 않고 견적서 데이터로만 저장) -->
         <div class="cart-section">
-            <h4>수기 제품 추가 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 자주 취급하지 않는 제품·임의 견적용. 제품 관리에 등록되지 않고 작성 시점 가격으로 견적서에 저장됩니다</span></h4>
+            <h4 style="display:flex; align-items:center; gap:8px;"><span>수기 제품 추가 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 자주 취급하지 않는 제품·임의 견적용. 제품 관리에 등록되지 않고 작성 시점 가격으로 견적서에 저장됩니다</span></span>
+                <button class="btn-add-svc" style="width:auto; padding:5px 12px; margin-left:auto; white-space:nowrap;" onclick="document.getElementById('excelImportFile').click()" title="기존 엑셀 견적서(B=대분류, C=중분류, D=제품, E=단가, G=수량, I=금액, J=비고)를 읽어 항목을 담습니다. 제품 관리에 같은 이름이 있으면 제품으로 연결됩니다">엑셀 가져오기</button>
+                <input type="file" id="excelImportFile" accept=".xlsx,.xls" style="display:none;" onchange="importExcelEstimate(this)">
+            </h4>
             <button id="mManualOpenBtn" class="m-only" onclick="mOpenManualSheet()">+ 수기 제품 추가</button>
             <div class="svc-row" id="manualRow">
                 <input id="miCat" placeholder="카테고리" style="flex:1;">
@@ -931,10 +934,13 @@ function renderCart() {
             // 주문/배송 뷰 전용 — 제품 메모를 제품명 아래 회색으로 (스냅샷에 저장하지 않아 출력물 미노출)
             const prodMemo = orderMode && item.product_id ? (allProds.find(x => x.id === item.product_id)?.memo || '') : '';
             const memoLine = prodMemo ? `<div style="font-size:12px; color:var(--text-muted); font-weight:400; margin-top:3px; white-space:pre-line;">${_escE(prodMemo)}</div>` : '';
+            // 엑셀 가져오기 중분류(제품명 위 작은 라벨) + 항목 비고(클릭해서 수정, 의뢰자 견적서에 표시)
+            const midLine = item.mid_category ? `<div style="font-size:11px; color:var(--text-muted); margin-bottom:1px;">${_escE(item.mid_category)}</div>` : '';
+            const remarkLine = item.remark ? `<div style="font-size:12px; color:var(--slate); margin-top:3px; cursor:pointer;" onclick="editItemRemark(${idx})" title="클릭해서 비고 수정 — 의뢰자 견적서에 표시됩니다">비고: ${_escE(item.remark)}</div>` : '';
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:12px; color:var(--text-muted); ${orderMode ? '' : 'cursor:pointer;'}" ${orderMode ? '' : `onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)"`}>${item.category||''}</td>
-                <td class="cell-name"><span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}</td>
+                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
                 <td>${qtyCell}</td>
@@ -1181,6 +1187,52 @@ function removeItem(idx) {
 }
 
 // === 수기 제품 추가 — 일회성 품목 (제품 관리 미등록, 장바구니에 스냅샷으로 저장) ===
+// === 엑셀 견적 가져오기 — B=대분류/C=중분류/D=제품/E=단가/G=수량/I=금액/J=비고 ===
+async function importExcelEstimate(input, sheetIndex = null) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    if (sheetIndex !== null) fd.append('sheet', sheetIndex);
+    const res = await fetch('/api/estimates/parse-excel', {
+        method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }, body: fd,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { input.value = ''; return alert(data.message || '엑셀 파일을 읽지 못했습니다.'); }
+
+    // 시트가 여러 개면 어떤 시트를 읽을지 선택
+    if (sheetIndex === null && (data.sheets || []).length > 1) {
+        const pick = prompt('시트가 여러 개입니다. 가져올 시트 번호를 입력해주세요.\n' + data.sheets.map((s, i) => `${i + 1}. ${s}`).join('\n'), '1');
+        if (pick === null) { input.value = ''; return; }
+        const idx = Math.min(Math.max(1, parseInt(pick) || 1), data.sheets.length) - 1;
+        if (idx !== data.sheet) return importExcelEstimate(input, idx);
+    }
+    if (!data.items.length) { input.value = ''; return alert('가져올 항목을 찾지 못했습니다. 열 구성(B 대분류 / D 제품 / E 단가 / G 수량 / I 금액)을 확인해주세요.'); }
+    if (!confirm(`${data.total}개 항목을 담을까요?\n제품 연결 ${data.matched}개 · 수기 ${data.total - data.matched}개${data.title ? `\n제목: ${data.title}` : ''}\n\n(연결된 제품도 엑셀의 가격을 그대로 유지합니다)`)) { input.value = ''; return; }
+
+    data.items.forEach(it => {
+        cartItems.push({
+            product_id: it.product_id, sku: it.sku || '',
+            category: it.category, category_root: it.category,
+            name: it.name, purchase_price: it.purchase_price || 0,
+            sale_price: it.unit_price, qty: it.qty, subtotal: it.amount,
+            time_required: '', use_time: false,
+            manual: !it.product_id,
+            mid_category: it.mid_category || '', remark: it.remark || '',
+            price_fixed: !!(it.product_id && it.price_differs), // 엑셀 가격이 현재 판매가와 다르면 보존
+        });
+    });
+    if (!estTitleValue && data.title) { estTitleValue = data.title; renderEstTitle(); }
+    renderCart();
+    input.value = '';
+}
+function editItemRemark(idx) {
+    const v = prompt('비고 (의뢰자 견적서에 표시됩니다)', cartItems[idx].remark || '');
+    if (v === null) return;
+    cartItems[idx].remark = v.trim();
+    renderCart();
+}
+
 function addManualItem() {
     const name = document.getElementById('miName').value.trim();
     if (!name) return alert('제품명을 입력해주세요.');

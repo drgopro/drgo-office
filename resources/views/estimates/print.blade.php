@@ -311,7 +311,7 @@ function savePNG(){
                     <tr>
                         <td class="cell-no col-no">{{ $globalIdx }}</td>
                         <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
-                        <td class="cell-name">{{ $item['name'] }}@if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
+                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif{{ $item['name'] }}@if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
                             @if($refundedParts->isNotEmpty())
                                 <div class="refund-detail">
                                     @foreach($refundedParts as $b)
@@ -319,6 +319,7 @@ function savePNG(){
                                     @endforeach
                                 </div>
                             @endif
+                            @if(!empty($item['remark']))<div style="font-size:10.5px; color:#5a6b7d; margin-top:2px;">{{ $item['remark'] }}</div>@endif
                         </td>
                         <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
                         <td class="text-right">{{ number_format($item['sale_price']) }}원</td>

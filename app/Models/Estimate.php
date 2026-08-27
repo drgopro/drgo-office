@@ -108,7 +108,8 @@ class Estimate extends Model
             $newSale = (int) $product->sale_price;
             $newPurchase = (int) $product->purchase_price;
             $qty = max(1, (int) ($item['qty'] ?? 1));
-            if (! $locked && ((int) ($item['sale_price'] ?? 0) !== $newSale || (int) ($item['purchase_price'] ?? 0) !== $newPurchase)) {
+            // price_fixed: 엑셀 가져오기 등으로 담은 과거 가격 항목 — 현재 판매가로 덮어쓰지 않는다
+            if (! $locked && empty($item['price_fixed']) && ((int) ($item['sale_price'] ?? 0) !== $newSale || (int) ($item['purchase_price'] ?? 0) !== $newPurchase)) {
                 $item['sale_price'] = $newSale;
                 $item['purchase_price'] = $newPurchase;
                 $item['subtotal'] = $newSale * $qty;

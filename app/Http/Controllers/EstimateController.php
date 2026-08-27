@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\PayappPayment;
+use App\Models\Product;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Services\EstimatePaymentSync;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class EstimateController extends Controller
 {
@@ -119,6 +121,107 @@ class EstimateController extends Controller
         return response()->json($estimate, 201);
     }
 
+    /**
+     * 엑셀 견적서 파싱 — 기존 엑셀 견적 양식(B=대분류, C=중분류, D=제품명, E=단가, G=수량, I=금액, J=비고)을
+     * 읽어 견적서에 담을 항목 목록으로 변환한다. 제품 관리에 같은 이름(공백 무시)이 있으면 제품으로 연결하고
+     * 없으면 수기 항목으로 표시한다. 저장하지 않고 파싱 결과만 반환 — 담기는 빌더(클라이언트)에서 수행.
+     */
+    public function parseExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls|max:10240',
+            'sheet' => 'nullable|integer|min:0',
+        ]);
+
+        try {
+            $spreadsheet = IOFactory::load($request->file('file')->getRealPath());
+        } catch (\Throwable $e) {
+            return response()->json(['message' => '엑셀 파일을 읽지 못했습니다: '.$e->getMessage()], 422);
+        }
+
+        $sheetNames = $spreadsheet->getSheetNames();
+        $sheetIndex = min((int) $request->input('sheet', 0), count($sheetNames) - 1);
+        $sheet = $spreadsheet->getSheet($sheetIndex);
+
+        // 제품 매칭 맵 — 이름에서 공백을 제거해 소문자로 비교 (제품 리스트 검색과 동일 규칙)
+        $normalize = fn ($v) => mb_strtolower(str_replace(' ', '', trim((string) $v)));
+        $products = Product::where('is_active', true)
+            ->get(['id', 'name', 'sku', 'sale_price', 'purchase_price'])
+            ->keyBy(fn ($p) => $normalize($p->name));
+
+        $skipWords = ['소계', '합계', 'amount', 'remark'];
+        $isSkipWord = fn ($v) => in_array($normalize($v), array_map($normalize, $skipWords), true);
+        $num = function ($v) {
+            $s = str_replace([',', ' ', '원'], '', trim((string) $v));
+
+            return is_numeric($s) ? (float) $s : null;
+        };
+
+        $items = [];
+        $title = '';
+        $cat = '';
+        $mid = '';
+        $highestRow = min($sheet->getHighestDataRow(), 2000);
+        for ($row = 1; $row <= $highestRow; $row++) {
+            $b = trim((string) $sheet->getCell('B'.$row)->getFormattedValue());
+            $c = trim((string) $sheet->getCell('C'.$row)->getFormattedValue());
+            $d = trim((string) $sheet->getCell('D'.$row)->getFormattedValue());
+            $e = $num($sheet->getCell('E'.$row)->getCalculatedValue());
+            $g = $num($sheet->getCell('G'.$row)->getCalculatedValue());
+            $i = $num($sheet->getCell('I'.$row)->getCalculatedValue());
+            $j = trim((string) $sheet->getCell('J'.$row)->getFormattedValue());
+
+            if ($isSkipWord($b) || $isSkipWord($c) || $isSkipWord($d)) {
+                continue; // 소계/합계/헤더 행
+            }
+            if ($b !== '') {
+                $cat = $b;
+                $mid = ''; // 대분류가 바뀌면 중분류 리셋
+            }
+            if ($c !== '') {
+                $mid = $c;
+            }
+            if ($d === '') {
+                continue;
+            }
+            if ($e === null && $i === null) {
+                // 가격 없는 텍스트 행 — 첫 행은 견적서 제목 후보 (예: 'XL스튜디오 HDMI 변경시')
+                if ($title === '' && $cat === '') {
+                    $title = $d;
+                }
+
+                continue;
+            }
+
+            $qty = max(1, (int) ($g ?? 1));
+            $unit = $e ?? ($i !== null ? (int) round($i / $qty) : 0);
+            $amount = $i ?? $unit * $qty;
+            $product = $products->get($normalize($d));
+            $items[] = [
+                'category' => $cat !== '' ? $cat : '기타',
+                'mid_category' => $mid,
+                'name' => mb_substr($d, 0, 200),
+                'unit_price' => (int) $unit,
+                'qty' => $qty,
+                'amount' => (int) $amount,
+                'remark' => mb_substr($j, 0, 500),
+                'product_id' => $product?->id,
+                'sku' => $product?->sku,
+                'purchase_price' => $product ? (int) $product->purchase_price : 0,
+                'price_differs' => $product ? (int) $product->sale_price !== (int) $unit : false,
+            ];
+        }
+
+        return response()->json([
+            'sheets' => $sheetNames,
+            'sheet' => $sheetIndex,
+            'title' => $title,
+            'items' => $items,
+            'matched' => collect($items)->whereNotNull('product_id')->count(),
+            'total' => count($items),
+        ]);
+    }
+
     public function edit(Estimate $estimate)
     {
         $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
@@ -155,6 +258,9 @@ class EstimateController extends Controller
             'product_items.*.time_required' => 'nullable|string|max:50',
             'product_items.*.use_time' => 'nullable|boolean', // 소요시간 입력폼 사용 여부 (제품 설정 스냅샷)
             'product_items.*.manual' => 'nullable|boolean',
+            'product_items.*.mid_category' => 'nullable|string|max:100', // 엑셀 가져오기 C열 중분류 — 제품명 위 작은 라벨
+            'product_items.*.remark' => 'nullable|string|max:500', // 항목 비고 — 의뢰자 견적서에 표시
+            'product_items.*.price_fixed' => 'nullable|boolean', // 엑셀 가격 보존 — 제품 판매가 동기화 제외
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모
