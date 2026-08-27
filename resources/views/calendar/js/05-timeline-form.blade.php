@@ -55,6 +55,18 @@ function renderTimeline() {
             chip.onclick=()=>openDetailModal(ev);
             cell.appendChild(chip);
         });
+        // 자정 넘김(여러 날) 시간 일정의 이어지는 날 — 시간 그리드엔 그릴 수 없으니 종일 행에 '~03:00 종료' 칩으로 표시
+        events.filter(ev=>isFiltered(ev)&&!ev.is_all_day&&(ev.start_date||'').substring(0,10)<ds&&evCoversDate(ev,ds))
+            .sort((a,b)=>(evTimeOn(a,ds)||'99:99').localeCompare(evTimeOn(b,ds)||'99:99')).forEach(ev=>{
+            const endsHere=ds===evEnd(ev)&&ev.end_time;
+            const tag=endsHere?`~${ev.end_time.slice(0,5)} 종료`:'계속';
+            const chip=document.createElement('div');
+            chip.className=`event-chip color-${ev.color}`+(ev.completed_at?' is-completed':'');
+            chip.style.marginBottom='2px';
+            chip.innerHTML=isGuestUser?_esc(`${tag} `+(ev.location||'일정')):(`<span style="opacity:0.8;">${tag}</span> `+eventOptIconsHtml(ev)+`<span class="chip-title">${_esc(ev.title||'')}</span>`+schedStatusChip(ev)+shipStatusIcon(ev));
+            chip.onclick=()=>openDetailModal(ev);
+            cell.appendChild(chip);
+        });
         cell.addEventListener('click',e=>{if(e.target===cell)openNewModal(ds);});
         alldayRow.appendChild(cell);
     });
@@ -74,7 +86,8 @@ function renderTimeline() {
                 if(ev.end_time){ [eh,em]=ev.end_time.split(':').map(Number); }
                 else { eh=sh+1; em=sm; }
                 let start=sh*60+sm, end=eh*60+em;
-                if(end<=start) end=start+30; // 종료<=시작이면 최소 30분
+                if(evEnd(ev)>ds) end=23*60; // 자정 넘김: 시작일엔 하루 끝까지
+                else if(end<=start) end=start+30; // 종료<=시작이면 최소 30분
                 return { ev, start, end, col:0, total:1 };
             })
             .sort((a,b)=> a.start-b.start || a.end-b.end);
@@ -132,8 +145,9 @@ function renderTimeline() {
                 const el=document.createElement('div');
                 el.className=`tl-event color-${ev.color}`+(ev.completed_at?' is-completed':'');
                 const sm=ev.start_time?parseInt(ev.start_time.split(':')[1]):0;
-                const eh=ev.end_time?parseInt(ev.end_time.split(':')[0]):hour+1;
-                const em=ev.end_time?parseInt(ev.end_time.split(':')[1]):0;
+                let eh=ev.end_time?parseInt(ev.end_time.split(':')[0]):hour+1;
+                let em=ev.end_time?parseInt(ev.end_time.split(':')[1]):0;
+                if(evEnd(ev)>ds){ eh=23; em=0; } // 자정 넘김: 시작일엔 하루 끝까지 그린다
                 const dur=(eh+em/60)-(hour+sm/60);
                 el.style.top=`${(sm/60)*TL_HH}px`;
                 el.style.height=`${Math.max(dur*TL_HH,20)}px`;

@@ -514,16 +514,8 @@ function selectMobileDay(dateStr){
 function renderMobileDayEvents(dateStr, container){
     container=container||document.getElementById('mobileDayEvents');
     if(!container) return;
-    const dayEvs=events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr))
-        // 카테고리 순이 아니라 시간순 정렬: 종일 먼저, 그 다음 시작시간 오름차순
-        .sort((a,b)=>{
-            const aTop=isTopEv(a)?0:1, bTop=isTopEv(b)?0:1;
-            if(aTop!==bTop) return aTop-bTop;
-            const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
-            if(aAll!==bAll) return aAll-bAll;
-            const at=(a.start_time||'99:99'), bt=(b.start_time||'99:99');
-            return at.localeCompare(bt);
-        });
+    // 시간순 정렬: 종일 먼저, 그 다음 그 날짜 기준 유효 시각 오름차순 (자정 넘김 일정은 끝나는 날 새벽 종료 시각)
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)), dateStr);
     const d=new Date(dateStr+'T00:00:00');
     const DAYS_KO_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
     const header=`${d.getMonth()+1}월 ${d.getDate()}일 ${DAYS_KO_FULL[d.getDay()]}`;
@@ -533,7 +525,9 @@ function renderMobileDayEvents(dateStr, container){
         return;
     }
     const items=dayEvs.map(ev=>{
-        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)||'—');
+        const stD=(ev.start_date||'').substring(0,10);
+        const tOn=evTimeOn(ev,dateStr);
+        const time=ev.is_all_day?'종일':(tOn?((dateStr!==stD&&dateStr===evEnd(ev)&&ev.end_time)?'~'+tOn:tOn):'—');
         const title=ev.title||'(제목 없음)';
         const assignees=assigneeNamesOf(ev).join(', ');
         const moveHtml=moveAddrLinesHtml(ev);
@@ -561,7 +555,10 @@ function evDurationLabel(ev){
     if(ev.is_all_day||!ev.start_time||!ev.end_time) return '';
     const [sh,sm]=ev.start_time.split(':').map(Number);
     const [eh,em]=ev.end_time.split(':').map(Number);
-    let m=(eh*60+em)-(sh*60+sm);
+    // 자정을 넘는 일정은 날짜 차이만큼 더해 계산 (예: 15:00~익일 03:00 = 12시간)
+    const stD=(ev.start_date||'').substring(0,10);
+    const days=Math.max(0, Math.round((new Date(evEnd(ev)+'T00:00:00')-new Date(stD+'T00:00:00'))/86400000));
+    let m=days*1440+(eh*60+em)-(sh*60+sm);
     if(!(m>0)) return '';
     const h=Math.floor(m/60), mm=m%60;
     return (h?h+'시간':'')+(mm?(h?' ':'')+mm+'분':'');

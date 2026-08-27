@@ -34,6 +34,27 @@ class DashboardScheduleCountTest extends TestCase
             ->assertViewHas('scheduleThisMonth', 3);
     }
 
+    public function test_today_schedules_sort_overnight_by_end_time(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $today = now()->toDateString();
+        $yesterday = now()->subDay()->toDateString();
+
+        // 어제 15시 시작 → 오늘 03시 종료 (자정 넘김) / 오늘 10시 일반 일정
+        Schedule::create(['title' => '야간 세팅', 'start_date' => $yesterday, 'end_date' => $today, 'color' => 'gold', 'is_all_day' => false, 'start_time' => '15:00', 'end_time' => '03:00']);
+        Schedule::create(['title' => '오전 미팅', 'start_date' => $today, 'end_date' => $today, 'color' => 'purple', 'is_all_day' => false, 'start_time' => '10:00', 'end_time' => '11:00']);
+
+        $rows = $this->actingAs($user)->get('/')->assertOk()
+            ->viewData('todaySchedules')->values();
+
+        // 자정 넘김 일정이 종료 시각(03:00) 기준으로 앞에 오고 '~03:00'으로 표시
+        $this->assertSame('야간 세팅', $rows[0]['title']);
+        $this->assertSame('~03:00', $rows[0]['time']);
+        $this->assertNull($rows[0]['time_end']);
+        $this->assertSame('오전 미팅', $rows[1]['title']);
+        $this->assertSame('10:00', $rows[1]['time']);
+    }
+
     public function test_work_status_splits_total_and_new_clients(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

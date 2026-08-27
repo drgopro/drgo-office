@@ -88,6 +88,13 @@ function evEnd(ev){
     const ed=(ev.end_date||'').substring(0,10);
     return (ed && ed>=sd) ? ed : sd;
 }
+// 해당 날짜 기준 정렬/표시 시각 — 자정을 넘는 일정은 끝나는 날엔 종료 시각(새벽) 기준
+function evTimeOn(ev, ds){
+    if(ev.is_all_day) return null;
+    const st=(ev.start_date||'').substring(0,10);
+    if(ds && ds!==st && ds===evEnd(ev) && ev.end_time) return ev.end_time.substring(0,5);
+    return ev.start_time?ev.start_time.substring(0,5):null;
+}
 // 카테고리 색 — 관리 설정과 연동된 CSS 변수 반환 (커스텀 카테고리 포함)
 function chipColor(c){
     if(c==='holiday') return 'var(--chip-red-bg)';

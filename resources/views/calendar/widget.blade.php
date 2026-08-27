@@ -129,9 +129,16 @@ function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0
 const DOW = ['일','월','화','수','목','금','토'];
 function catColor(key){ return (CATS[key] && CATS[key].color) || '#8a9bb0'; }
 function todayStr(){ return fmt(new Date()); }
+// 해당 날짜 기준 유효 시각 — 자정을 넘는 일정은 끝나는 날엔 새벽 종료 시각 기준
+function evTimeOn(e, ds){
+    if(e.is_all_day) return null;
+    const st=(e.start_date||'').substring(0,10), en=((e.end_date||e.start_date)||'').substring(0,10);
+    if(ds && ds!==st && ds===en && e.end_time) return e.end_time.substring(0,5);
+    return e.start_time?e.start_time.substring(0,5):null;
+}
 function evsOn(ds){
     return events.filter(e => e.start_date <= ds && (e.end_date || e.start_date) >= ds)
-        .sort((a,b) => (a.is_all_day?'':a.start_time||'99') < (b.is_all_day?'':b.start_time||'99') ? -1 : 1);
+        .sort((a,b) => (a.is_all_day?'':evTimeOn(a,ds)||'99') < (b.is_all_day?'':evTimeOn(b,ds)||'99') ? -1 : 1);
 }
 
 function gridStart(){
@@ -198,7 +205,12 @@ function renderList(){
     const isToday = ds === todayStr();
     let html = `<div class="wg-list-head"><span class="${isToday?'d-today':''}">${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]})${isToday?' · 오늘':''}</span> · ${dayEvs.length}건</div>`;
     html += dayEvs.map(e => {
-        const time = e.is_all_day ? '종일' : ((e.start_time||'').substring(0,5) + (e.end_time ? '~'+e.end_time.substring(0,5) : ''));
+        const stD=(e.start_date||'').substring(0,10), enD=((e.end_date||e.start_date)||'').substring(0,10);
+        const overnight=!e.is_all_day&&e.end_time&&enD>stD;
+        const time = e.is_all_day ? '종일'
+            : (overnight&&ds!==stD&&ds===enD) ? ('~'+e.end_time.substring(0,5)+' 종료')
+            : (overnight&&ds===stD) ? ((e.start_time||'').substring(0,5)+'~익일 '+e.end_time.substring(0,5))
+            : ((e.start_time||'').substring(0,5) + (e.end_time ? '~'+e.end_time.substring(0,5) : ''));
         const who = (e.assignees||[]).map(a => a.name).filter(Boolean);
         const whoTxt = who.length ? (who[0] + (who.length>1 ? ' +'+(who.length-1) : '')) : '';
         const chip = (e.sched_opt && SCHED_CHIP[e.sched_opt])

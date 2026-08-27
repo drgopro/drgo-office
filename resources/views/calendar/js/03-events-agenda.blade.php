@@ -61,14 +61,15 @@ async function loadAssignees() {
     }
 }
 
-// 외부 오퍼레이터 최상단 → 종일 먼저 → 시작시간 오름차순 정렬 (월간 셀·팝오버·모바일 공용)
-function sortByTime(list){
+// 외부 오퍼레이터 최상단 → 종일 먼저 → 시간 오름차순 정렬 (월간 셀·팝오버·모바일 공용)
+// ds(날짜)를 주면 그 날짜 기준 유효 시각으로 정렬 — 자정 넘김 일정은 끝나는 날 새벽 종료 시각 기준
+function sortByTime(list, ds){
     return [...list].sort((a,b)=>{
         const aTop=isTopEv(a)?0:1, bTop=isTopEv(b)?0:1;
         if(aTop!==bTop) return aTop-bTop;
         const aAll=a.is_all_day?0:1, bAll=b.is_all_day?0:1;
         if(aAll!==bAll) return aAll-bAll;
-        return (a.start_time||'99:99').localeCompare(b.start_time||'99:99');
+        return (evTimeOn(a,ds)||'99:99').localeCompare(evTimeOn(b,ds)||'99:99');
     });
 }
 
@@ -78,7 +79,7 @@ function openDayPopover(dateStr, anchorEl){
     const overlay=document.getElementById('dayPopoverOverlay');
     if(!pop||!overlay) return;
 
-    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)));
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)), dateStr);
     const d=new Date(dateStr+'T00:00:00');
     const DAYS=['일','월','화','수','목','금','토'];
     document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`;
@@ -90,7 +91,12 @@ function openDayPopover(dateStr, anchorEl){
     document.getElementById('dpList').innerHTML=dayEvs.map(ev=>{
         const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
         const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
-        const time=ev.is_all_day?'종일':((ev.start_time||'').substring(0,5)+((ev.end_time)?'~'+ev.end_time.substring(0,5):''));
+        // 자정 넘김 일정: 시작일엔 '15:00~익일 03:00', 끝나는 날엔 '~03:00 종료'
+        const stD=(ev.start_date||'').substring(0,10), overnight=!ev.is_all_day&&ev.end_time&&evEnd(ev)>stD;
+        const time=ev.is_all_day?'종일'
+            :(overnight&&dateStr!==stD&&dateStr===evEnd(ev))?('~'+ev.end_time.substring(0,5)+' 종료')
+            :(overnight&&dateStr===stD)?((ev.start_time||'').substring(0,5)+'~익일 '+ev.end_time.substring(0,5))
+            :((ev.start_time||'').substring(0,5)+((ev.end_time)?'~'+ev.end_time.substring(0,5):''));
         // 담당자는 제목 우측에, 나머지(시간·주소)는 하단 메타에
         const moveHtml=moveAddrLinesHtml(ev);
         const meta=[time, moveHtml?'':roadOnly(ev.location)].filter(Boolean).join(' · ');
@@ -180,7 +186,7 @@ function renderAgenda(){
     if(!wrap) return;
     const full=agendaSelectedDate;
     const d=new Date(full+'T00:00:00');
-    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,full)));
+    const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,full)), full);
     const dowCls=full===ts?'ad-today':d.getDay()===0?'ad-sun':d.getDay()===6?'ad-sat':'';
 
     let html=`<div class="agenda-day"><div class="agenda-date-head">
@@ -192,7 +198,13 @@ function renderAgenda(){
     } else {
         dayEvs.forEach(ev=>{
             const isMulti=ev.end_date&&ev.end_date!==ev.start_date;
-            const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
+            // 자정 넘김 등 여러 날 일정: 시작일엔 시작 시각, 끝나는 날엔 '~종료 시각', 중간 날은 '기간'
+            const stD=(ev.start_date||'').substring(0,10);
+            const timeLabel=ev.is_all_day?'종일'
+                :!isMulti?((ev.start_time||'').substring(0,5)||'시간 미정')
+                :(full===stD&&ev.start_time)?ev.start_time.substring(0,5)
+                :(full===evEnd(ev)&&ev.end_time)?('~'+ev.end_time.substring(0,5))
+                :'기간';
             const title=isGuestUser?(ev.location||'일정'):(ev.title||'(제목 없음)');
             const assignees=(ev.assignees||[]).map(a=>a.name).filter(Boolean).join(', ');
             const moveHtml=moveAddrLinesHtml(ev);

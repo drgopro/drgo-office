@@ -219,18 +219,28 @@ class DashboardController extends Controller
             ->whereDate('start_date', '<=', $today)
             ->where(fn ($q) => $q->whereDate('end_date', '>=', $today)->orWhereNull('end_date'))
             ->where(fn ($q) => $q->where('is_private', false)->orWhere('created_by', auth()->id()))
-            ->orderByDesc('is_all_day')->orderBy('start_time')
             ->get()
-            ->map(fn ($s) => [
-                'id' => $s->id,
-                'title' => $s->title ?: '(제목 없음)',
-                'time' => $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5),
-                'time_end' => $s->is_all_day || ! $s->end_time ? null : substr((string) $s->end_time, 0, 5),
-                'color' => $s->color,
-                'category' => $catMap[$s->color]['label'] ?? $s->color,
-                'assignees' => $s->assignees->pluck('name')->implode(', '),
-                'completed' => $s->completed_at !== null,
-            ]);
+            ->map(function ($s) use ($today, $catMap) {
+                // 자정을 넘겨 오늘 새벽에 끝나는 일정은 종료 시각 기준으로 표시·정렬
+                $endsToday = ! $s->is_all_day && $s->end_time
+                    && $s->start_date?->toDateString() < $today
+                    && ($s->end_date?->toDateString() ?? $s->start_date?->toDateString()) === $today;
+
+                return [
+                    'id' => $s->id,
+                    'title' => $s->title ?: '(제목 없음)',
+                    'time' => $s->is_all_day || ! $s->start_time ? '종일'
+                        : ($endsToday ? '~'.substr((string) $s->end_time, 0, 5) : substr((string) $s->start_time, 0, 5)),
+                    'time_end' => $s->is_all_day || ! $s->end_time || $endsToday ? null : substr((string) $s->end_time, 0, 5),
+                    'sort_time' => $s->is_all_day ? '0'
+                        : '1'.($endsToday ? substr((string) $s->end_time, 0, 5) : ($s->start_time ? substr((string) $s->start_time, 0, 5) : '99:99')),
+                    'color' => $s->color,
+                    'category' => $catMap[$s->color]['label'] ?? $s->color,
+                    'assignees' => $s->assignees->pluck('name')->implode(', '),
+                    'completed' => $s->completed_at !== null,
+                ];
+            })
+            ->sortBy('sort_time')->values();
 
         // 주목 프로젝트 — 다가오는 제안/희망/목표/확정 일정 (D-day 오름차순)
         $schedOptLabels = ['suggest' => '제안 일정', 'hope' => '희망 일정', 'target' => '목표 일정', 'confirmed' => '확정 일정'];
