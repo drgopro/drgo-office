@@ -209,7 +209,16 @@
         #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(5)::before { content:"· "; }
         #orderCard tr[onclick*="toggleOrderGroup"] td.action-cell { flex-basis:100%; margin-top:4px; }
         #orderCard .action-cell { display:flex; gap:6px; }
-        #orderCard .action-cell .btn-outline, #orderCard .action-cell .btn-danger-sm { flex-grow:1; padding:9px 10px; font-size:12.5px; }
+        #orderCard .action-cell .btn-outline, #orderCard .action-cell .btn-danger-sm { flex:1 1 0; padding:10px; font-size:13px; border-radius:8px; line-height:1.2; text-align:center; justify-content:center; }
+        #orderCard .action-cell .btn-danger-sm { background:none; color:var(--red, #dc2626); } /* 카드에선 빨간 아웃라인으로 톤 다운 */
+        /* 항목 편집 줄 — 금액·구매처 / 메모 / 환불 체크 ↔ 저장 순으로 정렬 */
+        #orderCard td[colspan="3"] > div { row-gap:7px; }
+        #orderCard td[colspan="3"] .oi-amt,
+        #orderCard td[colspan="3"] .oi-src { flex:1 1 40% !important; width:auto !important; min-width:0; }
+        #orderCard td[colspan="3"] .oi-memo { flex:1 1 100% !important; }
+        #orderCard td[colspan="3"] label { margin-right:auto; }
+        #orderCard td[colspan="3"] .oi-refamt { width:110px !important; }
+        #orderCard td[colspan="3"] .btn-outline { padding:8px 18px; font-size:12.5px; }
         /* 펼친 상세 행 = 카드 아래 이어지는 패널 */
         #orderCard tr:not([onclick*="toggleOrderGroup"]):not(:first-child) { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0 0 4px; }
         #orderCard tr[data-oik] td:nth-child(2), #orderCard tr td.text-wrap { flex-basis:100%; font-weight:600; }
