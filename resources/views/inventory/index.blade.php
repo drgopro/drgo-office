@@ -130,8 +130,14 @@
     .cat-children { padding-left:24px; border-top:1px solid var(--border); }
     .cat-children .cat-children { padding-left:24px; }
     .cat-depth { color:var(--text-muted); font-size:11px; }
-    .cat-svc { font-size:10.5px; border:1px solid var(--border); color:var(--text-muted); border-radius:4px; padding:1px 7px; cursor:pointer; user-select:none; }
-    .cat-svc.on { border-color:var(--accent); color:var(--accent); background:rgba(46,108,181,0.08); font-weight:700; }
+    .cat-kind { display:inline-flex; gap:0; }
+    .cat-kind span { font-size:10.5px; border:1px solid var(--border); color:var(--text-muted); padding:1px 7px; cursor:pointer; user-select:none; }
+    .cat-kind .cat-svc { border-radius:4px 0 0 4px; border-right:none; }
+    .cat-kind .cat-prod { border-radius:0 4px 4px 0; }
+    .cat-kind .cat-svc.on { border-color:var(--accent); color:var(--accent); background:rgba(46,108,181,0.08); font-weight:700; }
+    .cat-kind .cat-prod.on { border-color:var(--text); color:var(--text); background:rgba(0,0,0,0.05); font-weight:700; }
+    /* 상위 카테고리에서 서비스가 상속된 하위 — 직접 켠 게 아니라 점선으로 구분 */
+    .cat-kind .cat-svc.inh { border-style:dashed; border-color:var(--accent); color:var(--accent); opacity:0.65; }
     .cat-add-inline { display:flex; gap:6px; padding:6px 14px; align-items:center; }
     .cat-add-inline input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12px; outline:none; }
     .cat-add-inline input:focus { border-color:var(--accent); }
@@ -584,7 +590,7 @@ function renderCatTree() {
     el.innerHTML = `<div class="cat-sortable" data-parent-id="">${catData.map(c => renderCatNode(c, 1)).join('')}</div>`;
     setupSortables();
 }
-function renderCatNode(cat, depth) {
+function renderCatNode(cat, depth, inheritedSvc = false) {
     const children = cat.children || [];
     const canAddChild = depth < 4;
     // data-id, data-depth — Sortable + 이동 시 사용
@@ -594,7 +600,10 @@ function renderCatNode(cat, depth) {
             <span class="cat-code" ondblclick="startEditCat(${cat.id},'code')">${cat.code}</span>
             <span class="cat-name" ondblclick="startEditCat(${cat.id},'name')">${_esc(cat.name)}</span>
             <span class="cat-depth">${depth}차</span>
-            <span class="cat-svc${cat.is_service?' on':''}" onclick="toggleCatService(${cat.id})" title="서비스 카테고리 — 소속·하위 제품의 매출이 세팅비(서비스)로 집계됩니다. 클릭해서 켜고 끕니다">서비스</span>
+            <span class="cat-kind">
+                <span class="cat-svc${cat.is_service ? ' on' : (inheritedSvc ? ' inh' : '')}" onclick="setCatService(${cat.id}, true)" title="${inheritedSvc && !cat.is_service ? '상위 카테고리가 서비스라 하위도 서비스(세팅비)로 집계됩니다' : '서비스 카테고리 — 소속·하위 제품의 매출이 세팅비(서비스)로 집계됩니다'}">서비스</span>
+                <span class="cat-prod${!cat.is_service && !inheritedSvc ? ' on' : ''}" onclick="setCatService(${cat.id}, false)" title="장비 카테고리 — 소속 제품의 매출이 장비판매로 집계됩니다 (기본값)">장비</span>
+            </span>
             <div class="cat-actions">
                 <button class="btn-outline btn-sm" onclick="startEditCat(${cat.id},'name')" title="이름/코드 수정">✎</button>
                 ${canAddChild ? `<button class="btn-outline btn-sm" onclick="showAddCat(${cat.id})">+ 하위</button>` : ''}
@@ -607,7 +616,7 @@ function renderCatNode(cat, depth) {
             <button onclick="saveCat(${cat.id})">추가</button>
             <button onclick="document.getElementById('catAdd-${cat.id}').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">취소</button>
         </div>
-        <div class="cat-children cat-sortable" data-parent-id="${cat.id}">${children.map(c => renderCatNode(c, depth+1)).join('')}</div>
+        <div class="cat-children cat-sortable" data-parent-id="${cat.id}">${children.map(c => renderCatNode(c, depth+1, inheritedSvc || !!cat.is_service)).join('')}</div>
     </div>`;
     return html;
 }
@@ -631,11 +640,11 @@ function startEditCat(id, field) {
             loadCategories();
         });
 }
-// 서비스 카테고리 토글 — 매출 통계의 세팅비/장비 분류 (하위 카테고리·소속 제품 상속)
-function toggleCatService(id) {
+// 서비스/장비 지정 — 매출 통계의 세팅비/장비 분류 (하위 카테고리·소속 제품 상속)
+function setCatService(id, isService) {
     const cat = findCatById(id);
-    if (!cat) return;
-    fetch(`/api/inventory/categories/${id}`, { method:'PATCH', headers:H, body:JSON.stringify({ name: cat.name, code: cat.code, is_service: !cat.is_service }) })
+    if (!cat || !!cat.is_service === isService) return; // 이미 그 상태면 무시
+    fetch(`/api/inventory/categories/${id}`, { method:'PATCH', headers:H, body:JSON.stringify({ name: cat.name, code: cat.code, is_service: isService }) })
         .then(async res => {
             if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '변경 실패'); return; }
             loadCategories();
