@@ -735,6 +735,27 @@ class MarketingReportController extends Controller
                 ->groupBy('project_id');
             $payTypeLabels = ['charge' => '결제', 'refund' => '환불', 'cancel' => '취소'];
 
+            // 카드에 연결된 견적서 — 연동 charge(estimate_id) + 입양(원장 estimate_paid.payment_id) 기준.
+            // '견적서 보기' 버튼과 견적 결제완료 일자를 펼침 영역에 함께 보여준다.
+            $estLinks = ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereIn('project_id', $grouped->pluck('id'))
+                ->where('type', 'charge')->whereNotNull('estimate_id')
+                ->get(['project_id', 'estimate_id', 'paid_at'])
+                ->map(fn ($r) => ['project_id' => $r->project_id, 'estimate_id' => $r->estimate_id, 'paid_on' => $r->paid_at?->format('Y-m-d')]);
+            if (Schema::hasTable('revenue_entries')) {
+                $adoptedLinks = RevenueEntry::where('kind', 'estimate_paid')->whereNotNull('payment_id')
+                    ->whereIn('project_id', $grouped->pluck('id'))
+                    ->get(['project_id', 'estimate_id', 'payment_id']);
+                $adoptedPayDates = ProjectPayment::whereIn('id', $adoptedLinks->pluck('payment_id'))->pluck('paid_at', 'id');
+                $estLinks = $estLinks->concat($adoptedLinks->map(fn ($r) => [
+                    'project_id' => $r->project_id,
+                    'estimate_id' => $r->estimate_id,
+                    'paid_on' => ($d = $adoptedPayDates[$r->payment_id] ?? null) ? substr((string) $d, 0, 10) : null,
+                ]));
+            }
+            $estNos = Estimate::whereIn('id', $estLinks->pluck('estimate_id'))->get()->keyBy('id');
+            $estByProject = $estLinks->groupBy('project_id');
+
             $items = $grouped->map(fn ($r) => [
                 'project_id' => $r->id,
                 'name' => $r->name,
@@ -751,6 +772,11 @@ class MarketingReportController extends Controller
                     'method' => $p->method,
                     'paid_at' => $p->paid_at?->format('Y-m-d'),
                     'memo' => $p->memo ? mb_substr($p->memo, 0, 80) : null,
+                ])->values()->all(),
+                'estimates' => ($estByProject[$r->id] ?? collect())->unique('estimate_id')->map(fn ($l) => [
+                    'id' => $l['estimate_id'],
+                    'no' => $estNos[$l['estimate_id']]->display_no ?? $l['estimate_id'],
+                    'paid_on' => $l['paid_on'],
                 ])->values()->all(),
             ]);
         }
@@ -818,6 +844,7 @@ class MarketingReportController extends Controller
                     'last_paid_at' => $paidOn,
                     'source' => 'estimate',
                     'payments' => $payments,
+                    'estimates' => [['id' => $e->id, 'no' => $e->display_no, 'paid_on' => $paidOn]],
                 ];
             });
 

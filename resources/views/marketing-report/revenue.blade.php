@@ -49,6 +49,8 @@
     .rv-pay-label.minus, .rv-pay-amt.minus { color:#c0392b; }
     .rv-pay-info { color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .rv-pay-amt { margin-left:auto; flex-shrink:0; font-weight:700; }
+    .rv-est-btn { margin-left:auto; flex-shrink:0; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; padding:3px 11px; font-size:11.5px; font-weight:600; cursor:pointer; }
+    .rv-est-btn:hover { border-color:var(--accent); color:var(--accent); }
     .rv-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:46px 0; }
 
     @media (max-width:640px) {
@@ -178,6 +180,11 @@ function rvRender(){
                 <span class="rv-pay-info">${pay.paid_at||''}${pay.method?` · ${rvEsc(pay.method)}`:''}${pay.memo?` · ${rvEsc(pay.memo)}`:''}</span>
                 <span class="rv-pay-amt ${pay.amount<0?'minus':''}">${Number(pay.amount).toLocaleString()}원</span>
             </div>`).join('')||'<div class="rv-pay" style="color:var(--text-muted);">개별 결제 내역 없음</div>'}
+            ${(p.estimates||[]).map(es=>`<div class="rv-pay">
+                <span class="rv-pay-label" style="color:var(--text-muted);">견적서</span>
+                <span class="rv-pay-info">#${rvEsc(es.no)}${es.paid_on?` · 결제완료 ${es.paid_on}`:''}</span>
+                <button type="button" class="rv-est-btn" onclick="event.stopPropagation(); rvOpenEstimate(${es.id})">견적서 보기</button>
+            </div>`).join('')}
         </div>
     </div>`).join('');
 }
@@ -188,6 +195,10 @@ function rvToggle(i){ document.getElementById('rvItem'+i)?.classList.toggle('ope
 function rvOpenProject(id){
     if(window.parent && window.parent.drgoTabs){ window.parent.drgoTabs.openNav('projects','/projects/'+id); }
     else{ location.href='/projects/'+id; }
+}
+function rvOpenEstimate(id){
+    if(window.parent && window.parent.drgoTabs){ window.parent.drgoTabs.openNav('estimates','/estimates/'+id+'/edit'); }
+    else{ location.href='/estimates/'+id+'/edit'; }
 }
 
 rvLoad();

@@ -311,6 +311,22 @@ class RevenueLedgerTest extends TestCase
             ->assertJsonPath('total', 400000)
             ->assertJsonPath('count', 1)
             ->assertJsonPath('projects.0.source', 'payment');
+        // 입양된 견적서가 카드에 연결돼 '견적서 보기'로 노출된다
+        $estimate = Estimate::where('project_id', $this->project->id)->first();
+        $res->assertJsonPath('projects.0.estimates.0.id', $estimate->id)
+            ->assertJsonPath('projects.0.estimates.0.paid_on', now()->toDateString());
+    }
+
+    public function test_revenue_detail_links_estimate_on_linked_charge_card(): void
+    {
+        $estimate = $this->makePaidEstimate(['project_id' => $this->project->id]);
+        $this->pay(['type' => 'charge', 'estimate_id' => $estimate->id, 'amount' => 400000, 'paid_at' => now()->toDateString()]);
+
+        $this->actingAs($this->user)->getJson('/api/marketing-report/revenue-projects')
+            ->assertOk()
+            ->assertJsonPath('count', 1)
+            ->assertJsonPath('projects.0.estimates.0.id', $estimate->id)
+            ->assertJsonPath('projects.0.estimates.0.paid_on', now()->toDateString());
     }
 
     public function test_revenue_detail_page_has_period_controls(): void
@@ -320,6 +336,7 @@ class RevenueLedgerTest extends TestCase
             ->assertSee('id="rvFrom"', false)
             ->assertSee('id="rvTo"', false)
             ->assertSee('rvApplyPeriod', false)
+            ->assertSee('rvOpenEstimate', false)
             ->assertSee('최근 3개월');
     }
 
