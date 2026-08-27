@@ -13,6 +13,7 @@ use App\Models\Project;
 use App\Models\Setting;
 use App\Models\StockMovement;
 use App\Services\MarketPriceCrawler;
+use App\Services\RevenueLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -61,6 +62,7 @@ class InventoryController extends Controller
             'parent_id' => 'nullable|exists:product_categories,id',
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:10|regex:/^[A-Z0-9]+$/',
+            'is_service' => 'nullable|boolean', // 서비스 카테고리 — 소속·하위 제품은 세팅비 매출로 집계
         ]);
 
         $depth = 1;
@@ -93,6 +95,7 @@ class InventoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:10|regex:/^[A-Z0-9]+$/',
+            'is_service' => 'nullable|boolean',
         ]);
 
         // 같은 부모 내 code 중복 검증 (자신은 제외)
@@ -105,12 +108,17 @@ class InventoryController extends Controller
         }
 
         $nameChanged = $category->name !== $validated['name'];
+        $serviceChanged = $request->has('is_service') && $category->is_service !== $request->boolean('is_service');
         $category->update($validated);
 
         // 제품에는 카테고리명이 문자열로도 저장돼 있어(목록 표시용) 이름 변경 시 함께 갱신 —
         // 제품을 하나씩 다시 저장하지 않아도 목록에 새 이름이 바로 반영된다
         if ($nameChanged) {
             Product::where('category_id', $category->id)->update(['category' => $category->name]);
+        }
+        // 서비스 분류가 바뀌면 매출 원장 재계산 — 분류 스냅샷이 없는 과거 견적서에 반영
+        if ($serviceChanged) {
+            RevenueLedger::rebuild();
         }
 
         return response()->json($category);
@@ -397,6 +405,7 @@ class InventoryController extends Controller
             'stock_quantity' => 'nullable|integer|min:0', // 등록 시 초기 재고 (세트 제외)
             'memo' => 'nullable|string',
             'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
+            'service_kind' => 'nullable|in:service,product', // 서비스/제품 분류 재정의 (비우면 카테고리 따름)
             'time_required' => 'nullable|string|max:50', // 견적서 소요시간 기본값
             'use_time_required' => 'boolean', // 견적서에서 소요시간 입력폼 표시 여부
             'show_in_estimate' => 'boolean',
@@ -483,6 +492,7 @@ class InventoryController extends Controller
             'option_name' => 'sometimes|nullable|string|max:60',
             'memo' => 'nullable|string',
             'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
+            'service_kind' => 'nullable|in:service,product', // 서비스/제품 분류 재정의 (비우면 카테고리 따름)
             'time_required' => 'nullable|string|max:50', // 견적서 소요시간 기본값
             'use_time_required' => 'boolean', // 견적서에서 소요시간 입력폼 표시 여부
             'show_in_estimate' => 'boolean',
@@ -534,7 +544,13 @@ class InventoryController extends Controller
             }
 
             $validated['category'] = $cat->name;
+            $serviceKindChanged = array_key_exists('service_kind', $validated)
+                && $product->service_kind !== ($validated['service_kind'] ?: null);
             $product->update($validated);
+            // 서비스/제품 분류 재정의가 바뀌면 매출 원장 재계산 (분류 스냅샷 없는 과거 견적서 반영)
+            if ($serviceKindChanged) {
+                RevenueLedger::rebuild();
+            }
 
             // 세트 ↔ 일반 전환 시 재고/구성 정리
             if ($wasBundle !== $product->is_bundle) {
@@ -892,6 +908,8 @@ class InventoryController extends Controller
                 'quantity' => $p->inventory?->quantity ?? 0,
                 'safety_stock' => $p->safety_stock,
                 'is_low' => $p->safety_stock && ($p->inventory?->quantity ?? 0) <= $p->safety_stock,
+                'is_service' => $p->isService(), // 서비스/제품 분류 — 담는 순간 스냅샷(item.is_service)에 박제
+
                 // 옵션 그룹 — 견적서 패널에서 그룹 하나로 묶어 옵션 선택으로 추가
                 'group_id' => $p->group_id,
                 'group_name' => $p->group?->name,

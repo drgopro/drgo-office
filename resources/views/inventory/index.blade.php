@@ -130,6 +130,8 @@
     .cat-children { padding-left:24px; border-top:1px solid var(--border); }
     .cat-children .cat-children { padding-left:24px; }
     .cat-depth { color:var(--text-muted); font-size:11px; }
+    .cat-svc { font-size:10.5px; border:1px solid var(--border); color:var(--text-muted); border-radius:4px; padding:1px 7px; cursor:pointer; user-select:none; }
+    .cat-svc.on { border-color:var(--accent); color:var(--accent); background:rgba(46,108,181,0.08); font-weight:700; }
     .cat-add-inline { display:flex; gap:6px; padding:6px 14px; align-items:center; }
     .cat-add-inline input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12px; outline:none; }
     .cat-add-inline input:focus { border-color:var(--accent); }
@@ -438,6 +440,14 @@
             </div>
         </div>
         <div class="field-group">
+            <div class="field-label">매출 분류 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 통계의 세팅비/장비판매 구분. 기본은 카테고리의 '서비스' 설정을 따릅니다</span></div>
+            <select class="field-input" id="pServiceKind">
+                <option value="">카테고리 따름</option>
+                <option value="product">제품 (장비판매)</option>
+                <option value="service">서비스 (세팅비)</option>
+            </select>
+        </div>
+        <div class="field-group">
             <div class="field-label">메모</div>
             <input class="field-input" id="pMemo">
         </div>
@@ -584,6 +594,7 @@ function renderCatNode(cat, depth) {
             <span class="cat-code" ondblclick="startEditCat(${cat.id},'code')">${cat.code}</span>
             <span class="cat-name" ondblclick="startEditCat(${cat.id},'name')">${_esc(cat.name)}</span>
             <span class="cat-depth">${depth}차</span>
+            <span class="cat-svc${cat.is_service?' on':''}" onclick="toggleCatService(${cat.id})" title="서비스 카테고리 — 소속·하위 제품의 매출이 세팅비(서비스)로 집계됩니다. 클릭해서 켜고 끕니다">서비스</span>
             <div class="cat-actions">
                 <button class="btn-outline btn-sm" onclick="startEditCat(${cat.id},'name')" title="이름/코드 수정">✎</button>
                 ${canAddChild ? `<button class="btn-outline btn-sm" onclick="showAddCat(${cat.id})">+ 하위</button>` : ''}
@@ -617,6 +628,16 @@ function startEditCat(id, field) {
     fetch(`/api/inventory/categories/${id}`, { method:'PATCH', headers:H, body:JSON.stringify(body) })
         .then(async res => {
             if (!res.ok) { const e = await res.json(); alert(e.message || '수정 실패'); return; }
+            loadCategories();
+        });
+}
+// 서비스 카테고리 토글 — 매출 통계의 세팅비/장비 분류 (하위 카테고리·소속 제품 상속)
+function toggleCatService(id) {
+    const cat = findCatById(id);
+    if (!cat) return;
+    fetch(`/api/inventory/categories/${id}`, { method:'PATCH', headers:H, body:JSON.stringify({ name: cat.name, code: cat.code, is_service: !cat.is_service }) })
+        .then(async res => {
+            if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '변경 실패'); return; }
             loadCategories();
         });
 }
@@ -1613,6 +1634,7 @@ async function openProductModal(p) {
     document.getElementById('pStock').placeholder = p ? '비워두면 변경 없음' : '초기 재고 (비워두면 0)';
     document.getElementById('pMemo').value = p ? (p.memo||'') : '';
     document.getElementById('pSearchTags').value = p ? (p.search_tags||'') : '';
+    document.getElementById('pServiceKind').value = p ? (p.service_kind||'') : '';
     document.getElementById('pUseTime').checked = p ? !!p.use_time_required : false;
     document.getElementById('pTimeRequired').value = p ? (p.time_required||'') : '';
     document.getElementById('pTimeRequired').style.display = (p && p.use_time_required) ? '' : 'none';
@@ -1681,6 +1703,7 @@ async function saveProduct() {
             : (document.getElementById('pStock').value !== '' ? parseInt(document.getElementById('pStock').value, 10) : null),
         memo: document.getElementById('pMemo').value || null,
         search_tags: document.getElementById('pSearchTags').value.trim() || null,
+        service_kind: document.getElementById('pServiceKind').value || null,
         time_required: document.getElementById('pTimeRequired').value.trim() || null,
         use_time_required: document.getElementById('pUseTime').checked,
         show_in_estimate: document.getElementById('pEstimate').checked,

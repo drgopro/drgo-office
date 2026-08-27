@@ -148,7 +148,8 @@ class EstimateController extends Controller
         // 제품 매칭 맵 — 이름에서 공백을 제거해 소문자로 비교 (제품 리스트 검색과 동일 규칙)
         $normalize = fn ($v) => mb_strtolower(str_replace(' ', '', trim((string) $v)));
         $products = Product::where('is_active', true)
-            ->get(['id', 'name', 'sku', 'sale_price', 'purchase_price'])
+            ->with('categoryRelation.parent.parent')
+            ->get(['id', 'name', 'sku', 'sale_price', 'purchase_price', 'category_id', 'service_kind'])
             ->keyBy(fn ($p) => $normalize($p->name));
 
         $skipWords = ['소계', '합계', 'amount', 'remark'];
@@ -211,6 +212,7 @@ class EstimateController extends Controller
                 'sku' => $product?->sku,
                 'purchase_price' => $product ? (int) $product->purchase_price : 0,
                 'price_differs' => $product ? (int) $product->sale_price !== (int) $unit : false,
+                'is_service' => $product?->isService() ?? false,
             ];
         }
 
@@ -315,6 +317,7 @@ class EstimateController extends Controller
             'product_items.*.mid_category' => 'nullable|string|max:100', // 엑셀 가져오기 C열 중분류 — 제품명 위 작은 라벨
             'product_items.*.remark' => 'nullable|string|max:500', // 항목 비고 — 의뢰자 견적서에 표시
             'product_items.*.price_fixed' => 'nullable|boolean', // 엑셀 가격 보존 — 제품 판매가 동기화 제외
+            'product_items.*.is_service' => 'nullable|boolean', // 서비스/제품 분류 스냅샷 — 매출 통계의 세팅비/장비 구분
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모

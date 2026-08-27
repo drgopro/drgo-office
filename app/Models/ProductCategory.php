@@ -15,11 +15,13 @@ class ProductCategory extends Model
         'code',
         'depth',
         'sort_order',
+        'is_service',
     ];
 
     protected $casts = [
         'depth' => 'integer',
         'sort_order' => 'integer',
+        'is_service' => 'boolean',
     ];
 
     public function parent()

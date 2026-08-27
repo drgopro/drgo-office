@@ -12,6 +12,7 @@ use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
+use App\Models\RevenueEntry;
 use App\Models\Schedule;
 use App\Models\WorkType;
 use Illuminate\Http\Request;
@@ -159,6 +160,18 @@ class MarketingReportController extends Controller
         }
 
         // ── 매출 지표 ──
+        // 0) 매출 인식 원장(revenue_entries)이 있으면 그것만 읽는다 — 인식일(결제일→프로젝트 완료일 이동) 기준,
+        //    환불 음수 자동 차감, 세팅비/장비판매 분리. 테이블이 없으면(롤백) 아래 기존 로직으로 폴백.
+        $ledgerUsed = Schema::hasTable('revenue_entries');
+        if ($ledgerUsed) {
+            $led = RevenueEntry::whereBetween('recognized_on', [$from, $to]);
+            $revenueTotal = (int) (clone $led)->sum('amount');
+            $revenueService = (int) (clone $led)->sum('service_amount');
+            $revenueProduct = (int) (clone $led)->sum('product_amount');
+            $paymentOnlySum = (int) (clone $led)->where('kind', 'payment_only')->sum('amount');
+            $revenueBreakdown = ['setup' => $revenueService, 'product' => $revenueProduct, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'payment_only' => $paymentOnlySum, 'other' => 0];
+        }
+
         // 1) 프로젝트 결제 내역 (project_payments) — 환불/취소는 음수로 저장되어 sum이 곧 순매출
         $projectPaymentRevenue = 0;
         $linkedEstimateIds = [];
@@ -177,27 +190,29 @@ class MarketingReportController extends Controller
             ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
             ->get();
 
-        // 미연동 견적의 환불은 스냅샷 항목 기록에서 차감 (연동 견적은 결제 원장의 음수가 이미 차감)
-        $snapshotRefund = fn ($e) => (int) collect($e->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
-        $revenueService = (int) $legacyPaidEstimates->sum('service_total');
-        $revenueProduct = (int) $legacyPaidEstimates->sum('product_total');
-        $revenueLegacy = (int) $legacyPaidEstimates->sum(fn ($e) => max(0, (int) $e->total_amount - $snapshotRefund($e)));
-        $revenueTotal = $projectPaymentRevenue + $revenueLegacy;
+        // ── 폴백(원장 없음) — 미연동 견적 + 결제 원장 조합으로 계산 ──
+        if (! $ledgerUsed) {
+            // 미연동 견적의 환불은 스냅샷 항목 기록에서 차감 (연동 견적은 결제 원장의 음수가 이미 차감)
+            $snapshotRefund = fn ($e) => (int) collect($e->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
+            $revenueService = (int) $legacyPaidEstimates->sum('service_total');
+            $revenueProduct = (int) $legacyPaidEstimates->sum('product_total');
+            $revenueLegacy = (int) $legacyPaidEstimates->sum(fn ($e) => max(0, (int) $e->total_amount - $snapshotRefund($e)));
+            $revenueTotal = $projectPaymentRevenue + $revenueLegacy;
 
-        // category_breakdown 합산 (견적서 기반은 legacy 그대로 사용)
-        // 'payment_only' = 견적서 없이 직접 결제된 ProjectPayment(단순 결제) — 환불/취소 차감 포함
-        $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'payment_only' => 0, 'other' => 0];
-        foreach ($legacyPaidEstimates as $e) {
-            foreach ($e->category_breakdown ?? [] as $key => $val) {
-                if (isset($revenueBreakdown[$key])) {
-                    $revenueBreakdown[$key] += (int) $val;
+            // category_breakdown 합산 (견적서 기반은 legacy 그대로 사용)
+            $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'payment_only' => 0, 'other' => 0];
+            foreach ($legacyPaidEstimates as $e) {
+                foreach ($e->category_breakdown ?? [] as $key => $val) {
+                    if (isset($revenueBreakdown[$key])) {
+                        $revenueBreakdown[$key] += (int) $val;
+                    }
                 }
             }
-        }
-        if (Schema::hasTable('project_payments')) {
-            $revenueBreakdown['payment_only'] = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
-                ->whereNull('estimate_id')
-                ->sum('amount');
+            if (Schema::hasTable('project_payments')) {
+                $revenueBreakdown['payment_only'] = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                    ->whereNull('estimate_id')
+                    ->sum('amount');
+            }
         }
 
         // 3) 프로젝트 유형·작업 유형별 매출 세분화 — 결제를 프로젝트에 조인해 (유형 × 작업 유형) 매트릭스로 집계

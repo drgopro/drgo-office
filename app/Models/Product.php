@@ -16,6 +16,7 @@ class Product extends Model
         'name',
         'category',
         'category_id',
+        'service_kind',
         'group_id',
         'option_name',
         'purchase_price',
@@ -48,6 +49,30 @@ class Product extends Model
     public function categoryRelation()
     {
         return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    /**
+     * 서비스/제품 분류 — 매출 통계에서 세팅비(서비스) 매출과 장비판매 매출을 가르는 기준.
+     * 제품별 재정의(service_kind)가 있으면 그것을, 없으면 소속 카테고리(조상 포함)의
+     * '서비스' 체크를 따른다. 견적서에 담는 순간 스냅샷(item.is_service)으로 박제된다.
+     */
+    public function isService(): bool
+    {
+        if ($this->service_kind === 'service') {
+            return true;
+        }
+        if ($this->service_kind === 'product') {
+            return false;
+        }
+        $cat = $this->categoryRelation;
+        for ($i = 0; $cat && $i < 6; $i++) {
+            if ($cat->is_service) {
+                return true;
+            }
+            $cat = $cat->parent;
+        }
+
+        return false;
     }
 
     /** 옵션 그룹 (블랙/화이트 등 같은 상품 묶음) */

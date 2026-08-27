@@ -13,6 +13,7 @@ use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\ProjectPayment;
 use App\Models\RentalContract;
+use App\Models\RevenueEntry;
 use App\Models\Schedule;
 use App\Models\Todo;
 use App\Models\Wiki;
@@ -462,46 +463,63 @@ class DashboardController extends Controller
         // 5. 취소된 프로젝트
         $cancelledProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->where('stage', 'cancelled')->count();
 
+        // 매출 인식 원장(revenue_entries)이 있으면 그것만 읽는다 — 인식일 기준, 환불 차감, 세팅비/장비 분리
+        $ledgerUsed = Schema::hasTable('revenue_entries');
+        if ($ledgerUsed) {
+            $led = RevenueEntry::whereBetween('recognized_on', [$fromDt->toDateString(), $toDt->toDateString()]);
+            $revenueTotal = (int) (clone $led)->sum('amount');
+            $revenueService = (int) (clone $led)->sum('service_amount');
+            $revenueProduct = (int) (clone $led)->sum('product_amount');
+            $revenuePaymentOnly = (int) (clone $led)->where('kind', 'payment_only')->sum('amount');
+            $revenueEstimates = $revenueTotal - $revenuePaymentOnly;
+            $revenueLinked = 0; // 원장 기준에서는 견적 매출로 통합돼 별도 줄이 필요 없다
+            $paidCount = (int) (clone $led)->where('kind', 'estimate_paid')->count();
+            $linkedChargeCount = 0;
+            $paymentOnlyCount = (int) (clone $led)->where('kind', 'payment_only')->where('amount', '>', 0)->count();
+        }
+
         // 결제 기록(charge)이 존재하는 견적서 — 결제 원장 쪽에서만 집계 (견적 생성 월 ≠ 결제 월 이중 집계 방지)
         $linkedEstimateIds = Schema::hasTable('project_payments')
             ? ProjectPayment::whereNotNull('estimate_id')->where('type', 'charge')->distinct()->pluck('estimate_id')->all()
             : [];
 
-        // 6. 세팅 후 매출 등록된 건수 (결제완료 견적서 — 결제 기록 미연동분)
-        $allPaidEstimates = Estimate::where('status', 'paid')
-            ->whereBetween('created_at', [$fromDt, $toDt])
-            ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
-            ->get();
-        $paidCount = $allPaidEstimates->count();
+        if (! $ledgerUsed) { // 폴백 — 원장 테이블이 없는(롤백) 경우의 기존 계산
+            // 6. 세팅 후 매출 등록된 건수 (결제완료 견적서 — 결제 기록 미연동분)
+            $allPaidEstimates = Estimate::where('status', 'paid')
+                ->whereBetween('created_at', [$fromDt, $toDt])
+                ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
+                ->get();
+            $paidCount = $allPaidEstimates->count();
 
-        // 7. 매출 분류 (세팅비 = service_total, 장비판매 = product_total) — 미연동 견적의 환불은 스냅샷 기록에서 차감
-        $snapshotRefund = fn ($e) => (int) collect($e->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
-        $revenueService = $allPaidEstimates->sum('service_total');
-        $revenueProduct = $allPaidEstimates->sum('product_total');
-        $revenueEstimates = (int) $allPaidEstimates->sum(fn ($e) => max(0, (int) $e->total_amount - $snapshotRefund($e)));
+            // 7. 매출 분류 (세팅비 = service_total, 장비판매 = product_total) — 미연동 견적의 환불은 스냅샷 기록에서 차감
+            $snapshotRefund = fn ($e) => (int) collect($e->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
+            $revenueService = $allPaidEstimates->sum('service_total');
+            $revenueProduct = $allPaidEstimates->sum('product_total');
+            $revenueEstimates = (int) $allPaidEstimates->sum(fn ($e) => max(0, (int) $e->total_amount - $snapshotRefund($e)));
 
-        // 결제 원장 매출 — 견적서 연동 결제(환불 음수 차감 포함)와 단순 결제(견적 없이 직접 결제)
-        $revenueLinked = 0;
-        $linkedChargeCount = 0;
-        $revenuePaymentOnly = 0;
-        $paymentOnlyCount = 0;
-        if (Schema::hasTable('project_payments')) {
-            $revenueLinked = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
-                ->whereNotNull('estimate_id')
-                ->sum('amount');
-            $linkedChargeCount = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
-                ->whereNotNull('estimate_id')
-                ->where('type', 'charge')
-                ->count();
-            $revenuePaymentOnly = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
-                ->whereNull('estimate_id')
-                ->sum('amount');
-            $paymentOnlyCount = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
-                ->whereNull('estimate_id')
-                ->where('type', 'charge')
-                ->count();
+            // 결제 원장 매출 — 견적서 연동 결제(환불 음수 차감 포함)와 단순 결제(견적 없이 직접 결제)
+            $revenueLinked = 0;
+            $linkedChargeCount = 0;
+            $revenuePaymentOnly = 0;
+            $paymentOnlyCount = 0;
+            if (Schema::hasTable('project_payments')) {
+                $revenueLinked = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                    ->whereNotNull('estimate_id')
+                    ->sum('amount');
+                $linkedChargeCount = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                    ->whereNotNull('estimate_id')
+                    ->where('type', 'charge')
+                    ->count();
+                $revenuePaymentOnly = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                    ->whereNull('estimate_id')
+                    ->sum('amount');
+                $paymentOnlyCount = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                    ->whereNull('estimate_id')
+                    ->where('type', 'charge')
+                    ->count();
+            }
+            $revenueTotal = $revenueEstimates + $revenueLinked + $revenuePaymentOnly;
         }
-        $revenueTotal = $revenueEstimates + $revenueLinked + $revenuePaymentOnly;
 
         // 기타 보조 지표
         $newProjects = Project::whereBetween('created_at', [$fromDt, $toDt])->count();
@@ -724,8 +742,10 @@ class DashboardController extends Controller
         $r++;
         $dataRow($s1, $r, ['매출', 'ㄴ 장비판매', number_format($revenueProduct).'원', 'product_items 합계']);
         $r++;
-        $dataRow($s1, $r, ['매출', 'ㄴ 견적서 결제(연동)', number_format($revenueLinked).'원', '결제 원장 기준 (환불/취소 차감)']);
-        $r++;
+        if ($revenueLinked > 0) {
+            $dataRow($s1, $r, ['매출', 'ㄴ 견적서 결제(연동)', number_format($revenueLinked).'원', '결제 원장 기준 (환불/취소 차감)']);
+            $r++;
+        }
         $dataRow($s1, $r, ['매출', 'ㄴ 단순 결제', number_format($revenuePaymentOnly).'원', '견적서 없이 직접 결제'], true);
         $r++;
         $dataRow($s1, $r, ['매출', '건당 평균 매출', $avgRevenue, '']);

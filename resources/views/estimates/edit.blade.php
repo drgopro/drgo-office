@@ -473,6 +473,8 @@
                 <input id="miName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miPrice" type="number" min="0" placeholder="판매가" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miQty" type="number" min="1" value="1" title="수량" style="width:56px;">
+                <label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); white-space:nowrap; cursor:pointer;" title="체크하면 매출 통계에서 세팅비(서비스) 매출로 집계됩니다">
+                    <input type="checkbox" id="miService" style="width:13px; height:13px;">서비스</label>
                 <button class="btn-add-svc" style="width:auto; padding:6px 14px;" onclick="addManualItem()">+ 추가</button>
             </div>
         </div>
@@ -546,6 +548,8 @@
             </div>
         </div>
     </div>
+    <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); cursor:pointer; margin-bottom:2px;">
+        <input type="checkbox" id="mmService" style="width:15px; height:15px;">서비스 항목 (세팅비 매출로 집계)</label>
     <div style="display:flex; gap:8px; margin-top:12px;">
         <button class="btn btn-ghost" style="flex:1;" onclick="mCloseManualSheet()">취소</button>
         <button class="btn btn-save" style="flex:2;" onclick="mSubmitManual()">견적서에 추가</button>
@@ -828,6 +832,7 @@ function addToCart(productId) {
             time_required: p.use_time_required ? (p.time_required || '') : '',
             use_time: !!p.use_time_required,
             subtotal: price,
+            is_service: !!p.is_service, // 서비스/제품 분류 — 담는 시점에 박제 (매출 통계 세팅비/장비 구분)
             // 세트 구성품 스냅샷 — 빌더에서 접기/펼치기 (출력물·의뢰자 견적서에는 세트 한 줄만)
             bundle_items: p.is_bundle && (p.bundle_items || []).length ? p.bundle_items : undefined,
         });
@@ -1267,6 +1272,7 @@ async function importExcelEstimate(input, sheetIndex = null) {
             manual: !it.product_id,
             mid_category: it.mid_category || '', remark: it.remark || '',
             price_fixed: !!(it.product_id && it.price_differs), // 엑셀 가격이 현재 판매가와 다르면 보존
+            is_service: !!it.is_service,
         });
     });
     if (!estTitleValue && data.title) { estTitleValue = data.title; renderEstTitle(); }
@@ -1289,9 +1295,11 @@ function addManualItem() {
     cartItems.push({
         product_id: null, sku: '', category: miCat, category_root: miCat,
         name, purchase_price: 0, sale_price: price, qty, time_required: '', use_time: false, subtotal: price * qty, manual: true,
+        is_service: !!document.getElementById('miService')?.checked, // 서비스 항목이면 매출 통계에서 세팅비로 집계
     });
     ['miName','miPrice'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('miQty').value = 1;
+    const miSvc = document.getElementById('miService'); if (miSvc) miSvc.checked = false;
     renderCart();
 }
 
@@ -1418,6 +1426,7 @@ function mCloseMoreSheet() { document.body.classList.remove('m-more-open'); }
 function mOpenManualSheet() {
     ['mmName','mmCat','mmPrice'].forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('mmQty').value = 1;
+    document.getElementById('mmService').checked = false;
     document.body.classList.add('m-manual-open');
     document.getElementById('mmName').focus();
 }
@@ -1427,6 +1436,7 @@ function mSubmitManual() {
     document.getElementById('miCat').value = document.getElementById('mmCat').value;
     document.getElementById('miPrice').value = document.getElementById('mmPrice').value;
     document.getElementById('miQty').value = document.getElementById('mmQty').value || 1;
+    const miSvc = document.getElementById('miService'); if (miSvc) miSvc.checked = document.getElementById('mmService').checked;
     addManualItem();
     if (document.getElementById('miName').value === '') mCloseManualSheet(); // 성공 시 입력이 비워짐
 }
