@@ -377,6 +377,7 @@
                             <div class="special-opt-btn" data-seopt="fast"><span class="opt-icon">←</span>빠른 일정 희망</div>
                             <div class="special-opt-btn" data-seopt="urgent"><span class="opt-icon">🚨</span>긴급 일정</div>
                             <div class="special-opt-btn" data-seopt="after"><span class="opt-icon">→</span><span id="schedAfterLabel">날짜 선택</span> 이후 희망</div>
+                            <div class="special-opt-btn" data-seopt="no_change" title="의뢰자와 협의된 날짜 — 일정을 옮길 수 없습니다"><span class="opt-icon">🔒</span>일정 변경 불가</div>
                         </div>
                         <div id="schedReasonWrap" style="display:none;margin-top:6px;">
                             <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">

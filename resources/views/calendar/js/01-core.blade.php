@@ -114,7 +114,7 @@ function shipStatusIcon(ev){
     return '';
 }
 // 일정 옵션(빠름/긴급/AS이후) 아이콘 맵
-const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→'};
+const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→',no_change:'🔒'};
 // 확정 상태 — 리스트/칩에는 한 글자로 축약 표시 (제목 끝), 툴팁·설명에는 전체 라벨
 const SCHED_CHIP_LABELS={suggest:'제',hope:'희',target:'목',confirmed:'확'};
 const SCHED_FULL_LABELS={suggest:'제안',hope:'희망',target:'목표',confirmed:'확정'};
@@ -130,15 +130,15 @@ function updateSchedOptDesc(){
     const el=document.getElementById('schedOptDesc');
     if(el) el.textContent=a?(SCHED_OPT_DESCS[a.dataset.sopt]||''):'';
 }
-const SCHED_EVENT_CHIP_LABELS={fast:'빠른',urgent:'긴급',after:'이후'};
+const SCHED_EVENT_CHIP_LABELS={fast:'빠른',urgent:'긴급',after:'이후',no_change:'변경불가'};
 // 시기 요청 전체 라벨 (아이콘 툴팁용 — 아이콘 맵 SCHED_EVENT_ICONS는 위에 정의됨)
-const SCHED_EVENT_FULL_LABELS={fast:'빠른 일정 희망',urgent:'긴급 일정',after:'날짜 이후 희망'};
+const SCHED_EVENT_FULL_LABELS={fast:'빠른 일정 희망',urgent:'긴급 일정',after:'날짜 이후 희망',no_change:'일정 변경 불가'};
 function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''}"${title?` title="${title}"`:''}>${label}</span>`; }
 // 시기 요청(아이콘) + 특수옵션(아이콘) 묶음 — 제목 앞에 표시, 전 뷰 공용 (확정 상태는 schedStatusChip으로 제목 끝에)
 function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
-    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic${o==='urgent'?'':' opt-ic-arrow'}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${SCHED_EVENT_ICONS[o]}</span>`; });
+    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic${(o==='fast'||o==='after')?' opt-ic-arrow':''}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${SCHED_EVENT_ICONS[o]}</span>`; });
     (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic" title="${SPECIAL_OPT_LABELS[o]||o}">${SPECIAL_ICONS[o]}</span>`; });
     return h;
 }
