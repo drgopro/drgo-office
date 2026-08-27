@@ -52,6 +52,17 @@
         .panel-resizer:hover, .panel-resizer.active { background:var(--accent); opacity:0.45; }
         .panel-presets-header { padding:14px 14px 10px; border-bottom:1px solid var(--border); }
         .panel-presets-header h3 { font-size:14px; font-weight:700; }
+        /* 프리셋 패널 접기/펼치기 (데스크탑) — 접으면 세로 스트립만 남는다 */
+        #presetsToggle { margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer; }
+        #presetsToggle:hover { border-color:var(--accent); color:var(--accent); }
+        #presetsCollapsedBar { display:none; }
+        @media (min-width:769px) {
+            body.presets-collapsed .panel-presets { width:30px; min-width:30px; }
+            body.presets-collapsed .panel-presets-header, body.presets-collapsed .preset-list, body.presets-collapsed #rzRight { display:none; }
+            body.presets-collapsed #presetsCollapsedBar { display:flex; flex-direction:column; align-items:center; gap:8px; padding-top:14px; flex:1; cursor:pointer; color:var(--text-muted); }
+            body.presets-collapsed #presetsCollapsedBar:hover { color:var(--accent); background:var(--surface2); }
+            body.presets-collapsed #presetsCollapsedBar span { writing-mode:vertical-rl; font-size:12px; font-weight:700; letter-spacing:2px; }
+        }
         .preset-list { flex:1; overflow-y:auto; padding:8px; }
         .preset-item { padding:11px 13px; background:var(--surface); border:1px solid var(--border); border-radius:9px; margin-bottom:7px; cursor:pointer; transition:border-color 0.1s, box-shadow 0.1s; }
         .preset-item:hover { border-color:var(--accent); box-shadow:0 1px 5px rgba(29,45,61,0.08); }
@@ -322,15 +333,24 @@
 <div class="panel-resizer" id="rzLeft" title="드래그해서 제품 리스트 폭 조절"></div>
 <div class="panel-resizer" id="rzRight" title="드래그해서 프리셋 패널 폭 조절"></div>
 
-<!-- 프리셋 패널 (우측) — 클릭하면 품목이 견적서에 담김, 여러 개 눌러 조립 -->
+<!-- 프리셋 패널 (우측) — 클릭하면 품목이 견적서에 담김, 여러 개 눌러 조립. 화살표로 접기/펼치기 -->
 <div class="panel-presets">
     <div class="panel-presets-header">
-        <h3>프리셋</h3>
+        <h3 style="display:flex; align-items:center;">프리셋
+            <button id="presetsToggle" onclick="togglePresetsPanel()" title="프리셋 패널 접기">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l4 4-4 4"></path></svg>
+            </button>
+        </h3>
         <label style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
             <input type="checkbox" id="presetReplaceMode" style="width:13px; height:13px;"> 불러올 때 기존 품목 비우기
         </label>
     </div>
     <div class="preset-list" id="presetPanelList"><div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">로딩 중...</div></div>
+    <!-- 접힌 상태의 세로 스트립 — 클릭하면 다시 펼침 -->
+    <div id="presetsCollapsedBar" onclick="togglePresetsPanel()" title="프리셋 패널 펼치기">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3L5 7l4 4"></path></svg>
+        <span>프리셋</span>
+    </div>
 </div>
 
 <!-- 모바일 시트 크롬 — 제품/프리셋 패널을 풀스크린 시트로 감싸는 배경·탭·하단 바 (768px 이하 전용) -->
@@ -1357,6 +1377,13 @@ function mSetSheetTab(tab) {
     document.getElementById('mTabProducts').classList.toggle('active', tab !== 'presets');
     document.getElementById('mTabPresets').classList.toggle('active', tab === 'presets');
 }
+// 프리셋 패널 접기/펼치기 (데스크탑) — 상태를 기억해 다음에 열 때 유지
+function togglePresetsPanel() {
+    const collapsed = document.body.classList.toggle('presets-collapsed');
+    try { localStorage.setItem('estPresetsCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+}
+try { if (localStorage.getItem('estPresetsCollapsed') === '1') document.body.classList.add('presets-collapsed'); } catch (e) {}
+
 // 모바일 '더보기' 시트 — 임시저장/로그/초기화/삭제
 function mOpenMoreSheet() { document.body.classList.add('m-more-open'); }
 function mCloseMoreSheet() { document.body.classList.remove('m-more-open'); }
