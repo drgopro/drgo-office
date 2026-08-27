@@ -271,9 +271,9 @@
             .m-only-block { display:inline-block; }
             .m-add-inline { margin-top:10px; padding:11px 22px; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; display:block; margin-left:auto; margin-right:auto; }
 
-            /* 임시저장/초기화/로그/삭제 → '더보기' 시트로 이동 */
+            /* 임시저장/로그/삭제 → 상단 ⋯ 더보기 시트로 이동 (초기화는 하단 바에 노출) */
             .m-more-item { display:none !important; }
-            #mMoreBtn { display:block; }
+            #mHeaderMoreBtn { display:inline-flex; align-items:center; justify-content:center; width:34px; height:31px; border:1px solid #d9dee5; background:var(--surface); color:var(--text-muted); border-radius:8px; font-size:16px; font-weight:700; line-height:1; cursor:pointer; }
 
             /* 수기 제품 추가 — 인라인 입력줄 대신 시트 열기 버튼 */
             #manualRow { display:none; }
@@ -382,6 +382,7 @@
             <option value="cancelled" {{ $estimate->status === 'cancelled' ? 'selected' : '' }}>결제 취소</option>
             <option value="hold" {{ $estimate->status === 'hold' ? 'selected' : '' }}>보류 중</option>
         </select>
+        <button id="mHeaderMoreBtn" class="m-only" onclick="mOpenMoreSheet()" title="더보기 — 임시저장 불러오기 · 로그 · 삭제">⋯</button>
     </div>
     <div class="est-body">
         <!-- 주문정보 -->
@@ -472,10 +473,9 @@
         <div id="mTotalBar" class="m-only"><span>합계 · 항목 <span class="m-items">0</span>개</span><span class="m-grand">0원</span></div>
         <span class="save-indicator" id="saveIndicator"></span>
         <button class="btn btn-ghost m-more-item" onclick="loadDraft()">임시저장 불러오기</button>
-        <button class="btn btn-ghost m-more-item" onclick="resetEstimate()">초기화</button>
+        <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
         <button class="btn btn-ghost m-more-item" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
         <button class="btn btn-delete m-more-item" onclick="deleteEstimate()">삭제</button>
-        <button id="mMoreBtn" class="btn btn-ghost m-only" onclick="mOpenMoreSheet()">더보기</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
@@ -489,7 +489,6 @@
     <div class="m-more-head">더보기 <button onclick="mCloseMoreSheet()" title="닫기">×</button></div>
     <button class="m-more-row" onclick="mCloseMoreSheet(); loadDraft()">임시저장 불러오기 <span>마지막 저장본</span></button>
     <button class="m-more-row" onclick="mCloseMoreSheet(); openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그 <span>변경 이력</span></button>
-    <button class="m-more-row" onclick="mCloseMoreSheet(); resetEstimate()">초기화 <span>품목·입력 비우기</span></button>
     <button class="m-more-row m-more-danger" onclick="mCloseMoreSheet(); deleteEstimate()">삭제 <span>이 견적서 삭제</span></button>
     <button class="m-more-close" onclick="mCloseMoreSheet()">닫기</button>
 </div>
