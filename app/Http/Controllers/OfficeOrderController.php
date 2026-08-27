@@ -57,6 +57,8 @@ class OfficeOrderController extends Controller
                 'no' => $e->display_no,
                 'title' => $e->title ?: "견적서 #{$e->display_no}",
                 'client' => $e->client_nickname ?: $e->client_name,
+                'ship_address' => $e->ship_address, // 배송지 정보 — 내부용 (주문 내역 카드 표시)
+                'ship_entrance' => $e->ship_entrance,
                 'status' => $e->status,
                 'items' => collect($e->product_items ?? [])
                     ->map(fn ($i, $idx) => [

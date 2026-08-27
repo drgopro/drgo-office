@@ -1978,6 +1978,14 @@ function renderOrders() {
             <td class="action-cell">${acts}</td>
         </tr>`;
         if (open) {
+            // 배송지 정보 (내부용) — 견적서에 입력해 둔 배송받을 주소·공동현관을 카드 맨 위에 표시
+            if (o.type === 'estimate' && (o.ship_address || o.ship_entrance)) {
+                html += `<tr style="background:var(--surface2);"><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12.5px;">
+                    <span style="font-weight:700; color:var(--slate);">배송지</span>
+                    ${o.ship_address ? ` ${_esc(o.ship_address)}` : ''}
+                    ${o.ship_entrance ? ` <span class="text-muted">· 공동현관 ${_esc(o.ship_entrance)}</span>` : ''}
+                </td></tr>`;
+            }
             html += (o.items||[]).map(it => {
                 const noteCells = o.type === 'estimate'
                     ? `<td colspan="3"><div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
