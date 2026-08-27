@@ -196,11 +196,21 @@
             #mSheetFoot .m-grand { margin-left:auto; font-size:17px; font-weight:800; color:var(--navy); }
             #mSheetFoot > button { height:48px; border:1px solid var(--navy); background:var(--navy); color:#fff; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
 
-            /* 견적(가운데) 패널이 기본 화면 */
+            /* 견적(가운데) 패널이 기본 화면 — 가로 넘침 봉쇄 (넘치면 고정 시트/바가 화면을 못 덮는다) */
             .panel-right-header { flex-wrap:wrap; gap:8px; padding:11px 14px; }
             .client-row { flex-direction:column; gap:8px; }
-            .panel-right-content { padding:12px 12px 8px; }
+            .panel-right { max-width:100vw; }
+            .est-body { padding:12px 12px 8px; overflow-x:hidden; }
             .cart-section, .total-section { padding:13px 14px; }
+
+            /* 수기 제품 추가/서비스 행 — 줄바꿈 허용 (가로 스크롤 원인 제거) */
+            .svc-row { flex-wrap:wrap; }
+            .svc-row input { min-width:0; }
+            /* 인라인 flex:1/flex:2 지정을 덮어써 줄바꿈 배치 강제 */
+            .svc-row #miName { flex:1 1 100% !important; order:-1; }
+            .svc-row #miCat { flex:1 1 52% !important; }
+            .svc-row #miPrice { flex:1 1 34% !important; }
+            .svc-row .btn-add-svc { flex-grow:1; width:auto; padding:9px 14px; }
 
             /* 장바구니 테이블 → 2줄 카드 (카테고리 헤더 밴드는 그대로) */
             .cart-table thead { display:none; }
@@ -245,13 +255,14 @@
             /* 순서 변경(드래그)은 모바일에서 숨김 — 기존 정책 유지 */
             #btnSortMode { display:none !important; }
 
-            /* 하단 고정 바: 합계 + 제품 담기 + 저장 (보조 버튼은 윗줄에 작게) */
+            /* 하단 고정 바: 합계 → 보조 버튼 줄 → [제품 담기][저장] 줄 */
             .panel-right-footer { flex-wrap:wrap; padding:10px 14px calc(14px + env(safe-area-inset-bottom)); gap:6px; }
-            .panel-right-footer .btn { padding:7px 10px; font-size:12px; }
+            .panel-right-footer .btn { padding:8px 6px; font-size:12px; flex-grow:1; white-space:nowrap; }
             #mTotalBar { display:flex; flex-basis:100%; align-items:baseline; font-size:12.5px; color:var(--text-muted); }
             #mTotalBar .m-grand { margin-left:auto; font-size:20px; font-weight:800; color:var(--navy); }
-            #mAddProductsBtn { display:flex; align-items:center; justify-content:center; flex:1; height:46px; border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
-            .panel-right-footer .btn-save { height:46px; min-width:104px; font-size:15px; border-radius:10px; }
+            /* 제품 담기+저장은 폭 합계가 한 줄을 넘도록 잡아 항상 마지막 줄에 단독 배치 */
+            #mAddProductsBtn { display:flex; align-items:center; justify-content:center; flex-grow:1; flex-basis:56%; height:46px; border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap; }
+            .panel-right-footer .btn-save { flex-basis:30%; height:46px; font-size:15px; border-radius:10px; white-space:nowrap; }
             .save-indicator { flex-basis:100%; order:-1; text-align:right; }
         }
     </style>
