@@ -25,6 +25,9 @@ class RevenueLedger
     /** @var array<int, Collection> 견적서별 제품 분류 캐시 — 재계산 1회 동안만 유효 */
     private static array $productCache = [];
 
+    /** rebuild 중인지 — 결제 일시 단서가 전혀 없는 견적의 인식일 폴백이 달라진다 (아래 주석 참고) */
+    private static bool $rebuilding = false;
+
     /** 견적서 단위 재계산 — 결제 이력이 있는 견적서만 원장에 남는다 */
     public static function syncEstimate(?Estimate $estimate): void
     {
@@ -52,9 +55,14 @@ class RevenueLedger
         if ($project && $project->stage === 'done' && $project->completed_at) {
             $recognizedOn = $project->completed_at->toDateString();
         } else {
+            // 결제 일시 단서가 전혀 없는 견적(수동 '결제 완료' 처리, 미연동): 실시간 전환이면 오늘이
+            // 곧 결제 확인일이지만, rebuild는 과거 데이터를 훑는 중이라 오늘로 몰면 원래 월에서 사라진다
+            // → 기존 통계와 같은 기준인 견적서 생성일로 폴백한다.
             $recognizedOn = self::dateOf($charge?->paid_at)
                 ?? $estimate->payapp_paid_at?->toDateString()
+                ?? self::dateOf($charge?->created_at)
                 ?? $prevBase?->recognized_on?->toDateString()
+                ?? (self::$rebuilding ? $estimate->created_at?->toDateString() : null)
                 ?? now()->toDateString();
         }
 
@@ -158,18 +166,23 @@ class RevenueLedger
         }
         RevenueEntry::query()->delete();
         $count = 0;
-        Estimate::whereIn('status', ['paid', 'cancelled'])->orderBy('id')->chunkById(100, function ($estimates) use (&$count) {
-            foreach ($estimates as $e) {
-                self::syncEstimate($e);
-                $count++;
-            }
-        });
-        ProjectPayment::whereNull('estimate_id')->orderBy('id')->chunkById(200, function ($payments) use (&$count) {
-            foreach ($payments as $p) {
-                self::onPaymentChanged($p);
-                $count++;
-            }
-        });
+        self::$rebuilding = true;
+        try {
+            Estimate::whereIn('status', ['paid', 'cancelled'])->orderBy('id')->chunkById(100, function ($estimates) use (&$count) {
+                foreach ($estimates as $e) {
+                    self::syncEstimate($e);
+                    $count++;
+                }
+            });
+            ProjectPayment::whereNull('estimate_id')->orderBy('id')->chunkById(200, function ($payments) use (&$count) {
+                foreach ($payments as $p) {
+                    self::onPaymentChanged($p);
+                    $count++;
+                }
+            });
+        } finally {
+            self::$rebuilding = false;
+        }
 
         return $count;
     }

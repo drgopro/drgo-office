@@ -223,6 +223,35 @@ class RevenueLedgerTest extends TestCase
         $this->assertSame(550000, $firstTotal);
     }
 
+    public function test_rebuild_falls_back_to_estimate_created_at_for_manual_paid(): void
+    {
+        // 결제 일시 단서가 전혀 없는 수동 결제완료 견적(미연동, 페이앱 아님) —
+        // rebuild 시 구축일이 아니라 견적서 생성일(기존 통계 기준)로 인식돼야 한다
+        $estimate = $this->makePaidEstimate();
+        $estimate->forceFill(['created_at' => '2026-06-15 10:00:00'])->save();
+
+        $this->artisan('revenue:rebuild')->assertSuccessful();
+
+        $entry = RevenueEntry::where('estimate_id', $estimate->id)->where('kind', 'estimate_paid')->first();
+        $this->assertSame('2026-06-15', $entry->recognized_on->toDateString());
+    }
+
+    public function test_live_manual_paid_recognized_today_and_kept_on_later_edits(): void
+    {
+        // 실시간 결제완료 전환은 '오늘'이 결제 확인일 — 이후 편집 재저장에도 그 날짜가 유지된다
+        $estimate = $this->makePaidEstimate(['status' => 'issued']);
+        $estimate->forceFill(['created_at' => '2026-06-15 10:00:00'])->save();
+        $this->assertSame(0, RevenueEntry::where('estimate_id', $estimate->id)->count());
+
+        $estimate->update(['status' => 'paid']);
+        $entry = RevenueEntry::where('estimate_id', $estimate->id)->where('kind', 'estimate_paid')->first();
+        $this->assertSame(now()->toDateString(), $entry->recognized_on->toDateString());
+
+        $estimate->update(['memo' => '편집']);
+        $entry = RevenueEntry::where('estimate_id', $estimate->id)->where('kind', 'estimate_paid')->first();
+        $this->assertSame(now()->toDateString(), $entry->recognized_on->toDateString());
+    }
+
     public function test_marketing_report_uses_ledger_split(): void
     {
         $estimate = $this->makePaidEstimate();
