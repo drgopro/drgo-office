@@ -58,10 +58,47 @@
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
-        .data-table { min-width:600px; }
-        .data-table th, .data-table td { padding:10px; font-size:12px; white-space:nowrap; }
         .toolbar { flex-direction:column; align-items:stretch; }
         .toolbar input[type="text"] { width:100%; }
+
+        /* 테이블 → 카드형 리스트 (가로 스크롤 제거) — 전역 min-width 무효화 */
+        .data-card { overflow:visible; background:none; border:none; border-radius:0; }
+        .data-table, .data-table tbody { display:block; min-width:0 !important; }
+        .data-table thead { display:none; }
+        .data-table tr { display:flex; flex-wrap:wrap; align-items:center; row-gap:5px;
+            background:var(--surface); border:1px solid var(--border); border-radius:12px;
+            padding:12px 14px; margin-bottom:10px; }
+        .data-table tr:hover td { background:none; }
+        .data-table td { display:block; padding:0 4px 0 0; border-bottom:none; white-space:normal; font-size:13px; }
+        .data-table td:empty { display:none; }
+        .data-table td.empty-row { flex-basis:100%; text-align:center; padding:16px 4px; }
+
+        /* 견적서 목록: #번호 + 상태(우측) / 의뢰자·제목 / 금액·항목수 / 작성자·일시 / 버튼 */
+        #estBody td:nth-child(1) { order:0; font-weight:600; }
+        #estBody td:nth-child(5) { order:1; margin-left:auto; }
+        #estBody td:nth-child(2) { order:2; flex-basis:100%; font-size:14.5px; font-weight:600; }
+        #estBody td:nth-child(3) { order:3; font-size:16px; font-weight:800; color:var(--navy, var(--text)); }
+        #estBody td:nth-child(4) { order:4; }
+        #estBody tr::after { content:""; order:5; flex-basis:100%; } /* 금액 줄과 작성자 메타 줄 분리 */
+        #estBody td:nth-child(6) { order:6; }
+        #estBody td:nth-child(7) { order:7; }
+        #estBody td:nth-child(8) { order:8; }
+        #estBody td:nth-child(6), #estBody td:nth-child(7), #estBody td:nth-child(8) { font-size:11.5px; }
+        #estBody td:nth-child(7)::before, #estBody td:nth-child(8)::before { content:"· "; color:var(--text-muted); }
+        #estBody td:nth-child(9) { order:9; flex-basis:100%; margin-top:4px; }
+        #estBody .action-cell { display:flex; gap:6px; flex-wrap:wrap; }
+        #estBody .btn-act { padding:7px 12px; font-size:12.5px; }
+
+        /* 프리셋: 제목 / 금액·품목수 / 작성자·수정일 / 버튼 */
+        #presetBody td:nth-child(1) { order:0; flex-basis:100%; font-size:14.5px; }
+        #presetBody td:nth-child(3) { order:1; font-size:16px; font-weight:800; color:var(--navy, var(--text)); }
+        #presetBody td:nth-child(2) { order:2; }
+        #presetBody tr::after { content:""; order:3; flex-basis:100%; }
+        #presetBody td:nth-child(4), #presetBody td:nth-child(5) { order:4; font-size:11.5px; }
+        #presetBody td:nth-child(5)::before { content:"· "; color:var(--text-muted); }
+        #presetBody td:nth-child(6) { order:5; flex-basis:100%; margin-top:4px; }
+        #presetBody .action-cell { display:flex; gap:6px; }
+        #presetBody .btn-act { padding:7px 12px; font-size:12.5px; }
     }
     /* 탭 (견적서 목록 | 프리셋) */
     .est-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); }
