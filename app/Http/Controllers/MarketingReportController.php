@@ -755,33 +755,71 @@ class MarketingReportController extends Controller
             ]);
         }
 
-        // 레거시: 결제 내역 미연결 결제완료 견적 (총 매출 정의와 동일)
+        // 결제 내역 미연결 결제완료 견적 — 결제 카드와 이중으로 뜨지 않게 두 가지를 제외한다:
+        // ① 연동 charge가 있는 견적(기간 무관 — 결제 카드에서 집계), ② 미연동 charge를 '입양'한 견적
+        //    (원장 estimate_paid.payment_id 기록 — 같은 프로젝트·같은 금액의 수동 결제가 곧 이 견적의 결제)
         $linkedEstimateIds = Schema::hasTable('project_payments')
-            ? ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])->whereNotNull('estimate_id')->pluck('estimate_id')->unique()->all()
+            ? ProjectPayment::whereNotNull('estimate_id')->where('type', 'charge')->distinct()->pluck('estimate_id')->all()
             : [];
-        $legacy = Estimate::with('project.client')
-            ->where('status', 'paid')
-            ->whereBetween('created_at', [$fromDt, $toDt])
-            ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
-            ->get()
-            ->map(fn ($e) => [
-                'project_id' => $e->project_id,
-                'name' => $e->project?->name ?? '견적 #'.$e->id.' (프로젝트 미연결)',
-                'client' => $e->client_nickname ?: $e->client_name ?: ($e->project?->client?->nickname ?? '(의뢰자 없음)'),
-                'type' => $e->project ? ($typeLabels[$e->project->project_type] ?? $e->project->project_type) : '견적',
-                'work' => $e->project?->work_type ? ($workLabels[$e->project->work_type] ?? $e->project->work_type) : '미지정',
-                'amount' => (int) $e->total_amount,
-                'pay_count' => 1,
-                'last_paid_at' => $e->created_at->format('Y-m-d'),
-                'source' => 'estimate',
-                'payments' => [[
+        $ledgerUsed = Schema::hasTable('revenue_entries');
+        if ($ledgerUsed) {
+            $adoptedEstimateIds = RevenueEntry::where('kind', 'estimate_paid')->whereNotNull('payment_id')->pluck('estimate_id')->all();
+            // 원장 기준: 인식일이 기간 안에 드는 견적만 (통계 총액과 같은 기준)
+            $paidEntries = RevenueEntry::where('kind', 'estimate_paid')
+                ->whereBetween('recognized_on', [$from, $to])
+                ->whereNotNull('estimate_id')
+                ->whereNotIn('estimate_id', array_merge($linkedEstimateIds, $adoptedEstimateIds))
+                ->get()->keyBy('estimate_id');
+            $refundSums = RevenueEntry::where('kind', 'estimate_refund')
+                ->whereIn('estimate_id', $paidEntries->keys())
+                ->whereBetween('recognized_on', [$from, $to])
+                ->selectRaw('estimate_id, sum(amount) as refund_sum, max(recognized_on) as refund_on')
+                ->groupBy('estimate_id')->get()->keyBy('estimate_id');
+            $legacyQuery = Estimate::with('project.client')->whereIn('id', $paidEntries->keys());
+        } else {
+            $paidEntries = collect();
+            $refundSums = collect();
+            $legacyQuery = Estimate::with('project.client')
+                ->where('status', 'paid')
+                ->whereBetween('created_at', [$fromDt, $toDt])
+                ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds));
+        }
+        $legacy = $legacyQuery->get()
+            ->map(function ($e) use ($typeLabels, $workLabels, $paidEntries, $refundSums, $ledgerUsed) {
+                $entry = $ledgerUsed ? $paidEntries->get($e->id) : null;
+                $paidAmount = $entry ? (int) $entry->amount : (int) $e->total_amount;
+                $paidOn = $entry ? $entry->recognized_on->format('Y-m-d') : $e->created_at->format('Y-m-d');
+                $refund = $ledgerUsed ? $refundSums->get($e->id) : null;
+                $payments = [[
                     'label' => '견적 결제완료',
-                    'amount' => (int) $e->total_amount,
+                    'amount' => $paidAmount,
                     'method' => null,
-                    'paid_at' => $e->created_at->format('Y-m-d'),
+                    'paid_at' => $paidOn,
                     'memo' => null,
-                ]],
-            ]);
+                ]];
+                if ($refund) {
+                    $payments[] = [
+                        'label' => '견적 환불',
+                        'amount' => (int) $refund->refund_sum,
+                        'method' => null,
+                        'paid_at' => substr((string) $refund->refund_on, 0, 10),
+                        'memo' => null,
+                    ];
+                }
+
+                return [
+                    'project_id' => $e->project_id,
+                    'name' => $e->project?->name ?? '견적 #'.$e->id.' (프로젝트 미연결)',
+                    'client' => $e->client_nickname ?: $e->client_name ?: ($e->project?->client?->nickname ?? '(의뢰자 없음)'),
+                    'type' => $e->project ? ($typeLabels[$e->project->project_type] ?? $e->project->project_type) : '견적',
+                    'work' => $e->project?->work_type ? ($workLabels[$e->project->work_type] ?? $e->project->work_type) : '미지정',
+                    'amount' => $paidAmount + ($refund ? (int) $refund->refund_sum : 0),
+                    'pay_count' => count($payments),
+                    'last_paid_at' => $paidOn,
+                    'source' => 'estimate',
+                    'payments' => $payments,
+                ];
+            });
 
         $rows = $items->concat($legacy)
             ->filter(fn ($r) => $r['amount'] !== 0)

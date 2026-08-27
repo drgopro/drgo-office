@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Schema;
  * - 환불/취소는 환불일 기준 음수 줄 (완료일로 소급하지 않는다)
  * - 세팅비/장비판매 분리: 스냅샷 항목의 is_service(담은 시점 박제) + 구버전 service_items
  * - 견적서 없는 단순 결제(charge/refund)는 결제 행 1:1(payment_only)로 기록
+ * - 입양: 결제완료 견적서에 연동 charge가 없어도, 같은 프로젝트에 같은 금액의 미연동 charge가
+ *   있으면 그 결제를 이 견적의 결제로 본다(수동 이중 기록 중복 방지). 입양한 charge는
+ *   estimate_paid 행의 payment_id에 기록되고 payment_only로는 집계하지 않는다.
  */
 class RevenueLedger
 {
@@ -42,6 +45,22 @@ class RevenueLedger
         // 매출 인식 대상: 결제완료 상태, 또는 결제 이력이 있는 결제취소(전액 환불 흔적을 +/−로 남긴다)
         if (! ($estimate->status === 'paid' || ($estimate->status === 'cancelled' && $charge))) {
             return;
+        }
+
+        // 입양 — 연동 charge가 없는 결제완료 견적: 같은 프로젝트의 같은 금액 미연동 charge를 이 견적의
+        // 결제로 본다 (프로젝트에 수동 기록 + 견적서 결제완료 표시가 따로 된 이중 기록을 한 번만 집계)
+        $adoptedChargeId = null;
+        if (! $charge && $estimate->status === 'paid' && $estimate->project_id && (int) $estimate->total_amount > 0) {
+            $takenIds = RevenueEntry::where('kind', 'estimate_paid')
+                ->where('estimate_id', '!=', $estimate->id)->whereNotNull('payment_id')->pluck('payment_id');
+            $charge = ProjectPayment::where('project_id', $estimate->project_id)
+                ->whereNull('estimate_id')->where('type', 'charge')
+                ->where('amount', (int) $estimate->total_amount)
+                ->whereNotIn('id', $takenIds)->orderBy('id')->first();
+            if ($charge) {
+                $adoptedChargeId = $charge->id;
+                RevenueEntry::where('kind', 'payment_only')->where('payment_id', $charge->id)->delete();
+            }
         }
 
         [$serviceTotal, $productTotal] = self::splitTotals($estimate);
@@ -70,6 +89,7 @@ class RevenueLedger
             'kind' => 'estimate_paid',
             'estimate_id' => $estimate->id,
             'project_id' => $estimate->project_id,
+            'payment_id' => $adoptedChargeId, // 입양한 미연동 charge 표시 (실연동이면 null)
             'recognized_on' => $recognizedOn,
             'product_amount' => $productTotal,
             'service_amount' => $serviceTotal,
@@ -122,6 +142,13 @@ class RevenueLedger
 
             return;
         }
+        // 입양자 확인 — 이 미연동 charge를 자기 결제로 볼 결제완료 견적이 있으면 그쪽에서만 집계
+        if ($adopter = self::findAdopter($payment)) {
+            RevenueEntry::where('kind', 'payment_only')->where('payment_id', $payment->id)->delete();
+            self::syncEstimate($adopter);
+
+            return;
+        }
         RevenueEntry::updateOrCreate(
             ['kind' => 'payment_only', 'payment_id' => $payment->id],
             [
@@ -145,6 +172,32 @@ class RevenueLedger
             return;
         }
         RevenueEntry::where('kind', 'payment_only')->where('payment_id', $payment->id)->delete();
+        // 이 charge를 입양했던 견적이 있으면 재계산 (인식일이 결제일 → 폴백으로 되돌아간다)
+        $adopterId = RevenueEntry::where('kind', 'estimate_paid')->where('payment_id', $payment->id)->value('estimate_id');
+        if ($adopterId) {
+            self::syncEstimate(Estimate::find($adopterId));
+        }
+    }
+
+    /** 미연동 charge의 입양자 — 같은 프로젝트·같은 금액·자기 charge가 없는 결제완료 견적 */
+    private static function findAdopter(ProjectPayment $payment): ?Estimate
+    {
+        if ($payment->type !== 'charge' || $payment->estimate_id || ! $payment->project_id || (int) $payment->amount <= 0) {
+            return null;
+        }
+        $withOwnCharge = ProjectPayment::where('type', 'charge')->whereNotNull('estimate_id')->pluck('estimate_id');
+
+        return Estimate::where('project_id', $payment->project_id)
+            ->where('status', 'paid')
+            ->where('total_amount', (int) $payment->amount)
+            ->whereNotIn('id', $withOwnCharge)
+            ->orderBy('id')->get()
+            ->first(function ($e) use ($payment) {
+                // 이미 다른 charge를 입양한 견적은 건너뛴다 (동일 금액 결제가 여럿일 때 1:1 매칭)
+                $pid = RevenueEntry::where('kind', 'estimate_paid')->where('estimate_id', $e->id)->value('payment_id');
+
+                return $pid === null || (int) $pid === $payment->id;
+            });
     }
 
     /** 프로젝트 완료(done) 전환/해제 — 연동 견적서들의 인식일 이동 */

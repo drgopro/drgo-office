@@ -252,6 +252,77 @@ class RevenueLedgerTest extends TestCase
         $this->assertSame(now()->toDateString(), $entry->recognized_on->toDateString());
     }
 
+    public function test_adopts_matching_unlinked_manual_charge(): void
+    {
+        // 프로젝트에 수동 결제 기록(견적 미연동) 후 견적서를 결제완료 표시 — 같은 돈이니 한 번만
+        $charge = $this->pay(['type' => 'charge', 'amount' => 400000, 'paid_at' => '2026-08-25', 'method' => '계좌이체']);
+        $estimate = $this->makePaidEstimate(['project_id' => $this->project->id]);
+
+        $entries = RevenueEntry::all();
+        $this->assertSame(1, $entries->count());
+        $entry = $entries->first();
+        $this->assertSame('estimate_paid', $entry->kind);
+        $this->assertSame($charge->id, $entry->payment_id); // 입양 표시
+        $this->assertSame('2026-08-25', $entry->recognized_on->toDateString()); // 수동 결제일로 인식
+        $this->assertSame(400000, $entry->amount);
+        $this->assertSame(0, RevenueEntry::where('kind', 'payment_only')->count());
+
+        // 반대 순서(견적 먼저, 수동 결제 나중)도 한 번만
+        RevenueEntry::query()->delete();
+        $charge->delete();
+        $estimate->touch(); // 견적 재계산 — 입양할 charge 없음 → 견적 단독 집계
+        $again = $this->pay(['type' => 'charge', 'amount' => 400000, 'paid_at' => '2026-08-25', 'method' => '계좌이체']);
+        $this->assertSame(1, RevenueEntry::count());
+        $this->assertSame($again->id, RevenueEntry::first()->payment_id);
+        $this->assertSame(400000, (int) RevenueEntry::sum('amount'));
+    }
+
+    public function test_no_adoption_when_amount_differs(): void
+    {
+        // 금액이 다르면 서로 다른 돈 — 양쪽 다 집계
+        $this->pay(['type' => 'charge', 'amount' => 150000, 'paid_at' => '2026-08-25']);
+        $this->makePaidEstimate(['project_id' => $this->project->id]);
+
+        $this->assertSame(1, RevenueEntry::where('kind', 'payment_only')->count());
+        $this->assertSame(1, RevenueEntry::where('kind', 'estimate_paid')->count());
+        $this->assertSame(550000, (int) RevenueEntry::sum('amount'));
+    }
+
+    public function test_adopted_charge_deletion_keeps_estimate_revenue_once(): void
+    {
+        $charge = $this->pay(['type' => 'charge', 'amount' => 400000, 'paid_at' => '2026-08-25']);
+        $estimate = $this->makePaidEstimate(['project_id' => $this->project->id]);
+
+        $charge->delete();
+        $entries = RevenueEntry::where('estimate_id', $estimate->id)->get();
+        $this->assertSame(1, $entries->count()); // 견적 매출은 유지, 이중 집계 없음
+        $this->assertNull($entries->first()->payment_id);
+        $this->assertSame(400000, (int) RevenueEntry::sum('amount'));
+    }
+
+    public function test_revenue_detail_no_duplicate_card_for_adopted_estimate(): void
+    {
+        // 매출 상세 — 수동 결제 카드 하나만, '견적 결제완료' 카드가 따로 뜨지 않는다
+        $this->pay(['type' => 'charge', 'amount' => 400000, 'paid_at' => now()->toDateString(), 'method' => '계좌이체']);
+        $this->makePaidEstimate(['project_id' => $this->project->id]);
+
+        $res = $this->actingAs($this->user)->getJson('/api/marketing-report/revenue-projects');
+        $res->assertOk()
+            ->assertJsonPath('total', 400000)
+            ->assertJsonPath('count', 1)
+            ->assertJsonPath('projects.0.source', 'payment');
+    }
+
+    public function test_revenue_detail_page_has_period_controls(): void
+    {
+        $this->actingAs($this->user)->get('/marketing-report/revenue')
+            ->assertOk()
+            ->assertSee('id="rvFrom"', false)
+            ->assertSee('id="rvTo"', false)
+            ->assertSee('rvApplyPeriod', false)
+            ->assertSee('최근 3개월');
+    }
+
     public function test_marketing_report_uses_ledger_split(): void
     {
         $estimate = $this->makePaidEstimate();

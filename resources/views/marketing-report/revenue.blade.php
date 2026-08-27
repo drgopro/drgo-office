@@ -11,6 +11,13 @@
     .rv-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:12.5px; text-decoration:none; font-weight:600; }
     .rv-back:hover { border-color:var(--accent); color:var(--text); text-decoration:none; }
 
+    /* 기간 설정 */
+    .rv-period { display:flex; align-items:center; gap:7px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; margin-bottom:14px; }
+    .rv-period input[type=date] { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:8px; padding:6px 9px; font-size:12.5px; }
+    .rv-period .rv-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:7px 15px; font-size:12.5px; font-weight:700; cursor:pointer; }
+    .rv-period .tilde { color:var(--text-muted); }
+    .rv-period .rv-quick { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+
     /* 필터 칩 */
     .rv-filters { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px 8px; margin-bottom:14px; }
     .rv-filter-row { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:9px; }
@@ -61,6 +68,19 @@
         <a class="rv-back" href="{{ route('marketing-report') }}?from={{ $from }}&to={{ $to }}">← 통계로 돌아가기</a>
     </div>
 
+    <div class="rv-period">
+        <input type="date" id="rvFrom" value="{{ $from }}">
+        <span class="tilde">~</span>
+        <input type="date" id="rvTo" value="{{ $to }}">
+        <button type="button" class="rv-go" onclick="rvApplyPeriod()">조회</button>
+        <span class="rv-quick">
+            <button type="button" class="rv-chip" onclick="rvQuick('this')">이번 달</button>
+            <button type="button" class="rv-chip" onclick="rvQuick('last')">지난달</button>
+            <button type="button" class="rv-chip" onclick="rvQuick('3m')">최근 3개월</button>
+            <button type="button" class="rv-chip" onclick="rvQuick('year')">올해</button>
+        </span>
+    </div>
+
     <div class="rv-filters" id="rvFilters" style="display:none;">
         <div class="rv-filter-row"><span class="rv-filter-label">유형</span><span id="rvTypeChips"></span></div>
         <div class="rv-filter-row"><span class="rv-filter-label">작업</span><span id="rvWorkChips"></span></div>
@@ -72,9 +92,33 @@
 
 @push('scripts')
 <script>
-const RV_FROM = @json($from);
-const RV_TO = @json($to);
+let RV_FROM = @json($from);
+let RV_TO = @json($to);
 let RV_DATA = null, RV_TYPE = '', RV_WORK = '';
+
+// 기간 설정 — 새로고침 없이 다시 조회하고 주소/돌아가기 링크도 맞춘다
+function rvApplyPeriod(){
+    const f=document.getElementById('rvFrom').value, t=document.getElementById('rvTo').value;
+    if(!f||!t) return alert('기간을 선택해주세요.');
+    if(f>t) return alert('시작일이 종료일보다 늦습니다.');
+    RV_FROM=f; RV_TO=t; RV_TYPE=''; RV_WORK='';
+    history.replaceState(null,'',`?from=${f}&to=${t}`);
+    const back=document.querySelector('.rv-back');
+    if(back) back.href=`{{ route('marketing-report') }}?from=${f}&to=${t}`;
+    document.getElementById('rvList').innerHTML='<div class="rv-empty">불러오는 중…</div>';
+    rvLoad();
+}
+function rvQuick(k){
+    const now=new Date();
+    const p=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    let f,t;
+    if(k==='this'){ f=new Date(now.getFullYear(),now.getMonth(),1); t=new Date(now.getFullYear(),now.getMonth()+1,0); }
+    else if(k==='last'){ f=new Date(now.getFullYear(),now.getMonth()-1,1); t=new Date(now.getFullYear(),now.getMonth(),0); }
+    else if(k==='3m'){ f=new Date(now.getFullYear(),now.getMonth()-2,1); t=new Date(now.getFullYear(),now.getMonth()+1,0); }
+    else { f=new Date(now.getFullYear(),0,1); t=new Date(now.getFullYear(),11,31); }
+    document.getElementById('rvFrom').value=p(f); document.getElementById('rvTo').value=p(t);
+    rvApplyPeriod();
+}
 
 function rvEsc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
 
