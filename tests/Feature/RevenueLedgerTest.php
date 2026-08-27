@@ -329,6 +329,23 @@ class RevenueLedgerTest extends TestCase
             ->assertJsonPath('projects.0.estimates.0.paid_on', now()->toDateString());
     }
 
+    public function test_revenue_detail_shows_estimate_card_when_payment_is_in_other_period(): void
+    {
+        // 지난달 결제 + 프로젝트 완료로 인식일이 이번 달 — 이번 달 상세에서 결제 카드는 없지만
+        // 견적 카드로 보여 통계 총액과 목록이 어긋나지 않아야 한다
+        $estimate = $this->makePaidEstimate(['project_id' => $this->project->id]);
+        $charge = $this->pay(['type' => 'charge', 'estimate_id' => $estimate->id, 'amount' => 400000, 'paid_at' => now()->subMonth()->toDateString()]);
+        $charge->forceFill(['created_at' => now()->subMonth()])->save();
+        $this->project->update(['stage' => 'done', 'completed_at' => now()]);
+
+        $res = $this->actingAs($this->user)->getJson('/api/marketing-report/revenue-projects');
+        $res->assertOk()
+            ->assertJsonPath('count', 1)
+            ->assertJsonPath('total', 400000)
+            ->assertJsonPath('projects.0.source', 'estimate')
+            ->assertJsonPath('projects.0.estimates.0.id', $estimate->id);
+    }
+
     public function test_revenue_detail_page_has_period_controls(): void
     {
         $this->actingAs($this->user)->get('/marketing-report/revenue')
@@ -337,6 +354,8 @@ class RevenueLedgerTest extends TestCase
             ->assertSee('id="rvTo"', false)
             ->assertSee('rvApplyPeriod', false)
             ->assertSee('rvOpenEstimate', false)
+            ->assertSee('견적서 결제')
+            ->assertSee('rvSetSrc', false)
             ->assertSee('최근 3개월');
     }
 

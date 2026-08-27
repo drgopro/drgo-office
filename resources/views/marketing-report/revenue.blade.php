@@ -84,6 +84,7 @@
     </div>
 
     <div class="rv-filters" id="rvFilters" style="display:none;">
+        <div class="rv-filter-row"><span class="rv-filter-label">출처</span><span id="rvSrcChips"></span></div>
         <div class="rv-filter-row"><span class="rv-filter-label">유형</span><span id="rvTypeChips"></span></div>
         <div class="rv-filter-row"><span class="rv-filter-label">작업</span><span id="rvWorkChips"></span></div>
     </div>
@@ -96,14 +97,17 @@
 <script>
 let RV_FROM = @json($from);
 let RV_TO = @json($to);
-let RV_DATA = null, RV_TYPE = '', RV_WORK = '';
+let RV_DATA = null, RV_TYPE = '', RV_WORK = '', RV_SRC = '';
+
+// 견적서 결제 여부 — 견적서 자체 카드이거나 결제 카드에 견적서가 연결(연동·입양)된 경우
+function rvIsEstimate(p){ return p.source === 'estimate' || (p.estimates || []).length > 0; }
 
 // 기간 설정 — 새로고침 없이 다시 조회하고 주소/돌아가기 링크도 맞춘다
 function rvApplyPeriod(){
     const f=document.getElementById('rvFrom').value, t=document.getElementById('rvTo').value;
     if(!f||!t) return alert('기간을 선택해주세요.');
     if(f>t) return alert('시작일이 종료일보다 늦습니다.');
-    RV_FROM=f; RV_TO=t; RV_TYPE=''; RV_WORK='';
+    RV_FROM=f; RV_TO=t; RV_TYPE=''; RV_WORK=''; RV_SRC='';
     history.replaceState(null,'',`?from=${f}&to=${t}`);
     const back=document.querySelector('.rv-back');
     if(back) back.href=`{{ route('marketing-report') }}?from=${f}&to=${t}`;
@@ -155,10 +159,12 @@ function rvRender(){
     const types=[...new Set(all.map(p=>p.type))];
     const works=[...new Set(all.map(p=>p.work))];
     const q=s=>s.replaceAll("\\","\\\\").replaceAll("'","\\'");
+    document.getElementById('rvSrcChips').innerHTML=rvChip('전체',!RV_SRC,"rvSetSrc('')")+rvChip('견적서 결제',RV_SRC==='est',"rvSetSrc('est')")+rvChip('단순 결제',RV_SRC==='pay',"rvSetSrc('pay')");
     document.getElementById('rvTypeChips').innerHTML=rvChip('전체',!RV_TYPE,"rvSetType('')")+types.map(t=>rvChip(t,RV_TYPE===t,`rvSetType('${q(t)}')`)).join('');
     document.getElementById('rvWorkChips').innerHTML=rvChip('전체',!RV_WORK,"rvSetWork('')")+works.map(w=>rvChip(w,RV_WORK===w,`rvSetWork('${q(w)}')`)).join('');
 
-    const rows=all.filter(p=>(!RV_TYPE||p.type===RV_TYPE)&&(!RV_WORK||p.work===RV_WORK));
+    const rows=all.filter(p=>(!RV_TYPE||p.type===RV_TYPE)&&(!RV_WORK||p.work===RV_WORK)
+        &&(!RV_SRC||(RV_SRC==='est'?rvIsEstimate(p):!rvIsEstimate(p))));
     const sum=rows.reduce((a,p)=>a+p.amount,0);
     document.getElementById('rvSub').textContent=`${RV_DATA.from} ~ ${RV_DATA.to} · ${rows.length}건 · 합계 ${sum.toLocaleString()}원`;
 
@@ -191,6 +197,7 @@ function rvRender(){
 
 function rvSetType(t){ RV_TYPE=t; rvRender(); }
 function rvSetWork(w){ RV_WORK=w; rvRender(); }
+function rvSetSrc(s){ RV_SRC=s; rvRender(); }
 function rvToggle(i){ document.getElementById('rvItem'+i)?.classList.toggle('open'); }
 function rvOpenProject(id){
     if(window.parent && window.parent.drgoTabs){ window.parent.drgoTabs.openNav('projects','/projects/'+id); }

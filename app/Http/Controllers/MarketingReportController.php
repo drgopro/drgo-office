@@ -781,20 +781,29 @@ class MarketingReportController extends Controller
             ]);
         }
 
-        // 결제 내역 미연결 결제완료 견적 — 결제 카드와 이중으로 뜨지 않게 두 가지를 제외한다:
-        // ① 연동 charge가 있는 견적(기간 무관 — 결제 카드에서 집계), ② 미연동 charge를 '입양'한 견적
-        //    (원장 estimate_paid.payment_id 기록 — 같은 프로젝트·같은 금액의 수동 결제가 곧 이 견적의 결제)
+        // 결제 내역 미연결 결제완료 견적 — 결제 카드와 이중으로 뜨지 않게, '이 기간 결제 카드에 실제로
+        // 표시되는' 견적만 제외한다: ① 기간 내 연동 charge가 있는 견적, ② 기간 내 미연동 charge를
+        // '입양'한 견적(원장 estimate_paid.payment_id). 결제가 다른 기간에 있으면(예: 지난달 결제 +
+        // 프로젝트 완료로 인식일이 이번 달) 견적 카드로 보여 총액과 목록이 어긋나지 않는다.
         $linkedEstimateIds = Schema::hasTable('project_payments')
             ? ProjectPayment::whereNotNull('estimate_id')->where('type', 'charge')->distinct()->pluck('estimate_id')->all()
             : [];
+        $shownEstimateIds = Schema::hasTable('project_payments')
+            ? ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
+                ->whereNotNull('estimate_id')->where('type', 'charge')->pluck('estimate_id')->all()
+            : [];
         $ledgerUsed = Schema::hasTable('revenue_entries');
         if ($ledgerUsed) {
-            $adoptedEstimateIds = RevenueEntry::where('kind', 'estimate_paid')->whereNotNull('payment_id')->pluck('estimate_id')->all();
+            $periodPaymentIds = Schema::hasTable('project_payments')
+                ? ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])->pluck('id')
+                : collect();
+            $adoptedShownIds = RevenueEntry::where('kind', 'estimate_paid')->whereNotNull('payment_id')
+                ->whereIn('payment_id', $periodPaymentIds)->pluck('estimate_id')->all();
             // 원장 기준: 인식일이 기간 안에 드는 견적만 (통계 총액과 같은 기준)
             $paidEntries = RevenueEntry::where('kind', 'estimate_paid')
                 ->whereBetween('recognized_on', [$from, $to])
                 ->whereNotNull('estimate_id')
-                ->whereNotIn('estimate_id', array_merge($linkedEstimateIds, $adoptedEstimateIds))
+                ->whereNotIn('estimate_id', array_merge($shownEstimateIds, $adoptedShownIds))
                 ->get()->keyBy('estimate_id');
             $refundSums = RevenueEntry::where('kind', 'estimate_refund')
                 ->whereIn('estimate_id', $paidEntries->keys())
