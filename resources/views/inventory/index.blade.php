@@ -189,6 +189,9 @@
         .modal { width:95vw; max-width:95vw; padding:16px; }
         .field-row, .field-row-3 { grid-template-columns:1fr; }
 
+        /* ⋮ 더보기 메뉴 — 모바일은 버튼이 좌측이라 왼쪽 기준으로 펼침 (우측 기준이면 화면 밖으로 잘림) */
+        #invMenu { right:auto !important; left:0 !important; }
+
         /* 주문 내역 → 카드형 리스트 (가로 스크롤 제거) */
         #orderCard { overflow:visible; background:none; border:none; border-radius:0; }
         #orderCard .data-table, #orderCard tbody { display:block; min-width:0 !important; }
