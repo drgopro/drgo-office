@@ -57,7 +57,8 @@
         #presetsToggle:hover { border-color:var(--accent); color:var(--accent); }
         #presetsCollapsedBar { display:none; }
         @media (min-width:769px) {
-            body.presets-collapsed .panel-presets { width:30px; min-width:30px; }
+            /* 리사이저가 저장해둔 인라인 width보다 우선해야 실제로 접힌다 */
+            body.presets-collapsed .panel-presets { width:30px !important; min-width:30px !important; }
             body.presets-collapsed .panel-presets-header, body.presets-collapsed .preset-list, body.presets-collapsed #rzRight { display:none; }
             body.presets-collapsed #presetsCollapsedBar { display:flex; flex-direction:column; align-items:center; gap:8px; padding-top:14px; flex:1; cursor:pointer; color:var(--text-muted); }
             body.presets-collapsed #presetsCollapsedBar:hover { color:var(--accent); background:var(--surface2); }
