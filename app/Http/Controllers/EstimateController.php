@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\Inventory;
 use App\Models\PayappPayment;
 use App\Models\Product;
 use App\Models\Project;
@@ -221,6 +222,56 @@ class EstimateController extends Controller
             'matched' => collect($items)->whereNotNull('product_id')->count(),
             'total' => count($items),
         ]);
+    }
+
+    /**
+     * 직접발송 사전 재고 확인 — 해당 항목(또는 세트 구성품)을 직접발송 처리하면
+     * 재고가 음수로 떨어지는 제품 목록을 반환한다. 차감 자체는 저장 시 EstimateStockSync가 수행.
+     */
+    public function directShipCheck(Request $request, Estimate $estimate)
+    {
+        $v = $request->validate([
+            'index' => 'required|integer|min:0',
+            'bundle_index' => 'nullable|integer|min:0',
+        ]);
+
+        $items = $estimate->product_items ?? [];
+        if (! array_key_exists($v['index'], $items)) {
+            return response()->json(['shortages' => [], 'unknown' => true]); // 미저장 항목 — 확인 불가, 저장 시 반영
+        }
+
+        $new = $items;
+        if (($v['bundle_index'] ?? null) !== null) {
+            if (! isset($new[$v['index']]['bundle_items'][$v['bundle_index']])) {
+                return response()->json(['shortages' => [], 'unknown' => true]);
+            }
+            $new[$v['index']]['bundle_items'][$v['bundle_index']]['ordered'] = true;
+            $new[$v['index']]['bundle_items'][$v['bundle_index']]['source'] = '사무실 발송';
+        } else {
+            $new[$v['index']]['ordered'] = true;
+            $new[$v['index']]['purchase_source'] = '사무실 발송';
+        }
+
+        $before = EstimateStockSync::netShippedMap($items);
+        $after = EstimateStockSync::netShippedMap($new);
+        $shortages = [];
+        foreach ($after as $pid => $q) {
+            $delta = $q - ($before[$pid] ?? 0);
+            if ($delta <= 0) {
+                continue;
+            }
+            $stock = (int) (Inventory::where('product_id', $pid)->value('quantity') ?? 0);
+            if ($stock - $delta < 0) {
+                $shortages[] = [
+                    'name' => Product::whereKey($pid)->value('name') ?? '(삭제된 제품)',
+                    'stock' => $stock,
+                    'need' => $delta,
+                    'after' => $stock - $delta,
+                ];
+            }
+        }
+
+        return response()->json(['shortages' => $shortages]);
     }
 
     public function edit(Estimate $estimate)

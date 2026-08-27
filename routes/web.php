@@ -394,6 +394,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:estimates.edit')->group(function () {
         Route::post('/api/estimates', [EstimateController::class, 'store']);
         Route::post('/api/estimates/parse-excel', [EstimateController::class, 'parseExcel']); // 엑셀 견적 가져오기 — 파싱만, 담기는 빌더에서
+        Route::post('/api/estimates/{estimate}/direct-ship-check', [EstimateController::class, 'directShipCheck']); // 직접발송 사전 재고 확인
         Route::get('/estimates/{estimate}/edit', [EstimateController::class, 'edit'])->name('estimates.edit');
         Route::patch('/api/estimates/{estimate}', [EstimateController::class, 'update']);
         Route::post('/api/estimates/{estimate}/draft', [EstimateController::class, 'saveDraft']); // 1분 자동 임시저장

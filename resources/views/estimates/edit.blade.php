@@ -870,8 +870,22 @@ function toggleOrdered(idx) {
     renderCart();
     saveEstimate(true); // 주문완료 표시는 즉시 저장 (알림 없이)
 }
+// 직접발송 사전 재고 확인 — 재고가 음수로 떨어지면 확인을 받고 진행 (차감은 저장 시 서버가 수행)
+async function confirmDirectShipStock(idx, bIdx = null) {
+    try {
+        const res = await fetch(`/api/estimates/${estId}/direct-ship-check`, {
+            method: 'POST', headers: H, body: JSON.stringify({ index: idx, bundle_index: bIdx }),
+        });
+        if (!res.ok) return true; // 확인 실패 시 진행 — 저장 시 재고 연동은 정상 동작
+        const d = await res.json();
+        if (!(d.shortages || []).length) return true;
+        const lines = d.shortages.map(s => `· ${s.name} — 현재고 ${s.stock}개, 필요 ${s.need}개 (처리 후 ${s.after}개)`).join('\n');
+        return confirm(`재고가 부족합니다.\n${lines}\n\n직접발송으로 처리하면 재고가 음수로 기록됩니다. 계속할까요?`);
+    } catch (e) { return true; }
+}
 // 직접발송 — 사무실에서 발송하는 제품: 주문완료 + 구매처 '사무실 발송' 자동 기록
-function directShip(idx) {
+async function directShip(idx) {
+    if (!(await confirmDirectShipStock(idx))) return;
     cartItems[idx].ordered = true;
     cartItems[idx].purchase_source = '사무실 발송';
     renderCart();
@@ -885,7 +899,8 @@ function toggleBundleOrdered(idx, bIdx) {
     renderCart();
     saveEstimate(true);
 }
-function bundleDirectShip(idx, bIdx) {
+async function bundleDirectShip(idx, bIdx) {
+    if (!(await confirmDirectShipStock(idx, bIdx))) return;
     const b = cartItems[idx].bundle_items[bIdx];
     b.ordered = true;
     b.source = '사무실 발송';

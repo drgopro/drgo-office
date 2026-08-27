@@ -148,4 +148,29 @@ class EstimateStockSyncTest extends TestCase
         $this->actingAs($this->admin)->deleteJson("/api/estimates/{$e2->id}")->assertOk();
         $this->assertSame(10, $this->product->inventory->fresh()->quantity);
     }
+
+    public function test_direct_ship_check_reports_shortages(): void
+    {
+        // 재고 10, 수량 2 — 부족 없음
+        $estimate = $this->makeEstimate($this->baseItem());
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$estimate->id}/direct-ship-check", ['index' => 0])
+            ->assertOk()->assertJson(['shortages' => []]);
+
+        // 재고를 1로 낮추면 부족 보고 (처리 후 -1)
+        $this->product->inventory->update(['quantity' => 1]);
+        $res = $this->actingAs($this->admin)->postJson("/api/estimates/{$estimate->id}/direct-ship-check", ['index' => 0])
+            ->assertOk()->json('shortages');
+        $this->assertCount(1, $res);
+        $this->assertSame(['카메라 X100', 1, 2, -1], [$res[0]['name'], $res[0]['stock'], $res[0]['need'], $res[0]['after']]);
+
+        // 이미 직접발송된 상태에서 재확인 — 추가 차감 없음 → 부족 없음
+        $this->product->inventory->update(['quantity' => 10]);
+        $this->saveItems($estimate, [$this->baseItem(['ordered' => true, 'purchase_source' => '사무실 발송'])]);
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$estimate->id}/direct-ship-check", ['index' => 0])
+            ->assertOk()->assertJson(['shortages' => []]);
+
+        // 미저장 항목 인덱스 — 확인 불가로 응답 (진행 허용)
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$estimate->id}/direct-ship-check", ['index' => 99])
+            ->assertOk()->assertJson(['unknown' => true]);
+    }
 }
