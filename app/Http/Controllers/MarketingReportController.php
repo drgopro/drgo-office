@@ -164,20 +164,24 @@ class MarketingReportController extends Controller
         $linkedEstimateIds = [];
         if (Schema::hasTable('project_payments')) {
             $projectPaymentRevenue = (int) ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])->sum('amount');
-            $linkedEstimateIds = ProjectPayment::whereBetween('created_at', [$fromDt, $toDt])
-                ->whereNotNull('estimate_id')->pluck('estimate_id')->unique()->all();
+            // 결제 기록(charge)이 '존재하는' 견적서 — 기간과 무관하게 항상 결제 원장 쪽에서만 집계.
+            // (기간 내 결제만 보면 견적 생성 월과 결제 월이 다를 때 양쪽 기간에 한 번씩 이중 집계된다)
+            $linkedEstimateIds = ProjectPayment::whereNotNull('estimate_id')
+                ->where('type', 'charge')->distinct()->pluck('estimate_id')->all();
         }
 
-        // 2) Legacy: 견적서 status=paid 중 project_payments에 미연결인 것만 (중복 카운트 방지)
+        // 2) Legacy: 견적서 status=paid 중 결제 기록이 아예 없는 것만 (프로젝트 미연동 견적 등 — 중복 방지)
         $legacyPaidEstimates = Estimate::with('project')
             ->where('status', 'paid')
             ->whereBetween('created_at', [$fromDt, $toDt])
             ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
             ->get();
 
+        // 미연동 견적의 환불은 스냅샷 항목 기록에서 차감 (연동 견적은 결제 원장의 음수가 이미 차감)
+        $snapshotRefund = fn ($e) => (int) collect($e->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
         $revenueService = (int) $legacyPaidEstimates->sum('service_total');
         $revenueProduct = (int) $legacyPaidEstimates->sum('product_total');
-        $revenueLegacy = (int) $legacyPaidEstimates->sum('total_amount');
+        $revenueLegacy = (int) $legacyPaidEstimates->sum(fn ($e) => max(0, (int) $e->total_amount - $snapshotRefund($e)));
         $revenueTotal = $projectPaymentRevenue + $revenueLegacy;
 
         // category_breakdown 합산 (견적서 기반은 legacy 그대로 사용)

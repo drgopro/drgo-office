@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\User;
@@ -106,5 +107,64 @@ class MarketingRevenueBreakdownTest extends TestCase
         $this->actingAs($user)->get('/marketing-report')
             ->assertOk()
             ->assertSee('200,000원'); // 환불 차감 반영
+    }
+
+    public function test_paid_estimate_with_payment_record_counts_once(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '세팅', 'project_type' => 'visit', 'stage' => 'payment']);
+
+        // 결제완료 견적서 + 자동 기록된 연동 결제 (같은 돈) — 매출은 100만 원 한 번만
+        $estimate = Estimate::create([
+            'status' => 'paid', 'project_id' => $project->id, 'client_id' => $client->id,
+            'product_items' => [], 'service_items' => [], 'product_total' => 1000000, 'total_amount' => 1000000,
+            'created_by' => $user->id,
+        ]);
+        ProjectPayment::create(['project_id' => $project->id, 'type' => 'charge', 'estimate_id' => $estimate->id, 'amount' => 1000000, 'paid_at' => now()->toDateString()]);
+
+        $data = $this->actingAs($user)->get('/marketing-report')->assertOk()->viewData('revenueTotal');
+        $this->assertSame(1000000, (int) $data);
+    }
+
+    public function test_estimate_created_last_month_paid_this_month_not_double_counted(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '세팅', 'project_type' => 'visit', 'stage' => 'payment']);
+
+        // 지난달 만든 견적서가 이번 달에 결제됨 — 지난달 통계에서 견적 전액이 잡히면 이중 집계
+        $estimate = Estimate::create([
+            'status' => 'paid', 'project_id' => $project->id, 'client_id' => $client->id,
+            'product_items' => [], 'service_items' => [], 'product_total' => 500000, 'total_amount' => 500000,
+            'created_by' => $user->id,
+        ]);
+        $estimate->forceFill(['created_at' => now()->subMonth()])->save();
+        ProjectPayment::create(['project_id' => $project->id, 'type' => 'charge', 'estimate_id' => $estimate->id, 'amount' => 500000, 'paid_at' => now()->toDateString()]);
+
+        // 지난달 기간 조회 — 결제 기록이 있는 견적서는 견적 쪽에서 집계하지 않는다 (0원)
+        $from = now()->subMonth()->startOfMonth()->toDateString();
+        $to = now()->subMonth()->endOfMonth()->toDateString();
+        $lastMonth = $this->actingAs($user)->get("/marketing-report?from={$from}&to={$to}")->assertOk()->viewData('revenueTotal');
+        $this->assertSame(0, (int) $lastMonth);
+
+        // 이번 달 기간 조회 — 결제 원장 기준으로 한 번만
+        $thisMonth = $this->actingAs($user)->get('/marketing-report')->assertOk()->viewData('revenueTotal');
+        $this->assertSame(500000, (int) $thisMonth);
+    }
+
+    public function test_unlinked_paid_estimate_counts_with_snapshot_refund_deducted(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        // 프로젝트 미연동 견적서 — 결제 기록이 없으니 견적 금액으로 집계하되 스냅샷 환불은 차감
+        Estimate::create([
+            'status' => 'paid',
+            'product_items' => [['name' => '카메라', 'sale_price' => 300000, 'qty' => 1, 'subtotal' => 300000, 'refunded' => true, 'refund_amount' => 100000]],
+            'service_items' => [], 'product_total' => 300000, 'total_amount' => 300000,
+            'created_by' => $user->id,
+        ]);
+
+        $data = $this->actingAs($user)->get('/marketing-report')->assertOk()->viewData('revenueTotal');
+        $this->assertSame(200000, (int) $data);
     }
 }
