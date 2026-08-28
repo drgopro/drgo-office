@@ -150,6 +150,13 @@
 
         /* 환불/결제취소 표시 — 문서 기록의 일부라 인쇄에도 포함 */
         .refund-tag { display:inline-block; margin-left:6px; font-size:10px; font-weight:700; color:#b03030; border:1px solid #b03030; border-radius:3px; padding:0 5px; vertical-align:1px; white-space:nowrap; }
+        /* 특가/할인 표시 — 배지 + 정가 취소선 + 하단 각주 */
+        .deal-tag { display:inline-block; margin-left:6px; font-size:10px; font-weight:700; border-radius:3px; padding:0 5px; vertical-align:1px; white-space:nowrap; }
+        .deal-tag.special { color:#c05a12; border:1px solid #c05a12; }
+        .deal-tag.discount { color:#2a6bb8; border:1px solid #2a6bb8; }
+        .deal-orig { font-size:10px; color:#9aa2ac; text-decoration:line-through; }
+        .deal-notes { margin-top:10px; font-size:10.5px; color:#5a6b7d; line-height:1.7; }
+        .deal-notes .deal-tag { margin-left:0; margin-right:5px; }
         .refund-detail { margin-top:3px; font-size:10.5px; color:#b03030; }
         .refund-detail div { padding-top:1px; }
         .refund-bar { margin-top:10px; background:#f5eaea; border:1px solid #e3c9c9; border-radius:8px; padding:12px 22px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -311,7 +318,7 @@ function savePNG(){
                     <tr>
                         <td class="cell-no col-no">{{ $globalIdx }}</td>
                         <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
-                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif{{ $item['name'] }}@if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
+                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif{{ $item['name'] }}@if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif @if(($item['deal_type'] ?? null) === 'special')<span class="deal-tag special">특가</span>@elseif(($item['deal_type'] ?? null) === 'discount')<span class="deal-tag discount">할인{{ !empty($item['discount_rate']) ? ' '.rtrim(rtrim(number_format($item['discount_rate'], 1), '0'), '.').'%' : '' }}</span>@endif
                             @if($refundedParts->isNotEmpty())
                                 <div class="refund-detail">
                                     @foreach($refundedParts as $b)
@@ -322,7 +329,7 @@ function savePNG(){
                             @if(!empty($item['remark']))<div style="font-size:10.5px; color:#5a6b7d; margin-top:2px;">{{ $item['remark'] }}</div>@endif
                         </td>
                         <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
-                        <td class="text-right">{{ number_format($item['sale_price']) }}원</td>
+                        <td class="text-right">@if(!empty($item['deal_type']) && (int) ($item['original_price'] ?? 0) > (int) $item['sale_price'])<div class="deal-orig">{{ number_format($item['original_price']) }}원</div>@endif{{ number_format($item['sale_price']) }}원</td>
                         <td class="text-center">{{ $item['qty'] }}</td>
                         <td class="text-right cell-total">{{ number_format($item['subtotal']) }}원</td>
                     </tr>
@@ -372,6 +379,18 @@ function savePNG(){
                 <span class="t-sub">환불 반영 후 {{ number_format(max(0, (int) $estimate->total_amount - $refundTotal)) }}원</span>
             </div>
             <div class="refund-amount">−{{ number_format($refundTotal) }}<span class="currency"> 원</span></div>
+        </div>
+    @endif
+
+    @php
+        $hasSpecial = collect($items)->contains(fn ($i) => ($i['deal_type'] ?? null) === 'special');
+        $hasDiscount = collect($items)->contains(fn ($i) => ($i['deal_type'] ?? null) === 'discount');
+    @endphp
+    @if($hasSpecial || $hasDiscount)
+        {{-- 특가/할인 각주 — 해당 표시가 있는 견적서에만 자동 노출 --}}
+        <div class="deal-notes">
+            @if($hasSpecial)<div><span class="deal-tag special">특가</span>닥터고블린컴퍼니 세팅 진행 시 단독 특가로 납품되는 금액입니다.</div>@endif
+            @if($hasDiscount)<div><span class="deal-tag discount">할인</span>재방문 세팅비 할인 또는 이벤트 할인이 적용된 금액입니다.</div>@endif
         </div>
     @endif
 

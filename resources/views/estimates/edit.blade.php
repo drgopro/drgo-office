@@ -125,6 +125,13 @@
         .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:12.5px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
         #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
+        /* 특가/할인 배지 — 가격 셀 아래 작은 라벨 (add는 지정 전 진입점) */
+        .deal-badge { display:inline-block; font-size:10.5px; font-weight:700; border-radius:4px; padding:0 5px; margin-top:2px; cursor:pointer; white-space:nowrap; }
+        .deal-badge.special { color:#c05a12; border:1px solid #c05a12; background:rgba(192,90,18,0.06); }
+        .deal-badge.discount { color:#2a6bb8; border:1px solid #2a6bb8; background:rgba(42,107,184,0.06); }
+        .deal-badge.add { color:var(--text-muted); border:1px dashed var(--border); opacity:0.55; font-weight:500; }
+        .deal-badge.add:hover { opacity:1; color:var(--navy); border-color:var(--navy); }
+        .deal-orig { font-size:11px; color:var(--text-muted); text-decoration:line-through; }
         /* 세트 구성품 접기/펼치기 (빌더 전용) */
         .bundle-toggle { background:none; border:1px solid #9db8d4; color:var(--accent); border-radius:4px; font-size:10.5px; padding:0 6px; cursor:pointer; margin-left:5px; vertical-align:middle; }
         .bundle-toggle:hover { background:var(--surface2); }
@@ -1060,7 +1067,11 @@ function renderCart() {
                     : `<span style="cursor:pointer;" onclick="editItemSubCategory(${idx})" title="클릭해서 이 항목의 분류(2차) 수정 — 예: 렌즈/바디/케이블. 이 견적서에만 적용되고 제품 관리에는 영향 없음 (1차 분류는 분류 헤더의 ✎로 수정)">${_escE(item.category || '') || '<span style=\'color:var(--slate);\'>분류 입력</span>'}</span>`}</td>
                 <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
-                <td class="text-right">${fmt(item.sale_price)}원</td>
+                <td class="text-right">${item.deal_type && Number(item.original_price) > Number(item.sale_price) ? `<div class="deal-orig">${fmt(item.original_price)}원</div>` : ''}${fmt(item.sale_price)}원<div>${orderMode
+                    ? (item.deal_type ? `<span class="deal-badge ${item.deal_type}">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>` : '')
+                    : (item.deal_type
+                        ? `<span class="deal-badge ${item.deal_type}" onclick="setItemDeal(${idx})" title="클릭해서 특가/할인 수정·해제">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>`
+                        : `<span class="deal-badge add" onclick="setItemDeal(${idx})" title="특가/할인 표시 — 이 견적서에만 적용, 제품 가격은 그대로">특가·할인</span>`)}</div></td>
                 <td>${qtyCell}</td>
                 <td class="text-right" style="font-weight:600;">${(Number(item.refund_amount)||0) > 0
                     ? `<span style="text-decoration:line-through; color:var(--text-muted); font-weight:400;">${fmt(item.subtotal)}원</span><div style="color:var(--red); font-weight:700;" title="환불 ${fmt(item.refund_amount)}원 반영 후 금액">${fmt(Math.max(0, item.subtotal - item.refund_amount))}원</div>`
@@ -1112,6 +1123,55 @@ function renameCategory(gIdx) {
     map[cat].forEach(it => { it.category_root = name.trim(); });
     renderCart();
 }
+// === 특가/할인 표시 — 스냅샷에만 저장, 제품 관리 가격은 불변 (서버 가격 동기화도 deal_type 항목은 스킵) ===
+function setItemDeal(idx) {
+    const item = cartItems[idx];
+    if (!item) return;
+    const cur = item.deal_type === 'special' ? '1' : item.deal_type === 'discount' ? '2' : '';
+    const t = prompt('이 항목의 가격 표시를 선택하세요.\n1 = 특가 (닥터고블린컴퍼니 세팅 진행 시 단독 특가 납품)\n2 = 할인 (재방문 세팅비 할인·이벤트 할인)\n0 = 해제', cur);
+    if (t === null) return;
+    const v = t.trim();
+    if (v === '0' || v === '') { clearItemDeal(idx); return; }
+    if (v !== '1' && v !== '2') return alert('1, 2, 0 중 하나를 입력해주세요.');
+    const orig = Number(item.original_price) || Number(item.sale_price) || 0;
+    if (!orig) return alert('정가(판매가)가 0원인 항목에는 지정할 수 없습니다.');
+    if (v === '1') {
+        const p = prompt(`특가 납품가(원)를 입력하세요.\n정가 ${fmt(orig)}원`, item.deal_type === 'special' ? String(item.sale_price) : '');
+        if (p === null) return;
+        const price = parseInt(String(p).replace(/[^\d]/g, ''), 10) || 0;
+        if (price <= 0) return alert('금액을 확인해주세요.');
+        item.deal_type = 'special'; item.original_price = orig; item.discount_rate = null;
+        item.sale_price = price;
+    } else {
+        const p = prompt(`할인율(%) 또는 할인 후 금액(원)을 입력하세요.\n예: 10%  또는  ${fmt(Math.round(orig * 0.9))}\n정가 ${fmt(orig)}원`, item.discount_rate ? item.discount_rate + '%' : '');
+        if (p === null) return;
+        const s = String(p).trim();
+        if (/^\d+(\.\d+)?\s*%$/.test(s)) {
+            const rate = parseFloat(s);
+            if (!(rate > 0 && rate < 100)) return alert('할인율은 0~100 사이여야 합니다.');
+            item.deal_type = 'discount'; item.original_price = orig; item.discount_rate = rate;
+            item.sale_price = Math.round(orig * (1 - rate / 100));
+        } else {
+            const price = parseInt(s.replace(/[^\d]/g, ''), 10) || 0;
+            if (!(price > 0 && price < orig)) return alert('할인 후 금액은 정가보다 작아야 합니다.');
+            item.deal_type = 'discount'; item.original_price = orig; item.discount_rate = null;
+            item.sale_price = price;
+        }
+    }
+    item.subtotal = item.sale_price * item.qty;
+    renderCart();
+}
+function clearItemDeal(idx) {
+    const item = cartItems[idx];
+    if (!item || !item.deal_type) return;
+    if (Number(item.original_price) > 0) {
+        item.sale_price = Number(item.original_price);
+        item.subtotal = item.sale_price * item.qty;
+    }
+    delete item.deal_type; delete item.original_price; delete item.discount_rate;
+    renderCart();
+}
+
 // 항목의 분류(2차) 수정 — 스냅샷에만 저장되는 값이라 제품 관리/카테고리 DB에는 영향이 없다.
 // 수기·엑셀 항목에서 '카메라' 아래 렌즈/바디/케이블 같은 구분을 직접 적을 때 사용.
 function editItemSubCategory(idx) {

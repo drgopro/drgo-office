@@ -318,6 +318,9 @@ class EstimateController extends Controller
             'product_items.*.remark' => 'nullable|string|max:500', // 항목 비고 — 의뢰자 견적서에 표시
             'product_items.*.price_fixed' => 'nullable|boolean', // 엑셀 가격 보존 — 제품 판매가 동기화 제외
             'product_items.*.is_service' => 'nullable|boolean', // 서비스/제품 분류 스냅샷 — 매출 통계의 세팅비/장비 구분
+            'product_items.*.deal_type' => 'nullable|in:special,discount', // 특가/할인 표시 — 스냅샷 전용 (제품 가격 불변)
+            'product_items.*.original_price' => 'nullable|numeric|min:0', // 특가/할인 전 정가 — 출력물 취소선 표시
+            'product_items.*.discount_rate' => 'nullable|numeric|min:0|max:100', // 할인율 % (금액 직접 입력이면 비움)
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모
