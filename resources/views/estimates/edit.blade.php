@@ -1055,7 +1055,10 @@ function renderCart() {
             const remarkLine = item.remark ? `<div style="font-size:12px; color:var(--slate); margin-top:3px; cursor:pointer;" onclick="editItemRemark(${idx})" title="클릭해서 비고 수정 — 의뢰자 견적서에 표시됩니다">비고: ${_escE(item.remark)}</div>` : '';
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
-                <td style="font-size:12px; color:var(--text-muted); ${orderMode ? '' : 'cursor:pointer;'}" ${orderMode ? '' : `onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)"`}>${item.category||''}</td>
+                <td style="font-size:12px; color:var(--text-muted);">${orderMode
+                    ? _escE(item.category || '')
+                    : `<span style="cursor:pointer;" onclick="editItemSubCategory(${idx})" title="클릭해서 이 항목의 분류(2차) 수정 — 예: 렌즈/바디/케이블. 이 견적서에만 적용되고 제품 관리에는 영향 없음">${_escE(item.category || '') || '<span style=\'color:var(--slate);\'>분류 입력</span>'}</span>
+                       <div style="font-size:10.5px; color:var(--slate); cursor:pointer; margin-top:2px;" onclick="changeItemCategory(${idx})" title="클릭해서 이 항목의 대분류 변경 (새 이름을 입력하면 새 대분류로 분리됩니다)">↳ ${_escE(item.category_root || item.category || '기타')}</div>`}</td>
                 <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${fmt(item.sale_price)}원</td>
@@ -1110,6 +1113,17 @@ function renameCategory(gIdx) {
     map[cat].forEach(it => { it.category_root = name.trim(); });
     renderCart();
 }
+// 항목의 분류(2차) 수정 — 스냅샷에만 저장되는 값이라 제품 관리/카테고리 DB에는 영향이 없다.
+// 수기·엑셀 항목에서 '카메라' 아래 렌즈/바디/케이블 같은 구분을 직접 적을 때 사용.
+function editItemSubCategory(idx) {
+    const item = cartItems[idx];
+    if (!item) return;
+    const name = prompt('이 항목의 분류(2차)를 입력하세요. (예: 렌즈 / 바디 / 케이블)\n이 견적서에만 적용되고 제품 관리에는 영향이 없습니다.', item.category || '');
+    if (name === null || name.trim() === (item.category || '')) return;
+    item.category = name.trim();
+    renderCart();
+}
+
 function changeItemCategory(idx) {
     const item = cartItems[idx];
     if (!item) return;
