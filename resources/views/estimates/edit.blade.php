@@ -448,6 +448,7 @@
             <h4 style="display:flex; align-items:center; gap:8px;"><span id="cartTitle">제품 항목</span>
                 <span style="margin-left:auto;">
                     <button class="btn-add-svc" id="btnSortMode" style="width:auto; padding:5px 12px;" onclick="toggleSortMode()" title="켜면 ⠿ 핸들 드래그로 항목/대분류 순서를 바꿀 수 있습니다 (모바일 스크롤 오작동 방지를 위해 기본 꺼짐)">순서 변경</button>
+                    <button class="btn-add-svc" id="btnPrioritySort" style="width:auto; padding:5px 12px;" onclick="sortCartByPriority()" title="재고 관리의 카테고리 순서(우선순위)대로 담긴 항목을 재정렬합니다">우선순위 정렬</button>
                     <button class="btn-add-svc" id="btnSavePreset" style="width:auto; padding:5px 12px;" onclick="saveAsPreset()">현재 품목을 프리셋으로 저장</button>
                     <button class="btn-add-svc" id="btnShipments" style="width:auto; padding:5px 12px; display:none; border-style:solid; border-color:#9db8d4; color:var(--accent);" onclick="openShipments()">배송 정보</button>
                 </span>
@@ -818,7 +819,7 @@ function addToCart(productId) {
     if (existing) { existing.qty++; existing.subtotal = Number(existing.sale_price) * existing.qty; }
     else {
         // 스냅샷: 견적서 작성 시점의 제품 정보를 보존. 이후 제품 정보가 바뀌거나 삭제되어도 견적서는 영향 없음.
-        cartItems.push({
+        insertCartItem({
             product_id: p.id,
             sku: p.sku,
             category: p.category,
@@ -841,6 +842,68 @@ function addToCart(productId) {
 }
 
 // 대분류 블록 분해 — 배열 순서(= 저장/출력 순서)를 유지한 그룹 시퀀스
+// === 카테고리 우선순위 — 재고 관리의 카테고리 순서(드래그 정렬)를 견적 출력 순서로 사용 ===
+let CAT_RANK = null;
+function catRank(name) {
+    if (!CAT_RANK) {
+        if (!catData.length) return Infinity; // 카테고리 로드 전 — 캐시하지 않고 순위 없음 처리
+        CAT_RANK = {};
+        let i = 0;
+        const walk = list => (list || []).forEach(c => {
+            if (!(c.name in CAT_RANK)) CAT_RANK[c.name] = i++;
+            walk(c.children);
+        });
+        walk(catData);
+    }
+    return name in CAT_RANK ? CAT_RANK[name] : Infinity; // 수기/커스텀 대분류는 맨 뒤
+}
+// 담기/가져오기 시 우선순위 자리에 삽입 — 대분류 블록은 1차 카테고리 순서, 블록 안은 하위 카테고리
+// 순서를 따른다 (예: 그래픽카드를 먼저 담아도 나중에 담은 CPU가 위로). 이미 담긴 항목의 수동
+// 정렬(드래그)은 건드리지 않고 새 항목이 '들어갈 자리'만 정한다.
+function insertCartItem(item) {
+    const rootOf = it => it.category_root || it.category || '기타';
+    const newRoot = rootOf(item);
+    let start = -1, end = -1;
+    cartItems.forEach((it, i) => { if (rootOf(it) === newRoot) { if (start < 0) start = i; end = i; } });
+    if (start >= 0) {
+        // 같은 대분류 블록 안 — 하위 카테고리 순위가 더 뒤인 첫 항목 앞에
+        let pos = end + 1;
+        const r = catRank(item.category);
+        for (let i = start; i <= end; i++) {
+            if (catRank(cartItems[i].category) > r) { pos = i; break; }
+        }
+        cartItems.splice(pos, 0, item);
+        return;
+    }
+    // 새 대분류 블록 — 1차 카테고리 순서상 뒤에 올 첫 블록 앞에 (없으면 맨 뒤)
+    const rr = catRank(newRoot);
+    for (const cat of groupBlocks().order) {
+        if (catRank(cat) > rr) {
+            cartItems.splice(cartItems.findIndex(it => rootOf(it) === cat), 0, item);
+            return;
+        }
+    }
+    cartItems.push(item);
+}
+// 전체 재정렬 — 현재 담긴 항목을 카테고리 우선순위대로 다시 나열 (같은 순위끼리는 기존 순서 유지)
+function sortCartByPriority() {
+    if (!cartItems.length) return;
+    const rootOf = it => it.category_root || it.category || '기타';
+    const stable = cartItems.map((it, i) => [it, i]);
+    stable.sort((a, b) => {
+        const ra = catRank(rootOf(a[0])), rb = catRank(rootOf(b[0]));
+        if (ra !== rb) return ra - rb;
+        // 순위 없는 대분류끼리(커스텀 이름 등)는 기존 블록 순서 유지
+        if (rootOf(a[0]) !== rootOf(b[0])) return a[1] - b[1];
+        const ca = catRank(a[0].category), cb = catRank(b[0].category);
+        if (ca !== cb) return ca - cb;
+        return a[1] - b[1];
+    });
+    cartItems.length = 0;
+    stable.forEach(([it]) => cartItems.push(it));
+    renderCart();
+}
+
 function groupBlocks() {
     const order = [], map = {};
     cartItems.forEach(item => {
@@ -875,6 +938,7 @@ function toggleOrderMode() {
     document.getElementById('cartTitle').textContent = orderMode ? '주문/배송 현황' : '제품 항목';
     document.getElementById('btnSavePreset').style.display = orderMode ? 'none' : '';
     document.getElementById('btnSortMode').style.display = orderMode ? 'none' : '';
+    {const pb=document.getElementById('btnPrioritySort'); if(pb) pb.style.display = orderMode ? 'none' : '';}
     document.getElementById('btnShipments').style.display = orderMode ? '' : 'none';
     renderCart();
 }
@@ -1263,7 +1327,7 @@ async function importExcelEstimate(input, sheetIndex = null) {
     if (!confirm(`${data.total}개 항목을 담을까요?\n제품 연결 ${data.matched}개 · 수기 ${data.total - data.matched}개${data.title ? `\n제목: ${data.title}` : ''}\n\n(연결된 제품도 엑셀의 가격을 그대로 유지합니다)`)) { input.value = ''; return; }
 
     data.items.forEach(it => {
-        cartItems.push({
+        insertCartItem({
             product_id: it.product_id, sku: it.sku || '',
             category: it.category, category_root: it.category,
             name: it.name, purchase_price: it.purchase_price || 0,
@@ -1292,7 +1356,7 @@ function addManualItem() {
     const price = Math.max(0, parseInt(document.getElementById('miPrice').value) || 0);
     const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
     const miCat = document.getElementById('miCat').value.trim() || '기타';
-    cartItems.push({
+    insertCartItem({
         product_id: null, sku: '', category: miCat, category_root: miCat,
         name, purchase_price: 0, sale_price: price, qty, time_required: '', use_time: false, subtotal: price * qty, manual: true,
         is_service: !!document.getElementById('miService')?.checked, // 서비스 항목이면 매출 통계에서 세팅비로 집계
@@ -1379,7 +1443,7 @@ function applyPresetById(id) {
             existing.qty += item.qty;
             existing.subtotal = Number(existing.sale_price) * existing.qty;
         } else {
-            cartItems.push(item);
+            insertCartItem(item);
         }
     });
     renderCart();
