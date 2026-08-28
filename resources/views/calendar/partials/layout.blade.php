@@ -127,8 +127,10 @@
         .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
         .cal-mini-period::after { content:'▾'; font-size:10px; color:var(--text-muted); }
         .cal-header { justify-content:space-between; }
-        {{-- 연.월 중앙 정렬 — ☰는 좌측 고정, 좌우 화살표는 제거 (년/월 피커로 이동) --}}
+        {{-- 연.월 중앙 정렬 — ☰는 좌측 고정, 타이틀 좌우 ‹ ›로 날/주/월 이동 --}}
         .cal-header-left { width:100%; justify-content:center; position:relative; flex:1 1 100%; gap:4px; }
+        .cal-mini-nav { display:inline-flex; align-items:center; justify-content:center; border:none; background:none; box-shadow:none; width:32px; height:32px; padding:0; font-size:20px; color:var(--text-muted); cursor:pointer; }
+        .cal-mini-nav:active { color:var(--text); }
         .cal-header-right { width:100%; border-top:none; padding-top:0; justify-content:center; }
         .cal-mpicker { left:50%; transform:translateX(-50%); }
         .cal-hl-items { display:none; } /* 연.월/이동/오늘/새로고침 데스크탑 세트는 모바일에서 숨김 (피커로 대체) */
@@ -136,8 +138,8 @@
         .cal-header-left #calSearchBtn { position:absolute; right:0; top:50%; transform:translateY(-50%); }
         .cal-header-left .cal-search-wrap { position:absolute; right:36px; top:50%; transform:translateY(-50%); z-index:6; }
         .cal-header-left .cal-search-input { width:52vw; max-width:260px; }
-        /* 검색창이 열려 있는 동안 연.월 타이틀 숨김 — 겹침 방지 */
-        .cal-header.searching .cal-mini-period { visibility:hidden; }
+        /* 검색창이 열려 있는 동안 연.월 타이틀·이동 화살표 숨김 — 겹침 방지 */
+        .cal-header.searching .cal-mini-period, .cal-header.searching .cal-mini-nav { visibility:hidden; }
         /* 주 수 스텝퍼는 모바일에서 숨김 (월간 dots 뷰에선 의미 없음) */
         #monthWeeksCtl { display:none !important; }
         .cal-header .add-btn { display:none; } /* + 일정 추가는 플로팅 버튼으로 */
