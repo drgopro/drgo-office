@@ -719,6 +719,18 @@
     #modalOverlay .ls-state.warn { border-color:var(--red); color:var(--red); background:rgba(200,80,80,0.08); }
     #modalOverlay .ls-balance-warn { margin-top:10px; font-size:12.5px; font-weight:800; color:var(--red); }
     #modalOverlay .ls-bullets { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:var(--m-ink); }
+    /* 연동 장비 — 수정 뷰(#linkedEquipWrap)·요약 카드 공용. 모바일: 항목별 한 줄(라벨/값) 세로 나열 */
+    #modalOverlay #linkedEquipWrap { border:1px solid var(--m-line); border-radius:12px; padding:10px 12px; margin-bottom:10px; background:color-mix(in srgb, var(--m-accent) 4%, #fff); }
+    #modalOverlay .leq-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+    #modalOverlay .leq-badge { font-size:10.5px; font-weight:800; color:var(--m-accent); border:1px solid color-mix(in srgb, var(--m-accent) 45%, #fff); border-radius:5px; padding:1px 7px; background:#fff; }
+    #modalOverlay .leq-src { font-size:11.5px; color:#8d8a82; font-weight:600; min-width:0; }
+    #modalOverlay .leq-open { margin-left:auto; font-size:11.5px; font-weight:700; color:var(--m-accent); text-decoration:none; white-space:nowrap; }
+    #modalOverlay .leq-group { margin-top:7px; }
+    #modalOverlay .leq-sub { font-size:10.5px; font-weight:800; color:#a8a49b; letter-spacing:0.04em; margin-bottom:3px; }
+    #modalOverlay .leq-row { display:flex; align-items:baseline; gap:10px; padding:3.5px 0; border-bottom:1px dashed color-mix(in srgb, var(--m-line) 70%, transparent); font-size:12.5px; }
+    #modalOverlay .leq-row:last-child { border-bottom:none; }
+    #modalOverlay .leq-l { color:#8d8a82; font-weight:600; flex-shrink:0; }
+    #modalOverlay .leq-v { margin-left:auto; font-weight:700; color:var(--m-ink); text-align:right; min-width:0; overflow-wrap:anywhere; }
     #modalOverlay .ls-tinted { background:color-mix(in srgb, #e8894a 6%, #fff); border-color:color-mix(in srgb, #e8894a 26%, #fff); }
     #modalOverlay .ls-tinted .ls-card-title { color:#c8763a; }
     #modalOverlay .ls-dur { font-size:12px; font-weight:600; color:#a8a69e; margin-left:8px; letter-spacing:0; }

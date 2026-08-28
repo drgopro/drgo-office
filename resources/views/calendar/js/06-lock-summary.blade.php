@@ -295,14 +295,26 @@ function renderLockSummary(){
             ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}`,
             '', 'ls-c-pay'));
 
-        // 우측 ① 장비 목록 — 불릿 + n품목
+        // 우측 ① 장비 목록 — 프로젝트 연동(읽기 전용) + 수기 불릿, n품목
         const equip = _val('g_equipment');
         const equipLines = equip.split(/\n/).map(s=>s.trim()).filter(Boolean);
+        const linkedEq = (typeof linkedEquipData==='function') ? linkedEquipData() : null;
+        let equipBody = '';
+        let equipCount = equipLines.length;
+        if (linkedEq) {
+            equipCount += linkedEq.fields.length;
+            const groups = {};
+            linkedEq.fields.forEach(f=>{ const s=f.subsection||'기타'; (groups[s]=groups[s]||[]).push(f); });
+            equipBody += `<div class="leq-src" style="margin-bottom:6px;">프로젝트 연동 · 「${_esc(linkedEq.project_name)}」 (${linkedEq.created_at})</div>`
+                + Object.keys(groups).map(sub=>`<div class="leq-group"><div class="leq-sub">${_esc(sub)}</div>${groups[sub].map(f=>`<div class="leq-row"><span class="leq-l">${_esc(f.label)}</span><span class="leq-v">${_esc(calEquipDisplay(f.value))}</span></div>`).join('')}</div>`).join('');
+        }
+        if (equipLines.length) {
+            equipBody += (linkedEq?`<div class="leq-sub" style="margin-top:8px;">수기 입력</div>`:'')
+                + `<ul class="ls-bullets">${equipLines.map(l=>`<li>${_esc(l)}</li>`).join('')}</ul>`;
+        }
         right.push(lsCard('장비 목록',
-            equipLines.length
-                ? `<ul class="ls-bullets">${equipLines.map(l=>`<li>${_esc(l)}</li>`).join('')}</ul>`
-                : '<div class="ls-text-block muted">— 등록된 장비 없음 —</div>',
-            equipLines.length?`${equipLines.length}품목`:'', 'ls-c-equip'));
+            equipBody || '<div class="ls-text-block muted">— 등록된 장비 없음 —</div>',
+            equipCount?`${equipCount}품목`:'', 'ls-c-equip'));
 
         // 우측 ② 의뢰 세부항목 / ③ 특이사항 (틴트)
         const reqDetail = _val('g_req_detail');

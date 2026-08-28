@@ -352,6 +352,8 @@
                 <div class="divider"></div>
 
                 <div class="section-heading">장비 목록</div>
+                {{-- 의뢰자 연동 장비 — 프로젝트 장비 정보 읽기 전용 (수정은 프로젝트에서) --}}
+                <div id="linkedEquipWrap" style="display:none;"></div>
                 <div class="field-group">
                     <label class="field-label">장비 목록</label>
                     <textarea class="field-textarea" id="g_equipment" placeholder="사용 장비를 입력하세요" style="min-height:195px;"></textarea>

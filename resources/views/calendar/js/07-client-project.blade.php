@@ -187,7 +187,42 @@ function updateClientAddrBtn(){
     const show=(linkedClientDetail&&linkedClientDetail.address)?'':'none';
     ['btnClientAddr','btnClientAddrFrom'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
 }
-function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); }
+function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); renderLinkedEquip(); }
+
+// ── 연동 장비 — 의뢰자 상세의 프로젝트 장비 정보(last_project_equipment)를 수정/요약 뷰에 표시 ──
+function linkedEquipData(){
+    const eq=(linkedClientId&&linkedClientDetail)?linkedClientDetail.last_project_equipment:null;
+    return (eq&&(eq.fields||[]).length)?eq:null;
+}
+// 장비 값 표시 — 수량형 {value,qty}·배열·토글 포함 (의뢰자 페이지 표기 규칙과 동일)
+function calEquipDisplay(v){
+    if(Array.isArray(v)) return v.join(', ');
+    if(v&&typeof v==='object'&&('value' in v||'qty' in v)){
+        const val=v.value===true?'있음':v.value===false?'없음':String(v.value??'').trim();
+        const qty=v.qty;
+        if(qty===null||qty===undefined||qty==='') return val;
+        return val?`${val} × ${qty}`:`× ${qty}`;
+    }
+    if(typeof v==='boolean') return v?'있음':'없음';
+    return String(v??'');
+}
+// 수정 뷰 — 장비 목록 수기 입력 위에 읽기 전용 블록 (모바일: 항목별 한 줄 행)
+function renderLinkedEquip(){
+    const wrap=document.getElementById('linkedEquipWrap');
+    if(!wrap) return;
+    const eq=linkedEquipData();
+    if(!eq){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+    const groups={};
+    eq.fields.forEach(f=>{const s=f.subsection||'기타';(groups[s]=groups[s]||[]).push(f);});
+    wrap.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 연동</span><span class="leq-src">「${_esc(eq.project_name)}」 · ${eq.created_at}</span><a class="leq-open" href="/projects/${eq.project_id}" target="_blank">원본 →</a></div>`
+        +Object.keys(groups).map(sub=>`<div class="leq-group"><div class="leq-sub">${_esc(sub)}</div>${groups[sub].map(f=>`<div class="leq-row"><span class="leq-l">${_esc(f.label)}</span><span class="leq-v">${_esc(calEquipDisplay(f.value))}</span></div>`).join('')}</div>`).join('');
+    wrap.style.display='';
+}
+// 상세 도착 시 공통 갱신 — 수정 뷰 블록 + (잠금 중이면) 요약 카드 재렌더
+function onClientDetailReady(){
+    renderLinkedEquip();
+    if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+}
 
 // 현재 선택된 프로젝트의 상세 (의뢰자 상세의 projects 배열에서 조회)
 function selectedProjectData(){
@@ -260,7 +295,7 @@ async function loadClientProjects(clientId){
     const wrap=document.getElementById('projectSelectWrap');
     // 캐시 즉시 표시
     const cached=swrGet('clidet:'+clientId);
-    if(cached){ applyClientProjects(clientId,cached); linkedClientDetail=cached; updateClientAddrBtn(); updateProjAddrBtn(); }
+    if(cached){ applyClientProjects(clientId,cached); linkedClientDetail=cached; updateClientAddrBtn(); updateProjAddrBtn(); onClientDetailReady(); }
     try{
         const res=await fetch(`/api/clients/${clientId}/detail`);
         if(!res.ok){ if(!cached) wrap.style.display='none'; return cached; }
@@ -270,7 +305,7 @@ async function loadClientProjects(clientId){
         if(!cached||JSON.stringify(cached.projects||[])!==JSON.stringify(data.projects||[])) applyClientProjects(clientId,data);
         if(!(data.projects||[]).length&&!cached) wrap.style.display='none';
         // 항상 서버 최신값으로 갱신 — 의뢰자 주소 버튼이 수정 전 주소를 물고 있지 않도록
-        linkedClientDetail=data; updateClientAddrBtn(); updateProjAddrBtn();
+        linkedClientDetail=data; updateClientAddrBtn(); updateProjAddrBtn(); onClientDetailReady();
         return data;
     }catch(e){ if(!cached) wrap.style.display='none'; return cached; }
 }
