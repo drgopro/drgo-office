@@ -43,6 +43,22 @@ function _radioMulti(gid){
 // 지도 링크 — 카카오는 이름 기반 길찾기(sName/eName)를 지원, 네이버 웹지도는 좌표가 필요해
 // 이름 프리필이 되는 모바일웹 라우트 URL(route.nhn)을 사용 (데스크탑에서도 열림)
 const LS_HQ_ADDR='서울특별시 동작구 장승배기로 142'; // 동선 기본 출발지 (사무실)
+// 주소 복사 — 클립보드 API + 구형/비보안 컨텍스트 폴백
+const LS_COPY_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 1"/></svg>';
+async function copyAddrText(t){
+    if(!t) return;
+    try{
+        await navigator.clipboard.writeText(t);
+        showCalToast('주소가 복사되었습니다');
+    }catch(e){
+        const ta=document.createElement('textarea');
+        ta.value=t; ta.style.cssText='position:fixed;left:-9999px;';
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); showCalToast('주소가 복사되었습니다'); }
+        catch(_){ showCalToast('복사에 실패했습니다 — 주소를 길게 눌러 직접 복사해주세요'); }
+        ta.remove();
+    }
+}
 const kakaoMapUrl=q=>`https://map.kakao.com/?q=${encodeURIComponent(q)}`;
 // sName/eName은 현행 카카오맵에서 프리필이 안 됨 — 길찾기 탭의 rt1/rt2(이름) 파라미터 사용 (지오코딩 실패 시 폴백)
 const kakaoRouteUrl=(s,e)=>`https://map.kakao.com/?map_type=TYPE_MAP&target=car&rt=,,,&rt1=${encodeURIComponent(s)}&rt2=${encodeURIComponent(e)}`;
@@ -164,13 +180,12 @@ function renderLockSummary(){
     const carReasonLine=carReasonTxt?`<div class="ls-car-reason">🚗 차량 이용 사유 — ${_esc(carReasonTxt)}</div>`:'';
     const specialLine=(specialChipsArr.length||carReasonTxt)?`${specialChipsArr.length?`<div class="ls-spec-chips">${specialChipsArr.map(t=>`<span class="ls-spec-chip">${_esc(t)}</span>`).join('')}</div>`:''}${carReasonLine}`:'';
     if (addr) { LS_ROUTE_FROM = LS_HQ_ADDR; LS_ROUTE_TO = addr; }
+    // 주소 복사 버튼 — 픽토그램 아이콘, 클립보드로 복사 (동선 조회 버튼 대체)
+    const copyBtn = (text, label) => text ? `<a class="ls-action-btn ls-copy-btn" href="#" title="${_esc(label)} 복사" onclick="event.preventDefault();copyAddrText(decodeURIComponent('${encodeURIComponent(text)}'))">${LS_COPY_SVG}</a>` : '';
     const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
             <a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">카카오 맵</a>
-            <a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('kakao')">동선 조회(카카오)</a>
-        </div>
-        <div class="ls-actions">
             <a class="ls-action-btn" href="${naverMapUrl(addr)}" target="_blank">네이버 맵</a>
-            <a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('naver')">동선 조회(네이버)</a>
+            ${copyBtn(location || addr, '주소')}
         </div>` : '';
     if (isMove && mfAddr && addr) { LS_ROUTE_FROM = mfAddr; LS_ROUTE_TO = addr; }
     if (isMove && (mfLoc || location || mfAddr || addr)) {
@@ -182,10 +197,10 @@ function renderLockSummary(){
                 <div class="ls-addr" style="margin-top:2px;">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div></div>
             ${specialLine}
             <div class="ls-actions" style="margin-top:8px;">
-                ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">출발지</a>` : ''}
-                ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">도착지</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('kakao')">출발→도착 동선(카카오)</a>` : ''}
-                ${(mfAddr && addr) ? `<a class="ls-action-btn primary" href="#" onclick="event.preventDefault();openRouteUrl('naver')">출발→도착 동선(네이버)</a>` : ''}
+                ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">출발지 맵</a>` : ''}
+                ${copyBtn(mfLoc || mfAddr, '출발지 주소')}
+                ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">도착지 맵</a>` : ''}
+                ${copyBtn(location || addr, '도착지 주소')}
             </div>`, '', 'ls-c-time ls-time-card'));
     } else {
         // 미팅/내방·사내업무: 장소를 체크박스 선택지로 지정하면 location이 비므로 옵션 값을 장소로 표시

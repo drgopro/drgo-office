@@ -889,6 +889,9 @@
     .ls-location { font-size:15px; color:var(--text); line-height:1.55; }
     .ls-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
     .ls-action-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:18px; font-size:12px; cursor:pointer; transition:all 0.15s; text-decoration:none !important; }
+    /* 주소 복사 — 픽토그램 아이콘 전용 원형 버튼 */
+    .ls-copy-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border-radius:50%; }
+    .ls-copy-btn svg { display:block; }
     .ls-action-btn:hover { border-color:var(--accent); color:var(--accent); }
     .ls-action-btn.primary { border-color:var(--accent); color:var(--accent); background:rgba(200,176,138,0.08); }
     .ls-time { display:inline-flex; align-items:center; gap:8px; font-size:15px; color:var(--text); font-weight:500; padding:2px 0; }
