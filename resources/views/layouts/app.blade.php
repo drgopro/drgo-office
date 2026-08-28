@@ -2,6 +2,7 @@
 <html lang="ko" data-theme="light">
 <head>
 @include('partials.ajax-fetch-header')
+@include('partials.loading-indicator')
 <script>
 /* 라이트 모드 고정 (다크모드 제거) */
 (function(){try{localStorage.removeItem('drgo_theme');}catch(e){}document.documentElement.setAttribute('data-theme','light');})();

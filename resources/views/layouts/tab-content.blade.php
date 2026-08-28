@@ -1,4 +1,5 @@
 @include('partials.ajax-fetch-header')
+@include('partials.loading-indicator')
 <script>
 // 라이트 모드 고정 (다크모드 제거)
 document.documentElement.setAttribute('data-theme', 'light');
