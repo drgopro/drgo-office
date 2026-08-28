@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
@@ -69,6 +70,67 @@ class MarketingReportController extends Controller
         arsort($contentCounts);
         // 플랫폼 % 산출 기준(기간 내 의뢰자 수)
         $platformTotal = $allClients->count();
+
+        // ── 플랫폼 이동 수요 — 의뢰자 '플랫폼' 수정 로그에서 이탈→진입 흐름 집계 ──
+        // 변경 로그의 old/new 플랫폼 목록을 비교해 빠진 플랫폼과 새로 생긴 플랫폼이 둘 다 있을 때만
+        // '이동'으로 본다 (추가만/제거만은 이동 아님). 상세 펼침에 누가 언제 이동했는지 표시.
+        $platformMoves = [];
+        $platformMoveTrend = [];
+        if (Schema::hasTable('activity_logs')) {
+            $parseMove = function ($log) {
+                $pc = ($log->changes ?? [])['플랫폼'] ?? null;
+                if (! $pc) {
+                    return null;
+                }
+                $split = fn ($v) => collect(explode(',', (string) ($v ?? '')))
+                    ->map(fn ($s) => trim($s))->filter(fn ($s) => $s !== '' && $s !== '—')->values();
+                $old = $split($pc['old'] ?? '');
+                $new = $split($pc['new'] ?? '');
+                $removed = $old->diff($new)->values();
+                $added = $new->diff($old)->values();
+                if ($removed->isEmpty() || $added->isEmpty()) {
+                    return null;
+                }
+
+                return ['from' => $removed->implode(', '), 'to' => $added->implode(', ')];
+            };
+            // changes는 유니코드 이스케이프로 저장돼 한글 LIKE가 안 먹는다 — SQL은 대상만 좁히고 PHP에서 거른다
+            $moveLogs = ActivityLog::where('loggable_type', Client::class)->where('action', 'update')
+                ->whereBetween('created_at', [$fromDt, $toDt])
+                ->orderByDesc('created_at')->get();
+            $moveClients = Client::withTrashed()->whereIn('id', $moveLogs->pluck('loggable_id')->unique())->get()->keyBy('id');
+            foreach ($moveLogs as $log) {
+                $mv = $parseMove($log);
+                if (! $mv) {
+                    continue;
+                }
+                $key = $mv['from'].' → '.$mv['to'];
+                $platformMoves[$key] ??= ['from' => $mv['from'], 'to' => $mv['to'], 'count' => 0, 'clients' => []];
+                $platformMoves[$key]['count']++;
+                $c = $moveClients[$log->loggable_id] ?? null;
+                $platformMoves[$key]['clients'][] = [
+                    'id' => $log->loggable_id,
+                    'name' => $c ? ($c->nickname ?: $c->name ?: '의뢰자 #'.$log->loggable_id) : '의뢰자 #'.$log->loggable_id,
+                    'date' => $log->created_at->format('Y-m-d'),
+                ];
+            }
+            uasort($platformMoves, fn ($a, $b) => $b['count'] <=> $a['count']);
+
+            // 이동 추이 — 조회 기간과 무관하게 최근 6개월 월별 이동 건수
+            for ($i = 5; $i >= 0; $i--) {
+                $platformMoveTrend[now()->subMonths($i)->format('Y.m')] = 0;
+            }
+            ActivityLog::where('loggable_type', Client::class)->where('action', 'update')
+                ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())->get()
+                ->each(function ($log) use (&$platformMoveTrend, $parseMove) {
+                    if ($parseMove($log)) {
+                        $k = $log->created_at->format('Y.m');
+                        if (isset($platformMoveTrend[$k])) {
+                            $platformMoveTrend[$k]++;
+                        }
+                    }
+                });
+        }
 
         // ── 상담 지표 ──
         $totalConsults = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])->count();
@@ -348,6 +410,7 @@ class MarketingReportController extends Controller
         return view('marketing-report.index', compact(
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
+            'platformMoves', 'platformMoveTrend',
             'totalConsults', 'reConsultCount',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
             'newProjects', 'settingDone', 'cancelled', 'cancelReasons',

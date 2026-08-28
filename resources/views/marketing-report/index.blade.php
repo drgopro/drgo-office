@@ -151,6 +151,56 @@
             </div>
         </div>
 
+        {{-- 플랫폼 이동 수요 — 의뢰자 플랫폼 변경 로그 기반, 상세 펼침에 누가·언제 --}}
+        <div class="mk-two-col" style="margin-top:20px;">
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 이동 수요 <span style="font-weight:400;">· 기간 내 플랫폼 변경 로그</span></div>
+                @if(count($platformMoves))
+                    <div class="mk-list">
+                        @foreach($platformMoves as $mv)
+                            <div>
+                                <div class="mk-list-item" onclick="pmToggle({{ $loop->index }})" style="cursor:pointer;" title="클릭해서 이동한 의뢰자 보기">
+                                    <span class="mk-list-label">{{ $mv['from'] }} <span style="color:var(--text-muted);">→</span> <b>{{ $mv['to'] }}</b></span>
+                                    <span class="mk-list-value">{{ $mv['count'] }}명 <span class="pm-caret" id="pmCaret{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
+                                </div>
+                                <div id="pmDetail{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
+                                    @foreach($mv['clients'] as $cl)
+                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
+                                            <a href="/clients/{{ $cl['id'] }}" target="_blank" style="font-weight:600;">{{ $cl['name'] }}</a>
+                                            <span style="color:var(--text-muted);">{{ $cl['date'] }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:12px;">기간 내 플랫폼 이동 없음</div>
+                @endif
+            </div>
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 이동 추이 <span style="font-weight:400;">· 최근 6개월</span></div>
+                <div class="mk-list">
+                    @php $pmMax = max(1, count($platformMoveTrend) ? max($platformMoveTrend) : 0); @endphp
+                    @foreach($platformMoveTrend as $m => $n)
+                        <div class="mk-bar">
+                            <div class="mk-bar-fill" style="width:{{ ($n / $pmMax) * 100 }}%;"></div>
+                            <span class="mk-bar-label">{{ $m }}</span>
+                            <span class="mk-bar-value">{{ $n }}건</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        <script>
+        function pmToggle(i){
+            const d=document.getElementById('pmDetail'+i), c=document.getElementById('pmCaret'+i);
+            const open=d.style.display==='none';
+            d.style.display=open?'':'none';
+            if(c) c.textContent=open?'▾':'▸';
+        }
+        </script>
+
         <div class="mk-two-col" style="margin-top:20px;">
             {{-- 콘텐츠 유형 --}}
             <div>
