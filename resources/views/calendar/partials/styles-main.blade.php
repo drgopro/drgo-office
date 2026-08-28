@@ -725,8 +725,10 @@
     #modalOverlay .leq-badge { font-size:10.5px; font-weight:800; color:var(--m-accent); border:1px solid color-mix(in srgb, var(--m-accent) 45%, #fff); border-radius:5px; padding:1px 7px; background:#fff; }
     #modalOverlay .leq-src { font-size:11.5px; color:#8d8a82; font-weight:600; min-width:0; }
     #modalOverlay .leq-open { margin-left:auto; font-size:11.5px; font-weight:700; color:var(--m-accent); text-decoration:none; white-space:nowrap; }
-    #modalOverlay .leq-group { margin-top:7px; }
-    #modalOverlay .leq-sub { font-size:10.5px; font-weight:800; color:#a8a49b; letter-spacing:0.04em; margin-bottom:3px; }
+    /* 큰 분류(소분류 그룹) — 그룹 사이 구분선 + 분류명은 테두리 칩으로 시각 구분 */
+    #modalOverlay .leq-group { margin-top:8px; }
+    #modalOverlay .leq-group + .leq-group { margin-top:11px; padding-top:11px; border-top:1px solid #d9d5cc; }
+    #modalOverlay .leq-sub { display:inline-block; font-size:10.5px; font-weight:800; color:#6f6c64; letter-spacing:0.04em; border:1px solid #cdc9c0; border-radius:6px; padding:2px 9px; background:#fff; margin-bottom:4px; }
     #modalOverlay .leq-row { display:flex; align-items:baseline; gap:10px; padding:3.5px 0; border-bottom:1px dashed color-mix(in srgb, var(--m-line) 70%, transparent); font-size:12.5px; }
     #modalOverlay .leq-row:last-child { border-bottom:none; }
     #modalOverlay .leq-l { color:#8d8a82; font-weight:600; flex-shrink:0; }
