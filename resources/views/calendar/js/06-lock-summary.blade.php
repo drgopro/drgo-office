@@ -182,25 +182,26 @@ function renderLockSummary(){
     if (addr) { LS_ROUTE_FROM = LS_HQ_ADDR; LS_ROUTE_TO = addr; }
     // 주소 복사 버튼 — 픽토그램 아이콘, 클립보드로 복사 (동선 조회 버튼 대체)
     const copyBtn = (text, label) => text ? `<a class="ls-action-btn ls-copy-btn" href="#" title="${_esc(label)} 복사" onclick="event.preventDefault();copyAddrText(decodeURIComponent('${encodeURIComponent(text)}'))">${LS_COPY_SVG}</a>` : '';
+    // 주소 줄 — 텍스트 오른쪽에 복사 아이콘을 붙인 한 줄 레이아웃
+    const addrLine = (html, copyText, label) => `<div style="display:flex; align-items:flex-start; gap:8px;">
+            <span style="min-width:0; flex:1;">${html}</span>${copyText ? copyBtn(copyText, label) : ''}
+        </div>`;
     const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
             <a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">카카오 맵</a>
             <a class="ls-action-btn" href="${naverMapUrl(addr)}" target="_blank">네이버 맵</a>
-            ${copyBtn(location || addr, '주소')}
         </div>` : '';
     if (isMove && mfAddr && addr) { LS_ROUTE_FROM = mfAddr; LS_ROUTE_TO = addr; }
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
             <div class="ls-big">${timeBig}${durTxt}</div>
             <div style="margin-top:8px;"><div class="ls-info-label">🚚 출발지 (이사 전)</div>
-                <div class="ls-addr" style="margin-top:2px;">${document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>')}</div></div>
+                <div class="ls-addr" style="margin-top:2px;">${addrLine(document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>'), document.getElementById('moveNoFrom')?.checked ? '' : (mfLoc || mfAddr), '출발지 주소')}</div></div>
             <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
-                <div class="ls-addr" style="margin-top:2px;">${_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>'}</div></div>
+                <div class="ls-addr" style="margin-top:2px;">${addrLine(_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>', location || addr, '도착지 주소')}</div></div>
             ${specialLine}
             <div class="ls-actions" style="margin-top:8px;">
                 ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">출발지 맵</a>` : ''}
-                ${copyBtn(mfLoc || mfAddr, '출발지 주소')}
                 ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">도착지 맵</a>` : ''}
-                ${copyBtn(location || addr, '도착지 주소')}
             </div>`, '', 'ls-c-time ls-time-card'));
     } else {
         // 미팅/내방·사내업무: 장소를 체크박스 선택지로 지정하면 location이 비므로 옵션 값을 장소로 표시
@@ -208,7 +209,7 @@ function renderLockSummary(){
         const locDisplay=_esc(location) || (visitOptsSel.length?`🏢 ${visitOptsSel.map(v=>_esc(v)).join(', ')}`:'');
         left.push(lsCard('일시 · 장소', `
             <div class="ls-big">${timeBig}${durTxt}</div>
-            <div class="ls-addr">${locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>'}</div>
+            <div class="ls-addr">${addrLine(locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>', (location || addr) ? (location || addr) : '', '주소')}</div>
             ${specialLine}
             ${addrActions}`, '', 'ls-c-time ls-time-card'));
     }
