@@ -940,7 +940,10 @@
     .balance-banner.visible { display:flex; }
 
     /* ── 담당자 ── */
-    .assignee-btn { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all 0.15s; white-space:nowrap; margin-top:5px; }
+    /* 담당자가 많아도 버튼이 화면보다 넓어지지 않게 — 넘치는 이름은 말줄임 (헤더 밀림/가로 스크롤 방지) */
+    .assignee-btn { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all 0.15s; white-space:nowrap; margin-top:5px; max-width:100%; min-width:0; }
+    .assignee-btn > span:last-child { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .modal-header > div:first-child { min-width:0; }
     .assignee-btn:hover { border-color:var(--accent); color:var(--accent); }
     .assignee-btn.has-assignee { border-color:rgba(100,160,240,.5); color:var(--accent); background:rgba(100,160,240,.08); }
     .assignee-list { display:flex; flex-wrap:wrap; gap:6px; }
