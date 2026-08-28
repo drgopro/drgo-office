@@ -220,6 +220,9 @@ let estimateSearchTimer=null;
 function renderEstimateList(list){
     const sm={created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
     if(!list.length) return '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">결과 없음</div>';
+    // 자동 첨부 파일명(날짜 닉네임(이름))용 의뢰자 메타 — 선택 시 참조
+    window.__estSearchMeta=window.__estSearchMeta||{};
+    list.forEach(e=>{ window.__estSearchMeta[e.id]={nickname:e.client_nickname||'',cname:e.client_name||''}; });
     return list.map(e=>{
         const amt=e.total_amount?Number(e.total_amount).toLocaleString()+'원':'';
         const date=e.created_at?(e.created_at.substring(0,10)):'';
@@ -264,7 +267,8 @@ function searchEstimates(query){
 // 여러 견적서 연동 — 선택 시 목록에 추가 (중복 방지), 견적서별 보기/해제
 function selectEstimate(id,name,amount,no){
     if(!linkedEstimateIds.some(x=>String(x)===String(id))) linkedEstimateIds.push(id);
-    linkedEstimateMeta[id]={display_no:no??id,name:name||'',total:Number(amount)||0};
+    const cm=(window.__estSearchMeta||{})[id]||{};
+    linkedEstimateMeta[id]={display_no:no??id,name:name||'',total:Number(amount)||0,client_nickname:cm.nickname||'',client_name:cm.cname||''};
     renderLinkedEstimates();
     document.getElementById('estimateSearchOverlay').style.display='none';
     // 금액 칸이 비어 있으면 연동 견적서 총액 합계로 채움
@@ -279,11 +283,21 @@ function selectEstimate(id,name,amount,no){
 async function autoAttachEstimatePng(id,no){
     let iframe=null;
     try{
-        const label=`견적서_#${no}`;
-        // 같은 견적서 이미지가 이미 있으면(기존 첨부·대기열) 다시 만들지 않는다
+        // 파일명: 'yyyy-mm-dd 닉네임(이름).png' — 날짜는 불러온 날, 파일명 금지 문자는 제거
+        const t=new Date();
+        const ds=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+        const m=linkedEstimateMeta[id]||{};
+        const nick=(m.client_nickname||'').trim();
+        const nm=(m.client_name||'').trim();
+        let who=nick&&nm?`${nick}(${nm})`:(nick||nm||`견적서#${no}`);
+        who=who.replace(/[\\/:*?"<>|]/g,'').trim();
+        const label=`${ds} ${who}`;
+        // 같은 견적서(이 세션) 또는 같은 파일명이 이미 있으면 다시 만들지 않는다
+        window.__autoAttachedEst=window.__autoAttachedEst||new Set();
+        if(window.__autoAttachedEst.has(String(id))) return;
         const names=[...(existingAttachments.quote||[]).map(a=>a.file_name||''),
                      ...(pendingAttachments.quote||[]).map(a=>a.file?.name||'')];
-        if(names.some(n=>n.startsWith(label))) return;
+        if(names.some(n=>n===`${label}.png`)) return;
         showCalToast('견적서 이미지 생성 중...');
         iframe=document.createElement('iframe');
         iframe.style.cssText='position:fixed;left:-11000px;top:0;width:1060px;height:1600px;border:0;visibility:hidden;';
@@ -307,6 +321,7 @@ async function autoAttachEstimatePng(id,no){
         const blob=await new Promise(r=>c.toBlob(r,'image/png'));
         if(!blob) throw new Error('toBlob failed');
         handleImgFiles('quote',[new File([blob],`${label}.png`,{type:'image/png'})]);
+        window.__autoAttachedEst.add(String(id));
         showCalToast('견적서 이미지가 첨부(견적서)에 추가되었습니다 — 저장 시 업로드됩니다');
     }catch(e){
         console.error('견적서 PNG 자동 첨부 실패:',e);
