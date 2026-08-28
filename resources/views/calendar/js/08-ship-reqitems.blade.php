@@ -271,6 +271,49 @@ function selectEstimate(id,name,amount,no){
     const inp=document.getElementById('g_estimate_amount');
     const sum=linkedEstimatesTotal();
     if(inp&&!inp.value.trim()&&sum) inp.value=sum.toLocaleString();
+    autoAttachEstimatePng(id,no??id); // 견적서 PNG를 '견적서' 첨부 대기열에 자동 추가
+}
+
+// 견적서 불러오기 시 PNG 자동 첨부 — 인쇄 페이지를 숨은 iframe으로 렌더해 캡처 (팝업 없음),
+// '견적서' 첨부 대기열(pendingAttachments.quote)에 넣어 저장 시 함께 업로드된다.
+async function autoAttachEstimatePng(id,no){
+    let iframe=null;
+    try{
+        const label=`견적서_#${no}`;
+        // 같은 견적서 이미지가 이미 있으면(기존 첨부·대기열) 다시 만들지 않는다
+        const names=[...(existingAttachments.quote||[]).map(a=>a.file_name||''),
+                     ...(pendingAttachments.quote||[]).map(a=>a.file?.name||'')];
+        if(names.some(n=>n.startsWith(label))) return;
+        showCalToast('견적서 이미지 생성 중...');
+        iframe=document.createElement('iframe');
+        iframe.style.cssText='position:fixed;left:-11000px;top:0;width:1060px;height:1600px;border:0;visibility:hidden;';
+        iframe.src=`/estimates/${id}/print`;
+        document.body.appendChild(iframe);
+        await new Promise((ok,fail)=>{iframe.onload=ok;iframe.onerror=fail;setTimeout(fail,15000);});
+        const w=iframe.contentWindow;
+        for(let i=0;i<50&&!w.html2canvas;i++){ await new Promise(r=>setTimeout(r,200)); } // 라이브러리 로드 대기
+        if(!w.html2canvas) throw new Error('html2canvas not loaded');
+        const el=w.document.querySelector('.estimate-wrap');
+        if(!el) throw new Error('estimate-wrap not found');
+        const bar=w.document.querySelector('.no-print-bar'); if(bar) bar.style.display='none';
+        el.style.marginTop='0';
+        await new Promise(r=>setTimeout(r,300)); // 폰트·직인 이미지 안정화
+        const src=await w.html2canvas(el,{scale:2,backgroundColor:'#f2f2f3',useCORS:true,windowWidth:1060});
+        const pad=80;
+        const c=document.createElement('canvas');
+        c.width=src.width+pad*2; c.height=src.height+pad*2;
+        const ctx=c.getContext('2d');
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height); ctx.drawImage(src,pad,pad);
+        const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+        if(!blob) throw new Error('toBlob failed');
+        handleImgFiles('quote',[new File([blob],`${label}.png`,{type:'image/png'})]);
+        showCalToast('견적서 이미지가 첨부(견적서)에 추가되었습니다 — 저장 시 업로드됩니다');
+    }catch(e){
+        console.error('견적서 PNG 자동 첨부 실패:',e);
+        showCalToast('견적서 이미지 자동 첨부에 실패했습니다 — 첨부에서 직접 업로드해주세요');
+    }finally{
+        if(iframe) iframe.remove();
+    }
 }
 function unlinkEstimate(id){
     linkedEstimateIds = id===undefined ? [] : linkedEstimateIds.filter(x=>String(x)!==String(id));
