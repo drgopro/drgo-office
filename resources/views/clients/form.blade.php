@@ -128,7 +128,7 @@
             <div class="field-group">
                 <div class="field-label">플랫폼</div>
                 <div class="checkbox-group">
-                    @foreach(['유튜브','트위치','치지직','아프리카','팬더','기타'] as $platform)
+                    @foreach(['유튜브','트위치','치지직','아프리카','팬더티비','기타'] as $platform)
                     <div class="checkbox-item">
                         <input type="checkbox" name="platforms[]" id="p_{{ $loop->index }}" value="{{ $platform }}"
                             {{ in_array($platform, old('platforms', $client?->platforms ?? [])) ? 'checked' : '' }}>

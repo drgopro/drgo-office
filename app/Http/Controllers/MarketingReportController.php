@@ -643,7 +643,7 @@ class MarketingReportController extends Controller
                 '치지직' => ['치지직', 'chzzk'],
                 '유튜브' => ['유튜브', '유투브', 'youtube'],
                 '틱톡' => ['틱톡', 'tiktok'],
-                '팬더' => ['팬더', 'panda'],
+                '팬더티비' => ['팬더', 'panda'],
                 '플렉스' => ['플렉스', 'flex'],
                 '팝콘' => ['팝콘', 'popkon'],
             ] as $code => $variants) {
