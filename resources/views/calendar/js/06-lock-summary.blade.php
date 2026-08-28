@@ -44,6 +44,9 @@ function _radioMulti(gid){
 // 이름 프리필이 되는 모바일웹 라우트 URL(route.nhn)을 사용 (데스크탑에서도 열림)
 const LS_HQ_ADDR='서울특별시 동작구 장승배기로 142'; // 동선 기본 출발지 (사무실)
 // 주소 복사 — 클립보드 API + 구형/비보안 컨텍스트 폴백
+// 지도 브랜드 아이콘 — 외부 이미지 없이 인라인 SVG (카카오 노랑 말풍선 / 네이버 초록 N)
+const LS_KAKAO_SVG='<svg viewBox="0 0 24 24" width="22" height="22"><rect width="24" height="24" rx="5.5" fill="#FEE500"/><path d="M12 5.6c-3.9 0-7 2.4-7 5.4 0 1.9 1.3 3.6 3.2 4.6l-.7 2.8c-.1.3.2.5.4.3l3.2-2.1c.3 0 .6.1.9.1 3.9 0 7-2.4 7-5.4s-3.1-5.7-7-5.7z" fill="#3C1E1E"/></svg>';
+const LS_NAVER_SVG='<svg viewBox="0 0 24 24" width="22" height="22"><rect width="24" height="24" rx="5.5" fill="#03C75A"/><path d="M13.8 12.3 9.9 6.7H6.7v10.6h3.5v-5.6l3.9 5.6h3.2V6.7h-3.5z" fill="#fff"/></svg>';
 const LS_COPY_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 1"/></svg>';
 async function copyAddrText(t){
     if(!t) return;
@@ -186,23 +189,23 @@ function renderLockSummary(){
     const addrLine = (html, copyText, label) => `<div style="display:flex; align-items:flex-start; gap:8px;">
             <span style="min-width:0; flex:1;">${html}</span>${copyText ? copyBtn(copyText, label) : ''}
         </div>`;
-    const addrActions = addr ? `<div class="ls-actions" style="margin-top:8px;">
-            <a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">카카오 맵</a>
-            <a class="ls-action-btn" href="${naverMapUrl(addr)}" target="_blank">네이버 맵</a>
+    // 주소 아래 지도 아이콘 버튼 쌍 — 카카오/네이버 (기업 아이콘)
+    const mapIconBtns = q => q ? `<div class="ls-map-icons">
+            <a class="ls-map-ico" href="${kakaoMapUrl(q)}" target="_blank" title="카카오맵에서 열기">${LS_KAKAO_SVG}</a>
+            <a class="ls-map-ico" href="${naverMapUrl(q)}" target="_blank" title="네이버 지도에서 열기">${LS_NAVER_SVG}</a>
         </div>` : '';
+    const addrActions = addr ? mapIconBtns(addr) : '';
     if (isMove && mfAddr && addr) { LS_ROUTE_FROM = mfAddr; LS_ROUTE_TO = addr; }
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
             <div class="ls-big">${timeBig}${durTxt}</div>
             <div style="margin-top:8px;"><div class="ls-info-label">🚚 출발지 (이사 전)</div>
-                <div class="ls-addr" style="margin-top:2px;">${addrLine(document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>'), document.getElementById('moveNoFrom')?.checked ? '' : (mfLoc || mfAddr), '출발지 주소')}</div></div>
+                <div class="ls-addr" style="margin-top:2px;">${addrLine(document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>'), document.getElementById('moveNoFrom')?.checked ? '' : (mfLoc || mfAddr), '출발지 주소')}</div>
+                ${document.getElementById('moveNoFrom')?.checked ? '' : mapIconBtns(mfAddr || mfLoc)}</div>
             <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
-                <div class="ls-addr" style="margin-top:2px;">${addrLine(_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>', location || addr, '도착지 주소')}</div></div>
-            ${specialLine}
-            <div class="ls-actions" style="margin-top:8px;">
-                ${mfAddr ? `<a class="ls-action-btn" href="${kakaoMapUrl(mfAddr)}" target="_blank">출발지 맵</a>` : ''}
-                ${addr ? `<a class="ls-action-btn" href="${kakaoMapUrl(addr)}" target="_blank">도착지 맵</a>` : ''}
-            </div>`, '', 'ls-c-time ls-time-card'));
+                <div class="ls-addr" style="margin-top:2px;">${addrLine(_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>', location || addr, '도착지 주소')}</div>
+                ${mapIconBtns(addr || location)}</div>
+            ${specialLine}`, '', 'ls-c-time ls-time-card'));
     } else {
         // 미팅/내방·사내업무: 장소를 체크박스 선택지로 지정하면 location이 비므로 옵션 값을 장소로 표시
         const visitOptsSel=(color==='purple'||color==='blue')?[...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value):[];

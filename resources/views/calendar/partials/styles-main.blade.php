@@ -889,9 +889,13 @@
     .ls-location { font-size:15px; color:var(--text); line-height:1.55; }
     .ls-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
     .ls-action-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:18px; font-size:12px; cursor:pointer; transition:all 0.15s; text-decoration:none !important; }
-    /* 주소 복사 — 픽토그램 아이콘 전용 원형 버튼 */
-    .ls-copy-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border-radius:50%; }
+    /* 주소 복사 — 픽토그램 아이콘 전용 원형 버튼 (주소 줄과 시각 정렬되게 2px 위로) */
+    .ls-copy-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border-radius:50%; margin-top:-2px; }
     .ls-copy-btn svg { display:block; }
+    /* 주소 아래 지도 아이콘 버튼 (카카오/네이버) */
+    .ls-map-icons { display:flex; gap:6px; margin-top:6px; }
+    .ls-map-ico { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; text-decoration:none !important; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
+    .ls-map-ico svg { display:block; border-radius:6px; }
     .ls-action-btn:hover { border-color:var(--accent); color:var(--accent); }
     .ls-action-btn.primary { border-color:var(--accent); color:var(--accent); background:rgba(200,176,138,0.08); }
     .ls-time { display:inline-flex; align-items:center; gap:8px; font-size:15px; color:var(--text); font-weight:500; padding:2px 0; }
