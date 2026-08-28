@@ -307,11 +307,21 @@
         <div class="sidebar-header">
             <div class="sidebar-title" id="clientListTitle">의뢰자 목록</div>
             <input class="sidebar-search" type="text" id="clientSearch" placeholder="검색..." oninput="filterClients()">
-            <div class="sidebar-filters">
+            <div class="sidebar-filters" id="gradeFilters">
                 <button class="filter-chip active" data-grade="" onclick="setGradeFilter(this)">전체</button>
                 <button class="filter-chip" data-grade="normal" onclick="setGradeFilter(this)">일반</button>
                 <button class="filter-chip" data-grade="vip" onclick="setGradeFilter(this)">VIP</button>
                 <button class="filter-chip" data-grade="rental" onclick="setGradeFilter(this)">렌탈</button>
+            </div>
+            {{-- 플랫폼 필터 --}}
+            <div class="sidebar-filters" id="platformFilters">
+                <button class="filter-chip active" data-platform="" onclick="setPlatformFilter(this)">전체</button>
+                <button class="filter-chip" data-platform="SOOP" onclick="setPlatformFilter(this)">SOOP</button>
+                <button class="filter-chip" data-platform="유튜브" onclick="setPlatformFilter(this)">유튜브</button>
+                <button class="filter-chip" data-platform="치지직" onclick="setPlatformFilter(this)">치지직</button>
+                <button class="filter-chip" data-platform="틱톡" onclick="setPlatformFilter(this)">틱톡</button>
+                <button class="filter-chip" data-platform="팬더티비" onclick="setPlatformFilter(this)">팬더티비</button>
+                <button class="filter-chip" data-platform="기타" onclick="setPlatformFilter(this)">기타</button>
             </div>
         </div>
         <div class="sidebar-list" id="clientList"></div>
@@ -700,6 +710,7 @@ function collectCheckboxGroup(group, id) {
 
 let allClients = [];
 let currentGrade = '';
+let currentPlatform = '';
 let openClientTabs = []; // {id, name, nickname, grade, data, activeSubTab}
 let activeClientId = null;
 let customFieldDefs = []; // 동적 필드 정의
@@ -745,8 +756,14 @@ if (__savedClientState.search) {
 }
 if (__savedClientState.grade) {
     currentGrade = __savedClientState.grade;
-    document.querySelectorAll('.filter-chip').forEach(b => {
+    document.querySelectorAll('#gradeFilters .filter-chip').forEach(b => {
         b.classList.toggle('active', b.dataset.grade === __savedClientState.grade);
+    });
+}
+if (__savedClientState.platform) {
+    currentPlatform = __savedClientState.platform;
+    document.querySelectorAll('#platformFilters .filter-chip').forEach(b => {
+        b.classList.toggle('active', b.dataset.platform === __savedClientState.platform);
     });
 }
 
@@ -770,6 +787,7 @@ async function loadClientList(page = 1) {
     const params = new URLSearchParams({ page: String(page), per_page: '20' });
     if (search) params.set('search', search);
     if (currentGrade) params.set('grade', currentGrade);
+    if (currentPlatform) params.set('platform', currentPlatform);
 
     const res = await fetch('/api/clients/list?' + params, { headers:{ 'Accept':'application/json' } });
     const data = await res.json();
@@ -791,9 +809,16 @@ function filterClients() {
 }
 
 function setGradeFilter(btn) {
-    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#gradeFilters .filter-chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentGrade = btn.dataset.grade;
+    loadClientList(1);
+}
+
+function setPlatformFilter(btn) {
+    document.querySelectorAll('#platformFilters .filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPlatform = btn.dataset.platform;
     loadClientList(1);
 }
 
@@ -2555,6 +2580,7 @@ function saveClientTabs() {
         page: clientPage,
         search: document.getElementById('clientSearch')?.value || '',
         grade: currentGrade,
+        platform: currentPlatform,
     };
     sessionStorage.setItem('drgo_client_tabs', JSON.stringify(data));
 }

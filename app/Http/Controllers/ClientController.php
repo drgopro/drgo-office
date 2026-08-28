@@ -389,6 +389,11 @@ class ClientController extends Controller
             $query->where('grade', $grade);
         }
 
+        // 플랫폼 필터 — platforms JSON 배열에 해당 플랫폼이 포함된 의뢰자만
+        if ($platform = $request->query('platform')) {
+            $query->whereJsonContains('platforms', $platform);
+        }
+
         $perPage = (int) ($request->query('per_page', 20));
         $perPage = max(1, min($perPage, 100));
 
