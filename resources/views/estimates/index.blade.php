@@ -193,6 +193,10 @@ async function loadEstimates() {
         return;
     }
 
+    // 출력(이미지/PDF) 파일명용 메타 — 'yyyy-mm-dd 닉네임(이름)' 형식에 사용
+    window.__estMeta = {};
+    data.forEach(e => { window.__estMeta[e.id] = { nickname: e.client_nickname || '', cname: e.client_name || '', no: e.display_no ?? e.id }; });
+
     tb.innerHTML = data.map(e => {
         const itemCount = (e.product_items||[]).length + (e.service_items||[]).length;
         return `<tr>
@@ -281,6 +285,19 @@ async function copyEstimateLink(id) {
     }
 }
 
+// 출력 파일명: 'yyyy-mm-dd 닉네임(이름)' — 캘린더 자동 첨부·인쇄 페이지 PNG 저장과 동일 규칙,
+// 닉네임/이름이 없으면 목록에 표시되는 '견적서#번호' 폴백, 파일명 금지 문자는 제거
+function estExportName(id) {
+    const m = (window.__estMeta || {})[id] || {};
+    const t = new Date();
+    const ds = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    const nick = (m.nickname || '').trim();
+    const nm = (m.cname || '').trim();
+    let who = nick && nm ? `${nick}(${nm})` : (nick || nm || `견적서#${m.no ?? id}`);
+    who = who.replace(/[\\/:*?"<>|]/g, '').trim();
+    return `${ds} ${who}`;
+}
+
 async function exportEstimate(id, type) {
     document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show'));
     const printUrl = `/estimates/${id}/print`;
@@ -308,7 +325,7 @@ async function exportEstimate(id, type) {
 
                 if (type === 'image') {
                     const link = document.createElement('a');
-                    link.download = `견적서_${id}.png`;
+                    link.download = `${estExportName(id)}.png`;
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 } else if (type === 'pdf') {
@@ -319,7 +336,7 @@ async function exportEstimate(id, type) {
                     const pdfH = (pxH * pdfW) / pxW;
                     const pdf = new jsPDF({ unit:'mm', format:[pdfW, pdfH] });
                     pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-                    pdf.save(`견적서_${id}.pdf`);
+                    pdf.save(`${estExportName(id)}.pdf`);
                 }
                 w.close();
             } catch(err) {

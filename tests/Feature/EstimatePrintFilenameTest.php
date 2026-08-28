@@ -37,6 +37,16 @@ class EstimatePrintFilenameTest extends TestCase
             ->assertSee('link.download=`${ds} ${'.json_encode('고블린(홍길동)').'}.png`', false);
     }
 
+    public function test_list_export_uses_same_filename_format(): void
+    {
+        // 목록의 출력(이미지/PDF)도 'yyyy-mm-dd 닉네임(이름)' 형식 — estExportName 공용 사용
+        $this->actingAs($this->user)->get('/estimates')
+            ->assertOk()
+            ->assertSee('link.download = `${estExportName(id)}.png`', false)
+            ->assertSee('pdf.save(`${estExportName(id)}.pdf`)', false)
+            ->assertSee('window.__estMeta[e.id]', false);
+    }
+
     public function test_png_filename_falls_back_to_estimate_number(): void
     {
         $estimate = $this->makeEstimate();
