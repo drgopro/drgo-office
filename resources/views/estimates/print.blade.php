@@ -200,6 +200,13 @@
     @endif
     <span>견적서 #{{ $estimate->display_no }} | {{ $estimate->updated_at->format('Y-m-d H:i') }}</span>
 </div>
+@php
+    // PNG 저장 파일명의 '닉네임(이름)' 부분 — 없으면 '견적서#번호' 폴백, 파일명 금지 문자 제거
+    $pngNick = trim($estimate->client_nickname ?? '');
+    $pngName = trim($estimate->client_name ?? '');
+    $pngWho = $pngNick !== '' && $pngName !== '' ? "{$pngNick}({$pngName})" : ($pngNick !== '' ? $pngNick : ($pngName !== '' ? $pngName : '견적서#'.$estimate->display_no));
+    $pngWho = trim(preg_replace('/[\\\\\/:*?"<>|]/u', '', $pngWho));
+@endphp
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 function savePNG(){
@@ -214,7 +221,10 @@ function savePNG(){
         ctx.fillRect(0,0,c.width,c.height);
         ctx.drawImage(src,pad,pad);
         const link=document.createElement('a');
-        link.download='견적서_{{ $estimate->display_no }}_{{ $estimate->client_name ?? "drgo" }}.png';
+        // 파일명: 'yyyy-mm-dd 닉네임(이름).png' — 캘린더 자동 첨부와 동일 형식, 날짜는 저장한 날
+        const t=new Date();
+        const ds=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+        link.download=`${ds} ${@json($pngWho)}.png`;
         link.href=c.toDataURL('image/png');
         link.click();
     });
