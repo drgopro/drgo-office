@@ -466,7 +466,7 @@ class DashboardController extends Controller
         // 매출 인식 원장(revenue_entries)이 있으면 그것만 읽는다 — 인식일 기준, 환불 차감, 세팅비/장비 분리
         $ledgerUsed = Schema::hasTable('revenue_entries');
         if ($ledgerUsed) {
-            $led = RevenueEntry::whereBetween('recognized_on', [$fromDt->toDateString(), $toDt->toDateString()]);
+            $led = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt]);
             $revenueTotal = (int) (clone $led)->sum('amount');
             $revenueService = (int) (clone $led)->sum('service_amount');
             $revenueProduct = (int) (clone $led)->sum('product_amount');
@@ -476,6 +476,9 @@ class DashboardController extends Controller
             $paidCount = (int) (clone $led)->where('kind', 'estimate_paid')->count();
             $linkedChargeCount = 0;
             $paymentOnlyCount = (int) (clone $led)->where('kind', 'payment_only')->where('amount', '>', 0)->count();
+            // 매출 구성(category_breakdown) 집계용 — 기간 내 인식된 견적 매출의 견적서들
+            $allPaidEstimates = Estimate::whereIn('id',
+                (clone $led)->where('kind', 'estimate_paid')->pluck('estimate_id')->filter()->unique())->get();
         }
 
         // 결제 기록(charge)이 존재하는 견적서 — 결제 원장 쪽에서만 집계 (견적 생성 월 ≠ 결제 월 이중 집계 방지)

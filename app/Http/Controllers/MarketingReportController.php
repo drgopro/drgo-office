@@ -226,7 +226,7 @@ class MarketingReportController extends Controller
         //    환불 음수 자동 차감, 세팅비/장비판매 분리. 테이블이 없으면(롤백) 아래 기존 로직으로 폴백.
         $ledgerUsed = Schema::hasTable('revenue_entries');
         if ($ledgerUsed) {
-            $led = RevenueEntry::whereBetween('recognized_on', [$from, $to]);
+            $led = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt]);
             $revenueTotal = (int) (clone $led)->sum('amount');
             $revenueService = (int) (clone $led)->sum('service_amount');
             $revenueProduct = (int) (clone $led)->sum('product_amount');
@@ -864,13 +864,13 @@ class MarketingReportController extends Controller
                 ->whereIn('payment_id', $periodPaymentIds)->pluck('estimate_id')->all();
             // 원장 기준: 인식일이 기간 안에 드는 견적만 (통계 총액과 같은 기준)
             $paidEntries = RevenueEntry::where('kind', 'estimate_paid')
-                ->whereBetween('recognized_on', [$from, $to])
+                ->whereBetween('recognized_on', [$fromDt, $toDt])
                 ->whereNotNull('estimate_id')
                 ->whereNotIn('estimate_id', array_merge($shownEstimateIds, $adoptedShownIds))
                 ->get()->keyBy('estimate_id');
             $refundSums = RevenueEntry::where('kind', 'estimate_refund')
                 ->whereIn('estimate_id', $paidEntries->keys())
-                ->whereBetween('recognized_on', [$from, $to])
+                ->whereBetween('recognized_on', [$fromDt, $toDt])
                 ->selectRaw('estimate_id, sum(amount) as refund_sum, max(recognized_on) as refund_on')
                 ->groupBy('estimate_id')->get()->keyBy('estimate_id');
             $legacyQuery = Estimate::with('project.client')->whereIn('id', $paidEntries->keys());
