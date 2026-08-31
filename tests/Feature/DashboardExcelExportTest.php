@@ -31,4 +31,13 @@ class DashboardExcelExportTest extends TestCase
         $body = $res->streamedContent();
         $this->assertStringStartsWith('PK', $body);
     }
+
+    public function test_stats_page_excel_links_use_download_notice_helper(): void
+    {
+        // 엑셀 링크가 '파일 다운로드 준비 중' 안내를 띄우는 drgoDownload 헬퍼로 연결되는지
+        $user = User::factory()->create(['role' => 'admin']);
+        $res = $this->actingAs($user)->get('/marketing-report')->assertOk();
+        $this->assertSame(3, substr_count($res->getContent(), 'drgoDownload(this.href, this)'));
+        $res->assertSee('파일 다운로드 준비 중');
+    }
 }

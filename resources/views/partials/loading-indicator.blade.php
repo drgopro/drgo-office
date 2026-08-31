@@ -25,6 +25,12 @@
 .gl-spinner span:nth-child(7) { transform:rotate(270deg); animation-delay:-.2s; }
 .gl-spinner span:nth-child(8) { transform:rotate(315deg); animation-delay:-.1s; }
 @keyframes glFade { 0% { opacity:1; } 100% { opacity:.15; } }
+/* 파일 다운로드 준비 알림 — 스피너 원 위를 덮는 알약형 (drgoDownload 사용 시) */
+#globalDlNote { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100001; pointer-events:none;
+    opacity:0; transition:opacity .18s ease; display:flex; align-items:center; gap:9px;
+    background:rgba(24,24,24,0.86); backdrop-filter:blur(2px); box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    color:#f2ede4; font-size:12.5px; font-weight:600; padding:8px 16px; border-radius:20px; white-space:nowrap; }
+#globalDlNote.on { opacity:1; }
 </style>
 <script>
 (function () {
@@ -54,6 +60,41 @@
             if (el) el.classList.remove('on');
         }
     }
+    // 파일 다운로드 공용 헬퍼 — 준비 중 알림을 띄우고 fetch→blob으로 받아 저장.
+    // 링크 내비게이션 방식은 다운로드 시작을 감지할 수 없어 안내가 불가능하므로 이 헬퍼를 쓴다.
+    window.drgoDownload = async function (url, link) {
+        if (link && link.dataset.dl) return; // 준비 중 재클릭 방지
+        if (link) link.dataset.dl = '1';
+        let note = document.getElementById('globalDlNote');
+        if (!note) {
+            note = document.createElement('div');
+            note.id = 'globalDlNote';
+            note.innerHTML = '<div class="gl-spinner">' + '<span></span>'.repeat(8) + '</div><span>파일 다운로드 준비 중...</span>';
+            document.body.appendChild(note);
+        }
+        note.classList.add('on');
+        try {
+            const res = await orig.call(window, url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const cd = res.headers.get('Content-Disposition') || '';
+            const m1 = cd.match(/filename\*=UTF-8''([^;]+)/i);
+            const m2 = cd.match(/filename="?([^";]+)"?/i);
+            const name = m1 ? decodeURIComponent(m1[1]) : (m2 ? m2[1] : 'download.xlsx');
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+        } catch (e) {
+            alert('파일 다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } finally {
+            note.classList.remove('on');
+            if (link) delete link.dataset.dl;
+        }
+    };
     const orig = window.fetch;
     window.fetch = function (input, init) {
         let track = false;
