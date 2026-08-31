@@ -386,51 +386,40 @@ class PaymentSyncTest extends TestCase
         $this->assertSame(46, $row['estimate_no']);
     }
 
-    public function test_linked_estimate_creates_unpaid_billing_and_settles_on_payment(): void
+    public function test_linked_estimate_creates_no_billing_and_charge_records_on_payment(): void
     {
-        // 프로젝트 연동 + 미결제 저장 → 미수 청구 자동 생성
+        // 프로젝트 연동 + 미결제 저장 → 미수 청구가 생기지 않는다 (연동만으로 잔금이 잡히지 않음)
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
             'product_items' => $this->estimate->product_items,
         ])->assertOk();
-        $billing = ProjectBilling::where('estimate_id', $this->estimate->id)->first();
-        $this->assertNotNull($billing);
-        $this->assertSame('unpaid', $billing->status);
-        $this->assertSame(250000, $billing->amount);
-        $this->assertSame($this->project->id, $billing->project_id);
+        $this->assertNull(ProjectBilling::where('estimate_id', $this->estimate->id)->first());
 
-        // 총액 변경 → 입금 전 청구 금액 최신화
-        $items = $this->estimate->fresh()->product_items;
-        $items[] = ['product_id' => null, 'name' => '추가 항목', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000, 'manual' => true];
+        // 결제완료 → 결제 내역(charge)만 기록된다
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
-            'product_items' => $items,
+            'product_items' => $this->estimate->fresh()->product_items, 'status' => 'paid',
         ])->assertOk();
-        $this->assertSame(300000, $billing->fresh()->amount);
-
-        // 결제완료 → charge가 청구에 연결되고 청구가 결제된 금액으로 확정
-        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
-            'product_items' => $items, 'status' => 'paid',
-        ])->assertOk();
-        $billing->refresh();
-        $this->assertSame('paid', $billing->status);
-        $this->assertSame(300000, $billing->amount);
+        $this->assertNull(ProjectBilling::where('estimate_id', $this->estimate->id)->first());
         $charge = ProjectPayment::where('estimate_id', $this->estimate->id)->where('type', 'charge')->first();
-        $this->assertSame($billing->id, $charge->billing_id);
-        $this->assertSame(300000, $charge->amount);
+        $this->assertNotNull($charge);
+        $this->assertSame(250000, $charge->amount);
     }
 
-    public function test_estimate_linked_billing_cannot_be_completed_manually(): void
+    public function test_legacy_estimate_billing_cannot_be_completed_manually(): void
     {
-        // 연동 청구 생성
-        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
-            'product_items' => $this->estimate->product_items,
-        ])->assertOk();
-        $billing = ProjectBilling::where('estimate_id', $this->estimate->id)->first();
+        // 과거 자동 생성 방식의 연동 청구(입금 이력 있음 — 정리 대상 아님)를 재현
+        $billing = ProjectBilling::create([
+            'project_id' => $this->project->id, 'estimate_id' => $this->estimate->id, 'amount' => 250000,
+            'billed_at' => now()->format('Y-m-d'), 'status' => 'partial', 'created_by' => $this->admin->id,
+        ]);
+        ProjectPayment::create([
+            'project_id' => $this->project->id, 'billing_id' => $billing->id,
+            'type' => 'charge', 'amount' => 100000, 'paid_at' => now()->toDateString(),
+        ]);
 
-        // 수동 완료 처리 시도 → 거부, 상태 유지
+        // 수동 완료 처리 시도 → 거부 (견적서에서 결제완료해야 자동 완료)
         $this->actingAs($this->admin)->patchJson("/api/project-billings/{$billing->id}", [
             'status' => 'paid',
         ])->assertUnprocessable();
-        $this->assertSame('unpaid', $billing->fresh()->status);
 
         // 일반(수기) 청구는 여전히 수동 완료 가능
         $manual = ProjectBilling::create([
@@ -441,26 +430,47 @@ class PaymentSyncTest extends TestCase
             'status' => 'paid',
         ])->assertOk();
         $this->assertSame('paid', $manual->fresh()->status);
-
-        // 견적서 결제완료 → 연동 청구는 자동으로 완료
-        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
-            'product_items' => $this->estimate->fresh()->product_items, 'status' => 'paid',
-        ])->assertOk();
-        $this->assertSame('paid', $billing->fresh()->status);
     }
 
-    public function test_unlinking_project_removes_clean_billing(): void
+    public function test_project_estimate_card_shows_amount_and_status(): void
     {
+        // 견적/계약 카드 — 견적 금액은 표시로만, 결제완료/결제취소는 배지로
+        $this->project->update(['stage_data' => ['estimate' => ['estimate_ids' => [$this->estimate->id]]]]);
+        $this->actingAs($this->admin)->get("/projects/{$this->project->id}")->assertOk()
+            ->assertSee('250,000원')
+            ->assertDontSee('결제완료</span>', false);
+
+        $this->estimate->forceFill(['status' => 'paid'])->save();
+        $this->actingAs($this->admin)->get("/projects/{$this->project->id}")->assertOk()
+            ->assertSee('결제완료');
+    }
+
+    public function test_estimate_save_cleans_legacy_auto_billing(): void
+    {
+        // 과거 자동 생성된 미입금 연동 청구 — 견적서 저장 시 정리된다
+        $billing = ProjectBilling::create([
+            'project_id' => $this->project->id, 'estimate_id' => $this->estimate->id, 'amount' => 250000,
+            'billed_at' => now()->format('Y-m-d'), 'status' => 'unpaid', 'created_by' => $this->admin->id,
+        ]);
+
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
             'product_items' => $this->estimate->product_items,
         ])->assertOk();
-        $this->assertNotNull(ProjectBilling::where('estimate_id', $this->estimate->id)->first());
+        $this->assertNull(ProjectBilling::find($billing->id));
 
-        // 프로젝트 연동 해제 → 입금 이력 없는 청구 제거
+        // 입금 이력이 있는 청구는 보존된다
+        $kept = ProjectBilling::create([
+            'project_id' => $this->project->id, 'estimate_id' => $this->estimate->id, 'amount' => 250000,
+            'billed_at' => now()->format('Y-m-d'), 'status' => 'unpaid', 'created_by' => $this->admin->id,
+        ]);
+        ProjectPayment::create([
+            'project_id' => $this->project->id, 'billing_id' => $kept->id,
+            'type' => 'charge', 'amount' => 50000, 'paid_at' => now()->toDateString(),
+        ]);
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
-            'product_items' => $this->estimate->product_items, 'project_id' => null,
+            'product_items' => $this->estimate->fresh()->product_items,
         ])->assertOk();
-        $this->assertNull(ProjectBilling::where('estimate_id', $this->estimate->id)->first());
+        $this->assertNotNull(ProjectBilling::find($kept->id));
     }
 
     public function test_deleting_estimate_cleans_project_and_calendar_links(): void

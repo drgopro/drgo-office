@@ -108,46 +108,17 @@ class EstimatePaymentSync
     }
 
     /**
-     * 견적서 ↔ 프로젝트 청구 동기화 — 프로젝트에 연동된 미결제 견적서를 '미수 청구'로 자동 등록.
-     * - 미결제 상태(작성중/발행완료 등): 청구 생성, 입금 전이면 금액·프로젝트를 견적서 최신값으로 유지
-     * - 결제완료: 건드리지 않음 (estimatePaid가 charge 연결로 '결제됨' 처리)
-     * - 결제취소·연동 해제·임시: 입금 이력이 없는 청구만 제거
+     * 견적서 ↔ 프로젝트 청구 정리 — 연동 시 '미수 청구'를 자동 생성하던 방식은 폐기.
+     * 연동만으로 프로젝트에 잔금이 잡히는 혼란을 막고, 견적 금액은 견적/계약 카드에
+     * 표시로만 남긴다. 실제 금액 기록은 결제완료/취소/환불(결제 내역)만 만든다.
+     * 과거 자동 생성된 청구 중 입금 이력이 없는 미입금 건은 견적서 저장 시 정리한다.
      */
     public static function syncProjectBilling(Estimate $estimate): void
     {
-        $billing = ProjectBilling::where('estimate_id', $estimate->id)->first();
-        if ($estimate->status === 'paid') {
-            return;
-        }
-
-        $active = $estimate->project_id
-            && (int) $estimate->total_amount > 0
-            && ! in_array($estimate->status, ['paid', 'cancelled', 'temp'], true);
-
-        if ($active) {
-            if ($billing) {
-                // 입금 전(미입금)일 때만 금액/프로젝트 최신화 — 입금이 시작된 청구는 건드리지 않음
-                if ($billing->paidTotal() === 0 && $billing->status === 'unpaid'
-                    && ((int) $billing->amount !== (int) $estimate->total_amount || (int) $billing->project_id !== (int) $estimate->project_id)) {
-                    $billing->update([
-                        'project_id' => $estimate->project_id,
-                        'amount' => (int) $estimate->total_amount,
-                    ]);
-                }
-            } else {
-                ProjectBilling::create([
-                    'project_id' => $estimate->project_id,
-                    'estimate_id' => $estimate->id,
-                    'amount' => (int) $estimate->total_amount,
-                    'billed_at' => now()->format('Y-m-d'),
-                    'status' => 'unpaid',
-                    'memo' => "견적서 #{$estimate->display_no} 연동 청구",
-                    'created_by' => Auth::id(),
-                ]);
-            }
-        } elseif ($billing && $billing->payments()->count() === 0 && $billing->status !== 'paid') {
-            $billing->delete();
-        }
+        ProjectBilling::where('estimate_id', $estimate->id)
+            ->where('status', 'unpaid')
+            ->whereDoesntHave('payments')
+            ->delete();
     }
 
     /**

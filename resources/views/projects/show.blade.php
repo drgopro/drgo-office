@@ -613,14 +613,24 @@
                 <button type="button" onclick="openEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
             </div>
             @php
-                // 표시 번호(#display_no)로 통일 — 실제 id는 링크에만 사용
-                $estimateNos = \App\Models\Estimate::whereIn('id', $estimateData['estimate_ids'] ?? [])
-                    ->get()->pluck('display_no', 'id');
+                // 표시 번호(#display_no)로 통일 — 실제 id는 링크에만 사용.
+                // 금액은 표시용 정보일 뿐 청구/잔금이 아니다 — 실제 금액 기록은 결제 내역(결제완료/취소)만.
+                $linkedEstimates = \App\Models\Estimate::whereIn('id', $estimateData['estimate_ids'] ?? [])
+                    ->get()->keyBy('id');
             @endphp
             <div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
             @foreach(($estimateData['estimate_ids'] ?? []) as $eid)
-                @if(isset($estimateNos[$eid]))
-                    <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $estimateNos[$eid] }}</a>
+                @if($linkedEstimates->has($eid))
+                    @php $le = $linkedEstimates[$eid]; @endphp
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $le->display_no }}</a>
+                        <span style="font-weight:600;">{{ number_format((int) $le->total_amount) }}원</span>
+                        @if($le->status === 'paid')
+                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#2d8a3e; font-weight:700;">결제완료</span>
+                        @elseif($le->status === 'cancelled')
+                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(220,38,38,0.10); color:#dc2626; font-weight:700;">결제취소</span>
+                        @endif
+                    </div>
                 @else
                     <span style="color:var(--text-muted);">→ 삭제된 견적서</span>
                 @endif

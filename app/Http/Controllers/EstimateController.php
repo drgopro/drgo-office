@@ -404,7 +404,7 @@ class EstimateController extends Controller
                 EstimatePaymentSync::estimateCancelled($estimate->fresh());
             }
 
-            // 프로젝트 청구 연동 — 미결제 견적서는 미수 청구로 등록/금액 최신화, 해제·취소 시 정리
+            // 과거 자동 생성된 연동 청구(입금 이력 없는 미입금 건) 정리 — 연동만으로 잔금이 잡히지 않도록
             EstimatePaymentSync::syncProjectBilling($estimate->fresh());
 
             return response()->json([
