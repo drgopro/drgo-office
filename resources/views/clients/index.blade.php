@@ -1766,7 +1766,7 @@ function switchSubTab(clientId, tab, btn) {
     document.querySelectorAll(`#subtabs-${clientId} .sub-tab`).forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    ['info','projects','docs','memo'].forEach(k => {
+    ['info','projects','docs','estimates','memo'].forEach(k => {
         const panel = document.getElementById(`sub-${k}-${clientId}`);
         if (panel) panel.classList.toggle('active', k === tab);
     });

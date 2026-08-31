@@ -40,6 +40,8 @@ class ClientEstimateLinkTest extends TestCase
         // 상세 페이지 표시 + 목록 페이지 딥링크(client_id 자동 생성) 스크립트 렌더
         $this->actingAs($user)->get("/clients/{$client->id}")->assertOk()->assertSee('견적서 (1건)');
         $this->actingAs($user)->get('/estimates')->assertOk()->assertSee('createEstimate(qcid)', false);
-        $this->actingAs($user)->get('/clients')->assertOk()->assertSee('createEstimateForClient', false);
+        $this->actingAs($user)->get('/clients')->assertOk()
+            ->assertSee('createEstimateForClient', false)
+            ->assertSee("['info','projects','docs','estimates','memo']", false); // 견적서 탭 패널 토글 누락 회귀 방지
     }
 }
