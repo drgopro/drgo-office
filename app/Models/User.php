@@ -21,6 +21,7 @@ class User extends Authenticatable
         'password',
         'role',
         'team_id',
+        'hire_date',
         'is_active',
     ];
 
@@ -34,6 +35,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'hire_date' => 'date:Y-m-d',
             'is_active' => 'boolean',
         ];
     }

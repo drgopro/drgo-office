@@ -22,6 +22,7 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LinkPreviewController;
 use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\NotificationController;
@@ -132,6 +133,16 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/feedback-attachments/{attachment}', [FeedbackController::class, 'destroyAttachment']);
         Route::get('/feedback-attachments/{attachment}/view', [FeedbackController::class, 'serveAttachment'])->name('feedback-attachments.serve');
         Route::get('/feedback-attachments/{attachment}/thumb', [FeedbackController::class, 'thumbAttachment'])->name('feedback-attachments.thumb');
+    });
+
+    // 연차 — 내 연차(전 직원, guest 제외)는 컨트롤러에서 차단, 관리(경영지원팀)는 leave.manage 권한
+    Route::get('/leave', [LeaveController::class, 'index'])->name('leave.index');
+    Route::middleware('permission:leave.manage')->group(function () {
+        Route::get('/leave/manage', [LeaveController::class, 'manage'])->name('leave.manage');
+        Route::patch('/api/leave/users/{user}/hire-date', [LeaveController::class, 'setHireDate']);
+        Route::put('/api/leave/users/{user}/grant', [LeaveController::class, 'setGrant']);
+        Route::post('/api/leave/users/{user}/usages', [LeaveController::class, 'addUsage']);
+        Route::delete('/api/leave/usages/{usage}', [LeaveController::class, 'deleteUsage']);
     });
 
     // 마이페이지 (전체 사용자)

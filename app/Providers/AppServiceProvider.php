@@ -6,6 +6,8 @@ use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RevenueEntry;
+use App\Models\Schedule;
+use App\Services\LeaveLedger;
 use App\Services\RevenueLedger;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
@@ -48,6 +50,18 @@ class AppServiceProvider extends ServiceProvider
         Project::saved(function (Project $p) {
             if ($p->wasChanged('stage') || $p->wasChanged('completed_at')) {
                 RevenueLedger::onProjectStageChanged($p); // 완료 전환/해제 시 연동 견적 인식일 이동
+            }
+        });
+
+        // ── 연차 사용 원장(leave_usages) 자동 동기화 — 휴가 일정의 '연차 차감' 체크 반영 ──
+        Schedule::saved(function (Schedule $s) {
+            if (Schema::hasTable('leave_usages')) {
+                LeaveLedger::syncSchedule($s);
+            }
+        });
+        Schedule::deleted(function (Schedule $s) {
+            if (Schema::hasTable('leave_usages')) {
+                LeaveLedger::syncSchedule($s); // 소프트 삭제 → 자동 기록 제거
             }
         });
     }

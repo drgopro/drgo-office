@@ -454,7 +454,11 @@ class CalendarController extends Controller
     {
         if (in_array($color, self::CLIENT_LINK_EXCLUDED_COLORS, true)) {
             $validated['client_name'] = null;
-            $validated['request_data'] = null;
+            // 휴가/개인의 '연차 차감' 플래그는 유지 — 의뢰자 연동 정보만 제거
+            $deduct = data_get($validated, 'request_data.leave_deduct');
+            $validated['request_data'] = in_array($deduct, ['full', 'half'], true)
+                ? ['leave_deduct' => $deduct]
+                : null;
         }
 
         return $validated;

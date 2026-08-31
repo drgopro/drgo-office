@@ -137,6 +137,11 @@ async function doSaveEvent(){
         request_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
         remote_data:currentColor==='teal'?collectTealFields():null,
     };
+    // 연차 차감 (휴가/개인 전용) — request_data.leave_deduct: 'full'|'half'
+    if(currentColor==='red'&&document.getElementById('leaveDeductChk')?.checked){
+        data.request_data=Object.assign(data.request_data||{},{leave_deduct:document.getElementById('leaveDeductType')?.value==='half'?'half':'full'});
+    }
+
     // 외부 오퍼레이터 체크 시 항시 종일 일정으로 저장 (UI에서도 고정되지만 이중 방어)
     if(specialOpts.includes('external_operator')){
         data.is_all_day=true; data.start_time=null; data.end_time=null;

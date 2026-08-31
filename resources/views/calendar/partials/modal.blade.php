@@ -145,6 +145,21 @@
                 </div>
             </div>
 
+            {{-- 연차 차감 (휴가/개인 전용) — 담당자 기준 leave_usages 자동 기록, 토/일 제외 --}}
+            <div class="field-section" id="leaveDeductRow" style="display:none;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;" title="체크하면 담당자의 연차에서 자동 차감됩니다 (기간 내 토/일 제외)">
+                        <input type="checkbox" id="leaveDeductChk" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" onchange="document.getElementById('leaveDeductType').style.display=this.checked?'':'none'">
+                        🌴 연차 차감
+                    </label>
+                    <select id="leaveDeductType" class="notif-select" style="display:none; width:auto;">
+                        <option value="full">연차 1일</option>
+                        <option value="half">반차 0.5일</option>
+                    </select>
+                    <span style="font-size:11px;color:var(--text-muted);">담당자 기준 · 토/일 제외 · 내 연차 페이지에 기록</span>
+                </div>
+            </div>
+
             {{-- 장기 일정 하위 일정 (2일 이상 기존 일정에서만 렌더) --}}
             <div id="lsChildrenForm"></div>
 

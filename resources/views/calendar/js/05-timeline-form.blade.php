@@ -297,6 +297,15 @@ function setColor(c){
     // 사내업무(blue)/휴가·개인(red)은 의뢰자 검색 불필요 → 섹션 숨김
     const clientSec=document.getElementById('clientLinkSection');
     if(clientSec) clientSec.style.display=(c==='blue'||c==='red')?'none':'';
+    // 연차 차감은 휴가/개인(red) 전용
+    const ldRow=document.getElementById('leaveDeductRow');
+    if(ldRow){
+        ldRow.style.display=c==='red'?'':'none';
+        if(c!=='red'){
+            const chk=document.getElementById('leaveDeductChk');
+            if(chk){ chk.checked=false; document.getElementById('leaveDeductType').style.display='none'; }
+        }
+    }
     // 사내업무/휴가·개인은 장소가 필수 아님 → 필수 표시(*) 숨김
     const addrReq=document.getElementById('addrReqMark');
     if(addrReq) addrReq.style.display=(c==='blue'||c==='red')?'none':'';

@@ -575,6 +575,7 @@ window.openTopTab = function(type, url, title) {
             @endif
             @if(in_array(Auth::user()->role, ['master','admin','member']))
                 <a href="/feedback" class="{{ request()->is('feedback*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('feedback','/feedback');" title="피드백"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M8 9h8M8 12h5"></path></svg>피드백</a>
+                <a href="/leave" class="{{ request()->is('leave*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('leave','/leave');" title="연차"><svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>연차</a>
             @endif
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
@@ -661,12 +662,13 @@ window.drgoTabs = {
         'broadcast-room':'<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>',
         'marketing-report':'<svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>',
         feedback:'<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M8 9h8M8 12h5"></path></svg>',
+        leave:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>',
         deposits:'<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20M6 15h4"></path></svg>',
         admin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
         profile:'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
         _default:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>',
     },
-    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', deposits:'입금 내역', admin:'관리', profile:'마이페이지', guide:'가이드' },
+    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', leave:'연차', deposits:'입금 내역', admin:'관리', profile:'마이페이지', guide:'가이드' },
 
     init() {
         // iframe 내부에서는 탭 시스템 비활성화
@@ -941,7 +943,7 @@ window.drgoTabs = {
 
 
     _updateNav(type) {
-        const NAV_MAP = { dashboard:'/', calendar:'/calendar', clients:'/clients', projects:'/projects', inventory:'/inventory', estimates:'/estimates', wiki:'/wiki', deposits:'/deposits', admin:'/admin', profile:'/profile' };
+        const NAV_MAP = { dashboard:'/', calendar:'/calendar', clients:'/clients', projects:'/projects', inventory:'/inventory', estimates:'/estimates', wiki:'/wiki', leave:'/leave', deposits:'/deposits', admin:'/admin', profile:'/profile' };
         document.querySelectorAll('#mainNav > a').forEach(a => {
             const href = a.getAttribute('href');
             a.classList.toggle('active', href === NAV_MAP[type]);
@@ -961,6 +963,7 @@ window.drgoTabs = {
         if (p.startsWith('/broadcast-room')) return 'broadcast-room';
         if (p.startsWith('/marketing-report')) return 'marketing-report';
         if (p.startsWith('/feedback')) return 'feedback';
+        if (p.startsWith('/leave')) return 'leave';
         if (p.startsWith('/deposits')) return 'deposits';
         if (p.startsWith('/admin')) return 'admin';
         if (p.startsWith('/profile')) return 'profile';
