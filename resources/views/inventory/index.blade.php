@@ -1996,7 +1996,7 @@ function renderOrders() {
             : '<span class="badge badge-requested">직접 주문</span>';
         const who = o.type === 'estimate' ? (o.client || '-') : (o.creator || '-');
         const acts = o.type === 'estimate'
-            ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/estimates/${o.id}/edit','est_${o.id}')">견적서 열기</button>`
+            ? `${open ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveAllOrderNotes(${o.id}, this)" title="이 주문 건의 모든 항목·세트 구성품 입력값을 한 번에 저장">일괄 저장</button> ` : ''}<button class="btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/estimates/${o.id}/edit','est_${o.id}')">견적서 열기</button>`
             : `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); openOrderEdit(${o.id})">수정</button>
                <button class="btn-danger-sm" onclick="event.stopPropagation(); deleteOfficeOrder(${o.id})">삭제</button>`;
         // 구매 금액 합계 — 기록값 우선, 견적서 항목은 미기록 시 매입가×수량 참고치로 합산
@@ -2143,12 +2143,12 @@ function restoreOrderEdits(snap) {
     });
 }
 
-async function saveEstimateItemNote(estimateId, index, btn) {
-    const tr = btn.closest('tr');
+// 행 → 요청 본문 (항목/세트 구성품) — 개별 저장·일괄 저장 공용
+function buildItemNoteBody(tr, index) {
     const amtRaw = tr.querySelector('.oi-amt').value.trim();
     const refunded = tr.querySelector('.oi-ref').checked;
     const refAmtRaw = tr.querySelector('.oi-refamt').value.trim();
-    const body = {
+    return {
         index,
         amount: amtRaw === '' ? null : Math.max(0, parseInt(amtRaw) || 0),
         purchase_source: tr.querySelector('.oi-src').value.trim(),
@@ -2156,6 +2156,22 @@ async function saveEstimateItemNote(estimateId, index, btn) {
         refunded,
         refund_amount: refunded && refAmtRaw !== '' ? Math.max(0, parseInt(refAmtRaw) || 0) : null,
     };
+}
+function buildBundleNoteBody(row, index, bundleIndex) {
+    const refunded = row.querySelector('.ob-ref').checked;
+    const amtRaw = row.querySelector('.ob-amt').value.trim();
+    return {
+        index, bundle_index: bundleIndex, refunded,
+        purchase_source: row.querySelector('.ob-src').value.trim(),
+        memo: row.querySelector('.ob-memo').value.trim(),
+        refund_qty: refunded ? Math.max(1, parseInt(row.querySelector('.ob-qty').value) || 1) : null,
+        refund_amount: refunded && amtRaw !== '' ? Math.max(0, parseInt(amtRaw) || 0) : null,
+    };
+}
+
+async function saveEstimateItemNote(estimateId, index, btn) {
+    const tr = btn.closest('tr');
+    const body = buildItemNoteBody(tr, index);
     const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
     if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
     // 로컬 데이터에도 반영 — 재렌더 시 값·합계 유지
@@ -2163,7 +2179,7 @@ async function saveEstimateItemNote(estimateId, index, btn) {
     const item = row?.items.find(i => i.index === index);
     if (item) {
         item.amount = body.amount; item.purchase_source = body.purchase_source; item.memo = body.memo;
-        item.refunded = refunded; item.refund_amount = body.refund_amount || 0;
+        item.refunded = body.refunded; item.refund_amount = body.refund_amount || 0;
     }
     btn.textContent = '저장됨';
     setTimeout(() => {
@@ -2177,21 +2193,46 @@ async function saveEstimateItemNote(estimateId, index, btn) {
 // 세트 구성품 단위 저장 — 구매처/메모 + 환불 체크(해제 시 기록 초기화), 저장 후 서버 합산 반영 위해 재조회
 async function saveBundleRefund(estimateId, index, bundleIndex, btn) {
     const row = btn.closest('[data-brow]');
-    const refunded = row.querySelector('.ob-ref').checked;
-    const amtRaw = row.querySelector('.ob-amt').value.trim();
-    const body = {
-        index, bundle_index: bundleIndex, refunded,
-        purchase_source: row.querySelector('.ob-src').value.trim(),
-        memo: row.querySelector('.ob-memo').value.trim(),
-        refund_qty: refunded ? Math.max(1, parseInt(row.querySelector('.ob-qty').value) || 1) : null,
-        refund_amount: refunded && amtRaw !== '' ? Math.max(0, parseInt(amtRaw) || 0) : null,
-    };
+    const body = buildBundleNoteBody(row, index, bundleIndex);
     const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
     if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.message || '저장에 실패했습니다.'); return; }
     btn.textContent = '저장됨';
     // 서버 합산(항목 표시) 반영 위해 재조회하되, 다른 행에서 입력 중이던 값은 보존
     const snap = captureOrderEdits();
     delete snap.bundles[`${estimateId}:${index}:${bundleIndex}`]; // 방금 저장한 줄은 서버 값으로
+    await loadOrders();
+    restoreOrderEdits(snap);
+}
+// 카드(주문 1건) 단위 일괄 저장 — 항목·세트 구성품 입력값을 순서대로 저장.
+// 같은 견적서 스냅샷을 읽고-고쳐-쓰는 API라 동시 요청하면 서로 덮어쓰므로 반드시 순차 실행한다.
+async function saveAllOrderNotes(estimateId, btn) {
+    const rows = [...document.querySelectorAll(`#orderBody tr[data-oik^="${estimateId}:"]`)].filter(tr => tr.querySelector('.oi-amt'));
+    const brows = [...document.querySelectorAll(`#orderBody [data-brow^="${estimateId}:"]`)].filter(r => r.querySelector('.ob-src'));
+    const total = rows.length + brows.length;
+    if (!total || btn.disabled) return;
+    btn.disabled = true;
+    let done = 0; const failed = [];
+    const tick = () => { btn.textContent = `저장 중 ${done}/${total}`; };
+    tick();
+    for (const tr of rows) {
+        const index = parseInt(tr.dataset.oik.split(':')[1]);
+        const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`,
+            { method:'PATCH', headers:H, body: JSON.stringify(buildItemNoteBody(tr, index)) }).catch(() => null);
+        if (!res || !res.ok) failed.push(tr.children[1]?.textContent.trim() || `항목 ${index + 1}`);
+        done++; tick();
+    }
+    for (const r of brows) {
+        const [, iS, bS] = r.dataset.brow.split(':');
+        const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`,
+            { method:'PATCH', headers:H, body: JSON.stringify(buildBundleNoteBody(r, parseInt(iS), parseInt(bS))) }).catch(() => null);
+        if (!res || !res.ok) failed.push('세트 구성품 ' + (parseInt(bS) + 1));
+        done++; tick();
+    }
+    if (failed.length) alert(`일부 항목 저장에 실패했습니다 (${failed.length}건):\n${failed.join('\n')}`);
+    // 이 카드는 서버 반영값으로 갱신하고, 다른 카드에서 입력 중이던 값은 보존
+    const snap = captureOrderEdits();
+    Object.keys(snap.items).forEach(k => { if (k.startsWith(estimateId + ':')) delete snap.items[k]; });
+    Object.keys(snap.bundles).forEach(k => { if (k.startsWith(estimateId + ':')) delete snap.bundles[k]; });
     await loadOrders();
     restoreOrderEdits(snap);
 }

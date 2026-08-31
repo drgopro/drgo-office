@@ -157,6 +157,16 @@ class OfficeOrderTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_inventory_page_renders_bulk_save_for_order_card(): void
+    {
+        // 카드(주문 1건) 단위 일괄 저장 — 버튼과 순차 저장 함수, 공용 본문 빌더 렌더 확인
+        $this->actingAs($this->admin)->get('/inventory')->assertOk()
+            ->assertSee('saveAllOrderNotes(${o.id}, this)', false)
+            ->assertSee('async function saveAllOrderNotes', false)
+            ->assertSee('buildItemNoteBody', false)
+            ->assertSee('buildBundleNoteBody', false);
+    }
+
     public function test_order_page_requires_inventory_permission(): void
     {
         $guest = User::factory()->create(['role' => 'guest']);
