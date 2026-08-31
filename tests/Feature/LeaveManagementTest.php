@@ -117,6 +117,12 @@ class LeaveManagementTest extends TestCase
         // 권한 없는 member → 관리 페이지 접근 불가
         $this->actingAs($this->member)->get('/leave/manage')->assertForbidden();
 
+        // 인사 정보 — admin도 자동 통과 없음, master는 허용
+        $this->actingAs($this->admin)->get('/leave/manage')->assertForbidden();
+        $this->actingAs($this->admin)->patchJson("/api/leave/users/{$this->member->id}/hire-date", ['hire_date' => '2024-02-01'])->assertForbidden();
+        $master = User::factory()->create(['role' => 'master']);
+        $this->actingAs($master)->get('/leave/manage')->assertOk();
+
         // leave.manage 팀 권한 부여 → 접근 가능
         $team = Team::create(['name' => '경영지원', 'slug' => 'mgmt-support', 'permissions' => ['leave.manage']]);
         $staff = User::factory()->create(['role' => 'member', 'team_id' => $team->id]);

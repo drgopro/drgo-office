@@ -104,4 +104,14 @@ class User extends Authenticatable
 
         return $this->team && in_array($key, $this->team->permissions ?? []);
     }
+
+    /**
+     * 연차 관리 접근 — 인사 정보라 admin도 자동 통과하지 않는다.
+     * master 또는 팀 권한(leave.manage)이 있는 팀원만 가능.
+     */
+    public function canManageLeave(): bool
+    {
+        return $this->role === 'master'
+            || ($this->team && in_array('leave.manage', $this->team->permissions ?? []));
+    }
 }

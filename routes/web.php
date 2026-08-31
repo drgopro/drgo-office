@@ -135,9 +135,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/feedback-attachments/{attachment}/thumb', [FeedbackController::class, 'thumbAttachment'])->name('feedback-attachments.thumb');
     });
 
-    // 연차 — 내 연차(전 직원, guest 제외)는 컨트롤러에서 차단, 관리(경영지원팀)는 leave.manage 권한
+    // 연차 — 내 연차(전 직원, guest 제외)는 컨트롤러에서 차단.
+    // 관리는 master 또는 leave.manage 팀 권한만 — 인사 정보라 admin도 자동 통과하지 않음 (can: 게이트)
     Route::get('/leave', [LeaveController::class, 'index'])->name('leave.index');
-    Route::middleware('permission:leave.manage')->group(function () {
+    Route::middleware('can:leave.manage')->group(function () {
         Route::get('/leave/manage', [LeaveController::class, 'manage'])->name('leave.manage');
         Route::patch('/api/leave/users/{user}/hire-date', [LeaveController::class, 'setHireDate']);
         Route::put('/api/leave/users/{user}/grant', [LeaveController::class, 'setGrant']);

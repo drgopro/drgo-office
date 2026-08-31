@@ -7,9 +7,11 @@ use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RevenueEntry;
 use App\Models\Schedule;
+use App\Models\User;
 use App\Services\LeaveLedger;
 use App\Services\RevenueLedger;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -52,6 +54,9 @@ class AppServiceProvider extends ServiceProvider
                 RevenueLedger::onProjectStageChanged($p); // 완료 전환/해제 시 연동 견적 인식일 이동
             }
         });
+
+        // 연차 관리 게이트 — master 또는 leave.manage 팀 권한만 (admin 자동 통과 없음)
+        Gate::define('leave.manage', fn (User $u) => $u->canManageLeave());
 
         // ── 연차 사용 원장(leave_usages) 자동 동기화 — 휴가 일정의 '연차 차감' 체크 반영 ──
         Schedule::saved(function (Schedule $s) {

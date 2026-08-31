@@ -25,7 +25,7 @@ class LeaveController extends Controller
         return view('leave.index', [
             'year' => $year,
             'summary' => $this->summaryFor(Auth::user(), $year),
-            'canManage' => Auth::user()->hasPermission('leave.manage'),
+            'canManage' => Auth::user()->canManageLeave(),
         ]);
     }
 
