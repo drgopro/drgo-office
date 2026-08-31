@@ -77,7 +77,8 @@ class Client extends Model
 
     public function estimates()
     {
-        return $this->hasMany(Estimate::class)->orderByDesc('created_at');
+        // temp = 빌더에서 아직 한 번도 저장하지 않은 자리표시자 — 목록에서 제외
+        return $this->hasMany(Estimate::class)->where('status', '!=', 'temp')->orderByDesc('created_at');
     }
 
     public function rentalContracts()

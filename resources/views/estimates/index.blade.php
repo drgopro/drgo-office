@@ -227,8 +227,9 @@ async function loadEstimates() {
     }).join('');
 }
 
-async function createEstimate() {
-    const res = await fetch('/api/estimates', {method:'POST', headers:H});
+async function createEstimate(clientId) {
+    const cid = Number(clientId) || null; // 클릭 핸들러로 직접 연결되면 event 객체가 들어옴 — 숫자만 인정
+    const res = await fetch('/api/estimates', {method:'POST', headers:H, body: JSON.stringify(cid ? {client_id: cid} : {})});
     const est = await res.json();
     openEstimate(est.id);
     loadEstimates();
@@ -404,5 +405,14 @@ async function deletePreset(id) {
 }
 
 loadEstimates();
+
+// 의뢰자 상세 '+ 새 견적서' 딥링크 — ?client_id={id}로 진입하면 그 의뢰자로 연동된 견적서를 바로 생성해 빌더를 연다
+{
+    const qcid = Number(new URLSearchParams(location.search).get('client_id')) || null;
+    if (qcid) {
+        history.replaceState(null, '', location.pathname); // 새로고침 시 중복 생성 방지
+        createEstimate(qcid);
+    }
+}
 </script>
 @endpush

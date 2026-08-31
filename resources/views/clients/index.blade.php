@@ -525,6 +525,7 @@
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 // 팀 권한 — 편집 권한이 없으면 수정/추가/삭제 UI를 렌더하지 않음 (서버도 403으로 차단)
 const CAN_CLIENT_EDIT = @json(Auth::user()->hasPermission('clients.edit'));
+const CAN_EST_EDIT = @json(Auth::user()->hasPermission('estimates.edit'));
 const CAN_PROJECT_EDIT = @json(Auth::user()->hasPermission('projects.edit'));
 const CAN_DOC_EDIT = @json(Auth::user()->hasPermission('documents.edit'));
 // 프로젝트 태그 위젯(공용 CrmTagPicker) — 컨테이너만 렌더, 삽입 후 init
@@ -1278,6 +1279,9 @@ function renderClientContent(id) {
 
         <!-- 견적서 -->
         <div class="sub-panel" id="sub-estimates-${id}">
+            ${CAN_EST_EDIT ? `<div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                <button onclick="createEstimateForClient(${id})" style="padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">+ 새 견적서 (이 의뢰자 연동)</button>
+            </div>` : ''}
             <div id="estimate-list-${id}">
                 ${renderEstimateList(d.estimates||[], id)}
             </div>
@@ -1346,6 +1350,18 @@ function renderDocList(docs, clientId) {
 const EST_STATUS = {created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
 const EST_COLOR = {created:'var(--text-muted)',editing:'var(--accent)',completed:'var(--green)',paid:'var(--accent2)',hold:'var(--red)'};
 
+// 이 의뢰자로 연동된 새 견적서 생성 → 빌더 열기 (저장 후 상세를 다시 열면 목록에 표시)
+async function createEstimateForClient(clientId) {
+    const res = await fetch('/api/estimates', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify({ client_id: clientId }),
+    });
+    if (!res.ok) { alert('견적서 생성에 실패했습니다.'); return; }
+    const est = await res.json();
+    window.open(`/estimates/${est.id}/edit`, 'est_' + est.id, 'width=1200,height=800,scrollbars=yes,resizable=yes');
+}
+
 function renderEstimateList(estimates, clientId) {
     if (!estimates.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:13px;">등록된 견적서가 없습니다.</div>';
     return estimates.map(e => {
@@ -1356,7 +1372,7 @@ function renderEstimateList(estimates, clientId) {
         return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px;">
             <div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:12px; color:var(--text-muted);">#${e.id}</span>
+                    <span style="font-size:12px; color:var(--text-muted);">#${e.no ?? e.id}</span>
                     <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:color-mix(in srgb, ${statusColor} 20%, transparent); color:${statusColor}; font-weight:600;">${statusLabel}</span>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">

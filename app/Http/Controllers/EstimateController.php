@@ -107,10 +107,18 @@ class EstimateController extends Controller
         return response()->json(['public_url' => $estimate->publicUrl()]);
     }
 
-    public function store()
+    public function store(Request $request)
     {
+        // 의뢰자 상세 '+ 새 견적서' — client_id로 진입 시 의뢰자 연동·이름을 미리 채운다
+        $validated = $request->validate(['client_id' => 'nullable|exists:clients,id']);
+        $client = ! empty($validated['client_id']) ? Client::find($validated['client_id']) : null;
+
         $estimate = Estimate::create([
             'status' => 'temp',
+            'client_id' => $client?->id,
+            'client_name' => $client?->name,
+            'client_nickname' => $client?->nickname,
+            'client_phone' => $client?->phone,
             'product_items' => [],
             'service_items' => [],
             'product_total' => 0,

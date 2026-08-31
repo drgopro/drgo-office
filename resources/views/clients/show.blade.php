@@ -404,7 +404,7 @@
                     <div class="estimate-item">
                         <div class="estimate-info">
                             <div style="display:flex;align-items:center;gap:8px;">
-                                <span class="estimate-id">#{{ $estimate->id }}</span>
+                                <span class="estimate-id">#{{ $estimate->display_no }}</span>
                                 <span class="estimate-status est-{{ $estimate->status }}">
                                     {{ ['created'=>'작성중','editing'=>'수정중','completed'=>'완료','paid'=>'결제완료','hold'=>'보류'][$estimate->status] ?? $estimate->status }}
                                 </span>

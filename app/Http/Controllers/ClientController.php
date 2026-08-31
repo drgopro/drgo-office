@@ -264,6 +264,7 @@ class ClientController extends Controller
             ]),
             'estimates' => $client->estimates->map(fn ($e) => [
                 'id' => $e->id,
+                'no' => $e->display_no,
                 'status' => $e->status,
                 'total_amount' => $e->total_amount,
                 'created_at' => $e->created_at->format('Y.m.d'),
