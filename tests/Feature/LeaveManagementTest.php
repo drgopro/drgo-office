@@ -121,7 +121,9 @@ class LeaveManagementTest extends TestCase
         $this->actingAs($this->admin)->get('/leave/manage')->assertForbidden();
         $this->actingAs($this->admin)->patchJson("/api/leave/users/{$this->member->id}/hire-date", ['hire_date' => '2024-02-01'])->assertForbidden();
         $master = User::factory()->create(['role' => 'master']);
-        $this->actingAs($master)->get('/leave/manage')->assertOk();
+        $this->actingAs($master)->get('/leave/manage')->assertOk()
+            ->assertSee('lvHireChanged', false) // 입사일 입력 즉시 제안값 계산·자동 채움
+            ->assertSee('function lvSuggest', false);
 
         // leave.manage 팀 권한 부여 → 접근 가능
         $team = Team::create(['name' => '경영지원', 'slug' => 'mgmt-support', 'permissions' => ['leave.manage']]);

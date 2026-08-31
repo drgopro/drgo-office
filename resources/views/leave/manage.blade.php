@@ -33,6 +33,43 @@ const lvExpanded = new Set();
 function lvEsc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function lvFmtDays(n){ return (Math.round(n * 10) / 10).toString().replace(/\.0$/, ''); }
 
+// 법정 연차 제안 — 서버(LeaveLedger::suggestGrant)와 같은 규칙을 입력 즉시 계산
+function lvSuggest(hireStr){
+    if(!hireStr) return null;
+    const hire = new Date(hireStr + 'T00:00:00');
+    if (isNaN(hire) || hire.getFullYear() > LV_YEAR) return null;
+    if (hire.getFullYear() === LV_YEAR) {
+        const end = new Date(LV_YEAR, 11, 31);
+        let m = (end.getFullYear() - hire.getFullYear()) * 12 + (end.getMonth() - hire.getMonth());
+        if (end.getDate() < hire.getDate()) m--;
+        m = Math.max(0, Math.min(11, m));
+        return { days: m, label: `입사 1년 미만 — 월 1일 발생 (올해 최대 ${m}일)` };
+    }
+    const sy = LV_YEAR - hire.getFullYear();
+    const days = Math.min(25, 15 + Math.floor(Math.max(0, sy - 1) / 2));
+    return { days, label: `근속 ${sy}년차 — 법정 ${days}일` };
+}
+const __lvSug = {};
+function lvSugHtml(s){ return s ? `<span style="color:var(--accent);">제안: ${lvFmtDays(s.days)}일 (${lvEsc(s.label)})</span>` : ''; }
+// 입사일 입력 즉시 — 제안 라벨 갱신 + 부여 칸이 비어 있으면 제안값 자동 채움
+function lvHireChanged(id){
+    const s = lvSuggest(document.getElementById('lvHire-' + id).value);
+    __lvSug[id] = s;
+    const wrap = document.getElementById('lvSugWrap-' + id);
+    if (wrap) wrap.innerHTML = lvSugHtml(s);
+    const btn = document.getElementById('lvSugBtn-' + id);
+    if (btn) btn.style.display = s ? '' : 'none';
+    const grant = document.getElementById('lvGrant-' + id);
+    if (grant) {
+        grant.placeholder = s ? lvFmtDays(s.days) : '';
+        if (s && grant.value.trim() === '') grant.value = s.days;
+    }
+}
+function lvApplySug(id){
+    const s = __lvSug[id];
+    if (s) document.getElementById('lvGrant-' + id).value = s.days;
+}
+
 function lvRender(){
     document.getElementById('lvBody').innerHTML = LV_ROWS.map(r => {
         const open = lvExpanded.has(r.user_id);
@@ -52,14 +89,16 @@ function lvRender(){
 }
 function lvDetail(r){
     const inp = 'padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:12.5px;';
+    __lvSug[r.user_id] = r.suggest || lvSuggest(r.hire_date);
+    const s = __lvSug[r.user_id];
     return `<div style="border-top:1px solid var(--border); padding:14px 16px; display:flex; flex-direction:column; gap:14px;" onclick="event.stopPropagation()">
         <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
             <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">입사일
-                <input type="date" id="lvHire-${r.user_id}" value="${r.hire_date || ''}" style="${inp}"></label>
-            <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">${LV_YEAR}년 부여 일수 ${r.suggest ? `<span style="color:var(--accent);">제안: ${lvFmtDays(r.suggest.days)}일 (${lvEsc(r.suggest.label)})</span>` : ''}
+                <input type="date" id="lvHire-${r.user_id}" value="${r.hire_date || ''}" style="${inp}" onchange="lvHireChanged(${r.user_id})" oninput="lvHireChanged(${r.user_id})"></label>
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">${LV_YEAR}년 부여 일수 <span id="lvSugWrap-${r.user_id}">${lvSugHtml(s)}</span>
                 <div style="display:flex; gap:6px;">
-                    <input type="number" step="0.5" min="0" id="lvGrant-${r.user_id}" value="${r.granted ?? ''}" placeholder="${r.suggest ? lvFmtDays(r.suggest.days) : ''}" style="${inp} width:90px;">
-                    ${r.suggest ? `<button onclick="document.getElementById('lvGrant-${r.user_id}').value=${r.suggest.days}" style="${inp} cursor:pointer; white-space:nowrap;">제안값</button>` : ''}
+                    <input type="number" step="0.5" min="0" id="lvGrant-${r.user_id}" value="${r.granted ?? ''}" placeholder="${s ? lvFmtDays(s.days) : ''}" style="${inp} width:90px;">
+                    <button id="lvSugBtn-${r.user_id}" onclick="lvApplySug(${r.user_id})" style="${inp} cursor:pointer; white-space:nowrap; ${s ? '' : 'display:none;'}">제안값</button>
                 </div></label>
             <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted); flex:1; min-width:140px;">메모
                 <input id="lvGrantNote-${r.user_id}" value="${lvEsc(r.grant_note || '')}" maxlength="300" placeholder="이월 2일 포함 등" style="${inp}"></label>
