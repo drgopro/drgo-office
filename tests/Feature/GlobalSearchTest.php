@@ -31,6 +31,13 @@ class GlobalSearchTest extends TestCase
         $keys = collect($res->json('sections'))->pluck('key')->all();
         $this->assertEqualsCanonicalizing(['clients', 'projects', 'schedules', 'wiki', 'estimates'], $keys);
         $this->assertSame('감자TV', collect($res->json('sections'))->firstWhere('key', 'clients')['items'][0]['label']);
+
+        // 일정 결과는 캘린더 딥링크 — 해당 날짜로 이동해 일정 요약을 자동으로 연다
+        $schedule = Schedule::where('title', '감자 방문 세팅')->first();
+        $this->assertSame(
+            "/calendar?date=2026-07-20&focus={$schedule->id}",
+            collect($res->json('sections'))->firstWhere('key', 'schedules')['items'][0]['url'],
+        );
     }
 
     public function test_private_schedules_of_others_are_hidden(): void

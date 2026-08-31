@@ -168,10 +168,20 @@ let expandedDays = new Set();
 // ── 초기화 ──────────────────────────────────────────────────────
 function init() {
     const now = new Date();
-    currentYear = now.getFullYear();
-    currentMonth = now.getMonth();
-    currentWeekStart = getWeekStart(now);
-    currentDay = new Date(now); currentDay.setHours(0,0,0,0);
+    // 전체 검색 등에서 넘어온 딥링크 — ?date=YYYY-MM-DD 로 해당 날짜로 이동, ?focus={id} 로 일정 요약 열기
+    const qs = new URLSearchParams(location.search);
+    const qd = qs.get('date');
+    let base = now;
+    if (qd && /^\d{4}-\d{2}-\d{2}$/.test(qd)) {
+        const d = new Date(qd + 'T00:00:00');
+        if (!isNaN(d)) { base = d; multiWeekStart = getWeekStart(d); } // 다중 주 모드도 대상 주에 앵커
+    }
+    window.__calFocusId = parseInt(qs.get('focus'), 10) || null;
+    if (qd || qs.get('focus')) history.replaceState(null, '', location.pathname); // 새로고침 시 재이동 방지
+    currentYear = base.getFullYear();
+    currentMonth = base.getMonth();
+    currentWeekStart = getWeekStart(base);
+    currentDay = new Date(base); currentDay.setHours(0,0,0,0);
     loadAssignees();
     applyCalFz(); // 저장된 글자 크기 적용(라벨 갱신)
     // 모바일: ⋯ 메뉴 항목을 필터 패널(☰) 맨 하단 '도구' 섹션으로 이동

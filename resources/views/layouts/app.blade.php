@@ -1352,6 +1352,9 @@ function gsRender(data){
 function gsGo(nav,url,clientId){
     closeGlobalSearch();
     if(nav==='clients'&&clientId&&window.drgoTabs?.openClientDetail){ drgoTabs.openClientDetail(clientId); return; }
+    // 딥링크(focus)는 같은 항목 재클릭에도 다시 이동하도록 URL을 매번 다르게 만든다
+    // (탭 시스템이 동일 URL이면 활성화만 하고 재로드하지 않기 때문)
+    if(url&&url.includes('focus=')) url+='&_='+Date.now();
     if(window.drgoTabs?.openNav){ drgoTabs.openNav(nav,url); return; }
     location.href=url;
 }

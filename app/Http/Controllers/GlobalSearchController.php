@@ -90,7 +90,8 @@ class GlobalSearchController extends Controller
                 'label' => $s->title ?: '(제목 없음)',
                 'sub' => trim(($s->start_date?->format('Y.m.d') ?? '').' '.($s->client_name ?? '')),
                 'nav' => 'calendar',
-                'url' => '/calendar',
+                // 딥링크 — 캘린더가 해당 날짜로 이동해 일정 요약을 자동으로 연다
+                'url' => '/calendar?date='.($s->start_date?->format('Y-m-d') ?? '').'&focus='.$s->id,
             ]);
         if ($items->isNotEmpty()) {
             $sections[] = ['key' => 'schedules', 'label' => '일정', 'items' => $items];

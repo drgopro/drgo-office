@@ -51,6 +51,13 @@ async function loadEvents() {
         ghostEvents=[];
     }
     renderView();
+    // 딥링크(?focus={id})로 지정된 일정 — 첫 로드 완료 후 한 번만 요약 열기
+    if(window.__calFocusId){
+        const fid=window.__calFocusId; window.__calFocusId=null;
+        const target=events.find(e=>e.id===fid);
+        if(target) openDetailModal(target);
+        else if(typeof showCalToast==='function') showCalToast('해당 일정을 찾을 수 없습니다 — 삭제되었거나 표시 범위 밖입니다');
+    }
 }
 
 async function loadAssignees() {
