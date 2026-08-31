@@ -34,7 +34,7 @@ function lvEsc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;',
 function lvFmtDays(n){ return (Math.round(n * 10) / 10).toString().replace(/\.0$/, ''); }
 
 // 법정 연차 제안 — 서버(LeaveLedger::suggestGrant)와 같은 규칙을 입력 즉시 계산
-function lvSuggest(hireStr){
+function lvSuggest(hireStr, fiscal){
     if(!hireStr) return null;
     const hire = new Date(hireStr + 'T00:00:00');
     if (isNaN(hire) || hire.getFullYear() > LV_YEAR) return null;
@@ -45,15 +45,21 @@ function lvSuggest(hireStr){
         m = Math.max(0, Math.min(11, m));
         return { days: m, label: `입사 1년 미만 — 월 1일 발생 (올해 최대 ${m}일)` };
     }
+    if (fiscal && hire.getFullYear() === LV_YEAR - 1) {
+        // 회계연도 — 입사 이듬해 1/1 비례연차 (0.5 단위)
+        const worked = Math.floor((new Date(hire.getFullYear(), 11, 31) - hire) / 86400000) + 1;
+        const days = Math.round(15 * worked / 365 * 2) / 2;
+        return { days, label: `회계연도 비례연차 — 전년 재직 ${worked}일 기준 ${days}일` };
+    }
     const sy = LV_YEAR - hire.getFullYear();
     const days = Math.min(25, 15 + Math.floor(Math.max(0, sy - 1) / 2));
-    return { days, label: `근속 ${sy}년차 — 법정 ${days}일` };
+    return { days, label: `${fiscal ? '회계연도 기준 근속' : '근속'} ${sy}년차 — 법정 ${days}일` };
 }
 const __lvSug = {};
 function lvSugHtml(s){ return s ? `<span style="color:var(--accent);">제안: ${lvFmtDays(s.days)}일 (${lvEsc(s.label)})</span>` : ''; }
 // 입사일 입력 즉시 — 제안 라벨 갱신 + 부여 칸이 비어 있으면 제안값 자동 채움
 function lvHireChanged(id){
-    const s = lvSuggest(document.getElementById('lvHire-' + id).value);
+    const s = lvSuggest(document.getElementById('lvHire-' + id).value, document.getElementById('lvFiscal-' + id)?.checked);
     __lvSug[id] = s;
     const wrap = document.getElementById('lvSugWrap-' + id);
     if (wrap) wrap.innerHTML = lvSugHtml(s);
@@ -89,12 +95,15 @@ function lvRender(){
 }
 function lvDetail(r){
     const inp = 'padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:12.5px;';
-    __lvSug[r.user_id] = r.suggest || lvSuggest(r.hire_date);
+    __lvSug[r.user_id] = r.suggest || lvSuggest(r.hire_date, r.fiscal_leave);
     const s = __lvSug[r.user_id];
     return `<div style="border-top:1px solid var(--border); padding:14px 16px; display:flex; flex-direction:column; gap:14px;" onclick="event.stopPropagation()">
         <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
             <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">입사일
                 <input type="date" id="lvHire-${r.user_id}" value="${r.hire_date || ''}" style="${inp}" onchange="lvHireChanged(${r.user_id})" oninput="lvHireChanged(${r.user_id})"></label>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text); cursor:pointer; padding-bottom:8px;" title="체크하면 매년 1월 1일 기준으로 연차를 기산합니다 (입사 이듬해는 비례연차 제안)">
+                <input type="checkbox" id="lvFiscal-${r.user_id}" ${r.fiscal_leave ? 'checked' : ''} onchange="lvHireChanged(${r.user_id})" style="width:14px; height:14px; accent-color:var(--accent); cursor:pointer;">
+                회계연도(1/1) 기준</label>
             <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">${LV_YEAR}년 부여 일수 <span id="lvSugWrap-${r.user_id}">${lvSugHtml(s)}</span>
                 <div style="display:flex; gap:6px;">
                     <input type="number" step="0.5" min="0" id="lvGrant-${r.user_id}" value="${r.granted ?? ''}" placeholder="${s ? lvFmtDays(s.days) : ''}" style="${inp} width:90px;">
@@ -132,7 +141,7 @@ async function lvSave(id, btn){
     const hire = document.getElementById('lvHire-' + id).value;
     const days = document.getElementById('lvGrant-' + id).value;
     const note = document.getElementById('lvGrantNote-' + id).value.trim();
-    const r1 = await fetch(`/api/leave/users/${id}/hire-date`, { method: 'PATCH', headers: LV_H, body: JSON.stringify({ hire_date: hire || null }) });
+    const r1 = await fetch(`/api/leave/users/${id}/hire-date`, { method: 'PATCH', headers: LV_H, body: JSON.stringify({ hire_date: hire || null, fiscal_leave: !!document.getElementById('lvFiscal-' + id)?.checked }) });
     let ok = r1.ok;
     if (days !== '') {
         const r2 = await fetch(`/api/leave/users/${id}/grant`, { method: 'PUT', headers: LV_H, body: JSON.stringify({ year: LV_YEAR, days: parseFloat(days), note }) });

@@ -64,12 +64,15 @@ class LeaveLedger
     }
 
     /**
-     * 법정 연차 자동 제안 — 입사일 기준 해당 연도 부여 일수.
-     * 확정이 아니라 제안값이다 (회사 정책·회계연도 기준과 다를 수 있음).
+     * 법정 연차 자동 제안 — 입사일 기준(기본) 또는 회계연도(1/1) 기준.
+     * 확정이 아니라 제안값이다 (회사 정책과 다를 수 있음).
+     *
+     * 회계연도 기준: 입사 이듬해 1/1에 비례연차(15 × 전년 재직일/365, 0.5 단위),
+     * 그다음 해부터 15일 + 2년마다 1일 (기산일 1/1).
      *
      * @return array{days: float, label: string}|null
      */
-    public static function suggestGrant(?string $hireDate, int $year): ?array
+    public static function suggestGrant(?string $hireDate, int $year, bool $fiscal = false): ?array
     {
         if (! $hireDate) {
             return null;
@@ -79,15 +82,23 @@ class LeaveLedger
             return null; // 아직 입사 전
         }
         if ($hire->year === $year) {
-            // 입사 연도 — 1개월 만근마다 1일 (해당 연도 내 최대치 제안)
+            // 입사 연도 — 1개월 만근마다 1일 (해당 연도 내 최대치 제안, 기산 방식과 무관)
             $months = min(11, (int) floor($hire->diffInMonths(Carbon::create($year, 12, 31))));
 
             return ['days' => (float) $months, 'label' => "입사 1년 미만 — 월 1일 발생 (올해 최대 {$months}일)"];
         }
-        // 근속 만 N년차 (해당 연도 입사기념일 기준) — 15일 + 2년마다 1일, 최대 25일
+        if ($fiscal && $hire->year === $year - 1) {
+            // 회계연도 — 입사 이듬해 1/1 비례연차 (0.5 단위 반올림)
+            $worked = (int) floor($hire->diffInDays(Carbon::create($hire->year, 12, 31))) + 1;
+            $days = round(15 * $worked / 365 * 2) / 2;
+
+            return ['days' => $days, 'label' => "회계연도 비례연차 — 전년 재직 {$worked}일 기준 {$days}일"];
+        }
+        // 근속 N년차 — 15일 + 2년마다 1일, 최대 25일 (기산일: 입사기념일 또는 1/1)
         $serviceYears = $year - $hire->year;
         $days = min(25, 15 + intdiv(max(0, $serviceYears - 1), 2));
+        $base = $fiscal ? '회계연도 기준 근속' : '근속';
 
-        return ['days' => (float) $days, 'label' => "근속 {$serviceYears}년차 — 법정 {$days}일"];
+        return ['days' => (float) $days, 'label' => "{$base} {$serviceYears}년차 — 법정 {$days}일"];
     }
 }

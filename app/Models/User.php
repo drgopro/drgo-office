@@ -22,6 +22,7 @@ class User extends Authenticatable
         'role',
         'team_id',
         'hire_date',
+        'fiscal_leave',
         'is_active',
     ];
 
@@ -36,6 +37,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'hire_date' => 'date:Y-m-d',
+            'fiscal_leave' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

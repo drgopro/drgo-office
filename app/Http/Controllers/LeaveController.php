@@ -42,11 +42,17 @@ class LeaveController extends Controller
         return view('leave.manage', ['year' => $year, 'rows' => $rows]);
     }
 
-    /** 입사일 저장 */
+    /** 입사일·연차 기산 방식 저장 */
     public function setHireDate(Request $request, User $user): JsonResponse
     {
-        $validated = $request->validate(['hire_date' => 'nullable|date']);
-        $user->forceFill(['hire_date' => $validated['hire_date'] ?? null])->save();
+        $validated = $request->validate([
+            'hire_date' => 'nullable|date',
+            'fiscal_leave' => 'nullable|boolean', // 체크 시 회계연도(1/1) 기준
+        ]);
+        $user->forceFill([
+            'hire_date' => $validated['hire_date'] ?? null,
+            ...($request->has('fiscal_leave') ? ['fiscal_leave' => $request->boolean('fiscal_leave')] : []),
+        ])->save();
 
         return response()->json(['message' => '저장되었습니다.']);
     }
@@ -118,11 +124,12 @@ class LeaveController extends Controller
             'user_id' => $user->id,
             'name' => $user->display_name,
             'hire_date' => $user->hire_date?->format('Y-m-d'),
+            'fiscal_leave' => (bool) $user->fiscal_leave,
             'granted' => $granted,
             'grant_note' => $grant?->note,
             'used' => $used,
             'remaining' => $granted !== null ? round($granted - $used, 1) : null,
-            'suggest' => LeaveLedger::suggestGrant($user->hire_date?->format('Y-m-d'), $year),
+            'suggest' => LeaveLedger::suggestGrant($user->hire_date?->format('Y-m-d'), $year, (bool) $user->fiscal_leave),
             'usages' => $usages->map(fn (LeaveUsage $u) => [
                 'id' => $u->id,
                 'used_on' => $u->used_on->format('Y-m-d'),

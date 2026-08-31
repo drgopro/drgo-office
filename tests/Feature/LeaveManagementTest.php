@@ -98,6 +98,15 @@ class LeaveManagementTest extends TestCase
         $this->assertSame(16.0, LeaveLedger::suggestGrant('2023-05-10', 2026)['days']); // 3년차 = 15+1
         $this->assertSame(25.0, LeaveLedger::suggestGrant('2000-01-01', 2026)['days']); // 상한
         $this->assertSame(4.0, LeaveLedger::suggestGrant('2026-08-15', 2026)['days']);  // 입사 연도 — 월 발생
+
+        // 회계연도(1/1) 기준 — 입사 이듬해는 비례연차, 이후는 1/1 기산 근속
+        $prorated = LeaveLedger::suggestGrant('2025-07-01', 2026, true);
+        $this->assertSame(7.5, $prorated['days']); // 전년 재직 184일 → 15×184/365 ≈ 7.56 → 7.5
+        $this->assertStringContainsString('비례연차', $prorated['label']);
+        $this->assertSame(16.0, LeaveLedger::suggestGrant('2023-05-10', 2026, true)['days']);
+        $this->assertStringContainsString('회계연도', LeaveLedger::suggestGrant('2023-05-10', 2026, true)['label']);
+        // 미체크 시 이듬해는 기존 근속 계산
+        $this->assertSame(15.0, LeaveLedger::suggestGrant('2025-07-01', 2026)['days']);
     }
 
     public function test_my_leave_page_and_guest_blocked(): void
@@ -130,9 +139,12 @@ class LeaveManagementTest extends TestCase
         $staff = User::factory()->create(['role' => 'member', 'team_id' => $team->id]);
         $this->actingAs($staff)->get('/leave/manage')->assertOk();
 
-        // 입사일/부여/수동 기록 API
-        $this->actingAs($staff)->patchJson("/api/leave/users/{$this->member->id}/hire-date", ['hire_date' => '2024-02-01'])->assertOk();
+        // 입사일/기산 방식/부여/수동 기록 API
+        $this->actingAs($staff)->patchJson("/api/leave/users/{$this->member->id}/hire-date", ['hire_date' => '2024-02-01', 'fiscal_leave' => true])->assertOk();
         $this->assertSame('2024-02-01', $this->member->fresh()->hire_date->format('Y-m-d'));
+        $this->assertTrue($this->member->fresh()->fiscal_leave);
+        $this->actingAs($staff)->patchJson("/api/leave/users/{$this->member->id}/hire-date", ['hire_date' => '2024-02-01', 'fiscal_leave' => false])->assertOk();
+        $this->assertFalse($this->member->fresh()->fiscal_leave);
 
         $this->actingAs($staff)->putJson("/api/leave/users/{$this->member->id}/grant", ['year' => 2026, 'days' => 15.5, 'note' => '이월 0.5 포함'])->assertOk();
         $this->assertSame(15.5, (float) LeaveGrant::where('user_id', $this->member->id)->where('year', 2026)->first()->days);
