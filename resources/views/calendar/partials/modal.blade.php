@@ -51,6 +51,21 @@
             {{-- 2a 리디자인: 좌측 폼 컬럼 --}}
             <div class="m-main">
 
+            {{-- 연차 차감 (휴가/개인 전용, 폼 최상단) — 담당자 기준 leave_usages 자동 기록, 토/일 제외 --}}
+            <div class="field-section" id="leaveDeductRow" style="display:none;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;user-select:none;" title="체크하면 담당자의 연차에서 자동 차감됩니다 (기간 내 토/일 제외)">
+                        <input type="checkbox" id="leaveDeductChk" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" onchange="document.getElementById('leaveDeductType').style.display=this.checked?'':'none'">
+                        🌴 연차 차감
+                    </label>
+                    <select id="leaveDeductType" class="notif-select" style="display:none; width:auto;">
+                        <option value="full">연차 1일</option>
+                        <option value="half">반차 0.5일</option>
+                    </select>
+                    <span style="font-size:11px;color:var(--text-muted);">담당자 기준 · 토/일 제외 · 내 연차 페이지에 기록</span>
+                </div>
+            </div>
+
             {{-- 미팅/내방 옵션 · 사내업무 장소 (카테고리별 선택지) --}}
             <div class="field-section" id="visitOptsSection" style="display:none;">
                 <div class="field-group">
@@ -142,21 +157,6 @@
                     <input class="dt-input" type="date" id="goldEndDate" style="flex:2;min-width:0;">
                     <input type="hidden" id="goldEndTime" value="14:00">
                     <div class="time-picker-trigger dt-input" id="goldEndTimeTrigger" onclick="openTimePicker(this,'goldEndTime')" style="flex:1;min-width:0;">14:00</div>
-                </div>
-            </div>
-
-            {{-- 연차 차감 (휴가/개인 전용) — 담당자 기준 leave_usages 자동 기록, 토/일 제외 --}}
-            <div class="field-section" id="leaveDeductRow" style="display:none;">
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;" title="체크하면 담당자의 연차에서 자동 차감됩니다 (기간 내 토/일 제외)">
-                        <input type="checkbox" id="leaveDeductChk" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" onchange="document.getElementById('leaveDeductType').style.display=this.checked?'':'none'">
-                        🌴 연차 차감
-                    </label>
-                    <select id="leaveDeductType" class="notif-select" style="display:none; width:auto;">
-                        <option value="full">연차 1일</option>
-                        <option value="half">반차 0.5일</option>
-                    </select>
-                    <span style="font-size:11px;color:var(--text-muted);">담당자 기준 · 토/일 제외 · 내 연차 페이지에 기록</span>
                 </div>
             </div>
 

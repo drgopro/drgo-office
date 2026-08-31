@@ -356,6 +356,9 @@ document.getElementById('projectSelect')?.addEventListener('change',()=>{
     dt.insertBefore(heading, dt.firstChild);
     const colorRow=document.getElementById('colorRow');
     if(colorRow){ colorRow.style.marginBottom='2px'; dt.insertBefore(colorRow, heading.nextSibling); }
+    // 연차 차감(휴가/개인 전용)은 카테고리 칩 바로 아래 — 휴가/개인 선택 시 최상단에 보이도록
+    const leaveRow=document.getElementById('leaveDeductRow');
+    if(leaveRow&&colorRow) dt.insertBefore(leaveRow, colorRow.nextSibling);
     const nr=document.getElementById('notifRepeatSection');
     if(nr){ [...nr.children].forEach(ch=>dt.appendChild(ch)); nr.remove(); }
     // 02 의뢰자 정보 카드(gold 첫 카드)를 검색 카드 뒤로 — gold-only 클래스로 표시 토글 유지
