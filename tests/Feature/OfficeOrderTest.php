@@ -157,6 +157,39 @@ class OfficeOrderTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_ordered_at_recorded_on_save_and_shown_in_order_list(): void
+    {
+        // 주문완료 체크로 저장 → ordered_at 기록 (주문완료 처리 시각)
+        $estimate = $this->makeOrderedEstimate();
+        $items = $estimate->product_items;
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $items, 'service_items' => [],
+        ])->assertOk();
+        $saved = $estimate->fresh()->product_items;
+        $this->assertNotEmpty($saved[0]['ordered_at']);
+        $this->assertArrayNotHasKey('ordered_at', $saved[1]); // 주문 전 항목은 없음
+        $firstStamp = $saved[0]['ordered_at'];
+
+        // 재저장해도 최초 처리 시각 유지 (멱등)
+        $this->travel(5)->minutes();
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $saved, 'service_items' => [],
+        ])->assertOk();
+        $this->assertSame($firstStamp, $estimate->fresh()->product_items[0]['ordered_at']);
+
+        // 주문 내역 리스트 — 견적 수정일 대신 쓸 ordered_at 노출
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()
+            ->json()[0];
+        $this->assertSame($firstStamp, $row['ordered_at']);
+
+        // 주문완료 해제 → 기록 제거
+        $saved[0]['ordered'] = false;
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $saved, 'service_items' => [],
+        ])->assertOk();
+        $this->assertArrayNotHasKey('ordered_at', $estimate->fresh()->product_items[0]);
+    }
+
     public function test_inventory_page_renders_bulk_save_for_order_card(): void
     {
         // 카드(주문 1건) 단위 일괄 저장 — 버튼과 순차 저장 함수, 공용 본문 빌더 렌더 확인

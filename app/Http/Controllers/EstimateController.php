@@ -330,6 +330,7 @@ class EstimateController extends Controller
             'product_items.*.original_price' => 'nullable|numeric|min:0', // 특가/할인 전 정가 — 출력물 취소선 표시
             'product_items.*.discount_rate' => 'nullable|numeric|min:0|max:100', // 할인율 % (금액 직접 입력이면 비움)
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
+            'product_items.*.ordered_at' => 'nullable|string|max:20', // 주문완료 처리 시각 (서버 기록 에코)
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처
             'product_items.*.order_memo' => 'nullable|string|max:500', // 주문 내역의 메모
             'product_items.*.purchase_amount' => 'nullable|numeric|min:0', // 주문 내역의 구매 금액
@@ -346,6 +347,7 @@ class EstimateController extends Controller
             'product_items.*.bundle_items.*.refund_qty' => 'nullable|integer|min:0', // 구성품 부분환불 기록
             'product_items.*.bundle_items.*.refund_amount' => 'nullable|numeric|min:0',
             'product_items.*.bundle_items.*.ordered' => 'nullable|boolean', // 구성품 개별 주문완료
+            'product_items.*.bundle_items.*.ordered_at' => 'nullable|string|max:20', // 구성품 주문완료 시각 (서버 기록 에코)
             'product_items.*.bundle_items.*.source' => 'nullable|string|max:100', // 구성품 구매처 (직접발송='사무실 발송')
             'product_items.*.bundle_items.*.memo' => 'nullable|string|max:500', // 구성품별 주문 메모
             'service_items' => 'nullable|array|max:100',
@@ -382,6 +384,29 @@ class EstimateController extends Controller
             $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
             $oldItemsForStock = $estimate->product_items; // 직접발송 재고 연동 — 저장 전 스냅샷
+
+            // 주문완료 처리 시각 — ordered 체크가 켜질 때 ordered_at 기록, 해제 시 제거 (주문 내역 표시용)
+            if (array_key_exists('product_items', $validated) && is_array($validated['product_items'])) {
+                $stamp = now()->format('Y-m-d H:i');
+                foreach ($validated['product_items'] as &$pi) {
+                    if (! empty($pi['ordered'])) {
+                        $pi['ordered_at'] = $pi['ordered_at'] ?? $stamp;
+                    } else {
+                        unset($pi['ordered_at']);
+                    }
+                    if (is_array($pi['bundle_items'] ?? null)) {
+                        foreach ($pi['bundle_items'] as &$bi) {
+                            if (! empty($bi['ordered'])) {
+                                $bi['ordered_at'] = $bi['ordered_at'] ?? $stamp;
+                            } else {
+                                unset($bi['ordered_at']);
+                            }
+                        }
+                        unset($bi);
+                    }
+                }
+                unset($pi);
+            }
 
             $estimate->update([
                 ...$validated,

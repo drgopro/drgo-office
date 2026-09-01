@@ -73,6 +73,7 @@ class OfficeOrderController extends Controller
                         'purchase_source' => $i['purchase_source'] ?? '',
                         'memo' => $i['order_memo'] ?? '',
                         'ordered' => ! empty($i['ordered']),
+                        'ordered_at' => $i['ordered_at'] ?? null,
                         // 환불/결제취소 기록 — 수동 체크 + 프로젝트 환불 연동 공용
                         'refunded' => ! empty($i['refunded']),
                         'refund_amount' => (int) ($i['refund_amount'] ?? 0),
@@ -83,6 +84,7 @@ class OfficeOrderController extends Controller
                             'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
                             'price' => (int) ($b['price'] ?? 0), // 구성품 단가 — 부분환불 계산용 참고치
                             'ordered' => ! empty($b['ordered']) || ! empty($i['ordered']), // 세트 전체 주문완료 포함
+                            'ordered_at' => $b['ordered_at'] ?? null,
                             'source' => $b['source'] ?? '',
                             'memo' => $b['memo'] ?? '',
                             'refund_qty' => (int) ($b['refund_qty'] ?? 0), // 구성품 부분환불 기록
@@ -102,6 +104,10 @@ class OfficeOrderController extends Controller
                     'delivered_at' => $s->delivered_at?->format('m/d H:i'),
                 ])->values(),
                 'updated_at' => $e->updated_at->format('Y-m-d H:i'),
+                // 주문완료 처리 시각 — 항목/구성품 중 가장 최근 ordered_at (견적 수정일 대신 표시)
+                'ordered_at' => collect($e->product_items ?? [])
+                    ->flatMap(fn ($i) => [$i['ordered_at'] ?? null, ...collect($i['bundle_items'] ?? [])->pluck('ordered_at')])
+                    ->filter()->max(),
             ])
             ->values();
 

@@ -2006,7 +2006,7 @@ function renderOrders() {
             <td><span class="grp-arrow">${open ? '▾' : '▸'}</span><b>${_esc(o.title)}</b></td>
             <td class="text-muted">${(o.items||[]).length}개 품목${orderTotal > 0 ? ` · <b style="color:var(--text);">${fmt(orderTotal)}원</b>` : ''}</td>
             <td class="text-muted">${_esc(who)}</td>
-            <td class="text-muted">${o.type === 'manual' && o.order_date ? `주문일 ${o.order_date}` : o.updated_at}</td>
+            <td class="text-muted">${o.type === 'manual' && o.order_date ? `주문일 ${o.order_date}` : (o.type === 'estimate' && o.ordered_at ? `주문완료 ${o.ordered_at}` : o.updated_at)}</td>
             <td class="action-cell">${acts}</td>
         </tr>`;
         if (open) {
