@@ -492,6 +492,21 @@ function toggleAllDay(){
     document.querySelectorAll('.time-picker-trigger').forEach(t=>t.style.display=isAllDay?'none':'');
 }
 
+// ── 시작 날짜 변경 시 마감 자동 보정 — 시간 일정은 당일, 종일 일정은 다음날 ──
+// (마감이 변경 전 날짜에 남아 시작보다 앞서던 문제 방지 — 마감은 이후에 직접 늘릴 수 있음)
+function syncEndFromStart(prefix){
+    const sdEl=document.getElementById(prefix==='gold'?'goldStartDate':'startDate');
+    const edEl=document.getElementById(prefix==='gold'?'goldEndDate':'endDate');
+    if(!sdEl?.value||!edEl) return;
+    const d=new Date(sdEl.value+'T00:00:00');
+    if(isNaN(d)) return;
+    if(isAllDay) d.setDate(d.getDate()+1); // 종일 — 다음날 마감
+    edEl.value=fmt(d);
+}
+['startDate','goldStartDate'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('change',()=>syncEndFromStart(id==='goldStartDate'?'gold':''));
+});
+
 // ── 외부 오퍼레이터(스튜디오 전용) — 체크 시 항시 종일 일정으로 고정 (시간 입력 불필요) ──
 function isExtOperatorChecked(){
     const b=document.getElementById('extOperatorBtn');

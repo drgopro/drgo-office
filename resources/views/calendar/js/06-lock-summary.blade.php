@@ -524,6 +524,16 @@ function openTimePicker(trigger,hiddenId){
                 endHidden.value = endVal;
                 endTrig.textContent = endVal;
             }
+            // 마감 날짜도 시작 당일로 보정 (23시 시작처럼 자정을 넘기면 다음날) — 이전 날짜 잔존 방지
+            const sdEl = document.getElementById(hiddenId === 'goldStartTime' ? 'goldStartDate' : 'startDate');
+            const edEl = document.getElementById(hiddenId === 'goldStartTime' ? 'goldEndDate' : 'endDate');
+            if (sdEl?.value && edEl) {
+                const d = new Date(sdEl.value + 'T00:00:00');
+                if (!isNaN(d)) {
+                    if (parseInt(sh, 10) === 23) d.setDate(d.getDate() + 1);
+                    edEl.value = fmt(d);
+                }
+            }
         }
     };
     // 외부 클릭으로 닫기
