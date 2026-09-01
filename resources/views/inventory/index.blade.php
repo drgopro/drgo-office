@@ -2038,11 +2038,12 @@ function renderOrders() {
                         <div class="text-muted" style="font-size:11px; font-weight:700; padding-bottom:3px;">세트 구성</div>
                         ${it.bundle_items.map((b,bi)=>{
                             const bRef = b.refund_qty>0||b.refund_amount>0;
-                            const ordBadge = b.ordered
+                            const ordBadge = (b.ordered
                                 ? (b.source === '사무실 발송'
                                     ? ' <span class="badge badge-direct" style="font-size:10px;" title="사무실에서 직접 발송">직접발송</span>'
                                     : ' <span class="badge badge-ok" style="font-size:10px;" title="구성품 주문완료">주문완료</span>')
-                                : '';
+                                : '')
+                                + (b.ordered && b.ordered_at ? ` <span style="font-size:10.5px; color:var(--text-muted); white-space:nowrap;" title="주문완료 처리 시각 ${_esc(b.ordered_at)}">${_esc(b.ordered_at.slice(5))}</span>` : '');
                             const refBadge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700; white-space:nowrap;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
                             const nameCell = `<div style="min-width:0; white-space:normal; word-break:break-word;">└ ${_esc(b.name)} <span class="text-muted" style="white-space:nowrap;">×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}</span>${ordBadge}${refBadge}</div>`;
                             if (o.type !== 'estimate') {
@@ -2067,9 +2068,11 @@ function renderOrders() {
                 // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게
                 const prodMemo = it.product_memo
                     ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:pre-line;">${_esc(it.product_memo)}</div>` : '';
+                const itemOrdAt = o.type === 'estimate' && it.ordered && it.ordered_at
+                    ? ` <span class="text-muted" style="font-size:11px; white-space:nowrap;" title="주문완료 처리 시각 ${_esc(it.ordered_at)}">주문 ${_esc(it.ordered_at.slice(5))}</span>` : '';
                 return `<tr style="background:var(--surface2);" ${o.type==='estimate'?`data-oik="${o.id}:${it.index}"`:''}>
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${prodMemo}</td>
+                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${itemOrdAt}${prodMemo}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
                 </tr>${bundleRow}`;
