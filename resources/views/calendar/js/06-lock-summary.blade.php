@@ -261,7 +261,7 @@ function renderLockSummary(){
         pushTile('경력', career);
         pushTile('유입', source ? source + (sourceRef ? ` (${sourceRef})` : '') : '');
         pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
-        if (tiles.length) left.unshift(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast')); // 일시·장소보다 위에 표시
+        if (tiles.length) left.push(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast')); // 일시·장소 → 의뢰자 다음
         // ③-1 의뢰 내용 — 주제 + 세팅 항목 (연결 프로젝트에서 불러오거나, 일정에 저장된 구버전 항목)
         const reqTopicVal = reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic;
         const lsReqItems = activeReqItems();
@@ -271,8 +271,29 @@ function renderLockSummary(){
                 reqBody += `<div style="margin-top:7px;">${reqItemsGroupedHtml(lsReqItems)}</div>`;
                 if (projReqItems.length) reqBody += `<div class="rqv-src">📁 연결된 프로젝트의 의뢰 내용</div>`;
             }
-            left.splice(tiles.length ? 1 : 0, 0, lsCard('의뢰 내용', reqBody, '', 'ls-c-reqtopic'));
+            right.push(lsCard('의뢰 내용', reqBody, '', 'ls-c-reqtopic')); // 우측 첫 카드
         }
+
+        // ④ 장비 목록(좌측) — 프로젝트 연동(읽기 전용) + 수기 불릿, n품목 — 프로젝트 연동(읽기 전용) + 수기 불릿, n품목
+        const equip = _val('g_equipment');
+        const equipLines = equip.split(/\n/).map(s=>s.trim()).filter(Boolean);
+        const linkedEq = (typeof linkedEquipData==='function') ? linkedEquipData() : null;
+        let equipBody = '';
+        let equipCount = equipLines.length;
+        if (linkedEq) {
+            equipCount += linkedEq.fields.length;
+            const groups = {};
+            linkedEq.fields.forEach(f=>{ const s=f.subsection||'기타'; (groups[s]=groups[s]||[]).push(f); });
+            equipBody += `<div class="leq-src" style="margin-bottom:6px;">프로젝트 연동 · 「${_esc(linkedEq.project_name)}」 (${linkedEq.created_at})</div>`
+                + Object.keys(groups).map(sub=>`<div class="leq-group"><div class="leq-sub">${_esc(sub)}</div>${groups[sub].map(f=>`<div class="leq-row"><span class="leq-l">${_esc(f.label)}</span><span class="leq-v">${_esc(calEquipDisplay(f.value))}</span></div>`).join('')}</div>`).join('');
+        }
+        if (equipLines.length) {
+            equipBody += (linkedEq?`<div class="leq-sub" style="margin-top:8px;">수기 입력</div>`:'')
+                + `<ul class="ls-bullets">${equipLines.map(l=>`<li>${_esc(l)}</li>`).join('')}</ul>`;
+        }
+        left.push(lsCard('장비 목록',
+            equipBody || '<div class="ls-text-block muted">— 등록된 장비 없음 —</div>',
+            equipCount?`${equipCount}품목`:'', 'ls-c-equip'));
 
         // ④ 결제 · 진행 — 금액 크게 + 상태 칩(결제/주문/잔금/수령) + 배송 배지
         const amount = _val('g_estimate_amount');
@@ -314,28 +335,7 @@ function renderLockSummary(){
             ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}`,
             '', 'ls-c-pay'));
 
-        // 우측 ① 장비 목록 — 프로젝트 연동(읽기 전용) + 수기 불릿, n품목
-        const equip = _val('g_equipment');
-        const equipLines = equip.split(/\n/).map(s=>s.trim()).filter(Boolean);
-        const linkedEq = (typeof linkedEquipData==='function') ? linkedEquipData() : null;
-        let equipBody = '';
-        let equipCount = equipLines.length;
-        if (linkedEq) {
-            equipCount += linkedEq.fields.length;
-            const groups = {};
-            linkedEq.fields.forEach(f=>{ const s=f.subsection||'기타'; (groups[s]=groups[s]||[]).push(f); });
-            equipBody += `<div class="leq-src" style="margin-bottom:6px;">프로젝트 연동 · 「${_esc(linkedEq.project_name)}」 (${linkedEq.created_at})</div>`
-                + Object.keys(groups).map(sub=>`<div class="leq-group"><div class="leq-sub">${_esc(sub)}</div>${groups[sub].map(f=>`<div class="leq-row"><span class="leq-l">${_esc(f.label)}</span><span class="leq-v">${_esc(calEquipDisplay(f.value))}</span></div>`).join('')}</div>`).join('');
-        }
-        if (equipLines.length) {
-            equipBody += (linkedEq?`<div class="leq-sub" style="margin-top:8px;">수기 입력</div>`:'')
-                + `<ul class="ls-bullets">${equipLines.map(l=>`<li>${_esc(l)}</li>`).join('')}</ul>`;
-        }
-        right.push(lsCard('장비 목록',
-            equipBody || '<div class="ls-text-block muted">— 등록된 장비 없음 —</div>',
-            equipCount?`${equipCount}품목`:'', 'ls-c-equip'));
-
-        // 우측 ② 의뢰 세부항목 / ③ 특이사항 (틴트)
+        // 우측: 의뢰 내용 다음 — 의뢰 세부항목 / 특이사항 (틴트)
         const reqDetail = _val('g_req_detail');
         if (reqDetail) right.push(lsCard('의뢰 세부항목', `<div class="ls-text-block">${_esc(reqDetail)}</div>`, '', 'ls-c-detail'));
         const special = _val('g_special');
