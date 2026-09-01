@@ -628,15 +628,25 @@
     #modalOverlay .modal-body { display:grid; grid-template-columns:minmax(0,1fr) 208px; gap:14px; align-items:start; counter-reset:msec; }
     #modalOverlay .modal-body.is-locked { display:flex; flex-direction:column; }
     #modalOverlay .m-main { display:flex; flex-direction:column; gap:14px; min-width:0; }
+    /* 우측 폼 컬럼 — 의뢰 내용·첨부 카드 (좁은 화면에서는 좌측 아래로 쌓임) */
+    #modalOverlay .m-side { display:flex; flex-direction:column; gap:14px; min-width:0; grid-column:1; }
+    #modalOverlay .modal-body:not(.is-locked) > .m-rail { grid-column:2; grid-row:1 / span 2; }
+    @media (min-width:1240px) {
+        #modalOverlay .modal { max-width:1380px; }
+        #modalOverlay .modal-body { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 208px; }
+        #modalOverlay .m-side { grid-column:2; grid-row:1; }
+        #modalOverlay .modal-body:not(.is-locked) > .m-rail { grid-column:3; grid-row:1; }
+    }
     /* 섹션 카드 — 흰 배경 + 번호 카운터 */
     #modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section,
-    #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card {
+    #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card,
+    #modalOverlay .m-side > .field-section, #modalOverlay .m-side > #generalAttachSection, #modalOverlay .m-side .m-card {
         background:var(--m-card); border:1px solid var(--m-border); border-radius:14px; padding:18px 20px;
         counter-increment:msec; display:flex; flex-direction:column; gap:12px;
     }
-    #modalOverlay .m-main .section-heading { font-size:13.5px; font-weight:800; color:var(--m-ink); text-transform:none; letter-spacing:-0.2px; }
-    #modalOverlay .m-main .section-heading::after { display:none; }
-    #modalOverlay .m-main .section-heading::before {
+    #modalOverlay .m-main .section-heading, #modalOverlay .m-side .section-heading { font-size:13.5px; font-weight:800; color:var(--m-ink); text-transform:none; letter-spacing:-0.2px; }
+    #modalOverlay .m-main .section-heading::after, #modalOverlay .m-side .section-heading::after { display:none; }
+    #modalOverlay .m-main .section-heading::before, #modalOverlay .m-side .section-heading::before {
         content:counter(msec, decimal-leading-zero); width:24px; height:24px; border-radius:8px; flex:none;
         background:color-mix(in srgb, var(--m-accent) 10%, transparent); color:var(--m-accent);
         display:inline-flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; letter-spacing:0;

@@ -370,20 +370,37 @@ document.getElementById('projectSelect')?.addEventListener('change',()=>{
     const clientLink=document.getElementById('clientLinkSection');
     const moveFrom=document.getElementById('moveFromBlock');
     const addr=document.getElementById('addressBlock');
+    const findGoldCard=t=>[...document.querySelectorAll('#modalOverlay .gold-only .m-card')]
+        .find(c=>c.querySelector('.section-heading')?.textContent.includes(t));
+    const equipCard=findGoldCard('장비 목록');
+    const reqCard=findGoldCard('의뢰 내용');
+    const attachImgCard=findGoldCard('첨부 이미지');
+
+    // ── 좌측 컬럼: 일정 옵션(제목 바로 아래) → 분류/시간 → 세부 일정 → 의뢰자/프로젝트 → 의뢰자 정보 → 장소 → 장비 목록 ──
     main.insertBefore(dt, main.firstChild);
+    if(schedOptCard){ schedOptCard.classList.add('gold-only'); schedOptCard.id='schedOptCard'; main.insertBefore(schedOptCard, dt); }
     let after=dt;
-    // 일자별 세부 일정 카드는 01 분류·시간 카드 바로 아래
     const lsChForm=document.getElementById('lsChildrenForm');
     if(lsChForm){ after.after(lsChForm); after=lsChForm; }
-    if(schedOptCard){ schedOptCard.classList.add('gold-only'); schedOptCard.id='schedOptCard'; after.after(schedOptCard); after=schedOptCard; }
     if(clientLink){ after.after(clientLink); after=clientLink; }
     if(goldClientCard){ goldClientCard.classList.add('gold-only'); after.after(goldClientCard); after=goldClientCard; }
     if(moveFrom){ after.after(moveFrom); after=moveFrom; }
-    if(addr){ after.after(addr); }
+    if(addr){ after.after(addr); after=addr; }
+    if(equipCard){ equipCard.classList.add('gold-only'); after.after(equipCard); }
+
+    // ── 우측 컬럼(.m-side): 의뢰 내용(세부 의뢰 항목 포함) → 원격/공통 상세 → 견적서·파일 첨부 ──
+    const side=document.createElement('div');
+    side.className='m-side';
+    main.after(side);
+    if(reqCard){ reqCard.classList.add('gold-only'); side.appendChild(reqCard); }
+    document.querySelectorAll('#modalOverlay .m-main > .teal-only, #modalOverlay .m-main > .common-only').forEach(el=>side.appendChild(el));
+    if(attachImgCard){ attachImgCard.classList.add('gold-only'); side.appendChild(attachImgCard); }
+    const gAttach=document.getElementById('generalAttachSection');
+    if(gAttach) side.appendChild(gAttach);
 })();
 
 // ── 2a 리디자인: 우측 작성 현황 레일 — 섹션별 진행/전체 작성률/남은 항목 ──
-const M_RAIL_SEC_SEL='#modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section, #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card';
+const M_RAIL_SEC_SEL='#modalOverlay .m-main > .field-section, #modalOverlay .m-main > .datetime-section, #modalOverlay .m-main > #generalAttachSection, #modalOverlay .m-main .m-card, #modalOverlay .m-side > .field-section, #modalOverlay .m-side > #generalAttachSection, #modalOverlay .m-side .m-card';
 function mRailLabel(el){
     if(el.classList.contains('datetime-section')) return '날짜 / 시간';
     if(el.id==='generalAttachSection') return '첨부 파일';
