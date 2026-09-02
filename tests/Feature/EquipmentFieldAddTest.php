@@ -109,6 +109,11 @@ class EquipmentFieldAddTest extends TestCase
         $this->actingAs($admin)->get('/calendar')->assertOk()
             ->assertSee('sel.equipment', false)
             ->assertSee('최신 프로젝트 기준', false);
+
+        // 의뢰자 상세 — 프로젝트 선택 탭 렌더 확인
+        $this->actingAs($admin)->get('/clients')->assertOk()
+            ->assertSee('cvEqSelect', false)
+            ->assertSee('cv-eqtabs', false);
     }
 
     public function test_project_page_contains_item_edit_ui(): void

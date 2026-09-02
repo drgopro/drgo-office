@@ -243,6 +243,9 @@
     .cv-eqwrap { display:flex; flex-direction:column; gap:18px; }
     .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11.5px; font-weight:700; margin-bottom:10px; }
     .cv-eqlink { font-size:13px; font-weight:600; color:var(--accent); text-decoration:none; }
+    .cv-eqtabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .cv-eqtab { padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; }
+    .cv-eqtab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .cv-eqlink:hover { text-decoration:underline; }
     @media (max-width:768px) {
         .cv-sec { grid-template-columns:1fr; gap:10px; padding:18px 0; }
@@ -2107,20 +2110,18 @@ function renderClientView(d) {
         ${cvField('의뢰자 성격', d.personality, false, '미입력')}
         ${cvField('예산 성향', d.budget_style, false, '미입력')}
     </div>`;
-    // 장비 정보 — 최근 프로젝트 연동 (읽기 전용)
-    const eq = d.last_project_equipment;
+    // 장비 정보 — 프로젝트 선택 탭 (여러 장소 세팅 대비, 기본: 최신 프로젝트. 장비 없는 프로젝트는 탭 제외)
+    window.__cvEqSel = window.__cvEqSel || {};
+    const eqProjects = (d.projects || []).filter(p => p.equipment && (p.equipment.fields || []).length).sort((a, b) => b.id - a.id);
     let equipBody, equipRail;
-    if (eq && eq.fields?.length) {
-        const groups = {};
-        eq.fields.forEach(f => { const s = f.subsection || '기타'; (groups[s] = groups[s] || []).push(f); });
-        equipBody = Object.keys(groups).map(sub => `<div class="cv-eqgroup">
-            <span class="cv-subchip">${_esc(sub)}</span>
-            <div class="cv-grid3">${groups[sub].map(f => `<div><div class="cv-l">${_esc(f.label)}</div>${cvVal(formatCfDisplay(f.value))}</div>`).join('')}</div>
-        </div>`).join('')
-            + `<a class="cv-eqlink" href="/projects/${eq.project_id}">프로젝트에서 원본 보기 →</a>`;
-        // 최신 프로젝트가 아닌 과거 프로젝트에서 가져온 경우 출처를 명확히 표기
-        const srcLabel = eq.is_latest === false ? '장비 정보가 있는 마지막 프로젝트' : '최근 프로젝트';
-        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd">${srcLabel}<br>「${_esc(eq.project_name)}」 · ${eq.created_at}</div>`;
+    if (eqProjects.length) {
+        const selId = eqProjects.some(p => p.id === window.__cvEqSel[d.id]) ? window.__cvEqSel[d.id] : eqProjects[0].id;
+        const selEq = eqProjects.find(p => p.id === selId).equipment;
+        const tabs = eqProjects.length > 1
+            ? `<div class="cv-eqtabs">${eqProjects.map(p => `<button type="button" class="cv-eqtab${p.id === selId ? ' active' : ''}" data-eqtab="${p.id}" onclick="cvEqSelect(${d.id}, ${p.id})">${_esc(p.name)}</button>`).join('')}</div>`
+            : '';
+        equipBody = `${tabs}<div id="cv-eq-body-${d.id}">${cvEqBodyHtml(selEq)}</div>`;
+        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd" id="cv-eq-rail-${d.id}">${cvEqRailHtml(selEq, eqProjects.length)}</div>`;
     } else {
         equipBody = '<div class="cv-v dim">연동된 장비 정보가 없습니다 — 프로젝트에서 장비 정보를 입력하면 여기에 표시됩니다.</div>';
         equipRail = '<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div>';
@@ -2144,6 +2145,34 @@ function renderClientView(d) {
         ${customSections}
     </div>`;
 }
+// 장비 정보 바디/레일 — 프로젝트 선택 탭과 공유
+function cvEqBodyHtml(eq) {
+    const groups = {};
+    eq.fields.forEach(f => { const s = f.subsection || '기타'; (groups[s] = groups[s] || []).push(f); });
+    return Object.keys(groups).map(sub => `<div class="cv-eqgroup">
+            <span class="cv-subchip">${_esc(sub)}</span>
+            <div class="cv-grid3">${groups[sub].map(f => `<div><div class="cv-l">${_esc(f.label)}</div>${cvVal(formatCfDisplay(f.value))}</div>`).join('')}</div>
+        </div>`).join('')
+        + `<a class="cv-eqlink" href="/projects/${eq.project_id}">프로젝트에서 원본 보기 →</a>`;
+}
+function cvEqRailHtml(eq, count) {
+    return `${count > 1 ? '프로젝트 ' + count + '곳 중 선택 표시' : '최근 프로젝트'}<br>「${_esc(eq.project_name)}」 · ${eq.created_at}`;
+}
+// 장비 탭 전환 — 선택 상태를 기억하고 바디/레일만 갈아끼움
+function cvEqSelect(clientId, projectId) {
+    window.__cvEqSel = window.__cvEqSel || {};
+    window.__cvEqSel[clientId] = projectId;
+    const tab = openClientTabs.find(t => t.id === clientId);
+    const p = (tab?.data?.projects || []).find(p => p.id === projectId);
+    if (!p?.equipment) return;
+    const body = document.getElementById('cv-eq-body-' + clientId);
+    const rail = document.getElementById('cv-eq-rail-' + clientId);
+    if (body) body.innerHTML = cvEqBodyHtml(p.equipment);
+    const eqCount = (tab.data.projects || []).filter(x => x.equipment && (x.equipment.fields || []).length).length;
+    if (rail) rail.innerHTML = cvEqRailHtml(p.equipment, eqCount);
+    document.querySelectorAll(`#cpane-${clientId} .cv-eqtab`).forEach(b => b.classList.toggle('active', String(b.dataset.eqtab) === String(projectId)));
+}
+
 // 수정 폼 작성 현황 (등록 모달의 ncmRefresh와 동일 규칙 — 카드별 채움/전체 %/필수)
 function ceRefresh(id) {
     const root = document.getElementById('edit-info-' + id);
