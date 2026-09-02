@@ -1173,7 +1173,7 @@ function renderClientContent(id) {
                 ${CAN_CLIENT_EDIT ? `
                 <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
                     <input class="field-input" id="ct-name-${id}" placeholder="이름 *" style="flex:1; min-width:100px;">
-                    <input class="field-input" id="ct-phone-${id}" placeholder="연락처" style="flex:1; min-width:120px;" oninput="this.value = formatPhoneInput(this.value)">
+                    <input class="field-input" id="ct-phone-${id}" placeholder="연락처" style="flex:1; min-width:120px;">
                     <input class="field-input" id="ct-rel-${id}" placeholder="관계 (매니저/실장…)" style="flex:1; min-width:120px;">
                     <input class="field-input" id="ct-memo-${id}" placeholder="메모" style="flex:2; min-width:130px;">
                     <input type="hidden" id="ct-edit-${id}" value="">
@@ -2484,19 +2484,7 @@ function toggleMoreMemos(clientId) {
     toggle.querySelector('button').textContent = isHidden ? '접기' : `+ ${rest.children.length}개 더 보기`;
 }
 
-// 연락처 자동 하이픈 — 010-1234-5678 / 02-123-4567 등 자릿수에 맞춰 포맷
-function formatPhoneInput(v) {
-    const d = String(v).replace(/\D/g, '').slice(0, 11);
-    if (d.startsWith('02')) { // 서울 지역번호
-        if (d.length <= 2) return d;
-        if (d.length <= 5) return d.slice(0, 2) + '-' + d.slice(2);
-        if (d.length <= 9) return d.slice(0, 2) + '-' + d.slice(2, d.length - 4) + '-' + d.slice(-4);
-        return d.slice(0, 2) + '-' + d.slice(2, 6) + '-' + d.slice(6, 10);
-    }
-    if (d.length <= 3) return d;
-    if (d.length <= 7) return d.slice(0, 3) + '-' + d.slice(3);
-    return d.slice(0, 3) + '-' + d.slice(3, d.length - 4) + '-' + d.slice(-4);
-}
+{{-- 연락처 자동 하이픈은 partials/phone-format.blade.php 전역 위임으로 처리 (window.formatPhoneInput) --}}
 
 // ── 관계자 · 매니저 (의뢰자당 최대 10명) ──
 const CLIENT_CONTACTS = {}; // clientId → contacts[]

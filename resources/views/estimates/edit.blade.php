@@ -2,6 +2,7 @@
 <html lang="ko" data-theme="light">
 <head>
 @include('partials.ajax-fetch-header')
+@include('partials.phone-format')
     {{-- 본 앱과 동일하게 라이트 모드 고정 (구버전 테마 키 정리) --}}
     <script>(function(){try{localStorage.removeItem('drgo_theme');}catch(e){}document.documentElement.setAttribute('data-theme','light');})();</script>
     <meta charset="UTF-8">
