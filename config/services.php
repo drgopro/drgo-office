@@ -84,6 +84,10 @@ return [
         // 공식 호스팅 API (apis.tracker.delivery) — 키가 설정되면 셀프호스팅보다 우선 사용
         'client_id' => env('DELIVERY_TRACKER_CLIENT_ID'),
         'client_secret' => env('DELIVERY_TRACKER_CLIENT_SECRET'),
+        // 쿠팡(CLS) 직접 조회용 한국 프록시 — 쿠팡이 해외/호스팅 IP를 차단하므로
+        // 사무실 회선 프록시(http://user:pass@host:port)를 지정하면 자동 추적이 살아난다.
+        // 미지정 시 컴퓨존 시세 프록시(MARKET_PRICE_PROXY)를 겸용.
+        'coupang_proxy' => env('COUPANG_TRACK_PROXY', env('MARKET_PRICE_PROXY')),
     ],
 
 ];

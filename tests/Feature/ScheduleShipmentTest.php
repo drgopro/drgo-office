@@ -120,7 +120,8 @@ class ScheduleShipmentTest extends TestCase
 
     public function test_coupang_direct_fallback_parses_tracking_page(): void
     {
-        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        // 한국 프록시 설정이 있어도 요청 흐름이 동일하게 동작하는지 겸사 확인
+        config(['services.delivery_tracker.url' => 'http://tracker.test', 'services.delivery_tracker.coupang_proxy' => 'http://user:pass@127.0.0.1:8899']);
         $html = <<<'HTML'
 <div class="tracking-detail"><table><thead><tr><th>시각</th><th>위치</th><th>상태</th></tr></thead><tbody>
 <tr><td>2026-07-29 09:10:00</td><td>안양HUB</td><td>집화</td></tr>

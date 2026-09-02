@@ -119,12 +119,16 @@ class DeliveryTrackerClient
     private function fetchCoupangDirect(string $trackingNo): ?array
     {
         try {
-            $res = Http::timeout(15)->connectTimeout(5)
+            $req = Http::timeout(15)->connectTimeout(8)
                 ->withHeaders([
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
                     'Accept-Language' => 'ko,ko-KR;q=0.9',
-                ])
-                ->get('https://www.coupangls.com/web/modal/invoice/'.rawurlencode($trackingNo));
+                ]);
+            // 쿠팡은 해외/호스팅 IP를 차단(IP 기반) — 한국 회선 프록시가 설정돼 있으면 경유
+            if ($proxy = (string) config('services.delivery_tracker.coupang_proxy')) {
+                $req = $req->withOptions(['proxy' => $proxy]);
+            }
+            $res = $req->get('https://www.coupangls.com/web/modal/invoice/'.rawurlencode($trackingNo));
         } catch (\Throwable) {
             return null;
         }
