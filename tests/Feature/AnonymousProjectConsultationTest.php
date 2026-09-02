@@ -59,6 +59,19 @@ class AnonymousProjectConsultationTest extends TestCase
         $this->actingAs($user)->get("/projects/{$linked->id}")->assertOk()->assertDontSee('page-wrap anon-proj', false);
     }
 
+    public function test_important_consult_card_has_light_theme_override(): void
+    {
+        // 중요 상담 카드가 구 다크테마 배경(#1a1500)에 어두운 글씨로 나오던 버그 — 라이트 오버라이드 존재 확인
+        $user = User::factory()->create(['role' => 'master']);
+        $project = Project::create([
+            'client_id' => null, 'manual_client_name' => '문의자',
+            'name' => '테스트 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting',
+        ]);
+
+        $this->actingAs($user)->get("/projects/{$project->id}")->assertOk()
+            ->assertSee('[data-theme="light"] .consult-item.important', false);
+    }
+
     public function test_consultation_still_updates_last_contact_for_linked_client(): void
     {
         $user = User::factory()->create(['role' => 'master']);

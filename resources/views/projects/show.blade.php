@@ -247,6 +247,7 @@
     [data-theme="light"] .result-valid       { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .result-invalid     { background:#ffe8e8; color:#c03838; }
     [data-theme="light"] .result-done        { background:#e8eaef; color:#5a6070; }
+    [data-theme="light"] .consult-item.important { background:#fff8e6; border-color:#e0b870; }
 
     /* 동적 필드 (관리자 정의) */
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
