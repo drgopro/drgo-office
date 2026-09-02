@@ -295,8 +295,8 @@
                 <div class="field-row">
                     <div class="field-group" style="flex:1;">
                         <label class="field-label">플랫폼 <span class="req">*</span></label>
-                        <div id="g_platform_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
-                            <div class="radio-group" id="g_platform_group" style="flex-wrap:nowrap;gap:5px;flex-shrink:0;">
+                        <div id="g_platform_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                            <div class="radio-group" id="g_platform_group" style="flex-wrap:wrap;gap:5px;min-width:0;">
                                 <div class="radio-btn" data-val="SOOP">SOOP</div>
                                 <div class="radio-btn" data-val="치지직">치지직</div>
                                 <div class="radio-btn" data-val="유튜브">유튜브</div>
@@ -310,8 +310,8 @@
 
                 <div class="field-group">
                     <label class="field-label">방송 주제</label>
-                    <div id="g_topic_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
-                        <div class="radio-group" id="g_topic_group" style="flex-wrap:wrap;gap:5px;flex-shrink:0;">
+                    <div id="g_topic_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <div class="radio-group" id="g_topic_group" style="flex-wrap:wrap;gap:5px;min-width:0;">
                             <div class="radio-btn" data-val="소통">소통</div>
                             <div class="radio-btn" data-val="게임">게임</div>
                             <div class="radio-btn" data-val="노래">노래</div>
