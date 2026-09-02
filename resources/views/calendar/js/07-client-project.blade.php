@@ -187,7 +187,7 @@ function updateClientAddrBtn(){
     const show=(linkedClientDetail&&linkedClientDetail.address)?'':'none';
     ['btnClientAddr','btnClientAddrFrom'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
 }
-function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); renderLinkedEquip(); }
+function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); renderLinkedEquip(); renderLinkedProjDocs(); }
 
 // ── 연동 장비 — 일정에 연결된 프로젝트의 장비를 우선 표시 (한 의뢰자가 여러 장소에 세팅하는 경우 대비),
 //    프로젝트 미선택 시에만 최신 프로젝트 장비로 폴백 (폴백임을 라벨로 구분) ──
@@ -228,9 +228,30 @@ function renderLinkedEquip(){
         +Object.keys(groups).map(sub=>`<div class="leq-group"><div class="leq-sub">${_esc(sub)}</div>${groups[sub].map(f=>`<div class="leq-row"><span class="leq-l">${_esc(f.label)}</span><span class="leq-v">${_esc(calEquipDisplay(f.value))}</span></div>`).join('')}</div>`).join('');
     wrap.style.display='';
 }
+// ── 연동 프로젝트 첨부 문서 — 일정에 연결된 프로젝트의 첨부 문서를 읽기 전용으로 표시 ──
+function linkedProjectDocs(){
+    const sel=selectedProjectData();
+    if(!sel||!(sel.documents||[]).length) return null;
+    return {project_id:sel.id,project_name:sel.name,docs:sel.documents};
+}
+function renderLinkedProjDocs(){
+    const wrap=document.getElementById('linkedProjDocsWrap');
+    if(!wrap) return;
+    const d=linkedProjectDocs();
+    if(!d){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+    const cells=d.docs.map(doc=>{
+        const tip=_esc(doc.file_name)+(doc.note?' · '+_esc(doc.note):'')+(doc.created_at?' · '+doc.created_at:'');
+        if(doc.thumb_url) return `<a class="lpd-cell" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><img src="${_esc(doc.thumb_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async"></a>`;
+        const ext=((doc.file_name||'').split('.').pop()||'').toUpperCase().slice(0,5);
+        return `<a class="lpd-cell lpd-file" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><span class="lpd-ext">${_esc(ext||'파일')}</span><span class="lpd-name">${_esc(doc.file_name)}</span></a>`;
+    }).join('');
+    wrap.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 첨부 문서</span><span class="leq-src">「${_esc(d.project_name)}」 · ${d.docs.length}건</span><a class="leq-open" href="/projects/${d.project_id}" target="_blank">원본 →</a></div><div class="lpd-grid">${cells}</div>`;
+    wrap.style.display='';
+}
 // 상세 도착 시 공통 갱신 — 수정 뷰 블록 + (잠금 중이면) 요약 카드 재렌더
 function onClientDetailReady(){
     renderLinkedEquip();
+    renderLinkedProjDocs();
     if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
 }
 

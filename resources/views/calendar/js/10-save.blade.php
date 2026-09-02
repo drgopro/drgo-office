@@ -327,6 +327,7 @@ document.getElementById('projectSelect')?.addEventListener('change',()=>{
     loadProjectReqItems(document.getElementById('projectSelect')?.value||null); // 선택한 프로젝트의 의뢰 내용 표시
     autoFillProjectAddress(); // 📁 프로젝트 주소 버튼 토글 (자동 채움 없음 — 채움은 버튼 클릭으로만)
     renderLinkedEquip(); // 연동 장비 — 선택한 프로젝트 기준으로 갱신
+    renderLinkedProjDocs(); // 연동 프로젝트 첨부 문서 갱신
 });
 
 // ── 2a 리디자인: gold/teal 폼을 섹션 카드로 그룹핑 (section-heading·divider 경계 기준) ──

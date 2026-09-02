@@ -139,7 +139,7 @@ class ClientController extends Controller
 
     public function detail(Client $client)
     {
-        $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator', 'contacts');
+        $client->load('assignedUser', 'projects.consultations', 'projects.documents', 'documents', 'memos.user', 'estimates.creator', 'contacts');
         $pii = $this->canViewPii();
 
         // 장비 정보 연동 — 프로젝트별 장비를 각각 계산해 제공.
@@ -244,6 +244,17 @@ class ClientController extends Controller
                 'created_at' => $p->created_at->format('Y.m.d'),
                 'consultations_count' => $p->consultations->count(),
                 'equipment' => $projectEquipments[$p->id] ?? null, // 프로젝트별 장비 — 캘린더가 연결 프로젝트 기준으로 표시
+                // 프로젝트 첨부 문서 — 캘린더가 연결 프로젝트의 파일을 읽기 전용으로 표시
+                'documents' => $p->documents->sortByDesc('created_at')->values()->map(fn ($d) => [
+                    'id' => $d->id,
+                    'file_name' => $d->file_name,
+                    'mime_type' => $d->mime_type,
+                    'note' => $d->note,
+                    'view_url' => route('project-documents.serve', $d),
+                    'thumb_url' => str_starts_with((string) $d->mime_type, 'image/') ? route('project-documents.thumb', $d) : null,
+                    'download_url' => route('project-documents.download', $d),
+                    'created_at' => $d->created_at->format('Y.m.d'),
+                ]),
             ]),
             'documents' => $client->documents->map(fn ($d) => [
                 'id' => $d->id,

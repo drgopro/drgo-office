@@ -746,6 +746,14 @@
     #modalOverlay .leq-row:last-child { border-bottom:none; }
     #modalOverlay .leq-l { color:#8d8a82; font-weight:600; flex-shrink:0; }
     #modalOverlay .leq-v { margin-left:auto; font-weight:700; color:var(--m-ink); text-align:right; min-width:0; overflow-wrap:anywhere; }
+    /* 연동 프로젝트 첨부 문서 — 수정 뷰(#linkedProjDocsWrap) 읽기 전용 썸네일 그리드 */
+    #modalOverlay #linkedProjDocsWrap { border:1px solid var(--m-line); border-radius:12px; padding:10px 12px; margin-top:12px; background:color-mix(in srgb, var(--m-accent) 4%, #fff); }
+    #modalOverlay .lpd-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(74px, 1fr)); gap:6px; margin-top:8px; }
+    #modalOverlay .lpd-cell { display:block; border:1px solid var(--m-line); border-radius:8px; overflow:hidden; background:#fff; aspect-ratio:1; text-decoration:none; }
+    #modalOverlay .lpd-cell img { width:100%; height:100%; object-fit:cover; display:block; }
+    #modalOverlay .lpd-file { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:6px; }
+    #modalOverlay .lpd-ext { font-size:10px; font-weight:800; color:var(--m-accent); border:1px solid color-mix(in srgb, var(--m-accent) 40%, #fff); border-radius:5px; padding:1px 6px; }
+    #modalOverlay .lpd-name { font-size:10px; color:#8d8a82; font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     #modalOverlay .ls-tinted { background:color-mix(in srgb, #e8894a 6%, #fff); border-color:color-mix(in srgb, #e8894a 26%, #fff); }
     #modalOverlay .ls-tinted .ls-card-title { color:#c8763a; }
     #modalOverlay .ls-dur { font-size:12px; font-weight:600; color:#a8a69e; margin-left:8px; letter-spacing:0; }

@@ -620,6 +620,8 @@
                     </div>
                     <div class="img-grid" id="generalAttachGrid" style="margin-top:8px;"></div>
                 </div>
+                {{-- 연결 프로젝트의 첨부 문서 — 읽기 전용 (프로젝트 상세에서 업로드) --}}
+                <div id="linkedProjDocsWrap" style="display:none;"></div>
             </div>
 
             </div>{{-- /m-main --}}
