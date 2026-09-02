@@ -131,10 +131,15 @@
                     @foreach(['유튜브','트위치','치지직','아프리카','팬더티비','기타'] as $platform)
                     <div class="checkbox-item">
                         <input type="checkbox" name="platforms[]" id="p_{{ $loop->index }}" value="{{ $platform }}"
-                            {{ in_array($platform, old('platforms', $client?->platforms ?? [])) ? 'checked' : '' }}>
+                            {{ in_array($platform, old('platforms', $client?->platforms ?? [])) ? 'checked' : '' }}
+                            @if($platform === '기타') onchange="toggleFormEtc(this, 'platformEtcWrap')" @endif>
                         <label for="p_{{ $loop->index }}">{{ $platform }}</label>
                     </div>
                     @endforeach
+                </div>
+                @php $platformEtcOn = in_array('기타', old('platforms', $client?->platforms ?? [])); @endphp
+                <div id="platformEtcWrap" style="margin-top:8px; display:{{ $platformEtcOn ? 'block' : 'none' }};">
+                    <input class="field-input" type="text" name="platform_etc" value="{{ old('platform_etc', $client?->platform_etc) }}" placeholder="기타 플랫폼 직접 입력">
                 </div>
             </div>
 
@@ -144,10 +149,15 @@
                     @foreach(['게임','소통','노래','먹방','스포츠','기타'] as $type)
                     <div class="checkbox-item">
                         <input type="checkbox" name="content_types[]" id="ct_{{ $loop->index }}" value="{{ $type }}"
-                            {{ in_array($type, old('content_types', $client?->content_types ?? [])) ? 'checked' : '' }}>
+                            {{ in_array($type, old('content_types', $client?->content_types ?? [])) ? 'checked' : '' }}
+                            @if($type === '기타') onchange="toggleFormEtc(this, 'topicEtcWrap')" @endif>
                         <label for="ct_{{ $loop->index }}">{{ $type }}</label>
                     </div>
                     @endforeach
+                </div>
+                @php $topicEtcOn = in_array('기타', old('content_types', $client?->content_types ?? [])); @endphp
+                <div id="topicEtcWrap" style="margin-top:8px; display:{{ $topicEtcOn ? 'block' : 'none' }};">
+                    <input class="field-input" type="text" name="topic_etc" value="{{ old('topic_etc', $client?->topic_etc) }}" placeholder="기타 방송 주제 직접 입력">
                 </div>
             </div>
         </div>
@@ -193,6 +203,13 @@ function searchAddress() {
             document.getElementById('address_detail').focus();
         }
     }).open();
+}
+// '기타' 체크 시 수기입력 칸 토글 (플랫폼/콘텐츠 유형 공용) — 해제하면 값도 비움
+function toggleFormEtc(cb, wrapId) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    wrap.style.display = cb.checked ? 'block' : 'none';
+    if (!cb.checked) { const inp = wrap.querySelector('input'); if (inp) inp.value = ''; }
 }
 </script>
 @endpush

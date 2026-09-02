@@ -612,7 +612,7 @@ function renderCheckboxGroup(group, id, options, selected, etcText) {
     const hasEtc = sel.has('기타');
     const items = options.map(opt => {
         const checked = sel.has(opt) ? 'checked' : '';
-        const onChange = opt === '기타' ? ` onchange="toggleEtcInput('${group}',${id})"` : '';
+        const onChange = opt === '기타' ? ` onchange="toggleEtcInput('${group}','${id}')"` : ''; // id는 숫자(수정 폼)·문자열('nc' 새 의뢰자 모달) 모두 오므로 반드시 따옴표
         return `<label class="chk-chip${checked?' on':''}">
             <input type="checkbox" name="${group}-${id}" value="${opt}" ${checked}${onChange}>
             <span>${opt}</span>

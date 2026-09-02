@@ -34,6 +34,29 @@ class ClientRegisterRedesignTest extends TestCase
             ->assertSee('id="ncMemo"', false);
     }
 
+    public function test_etc_input_toggle_uses_quoted_id(): void
+    {
+        // 새 의뢰자 모달은 그룹 id가 문자열('nc')이라 인라인 핸들러 id를 따옴표로 감싸야 함 —
+        // 미인용 시 ReferenceError로 '기타' 수기입력 칸이 열리지 않던 버그 회귀 방지
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/clients')->assertOk()
+            ->assertSee("toggleEtcInput('\${group}','\${id}')", false);
+    }
+
+    public function test_create_page_shows_etc_inputs_for_platform_and_topic(): void
+    {
+        // 등록 페이지(/clients/create)에도 플랫폼·방송 주제 '기타' 수기입력 칸 제공
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/clients/create')->assertOk()
+            ->assertSee('platformEtcWrap', false)
+            ->assertSee('name="platform_etc"', false)
+            ->assertSee('topicEtcWrap', false)
+            ->assertSee('name="topic_etc"', false)
+            ->assertSee('toggleFormEtc', false);
+    }
+
     public function test_detail_view_renders_readonly_layout_with_edit_toggle(): void
     {
         // 조회 페이지 리디자인 (디자인 3a) — 읽기 전용 섹션 뷰 + 수정 버튼 토글, 장비는 프로젝트 연동
