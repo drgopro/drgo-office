@@ -83,6 +83,34 @@ class EquipmentFieldAddTest extends TestCase
         $this->assertFalse($labels->contains('크로마키'));
     }
 
+    public function test_client_detail_exposes_per_project_equipment(): void
+    {
+        // 한 의뢰자가 여러 장소(프로젝트)에 세팅 — 캘린더가 연결 프로젝트 기준으로 쓰도록 프로젝트별 장비 제공
+        $admin = User::factory()->create(['role' => 'admin']);
+        ProjectFieldDefinition::create(['key' => 'capture_board', 'label' => '캡처보드', 'type' => 'toggle', 'section' => 'equipment']);
+        ProjectFieldDefinition::create(['key' => 'prompter', 'label' => '프롬프터', 'type' => 'toggle', 'section' => 'equipment']);
+        $client = Client::create(['name' => '테스트 의뢰자', 'grade' => 'normal']);
+        $p1 = Project::create(['client_id' => $client->id, 'name' => '집 세팅', 'custom_data' => ['capture_board' => true]]);
+        $p2 = Project::create(['client_id' => $client->id, 'name' => '작업실 세팅', 'custom_data' => ['prompter' => true]]);
+        $p3 = Project::create(['client_id' => $client->id, 'name' => '장비 미입력 세팅']);
+        $p1->forceFill(['created_at' => now()->subDays(2)])->save();
+        $p2->forceFill(['created_at' => now()->subDay()])->save();
+
+        $res = $this->actingAs($admin)->getJson("/api/clients/{$client->id}/detail")->assertOk()->json();
+        $byId = collect($res['projects'])->keyBy('id');
+        $this->assertSame(['캡처보드'], collect($byId[$p1->id]['equipment']['fields'])->pluck('label')->all());
+        $this->assertSame(['프롬프터'], collect($byId[$p2->id]['equipment']['fields'])->pluck('label')->all());
+        $this->assertNull($byId[$p3->id]['equipment']); // 장비 없는 프로젝트는 null
+
+        // 폴백(last_project_equipment) — 최신(미입력)은 장비가 없으므로 장비 있는 가장 최근(작업실) 기준
+        $this->assertSame('작업실 세팅', $res['last_project_equipment']['project_name']);
+
+        // 캘린더 JS — 연결 프로젝트 우선 로직 렌더 확인
+        $this->actingAs($admin)->get('/calendar')->assertOk()
+            ->assertSee('sel.equipment', false)
+            ->assertSee('최신 프로젝트 기준', false);
+    }
+
     public function test_project_page_contains_item_edit_ui(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

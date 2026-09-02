@@ -189,10 +189,17 @@ function updateClientAddrBtn(){
 }
 function resetLinkedClientDetail(){ linkedClientDetail=null; updateClientAddrBtn(); updateProjAddrBtn(); renderLinkedEquip(); }
 
-// ── 연동 장비 — 의뢰자 상세의 프로젝트 장비 정보(last_project_equipment)를 수정/요약 뷰에 표시 ──
+// ── 연동 장비 — 일정에 연결된 프로젝트의 장비를 우선 표시 (한 의뢰자가 여러 장소에 세팅하는 경우 대비),
+//    프로젝트 미선택 시에만 최신 프로젝트 장비로 폴백 (폴백임을 라벨로 구분) ──
 function linkedEquipData(){
-    const eq=(linkedClientId&&linkedClientDetail)?linkedClientDetail.last_project_equipment:null;
-    return (eq&&(eq.fields||[]).length)?eq:null;
+    if(!linkedClientId||!linkedClientDetail) return null;
+    const sel=selectedProjectData();
+    if(sel){
+        const eq=sel.equipment;
+        return (eq&&(eq.fields||[]).length)?{...eq,source:'project'}:null; // 연결 프로젝트에 장비 없음 → 표시 안 함
+    }
+    const eq=linkedClientDetail.last_project_equipment;
+    return (eq&&(eq.fields||[]).length)?{...eq,source:'latest'}:null;
 }
 // 장비 값 표시 — 수량형 {value,qty}·배열·토글 포함 (의뢰자 페이지 표기 규칙과 동일)
 function calEquipDisplay(v){
@@ -214,7 +221,10 @@ function renderLinkedEquip(){
     if(!eq){ wrap.style.display='none'; wrap.innerHTML=''; return; }
     const groups={};
     eq.fields.forEach(f=>{const s=f.subsection||'기타';(groups[s]=groups[s]||[]).push(f);});
-    wrap.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 연동</span><span class="leq-src">「${_esc(eq.project_name)}」 · ${eq.created_at}</span><a class="leq-open" href="/projects/${eq.project_id}" target="_blank">원본 →</a></div>`
+    const badge=eq.source==='latest'
+        ? '<span class="leq-badge" title="일정에 프로젝트를 연결하면 그 프로젝트의 장비로 표시됩니다">최신 프로젝트 기준</span>'
+        : '<span class="leq-badge">프로젝트 연동</span>';
+    wrap.innerHTML=`<div class="leq-head">${badge}<span class="leq-src">「${_esc(eq.project_name)}」 · ${eq.created_at}</span><a class="leq-open" href="/projects/${eq.project_id}" target="_blank">원본 →</a></div>`
         +Object.keys(groups).map(sub=>`<div class="leq-group"><div class="leq-sub">${_esc(sub)}</div>${groups[sub].map(f=>`<div class="leq-row"><span class="leq-l">${_esc(f.label)}</span><span class="leq-v">${_esc(calEquipDisplay(f.value))}</span></div>`).join('')}</div>`).join('');
     wrap.style.display='';
 }

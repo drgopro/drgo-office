@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\ClientContact;
 use App\Models\ClientMemo;
+use App\Models\Project;
 use App\Models\ProjectFieldDefinition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -141,61 +142,66 @@ class ClientController extends Controller
         $client->load('assignedUser', 'projects.consultations', 'documents', 'memos.user', 'estimates.creator', 'contacts');
         $pii = $this->canViewPii();
 
-        // 장비 정보 연동 — 최신 프로젝트 우선, 비어 있으면 장비 정보가 적힌 가장 최근 프로젝트로 폴백
-        $lastProjectEquipment = null;
+        // 장비 정보 연동 — 프로젝트별 장비를 각각 계산해 제공.
+        // (한 의뢰자가 여러 장소에 세팅하는 경우 캘린더는 일정에 연결된 프로젝트의 장비를 쓴다)
         $sortedProjects = $client->projects->sortByDesc('created_at');
-        if ($sortedProjects->isNotEmpty()) {
-            $eqFields = ProjectFieldDefinition::where('section', 'equipment')
+        $eqFields = $sortedProjects->isNotEmpty()
+            ? ProjectFieldDefinition::where('section', 'equipment')
                 ->where('is_active', true)
                 ->orderByDesc('priority')
                 ->orderBy('subsection')
                 ->orderBy('sort_order')
                 ->orderBy('id')
-                ->get(['key', 'label', 'type', 'subsection', 'priority', 'options']);
+                ->get(['key', 'label', 'type', 'subsection', 'priority', 'options'])
+            : collect();
 
-            foreach ($sortedProjects as $project) {
-                $custom = $project->custom_data ?? [];
-                // 프로젝트 전용 장비 항목 (custom_data.__equip_items) — 전역 정의 뒤에 이어서
-                $localDefs = collect($custom['__equip_items'] ?? [])
-                    ->filter(fn ($i) => is_array($i) && ! empty($i['key']) && ! empty($i['label']))
-                    ->map(fn ($i) => (object) [
-                        'key' => $i['key'],
-                        'label' => $i['label'],
-                        'type' => $i['type'] ?? 'text',
-                        'subsection' => $i['subsection'] ?? null,
-                        'priority' => 0,
-                        'options' => $i['options'] ?? null,
-                    ]);
-                $values = [];
-                foreach ($eqFields->concat($localDefs) as $f) {
-                    $v = $custom[$f->key] ?? null;
-                    // false = 토글 '없음' — 미입력과 동일하게 표시하지 않음 ({value:false, qty:…} 수량형 포함)
-                    if ($v === null || $v === '' || $v === false || (is_array($v) && empty($v))
-                        || (is_array($v) && array_key_exists('value', $v) && in_array($v['value'], [null, '', false], true))) {
-                        continue;
-                    }
-                    $values[] = [
-                        'key' => $f->key,
-                        'label' => $f->label,
-                        'type' => $f->type,
-                        'subsection' => $f->subsection,
-                        'priority' => $f->priority,
-                        'value' => $v,
-                    ];
+        $equipmentOf = function (Project $project) use ($eqFields, $sortedProjects): ?array {
+            $custom = $project->custom_data ?? [];
+            // 프로젝트 전용 장비 항목 (custom_data.__equip_items) — 전역 정의 뒤에 이어서
+            $localDefs = collect($custom['__equip_items'] ?? [])
+                ->filter(fn ($i) => is_array($i) && ! empty($i['key']) && ! empty($i['label']))
+                ->map(fn ($i) => (object) [
+                    'key' => $i['key'],
+                    'label' => $i['label'],
+                    'type' => $i['type'] ?? 'text',
+                    'subsection' => $i['subsection'] ?? null,
+                    'priority' => 0,
+                    'options' => $i['options'] ?? null,
+                ]);
+            $values = [];
+            foreach ($eqFields->concat($localDefs) as $f) {
+                $v = $custom[$f->key] ?? null;
+                // false = 토글 '없음' — 미입력과 동일하게 표시하지 않음 ({value:false, qty:…} 수량형 포함)
+                if ($v === null || $v === '' || $v === false || (is_array($v) && empty($v))
+                    || (is_array($v) && array_key_exists('value', $v) && in_array($v['value'], [null, '', false], true))) {
+                    continue;
                 }
-                if (! empty($values)) {
-                    $lastProjectEquipment = [
-                        'project_id' => $project->id,
-                        'project_name' => $project->name,
-                        'created_at' => $project->created_at->format('Y.m.d'),
-                        // 최신 프로젝트가 아닌 과거 프로젝트에서 가져온 경우 표시용
-                        'is_latest' => $project->is($sortedProjects->first()),
-                        'fields' => $values,
-                    ];
-                    break; // 장비 정보가 있는 가장 최근 프로젝트에서 중단
-                }
+                $values[] = [
+                    'key' => $f->key,
+                    'label' => $f->label,
+                    'type' => $f->type,
+                    'subsection' => $f->subsection,
+                    'priority' => $f->priority,
+                    'value' => $v,
+                ];
             }
-        }
+            if (empty($values)) {
+                return null;
+            }
+
+            return [
+                'project_id' => $project->id,
+                'project_name' => $project->name,
+                'created_at' => $project->created_at->format('Y.m.d'),
+                // 최신 프로젝트가 아닌 과거 프로젝트에서 가져온 경우 표시용
+                'is_latest' => $project->is($sortedProjects->first()),
+                'fields' => $values,
+            ];
+        };
+
+        // 폴백 표시용 — 최신 프로젝트 우선, 비어 있으면 장비 정보가 적힌 가장 최근 프로젝트
+        $projectEquipments = $sortedProjects->mapWithKeys(fn (Project $p) => [$p->id => $equipmentOf($p)]);
+        $lastProjectEquipment = $projectEquipments->filter()->first();
 
         return response()->json([
             'id' => $client->id,
@@ -237,6 +243,7 @@ class ClientController extends Controller
                 'address_detail' => $pii ? $p->address_detail : null,
                 'created_at' => $p->created_at->format('Y.m.d'),
                 'consultations_count' => $p->consultations->count(),
+                'equipment' => $projectEquipments[$p->id] ?? null, // 프로젝트별 장비 — 캘린더가 연결 프로젝트 기준으로 표시
             ]),
             'documents' => $client->documents->map(fn ($d) => [
                 'id' => $d->id,
