@@ -176,6 +176,7 @@
     .doc-grid { display:flex; flex-wrap:wrap; gap:12px; }
     .doc-cat-tab { padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:11.5px; font-weight:700; cursor:pointer; }
     .doc-cat-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .doc-up-tabs { display:flex; gap:5px; flex-wrap:wrap; padding-bottom:1px; }
     .doc-thumb-card { position:relative; width:120px; cursor:pointer; }
     .doc-thumb-card .thumb-img { width:120px; height:120px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; color:var(--text-muted); font-weight:600; transition:border-color 0.15s; }
     .doc-thumb-card:hover .thumb-img { border-color:var(--accent); }
@@ -1245,11 +1246,18 @@
                             <button type="button" class="btn-choose" onclick="document.getElementById('docFileInput').click()">파일 선택 (여러 개 가능)</button>
                         </div>
                         <div>
-                            <div class="field-mini">카테고리 *</div>
-                            <select name="category">
+                            <div class="field-mini">분류 *</div>
+                            <div class="doc-up-tabs" id="docUpTabs">
+                                <button type="button" class="doc-cat-tab active" data-cat="방 사진" onclick="setDocUpCat(this)">방 사진</button>
+                                <button type="button" class="doc-cat-tab" data-cat="레퍼런스" onclick="setDocUpCat(this)">레퍼런스</button>
+                                <button type="button" class="doc-cat-tab" data-cat="" onclick="setDocUpCat(this)">파일</button>
+                            </div>
+                        </div>
+                        {{-- '파일' 탭 전용 — 기존 세부 분류 --}}
+                        <div id="docFileCatWrap" style="display:none;">
+                            <div class="field-mini">파일 분류 *</div>
+                            <select id="docFileCatSel" onchange="syncDocUpCat()">
                                 <option value="사진/이미지" selected>사진/이미지</option>
-                                <option value="방 사진">방 사진</option>
-                                <option value="레퍼런스">레퍼런스</option>
                                 <option value="현금영수증">현금영수증</option>
                                 <option value="사업자등록증">사업자등록증</option>
                                 <option value="계약서">계약서</option>
@@ -1257,6 +1265,7 @@
                                 <option value="기타">기타</option>
                             </select>
                         </div>
+                        <input type="hidden" name="category" id="docCategoryInput" value="방 사진">
                         <div style="flex:1; min-width:120px;">
                             <div class="field-mini">메모</div>
                             <input type="text" name="note" placeholder="간단한 메모" style="width:100%;">
@@ -1921,6 +1930,18 @@ async function deleteProject() {
     } else {
         alert('삭제 실패');
     }
+}
+
+// 업로드 분류 탭 — 방 사진/레퍼런스는 즉시 지정, '파일' 탭은 세부 분류 셀렉트 노출
+function setDocUpCat(btn) {
+    document.querySelectorAll('#docUpTabs .doc-cat-tab').forEach(b => b.classList.toggle('active', b === btn));
+    const isFileTab = !btn.dataset.cat;
+    document.getElementById('docFileCatWrap').style.display = isFileTab ? '' : 'none';
+    syncDocUpCat();
+}
+function syncDocUpCat() {
+    const active = document.querySelector('#docUpTabs .doc-cat-tab.active');
+    document.getElementById('docCategoryInput').value = active?.dataset.cat || document.getElementById('docFileCatSel').value;
 }
 
 // 첨부 문서 분류 필터 — 탭 선택 시 해당 분류 카드만 표시 (앨범 인덱스는 전체 기준 유지)

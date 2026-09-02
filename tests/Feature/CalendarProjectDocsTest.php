@@ -73,8 +73,13 @@ class CalendarProjectDocsTest extends TestCase
         ]);
 
         $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk()
-            ->assertSee('<option value="방 사진">방 사진</option>', false)   // 업로드 분류 추가
-            ->assertSee('<option value="레퍼런스">레퍼런스</option>', false)
+            // 업로드 분류 — 방 사진/레퍼런스/파일 탭 + '파일' 탭 전용 세부 분류 셀렉트
+            ->assertSee('docUpTabs', false)
+            ->assertSee('data-cat="방 사진"', false)
+            ->assertSee('data-cat="레퍼런스"', false)
+            ->assertSee('docFileCatSel', false)
+            ->assertSee('<option value="계약서">계약서</option>', false)
+            ->assertSee('id="docCategoryInput"', false)
             ->assertSee('docCatTabs', false)                               // 분류 필터 탭
             ->assertSee('방 사진 1', false)
             ->assertSee('레퍼런스 1', false)
