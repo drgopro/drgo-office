@@ -255,7 +255,9 @@
     /* 바 레인 자리 스페이서 + 레인에 삽입된 칩 — 높이 16 + 셀 gap 1 = 바 피치(17px)와 일치해야 함 */
     .mc-slot { height:16px; flex-shrink:0; }
     .mc-chip.in-lane { height:16px; line-height:14px; }
-    .mc-chip { height:16px; line-height:14px; font-size:10.5px; padding:0 3px 0 4px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex-shrink:0; }
+    .mc-chip { display:flex; align-items:center; gap:2px; height:16px; line-height:14px; font-size:10.5px; padding:0 3px 0 4px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); border-radius:3px; white-space:nowrap; overflow:hidden; cursor:pointer; flex-shrink:0; }
+    .mc-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mc-assignee { flex-shrink:0; margin-left:auto; font-size:9px; font-weight:600; color:var(--text-muted); max-width:46%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-left:3px; }
     .mc-chip:hover { filter:brightness(1.15); }
     .mc-chip .mc-time { display:inline-block; min-width:29px; opacity:0.7; font-size:9.5px; margin-right:2px; font-variant-numeric:tabular-nums; }
     .mc-chip.is-completed, .mc-bar.is-completed { opacity:0.4; }
@@ -263,7 +265,7 @@
     .mc-more:hover { color:var(--accent); }
     .mc-bar { position:absolute; z-index:4; height:15px; line-height:13px; font-size:10px; font-weight:600; padding:0 5px 0 4px; border-radius:3px; border-left:3px solid var(--accent); background:var(--chip-single-bg); color:var(--text); white-space:nowrap; overflow:visible; cursor:pointer; box-sizing:border-box; }
     {{-- 라벨(직계 span)만 블록 처리 — 하위 span(확정 칩 등)까지 block이 되면 칩이 바 폭만큼 늘어짐 --}}
-    .mc-bar > span { display:block; overflow:hidden; text-overflow:ellipsis; }
+    .mc-bar > span { display:flex; align-items:center; gap:2px; overflow:hidden; }
     .mc-bar .opt-chip.sched-end { font-size:9px; line-height:1.3; margin-left:3px; padding:0 3px; }
     {{-- 월간 뷰 단일 칩과 동일한 연한 틴트 (진한 배경은 작은 글씨 가독성 저하) --}}
     @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)
@@ -272,6 +274,7 @@
     @endforeach
     @media (max-width: 768px) {
         #monthCompactView { margin-bottom:58px; } /* 하단 시트 바에 마지막 주가 가리지 않도록 */
+        .mc-assignee { display:none; } /* 모바일 그리드는 공간 부족 — 하단 시트에 담당자 표시 */
         .mc-chip { height:18px; line-height:16px; font-size:10px; padding-left:3px; border-left-width:2px; }
         .mc-bar { font-size:9.5px; }
         .mc-daynum { font-size:10px; }

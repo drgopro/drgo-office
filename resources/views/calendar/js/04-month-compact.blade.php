@@ -1,6 +1,15 @@
 {{-- 월간 뷰·컴팩트(전체) 뷰·모바일 시트 --}}
 // ── 월간 뷰 ─────────────────────────────────────────────────────
 // ── 컴팩트 월간 뷰 (네이버식 고밀도 — 균등 6주 셀 + 작은 칩 + "+N") ──
+// 전체(컴팩트) 뷰 담당자 배지 — 첫 이름 +N, 2명 이상은 hover 시 전체 명단 툴팁 (월간 뷰와 동일 규칙)
+function mcAssignee(ev){
+    const names=assigneeNamesOf(ev);
+    if(!names.length) return '';
+    const display=names.length>1?`${names[0]} +${names.length-1}`:names[0];
+    const esc=s=>String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    const an=names.length>1?` data-anames="${esc(names.join('|'))}" data-atitle="${esc(ev.title||'')}"`:'';
+    return `<span class="mc-assignee"${an}>${_esc(display)}</span>`;
+}
 function renderMonthCompact(){
     const view=document.getElementById('monthCompactView');
     if(!view) return;
@@ -47,7 +56,7 @@ function renderMonthCompact(){
             const e=evEnd(ev)>weekEnd?weekEnd:evEnd(ev);
             const c0=days.findIndex(d=>fmt(d)===s), c1=days.findIndex(d=>fmt(d)===e);
             if(c0<0||c1<0) return;
-            const label=_d(ev.start_date)>=weekStart||w===0?`<span>${eventOptIconsHtml(ev)}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</span>`:'<span></span>';
+            const label=_d(ev.start_date)>=weekStart||w===0?`<span>${eventOptIconsHtml(ev)}<span class="mc-title">${_esc(ev.title||'(제목 없음)')}</span>${schedStatusChip(ev)}${mcAssignee(ev)}</span>`:'<span></span>';
             bars+=`<div class="mc-bar color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}"
                 style="left:calc(${c0} * 100% / 7 + 2px); width:calc(${c1-c0+1} * 100% / 7 - 5px); top:${HEAD+lane*BAR}px;">${label}</div>`;
         });
@@ -76,7 +85,7 @@ function renderMonthCompact(){
                 show=daySingles.slice(0,cut);
             }
             // 시간을 칩 맨 앞 고정폭으로 — 아이콘 폭 차이로 시간 열이 어긋나지 않게 (시간 → 아이콘 → 제목 순)
-            const chipOf=(ev,inLane)=>`<div class="mc-chip${inLane?' in-lane':''} color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}${_esc(ev.title||'(제목 없음)')}${schedStatusChip(ev)}</div>`;
+            const chipOf=(ev,inLane)=>`<div class="mc-chip${inLane?' in-lane':''} color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}<span class="mc-title">${_esc(ev.title||'(제목 없음)')}</span>${schedStatusChip(ev)}${mcAssignee(ev)}</div>`;
             let body='', si=0;
             for(let L=0;L<laneRows;L++){
                 if(laneSet.has(L)) body+='<div class="mc-slot"></div>';
