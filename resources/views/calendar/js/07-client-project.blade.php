@@ -234,18 +234,30 @@ function linkedProjectDocs(){
     if(!sel||!(sel.documents||[]).length) return null;
     return {project_id:sel.id,project_name:sel.name,docs:sel.documents};
 }
+// 분류 표시 순서 (프로젝트 업로드 폼과 동일 기준)
+const LPD_CAT_ORDER=['방 사진','레퍼런스','사진/이미지','계약서','견적서','현금영수증','사업자등록증','방문 보고서','기타'];
+function lpdGroupByCategory(docs){
+    const groups={};
+    docs.forEach(doc=>{const c=doc.category||'기타';(groups[c]=groups[c]||[]).push(doc);});
+    return Object.keys(groups)
+        .sort((a,b)=>{const ia=LPD_CAT_ORDER.indexOf(a),ib=LPD_CAT_ORDER.indexOf(b);return (ia===-1?99:ia)-(ib===-1?99:ib);})
+        .map(cat=>({cat,docs:groups[cat]}));
+}
 function renderLinkedProjDocs(){
     const wrap=document.getElementById('linkedProjDocsWrap');
     if(!wrap) return;
     const d=linkedProjectDocs();
     if(!d){ wrap.style.display='none'; wrap.innerHTML=''; return; }
-    const cells=d.docs.map(doc=>{
+    const cell=doc=>{
         const tip=_esc(doc.file_name)+(doc.note?' · '+_esc(doc.note):'')+(doc.created_at?' · '+doc.created_at:'');
         if(doc.thumb_url) return `<a class="lpd-cell" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><img src="${_esc(doc.thumb_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async"></a>`;
         const ext=((doc.file_name||'').split('.').pop()||'').toUpperCase().slice(0,5);
         return `<a class="lpd-cell lpd-file" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><span class="lpd-ext">${_esc(ext||'파일')}</span><span class="lpd-name">${_esc(doc.file_name)}</span></a>`;
-    }).join('');
-    wrap.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 첨부 문서</span><span class="leq-src">「${_esc(d.project_name)}」 · ${d.docs.length}건</span><a class="leq-open" href="/projects/${d.project_id}" target="_blank">원본 →</a></div><div class="lpd-grid">${cells}</div>`;
+    };
+    const body=lpdGroupByCategory(d.docs)
+        .map(g=>`<div class="lpd-group"><div class="leq-sub">${_esc(g.cat)} ${g.docs.length}</div><div class="lpd-grid">${g.docs.map(cell).join('')}</div></div>`)
+        .join('');
+    wrap.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 첨부 문서</span><span class="leq-src">「${_esc(d.project_name)}」 · ${d.docs.length}건</span><a class="leq-open" href="/projects/${d.project_id}" target="_blank">원본 →</a></div>${body}`;
     wrap.style.display='';
 }
 // 상세 도착 시 공통 갱신 — 수정 뷰 블록 + (잠금 중이면) 요약 카드 재렌더

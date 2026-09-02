@@ -174,6 +174,8 @@
 
     /* 썸네일 그리드 (업로드된 파일) */
     .doc-grid { display:flex; flex-wrap:wrap; gap:12px; }
+    .doc-cat-tab { padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:11.5px; font-weight:700; cursor:pointer; }
+    .doc-cat-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .doc-thumb-card { position:relative; width:120px; cursor:pointer; }
     .doc-thumb-card .thumb-img { width:120px; height:120px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; color:var(--text-muted); font-weight:600; transition:border-color 0.15s; }
     .doc-thumb-card:hover .thumb-img { border-color:var(--accent); }
@@ -1246,6 +1248,8 @@
                             <div class="field-mini">카테고리 *</div>
                             <select name="category">
                                 <option value="사진/이미지" selected>사진/이미지</option>
+                                <option value="방 사진">방 사진</option>
+                                <option value="레퍼런스">레퍼런스</option>
                                 <option value="현금영수증">현금영수증</option>
                                 <option value="사업자등록증">사업자등록증</option>
                                 <option value="계약서">계약서</option>
@@ -1263,6 +1267,21 @@
                 </div>
             </form>
             @if($project->documents->count() > 0)
+                @php
+                    // 분류 필터 탭 — 등록된 문서에 실제로 있는 분류만, 표시 순서는 CATEGORIES 기준
+                    $docCats = $project->documents->map(fn ($d) => $d->category())
+                        ->unique()
+                        ->sortBy(fn ($c) => array_search($c, \App\Models\ProjectDocument::CATEGORIES))
+                        ->values();
+                @endphp
+                @if($docCats->count() > 1)
+                    <div class="doc-cat-tabs" id="docCatTabs" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+                        <button type="button" class="doc-cat-tab active" data-cat="" onclick="filterDocCat(this)">전체 {{ $project->documents->count() }}</button>
+                        @foreach($docCats as $cat)
+                            <button type="button" class="doc-cat-tab" data-cat="{{ $cat }}" onclick="filterDocCat(this)">{{ $cat }} {{ $project->documents->filter(fn ($d) => $d->category() === $cat)->count() }}</button>
+                        @endforeach
+                    </div>
+                @endif
                 <div class="doc-grid">
                     @foreach($project->documents->sortByDesc('created_at') as $i => $doc)
                     @php
@@ -1271,7 +1290,7 @@
                         $isPdf = ($doc->mime_type ?? '') === 'application/pdf';
                         $ext = strtoupper(pathinfo($doc->file_name, PATHINFO_EXTENSION));
                     @endphp
-                    <div class="doc-thumb-card" onclick="openAlbum({{ $i }})">
+                    <div class="doc-thumb-card" data-doc-cat="{{ $doc->category() }}" onclick="openAlbum({{ $i }})">
                         <div class="thumb-img">
                             @if($isImg)
                                 <img src="{{ route('project-documents.thumb', $doc) }}" alt="{{ $doc->file_name }}" loading="lazy" decoding="async">
@@ -1902,6 +1921,15 @@ async function deleteProject() {
     } else {
         alert('삭제 실패');
     }
+}
+
+// 첨부 문서 분류 필터 — 탭 선택 시 해당 분류 카드만 표시 (앨범 인덱스는 전체 기준 유지)
+function filterDocCat(btn) {
+    const cat = btn.dataset.cat;
+    document.querySelectorAll('#docCatTabs .doc-cat-tab').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.doc-thumb-card').forEach(card => {
+        card.style.display = (!cat || card.dataset.docCat === cat) ? '' : 'none';
+    });
 }
 
 // 앨범 뷰어 + 줌/드래그

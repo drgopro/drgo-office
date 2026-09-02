@@ -416,16 +416,19 @@ function renderLockSummary(){
             <div class="ls-img-grid">${cells.join('')}</div>
         </div>`;
     });
-    // 연결 프로젝트의 첨부 문서 — 프로젝트 상세에서 업로드한 파일을 요약에서도 함께 노출 (읽기 전용)
+    // 연결 프로젝트의 첨부 문서 — 프로젝트 상세에서 업로드한 파일을 분류(방 사진/레퍼런스 등)별로 노출 (읽기 전용)
     const lpd = (typeof linkedProjectDocs === 'function') ? linkedProjectDocs() : null;
     if (lpd) {
-        const cells = lpd.docs.map(doc => doc.thumb_url
-            ? `<img src="${_esc(doc.thumb_url)}" data-full="${_esc(doc.view_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async">`
-            : `<a class="ls-file" href="${_esc(doc.view_url)}" target="_blank" title="${_esc(doc.file_name)}">📄<span>${_esc(doc.file_name)}</span></a>`);
-        imgHtml += `<div class="ls-img-section">
-            <div class="ls-img-label">프로젝트 첨부 문서 · 「${_esc(lpd.project_name)}」 ${lpd.docs.length}건</div>
-            <div class="ls-img-grid">${cells.join('')}</div>
-        </div>`;
+        imgHtml += `<div class="ls-sub" style="margin-top:8px;">프로젝트 첨부 문서 · 「${_esc(lpd.project_name)}」 ${lpd.docs.length}건</div>`;
+        lpdGroupByCategory(lpd.docs).forEach(g => {
+            const cells = g.docs.map(doc => doc.thumb_url
+                ? `<img src="${_esc(doc.thumb_url)}" data-full="${_esc(doc.view_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async">`
+                : `<a class="ls-file" href="${_esc(doc.view_url)}" target="_blank" title="${_esc(doc.file_name)}">📄<span>${_esc(doc.file_name)}</span></a>`);
+            imgHtml += `<div class="ls-img-section">
+                <div class="ls-img-label">${_esc(g.cat)} ${g.docs.length}</div>
+                <div class="ls-img-grid">${cells.join('')}</div>
+            </div>`;
+        });
     }
     if (imgEmpty.length) imgHtml += `<div class="ls-sub" style="margin-top:4px;">${imgEmpty.join(' · ')} — 등록된 항목 없음</div>`;
     right.push(lsCard('첨부 파일', imgHtml || '<div class="ls-text-block muted">— 등록된 첨부 없음 —</div>', '<span class="ls-attach-hint">탭하여 크게 보기</span>', 'ls-c-attach'));

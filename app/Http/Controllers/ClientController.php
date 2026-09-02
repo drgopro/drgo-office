@@ -249,7 +249,8 @@ class ClientController extends Controller
                     'id' => $d->id,
                     'file_name' => $d->file_name,
                     'mime_type' => $d->mime_type,
-                    'note' => $d->note,
+                    'category' => $d->category(), // 방 사진/레퍼런스 등 — 캘린더 분류 표시용
+                    'note' => $d->noteBody(),
                     'view_url' => route('project-documents.serve', $d),
                     'thumb_url' => str_starts_with((string) $d->mime_type, 'image/') ? route('project-documents.thumb', $d) : null,
                     'download_url' => route('project-documents.download', $d),

@@ -748,7 +748,9 @@
     #modalOverlay .leq-v { margin-left:auto; font-weight:700; color:var(--m-ink); text-align:right; min-width:0; overflow-wrap:anywhere; }
     /* 연동 프로젝트 첨부 문서 — 수정 뷰(#linkedProjDocsWrap) 읽기 전용 썸네일 그리드 */
     #modalOverlay #linkedProjDocsWrap { border:1px solid var(--m-line); border-radius:12px; padding:10px 12px; margin-top:12px; background:color-mix(in srgb, var(--m-accent) 4%, #fff); }
-    #modalOverlay .lpd-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(74px, 1fr)); gap:6px; margin-top:8px; }
+    #modalOverlay .lpd-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(74px, 1fr)); gap:6px; margin-top:4px; }
+    #modalOverlay .lpd-group { margin-top:9px; }
+    #modalOverlay .lpd-group + .lpd-group { padding-top:9px; border-top:1px dashed color-mix(in srgb, var(--m-line) 70%, transparent); }
     #modalOverlay .lpd-cell { display:block; border:1px solid var(--m-line); border-radius:8px; overflow:hidden; background:#fff; aspect-ratio:1; text-decoration:none; }
     #modalOverlay .lpd-cell img { width:100%; height:100%; object-fit:cover; display:block; }
     #modalOverlay .lpd-file { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:6px; }
