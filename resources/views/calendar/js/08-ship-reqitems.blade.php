@@ -53,7 +53,7 @@ const CARRIER_TRACK_URLS={
     'kr.coupangls':'https://www.coupangls.com/web/modal/invoice/{no}', // 조회 모달 딥링크 — 송장번호 자동 입력
 };
 function shipRowHtml(s){
-    const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:['✕','var(--red)']);
+    const ico=s.status==='delivered'?['○','var(--green)']:(s.status==='error'?['⚠','var(--red)']:(s.status==='manual'?['↗','#d78a2e']:['✕','var(--red)']));
     const evTxt=s.status==='delivered'?`배송완료${s.delivered_at?' · '+s.delivered_at:''}`:(s.last_event||'조회 대기');
     const trackUrl=CARRIER_TRACK_URLS[s.carrier];
     const trackHref=trackUrl?(trackUrl.includes('{no}')?trackUrl.replace('{no}',encodeURIComponent(s.tracking_no)):trackUrl):null;

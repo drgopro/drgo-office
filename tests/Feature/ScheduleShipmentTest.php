@@ -95,8 +95,9 @@ class ScheduleShipmentTest extends TestCase
         $this->assertArrayHasKey('kr.coupangls', $res->json('carriers'));
     }
 
-    public function test_opaque_tracker_internal_error_is_translated(): void
+    public function test_coupang_blocked_marks_manual_check_status(): void
     {
+        // 쿠팡(Akamai)이 서버 IP를 차단 — 오류 대신 '직접 조회' 상태로 안내 (추적기는 호출하지 않음)
         config(['services.delivery_tracker.url' => 'http://tracker.test']);
         Http::fake([
             'tracker.test*' => Http::response(['errors' => [['message' => 'Internal error']]]),
@@ -112,9 +113,9 @@ class ScheduleShipmentTest extends TestCase
         ])->assertCreated();
 
         $shipment = $schedule->shipments()->first();
-        $this->assertSame('error', $shipment->status);
+        $this->assertSame('manual', $shipment->status);
         $this->assertStringContainsString('직접 확인', $shipment->last_event);
-        $this->assertStringNotContainsString('Internal error', $shipment->last_event);
+        Http::assertNotSent(fn ($req) => str_contains($req->url(), 'tracker.test'));
     }
 
     public function test_coupang_direct_fallback_parses_tracking_page(): void
@@ -181,7 +182,7 @@ HTML;
         $schedule = $this->makeSchedule();
 
         $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
-            'carrier' => 'kr.coupangls',
+            'carrier' => 'kr.cjlogistics',
             'tracking_no' => '10325790701100',
         ])->assertCreated();
 
@@ -204,7 +205,7 @@ HTML;
         $schedule = $this->makeSchedule();
 
         $this->actingAs($user)->postJson("/api/schedules/{$schedule->id}/shipments", [
-            'carrier' => 'kr.coupangls',
+            'carrier' => 'kr.cjlogistics',
             'tracking_no' => '10325790701100',
         ])->assertCreated();
 

@@ -1977,7 +1977,7 @@ function toggleShipments(id) {
     if (expandedShipments.has(id)) expandedShipments.delete(id); else expandedShipments.add(id);
     renderOrders();
 }
-const SHIP_ST = { delivered:['배송완료','badge-ok'], in_transit:['이동 중','badge-ordered'], out_for_delivery:['배송 출발','badge-ordered'], at_pickup:['인수','badge-ordered'], pending:['집화 전','badge-requested'], error:['조회 오류','badge-low'], unknown:['조회 전','badge-requested'] };
+const SHIP_ST = { delivered:['배송완료','badge-ok'], in_transit:['이동 중','badge-ordered'], out_for_delivery:['배송 출발','badge-ordered'], at_pickup:['인수','badge-ordered'], pending:['집화 전','badge-requested'], error:['조회 오류','badge-low'], manual:['직접 조회','badge-requested'], unknown:['조회 전','badge-requested'] };
 function renderOrders() {
     const tb = document.getElementById('orderBody');
     if (!ORDER_ROWS.length) {

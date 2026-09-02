@@ -34,6 +34,13 @@ class DeliveryTrackerClient
      */
     public function fetch(string $carrier, string $trackingNo): array
     {
+        // 쿠팡(CLS) — Akamai가 해외/호스팅 IP의 서버 조회를 차단해 추적기로는 조회 불가.
+        // 직접 파싱을 먼저 시도하고(차단이 풀리면 자동 복귀), 실패하면 '직접 조회' 상태로 안내한다.
+        if ($carrier === 'kr.coupangls') {
+            return $this->fetchCoupangDirect($trackingNo)
+                ?? ['status' => 'manual', 'last_event' => '쿠팡은 서버 자동 조회가 차단되어 있습니다 — 송장번호 링크에서 직접 확인해주세요', 'last_location' => null, 'delivered_at' => null, 'raw' => null];
+        }
+
         // 셀프호스팅 우선 — DELIVERY_TRACKER_URL이 있으면 그 인스턴스를 사용 (비용 0원),
         // 없을 때만 공식 호스팅 API(apis.tracker.delivery, 키 필요)로 폴백
         $clientId = (string) config('services.delivery_tracker.client_id');
@@ -63,11 +70,6 @@ class DeliveryTrackerClient
 
         // GraphQL 에러 (NOT_FOUND = 송장 없음 등)
         if (! $res->ok() || ! empty($data['errors'])) {
-            // 쿠팡: 추적기 인스턴스가 구버전이거나 스크래핑에 실패하면 조회 페이지를 직접 파싱해 폴백
-            if ($carrier === 'kr.coupangls' && ($direct = $this->fetchCoupangDirect($trackingNo)) !== null) {
-                return $direct;
-            }
-
             $msg = (string) (data_get($data, 'errors.0.message') ?: '조회 실패 (송장번호/택배사 확인)');
 
             // 추적기 내부 오류(스크래핑 실패·택배사 측 차단 등) — 원문 대신 행동 가능한 안내로 치환

@@ -17,7 +17,7 @@ class AnonymousProjectConsultationTest extends TestCase
     private function payload(): array
     {
         return [
-            'consulted_at' => '2026-08-20',
+            'consulted_at' => now()->format('Y-m-d'), // 고정 날짜는 월이 바뀌면 통계 기간 밖으로 빠짐
             'consult_type' => 'phone',
             'result' => 'in_progress',
             'content' => '전화 상담 내용',
