@@ -517,6 +517,7 @@
                         </div>
                         <div id="linkedEstimateList" style="margin-top:4px;"></div>
                     </div>
+                    <div class="lpd-inline" data-lpd-group="quote" style="display:none;"></div>
                 </div>
                 <div class="img-upload-group">
                     <div class="img-upload-label">레퍼런스</div>
@@ -525,6 +526,7 @@
                         📷 레퍼런스 이미지를 클릭 또는 드래그하여 추가
                     </div>
                     <div class="img-grid" id="refGrid"></div>
+                    <div class="lpd-inline" data-lpd-group="reference" style="display:none;"></div>
                 </div>
                 <div class="img-upload-group">
                     <div class="img-upload-label">방 사진</div>
@@ -533,6 +535,7 @@
                         🏠 방 사진을 클릭 또는 드래그하여 추가
                     </div>
                     <div class="img-grid" id="roomGrid"></div>
+                    <div class="lpd-inline" data-lpd-group="room" style="display:none;"></div>
                 </div>
                 <div class="img-upload-group">
                     <div class="img-upload-label">첨부 파일</div>
@@ -541,6 +544,7 @@
                         📎 파일을 클릭 또는 드래그하여 추가 (PDF, 문서 등 가능)
                     </div>
                     <div class="img-grid" id="generalGrid"></div>
+                    <div class="lpd-inline" data-lpd-group="general" style="display:none;"></div>
                 </div>
             </div>
 

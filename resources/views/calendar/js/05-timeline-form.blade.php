@@ -318,6 +318,8 @@ function setColor(c){
     if(typeof updateBrRentalUI==='function') updateBrRentalUI();
     if(typeof updateMoveSettingUI==='function') updateMoveSettingUI();
     if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
+    // 연동 프로젝트 첨부 문서 — 방문의뢰는 첨부 이미지 그룹 안에, 그 외는 하단 블록에 (배치가 카테고리에 따라 달라짐)
+    if(typeof renderLinkedProjDocs==='function') renderLinkedProjDocs();
 }
 
 // ── 미팅/내방 · 사내업무(blue) 옵션 선택 UI — 목록은 '내방 옵션' 설정 공유 ──

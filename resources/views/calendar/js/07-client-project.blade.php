@@ -243,19 +243,39 @@ function lpdGroupByCategory(docs){
         .sort((a,b)=>{const ia=LPD_CAT_ORDER.indexOf(a),ib=LPD_CAT_ORDER.indexOf(b);return (ia===-1?99:ia)-(ib===-1?99:ib);})
         .map(cat=>({cat,docs:groups[cat]}));
 }
+// 분류 → 첨부 이미지 카드 그룹 매핑 (그 외 분류는 '첨부 파일' 그룹으로)
+const LPD_GROUP_OF={'방 사진':'room','레퍼런스':'reference','견적서':'quote'};
+function lpdCellHtml(doc){
+    const tip=_esc(doc.file_name)+(doc.note?' · '+_esc(doc.note):'')+(doc.created_at?' · '+doc.created_at:'');
+    if(doc.thumb_url) return `<a class="lpd-cell" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><img src="${_esc(doc.thumb_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async"></a>`;
+    const ext=((doc.file_name||'').split('.').pop()||'').toUpperCase().slice(0,5);
+    return `<a class="lpd-cell lpd-file" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><span class="lpd-ext">${_esc(ext||'파일')}</span><span class="lpd-name">${_esc(doc.file_name)}</span></a>`;
+}
 function renderLinkedProjDocs(){
     const wrap=document.getElementById('linkedProjDocsWrap');
+    const inlines=[...document.querySelectorAll('#modalOverlay .lpd-inline')];
     if(!wrap) return;
+    const clearInlines=()=>inlines.forEach(el=>{el.innerHTML='';el.style.display='none';});
     const d=linkedProjectDocs();
-    if(!d){ wrap.style.display='none'; wrap.innerHTML=''; return; }
-    const cell=doc=>{
-        const tip=_esc(doc.file_name)+(doc.note?' · '+_esc(doc.note):'')+(doc.created_at?' · '+doc.created_at:'');
-        if(doc.thumb_url) return `<a class="lpd-cell" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><img src="${_esc(doc.thumb_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async"></a>`;
-        const ext=((doc.file_name||'').split('.').pop()||'').toUpperCase().slice(0,5);
-        return `<a class="lpd-cell lpd-file" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><span class="lpd-ext">${_esc(ext||'파일')}</span><span class="lpd-name">${_esc(doc.file_name)}</span></a>`;
-    };
+    if(!d){ wrap.style.display='none'; wrap.innerHTML=''; clearInlines(); return; }
+    const isGold=(typeof currentColor!=='undefined'&&currentColor==='gold');
+    if(isGold&&inlines.length){
+        // 방문의뢰 — 첨부 이미지 카드의 견적서/레퍼런스/방 사진/첨부 파일 그룹 안에 분류별로 배치
+        wrap.style.display='none'; wrap.innerHTML='';
+        const byGroup={quote:[],reference:[],room:[],general:[]};
+        d.docs.forEach(doc=>{(byGroup[LPD_GROUP_OF[doc.category]||'general']||byGroup.general).push(doc);});
+        inlines.forEach(el=>{
+            const docs=byGroup[el.dataset.lpdGroup]||[];
+            if(!docs.length){ el.innerHTML=''; el.style.display='none'; return; }
+            el.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 연동</span><span class="leq-src">「${_esc(d.project_name)}」 · ${docs.length}건</span><a class="leq-open" href="/projects/${d.project_id}" target="_blank">원본 →</a></div><div class="lpd-grid">${docs.map(lpdCellHtml).join('')}</div>`;
+            el.style.display='';
+        });
+        return;
+    }
+    // 그 외 카테고리 — 하단 첨부 파일 카드에 분류별 그룹으로 (기존 방식)
+    clearInlines();
     const body=lpdGroupByCategory(d.docs)
-        .map(g=>`<div class="lpd-group"><div class="leq-sub">${_esc(g.cat)} ${g.docs.length}</div><div class="lpd-grid">${g.docs.map(cell).join('')}</div></div>`)
+        .map(g=>`<div class="lpd-group"><div class="leq-sub">${_esc(g.cat)} ${g.docs.length}</div><div class="lpd-grid">${g.docs.map(lpdCellHtml).join('')}</div></div>`)
         .join('');
     wrap.innerHTML=`<div class="leq-head"><span class="leq-badge">프로젝트 첨부 문서</span><span class="leq-src">「${_esc(d.project_name)}」 · ${d.docs.length}건</span><a class="leq-open" href="/projects/${d.project_id}" target="_blank">원본 →</a></div>${body}`;
     wrap.style.display='';

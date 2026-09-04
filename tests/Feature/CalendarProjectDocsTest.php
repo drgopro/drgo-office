@@ -91,8 +91,14 @@ class CalendarProjectDocsTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($admin)->get('/calendar')->assertOk()
-            ->assertSee('linkedProjDocsWrap', false)   // 수정 뷰 컨테이너
+            ->assertSee('linkedProjDocsWrap', false)   // 수정 뷰 공통 하단 컨테이너
             ->assertSee('renderLinkedProjDocs', false) // 렌더 함수 + 프로젝트 변경 훅
-            ->assertSee('프로젝트 첨부 문서', false);      // 요약 뷰 섹션 라벨
+            ->assertSee('프로젝트 첨부 문서', false)       // 요약 뷰 섹션 라벨
+            // 방문의뢰 — 첨부 이미지 카드의 그룹별 인라인 배치 (방 사진/레퍼런스/견적서/첨부 파일)
+            ->assertSee('data-lpd-group="room"', false)
+            ->assertSee('data-lpd-group="reference"', false)
+            ->assertSee('data-lpd-group="quote"', false)
+            ->assertSee('data-lpd-group="general"', false)
+            ->assertSee('LPD_GROUP_OF', false);
     }
 }
