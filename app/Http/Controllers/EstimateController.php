@@ -316,9 +316,9 @@ class EstimateController extends Controller
             'product_items.*.category_root' => 'nullable|string|max:100',
             'product_items.*.name' => 'required|string|max:200',
             'product_items.*.purchase_price' => 'nullable|numeric|min:0',
-            'product_items.*.sale_price' => 'required|numeric|min:0',
+            'product_items.*.sale_price' => 'required|numeric', // 음수 허용 — 재방문 할인 등 차감 항목 (-금액)
             'product_items.*.qty' => 'required|integer|min:1|max:9999',
-            'product_items.*.subtotal' => 'required|numeric|min:0',
+            'product_items.*.subtotal' => 'required|numeric', // 음수 허용 (차감 항목의 소계)
             'product_items.*.time_required' => 'nullable|string|max:50',
             'product_items.*.use_time' => 'nullable|boolean', // 소요시간 입력폼 사용 여부 (제품 설정 스냅샷)
             'product_items.*.manual' => 'nullable|boolean',
@@ -384,6 +384,25 @@ class EstimateController extends Controller
             $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
             $oldItemsForStock = $estimate->product_items; // 직접발송 재고 연동 — 저장 전 스냅샷
+
+            // validated()는 와일드카드 규칙 순서로 키를 재조립하므로 항목별 필드 구성이 다르면
+            // (예: 구버전 스냅샷에 category 없음) 숫자 키 순서가 뒤섞여 JSON에 배열 대신 객체로
+            // 저장되고 빌더(cartItems)가 깨진다 — 입력 순서로 되돌린 뒤 연속 배열로 정규화
+            if (array_key_exists('product_items', $validated) && is_array($validated['product_items'])) {
+                ksort($validated['product_items']);
+                $validated['product_items'] = array_values($validated['product_items']);
+                foreach ($validated['product_items'] as &$pi) {
+                    if (is_array($pi['bundle_items'] ?? null)) {
+                        ksort($pi['bundle_items']);
+                        $pi['bundle_items'] = array_values($pi['bundle_items']);
+                    }
+                }
+                unset($pi);
+            }
+            if (array_key_exists('service_items', $validated) && is_array($validated['service_items'])) {
+                ksort($validated['service_items']);
+                $validated['service_items'] = array_values($validated['service_items']);
+            }
 
             // 주문완료 처리 시각 — ordered 체크가 켜질 때 ordered_at 기록, 해제 시 제거 (주문 내역 표시용)
             if (array_key_exists('product_items', $validated) && is_array($validated['product_items'])) {

@@ -21,7 +21,7 @@ class EstimatePresetController extends Controller
         'items.*.category_root' => 'nullable|string|max:100',
         'items.*.name' => 'required|string|max:200',
         'items.*.purchase_price' => 'nullable|numeric|min:0',
-        'items.*.sale_price' => 'nullable|numeric|min:0',
+        'items.*.sale_price' => 'nullable|numeric', // 음수 허용 — 할인(차감) 항목
         'items.*.qty' => 'nullable|integer|min:1|max:999',
         'items.*.time_required' => 'nullable|string|max:50',
         'items.*.use_time' => 'nullable|boolean',

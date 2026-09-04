@@ -139,7 +139,7 @@
             <div class="svc-row">
                 <input id="miCat" placeholder="카테고리" style="flex:1;">
                 <input id="miName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')addManualItem()">
-                <input id="miPrice" type="number" min="0" placeholder="판매가" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
+                <input id="miPrice" type="number" placeholder="판매가 (음수=할인)" title="음수를 입력하면 할인(차감) 항목으로 합계에서 빠집니다" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miQty" type="number" min="1" value="1" title="수량" style="width:56px;">
                 <button class="btn-add-svc" style="padding:6px 14px;" onclick="addManualItem()">+ 추가</button>
             </div>
@@ -341,7 +341,7 @@ function addToCart(productId) {
 function addManualItem() {
     const name = document.getElementById('miName').value.trim();
     if (!name) return alert('제품명을 입력해주세요.');
-    const price = Math.max(0, parseInt(document.getElementById('miPrice').value) || 0);
+    const price = parseInt(document.getElementById('miPrice').value) || 0; // 음수 허용 — 할인(차감) 항목
     const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
     const miCat = document.getElementById('miCat').value.trim() || '기타';
     cartItems.push({ product_id: null, sku: '', category: miCat, category_root: miCat, name, purchase_price: 0, sale_price: price, qty, time_required: '', use_time: false, subtotal: price * qty, manual: true });
@@ -397,7 +397,7 @@ function renderCart() {
                 <td>${sortMode ? `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> ` : ''}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
                 <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:9px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
-                <td class="text-right"><input type="number" min="0" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
+                <td class="text-right"><input type="number" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
                 <td><div class="qty-ctrl">
                     <button onclick="changeQty(${idx},-1)">−</button>
                     <input value="${item.qty}" onchange="setQty(${idx},+this.value)">
@@ -574,7 +574,7 @@ function removeItem(idx) {
 }
 function changeQty(idx, d) { cartItems[idx].qty = Math.max(1, cartItems[idx].qty + d); cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty; renderCart(); }
 function setQty(idx, v) { cartItems[idx].qty = Math.max(1, parseInt(v)||1); cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty; renderCart(); }
-function setPrice(idx, v) { cartItems[idx].sale_price = Math.max(0, v||0); cartItems[idx].subtotal = cartItems[idx].sale_price * cartItems[idx].qty; renderCart(); }
+function setPrice(idx, v) { cartItems[idx].sale_price = v||0; cartItems[idx].subtotal = cartItems[idx].sale_price * cartItems[idx].qty; renderCart(); } // 음수 허용 — 할인(차감) 항목
 function updateTotals() {
     document.getElementById('grandTotal').textContent = fmt(cartItems.reduce((s,i) => s + (Number(i.subtotal)||0), 0)) + '원';
 }

@@ -480,7 +480,7 @@
             <div class="svc-row" id="manualRow">
                 <input id="miCat" placeholder="카테고리" style="flex:1;">
                 <input id="miName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')addManualItem()">
-                <input id="miPrice" type="number" min="0" placeholder="판매가" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
+                <input id="miPrice" type="number" placeholder="판매가 (음수=할인)" title="음수를 입력하면 할인(차감) 항목으로 총 견적 금액에서 빠집니다. 예: 재방문 할인 -50000" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miQty" type="number" min="1" value="1" title="수량" style="width:56px;">
                 <label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); white-space:nowrap; cursor:pointer;" title="체크하면 매출 통계에서 세팅비(서비스) 매출로 집계됩니다">
                     <input type="checkbox" id="miService" style="width:13px; height:13px;">서비스</label>
@@ -548,7 +548,7 @@
     <div class="m-field"><label>제품명 *</label><input id="mmName" placeholder="예: 조명 스탠드 커스텀 브라켓" maxlength="200"></div>
     <div class="m-field"><label>카테고리</label><input id="mmCat" placeholder="예: 조명 (선택)" maxlength="100"></div>
     <div style="display:flex; gap:10px;">
-        <div class="m-field" style="flex:1;"><label>판매가</label><input id="mmPrice" type="number" min="0" placeholder="0"></div>
+        <div class="m-field" style="flex:1;"><label>판매가</label><input id="mmPrice" type="number" placeholder="0 (음수=할인)"></div>
         <div class="m-field"><label>수량</label>
             <div class="qty-ctrl" style="gap:6px;">
                 <button type="button" onclick="const i=document.getElementById('mmQty'); i.value=Math.max(1,(+i.value||1)-1)">−</button>
@@ -1427,7 +1427,8 @@ function editItemRemark(idx) {
 function addManualItem() {
     const name = document.getElementById('miName').value.trim();
     if (!name) return alert('제품명을 입력해주세요.');
-    const price = Math.max(0, parseInt(document.getElementById('miPrice').value) || 0);
+    // 음수 허용 — 재방문 할인 등 차감 항목을 -금액으로 기록 (합계에서 자동 차감)
+    const price = parseInt(document.getElementById('miPrice').value) || 0;
     const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
     const miCat = document.getElementById('miCat').value.trim() || '기타';
     insertCartItem({
