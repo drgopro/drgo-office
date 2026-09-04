@@ -242,6 +242,11 @@ function viewedDateStr() {
             const ws = new Date(currentWeekStart), we = new Date(ws); we.setDate(we.getDate()+6);
             return (t >= fmt(ws) && t <= fmt(we)) ? t : fmt(ws);
         }
+        // 전체(컴팩트) 뷰 — 하단 리스트로 보고 있는 선택 날짜가 있으면 그 날로
+        if (currentView === 'monthc' && typeof mcSelDate !== 'undefined' && mcSelDate) return mcSelDate;
+        // 월간 뷰(모바일) — 날짜 탭 선택 상태가 화면에 있으면 그 날로
+        if (currentView === 'month' && typeof mobileSelectedDate !== 'undefined' && mobileSelectedDate
+            && document.querySelector('.day-cell.mobile-selected')) return mobileSelectedDate;
         if (currentView === 'month' || currentView === 'monthc') {
             if (monthWeeks >= 6) { // 월 전체 — 보고 있는 달이 이번 달이면 오늘, 아니면 그 달 1일
                 const now = new Date();
