@@ -104,4 +104,25 @@ class UpdateNoteDraftTest extends TestCase
         $this->assertTrue(strpos($html, '🔧 시스템') < strpos($html, '🔹 기타'));
         $this->assertStringContainsString('<li>형식 없는 커밋 제목</li>', $html);
     }
+
+    public function test_korean_subjects_classified_by_keyword(): void
+    {
+        // conventional 형식이 아닌 한국어 커밋 제목 — 키워드 폴백 분류 (전부 '기타'로 몰리지 않아야 함)
+        $generator = new UpdateNoteGenerator;
+        $html = $generator->buildHtml([
+            ['date' => '2026-09-04', 'subject' => '캘린더 모달 — 칩 줄바꿈 허용'],
+            ['date' => '2026-09-04', 'subject' => '연차 관리 — 캘린더 휴가 연동 차감'], // 연차가 캘린더보다 우선
+            ['date' => '2026-09-04', 'subject' => '카페24 .htaccess 백업 추가 — 견적서 프록시 규칙 복원용'], // 내부 정비 우선
+            ['date' => '2026-09-04', 'subject' => '견적 수기 항목 음수 금액 허용'],
+            ['date' => '2026-09-04', 'subject' => '분류 불가한 제목'],
+        ]);
+
+        $this->assertTrue(strpos($html, '📅 캘린더') !== false && strpos($html, '캘린더 모달') > strpos($html, '📅 캘린더'));
+        $this->assertTrue(strpos($html, '연차 관리') > strpos($html, '🌴 연차'));
+        $this->assertTrue(strpos($html, '.htaccess 백업') > strpos($html, '🛠 내부 정비'));
+        $this->assertTrue(strpos($html, '수기 항목 음수') > strpos($html, '📄 문서·계약'));
+        $this->assertStringContainsString('<li>분류 불가한 제목</li>', $html);
+        // 섹션 순서 — 기타는 내부 정비보다 앞
+        $this->assertTrue(strpos($html, '🔹 기타') < strpos($html, '🛠 내부 정비'));
+    }
 }

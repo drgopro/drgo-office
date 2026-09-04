@@ -36,6 +36,43 @@ class UpdateNoteGenerator
 
     private const OTHER_SECTION = '🔹 기타';
 
+    /**
+     * 한국어 커밋 제목 키워드 → 섹션 (conventional 형식이 아닌 커밋의 폴백 분류).
+     * 위에서부터 첫 매칭이 우선 — 캘린더 UI 작업이 프로젝트/첨부 등을 함께 언급하는 경우가 많아 캘린더를 최상위로.
+     */
+    private const KEYWORD_SECTIONS = [
+        // 내부 정비성 키워드 먼저 — '카페24 .htaccess 백업(견적서 프록시)'처럼 기능 키워드를 함께 언급해도 내부로
+        '배포' => '🛠 내부 정비 (사용 화면 변화 없음)',
+        '스크립트' => '🛠 내부 정비 (사용 화면 변화 없음)',
+        'npm' => '🛠 내부 정비 (사용 화면 변화 없음)',
+        '.htaccess' => '🛠 내부 정비 (사용 화면 변화 없음)',
+        '백업' => '🛠 내부 정비 (사용 화면 변화 없음)',
+        // 연차는 캘린더보다 먼저 — '연차 관리 + 캘린더 연동' 같은 제목은 연차로
+        '연차' => '🌴 연차',
+        '휴가' => '🌴 연차',
+        '캘린더' => '📅 캘린더',
+        '일정' => '📅 캘린더',
+        '배송' => '📦 배송',
+        '주문' => '📦 배송',
+        '할 일' => '✅ 할 일',
+        '의뢰자' => '👥 의뢰자',
+        '상담' => '👥 의뢰자',
+        '프로젝트' => '📁 프로젝트',
+        '견적' => '📄 문서·계약',
+        '계약' => '📄 문서·계약',
+        '문서' => '📄 문서·계약',
+        '통계' => '📊 통계·마케팅',
+        '마케팅' => '📊 통계·마케팅',
+        '매출' => '📊 통계·마케팅',
+        '엑셀' => '📊 통계·마케팅',
+        '위키' => '📖 위키',
+        '피드백' => '💬 피드백',
+        '첨부' => '📎 첨부파일',
+        '검색' => '🔧 시스템',
+        '사이드바' => '🔧 시스템',
+        '전화번호' => '🔧 시스템',
+    ];
+
     private const INTERNAL_SECTION = '🛠 내부 정비 (사용 화면 변화 없음)';
 
     /** 커밋 type → 항목 라벨. 여기 없는 type(refactor/test/chore 등)은 내부 정비로 분류 */
@@ -118,7 +155,12 @@ class UpdateNoteGenerator
             $sections[$section][] = $item;
         }
 
-        $order = array_values(array_unique([...array_values(self::SECTIONS), self::OTHER_SECTION, self::INTERNAL_SECTION]));
+        $order = array_values(array_unique([
+            ...array_values(self::SECTIONS),
+            ...array_diff(array_values(self::KEYWORD_SECTIONS), [self::INTERNAL_SECTION, self::OTHER_SECTION]),
+            self::OTHER_SECTION,
+            self::INTERNAL_SECTION,
+        ]));
         uksort($sections, fn (string $a, string $b) => array_search($a, $order, true) <=> array_search($b, $order, true));
 
         $html = '';
@@ -143,6 +185,13 @@ class UpdateNoteGenerator
     private function classify(string $subject): array
     {
         if (! preg_match('/^([a-z]+)(?:\(([^)]*)\))?!?:\s*(.+)$/u', $subject, $matches)) {
+            // 한국어 제목 커밋 — 키워드로 섹션 분류 (첫 매칭 우선)
+            foreach (self::KEYWORD_SECTIONS as $keyword => $section) {
+                if (mb_stripos($subject, (string) $keyword) !== false) {
+                    return [$section, e($subject)];
+                }
+            }
+
             return [self::OTHER_SECTION, e($subject)];
         }
 
