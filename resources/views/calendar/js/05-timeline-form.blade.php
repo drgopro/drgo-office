@@ -318,6 +318,10 @@ function setColor(c){
     if(typeof updateBrRentalUI==='function') updateBrRentalUI();
     if(typeof updateMoveSettingUI==='function') updateMoveSettingUI();
     if(typeof updateReasonFieldVisibility==='function') updateReasonFieldVisibility();
+    // 방문의뢰(gold)는 첨부 이미지 카드에 '첨부 파일' 그룹이 이미 있어 하단 공통 첨부 카드는 숨김 (중복 제거)
+    // — 두 곳 모두 같은 general 타입을 쓰므로 기존 첨부는 카드 내 그룹에 그대로 표시된다
+    const gAttSec=document.getElementById('generalAttachSection');
+    if(gAttSec) gAttSec.style.display=(c==='gold')?'none':'';
     // 연동 프로젝트 첨부 문서 — 방문의뢰는 첨부 이미지 그룹 안에, 그 외는 하단 블록에 (배치가 카테고리에 따라 달라짐)
     if(typeof renderLinkedProjDocs==='function') renderLinkedProjDocs();
 }
