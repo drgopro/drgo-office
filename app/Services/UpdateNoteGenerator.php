@@ -87,6 +87,8 @@ class UpdateNoteGenerator
      */
     public function commitsBetween(string $from, string $to): array
     {
+        $this->ensureHistorySince($from);
+
         $result = Process::path(base_path())->run([
             'git', 'log', '--no-merges',
             '--date=format:%Y-%m-%d', '--pretty=format:%cd%x09%s',
@@ -106,6 +108,21 @@ class UpdateNoteGenerator
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * 얕은 클론(zero-downtime 릴리스는 최신 커밋만 담김) 대비 — 요청 기간만큼 이력을 내려받는다.
+     * 전체 클론이면 아무것도 하지 않고, fetch 실패 시에도 가진 범위로 진행한다.
+     */
+    private function ensureHistorySince(string $from): void
+    {
+        $shallow = Process::path(base_path())->run(['git', 'rev-parse', '--is-shallow-repository']);
+        if (! $shallow->successful() || trim($shallow->output()) !== 'true') {
+            return;
+        }
+
+        $since = Carbon::parse($from)->subDay()->format('Y-m-d'); // 경계일 커밋 누락 방지
+        Process::path(base_path())->timeout(120)->run(['git', 'fetch', '--quiet', "--shallow-since={$since}", 'origin']);
     }
 
     /**
