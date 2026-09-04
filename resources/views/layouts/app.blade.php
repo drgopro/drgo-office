@@ -636,11 +636,15 @@ window.openTopTab = function(type, url, title) {
 document.documentElement.setAttribute('data-theme', 'light');
 
 // ── 모바일 네비 ──
+// 햄버거 버튼 아이콘을 드로어 상태와 항상 동기화 — 어디서 닫히든 이 함수를 거친다
+function syncNavToggleIcon() {
+    const btn = document.getElementById('menuToggle');
+    if (btn) btn.textContent = document.getElementById('mainNav').classList.contains('open') ? '✕' : '☰';
+}
 function toggleNav() {
     document.getElementById('mainNav').classList.toggle('open');
     document.getElementById('navOverlay').classList.toggle('open');
-    const btn = document.getElementById('menuToggle');
-    btn.textContent = document.getElementById('mainNav').classList.contains('open') ? '✕' : '☰';
+    syncNavToggleIcon();
 }
 
 // ── 탭 시스템 ──
@@ -698,6 +702,7 @@ window.drgoTabs = {
     openNav(type, url, title) {
         document.getElementById('mainNav').classList.remove('open');
         document.getElementById('navOverlay').classList.remove('open');
+        syncNavToggleIcon(); // 메뉴 이동으로 닫힐 때도 ✕ → ☰ 복귀
 
         // 1) URL이 정확히 일치하는 탭이 있으면 활성화만 (재로드 없음)
         const existing = this.tabs.find(t => t.url === url);
