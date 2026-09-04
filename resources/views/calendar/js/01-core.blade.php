@@ -231,6 +231,30 @@ function fmt(d) {
 }
 function todayStr() { return fmt(new Date()); }
 
+// '+ 일정 추가' 기본 날짜 — 지금 보고 있는 뷰의 날짜.
+// 오늘이 화면에 보이면 오늘, 다른 날짜/기간을 보고 있으면 그 날(기간이면 시작일)로.
+function viewedDateStr() {
+    const t = todayStr();
+    try {
+        if (currentView === 'day' && currentDay) return fmt(currentDay);
+        if (currentView === 'list' && typeof agendaSelectedDate !== 'undefined' && agendaSelectedDate) return agendaSelectedDate;
+        if (currentView === 'week' && currentWeekStart) {
+            const ws = new Date(currentWeekStart), we = new Date(ws); we.setDate(we.getDate()+6);
+            return (t >= fmt(ws) && t <= fmt(we)) ? t : fmt(ws);
+        }
+        if (currentView === 'month' || currentView === 'monthc') {
+            if (monthWeeks >= 6) { // 월 전체 — 보고 있는 달이 이번 달이면 오늘, 아니면 그 달 1일
+                const now = new Date();
+                if (now.getFullYear() === currentYear && now.getMonth() === currentMonth) return t;
+                return `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`;
+            }
+            const gs = monthGridStart(), ge = new Date(gs); ge.setDate(ge.getDate() + monthGridWeeks()*7 - 1);
+            return (t >= fmt(gs) && t <= fmt(ge)) ? t : fmt(gs);
+        }
+    } catch (e) { /* 뷰 상태 미초기화 시 오늘로 */ }
+    return t;
+}
+
 // ── 필터 ──
 // 실제 렌더된 카테고리 칩(.filter-btn.active)에서 초기화 — 커스텀 카테고리도 누락 없이 매칭
 let activeFilters = (function(){

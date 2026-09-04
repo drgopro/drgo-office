@@ -58,7 +58,7 @@
             <button type="button" onclick="mwStep(1)">›</button>
         </div>
         @if(Auth::user()->hasPermission('calendar.edit'))
-            <button class="add-btn" onclick="openNewModal()">+ 일정 추가</button>
+            <button class="add-btn" onclick="openNewModal(viewedDateStr())">+ 일정 추가</button>
         @endif
         <div style="position:relative;" id="calMoreWrap">
             <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:14px;">⋯</button>
@@ -161,7 +161,7 @@
 
 @if(Auth::user()->hasPermission('calendar.edit'))
 {{-- 모바일 플로팅 일정 추가 버튼 (화면을 따라다님) --}}
-<button type="button" id="calAddFab" onclick="openNewModal()" title="일정 추가">+</button>
+<button type="button" id="calAddFab" onclick="openNewModal(viewedDateStr())" title="일정 추가">+</button>
 @endif
 <button type="button" id="calSideFab" onclick="csToggleMobile()" title="필터/미니 달력">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
