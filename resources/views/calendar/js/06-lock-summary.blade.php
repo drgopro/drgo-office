@@ -231,7 +231,6 @@ function renderLockSummary(){
         const topicEtc = _val('g_topic_etc');
         const budget = _radio('g_budget_group');
         const budgetEtc = _val('g_budget_etc');
-        const reqTopic = _radio('g_req_topic_group');
         const reqTopicEtc = _val('g_req_topic_etc');
         const paid = _radio('g_paid_group');
         const orderVal = _radio('g_order_group');
@@ -263,7 +262,10 @@ function renderLockSummary(){
         pushTile('예산', budget === '직접입력' ? (budgetEtc || '직접입력') : budget);
         if (tiles.length) left.push(lsCard('방송 정보', `<div class="ls-tiles">${tiles.join('')}</div>`, '', 'ls-c-broadcast')); // 일시·장소 → 의뢰자 다음
         // ③-1 의뢰 내용 — 주제 + 세팅 항목 (연결 프로젝트에서 불러오거나, 일정에 저장된 구버전 항목)
-        const reqTopicVal = reqTopic === '기타' ? (reqTopicEtc || '기타') : reqTopic;
+        // 의뢰 주제는 다중 선택 — '기타'는 직접 입력값으로 치환해 전부 나열 (기타만 단독일 때도 동일)
+        const reqTopicVal = _radioMulti('g_req_topic_group')
+            .map(v => v === '기타' ? (reqTopicEtc || '기타') : v)
+            .filter(Boolean).join(', ');
         const lsReqItems = activeReqItems();
         if (reqTopicVal || lsReqItems.length) {
             let reqBody = reqTopicVal ? `<div class="ls-text-block">${_esc(reqTopicVal)}</div>` : '';

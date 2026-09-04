@@ -352,7 +352,7 @@
                 <div class="field-group">
                     <label class="field-label">유입 경로</label>
                     <div id="g_source_wrap" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                        <div class="radio-group" id="g_source_group" style="flex-wrap:wrap;gap:5px;flex-shrink:0;">
+                        <div class="radio-group" id="g_source_group" style="flex-wrap:wrap;gap:5px;min-width:0;">
                             <div class="radio-btn" data-val="광고">📢 광고</div>
                             <div class="radio-btn" data-val="검색">🔍 검색</div>
                             <div class="radio-btn" data-val="소개">🤝 소개</div>
