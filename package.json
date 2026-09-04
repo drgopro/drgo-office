@@ -3,7 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "echo 'skip: no frontend build (Vite output unused)'",
+        "build:vite": "vite build",
         "dev": "vite"
     },
     "devDependencies": {
