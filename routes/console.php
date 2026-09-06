@@ -15,6 +15,9 @@ Schedule::command('schedules:remind-stale')->dailyAt('09:10'); // 지난 미완�
 // 미배송 송장 배송상태 갱신 (30분 주기)
 Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping();
 
+// drgo.pro 게시판 새 글/답변/댓글 감시 → 채널톡 알림 (5분 주기)
+Schedule::command('drgo:watch-boards')->everyFiveMinutes()->withoutOverlapping();
+
 // 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
 Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();
 

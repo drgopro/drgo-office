@@ -56,6 +56,14 @@ return [
         'remind_days' => env('CHANNELTALK_REMIND_DAYS', 2),
     ],
 
+    // drgo.pro(그누보드) 게시판 새 글 감시 — 카페24의 board-feed.php를 폴링해 채널톡 알림
+    // token: 카페24 board-feed.php 상단 DRGO_FEED_TOKEN과 동일한 값
+    'drgo_board' => [
+        'feed_url' => env('DRGO_BOARD_FEED_URL', 'https://drgo.pro/board-feed.php'),
+        'token' => env('DRGO_BOARD_FEED_TOKEN'),
+        'boards' => env('DRGO_BOARD_FEED_BOARDS', 'free'), // 쉼표 구분 (예: free,qna)
+    ],
+
     // 페이앱 결제 연동 (견적서 결제) — 페이앱 판매자 설정에서 연동 KEY/VALUE 발급
     'payapp' => [
         'userid' => env('PAYAPP_USERID'),
