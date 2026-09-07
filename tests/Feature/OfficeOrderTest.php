@@ -79,6 +79,97 @@ class OfficeOrderTest extends TestCase
         $this->assertStringContainsString('123456789', $row['shipments'][0]['tracking_url']);
     }
 
+    public function test_paid_estimate_auto_appears_unordered_with_all_items(): void
+    {
+        // 결제완료되면 주문 버튼 없이도 자동 등재 — 전 항목 노출, 미주문 표시, 결제완료일로 그룹
+        $estimate = Estimate::create([
+            'status' => 'created', 'title' => '캠 세팅', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['name' => '카메라', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000],
+                ['name' => '조명', 'sale_price' => 50000, 'qty' => 2, 'subtotal' => 100000],
+            ],
+            'service_items' => [], 'product_total' => 200000, 'service_total' => 0, 'total_amount' => 200000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $estimate->update(['status' => 'paid']); // 모델 훅이 paid_at 기록
+
+        $this->assertNotNull($estimate->fresh()->paid_at);
+
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $this->assertSame('estimate', $row['type']);
+        $this->assertTrue($row['unordered']);
+        $this->assertCount(2, $row['items']); // 미주문 항목도 전부 노출
+        $this->assertFalse($row['items'][0]['ordered']);
+        $this->assertSame(now()->format('Y-m-d'), $row['group_date']); // 결제완료일 기준 그룹
+        $this->assertNotNull($row['paid_at']);
+    }
+
+    public function test_item_note_endpoint_toggles_ordered_with_timestamp(): void
+    {
+        // 수기 항목(product_id 없음) — 직접발송 재고 연동 없이 주문 토글만 검증
+        $estimate = Estimate::create([
+            'status' => 'created', 'title' => '캠 세팅', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['name' => '카메라', 'sale_price' => 100000, 'qty' => 2, 'subtotal' => 200000, 'ordered' => true],
+                ['name' => '마이크', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000],
+            ],
+            'service_items' => [], 'product_total' => 250000, 'service_total' => 0, 'total_amount' => 250000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $estimate->update(['status' => 'paid']);
+
+        // 미주문 항목(index 1) 주문완료 — 시각 기록, 기존 기입값(구매처 등) 유지
+        $items = $estimate->fresh()->product_items;
+        $items[1]['purchase_source'] = '컴퓨존';
+        $estimate->forceFill(['product_items' => $items])->save();
+
+        $this->actingAs($this->admin)
+            ->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", ['index' => 1, 'ordered' => 1])
+            ->assertOk();
+        $fresh = $estimate->fresh()->product_items;
+        $this->assertTrue((bool) $fresh[1]['ordered']);
+        $this->assertNotEmpty($fresh[1]['ordered_at']);
+        $this->assertSame('컴퓨존', $fresh[1]['purchase_source']); // 버튼만 눌러도 기입값 보존
+
+        // 직접발송 — ordered + 구매처 '사무실 발송'
+        $this->actingAs($this->admin)
+            ->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", ['index' => 0, 'ordered' => 1, 'purchase_source' => '사무실 발송'])
+            ->assertOk();
+        $fresh = $estimate->fresh()->product_items;
+        $this->assertSame('사무실 발송', $fresh[0]['purchase_source']);
+
+        // 해제 — ordered/ordered_at 제거
+        $this->actingAs($this->admin)
+            ->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", ['index' => 1, 'ordered' => 0])
+            ->assertOk();
+        $fresh = $estimate->fresh()->product_items;
+        $this->assertArrayNotHasKey('ordered', $fresh[1]);
+        $this->assertArrayNotHasKey('ordered_at', $fresh[1]);
+    }
+
+    public function test_paid_at_cleared_when_payment_reverted(): void
+    {
+        $estimate = $this->makeOrderedEstimate();
+        $estimate->update(['status' => 'paid']);
+        $this->assertNotNull($estimate->fresh()->paid_at);
+
+        $estimate->update(['status' => 'completed']); // 결제완료 해제 → 기록 제거
+        $this->assertNull($estimate->fresh()->paid_at);
+
+        $estimate->update(['status' => 'paid']);
+        $estimate->update(['status' => 'cancelled']); // 결제취소는 기록 보존
+        $this->assertNotNull($estimate->fresh()->paid_at);
+    }
+
+    public function test_order_page_renders_date_groups_and_order_buttons(): void
+    {
+        $this->actingAs($this->admin)->get('/inventory')->assertOk()
+            ->assertSee('ordDateLabel', false)      // 날짜 그룹 헤더
+            ->assertSee('markItemOrdered', false)   // 항목 주문완료/직접발송 버튼
+            ->assertSee('markBundleOrdered', false) // 구성품 단위 버튼
+            ->assertSee('미주문', false);
+    }
+
     public function test_manual_order_crud_and_grouping(): void
     {
         $created = $this->actingAs($this->admin)->postJson('/api/inventory/office-orders', [

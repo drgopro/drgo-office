@@ -35,18 +35,19 @@ class OfficeOrderController extends Controller
         $isOrdered = fn ($i) => ! empty($i['ordered'])
             || collect($i['bundle_items'] ?? [])->contains(fn ($b) => ! empty($b['ordered']));
 
-        // 주문완료 항목이 있는 견적서 — 스냅샷 JSON이라 PHP에서 필터 (전체 로드 방지: 최근 200건)
+        // 결제완료 견적서는 자동 등재(주문 버튼 없이도 미주문 상태로 노출) + 주문완료 항목이 있는 견적서.
+        // 스냅샷 JSON이라 PHP에서 필터 (전체 로드 방지: 최근 300건)
         $orderedEstimates = Estimate::with(['shipments' => fn ($q) => $q->orderBy('id')])
             ->where('status', '!=', 'temp')
             ->orderByDesc('updated_at')
-            ->limit(200)
+            ->limit(300)
             ->get()
-            ->filter(fn (Estimate $e) => collect($e->product_items ?? [])->contains($isOrdered));
+            ->filter(fn (Estimate $e) => $e->status === 'paid'
+                || collect($e->product_items ?? [])->contains($isOrdered));
 
-        // 제품 메모(직원용, 판매처 등) — 주문완료 항목의 제품에서 한 번에 조회
+        // 제품 메모(직원용, 판매처 등) — 노출되는 전 항목의 제품에서 한 번에 조회
         $productMemos = Product::whereIn('id', $orderedEstimates
-            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])
-                ->filter($isOrdered)->pluck('product_id'))
+            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])->pluck('product_id'))
             ->filter()->unique()->values())
             ->pluck('memo', 'id');
 
@@ -91,7 +92,9 @@ class OfficeOrderController extends Controller
                             'refund_amount' => (int) ($b['refund_amount'] ?? 0),
                         ])->values()->all(),
                     ])
-                    ->filter($isOrdered)
+                    // 결제완료 건은 전 항목 노출(미주문 항목도 주문 내역에서 바로 주문완료 처리),
+                    // 그 외(주문 표시로만 등재된 건)는 기존처럼 주문완료 항목만
+                    ->filter(fn ($i) => $e->status === 'paid' || $isOrdered($i))
                     ->values(),
                 'shipments' => $e->shipments->map(fn (ScheduleShipment $s) => [
                     'carrier_label' => $s->carrierLabel(),
@@ -108,6 +111,14 @@ class OfficeOrderController extends Controller
                 'ordered_at' => collect($e->product_items ?? [])
                     ->flatMap(fn ($i) => [$i['ordered_at'] ?? null, ...collect($i['bundle_items'] ?? [])->pluck('ordered_at')])
                     ->filter()->max(),
+                'paid_at' => $e->paid_at?->format('Y-m-d H:i'),
+                // 날짜별 그룹 기준 — 결제완료일 우선, 없으면(주문 표시로만 등재) 주문완료일·수정일 순
+                'group_date' => $e->paid_at?->format('Y-m-d')
+                    ?? (($firstOrdered = collect($e->product_items ?? [])
+                        ->flatMap(fn ($i) => [$i['ordered_at'] ?? null, ...collect($i['bundle_items'] ?? [])->pluck('ordered_at')])
+                        ->filter()->max()) ? substr($firstOrdered, 0, 10) : $e->updated_at->format('Y-m-d')),
+                // 미주문 상태 — 결제완료로 자동 등재됐지만 아직 아무 항목도 주문 처리 전
+                'unordered' => ! collect($e->product_items ?? [])->contains($isOrdered),
             ])
             ->values();
 
@@ -130,10 +141,13 @@ class OfficeOrderController extends Controller
                 ])->values(),
                 'shipments' => [],
                 'updated_at' => $o->updated_at->format('Y-m-d H:i'),
+                'group_date' => ($o->order_date ?? $o->created_at)->format('Y-m-d'), // 수동 주문은 주문 작성일 기준
             ]);
 
         return response()->json(
-            $estimateRows->concat($manualRows)->sortByDesc('updated_at')->values()
+            $estimateRows->concat($manualRows)
+                ->sortByDesc(fn ($r) => ($r['group_date'] ?? '').' '.$r['updated_at']) // 날짜 그룹이 연속되게
+                ->values()
         );
     }
 
@@ -194,6 +208,7 @@ class OfficeOrderController extends Controller
             'refunded' => 'nullable|boolean', // 환불/결제취소 수동 체크
             'refund_qty' => 'nullable|integer|min:0', // 구성품 환불 수량
             'refund_amount' => 'nullable|numeric|min:0',
+            'ordered' => 'nullable|boolean', // 주문 내역에서 직접 주문완료/해제 (직접발송은 구매처 '사무실 발송' 동반)
         ]);
 
         $items = $estimate->product_items ?? [];
@@ -207,12 +222,29 @@ class OfficeOrderController extends Controller
             return $this->updateBundleItemNote($request, $estimate, $items, $validated);
         }
 
-        $items[$validated['index']]['purchase_source'] = $validated['purchase_source'] ?? '';
-        $items[$validated['index']]['order_memo'] = $validated['memo'] ?? '';
-        if (($validated['amount'] ?? null) !== null && $validated['amount'] !== '') {
-            $items[$validated['index']]['purchase_amount'] = (int) $validated['amount'];
-        } else {
-            unset($items[$validated['index']]['purchase_amount']);
+        // 주문완료 토글 — 켜질 때 처리 시각 기록(기존 값 유지), 해제 시 제거 (빌더 저장과 동일 규칙)
+        if ($request->has('ordered')) {
+            if ($request->boolean('ordered')) {
+                $items[$validated['index']]['ordered'] = true;
+                $items[$validated['index']]['ordered_at'] = $items[$validated['index']]['ordered_at'] ?? now()->format('Y-m-d H:i');
+            } else {
+                unset($items[$validated['index']]['ordered'], $items[$validated['index']]['ordered_at']);
+            }
+        }
+        // 기입값(구매처/메모/금액)은 요청에 키가 있을 때만 갱신 — 주문완료/직접발송 버튼만 눌렀을 때
+        // 기존 입력을 지우지 않는다 (기존 저장 화면은 모든 키를 항상 보내므로 동작 동일)
+        if ($request->has('purchase_source')) {
+            $items[$validated['index']]['purchase_source'] = $validated['purchase_source'] ?? '';
+        }
+        if ($request->has('memo')) {
+            $items[$validated['index']]['order_memo'] = $validated['memo'] ?? '';
+        }
+        if ($request->has('amount')) {
+            if (($validated['amount'] ?? null) !== null && $validated['amount'] !== '') {
+                $items[$validated['index']]['purchase_amount'] = (int) $validated['amount'];
+            } else {
+                unset($items[$validated['index']]['purchase_amount']);
+            }
         }
         // 환불/결제취소 수동 체크 — refunded 키가 요청에 있을 때만 갱신 (해제 시 기록 초기화)
         if ($request->has('refunded')) {
@@ -258,6 +290,15 @@ class OfficeOrderController extends Controller
         }
         if ($request->has('memo')) {
             $bundles[$bIdx]['memo'] = trim((string) ($validated['memo'] ?? ''));
+        }
+        // 구성품 주문완료 토글 — 주문 내역의 주문완료/직접발송 버튼 (빌더 저장과 동일 규칙)
+        if ($request->has('ordered')) {
+            if ($request->boolean('ordered')) {
+                $bundles[$bIdx]['ordered'] = true;
+                $bundles[$bIdx]['ordered_at'] = $bundles[$bIdx]['ordered_at'] ?? now()->format('Y-m-d H:i');
+            } else {
+                unset($bundles[$bIdx]['ordered'], $bundles[$bIdx]['ordered_at']);
+            }
         }
 
         $beforeAmount = (int) ($bundles[$bIdx]['refund_amount'] ?? 0);

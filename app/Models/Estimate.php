@@ -52,6 +52,7 @@ class Estimate extends Model
         'status',
         'validity_days',
         'issued_at',
+        'paid_at',
         'share_token',
         'payapp_mul_no',
         'payapp_payurl',
@@ -74,6 +75,7 @@ class Estimate extends Model
         'total_amount' => 'integer',
         'validity_days' => 'integer',
         'issued_at' => 'datetime',
+        'paid_at' => 'datetime',
         'payapp_state' => 'integer',
         'payapp_requested_at' => 'datetime',
         'payapp_paid_at' => 'datetime',
@@ -83,6 +85,24 @@ class Estimate extends Model
 
     /** 이 상태들부터는 품목 단가를 고정 보존 — 발행 후 갱신하면 결제요청 금액과 어긋난다 */
     public const PRICE_LOCKED_STATUSES = ['issued', 'paid', 'cancelled'];
+
+    /**
+     * 결제완료 시각 자동 기록 — 상태가 paid로 바뀌는 모든 경로(수동 전환·페이앱 통보·프로젝트 연동)를
+     * 모델 레벨에서 포착한다. 주문 내역 자동 등재·날짜별 그룹의 기준 시각.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Estimate $estimate) {
+            if (! $estimate->isDirty('status')) {
+                return;
+            }
+            if ($estimate->status === 'paid') {
+                $estimate->paid_at = $estimate->paid_at ?? now();
+            } elseif ($estimate->getOriginal('status') === 'paid' && $estimate->status !== 'cancelled') {
+                $estimate->paid_at = null; // 결제완료 해제 (취소는 기록 보존) — 재결제 시 새로 기록
+            }
+        });
+    }
 
     /**
      * 품목 단가를 현재 제품 판매가·매입가로 동기화 (가격 잠금 상태 제외).
