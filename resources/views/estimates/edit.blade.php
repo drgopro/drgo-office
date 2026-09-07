@@ -482,8 +482,10 @@
                 <input id="miName" placeholder="제품명 *" style="flex:2;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miPrice" type="number" placeholder="판매가 (음수=할인)" title="음수를 입력하면 할인(차감) 항목으로 총 견적 금액에서 빠집니다. 예: 재방문 할인 -50000" style="flex:1;" onkeydown="if(event.key==='Enter')addManualItem()">
                 <input id="miQty" type="number" min="1" value="1" title="수량" style="width:56px;">
-                <label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); white-space:nowrap; cursor:pointer;" title="체크하면 매출 통계에서 세팅비(서비스) 매출로 집계됩니다">
-                    <input type="checkbox" id="miService" style="width:13px; height:13px;">서비스</label>
+                <select id="miKind" style="padding:7px 8px; font-size:12px; background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--text); outline:none;" title="장비: 주문내역에 주문 대상으로 표시 · 장비 매출로 집계&#10;서비스: 세팅비 매출로 집계, 주문내역에서 제외 (실물 주문 없음)">
+                    <option value="product">장비</option>
+                    <option value="service">서비스</option>
+                </select>
                 <button class="btn-add-svc" style="width:auto; padding:6px 14px;" onclick="addManualItem()">+ 추가</button>
             </div>
         </div>
@@ -557,8 +559,12 @@
             </div>
         </div>
     </div>
-    <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); cursor:pointer; margin-bottom:2px;">
-        <input type="checkbox" id="mmService" style="width:15px; height:15px;">서비스 항목 (세팅비 매출로 집계)</label>
+    <div class="m-field"><label>분류</label>
+        <select id="mmKind" style="width:100%; padding:9px 10px; font-size:13px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+            <option value="product">장비 — 주문내역에 표시, 장비 매출</option>
+            <option value="service">서비스 — 세팅비 매출, 주문내역 제외</option>
+        </select>
+    </div>
     <div style="display:flex; gap:8px; margin-top:12px;">
         <button class="btn btn-ghost" style="flex:1;" onclick="mCloseManualSheet()">취소</button>
         <button class="btn btn-save" style="flex:2;" onclick="mSubmitManual()">견적서에 추가</button>
@@ -1066,7 +1072,7 @@ function renderCart() {
                 <td style="font-size:12px; color:var(--text-muted);">${orderMode
                     ? _escE(item.category || '')
                     : `<span style="cursor:pointer;" onclick="editItemSubCategory(${idx})" title="클릭해서 이 항목의 분류(2차) 수정 — 예: 렌즈/바디/케이블. 이 견적서에만 적용되고 제품 관리에는 영향 없음 (1차 분류는 분류 헤더의 ✎로 수정)">${_escE(item.category || '') || '<span style=\'color:var(--slate);\'>분류 입력</span>'}</span>`}</td>
-                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''} style="${item.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${item.name}</span>${item.replaced ? ` <span style="font-size:10.5px; color:#c03838; border:1px solid #c03838; border-radius:3px; padding:0 5px; cursor:pointer;" onclick="setItemReplaced(${idx})" title="대체됨 — 클릭해서 사유 수정/해제. 금액은 소계·합계에서 제외">대체됨</span>${item.replaced_note ? `<div style="font-size:12px; color:#c03838; margin-top:2px;">↳ ${_escE(item.replaced_note)}</div>` : ''}` : ''}${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
+                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''} style="${item.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${item.name}</span>${item.replaced ? ` <span style="font-size:10.5px; color:#c03838; border:1px solid #c03838; border-radius:3px; padding:0 5px; cursor:pointer;" onclick="setItemReplaced(${idx})" title="대체됨 — 클릭해서 사유 수정/해제. 금액은 소계·합계에서 제외">대체됨</span>${item.replaced_note ? `<div style="font-size:12px; color:#c03838; margin-top:2px;">↳ ${_escE(item.replaced_note)}</div>` : ''}` : ''}${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' + (!orderMode ? ` <span style="font-size:10.5px; cursor:pointer; color:${item.is_service ? '#7c5db5' : 'var(--slate)'}; border:1px solid currentColor; border-radius:3px; padding:0 5px;" onclick="toggleItemKind(${idx})" title="클릭해서 장비/서비스 전환 — 서비스는 주문내역에서 제외되고 세팅비 매출로 집계됩니다 (저장해야 반영)">${item.is_service ? '서비스' : '장비'}</span>` : '') : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${item.deal_type && Number(item.original_price) > Number(item.sale_price) ? `<div class="deal-orig">${fmt(item.original_price)}원</div>` : ''}${fmt(item.sale_price)}원<div>${orderMode
                     ? (item.deal_type ? `<span class="deal-badge ${item.deal_type}">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>` : '')
@@ -1126,6 +1132,14 @@ function renameCategory(gIdx) {
     map[cat].forEach(it => { it.category_root = name.trim(); });
     renderCart();
 }
+// 수기(제품 미연결) 항목의 장비/서비스 전환 — 주문내역 표시 여부 + 매출 통계 분류에 반영
+function toggleItemKind(idx) {
+    const item = cartItems[idx];
+    if (!item) return;
+    item.is_service = !item.is_service;
+    renderCart();
+}
+
 // === 대체 표시 — 품절 등으로 제품이 바뀐 경우: 취소선 + 사유, 소계/합계에서 제외 (대체 제품은 새 항목으로 추가) ===
 function setItemReplaced(idx) {
     const item = cartItems[idx];
@@ -1454,11 +1468,11 @@ function addManualItem() {
     insertCartItem({
         product_id: null, sku: '', category: miCat, category_root: miCat,
         name, purchase_price: 0, sale_price: price, qty, time_required: '', use_time: false, subtotal: price * qty, manual: true,
-        is_service: !!document.getElementById('miService')?.checked, // 서비스 항목이면 매출 통계에서 세팅비로 집계
+        is_service: document.getElementById('miKind')?.value === 'service', // 서비스면 세팅비 매출 집계 + 주문내역 제외
     });
     ['miName','miPrice'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('miQty').value = 1;
-    const miSvc = document.getElementById('miService'); if (miSvc) miSvc.checked = false;
+    const miKind = document.getElementById('miKind'); if (miKind) miKind.value = 'product';
     renderCart();
 }
 
@@ -1586,7 +1600,7 @@ function mCloseMoreSheet() { document.body.classList.remove('m-more-open'); }
 function mOpenManualSheet() {
     ['mmName','mmCat','mmPrice'].forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('mmQty').value = 1;
-    document.getElementById('mmService').checked = false;
+    document.getElementById('mmKind').value = 'product';
     document.body.classList.add('m-manual-open');
     document.getElementById('mmName').focus();
 }
@@ -1596,7 +1610,7 @@ function mSubmitManual() {
     document.getElementById('miCat').value = document.getElementById('mmCat').value;
     document.getElementById('miPrice').value = document.getElementById('mmPrice').value;
     document.getElementById('miQty').value = document.getElementById('mmQty').value || 1;
-    const miSvc = document.getElementById('miService'); if (miSvc) miSvc.checked = document.getElementById('mmService').checked;
+    const miKind = document.getElementById('miKind'); if (miKind) miKind.value = document.getElementById('mmKind').value;
     addManualItem();
     if (document.getElementById('miName').value === '') mCloseManualSheet(); // 성공 시 입력이 비워짐
 }

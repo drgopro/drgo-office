@@ -255,6 +255,21 @@ class OfficeOrderTest extends TestCase
         $this->assertSame('조명', $row['items'][0]['name']);
     }
 
+    public function test_builder_offers_equipment_service_kind_selection(): void
+    {
+        // 수기 입력 시 장비/서비스 선택 + 담은 항목의 전환 토글
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'service_total' => 0, 'total_amount' => 0,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk()
+            ->assertSee('id="miKind"', false)      // 데스크탑 수기 입력 분류 셀렉트
+            ->assertSee('id="mmKind"', false)      // 모바일 시트 분류 셀렉트
+            ->assertSee('toggleItemKind', false);  // 담은 항목 장비/서비스 전환
+    }
+
     public function test_order_list_search_by_product_client_and_date(): void
     {
         $a = $this->makeOrderedEstimate(); // 카메라·마이크 / 고블린
