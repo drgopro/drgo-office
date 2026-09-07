@@ -899,6 +899,37 @@ class DashboardController extends Controller
             }
         });
 
+        // Sheet 4-1: 취소 내역 — 취소가 '발생한' 시점 기준으로 생성일~취소일을 추적 (피드백 요청)
+        // 취소일이 기간 내인 프로젝트 + (구데이터) 취소 기록 시각이 없으면 수정일 기준으로 포함
+        $s4b = $spreadsheet->createSheet();
+        $s4b->setTitle('취소 내역');
+        $s4b->fromArray(['프로젝트 생성일', '의뢰자명', '프로젝트명', '취소일', '취소 사유', '상세 사유'], null, 'A1');
+        $bold($s4b, 'A1:F1');
+        $row = 2;
+        Project::with('client')
+            ->where('stage', 'cancelled')
+            ->where(function ($q) use ($fromDt, $toDt) {
+                $q->whereBetween('cancelled_at', [$fromDt, $toDt])
+                    ->orWhere(fn ($q2) => $q2->whereNull('cancelled_at')->whereBetween('updated_at', [$fromDt, $toDt]));
+            })
+            ->orderByDesc('cancelled_at')
+            ->chunk(200, function ($items) use ($s4b, &$row) {
+                foreach ($items as $p) {
+                    $s4b->fromArray([
+                        $p->created_at->format('Y.m.d'),
+                        $p->client?->name ?? $p->client?->nickname ?? $p->manual_client_name,
+                        $p->name,
+                        $p->cancelled_at?->format('Y.m.d'),
+                        $p->cancel_reason,
+                        $p->cancel_detail,
+                    ], null, "A{$row}");
+                    $row++;
+                }
+            });
+        foreach (range('A', 'F') as $col) {
+            $s4b->getColumnDimension($col)->setAutoSize(true);
+        }
+
         // Sheet 5: 상담 이력 — 프로젝트 컨텍스트 포함
         $consultProjectTypeL = ConsultationType::pluck('label', 'key')->toArray();
         $consultScaleL = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
