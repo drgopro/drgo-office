@@ -1066,15 +1066,17 @@ function renderCart() {
                 <td style="font-size:12px; color:var(--text-muted);">${orderMode
                     ? _escE(item.category || '')
                     : `<span style="cursor:pointer;" onclick="editItemSubCategory(${idx})" title="클릭해서 이 항목의 분류(2차) 수정 — 예: 렌즈/바디/케이블. 이 견적서에만 적용되고 제품 관리에는 영향 없음 (1차 분류는 분류 헤더의 ✎로 수정)">${_escE(item.category || '') || '<span style=\'color:var(--slate);\'>분류 입력</span>'}</span>`}</td>
-                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''}>${item.name}</span>${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
+                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''} style="${item.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${item.name}</span>${item.replaced ? ` <span style="font-size:10.5px; color:#c03838; border:1px solid #c03838; border-radius:3px; padding:0 5px; cursor:pointer;" onclick="setItemReplaced(${idx})" title="대체됨 — 클릭해서 사유 수정/해제. 금액은 소계·합계에서 제외">대체됨</span>${item.replaced_note ? `<div style="font-size:12px; color:#c03838; margin-top:2px;">↳ ${_escE(item.replaced_note)}</div>` : ''}` : ''}${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${item.deal_type && Number(item.original_price) > Number(item.sale_price) ? `<div class="deal-orig">${fmt(item.original_price)}원</div>` : ''}${fmt(item.sale_price)}원<div>${orderMode
                     ? (item.deal_type ? `<span class="deal-badge ${item.deal_type}">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>` : '')
                     : (item.deal_type
                         ? `<span class="deal-badge ${item.deal_type}" onclick="setItemDeal(${idx})" title="클릭해서 특가/할인 수정·해제">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>`
-                        : `<span class="deal-badge add" onclick="setItemDeal(${idx})" title="특가/할인 표시 — 이 견적서에만 적용, 제품 가격은 그대로">특가·할인</span>`)}</div></td>
+                        : `<span class="deal-badge add" onclick="setItemDeal(${idx})" title="특가/할인 표시 — 이 견적서에만 적용, 제품 가격은 그대로">특가·할인</span>`)}${!orderMode && !item.replaced ? ` <span class="deal-badge add" onclick="setItemReplaced(${idx})" title="품절 등으로 제품이 바뀐 경우 — 취소선 + 사유 표시, 금액은 소계·합계에서 제외">대체</span>` : ''}</div></td>
                 <td>${qtyCell}</td>
-                <td class="text-right" style="font-weight:600;">${(Number(item.refund_amount)||0) > 0
+                <td class="text-right" style="font-weight:600;">${item.replaced
+                    ? `<span style="text-decoration:line-through; color:var(--text-muted); font-weight:400;" title="대체된 항목 — 합계에서 제외">${fmt(item.subtotal)}원</span>`
+                    : (Number(item.refund_amount)||0) > 0
                     ? `<span style="text-decoration:line-through; color:var(--text-muted); font-weight:400;">${fmt(item.subtotal)}원</span><div style="color:var(--red); font-weight:700;" title="환불 ${fmt(item.refund_amount)}원 반영 후 금액">${fmt(Math.max(0, item.subtotal - item.refund_amount))}원</div>`
                     : `${fmt(item.subtotal)}원`}</td>
                 <td>${lastCell}</td>
@@ -1124,6 +1126,24 @@ function renameCategory(gIdx) {
     map[cat].forEach(it => { it.category_root = name.trim(); });
     renderCart();
 }
+// === 대체 표시 — 품절 등으로 제품이 바뀐 경우: 취소선 + 사유, 소계/합계에서 제외 (대체 제품은 새 항목으로 추가) ===
+function setItemReplaced(idx) {
+    const item = cartItems[idx];
+    if (!item) return;
+    if (item.replaced) {
+        const t = prompt('대체 사유를 수정하세요.\n비우고 확인하면 대체 표시가 해제됩니다.', item.replaced_note || '');
+        if (t === null) return;
+        if (t.trim() === '') { delete item.replaced; delete item.replaced_note; }
+        else item.replaced_note = t.trim();
+    } else {
+        const t = prompt('이 항목을 "대체됨"으로 표시합니다 — 취소선이 그어지고 금액이 소계·합계에서 빠집니다.\n사유/대체 제품을 입력하세요 (예: 품절 — ZV-E10으로 대체)', '');
+        if (t === null) return;
+        item.replaced = true;
+        item.replaced_note = t.trim();
+    }
+    renderCart();
+}
+
 // === 특가/할인 표시 — 스냅샷에만 저장, 제품 관리 가격은 불변 (서버 가격 동기화도 deal_type 항목은 스킵) ===
 function setItemDeal(idx) {
     const item = cartItems[idx];
@@ -1527,7 +1547,8 @@ function _escE(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&
 
 // === 합계 ===
 function updateTotals() {
-    const pt = cartItems.reduce((s,i) => s + (Number(i.subtotal)||0), 0);
+    // 대체된(취소선) 항목은 소계·합계에서 제외
+    const pt = cartItems.reduce((s,i) => s + (i.replaced ? 0 : (Number(i.subtotal)||0)), 0);
     const st = svcItems.reduce((s,i) => s + (Number(i.amount)||0), 0);
     document.getElementById('productTotal').textContent = fmt(pt)+'원';
     document.getElementById('serviceTotal').textContent = fmt(st)+'원';

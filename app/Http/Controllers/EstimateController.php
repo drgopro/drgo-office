@@ -327,6 +327,8 @@ class EstimateController extends Controller
             'product_items.*.price_fixed' => 'nullable|boolean', // 엑셀 가격 보존 — 제품 판매가 동기화 제외
             'product_items.*.is_service' => 'nullable|boolean', // 서비스/제품 분류 스냅샷 — 매출 통계의 세팅비/장비 구분
             'product_items.*.deal_type' => 'nullable|in:special,discount', // 특가/할인 표시 — 스냅샷 전용 (제품 가격 불변)
+            'product_items.*.replaced' => 'nullable|boolean', // 대체됨(취소선) — 금액은 소계/합계에서 제외
+            'product_items.*.replaced_note' => 'nullable|string|max:300', // 대체 사유/대체 제품 설명
             'product_items.*.original_price' => 'nullable|numeric|min:0', // 특가/할인 전 정가 — 출력물 취소선 표시
             'product_items.*.discount_rate' => 'nullable|numeric|min:0|max:100', // 할인율 % (금액 직접 입력이면 비움)
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
@@ -372,7 +374,9 @@ class EstimateController extends Controller
         }
 
         try {
-            $productTotal = (int) collect($validated['product_items'] ?? [])->sum('subtotal');
+            // 대체된(취소선) 항목은 합계에서 제외
+            $productTotal = (int) collect($validated['product_items'] ?? [])
+                ->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal');
             $serviceTotal = (int) collect($validated['service_items'] ?? [])->sum('amount');
 
             // temp → created로 자동 전환 (첫 저장 시)

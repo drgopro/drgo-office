@@ -2095,7 +2095,9 @@ function renderOrderCard(o) {
                 // 미주문 항목 — 기입칸은 비활성으로 두고 주문완료/직접발송 버튼으로 먼저 처리 (누르면 활성화)
                 const itemOrdered = o.type !== 'estimate' || !!it.ordered
                     || (it.bundle_items||[]).some(b => b.ordered);
-                const noteCells = o.type === 'estimate'
+                const noteCells = o.type === 'estimate' && it.replaced
+                    ? `<td colspan="3"><span class="badge badge-low" title="견적서에서 대체 처리된 항목 — 주문 대상 아님">대체됨</span>${it.replaced_note ? ` <span class="text-muted" style="font-size:12px;">↳ ${_esc(it.replaced_note)}</span>` : ''}</td>`
+                    : o.type === 'estimate'
                     ? `<td colspan="3"><div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; ${itemOrdered ? '' : 'opacity:0.9;'}">
                        ${itemOrdered ? '' : `<button class="btn-primary btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, false, this)" title="주문완료 처리 — 처리 시각이 기록되고 기입칸이 활성화됩니다">주문완료</button>
                        <button class="btn-outline btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, true, this)" title="사무실 재고로 직접 발송 — 구매처가 '사무실 발송'으로 기록되고 재고가 차감됩니다">직접발송</button>`}
@@ -2155,7 +2157,7 @@ function renderOrderCard(o) {
                     ? ` <span class="text-muted" style="font-size:11px; white-space:nowrap;" title="주문완료 처리 시각 ${_esc(it.ordered_at)}">주문 ${_esc(it.ordered_at.slice(5))}</span>` : '';
                 return `<tr style="background:var(--surface2);" ${o.type==='estimate'?`data-oik="${o.id}:${it.index}"`:''}>
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap">${_esc(it.name)}${refundBadge}${itemOrdAt}${prodMemo}</td>
+                    <td style="padding-left:26px;" class="text-wrap"><span style="${it.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${_esc(it.name)}</span>${refundBadge}${itemOrdAt}${prodMemo}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
                 </tr>${bundleRow}`;
@@ -2193,6 +2195,7 @@ function orderSheetRows() {
     const rows = [];
     ORDER_ROWS.filter(o => o.type === 'estimate' && o.status !== 'cancelled').forEach(o => {
         (o.items || []).forEach(it => {
+            if (it.replaced) return; // 대체된(취소선) 항목은 주문 대상 아님
             if ((it.bundle_items || []).length) {
                 // 세트 — 구성품 단위로 나열
                 it.bundle_items.forEach((b, bi) => {
