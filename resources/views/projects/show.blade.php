@@ -1362,10 +1362,10 @@
         cols.append(L, R);
         grid.parentNode.insertBefore(cols, grid);
         [byTitle('의뢰자 정보'), byTitle('세팅 장소'), document.getElementById('customDataCard'),
-            byTitle('프로젝트 개요'), byTitle('태그'), byTitle('일정 제안'), byTitle('견적/계약'),
+            byTitle('태그'), byTitle('일정 제안'), byTitle('견적/계약'),
             document.getElementById('paymentHistoryCard')]
             .filter(Boolean).forEach(c => L.appendChild(c));
-        [document.getElementById('reqItemsCard'), byTitle('🛠 방문 보고서'),
+        [byTitle('프로젝트 개요'), document.getElementById('reqItemsCard'), byTitle('🛠 방문 보고서'),
             document.getElementById('visitReportCard'), byTitle('상담 이력'),
             byTitle('피드백'), byTitle('첨부 문서')]
             .filter(Boolean).forEach(c => R.appendChild(c));
