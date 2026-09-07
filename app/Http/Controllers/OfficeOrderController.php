@@ -48,11 +48,25 @@ class OfficeOrderController extends Controller
             ->filter(fn (Estimate $e) => $e->status === 'paid'
                 || collect($e->product_items ?? [])->contains($isOrdered));
 
-        // 제품 메모(직원용, 판매처 등) — 노출되는 전 항목의 제품에서 한 번에 조회
-        $productMemos = Product::whereIn('id', $orderedEstimates
+        // 제품 정보(메모·서비스 분류) — 노출되는 전 항목의 제품에서 한 번에 조회
+        $products = Product::with('categoryRelation')->whereIn('id', $orderedEstimates
             ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])->pluck('product_id'))
             ->filter()->unique()->values())
-            ->pluck('memo', 'id');
+            ->get()->keyBy('id');
+        $productMemos = $products->map(fn ($p) => $p->memo);
+
+        // 서비스 항목(세팅비 등) — 실물 주문이 없으므로 주문 내역 대상에서 제외 (주문완료 취급).
+        // 스냅샷(is_service)을 우선하고, 구버전 항목은 제품의 서비스 분류로 판정
+        $isServiceItem = fn ($i) => ! empty($i['is_service'])
+            || (! array_key_exists('is_service', $i) && ! empty($i['product_id'])
+                && ($products[$i['product_id']] ?? null)?->isService());
+
+        // 장비 항목이 하나도 없는 견적서(서비스만으로 구성)는 주문할 것이 없으므로 표시하지 않는다
+        $orderedEstimates = $orderedEstimates->filter(function (Estimate $e) use ($isOrdered, $isServiceItem) {
+            $equip = collect($e->product_items ?? [])->reject($isServiceItem);
+
+            return $e->status === 'paid' ? $equip->isNotEmpty() : $equip->contains($isOrdered);
+        });
 
         $estimateRows = $orderedEstimates
             ->map(fn (Estimate $e) => [
@@ -65,6 +79,8 @@ class OfficeOrderController extends Controller
                 'ship_entrance' => $e->ship_entrance,
                 'status' => $e->status,
                 'items' => collect($e->product_items ?? [])
+                    // 서비스 항목(세팅비 등)은 주문 대상이 아니므로 제외 — 장비만 (reject가 원본 인덱스 보존)
+                    ->reject($isServiceItem)
                     ->map(fn ($i, $idx) => [
                         'index' => $idx,
                         'name' => $i['name'] ?? '',
@@ -122,8 +138,8 @@ class OfficeOrderController extends Controller
                     ?? (($firstOrdered = collect($e->product_items ?? [])
                         ->flatMap(fn ($i) => [$i['ordered_at'] ?? null, ...collect($i['bundle_items'] ?? [])->pluck('ordered_at')])
                         ->filter()->max()) ? substr($firstOrdered, 0, 10) : $e->updated_at->format('Y-m-d')),
-                // 미주문 상태 — 결제완료로 자동 등재됐지만 아직 아무 항목도 주문 처리 전
-                'unordered' => ! collect($e->product_items ?? [])->contains($isOrdered),
+                // 미주문 상태 — 결제완료로 자동 등재됐지만 아직 아무 장비 항목도 주문 처리 전 (서비스 항목은 주문완료 취급)
+                'unordered' => ! collect($e->product_items ?? [])->reject($isServiceItem)->contains($isOrdered),
             ])
             ->values();
 

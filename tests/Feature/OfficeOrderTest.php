@@ -170,6 +170,59 @@ class OfficeOrderTest extends TestCase
             ->assertSee('미주문', false);
     }
 
+    public function test_service_items_excluded_from_order_list(): void
+    {
+        // 서비스 항목(세팅비 등)은 실물 주문이 없음 — 주문내역에는 장비만, 서비스는 주문완료 취급
+        $mixed = Estimate::create([
+            'status' => 'created', 'title' => '세팅 + 장비', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['name' => '기본 세팅비', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000, 'is_service' => true],
+                ['name' => '카메라', 'sale_price' => 300000, 'qty' => 1, 'subtotal' => 300000, 'is_service' => false],
+            ],
+            'service_items' => [], 'product_total' => 400000, 'service_total' => 0, 'total_amount' => 400000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $mixed->update(['status' => 'paid']);
+        // 서비스만으로 구성된 결제완료 건 — 주문할 것이 없으므로 미표시
+        $serviceOnly = Estimate::create([
+            'status' => 'created', 'title' => '원격 세팅만', 'client_nickname' => '홍길동',
+            'product_items' => [['name' => '원격 세팅비', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000, 'is_service' => true]],
+            'service_items' => [], 'product_total' => 50000, 'service_total' => 0, 'total_amount' => 50000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $serviceOnly->update(['status' => 'paid']);
+
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json();
+
+        $this->assertCount(1, $rows); // 서비스만인 견적서는 제외
+        $this->assertSame($mixed->id, $rows[0]['id']);
+        $this->assertCount(1, $rows[0]['items']); // 장비(카메라)만
+        $this->assertSame('카메라', $rows[0]['items'][0]['name']);
+        $this->assertSame(1, $rows[0]['items'][0]['index']); // 원본 인덱스 보존 (item-note 저장용)
+        $this->assertTrue($rows[0]['unordered']); // 서비스는 주문완료 취급 — 장비 기준 미주문
+    }
+
+    public function test_legacy_item_without_snapshot_uses_product_service_kind(): void
+    {
+        // 구버전 스냅샷(is_service 키 없음) — 제품의 서비스 분류(service_kind)로 판정
+        $svc = Product::create(['sku' => 'SVC-1', 'name' => '방문 세팅비', 'category' => '서비스',
+            'purchase_price' => 0, 'sale_price' => 100000, 'service_kind' => 'service', 'is_active' => true, 'show_in_estimate' => true]);
+        $estimate = Estimate::create([
+            'status' => 'created', 'title' => '구버전 견적', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['product_id' => $svc->id, 'name' => '방문 세팅비', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000],
+                ['name' => '조명', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000],
+            ],
+            'service_items' => [], 'product_total' => 150000, 'service_total' => 0, 'total_amount' => 150000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $estimate->update(['status' => 'paid']);
+
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $this->assertCount(1, $row['items']);
+        $this->assertSame('조명', $row['items'][0]['name']);
+    }
+
     public function test_order_list_search_by_product_client_and_date(): void
     {
         $a = $this->makeOrderedEstimate(); // 카메라·마이크 / 고블린
