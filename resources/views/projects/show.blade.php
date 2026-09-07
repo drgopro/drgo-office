@@ -99,10 +99,18 @@
     .step-label.active { color:var(--accent); font-weight:600; }
 
     .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    /* ── 2열 재배치 (캘린더 모달과 동일 개념) — 좌: 의뢰자 정보·장비·결제 / 우: 의뢰 내용·보고서·상담 ──
+       카드들은 아래 재배치 스크립트가 DOM에서 두 컬럼으로 옮긴다 (조건부 카드 대응) */
+    .proj-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; margin-bottom:16px; }
+    .proj-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
+    .proj-col .info-card { width:auto; }
+    @media (max-width: 980px) { .proj-cols { grid-template-columns:1fr; } }
     /* 익명(의뢰자 미연동) 프로젝트 — 프로젝트명 확인 + 상담 이력만 남기는 간소화 뷰 */
     .anon-proj .process-wrap { display:none !important; }
     .anon-proj .info-grid > .info-card:not(.anon-keep) { display:none !important; }
     .anon-proj .info-grid > .info-card.anon-keep { grid-column:1 / -1; }
+    .anon-proj .proj-col > .info-card:not(.anon-keep) { display:none !important; }
+    .anon-proj .proj-cols { grid-template-columns:1fr; }
     .info-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .info-card.full { grid-column:1/-1; }
     .pj-tags { display:flex; flex-wrap:wrap; gap:5px; }
@@ -1333,6 +1341,29 @@
             @endif
         </div>
     </div>
+
+    {{-- ── 2열 재배치 — 좌: 의뢰자 정보·세팅 장소·장비(추가 정보)·개요·태그·일정 제안·견적/결제
+         우: 의뢰 내용·방문 보고서·상담 이력. 나머지(피드백·첨부 문서)는 전체 폭으로 하단 유지 ── --}}
+    <script>
+    (function () {
+        const grid = document.querySelector('.info-grid');
+        if (!grid) return;
+        const byTitle = t => [...grid.querySelectorAll(':scope > .info-card')]
+            .find(c => (c.querySelector('.card-title')?.textContent || '').includes(t));
+        const cols = document.createElement('div'); cols.className = 'proj-cols';
+        const L = document.createElement('div'); L.className = 'proj-col';
+        const R = document.createElement('div'); R.className = 'proj-col';
+        cols.append(L, R);
+        grid.parentNode.insertBefore(cols, grid);
+        [byTitle('의뢰자 정보'), byTitle('세팅 장소'), document.getElementById('customDataCard'),
+            byTitle('프로젝트 개요'), byTitle('태그'), byTitle('일정 제안'), byTitle('견적/계약'),
+            document.getElementById('paymentHistoryCard')]
+            .filter(Boolean).forEach(c => L.appendChild(c));
+        [document.getElementById('reqItemsCard'), byTitle('🛠 방문 보고서'),
+            document.getElementById('visitReportCard'), byTitle('상담 이력')]
+            .filter(Boolean).forEach(c => R.appendChild(c));
+    })();
+    </script>
 </div>
 
 <!-- 상담 등록 모달 -->
@@ -2253,7 +2284,7 @@ const PROJECT_ID = {{ $project->id }};
 const CSRF_PJ = document.querySelector('meta[name="csrf-token"]').content;
 let projectFieldDefs = [];
 let projectCustomData = @json($project->custom_data ?? new \stdClass);
-const PCF_SECTIONS = { basic:'기본 정보', equipment:'장비 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' };
+const PCF_SECTIONS = { equipment:'장비 정보', basic:'기본 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' }; // 장비를 맨 위로 (하단에 묻히던 문제)
 const PCF_CAN_MANAGE = @json(auth()->user()->isAdmin()); // 필드 정의 API는 master/admin 전용
 
 function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
