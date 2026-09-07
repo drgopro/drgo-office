@@ -473,6 +473,11 @@ async function lsLoadProjectSummary(pid){
                     : `<div class="ls-text-block muted">— 결제 내역 없음 —</div>`}
                 ${p.outstanding_balance>0?`<div class="ls-info-label" style="margin-top:4px;color:var(--red);font-weight:700;">💸 미수 잔금 ${fmt(p.outstanding_balance)}원</div>`:''}
             </div>
+            ${p.client_req_note?`
+            <div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb, var(--m-accent, #3A5683) 6%, #fff);border:1px solid color-mix(in srgb, var(--m-accent, #3A5683) 22%, #e0dfda);">
+                <div style="font-size:11px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
+                <div style="font-size:12.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(p.client_req_note)}</div>
+            </div>`:''}
             ${(p.estimates&&p.estimates.length)?`
             <div style="margin-top:8px;">
                 <div class="ls-info-label">연동 견적서</div>

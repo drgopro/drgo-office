@@ -656,6 +656,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'outstanding_balance' => $outstanding,
+            'client_req_note' => (string) ($project->custom_data['__client_req_note'] ?? ''), // 의뢰자 요구사항 — 요약 카드 표시
             'id' => $project->id,
             'name' => $project->name,
             'stage' => $project->stageLabel(),
