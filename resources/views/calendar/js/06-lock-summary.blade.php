@@ -359,6 +359,17 @@ function renderLockSummary(){
         if (tMemo) right.push(lsCard('메모', `<div class="ls-text-block" style="font-weight:600;">${_esc(tMemo)}</div>`, '', 'ls-tinted ls-c-special'));
     }
 
+    // 의뢰자 정보 카드 (방문의뢰·원격 외 카테고리 — 스튜디오/촬영, 미팅/내방 등)
+    // gold는 폼 값으로 위에서 이미 렌더 — 그 외 카테고리는 연동 의뢰자 정보를 비동기 로드해 표시
+    let lsClientCardCid = null;
+    if (color !== 'gold' && color !== 'teal' && linkedClientId && colorSupportsClientLink(color)) {
+        lsClientCardCid = linkedClientId;
+        left.push(`<div class="ls-card ls-c-client" id="lsClientCard" data-cid="${lsClientCardCid}">
+            <div class="ls-card-head"><span class="ls-card-title">의뢰자</span></div>
+            <div class="ls-text-block muted">불러오는 중…</div>
+        </div>`);
+    }
+
     // 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계를 비동기 로드
     if (lsProjSummaryPid) {
         left.push(`<div class="ls-card ls-c-proj" id="lsProjectSummary" data-pid="${lsProjSummaryPid}">
@@ -445,6 +456,47 @@ function renderLockSummary(){
         + `<div id="lsChildren"></div>`;
     renderChildrenCard();
     if (lsProjSummaryPid) lsLoadProjectSummary(lsProjSummaryPid);
+    if (lsClientCardCid) lsLoadClientCard(lsClientCardCid);
+}
+
+// ── 의뢰자 정보 카드 (방문의뢰 외 카테고리) — 스튜디오/촬영 등에서도 의뢰자 확인 ──
+const lsClientDetailCache = {};
+async function lsLoadClientCard(cid){
+    const render = (d) => {
+        const cur = document.getElementById('lsClientCard');
+        if (!cur || cur.dataset.cid != String(cid)) return; // 로딩 중 다른 일정으로 전환됨
+        const nick = d.nickname || '', name = d.name || '', phone = d.phone || '';
+        const nameNote = (nick && name)
+            ? (nick === name ? '<span class="ls-sub-inline">닉네임 동일</span>' : `<span class="ls-sub-inline">이름 ${_esc(name)}</span>`)
+            : '';
+        const tiles = [];
+        const pushTile = (k,v)=>{ if(v) tiles.push(`<div class="ls-tile"><div class="ls-tile-k">${k}</div><div class="ls-tile-v">${_esc(v)}</div></div>`); };
+        pushTile('플랫폼', [...(d.platforms||[]).filter(v=>v&&v!=='기타'), d.platform_etc].filter(Boolean).join(', '));
+        pushTile('방송주제', [...(d.content_types||[]).filter(v=>v&&v!=='기타'), d.topic_etc].filter(Boolean).join(', '));
+        pushTile('경력', d.career || '');
+        cur.innerHTML = `
+            <div class="ls-card-head"><span class="ls-card-title">의뢰자</span></div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="flex:1;min-width:0;">
+                    <div class="ls-big" style="font-size:15px;"><a href="/clients/${cid}" target="_blank" style="color:inherit;text-decoration:none;">${_esc(nick || name) || '의뢰자 #'+cid}</a> ${nameNote}</div>
+                    <div class="ls-addr" style="margin-top:4px;">${_esc(phone) || '<span style="color:var(--text-muted);font-weight:400;">전화번호 미등록</span>'}</div>
+                </div>
+                ${phone?`<a class="ls-call-btn" href="tel:${_esc(phone.replace(/[^0-9+]/g,''))}">전화</a>`:''}
+            </div>
+            ${tiles.length?`<div class="ls-tiles" style="margin-top:8px;">${tiles.join('')}</div>`:''}`;
+    };
+    if (lsClientDetailCache[cid]) { render(lsClientDetailCache[cid]); return; }
+    try{
+        const res = await fetch(`/api/clients/${cid}/detail`, {headers:{'Accept':'application/json'}});
+        if (!res.ok) { // 권한 없음/삭제된 의뢰자 등 — 카드 숨김
+            const cur = document.getElementById('lsClientCard');
+            if (cur && cur.dataset.cid == String(cid)) cur.style.display='none';
+            return;
+        }
+        const d = await res.json();
+        lsClientDetailCache[cid] = d;
+        render(d);
+    }catch(e){ /* 네트워크 오류 — 로딩 문구 유지 */ }
 }
 
 // ── 연결 프로젝트 요약 (방문의뢰 외 카테고리) — 결제 합계/진행 단계 ──
