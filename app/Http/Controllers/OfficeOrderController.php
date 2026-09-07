@@ -113,6 +113,7 @@ class OfficeOrderController extends Controller
                         'ordered_at' => $i['ordered_at'] ?? null,
                         'replaced' => ! empty($i['replaced']), // 대체된(취소선) 항목 — 주문 대상 아님
                         'replaced_note' => $i['replaced_note'] ?? null,
+                        'manual' => ! empty($i['manual']) || empty($i['product_id']), // 수기 입력 항목 (제품 미연결)
                         // 환불/결제취소 기록 — 수동 체크 + 프로젝트 환불 연동 공용
                         'refunded' => ! empty($i['refunded']),
                         'refund_amount' => (int) ($i['refund_amount'] ?? 0),

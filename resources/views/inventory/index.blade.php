@@ -2157,7 +2157,7 @@ function renderOrderCard(o) {
                     ? ` <span class="text-muted" style="font-size:11px; white-space:nowrap;" title="주문완료 처리 시각 ${_esc(it.ordered_at)}">주문 ${_esc(it.ordered_at.slice(5))}</span>` : '';
                 return `<tr style="background:var(--surface2);" ${o.type==='estimate'?`data-oik="${o.id}:${it.index}"`:''}>
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap"><span style="${it.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${_esc(it.name)}</span>${refundBadge}${itemOrdAt}${prodMemo}</td>
+                    <td style="padding-left:26px;" class="text-wrap"><span style="${it.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${_esc(it.name)}</span>${o.type === 'estimate' && it.manual ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}${refundBadge}${itemOrdAt}${prodMemo}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
                 </tr>${bundleRow}`;
@@ -2207,7 +2207,7 @@ function orderSheetRows() {
             } else {
                 const done = !!it.ordered;
                 if (done && !(it.ordered_at || '').startsWith(ts)) return;
-                rows.push({ done, date: o.group_date, name: it.name, qty: it.qty,
+                rows.push({ done, date: o.group_date, name: it.name, qty: it.qty, manual: !!it.manual,
                     client: o.client, no: o.no, estId: o.id, index: it.index, bi: null, source: it.purchase_source || '', at: it.ordered_at });
             }
         });
@@ -2232,7 +2232,7 @@ function renderOrderSheet() {
         const key = `${r.estId}:${r.index}${r.bi !== null ? ':' + r.bi : ''}`;
         out += `<tr style="${r.done ? 'opacity:0.55;' : ''}" data-osrow="${key}">
             <td class="text-muted" style="white-space:nowrap;">${(r.date || '').slice(5)}</td>
-            <td class="text-wrap">${_esc(r.name)}</td>
+            <td class="text-wrap">${_esc(r.name)}${r.manual ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}</td>
             <td class="text-muted">${r.qty}개</td>
             <td class="text-muted text-wrap">${_esc(r.client || '-')} · <a href="javascript:void(0)" onclick="window.open('/estimates/${r.estId}/edit','est_${r.estId}')" style="color:var(--accent); text-decoration:none;">#${r.no}</a></td>
             <td>${r.done

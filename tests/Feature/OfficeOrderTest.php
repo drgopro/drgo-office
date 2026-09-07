@@ -102,6 +102,7 @@ class OfficeOrderTest extends TestCase
         $this->assertFalse($row['items'][0]['ordered']);
         $this->assertSame(now()->format('Y-m-d'), $row['group_date']); // 결제완료일 기준 그룹
         $this->assertNotNull($row['paid_at']);
+        $this->assertTrue($row['items'][0]['manual']); // 제품 미연결 항목 — '수기' 표기
     }
 
     public function test_item_note_endpoint_toggles_ordered_with_timestamp(): void
