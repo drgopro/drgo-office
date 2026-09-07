@@ -343,8 +343,17 @@
 
     <!-- 주문 내역 — 견적서 주문완료 건 + 직접 주문 (그룹 → 펼치면 항목) -->
     <div class="tab-panel" id="panel-orders">
-        <div class="toolbar">
-            <span class="text-muted" style="font-size:12px;">견적서에서 '주문완료' 표시된 건은 자동으로 나타납니다. 항목을 펼쳐 구매처·메모를 기록하세요.</span>
+        <div class="toolbar" style="flex-wrap:wrap; gap:8px;">
+            <span style="display:flex; gap:0;">
+                <button class="btn-outline" id="ordViewCards" onclick="setOrderView('cards')" style="border-radius:8px 0 0 8px;">카드</button>
+                <button class="btn-outline" id="ordViewSheet" onclick="setOrderView('sheet')" style="border-radius:0 8px 8px 0; border-left:none;" title="주문 대기 항목을 제품 단위 한 줄씩 — 당일 주문 처리용 시트">주문 시트</button>
+            </span>
+            <input id="ordSearch" class="field-input" placeholder="제품명·의뢰자·구매처·주문명 검색" style="width:230px; padding:7px 10px; font-size:12.5px;" oninput="orderSearchChanged()">
+            <span style="display:flex; align-items:center; gap:4px;">
+                <input type="date" id="ordFrom" class="field-input" style="padding:6px 8px; font-size:12px;" onchange="orderSearchChanged(true)" title="기간 시작일 (결제완료일/주문일 기준)">
+                <span class="text-muted">~</span>
+                <input type="date" id="ordTo" class="field-input" style="padding:6px 8px; font-size:12px;" onchange="orderSearchChanged(true)" title="기간 종료일">
+            </span>
             <span style="margin-left:auto; display:flex; gap:8px;">
                 <button class="btn-outline" onclick="loadOrders()">새로고침</button>
                 <button class="btn-primary" onclick="openOrderCreate()">+ 주문 추가</button>
@@ -354,6 +363,13 @@
             <table class="data-table">
                 <thead><tr><th style="width:110px;">유형</th><th>주문명</th><th>항목</th><th>의뢰자/등록자</th><th>최근 수정</th><th style="width:170px;"></th></tr></thead>
                 <tbody id="orderBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
+            </table>
+        </div>
+        {{-- 주문 시트 — 미주문 항목을 제품 단위 한 줄씩 (엑셀 시트처럼 당일 주문 처리) --}}
+        <div class="data-card" id="orderSheetCard" style="display:none;">
+            <table class="data-table">
+                <thead><tr><th style="width:76px;">날짜</th><th>제품</th><th style="width:56px;">수량</th><th style="width:170px;">의뢰자 · 출처</th><th style="width:160px;">구매처</th><th style="width:190px;"></th></tr></thead>
+                <tbody id="orderSheetBody"></tbody>
             </table>
         </div>
     </div>
@@ -1961,10 +1977,38 @@ async function saveMovement(force) {
 // === 주문 내역 — 견적서 주문완료 건 + 직접 주문 (그룹 1건 → 펼치면 항목) ===
 let ORDER_ROWS = [];
 const expandedOrders = new Set(); // 'estimate-3' / 'manual-5'
+let orderView = localStorage.getItem('inv_order_view') || 'cards'; // 'cards' | 'sheet'
+let orderSearchTimer = null;
+function orderSearchChanged(immediate) {
+    clearTimeout(orderSearchTimer);
+    orderSearchTimer = setTimeout(() => loadOrders(), immediate ? 0 : 350);
+}
 async function loadOrders() {
-    const res = await fetch('/api/inventory/office-orders');
+    const p = new URLSearchParams();
+    const q = document.getElementById('ordSearch')?.value.trim();
+    const from = document.getElementById('ordFrom')?.value, to = document.getElementById('ordTo')?.value;
+    if (q) p.set('q', q);
+    if (from) p.set('from', from);
+    if (to) p.set('to', to);
+    const res = await fetch('/api/inventory/office-orders' + (p.toString() ? '?' + p : ''));
     ORDER_ROWS = res.ok ? await res.json() : [];
     renderOrders();
+    renderOrderSheet();
+    updateOrderViewUI();
+}
+function setOrderView(v) {
+    orderView = v;
+    localStorage.setItem('inv_order_view', v);
+    updateOrderViewUI();
+}
+function updateOrderViewUI() {
+    const sheet = orderView === 'sheet';
+    document.getElementById('orderCard').style.display = sheet ? 'none' : '';
+    document.getElementById('orderSheetCard').style.display = sheet ? '' : 'none';
+    const pending = orderSheetRows().filter(r => !r.done).length;
+    const bs = document.getElementById('ordViewSheet'), bc = document.getElementById('ordViewCards');
+    if (bs) { bs.textContent = `주문 시트${pending ? ` (${pending})` : ''}`; bs.style.background = sheet ? 'var(--accent)' : ''; bs.style.color = sheet ? '#fff' : ''; bs.style.borderColor = sheet ? 'var(--accent)' : ''; }
+    if (bc) { bc.style.background = sheet ? '' : 'var(--accent)'; bc.style.color = sheet ? '' : '#fff'; bc.style.borderColor = sheet ? '' : 'var(--accent)'; }
 }
 function loadOfficeOrders() { loadOrders(); } // 새 창(주문 추가/수정) 저장 후 갱신 콜백
 function orderKey(o) { return o.type + '-' + o.id; }
@@ -2143,6 +2187,81 @@ function renderOrderCard(o) {
         return html;
     })(o);
 }
+// === 주문 시트 — 미주문 항목(구성품 단위 포함)을 한 줄씩, 오늘 처리분은 하단에 ✓로 ===
+function orderSheetRows() {
+    const today = new Date(); const ts = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const rows = [];
+    ORDER_ROWS.filter(o => o.type === 'estimate' && o.status !== 'cancelled').forEach(o => {
+        (o.items || []).forEach(it => {
+            if ((it.bundle_items || []).length) {
+                // 세트 — 구성품 단위로 나열
+                it.bundle_items.forEach((b, bi) => {
+                    const done = !!b.ordered;
+                    if (done && !(b.ordered_at || '').startsWith(ts)) return; // 과거 처리분은 시트에서 제외
+                    rows.push({ done, date: o.group_date, name: `${it.name} └ ${b.name}`, qty: b.qty,
+                        client: o.client, no: o.no, estId: o.id, index: it.index, bi, source: b.source || '', at: b.ordered_at });
+                });
+            } else {
+                const done = !!it.ordered;
+                if (done && !(it.ordered_at || '').startsWith(ts)) return;
+                rows.push({ done, date: o.group_date, name: it.name, qty: it.qty,
+                    client: o.client, no: o.no, estId: o.id, index: it.index, bi: null, source: it.purchase_source || '', at: it.ordered_at });
+            }
+        });
+    });
+    // 대기 항목 먼저(오래된 날짜부터 — 밀린 것 위로), 오늘 처리분은 아래
+    return rows.sort((a, b) => (a.done - b.done) || String(a.date).localeCompare(String(b.date)) || a.estId - b.estId);
+}
+function renderOrderSheet() {
+    const tb = document.getElementById('orderSheetBody');
+    if (!tb) return;
+    const rows = orderSheetRows();
+    if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty-row">주문 대기 항목이 없습니다 — 결제완료된 견적서가 생기면 여기에 나타납니다.</td></tr>';
+        return;
+    }
+    let out = '', doneHeaderShown = false;
+    rows.forEach(r => {
+        if (r.done && !doneHeaderShown) {
+            doneHeaderShown = true;
+            out += `<tr><td colspan="6" style="background:var(--surface); font-weight:800; font-size:12px; color:var(--text-muted); padding:8px 12px;">✅ 오늘 처리 ${rows.filter(x => x.done).length}건</td></tr>`;
+        }
+        const key = `${r.estId}:${r.index}${r.bi !== null ? ':' + r.bi : ''}`;
+        out += `<tr style="${r.done ? 'opacity:0.55;' : ''}" data-osrow="${key}">
+            <td class="text-muted" style="white-space:nowrap;">${(r.date || '').slice(5)}</td>
+            <td class="text-wrap">${_esc(r.name)}</td>
+            <td class="text-muted">${r.qty}개</td>
+            <td class="text-muted text-wrap">${_esc(r.client || '-')} · <a href="javascript:void(0)" onclick="window.open('/estimates/${r.estId}/edit','est_${r.estId}')" style="color:var(--accent); text-decoration:none;">#${r.no}</a></td>
+            <td>${r.done
+                ? `<span class="text-muted" style="font-size:12px;">${_esc(r.source) || '-'}</span>`
+                : `<input class="os-src field-input" value="${_esc(r.source)}" placeholder="구매처 (선택)" maxlength="100" style="padding:5px 8px; font-size:12px; width:100%;">`}</td>
+            <td class="action-cell">${r.done
+                ? `<span class="badge ${r.source === '사무실 발송' ? 'badge-direct' : 'badge-ok'}">${r.source === '사무실 발송' ? '직접발송' : '주문완료'}</span> <span class="text-muted" style="font-size:11px;">${r.at ? _esc(r.at.slice(11)) : ''}</span>`
+                : `<button class="btn-primary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="sheetMarkOrdered('${key}', false, this)">주문완료</button>
+                   <button class="btn-outline btn-sm" style="padding:4px 10px; font-size:12px;" onclick="sheetMarkOrdered('${key}', true, this)" title="사무실 재고로 직접 발송 — 구매처 '사무실 발송' 기록 + 재고 차감">직접발송</button>`}</td>
+        </tr>`;
+    });
+    tb.innerHTML = out;
+}
+// 시트에서 주문완료/직접발송 — 구매처 입력값을 함께 저장
+async function sheetMarkOrdered(key, direct, btn) {
+    const [estId, index, bi] = key.split(':').map(Number);
+    btn.disabled = true; btn.textContent = '처리 중…';
+    const row = btn.closest('tr');
+    const src = direct ? '사무실 발송' : (row.querySelector('.os-src')?.value.trim() || '');
+    const body = { index, ordered: 1 };
+    if (!Number.isNaN(bi)) body.bundle_index = bi;
+    if (src) body.purchase_source = src;
+    const res = await fetch(`/api/inventory/office-orders/estimate/${estId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert(e.message || '처리에 실패했습니다.');
+        btn.disabled = false; btn.textContent = direct ? '직접발송' : '주문완료';
+        return;
+    }
+    await loadOrders();
+}
+
 // === 편집값 보존 — 한 항목 저장 후 재렌더/재조회 시 다른 행에 입력 중이던 값이 초기화되지 않도록 ===
 function captureOrderEdits() {
     const snap = { items: {}, bundles: {} };

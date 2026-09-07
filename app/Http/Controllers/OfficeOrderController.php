@@ -28,16 +28,19 @@ class OfficeOrderController extends Controller
         'items.*.memo' => 'nullable|string|max:500',
     ];
 
-    /** 주문 내역 통합 리스트 — 견적서 파생 + 직접 주문, 최신순 */
-    public function index(): JsonResponse
+    /** 주문 내역 통합 리스트 — 견적서 파생 + 직접 주문, 날짜별 그룹 순. q(제품/의뢰자/구매처/주문명)·from/to(그룹 날짜) 검색 지원 */
+    public function index(Request $request): JsonResponse
     {
+        $q = trim((string) $request->query('q', ''));
+        $from = (string) $request->query('from', '');
+        $to = (string) $request->query('to', '');
         // 항목 또는 세트 구성품 단위 주문완료 여부 (구성품만 주문돼도 주문 내역에 노출)
         $isOrdered = fn ($i) => ! empty($i['ordered'])
             || collect($i['bundle_items'] ?? [])->contains(fn ($b) => ! empty($b['ordered']));
 
         // 결제완료 견적서는 자동 등재(주문 버튼 없이도 미주문 상태로 노출) + 주문완료 항목이 있는 견적서.
         // 스냅샷 JSON이라 PHP에서 필터 (전체 로드 방지: 최근 300건)
-        $orderedEstimates = Estimate::with(['shipments' => fn ($q) => $q->orderBy('id')])
+        $orderedEstimates = Estimate::with(['shipments' => fn ($s) => $s->orderBy('id')])
             ->where('status', '!=', 'temp')
             ->orderByDesc('updated_at')
             ->limit(300)
@@ -144,8 +147,29 @@ class OfficeOrderController extends Controller
                 'group_date' => ($o->order_date ?? $o->created_at)->format('Y-m-d'), // 수동 주문은 주문 작성일 기준
             ]);
 
+        // 검색어 — 주문명/의뢰자/견적번호/제품·구성품명/구매처/메모 (스냅샷 JSON은 한글이
+        // 유니코드로 저장돼 SQL LIKE가 안 통하므로 만들어진 행에서 PHP로 매칭)
+        $matches = function (array $r) use ($q): bool {
+            $hay = [$r['title'] ?? '', $r['client'] ?? '', $r['creator'] ?? '', (string) ($r['no'] ?? '')];
+            foreach ($r['items'] ?? [] as $i) {
+                $hay[] = $i['name'] ?? '';
+                $hay[] = $i['purchase_source'] ?? '';
+                $hay[] = $i['memo'] ?? '';
+                foreach ($i['bundle_items'] ?? [] as $b) {
+                    $hay[] = $b['name'] ?? '';
+                    $hay[] = $b['source'] ?? '';
+                }
+            }
+
+            return collect($hay)->contains(fn ($h) => $h !== '' && mb_stripos((string) $h, $q) !== false);
+        };
+
         return response()->json(
             $estimateRows->concat($manualRows)
+                ->when($q !== '', fn ($rows) => $rows->filter($matches))
+                // 기간 필터 — 그룹 기준 날짜(결제완료일/주문 작성일)로
+                ->when($from !== '', fn ($rows) => $rows->filter(fn ($r) => ($r['group_date'] ?? '') >= $from))
+                ->when($to !== '', fn ($rows) => $rows->filter(fn ($r) => ($r['group_date'] ?? '') <= $to))
                 ->sortByDesc(fn ($r) => ($r['group_date'] ?? '').' '.$r['updated_at']) // 날짜 그룹이 연속되게
                 ->values()
         );

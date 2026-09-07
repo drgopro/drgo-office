@@ -170,6 +170,41 @@ class OfficeOrderTest extends TestCase
             ->assertSee('미주문', false);
     }
 
+    public function test_order_list_search_by_product_client_and_date(): void
+    {
+        $a = $this->makeOrderedEstimate(); // 카메라·마이크 / 고블린
+        Estimate::create([
+            'status' => 'created', 'title' => '조명 구축', 'client_nickname' => '홍길동',
+            'product_items' => [['name' => '조명 세트', 'sale_price' => 1, 'qty' => 1, 'subtotal' => 1, 'ordered' => true]],
+            'service_items' => [], 'product_total' => 1, 'service_total' => 0, 'total_amount' => 1,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        // 제품명 검색 — 스냅샷 JSON에서 매칭
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders?q=조명 세트')->json();
+        $this->assertCount(1, $rows);
+        $this->assertSame('조명 구축', $rows[0]['title']);
+
+        // 의뢰자 검색
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders?q=고블린')->json();
+        $this->assertCount(1, $rows);
+        $this->assertSame($a->id, $rows[0]['id']);
+
+        // 기간 필터 — 그룹 날짜 밖이면 제외
+        $past = now()->subDays(10)->format('Y-m-d');
+        $rows = $this->actingAs($this->admin)->getJson("/api/inventory/office-orders?from={$past}&to={$past}")->json();
+        $this->assertCount(0, $rows);
+    }
+
+    public function test_order_page_renders_sheet_view(): void
+    {
+        $this->actingAs($this->admin)->get('/inventory')->assertOk()
+            ->assertSee('orderSheetBody', false)   // 주문 시트 테이블
+            ->assertSee('sheetMarkOrdered', false) // 시트 주문완료/직발
+            ->assertSee('ordSearch', false)        // 검색 입력
+            ->assertSee('setOrderView', false);    // 카드/시트 전환
+    }
+
     public function test_manual_order_crud_and_grouping(): void
     {
         $created = $this->actingAs($this->admin)->postJson('/api/inventory/office-orders', [
