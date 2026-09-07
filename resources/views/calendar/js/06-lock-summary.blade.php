@@ -267,12 +267,13 @@ function renderLockSummary(){
             .map(v => v === '기타' ? (reqTopicEtc || '기타') : v)
             .filter(Boolean).join(', ');
         const lsReqItems = activeReqItems();
-        if (reqTopicVal || lsReqItems.length) {
+        if (reqTopicVal || lsReqItems.length || projReqNote) {
             let reqBody = reqTopicVal ? `<div class="ls-text-block">${_esc(reqTopicVal)}</div>` : '';
             if (lsReqItems.length) {
                 reqBody += `<div style="margin-top:7px;">${reqItemsGroupedHtml(lsReqItems)}</div>`;
-                if (projReqItems.length) reqBody += `<div class="rqv-src">📁 연결된 프로젝트의 의뢰 내용</div>`;
             }
+            reqBody += reqNoteHtml(); // 의뢰자 요구사항 수기 메모 (프로젝트 연동)
+            if (lsReqItems.length && projReqItems.length) reqBody += `<div class="rqv-src">📁 연결된 프로젝트의 의뢰 내용</div>`;
             right.push(lsCard('의뢰 내용', reqBody, '', 'ls-c-reqtopic')); // 우측 첫 카드
         }
 

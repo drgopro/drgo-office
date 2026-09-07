@@ -578,7 +578,7 @@ function openEditModal(ev){
     }
     // 3뎁스 세팅 항목 선택 복원
     reqItems=Array.isArray(g.req_items)?g.req_items.filter(x=>x&&x.t&&x.c&&x.d).map(x=>({t:x.t,c:x.c,d:x.d,qty:Math.max(1,parseInt(x.qty,10)||1)})):[];
-    projReqItems=[]; projReqLoadedFor=null;
+    projReqItems=[]; projReqNote=''; projReqLoadedFor=null;
     renderReqView();
     document.getElementById('g_req_detail').value=g.req_detail||'';
     // 이사세팅 출발지 복원 (address=도로명, location=도로명+상세)

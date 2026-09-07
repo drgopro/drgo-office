@@ -325,7 +325,10 @@ class ProjectController extends Controller
             ->filter(fn ($i) => is_array($i) && ! empty($i['t']) && ! empty($i['c']) && ! empty($i['d']))
             ->values();
 
-        return response()->json(['req_items' => $items]);
+        return response()->json([
+            'req_items' => $items,
+            'client_req_note' => (string) ($project->custom_data['__client_req_note'] ?? ''), // 의뢰자 요구사항 수기 메모
+        ]);
     }
 
     /**

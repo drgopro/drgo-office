@@ -1056,6 +1056,12 @@
             </div>
             <div id="reqItemTags" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:10px;"></div>
             <div id="reqItemPicker" class="req-picker"></div>
+            {{-- 의뢰자 요구사항 — 수기 메모 (custom_data.__client_req_note, 연결된 캘린더 일정에도 표시) --}}
+            <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
+                <div style="font-size:12px; font-weight:700; color:var(--slate); margin-bottom:6px;">의뢰자 요구사항
+                    <span style="font-weight:400; color:var(--text-muted);">— 수기 작성 · 자동 저장 · 연결된 캘린더 일정에도 표시됩니다</span></div>
+                <textarea id="clientReqNote" class="pcf-input" style="width:100%; min-height:84px; resize:vertical; line-height:1.6;" placeholder="의뢰자가 말한 요구사항을 자유롭게 기록하세요 (예: 웹캠 화질이 어둡다는 불만, 책상 배치는 그대로 유지 희망)" oninput="clientReqNoteChanged()">{{ $project->custom_data['__client_req_note'] ?? '' }}</textarea>
+            </div>
         </div>
 
         {{-- 의뢰 세부 항목 선택지 관리 (관리자 전용) --}}
@@ -1360,7 +1366,8 @@
             document.getElementById('paymentHistoryCard')]
             .filter(Boolean).forEach(c => L.appendChild(c));
         [document.getElementById('reqItemsCard'), byTitle('🛠 방문 보고서'),
-            document.getElementById('visitReportCard'), byTitle('상담 이력')]
+            document.getElementById('visitReportCard'), byTitle('상담 이력'),
+            byTitle('피드백'), byTitle('첨부 문서')]
             .filter(Boolean).forEach(c => R.appendChild(c));
     })();
     </script>
@@ -2714,6 +2721,12 @@ async function pcfAddSubmit() {
     pcfScheduleSave();       // custom_data로 저장 (이 프로젝트에만 적용)
     pfaResetForm();
     renderProjectCustomFields();
+}
+
+// 의뢰자 요구사항 수기 메모 — custom_data.__client_req_note에 자동 저장 (캘린더 일정에도 표시)
+function clientReqNoteChanged() {
+    projectCustomData.__client_req_note = document.getElementById('clientReqNote').value;
+    pcfScheduleSave();
 }
 
 // ── 의뢰 내용 (3뎁스 세팅 항목) — custom_data.__req_items에 저장, 연결된 캘린더 일정에 표시 ──

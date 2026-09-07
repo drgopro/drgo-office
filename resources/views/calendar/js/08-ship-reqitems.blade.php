@@ -161,19 +161,22 @@ async function refreshShipments(){
 // ── 세팅 항목 (읽기 전용) — 연결된 프로젝트의 의뢰 내용(custom_data.__req_items)을 불러와 표시 ──
 let reqItems=[];       // 일정 자체에 저장된 선택 (구버전 호환 — 저장 시 그대로 보존)
 let projReqItems=[];   // 연결 프로젝트에서 불러온 의뢰 내용
+let projReqNote='';    // 연결 프로젝트의 '의뢰자 요구사항' 수기 메모
 let projReqLoadedFor=null;
 
 function activeReqItems(){ return projReqItems.length?projReqItems:reqItems; }
 
 async function loadProjectReqItems(pid){
-    if(!pid){ projReqItems=[]; projReqLoadedFor=null; renderReqView(); return; }
+    if(!pid){ projReqItems=[]; projReqNote=''; projReqLoadedFor=null; renderReqView(); return; }
     if(String(projReqLoadedFor)===String(pid)) return;
     projReqLoadedFor=pid;
     try{
         const res=await fetch(`/api/projects/${pid}/request-items`,{headers:{'Accept':'application/json'}});
         if(String(projReqLoadedFor)!==String(pid)) return; // 로딩 중 프로젝트 변경됨
-        projReqItems=res.ok?((await res.json()).req_items||[]):[];
-    }catch(e){ projReqItems=[]; }
+        const data=res.ok?await res.json():{};
+        projReqItems=data.req_items||[];
+        projReqNote=data.client_req_note||'';
+    }catch(e){ projReqItems=[]; projReqNote=''; }
     renderReqView();
     if(isLocked&&typeof renderLockSummary==='function') renderLockSummary();
 }
@@ -198,16 +201,24 @@ function reqItemsGroupedHtml(items){
     }).join('');
 }
 
+// 의뢰자 요구사항 메모 블록 (모달 표시부·요약 뷰 공용)
+function reqNoteHtml(){
+    if(!projReqNote) return '';
+    return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb, var(--m-accent, #3A5683) 6%, #fff);border:1px solid color-mix(in srgb, var(--m-accent, #3A5683) 22%, #e0dfda);">
+        <div style="font-size:11px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
+        <div style="font-size:12.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(projReqNote)}</div></div>`;
+}
 function renderReqView(){
     const el=document.getElementById('reqItemsView');
     if(!el) return;
     const items=activeReqItems();
-    if(!items.length){
+    if(!items.length&&!projReqNote){
         el.innerHTML=`<span style="color:var(--text-muted);font-size:12px;">${linkedProjectId?'연결된 프로젝트에 작성된 의뢰 내용이 없습니다.':'프로젝트를 연결하면 의뢰 내용을 불러옵니다.'}</span>`;
         return;
     }
-    el.innerHTML=reqItemsGroupedHtml(items)
-        +`<div class="rqv-src">${projReqItems.length?'📁 연결된 프로젝트의 의뢰 내용':'이 일정에 저장된 항목 (구버전)'}</div>`;
+    el.innerHTML=(items.length?reqItemsGroupedHtml(items):'')
+        +reqNoteHtml()
+        +(items.length?`<div class="rqv-src">${projReqItems.length?'📁 연결된 프로젝트의 의뢰 내용':'이 일정에 저장된 항목 (구버전)'}</div>`:'');
 }
 
 function resetAttachments(){
