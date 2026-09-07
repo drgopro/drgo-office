@@ -55,11 +55,28 @@ class OfficeOrderController extends Controller
             ->get()->keyBy('id');
         $productMemos = $products->map(fn ($p) => $p->memo);
 
+        // 제품 미연결(수기·구버전) 항목의 서비스 판정용 — 이름이 정확히 일치하는 제품의 분류를 따른다
+        $unlinkedNames = $orderedEstimates
+            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])
+                ->filter(fn ($i) => empty($i['product_id']))->pluck('name'))
+            ->filter()->unique()->values();
+        $serviceNames = Product::with('categoryRelation')->whereIn('name', $unlinkedNames)->get()
+            ->filter(fn ($p) => $p->isService())->pluck('name')->flip();
+
         // 서비스 항목(세팅비 등) — 실물 주문이 없으므로 주문 내역 대상에서 제외 (주문완료 취급).
-        // 스냅샷(is_service)을 우선하고, 구버전 항목은 제품의 서비스 분류로 판정
-        $isServiceItem = fn ($i) => ! empty($i['is_service'])
-            || (! array_key_exists('is_service', $i) && ! empty($i['product_id'])
-                && ($products[$i['product_id']] ?? null)?->isService());
+        // 스냅샷이 서비스면 서비스, 제품이 연결돼 있으면 '현재 제품 분류'가 우선(스냅샷이 낡은 기존
+        // 건도 재분류), 미연결 항목은 같은 이름의 서비스 제품이 있으면 서비스로 판정.
+        // ※ 매출 통계는 스냅샷(is_service)을 그대로 쓰므로 여기 판정과 무관하게 불변.
+        $isServiceItem = function ($i) use ($products, $serviceNames) {
+            if (! empty($i['is_service'])) {
+                return true;
+            }
+            if (! empty($i['product_id']) && isset($products[$i['product_id']])) {
+                return $products[$i['product_id']]->isService();
+            }
+
+            return isset($serviceNames[trim((string) ($i['name'] ?? ''))]);
+        };
 
         // 장비 항목이 하나도 없는 견적서(서비스만으로 구성)는 주문할 것이 없으므로 표시하지 않는다
         $orderedEstimates = $orderedEstimates->filter(function (Estimate $e) use ($isOrdered, $isServiceItem) {

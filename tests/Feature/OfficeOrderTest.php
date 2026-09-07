@@ -202,6 +202,38 @@ class OfficeOrderTest extends TestCase
         $this->assertTrue($rows[0]['unordered']); // 서비스는 주문완료 취급 — 장비 기준 미주문
     }
 
+    public function test_existing_items_reclassified_by_current_product_classification(): void
+    {
+        // 기존에 넘어온 건 — 스냅샷이 is_service:false여도 제품관리의 현재 분류가 서비스면 제외
+        $svc = Product::create(['sku' => 'SVC-2', 'name' => '야외방송 세팅', 'category' => '서비스',
+            'purchase_price' => 0, 'sale_price' => 200000, 'service_kind' => 'service', 'is_active' => true, 'show_in_estimate' => true]);
+        $linked = Estimate::create([
+            'status' => 'created', 'title' => '연결 건', 'client_nickname' => '길동92',
+            'product_items' => [
+                ['product_id' => $svc->id, 'name' => '야외방송 세팅', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000, 'is_service' => false],
+                ['name' => '삼각대', 'sale_price' => 30000, 'qty' => 1, 'subtotal' => 30000],
+            ],
+            'service_items' => [], 'product_total' => 230000, 'service_total' => 0, 'total_amount' => 230000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $linked->update(['status' => 'paid']);
+        // 제품 미연결 수기 항목 — 같은 이름의 서비스 제품이 있으면 서비스로 판정
+        $manual = Estimate::create([
+            'status' => 'created', 'title' => '수기 건', 'client_nickname' => '길동93',
+            'product_items' => [['name' => '야외방송 세팅', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000]],
+            'service_items' => [], 'product_total' => 200000, 'service_total' => 0, 'total_amount' => 200000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $manual->update(['status' => 'paid']);
+
+        $rows = collect($this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json());
+
+        $linkedRow = $rows->firstWhere('id', $linked->id);
+        $this->assertCount(1, $linkedRow['items']); // 세팅은 제외, 삼각대만
+        $this->assertSame('삼각대', $linkedRow['items'][0]['name']);
+        $this->assertNull($rows->firstWhere('id', $manual->id)); // 서비스만 남는 건은 미표시
+    }
+
     public function test_legacy_item_without_snapshot_uses_product_service_kind(): void
     {
         // 구버전 스냅샷(is_service 키 없음) — 제품의 서비스 분류(service_kind)로 판정
