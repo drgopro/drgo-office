@@ -53,12 +53,17 @@ class PayAppClient
             return ['ok' => false, 'error' => '의뢰자 연락처가 없습니다. 주문 정보의 연락처를 먼저 입력해주세요.'];
         }
 
-        $firstItem = collect($estimate->product_items ?? [])->first()['name']
-            ?? collect($estimate->service_items ?? [])->first()['name']
-            ?? null;
-        $count = count($estimate->product_items ?? []) + count($estimate->service_items ?? []);
-        $goodname = $firstItem
-            ? mb_substr($firstItem, 0, 50).($count > 1 ? ' 외 '.($count - 1).'건' : '')
+        // 상품명은 물품명 대신 의뢰자 닉네임/이름으로 — 페이앱 결제내역에서 누구 건인지 바로 식별
+        $nickname = trim((string) $estimate->client_nickname);
+        $name = trim((string) $estimate->client_name);
+        $buyerLabel = match (true) {
+            $nickname !== '' && $name !== '' && $nickname !== $name => "{$nickname}({$name})",
+            $nickname !== '' => $nickname,
+            $name !== '' => $name,
+            default => '',
+        };
+        $goodname = $buyerLabel !== ''
+            ? mb_substr($buyerLabel, 0, 50)
             : '견적서 #'.$estimate->display_no;
 
         // http feedbackurl은 https 리다이렉트 과정에서 POST 통지가 GET으로 바뀌어

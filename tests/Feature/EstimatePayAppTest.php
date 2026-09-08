@@ -200,6 +200,38 @@ class EstimatePayAppTest extends TestCase
         });
     }
 
+    public function test_payapp_request_goodname_uses_client_identity_not_items(): void
+    {
+        // 상품명(goodname)은 물품명이 아니라 의뢰자 닉네임/이름 — 페이앱 내역에서 누구 건인지 식별
+        $this->fakePayAppSuccess();
+        $estimate = $this->makeEstimate(['client_nickname' => '고블린']);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/estimates/{$estimate->id}/payapp-request")
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => $request['cmd'] === 'payrequest'
+            && $request['goodname'] === '고블린(홍길동)');
+
+        // 닉네임 없으면 이름만
+        $this->fakePayAppSuccess();
+        $nameOnly = $this->makeEstimate();
+        $this->actingAs($this->master())
+            ->postJson("/api/estimates/{$nameOnly->id}/payapp-request")
+            ->assertOk();
+        Http::assertSent(fn ($request) => $request['cmd'] === 'payrequest'
+            && $request['goodname'] === '홍길동');
+
+        // 둘 다 없으면 견적서 번호 폴백
+        $this->fakePayAppSuccess();
+        $anon = $this->makeEstimate(['client_name' => null]);
+        $this->actingAs($this->master())
+            ->postJson("/api/estimates/{$anon->id}/payapp-request")
+            ->assertOk();
+        Http::assertSent(fn ($request) => $request['cmd'] === 'payrequest'
+            && $request['goodname'] === '견적서 #'.$anon->display_no);
+    }
+
     public function test_payapp_request_requires_phone_and_config(): void
     {
         $estimate = $this->makeEstimate(['client_phone' => null]);
