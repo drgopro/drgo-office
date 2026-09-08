@@ -37,6 +37,15 @@ class OfficeOrderController extends Controller
         // 항목 또는 세트 구성품 단위 주문완료 여부 (구성품만 주문돼도 주문 내역에 노출)
         $isOrdered = fn ($i) => ! empty($i['ordered'])
             || collect($i['bundle_items'] ?? [])->contains(fn ($b) => ! empty($b['ordered']));
+        // 항목 완전 주문 여부 — 미주문 태그 해제 기준: 항목 자체 주문완료거나, 세트면 구성품 전부 처리
+        $isFullyOrdered = function ($i) {
+            if (! empty($i['ordered'])) {
+                return true;
+            }
+            $bundle = collect($i['bundle_items'] ?? []);
+
+            return $bundle->isNotEmpty() && $bundle->every(fn ($b) => ! empty($b['ordered']));
+        };
 
         // 결제완료 견적서는 자동 등재(주문 버튼 없이도 미주문 상태로 노출) + 주문완료 항목이 있는 견적서.
         // 스냅샷 JSON이라 PHP에서 필터 (전체 로드 방지: 최근 300건)
@@ -156,8 +165,13 @@ class OfficeOrderController extends Controller
                     ?? (($firstOrdered = collect($e->product_items ?? [])
                         ->flatMap(fn ($i) => [$i['ordered_at'] ?? null, ...collect($i['bundle_items'] ?? [])->pluck('ordered_at')])
                         ->filter()->max()) ? substr($firstOrdered, 0, 10) : $e->updated_at->format('Y-m-d')),
-                // 미주문 상태 — 결제완료로 자동 등재됐지만 아직 아무 장비 항목도 주문 처리 전 (서비스 항목은 주문완료 취급)
-                'unordered' => ! collect($e->product_items ?? [])->reject($isServiceItem)->contains($isOrdered),
+                // 미주문 상태 — 결제완료 건에서 장비 항목이 하나라도 주문 처리 전이면 표시,
+                // 전 항목(세트는 구성품 전부)이 주문완료/직접발송돼야 해제 (서비스 항목은 주문완료 취급)
+                'unordered' => $e->status === 'paid'
+                    && collect($e->product_items ?? [])->reject($isServiceItem)
+                        ->reject(fn ($i) => ! empty($i['replaced'])) // 대체된 항목은 주문 대상 아님
+                        ->reject(fn ($i) => (int) ($i['subtotal'] ?? 0) < 0) // 음수(할인) 항목도 주문 대상 아님
+                        ->contains(fn ($i) => ! $isFullyOrdered($i)),
             ])
             ->values();
 

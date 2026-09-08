@@ -105,6 +105,75 @@ class OfficeOrderTest extends TestCase
         $this->assertTrue($row['items'][0]['manual']); // 제품 미연결 항목 — '수기' 표기
     }
 
+    public function test_unordered_tag_stays_until_every_item_is_ordered(): void
+    {
+        // 미주문 태그 — 하나라도 처리 전 항목이 있으면 유지, 전 항목 완료 시에만 해제
+        $estimate = Estimate::create([
+            'status' => 'created', 'title' => '캠 세팅', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['name' => '카메라', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000],
+                ['name' => '조명', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000],
+                ['name' => '캡처보드', 'sale_price' => 30000, 'qty' => 1, 'subtotal' => 30000,
+                    'replaced' => true, 'replaced_note' => '재방문 대체'], // 대체 항목 — 주문 대상 아님
+            ],
+            'service_items' => [], 'product_total' => 180000, 'service_total' => 0, 'total_amount' => 180000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $estimate->update(['status' => 'paid']);
+
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $this->assertTrue($row['unordered']);
+
+        // 한 항목만 주문완료 — 아직 미주문 유지 (이전에는 여기서 태그가 사라지던 버그)
+        $items = $estimate->fresh()->product_items;
+        $items[0]['ordered'] = true;
+        $items[0]['ordered_at'] = now()->toDateTimeString();
+        $estimate->forceFill(['product_items' => $items])->save();
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->json('0');
+        $this->assertTrue($row['unordered']);
+
+        // 나머지 장비 항목까지 전부 주문완료 — 해제 (대체 항목은 처리 안 해도 무관)
+        $items[1]['ordered'] = true;
+        $items[1]['ordered_at'] = now()->toDateTimeString();
+        $estimate->forceFill(['product_items' => $items])->save();
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->json('0');
+        $this->assertFalse($row['unordered']);
+
+        // 음수(할인) 수기 항목이 추가돼도 주문 대상이 아니므로 미주문으로 되돌리지 않는다
+        $items[] = ['name' => '재방문 할인', 'sale_price' => -50000, 'qty' => 1, 'subtotal' => -50000];
+        $estimate->forceFill(['product_items' => $items])->save();
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->json('0');
+        $this->assertFalse($row['unordered']);
+    }
+
+    public function test_unordered_tag_requires_all_bundle_components_ordered(): void
+    {
+        // 세트 항목 — 구성품 일부만 처리하면 미주문 유지, 전 구성품 처리 시 해제
+        $estimate = Estimate::create([
+            'status' => 'created', 'title' => '세트 구축', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['name' => '방송 세트', 'sale_price' => 300000, 'qty' => 1, 'subtotal' => 300000,
+                    'bundle_items' => [
+                        ['name' => '카메라', 'ordered' => true, 'ordered_at' => now()->toDateTimeString()],
+                        ['name' => '마이크'],
+                    ]],
+            ],
+            'service_items' => [], 'product_total' => 300000, 'service_total' => 0, 'total_amount' => 300000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $estimate->update(['status' => 'paid']);
+
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $this->assertTrue($row['unordered']); // 구성품 절반만 처리 — 유지
+
+        $items = $estimate->fresh()->product_items;
+        $items[0]['bundle_items'][1]['ordered'] = true;
+        $items[0]['bundle_items'][1]['ordered_at'] = now()->toDateTimeString();
+        $estimate->forceFill(['product_items' => $items])->save();
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->json('0');
+        $this->assertFalse($row['unordered']);
+    }
+
     public function test_item_note_endpoint_toggles_ordered_with_timestamp(): void
     {
         // 수기 항목(product_id 없음) — 직접발송 재고 연동 없이 주문 토글만 검증

@@ -2061,7 +2061,7 @@ function renderOrderCard(o) {
             : '';
         // 결제완료로 자동 등재됐지만 아직 아무 항목도 주문 처리 전 — 눈에 띄게 표시
         const unordBadge = o.type === 'estimate' && o.unordered
-            ? ' <span class="badge badge-low" title="결제완료로 자동 등재됨 — 항목별 주문완료/직접발송 버튼으로 처리하세요">미주문</span>' : '';
+            ? ' <span class="badge badge-low" title="주문 처리 전 항목이 있습니다 — 모든 항목을 주문완료/직접발송 처리하면 사라집니다">미주문</span>' : '';
         const badge = o.type === 'estimate'
             ? `<span class="badge badge-ordered">견적서 #${o.no}</span>${stBadge}${unordBadge}`
             : '<span class="badge badge-requested">직접 주문</span>';
