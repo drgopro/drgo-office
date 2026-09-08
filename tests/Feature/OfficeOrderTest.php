@@ -237,7 +237,10 @@ class OfficeOrderTest extends TestCase
             ->assertSee('ordDateLabel', false)      // 날짜 그룹 헤더
             ->assertSee('markItemOrdered', false)   // 항목 주문완료/직접발송 버튼
             ->assertSee('markBundleOrdered', false) // 구성품 단위 버튼
-            ->assertSee('미주문', false);
+            ->assertSee('미주문', false)
+            ->assertSee('cancelItemOrdered', false)   // 주문완료 취소 (항목)
+            ->assertSee('cancelBundleOrdered', false) // 주문완료 취소 (구성품)
+            ->assertSee('sheetCancelOrdered', false); // 주문완료 취소 (시트)
     }
 
     public function test_service_items_excluded_from_order_list(): void

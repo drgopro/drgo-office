@@ -2107,7 +2107,8 @@ function renderOrderCard(o) {
                        <label style="display:${itemOrdered ? 'inline-flex' : 'none'}; align-items:center; gap:4px; font-size:12px; white-space:nowrap; cursor:pointer;" title="환불/결제취소 수동 체크 — 프로젝트에서 환불 처리하면 자동으로 표시됩니다" onclick="event.stopPropagation()">
                            <input type="checkbox" class="oi-ref" ${it.refunded ? 'checked' : ''} onchange="this.closest('td').querySelector('.oi-refamt').style.display=this.checked?'':'none'">환불/취소</label>
                        <input class="oi-refamt field-input" type="number" min="0" style="padding:6px 9px; font-size:12px; width:110px; text-align:right; ${it.refunded && itemOrdered ? '' : 'display:none;'}" placeholder="${it.sale_subtotal ? fmt(it.sale_subtotal) : '환불액'}" title="환불 금액 (판매가 합계: ${fmt(it.sale_subtotal||0)}원)" value="${it.refunded && it.refund_amount ? it.refund_amount : ''}" onclick="event.stopPropagation()">
-                       ${itemOrdered ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button>` : ''}</div></td>`
+                       ${itemOrdered ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button>` : ''}
+                       ${o.type === 'estimate' && it.ordered ? `<button class="btn-outline btn-sm" style="color:var(--red, #dc2626); border-color:var(--red, #dc2626);" onclick="event.stopPropagation(); cancelItemOrdered(${o.id}, ${it.index}, ${it.purchase_source === '사무실 발송'}, this)" title="주문완료 상태를 취소하고 미주문으로 되돌립니다${it.purchase_source === '사무실 발송' ? ' — 직접발송으로 차감된 재고는 복원됩니다' : ''}">완료 취소</button>` : ''}</div></td>`
                     : `<td class="text-right">${it.amount != null ? fmt(it.amount)+'원' : '<span class="text-muted">-</span>'}</td>
                        <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
                 // 세트 구성 — 전용 행(전체 폭)에 고정 열 그리드로 나열해 구성품끼리 열이 맞게 정렬
@@ -2129,6 +2130,8 @@ function renderOrderCard(o) {
                             const bOrdBtns = o.type === 'estimate' && !b.ordered
                                 ? ` <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px;" onclick="event.stopPropagation(); markBundleOrdered(${o.id}, ${it.index}, ${bi}, false, this)" title="구성품 주문완료 처리">주문완료</button>
                                     <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px;" onclick="event.stopPropagation(); markBundleOrdered(${o.id}, ${it.index}, ${bi}, true, this)" title="사무실 재고로 직접 발송 — 재고 차감">직발</button>`
+                                : o.type === 'estimate' && b.ordered
+                                ? ` <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px; color:var(--red, #dc2626); border-color:var(--red, #dc2626);" onclick="event.stopPropagation(); cancelBundleOrdered(${o.id}, ${it.index}, ${bi}, ${b.source === '사무실 발송'}, this)" title="구성품 주문완료를 취소하고 미주문으로 되돌립니다${b.source === '사무실 발송' ? ' — 직접발송으로 차감된 재고는 복원됩니다' : ''}">취소</button>`
                                 : '';
                             const nameCell = `<div style="min-width:0; white-space:normal; word-break:break-word;">└ ${_esc(b.name)} <span class="text-muted" style="white-space:nowrap;">×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}</span>${ordBadge}${refBadge}${bOrdBtns}</div>`;
                             if (o.type !== 'estimate') {
@@ -2239,7 +2242,8 @@ function renderOrderSheet() {
                 ? `<span class="text-muted" style="font-size:12px;">${_esc(r.source) || '-'}</span>`
                 : `<input class="os-src field-input" value="${_esc(r.source)}" placeholder="구매처 (선택)" maxlength="100" style="padding:5px 8px; font-size:12px; width:100%;">`}</td>
             <td class="action-cell">${r.done
-                ? `<span class="badge ${r.source === '사무실 발송' ? 'badge-direct' : 'badge-ok'}">${r.source === '사무실 발송' ? '직접발송' : '주문완료'}</span> <span class="text-muted" style="font-size:11px;">${r.at ? _esc(r.at.slice(11)) : ''}</span>`
+                ? `<span class="badge ${r.source === '사무실 발송' ? 'badge-direct' : 'badge-ok'}">${r.source === '사무실 발송' ? '직접발송' : '주문완료'}</span> <span class="text-muted" style="font-size:11px;">${r.at ? _esc(r.at.slice(11)) : ''}</span>
+                   <button class="btn-outline btn-sm" style="padding:3px 8px; font-size:11px; color:var(--red, #dc2626); border-color:var(--red, #dc2626);" onclick="sheetCancelOrdered('${key}', ${r.source === '사무실 발송'}, this)" title="주문완료 상태를 취소하고 미주문으로 되돌립니다${r.source === '사무실 발송' ? ' — 직접발송으로 차감된 재고는 복원됩니다' : ''}">취소</button>`
                 : `<button class="btn-primary btn-sm" style="padding:4px 10px; font-size:12px;" onclick="sheetMarkOrdered('${key}', false, this)">주문완료</button>
                    <button class="btn-outline btn-sm" style="padding:4px 10px; font-size:12px;" onclick="sheetMarkOrdered('${key}', true, this)" title="사무실 재고로 직접 발송 — 구매처 '사무실 발송' 기록 + 재고 차감">직접발송</button>`}</td>
         </tr>`;
@@ -2348,6 +2352,61 @@ async function markItemOrdered(estimateId, index, direct, btn) {
     const snap = captureOrderEdits();
     await loadOrders();
     restoreOrderEdits(snap);
+}
+// 주문완료 취소 — 미주문으로 되돌림. 직접발송이었다면 서버가 차감된 재고를 자동 복원하고,
+// 구매처의 '사무실 발송' 기록도 지워 다음 주문완료 때 재고가 다시 차감되지 않게 한다.
+function confirmCancelOrdered(wasDirect) {
+    return confirm('주문완료 상태를 취소할까요? 항목이 미주문으로 돌아갑니다.'
+        + (wasDirect ? '\n직접발송으로 차감된 재고는 복원됩니다.' : ''));
+}
+async function cancelItemOrdered(estimateId, index, wasDirect, btn) {
+    if (!confirmCancelOrdered(wasDirect)) return;
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = '처리 중…';
+    const body = { index, ordered: 0 };
+    if (wasDirect) body.purchase_source = '';
+    const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert(e.message || '처리에 실패했습니다.');
+        btn.disabled = false; btn.textContent = orig;
+        return;
+    }
+    const snap = captureOrderEdits();
+    await loadOrders();
+    restoreOrderEdits(snap);
+}
+async function cancelBundleOrdered(estimateId, index, bundleIndex, wasDirect, btn) {
+    if (!confirmCancelOrdered(wasDirect)) return;
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = '…';
+    const body = { index, bundle_index: bundleIndex, ordered: 0 };
+    if (wasDirect) body.purchase_source = '';
+    const res = await fetch(`/api/inventory/office-orders/estimate/${estimateId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert(e.message || '처리에 실패했습니다.');
+        btn.disabled = false; btn.textContent = orig;
+        return;
+    }
+    const snap = captureOrderEdits();
+    await loadOrders();
+    restoreOrderEdits(snap);
+}
+// 시트에서 주문완료 취소 (오늘 처리분 행)
+async function sheetCancelOrdered(key, wasDirect, btn) {
+    if (!confirmCancelOrdered(wasDirect)) return;
+    const [estId, index, bi] = key.split(':').map(Number);
+    btn.disabled = true; btn.textContent = '처리 중…';
+    const body = { index, ordered: 0 };
+    if (!Number.isNaN(bi)) body.bundle_index = bi;
+    if (wasDirect) body.purchase_source = '';
+    const res = await fetch(`/api/inventory/office-orders/estimate/${estId}/item-note`, { method:'PATCH', headers:H, body: JSON.stringify(body) });
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert(e.message || '처리에 실패했습니다.');
+        btn.disabled = false; btn.textContent = '취소';
+        return;
+    }
+    await loadOrders();
 }
 // 세트 구성품 주문완료/직발 처리
 async function markBundleOrdered(estimateId, index, bundleIndex, direct, btn) {
