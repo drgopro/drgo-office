@@ -438,7 +438,21 @@
                     </select>
                 </div>
             </div>
-            {{-- 배송지 정보 — 내부 확인용 (의뢰자용 견적서·출력물에는 표시되지 않음) --}}
+            {{-- 배송지 정보 — 내부 확인용 (의뢰자용 견적서·출력물에는 표시되지 않음), 주문 내역 헤더에도 표시 --}}
+            <div class="client-row" style="margin-top:10px;">
+                <div class="field" style="flex:1;">
+                    <label>배송 수령인 이름 <span style="color:var(--text-muted); font-weight:400;">— 내부용</span></label>
+                    <input id="sName" value="{{ $estimate->ship_name }}" maxlength="100" placeholder="받는 분 이름">
+                </div>
+                <div class="field" style="flex:1;">
+                    <label>배송 연락처</label>
+                    <input id="sPhone" value="{{ $estimate->ship_phone }}" maxlength="30" placeholder="010-0000-0000">
+                </div>
+                <div class="field" style="flex:1;">
+                    <label>배송 요청사항</label>
+                    <input id="sNote" value="{{ $estimate->ship_note }}" maxlength="300" placeholder="예: 부재 시 문 앞">
+                </div>
+            </div>
             <div class="client-row" style="margin-top:10px;">
                 <div class="field" style="flex:2;">
                     <label>배송받을 주소 <span style="color:var(--text-muted); font-weight:400;">— 내부용, 의뢰자 견적서 미표시</span></label>
@@ -1658,7 +1672,10 @@ function buildEstimateBody() {
         client_nickname: document.getElementById('cNickname').value || null,
         client_phone: document.getElementById('cPhone').value || null,
         ship_address: document.getElementById('sAddr').value || null,
+        ship_name: document.getElementById('sName').value || null,
+        ship_phone: document.getElementById('sPhone').value || null,
         ship_entrance: document.getElementById('sEntrance').value || null,
+        ship_note: document.getElementById('sNote').value || null,
         product_items: cartItems,
         service_items: svcItems.filter(s => s.name),
         status: document.getElementById('estStatus').value,

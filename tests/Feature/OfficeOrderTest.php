@@ -240,7 +240,34 @@ class OfficeOrderTest extends TestCase
             ->assertSee('미주문', false)
             ->assertSee('cancelItemOrdered', false)   // 주문완료 취소 (항목)
             ->assertSee('cancelBundleOrdered', false) // 주문완료 취소 (구성품)
-            ->assertSee('sheetCancelOrdered', false); // 주문완료 취소 (시트)
+            ->assertSee('sheetCancelOrdered', false)  // 주문완료 취소 (시트)
+            // 개편 레이아웃 — 결제완료/주문일/상태 열 + 헤더 아래 배송 정보 readonly 필드
+            ->assertSee('<th style="width:104px;">결제완료</th>', false)
+            ->assertSee('<th style="width:104px;">주문일</th>', false)
+            ->assertSee('<th style="width:140px;">상태</th>', false)
+            ->assertSee('배송 요청사항', false)
+            ->assertSee('견적서에서 입력', false);
+    }
+
+    public function test_order_list_exposes_ship_recipient_fields_and_amount(): void
+    {
+        // 견적서의 배송지 수령인/연락처/요청사항이 주문 내역 헤더(readonly)용으로 내려온다
+        $estimate = Estimate::create([
+            'status' => 'created', 'title' => '배송 테스트', 'client_nickname' => '고블린',
+            'ship_name' => '김수령', 'ship_phone' => '010-5555-6666',
+            'ship_address' => '인천 연수구 송도미래로 47', 'ship_entrance' => '#1234*', 'ship_note' => '부재 시 문 앞',
+            'product_items' => [['name' => '카메라', 'sale_price' => 300000, 'qty' => 1, 'subtotal' => 300000]],
+            'service_items' => [], 'product_total' => 300000, 'service_total' => 0, 'total_amount' => 300000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+        $estimate->update(['status' => 'paid']);
+
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $this->assertSame('김수령', $row['ship_name']);
+        $this->assertSame('010-5555-6666', $row['ship_phone']);
+        $this->assertSame('인천 연수구 송도미래로 47', $row['ship_address']);
+        $this->assertSame('부재 시 문 앞', $row['ship_note']);
+        $this->assertSame(300000, $row['amount']); // 금액 열 — 견적 합계
     }
 
     public function test_service_items_excluded_from_order_list(): void

@@ -213,28 +213,25 @@
         #orderCard tr[onclick*="toggleOrderGroup"] { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin:10px 0 4px; }
         #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(1) { flex-basis:100%; }
         #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(2) { flex-basis:100%; font-size:15px; }
-        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(3),
-        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(4),
-        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(5) { font-size:11.5px; }
-        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(4)::before,
-        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(5)::before { content:"· "; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(n+3):not(.action-cell) { font-size:11.5px; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(n+4):not(.action-cell)::before { content:"· "; }
         #orderCard tr[onclick*="toggleOrderGroup"] td.action-cell { flex-basis:100%; margin-top:4px; }
         #orderCard .action-cell { display:flex; gap:6px; }
         #orderCard .action-cell .btn-outline, #orderCard .action-cell .btn-danger-sm { flex:1 1 0; padding:10px; font-size:13px; border-radius:8px; line-height:1.2; text-align:center; justify-content:center; }
         #orderCard .action-cell .btn-danger-sm { background:none; color:var(--red, #dc2626); } /* 카드에선 빨간 아웃라인으로 톤 다운 */
         /* 항목 편집 줄 — 금액·구매처 / 메모 / 환불 체크 ↔ 저장 순으로 정렬 */
-        #orderCard td[colspan="3"] > div { row-gap:7px; }
-        #orderCard td[colspan="3"] .oi-amt,
-        #orderCard td[colspan="3"] .oi-src { flex:1 1 40% !important; width:auto !important; min-width:0; }
-        #orderCard td[colspan="3"] .oi-src { text-align:right; } /* 구매금액과 같은 우측 정렬 */
-        #orderCard td[colspan="3"] .oi-memo { flex:1 1 100% !important; }
-        #orderCard td[colspan="3"] label { margin-right:auto; }
-        #orderCard td[colspan="3"] .oi-refamt { width:110px !important; }
-        #orderCard td[colspan="3"] .btn-outline { padding:8px 18px; font-size:12.5px; }
+        #orderCard td[colspan="6"] > div { row-gap:7px; }
+        #orderCard td[colspan="6"] .oi-amt,
+        #orderCard td[colspan="6"] .oi-src { flex:1 1 40% !important; width:auto !important; min-width:0; }
+        #orderCard td[colspan="6"] .oi-src { text-align:right; } /* 구매금액과 같은 우측 정렬 */
+        #orderCard td[colspan="6"] .oi-memo { flex:1 1 100% !important; }
+        #orderCard td[colspan="6"] label { margin-right:auto; }
+        #orderCard td[colspan="6"] .oi-refamt { width:110px !important; }
+        #orderCard td[colspan="6"] .btn-outline { padding:8px 18px; font-size:12.5px; }
         /* 펼친 상세 행 = 카드 아래 이어지는 패널 */
         #orderCard tr:not([onclick*="toggleOrderGroup"]):not(:first-child) { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0 0 4px; }
         #orderCard tr[data-oik] td:nth-child(2), #orderCard tr td.text-wrap { flex-basis:100%; font-weight:600; }
-        #orderCard tr td[colspan="3"], #orderCard tr td[colspan="5"] { flex-basis:100%; }
+        #orderCard tr td[colspan="5"], #orderCard tr td[colspan="6"], #orderCard tr td[colspan="8"] { flex-basis:100%; }
         /* 세트 구성 그리드 → 2열 (이름은 전체 폭) */
         #orderCard [data-brow] { grid-template-columns:repeat(2, minmax(0,1fr)) !important; padding:6px 0 !important; border-bottom:1px dashed var(--border); }
         #orderCard [data-brow] > div:first-child { grid-column:1 / -1; }
@@ -361,8 +358,8 @@
         </div>
         <div class="data-card" id="orderCard">
             <table class="data-table">
-                <thead><tr><th style="width:110px;">유형</th><th>주문명</th><th>항목</th><th>의뢰자/등록자</th><th>최근 수정</th><th style="width:170px;"></th></tr></thead>
-                <tbody id="orderBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
+                <thead><tr><th style="width:100px;">유형</th><th>주문명</th><th style="width:52px;">품목</th><th style="width:110px; text-align:right;">금액</th><th>의뢰자</th><th style="width:104px;">결제완료</th><th style="width:104px;">주문일</th><th style="width:140px;">상태</th><th style="width:170px;"></th></tr></thead>
+                <tbody id="orderBody"><tr><td colspan="9" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
         {{-- 주문 시트 — 미주문 항목을 제품 단위 한 줄씩 (엑셀 시트처럼 당일 주문 처리) --}}
@@ -2034,7 +2031,7 @@ function ordDateLabel(d) {
 function renderOrders() {
     const tb = document.getElementById('orderBody');
     if (!ORDER_ROWS.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="empty-row">주문 내역이 없습니다. 견적서가 결제완료되면 자동으로 등재되고, 주문 추가 버튼으로 직접 등록할 수도 있습니다.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="9" class="empty-row">주문 내역이 없습니다. 견적서가 결제완료되면 자동으로 등재되고, 주문 추가 버튼으로 직접 등록할 수도 있습니다.</td></tr>';
         return;
     }
     // 날짜별 그룹 — 결제완료일(수동 주문은 작성일) 기준, 최신 날짜부터
@@ -2045,7 +2042,7 @@ function renderOrders() {
         const gd = o.group_date || (o.updated_at || '').slice(0, 10);
         if (gd !== lastDate) {
             lastDate = gd;
-            out += `<tr class="ord-date-row"><td colspan="6" style="background:var(--surface); border-top:2px solid var(--border); padding:9px 12px; font-weight:800; font-size:12.5px; color:var(--slate);">📅 ${ordDateLabel(gd)} <span style="font-weight:600; color:var(--text-muted);">· ${dateCounts[gd]}건</span></td></tr>`;
+            out += `<tr class="ord-date-row"><td colspan="9" style="background:var(--surface); border-top:2px solid var(--border); padding:9px 12px; font-weight:800; font-size:12.5px; color:var(--slate);">📅 ${ordDateLabel(gd)} <span style="font-weight:600; color:var(--text-muted);">· ${dateCounts[gd]}건</span></td></tr>`;
         }
         out += renderOrderCard(o);
     }
@@ -2063,32 +2060,50 @@ function renderOrderCard(o) {
         const unordBadge = o.type === 'estimate' && o.unordered
             ? ' <span class="badge badge-low" title="주문 처리 전 항목이 있습니다 — 모든 항목을 주문완료/직접발송 처리하면 사라집니다">미주문</span>' : '';
         const badge = o.type === 'estimate'
-            ? `<span class="badge badge-ordered">견적서 #${o.no}</span>${stBadge}${unordBadge}`
+            ? `<span class="badge badge-ordered">견적서 #${o.no}</span>`
             : '<span class="badge badge-requested">직접 주문</span>';
         const who = o.type === 'estimate' ? (o.client || '-') : (o.creator || '-');
         const acts = o.type === 'estimate'
             ? `${open ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveAllOrderNotes(${o.id}, this)" title="이 주문 건의 모든 항목·세트 구성품 입력값을 한 번에 저장">일괄 저장</button> ` : ''}<button class="btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/estimates/${o.id}/edit','est_${o.id}')">견적서 열기</button>`
             : `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); openOrderEdit(${o.id})">수정</button>
                <button class="btn-danger-sm" onclick="event.stopPropagation(); deleteOfficeOrder(${o.id})">삭제</button>`;
-        // 구매 금액 합계 — 기록값 우선, 견적서 항목은 미기록 시 매입가×수량 참고치로 합산
-        const orderTotal = (o.items||[]).reduce((s, it) => s + (it.amount ?? (o.type === 'estimate' ? (it.default_amount || 0) : 0)), 0);
+        // 금액 — 견적서는 견적 합계, 직접 주문은 기록된 구매 금액 합
+        const orderTotal = o.type === 'estimate'
+            ? (o.amount || 0)
+            : (o.items||[]).reduce((s, it) => s + (it.amount || 0), 0);
+        // 결제완료/주문일 — MM-DD HH:MM (직접 주문은 주문일만)
+        const paidCell = o.type === 'estimate' && o.paid_at ? o.paid_at.slice(5) : '—';
+        const orderedCell = o.type === 'estimate'
+            ? (o.ordered_at ? o.ordered_at.slice(5) : '—')
+            : (o.order_date || '—');
+        const stateCell = o.type === 'estimate' ? `${stBadge}${unordBadge}`.trim() || '—' : '—';
         let html = `<tr style="cursor:pointer;" onclick="toggleOrderGroup('${k}')">
             <td>${badge}</td>
             <td><span class="grp-arrow">${open ? '▾' : '▸'}</span><b>${_esc(o.title)}</b></td>
-            <td class="text-muted">${(o.items||[]).length}개 품목${orderTotal > 0 ? ` · <b style="color:var(--text);">${fmt(orderTotal)}원</b>` : ''}</td>
+            <td class="text-muted">${(o.items||[]).length}</td>
+            <td class="text-right"><b>${orderTotal > 0 ? fmt(orderTotal) : '—'}</b></td>
             <td class="text-muted">${_esc(who)}</td>
-            <td class="text-muted">${o.type === 'manual' && o.order_date ? `주문일 ${o.order_date}`
-                : (o.type === 'estimate' && o.paid_at ? `결제완료 ${o.paid_at}${o.ordered_at ? ` · 주문 ${o.ordered_at.slice(5)}` : ''}`
-                : (o.type === 'estimate' && o.ordered_at ? `주문완료 ${o.ordered_at}` : o.updated_at))}</td>
+            <td class="text-muted" style="white-space:nowrap;">${paidCell}</td>
+            <td class="text-muted" style="white-space:nowrap;">${orderedCell}</td>
+            <td>${stateCell}</td>
             <td class="action-cell">${acts}</td>
         </tr>`;
         if (open) {
-            // 배송지 정보 (내부용) — 견적서에 입력해 둔 배송받을 주소·공동현관을 카드 맨 위에 표시
-            if (o.type === 'estimate' && (o.ship_address || o.ship_entrance)) {
-                html += `<tr style="background:var(--surface2);"><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12.5px;">
-                    <span style="font-weight:700; color:var(--slate);">배송지</span>
-                    ${o.ship_address ? ` ${_esc(o.ship_address)}` : ''}
-                    ${o.ship_entrance ? ` <span class="text-muted">· 공동현관 ${_esc(o.ship_entrance)}</span>` : ''}
+            // 배송 정보 (내부용, 읽기 전용) — 견적서의 수령인 이름/연락처/배송지/요청사항을 헤더 아래 표시
+            if (o.type === 'estimate') {
+                const shipField = (label, val, width) => `
+                    <div style="display:flex; flex-direction:column; gap:3px; ${width ? `width:${width}; flex-shrink:0;` : 'flex:1; min-width:220px;'}">
+                        <span style="font-size:11px; font-weight:700; color:var(--text-muted);">${label}</span>
+                        <input class="field-input" readonly tabindex="-1" value="${_esc(val || '')}" placeholder="견적서에서 입력" title="읽기 전용 — 견적서 열기 → 주문 정보에서 수정" style="padding:7px 10px; font-size:12.5px; background:var(--surface); cursor:default;" onclick="event.stopPropagation()">
+                    </div>`;
+                const shipAddrFull = [o.ship_address, o.ship_entrance ? `(공동현관 ${o.ship_entrance})` : ''].filter(Boolean).join(' ');
+                html += `<tr style="background:var(--surface2);"><td></td><td colspan="8" style="padding:8px 12px 10px 26px; white-space:normal;">
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        ${shipField('이름', o.ship_name, '130px')}
+                        ${shipField('연락처', o.ship_phone, '150px')}
+                        ${shipField('배송지', shipAddrFull, null)}
+                        ${shipField('배송 요청사항', o.ship_note, '190px')}
+                    </div>
                 </td></tr>`;
             }
             html += (o.items||[]).map(it => {
@@ -2096,9 +2111,9 @@ function renderOrderCard(o) {
                 const itemOrdered = o.type !== 'estimate' || !!it.ordered
                     || (it.bundle_items||[]).some(b => b.ordered);
                 const noteCells = o.type === 'estimate' && it.replaced
-                    ? `<td colspan="3"><span class="badge badge-low" title="견적서에서 대체 처리된 항목 — 주문 대상 아님">대체됨</span>${it.replaced_note ? ` <span class="text-muted" style="font-size:12px;">↳ ${_esc(it.replaced_note)}</span>` : ''}</td>`
+                    ? `<td colspan="6"><span class="badge badge-low" title="견적서에서 대체 처리된 항목 — 주문 대상 아님">대체됨</span>${it.replaced_note ? ` <span class="text-muted" style="font-size:12px;">↳ ${_esc(it.replaced_note)}</span>` : ''}</td>`
                     : o.type === 'estimate'
-                    ? `<td colspan="3"><div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; ${itemOrdered ? '' : 'opacity:0.9;'}">
+                    ? `<td colspan="6"><div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; ${itemOrdered ? '' : 'opacity:0.9;'}">
                        ${itemOrdered ? '' : `<button class="btn-primary btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, false, this)" title="주문완료 처리 — 처리 시각이 기록되고 기입칸이 활성화됩니다">주문완료</button>
                        <button class="btn-outline btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, true, this)" title="사무실 재고로 직접 발송 — 구매처가 '사무실 발송'으로 기록되고 재고가 차감됩니다">직접발송</button>`}
                        <input class="oi-amt field-input" type="number" min="0" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:118px; text-align:right; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="${it.default_amount ? fmt(it.default_amount) : '구매 금액'}" title="구매 금액 (비우면 미기록 — 흐린 값은 매입가×수량 참고치)" value="${it.amount ?? ''}" onclick="event.stopPropagation()">
@@ -2110,12 +2125,12 @@ function renderOrderCard(o) {
                        ${itemOrdered ? `<button class="btn-outline btn-sm" onclick="event.stopPropagation(); saveEstimateItemNote(${o.id}, ${it.index}, this)">저장</button>` : ''}
                        ${o.type === 'estimate' && it.ordered ? `<button class="btn-outline btn-sm" style="color:var(--red, #dc2626); border-color:var(--red, #dc2626);" onclick="event.stopPropagation(); cancelItemOrdered(${o.id}, ${it.index}, ${it.purchase_source === '사무실 발송'}, this)" title="주문완료 상태를 취소하고 미주문으로 되돌립니다${it.purchase_source === '사무실 발송' ? ' — 직접발송으로 차감된 재고는 복원됩니다' : ''}">완료 취소</button>` : ''}</div></td>`
                     : `<td class="text-right">${it.amount != null ? fmt(it.amount)+'원' : '<span class="text-muted">-</span>'}</td>
-                       <td class="text-muted" colspan="2">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
+                       <td class="text-muted" colspan="5">${_esc(it.purchase_source) || '-'}${it.memo ? ' · ' + _esc(it.memo) : ''}</td>`;
                 // 세트 구성 — 전용 행(전체 폭)에 고정 열 그리드로 나열해 구성품끼리 열이 맞게 정렬
                 // 견적서 항목이면 구성품 단위 구매처/메모 + 환불 수동 체크 (부분환불 — 수량/금액 지정)
                 const bGridCols = 'minmax(220px,1.4fr) 130px minmax(150px,1fr) 58px 60px 100px 56px';
                 const bundleRow = (it.bundle_items||[]).length
-                    ? `<tr style="background:var(--surface2);"><td></td><td colspan="5" style="padding:4px 12px 8px 40px; white-space:normal;">
+                    ? `<tr style="background:var(--surface2);"><td></td><td colspan="8" style="padding:4px 12px 8px 40px; white-space:normal;">
                         <div class="text-muted" style="font-size:11px; font-weight:700; padding-bottom:3px;">세트 구성</div>
                         ${it.bundle_items.map((b,bi)=>{
                             const bRef = b.refund_qty>0||b.refund_amount>0;
@@ -2183,7 +2198,7 @@ function renderOrderCard(o) {
                         ${s.checked_at ? `<span class="text-muted" style="white-space:nowrap; font-size:11px;" title="마지막 추적 갱신 시각">갱신 ${s.checked_at}</span>` : ''}
                     </div>`;
                 }).join('');
-                html += `<tr style="background:var(--surface2);" ${shipCount ? `onclick="toggleShipments(${o.id})"` : ''}><td></td><td colspan="5" class="text-wrap" style="padding-left:26px; font-size:12px; text-align:left; ${shipCount ? 'cursor:pointer;' : ''}">
+                html += `<tr style="background:var(--surface2);" ${shipCount ? `onclick="toggleShipments(${o.id})"` : ''}><td></td><td colspan="8" class="text-wrap" style="padding-left:26px; font-size:12px; text-align:left; ${shipCount ? 'cursor:pointer;' : ''}">
                     ${shipCount ? `<span class="grp-arrow">${sOpen ? '▾' : '▸'}</span><span class="text-muted" style="font-weight:700;">운송장 ${shipCount}건</span>` : '<span class="text-muted">등록된 운송장이 없습니다 — 견적서의 배송 정보에서 추가할 수 있습니다.</span>'}
                     ${sOpen ? `<div style="margin-top:4px;">${ships}</div>` : ''}
                 </td></tr>`;

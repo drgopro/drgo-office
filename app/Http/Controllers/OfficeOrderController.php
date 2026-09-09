@@ -101,8 +101,12 @@ class OfficeOrderController extends Controller
                 'no' => $e->display_no,
                 'title' => $e->title ?: "견적서 #{$e->display_no}",
                 'client' => $e->client_nickname ?: $e->client_name,
-                'ship_address' => $e->ship_address, // 배송지 정보 — 내부용 (주문 내역 카드 표시)
+                'ship_address' => $e->ship_address, // 배송지 정보 — 내부용 (주문 내역 헤더 readonly 표시)
+                'ship_name' => $e->ship_name,
+                'ship_phone' => $e->ship_phone,
                 'ship_entrance' => $e->ship_entrance,
+                'ship_note' => $e->ship_note,
+                'amount' => (int) $e->total_amount, // 금액 열 — 견적 합계
                 'status' => $e->status,
                 'items' => collect($e->product_items ?? [])
                     // 서비스 항목(세팅비 등)은 주문 대상이 아니므로 제외 — 장비만 (reject가 원본 인덱스 보존)
