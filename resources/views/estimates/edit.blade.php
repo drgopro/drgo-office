@@ -394,6 +394,8 @@
                 <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(36,138,56,0.12); color:var(--green); font-weight:700;">💳 결제 완료{{ $estimate->payapp_paid_at ? ' · '.$estimate->payapp_paid_at->format('m/d H:i') : '' }}</span>
             @elseif($estimate->status === 'cancelled')
                 <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(192,56,56,0.1); color:var(--red); font-weight:700;">⛔ 결제 취소됨 — 재결제는 발행 완료로 변경</span>
+            @elseif($estimate->status === 'quote_cancelled')
+                <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:var(--surface2); color:var(--text-muted); font-weight:700;">견적 취소됨 — 진행이 무산된 견적서 (상태 변경으로 되살릴 수 있음)</span>
             @elseif($estimate->payapp_payurl)
                 <span style="font-size:12px; padding:5px 12px; border-radius:6px; background:rgba(59,94,160,0.1); color:var(--accent); font-weight:700;">💳 결제 대기 중</span>
                 <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px;" onclick="payappCancel()">결제요청 취소</button>
@@ -409,6 +411,7 @@
             <option value="issued" {{ $estimate->status === 'issued' ? 'selected' : '' }}>발행 완료</option>
             <option value="paid" {{ $estimate->status === 'paid' ? 'selected' : '' }}>결제 완료</option>
             <option value="cancelled" {{ $estimate->status === 'cancelled' ? 'selected' : '' }}>결제 취소</option>
+            <option value="quote_cancelled" {{ $estimate->status === 'quote_cancelled' ? 'selected' : '' }}>견적 취소</option>
             <option value="hold" {{ $estimate->status === 'hold' ? 'selected' : '' }}>보류 중</option>
         </select>
         <button id="mHeaderMoreBtn" class="m-only" onclick="mOpenMoreSheet()" title="더보기 — 임시저장 불러오기 · 로그 · 삭제">⋯</button>

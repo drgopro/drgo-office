@@ -32,8 +32,15 @@ class EstimateController extends Controller
             ->where('status', '!=', 'temp')
             ->orderBy('created_at', 'desc');
 
-        if ($status = $request->query('status')) {
-            $query->where('status', $status);
+        if ($request->query('view') === 'cancelled') {
+            // 취소된 견적서 탭 — 견적 취소 + 결제 취소만
+            $query->whereIn('status', ['quote_cancelled', 'cancelled']);
+        } elseif ($status = $request->query('status')) {
+            // 콤마 구분 다중 상태 필터 (목록 pill 다중 선택)
+            $query->whereIn('status', array_values(array_filter(explode(',', (string) $status))));
+        } else {
+            // 견적 취소 건은 기본 목록에서 제외 — 전용 탭에서만 표시
+            $query->where('status', '!=', 'quote_cancelled');
         }
 
         if ($search = $request->query('search')) {
@@ -375,7 +382,7 @@ class EstimateController extends Controller
             'service_items.*.name' => 'required|string|max:200',
             'service_items.*.amount' => 'required|numeric|min:0',
             // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
-            'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold,cancelled',
+            'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold,cancelled,quote_cancelled',
             'memo' => 'nullable|string',
             'internal_memo' => 'nullable|string', // 직원용 내부 비고 — 의뢰자 견적서에 미표시
         ]);

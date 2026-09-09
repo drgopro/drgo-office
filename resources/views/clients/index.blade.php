@@ -1350,7 +1350,7 @@ function renderDocList(docs, clientId) {
     }).join('');
 }
 
-const EST_STATUS = {created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
+const EST_STATUS = {created:'작성중',editing:'수정중',completed:'완료',issued:'발행완료',paid:'결제완료',cancelled:'결제취소',quote_cancelled:'견적취소',hold:'보류'};
 const EST_COLOR = {created:'var(--text-muted)',editing:'var(--accent)',completed:'var(--green)',paid:'var(--accent2)',hold:'var(--red)'};
 
 // 이 의뢰자로 연동된 새 견적서 생성 → 빌더 열기 (저장 후 상세를 다시 열면 목록에 표시)

@@ -32,6 +32,7 @@
     .badge-issued { background:#241a2e; color:#b08ad4; }
     .badge-paid { background:#1a2a2a; color:#4ecdc4; }
     .badge-cancelled { background:#242424; color:#909090; text-decoration:line-through; }
+    .badge-quote_cancelled { background:#242424; color:#909090; text-decoration:line-through; }
     .badge-hold { background:#2a1a1a; color:#c87a7a; }
 
     .action-cell { display:flex; gap:5px; align-items:center; }
@@ -54,6 +55,7 @@
     [data-theme="light"] .badge-issued    { background:#f0e8fa; color:#7a38b8; }
     [data-theme="light"] .badge-paid      { background:#e0f8f5; color:#0a8a70; }
     [data-theme="light"] .badge-cancelled { background:#ececec; color:#808080; }
+    [data-theme="light"] .badge-quote_cancelled { background:#ececec; color:#808080; }
     [data-theme="light"] .badge-hold      { background:#ffe8e8; color:#c03838; }
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
@@ -100,6 +102,10 @@
         #presetBody .action-cell { display:flex; gap:6px; }
         #presetBody .btn-act { padding:7px 12px; font-size:12.5px; }
     }
+    /* 상태 필터 pill — 다중 선택 토글 */
+    .st-pill { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:16px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+    .st-pill:hover { color:var(--text); border-color:var(--text-muted); }
+    .st-pill.on { background:var(--accent); border-color:var(--accent); color:#fff; }
     /* 탭 (견적서 목록 | 프리셋) */
     .est-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); }
     .est-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
@@ -117,6 +123,7 @@
 
     <div class="est-tabs">
         <button class="est-tab active" id="tabBtnList" onclick="setEstTab('list')">견적서 목록</button>
+        <button class="est-tab" id="tabBtnCancelled" onclick="setEstTab('cancelled')">취소된 견적서</button>
         <button class="est-tab" id="tabBtnPresets" onclick="setEstTab('presets')">프리셋</button>
     </div>
 
@@ -137,16 +144,16 @@
             <option value="20">20개씩</option>
             <option value="50">50개씩</option>
         </select>
-        <select id="estStatus" onchange="estPage=1; loadEstimates()">
-            <option value="">전체 상태</option>
-            <option value="created">생성</option>
-            <option value="editing">수정 중</option>
-            <option value="completed">작성 완료</option>
-            <option value="issued">발행 완료</option>
-            <option value="paid">결제 완료</option>
-            <option value="cancelled">결제 취소</option>
-            <option value="hold">보류 중</option>
-        </select>
+        {{-- 상태 필터 — pill 다중 선택 (아무것도 안 누르면 전체) --}}
+        <div id="estStatusPills" style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="st-pill" data-st="created" onclick="toggleEstStatus(this)">생성</button>
+            <button type="button" class="st-pill" data-st="editing" onclick="toggleEstStatus(this)">수정 중</button>
+            <button type="button" class="st-pill" data-st="completed" onclick="toggleEstStatus(this)">작성 완료</button>
+            <button type="button" class="st-pill" data-st="issued" onclick="toggleEstStatus(this)">발행 완료</button>
+            <button type="button" class="st-pill" data-st="paid" onclick="toggleEstStatus(this)">결제 완료</button>
+            <button type="button" class="st-pill" data-st="cancelled" onclick="toggleEstStatus(this)">결제 취소</button>
+            <button type="button" class="st-pill" data-st="hold" onclick="toggleEstStatus(this)">보류 중</button>
+        </div>
     </div>
 
     <div class="data-card">
@@ -177,7 +184,7 @@
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
-const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', issued:'발행 완료', paid:'결제 완료', cancelled:'결제 취소', hold:'보류 중'};
+const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', issued:'발행 완료', paid:'결제 완료', cancelled:'결제 취소', quote_cancelled:'견적 취소', hold:'보류 중'};
 
 function fmt(n) { return n != null ? Number(n).toLocaleString() : '-'; }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ko-KR') : '-'; }
@@ -214,12 +221,28 @@ function renderEstPager(meta) {
         + `<span style="font-size:12px; color:var(--text-muted); margin-left:6px;">총 ${meta.total}건</span>`;
 }
 
+// 취소된 견적서 탭 — 견적 취소 + 결제 취소만 모아서 표시
+let estListView = 'active'; // 'active' | 'cancelled'
+// 상태 pill 다중 선택 — 아무것도 안 켜져 있으면 전체
+function toggleEstStatus(btn) {
+    btn.classList.toggle('on');
+    estPage = 1;
+    loadEstimates();
+}
+function selectedEstStatuses() {
+    return [...document.querySelectorAll('#estStatusPills .st-pill.on')].map(b => b.dataset.st);
+}
+
 async function loadEstimates() {
     const search = document.getElementById('estSearch').value;
-    const status = document.getElementById('estStatus').value;
     const params = new URLSearchParams();
     if (search) params.set('search', search);
-    if (status) params.set('status', status);
+    if (estListView === 'cancelled') {
+        params.set('view', 'cancelled');
+    } else {
+        const sts = selectedEstStatuses();
+        if (sts.length) params.set('status', sts.join(','));
+    }
     params.set('per_page', estPerPage);
     params.set('page', estPage);
     const sel = document.getElementById('estPerPage');
@@ -399,9 +422,11 @@ let PRESETS = [];
 function _esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function setEstTab(tab) {
-    document.getElementById('tabList').style.display = tab === 'list' ? '' : 'none';
+    const isList = tab === 'list' || tab === 'cancelled';
+    document.getElementById('tabList').style.display = isList ? '' : 'none';
     document.getElementById('tabPresets').style.display = tab === 'presets' ? '' : 'none';
     document.getElementById('tabBtnList').classList.toggle('active', tab === 'list');
+    document.getElementById('tabBtnCancelled').classList.toggle('active', tab === 'cancelled');
     document.getElementById('tabBtnPresets').classList.toggle('active', tab === 'presets');
     const btn = document.getElementById('headerActionBtn');
     if (tab === 'presets') {
@@ -413,6 +438,11 @@ function setEstTab(tab) {
         btn.textContent = '+ 견적서 생성';
         btn.onclick = createEstimate;
         btn.style.display = CAN_EST_EDIT ? '' : 'none';
+        // 취소 탭은 견적 취소·결제 취소만 모아 보여주므로 상태 pill 필터는 숨김
+        estListView = tab === 'cancelled' ? 'cancelled' : 'active';
+        document.getElementById('estStatusPills').style.display = tab === 'cancelled' ? 'none' : 'flex';
+        estPage = 1;
+        loadEstimates();
     }
 }
 

@@ -232,7 +232,17 @@ class ProjectController extends Controller
         }
 
         $becameDone = $request->stage === 'done' && $project->stage !== 'done';
+        $becameCancelled = $request->stage === 'cancelled' && $project->stage !== 'cancelled';
         $project->update($data);
+
+        // 프로젝트 취소 → 연동 견적서 자동 '견적 취소' (상위→하위 전파).
+        // 반대로 견적서를 취소해도 프로젝트는 취소되지 않는다 (하위→상위 전파 없음).
+        // 결제완료/결제취소 견적서는 결제 이력이 있으므로 건드리지 않는다.
+        if ($becameCancelled) {
+            Estimate::where('project_id', $project->id)
+                ->whereIn('status', ['temp', 'created', 'editing', 'completed', 'issued', 'hold'])
+                ->update(['status' => 'quote_cancelled']);
+        }
 
         // 세팅 완료 — 프로젝트의 세팅 장소가 의뢰자 정보 주소와 다르면 의뢰자 주소를 최신화.
         // 변경 전/후 값은 의뢰자 활동 로그에 자동 기록되어 어떤 값에서 바뀌었는지 추적 가능
@@ -641,7 +651,7 @@ class ProjectController extends Controller
             ->sum(fn ($b) => $b->balance());
 
         // 이 프로젝트에 연동된 견적서 — 캘린더 프로젝트 요약 카드에 표시
-        $estimateStatus = ['temp' => '작성중', 'created' => '완성', 'editing' => '수정중', 'completed' => '작성 완료', 'issued' => '발행 완료', 'paid' => '결제완료', 'cancelled' => '결제 취소', 'hold' => '보류'];
+        $estimateStatus = ['temp' => '작성중', 'created' => '완성', 'editing' => '수정중', 'completed' => '작성 완료', 'issued' => '발행 완료', 'paid' => '결제완료', 'cancelled' => '결제 취소', 'quote_cancelled' => '견적 취소', 'hold' => '보류'];
         $linkedEstimates = Estimate::where('project_id', $project->id)
             ->orderByDesc('id')
             ->limit(5)

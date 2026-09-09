@@ -641,6 +641,8 @@
                             <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#2d8a3e; font-weight:700;">결제완료</span>
                         @elseif($le->status === 'cancelled')
                             <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(220,38,38,0.10); color:#dc2626; font-weight:700;">결제취소</span>
+                        @elseif($le->status === 'quote_cancelled')
+                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(120,120,120,0.12); color:var(--text-muted); font-weight:700; text-decoration:line-through;">견적 취소</span>
                         @endif
                     </div>
                 @else
@@ -3410,7 +3412,7 @@ async function openEstimateInfoModal() {
         wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">이 의뢰자의 견적서가 없습니다.<br>견적서 페이지에서 먼저 생성해주세요.</div>';
         return;
     }
-    const STATUS = {temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류'};
+    const STATUS = {temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류', cancelled:'결제 취소', quote_cancelled:'견적 취소'};
     wrap.innerHTML = estimateInfoCache.map(e => {
         const checked = selectedIds.includes(e.id);
         const status = STATUS[e.status] || e.status;
@@ -3470,7 +3472,7 @@ async function openPaymentModal(prefillPayment) {
     sel.innerHTML = '<option value="">— 견적서 미연결 (수기 입력) —</option>'
         + payEstimatesList.map(e => {
             const tag = e.is_linked ? '★' : '';
-            const status = ({temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류'})[e.status] || e.status;
+            const status = ({temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류', cancelled:'결제 취소', quote_cancelled:'견적 취소'})[e.status] || e.status;
             const name = e.client_nickname || e.client_name || '의뢰자';
             return `<option value="${e.id}">${tag}#${e.no ?? e.id} · ${pcfEsc(name)} · ${(e.total_amount||0).toLocaleString()}원 (${status})</option>`;
         }).join('');
