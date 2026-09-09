@@ -46,6 +46,22 @@ class EstimateController extends Controller
             });
         }
 
+        // 페이징 — per_page(10/20/50)가 오면 페이지 응답, 없으면 기존 flat 배열 (캘린더 등 다른 화면 호환)
+        $perPage = (int) $request->query('per_page', 0);
+        if ($perPage > 0) {
+            $perPage = in_array($perPage, [10, 20, 50], true) ? $perPage : 10;
+            $page = max(1, (int) $request->query('page', 1));
+            $total = (clone $query)->count();
+
+            return response()->json([
+                'data' => $query->forPage($page, $perPage)->get(),
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
+            ]);
+        }
+
         return response()->json($query->limit(100)->get());
     }
 
@@ -377,10 +393,15 @@ class EstimateController extends Controller
         }
 
         try {
-            // 대체된(취소선) 항목은 합계에서 제외
-            $productTotal = (int) collect($validated['product_items'] ?? [])
-                ->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal');
-            $serviceTotal = (int) collect($validated['service_items'] ?? [])->sum('amount');
+            // 대체된(취소선) 항목은 합계에서 제외.
+            // 항목 키가 아예 없는 부분 저장(배송 정보만 수정 등)은 기존 합계를 유지 — 0으로 덮지 않는다
+            $productTotal = array_key_exists('product_items', $validated)
+                ? (int) collect($validated['product_items'] ?? [])
+                    ->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal')
+                : (int) $estimate->product_total;
+            $serviceTotal = array_key_exists('service_items', $validated)
+                ? (int) collect($validated['service_items'] ?? [])->sum('amount')
+                : (int) $estimate->service_total;
 
             // temp → created로 자동 전환 (첫 저장 시)
             if ($estimate->status === 'temp' && (! isset($validated['status']) || $validated['status'] === 'temp')) {

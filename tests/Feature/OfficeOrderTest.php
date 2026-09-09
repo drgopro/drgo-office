@@ -246,7 +246,7 @@ class OfficeOrderTest extends TestCase
             ->assertSee('<th style="width:104px;">주문일</th>', false)
             ->assertSee('<th style="width:140px;">상태</th>', false)
             ->assertSee('배송 요청사항', false)
-            ->assertSee('견적서에서 입력', false);
+            ->assertSee('견적서 열기 → 주문 정보에서 수정', false); // 텍스트 표시 (입력폼 아님)
     }
 
     public function test_order_list_exposes_ship_recipient_fields_and_amount(): void

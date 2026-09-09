@@ -60,4 +60,26 @@ class EstimateShipAddressTest extends TestCase
         $this->get($fresh->publicUrl())
             ->assertOk()->assertDontSee('김수령')->assertDontSee('부재 시 문 앞');
     }
+
+    public function test_partial_update_without_items_keeps_totals(): void
+    {
+        // 배송 정보만 수정하는 부분 저장이 합계를 0으로 덮어쓰지 않는다
+        $user = User::factory()->create(['role' => 'master']);
+        $estimate = Estimate::create([
+            'status' => 'created',
+            'product_items' => [['name' => '카메라', 'sale_price' => 300000, 'qty' => 1, 'subtotal' => 300000]],
+            'service_items' => [], 'product_total' => 300000, 'service_total' => 0, 'total_amount' => 300000,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)->patchJson("/api/estimates/{$estimate->id}", [
+            'ship_name' => '김수령',
+        ])->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame(300000, (int) $fresh->total_amount);
+        $this->assertSame(300000, (int) $fresh->product_total);
+        $this->assertSame('김수령', $fresh->ship_name);
+        $this->assertCount(1, $fresh->product_items); // 항목도 유지
+    }
 }

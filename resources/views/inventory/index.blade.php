@@ -2089,20 +2089,20 @@ function renderOrderCard(o) {
             <td class="action-cell">${acts}</td>
         </tr>`;
         if (open) {
-            // 배송 정보 (내부용, 읽기 전용) — 견적서의 수령인 이름/연락처/배송지/요청사항을 헤더 아래 표시
+            // 배송 정보 (내부용, 읽기 전용) — 견적서의 수령인 이름/연락처/배송지/요청사항을 헤더 아래 텍스트로 표시
             if (o.type === 'estimate') {
-                const shipField = (label, val, width) => `
-                    <div style="display:flex; flex-direction:column; gap:3px; ${width ? `width:${width}; flex-shrink:0;` : 'flex:1; min-width:220px;'}">
+                const shipField = (label, val) => `
+                    <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
                         <span style="font-size:11px; font-weight:700; color:var(--text-muted);">${label}</span>
-                        <input class="field-input" readonly tabindex="-1" value="${_esc(val || '')}" placeholder="견적서에서 입력" title="읽기 전용 — 견적서 열기 → 주문 정보에서 수정" style="padding:7px 10px; font-size:12.5px; background:var(--surface); cursor:default;" onclick="event.stopPropagation()">
+                        <span style="font-size:13px; font-weight:600; word-break:break-word;" title="견적서 열기 → 주문 정보에서 수정">${_esc(val || '') || '<span style="color:var(--text-muted); font-weight:400;">—</span>'}</span>
                     </div>`;
                 const shipAddrFull = [o.ship_address, o.ship_entrance ? `(공동현관 ${o.ship_entrance})` : ''].filter(Boolean).join(' ');
                 html += `<tr style="background:var(--surface2);"><td></td><td colspan="8" style="padding:8px 12px 10px 26px; white-space:normal;">
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        ${shipField('이름', o.ship_name, '130px')}
-                        ${shipField('연락처', o.ship_phone, '150px')}
-                        ${shipField('배송지', shipAddrFull, null)}
-                        ${shipField('배송 요청사항', o.ship_note, '190px')}
+                    <div style="display:flex; gap:12px 28px; flex-wrap:wrap;">
+                        ${shipField('이름', o.ship_name)}
+                        ${shipField('연락처', o.ship_phone)}
+                        ${shipField('배송지', shipAddrFull)}
+                        ${shipField('배송 요청사항', o.ship_note)}
                     </div>
                 </td></tr>`;
             }
