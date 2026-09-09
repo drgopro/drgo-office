@@ -48,9 +48,10 @@
         <div class="page-title">{{ $client ? '의뢰자 수정' : '의뢰자 등록' }}</div>
     </div>
 
-    <form method="POST" action="{{ $client ? route('clients.update', $client) : route('clients.store') }}">
+    <form method="POST" action="{{ $client ? route('clients.update', $client) : route('clients.store') }}" id="clientForm">
         @csrf
         @if($client) @method('PUT') @endif
+        <input type="hidden" name="force_duplicate" id="forceDuplicate" value="0">{{-- 중복 팝업 '추가등록' 시 1 --}}
 
         <!-- 기본 정보 -->
         <div class="form-card">
@@ -73,6 +74,7 @@
                 <div class="field-group">
                     <div class="field-label">연락처</div>
                     <input class="field-input" type="text" name="phone" value="{{ old('phone', $client?->phone) }}" placeholder="010-0000-0000">
+                    @error('phone')<div class="error-msg">{{ $message }}</div>@enderror
                 </div>
                 <div class="field-group">
                     <div class="field-label">소속</div>
@@ -211,5 +213,53 @@ function toggleFormEtc(cb, wrapId) {
     wrap.style.display = cb.checked ? 'block' : 'none';
     if (!cb.checked) { const inp = wrap.querySelector('input'); if (inp) inp.value = ''; }
 }
+
+// ── 전화번호 중복 방지 — 신규 등록 제출 전 확인, 중복이면 '추가등록'/'등록 취소' 팝업 ──
+const isEditingClient = @json((bool) $client);
+function fdEsc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showDupClientDialog(existing, onConfirm) {
+    document.getElementById('dupClientDialog')?.remove();
+    const label = fdEsc(existing.nickname || existing.name || '이름 없음')
+        + (existing.nickname && existing.name && existing.nickname !== existing.name ? ` (${fdEsc(existing.name)})` : '');
+    const ov = document.createElement('div');
+    ov.id = 'dupClientDialog';
+    ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10050; display:flex; align-items:center; justify-content:center; padding:20px;';
+    ov.innerHTML = `
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px; max-width:380px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25);">
+            <div style="font-size:15px; font-weight:800; margin-bottom:10px;">이미 등록된 의뢰자입니다</div>
+            <div style="font-size:13px; line-height:1.7; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+                <div style="font-weight:700;">${label}</div>
+                <div style="color:var(--text-muted);">${fdEsc(existing.phone || '')}</div>
+            </div>
+            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer;">등록 취소</button>
+                <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">추가등록</button>
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#dupCancelBtn').onclick = () => ov.remove();
+    ov.querySelector('#dupConfirmBtn').onclick = () => { ov.remove(); onConfirm(); };
+    ov.onclick = e => { if (e.target === ov) ov.remove(); };
+}
+document.getElementById('clientForm').addEventListener('submit', async function (e) {
+    if (isEditingClient) return; // 수정은 검사 대상 아님
+    if (document.getElementById('forceDuplicate').value === '1') return; // '추가등록' 확정 제출
+    const phone = (this.querySelector('[name="phone"]')?.value || '').trim();
+    if (phone.replace(/\D/g, '').length < 7) return; // 번호 없으면 그대로 등록
+    e.preventDefault();
+    try {
+        const res = await fetch(`/api/clients/check-phone?phone=${encodeURIComponent(phone)}`, { headers: { 'Accept': 'application/json' } });
+        const d = res.ok ? await res.json() : { duplicate: false };
+        if (d.duplicate && d.existing) {
+            showDupClientDialog(d.existing, () => {
+                document.getElementById('forceDuplicate').value = '1';
+                this.submit();
+            });
+            return;
+        }
+    } catch (err) { /* 확인 실패 시 서버 폴백 검증에 맡기고 그대로 제출 */ }
+    this.submit();
+});
 </script>
 @endpush

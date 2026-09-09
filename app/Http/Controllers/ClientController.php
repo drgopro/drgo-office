@@ -52,6 +52,38 @@ class ClientController extends Controller
     }
 
     // 저장
+    /**
+     * 전화번호 기준 중복 의뢰자 탐색 — 하이픈/공백 차이를 무시하고 숫자만 비교.
+     * 등록 화면의 중복 경고 팝업('추가등록'/'등록 취소')용.
+     */
+    private function findDuplicateByPhone(?string $phone, ?int $excludeId = null): ?Client
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone);
+        if (strlen($digits) < 7) {
+            return null; // 짧은 번호(내선 등)는 오탐이 많아 검사 제외
+        }
+
+        // 끝 4자리 LIKE로 후보를 좁힌 뒤 숫자만 비교 (한국 번호 포맷은 끝 4자리가 항상 붙어 있음)
+        return Client::whereNotNull('phone')
+            ->where('phone', 'like', '%'.substr($digits, -4).'%')
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->orderBy('id')
+            ->get(['id', 'name', 'nickname', 'phone'])
+            ->first(fn ($c) => preg_replace('/\D+/', '', (string) $c->phone) === $digits);
+    }
+
+    /** 등록 폼의 사전 중복 확인 — 같은 번호의 기존 의뢰자 정보 반환 */
+    public function checkPhone(Request $request)
+    {
+        $dup = $this->findDuplicateByPhone((string) $request->query('phone', ''),
+            $request->query('exclude_id') ? (int) $request->query('exclude_id') : null);
+
+        return response()->json($dup ? [
+            'duplicate' => true,
+            'existing' => ['id' => $dup->id, 'name' => $dup->name, 'nickname' => $dup->nickname, 'phone' => $dup->phone],
+        ] : ['duplicate' => false]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -79,7 +111,19 @@ class ClientController extends Controller
             'memo' => 'nullable|string',
             'personality' => 'nullable|string|max:500',
             'budget_style' => 'nullable|string|max:500',
+            'force_duplicate' => 'nullable|boolean', // 중복 경고 팝업에서 '추가등록' 선택
         ]);
+        unset($validated['force_duplicate']);
+
+        // 동일 전화번호 중복 방지 — 프런트 팝업이 1차 방어, 서버는 우회 제출 대비 폴백
+        if (! $request->boolean('force_duplicate')
+            && ($dup = $this->findDuplicateByPhone($validated['phone'] ?? null))) {
+            $label = ($dup->nickname ?: $dup->name).($dup->nickname && $dup->name ? " ({$dup->name})" : '');
+
+            return back()->withInput()->withErrors([
+                'phone' => "동일한 전화번호로 등록된 의뢰자가 있습니다: {$label} · {$dup->phone}",
+            ]);
+        }
 
         $validated['assigned_user_id'] = Auth::id();
         $validated['status'] = 'active';
@@ -370,7 +414,19 @@ class ClientController extends Controller
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
+            'force_duplicate' => 'nullable|boolean', // 중복 경고 팝업에서 '추가등록' 선택
         ]);
+        unset($validated['force_duplicate']);
+
+        // 동일 전화번호 중복 방지 — 409로 기존 의뢰자 정보를 돌려주면 프런트가 팝업 표시
+        if (! $request->boolean('force_duplicate')
+            && ($dup = $this->findDuplicateByPhone($validated['phone'] ?? null))) {
+            return response()->json([
+                'duplicate' => true,
+                'message' => '동일한 전화번호로 등록된 의뢰자가 있습니다.',
+                'existing' => ['id' => $dup->id, 'name' => $dup->name, 'nickname' => $dup->nickname, 'phone' => $dup->phone],
+            ], 409);
+        }
         // 추가 주소 정리 — 주소가 빈 행 제거, 최대 3개, 없으면 null
         if (array_key_exists('extra_addresses', $validated)) {
             $validated['extra_addresses'] = collect($validated['extra_addresses'] ?? [])

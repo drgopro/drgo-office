@@ -225,6 +225,7 @@ Route::middleware('auth')->group(function () {
     // 의뢰자 JSON API
     Route::middleware('permission:clients.view')->group(function () {
         Route::get('/api/clients/list', [ClientController::class, 'listJson']);
+        Route::get('/api/clients/check-phone', [ClientController::class, 'checkPhone']); // 등록 시 전화번호 중복 확인
         Route::get('/api/clients/{client}/detail', [ClientController::class, 'detail']);
     });
     Route::middleware('permission:clients.edit')->group(function () {

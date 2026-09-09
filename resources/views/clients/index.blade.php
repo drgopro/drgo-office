@@ -1934,7 +1934,34 @@ function ncSearchAddress() {
     } else { fill(); }
 }
 
-async function createClient() {
+// 전화번호 중복 경고 팝업 — 기존 의뢰자 정보 + '추가등록'/'등록 취소'
+function showDupClientDialog(existing, onConfirm) {
+    document.getElementById('dupClientDialog')?.remove();
+    const label = _esc(existing.nickname || existing.name || '이름 없음')
+        + (existing.nickname && existing.name && existing.nickname !== existing.name ? ` (${_esc(existing.name)})` : '');
+    const ov = document.createElement('div');
+    ov.id = 'dupClientDialog';
+    ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10050; display:flex; align-items:center; justify-content:center; padding:20px;';
+    ov.innerHTML = `
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px; max-width:380px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25);">
+            <div style="font-size:15px; font-weight:800; margin-bottom:10px;">이미 등록된 의뢰자입니다</div>
+            <div style="font-size:13px; line-height:1.7; color:var(--text); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+                <div style="font-weight:700;">${label}</div>
+                <div style="color:var(--text-muted);">${_esc(existing.phone || '')}</div>
+            </div>
+            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer;">등록 취소</button>
+                <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">추가등록</button>
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#dupCancelBtn').onclick = () => ov.remove();
+    ov.querySelector('#dupConfirmBtn').onclick = () => { ov.remove(); onConfirm(); };
+    ov.onclick = e => { if (e.target === ov) ov.remove(); };
+}
+
+async function createClient(forceDuplicate = false) {
     const nickname = document.getElementById('ncNickname').value.trim();
     if (!nickname) return alert('닉네임을 입력하세요.');
     const name = document.getElementById('ncName').value.trim();
@@ -1964,6 +1991,7 @@ async function createClient() {
         address_detail: document.getElementById('ncAddressDetail').value.trim() || null,
         important_memo: document.getElementById('ncImportantMemo').value.trim() || null,
         memo: document.getElementById('ncMemo').value.trim() || null,
+        force_duplicate: forceDuplicate, // 중복 팝업에서 '추가등록'을 선택한 재시도
     };
 
     const res = await fetch('/api/clients', {
@@ -1987,6 +2015,14 @@ async function createClient() {
         await loadClientList();
         openClient(data.id);
         showToast('등록되었습니다');
+    } else if (res.status === 409) {
+        // 동일 전화번호 의뢰자 존재 — 기존 정보 팝업, '추가등록' 선택 시 강제 재등록
+        const d = await res.json().catch(() => ({}));
+        if (d.duplicate && d.existing) {
+            showDupClientDialog(d.existing, () => createClient(true));
+        } else {
+            await showFetchError(res, '의뢰자 등록 실패');
+        }
     } else {
         await showFetchError(res, '의뢰자 등록 실패');
     }
