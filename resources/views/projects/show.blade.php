@@ -46,8 +46,8 @@
     .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
     .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
     #vrEditor .ProseMirror,
-    #vrEditor.ProseMirror { padding:20px 24px; min-height:360px; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
-    #vrEditor .ProseMirror p { margin:0 0 10px; }
+    #vrEditor.ProseMirror { padding:20px 24px; min-height:360px; outline:none; font-size:14px; line-height:1.6; color:var(--text); }
+    #vrEditor .ProseMirror p { margin:0 0 6px; }
     #vrEditor .ProseMirror h1 { font-size:24px; font-weight:700; margin:20px 0 10px; }
     #vrEditor .ProseMirror h2 { font-size:20px; font-weight:700; margin:16px 0 8px; }
     #vrEditor .ProseMirror h3 { font-size:16px; font-weight:600; margin:14px 0 6px; }
