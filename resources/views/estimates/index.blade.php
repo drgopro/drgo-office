@@ -131,8 +131,13 @@
 
     <div id="tabList">
     <div class="toolbar">
-        <input type="text" id="estSearch" placeholder="의뢰자명/번호 검색" oninput="loadEstimates()">
-        <select id="estStatus" onchange="loadEstimates()">
+        <input type="text" id="estSearch" placeholder="의뢰자명/번호 검색" oninput="estPage=1; loadEstimates()">
+        <select id="estPerPage" onchange="estPage=1; setEstPerPage(this.value)" title="페이지당 표시 개수" style="width:auto;">
+            <option value="10">10개씩</option>
+            <option value="20">20개씩</option>
+            <option value="50">50개씩</option>
+        </select>
+        <select id="estStatus" onchange="estPage=1; loadEstimates()">
             <option value="">전체 상태</option>
             <option value="created">생성</option>
             <option value="editing">수정 중</option>
@@ -161,6 +166,7 @@
             </thead>
             <tbody id="estBody"><tr><td colspan="9" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
+        <div id="estPager" style="display:none; align-items:center; justify-content:center; gap:8px; padding:12px 8px; border-top:1px solid var(--border);"></div>
     </div>
     </div>{{-- /tabList --}}
 </div>
@@ -177,15 +183,54 @@ function fmt(n) { return n != null ? Number(n).toLocaleString() : '-'; }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ko-KR') : '-'; }
 function fmtTime(d) { return d ? new Date(d).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'; }
 
+// 페이징 — 10/20/50개씩, 선택은 브라우저에 기억
+let estPage = 1;
+let estPerPage = parseInt(localStorage.getItem('est_per_page')) || 10;
+if (![10, 20, 50].includes(estPerPage)) estPerPage = 10;
+function setEstPerPage(v) {
+    estPerPage = parseInt(v) || 10;
+    try { localStorage.setItem('est_per_page', estPerPage); } catch (e) {}
+    loadEstimates();
+}
+function estGoPage(p) { estPage = p; loadEstimates(); }
+function renderEstPager(meta) {
+    const el = document.getElementById('estPager');
+    if (!el) return;
+    if (!meta || meta.last_page <= 1) {
+        el.style.display = meta && meta.total ? 'flex' : 'none';
+        el.innerHTML = meta && meta.total ? `<span style="font-size:12px; color:var(--text-muted);">총 ${meta.total}건</span>` : '';
+        return;
+    }
+    const btn = (label, page, disabled, current) =>
+        `<button ${disabled ? 'disabled' : ''} onclick="estGoPage(${page})" style="min-width:32px; padding:6px 10px; border-radius:7px; font-size:12.5px; cursor:${disabled ? 'default' : 'pointer'}; border:1px solid ${current ? 'var(--accent)' : 'var(--border)'}; background:${current ? 'var(--accent)' : 'none'}; color:${current ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text)'};">${label}</button>`;
+    // 페이지 번호 — 현재 페이지 주변 최대 7개
+    const pages = [];
+    const start = Math.max(1, Math.min(meta.page - 3, meta.last_page - 6));
+    for (let p = start; p <= Math.min(meta.last_page, start + 6); p++) pages.push(p);
+    el.style.display = 'flex';
+    el.innerHTML = btn('이전', meta.page - 1, meta.page <= 1, false)
+        + pages.map(p => btn(p, p, false, p === meta.page)).join('')
+        + btn('다음', meta.page + 1, meta.page >= meta.last_page, false)
+        + `<span style="font-size:12px; color:var(--text-muted); margin-left:6px;">총 ${meta.total}건</span>`;
+}
+
 async function loadEstimates() {
     const search = document.getElementById('estSearch').value;
     const status = document.getElementById('estStatus').value;
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (status) params.set('status', status);
+    params.set('per_page', estPerPage);
+    params.set('page', estPage);
+    const sel = document.getElementById('estPerPage');
+    if (sel && sel.value != estPerPage) sel.value = estPerPage;
 
     const res = await fetch('/api/estimates?' + params);
-    const data = await res.json();
+    const payload = await res.json();
+    const data = payload.data || payload;
+    // 검색/필터로 현재 페이지가 범위를 벗어나면 마지막 페이지로 되돌려 재조회
+    if (payload.last_page && estPage > payload.last_page) { estPage = payload.last_page; return loadEstimates(); }
+    renderEstPager(payload.data ? payload : null);
     const tb = document.getElementById('estBody');
 
     if (!data.length) {
