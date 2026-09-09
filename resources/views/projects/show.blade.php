@@ -3640,7 +3640,7 @@ function addPayItem(it = {name:'', qty:1, price:0}) {
         ${badge}
         <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;" oninput="recalcPayAmount()">
         <input type="number" class="pcf-input" value="${it.qty ?? 1}" min="0" placeholder="수량" data-pi="qty" style="flex:0.6; max-width:80px;" oninput="recalcPayAmount()">
-        <input type="number" class="pcf-input" value="${it.price ?? 0}" min="0" placeholder="단가" data-pi="price" style="flex:1; max-width:120px;" oninput="recalcPayAmount()">
+        <input type="number" class="pcf-input" value="${it.price ?? 0}" placeholder="단가 (음수=할인)" data-pi="price" style="flex:1; max-width:120px;" oninput="recalcPayAmount()">
         <button type="button" onclick="this.parentElement.remove(); recalcPayAmount();" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 8px; border-radius:5px; font-size:11px; cursor:pointer;">×</button>
     `;
     wrap.appendChild(row);

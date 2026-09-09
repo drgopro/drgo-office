@@ -406,7 +406,7 @@ class ProjectController extends Controller
             'items' => 'nullable|array',
             'items.*.name' => 'nullable|string|max:200',
             'items.*.qty' => 'nullable|integer|min:0',
-            'items.*.price' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer', // 음수 허용 — 견적서의 할인(차감) 항목이 그대로 넘어옴
             'items.*.source' => 'nullable|string|max:20',
             'memo' => 'nullable|string|max:1000',
             'mark_estimate_paid' => 'nullable|boolean',
@@ -863,7 +863,7 @@ class ProjectController extends Controller
             'items' => 'nullable|array',
             'items.*.name' => 'nullable|string|max:200',
             'items.*.qty' => 'nullable|integer|min:0',
-            'items.*.price' => 'nullable|integer|min:0',
+            'items.*.price' => 'nullable|integer', // 음수 허용 — 견적서의 할인(차감) 항목이 그대로 넘어옴
             'items.*.source' => 'nullable|string|max:20',
             'memo' => 'nullable|string|max:1000',
             'estimate_id' => 'nullable|integer|exists:estimates,id',
