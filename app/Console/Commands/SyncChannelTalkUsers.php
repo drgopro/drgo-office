@@ -32,17 +32,23 @@ class SyncChannelTalkUsers extends Command
             return self::SUCCESS;
         }
 
-        $cursor = (string) (Setting::get(self::CURSOR_KEY) ?? '');
+        // 상담 상태별 순회 — 종료(closed)가 대부분이라 먼저, 이어서 진행/보류 중 상담.
+        // 워터마크는 {s: 상태 인덱스, c: 커서} JSON — 페이지 한도에 걸리면 다음 실행에서 이어받는다.
+        $states = ['closed', 'opened', 'snoozed'];
+        $wm = json_decode((string) (Setting::get(self::CURSOR_KEY) ?? ''), true) ?: [];
+        $stateIdx = min(max((int) ($wm['s'] ?? 0), 0), count($states) - 1);
+        $cursor = (string) ($wm['c'] ?? '');
         $maxPages = max(1, (int) $this->option('pages'));
         $upserted = 0;
         $linked = 0;
 
         for ($page = 0; $page < $maxPages; $page++) {
-            $res = $channelTalk->listUsers($cursor ?: null);
+            $res = $channelTalk->listUsers($states[$stateIdx], $cursor ?: null);
             if (! ($res['ok'] ?? false)) {
+                Setting::set(self::CURSOR_KEY, json_encode(['s' => $stateIdx, 'c' => $cursor]));
                 $this->error('채널톡 고객 조회 실패: '.($res['error'] ?? '알 수 없는 오류'));
 
-                return self::FAILURE; // 커서 유지 — 다음 실행에서 같은 지점부터 재시도
+                return self::FAILURE; // 워터마크 유지 — 다음 실행에서 같은 지점부터 재시도
             }
 
             foreach ($res['users'] ?? [] as $u) {
@@ -68,14 +74,20 @@ class SyncChannelTalkUsers extends Command
 
             $cursor = (string) ($res['next'] ?? '');
             if ($cursor === '' || count($res['users'] ?? []) === 0) {
-                $cursor = ''; // 끝까지 돌았음 — 다음 사이클은 처음부터
+                // 이 상태는 끝 — 다음 상태로, 마지막 상태였으면 사이클 완료 (다음 사이클은 처음부터)
+                $stateIdx++;
+                $cursor = '';
+                if ($stateIdx >= count($states)) {
+                    $stateIdx = 0;
 
-                break;
+                    break;
+                }
             }
         }
 
-        Setting::set(self::CURSOR_KEY, $cursor);
-        $this->info("동기화 완료 — 갱신 {$upserted}건, 의뢰자 자동 연동 {$linked}건".($cursor !== '' ? ' (다음 실행에서 이어서)' : ''));
+        Setting::set(self::CURSOR_KEY, json_encode(['s' => $stateIdx, 'c' => $cursor]));
+        $this->info("동기화 완료 — 갱신 {$upserted}건, 의뢰자 자동 연동 {$linked}건"
+            .($stateIdx > 0 || $cursor !== '' ? ' (다음 실행에서 이어서)' : ''));
 
         return self::SUCCESS;
     }

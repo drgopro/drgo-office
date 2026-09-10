@@ -28,15 +28,14 @@ class ChannelTalkClientSyncTest extends TestCase
     public function test_sync_mirrors_users_and_links_client_by_phone(): void
     {
         $client = Client::create(['nickname' => '고블린', 'phone' => '010-1234-5678', 'grade' => 'normal']);
-        $paged = false;
-        Http::fake(function ($request) use (&$paged) {
-            if (! str_contains($request->url(), 'api.channel.io/open/v5/users')) {
+        Http::fake(function ($request) {
+            if (! str_contains($request->url(), 'api.channel.io/open/v5/user-chats')) {
                 return Http::response([], 404);
             }
-            if (! $paged) {
-                $paged = true;
-
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $q);
+            if (($q['state'] ?? '') === 'closed' && empty($q['since'])) {
                 return Http::response([
+                    'userChats' => [['id' => 'chat-1']],
                     'users' => [
                         ['id' => 'ct-1', 'name' => '고블린', 'profile' => ['mobileNumber' => '+821012345678', 'email' => 'gob@test.com'], 'updatedAt' => 1757400000000],
                         ['id' => 'ct-2', 'profile' => ['name' => '신규상담', 'mobileNumber' => '010-9999-8888']],
@@ -44,10 +43,13 @@ class ChannelTalkClientSyncTest extends TestCase
                     'next' => 'cursor-2',
                 ]);
             }
+            if (($q['state'] ?? '') === 'closed' && ($q['since'] ?? '') === 'cursor-2') {
+                return Http::response(['users' => [
+                    ['id' => 'ct-3', 'name' => '전화없음'],
+                ], 'next' => null]);
+            }
 
-            return Http::response(['users' => [
-                ['id' => 'ct-3', 'name' => '전화없음'],
-            ], 'next' => null]);
+            return Http::response(['users' => [], 'next' => null]); // opened/snoozed — 상담 없음
         });
 
         $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
@@ -58,8 +60,8 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertSame('01012345678', ChannelTalkUser::where('ct_id', 'ct-1')->value('mobile_digits'));
         // profile.name 폴백
         $this->assertSame('신규상담', ChannelTalkUser::where('ct_id', 'ct-2')->value('name'));
-        // 끝까지 돌았으면 커서 초기화 (다음 사이클 처음부터)
-        $this->assertSame('', (string) Setting::get('channeltalk.users.cursor'));
+        // 세 상태 모두 끝까지 돌았으면 워터마크 초기화 (다음 사이클 처음부터)
+        $this->assertSame(['s' => 0, 'c' => ''], json_decode((string) Setting::get('channeltalk.users.cursor'), true));
     }
 
     public function test_sync_skips_ambiguous_phone_and_keeps_existing_link(): void
@@ -73,7 +75,7 @@ class ChannelTalkClientSyncTest extends TestCase
         Http::fake(['api.channel.io/*' => Http::response(['users' => [
             ['id' => 'ct-a', 'name' => 'A', 'profile' => ['mobileNumber' => '010-1111-2222']],
             ['id' => 'ct-c', 'name' => 'C', 'profile' => ['mobileNumber' => '010-3333-4444']],
-        ], 'next' => null])]);
+        ], 'next' => null])]); // 모든 상태에 같은 응답 — updateOrCreate라 중복 무해
 
         $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
 
@@ -82,40 +84,31 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertSame('ct-old', $linked->fresh()->channeltalk_user_id);
     }
 
-    public function test_sync_falls_back_to_user_chats_when_users_endpoint_unavailable(): void
+    public function test_sync_iterates_chat_states_with_required_state_param(): void
     {
-        // 고객 목록 API 미지원/권한 없음(404·403) — 상담(유저챗) 목록의 동봉 users로 수집
-        Http::fake(function ($request) {
-            if (str_contains($request->url(), '/open/v5/users')) {
-                return Http::response(['error' => 'not found'], 404);
-            }
-            if (str_contains($request->url(), '/open/v5/user-chats')) {
-                return Http::response([
-                    'userChats' => [['id' => 'chat-1']],
-                    'users' => [
-                        ['id' => 'ct-9', 'name' => '상담고객', 'profile' => ['mobileNumber' => '010-7777-6666']],
-                    ],
-                    'next' => null,
-                ]);
-            }
-
-            return Http::response([], 404);
-        });
+        // /user-chats는 state 파라미터 필수 — closed/opened/snoozed를 순회하며 수집
+        Http::fake(['api.channel.io/*' => Http::response([
+            'userChats' => [['id' => 'chat-1']],
+            'users' => [['id' => 'ct-9', 'name' => '상담고객', 'profile' => ['mobileNumber' => '010-7777-6666']]],
+            'next' => null,
+        ])]);
 
         $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
 
-        $this->assertSame('상담고객', ChannelTalkUser::where('ct_id', 'ct-9')->value('name'));
         $this->assertSame('01077776666', ChannelTalkUser::where('ct_id', 'ct-9')->value('mobile_digits'));
+        foreach (['closed', 'opened', 'snoozed'] as $state) {
+            Http::assertSent(fn ($req) => str_contains($req->url(), 'state='.$state));
+        }
     }
 
     public function test_sync_failure_keeps_cursor_for_retry(): void
     {
-        Setting::set('channeltalk.users.cursor', 'cursor-keep');
+        Setting::set('channeltalk.users.cursor', json_encode(['s' => 1, 'c' => 'cursor-keep']));
         Http::fake(['api.channel.io/*' => Http::response('error', 500)]);
 
         $this->artisan('drgo:sync-channeltalk-users')->assertFailed();
 
-        $this->assertSame('cursor-keep', Setting::get('channeltalk.users.cursor'));
+        $this->assertSame(['s' => 1, 'c' => 'cursor-keep'], json_decode((string) Setting::get('channeltalk.users.cursor'), true));
     }
 
     public function test_channeltalk_search_endpoint_matches_phone_and_marks_linked(): void
