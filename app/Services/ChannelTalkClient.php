@@ -72,6 +72,57 @@ class ChannelTalkClient
     }
 
     /**
+     * 채널톡 고객(user) 목록 — 커서(since) 페이지네이션.
+     * 응답 형태가 계정/버전에 따라 조금씩 달라 방어적으로 파싱한다.
+     *
+     * @return array{ok:bool, users?:array<int, array{ct_id:string, name:string, mobile:string, email:string, tags:array<int,string>, updated_at:?int}>, next?:?string, error?:string}
+     */
+    public function listUsers(?string $since = null, int $limit = 100): array
+    {
+        if (! $this->isConfigured()) {
+            return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
+        }
+
+        try {
+            $query = ['limit' => $limit, 'sortOrder' => 'desc'];
+            if ($since !== null && $since !== '') {
+                $query['since'] = $since;
+            }
+            $res = Http::timeout(15)->connectTimeout(5)
+                ->withHeaders([
+                    'x-access-key' => config('services.channeltalk.access_key'),
+                    'x-access-secret' => config('services.channeltalk.access_secret'),
+                ])
+                ->get(self::API_BASE.'/users', $query);
+        } catch (\Throwable $e) {
+            $this->log('고객 목록 조회 실패', '', $e->getMessage());
+
+            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+        }
+
+        if (! $res->successful()) {
+            $this->log('고객 목록 조회 실패 HTTP '.$res->status(), '', mb_substr($res->body(), 0, 300));
+
+            return ['ok' => false, 'error' => '채널톡 응답 오류 (HTTP '.$res->status().'): '.mb_substr($res->body(), 0, 200)];
+        }
+
+        $users = [];
+        foreach ($res->json('users') ?? [] as $u) {
+            $profile = is_array($u['profile'] ?? null) ? $u['profile'] : [];
+            $users[] = [
+                'ct_id' => (string) ($u['id'] ?? ''),
+                'name' => trim((string) ($u['name'] ?? $profile['name'] ?? '')),
+                'mobile' => trim((string) ($profile['mobileNumber'] ?? $u['mobileNumber'] ?? '')),
+                'email' => strtolower(trim((string) ($profile['email'] ?? $u['email'] ?? ''))),
+                'tags' => array_values(array_filter((array) ($u['tags'] ?? []), 'is_string')),
+                'updated_at' => isset($u['updatedAt']) ? (int) $u['updatedAt'] : null,
+            ];
+        }
+
+        return ['ok' => true, 'users' => $users, 'next' => $res->json('next') !== null ? (string) $res->json('next') : null];
+    }
+
+    /**
      * 채널톡 매니저 목록 (10분 캐시).
      *
      * @return array<int, array{id:string, name:string, email:string}>

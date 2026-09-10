@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChannelTalkUser;
 use App\Models\Client;
 use App\Models\ClientContact;
 use App\Models\ClientMemo;
@@ -70,6 +71,48 @@ class ClientController extends Controller
             ->orderBy('id')
             ->get(['id', 'name', 'nickname', 'phone'])
             ->first(fn ($c) => preg_replace('/\D+/', '', (string) $c->phone) === $digits);
+    }
+
+    /**
+     * 채널톡 고객 검색 (로컬 미러) — 의뢰자 등록의 '채널톡 연동' 버튼용.
+     * 이름/전화(숫자만 비교)/이메일 부분 일치, 최근 갱신순 10건.
+     */
+    public function channeltalkUsers(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '') {
+            return response()->json([]);
+        }
+        $digits = preg_replace('/\D+/', '', $q);
+
+        $rows = ChannelTalkUser::query()
+            ->where(function ($query) use ($q, $digits) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%");
+                if (strlen($digits) >= 4) {
+                    $query->orWhere('mobile_digits', 'like', "%{$digits}%");
+                }
+            })
+            ->orderByDesc('ct_updated_at')
+            ->limit(10)
+            ->get(['ct_id', 'name', 'mobile', 'mobile_digits', 'email', 'tags']);
+
+        // 이미 연동된 의뢰자 표시 — 중복 등록 여부 판단 도움
+        $linked = Client::whereIn('channeltalk_user_id', $rows->pluck('ct_id'))
+            ->get(['id', 'nickname', 'name', 'channeltalk_user_id'])->keyBy('channeltalk_user_id');
+
+        return response()->json($rows->map(fn ($u) => [
+            'ct_id' => $u->ct_id,
+            'name' => $u->name,
+            'mobile' => $u->mobile,
+            'mobile_digits' => $u->mobile_digits,
+            'email' => $u->email,
+            'tags' => $u->tags ?? [],
+            'linked_client' => $linked->has($u->ct_id) ? [
+                'id' => $linked[$u->ct_id]->id,
+                'label' => $linked[$u->ct_id]->nickname ?: $linked[$u->ct_id]->name,
+            ] : null,
+        ])->values());
     }
 
     /** 등록 폼의 사전 중복 확인 — 같은 번호의 기존 의뢰자 정보 반환 */
@@ -414,6 +457,7 @@ class ClientController extends Controller
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
+            'channeltalk_user_id' => 'nullable|string|max:60', // 채널톡 연동 버튼으로 불러온 고객 ID
             'force_duplicate' => 'nullable|boolean', // 중복 경고 팝업에서 '추가등록' 선택
         ]);
         unset($validated['force_duplicate']);

@@ -361,12 +361,23 @@
             <div class="ncm-head-top">
                 <div class="ncm-meta"><b>신규 의뢰자</b><span>·</span><span id="ncmToday"></span></div>
                 <div class="ncm-actions">
+                    <button type="button" class="ncm-btn" id="ncCtBtn" onclick="toggleCtPanel()" title="채널톡 상담 고객을 검색해 이름/연락처를 불러옵니다">채널톡 연동</button>
                     <button type="button" class="ncm-btn" onclick="closeNewClientModal()">취소</button>
                     <button type="button" class="ncm-btn primary" onclick="createClient()">등록</button>
                     <button type="button" class="ncm-btn icon" onclick="closeNewClientModal()" title="닫기">✕</button>
                 </div>
             </div>
             <input class="ncm-hero" id="ncNickname" placeholder="의뢰자 닉네임을 입력하세요 *" autocomplete="off">
+            {{-- 채널톡 연동 패널 — 미러(10분 주기 동기화)에서 검색해 이름/연락처 프리필 --}}
+            <div id="ncCtPanel" style="display:none; margin-top:10px; border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--surface2);">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input class="ncm-input" id="ncCtSearch" placeholder="채널톡 고객 검색 — 이름/전화번호/이메일" style="flex:1;" oninput="ctSearchChanged()">
+                    <span id="ncCtLinkedBadge" style="display:none; font-size:11px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:10px; padding:3px 9px; white-space:nowrap;">연동됨</span>
+                    <button type="button" class="ncm-btn" id="ncCtUnlinkBtn" style="display:none; height:30px; padding:0 10px; font-size:12px;" onclick="ctUnlink()">해제</button>
+                </div>
+                <div id="ncCtResults" style="margin-top:8px; max-height:220px; overflow-y:auto;"></div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">채널톡 고객 정보는 10분마다 자동 동기화됩니다. 선택하면 이름·연락처가 채워지고 등록 시 채널톡 고객과 연동됩니다.</div>
+            </div>
             <div class="ncm-pills">
                 <label class="ncm-pill">등급
                     <select id="ncGrade">
@@ -1961,6 +1972,77 @@ function showDupClientDialog(existing, onConfirm) {
     ov.onclick = e => { if (e.target === ov) ov.remove(); };
 }
 
+// ── 채널톡 연동 — 미러 검색 → 이름/연락처 프리필 + 등록 시 고객 ID 연동 ──
+let ncCtUserId = null;
+let ctSearchTimer = null;
+function toggleCtPanel() {
+    const p = document.getElementById('ncCtPanel');
+    const show = p.style.display === 'none';
+    p.style.display = show ? '' : 'none';
+    if (show) {
+        // 이미 입력한 전화/닉네임을 초기 검색어로
+        const seed = document.getElementById('ncPhone').value.trim() || document.getElementById('ncNickname').value.trim();
+        const inp = document.getElementById('ncCtSearch');
+        if (seed && !inp.value) { inp.value = seed; ctSearch(); }
+        setTimeout(() => inp.focus(), 50);
+    }
+}
+function ctSearchChanged() {
+    clearTimeout(ctSearchTimer);
+    ctSearchTimer = setTimeout(ctSearch, 300);
+}
+async function ctSearch() {
+    const q = document.getElementById('ncCtSearch').value.trim();
+    const box = document.getElementById('ncCtResults');
+    if (!q) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div style="padding:8px; font-size:12px; color:var(--text-muted);">검색 중...</div>';
+    const res = await fetch('/api/channeltalk/users?q=' + encodeURIComponent(q));
+    const list = res.ok ? await res.json() : [];
+    if (!list.length) {
+        box.innerHTML = '<div style="padding:8px; font-size:12px; color:var(--text-muted);">채널톡에서 찾지 못했습니다 — 동기화는 10분 주기라 방금 상담한 고객은 잠시 후 다시 검색해주세요.</div>';
+        return;
+    }
+    box.innerHTML = list.map(u => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border); ${u.linked_client ? 'opacity:0.65;' : 'cursor:pointer;'}"
+            ${u.linked_client ? '' : `onclick='ctPick(${JSON.stringify(u).replace(/'/g, "&#39;")})'`}>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600;">${_esc(u.name || '(이름 없음)')}</div>
+                <div style="font-size:11.5px; color:var(--text-muted);">${_esc(u.mobile || '-')}${u.email ? ' · ' + _esc(u.email) : ''}</div>
+            </div>
+            ${u.linked_client
+                ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;" title="이미 이 채널톡 고객과 연동된 의뢰자가 있습니다">연동됨: ${_esc(u.linked_client.label || '')}</span>`
+                : '<span style="font-size:11px; color:var(--accent); white-space:nowrap;">불러오기</span>'}
+        </div>`).join('');
+}
+function ctPick(u) {
+    ncCtUserId = u.ct_id;
+    const nick = document.getElementById('ncNickname');
+    const name = document.getElementById('ncName');
+    const phone = document.getElementById('ncPhone');
+    if (u.name && !nick.value.trim()) nick.value = u.name;
+    if (u.name && !name.value.trim()) name.value = u.name;
+    if (u.mobile_digits && !phone.value.trim()) {
+        phone.value = u.mobile_digits;
+        phone.dispatchEvent(new Event('input', { bubbles: true })); // 전역 하이픈 포맷터 적용
+    }
+    document.getElementById('ncCtResults').innerHTML = '';
+    document.getElementById('ncCtSearch').value = u.name || u.mobile || '';
+    document.getElementById('ncCtLinkedBadge').style.display = '';
+    document.getElementById('ncCtUnlinkBtn').style.display = '';
+    if (typeof ncmRefresh === 'function') ncmRefresh();
+}
+function ctUnlink() {
+    ncCtUserId = null;
+    document.getElementById('ncCtLinkedBadge').style.display = 'none';
+    document.getElementById('ncCtUnlinkBtn').style.display = 'none';
+}
+function ctResetPanel() {
+    ctUnlink();
+    document.getElementById('ncCtPanel').style.display = 'none';
+    document.getElementById('ncCtSearch').value = '';
+    document.getElementById('ncCtResults').innerHTML = '';
+}
+
 async function createClient(forceDuplicate = false) {
     const nickname = document.getElementById('ncNickname').value.trim();
     if (!nickname) return alert('닉네임을 입력하세요.');
@@ -1991,6 +2073,7 @@ async function createClient(forceDuplicate = false) {
         address_detail: document.getElementById('ncAddressDetail').value.trim() || null,
         important_memo: document.getElementById('ncImportantMemo').value.trim() || null,
         memo: document.getElementById('ncMemo').value.trim() || null,
+        channeltalk_user_id: ncCtUserId, // '채널톡 연동'으로 불러온 고객 ID (미사용 시 null)
         force_duplicate: forceDuplicate, // 중복 팝업에서 '추가등록'을 선택한 재시도
     };
 
@@ -2003,6 +2086,7 @@ async function createClient(forceDuplicate = false) {
     if (res.ok) {
         const data = await res.json();
         closeNewClientModal();
+        ctResetPanel();
         ['ncName','ncNickname','ncPhone','ncBroadcastId','ncCareer','ncPersonality','budget-nc-etc'].forEach(k => {
             const el = document.getElementById(k); if (el) el.value = '';
         });

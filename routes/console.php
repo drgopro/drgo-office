@@ -17,6 +17,8 @@ Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping
 
 // drgo.pro 게시판 새 글/답변/댓글 감시 → 채널톡 알림 (1분 주기 — 등록 후 1분 내 도착)
 Schedule::command('drgo:watch-boards')->everyMinute()->withoutOverlapping();
+// 채널톡 고객 미러 동기화 — 의뢰자 등록 '채널톡 연동' 검색 + 전화번호 자동 연동
+Schedule::command('drgo:sync-channeltalk-users')->everyTenMinutes()->withoutOverlapping();
 
 // 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
 Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();

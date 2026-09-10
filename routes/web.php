@@ -226,6 +226,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:clients.view')->group(function () {
         Route::get('/api/clients/list', [ClientController::class, 'listJson']);
         Route::get('/api/clients/check-phone', [ClientController::class, 'checkPhone']); // 등록 시 전화번호 중복 확인
+        Route::get('/api/channeltalk/users', [ClientController::class, 'channeltalkUsers']); // 채널톡 고객 미러 검색 (의뢰자 등록 연동)
         Route::get('/api/clients/{client}/detail', [ClientController::class, 'detail']);
     });
     Route::middleware('permission:clients.edit')->group(function () {

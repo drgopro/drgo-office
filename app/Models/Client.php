@@ -25,6 +25,7 @@ class Client extends Model
         'content_types',
         'topic_etc',
         'broadcast_id',
+        'channeltalk_user_id',
         'career',
         'inflow_source',
         'client_type',
