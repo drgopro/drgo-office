@@ -2029,8 +2029,13 @@ function ctSetCheckGroup(group, values, etcText) {
         if (etc && etcText && !etc.value.trim()) etc.value = etcText;
     }
 }
-function ctPick(u) {
+async function ctPick(u) {
     ncCtUserId = u.ct_id;
+    // 선택 시점에 채널톡에서 최신 프로필을 실시간 조회 — 미러가 프로필 저장 이전(구버전)이어도 매핑 동작
+    try {
+        const res = await fetch(`/api/channeltalk/users/${encodeURIComponent(u.ct_id)}/fresh`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) u = { ...u, ...(await res.json()) };
+    } catch (e) { /* 실시간 조회 실패 — 미러(검색 결과) 값으로 진행 */ }
     const fillIfEmpty = (id, val) => {
         const el = document.getElementById(id);
         if (el && val && !el.value.trim()) el.value = val;

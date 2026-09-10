@@ -8,6 +8,7 @@ use App\Models\ClientContact;
 use App\Models\ClientMemo;
 use App\Models\Project;
 use App\Models\ProjectFieldDefinition;
+use App\Services\ChannelTalkClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -114,6 +115,43 @@ class ClientController extends Controller
                 'label' => $linked[$u->ct_id]->nickname ?: $linked[$u->ct_id]->name,
             ] : null,
         ])->values());
+    }
+
+    /**
+     * 채널톡 고객 1명 실시간 조회 — 선택 시점에 최신 프로필로 매핑 (미러에 프로필이 없어도 동작).
+     * 조회 성공 시 미러도 갱신, 실패하면 미러 값으로 폴백.
+     */
+    public function channeltalkUserFresh(string $ctId, ChannelTalkClient $channelTalk)
+    {
+        $res = $channelTalk->getUser($ctId);
+        if ($res['ok'] ?? false) {
+            $u = $res['user'];
+            $digits = ChannelTalkUser::normalizePhone($u['mobile']);
+            $row = ChannelTalkUser::updateOrCreate(['ct_id' => $u['ct_id']], [
+                'name' => $u['name'] ?: null,
+                'mobile' => $u['mobile'] ?: null,
+                'mobile_digits' => strlen($digits) >= 7 ? $digits : null,
+                'email' => $u['email'] ?: null,
+                'tags' => $u['tags'] ?: null,
+                'profile' => $u['profile'] ?: null,
+                'ct_updated_at' => $u['updated_at'] ? date('Y-m-d H:i:s', intdiv($u['updated_at'], 1000)) : null,
+            ]);
+        } else {
+            $row = ChannelTalkUser::where('ct_id', $ctId)->first(); // 통신 실패 — 미러 폴백
+            if (! $row) {
+                return response()->json(['message' => '채널톡 고객 조회 실패: '.($res['error'] ?? '')], 502);
+            }
+        }
+
+        return response()->json([
+            'ct_id' => $row->ct_id,
+            'name' => $row->name,
+            'mobile' => $row->mobile,
+            'mobile_digits' => $row->mobile_digits,
+            'email' => $row->email,
+            'tags' => $row->tags ?? [],
+            ...$this->mapChanneltalkProfile($row->profile ?? []),
+        ]);
     }
 
     /**

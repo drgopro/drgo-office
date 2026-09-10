@@ -128,6 +128,51 @@ class ChannelTalkClient
     }
 
     /**
+     * 고객 단건 조회 — 선택 시점에 최신 프로필을 실시간으로 가져온다
+     * (미러가 프로필 저장 이전에 동기화된 경우 대비).
+     *
+     * @return array{ok:bool, user?:array{ct_id:string, name:string, mobile:string, email:string, tags:array<int,string>, profile:array<string,mixed>, updated_at:?int}, error?:string}
+     */
+    public function getUser(string $ctId): array
+    {
+        if (! $this->isConfigured()) {
+            return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
+        }
+
+        try {
+            $res = Http::timeout(10)->connectTimeout(5)
+                ->withHeaders([
+                    'x-access-key' => config('services.channeltalk.access_key'),
+                    'x-access-secret' => config('services.channeltalk.access_secret'),
+                ])
+                ->get(self::API_BASE.'/users/'.rawurlencode($ctId));
+        } catch (\Throwable $e) {
+            $this->log('고객 단건 조회 실패', $ctId, $e->getMessage());
+
+            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+        }
+
+        if (! $res->successful()) {
+            $this->log('고객 단건 조회 실패 HTTP '.$res->status(), $ctId, mb_substr($res->body(), 0, 300));
+
+            return ['ok' => false, 'error' => 'HTTP '.$res->status().': '.mb_substr($res->body(), 0, 160)];
+        }
+
+        $u = $res->json('user') ?? $res->json() ?? [];
+        $profile = is_array($u['profile'] ?? null) ? $u['profile'] : [];
+
+        return ['ok' => true, 'user' => [
+            'ct_id' => (string) ($u['id'] ?? $ctId),
+            'name' => trim((string) ($u['name'] ?? $profile['name'] ?? '')),
+            'mobile' => trim((string) ($profile['mobileNumber'] ?? $u['mobileNumber'] ?? '')),
+            'email' => strtolower(trim((string) ($profile['email'] ?? $u['email'] ?? ''))),
+            'tags' => array_values(array_filter((array) ($u['tags'] ?? []), 'is_string')),
+            'profile' => $profile,
+            'updated_at' => isset($u['updatedAt']) ? (int) $u['updatedAt'] : null,
+        ]];
+    }
+
+    /**
      * 채널톡 매니저 목록 (10분 캐시).
      *
      * @return array<int, array{id:string, name:string, email:string}>

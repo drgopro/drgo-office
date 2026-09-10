@@ -169,6 +169,41 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertSame('초보', $profile['history']);
     }
 
+    public function test_fresh_endpoint_fetches_live_profile_and_updates_mirror(): void
+    {
+        // 프로필 없는 구버전 미러 행 — 선택 시 실시간 조회로 최신 프로필 매핑 + 미러 갱신
+        $admin = User::factory()->create(['role' => 'admin']);
+        ChannelTalkUser::create(['ct_id' => 'ct-live', 'name' => '옛이름', 'mobile_digits' => '01000001111']);
+        Http::fake(['api.channel.io/open/v5/users/ct-live' => Http::response(['user' => [
+            'id' => 'ct-live', 'name' => '별빛',
+            'profile' => ['name' => '별빛', 'truename' => '김진짜', 'mobileNumber' => '010-0000-1111',
+                'platform' => ['아프리카'], 'history' => '경력 5년', 'note' => 'VIP'],
+        ]])]);
+
+        $res = $this->actingAs($admin)->getJson('/api/channeltalk/users/ct-live/fresh')->assertOk()->json();
+
+        $this->assertSame('김진짜', $res['truename']);
+        $this->assertSame(['SOOP'], $res['platforms']);
+        $this->assertSame('경력', $res['career']);
+        $this->assertSame('VIP', $res['important_memo']);
+        // 미러도 최신 프로필로 갱신
+        $this->assertSame('별빛', ChannelTalkUser::where('ct_id', 'ct-live')->value('name'));
+        $this->assertSame('경력 5년', ChannelTalkUser::where('ct_id', 'ct-live')->value('profile')['history']);
+    }
+
+    public function test_fresh_endpoint_falls_back_to_mirror_on_api_failure(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        ChannelTalkUser::create(['ct_id' => 'ct-fb', 'name' => '미러고객',
+            'profile' => ['truename' => '폴백이름', 'history' => '초보']]);
+        Http::fake(['api.channel.io/*' => Http::response('down', 500)]);
+
+        $res = $this->actingAs($admin)->getJson('/api/channeltalk/users/ct-fb/fresh')->assertOk()->json();
+
+        $this->assertSame('폴백이름', $res['truename']);
+        $this->assertSame('초보', $res['career']);
+    }
+
     public function test_store_json_saves_channeltalk_user_id(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
