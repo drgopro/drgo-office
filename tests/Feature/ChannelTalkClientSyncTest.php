@@ -82,6 +82,32 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertSame('ct-old', $linked->fresh()->channeltalk_user_id);
     }
 
+    public function test_sync_falls_back_to_user_chats_when_users_endpoint_unavailable(): void
+    {
+        // 고객 목록 API 미지원/권한 없음(404·403) — 상담(유저챗) 목록의 동봉 users로 수집
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/open/v5/users')) {
+                return Http::response(['error' => 'not found'], 404);
+            }
+            if (str_contains($request->url(), '/open/v5/user-chats')) {
+                return Http::response([
+                    'userChats' => [['id' => 'chat-1']],
+                    'users' => [
+                        ['id' => 'ct-9', 'name' => '상담고객', 'profile' => ['mobileNumber' => '010-7777-6666']],
+                    ],
+                    'next' => null,
+                ]);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
+
+        $this->assertSame('상담고객', ChannelTalkUser::where('ct_id', 'ct-9')->value('name'));
+        $this->assertSame('01077776666', ChannelTalkUser::where('ct_id', 'ct-9')->value('mobile_digits'));
+    }
+
     public function test_sync_failure_keeps_cursor_for_retry(): void
     {
         Setting::set('channeltalk.users.cursor', 'cursor-keep');

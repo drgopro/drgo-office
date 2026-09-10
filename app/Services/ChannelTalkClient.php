@@ -83,8 +83,29 @@ class ChannelTalkClient
             return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
         }
 
+        // 1차: 고객 목록 API. 계정/키에 따라 미지원(404)이거나 권한이 없을 수 있어
+        // 실패하면 2차로 상담(유저챗) 목록에 동봉되는 users 배열에서 고객을 수집한다
+        // — 상담한 적 있는 고객만 오지만, 의뢰자 연동 목적에는 오히려 그 고객들이 대상이다.
+        $first = $this->fetchUsersFrom('/users', $since, $limit);
+        if ($first['ok']) {
+            return $first;
+        }
+        $second = $this->fetchUsersFrom('/user-chats', $since, $limit);
+        if ($second['ok']) {
+            return $second;
+        }
+
+        return ['ok' => false, 'error' => '고객 목록: '.($first['error'] ?? '?').' / 유저챗 폴백: '.($second['error'] ?? '?')];
+    }
+
+    /** @return array{ok:bool, users?:array<int, array<string, mixed>>, next?:?string, error?:string} */
+    private function fetchUsersFrom(string $path, ?string $since, int $limit): array
+    {
         try {
             $query = ['limit' => $limit, 'sortOrder' => 'desc'];
+            if ($path === '/user-chats') {
+                $query['state'] = 'all'; // 종료된 상담 포함 — 과거 상담 고객도 수집
+            }
             if ($since !== null && $since !== '') {
                 $query['since'] = $since;
             }
@@ -93,17 +114,17 @@ class ChannelTalkClient
                     'x-access-key' => config('services.channeltalk.access_key'),
                     'x-access-secret' => config('services.channeltalk.access_secret'),
                 ])
-                ->get(self::API_BASE.'/users', $query);
+                ->get(self::API_BASE.$path, $query);
         } catch (\Throwable $e) {
-            $this->log('고객 목록 조회 실패', '', $e->getMessage());
+            $this->log("고객 조회 실패 ({$path})", '', $e->getMessage());
 
-            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+            return ['ok' => false, 'error' => "통신 실패({$path}): ".mb_substr($e->getMessage(), 0, 120)];
         }
 
         if (! $res->successful()) {
-            $this->log('고객 목록 조회 실패 HTTP '.$res->status(), '', mb_substr($res->body(), 0, 300));
+            $this->log("고객 조회 실패 HTTP {$res->status()} ({$path})", '', mb_substr($res->body(), 0, 300));
 
-            return ['ok' => false, 'error' => '채널톡 응답 오류 (HTTP '.$res->status().'): '.mb_substr($res->body(), 0, 200)];
+            return ['ok' => false, 'error' => "HTTP {$res->status()}({$path}): ".mb_substr($res->body(), 0, 160)];
         }
 
         $users = [];
@@ -118,6 +139,12 @@ class ChannelTalkClient
                 'updated_at' => isset($u['updatedAt']) ? (int) $u['updatedAt'] : null,
             ];
         }
+        // 유저챗 경유 수집은 응답에 users가 비어 있으면 실패로 취급해 폴백 판단을 돕는다
+        if ($path === '/user-chats' && count($users) === 0 && count($res->json('userChats') ?? []) === 0) {
+            return ['ok' => true, 'users' => [], 'next' => null];
+        }
+
+        $this->log("고객 조회 성공 ({$path})", '', count($users).'명, next='.((string) ($res->json('next') ?? '')));
 
         return ['ok' => true, 'users' => $users, 'next' => $res->json('next') !== null ? (string) $res->json('next') : null];
     }
