@@ -215,6 +215,67 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertSame('ct-77', Client::where('nickname', '채널톡의뢰자')->value('channeltalk_user_id'));
     }
 
+    public function test_office_edit_pushes_profile_to_channeltalk(): void
+    {
+        // 오피스가 원본 — 연동 의뢰자 수정 저장 시 채널톡 프로필로 반영 (PATCH 병합)
+        $admin = User::factory()->create(['role' => 'master']);
+        $client = Client::create([
+            'nickname' => '닥터고블린', 'name' => '고블린', 'phone' => '010-2274-4002', 'grade' => 'normal',
+            'channeltalk_user_id' => 'ct-push',
+        ]);
+        Http::fake(['api.channel.io/*' => Http::response(['user' => ['id' => 'ct-push']])]);
+
+        $this->actingAs($admin)->patchJson("/api/clients/{$client->id}", [
+            'nickname' => '닥터고블린', 'name' => '고블린', 'phone' => '010-2274-4002', 'grade' => 'normal',
+            'platforms' => ['SOOP', '기타'], 'platform_etc' => '트위치',
+            'content_types' => ['게임'], 'career' => '경력', 'broadcast_id' => 'bj-dg',
+            'address' => '서울특별시 동작구 장승배기로 142', 'address_detail' => '2층',
+        ])->assertOk();
+
+        Http::assertSent(function ($req) {
+            if (! str_contains($req->url(), '/open/users/ct-push') || $req->method() !== 'PATCH') {
+                return false;
+            }
+            $p = $req->data()['profile'] ?? [];
+
+            return ($p['name'] ?? '') === '닥터고블린'
+                && ($p['truename'] ?? '') === '고블린'
+                && ($p['mobileNumber'] ?? '') === '010-2274-4002'
+                && ($p['platform'] ?? []) === ['SOOP', '트위치'] // 기타 → 직접입력 원문
+                && ($p['content'] ?? []) === ['게임']
+                && ($p['history'] ?? '') === '경력'
+                && ($p['chname'] ?? '') === 'bj-dg'
+                && ($p['address'] ?? '') === '서울특별시 동작구 장승배기로 142 2층'
+                && ! array_key_exists('note', $p); // 중요메모는 밀지 않음 (채널톡 상담 메모 보존)
+        });
+    }
+
+    public function test_unlinked_client_edit_does_not_call_channeltalk(): void
+    {
+        $admin = User::factory()->create(['role' => 'master']);
+        $client = Client::create(['nickname' => '미연동', 'grade' => 'normal']);
+        Http::fake();
+
+        $this->actingAs($admin)->patchJson("/api/clients/{$client->id}", [
+            'nickname' => '미연동', 'grade' => 'normal',
+        ])->assertOk();
+
+        Http::assertNothingSent();
+    }
+
+    public function test_channeltalk_push_failure_does_not_break_save(): void
+    {
+        $admin = User::factory()->create(['role' => 'master']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal', 'channeltalk_user_id' => 'ct-err']);
+        Http::fake(['api.channel.io/*' => Http::response('down', 500)]);
+
+        $this->actingAs($admin)->patchJson("/api/clients/{$client->id}", [
+            'nickname' => '고블린수정', 'grade' => 'normal',
+        ])->assertOk();
+
+        $this->assertSame('고블린수정', $client->fresh()->nickname); // 저장은 정상
+    }
+
     public function test_register_modal_renders_channeltalk_button(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

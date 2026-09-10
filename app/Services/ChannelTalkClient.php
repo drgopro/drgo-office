@@ -16,6 +16,8 @@ class ChannelTalkClient
 {
     private const API_BASE = 'https://api.channel.io/open/v5';
 
+    private const API_ROOT = 'https://api.channel.io/open'; // 버전 없는 최신 경로 (users PATCH 등)
+
     private const MAX_LOG_BYTES = 5 * 1024 * 1024;
 
     public function isConfigured(): bool
@@ -170,6 +172,48 @@ class ChannelTalkClient
             'profile' => $profile,
             'updated_at' => isset($u['updatedAt']) ? (int) $u['updatedAt'] : null,
         ]];
+    }
+
+    /**
+     * 고객 프로필 갱신 — PATCH /open/users/{id}, 보낸 키만 기존 프로필에 병합된다
+     * (오피스가 원본: 연동된 의뢰자 저장 시 오피스 값을 채널톡에 반영).
+     *
+     * @param  array<string, mixed>  $profile
+     * @return array{ok:bool, error?:string}
+     */
+    public function updateUserProfile(string $ctId, array $profile): array
+    {
+        if (! $this->isConfigured()) {
+            return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
+        }
+        if ($profile === []) {
+            return ['ok' => true];
+        }
+
+        try {
+            $res = Http::timeout(10)->connectTimeout(5)
+                ->withHeaders([
+                    'x-access-key' => config('services.channeltalk.access_key'),
+                    'x-access-secret' => config('services.channeltalk.access_secret'),
+                ])
+                ->patch(self::API_ROOT.'/users/'.rawurlencode($ctId), ['profile' => $profile]);
+        } catch (\Throwable $e) {
+            $this->log('프로필 반영 실패', $ctId, $e->getMessage());
+
+            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+        }
+
+        $this->log(
+            $res->successful() ? '프로필 반영 성공' : '프로필 반영 실패 HTTP '.$res->status(),
+            $ctId,
+            json_encode($profile, JSON_UNESCAPED_UNICODE)."\n".mb_substr($res->body(), 0, 300)
+        );
+
+        if (! $res->successful()) {
+            return ['ok' => false, 'error' => 'HTTP '.$res->status().': '.mb_substr($res->body(), 0, 160)];
+        }
+
+        return ['ok' => true];
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Models\ClientMemo;
 use App\Models\Project;
 use App\Models\ProjectFieldDefinition;
 use App\Services\ChannelTalkClient;
+use App\Services\ChannelTalkProfileSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -276,6 +277,7 @@ class ClientController extends Controller
         $validated['status'] = 'active';
 
         $client = Client::create($validated);
+        ChannelTalkProfileSync::push($client); // 채널톡 연동 등록이면 오피스 값 반영 (오피스가 원본)
 
         return redirect()->route('clients.show', $client)->with('success', '의뢰자가 등록되었습니다.');
     }
@@ -317,6 +319,7 @@ class ClientController extends Controller
         ]);
 
         $client->update($validated);
+        ChannelTalkProfileSync::push($client->fresh()); // 연동 의뢰자 수정 → 채널톡 프로필 반영
 
         return redirect()->route('clients.show', $client)->with('success', '수정되었습니다.');
     }
@@ -529,6 +532,7 @@ class ClientController extends Controller
         }
 
         $client->update($validated);
+        ChannelTalkProfileSync::push($client->fresh()); // 연동 의뢰자 수정 → 채널톡 프로필 반영
 
         return response()->json(['message' => '저장되었습니다.']);
     }
@@ -587,6 +591,7 @@ class ClientController extends Controller
         $validated['status'] = 'active';
 
         $client = Client::create($validated);
+        ChannelTalkProfileSync::push($client); // 채널톡 연동 등록이면 오피스 값 반영 (오피스가 원본)
 
         return response()->json(['id' => $client->id, 'message' => '등록되었습니다.'], 201);
     }
