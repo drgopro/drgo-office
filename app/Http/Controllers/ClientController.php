@@ -95,7 +95,7 @@ class ClientController extends Controller
             })
             ->orderByDesc('ct_updated_at')
             ->limit(10)
-            ->get(['ct_id', 'name', 'mobile', 'mobile_digits', 'email', 'tags']);
+            ->get(['ct_id', 'name', 'mobile', 'mobile_digits', 'email', 'tags', 'profile']);
 
         // 이미 연동된 의뢰자 표시 — 중복 등록 여부 판단 도움
         $linked = Client::whereIn('channeltalk_user_id', $rows->pluck('ct_id'))
@@ -108,11 +108,77 @@ class ClientController extends Controller
             'mobile_digits' => $u->mobile_digits,
             'email' => $u->email,
             'tags' => $u->tags ?? [],
+            ...$this->mapChanneltalkProfile($u->profile ?? []),
             'linked_client' => $linked->has($u->ct_id) ? [
                 'id' => $linked[$u->ct_id]->id,
                 'label' => $linked[$u->ct_id]->nickname ?: $linked[$u->ct_id]->name,
             ] : null,
         ])->values());
+    }
+
+    /**
+     * 채널톡 커스텀 프로필 키 → 의뢰자 필드 매핑.
+     * profile.name=닉네임 / truename=이름 / platform=방송 플랫폼(list) / content=방송주제(list)
+     * / history=경력 / note=중요메모 / chname=방송국 주소 / address=주소.
+     * 오피스 선택지에 없는 플랫폼·주제는 '기타' + 직접입력 텍스트로 넘긴다.
+     *
+     * @param  array<string, mixed>  $profile
+     * @return array<string, mixed>
+     */
+    private function mapChanneltalkProfile(array $profile): array
+    {
+        $toList = fn ($v) => collect(is_array($v) ? $v : (trim((string) $v) !== '' ? preg_split('/[,\/]+/', (string) $v) : []))
+            ->map(fn ($x) => trim((string) $x))->filter()->values();
+
+        // 방송 플랫폼 — 오피스 명칭으로 정규화 (아프리카→SOOP 등), 미지원은 기타 텍스트
+        $platMap = ['SOOP' => 'SOOP', 'soop' => 'SOOP', '아프리카' => 'SOOP', '아프리카TV' => 'SOOP',
+            '유튜브' => '유튜브', 'YouTube' => '유튜브', '치지직' => '치지직', '틱톡' => '틱톡', '팬더티비' => '팬더티비', '팬더' => '팬더티비'];
+        $platforms = [];
+        $platformEtc = [];
+        foreach ($toList($profile['platform'] ?? null) as $p) {
+            if (isset($platMap[$p])) {
+                $platforms[] = $platMap[$p];
+            } elseif ($p !== '기타') {
+                $platformEtc[] = $p;
+            }
+        }
+        if ($platformEtc) {
+            $platforms[] = '기타';
+        }
+
+        // 방송주제 — 오피스 선택지 외는 기타 텍스트
+        $knownTopics = ['소통', '게임', '노래', '먹방', '야외', '버추얼', '코인', '주식', '미정'];
+        $topics = [];
+        $topicEtc = [];
+        foreach ($toList($profile['content'] ?? null) as $t) {
+            if (in_array($t, $knownTopics, true)) {
+                $topics[] = $t;
+            } elseif ($t !== '기타') {
+                $topicEtc[] = $t;
+            }
+        }
+        if ($topicEtc) {
+            $topics[] = '기타';
+        }
+
+        // 경력 — 오피스 선택지(처음/초보/경력)로 근사 매핑
+        $history = trim((string) ($profile['history'] ?? ''));
+        $career = str_contains($history, '경력') ? '경력'
+            : (str_contains($history, '초보') ? '초보'
+            : (str_contains($history, '처음') || str_contains($history, '신규') ? '처음' : ''));
+
+        return [
+            'truename' => trim((string) ($profile['truename'] ?? '')),
+            'platforms' => array_values(array_unique($platforms)),
+            'platform_etc' => implode(', ', $platformEtc),
+            'content_types' => array_values(array_unique($topics)),
+            'topic_etc' => implode(', ', $topicEtc),
+            'career' => $career,
+            'career_raw' => $history,
+            'broadcast_id' => trim((string) ($profile['chname'] ?? '')),
+            'address' => trim((string) ($profile['address'] ?? '')),
+            'important_memo' => trim((string) ($profile['note'] ?? '')),
+        ];
     }
 
     /** 등록 폼의 사전 중복 확인 — 같은 번호의 기존 의뢰자 정보 반환 */

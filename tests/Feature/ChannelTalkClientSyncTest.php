@@ -130,6 +130,45 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertNull($res2[0]['linked_client']);
     }
 
+    public function test_search_maps_custom_profile_keys_to_client_fields(): void
+    {
+        // 채널톡 커스텀 키(platform/content/history/truename/chname/note/address) → 의뢰자 필드 매핑
+        $admin = User::factory()->create(['role' => 'admin']);
+        ChannelTalkUser::create([
+            'ct_id' => 'ct-map', 'name' => '별빛', 'mobile_digits' => '01055554444',
+            'profile' => [
+                'name' => '별빛', 'truename' => '김진짜', 'mobileNumber' => '010-5555-4444',
+                'platform' => ['아프리카', '트위치'], 'content' => ['게임', '캠핑방송'],
+                'history' => '경력 3년', 'chname' => 'bj-starlight', 'note' => 'VIP 성향', 'address' => '서울 동작구 장승배기로 142',
+            ],
+        ]);
+
+        $res = $this->actingAs($admin)->getJson('/api/channeltalk/users?q=별빛')->assertOk()->json('0');
+
+        $this->assertSame('김진짜', $res['truename']);
+        $this->assertSame(['SOOP', '기타'], $res['platforms']); // 아프리카→SOOP, 트위치→기타
+        $this->assertSame('트위치', $res['platform_etc']);
+        $this->assertSame(['게임', '기타'], $res['content_types']); // 캠핑방송→기타
+        $this->assertSame('캠핑방송', $res['topic_etc']);
+        $this->assertSame('경력', $res['career']); // '경력 3년' → 경력
+        $this->assertSame('bj-starlight', $res['broadcast_id']);
+        $this->assertSame('VIP 성향', $res['important_memo']);
+        $this->assertSame('서울 동작구 장승배기로 142', $res['address']);
+    }
+
+    public function test_sync_stores_raw_profile(): void
+    {
+        Http::fake(['api.channel.io/*' => Http::response(['users' => [
+            ['id' => 'ct-p', 'name' => '고객', 'profile' => ['mobileNumber' => '010-1212-3434', 'platform' => ['유튜브'], 'history' => '초보']],
+        ], 'next' => null])]);
+
+        $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
+
+        $profile = ChannelTalkUser::where('ct_id', 'ct-p')->value('profile');
+        $this->assertSame(['유튜브'], $profile['platform']);
+        $this->assertSame('초보', $profile['history']);
+    }
+
     public function test_store_json_saves_channeltalk_user_id(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

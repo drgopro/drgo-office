@@ -16,11 +16,13 @@ class ChannelTalkUser extends Model
         'mobile_digits',
         'email',
         'tags',
+        'profile',
         'ct_updated_at',
     ];
 
     protected $casts = [
         'tags' => 'array',
+        'profile' => 'array',
         'ct_updated_at' => 'datetime',
     ];
 

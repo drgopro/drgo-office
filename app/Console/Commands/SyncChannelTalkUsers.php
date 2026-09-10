@@ -62,6 +62,7 @@ class SyncChannelTalkUsers extends Command
                     'mobile_digits' => strlen($digits) >= 7 ? $digits : null,
                     'email' => $u['email'] ?: null,
                     'tags' => $u['tags'] ?: null,
+                    'profile' => ($u['profile'] ?? []) ?: null,
                     'ct_updated_at' => $u['updated_at'] ? date('Y-m-d H:i:s', intdiv($u['updated_at'], 1000)) : null,
                 ]);
                 $upserted++;

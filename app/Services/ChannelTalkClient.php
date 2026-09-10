@@ -72,12 +72,6 @@ class ChannelTalkClient
     }
 
     /**
-     * 채널톡 고객(user) 목록 — 커서(since) 페이지네이션.
-     * 응답 형태가 계정/버전에 따라 조금씩 달라 방어적으로 파싱한다.
-     *
-     * @return array{ok:bool, users?:array<int, array{ct_id:string, name:string, mobile:string, email:string, tags:array<int,string>, updated_at:?int}>, next?:?string, error?:string}
-     */
-    /**
      * 상담(유저챗) 목록에 동봉되는 users 배열에서 고객 수집 — state별 커서 페이지네이션.
      * 전체 고객 목록 API는 GET 미지원(405)이라, 상담 이력이 있는 고객을 상태별로 순회해 모은다
      * (의뢰자로 등록할 대상이 곧 상담 고객이라 목적에 부합).
@@ -123,6 +117,7 @@ class ChannelTalkClient
                 'mobile' => trim((string) ($profile['mobileNumber'] ?? $u['mobileNumber'] ?? '')),
                 'email' => strtolower(trim((string) ($profile['email'] ?? $u['email'] ?? ''))),
                 'tags' => array_values(array_filter((array) ($u['tags'] ?? []), 'is_string')),
+                'profile' => $profile, // 커스텀 키(플랫폼/주제/경력/방송국 주소 등) 원본 — 의뢰자 필드 매핑용
                 'updated_at' => isset($u['updatedAt']) ? (int) $u['updatedAt'] : null,
             ];
         }

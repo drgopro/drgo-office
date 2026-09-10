@@ -2014,16 +2014,49 @@ async function ctSearch() {
                 : '<span style="font-size:11px; color:var(--accent); white-space:nowrap;">불러오기</span>'}
         </div>`).join('');
 }
+// 체크박스 그룹(플랫폼/주제) 채우기 — 기존 선택은 유지하고 추가만, '기타' 텍스트는 빈 칸일 때만
+function ctSetCheckGroup(group, values, etcText) {
+    const wrap = document.getElementById(`chkgroup-${group}-nc`);
+    if (!wrap || (!values?.length && !etcText)) return;
+    (values || []).forEach(v => {
+        const cb = wrap.querySelector(`input[value="${v}"]`);
+        if (cb) cb.checked = true;
+    });
+    syncChipState(wrap);
+    if ((values || []).includes('기타') || etcText) {
+        toggleEtcInput(group, 'nc');
+        const etc = document.getElementById(`f-${group}-etc-nc`);
+        if (etc && etcText && !etc.value.trim()) etc.value = etcText;
+    }
+}
 function ctPick(u) {
     ncCtUserId = u.ct_id;
-    const nick = document.getElementById('ncNickname');
-    const name = document.getElementById('ncName');
+    const fillIfEmpty = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val && !el.value.trim()) el.value = val;
+    };
+    fillIfEmpty('ncNickname', u.name);              // profile.name = 닉네임
+    fillIfEmpty('ncName', u.truename || u.name);    // profile.truename = 이름
     const phone = document.getElementById('ncPhone');
-    if (u.name && !nick.value.trim()) nick.value = u.name;
-    if (u.name && !name.value.trim()) name.value = u.name;
     if (u.mobile_digits && !phone.value.trim()) {
         phone.value = u.mobile_digits;
         phone.dispatchEvent(new Event('input', { bubbles: true })); // 전역 하이픈 포맷터 적용
+    }
+    // 방송 플랫폼/주제 — 오피스 선택지로 매핑된 값 + 미지원은 기타 텍스트
+    ctSetCheckGroup('platforms', u.platforms, u.platform_etc);
+    ctSetCheckGroup('topics', u.content_types, u.topic_etc);
+    // 경력 — 처음/초보/경력으로 근사 매핑된 값만 (원문이 다르면 특이사항에 남김)
+    const careerSel = document.getElementById('ncCareer');
+    if (careerSel && u.career && !careerSel.value) careerSel.value = u.career;
+    fillIfEmpty('ncBroadcastId', u.broadcast_id);   // profile.chname = 방송국 주소
+    fillIfEmpty('ncAddress', u.address);            // profile.address = 주소
+    fillIfEmpty('ncImportantMemo', u.important_memo); // profile.note = 중요메모
+    // 경력 원문이 선택지로 매핑되지 않은 경우 유실 방지 — 특이사항에 덧붙임
+    if (u.career_raw && !u.career) {
+        const memo = document.getElementById('ncImportantMemo');
+        if (memo && !memo.value.includes(u.career_raw)) {
+            memo.value = (memo.value ? memo.value + '\n' : '') + '채널톡 경력: ' + u.career_raw;
+        }
     }
     document.getElementById('ncCtResults').innerHTML = '';
     document.getElementById('ncCtSearch').value = u.name || u.mobile || '';
