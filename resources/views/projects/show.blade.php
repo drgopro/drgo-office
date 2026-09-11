@@ -414,7 +414,16 @@
                 </div>
             </div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            {{-- 익명(의뢰자 미연동) 프로젝트 — 진행 단계 바가 없으므로 헤더에서 완료 처리/되돌리기 --}}
+            @unless($project->client_id)
+                @if($project->stage === 'done')
+                    <span style="font-size:12px;padding:7px 12px;border-radius:8px;background:rgba(45,138,62,0.12);color:#2d8a3e;font-weight:700;">완료됨{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
+                    <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="anonReopenProject()" title="완료를 취소하고 진행 중으로 되돌립니다">완료 취소</button>
+                @elseif($project->stage !== 'cancelled')
+                    <button class="btn-edit" style="background:var(--accent);border:1px solid var(--accent);color:var(--accent-text,#fff);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
+                @endif
+            @endunless
             <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
             <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
             @if($project->stage !== 'cancelled')
@@ -1947,6 +1956,30 @@ async function submitCancel() {
     });
     if (res.ok || res.status === 302) location.reload();
     else alert('취소 처리 실패');
+}
+
+// ── 익명(의뢰자 미연동) 프로젝트 완료 처리 — 진행 단계 바가 없어 헤더 버튼으로 ──
+async function anonCompleteProject() {
+    if (!confirm('이 프로젝트를 완료 처리할까요?')) return;
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/projects/{{ $project->id }}/stage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+        body: JSON.stringify({ stage: 'done' }),
+    });
+    if (res.ok) location.reload();
+    else alert('완료 처리에 실패했습니다.');
+}
+async function anonReopenProject() {
+    if (!confirm('완료를 취소하고 진행 중으로 되돌릴까요?')) return;
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/projects/{{ $project->id }}/stage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+        body: JSON.stringify({ stage: '{{ $project->flowStages()[0]['code'] ?? 'consulting' }}' }),
+    });
+    if (res.ok) location.reload();
+    else alert('되돌리기에 실패했습니다.');
 }
 
 // 프로젝트 완전 삭제

@@ -223,6 +223,8 @@ class ProjectController extends Controller
 
         if ($request->stage === 'done') {
             $data['completed_at'] = now();
+        } elseif ($project->stage === 'done') {
+            $data['completed_at'] = null; // 완료 취소(되돌리기) — 재완료 시 새 시각 기록
         }
 
         if ($request->stage === 'cancelled') {
