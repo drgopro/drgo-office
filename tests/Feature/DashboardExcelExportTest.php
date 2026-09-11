@@ -168,6 +168,8 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('엔터', $sheet->getCell('G2')->getValue()); // 의뢰자 client_type 폴백
         $this->assertSame('김직원', $sheet->getCell('H2')->getValue());
         $this->assertSame(1, (int) $sheet->getCell('I2')->getValue());
+        $this->assertSame('카테고리', $sheet->getCell('J1')->getValue());
+        $this->assertSame('방문의뢰', $sheet->getCell('J2')->getValue()); // 캘린더 카테고리 원문
         $this->assertNull($sheet->getCell('A3')->getValue()); // 사내업무 제외
 
         // 우측 선택지 목록 + 헤더 자동필터
@@ -178,7 +180,7 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('수정원격', $sheet->getCell('N13')->getValue());
         $this->assertSame('의뢰자 유형', $sheet->getCell('O1')->getValue());
         $this->assertSame('기업', $sheet->getCell('O5')->getValue());
-        $this->assertSame('A1:I2', $sheet->getAutoFilter()->getRange());
+        $this->assertSame('A1:J2', $sheet->getAutoFilter()->getRange());
     }
 
     public function test_stats_page_excel_links_use_download_notice_helper(): void

@@ -669,7 +669,7 @@ class MarketingReportController extends Controller
             return trim($first.' '.($tokens[1] ?? ''));
         };
 
-        return $schedules->map(function (Schedule $s) use ($dows, $clients, $projects, $typeOf, $platformNorm, $regionOf, $clientKey, $firstSeen): array {
+        return $schedules->map(function (Schedule $s) use ($dows, $catMap, $clients, $projects, $typeOf, $platformNorm, $regionOf, $clientKey, $firstSeen): array {
             $g = (array) ($s->request_data ?? []);
             $client = ! empty($g['client_id']) ? $clients->get($g['client_id']) : null;
             $type = $typeOf($s);
@@ -714,6 +714,7 @@ class MarketingReportController extends Controller
                 'end' => $s->is_all_day ? '종일' : ($s->end_time ? substr((string) $s->end_time, 0, 5) : ''),
                 'title' => $s->title,
                 'type' => $type,
+                'category' => $catMap[$s->color]['label'] ?? $s->color,
                 'internal' => $isInternal,
                 'client_type' => $clientType,
                 'client' => $isInternal ? '해당없음' : $clientName,
