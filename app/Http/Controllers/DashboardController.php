@@ -989,6 +989,85 @@ class DashboardController extends Controller
             }
         });
 
+        // Sheet 6-1: 마진 분석 — 결제완료 견적서별 매입/판매 차익.
+        // 매입액은 주문 내역에 기록한 실구매액 우선, 미기록 항목은 매입가×수량 참고치.
+        // 대체(취소선) 항목 제외, 판매액은 항목별 환불 기록 차감. 서비스는 매입 0으로 전액 순익 기여.
+        $s6b = $spreadsheet->createSheet();
+        $s6b->setTitle('마진 분석');
+        $s6b->fromArray([
+            '결제일', '견적서 #', '의뢰자', '총 판매액', '제품 판매액', '제품 매입액',
+            '제품 마진', '서비스 매출', '순익', '마진율(%)',
+        ], null, 'A1');
+        $bold($s6b, 'A1:J1');
+        $row = 2;
+        $marginTotals = ['sales' => 0, 'psales' => 0, 'purchase' => 0, 'service' => 0, 'profit' => 0];
+        Estimate::where('status', 'paid')
+            ->where(function ($q) use ($fromDt, $toDt) {
+                $q->whereBetween('paid_at', [$fromDt, $toDt])
+                    ->orWhere(fn ($q2) => $q2->whereNull('paid_at')->whereBetween('updated_at', [$fromDt, $toDt]));
+            })
+            ->orderByDesc('paid_at')
+            ->chunk(200, function ($items) use ($s6b, &$row, &$marginTotals) {
+                foreach ($items as $e) {
+                    $productSales = 0;
+                    $purchase = 0;
+                    $service = 0;
+                    foreach ($e->product_items ?? [] as $i) {
+                        if (! empty($i['replaced'])) {
+                            continue; // 대체된 항목 — 판매/매입 모두 제외
+                        }
+                        $net = (int) ($i['subtotal'] ?? 0) - (int) ($i['refund_amount'] ?? 0);
+                        if (! empty($i['is_service'])) {
+                            $service += $net;
+
+                            continue;
+                        }
+                        $productSales += $net;
+                        $purchase += isset($i['purchase_amount'])
+                            ? (int) $i['purchase_amount']
+                            : (int) ($i['purchase_price'] ?? 0) * max(1, (int) ($i['qty'] ?? 1));
+                    }
+                    foreach ($e->service_items ?? [] as $sv) {
+                        $service += (int) ($sv['amount'] ?? 0);
+                    }
+                    $totalSales = $productSales + $service;
+                    $profit = ($productSales - $purchase) + $service;
+
+                    $s6b->fromArray([
+                        ($e->paid_at ?? $e->updated_at)?->format('Y.m.d'),
+                        $e->display_no,
+                        $e->client_nickname ?: $e->client_name,
+                        $totalSales,
+                        $productSales,
+                        $purchase,
+                        $productSales - $purchase,
+                        $service,
+                        $profit,
+                        $totalSales > 0 ? round($profit / $totalSales * 100, 1) : null,
+                    ], null, "A{$row}");
+                    $row++;
+
+                    $marginTotals['sales'] += $totalSales;
+                    $marginTotals['psales'] += $productSales;
+                    $marginTotals['purchase'] += $purchase;
+                    $marginTotals['service'] += $service;
+                    $marginTotals['profit'] += $profit;
+                }
+            });
+        // 합계 행
+        $s6b->fromArray([
+            '합계', null, null,
+            $marginTotals['sales'], $marginTotals['psales'], $marginTotals['purchase'],
+            $marginTotals['psales'] - $marginTotals['purchase'], $marginTotals['service'], $marginTotals['profit'],
+            $marginTotals['sales'] > 0 ? round($marginTotals['profit'] / $marginTotals['sales'] * 100, 1) : null,
+        ], null, "A{$row}");
+        $bold($s6b, "A{$row}:J{$row}");
+        $s6b->getStyle("D2:I{$row}")->getNumberFormat()->setFormatCode('#,##0');
+        $s6b->setCellValue('A'.($row + 2), '※ 제품 매입액: 주문 내역에 기록된 실구매액 우선, 미기록 항목은 제품 매입가×수량 참고치. 대체 항목 제외, 판매액은 환불 차감.');
+        foreach (range('A', 'J') as $col) {
+            $s6b->getColumnDimension($col)->setAutoSize(true);
+        }
+
         // Sheet 7: 일정
         $s7 = $spreadsheet->createSheet();
         $s7->setTitle('일정');

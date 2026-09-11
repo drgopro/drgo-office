@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\RevenueEntry;
 use App\Models\User;
@@ -70,6 +71,52 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('의뢰자 사정으로 취소', $sheet->getCell('E2')->getValue());
         $this->assertSame('예산 문제', $sheet->getCell('F2')->getValue());
         $this->assertNull($sheet->getCell('A3')->getValue()); // 기간 밖 취소 건 제외
+    }
+
+    public function test_export_includes_margin_sheet_with_purchase_profit(): void
+    {
+        // 마진 분석 시트 — 결제된 견적서별 판매/매입 차익 (실구매액 우선, 대체 제외, 환불 차감)
+        $user = User::factory()->create(['role' => 'admin']);
+        $estimate = Estimate::create([
+            'status' => 'created', 'client_nickname' => '고블린',
+            'product_items' => [
+                // 실구매액 90,000 기록 — 매입가×수량(80,000)보다 우선
+                ['name' => '카메라', 'sale_price' => 150000, 'qty' => 1, 'subtotal' => 150000,
+                    'purchase_price' => 80000, 'purchase_amount' => 90000, 'ordered' => true],
+                // 실구매 미기록 — 매입가 20,000×2 = 40,000 참고치
+                ['name' => '조명', 'sale_price' => 50000, 'qty' => 2, 'subtotal' => 100000, 'purchase_price' => 20000],
+                // 스냅샷 서비스 항목 — 매입 0, 전액 순익
+                ['name' => '세팅비', 'sale_price' => 50000, 'qty' => 1, 'subtotal' => 50000, 'is_service' => true],
+                // 대체 항목 — 완전 제외
+                ['name' => '단종 캡처보드', 'sale_price' => 70000, 'qty' => 1, 'subtotal' => 70000,
+                    'purchase_price' => 30000, 'replaced' => true],
+            ],
+            'service_items' => [['name' => '출장비', 'amount' => 30000]],
+            'product_total' => 300000, 'service_total' => 30000, 'total_amount' => 330000,
+            'validity_days' => 3, 'created_by' => $user->id,
+        ]);
+        $estimate->update(['status' => 'paid']); // paid_at 스탬프
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('마진 분석');
+        unlink($tmp);
+
+        $this->assertNotNull($sheet, "'마진 분석' 시트가 없습니다");
+        $this->assertSame('고블린', $sheet->getCell('C2')->getValue());
+        $this->assertSame(330000, (int) $sheet->getCell('D2')->getValue()); // 총 판매액 (대체 제외, 서비스 포함)
+        $this->assertSame(250000, (int) $sheet->getCell('E2')->getValue()); // 제품 판매액 (카메라+조명)
+        $this->assertSame(130000, (int) $sheet->getCell('F2')->getValue()); // 매입액 90,000 + 40,000
+        $this->assertSame(120000, (int) $sheet->getCell('G2')->getValue()); // 제품 마진
+        $this->assertSame(80000, (int) $sheet->getCell('H2')->getValue());  // 서비스 매출 (50,000+30,000)
+        $this->assertSame(200000, (int) $sheet->getCell('I2')->getValue()); // 순익
+        $this->assertEqualsWithDelta(60.6, (float) $sheet->getCell('J2')->getValue(), 0.05); // 마진율
+        $this->assertSame('합계', $sheet->getCell('A3')->getValue());
+        $this->assertSame(200000, (int) $sheet->getCell('I3')->getValue());
     }
 
     public function test_stats_page_excel_links_use_download_notice_helper(): void
