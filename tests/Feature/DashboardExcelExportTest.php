@@ -117,6 +117,10 @@ class DashboardExcelExportTest extends TestCase
         $this->assertEqualsWithDelta(60.6, (float) $sheet->getCell('J2')->getValue(), 0.05); // 마진율
         $this->assertSame('합계', $sheet->getCell('A3')->getValue());
         $this->assertSame(200000, (int) $sheet->getCell('I3')->getValue());
+        // 견적서 원문 링크 — 오피스 빌더 URL 하이퍼링크
+        $this->assertSame('견적서 원문', $sheet->getCell('K1')->getValue());
+        $this->assertStringContainsString('견적서 #', (string) $sheet->getCell('K2')->getValue());
+        $this->assertStringContainsString("/estimates/{$estimate->id}/edit", $sheet->getCell('K2')->getHyperlink()->getUrl());
     }
 
     public function test_stats_page_excel_links_use_download_notice_helper(): void

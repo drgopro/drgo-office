@@ -996,9 +996,9 @@ class DashboardController extends Controller
         $s6b->setTitle('마진 분석');
         $s6b->fromArray([
             '결제일', '견적서 #', '의뢰자', '총 판매액', '제품 판매액', '제품 매입액',
-            '제품 마진', '서비스 매출', '순익', '마진율(%)',
+            '제품 마진', '서비스 매출', '순익', '마진율(%)', '견적서 원문',
         ], null, 'A1');
-        $bold($s6b, 'A1:J1');
+        $bold($s6b, 'A1:K1');
         $row = 2;
         $marginTotals = ['sales' => 0, 'psales' => 0, 'purchase' => 0, 'service' => 0, 'profit' => 0];
         Estimate::where('status', 'paid')
@@ -1044,7 +1044,10 @@ class DashboardController extends Controller
                         $service,
                         $profit,
                         $totalSales > 0 ? round($profit / $totalSales * 100, 1) : null,
+                        "견적서 #{$e->display_no} 열기",
                     ], null, "A{$row}");
+                    // 견적서 원문 하이퍼링크 — 오피스 빌더로 이동 (내부용)
+                    $s6b->getCell("K{$row}")->getHyperlink()->setUrl(url("/estimates/{$e->id}/edit"));
                     $row++;
 
                     $marginTotals['sales'] += $totalSales;
@@ -1061,10 +1064,15 @@ class DashboardController extends Controller
             $marginTotals['psales'] - $marginTotals['purchase'], $marginTotals['service'], $marginTotals['profit'],
             $marginTotals['sales'] > 0 ? round($marginTotals['profit'] / $marginTotals['sales'] * 100, 1) : null,
         ], null, "A{$row}");
-        $bold($s6b, "A{$row}:J{$row}");
+        $bold($s6b, "A{$row}:K{$row}");
         $s6b->getStyle("D2:I{$row}")->getNumberFormat()->setFormatCode('#,##0');
+        if ($row > 2) { // 링크 열 스타일 — 파란 밑줄 (합계 행 제외)
+            $linkStyle = $s6b->getStyle('K2:K'.($row - 1))->getFont();
+            $linkStyle->setUnderline(true);
+            $linkStyle->getColor()->setRGB('1F5AA8');
+        }
         $s6b->setCellValue('A'.($row + 2), '※ 제품 매입액: 주문 내역에 기록된 실구매액 우선, 미기록 항목은 제품 매입가×수량 참고치. 대체 항목 제외, 판매액은 환불 차감.');
-        foreach (range('A', 'J') as $col) {
+        foreach (range('A', 'K') as $col) {
             $s6b->getColumnDimension($col)->setAutoSize(true);
         }
 
