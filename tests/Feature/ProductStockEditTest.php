@@ -70,6 +70,34 @@ class ProductStockEditTest extends TestCase
         $this->assertSame(4, $product->inventory->fresh()->quantity);
     }
 
+    public function test_negative_stock_product_can_still_be_edited(): void
+    {
+        // 상시 구매 제품은 차감 운영으로 현재고가 음수가 됨 — 수정 폼이 -14를 그대로 보내도 저장돼야 한다
+        $product = Product::create([
+            'sku' => 'PT-002', 'name' => '선정리 도구 세트', 'category' => '부품', 'category_id' => $this->cat->id,
+            'purchase_price' => 28030, 'sale_price' => 31200, 'safety_stock' => 0,
+            'is_active' => true, 'show_in_estimate' => false,
+        ]);
+        Inventory::create(['product_id' => $product->id, 'quantity' => -14, 'last_updated_at' => now()]);
+
+        // 음수 현재고 그대로 저장 (변경 없음) — 422가 나던 회귀 케이스
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$product->id}", [
+            'name' => '선정리 도구 세트 (선정리 세팅)', 'category_id' => $this->cat->id, 'stock_quantity' => -14,
+        ])->assertOk();
+        $this->assertSame('선정리 도구 세트 (선정리 세팅)', $product->fresh()->name);
+        $this->assertSame(-14, $product->inventory->fresh()->quantity);
+        $this->assertSame(0, StockMovement::where('product_id', $product->id)->count()); // 동일 수량 — 조정 이력 없음
+
+        // 음수에서 다른 값으로 조정도 정상 + 이력 기록
+        $this->actingAs($this->master)->patchJson("/api/inventory/products/{$product->id}", [
+            'name' => '선정리 도구 세트 (선정리 세팅)', 'category_id' => $this->cat->id, 'stock_quantity' => 0,
+        ])->assertOk();
+        $this->assertSame(0, $product->inventory->fresh()->quantity);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id, 'movement_type' => 'adjust', 'quantity_after' => 0,
+        ]);
+    }
+
     public function test_movements_can_be_searched_by_product_name_or_sku(): void
     {
         foreach ([['PT-101', '케이블'], ['PT-102', '마이크']] as [$sku, $name]) {

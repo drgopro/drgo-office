@@ -450,7 +450,7 @@
         <div class="field-row" id="safetyGroup">
             <div class="field-group">
                 <div class="field-label">현재고</div>
-                <input class="field-input" id="pStock" type="number" min="0" placeholder="비워두면 변경 없음">
+                <input class="field-input" id="pStock" type="number" placeholder="비워두면 변경 없음">
                 <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">수량을 바꾸면 입출고 내역에 '조정' 이력이 자동 기록됩니다.</div>
             </div>
             <div class="field-group">

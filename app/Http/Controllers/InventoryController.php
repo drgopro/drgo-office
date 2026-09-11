@@ -487,7 +487,7 @@ class InventoryController extends Controller
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
-            'stock_quantity' => 'nullable|integer|min:0', // 재고 직접 수정 — 다르면 조정(adjust) 이력 기록 (세트 제외)
+            'stock_quantity' => 'nullable|integer', // 재고 직접 수정 — 음수 허용 (차감 운영으로 0 이하인 상시 구매 제품도 수정 가능해야 함)
             'group_id' => 'sometimes|nullable|integer|exists:product_groups,id', // null 전달 시 그룹에서 제외
             'option_name' => 'sometimes|nullable|string|max:60',
             'memo' => 'nullable|string',
@@ -784,7 +784,7 @@ class InventoryController extends Controller
             'items.*.purchase_price' => 'sometimes|nullable|numeric|min:0',
             'items.*.sale_price' => 'sometimes|nullable|numeric|min:0',
             'items.*.safety_stock' => 'sometimes|nullable|integer|min:0',
-            'items.*.stock_quantity' => 'sometimes|nullable|integer|min:0',
+            'items.*.stock_quantity' => 'sometimes|nullable|integer', // 음수 허용 — 개별 수정과 동일
         ], [
             'items.*.name.required' => '제품명은 비울 수 없습니다.',
         ]);
