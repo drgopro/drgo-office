@@ -1071,7 +1071,10 @@ class DashboardController extends Controller
             $linkStyle->setUnderline(true);
             $linkStyle->getColor()->setRGB('1F5AA8');
         }
-        $s6b->setCellValue('A'.($row + 2), '※ 제품 매입액: 주문 내역에 기록된 실구매액 우선, 미기록 항목은 제품 매입가×수량 참고치. 대체 항목 제외, 판매액은 환불 차감.');
+        // 주석은 A~K 병합 — 병합 셀은 열 자동 너비 계산에서 제외돼 결제일 열이 넓어지지 않는다
+        $noteRow = $row + 2;
+        $s6b->setCellValue("A{$noteRow}", '※ 제품 매입액: 주문 내역에 기록된 실구매액 우선, 미기록 항목은 제품 매입가×수량 참고치. 대체 항목 제외, 판매액은 환불 차감.');
+        $s6b->mergeCells("A{$noteRow}:K{$noteRow}");
         foreach (range('A', 'K') as $col) {
             $s6b->getColumnDimension($col)->setAutoSize(true);
         }

@@ -121,6 +121,8 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('견적서 원문', $sheet->getCell('K1')->getValue());
         $this->assertStringContainsString('견적서 #', (string) $sheet->getCell('K2')->getValue());
         $this->assertStringContainsString("/estimates/{$estimate->id}/edit", $sheet->getCell('K2')->getHyperlink()->getUrl());
+        // 하단 주석이 A~K 병합 — 결제일(A) 열이 주석 길이만큼 넓어지는 회귀 방지
+        $this->assertContains('A5:K5', array_keys($sheet->getMergeCells()));
     }
 
     public function test_stats_page_excel_links_use_download_notice_helper(): void
