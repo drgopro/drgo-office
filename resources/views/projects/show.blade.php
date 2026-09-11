@@ -2230,9 +2230,8 @@ document.addEventListener('mouseup', () => {
     const MAX_BYTES = card ? parseInt(card.dataset.uploadMaxBytes || '0', 10) : 0;
     const MAX_MB = card ? (card.dataset.uploadMaxMb || '') : '';
 
-    fileInput.addEventListener('change', () => {
-        for (const f of fileInput.files) selectedFiles.push(f);
-        fileInput.value = '';
+    function addFiles(files) {
+        for (const f of files) selectedFiles.push(f);
         // 크기 초과 파일 사전 차단
         if (MAX_BYTES > 0) {
             const tooBig = selectedFiles.filter(f => f.size > MAX_BYTES);
@@ -2243,6 +2242,34 @@ document.addEventListener('mouseup', () => {
             }
         }
         syncAndRender();
+    }
+
+    fileInput.addEventListener('change', () => {
+        addFiles(fileInput.files);
+        fileInput.value = '';
+    });
+
+    // 클립보드 붙여넣기 — 이미지/파일을 첨부 문서 업로드 목록에 추가 (캘린더와 동일 UX)
+    document.addEventListener('paste', (e) => {
+        if (e.defaultPrevented) return; // 방문 보고서 에디터 등 자체 처리 영역 — 이중 첨부 방지
+        const t = e.target;
+        if (t && (t.closest?.('input, textarea, [contenteditable="true"], .ProseMirror'))) return; // 텍스트 붙여넣기 존중
+        // 모달이 열려 있으면 무시 — 상담/결제 등 다른 입력 흐름과 충돌 방지
+        if ([...document.querySelectorAll('.modal-overlay')].some(m => m.style.display && m.style.display !== 'none')) return;
+        const files = [...(e.clipboardData?.files || [])];
+        if (!files.length) return;
+        e.preventDefault();
+        // 클립보드 캡처 기본명(image.png)은 시각 스탬프로 구분되는 이름 부여
+        const stamped = files.map((f, i) => {
+            if (f.name && f.name !== 'image.png') return f;
+            const ext = (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+            const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '').replace('T', '-');
+            return new File([f], `붙여넣기-${stamp}${i ? '-' + i : ''}.${ext}`, { type: f.type });
+        });
+        // 업로드 폼이 접혀 있으면 펼쳐서 미리보기가 보이게
+        if (form.style.display === 'none' && typeof toggleDocUpload === 'function') toggleDocUpload();
+        addFiles(stamped);
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
     form.addEventListener('submit', async (e) => {

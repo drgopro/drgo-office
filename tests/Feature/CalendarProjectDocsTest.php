@@ -86,6 +86,18 @@ class CalendarProjectDocsTest extends TestCase
             ->assertSee('data-doc-cat="방 사진"', false);
     }
 
+    public function test_project_page_supports_clipboard_paste_attach(): void
+    {
+        // 클립보드 이미지/파일 붙여넣기 → 첨부 문서 업로드 목록 추가 (캘린더와 동일 UX)
+        $admin = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['name' => '테스트 의뢰자', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '집 세팅']);
+
+        $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk()
+            ->assertSee("addEventListener('paste'", false)
+            ->assertSee('붙여넣기-', false); // 클립보드 캡처 기본명 스탬프 처리
+    }
+
     public function test_calendar_renders_linked_project_docs_ui(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
