@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assignee;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\RevenueEntry;
+use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -123,6 +125,60 @@ class DashboardExcelExportTest extends TestCase
         $this->assertStringContainsString("/estimates/{$estimate->id}/edit", $sheet->getCell('K2')->getHyperlink()->getUrl());
         // 하단 주석이 A~K 병합 — 결제일(A) 열이 주석 길이만큼 넓어지는 회귀 방지
         $this->assertContains('A5:K5', array_keys($sheet->getMergeCells()));
+    }
+
+    public function test_export_includes_work_log_sheet(): void
+    {
+        // 작업 일지 시트 — 요일/날짜/의뢰자/플랫폼/경력/작업 방식/유형/작업자/수량 + 우측 선택지 목록 + 자동필터
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal', 'client_type' => 'enterprise']);
+        $assignee = Assignee::create(['name' => '김직원', 'is_active' => true]);
+
+        $schedule = Schedule::create([
+            'title' => '캠 풀세팅', 'color' => 'gold',
+            'start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'start_time' => '14:00',
+            'client_name' => '고블린',
+            'request_data' => ['client_id' => $client->id, 'platform' => '치지직', 'career' => '초보'],
+            'created_by' => $user->id,
+        ]);
+        $schedule->assignees()->attach($assignee->id, ['sort_order' => 0]);
+        // 사내업무 일정 — 작업 일지 제외 대상
+        Schedule::create([
+            'title' => '재고 정리', 'color' => 'blue',
+            'start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'created_by' => $user->id,
+        ]);
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('작업 일지');
+        unlink($tmp);
+
+        $this->assertNotNull($sheet, "'작업 일지' 시트가 없습니다");
+        $dows = ['일', '월', '화', '수', '목', '금', '토'];
+        $this->assertSame($dows[now()->dayOfWeek], $sheet->getCell('A2')->getValue());
+        $this->assertSame(now()->format('n/j'), $sheet->getCell('B2')->getValue());
+        $this->assertSame('고블린', $sheet->getCell('C2')->getValue());
+        $this->assertSame('치지직', $sheet->getCell('D2')->getValue());
+        $this->assertSame('초보', $sheet->getCell('E2')->getValue());
+        $this->assertSame('방문', $sheet->getCell('F2')->getValue()); // 방문의뢰 카테고리 → 방문
+        $this->assertSame('엔터', $sheet->getCell('G2')->getValue()); // 의뢰자 client_type 폴백
+        $this->assertSame('김직원', $sheet->getCell('H2')->getValue());
+        $this->assertSame(1, (int) $sheet->getCell('I2')->getValue());
+        $this->assertNull($sheet->getCell('A3')->getValue()); // 사내업무 제외
+
+        // 우측 선택지 목록 + 헤더 자동필터
+        $this->assertSame('플랫폼', $sheet->getCell('L1')->getValue());
+        $this->assertSame('SOOP', $sheet->getCell('L2')->getValue());
+        $this->assertSame('경력', $sheet->getCell('M1')->getValue());
+        $this->assertSame('작업 방식', $sheet->getCell('N1')->getValue());
+        $this->assertSame('수정원격', $sheet->getCell('N13')->getValue());
+        $this->assertSame('의뢰자 유형', $sheet->getCell('O1')->getValue());
+        $this->assertSame('기업', $sheet->getCell('O5')->getValue());
+        $this->assertSame('A1:I2', $sheet->getAutoFilter()->getRange());
     }
 
     public function test_stats_page_excel_links_use_download_notice_helper(): void

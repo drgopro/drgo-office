@@ -1092,6 +1092,77 @@ class DashboardController extends Controller
             }
         });
 
+        // Sheet 7-1: 작업 일지 — 일별 작업 로그 (사내업무·휴가 제외, 1건=1행)
+        $s7b = $spreadsheet->createSheet();
+        $s7b->setTitle('작업 일지');
+        $s7b->fromArray(['요일', '날짜', '의뢰자명', '플랫폼', '경력', '작업 방식', '의뢰자 유형', '작업자', '수량'], null, 'A1');
+        $bold($s7b, 'A1:I1');
+
+        $workRows = app(MarketingReportController::class)->rawScheduleRows($from, $to)
+            ->reject(fn (array $r) => $r['internal']);
+
+        // 작업 방식 — 제목 키워드 우선, 없으면 일정 유형 매핑 (필터 열 수기 보정 전제의 근사치)
+        $methodOf = function (array $r): string {
+            $title = (string) $r['title'];
+            if (in_array('자동결제', $r['attrs'], true)) {
+                return '자동결제';
+            }
+            foreach (['답사' => '사전답사', '컨설팅' => '컨설팅', '회수' => '대여회수', '소스' => '소스제작'] as $needle => $method) {
+                if (mb_stripos($title, $needle) !== false) {
+                    return $method;
+                }
+            }
+
+            return match ($r['type']) {
+                '방문세팅' => in_array('재방문', $r['attrs'], true) ? '재방문' : '방문',
+                '원격' => mb_stripos($title, '수정') !== false ? '수정원격' : '원격',
+                '촬영' => '촬영',
+                '내방' => '내방',
+                '방송룸 대여' => '룸대여',
+                '장비 렌탈' => '렌탈',
+                '디자인' => '소스제작',
+                default => '기타',
+            };
+        };
+
+        $row = 2;
+        $prevDate = null;
+        $shade = false;
+        foreach ($workRows as $r) {
+            if ($r['date'] !== $prevDate) { // 날짜 그룹 교차 음영
+                $shade = ! $shade;
+                $prevDate = $r['date'];
+            }
+            $workers = trim($r['main'].($r['subs'] !== '' ? ', '.str_replace(';', ', ', $r['subs']) : ''));
+            $s7b->fromArray([
+                $r['dow'], Carbon::parse($r['date'])->format('n/j'), $r['client'], $r['platform'], $r['career'],
+                $methodOf($r), $r['client_type'], $workers, 1,
+            ], null, "A{$row}");
+            if ($shade) {
+                $s7b->getStyle("A{$row}:I{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F2F2F2');
+            }
+            $row++;
+        }
+        $s7b->setAutoFilter('A1:I'.max(2, $row - 1));
+
+        // 우측 선택지 목록 (L~O) — 필터·수기 보정용 기준값
+        $workLogChoices = [
+            'L' => ['플랫폼', ['SOOP', '치지직', '유튜브', '팬더티비', '틱톡', '플렉스', '팝콘', '동시', '기타']],
+            'M' => ['경력', ['처음', '초보', '경력']],
+            'N' => ['작업 방식', ['원격', '방문', '렌탈', '룸대여', '촬영', '내방', '컨설팅', '사전답사', '소스제작', '재방문', '자동결제', '수정원격', '대여회수', '기타']],
+            'O' => ['의뢰자 유형', ['개인', '엔터', '스튜디오', '기업']],
+        ];
+        foreach ($workLogChoices as $col => [$label, $options]) {
+            $s7b->setCellValue("{$col}1", $label);
+            $bold($s7b, "{$col}1");
+            foreach ($options as $i => $option) {
+                $s7b->setCellValue($col.($i + 2), $option);
+            }
+        }
+        foreach ([...range('A', 'I'), 'L', 'M', 'N', 'O'] as $col) {
+            $s7b->getColumnDimension($col)->setAutoSize(true);
+        }
+
         // ── 마케팅 지표 계산 (컬럼 있을 때만) ──
         $hasMarketingCols2 = Schema::hasColumn('clients', 'inflow_source') && Schema::hasColumn('projects', 'client_scale');
         $inflowL = ['search' => '검색', 'referral' => '지인 소개', 'sns' => 'SNS', 'ad' => '광고', 'community' => '커뮤니티', 'other' => '기타'];

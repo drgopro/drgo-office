@@ -566,12 +566,12 @@ class MarketingReportController extends Controller
     }
 
     /**
-     * 마케팅 사양서 기준 일정 RAW 행 매핑 — 엑셀 추출과 통계 지표가 공유.
+     * 마케팅 사양서 기준 일정 RAW 행 매핑 — 엑셀 추출·통계 지표·대시보드 작업 일지 시트가 공유.
      * 입력이 없는 값은 공백(=누락), 사내업무·휴가는 '해당없음' 규칙.
      *
      * @return Collection<int, array<string, mixed>>
      */
-    private function rawScheduleRows(string $from, string $to): Collection
+    public function rawScheduleRows(string $from, string $to): Collection
     {
         $dows = ['일', '월', '화', '수', '목', '금', '토'];
         $catMap = CalendarCategory::map();
@@ -675,10 +675,12 @@ class MarketingReportController extends Controller
             $type = $typeOf($s);
             $isInternal = in_array($type, ['사내업무', '휴가/개인'], true);
 
-            // 의뢰자 유형 — 연결 프로젝트 규모값 (엔터 구분은 현재 입력에 없음 → 공백)
+            // 의뢰자 유형 — 연결 프로젝트 규모값, 없으면 연동 의뢰자의 유형으로 폴백
             $scale = ! empty($g['project_id']) ? ($projects->get($g['project_id'])->client_scale ?? null) : null;
             $clientType = $isInternal ? '해당없음'
-                : (['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업'][$scale] ?? '');
+                : (['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업'][$scale]
+                    ?? ['personal' => '개인', 'enterprise' => '엔터', 'studio' => '스튜디오'][$client?->client_type]
+                    ?? '');
 
             $clientName = trim((string) ($s->client_name ?: ($g['nickname'] ?? '') ?: ($g['name'] ?? '') ?: ($client->nickname ?? '')));
             $platform = trim((string) (($g['platform'] ?? '') ?: implode(', ', $client->platforms ?? []) ?: data_get($s->remote_data, 'platform', '')));
