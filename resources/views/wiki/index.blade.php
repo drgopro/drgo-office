@@ -542,6 +542,13 @@ function wikiCatPathStr(id) {
 }
 // 수동 정렬 적용 뷰 여부 — 특정 카테고리 선택 + 검색/필터 미적용일 때만
 function wikiManualSortActive() { return !!WIKI_CUR_CAT && !WIKI_FILTER_ACTIVE; }
+// 게시물 열기 — 보던 목록 상태(back)와 스크롤 위치를 보존해, 게시물의 ← 목록이 원래 화면으로 돌아오게 함
+function openWikiDoc(id) {
+    try { sessionStorage.setItem('wikiListScroll:' + location.search, String(document.querySelector('.wiki-main')?.scrollTop || 0)); } catch (e) { /* 시크릿 모드 등 저장 불가 — 무시 */ }
+    const qs = new URLSearchParams(location.search);
+    qs.delete('_tab');
+    location.href = '/wiki/' + id + '?back=' + encodeURIComponent(qs.toString());
+}
 function renderDocList() {
     const list = document.getElementById('wikiDocList');
     let docs = WIKI_DOCS;
@@ -561,7 +568,7 @@ function renderDocList() {
     if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
     // 순서 편집 가능: 게시물 편집 모드 + 특정 카테고리 뷰 + 관리자 (필터 미적용)
     const canReorder = WIKI_SEL_MODE && wikiManualSortActive() && WIKI_IS_ADMIN;
-    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `location.href='/wiki/${d.id}'`}">
+    list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `openWikiDoc(${d.id})`}">
         <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}${d.restricted ? '<span title="열람 제한 문서" style="font-size:12px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
             ${canReorder ? `<span class="wiki-order-btns" onclick="event.stopPropagation()">
                 <button type="button" title="위로" onclick="wikiMoveDoc(${d.id},-1)">▲</button>
@@ -726,6 +733,16 @@ async function bulkMoveCategory() {
 }
 renderWikiTree();
 renderDocList();
+// 게시물에서 돌아왔을 때 목록 스크롤 위치 복원 (뒤로가기 시 브라우저가 내부 스크롤 컨테이너는 복원하지 않음)
+try {
+    const wikiScrollKey = 'wikiListScroll:' + location.search;
+    const savedScroll = sessionStorage.getItem(wikiScrollKey);
+    if (savedScroll !== null) {
+        sessionStorage.removeItem(wikiScrollKey);
+        const mainEl = document.querySelector('.wiki-main');
+        if (mainEl) mainEl.scrollTop = parseInt(savedScroll, 10) || 0;
+    }
+} catch (e) { /* 저장소 접근 불가 — 무시 */ }
 
 // 레이아웃 높이를 실제 가용 공간에 맞춤(하단 잘림 방지)
 function fitWikiLayout() {

@@ -295,6 +295,13 @@ class WikiController extends Controller
             abort_unless(Auth::user()->isAdmin(), 403, '공지사항/업데이트는 관리자만 삭제할 수 있습니다.');
         }
         $listFilter = $wiki->listFilterParams(); // 삭제 후에도 보던 분류가 선택된 목록으로 복귀
+        if ($request->has('back')) { // 목록에서 진입한 경우 그 목록 상태 우선 (빈 값 = 전체 문서)
+            parse_str((string) $request->input('back'), $backParsed);
+            $listFilter = array_intersect_key(
+                array_filter($backParsed, 'is_scalar'),
+                array_flip(['cat', 'type', 'search', 'date_field', 'date_from', 'date_to', 'author'])
+            );
+        }
         $wiki->delete();
 
         if ($request->wantsJson()) {

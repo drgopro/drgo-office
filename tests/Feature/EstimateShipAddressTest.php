@@ -61,6 +61,26 @@ class EstimateShipAddressTest extends TestCase
             ->assertOk()->assertDontSee('김수령')->assertDontSee('부재 시 문 앞');
     }
 
+    public function test_negative_totals_are_saved(): void
+    {
+        // 할인(음수) 항목이 제품 합계보다 커도 저장 — unsigned 컬럼 22003(Out of range) 회귀 방지
+        $user = User::factory()->create(['role' => 'master']);
+        $estimate = Estimate::create(['status' => 'created', 'product_items' => [], 'service_items' => [], 'total_amount' => 0, 'created_by' => $user->id]);
+
+        $this->actingAs($user)->patchJson("/api/estimates/{$estimate->id}", [
+            'status' => 'created',
+            'product_items' => [
+                ['name' => '케이블', 'sale_price' => 10000, 'qty' => 1, 'subtotal' => 10000],
+                ['name' => '재방문 할인', 'sale_price' => -50000, 'qty' => 1, 'subtotal' => -50000],
+            ],
+            'service_items' => [],
+        ])->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame(-40000, (int) $fresh->product_total);
+        $this->assertSame(-40000, (int) $fresh->total_amount);
+    }
+
     public function test_partial_update_without_items_keeps_totals(): void
     {
         // 배송 정보만 수정하는 부분 저장이 합계를 0으로 덮어쓰지 않는다

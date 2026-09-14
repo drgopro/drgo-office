@@ -168,10 +168,25 @@
 @endpush
 
 @section('content')
+@php
+    // ← 위키 목록 — 진입 시점의 목록 상태(back 파라미터: 목록에서 클릭 시 전달)를 우선 복원.
+    // back 없이 직접 열린 경우(대시보드 위젯·알림 링크 등)만 문서 자신의 분류로 폴백.
+    // 빈 back(전체 문서 뷰)은 ConvertEmptyStringsToNull로 null이 되므로 키 존재 여부로 판정
+    $wikiBackRaw = request()->has('back') ? (string) request()->query('back') : null;
+    if ($wikiBackRaw !== null) {
+        parse_str((string) $wikiBackRaw, $wikiBackParsed);
+        $wikiListParams = array_intersect_key(
+            array_filter($wikiBackParsed, 'is_scalar'),
+            array_flip(['cat', 'type', 'search', 'date_field', 'date_from', 'date_to', 'author'])
+        );
+    } else {
+        $wikiListParams = $wiki->listFilterParams();
+    }
+@endphp
 <div class="wiki-wrap">
     <div class="wiki-header">
         <div style="flex:1;min-width:0;">
-            <a href="{{ route('wiki.index', $wiki->listFilterParams()) }}" class="wiki-back">← 위키 목록</a>
+            <a href="{{ route('wiki.index', $wikiListParams) }}" class="wiki-back">← 위키 목록</a>
             <div class="wiki-title-row" id="viewTitle">
                 @if($wiki->is_pinned)<span style="font-size:10px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 고정</span>@endif
                 <span class="wiki-title-text">{{ $wiki->title }}</span>
@@ -214,6 +229,7 @@
             <button onclick="toggleEdit()">수정</button>
             <form method="POST" action="{{ route('wiki.destroy', $wiki) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
                 @csrf @method('DELETE')
+                @if($wikiBackRaw !== null)<input type="hidden" name="back" value="{{ $wikiBackRaw }}">@endif
                 <button type="submit" class="btn-del">삭제</button>
             </form>
             @endif
