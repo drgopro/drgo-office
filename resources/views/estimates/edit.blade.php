@@ -1861,5 +1861,7 @@ document.addEventListener('click', e => {
     if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults').classList.remove('show');
 });
 </script>
+{{-- 수정 로그 모달 — 하단 '로그' 버튼(openActivityLog)이 사용. 빌더는 독립 레이아웃이라 직접 포함 --}}
+@include('partials.activity-log-modal')
 </body>
 </html>
