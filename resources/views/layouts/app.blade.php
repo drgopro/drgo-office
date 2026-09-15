@@ -704,10 +704,14 @@ window.drgoTabs = {
         document.getElementById('navOverlay').classList.remove('open');
         syncNavToggleIcon(); // 메뉴 이동으로 닫힐 때도 ✕ → ☰ 복귀
 
-        // 1) URL이 정확히 일치하는 탭이 있으면 활성화만 (재로드 없음)
+        // 1) URL이 정확히 일치하는 탭이 있으면 활성화만 (재로드 없음).
+        //    단, 탭 안에서 다른 화면으로 이동(드리프트)해 있으면 요청한 화면으로 복귀 —
+        //    메뉴를 눌렀는데 견적서 등 엉뚱한 페이지가 그대로 보이는 문제 방지
         const existing = this.tabs.find(t => t.url === url);
         if (existing) {
             if (title) { existing.title = title; this.render(); this._save(); }
+            const iframe = document.querySelector('#pane-' + existing.id + ' iframe');
+            if (iframe && this._iframeDrifted(iframe, url)) iframe.src = url;
             this.activate(existing.id);
             return;
         }
@@ -715,9 +719,9 @@ window.drgoTabs = {
         const multi = this._isMultiInstance(type, url);
 
         // 2) 같은 type의 탭이 이미 있으면 그 탭을 재사용해 URL만 갱신
-        //    (멀티 인스턴스 URL은 예외 — 새 탭 생성)
+        //    (멀티 인스턴스 URL·탭은 예외 — 프로젝트 상세 탭을 목록으로 덮어쓰지 않음)
         if (!multi) {
-            const sameType = this.tabs.find(t => t.type === type);
+            const sameType = this.tabs.find(t => t.type === type && !this._isMultiInstance(t.type, t.url));
             if (sameType) {
                 sameType.url = url;
                 if (title) sameType.title = title;
@@ -739,6 +743,18 @@ window.drgoTabs = {
         const id = 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
         this.tabs.push({ id, type, url, title: title || null, loaded: false });
         this.activate(id);
+    },
+
+    /**
+     * iframe이 탭 URL과 다른 경로로 이동해 있는지 — 같은 출처 한정.
+     * 쿼리스트링 차이(위키 카테고리 등 화면 내 상태)는 드리프트로 보지 않는다.
+     */
+    _iframeDrifted(iframe, url) {
+        try {
+            const loc = iframe.contentWindow?.location;
+            if (!loc || !loc.pathname || loc.href === 'about:blank') return false;
+            return loc.pathname !== new URL(url, window.location.origin).pathname;
+        } catch (e) { return false; } // cross-origin 등 판단 불가 — 유지
     },
 
     /**

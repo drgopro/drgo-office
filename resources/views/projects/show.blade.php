@@ -644,7 +644,8 @@
                 @if($linkedEstimates->has($eid))
                     @php $le = $linkedEstimates[$eid]; @endphp
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <a href="/estimates/{{ $eid }}/edit" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $le->display_no }}</a>
+                        {{-- 새 창으로 — 같은 iframe에서 이동하면 프로젝트 탭 내용이 견적서로 바뀌는 문제 --}}
+                        <a href="/estimates/{{ $eid }}/edit" onclick="event.preventDefault(); window.open(this.href, 'est_{{ $eid }}')" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $le->display_no }}</a>
                         <span style="font-weight:600;">{{ number_format((int) $le->total_amount) }}원</span>
                         @if($le->status === 'paid')
                             <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#2d8a3e; font-weight:700;">결제완료</span>

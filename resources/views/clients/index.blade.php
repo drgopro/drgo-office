@@ -1132,7 +1132,7 @@ function renderClientContent(id) {
                     <div class="ncm-card-head"><span class="ncm-no">03</span><span class="ncm-title">장비 정보</span><span class="ncm-badge">자동 연동</span></div>
                     <div class="ncm-equip-note">
                         <span class="ncm-equip-ico">⟳</span>
-                        <div>장비 정보는 <b>프로젝트에서 자동으로 불러옵니다.</b> 수정은 해당 프로젝트에서 해주세요.${d.last_project_equipment ? ` <a class="cv-eqlink" href="/projects/${d.last_project_equipment.project_id}">「${_esc(d.last_project_equipment.project_name)}」 열기 →</a>` : ''}</div>
+                        <div>장비 정보는 <b>프로젝트에서 자동으로 불러옵니다.</b> 수정은 해당 프로젝트에서 해주세요.${d.last_project_equipment ? ` <a class="cv-eqlink" href="/projects/${d.last_project_equipment.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))">「${_esc(d.last_project_equipment.project_name)}」 열기 →</a>` : ''}</div>
                     </div>
                 </div>
 
@@ -2311,7 +2311,7 @@ function cvEqBodyHtml(eq) {
             <span class="cv-subchip">${_esc(sub)}</span>
             <div class="cv-grid3">${groups[sub].map(f => `<div><div class="cv-l">${_esc(f.label)}</div>${cvVal(formatCfDisplay(f.value))}</div>`).join('')}</div>
         </div>`).join('')
-        + `<a class="cv-eqlink" href="/projects/${eq.project_id}">프로젝트에서 원본 보기 →</a>`;
+        + `<a class="cv-eqlink" href="/projects/${eq.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))">프로젝트에서 원본 보기 →</a>`;
 }
 function cvEqRailHtml(eq, count) {
     return `${count > 1 ? '프로젝트 ' + count + '곳 중 선택 표시' : '최근 프로젝트'}<br>「${_esc(eq.project_name)}」 · ${eq.created_at}`;
@@ -2434,7 +2434,7 @@ function renderEquipmentSummary(latest) {
         <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보 <span style="font-weight:400; font-size:11px; color:var(--text-muted);">(최근 프로젝트 기준)</span></div>
         <div style="background:rgba(212,188,150,0.06); border:1px solid rgba(212,188,150,0.25); border-radius:10px; padding:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <a href="/projects/${latest.project_id}" style="font-size:11px; color:var(--text-muted); text-decoration:none;">📁 ${escText(latest.project_name)} · ${latest.created_at} →</a>
+                <a href="/projects/${latest.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))" style="font-size:11px; color:var(--text-muted); text-decoration:none;">📁 ${escText(latest.project_name)} · ${latest.created_at} →</a>
             </div>
             <div style="display:flex; flex-direction:column; gap:10px;">${cardsHtml}</div>
         </div>
