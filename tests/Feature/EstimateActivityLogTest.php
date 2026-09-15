@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
@@ -93,6 +94,29 @@ class EstimateActivityLogTest extends TestCase
 
         $after = count($this->actingAs($user)->getJson("/api/activity-logs?type=Estimate&id={$estimate->id}")->json());
         $this->assertSame($before, $after); // draft 저장은 로그 없음
+    }
+
+    public function test_purge_migration_removes_old_draft_logs_only(): void
+    {
+        // 배포 전 쌓인 임시저장 JSON 로그 정리 — draft 키만 있는 로그만 삭제, 실변경 로그는 보존
+        $user = User::factory()->create(['role' => 'master']);
+        $estimate = Estimate::create(['status' => 'created', 'product_items' => [], 'service_items' => [], 'total_amount' => 0, 'created_by' => $user->id]);
+
+        $mkLog = fn (array $changes) => ActivityLog::create([
+            'loggable_type' => Estimate::class, 'loggable_id' => $estimate->id,
+            'user_id' => $user->id, 'action' => 'update', 'changes' => $changes,
+        ]);
+        $noise = $mkLog(['draft' => ['old' => null, 'new' => '{"huge":"json"}'], 'draft_saved_at' => ['old' => null, 'new' => '2026-09-15 13:00:40']]);
+        $real = $mkLog(['상태' => ['old' => '작성중', 'new' => '완료']]);
+        // 과거 상태값이 'draft'였던 로그 — 값에 draft가 들어가도 보존되어야 함
+        $legacy = $mkLog(['상태' => ['old' => 'draft', 'new' => '완료']]);
+
+        $migration = require database_path('migrations/2026_09_15_164634_purge_estimate_draft_activity_logs.php');
+        $migration->up();
+
+        $this->assertDatabaseMissing('activity_logs', ['id' => $noise->id]);
+        $this->assertDatabaseHas('activity_logs', ['id' => $real->id]);
+        $this->assertDatabaseHas('activity_logs', ['id' => $legacy->id]);
     }
 
     public function test_layout_pages_still_have_shared_log_modal(): void
