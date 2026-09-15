@@ -235,7 +235,7 @@ function linkedProjectDocs(){
     return {project_id:sel.id,project_name:sel.name,docs:sel.documents};
 }
 // 분류 표시 순서 (프로젝트 업로드 폼과 동일 기준)
-const LPD_CAT_ORDER=['방 사진','레퍼런스','사진/이미지','계약서','견적서','현금영수증','사업자등록증','방문 보고서','기타'];
+const LPD_CAT_ORDER=['방 사진','레퍼런스','현재캠','사진/이미지','계약서','견적서','현금영수증','사업자등록증','방문 보고서','기타'];
 function lpdGroupByCategory(docs){
     const groups={};
     docs.forEach(doc=>{const c=doc.category||'기타';(groups[c]=groups[c]||[]).push(doc);});
@@ -244,7 +244,7 @@ function lpdGroupByCategory(docs){
         .map(cat=>({cat,docs:groups[cat]}));
 }
 // 분류 → 첨부 이미지 카드 그룹 매핑 (그 외 분류는 '첨부 파일' 그룹으로)
-const LPD_GROUP_OF={'방 사진':'room','레퍼런스':'reference','견적서':'quote'};
+const LPD_GROUP_OF={'방 사진':'room','레퍼런스':'reference','현재캠':'cam','견적서':'quote'};
 function lpdCellHtml(doc){
     const tip=_esc(doc.file_name)+(doc.note?' · '+_esc(doc.note):'')+(doc.created_at?' · '+doc.created_at:'');
     if(doc.thumb_url) return `<a class="lpd-cell" href="${_esc(doc.view_url)}" target="_blank" title="${tip}"><img src="${_esc(doc.thumb_url)}" alt="${_esc(doc.file_name)}" loading="lazy" decoding="async"></a>`;
@@ -262,7 +262,7 @@ function renderLinkedProjDocs(){
     if(isGold&&inlines.length){
         // 방문의뢰 — 첨부 이미지 카드의 견적서/레퍼런스/방 사진/첨부 파일 그룹 안에 분류별로 배치
         wrap.style.display='none'; wrap.innerHTML='';
-        const byGroup={quote:[],reference:[],room:[],general:[]};
+        const byGroup={quote:[],reference:[],room:[],cam:[],general:[]};
         d.docs.forEach(doc=>{(byGroup[LPD_GROUP_OF[doc.category]||'general']||byGroup.general).push(doc);});
         inlines.forEach(el=>{
             const docs=byGroup[el.dataset.lpdGroup]||[];
@@ -487,10 +487,10 @@ document.addEventListener('click',e=>{
 });
 
 // ── 이미지 첨부 ──
-let pendingAttachments={quote:[],reference:[],room:[],general:[]};
-let existingAttachments={quote:[],reference:[],room:[],general:[]};
-const GRID_MAP={quote:'quoteGrid',reference:'refGrid',room:'roomGrid',general:'generalGrid'};
-const FILE_MAP={quote:'fileQuote',reference:'fileReference',room:'fileRoom',general:'fileGeneral'};
+let pendingAttachments={quote:[],reference:[],room:[],cam:[],general:[]};
+let existingAttachments={quote:[],reference:[],room:[],cam:[],general:[]};
+const GRID_MAP={quote:'quoteGrid',reference:'refGrid',room:'roomGrid',cam:'camGrid',general:'generalGrid'};
+const FILE_MAP={quote:'fileQuote',reference:'fileReference',room:'fileRoom',cam:'fileCam',general:'fileGeneral'};
 
 function triggerAttach(type){document.getElementById(FILE_MAP[type]).click();}
 
@@ -565,7 +565,7 @@ function renderImgGrid(type){
 }
 
 // 드래그 드롭
-[['quoteZone','quote'],['refZone','reference'],['roomZone','room'],['generalZone','general'],['uploadZone','general']].forEach(([zid,type])=>{
+[['quoteZone','quote'],['refZone','reference'],['roomZone','room'],['camZone','cam'],['generalZone','general'],['uploadZone','general']].forEach(([zid,type])=>{
     const zone=document.getElementById(zid); if(!zone) return;
     zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
     zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
@@ -579,9 +579,9 @@ async function removeExistingAttach(type,idx,id){
     if(editingId) swrDel('attach:'+editingId); // 캐시 무효화
 }
 async function uploadPendingAttachments(scheduleId){
-    const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진',general:'첨부 파일'};
+    const TYPE_LABEL={quote:'견적서',reference:'참고자료',room:'방 사진',cam:'현재캠',general:'첨부 파일'};
     let failedTypes=[];
-    for(const type of ['quote','reference','room','general']){
+    for(const type of ['quote','reference','room','cam','general']){
         if(!pendingAttachments[type].length) continue;
         const fd=new FormData();fd.append('attachment_type',type);
         pendingAttachments[type].forEach(item=>fd.append('files[]',item.file));
@@ -600,9 +600,9 @@ async function uploadPendingAttachments(scheduleId){
     swrDel('attach:'+scheduleId); // 캐시 무효화 — 다음 열람 시 최신 목록 반영
 }
 function applyAttachmentList(list){
-    existingAttachments={quote:[],reference:[],room:[],general:[]};
+    existingAttachments={quote:[],reference:[],room:[],cam:[],general:[]};
     (list||[]).forEach(a=>{if(existingAttachments[a.attachment_type])existingAttachments[a.attachment_type].push(a);});
-    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
+    ['quote','reference','room','cam','general'].forEach(t=>renderImgGrid(t));
     // 요약 뷰가 켜진 상태라면 첨부 반영 후 요약을 다시 렌더
     if(isLocked) renderLockSummary();
 }

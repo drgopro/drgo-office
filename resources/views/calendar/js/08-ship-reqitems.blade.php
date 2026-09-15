@@ -222,8 +222,8 @@ function renderReqView(){
 }
 
 function resetAttachments(){
-    pendingAttachments={quote:[],reference:[],room:[],general:[]};existingAttachments={quote:[],reference:[],room:[],general:[]};
-    ['quote','reference','room','general'].forEach(t=>renderImgGrid(t));
+    pendingAttachments={quote:[],reference:[],room:[],cam:[],general:[]};existingAttachments={quote:[],reference:[],room:[],cam:[],general:[]};
+    ['quote','reference','room','cam','general'].forEach(t=>renderImgGrid(t));
 }
 
 // ── 견적서 연동 ──

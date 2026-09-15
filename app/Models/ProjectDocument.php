@@ -10,7 +10,7 @@ class ProjectDocument extends Model
     use LogsActivity;
 
     /** 업로드 폼 분류 목록 — note는 "분류 - 메모" 형태로 저장됨 (표시 순서 기준) */
-    public const CATEGORIES = ['방 사진', '레퍼런스', '사진/이미지', '계약서', '견적서', '현금영수증', '사업자등록증', '방문 보고서', '기타'];
+    public const CATEGORIES = ['방 사진', '레퍼런스', '현재캠', '사진/이미지', '계약서', '견적서', '현금영수증', '사업자등록증', '방문 보고서', '기타'];
 
     protected $fillable = [
         'project_id',

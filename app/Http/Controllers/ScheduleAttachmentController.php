@@ -38,7 +38,7 @@ class ScheduleAttachmentController extends Controller
         $request->validate([
             'files' => 'required|array|min:1',
             'files.*' => ['required', 'file', 'max:102400', new SafeAttachment], // 100MB / 파일
-            'attachment_type' => 'required|in:general,quote,reference,room',
+            'attachment_type' => 'required|in:general,quote,reference,room,cam',
         ]);
 
         $attachments = [];

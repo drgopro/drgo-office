@@ -669,7 +669,7 @@ function openEditModal(ev){
     document.getElementById('t_studio_content').value=t.mode==='studio'?t.content||'':'';
     document.getElementById('t_desc').value=t.desc||'';
     // 첨부파일
-    pendingAttachments={quote:[],reference:[],room:[],general:[]};
+    pendingAttachments={quote:[],reference:[],room:[],cam:[],general:[]};
     loadExistingAttachments(ev.id);
     // 배송 현황 (gold/green) — editingId 설정 후이므로 섹션 노출 + 목록 로드
     updateShipmentSectionVisibility();

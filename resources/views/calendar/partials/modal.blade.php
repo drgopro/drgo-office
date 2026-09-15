@@ -538,6 +538,15 @@
                     <div class="lpd-inline" data-lpd-group="room" style="display:none;"></div>
                 </div>
                 <div class="img-upload-group">
+                    <div class="img-upload-label">현재캠</div>
+                    <div class="img-upload-zone" id="camZone">
+                        <input type="file" id="fileCam" multiple accept="image/*" onchange="handleImgFiles('cam',this.files)">
+                        📹 현재 사용 중인 캠 사진을 클릭 또는 드래그하여 추가
+                    </div>
+                    <div class="img-grid" id="camGrid"></div>
+                    <div class="lpd-inline" data-lpd-group="cam" style="display:none;"></div>
+                </div>
+                <div class="img-upload-group">
                     <div class="img-upload-label">첨부 파일</div>
                     <div class="img-upload-zone" id="generalZone">
                         <input type="file" id="fileGeneral" multiple onchange="handleImgFiles('general',this.files)">

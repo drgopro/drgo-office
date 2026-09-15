@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Project;
+use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Testing\File;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /** 프로젝트 첨부 문서 캘린더 연동 — 의뢰자 상세 API가 프로젝트별 문서를 제공하고 캘린더가 읽기 전용으로 표시 */
@@ -55,6 +58,8 @@ class CalendarProjectDocsTest extends TestCase
         ]);
 
         $this->assertSame('레퍼런스', $mk('레퍼런스')->category());
+        $this->assertSame('현재캠', $mk('현재캠 - 로지텍 C922')->category()); // 현재 사용 캠 분류
+        $this->assertSame('로지텍 C922', $mk('현재캠 - 로지텍 C922')->noteBody());
         $this->assertSame('방문 보고서', $mk('방문 보고서 · 이미지')->category()); // 보고서 인라인 업로드
         $this->assertSame('기타', $mk('자유 메모만 적은 경우')->category());       // 목록 밖 값
         $this->assertSame('', $mk('자유 메모만 적은 경우')->noteBody());
@@ -77,6 +82,7 @@ class CalendarProjectDocsTest extends TestCase
             ->assertSee('docUpTabs', false)
             ->assertSee('data-cat="방 사진"', false)
             ->assertSee('data-cat="레퍼런스"', false)
+            ->assertSee('data-cat="현재캠"', false)
             ->assertSee('docFileCatSel', false)
             ->assertSee('<option value="계약서">계약서</option>', false)
             ->assertSee('id="docCategoryInput"', false)
@@ -98,6 +104,25 @@ class CalendarProjectDocsTest extends TestCase
             ->assertSee('붙여넣기-', false); // 클립보드 캡처 기본명 스탬프 처리
     }
 
+    public function test_schedule_attachment_accepts_cam_type(): void
+    {
+        // 캘린더 일정 첨부 — 현재캠(cam) 분류 업로드 허용
+        Storage::fake();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $schedule = Schedule::create([
+            'title' => '방문 세팅', 'color' => 'gold',
+            'start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'),
+            'created_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)->post("/api/schedules/{$schedule->id}/attachments", [
+            'attachment_type' => 'cam',
+            'files' => [File::image('cam.jpg', 100, 100)],
+        ])->assertCreated();
+
+        $this->assertSame('cam', $schedule->attachments()->first()->attachment_type);
+    }
+
     public function test_calendar_renders_linked_project_docs_ui(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -109,8 +134,12 @@ class CalendarProjectDocsTest extends TestCase
             // 방문의뢰 — 첨부 이미지 카드의 그룹별 인라인 배치 (방 사진/레퍼런스/견적서/첨부 파일)
             ->assertSee('data-lpd-group="room"', false)
             ->assertSee('data-lpd-group="reference"', false)
+            ->assertSee('data-lpd-group="cam"', false)
             ->assertSee('data-lpd-group="quote"', false)
             ->assertSee('data-lpd-group="general"', false)
-            ->assertSee('LPD_GROUP_OF', false);
+            ->assertSee('LPD_GROUP_OF', false)
+            // 캘린더 자체 업로드에도 현재캠 그룹 (일정 첨부)
+            ->assertSee('id="camZone"', false)
+            ->assertSee("handleImgFiles('cam'", false);
     }
 }

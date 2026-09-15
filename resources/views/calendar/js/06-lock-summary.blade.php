@@ -406,6 +406,7 @@ function renderLockSummary(){
         { label:'견적서', grid:'quoteGrid' },
         { label:'레퍼런스', grid:'refGrid' },
         { label:'방 사진', grid:'roomGrid' },
+        { label:'현재캠', grid:'camGrid' },
         { label:'첨부 파일', grid:'generalGrid' },
     ];
     let imgHtml = '';

@@ -1276,6 +1276,7 @@
                             <div class="doc-up-tabs" id="docUpTabs">
                                 <button type="button" class="doc-cat-tab active" data-cat="방 사진" onclick="setDocUpCat(this)">방 사진</button>
                                 <button type="button" class="doc-cat-tab" data-cat="레퍼런스" onclick="setDocUpCat(this)">레퍼런스</button>
+                                <button type="button" class="doc-cat-tab" data-cat="현재캠" onclick="setDocUpCat(this)">현재캠</button>
                                 <button type="button" class="doc-cat-tab" data-cat="" onclick="setDocUpCat(this)">파일</button>
                             </div>
                         </div>
