@@ -215,10 +215,16 @@ class MarketingReportController extends Controller
         // (기존 cancelled_at 기준은 과거 데이터 일괄 백필 시 특정 월에 전체 취소가 몰려 보이는 문제)
         $cancelReasons = collect();
         if (Schema::hasColumn('projects', 'cancel_reason')) {
+            // 복수 선택(', ' 결합) 사유는 개별 사유로 분해해 집계, 빈 값은 '미기재'
             $cancelReasons = Project::whereBetween('created_at', [$fromDt, $toDt])
                 ->where('stage', 'cancelled')
-                ->selectRaw("coalesce(nullif(cancel_reason, ''), '미기재') as reason, count(*) as cnt")
-                ->groupBy('reason')->orderByDesc('cnt')->pluck('cnt', 'reason');
+                ->pluck('cancel_reason')
+                ->flatMap(function ($r) {
+                    $parts = array_filter(array_map('trim', explode(',', (string) $r)));
+
+                    return $parts ?: ['미기재'];
+                })
+                ->countBy()->sortDesc();
         }
 
         // ── 매출 지표 ──

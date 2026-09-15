@@ -52,6 +52,7 @@ class Project extends Model
         'cancel_reason',
         'cancel_detail',
         'cancelled_at',
+        'cancelled_from_stage',
         'custom_data',
         'payment_info',
         'stage_data',

@@ -65,6 +65,29 @@ class ProjectCancelReasonTest extends TestCase
         $this->assertSame('가격 협의 실패', $fresh->cancel_reason);
     }
 
+    public function test_cancel_saves_multiple_reasons_and_stage_snapshot(): void
+    {
+        // 복수 사유(', ' 결합) 저장 + 취소 직전 진행 단계 기록
+        $admin = User::factory()->create(['role' => 'admin']);
+        $project = $this->makeProject();
+        $project->update(['stage' => 'payment']);
+
+        $this->actingAs($admin)->patchJson("/projects/{$project->id}/stage", [
+            'stage' => 'cancelled',
+            'cancel_reason' => '의뢰자 연락 두절, 일정이 맞지 않음',
+            'cancel_detail' => null,
+        ])->assertOk();
+
+        $fresh = $project->fresh();
+        $this->assertSame('의뢰자 연락 두절, 일정이 맞지 않음', $fresh->cancel_reason);
+        $this->assertSame('payment', $fresh->cancelled_from_stage);
+
+        // 상세 화면에 취소 시점 단계 표시 + 사유 선택지가 체크박스(복수 선택)
+        $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk()
+            ->assertSee('취소 시점: 결제/예약 단계', false)
+            ->assertSee('type="checkbox" name="cancel_reason"', false);
+    }
+
     public function test_admin_can_save_reasons_setting(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

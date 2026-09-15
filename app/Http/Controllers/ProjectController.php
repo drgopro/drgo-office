@@ -214,7 +214,7 @@ class ProjectController extends Controller
         ));
         $request->validate([
             'stage' => ['required', Rule::in($allowedStages)],
-            'cancel_reason' => 'nullable|string|max:100', // 관리자 정의 사유 허용
+            'cancel_reason' => 'nullable|string|max:300', // 관리자 정의 사유, 다중 선택 시 ', ' 결합 저장
 
             'cancel_detail' => 'nullable|string|max:500',
         ]);
@@ -231,6 +231,9 @@ class ProjectController extends Controller
             $data['cancel_reason'] = $request->cancel_reason;
             $data['cancel_detail'] = $request->cancel_detail;
             $data['cancelled_at'] = now();
+            if ($project->stage !== 'cancelled') {
+                $data['cancelled_from_stage'] = $project->stage; // 취소 직전 진행 단계 기록
+            }
         }
 
         $becameDone = $request->stage === 'done' && $project->stage !== 'done';

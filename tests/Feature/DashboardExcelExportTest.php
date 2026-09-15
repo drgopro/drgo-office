@@ -45,8 +45,8 @@ class DashboardExcelExportTest extends TestCase
         $client = Client::create(['name' => '홍길동', 'grade' => 'normal']);
         $p = Project::create([
             'client_id' => $client->id, 'name' => '캠 세팅', 'project_type' => 'visit',
-            'stage' => 'cancelled', 'cancel_reason' => '의뢰자 사정으로 취소',
-            'cancel_detail' => '예산 문제', 'cancelled_at' => now(),
+            'stage' => 'cancelled', 'cancel_reason' => '의뢰자 사정으로 취소, 일정이 맞지 않음',
+            'cancel_detail' => '예산 문제', 'cancelled_at' => now(), 'cancelled_from_stage' => 'payment',
         ]);
         $p->forceFill(['created_at' => now()->subDays(7)])->save();
         // 기간 밖 취소 건 — 시트에 미포함
@@ -66,12 +66,14 @@ class DashboardExcelExportTest extends TestCase
 
         $this->assertNotNull($sheet, "'취소 내역' 시트가 없습니다");
         $this->assertSame('프로젝트 생성일', $sheet->getCell('A1')->getValue());
+        $this->assertSame('취소 시점 단계', $sheet->getCell('E1')->getValue());
         $this->assertSame(now()->subDays(7)->format('Y.m.d'), $sheet->getCell('A2')->getValue());
         $this->assertSame('홍길동', $sheet->getCell('B2')->getValue());
         $this->assertSame('캠 세팅', $sheet->getCell('C2')->getValue());
         $this->assertSame(now()->format('Y.m.d'), $sheet->getCell('D2')->getValue());
-        $this->assertSame('의뢰자 사정으로 취소', $sheet->getCell('E2')->getValue());
-        $this->assertSame('예산 문제', $sheet->getCell('F2')->getValue());
+        $this->assertSame('결제/예약', $sheet->getCell('E2')->getValue());        // 취소 시점 단계 라벨
+        $this->assertSame('의뢰자 사정으로 취소, 일정이 맞지 않음', $sheet->getCell('F2')->getValue()); // 복수 사유
+        $this->assertSame('예산 문제', $sheet->getCell('G2')->getValue());
         $this->assertNull($sheet->getCell('A3')->getValue()); // 기간 밖 취소 건 제외
     }
 

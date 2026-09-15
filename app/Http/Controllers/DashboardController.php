@@ -903,8 +903,8 @@ class DashboardController extends Controller
         // 취소일이 기간 내인 프로젝트 + (구데이터) 취소 기록 시각이 없으면 수정일 기준으로 포함
         $s4b = $spreadsheet->createSheet();
         $s4b->setTitle('취소 내역');
-        $s4b->fromArray(['프로젝트 생성일', '의뢰자명', '프로젝트명', '취소일', '취소 사유', '상세 사유'], null, 'A1');
-        $bold($s4b, 'A1:F1');
+        $s4b->fromArray(['프로젝트 생성일', '의뢰자명', '프로젝트명', '취소일', '취소 시점 단계', '취소 사유', '상세 사유'], null, 'A1');
+        $bold($s4b, 'A1:G1');
         $row = 2;
         Project::with('client')
             ->where('stage', 'cancelled')
@@ -920,13 +920,14 @@ class DashboardController extends Controller
                         $p->client?->name ?? $p->client?->nickname ?? $p->manual_client_name,
                         $p->name,
                         $p->cancelled_at?->format('Y.m.d'),
+                        $p->cancelled_from_stage ? (Project::STAGE_LABELS[$p->cancelled_from_stage] ?? $p->cancelled_from_stage) : '—',
                         $p->cancel_reason,
                         $p->cancel_detail,
                     ], null, "A{$row}");
                     $row++;
                 }
             });
-        foreach (range('A', 'F') as $col) {
+        foreach (range('A', 'G') as $col) {
             $s4b->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -1193,10 +1194,12 @@ class DashboardController extends Controller
             ->select('client_scale', 'work_type', DB::raw('count(*) as cnt'))
             ->groupBy('client_scale', 'work_type')->get() : collect();
 
+        // 취소 사유는 복수 선택(', ' 결합)이 가능 — 개별 사유로 분해해 집계
         $cancelReasons = Schema::hasColumn('projects', 'cancel_reason') ? Project::whereBetween('cancelled_at', [$fromDt, $toDt])
             ->whereNotNull('cancel_reason')
-            ->select('cancel_reason', DB::raw('count(*) as cnt'))
-            ->groupBy('cancel_reason')->pluck('cnt', 'cancel_reason') : collect();
+            ->pluck('cancel_reason')
+            ->flatMap(fn ($r) => array_filter(array_map('trim', explode(',', (string) $r))))
+            ->countBy()->sortDesc() : collect();
 
         $revenueBreakdown = ['setup' => 0, 'product' => 0, 'labor' => 0, 'dispatch' => 0, 'rush' => 0, 'other' => 0];
         foreach ($allPaidEstimates as $e) {
