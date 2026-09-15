@@ -18,8 +18,9 @@ trait LogsActivity
             $changes = [];
             $jsonFields = ['request_data', 'remote_data', 'special_opts', 'sched_event_opts', 'product_items', 'service_items', 'platforms', 'content_types', 'phones', 'items'];
 
-            // payment_info는 ProjectPayment 모델에서 별도 트랜잭션 단위로 로깅되므로 여기선 스킵
-            $skipKeys = ['updated_at', 'created_at', 'payment_info'];
+            // payment_info는 ProjectPayment 모델에서 별도 트랜잭션 단위로 로깅되므로 여기선 스킵.
+            // draft/draft_saved_at은 견적서 자동 임시저장 — 수초마다 원본 JSON이 로그를 뒤덮으므로 제외
+            $skipKeys = ['updated_at', 'created_at', 'payment_info', 'draft', 'draft_saved_at'];
 
             foreach ($model->getDirty() as $key => $newVal) {
                 if (in_array($key, $skipKeys)) {
@@ -59,13 +60,10 @@ trait LogsActivity
                             'new' => ! empty($newArr) ? implode(', ', $newArr) : '—',
                         ];
                     } elseif (! empty($oldArr) && array_is_list($oldArr) || ! empty($newArr) && array_is_list($newArr)) {
-                        // 객체 배열(예: product_items) — 개수와 첫 항목 요약만 기록
-                        $oldCount = is_array($oldArr) ? count($oldArr) : 0;
-                        $newCount = is_array($newArr) ? count($newArr) : 0;
-                        $changes[$parentLabel] = [
-                            'old' => "{$oldCount}개 항목",
-                            'new' => "{$newCount}개 항목",
-                        ];
+                        // 객체 배열(예: product_items) — 항목 단위 diff: 무엇을 추가/삭제/변경했는지 기록
+                        foreach (self::diffItemList($parentLabel, $oldArr, $newArr) as $itemKey => $itemChange) {
+                            $changes[$itemKey] = $itemChange;
+                        }
                     } else {
                         // 연관 배열 (request_data 등) → 키별 diff
                         $allKeys = array_unique(array_merge(array_keys($oldArr), array_keys($newArr)));
@@ -159,6 +157,113 @@ trait LogsActivity
         $name = $this->title ?? $this->name ?? $this->client_name ?? $this->file_name ?? "#{$this->getKey()}";
 
         return "[{$label}] {$name}";
+    }
+
+    /**
+     * 객체 배열(견적 제품/서비스 항목, 발주 항목 등)의 항목 단위 diff.
+     * product_id/sku/이름으로 같은 항목을 짝지어 추가/삭제/변경(수량·단가 등)을 사람이 읽을 수 있게 기록한다.
+     *
+     * @param  array<int, mixed>  $old
+     * @param  array<int, mixed>  $new
+     * @return array<string, array{old: string, new: string}>
+     */
+    protected static function diffItemList(string $parentLabel, array $old, array $new): array
+    {
+        // 항목 식별키 — product_id > sku > 이름 (수기 항목 대비), 중복 시 뒤에 # 부여
+        $mapOf = function (array $items): array {
+            $map = [];
+            foreach ($items as $i => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $key = ! empty($item['product_id']) ? 'p:'.$item['product_id']
+                    : (! empty($item['sku']) ? 's:'.$item['sku'] : 'n:'.($item['name'] ?? $i));
+                while (isset($map[$key])) {
+                    $key .= '#';
+                }
+                $map[$key] = $item;
+            }
+
+            return $map;
+        };
+        $oldMap = $mapOf($old);
+        $newMap = $mapOf($new);
+
+        $moneyFields = ['sale_price', 'amount', 'subtotal', 'refund_amount', 'unit_price', 'purchase_amount'];
+        $won = fn ($v) => is_numeric($v) ? number_format((float) $v).'원' : (string) ($v ?? '—');
+        $brief = function (array $item) use ($won): string {
+            $parts = [];
+            if (isset($item['qty'])) {
+                $parts[] = '×'.$item['qty'];
+            }
+            $amount = $item['subtotal'] ?? $item['amount'] ?? $item['sale_price'] ?? null;
+            if ($amount !== null) {
+                $parts[] = $won($amount);
+            }
+
+            return $parts ? implode(' · ', $parts) : '항목';
+        };
+        $nameOf = fn (array $item) => (string) ($item['name'] ?? $item['sku'] ?? '(이름 없음)');
+
+        $changes = [];
+        foreach (array_diff_key($newMap, $oldMap) as $item) {
+            $changes[$parentLabel.' 추가: '.$nameOf($item)] = ['old' => '—', 'new' => $brief($item)];
+        }
+        foreach (array_diff_key($oldMap, $newMap) as $item) {
+            $changes[$parentLabel.' 삭제: '.$nameOf($item)] = ['old' => $brief($item), 'new' => '—'];
+        }
+
+        // 같은 항목의 필드 변경 — 의미 있는 필드만 비교
+        $watch = [
+            'name' => '품명', 'qty' => '수량', 'sale_price' => '단가', 'unit_price' => '단가',
+            'amount' => '금액', 'subtotal' => '소계', 'refund_amount' => '환불',
+            'ordered' => '주문완료', 'replaced' => '대체', 'purchase_source' => '구매처',
+            'purchase_amount' => '실구매액', 'note' => '비고', 'is_service' => '서비스',
+        ];
+        foreach (array_intersect_key($newMap, $oldMap) as $key => $item) {
+            $oldItem = $oldMap[$key];
+            $fromParts = [];
+            $toParts = [];
+            foreach ($watch as $field => $label) {
+                $ov = $oldItem[$field] ?? null;
+                $nv = $item[$field] ?? null;
+                if (json_encode($ov) === json_encode($nv)) {
+                    continue;
+                }
+                $fmt = function ($v) use ($field, $moneyFields, $won) {
+                    if (is_bool($v)) {
+                        return $v ? '예' : '아니오';
+                    }
+                    if (in_array($field, $moneyFields, true)) {
+                        return $won($v);
+                    }
+
+                    return $v ?? '—';
+                };
+                $fromParts[] = $label.' '.$fmt($ov);
+                $toParts[] = $label.' '.$fmt($nv);
+            }
+            if ($fromParts) {
+                $changes[$parentLabel.' 변경: '.$nameOf($item)] = [
+                    'old' => implode(', ', $fromParts),
+                    'new' => implode(', ', $toParts),
+                ];
+            }
+        }
+
+        // 식별 가능한 변화 없음 (순서만 바뀐 경우 등) — 개수 요약으로 폴백
+        if ($changes === []) {
+            return [$parentLabel => ['old' => count($old).'개 항목', 'new' => count($new).'개 항목 (순서/기타 변경)']];
+        }
+
+        // 상한 — 대량 교체 시 로그 폭주 방지
+        if (count($changes) > 12) {
+            $extra = count($changes) - 12;
+            $changes = array_slice($changes, 0, 12, true);
+            $changes[$parentLabel.' 외'] = ['old' => '—', 'new' => "{$extra}건 추가 변경"];
+        }
+
+        return $changes;
     }
 
     protected static function fieldLabel(string $key): string
