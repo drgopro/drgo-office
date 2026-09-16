@@ -78,10 +78,19 @@ class DashboardVisitReportWidgetTest extends TestCase
         $with->update(['visit_report' => '<p>보고</p>', 'visit_report_updated_at' => now()]);
         $this->makeProject('보고 없는 건');
 
+        // HTML상 빈 보고서에 잘못 찍힌 시각 — 정리 마이그레이션이 해제해 필터에서 제외
+        $empty = $this->makeProject('빈 보고서 건');
+        $empty->update(['visit_report' => '<p></p>', 'visit_report_updated_at' => now()]);
+        $migration = require database_path('migrations/2026_09_16_142923_clear_empty_visit_report_stamps.php');
+        $migration->up();
+        $this->assertNull($empty->fresh()->visit_report_updated_at);
+        $this->assertNotNull($with->fresh()->visit_report_updated_at); // 실제 작성 건은 유지
+
         $this->actingAs($this->admin)->get('/projects?has_report=1')->assertOk()
             ->assertSee('보고 있는 건')
             ->assertDontSee('보고 없는 건')
-            ->assertSee('방문보고 작성됨'); // 필터 칩 활성 표시
+            ->assertDontSee('빈 보고서 건')
+            ->assertSee('방문보고 작성'); // 필터 칩
 
         // 대시보드 전체 링크가 필터 URL로 연결
         $this->actingAs($this->admin)->get('/')->assertOk()

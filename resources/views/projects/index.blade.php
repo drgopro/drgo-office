@@ -207,7 +207,7 @@
             <span class="filter-label">보고</span>
             <label class="chip-toggle">
                 <input type="checkbox" name="has_report" value="1" {{ request()->boolean('has_report') ? 'checked' : '' }}>
-                <span class="chip">📝 방문보고 작성됨</span>
+                <span class="chip">방문보고 작성</span>
             </label>
         </div>
         <div class="filter-group">
