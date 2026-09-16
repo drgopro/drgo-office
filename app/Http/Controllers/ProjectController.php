@@ -636,7 +636,8 @@ class ProjectController extends Controller
             return response()->json(['success' => true, 'message' => '프로젝트가 삭제되었습니다.']);
         }
 
-        return back()->with('success', '프로젝트가 삭제되었습니다.');
+        // 삭제된 상세로 되돌아가지 않도록 목록으로 명시 리다이렉트
+        return redirect()->route('projects.index')->with('success', '프로젝트가 삭제되었습니다.');
     }
 
     /**

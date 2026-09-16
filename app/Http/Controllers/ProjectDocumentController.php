@@ -86,11 +86,12 @@ class ProjectDocumentController extends Controller
             ], $saved > 0 ? 200 : 422);
         }
 
+        // back() 대신 명시 리다이렉트 — 첨부 미디어 GET이 세션 이전 URL을 오염시키면 파일 URL로 이동해버림
         if ($saved === 0 && ! empty($failed)) {
-            return back()->withErrors(['files' => $msg]);
+            return redirect()->route('projects.show', $project)->withErrors(['files' => $msg]);
         }
 
-        return back()->with('success', $msg);
+        return redirect()->route('projects.show', $project)->with('success', $msg);
     }
 
     /**
@@ -153,10 +154,11 @@ class ProjectDocumentController extends Controller
 
     public function destroy(ProjectDocument $document)
     {
+        $projectId = $document->project_id;
         Storage::delete($document->file_path);
         $document->delete();
 
-        return back()->with('success', '파일이 삭제되었습니다.');
+        return redirect()->route('projects.show', $projectId)->with('success', '파일이 삭제되었습니다.');
     }
 
     public function serve(ProjectDocument $document)

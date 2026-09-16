@@ -87,7 +87,8 @@ class ClientDocumentController extends Controller
             return response()->json(['success' => true, 'message' => '파일이 삭제되었습니다.']);
         }
 
-        return back()->with('success', '파일이 삭제되었습니다.');
+        // back() 대신 명시 리다이렉트 — 첨부 미디어 GET이 세션 이전 URL을 오염시킬 수 있음
+        return redirect()->route('clients.show', $document->client_id)->with('success', '파일이 삭제되었습니다.');
     }
 
     public function serve(ClientDocument $document)
