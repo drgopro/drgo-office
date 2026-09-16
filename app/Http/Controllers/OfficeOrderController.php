@@ -57,12 +57,29 @@ class OfficeOrderController extends Controller
             ->filter(fn (Estimate $e) => $e->status === 'paid'
                 || collect($e->product_items ?? [])->contains($isOrdered));
 
-        // 제품 정보(메모·서비스 분류) — 노출되는 전 항목의 제품에서 한 번에 조회
-        $products = Product::with('categoryRelation')->whereIn('id', $orderedEstimates
+        // 제품 정보(메모·서비스 분류·재고) — 노출되는 전 항목의 제품에서 한 번에 조회
+        $products = Product::with('categoryRelation', 'inventory')->whereIn('id', $orderedEstimates
             ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])->pluck('product_id'))
             ->filter()->unique()->values())
             ->get()->keyBy('id');
         $productMemos = $products->map(fn ($p) => $p->memo);
+
+        // 이름 → 현재고 — 제품 미연결(수기·구버전) 항목·세트 구성품의 재고 표시용 (정확 일치만)
+        $stockLookupNames = $orderedEstimates
+            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])->flatMap(fn ($i) => [
+                empty($i['product_id']) ? ($i['name'] ?? null) : null,
+                ...collect($i['bundle_items'] ?? [])->filter(fn ($b) => empty($b['product_id']))->pluck('name'),
+            ]))
+            ->filter()->unique()->values();
+        $stockByName = Product::with('inventory')->whereIn('name', $stockLookupNames)->get()
+            ->keyBy('name')->map(fn ($p) => (int) ($p->inventory?->quantity ?? 0));
+        $stockOf = function (?int $productId, ?string $name) use ($products, $stockByName): ?int {
+            if ($productId && isset($products[$productId])) {
+                return (int) ($products[$productId]->inventory?->quantity ?? 0);
+            }
+
+            return $name !== null && isset($stockByName[$name]) ? $stockByName[$name] : null;
+        };
 
         // 제품 미연결(수기·구버전) 항목의 서비스 판정용 — 이름이 정확히 일치하는 제품의 분류를 따른다
         $unlinkedNames = $orderedEstimates
@@ -127,6 +144,8 @@ class OfficeOrderController extends Controller
                         'replaced' => ! empty($i['replaced']), // 대체된(취소선) 항목 — 주문 대상 아님
                         'replaced_note' => $i['replaced_note'] ?? null,
                         'manual' => ! empty($i['manual']) || empty($i['product_id']), // 수기 입력 항목 (제품 미연결)
+                        // 현재 사무실 재고 — 주문완료/직접발송 판단용 (미연결·미등록 제품은 null)
+                        'stock' => $stockOf(empty($i['product_id']) ? null : (int) $i['product_id'], $i['name'] ?? null),
                         // 환불/결제취소 기록 — 수동 체크 + 프로젝트 환불 연동 공용
                         'refunded' => ! empty($i['refunded']),
                         'refund_amount' => (int) ($i['refund_amount'] ?? 0),
@@ -134,6 +153,7 @@ class OfficeOrderController extends Controller
                         // 세트 구성품 — 구성 단위 주문완료/구매처/메모 관리 (직접발송='사무실 발송')
                         'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b) => [
                             'name' => $b['name'] ?? '',
+                            'stock' => $stockOf(empty($b['product_id']) ? null : (int) $b['product_id'], $b['name'] ?? null),
                             'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
                             'price' => (int) ($b['price'] ?? 0), // 구성품 단가 — 부분환불 계산용 참고치
                             'ordered' => ! empty($b['ordered']) || ! empty($i['ordered']), // 세트 전체 주문완료 포함

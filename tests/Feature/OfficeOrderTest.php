@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Estimate;
+use App\Models\Inventory;
 use App\Models\OfficeOrder;
 use App\Models\Product;
 use App\Models\ScheduleShipment;
@@ -215,6 +216,38 @@ class OfficeOrderTest extends TestCase
         $fresh = $estimate->fresh()->product_items;
         $this->assertArrayNotHasKey('ordered', $fresh[1]);
         $this->assertArrayNotHasKey('ordered_at', $fresh[1]);
+    }
+
+    public function test_order_items_expose_current_stock(): void
+    {
+        // 주문완료/직접발송 판단용 — 항목·세트 구성품에 현재 사무실 재고 노출
+        $cam = Product::create(['sku' => 'CAM-1', 'name' => '카메라', 'sale_price' => 100000, 'is_active' => true]);
+        Inventory::create(['product_id' => $cam->id, 'quantity' => 3, 'last_updated_at' => now()]);
+        $comp = Product::create(['sku' => 'ARM-1', 'name' => '마이크암', 'sale_price' => 30000, 'is_active' => true]);
+        Inventory::create(['product_id' => $comp->id, 'quantity' => 7, 'last_updated_at' => now()]);
+
+        Estimate::create([
+            'status' => 'created', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['product_id' => $cam->id, 'name' => '카메라', 'sale_price' => 100000, 'qty' => 2, 'subtotal' => 200000, 'ordered' => true],
+                // 이름 일치 폴백 — 제품 미연결(수기) 항목도 같은 이름의 제품 재고 표시
+                ['name' => '마이크암', 'sale_price' => 30000, 'qty' => 1, 'subtotal' => 30000, 'ordered' => true],
+                // 미등록 수기 항목 — 재고 미상(null)
+                ['name' => '일회성 케이블', 'sale_price' => 5000, 'qty' => 1, 'subtotal' => 5000, 'ordered' => true],
+                // 세트 — 구성품 재고
+                ['name' => '방송 세트', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000, 'ordered' => true,
+                    'bundle_items' => [['product_id' => $comp->id, 'name' => '마이크암', 'qty' => 2, 'price' => 30000]]],
+            ],
+            'service_items' => [], 'product_total' => 435000, 'total_amount' => 435000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
+        $items = collect($row['items']);
+        $this->assertSame(3, $items->firstWhere('name', '카메라')['stock']);
+        $this->assertSame(7, $items->firstWhere('name', '마이크암')['stock']); // 이름 폴백
+        $this->assertNull($items->firstWhere('name', '일회성 케이블')['stock']);
+        $this->assertSame(7, $items->firstWhere('name', '방송 세트')['bundle_items'][0]['stock']);
     }
 
     public function test_paid_at_cleared_when_payment_reverted(): void

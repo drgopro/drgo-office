@@ -926,6 +926,7 @@ class InventoryController extends Controller
                 'is_bundle' => (bool) $p->is_bundle,
                 'bundle_items' => $p->is_bundle
                     ? $p->bundleItems->map(fn ($bi) => [
+                        'product_id' => $bi->product_id, // 구성품 제품 연결 — 주문/배송 뷰 재고 표시용
                         'name' => $bi->component?->name ?? '(삭제된 구성품)',
                         'qty' => max(1, (int) $bi->quantity),
                         'price' => (int) ($bi->component?->sale_price ?? 0), // 구성품 판매가 — 빌더 참고 표시용

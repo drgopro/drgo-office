@@ -994,6 +994,13 @@ async function confirmDirectShipStock(idx, bIdx = null) {
         return confirm(`재고가 부족합니다.\n${lines}\n\n직접발송으로 처리하면 재고가 음수로 기록됩니다. 계속할까요?`);
     } catch (e) { return true; }
 }
+// 주문/배송 뷰 재고 표시 — 제품 목록(allProds)의 현재고를 항목/구성품 옆에 (미연결·수기 항목은 이름 일치 시)
+function orderStockLine(productId, name, needQty) {
+    const p = productId ? allProds.find(x => x.id === productId) : allProds.find(x => x.name === name && !x.is_bundle);
+    if (!p || p.is_bundle) return '';
+    const q = Number(p.quantity ?? 0);
+    return `<div style="font-size:11px; margin-top:3px; white-space:nowrap; color:${q < needQty ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="현재 사무실 재고${q < needQty ? ' — 필요 수량보다 부족' : ''}">재고 ${q}</div>`;
+}
 // 직접발송 — 사무실에서 발송하는 제품: 주문완료 + 구매처 '사무실 발송' 자동 기록
 async function directShip(idx) {
     if (!(await confirmDirectShipStock(idx))) return;
@@ -1064,7 +1071,7 @@ function renderCart() {
                 ? (item.ordered
                     ? `<button class="btn-order cancel" onclick="toggleOrdered(${idx})" title="주문완료 표시 해제">취소</button>`
                     : `<button class="btn-order" onclick="toggleOrdered(${idx})">주문완료</button>
-                       <button class="btn-order direct" onclick="directShip(${idx})" title="사무실에서 발송하는 제품 — 주문완료 + 구매처 '사무실 발송' 자동 기록" style="margin-top:3px;">직접발송</button>`)
+                       <button class="btn-order direct" onclick="directShip(${idx})" title="사무실에서 발송하는 제품 — 주문완료 + 구매처 '사무실 발송' 자동 기록" style="margin-top:3px;">직접발송</button>${orderStockLine(item.product_id, item.name, item.qty)}`)
                 : `<button class="btn-remove" onclick="removeItem(${idx})">×</button>`;
             // 제품명 하이라이트 — 항목 주문완료(초록)/직접발송(주황), 세트는 구성품이 전부 처리되면
             // 전부 주문완료=초록, 전부 직접발송=주황, 혼합=파랑으로 표시 (접힘 상태에서도 한눈에)
@@ -1121,7 +1128,7 @@ function renderCart() {
                     const bBtns = !orderMode ? '' : item.ordered ? '' : (b.ordered
                         ? `<button class="btn-order cancel" onclick="toggleBundleOrdered(${idx},${bIdx})" title="구성품 주문완료 해제">취소</button>`
                         : `<button class="btn-order" onclick="toggleBundleOrdered(${idx},${bIdx})">주문완료</button>
-                           <button class="btn-order direct" onclick="bundleDirectShip(${idx},${bIdx})" title="사무실에서 발송 — 주문완료 + 구매처 '사무실 발송' 기록" style="margin-top:3px;">직접발송</button>`);
+                           <button class="btn-order direct" onclick="bundleDirectShip(${idx},${bIdx})" title="사무실에서 발송 — 주문완료 + 구매처 '사무실 발송' 기록" style="margin-top:3px;">직접발송</button>${orderStockLine(b.product_id, b.name, totQty)}`);
                     return `<tr class="bundle-sub" data-gidx="${gIdx}">
                         <td></td><td></td>
                         <td><span class="${bOrdered ? 'name-ordered' + (b.source === '사무실 발송' ? ' direct' : '') : ''}" ${bOrdered ? `title="${b.source === '사무실 발송' ? '직접발송 (사무실 발송)' : (item.ordered ? '세트 주문완료' : '구성품 주문완료')}"` : ''}>└ ${_escE(b.name)}</span>${b.source ? ` <span class="office-ship-badge" title="구성품 구매처">${_escE(b.source)}</span>` : ''}${(b.refund_qty>0||b.refund_amount>0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="구성품 부분환불">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : ''}${orderMode && b.memo ? `<div style="font-size:11.5px; color:var(--text-muted); font-weight:400; margin-top:2px; white-space:pre-line;">${_escE(b.memo)}</div>` : ''}</td>
