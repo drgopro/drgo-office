@@ -60,10 +60,13 @@ class DashboardVisitReportWidgetTest extends TestCase
         // 보고서 없는 프로젝트 — 목록 미포함
         $this->makeProject('보고서 없는 건');
 
+        // 의뢰자명 / 프로젝트명 / 작성 날짜만 표시 (본문 미리보기 없음)
         $this->actingAs($this->admin)->get('/')->assertOk()
             ->assertSee('최근 방문보고')
-            ->assertSee('스튜디오 구축 · 고블린', false)
-            ->assertSee('방문하여 캠·마이크 세팅을 완료했습니다.', false) // 미리보기
+            ->assertSee('고블린')
+            ->assertSee('스튜디오 구축')
+            ->assertSee(now()->format('Y.m.d'))
+            ->assertDontSee('방문하여 캠·마이크 세팅을 완료했습니다.')
             ->assertSee("/projects/{$project->id}#visitReportCard", false) // 보고서 위치로 링크
             ->assertDontSee('보고서 없는 건');
     }

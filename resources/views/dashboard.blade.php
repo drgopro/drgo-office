@@ -463,8 +463,8 @@
             @forelse($recentVisitReports as $r)
                 <div class="ob-row" title="방문 보고서 보기" onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $r['project_id'] }}#visitReportCard');}else{location.href='/projects/{{ $r['project_id'] }}#visitReportCard';}">
                     <span class="ob-body">
-                        <div class="ob-label">{{ $r['name'] }}{{ $r['client'] ? ' · '.$r['client'] : '' }}</div>
-                        <div class="ob-sub">{{ $r['preview'] !== '' ? $r['preview'] : '(이미지 보고서)' }}</div>
+                        <div class="ob-label">{{ $r['client'] ?: '(의뢰자 미연동)' }}</div>
+                        <div class="ob-sub">{{ $r['name'] }}</div>
                     </span>
                     <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">{{ $r['date'] }}</span>
                 </div>

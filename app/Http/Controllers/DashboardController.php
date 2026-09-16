@@ -333,13 +333,12 @@ class DashboardController extends Controller
                 ->whereNotNull('visit_report_updated_at')
                 ->orderByDesc('visit_report_updated_at')
                 ->limit(5)
-                ->get(['id', 'name', 'client_id', 'manual_client_name', 'visit_report', 'visit_report_updated_at'])
+                ->get(['id', 'name', 'client_id', 'manual_client_name', 'visit_report_updated_at'])
                 ->map(fn (Project $p) => [
                     'project_id' => $p->id,
                     'name' => $p->name,
                     'client' => $p->client?->nickname ?? $p->client?->name ?? $p->manual_client_name,
-                    'preview' => \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) $p->visit_report)))), 60),
-                    'date' => $p->visit_report_updated_at->format('m.d H:i'),
+                    'date' => $p->visit_report_updated_at->format('Y.m.d'),
                 ])
             : collect();
 
