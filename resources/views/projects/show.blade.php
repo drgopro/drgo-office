@@ -4013,6 +4013,17 @@ window.vrCheckOverflow = function() {
     if (btn) btn.textContent = card.classList.contains('is-collapsed') ? '▼ 더 보기' : '▲ 접기';
 };
 
+// 대시보드 '최근 방문보고' 앵커 진입 — 카드 표시·펼침 후 보고서 위치로 스크롤
+if (location.hash === '#visitReportCard') {
+    const vrCardAnchor = document.getElementById('visitReportCard');
+    if (vrCardAnchor) {
+        vrCardAnchor.style.display = 'block'; // 완료 단계가 아니어도 작성된 보고서는 열람 가능
+        vrCardAnchor.classList.remove('is-collapsed');
+        setTimeout(() => vrCardAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+        setTimeout(() => vrCardAnchor.scrollIntoView({ block: 'start' }), 1000); // 에디터 로드 후 위치 재보정
+    }
+}
+
 // ResizeObserver — 본문 크기 변할 때마다 자동 재측정 (이미지 로드, 폰트 늦은 적용 등 모두 커버)
 (function setupVrResizeObserver(){
     if (typeof ResizeObserver === 'undefined') return;

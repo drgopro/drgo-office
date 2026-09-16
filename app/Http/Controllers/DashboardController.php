@@ -327,6 +327,22 @@ class DashboardController extends Controller
             ];
         });
 
+        // 최근 방문보고 — 작성/수정 시각 최신순, 프로젝트·보고서로 바로 이동 (배포 직후 컬럼 부재 대비 가드)
+        $recentVisitReports = Schema::hasColumn('projects', 'visit_report_updated_at')
+            ? Project::with('client:id,name,nickname')
+                ->whereNotNull('visit_report_updated_at')
+                ->orderByDesc('visit_report_updated_at')
+                ->limit(5)
+                ->get(['id', 'name', 'client_id', 'manual_client_name', 'visit_report', 'visit_report_updated_at'])
+                ->map(fn (Project $p) => [
+                    'project_id' => $p->id,
+                    'name' => $p->name,
+                    'client' => $p->client?->nickname ?? $p->client?->name ?? $p->manual_client_name,
+                    'preview' => \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) $p->visit_report)))), 60),
+                    'date' => $p->visit_report_updated_at->format('m.d H:i'),
+                ])
+            : collect();
+
         // 위키 위젯 — 전체 문서(고정 우선, 최대 5), 최신 등록 문서(최대 3). 임시저장·열람 제한 문서 제외
         $wikiVisible = fn () => Wiki::published()->visibleTo(auth()->user());
         $wikiTotal = $wikiVisible()->count();
@@ -340,7 +356,7 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'wikiTotal', 'wikiAll', 'wikiRecent', 'wikiNoticeList', 'wikiUpdateList',
-            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations', 'myTodos', 'myTodoCount', 'catColors',
+            'todaySchedules', 'focusSchedules', 'outstanding', 'outstandingTotal', 'outstandingCount', 'vacations', 'myTodos', 'myTodoCount', 'catColors', 'recentVisitReports',
             'clientTotal', 'clientThisMonth', 'clientByGrade', 'dailyData', 'yearlyData',
             'projectTotal', 'projectActive', 'projectByStage', 'projectByType',
             'estimateTotal', 'estimateByStatus', 'estimateTotalAmount', 'estimatePaidAmount',

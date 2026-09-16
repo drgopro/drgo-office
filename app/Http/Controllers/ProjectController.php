@@ -318,6 +318,13 @@ class ProjectController extends Controller
             $validated['tags'] = $this->normalizeTags($request->input('tags'));
         }
 
+        // 방문보고 작성/수정 시각 — 내용이 실제로 바뀔 때만 갱신, 비우면 최근 방문보고에서 제외
+        if (array_key_exists('visit_report', $validated) && (string) $validated['visit_report'] !== (string) $project->visit_report) {
+            $reportHtml = (string) $validated['visit_report'];
+            $hasContent = trim(strip_tags($reportHtml)) !== '' || str_contains($reportHtml, '<img');
+            $validated['visit_report_updated_at'] = $hasContent ? now() : null;
+        }
+
         // 장비 항목 정의(__equip_items)는 관리자 이상만 변경 가능 — 멤버는 값 입력만, 정의는 기존 그대로 유지
         if (isset($validated['custom_data']) && ! $request->user()->isAdmin()) {
             $existingItems = $project->custom_data['__equip_items'] ?? null;
