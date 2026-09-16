@@ -458,7 +458,7 @@
             <div class="dcard-head">
                 최근 방문보고
                 @if($recentVisitReports->count())<span class="dc-count">{{ $recentVisitReports->count() }}</span>@endif
-                <a class="dc-link" href="/projects" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects'); else location.href='/projects';">전체 →</a>
+                <a class="dc-link" href="/projects?has_report=1" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects?has_report=1'); else location.href=this.href;">전체 →</a>
             </div>
             @forelse($recentVisitReports as $r)
                 <div class="ob-row" title="방문 보고서 보기" onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $r['project_id'] }}#visitReportCard');}else{location.href='/projects/{{ $r['project_id'] }}#visitReportCard';}">

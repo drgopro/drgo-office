@@ -190,7 +190,7 @@
         <div class="search-row">
             <input class="search-input" type="text" name="search" placeholder="의뢰자명, 프로젝트명 검색" value="{{ request('search') }}">
             <button type="submit" class="btn-search">검색</button>
-            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search'))
+            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search') || request()->boolean('has_report'))
                 <a href="{{ route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
@@ -202,6 +202,13 @@
                     <span class="chip">{{ $lbl }}</span>
                 </label>
             @endforeach
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">보고</span>
+            <label class="chip-toggle">
+                <input type="checkbox" name="has_report" value="1" {{ request()->boolean('has_report') ? 'checked' : '' }}>
+                <span class="chip">📝 방문보고 작성됨</span>
+            </label>
         </div>
         <div class="filter-group">
             <span class="filter-label">유형</span>

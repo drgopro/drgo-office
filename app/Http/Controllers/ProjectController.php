@@ -74,6 +74,11 @@ class ProjectController extends Controller
             }
         }
 
+        // 방문보고 작성 건 필터 — 대시보드 '최근 방문보고 > 전체' 진입, 작성 시각 최신순
+        if ($request->boolean('has_report')) {
+            $query->whereNotNull('visit_report_updated_at')->orderByDesc('visit_report_updated_at');
+        }
+
         $projects = $query->orderBy('created_at', 'desc')->paginate(20);
 
         // 필터 드롭다운용 태그 목록

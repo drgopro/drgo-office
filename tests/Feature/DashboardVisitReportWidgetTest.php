@@ -71,6 +71,23 @@ class DashboardVisitReportWidgetTest extends TestCase
             ->assertDontSee('보고서 없는 건');
     }
 
+    public function test_project_list_filters_by_report(): void
+    {
+        // 대시보드 '전체 →' — 방문보고 작성 건만 필터된 프로젝트 목록
+        $with = $this->makeProject('보고 있는 건');
+        $with->update(['visit_report' => '<p>보고</p>', 'visit_report_updated_at' => now()]);
+        $this->makeProject('보고 없는 건');
+
+        $this->actingAs($this->admin)->get('/projects?has_report=1')->assertOk()
+            ->assertSee('보고 있는 건')
+            ->assertDontSee('보고 없는 건')
+            ->assertSee('방문보고 작성됨'); // 필터 칩 활성 표시
+
+        // 대시보드 전체 링크가 필터 URL로 연결
+        $this->actingAs($this->admin)->get('/')->assertOk()
+            ->assertSee('/projects?has_report=1', false);
+    }
+
     public function test_dashboard_shows_empty_state_without_reports(): void
     {
         $this->actingAs($this->admin)->get('/')->assertOk()
