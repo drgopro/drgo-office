@@ -758,5 +758,67 @@ CAL_AUTOGROW_IDS.forEach(id => {
     if (el) { el.classList.add('autogrow'); el.addEventListener('input', () => calAutoGrow(el)); }
 });
 
+// ── 모바일 월간 뷰: 끝에서 더 당기면 이전/다음 달 이동 ──
+// 페이지 최상단에서 아래로 당기면 이전 달, 최하단에서 위로 당기면 다음 달.
+// 오버레이(일정 모달·필터 패널·일별 팝업·바텀시트)가 열려 있으면 동작하지 않는다.
+(function setupMobileMonthPull() {
+    const PULL_THRESHOLD = 72; // px — 오탐 방지용 당김 거리
+    let startY = null, startAtTop = false, startAtBottom = false, armed = 0;
+
+    const hint = document.createElement('div');
+    hint.id = 'calPullHint';
+    hint.style.cssText = 'display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:150;'
+        + 'background:var(--surface);border:1px solid var(--accent);color:var(--accent);border-radius:20px;'
+        + 'padding:7px 16px;font-size:12px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;';
+    document.body.appendChild(hint);
+
+    const isMobile = () => window.matchMedia('(max-width:768px)').matches;
+    const overlayOpen = () =>
+        document.getElementById('modalOverlay')?.classList.contains('open')
+        || document.getElementById('calSide')?.classList.contains('mobile-open')
+        || (document.getElementById('dayPopover') && document.getElementById('dayPopover').style.display !== 'none')
+        || document.getElementById('mcSheet')?.classList.contains('open');
+    const activeFor = () => isMobile() && ['month', 'monthc'].includes(currentView) && ! overlayOpen();
+    const sc = () => document.scrollingElement || document.documentElement;
+    const atTop = () => sc().scrollTop <= 2;
+    const atBottom = () => sc().scrollTop + sc().clientHeight >= sc().scrollHeight - 2;
+
+    const showHint = (dir, on) => {
+        if (! on) { hint.style.display = 'none'; return; }
+        hint.textContent = dir > 0 ? '놓으면 다음 달 ›' : '‹ 놓으면 이전 달';
+        hint.style.top = dir > 0 ? 'auto' : 'calc(var(--chrome-h, 0px) + 10px)';
+        hint.style.bottom = dir > 0 ? 'calc(14px + env(safe-area-inset-bottom))' : 'auto';
+        hint.style.display = 'block';
+    };
+
+    document.addEventListener('touchstart', e => {
+        armed = 0; startY = null;
+        if (! activeFor() || e.touches.length !== 1) return;
+        startY = e.touches[0].clientY;
+        startAtTop = atTop();
+        startAtBottom = atBottom();
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+        if (startY === null || ! activeFor()) return;
+        const delta = e.touches[0].clientY - startY;
+        // 시작도 지금도 끝지점일 때만 — 중간 스크롤이 섞이면 오탐이므로 무시
+        if (startAtBottom && atBottom() && delta < -PULL_THRESHOLD) { armed = 1; showHint(1, true); }
+        else if (startAtTop && atTop() && delta > PULL_THRESHOLD) { armed = -1; showHint(-1, true); }
+        else if (armed) { armed = 0; showHint(0, false); }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+        showHint(0, false);
+        if (armed && activeFor()) {
+            const dir = armed;
+            armed = 0; startY = null;
+            changePeriod(dir);
+            sc().scrollTo({ top: 0 }); // 새 달은 상단부터
+        }
+        armed = 0; startY = null;
+    }, { passive: true });
+})();
+
 renderVisitOpts();
 init();
