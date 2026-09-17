@@ -758,18 +758,21 @@ CAL_AUTOGROW_IDS.forEach(id => {
     if (el) { el.classList.add('autogrow'); el.addEventListener('input', () => calAutoGrow(el)); }
 });
 
-// ── 모바일 월간 뷰: 끝에서 더 당기면 이전/다음 달 이동 ──
-// 페이지 최상단에서 아래로 당기면 이전 달, 최하단에서 위로 당기면 다음 달.
+// ── 모바일 월간 뷰: 좌우 스와이프로 이전/다음 달 이동 ──
+// 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달. 세로 스크롤과 섞이지 않도록
+// 가로 이동이 충분히 크고(60px+) 세로 이동보다 뚜렷할 때만 발동한다.
 // 오버레이(일정 모달·필터 패널·일별 팝업·바텀시트)가 열려 있으면 동작하지 않는다.
-(function setupMobileMonthPull() {
-    const PULL_THRESHOLD = 72; // px — 오탐 방지용 당김 거리
-    let startY = null, startAtTop = false, startAtBottom = false, armed = 0;
+(function setupMobileMonthSwipe() {
+    const SWIPE_THRESHOLD = 60;   // px — 가로 이동 최소 거리
+    const DIRECTION_RATIO = 1.5;  // 가로가 세로의 1.5배 이상일 때만 (스크롤 오탐 방지)
+    let startX = null, startY = null, lastX = 0, lastY = 0, armed = 0;
 
     const hint = document.createElement('div');
-    hint.id = 'calPullHint';
+    hint.id = 'calSwipeHint';
     hint.style.cssText = 'display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:150;'
-        + 'background:var(--surface);border:1px solid var(--accent);color:var(--accent);border-radius:20px;'
-        + 'padding:7px 16px;font-size:12px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;';
+        + 'bottom:calc(14px + env(safe-area-inset-bottom));background:var(--surface);border:1px solid var(--accent);'
+        + 'color:var(--accent);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;'
+        + 'box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;';
     document.body.appendChild(hint);
 
     const isMobile = () => window.matchMedia('(max-width:768px)').matches;
@@ -779,44 +782,40 @@ CAL_AUTOGROW_IDS.forEach(id => {
         || (document.getElementById('dayPopover') && document.getElementById('dayPopover').style.display !== 'none')
         || document.getElementById('mcSheet')?.classList.contains('open');
     const activeFor = () => isMobile() && ['month', 'monthc'].includes(currentView) && ! overlayOpen();
-    const sc = () => document.scrollingElement || document.documentElement;
-    const atTop = () => sc().scrollTop <= 2;
-    const atBottom = () => sc().scrollTop + sc().clientHeight >= sc().scrollHeight - 2;
 
     const showHint = (dir, on) => {
         if (! on) { hint.style.display = 'none'; return; }
         hint.textContent = dir > 0 ? '놓으면 다음 달 ›' : '‹ 놓으면 이전 달';
-        hint.style.top = dir > 0 ? 'auto' : 'calc(var(--chrome-h, 0px) + 10px)';
-        hint.style.bottom = dir > 0 ? 'calc(14px + env(safe-area-inset-bottom))' : 'auto';
         hint.style.display = 'block';
     };
 
     document.addEventListener('touchstart', e => {
-        armed = 0; startY = null;
+        armed = 0; startX = null;
         if (! activeFor() || e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
-        startAtTop = atTop();
-        startAtBottom = atBottom();
     }, { passive: true });
 
     document.addEventListener('touchmove', e => {
-        if (startY === null || ! activeFor()) return;
-        const delta = e.touches[0].clientY - startY;
-        // 시작도 지금도 끝지점일 때만 — 중간 스크롤이 섞이면 오탐이므로 무시
-        if (startAtBottom && atBottom() && delta < -PULL_THRESHOLD) { armed = 1; showHint(1, true); }
-        else if (startAtTop && atTop() && delta > PULL_THRESHOLD) { armed = -1; showHint(-1, true); }
-        else if (armed) { armed = 0; showHint(0, false); }
+        if (startX === null || ! activeFor()) return;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+        const dx = lastX - startX, dy = lastY - startY;
+        if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * DIRECTION_RATIO) {
+            const next = dx < 0 ? 1 : -1; // 왼쪽으로 밀기 = 다음 달
+            if (armed !== next) { armed = next; showHint(next, true); }
+        } else if (armed) { armed = 0; showHint(0, false); }
     }, { passive: true });
 
     document.addEventListener('touchend', () => {
         showHint(0, false);
         if (armed && activeFor()) {
             const dir = armed;
-            armed = 0; startY = null;
+            armed = 0; startX = null;
             changePeriod(dir);
-            sc().scrollTo({ top: 0 }); // 새 달은 상단부터
+            (document.scrollingElement || document.documentElement).scrollTo({ top: 0 }); // 새 달은 상단부터
         }
-        armed = 0; startY = null;
+        armed = 0; startX = null;
     }, { passive: true });
 })();
 
