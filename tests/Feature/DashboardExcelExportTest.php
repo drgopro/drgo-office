@@ -77,6 +77,32 @@ class DashboardExcelExportTest extends TestCase
         $this->assertNull($sheet->getCell('A3')->getValue()); // 기간 밖 취소 건 제외
     }
 
+    public function test_project_sheet_includes_anonymous_projects(): void
+    {
+        // 익명(의뢰자 미연동) 프로젝트도 프로젝트 시트에 의뢰자 표기와 함께 포함
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['name' => '홍길동', 'grade' => 'normal']);
+        Project::create(['client_id' => $client->id, 'name' => '연동 건', 'project_type' => 'visit', 'stage' => 'consulting']);
+        Project::create(['client_id' => null, 'name' => '익명 수기 건', 'manual_client_name' => '미상 의뢰자', 'project_type' => 'inquiry', 'stage' => 'consulting']);
+        Project::create(['client_id' => null, 'name' => '이름 없는 익명 건', 'project_type' => 'inquiry', 'stage' => 'consulting']);
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('프로젝트');
+        unlink($tmp);
+
+        $rows = collect($sheet->toArray())->skip(1)->filter(fn ($r) => $r[0]); // 헤더 제외
+        $byName = $rows->keyBy(fn ($r) => $r[0]);
+        $this->assertCount(3, $rows); // 익명 건 포함 전체 표시
+        $this->assertSame('홍길동', $byName['연동 건'][1]);
+        $this->assertSame('미상 의뢰자 (익명)', $byName['익명 수기 건'][1]);
+        $this->assertSame('(익명)', $byName['이름 없는 익명 건'][1]);
+    }
+
     public function test_export_includes_margin_sheet_with_purchase_profit(): void
     {
         // 마진 분석 시트 — 결제된 견적서별 판매/매입 차익 (실구매액 우선, 대체 제외, 환불 차감)

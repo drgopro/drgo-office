@@ -909,7 +909,10 @@ class DashboardController extends Controller
         $row = 2;
         Project::with('client')->whereBetween('created_at', [$fromDt, $toDt])->orderByDesc('created_at')->chunk(200, function ($items) use ($s4, &$row, $typeL, $stageL) {
             foreach ($items as $p) {
-                $s4->fromArray([$p->name, $p->client?->name, $typeL[$p->project_type] ?? $p->project_type, $stageL[$p->stage] ?? $p->stage, $p->status, $p->created_at->format('Y.m.d')], null, "A{$row}");
+                // 익명(의뢰자 미연동) 프로젝트도 포함 — 수기 이름이 있으면 함께, 없으면 (익명)으로 표기
+                $clientLabel = $p->client?->name ?? $p->client?->nickname
+                    ?? ($p->manual_client_name ? $p->manual_client_name.' (익명)' : '(익명)');
+                $s4->fromArray([$p->name, $clientLabel, $typeL[$p->project_type] ?? $p->project_type, $stageL[$p->stage] ?? $p->stage, $p->status, $p->created_at->format('Y.m.d')], null, "A{$row}");
                 $row++;
             }
         });
@@ -932,7 +935,7 @@ class DashboardController extends Controller
                 foreach ($items as $p) {
                     $s4b->fromArray([
                         $p->created_at->format('Y.m.d'),
-                        $p->client?->name ?? $p->client?->nickname ?? $p->manual_client_name,
+                        $p->client?->name ?? $p->client?->nickname ?? ($p->manual_client_name ? $p->manual_client_name.' (익명)' : '(익명)'),
                         $p->name,
                         $p->cancelled_at?->format('Y.m.d'),
                         $p->cancelled_from_stage ? (Project::STAGE_LABELS[$p->cancelled_from_stage] ?? $p->cancelled_from_stage) : '—',
