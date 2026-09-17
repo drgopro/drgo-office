@@ -198,6 +198,12 @@ document.addEventListener('click', function(e){
         .guide-link { display:flex; align-items:center; gap:5px; height:26px; padding:0 9px; border-radius:8px; color:var(--text-muted); font-size:11.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
         .guide-link:hover { color:var(--text); background:var(--surface); }
         .guide-link svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+        /* 현재 탭 새로고침 — 열린 탭(iframe)만 다시 불러온다 */
+        .tab-refresh-btn { display:flex; align-items:center; justify-content:center; width:28px; height:26px; background:none; border:none; cursor:pointer; color:var(--text-muted); border-radius:8px; padding:0; flex-shrink:0; }
+        .tab-refresh-btn:hover { color:var(--text); background:var(--surface); }
+        .tab-refresh-btn svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2.1; stroke-linecap:round; stroke-linejoin:round; }
+        .tab-refresh-btn.spinning svg { animation:tabRefreshSpin .6s linear; }
+        @keyframes tabRefreshSpin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .notif-bell { position:relative; display:flex; align-items:center; justify-content:center; width:28px; height:26px; background:none; border:none; cursor:pointer; color:var(--text-muted); border-radius:8px; padding:0; }
         .notif-bell:hover { color:var(--text); background:var(--surface); }
         .notif-bell svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -607,6 +613,10 @@ window.openTopTab = function(type, url, title) {
 {{-- ── 탭 바 ── --}}
 <div class="tab-bar-wrap">
     <div class="tab-strip" id="tabStrip"></div>
+    {{-- 현재 탭 새로고침 — 전체가 아닌 열린 탭 페이지만 다시 불러온다 --}}
+    <button type="button" class="tab-refresh-btn" id="tabRefreshBtn" onclick="drgoTabs.refreshActive(this)" title="현재 탭 새로고침">
+        <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+    </button>
     {{-- 상단 우측 알림 --}}
     <div class="notif-wrap">
         <a href="/guide" class="guide-link" title="사용 가이드" onclick="event.preventDefault(); drgoTabs.openNav('guide','/guide');">
@@ -743,6 +753,26 @@ window.drgoTabs = {
         const id = 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
         this.tabs.push({ id, type, url, title: title || null, loaded: false });
         this.activate(id);
+    },
+
+    /**
+     * 현재 탭만 새로고침 — 활성 탭 iframe의 현재 페이지(쿼리·내부 이동 상태 포함)를 다시 불러온다.
+     * initial 탭(최상위에 직접 렌더된 페이지)은 그 페이지 자체가 탭이므로 창 리로드와 동일.
+     */
+    refreshActive(btn) {
+        if (btn) {
+            btn.classList.remove('spinning');
+            requestAnimationFrame(() => btn.classList.add('spinning'));
+            setTimeout(() => btn.classList.remove('spinning'), 700);
+        }
+        const pane = document.querySelector('.tab-pane.active');
+        const iframe = pane?.querySelector('iframe');
+        if (iframe) {
+            try { iframe.contentWindow.location.reload(); }
+            catch (e) { iframe.src = iframe.src; } // cross-origin 등 접근 불가 시 src 재설정 폴백
+            return;
+        }
+        window.location.reload();
     },
 
     /**

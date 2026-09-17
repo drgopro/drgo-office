@@ -21,7 +21,10 @@ class TabShellDriftTest extends TestCase
         // 사이드바 메뉴 클릭 시 iframe이 다른 경로로 표류해 있으면 요청 화면으로 복귀
         $this->actingAs($user)->get('/')->assertOk()
             ->assertSee('_iframeDrifted', false)
-            ->assertSee('this._isMultiInstance(t.type, t.url)', false); // 프로젝트 상세 탭을 목록으로 덮어쓰지 않음
+            ->assertSee('this._isMultiInstance(t.type, t.url)', false) // 프로젝트 상세 탭을 목록으로 덮어쓰지 않음
+            // 현재 탭만 새로고침 버튼 — 전체가 아닌 열린 탭 iframe만 리로드
+            ->assertSee('id="tabRefreshBtn"', false)
+            ->assertSee('refreshActive', false);
     }
 
     public function test_project_estimate_link_opens_new_window(): void
