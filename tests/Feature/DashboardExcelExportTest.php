@@ -103,6 +103,33 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('(익명)', $byName['이름 없는 익명 건'][1]);
     }
 
+    public function test_client_sheet_includes_anonymous_manual_names(): void
+    {
+        // 의뢰자 시트 — 익명 프로젝트의 수기 이름(단어+난수 식별자)도 '익명' 등급 행으로 노출, 동일 이름 중복 제거
+        $user = User::factory()->create(['role' => 'admin']);
+        Client::create(['name' => '홍길동', 'grade' => 'normal']);
+        Project::create(['client_id' => null, 'name' => '문의 1', 'manual_client_name' => '고블린342', 'project_type' => 'inquiry', 'stage' => 'consulting']);
+        Project::create(['client_id' => null, 'name' => '문의 2', 'manual_client_name' => '고블린342', 'project_type' => 'inquiry', 'stage' => 'consulting']); // 같은 식별자 — 1행
+        Project::create(['client_id' => null, 'name' => '문의 3', 'project_type' => 'inquiry', 'stage' => 'consulting']); // 이름 미기입
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('의뢰자');
+        unlink($tmp);
+
+        $rows = collect($sheet->toArray())->skip(1)->filter(fn ($r) => $r[0]);
+        $names = $rows->pluck(0);
+        $this->assertTrue($names->contains('홍길동'));
+        $this->assertSame(1, $names->filter(fn ($n) => $n === '고블린342')->count()); // 중복 제거
+        $this->assertTrue($names->contains('(익명)'));
+        $goblin = $rows->first(fn ($r) => $r[0] === '고블린342');
+        $this->assertSame('익명', $goblin[3]); // 등급 열에 익명 구분
+    }
+
     public function test_export_includes_margin_sheet_with_purchase_profit(): void
     {
         // 마진 분석 시트 — 결제된 견적서별 판매/매입 차익 (실구매액 우선, 대체 제외, 환불 차감)

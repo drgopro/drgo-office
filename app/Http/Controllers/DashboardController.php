@@ -900,6 +900,21 @@ class DashboardController extends Controller
                 $row++;
             }
         });
+        // 익명(의뢰자 미연동) 프로젝트의 의뢰자도 포함 — 수기 기입 이름(예: 단어+난수 식별자)을 그대로 노출,
+        // 등급 열에 '익명'으로 구분. 같은 이름의 익명 건은 최초 프로젝트 생성일 기준 1행
+        $anonSeen = [];
+        Project::whereNull('client_id')->whereBetween('created_at', [$fromDt, $toDt])
+            ->orderBy('created_at')->chunk(200, function ($items) use ($s3, &$row, &$anonSeen) {
+                foreach ($items as $p) {
+                    $name = trim((string) $p->manual_client_name) !== '' ? $p->manual_client_name : '(익명)';
+                    if ($name !== '(익명)' && isset($anonSeen[$name])) {
+                        continue; // 같은 수기 이름은 중복 없이 1행
+                    }
+                    $anonSeen[$name] = true;
+                    $s3->fromArray([$name, null, null, '익명', null, null, $p->created_at->format('Y.m.d')], null, "A{$row}");
+                    $row++;
+                }
+            });
 
         // Sheet 4: 프로젝트 목록
         $s4 = $spreadsheet->createSheet();
