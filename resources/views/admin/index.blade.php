@@ -1014,7 +1014,7 @@ const PERM_GROUPS = [
     { title: '방송룸', perms: [{ key: 'broadcast.view', label: '조회' }, { key: 'broadcast.edit', label: '편집' }] },
     { title: '견적서', perms: [{ key: 'estimates.view', label: '조회' }, { key: 'estimates.edit', label: '편집' }] },
     { title: '입금 내역', perms: [{ key: 'deposits.view', label: '조회' }, { key: 'deposits.cancel', label: '결제 취소 (페이앱)' }] },
-    { title: '통계', perms: [{ key: 'stats.view', label: '조회' }] },
+    { title: '통계', perms: [{ key: 'stats.view', label: '조회' }, { key: 'stats.export', label: '엑셀 출력' }] },
     { title: '문서', perms: [{ key: 'documents.edit', label: '편집' }] },
     { title: '연차', perms: [{ key: 'leave.manage', label: '연차 관리 (입사일·부여·사용 기록)' }] },
 ];

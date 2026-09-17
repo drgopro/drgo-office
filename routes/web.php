@@ -101,15 +101,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/crm-demo/tags', [CrmDemoController::class, 'storeTag']);
     Route::delete('/api/crm-demo/tags/{id}', [CrmDemoController::class, 'destroyTag']);
     Route::get('/api/dashboard/{type}', [DashboardController::class, 'detail']);
-    Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
+    // 통계 엑셀 출력 — 팀 권한(stats.export)으로 제어 (master/admin은 항상 허용)
+    Route::middleware('permission:stats.export')->group(function () {
+        Route::get('/api/dashboard-export/excel', [DashboardController::class, 'exportExcel']);
+    });
 
     // 마케팅 통계 — 팀 권한(stats.view)으로 제어 (master/admin은 항상 허용)
     Route::middleware('permission:stats.view')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
         Route::get('/marketing-report/revenue', [MarketingReportController::class, 'revenuePage'])->name('marketing-report.revenue');
-        Route::get('/marketing-report/schedules-export', [MarketingReportController::class, 'schedulesExport'])->name('marketing-report.schedules-export');
-        Route::get('/marketing-report/schedules-export-raw', [MarketingReportController::class, 'schedulesExportRaw'])->name('marketing-report.schedules-export-raw');
         Route::get('/api/marketing-report/revenue-projects', [MarketingReportController::class, 'revenueProjects']);
+
+        // 일정 통계 엑셀 — 조회 권한에 더해 엑셀 출력 권한 필요
+        Route::middleware('permission:stats.export')->group(function () {
+            Route::get('/marketing-report/schedules-export', [MarketingReportController::class, 'schedulesExport'])->name('marketing-report.schedules-export');
+            Route::get('/marketing-report/schedules-export-raw', [MarketingReportController::class, 'schedulesExportRaw'])->name('marketing-report.schedules-export-raw');
+        });
     });
 
     // 피드백 보드 (버그 제보/기능 요청, guest 차단)
