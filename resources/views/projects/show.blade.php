@@ -95,6 +95,11 @@
     .step-dot:hover { border-color:var(--accent); color:var(--accent); }
     .step-dot.done { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .step-dot.active { border-color:var(--accent); color:var(--accent); background:var(--surface2); }
+    /* 취소된 프로젝트 — 전 단계 회색·클릭 불가, 취소 시점 단계는 ✕ 표시 */
+    .step-dot.cancelled { background:var(--surface2); border-color:var(--border); color:var(--text-muted); opacity:0.55; cursor:default; pointer-events:none; }
+    .step-dot.cancelled.cancel-point { opacity:0.9; border-color:#a06060; color:#c05050; font-weight:800; }
+    .step-label.cancelled { color:var(--text-muted); opacity:0.6; }
+    .step-label.cancelled.cancel-point { color:#c05050; opacity:0.95; font-weight:700; }
     .step-label { font-size:10px; color:var(--text-muted); }
     .step-label.active { color:var(--accent); font-weight:600; }
 
@@ -443,6 +448,12 @@
         if ($currentIdx === false) {
             $currentIdx = -1;
         }
+        // 취소된 프로젝트 — 전 단계 회색·선택 불가, 취소 시점 단계에 ✕ 표기
+        $isCancelledProject = $project->stage === 'cancelled';
+        $cancelIdx = $isCancelledProject ? array_search($project->cancelled_from_stage, $stageKeys) : false;
+        if ($cancelIdx === false) {
+            $cancelIdx = -1; // 시점 미기록(구데이터)이면 표기 없이 전체 회색만
+        }
     @endphp
 
     @php
@@ -460,7 +471,7 @@
     @endphp
 
     <div class="process-wrap">
-        <div class="process-title">진행 단계 — 클릭하여 변경 (단계별 상세 입력 가능)</div>
+        <div class="process-title">{{ $isCancelledProject ? '진행 단계 — 취소된 프로젝트 (변경하려면 취소 해제)' : '진행 단계 — 클릭하여 변경 (단계별 상세 입력 가능)' }}</div>
         <div class="process-steps">
             @foreach($stages as $key => $label)
             @php
@@ -468,7 +479,13 @@
                 $modalFn = $kindModals[$stageKinds[$key] ?? ''] ?? null;
             @endphp
             <div class="process-step">
-                @if($modalFn)
+                @if($isCancelledProject)
+                    {{-- 취소됨 — 진행했던 단계는 ✓, 취소 시점은 ✕, 나머지는 번호. 전부 회색·클릭 불가 --}}
+                    <button type="button" class="step-dot cancelled {{ $idx === $cancelIdx ? 'cancel-point' : '' }}" disabled
+                        title="{{ $idx === $cancelIdx ? $label.' 단계에서 취소됨' : '취소된 프로젝트 — 단계 변경 불가' }}">
+                        {{ $idx === $cancelIdx ? '✕' : ($cancelIdx >= 0 && $idx < $cancelIdx ? '✓' : $idx + 1) }}
+                    </button>
+                @elseif($modalFn)
                     <button type="button" class="step-dot {{ $idx < $currentIdx ? 'done' : ($idx === $currentIdx ? 'active' : '') }}" title="{{ $label }} — 상세 입력" onclick="{{ $modalFn }}()">
                         {{ $idx < $currentIdx ? '✓' : $idx + 1 }}
                     </button>
@@ -481,7 +498,7 @@
                         </button>
                     </form>
                 @endif
-                <div class="step-label {{ $idx === $currentIdx ? 'active' : '' }}">{{ $label }}</div>
+                <div class="step-label {{ $isCancelledProject ? 'cancelled' : '' }} {{ $isCancelledProject && $idx === $cancelIdx ? 'cancel-point' : '' }} {{ ! $isCancelledProject && $idx === $currentIdx ? 'active' : '' }}">{{ $label }}{{ $isCancelledProject && $idx === $cancelIdx ? ' · 취소' : '' }}</div>
             </div>
             @endforeach
         </div>
@@ -489,7 +506,15 @@
 
     @if($project->stage === 'cancelled' && $project->cancel_reason)
     <div style="background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;">
-        <div style="font-weight:700;color:var(--red);margin-bottom:6px;">⛔ 취소 사유</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+            <div style="font-weight:700;color:var(--red);">⛔ 취소 사유</div>
+            @if(Auth::user()->hasPermission('projects.edit'))
+                @php
+                    $reopenLabel = \App\Models\Project::STAGE_LABELS[$project->cancelled_from_stage] ?? null;
+                @endphp
+                <button type="button" onclick="reopenCancelledProject()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;" title="취소를 해제하고 {{ $reopenLabel ? $reopenLabel.' 단계로' : '진행 상태로' }} 되돌립니다">↺ 취소 해제</button>
+            @endif
+        </div>
         <div style="color:var(--text);">{{ $project->cancel_reason }}</div>
         @if($project->cancel_detail)
             <div style="color:var(--text-muted);margin-top:4px;">{{ $project->cancel_detail }}</div>
@@ -1941,6 +1966,21 @@ async function submitScale() {
     });
     if (res.ok) location.reload();
     else alert('저장 실패');
+}
+
+// 취소 해제 — 취소 시점 단계(미기록이면 첫 단계)로 복구
+async function reopenCancelledProject() {
+    const target = @json($project->cancelled_from_stage ?: ($project->flowStages()[0]['code'] ?? 'consulting'));
+    const targetLabel = @json(\App\Models\Project::STAGE_LABELS[$project->cancelled_from_stage] ?? '진행');
+    if (!confirm(`취소를 해제하고 '${targetLabel}' 단계로 되돌릴까요?`)) return;
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res = await fetch(`/projects/{{ $project->id }}/stage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+        body: JSON.stringify({ stage: target }),
+    });
+    if (res.ok) location.reload();
+    else alert('취소 해제에 실패했습니다.');
 }
 
 // 프로젝트 취소 모달

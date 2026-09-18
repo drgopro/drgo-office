@@ -88,6 +88,34 @@ class ProjectCancelReasonTest extends TestCase
             ->assertSee('type="checkbox" name="cancel_reason"', false);
     }
 
+    public function test_cancelled_project_greys_stage_bar_with_cancel_point_and_reopen(): void
+    {
+        // 취소된 프로젝트 — 프로세스 바 전체 회색·선택 불가, 취소 시점 단계 ✕ 표기 + 취소 해제 버튼
+        $admin = User::factory()->create(['role' => 'admin']);
+        $project = $this->makeProject();
+        $project->update(['stage' => 'payment']);
+        $this->actingAs($admin)->patchJson("/projects/{$project->id}/stage", [
+            'stage' => 'cancelled', 'cancel_reason' => '의뢰자 연락 두절',
+        ])->assertOk();
+
+        $res = $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk();
+        $res->assertSee('취소된 프로젝트 (변경하려면 취소 해제)')
+            ->assertSee('step-dot cancelled', false)          // 회색·비활성 단계 점
+            ->assertSee('cancel-point', false)                 // 취소 시점 강조
+            ->assertSee('결제/예약 단계에서 취소됨', false)     // 시점 툴팁
+            ->assertSee('· 취소', false)                       // 라벨 표기
+            ->assertSee('↺ 취소 해제', false);
+        // 마지막 단계까지 전부 비활성(disabled) — 활성 단계 폼 없음
+        $this->assertStringNotContainsString('name="stage" value="done"', $res->getContent());
+
+        // 취소 해제 — 취소 시점 단계로 복구
+        $this->actingAs($admin)->patchJson("/projects/{$project->id}/stage", ['stage' => 'payment'])->assertOk();
+        $fresh = $project->fresh();
+        $this->assertSame('payment', $fresh->stage);
+        $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk()
+            ->assertDontSee('취소된 프로젝트 (변경하려면 취소 해제)');
+    }
+
     public function test_admin_can_save_reasons_setting(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
