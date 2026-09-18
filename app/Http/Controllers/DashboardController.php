@@ -974,9 +974,9 @@ class DashboardController extends Controller
         $s5->fromArray([
             '의뢰자', '닉네임', '연락처',
             '프로젝트명', '프로젝트 유형', '규모', '작업 유형', '진행 단계',
-            '상담 유형', '진행상황', '내용', '담당자', '상담일',
+            '상담 유형', '진행상황', '내용', '담당자', '상담일', '인입 시간',
         ], null, 'A1');
-        $bold($s5, 'A1:M1');
+        $bold($s5, 'A1:N1');
         $row = 2;
         Consultation::with('client', 'consultant', 'project')
             ->whereBetween('consulted_at', [$fromDt, $toDt])
@@ -999,12 +999,13 @@ class DashboardController extends Controller
                         $c->content,
                         $c->consultant?->display_name,
                         $c->consulted_at?->format('Y-m-d'),
+                        $c->inbound_time, // 인입 시간 (HH:MM, 30분 단위) — 시간대 통계·피벗용
                     ], null, "A{$row}");
                     $row++;
                 }
             });
         // 열 너비 자동 조정
-        foreach (range('A', 'M') as $col) {
+        foreach (range('A', 'N') as $col) {
             $s5->getColumnDimension($col)->setAutoSize(true);
         }
         // 내용 셀 줄바꿈 + 상단 정렬

@@ -13,6 +13,7 @@ class ConsultationController extends Controller
     {
         $validated = $request->validate([
             'consulted_at' => 'required|date',
+            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):(00|30)$/'], // 인입 시간 — 30분 단위 24시간
             'consult_type' => 'required|in:kakao,phone,visit,field',
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',
@@ -40,6 +41,7 @@ class ConsultationController extends Controller
     {
         $validated = $request->validate([
             'consulted_at' => 'required|date',
+            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):(00|30)$/'], // 인입 시간 — 30분 단위 24시간
             'consult_type' => 'required|in:kakao,phone,visit,field',
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',

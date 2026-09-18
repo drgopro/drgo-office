@@ -1172,7 +1172,7 @@
                                 @if($consult->is_important)
                                     <span class="important-mark">⭐</span>
                                 @endif
-                                <span class="consult-date">{{ $consult->consulted_at->format('Y-m-d') }}</span>
+                                <span class="consult-date">{{ $consult->consulted_at->format('Y-m-d') }}{{ $consult->inbound_time ? ' '.$consult->inbound_time : '' }}</span>
                                 <span class="consult-type-badge">
                                     {{ ['kakao'=>'카카오톡','phone'=>'전화','visit'=>'내방상담','field'=>'현장답사'][$consult->consult_type] ?? $consult->consult_type }}
                                 </span>
@@ -1181,7 +1181,7 @@
                                 </span>
                             </div>
                             <div class="consult-actions">
-                                <button class="btn-edit-sm" onclick="openEditModal({{ $consult->id }}, '{{ $consult->consulted_at->format('Y-m-d') }}', '{{ $consult->consult_type }}', '{{ $consult->result }}', {{ $consult->is_important ? 'true' : 'false' }}, @js($consult->content), @js($consult->manager_name))">수정</button>
+                                <button class="btn-edit-sm" onclick="openEditModal({{ $consult->id }}, '{{ $consult->consulted_at->format('Y-m-d') }}', '{{ $consult->consult_type }}', '{{ $consult->result }}', {{ $consult->is_important ? 'true' : 'false' }}, @js($consult->content), @js($consult->manager_name), @js($consult->inbound_time))">수정</button>
                                 <form method="POST" action="{{ route('consultations.destroy', $consult) }}" style="display:inline;">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn-del" onclick="return confirm('삭제할까요?')">삭제</button>
@@ -1395,10 +1395,23 @@
         </div>
         <form method="POST" action="{{ route('consultations.store', $project) }}">
             @csrf
+            @php
+                // 인입 시간 선택지 — 30분 단위 24시간 표기 (00:00 ~ 23:30)
+                $inboundTimes = collect(range(0, 47))->map(fn ($i) => sprintf('%02d:%02d', intdiv($i, 2), ($i % 2) * 30));
+            @endphp
             <div class="field-row">
                 <div class="field-group">
                     <div class="field-label">상담일 *</div>
                     <input class="field-input" type="date" name="consulted_at" value="{{ date('Y-m-d') }}" required>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">인입 시간</div>
+                    <select class="field-select" name="inbound_time" title="상담이 들어온 시간 — 30분 단위 (시간대 통계용)">
+                        <option value="">선택 안 함</option>
+                        @foreach($inboundTimes as $t)
+                            <option value="{{ $t }}">{{ $t }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="field-group">
                     <div class="field-label">상담 유형 *</div>
@@ -1476,6 +1489,15 @@
                 <div class="field-group">
                     <div class="field-label">상담일 *</div>
                     <input class="field-input" type="date" name="consulted_at" id="editDate" required>
+                </div>
+                <div class="field-group">
+                    <div class="field-label">인입 시간</div>
+                    <select class="field-select" name="inbound_time" id="editInboundTime">
+                        <option value="">선택 안 함</option>
+                        @foreach($inboundTimes as $t)
+                            <option value="{{ $t }}">{{ $t }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="field-group">
                     <div class="field-label">상담 유형 *</div>
@@ -1612,9 +1634,10 @@ function toggleDocUpload() {
     if (!showing) form.querySelector('input[type=file], button')?.focus();
 }
 function closeConsultModal() { document.getElementById('consultModal').classList.remove('open'); }
-function openEditModal(id, date, type, result, isImportant, content, managerName) {
+function openEditModal(id, date, type, result, isImportant, content, managerName, inboundTime) {
     document.getElementById('editForm').action = `/consultations/${id}`;
     document.getElementById('editDate').value = date;
+    document.getElementById('editInboundTime').value = inboundTime || '';
     document.getElementById('editType').value = type;
     document.getElementById('editResult').value = result;
     document.getElementById('editContent').value = content || '';

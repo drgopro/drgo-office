@@ -15,6 +15,7 @@ class Consultation extends Model
         'project_id',
         'client_id',
         'consulted_at',
+        'inbound_time',
         'consultant_id',
         'manager_name',
         'author_user_id',
