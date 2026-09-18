@@ -6,6 +6,7 @@ use App\Models\Estimate;
 use App\Models\Inventory;
 use App\Models\OfficeOrder;
 use App\Models\Product;
+use App\Models\ProductBundleItem;
 use App\Models\ScheduleShipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -245,9 +246,36 @@ class OfficeOrderTest extends TestCase
         $row = $this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0');
         $items = collect($row['items']);
         $this->assertSame(3, $items->firstWhere('name', '카메라')['stock']);
+        $this->assertFalse($items->firstWhere('name', '카메라')['stock_buildable']);
         $this->assertSame(7, $items->firstWhere('name', '마이크암')['stock']); // 이름 폴백
         $this->assertNull($items->firstWhere('name', '일회성 케이블')['stock']);
         $this->assertSame(7, $items->firstWhere('name', '방송 세트')['bundle_items'][0]['stock']);
+    }
+
+    public function test_bundle_item_stock_shows_buildable_quantity(): void
+    {
+        // 세트 제품 항목 — 자체 재고 대신 조립 가능 수(min(구성품 재고 ÷ 필요 수량)) 표기 (제품관리와 동일)
+        $cam = Product::create(['sku' => 'CAM-2', 'name' => '카메라', 'sale_price' => 100000, 'is_active' => true]);
+        Inventory::create(['product_id' => $cam->id, 'quantity' => 5, 'last_updated_at' => now()]);
+        $mic = Product::create(['sku' => 'MIC-2', 'name' => '마이크', 'sale_price' => 50000, 'is_active' => true]);
+        Inventory::create(['product_id' => $mic->id, 'quantity' => 3, 'last_updated_at' => now()]);
+        $bundle = Product::create(['sku' => 'SET-1', 'name' => '방송 세트', 'sale_price' => 200000, 'is_active' => true, 'is_bundle' => true]);
+        ProductBundleItem::create(['bundle_product_id' => $bundle->id, 'component_product_id' => $cam->id, 'quantity' => 1]);
+        ProductBundleItem::create(['bundle_product_id' => $bundle->id, 'component_product_id' => $mic->id, 'quantity' => 2]); // min(5/1, 3/2)=1
+
+        Estimate::create([
+            'status' => 'created', 'client_nickname' => '고블린',
+            'product_items' => [
+                ['product_id' => $bundle->id, 'name' => '방송 세트', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000, 'ordered' => true],
+            ],
+            'service_items' => [], 'product_total' => 200000, 'total_amount' => 200000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        $item = collect($this->actingAs($this->admin)->getJson('/api/inventory/office-orders')->assertOk()->json('0.items'))
+            ->firstWhere('name', '방송 세트');
+        $this->assertSame(1, $item['stock']); // 조립 가능 수
+        $this->assertTrue($item['stock_buildable']);
     }
 
     public function test_paid_at_cleared_when_payment_reverted(): void

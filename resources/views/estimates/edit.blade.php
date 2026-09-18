@@ -780,7 +780,7 @@ function filterProducts() {
             </div>
             <div style="text-align:right;">
                 <div class="pi-price">${fmt(p.sale_price)}원</div>
-                <div class="pi-stock ${p.is_low?'low':'ok'}">재고 ${p.quantity}</div>
+                <div class="pi-stock ${p.is_bundle ? (p.buildable > 0 ? 'ok' : 'low') : (p.is_low ? 'low' : 'ok')}">${p.is_bundle ? `조립가능 ${p.buildable ?? 0}` : `재고 ${p.quantity}`}</div>
             </div>
         </div>`;
         }
@@ -815,7 +815,7 @@ function openOptionPicker(groupId) {
             </div>
             <div style="text-align:right;">
                 <div class="pi-price">${fmt(o.sale_price)}원</div>
-                <div class="pi-stock ${o.is_low ? 'low' : 'ok'}">재고 ${o.quantity}</div>
+                <div class="pi-stock ${o.is_bundle ? (o.buildable > 0 ? 'ok' : 'low') : (o.is_low ? 'low' : 'ok')}">${o.is_bundle ? `조립가능 ${o.buildable ?? 0}` : `재고 ${o.quantity}`}</div>
             </div>
         </div>`).join('');
     document.getElementById('optionPickerOverlay').style.display = 'flex';
@@ -997,9 +997,11 @@ async function confirmDirectShipStock(idx, bIdx = null) {
 // 주문/배송 뷰 재고 표시 — 제품 목록(allProds)의 현재고를 항목/구성품 옆에 (미연결·수기 항목은 이름 일치 시)
 function orderStockLine(productId, name, needQty) {
     const p = productId ? allProds.find(x => x.id === productId) : allProds.find(x => x.name === name && !x.is_bundle);
-    if (!p || p.is_bundle) return '';
-    const q = Number(p.quantity ?? 0);
-    return `<div style="font-size:11px; margin-top:3px; white-space:nowrap; color:${q < needQty ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="현재 사무실 재고${q < needQty ? ' — 필요 수량보다 부족' : ''}">재고 ${q}</div>`;
+    if (!p) return '';
+    // 세트 제품은 자체 재고 대신 조립 가능 수 (제품관리 표기와 동일)
+    const q = Number(p.is_bundle ? (p.buildable ?? 0) : (p.quantity ?? 0));
+    const label = p.is_bundle ? '조립가능' : '재고';
+    return `<div style="font-size:11px; margin-top:3px; white-space:nowrap; color:${q < needQty ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="${p.is_bundle ? '세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량)' : '현재 사무실 재고'}${q < needQty ? ' — 필요 수량보다 부족' : ''}">${label} ${q}</div>`;
 }
 // 직접발송 — 사무실에서 발송하는 제품: 주문완료 + 구매처 '사무실 발송' 자동 기록
 async function directShip(idx) {

@@ -873,7 +873,7 @@ class InventoryController extends Controller
 
     public function estimateProducts(Request $request)
     {
-        $query = Product::with('inventory', 'categoryRelation.parent.parent.parent', 'group', 'bundleItems.component')
+        $query = Product::with('inventory', 'categoryRelation.parent.parent.parent', 'group', 'bundleItems.component.inventory')
             ->where('is_active', true)
             ->where('show_in_estimate', true);
 
@@ -906,6 +906,7 @@ class InventoryController extends Controller
                 'sale_price' => $p->sale_price,
                 'purchase_price' => $p->purchase_price,
                 'quantity' => $p->inventory?->quantity ?? 0,
+                'buildable' => $p->buildableQuantity(), // 세트 조립 가능 수 (min(구성품 재고 ÷ 필요 수량)), 세트 아니면 null
                 'safety_stock' => $p->safety_stock,
                 'is_low' => $p->safety_stock && ($p->inventory?->quantity ?? 0) <= $p->safety_stock,
                 'is_service' => $p->isService(), // 서비스/제품 분류 — 담는 순간 스냅샷(item.is_service)에 박제

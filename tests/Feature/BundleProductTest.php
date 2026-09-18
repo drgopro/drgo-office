@@ -271,6 +271,7 @@ class BundleProductTest extends TestCase
         $rows = $this->actingAs($this->master)->getJson('/api/inventory/estimate-products')->assertOk()->json();
         $set = collect($rows)->firstWhere('name', '스트리밍 세트');
         $this->assertTrue($set['is_bundle']);
+        $this->assertSame(1, $set['buildable']); // 조립 가능 수 — min(5/1, 3/2) (견적서 피커·주문/배송 표기용)
         $this->assertSame(['세트용 마이크', '세트용 붐암'], array_column($set['bundle_items'], 'name'));
         $this->assertSame(2, $set['bundle_items'][1]['qty']);
         $this->assertSame(20000, $set['bundle_items'][0]['price']); // 구성품 판매가 포함

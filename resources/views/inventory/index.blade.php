@@ -2106,9 +2106,9 @@ function renderOrderCard(o) {
                     </div>
                 </td></tr>`;
             }
-            // 현재 사무실 재고 칩 — 주문완료/직접발송 판단용 (미연결·미등록 제품은 표시 없음)
-            const stockChip = (stock, qty) => (stock === null || stock === undefined) ? ''
-                : `<span style="font-size:11px; white-space:nowrap; color:${stock < qty ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="현재 사무실 재고${stock < qty ? ' — 필요 수량보다 부족' : ''}">재고 ${stock}</span>`;
+            // 현재 사무실 재고 칩 — 주문완료/직접발송 판단용 (미연결·미등록 제품은 표시 없음, 세트는 조립 가능 수)
+            const stockChip = (stock, qty, buildable) => (stock === null || stock === undefined) ? ''
+                : `<span style="font-size:11px; white-space:nowrap; color:${stock < qty ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="${buildable ? '세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량)' : '현재 사무실 재고'}${stock < qty ? ' — 필요 수량보다 부족' : ''}">${buildable ? '조립가능' : '재고'} ${stock}</span>`;
             html += (o.items||[]).map(it => {
                 // 미주문 항목 — 기입칸은 비활성으로 두고 주문완료/직접발송 버튼으로 먼저 처리 (누르면 활성화)
                 const itemOrdered = o.type !== 'estimate' || !!it.ordered
@@ -2119,7 +2119,7 @@ function renderOrderCard(o) {
                     ? `<td colspan="6"><div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; ${itemOrdered ? '' : 'opacity:0.9;'}">
                        ${itemOrdered ? '' : `<button class="btn-primary btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, false, this)" title="주문완료 처리 — 처리 시각이 기록되고 기입칸이 활성화됩니다">주문완료</button>
                        <button class="btn-outline btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, true, this)" title="사무실 재고로 직접 발송 — 구매처가 '사무실 발송'으로 기록되고 재고가 차감됩니다">직접발송</button>
-                       ${stockChip(it.stock, it.qty)}`}
+                       ${stockChip(it.stock, it.qty, it.stock_buildable)}`}
                        <input class="oi-amt field-input" type="number" min="0" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:118px; text-align:right; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="${it.default_amount ? fmt(it.default_amount) : '구매 금액'}" title="구매 금액 (비우면 미기록 — 흐린 값은 매입가×수량 참고치)" value="${it.amount ?? ''}" onclick="event.stopPropagation()">
                        <input class="oi-src field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:130px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()">
                        <input class="oi-memo field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; flex:1; min-width:80px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
