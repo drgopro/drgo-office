@@ -1420,10 +1420,6 @@
         </div>
         <form method="POST" action="{{ route('consultations.store', $project) }}">
             @csrf
-            @php
-                // 인입 시간 선택지 — 30분 단위 24시간 표기 (00:00 ~ 23:30)
-                $inboundTimes = collect(range(0, 47))->map(fn ($i) => sprintf('%02d:%02d', intdiv($i, 2), ($i % 2) * 30));
-            @endphp
             <div class="field-row">
                 <div class="field-group">
                     <div class="field-label">상담일 *</div>
@@ -1431,12 +1427,21 @@
                 </div>
                 <div class="field-group">
                     <div class="field-label">인입 시간</div>
-                    <select class="field-select" name="inbound_time" title="상담이 들어온 시간 — 30분 단위 (시간대 통계용)">
-                        <option value="">선택 안 함</option>
-                        @foreach($inboundTimes as $t)
-                            <option value="{{ $t }}">{{ $t }}</option>
-                        @endforeach
-                    </select>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <select class="field-select" id="ciHour" onchange="syncInboundTime('ci')" title="인입 시각 (24시간)" style="flex:1;">
+                            <option value="">--</option>
+                            @for($h = 0; $h < 24; $h++)
+                                <option value="{{ sprintf('%02d', $h) }}">{{ sprintf('%02d', $h) }}</option>
+                            @endfor
+                        </select>
+                        <span style="font-size:12px; color:var(--text-muted);">시</span>
+                        <select class="field-select" id="ciMin" onchange="syncInboundTime('ci')" title="분 (30분 단위)" style="flex:1;">
+                            <option value="00">00</option>
+                            <option value="30">30</option>
+                        </select>
+                        <span style="font-size:12px; color:var(--text-muted);">분</span>
+                        <input type="hidden" name="inbound_time" id="ciTime">
+                    </div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">상담 유형 *</div>
@@ -1517,12 +1522,21 @@
                 </div>
                 <div class="field-group">
                     <div class="field-label">인입 시간</div>
-                    <select class="field-select" name="inbound_time" id="editInboundTime">
-                        <option value="">선택 안 함</option>
-                        @foreach($inboundTimes as $t)
-                            <option value="{{ $t }}">{{ $t }}</option>
-                        @endforeach
-                    </select>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <select class="field-select" id="eiHour" onchange="syncInboundTime('ei')" title="인입 시각 (24시간)" style="flex:1;">
+                            <option value="">--</option>
+                            @for($h = 0; $h < 24; $h++)
+                                <option value="{{ sprintf('%02d', $h) }}">{{ sprintf('%02d', $h) }}</option>
+                            @endfor
+                        </select>
+                        <span style="font-size:12px; color:var(--text-muted);">시</span>
+                        <select class="field-select" id="eiMin" onchange="syncInboundTime('ei')" title="분 (30분 단위)" style="flex:1;">
+                            <option value="00">00</option>
+                            <option value="30">30</option>
+                        </select>
+                        <span style="font-size:12px; color:var(--text-muted);">분</span>
+                        <input type="hidden" name="inbound_time" id="eiTime">
+                    </div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">상담 유형 *</div>
@@ -1659,10 +1673,19 @@ function toggleDocUpload() {
     if (!showing) form.querySelector('input[type=file], button')?.focus();
 }
 function closeConsultModal() { document.getElementById('consultModal').classList.remove('open'); }
+// 인입 시간 시/분 셀렉트 → hidden(HH:MM) 조합 — 시를 비우면 미입력
+function syncInboundTime(prefix) {
+    const h = document.getElementById(prefix + 'Hour').value;
+    const m = document.getElementById(prefix + 'Min').value || '00';
+    document.getElementById(prefix + 'Time').value = h === '' ? '' : `${h}:${m}`;
+}
 function openEditModal(id, date, type, result, isImportant, content, managerName, inboundTime) {
     document.getElementById('editForm').action = `/consultations/${id}`;
     document.getElementById('editDate').value = date;
-    document.getElementById('editInboundTime').value = inboundTime || '';
+    const [eiH, eiM] = (inboundTime || '').split(':');
+    document.getElementById('eiHour').value = eiH || '';
+    document.getElementById('eiMin').value = eiM || '00';
+    syncInboundTime('ei');
     document.getElementById('editType').value = type;
     document.getElementById('editResult').value = result;
     document.getElementById('editContent').value = content || '';

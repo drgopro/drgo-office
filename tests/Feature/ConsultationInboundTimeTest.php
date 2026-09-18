@@ -66,12 +66,14 @@ class ConsultationInboundTimeTest extends TestCase
         ])->assertRedirect(route('projects.show', $this->project));
         $this->assertSame('21:30', $consultation->fresh()->inbound_time);
 
-        // 등록/수정 모달 셀렉트(30분 단위 옵션) + 목록에 시간 표시
+        // 등록/수정 모달의 시/분 분리 셀렉트(24시간 + 00/30분) + 목록에 시간 표시
         $this->actingAs($this->admin)->get("/projects/{$this->project->id}")->assertOk()
             ->assertSee('인입 시간')
-            ->assertSee('name="inbound_time"', false)
-            ->assertSee('id="editInboundTime"', false)
-            ->assertSee('<option value="23:30">23:30</option>', false)
+            ->assertSee('id="ciHour"', false)
+            ->assertSee('id="eiHour"', false)
+            ->assertSee('syncInboundTime', false)
+            ->assertSee('<option value="23">23</option>', false)
+            ->assertSee('<option value="30">30</option>', false)
             ->assertSee('21:30'); // 상담 목록 날짜 옆 표시
     }
 
