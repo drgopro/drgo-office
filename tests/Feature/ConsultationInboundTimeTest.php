@@ -6,7 +6,9 @@ use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\Project;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
@@ -100,6 +102,75 @@ class ConsultationInboundTimeTest extends TestCase
     {
         $this->actingAs($this->admin)->get('/marketing-report')->assertOk()
             ->assertSee('기록된 인입 시간이 없습니다');
+    }
+
+    private function configureChannelTalk(): void
+    {
+        config([
+            'services.channeltalk.access_key' => 'test-key',
+            'services.channeltalk.access_secret' => 'test-secret',
+            'services.channeltalk.group' => '테스트그룹',
+        ]);
+    }
+
+    public function test_inbound_suggest_returns_earliest_chat_time_floored_to_half_hour(): void
+    {
+        $this->configureChannelTalk();
+        $this->project->client->update(['channeltalk_user_id' => 'ct-user-1']);
+
+        // 2026-09-18(Asia/Seoul) 챗 2건(09:47, 14:10) + 다른 날짜 1건 → 가장 이른 09:47을 09:30으로 내림
+        $ms = fn (string $dt) => Carbon::parse($dt, config('app.timezone'))->getTimestampMs();
+        Http::fake([
+            'api.channel.io/open/v5/users/ct-user-1/user-chats*' => Http::response(['userChats' => [
+                ['id' => 'c1', 'createdAt' => $ms('2026-09-18 14:10'), 'state' => 'closed'],
+                ['id' => 'c2', 'createdAt' => $ms('2026-09-18 09:47'), 'state' => 'closed'],
+                ['id' => 'c3', 'createdAt' => $ms('2026-09-17 11:00'), 'state' => 'closed'],
+            ]]),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
+            ->assertOk()
+            ->assertJson(['found' => true, 'time' => '09:30', 'chats' => 2]);
+    }
+
+    public function test_inbound_suggest_without_linked_client_skips_channeltalk(): void
+    {
+        $this->configureChannelTalk();
+        Http::fake();
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
+            ->assertOk()
+            ->assertJson(['found' => false]);
+        Http::assertNothingSent();
+    }
+
+    public function test_inbound_suggest_returns_not_found_when_no_chat_on_that_date(): void
+    {
+        $this->configureChannelTalk();
+        $this->project->client->update(['channeltalk_user_id' => 'ct-user-2']);
+
+        Http::fake([
+            'api.channel.io/open/v5/users/ct-user-2/user-chats*' => Http::response(['userChats' => [
+                ['id' => 'c1', 'createdAt' => Carbon::parse('2026-09-10 11:00', config('app.timezone'))->getTimestampMs(), 'state' => 'closed'],
+            ]]),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
+            ->assertOk()
+            ->assertJson(['found' => false]);
+    }
+
+    public function test_project_page_renders_inbound_suggest_script(): void
+    {
+        // 등록 모달 — 상담일 변경/모달 오픈 시 자동 기입 스크립트 + 힌트 영역
+        $this->actingAs($this->admin)->get("/projects/{$this->project->id}")->assertOk()
+            ->assertSee('suggestInboundTime', false)
+            ->assertSee('id="ciAutoHint"', false)
+            ->assertSee('consult-inbound-suggest', false)
+            ->assertSee('ciAutoFilled', false);
     }
 
     public function test_excel_consultation_sheet_includes_inbound_time(): void

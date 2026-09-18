@@ -319,6 +319,7 @@ Route::middleware('auth')->group(function () {
 
     // 상담 이력
     Route::middleware('permission:projects.edit')->group(function () {
+        Route::get('/api/projects/{project}/consult-inbound-suggest', [ConsultationController::class, 'inboundSuggest']);
         Route::post('/projects/{project}/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
         Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
         Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');

@@ -175,6 +175,52 @@ class ChannelTalkClient
     }
 
     /**
+     * 고객의 유저챗 목록 — 상담 인입 시간 자동 기입용 (챗 시작 시각 createdAt 조회).
+     * 최신순 100건이면 상담일 기준 조회에 충분하다.
+     *
+     * @return array{ok:bool, chats?:array<int, array{id:string, created_at:?int, state:string}>, error?:string}
+     */
+    public function userChatsOf(string $ctId): array
+    {
+        if (! $this->isConfigured()) {
+            return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
+        }
+
+        try {
+            $res = Http::timeout(10)->connectTimeout(5)
+                ->withHeaders([
+                    'x-access-key' => config('services.channeltalk.access_key'),
+                    'x-access-secret' => config('services.channeltalk.access_secret'),
+                ])
+                ->get(self::API_BASE.'/users/'.rawurlencode($ctId).'/user-chats', ['limit' => 100, 'sortOrder' => 'desc']);
+        } catch (\Throwable $e) {
+            $this->log('유저챗 조회 실패', $ctId, $e->getMessage());
+
+            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+        }
+
+        if (! $res->successful()) {
+            $this->log('유저챗 조회 실패 HTTP '.$res->status(), $ctId, mb_substr($res->body(), 0, 300));
+
+            return ['ok' => false, 'error' => 'HTTP '.$res->status().': '.mb_substr($res->body(), 0, 160)];
+        }
+
+        $chats = [];
+        foreach ($res->json('userChats') ?? [] as $chat) {
+            $raw = $chat['createdAt'] ?? null;
+            // createdAt은 epoch ms — 혹시 ISO 문자열이 와도 ms로 정규화
+            $createdAt = is_numeric($raw) ? (int) $raw : (is_string($raw) && strtotime($raw) !== false ? strtotime($raw) * 1000 : null);
+            $chats[] = [
+                'id' => (string) ($chat['id'] ?? ''),
+                'created_at' => $createdAt,
+                'state' => (string) ($chat['state'] ?? ''),
+            ];
+        }
+
+        return ['ok' => true, 'chats' => $chats];
+    }
+
+    /**
      * 고객 프로필 갱신 — PATCH /open/users/{id}, 보낸 키만 기존 프로필에 병합된다
      * (오피스가 원본: 연동된 의뢰자 저장 시 오피스 값을 채널톡에 반영).
      *

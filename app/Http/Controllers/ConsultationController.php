@@ -4,11 +4,66 @@ namespace App\Http\Controllers;
 
 use App\Models\Consultation;
 use App\Models\Project;
+use App\Services\ChannelTalkClient;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class ConsultationController extends Controller
 {
+    /**
+     * 상담 등록 시 인입 시간 자동 제안 — 연동 의뢰자의 채널톡 유저챗 중
+     * 해당 날짜에 시작된 챗의 가장 이른 시각을 30분 단위로 내림해 돌려준다.
+     *
+     * @return JsonResponse array{found:bool, time?:string, chats?:int}
+     */
+    public function inboundSuggest(Request $request, Project $project, ChannelTalkClient $channelTalk)
+    {
+        $date = $request->validate(['date' => 'required|date_format:Y-m-d'])['date'];
+
+        $ctId = $project->client?->channeltalk_user_id;
+        if (! $ctId || ! $channelTalk->isConfigured()) {
+            return response()->json(['found' => false]);
+        }
+
+        $result = Cache::remember("ct.inbound.{$ctId}.{$date}", 300, function () use ($channelTalk, $ctId, $date) {
+            $res = $channelTalk->userChatsOf($ctId);
+            if (! ($res['ok'] ?? false)) {
+                return ['found' => false];
+            }
+
+            $earliest = null;
+            $count = 0;
+            foreach ($res['chats'] as $chat) {
+                if ($chat['created_at'] === null) {
+                    continue;
+                }
+                $startedAt = Carbon::createFromTimestampMs($chat['created_at'])->timezone(config('app.timezone'));
+                if ($startedAt->format('Y-m-d') !== $date) {
+                    continue;
+                }
+                $count++;
+                if ($earliest === null || $startedAt->lt($earliest)) {
+                    $earliest = $startedAt;
+                }
+            }
+
+            if ($earliest === null) {
+                return ['found' => false];
+            }
+
+            return [
+                'found' => true,
+                'time' => $earliest->format('H').':'.($earliest->minute >= 30 ? '30' : '00'),
+                'chats' => $count,
+            ];
+        });
+
+        return response()->json($result);
+    }
+
     public function store(Request $request, Project $project)
     {
         $validated = $request->validate([
