@@ -1667,8 +1667,18 @@ function openConsultModal() {
     suggestInboundTime(document.getElementById('ciDate')?.value);
 }
 
-// 채널톡 인입 시간 자동 기입 — 상담일에 시작된 첫 챗 시각을 제안 (등록 모달 전용)
+// 채널톡 인입 시간 자동 기입 — 상담일에 시작된 첫 챗 시각을 그대로 기입 (등록 모달 전용)
 let ciAutoFilled = false;
+// 자동 기입 시 수동 입력폼(시/분 셀렉트) 잠금, 해제 시 30분 단위 외 임시 옵션 제거
+function setInboundLock(locked) {
+    const hourSel = document.getElementById('ciHour');
+    const minSel = document.getElementById('ciMin');
+    hourSel.disabled = locked;
+    minSel.disabled = locked;
+    if (!locked) {
+        [...minSel.options].filter(o => o.dataset.injected).forEach(o => o.remove());
+    }
+}
 async function suggestInboundTime(date) {
     const hourSel = document.getElementById('ciHour');
     const minSel = document.getElementById('ciMin');
@@ -1684,17 +1694,25 @@ async function suggestInboundTime(date) {
     } catch (e) { return; } // 네트워크 오류는 조용히 무시 — 수동 입력으로 진행
     if (data && data.found && data.time) {
         const [h, m] = data.time.split(':');
+        setInboundLock(false); // 이전 임시 옵션 정리 후 다시 채움
         hourSel.value = h;
+        if (![...minSel.options].some(o => o.value === m)) {
+            const opt = new Option(m, m);
+            opt.dataset.injected = '1';
+            minSel.add(opt);
+        }
         minSel.value = m;
-        syncInboundTime('ci');
+        document.getElementById('ciTime').value = data.time;
+        setInboundLock(true);
         ciAutoFilled = true;
         if (hint) {
-            hint.textContent = `채널톡 ${date} 첫 챗 시작 시각(${data.time})으로 자동 기입됨${data.chats > 1 ? ` · 당일 챗 ${data.chats}건` : ''}`;
+            hint.textContent = `채널톡 ${date} 첫 챗 시작 시각(${data.time})으로 자동 기입됨${data.chats > 1 ? ` · 당일 챗 ${data.chats}건` : ''} — 수동 변경 불가`;
             hint.style.display = 'block';
         }
     } else {
-        // 해당 날짜에 챗 기록 없음 — 자동으로 채웠던 값만 해제
+        // 해당 날짜에 챗 기록 없음 — 자동으로 채웠던 값만 해제하고 수동 입력 잠금 해제
         if (ciAutoFilled) {
+            setInboundLock(false);
             hourSel.value = '';
             minSel.value = '00';
             syncInboundTime('ci');
@@ -1724,8 +1742,16 @@ function openEditModal(id, date, type, result, isImportant, content, managerName
     document.getElementById('editForm').action = `/consultations/${id}`;
     document.getElementById('editDate').value = date;
     const [eiH, eiM] = (inboundTime || '').split(':');
+    const eiMinSel = document.getElementById('eiMin');
+    // 채널톡 자동 기입 값은 30분 단위가 아닐 수 있음 — 기존 값 보존용 옵션 추가
+    [...eiMinSel.options].filter(o => o.dataset.injected).forEach(o => o.remove());
+    if (eiM && ![...eiMinSel.options].some(o => o.value === eiM)) {
+        const opt = new Option(eiM, eiM);
+        opt.dataset.injected = '1';
+        eiMinSel.add(opt);
+    }
     document.getElementById('eiHour').value = eiH || '';
-    document.getElementById('eiMin').value = eiM || '00';
+    eiMinSel.value = eiM || '00';
     syncInboundTime('ei');
     document.getElementById('editType').value = type;
     document.getElementById('editResult').value = result;

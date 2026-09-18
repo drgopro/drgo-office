@@ -36,18 +36,23 @@ class ConsultationInboundTimeTest extends TestCase
             'result' => 'in_progress', 'content' => '상담', 'inbound_time' => $time,
         ];
 
-        // 30분 단위 24시간 표기 — 저장
+        // 수동 30분 단위 저장
         $this->actingAs($this->admin)->post("/projects/{$this->project->id}/consultations", $payload('14:30'))
             ->assertRedirect(route('projects.show', $this->project));
         $this->assertSame('14:30', Consultation::latest('id')->first()->inbound_time);
+
+        // 채널톡 자동 기입 — 분 단위 그대로 저장
+        $this->actingAs($this->admin)->post("/projects/{$this->project->id}/consultations", $payload('09:47'))
+            ->assertRedirect(route('projects.show', $this->project));
+        $this->assertSame('09:47', Consultation::latest('id')->first()->inbound_time);
 
         // 미입력 허용
         $this->actingAs($this->admin)->post("/projects/{$this->project->id}/consultations", $payload(null))
             ->assertRedirect(route('projects.show', $this->project));
         $this->assertNull(Consultation::latest('id')->first()->inbound_time);
 
-        // 30분 단위가 아니거나 24시간 밖이면 거부
-        foreach (['14:15', '24:00', '9:00', '14시'] as $bad) {
+        // HH:MM 형식이 아니거나 24시간 밖이면 거부
+        foreach (['24:00', '9:00', '14:60', '14시'] as $bad) {
             $this->actingAs($this->admin)
                 ->postJson("/projects/{$this->project->id}/consultations", $payload($bad))
                 ->assertStatus(422);
@@ -113,12 +118,12 @@ class ConsultationInboundTimeTest extends TestCase
         ]);
     }
 
-    public function test_inbound_suggest_returns_earliest_chat_time_floored_to_half_hour(): void
+    public function test_inbound_suggest_returns_earliest_chat_time_exact(): void
     {
         $this->configureChannelTalk();
         $this->project->client->update(['channeltalk_user_id' => 'ct-user-1']);
 
-        // 2026-09-18(Asia/Seoul) 챗 2건(09:47, 14:10) + 다른 날짜 1건 → 가장 이른 09:47을 09:30으로 내림
+        // 2026-09-18(Asia/Seoul) 챗 2건(09:47, 14:10) + 다른 날짜 1건 → 가장 이른 09:47 그대로
         $ms = fn (string $dt) => Carbon::parse($dt, config('app.timezone'))->getTimestampMs();
         Http::fake([
             'api.channel.io/open/v5/users/ct-user-1/user-chats*' => Http::response(['userChats' => [
@@ -131,7 +136,7 @@ class ConsultationInboundTimeTest extends TestCase
         $this->actingAs($this->admin)
             ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
             ->assertOk()
-            ->assertJson(['found' => true, 'time' => '09:30', 'chats' => 2]);
+            ->assertJson(['found' => true, 'time' => '09:47', 'chats' => 2]);
     }
 
     public function test_inbound_suggest_without_linked_client_skips_channeltalk(): void
@@ -165,12 +170,13 @@ class ConsultationInboundTimeTest extends TestCase
 
     public function test_project_page_renders_inbound_suggest_script(): void
     {
-        // 등록 모달 — 상담일 변경/모달 오픈 시 자동 기입 스크립트 + 힌트 영역
+        // 등록 모달 — 상담일 변경/모달 오픈 시 자동 기입 스크립트 + 힌트 영역 + 수동 입력폼 잠금
         $this->actingAs($this->admin)->get("/projects/{$this->project->id}")->assertOk()
             ->assertSee('suggestInboundTime', false)
             ->assertSee('id="ciAutoHint"', false)
             ->assertSee('consult-inbound-suggest', false)
-            ->assertSee('ciAutoFilled', false);
+            ->assertSee('ciAutoFilled', false)
+            ->assertSee('setInboundLock', false);
     }
 
     public function test_excel_consultation_sheet_includes_inbound_time(): void

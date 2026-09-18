@@ -15,7 +15,7 @@ class ConsultationController extends Controller
 {
     /**
      * 상담 등록 시 인입 시간 자동 제안 — 연동 의뢰자의 채널톡 유저챗 중
-     * 해당 날짜에 시작된 챗의 가장 이른 시각을 30분 단위로 내림해 돌려준다.
+     * 해당 날짜에 시작된 챗의 가장 이른 시각을 그대로(분 단위) 돌려준다.
      *
      * @return JsonResponse array{found:bool, time?:string, chats?:int}
      */
@@ -56,7 +56,7 @@ class ConsultationController extends Controller
 
             return [
                 'found' => true,
-                'time' => $earliest->format('H').':'.($earliest->minute >= 30 ? '30' : '00'),
+                'time' => $earliest->format('H:i'),
                 'chats' => $count,
             ];
         });
@@ -68,7 +68,7 @@ class ConsultationController extends Controller
     {
         $validated = $request->validate([
             'consulted_at' => 'required|date',
-            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):(00|30)$/'], // 인입 시간 — 30분 단위 24시간
+            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'], // 인입 시간 — 수동은 30분 단위 셀렉트, 채널톡 자동 기입은 분 단위 그대로
             'consult_type' => 'required|in:kakao,phone,visit,field',
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',
@@ -96,7 +96,7 @@ class ConsultationController extends Controller
     {
         $validated = $request->validate([
             'consulted_at' => 'required|date',
-            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):(00|30)$/'], // 인입 시간 — 30분 단위 24시간
+            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'], // 인입 시간 — 수동은 30분 단위 셀렉트, 채널톡 자동 기입은 분 단위 그대로
             'consult_type' => 'required|in:kakao,phone,visit,field',
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',
