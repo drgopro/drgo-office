@@ -147,6 +147,7 @@ class MarketingReportController extends Controller
             ->sortKeys();
         $inboundTimeTotal = $inboundByHour->sum();
         $inboundPeakHour = $inboundByHour->isNotEmpty() ? $inboundByHour->sortDesc()->keys()->first() : null;
+        $inboundHourSeries = collect(range(0, 23))->map(fn ($h) => $inboundByHour[$h] ?? 0)->values(); // 차트용 24시간 축
 
         // ── 프로젝트 지표 (규모별 분리) ──
         $projectsByScale = Project::whereBetween('created_at', [$fromDt, $toDt])
@@ -426,7 +427,7 @@ class MarketingReportController extends Controller
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
             'platformMoves', 'platformMoveTrend',
-            'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour',
+            'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour', 'inboundHourSeries',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
             'newProjects', 'settingDone', 'cancelled', 'cancelReasons',
             'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown', 'revenueByProjectType', 'revenueByWorkType',

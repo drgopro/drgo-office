@@ -163,21 +163,7 @@
                 @endif
             </div>
             @if($inboundTimeTotal > 0)
-                @php
-                    $ibMax = $inboundByHour->max();
-                    // 기록이 있는 시간대 범위를 연속으로 (빈 시간대 0건 포함) — 분포 모양이 왜곡되지 않게
-                    $ibHours = range($inboundByHour->keys()->min(), $inboundByHour->keys()->max());
-                @endphp
-                <div class="mk-list">
-                    @foreach($ibHours as $hour)
-                        @php $cnt = $inboundByHour[$hour] ?? 0; @endphp
-                        <div class="mk-bar">
-                            <div class="mk-bar-fill" style="width:{{ $ibMax > 0 ? ($cnt / $ibMax) * 100 : 0 }}%; {{ $hour === $inboundPeakHour ? 'background:rgba(200,122,90,0.42);' : '' }}"></div>
-                            <span class="mk-bar-label">{{ sprintf('%02d시', $hour) }}{{ $hour === $inboundPeakHour ? ' · 피크' : '' }}</span>
-                            <span class="mk-bar-value">{{ $cnt }}건 <span style="color:var(--text-muted); font-weight:400;">({{ round($cnt / $inboundTimeTotal * 100) }}%)</span></span>
-                        </div>
-                    @endforeach
-                </div>
+                <div class="mk-chart-wrap" style="height:200px;"><canvas id="chartInboundHours"></canvas></div>
             @else
                 <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">기록된 인입 시간이 없습니다 — 상담 등록 시 '인입 시간'을 입력하면 여기에 집계됩니다.</div>
             @endif
@@ -738,6 +724,32 @@ new Chart(document.getElementById('chartMonthlyTrend'), {
         }
     }
 });
+
+// 상담 인입 시간대 분포 — 00~23시 전체 축 세로 막대, 피크는 강조색
+@if($inboundTimeTotal > 0)
+new Chart(document.getElementById('chartInboundHours'), {
+    type: 'bar',
+    data: {
+        labels: [...Array(24).keys()].map(h => String(h).padStart(2, '0') + '시'),
+        datasets: [{
+            data: @json($inboundHourSeries),
+            backgroundColor: [...Array(24).keys()].map(h => h === {{ $inboundPeakHour ?? -1 }} ? 'rgba(200,122,90,0.85)' : 'rgba(200,176,138,0.55)'),
+            borderRadius: 3,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: c => ` ${c.parsed.y}건 (${Math.round(c.parsed.y / {{ max(1, $inboundTimeTotal) }} * 100)}%)` } }
+        },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } }
+        }
+    }
+});
+@endif
 
 // ── 총 매출 상세 페이지로 이동 (현재 기간 유지) ──
 function goRevenuePage(){

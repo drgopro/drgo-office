@@ -92,8 +92,8 @@ class ConsultationInboundTimeTest extends TestCase
         $this->actingAs($this->admin)->get('/marketing-report')->assertOk()
             ->assertSee('상담 인입 시간대 분포')
             ->assertSee('피크 14:00~14:59')
-            ->assertSee('14시 · 피크')
-            ->assertSee('10시');
+            ->assertSee('chartInboundHours', false) // 00~23시 세로 막대 차트
+            ->assertSee('[0,0,0,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0]', false); // 10시 1건, 14시 2건
     }
 
     public function test_stats_page_shows_guide_without_inbound_data(): void
