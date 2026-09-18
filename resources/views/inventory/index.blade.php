@@ -2106,9 +2106,6 @@ function renderOrderCard(o) {
                     </div>
                 </td></tr>`;
             }
-            // 현재 사무실 재고 칩 — 주문완료/직접발송 판단용 (미연결·미등록 제품은 표시 없음, 세트는 조립 가능 수)
-            const stockChip = (stock, qty, buildable) => (stock === null || stock === undefined) ? ''
-                : `<span style="font-size:11px; white-space:nowrap; color:${stock < qty ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="${buildable ? '세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량)' : '현재 사무실 재고'}${stock < qty ? ' — 필요 수량보다 부족' : ''}">${buildable ? '조립가능' : '재고'} ${stock}</span>`;
             html += (o.items||[]).map(it => {
                 // 미주문 항목 — 기입칸은 비활성으로 두고 주문완료/직접발송 버튼으로 먼저 처리 (누르면 활성화)
                 const itemOrdered = o.type !== 'estimate' || !!it.ordered
@@ -2223,19 +2220,25 @@ function orderSheetRows() {
                 it.bundle_items.forEach((b, bi) => {
                     const done = !!b.ordered;
                     if (done && !(b.ordered_at || '').startsWith(ts)) return; // 과거 처리분은 시트에서 제외
-                    rows.push({ done, date: o.group_date, name: `${it.name} └ ${b.name}`, qty: b.qty,
+                    rows.push({ done, date: o.group_date, name: `${it.name} └ ${b.name}`, qty: b.qty, stock: b.stock, buildable: false,
                         client: o.client, no: o.no, estId: o.id, index: it.index, bi, source: b.source || '', at: b.ordered_at });
                 });
             } else {
                 const done = !!it.ordered;
                 if (done && !(it.ordered_at || '').startsWith(ts)) return;
-                rows.push({ done, date: o.group_date, name: it.name, qty: it.qty, manual: !!it.manual,
+                rows.push({ done, date: o.group_date, name: it.name, qty: it.qty, manual: !!it.manual, stock: it.stock, buildable: !!it.stock_buildable,
                     client: o.client, no: o.no, estId: o.id, index: it.index, bi: null, source: it.purchase_source || '', at: it.ordered_at });
             }
         });
     });
     // 대기 항목 먼저(오래된 날짜부터 — 밀린 것 위로), 오늘 처리분은 아래
     return rows.sort((a, b) => (a.done - b.done) || String(a.date).localeCompare(String(b.date)) || a.estId - b.estId);
+}
+// 현재 사무실 재고 칩 — 주문완료/직접발송 판단용 (미연결·미등록 제품은 표시 없음, 세트는 조립 가능 수)
+function stockChip(stock, qty, buildable) {
+    if (stock === null || stock === undefined) return '';
+    const short = stock < qty;
+    return `<span style="font-size:11px; white-space:nowrap; color:${short ? 'var(--red, #dc2626)' : 'var(--text-muted)'};" title="${buildable ? '세트 조립 가능 수 — min(구성품 재고 ÷ 필요 수량)' : '현재 사무실 재고'}${short ? ' — 필요 수량보다 부족' : ''}">${buildable ? '조립가능' : '재고'} ${stock}</span>`;
 }
 function renderOrderSheet() {
     const tb = document.getElementById('orderSheetBody');
@@ -2255,7 +2258,7 @@ function renderOrderSheet() {
         out += `<tr style="${r.done ? 'opacity:0.55;' : ''}" data-osrow="${key}">
             <td class="text-muted" style="white-space:nowrap;">${(r.date || '').slice(5)}</td>
             <td class="text-wrap">${_esc(r.name)}${r.manual ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}</td>
-            <td class="text-muted">${r.qty}개</td>
+            <td class="text-muted" style="white-space:nowrap;">${r.qty}개${r.done ? '' : ' ' + stockChip(r.stock, r.qty, r.buildable)}</td>
             <td class="text-muted text-wrap">${_esc(r.client || '-')} · <a href="javascript:void(0)" onclick="window.open('/estimates/${r.estId}/edit','est_${r.estId}')" style="color:var(--accent); text-decoration:none;">#${r.no}</a></td>
             <td>${r.done
                 ? `<span class="text-muted" style="font-size:12px;">${_esc(r.source) || '-'}</span>`

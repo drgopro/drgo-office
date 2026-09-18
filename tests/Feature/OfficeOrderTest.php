@@ -266,7 +266,12 @@ class OfficeOrderTest extends TestCase
         Estimate::create([
             'status' => 'created', 'client_nickname' => '고블린',
             'product_items' => [
-                ['product_id' => $bundle->id, 'name' => '방송 세트', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000, 'ordered' => true],
+                ['product_id' => $bundle->id, 'name' => '방송 세트', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000, 'ordered' => true,
+                    // 구성품 스냅샷 — 표시 이름이 제품명과 달라도 product_id로 재고 매칭
+                    'bundle_items' => [
+                        ['product_id' => $cam->id, 'name' => '캠 (구성품)', 'qty' => 1, 'price' => 100000],
+                        ['product_id' => $mic->id, 'name' => '마이크 (구성품)', 'qty' => 2, 'price' => 50000],
+                    ]],
             ],
             'service_items' => [], 'product_total' => 200000, 'total_amount' => 200000,
             'validity_days' => 3, 'created_by' => $this->admin->id,
@@ -276,6 +281,8 @@ class OfficeOrderTest extends TestCase
             ->firstWhere('name', '방송 세트');
         $this->assertSame(1, $item['stock']); // 조립 가능 수
         $this->assertTrue($item['stock_buildable']);
+        $this->assertSame(5, $item['bundle_items'][0]['stock']); // 구성품은 product_id로 개별 재고
+        $this->assertSame(3, $item['bundle_items'][1]['stock']);
     }
 
     public function test_paid_at_cleared_when_payment_reverted(): void

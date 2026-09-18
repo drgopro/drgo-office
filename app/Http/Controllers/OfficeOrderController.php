@@ -58,8 +58,12 @@ class OfficeOrderController extends Controller
                 || collect($e->product_items ?? [])->contains($isOrdered));
 
         // 제품 정보(메모·서비스 분류·재고) — 노출되는 전 항목의 제품에서 한 번에 조회
+        // 항목 제품 + 세트 구성품 제품까지 — 구성품 재고 칩이 product_id로 정확히 매칭되도록
         $products = Product::with('categoryRelation', 'inventory', 'bundleItems.component.inventory')->whereIn('id', $orderedEstimates
-            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])->pluck('product_id'))
+            ->flatMap(fn (Estimate $e) => collect($e->product_items ?? [])->flatMap(fn ($i) => [
+                $i['product_id'] ?? null,
+                ...collect($i['bundle_items'] ?? [])->pluck('product_id'),
+            ]))
             ->filter()->unique()->values())
             ->get()->keyBy('id');
         $productMemos = $products->map(fn ($p) => $p->memo);
