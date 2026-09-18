@@ -153,6 +153,36 @@
             </div>
         </div>
 
+        {{-- 상담 인입 시간대 분포 — 어느 시간에 상담이 몰리는지 (피크 강조) --}}
+        <div style="margin-top:20px;">
+            <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">
+                상담 인입 시간대 분포
+                <span style="font-weight:400;">· 인입 시간이 기록된 상담 {{ number_format($inboundTimeTotal) }}건 기준</span>
+                @if($inboundPeakHour !== null)
+                    <span style="font-weight:700; color:#c87a5a; margin-left:6px;">피크 {{ sprintf('%02d:00~%02d:59', $inboundPeakHour, $inboundPeakHour) }}</span>
+                @endif
+            </div>
+            @if($inboundTimeTotal > 0)
+                @php
+                    $ibMax = $inboundByHour->max();
+                    // 기록이 있는 시간대 범위를 연속으로 (빈 시간대 0건 포함) — 분포 모양이 왜곡되지 않게
+                    $ibHours = range($inboundByHour->keys()->min(), $inboundByHour->keys()->max());
+                @endphp
+                <div class="mk-list">
+                    @foreach($ibHours as $hour)
+                        @php $cnt = $inboundByHour[$hour] ?? 0; @endphp
+                        <div class="mk-bar">
+                            <div class="mk-bar-fill" style="width:{{ $ibMax > 0 ? ($cnt / $ibMax) * 100 : 0 }}%; {{ $hour === $inboundPeakHour ? 'background:rgba(200,122,90,0.42);' : '' }}"></div>
+                            <span class="mk-bar-label">{{ sprintf('%02d시', $hour) }}{{ $hour === $inboundPeakHour ? ' · 피크' : '' }}</span>
+                            <span class="mk-bar-value">{{ $cnt }}건 <span style="color:var(--text-muted); font-weight:400;">({{ round($cnt / $inboundTimeTotal * 100) }}%)</span></span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">기록된 인입 시간이 없습니다 — 상담 등록 시 '인입 시간'을 입력하면 여기에 집계됩니다.</div>
+            @endif
+        </div>
+
         {{-- 플랫폼 이동 수요 — 의뢰자 플랫폼 변경 로그 기반, 상세 펼침에 누가·언제 --}}
         <div class="mk-two-col" style="margin-top:20px;">
             <div>

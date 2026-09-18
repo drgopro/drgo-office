@@ -139,6 +139,15 @@ class MarketingReportController extends Controller
             ->groupBy('client_id')->having('cnt', '>=', 2)
             ->get()->sum(fn ($r) => $r->cnt - 1);
 
+        // ── 상담 인입 시간대 분포 — 시(00~23) 단위 집계, 피크 시간 확인용 (인입 시간 기록 건만) ──
+        $inboundByHour = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])
+            ->whereNotNull('inbound_time')
+            ->pluck('inbound_time')
+            ->countBy(fn ($t) => (int) substr((string) $t, 0, 2))
+            ->sortKeys();
+        $inboundTimeTotal = $inboundByHour->sum();
+        $inboundPeakHour = $inboundByHour->isNotEmpty() ? $inboundByHour->sortDesc()->keys()->first() : null;
+
         // ── 프로젝트 지표 (규모별 분리) ──
         $projectsByScale = Project::whereBetween('created_at', [$fromDt, $toDt])
             ->select('client_scale', DB::raw('count(*) as cnt'))
@@ -417,7 +426,7 @@ class MarketingReportController extends Controller
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
             'platformMoves', 'platformMoveTrend',
-            'totalConsults', 'reConsultCount',
+            'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
             'newProjects', 'settingDone', 'cancelled', 'cancelReasons',
             'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown', 'revenueByProjectType', 'revenueByWorkType',

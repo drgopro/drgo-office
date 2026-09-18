@@ -77,6 +77,31 @@ class ConsultationInboundTimeTest extends TestCase
             ->assertSee('21:30'); // 상담 목록 날짜 옆 표시
     }
 
+    public function test_stats_page_shows_inbound_hour_distribution_with_peak(): void
+    {
+        // 통계 페이지 — 시간대별 분포 + 피크 시간 강조 (14시 2건 > 10시 1건)
+        $mk = fn (string $time) => Consultation::create([
+            'project_id' => $this->project->id, 'client_id' => $this->project->client_id,
+            'consulted_at' => now(), 'inbound_time' => $time,
+            'consult_type' => 'phone', 'result' => 'done', 'consultant_id' => $this->admin->id,
+        ]);
+        $mk('10:00');
+        $mk('14:00');
+        $mk('14:30'); // 14시대 2건 — 피크
+
+        $this->actingAs($this->admin)->get('/marketing-report')->assertOk()
+            ->assertSee('상담 인입 시간대 분포')
+            ->assertSee('피크 14:00~14:59')
+            ->assertSee('14시 · 피크')
+            ->assertSee('10시');
+    }
+
+    public function test_stats_page_shows_guide_without_inbound_data(): void
+    {
+        $this->actingAs($this->admin)->get('/marketing-report')->assertOk()
+            ->assertSee('기록된 인입 시간이 없습니다');
+    }
+
     public function test_excel_consultation_sheet_includes_inbound_time(): void
     {
         Consultation::create([
