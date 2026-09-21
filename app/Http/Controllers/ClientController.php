@@ -246,6 +246,8 @@ class ClientController extends Controller
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
+            'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
+            'station_addresses.*' => 'nullable|string|max:300',
             'content_types' => 'nullable|array',
             'topic_etc' => 'nullable|string|max:100',
             'broadcast_id' => 'nullable|string|max:100',
@@ -262,6 +264,9 @@ class ClientController extends Controller
             'force_duplicate' => 'nullable|boolean', // 중복 경고 팝업에서 '추가등록' 선택
         ]);
         unset($validated['force_duplicate']);
+        if (array_key_exists('station_addresses', $validated)) {
+            $validated['station_addresses'] = $this->cleanStationAddresses($validated['station_addresses']);
+        }
 
         // 동일 전화번호 중복 방지 — 프런트 팝업이 1차 방어, 서버는 우회 제출 대비 폴백
         if (! $request->boolean('force_duplicate')
@@ -303,6 +308,8 @@ class ClientController extends Controller
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
+            'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
+            'station_addresses.*' => 'nullable|string|max:300',
             'content_types' => 'nullable|array',
             'topic_etc' => 'nullable|string|max:100',
             'broadcast_id' => 'nullable|string|max:100',
@@ -318,10 +325,33 @@ class ClientController extends Controller
             'budget_style' => 'nullable|string|max:500',
         ]);
 
+        if (array_key_exists('station_addresses', $validated)) {
+            $validated['station_addresses'] = $this->cleanStationAddresses($validated['station_addresses']);
+        }
         $client->update($validated);
         ChannelTalkProfileSync::push($client->fresh()); // 연동 의뢰자 수정 → 채널톡 프로필 반영
 
         return redirect()->route('clients.show', $client)->with('success', '수정되었습니다.');
+    }
+
+    /**
+     * 플랫폼별 방송국 주소 정리 — 빈 값 제거, 키(플랫폼명)·값(주소) 트림. 남는 항목 없으면 null.
+     *
+     * @param  array<string, mixed>|null  $raw
+     * @return array<string, string>|null
+     */
+    private function cleanStationAddresses(?array $raw): ?array
+    {
+        $out = [];
+        foreach ($raw ?? [] as $platform => $url) {
+            $platform = trim((string) $platform);
+            $url = trim((string) $url);
+            if ($platform !== '' && $url !== '') {
+                $out[$platform] = $url;
+            }
+        }
+
+        return $out ?: null;
     }
 
     // JSON 상세 API (탭 내 로드)
@@ -409,6 +439,7 @@ class ClientController extends Controller
             'grade' => $client->grade,
             'platforms' => $client->platforms ?? [],
             'platform_etc' => $client->platform_etc,
+            'station_addresses' => $client->station_addresses ?? new \stdClass, // 플랫폼별 방송국 주소
             'content_types' => $client->content_types ?? [],
             'topic_etc' => $client->topic_etc,
             'broadcast_id' => $client->broadcast_id,
@@ -503,6 +534,8 @@ class ClientController extends Controller
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
+            'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
+            'station_addresses.*' => 'nullable|string|max:300',
             'content_types' => 'nullable|array',
             'topic_etc' => 'nullable|string|max:100',
             'broadcast_id' => 'nullable|string|max:100',
@@ -525,6 +558,9 @@ class ClientController extends Controller
                 ->slice(0, 3)->values()->all() ?: null;
         }
 
+        if (array_key_exists('station_addresses', $validated)) {
+            $validated['station_addresses'] = $this->cleanStationAddresses($validated['station_addresses']);
+        }
         // 연락처·주소 열람 권한이 없으면 화면에 빈 값으로 보이므로,
         // 저장 시 기존 값이 빈 값으로 덮어써지지 않게 해당 필드는 제외
         if (! $this->canViewPii()) {
@@ -549,6 +585,8 @@ class ClientController extends Controller
             'client_type' => 'nullable|string|in:personal,enterprise,studio',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
+            'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
+            'station_addresses.*' => 'nullable|string|max:300',
             'content_types' => 'nullable|array',
             'topic_etc' => 'nullable|string|max:100',
             'broadcast_id' => 'nullable|string|max:100',
@@ -569,6 +607,9 @@ class ClientController extends Controller
             'force_duplicate' => 'nullable|boolean', // 중복 경고 팝업에서 '추가등록' 선택
         ]);
         unset($validated['force_duplicate']);
+        if (array_key_exists('station_addresses', $validated)) {
+            $validated['station_addresses'] = $this->cleanStationAddresses($validated['station_addresses']);
+        }
 
         // 동일 전화번호 중복 방지 — 409로 기존 의뢰자 정보를 돌려주면 프런트가 팝업 표시
         if (! $request->boolean('force_duplicate')

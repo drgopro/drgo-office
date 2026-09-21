@@ -404,6 +404,7 @@
                     <div class="ncm-card-head"><span class="ncm-no">01</span><span class="ncm-title">플랫폼 / 방송 정보</span><span class="ncm-cnt"></span></div>
                     <div class="ncm-label">플랫폼</div>
                     <div id="ncPlatformsWrap"></div>
+                    <div id="stationAddrWrap-nc"></div>
                     <div class="ncm-label" style="margin-top:16px;">방송 주제</div>
                     <div id="ncTopicsWrap"></div>
                     <div class="ncm-grid2" style="margin-top:16px;">
@@ -618,6 +619,43 @@ function platformAvatarIcon(platforms){
 }
 const TOPIC_OPTIONS = ['소통','게임','노래','먹방','야외','버추얼','코인','주식','기타','미정'];
 
+// 플랫폼별 방송국 주소 예시 — 입력폼 placeholder
+const STATION_ADDR_EXAMPLES = {
+    'SOOP':'https://www.sooplive.com/station/아이디',
+    '유튜브':'https://www.youtube.com/@채널명',
+    '치지직':'https://chzzk.naver.com/채널ID',
+    '틱톡':'https://www.tiktok.com/@아이디',
+    '팬더티비':'https://www.pandalive.co.kr/아이디',
+};
+
+// 선택한 플랫폼 수만큼 방송국 주소 입력폼 (키=플랫폼명, 값=주소)
+function stationAddrInputsHtml(selected, values) {
+    if (!selected.length) return '';
+    return `<div class="ncm-label" style="margin-top:16px;">방송국 주소</div>` + selected.map(p => `
+        <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+            <span style="flex:0 0 96px; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden;">${platformLabelHtml(p)}</span>
+            <input type="text" class="field-input" data-station-plat="${_esc(p)}" value="${_esc(values[p]||'')}" placeholder="${_esc(STATION_ADDR_EXAMPLES[p] || 'https://... 채널 주소')}" style="flex:1;">
+        </div>`).join('');
+}
+function renderStationAddrWrap(id, platforms, addresses) {
+    return `<div id="stationAddrWrap-${id}">${stationAddrInputsHtml(platforms || [], addresses || {})}</div>`;
+}
+// 플랫폼 체크 변경 시 주소 입력폼 재구성 — 입력 중이던 값은 유지
+function syncStationAddrInputs(id) {
+    const wrap = document.getElementById(`stationAddrWrap-${id}`);
+    if (!wrap) return;
+    const selected = collectCheckboxGroup('platforms', id).values;
+    wrap.innerHTML = stationAddrInputsHtml(selected, collectStationAddresses(id, true));
+}
+function collectStationAddresses(id, keepAll) {
+    const out = {};
+    document.querySelectorAll(`#stationAddrWrap-${id} input[data-station-plat]`).forEach(i => {
+        const v = i.value.trim();
+        if (v || keepAll) out[i.dataset.stationPlat] = v;
+    });
+    return out;
+}
+
 function renderCheckboxGroup(group, id, options, selected, etcText) {
     const sel = new Set(selected || []);
     const hasEtc = sel.has('기타');
@@ -630,7 +668,9 @@ function renderCheckboxGroup(group, id, options, selected, etcText) {
         </label>`;
     }).join('');
     const etcInput = `<input type="text" class="field-input" id="f-${group}-etc-${id}" value="${(etcText||'').replace(/"/g,'&quot;')}" placeholder="기타 내용 입력" style="margin-top:8px; display:${hasEtc?'block':'none'};">`;
-    return `<div class="chk-group" id="chkgroup-${group}-${id}" onchange="syncChipState(this)">${items}</div>${etcInput}`;
+    // 플랫폼 그룹은 선택 변경 시 방송국 주소 입력폼도 재구성
+    const extraSync = group === 'platforms' ? `;syncStationAddrInputs('${id}')` : '';
+    return `<div class="chk-group" id="chkgroup-${group}-${id}" onchange="syncChipState(this)${extraSync}">${items}</div>${etcInput}`;
 }
 
 // 라디오 pill 그룹 — 캘린더와 동일한 버튼형 단일 선택 (options: [{value,label}] 또는 문자열 배열)
@@ -1066,6 +1106,7 @@ function renderClientContent(id) {
                     <div class="ncm-card-head"><span class="ncm-no">01</span><span class="ncm-title">플랫폼 / 방송 정보</span><span class="ncm-cnt"></span></div>
                     <div class="ncm-label">플랫폼</div>
                     ${renderCheckboxGroup('platforms', id, PLATFORM_OPTIONS, d.platforms||[], d.platform_etc||'')}
+                    ${renderStationAddrWrap(id, d.platforms||[], d.station_addresses||{})}
                     <div class="ncm-label" style="margin-top:16px;">방송 주제</div>
                     ${renderCheckboxGroup('topics', id, TOPIC_OPTIONS, d.content_types||[], d.topic_etc||'')}
                     <div class="ncm-grid2" style="margin-top:16px;">
@@ -1806,6 +1847,7 @@ async function saveClient(id) {
             return {
                 platforms: p.values,
                 platform_etc: p.values.includes('기타') ? p.etc : null,
+                station_addresses: collectStationAddresses(id),
                 content_types: t.values,
                 topic_etc: t.values.includes('기타') ? t.etc : null,
             };
@@ -1866,6 +1908,7 @@ function openNewClientModal() {
     document.querySelectorAll('#newClientOverlay select').forEach(el => { el.selectedIndex = 0; });
     // 체크박스 그룹 렌더 (id='nc')
     document.getElementById('ncPlatformsWrap').innerHTML = renderCheckboxGroup('platforms', 'nc', PLATFORM_OPTIONS, [], '');
+    document.getElementById('stationAddrWrap-nc').innerHTML = ''; // 방송국 주소 입력폼 초기화
     document.getElementById('ncTopicsWrap').innerHTML = renderCheckboxGroup('topics', 'nc', TOPIC_OPTIONS, [], '');
     // 헤더 날짜 + 작성 현황 초기화
     const n = new Date();
@@ -2049,6 +2092,7 @@ async function ctPick(u) {
     }
     // 방송 플랫폼/주제 — 오피스 선택지로 매핑된 값 + 미지원은 기타 텍스트
     ctSetCheckGroup('platforms', u.platforms, u.platform_etc);
+    syncStationAddrInputs('nc'); // 프로그램으로 체크한 플랫폼은 change 이벤트가 없어 직접 재구성
     ctSetCheckGroup('topics', u.content_types, u.topic_etc);
     // 경력 — 처음/초보/경력으로 근사 매핑된 값만 (원문이 다르면 특이사항에 남김)
     const careerSel = document.getElementById('ncCareer');
@@ -2098,6 +2142,7 @@ async function createClient(forceDuplicate = false) {
         client_type: document.getElementById('ncClientType').value || null,
         platforms: p.values,
         platform_etc: p.values.includes('기타') ? p.etc : null,
+        station_addresses: collectStationAddresses('nc'),
         content_types: t.values,
         topic_etc: t.values.includes('기타') ? t.etc : null,
         broadcast_id: document.getElementById('ncBroadcastId').value.trim() || null,
@@ -2260,9 +2305,21 @@ function renderClientView(d) {
     const platChips = platforms.length
         ? `<div class="cv-chips">${platforms.map(p => `<span class="cv-chip cv-plat">${(typeof PLATFORM_ICONS !== 'undefined' && PLATFORM_ICONS[p]) ? `<img src="${PLATFORM_ICONS[p]}" alt="">` : ''}${_esc(p)}</span>`).join('')}</div>`
         : '<div class="cv-v dim">—</div>';
+    // 방송국 주소 — 플랫폼별 링크 (새 탭)
+    const stationEntries = Object.entries(d.station_addresses || {});
+    const stationRows = stationEntries.length
+        ? stationEntries.map(([p, url]) => {
+            const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+            return `<div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span class="cv-chip cv-plat" style="flex:0 0 auto;">${(typeof PLATFORM_ICONS !== 'undefined' && PLATFORM_ICONS[p]) ? `<img src="${PLATFORM_ICONS[p]}" alt="">` : ''}${_esc(p)}</span>
+                <a href="${_esc(href)}" target="_blank" rel="noopener" style="font-size:13px; color:var(--accent); word-break:break-all;">${_esc(url)}</a>
+            </div>`;
+        }).join('')
+        : '<div class="cv-v dim">—</div>';
     const broadcast = `<div class="cv-grid">
         <div><div class="cv-l">플랫폼</div>${platChips}</div>
         <div><div class="cv-l">방송 주제</div>${cvChips(topics, false)}</div>
+        <div style="grid-column:span 2;"><div class="cv-l">방송국 주소</div>${stationRows}</div>
         ${cvField('방송 아이디', d.broadcast_id)}
         ${cvField('방송 경력', d.career)}
         ${cvField('의뢰자 성격', d.personality, false, '미입력')}
