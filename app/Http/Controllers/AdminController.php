@@ -6,14 +6,81 @@ use App\Models\LoginLog;
 use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
+    /**
+     * 서버 디스크 사용량 — 관리 페이지 '서버 상태' 탭.
+     * 폴더별 사용량(du)은 파일이 많으면 느려 5분 캐시, ?refresh=1로 강제 갱신.
+     *
+     * @return JsonResponse array{total:int, free:int, used:int, used_percent:int, dirs:array<int, array{name:string, label:string, size:?int}>, checked_at:string}
+     */
+    public function serverStatus(Request $request)
+    {
+        if ($request->boolean('refresh')) {
+            Cache::forget('admin.server-status');
+        }
+
+        return response()->json(Cache::remember('admin.server-status', 300, function () {
+            $path = base_path();
+            $total = (int) (@disk_total_space($path) ?: 0);
+            $free = (int) (@disk_free_space($path) ?: 0);
+            $used = max(0, $total - $free);
+
+            // 저장 폴더별 사용량 — storage/app 하위 + 로그 + 프레임워크 캐시
+            $labels = [
+                'backups' => 'DB 백업', 'thumbs' => '썸네일 캐시', 'schedules' => '캘린더 첨부',
+                'projects' => '프로젝트 첨부', 'clients' => '의뢰자 문서', 'feedback' => '피드백 첨부',
+                'wiki' => '위키 첨부', 'estimates' => '견적서 파일', 'public' => '공개 파일',
+                'private' => '비공개 파일', 'livewire-tmp' => '업로드 임시', 'logs' => '로그',
+                'framework' => '프레임워크 캐시', 'seller' => '판매처 설정 파일',
+            ];
+            $targets = collect(glob(storage_path('app/*'), GLOB_ONLYDIR) ?: [])
+                ->push(storage_path('logs'), storage_path('framework'))
+                ->filter(fn ($d) => is_dir($d))->unique()->values();
+
+            $sizes = [];
+            if ($targets->isNotEmpty()) {
+                try {
+                    // du 한 번에 조회 (리눅스) — 실패/타임아웃 시 크기 미표시로 폴백
+                    $result = Process::timeout(20)->run(array_merge(['du', '-sb', '--'], $targets->all()));
+                    if ($result->successful()) {
+                        foreach (explode("\n", trim($result->output())) as $line) {
+                            if (preg_match('/^(\d+)\s+(.+)$/', trim($line), $m)) {
+                                $sizes[$m[2]] = (int) $m[1];
+                            }
+                        }
+                    }
+                } catch (\Throwable) {
+                    // du 미지원 환경 — 크기 없이 폴더 목록만
+                }
+            }
+
+            $dirs = $targets->map(fn ($dir) => [
+                'name' => basename($dir),
+                'label' => $labels[basename($dir)] ?? basename($dir),
+                'size' => $sizes[$dir] ?? null,
+            ])->sortByDesc(fn ($d) => $d['size'] ?? -1)->values()->all();
+
+            return [
+                'total' => $total,
+                'free' => $free,
+                'used' => $used,
+                'used_percent' => $total > 0 ? (int) round($used / $total * 100) : 0,
+                'dirs' => $dirs,
+                'checked_at' => now()->format('Y-m-d H:i'),
+            ];
+        }));
+    }
+
     public function index()
     {
         $logs = LoginLog::with('user')

@@ -230,6 +230,7 @@
         <button class="tab-btn" data-tab="users">사용자 관리</button>
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
+        <button class="tab-btn" data-tab="server">서버 상태</button>
         <button class="tab-btn" data-tab="settings"><x-icon name="gear" :size="14"/> 설정</button>
     </div>
 
@@ -613,6 +614,29 @@
             <button class="btn-add" style="margin-bottom:0;" onclick="openAssigneeModal(null)">+ 외부 담당자 추가</button>
         </div>
         <div id="assigneesContainer"></div>
+    </div>
+
+    {{-- 서버 상태 — 디스크 사용량 + 저장 폴더별 용량 --}}
+    <div class="tab-panel" id="panel-server">
+        <div class="cf-section">
+            <div class="cf-section-head">
+                <span class="cf-section-title">서버 디스크 사용량</span>
+                <span class="cf-section-count" id="svrCheckedAt"></span>
+                <button class="btn-add" style="margin-left:auto; margin-bottom:0;" onclick="loadServerStatus(true)">새로고침</button>
+            </div>
+            <div id="svrDiskBody"><div class="cf-hint">불러오는 중…</div></div>
+        </div>
+        <div class="cf-section">
+            <div class="cf-section-head">
+                <span class="cf-section-title">저장 폴더별 사용량</span>
+                <span class="cf-section-count">storage 기준</span>
+            </div>
+            <div id="svrDirsBody"><div class="cf-hint">불러오는 중…</div></div>
+        </div>
+        <div class="cf-hint" style="margin-top:4px;">
+            사용률 80% 초과 시 매일 오전 8시 관리자에게 알림이 발송됩니다.
+            디스크가 가득 차면 파일 업로드·DB 백업이 실패하니 'DB 백업'·'썸네일 캐시' 등 큰 폴더부터 정리하세요.
+        </div>
     </div>
 
     {{-- 담당자 추가/편집 모달 --}}
@@ -1040,6 +1064,49 @@ function renderPermToggles(containerId, activePerms = []) {
 
 let teamsList = [];
 
+// ── 서버 상태 (디스크 사용량) ──
+let svrLoaded = false;
+function svrFmtBytes(b) {
+    if (b === null || b === undefined) return '—';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let v = b, i = 0;
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    return (i === 0 || v >= 100 ? Math.round(v) : v.toFixed(1)) + ' ' + units[i];
+}
+async function loadServerStatus(refresh = false) {
+    if (svrLoaded && !refresh) return; // 탭 재진입 시 캐시 유지 — 새로고침 버튼으로 갱신
+    const diskBody = document.getElementById('svrDiskBody');
+    const dirsBody = document.getElementById('svrDirsBody');
+    if (refresh) diskBody.innerHTML = '<div class="cf-hint">다시 계산하는 중… (폴더가 크면 수십 초 걸릴 수 있습니다)</div>';
+    try {
+        const res = await fetch('/api/admin/server-status' + (refresh ? '?refresh=1' : ''), { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        svrLoaded = true;
+        document.getElementById('svrCheckedAt').textContent = d.checked_at + ' 기준';
+        const pct = d.used_percent;
+        const barColor = pct >= 85 ? 'var(--red, #e05d5d)' : (pct >= 70 ? '#d9a441' : 'var(--green, #4caf82)');
+        const warn = pct >= 85
+            ? '<div style="margin-top:10px; font-size:12px; color:var(--red, #e05d5d); font-weight:600;">디스크가 거의 가득 찼습니다 — 파일 업로드가 실패할 수 있습니다. 아래 큰 폴더부터 정리하세요.</div>'
+            : (pct >= 70 ? '<div style="margin-top:10px; font-size:12px; color:#d9a441;">사용률이 높아지고 있습니다 — 주기적으로 백업·캐시를 정리하세요.</div>' : '');
+        diskBody.innerHTML = `
+            <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
+                <span style="font-size:26px; font-weight:700; color:${barColor};">${pct}%</span>
+                <span style="font-size:13px; color:var(--text-muted);">사용 ${svrFmtBytes(d.used)} / 전체 ${svrFmtBytes(d.total)} · <b style="color:var(--text);">남은 용량 ${svrFmtBytes(d.free)}</b></span>
+            </div>
+            <div style="margin-top:10px; height:10px; background:var(--surface2); border-radius:6px; overflow:hidden;">
+                <div style="width:${Math.min(100, pct)}%; height:100%; background:${barColor}; border-radius:6px;"></div>
+            </div>${warn}`;
+        dirsBody.innerHTML = (d.dirs || []).length
+            ? `<table class="data-table"><thead><tr><th>폴더</th><th>용도</th><th style="text-align:right;">용량</th></tr></thead><tbody>${d.dirs.map(x => `
+                <tr><td style="font-family:monospace; font-size:12px;">${x.name}</td><td>${x.label}</td><td style="text-align:right; font-weight:600;">${svrFmtBytes(x.size)}</td></tr>`).join('')}</tbody></table>`
+            : '<div class="cf-hint">폴더 정보를 가져오지 못했습니다.</div>';
+    } catch (e) {
+        diskBody.innerHTML = '<div class="cf-hint">서버 상태를 불러오지 못했습니다: ' + e.message + '</div>';
+        dirsBody.innerHTML = '';
+    }
+}
+
 // ── 탭 전환 ──
 document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1050,6 +1117,7 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'users') loadUsers();
         if (tab === 'teams') loadTeams();
         if (tab === 'assignees') loadAssigneesAdmin();
+        if (tab === 'server') loadServerStatus();
         if (tab === 'settings') {
             const last = sessionStorage.getItem('drgo_admin_setting_subtab') || 'clientFields';
             switchSettingsSubTab(last);

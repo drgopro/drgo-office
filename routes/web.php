@@ -536,6 +536,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/import/{type}', [ExcelImportController::class, 'import']);
 
         Route::get('/admin', [AdminController::class, 'index'])->name('admin');
+        Route::get('/api/admin/server-status', [AdminController::class, 'serverStatus']);
         Route::get('/api/settings', [AdminController::class, 'settings']);
         Route::post('/api/settings', [AdminController::class, 'updateSettings']);
         Route::post('/api/admin/seller-stamp', [AdminController::class, 'uploadSellerStamp']);
