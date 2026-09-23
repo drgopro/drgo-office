@@ -18,6 +18,10 @@
     .data-table { width:100%; border-collapse:collapse; }
     /* 중간 해상도에서 셀 내용이 줄바꿈으로 깨지지 않도록 — 좁으면 카드가 가로 스크롤 */
     .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+    /* 프리셋 드래그 정렬 — 견적 빌더와 동일한 ⠿ 핸들 */
+    .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
+    .drag-handle:active { cursor:grabbing; }
+    #presetBody tr.drag-src td { opacity:0.35; }
     .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--surface2); }
@@ -93,6 +97,7 @@
 
         /* 프리셋: 제목 / 금액·품목수 / 작성자·수정일 / 버튼 */
         #presetBody td:nth-child(1) { order:0; flex-basis:100%; font-size:14.5px; }
+        #presetBody td:nth-child(1) .drag-handle { display:none; } /* 모바일 — HTML5 드래그 미지원이라 핸들 숨김 */
         #presetBody td:nth-child(3) { order:1; font-size:16px; font-weight:800; color:var(--navy, var(--text)); }
         #presetBody td:nth-child(2) { order:2; }
         #presetBody tr::after { content:""; order:3; flex-basis:100%; }
@@ -454,8 +459,8 @@ async function loadPresets() {
         tb.innerHTML = '<tr><td colspan="6" class="empty-row">저장된 프리셋이 없습니다. 우측 상단 [+ 프리셋 만들기] 또는 견적서 편집 화면의 [현재 품목을 프리셋으로 저장]으로 만들 수 있습니다.</td></tr>';
         return;
     }
-    tb.innerHTML = PRESETS.map(p => `<tr>
-        <td style="font-weight:600;">${_esc(p.title)}</td>
+    tb.innerHTML = PRESETS.map(p => `<tr data-preset-id="${p.id}">
+        <td style="font-weight:600;">${CAN_EST_EDIT ? `<span class="drag-handle" draggable="true" data-drag-preset="${p.id}" title="드래그해서 프리셋 순서 변경">⠿</span> ` : ''}${_esc(p.title)}</td>
         <td class="text-muted">${p.item_count}개</td>
         <td class="text-right" style="font-weight:600;">${fmt(p.total)}원</td>
         <td class="text-muted">${_esc(p.creator || '-')}</td>
@@ -466,6 +471,42 @@ async function loadPresets() {
         </div>` : ''}</td>
     </tr>`).join('');
 }
+
+// 프리셋 드래그 정렬 — 견적 빌더 프리셋 패널과 동일. 놓으면 즉시 저장돼 모든 화면에 반영
+let __dragPresetRow = null;
+(function () {
+    const tb = document.getElementById('presetBody');
+    if (!tb) return;
+    tb.addEventListener('dragstart', e => {
+        const h = e.target.closest('[data-drag-preset]');
+        if (!h) return;
+        __dragPresetRow = h.closest('tr');
+        __dragPresetRow.classList.add('drag-src');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    tb.addEventListener('dragover', e => {
+        if (!__dragPresetRow) return;
+        e.preventDefault();
+        const over = e.target.closest('#presetBody tr[data-preset-id]');
+        if (!over || over === __dragPresetRow) return;
+        const r = over.getBoundingClientRect();
+        if (e.clientY > r.top + r.height / 2) over.after(__dragPresetRow); else over.before(__dragPresetRow);
+    });
+    tb.addEventListener('drop', async e => {
+        if (!__dragPresetRow) return;
+        e.preventDefault();
+        __dragPresetRow.classList.remove('drag-src');
+        __dragPresetRow = null;
+        const ids = [...tb.querySelectorAll('tr[data-preset-id]')].map(el => +el.dataset.presetId);
+        PRESETS.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+        try {
+            await fetch('/api/estimate-presets/reorder', { method: 'POST', headers: H, body: JSON.stringify({ ids }) });
+        } catch (err) { /* 저장 실패 시 다음 로드에서 서버 순서로 복원 */ }
+    });
+    tb.addEventListener('dragend', () => {
+        if (__dragPresetRow) { __dragPresetRow.classList.remove('drag-src'); __dragPresetRow = null; }
+    });
+})();
 
 // 프리셋 만들기/수정 — 견적서 편집과 동일한 레이아웃의 새 창
 function openPresetModal(id) {

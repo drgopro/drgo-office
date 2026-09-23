@@ -64,6 +64,14 @@ class EstimatePresetReorderTest extends TestCase
         $this->assertSame(['신규', 'A', 'B'], $titles->all());
     }
 
+    public function test_estimates_page_renders_preset_table_drag_scripts(): void
+    {
+        // 견적서 목록 프리셋 탭 — 표에서도 드래그 정렬 (빌더 패널과 동일 API)
+        $this->actingAs($this->admin)->get('/estimates')->assertOk()
+            ->assertSee('data-drag-preset', false)
+            ->assertSee('/api/estimate-presets/reorder', false);
+    }
+
     public function test_reorder_requires_edit_permission_and_validates_ids(): void
     {
         $guest = User::factory()->create(['role' => 'guest']);
