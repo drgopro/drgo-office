@@ -18,10 +18,11 @@
     .data-table { width:100%; border-collapse:collapse; }
     /* 중간 해상도에서 셀 내용이 줄바꿈으로 깨지지 않도록 — 좁으면 카드가 가로 스크롤 */
     .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
-    /* 프리셋 드래그 정렬 — 견적 빌더와 동일한 ⠿ 핸들 */
+    /* 프리셋 드래그 정렬 — 견적 빌더와 동일한 ⠿ 핸들, '순서 변경' 토글로 열고 잠금 */
     .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
     .drag-handle:active { cursor:grabbing; }
     #presetBody tr.drag-src td { opacity:0.35; }
+    #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--navy, #1d2d3d); color:#fff; border-color:var(--navy, #1d2d3d); }
     .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--surface2); }
@@ -133,6 +134,9 @@
     </div>
 
     <div id="tabPresets" style="display:none;">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;" id="presetSortToolbar">
+            <button class="btn-act" id="btnPresetSort" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">순서 변경</button>
+        </div>
         <div class="data-card">
             <table class="data-table">
                 <thead><tr><th>프리셋 제목</th><th>품목 수</th><th class="text-right">합계 금액</th><th>작성자</th><th>최근 수정</th><th></th></tr></thead>
@@ -451,16 +455,30 @@ function setEstTab(tab) {
     }
 }
 
+// 프리셋 순서 변경 모드 — '순서 변경' 버튼으로 열고 잠금 (견적 빌더 프리셋 패널과 상태 공유)
+let presetSortMode = localStorage.getItem('estPresetSortMode') === '1';
+function togglePresetSortMode() {
+    presetSortMode = !presetSortMode;
+    try { localStorage.setItem('estPresetSortMode', presetSortMode ? '1' : '0'); } catch (e) {}
+    document.getElementById('btnPresetSort')?.classList.toggle('on', presetSortMode);
+    renderPresetRows();
+}
+document.getElementById('btnPresetSort')?.classList.toggle('on', presetSortMode);
+if (!CAN_EST_EDIT) document.getElementById('presetSortToolbar').style.display = 'none';
+
 async function loadPresets() {
     const res = await fetch('/api/estimate-presets', { headers: { 'Accept': 'application/json' } });
     PRESETS = res.ok ? await res.json() : [];
+    renderPresetRows();
+}
+function renderPresetRows() {
     const tb = document.getElementById('presetBody');
     if (!PRESETS.length) {
         tb.innerHTML = '<tr><td colspan="6" class="empty-row">저장된 프리셋이 없습니다. 우측 상단 [+ 프리셋 만들기] 또는 견적서 편집 화면의 [현재 품목을 프리셋으로 저장]으로 만들 수 있습니다.</td></tr>';
         return;
     }
     tb.innerHTML = PRESETS.map(p => `<tr data-preset-id="${p.id}">
-        <td style="font-weight:600;">${CAN_EST_EDIT ? `<span class="drag-handle" draggable="true" data-drag-preset="${p.id}" title="드래그해서 프리셋 순서 변경">⠿</span> ` : ''}${_esc(p.title)}</td>
+        <td style="font-weight:600;">${CAN_EST_EDIT && presetSortMode ? `<span class="drag-handle" draggable="true" data-drag-preset="${p.id}" title="드래그해서 프리셋 순서 변경">⠿</span> ` : ''}${_esc(p.title)}</td>
         <td class="text-muted">${p.item_count}개</td>
         <td class="text-right" style="font-weight:600;">${fmt(p.total)}원</td>
         <td class="text-muted">${_esc(p.creator || '-')}</td>

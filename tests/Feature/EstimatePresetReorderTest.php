@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Estimate;
 use App\Models\EstimatePreset;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,10 +67,22 @@ class EstimatePresetReorderTest extends TestCase
 
     public function test_estimates_page_renders_preset_table_drag_scripts(): void
     {
-        // 견적서 목록 프리셋 탭 — 표에서도 드래그 정렬 (빌더 패널과 동일 API)
+        // 견적서 목록 프리셋 탭 — '순서 변경' 토글로 드래그 정렬을 열고 잠금 (빌더 패널과 동일 API)
         $this->actingAs($this->admin)->get('/estimates')->assertOk()
             ->assertSee('data-drag-preset', false)
-            ->assertSee('/api/estimate-presets/reorder', false);
+            ->assertSee('/api/estimate-presets/reorder', false)
+            ->assertSee('id="btnPresetSort"', false)
+            ->assertSee('togglePresetSortMode', false);
+    }
+
+    public function test_builder_page_renders_preset_sort_toggle(): void
+    {
+        $estimate = Estimate::create(['status' => 'created', 'product_items' => [], 'service_items' => [], 'total_amount' => 0, 'created_by' => $this->admin->id]);
+
+        $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk()
+            ->assertSee('id="btnPresetSort"', false)
+            ->assertSee('togglePresetSortMode', false)
+            ->assertSee('presetSortMode', false);
     }
 
     public function test_reorder_requires_edit_permission_and_validates_ids(): void

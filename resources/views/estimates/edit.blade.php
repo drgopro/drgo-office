@@ -126,7 +126,7 @@
         .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:12.5px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
-        #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
+        #btnSortMode.on, #btnSortMode.on:hover, #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
         /* 특가/할인 배지 — 가격 셀 아래 작은 라벨 (add는 지정 전 진입점) */
         .deal-badge { display:inline-block; font-size:10.5px; font-weight:700; border-radius:4px; padding:0 5px; margin-top:2px; cursor:pointer; white-space:nowrap; }
         .deal-badge.special { color:#c05a12; border:1px solid #c05a12; background:rgba(192,90,18,0.06); }
@@ -347,6 +347,7 @@
 <div class="panel-presets">
     <div class="panel-presets-header">
         <h3 style="display:flex; align-items:center;">프리셋
+            <button class="btn-add-svc" id="btnPresetSort" style="width:auto; padding:4px 10px; margin-left:auto; margin-right:6px; font-size:11.5px;" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">순서 변경</button>
             <button id="presetsToggle" onclick="togglePresetsPanel()" title="프리셋 패널 접기">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l4 4-4 4"></path></svg>
             </button>
@@ -1542,14 +1543,27 @@ async function saveAsPreset() {
 }
 
 let PRESETS = [];
+// 프리셋 순서 변경 모드 — 장바구니 순서 변경과 동일한 토글 (기본 잠금, 견적서 목록 프리셋 탭과 상태 공유)
+let presetSortMode = localStorage.getItem('estPresetSortMode') === '1';
+function togglePresetSortMode() {
+    presetSortMode = !presetSortMode;
+    try { localStorage.setItem('estPresetSortMode', presetSortMode ? '1' : '0'); } catch (e) {}
+    document.getElementById('btnPresetSort')?.classList.toggle('on', presetSortMode);
+    renderPresetPanel();
+}
+document.getElementById('btnPresetSort')?.classList.toggle('on', presetSortMode);
+
 async function loadPresetPanel() {
     const res = await fetch('/api/estimate-presets', { headers: { 'Accept': 'application/json' } });
     PRESETS = res.ok ? await res.json() : [];
+    renderPresetPanel();
+}
+function renderPresetPanel() {
     const list = document.getElementById('presetPanelList');
     list.innerHTML = PRESETS.length ? PRESETS.map(p => `
         <div class="preset-item" data-preset-id="${p.id}" onclick="applyPresetById(${p.id})" title="클릭하면 품목 ${p.item_count}개가 견적서에 담깁니다">
             <div style="display:flex; align-items:flex-start; gap:4px;">
-                <span class="drag-handle" draggable="true" data-drag-preset="${p.id}" onclick="event.stopPropagation()" title="드래그해서 프리셋 순서 변경">⠿</span>
+                ${presetSortMode ? `<span class="drag-handle" draggable="true" data-drag-preset="${p.id}" onclick="event.stopPropagation()" title="드래그해서 프리셋 순서 변경">⠿</span>` : ''}
                 <div class="preset-name" style="flex:1;">${_escE(p.title)}</div>
             </div>
             <div class="preset-total">${fmt(p.total)}원</div>
