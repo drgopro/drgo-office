@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** 견적 프리셋 — 자주 쓰는 품목 구성 저장본. 불러올 때 현재 판매가로 갱신된다. */
 class EstimatePreset extends Model
 {
-    protected $fillable = ['title', 'items', 'created_by'];
+    protected $fillable = ['title', 'items', 'sort_order', 'created_by'];
 
     protected $casts = ['items' => 'array'];
 

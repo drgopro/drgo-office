@@ -446,6 +446,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:estimates.edit')->group(function () {
         Route::get('/estimate-presets/create', [EstimatePresetController::class, 'create'])->name('estimate-presets.create');
         Route::get('/estimate-presets/{preset}/edit', [EstimatePresetController::class, 'editPage'])->name('estimate-presets.edit');
+        Route::post('/api/estimate-presets/reorder', [EstimatePresetController::class, 'reorder']); // 프리셋 패널 드래그 정렬
         Route::post('/api/estimate-presets', [EstimatePresetController::class, 'store']);
         Route::patch('/api/estimate-presets/{preset}', [EstimatePresetController::class, 'update']);
         Route::delete('/api/estimate-presets/{preset}', [EstimatePresetController::class, 'destroy']);

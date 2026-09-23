@@ -49,7 +49,9 @@ class EstimatePresetController extends Controller
     {
         return response()->json(
             EstimatePreset::with('creator')
+                ->orderBy('sort_order') // 0 = 미정렬(새 프리셋) → 맨 위, 이후 드래그로 지정한 순서
                 ->orderByDesc('updated_at')
+                ->orderByDesc('id')
                 ->get()
                 ->map(fn (EstimatePreset $p) => [
                     'id' => $p->id,
@@ -96,6 +98,21 @@ class EstimatePresetController extends Controller
         $preset->delete();
 
         return response()->json(['message' => '삭제되었습니다.']);
+    }
+
+    /** 프리셋 순서 저장 — 빌더 프리셋 패널 드래그 정렬. ids 순서대로 1..N 부여 */
+    public function reorder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:500',
+            'ids.*' => 'integer',
+        ]);
+
+        foreach (array_values($validated['ids']) as $i => $id) {
+            EstimatePreset::where('id', $id)->update(['sort_order' => $i + 1]);
+        }
+
+        return response()->json(['message' => '순서가 저장되었습니다.']);
     }
 
     /** 수량·소계 정규화 — 저장본은 항상 일관된 스냅샷 형태 유지 */

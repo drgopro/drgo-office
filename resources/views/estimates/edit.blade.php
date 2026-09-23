@@ -68,6 +68,7 @@
         .preset-list { flex:1; overflow-y:auto; padding:8px; }
         .preset-item { padding:11px 13px; background:var(--surface); border:1px solid var(--border); border-radius:9px; margin-bottom:7px; cursor:pointer; transition:border-color 0.1s, box-shadow 0.1s; }
         .preset-item:hover { border-color:var(--accent); box-shadow:0 1px 5px rgba(29,45,61,0.08); }
+        .preset-item.drag-src { opacity:0.35; }
         .preset-name { font-size:14px; font-weight:700; line-height:1.4; word-break:keep-all; }
         .preset-total { font-size:13.5px; color:var(--accent); font-weight:700; margin-top:4px; }
         .panel-right-header { background:var(--surface); padding:13px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
@@ -1546,11 +1547,52 @@ async function loadPresetPanel() {
     PRESETS = res.ok ? await res.json() : [];
     const list = document.getElementById('presetPanelList');
     list.innerHTML = PRESETS.length ? PRESETS.map(p => `
-        <div class="preset-item" onclick="applyPresetById(${p.id})" title="클릭하면 품목 ${p.item_count}개가 견적서에 담깁니다">
-            <div class="preset-name">${_escE(p.title)}</div>
+        <div class="preset-item" data-preset-id="${p.id}" onclick="applyPresetById(${p.id})" title="클릭하면 품목 ${p.item_count}개가 견적서에 담깁니다">
+            <div style="display:flex; align-items:flex-start; gap:4px;">
+                <span class="drag-handle" draggable="true" data-drag-preset="${p.id}" onclick="event.stopPropagation()" title="드래그해서 프리셋 순서 변경">⠿</span>
+                <div class="preset-name" style="flex:1;">${_escE(p.title)}</div>
+            </div>
             <div class="preset-total">${fmt(p.total)}원</div>
         </div>`).join('') : '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">저장된 프리셋이 없습니다.<br>품목을 담은 뒤 [현재 품목을 프리셋으로 저장]을 눌러 만들 수 있습니다.</div>';
 }
+
+// 프리셋 드래그 정렬 — 장바구니 항목 순서 변경과 동일한 ⠿ 핸들. 놓으면 순서가 저장돼
+// 모든 견적서·프리셋 목록에 같은 순서로 표시된다.
+let __dragPresetEl = null;
+(function () {
+    const list = document.getElementById('presetPanelList');
+    if (!list) return;
+    list.addEventListener('dragstart', e => {
+        const h = e.target.closest('[data-drag-preset]');
+        if (!h) return;
+        __dragPresetEl = h.closest('.preset-item');
+        __dragPresetEl.classList.add('drag-src');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragover', e => {
+        if (!__dragPresetEl) return;
+        e.preventDefault();
+        const over = e.target.closest('.preset-item');
+        if (!over || over === __dragPresetEl) return;
+        // 대상 항목의 중간선 기준 — 위 절반이면 앞, 아래 절반이면 뒤로 이동
+        const r = over.getBoundingClientRect();
+        if (e.clientY > r.top + r.height / 2) over.after(__dragPresetEl); else over.before(__dragPresetEl);
+    });
+    list.addEventListener('drop', async e => {
+        if (!__dragPresetEl) return;
+        e.preventDefault();
+        __dragPresetEl.classList.remove('drag-src');
+        __dragPresetEl = null;
+        const ids = [...list.querySelectorAll('.preset-item[data-preset-id]')].map(el => +el.dataset.presetId);
+        PRESETS.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+        try {
+            await fetch('/api/estimate-presets/reorder', { method: 'POST', headers: H, body: JSON.stringify({ ids }) });
+        } catch (err) { /* 저장 실패 시 다음 로드에서 서버 순서로 복원 */ }
+    });
+    list.addEventListener('dragend', () => {
+        if (__dragPresetEl) { __dragPresetEl.classList.remove('drag-src'); __dragPresetEl = null; }
+    });
+})();
 // 프리셋 클릭 → 품목 담기. 여러 프리셋을 연속 클릭해 조립할 수 있고,
 // product_id가 살아있는 품목은 현재 판매가/이름으로 갱신 (수기·삭제 제품은 저장본 유지)
 function applyPresetById(id) {
