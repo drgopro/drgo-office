@@ -22,7 +22,10 @@
     .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
     .drag-handle:active { cursor:grabbing; }
     #presetBody tr.drag-src td { opacity:0.35; }
-    #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--navy, #1d2d3d); color:#fff; border-color:var(--navy, #1d2d3d); }
+    /* '순서 변경' 토글 — 포인트(액센트) 컬러로 강조 */
+    #btnPresetSort { background:var(--surface); border:1px solid var(--accent); color:var(--accent); font-weight:700; }
+    #btnPresetSort:hover { opacity:0.85; }
+    #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--accent); color:var(--accent-text, #fff); border-color:var(--accent); opacity:1; }
     .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--surface2); }

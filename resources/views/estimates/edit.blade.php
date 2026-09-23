@@ -126,7 +126,11 @@
         .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:12.5px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
-        #btnSortMode.on, #btnSortMode.on:hover, #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
+        #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
+        /* 프리셋 순서 변경 토글 — 포인트(액센트) 컬러로 강조 */
+        #btnPresetSort { border:1px solid var(--accent); color:var(--accent); background:rgba(46,108,181,0.08); font-weight:700; }
+        #btnPresetSort:hover { background:rgba(46,108,181,0.16); }
+        #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
         /* 특가/할인 배지 — 가격 셀 아래 작은 라벨 (add는 지정 전 진입점) */
         .deal-badge { display:inline-block; font-size:10.5px; font-weight:700; border-radius:4px; padding:0 5px; margin-top:2px; cursor:pointer; white-space:nowrap; }
         .deal-badge.special { color:#c05a12; border:1px solid #c05a12; background:rgba(192,90,18,0.06); }
