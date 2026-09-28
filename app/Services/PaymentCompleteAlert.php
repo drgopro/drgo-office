@@ -40,7 +40,7 @@ class PaymentCompleteAlert
                 ->implode(' ');
 
             $client = $estimate->client_nickname ?: $estimate->client?->nickname;
-            $payType = trim((string) ($payload['pay_type'] ?? ''));
+            $payType = self::payTypeLabel((string) ($payload['pay_type'] ?? ''));
 
             $lines = [
                 '[결제완료] 견적서 #'.$estimate->id.($client ? ' · '.$client : ''),
@@ -58,5 +58,20 @@ class PaymentCompleteAlert
         } catch (\Throwable $e) {
             Log::warning('결제완료 채널톡 알림 오류: '.$e->getMessage()." (견적서 #{$estimate->id})");
         }
+    }
+
+    /**
+     * 페이앱 pay_type 표기 — 공식 확인된 코드만 한글로, 모르는 숫자 코드는 표기 생략
+     * ("페이앱 (23)"처럼 의미 없는 숫자가 노출되지 않게). 문자열 값은 그대로 표시.
+     */
+    private static function payTypeLabel(string $raw): string
+    {
+        $raw = trim($raw);
+        $known = ['1' => '신용카드', '2' => '휴대전화'];
+        if (isset($known[$raw])) {
+            return $known[$raw];
+        }
+
+        return ctype_digit($raw) ? '' : $raw;
     }
 }

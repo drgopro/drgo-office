@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\PaymentCompleteAlert;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -50,7 +51,8 @@ class PaymentCompleteAlertTest extends TestCase
             'api.channel.io/open/v5/groups/*' => Http::response(['ok' => true]),
         ]);
 
-        PaymentCompleteAlert::estimatePaid($this->makePaidEstimate(), ['pay_type' => 'card']);
+        // pay_type '1'은 신용카드로 표기, '23' 같은 미확인 숫자 코드는 표기 생략
+        PaymentCompleteAlert::estimatePaid($this->makePaidEstimate(), ['pay_type' => '1']);
 
         Http::assertSent(function ($request) {
             if (! str_contains($request->url(), '/groups/@'.rawurlencode('결제완료').'/messages')) {
@@ -61,9 +63,14 @@ class PaymentCompleteAlertTest extends TestCase
             return str_contains($text, '[결제완료] 견적서 #')
                 && str_contains($text, '고블린')
                 && str_contains($text, '1,234,000원')
-                && str_contains($text, '(card)')
+                && str_contains($text, '(신용카드)')
                 && str_contains($text, '<link type="manager" value="mgr-1">'); // 담당자 개인 알림 멘션
         });
+
+        Cache::flush(); // 중복 잠금 해제 — 미확인 코드 케이스 재발송
+        PaymentCompleteAlert::estimatePaid(Estimate::first(), ['pay_type' => '23']);
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/messages')
+            && ! str_contains($r['blocks'][0]['value'] ?? '', '(23)'));
     }
 
     public function test_default_group_seeded_as_estimate_payment_room(): void
