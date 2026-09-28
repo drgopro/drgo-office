@@ -6,6 +6,7 @@ use App\Models\LoginLog;
 use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\ChannelTalkClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -91,6 +92,7 @@ class AdminController extends Controller
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'seller_stamp_path', 'calendar_visit_options', 'project_cancel_reasons',
+            'payment_alert_group', 'payment_alert_managers',
         ]);
 
         return view('admin.index', compact('logs', 'sellerSettings'));
@@ -102,12 +104,13 @@ class AdminController extends Controller
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'calendar_visit_options', 'project_cancel_reasons',
+            'payment_alert_group', 'payment_alert_managers',
         ]));
     }
 
     public function updateSettings(Request $request)
     {
-        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons'];
+        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers'];
 
         foreach ($keys as $key) {
             if ($request->has($key)) {
@@ -116,6 +119,34 @@ class AdminController extends Controller
         }
 
         return response()->json(['message' => '저장되었습니다.']);
+    }
+
+    /**
+     * 결제완료 알림 테스트 발송 — 설정된 채널톡 톡방으로 담당자 멘션 포함 테스트 메시지.
+     * 톡방 이름 오타/미생성/봇 미초대를 저장 즉시 확인할 수 있게 한다.
+     */
+    public function paymentAlertTest(ChannelTalkClient $channelTalk)
+    {
+        $group = trim((string) Setting::get('payment_alert_group', ''));
+        if ($group === '') {
+            return response()->json(['message' => '결제완료 톡방이 설정되지 않았습니다. 먼저 톡방 이름을 저장하세요.'], 422);
+        }
+
+        $managerIds = json_decode((string) Setting::get('payment_alert_managers', '[]'), true);
+        $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
+            ->get()
+            ->map(fn (User $u) => $channelTalk->managerMention($u->email, $u->display_name))
+            ->implode(' ');
+
+        $res = $channelTalk->sendGroupMessage(
+            '[테스트] 결제완료 알림 연결 확인 — 이 메시지가 보이면 설정이 완료된 것입니다.'
+            .($mentions !== '' ? "\n".$mentions : ''),
+            $group
+        );
+
+        return ($res['ok'] ?? false)
+            ? response()->json(['message' => '테스트 메시지를 보냈습니다. 채널톡 톡방을 확인하세요.'])
+            : response()->json(['message' => '발송 실패: '.($res['error'] ?? '알 수 없는 오류')], 502);
     }
 
     /** 직인 이미지 업로드 — 견적서 판매처 영역 배경으로 표시 */

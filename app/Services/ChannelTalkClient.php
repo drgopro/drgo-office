@@ -29,16 +29,19 @@ class ChannelTalkClient
 
     /**
      * 팀챗 그룹으로 메시지 발송.
+     * $groupOverride 지정 시 기본 그룹(.env) 대신 해당 그룹(이름 또는 ID)으로 발송 — 결제완료 톡방 등.
      *
      * @return array{ok:bool, error?:string}
      */
-    public function sendGroupMessage(string $text): array
+    public function sendGroupMessage(string $text, ?string $groupOverride = null): array
     {
-        if (! $this->isConfigured()) {
+        $group = trim((string) ($groupOverride ?? config('services.channeltalk.group')));
+        if ((string) config('services.channeltalk.access_key') === ''
+            || (string) config('services.channeltalk.access_secret') === ''
+            || $group === '') {
             return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다 (.env CHANNELTALK_ACCESS_KEY/SECRET/GROUP).'];
         }
 
-        $group = (string) config('services.channeltalk.group');
         // 숫자면 그룹 ID, 아니면 그룹 이름 — @ 접두는 인코딩하면 안 되고 이름만 인코딩
         $groupPath = ctype_digit($group) ? rawurlencode($group) : '@'.rawurlencode(ltrim($group, '@'));
         $url = self::API_BASE.'/groups/'.$groupPath.'/messages';

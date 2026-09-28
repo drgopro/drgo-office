@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
 use App\Services\PayAppClient;
+use App\Services\PaymentCompleteAlert;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -757,6 +758,7 @@ class EstimateController extends Controller
         // 결제 상태 전파 — 프로젝트 결제 내역(원장)·캘린더 일정 표시 동기화
         if ($state === PayAppClient::STATE_PAID && $estimate->status === 'paid') {
             EstimatePaymentSync::estimatePaid($estimate);
+            PaymentCompleteAlert::estimatePaid($estimate, $payload); // 결제완료 톡방 알림 + 담당자 멘션
         } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
             // 페이앱 전액환불 — 남은 금액의 취소 트랜잭션 기록 + 전 항목 환불 표시
             EstimatePaymentSync::estimateCancelled($estimate, recordLedger: true);

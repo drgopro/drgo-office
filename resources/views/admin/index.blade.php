@@ -246,6 +246,7 @@
             <button class="sub-tab-btn" data-subtab="visitOptions" onclick="switchSettingsSubTab('visitOptions')">내방 옵션</button>
             <button class="sub-tab-btn" data-subtab="cancelReasons" onclick="switchSettingsSubTab('cancelReasons')">취소 사유</button>
             <button class="sub-tab-btn" data-subtab="seller" onclick="switchSettingsSubTab('seller')">판매처 설정</button>
+            <button class="sub-tab-btn" data-subtab="paymentAlert" onclick="switchSettingsSubTab('paymentAlert')">결제 알림</button>
         </div>
         <div id="settingsContent"></div>
     </div>
@@ -988,6 +989,29 @@
             </div>
         </div>
     </div>
+
+    {{-- 결제 알림 — 페이앱 결제완료 시 채널톡 톡방 알림 + 담당자 멘션 --}}
+    <div class="tab-panel" id="panel-paymentAlert">
+        <div class="settings-form">
+            <div class="cf-hint" style="margin-bottom:14px;">
+                페이앱 결제가 완료된 견적서를 채널톡 팀챗 톡방으로 알립니다.<br>
+                <span style="opacity:0.75;">① 채널톡에서 팀챗 그룹(예: 결제완료)을 만들고 ② 아래에 그룹 이름을 입력·저장한 뒤 ③ [테스트 발송]으로 연결을 확인하세요. 담당자는 채널톡 멘션으로 개인 알림을 받습니다.</span>
+            </div>
+            <div class="field-group">
+                <div class="field-label">채널톡 결제완료 톡방 (그룹 이름 또는 그룹 ID)</div>
+                <input class="field-input" id="paGroup" placeholder="예: 결제완료">
+            </div>
+            <div class="field-group">
+                <div class="field-label">결제완료 담당자 — 알림에서 멘션할 사용자 (복수 선택)</div>
+                <div id="paManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-save" onclick="savePaymentAlertSettings()">저장</button>
+                <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testPaymentAlert()">테스트 발송</button>
+                <span class="save-msg" id="paSaveMsg"></span>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- 계정 수정 모달 (master 전용) --}}
@@ -1149,7 +1173,64 @@ const SETTINGS_PANEL_MAP = {
     visitOptions: { panel: 'panel-visitOptions', load: () => {} },
     cancelReasons: { panel: 'panel-cancelReasons', load: () => {} },
     seller: { panel: 'panel-seller', load: () => {} },
+    paymentAlert: { panel: 'panel-paymentAlert', load: () => typeof loadPaymentAlertSettings === 'function' && loadPaymentAlertSettings() },
 };
+
+// ── 결제 알림 설정 — 페이앱 결제완료 채널톡 톡방 + 담당자 멘션 ──
+let paLoaded = false;
+async function loadPaymentAlertSettings() {
+    if (paLoaded) return;
+    try {
+        const [settingsRes, usersRes] = await Promise.all([
+            fetch('/api/settings', { headers: { 'Accept': 'application/json' } }),
+            fetch('/api/admin/users', { headers: { 'Accept': 'application/json' } }),
+        ]);
+        const settings = settingsRes.ok ? await settingsRes.json() : {};
+        const users = usersRes.ok ? await usersRes.json() : [];
+        document.getElementById('paGroup').value = settings.payment_alert_group || '';
+        let selected = [];
+        try { selected = JSON.parse(settings.payment_alert_managers || '[]') || []; } catch (e) {}
+        document.getElementById('paManagers').innerHTML = users.filter(u => u.is_active).map(u => `
+            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
+                <input type="checkbox" name="paManager" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
+                ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
+            </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
+        paLoaded = true;
+    } catch (e) {
+        document.getElementById('paManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
+    }
+}
+async function savePaymentAlertSettings() {
+    const ids = [...document.querySelectorAll('input[name=paManager]:checked')].map(c => +c.value);
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({
+            payment_alert_group: document.getElementById('paGroup').value.trim(),
+            payment_alert_managers: JSON.stringify(ids),
+        }),
+    });
+    const msg = document.getElementById('paSaveMsg');
+    msg.textContent = res.ok ? '저장되었습니다.' : '저장 실패';
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+}
+async function testPaymentAlert() {
+    const msg = document.getElementById('paSaveMsg');
+    msg.textContent = '발송 중…';
+    msg.style.display = 'inline';
+    try {
+        const res = await fetch('/api/admin/payment-alert-test', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        const d = await res.json();
+        msg.textContent = d.message || (res.ok ? '발송됨' : '실패');
+    } catch (e) {
+        msg.textContent = '발송 실패: 통신 오류';
+    }
+    setTimeout(() => { msg.style.display = 'none'; }, 6000);
+}
 
 function switchSettingsSubTab(sub) {
     document.querySelectorAll('#settingsSubTabBar .sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
