@@ -68,8 +68,8 @@ class PaymentCompleteAlertTest extends TestCase
 
     public function test_default_group_seeded_as_estimate_payment_room(): void
     {
-        // 시드 마이그레이션 — 채널톡에 만든 '견적서결제' 그룹이 기본 톡방
-        $this->assertSame('견적서결제', Setting::get('payment_alert_group'));
+        // 시드+교정 마이그레이션 — 채널톡에 실제로 만들어진 '견적서결제알림' 그룹이 기본 톡방
+        $this->assertSame('견적서결제알림', Setting::get('payment_alert_group'));
     }
 
     public function test_alert_skipped_when_group_not_configured(): void
