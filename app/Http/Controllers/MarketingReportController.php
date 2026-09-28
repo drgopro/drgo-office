@@ -132,6 +132,35 @@ class MarketingReportController extends Controller
                 });
         }
 
+        // ── 마케팅 활용 동의 의뢰자 (기간 무관 스냅샷) — 동의 체크된 프로젝트의 의뢰자를 추려서 표시 ──
+        $marketingConsentClients = collect();
+        $marketingConsentProjectCount = 0;
+        if (Schema::hasColumn('projects', 'marketing_consent')) {
+            $consentProjects = Project::where('marketing_consent', true)
+                ->with('client:id,name,nickname,platforms')
+                ->orderByDesc('created_at')
+                ->get(['id', 'name', 'client_id', 'manual_client_name', 'created_at']);
+            $marketingConsentProjectCount = $consentProjects->count();
+            $marketingConsentClients = $consentProjects
+                ->groupBy(fn ($p) => $p->client_id ?: 'm:'.($p->manual_client_name ?: '의뢰자 미상'))
+                ->map(function ($group) {
+                    $first = $group->first();
+
+                    return [
+                        'client_id' => $first->client_id,
+                        'name' => $first->client
+                            ? ($first->client->nickname ?: $first->client->name ?: '의뢰자 #'.$first->client_id)
+                            : ($first->manual_client_name ?: '의뢰자 미상'),
+                        'platforms' => $first->client->platforms ?? [],
+                        'projects' => $group->map(fn ($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'date' => $p->created_at->format('Y-m-d'),
+                        ])->values()->all(),
+                    ];
+                })->values();
+        }
+
         // ── 상담 지표 ──
         $totalConsults = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])->count();
         $reConsultCount = Consultation::whereBetween('consulted_at', [$fromDt, $toDt])
@@ -426,6 +455,7 @@ class MarketingReportController extends Controller
         return view('marketing-report.index', compact(
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
+            'marketingConsentClients', 'marketingConsentProjectCount',
             'platformMoves', 'platformMoveTrend',
             'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour', 'inboundHourSeries',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',

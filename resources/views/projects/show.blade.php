@@ -414,6 +414,7 @@
                     @else
                         <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text-muted);cursor:pointer;border:1px dashed var(--border);" onclick="openScaleEditor()">+ 규모 지정</span>
                     @endif
+                    <span id="mkConsentChip" onclick="toggleMarketingConsent()" title="마케팅 활용 동의 여부 (클릭하여 변경)" style="font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;{{ $project->marketing_consent ? 'background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;' : 'background:var(--surface2);color:var(--text-muted);border:1px dashed var(--border);' }}">{{ $project->marketing_consent ? '✓ 마케팅 활용 동의' : '마케팅 활용 동의' }}</span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
                     <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
                 </div>
@@ -1826,6 +1827,33 @@ async function saveProjectName() {
     }
     input.style.display = 'none';
     display.style.display = '';
+}
+
+// 마케팅 활용 동의 토글 — 칩 클릭으로 즉시 저장 (되돌리기 쉬움)
+let mkConsent = @json((bool) $project->marketing_consent);
+async function toggleMarketingConsent() {
+    const next = !mkConsent;
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/projects/{{ $project->id }}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            body: JSON.stringify({ marketing_consent: next }),
+        });
+        if (!res.ok) { alert('마케팅 활용 동의 저장에 실패했습니다.'); return; }
+        mkConsent = next;
+        renderMkConsentChip();
+    } catch (e) {
+        alert('마케팅 활용 동의 저장 중 오류가 발생했습니다.');
+    }
+}
+function renderMkConsentChip() {
+    const chip = document.getElementById('mkConsentChip');
+    if (!chip) return;
+    chip.textContent = mkConsent ? '✓ 마케팅 활용 동의' : '마케팅 활용 동의';
+    chip.style.cssText = 'font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;' + (mkConsent
+        ? 'background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;'
+        : 'background:var(--surface2);color:var(--text-muted);border:1px dashed var(--border);');
 }
 
 // ── 태그 인라인 수정 ──

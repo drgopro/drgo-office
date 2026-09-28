@@ -48,6 +48,7 @@ class Project extends Model
         'address_detail',
         'visit_report',
         'visit_report_updated_at',
+        'marketing_consent',
         'as_deadline',
         'completed_at',
         'cancel_reason',
@@ -68,6 +69,7 @@ class Project extends Model
         'payment_info' => 'array',
         'stage_data' => 'array',
         'is_payment_only' => 'boolean',
+        'marketing_consent' => 'boolean',
         'tags' => 'array',
     ];
 
