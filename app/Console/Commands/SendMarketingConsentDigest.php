@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Project;
+use App\Models\Setting;
+use App\Models\User;
 use App\Services\ChannelTalkClient;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -55,7 +57,20 @@ class SendMarketingConsentDigest extends Command
             }
         }
 
-        $result = $channelTalk->sendGroupMessage(implode("\n", $lines));
+        // 담당자 멘션 — 관리 > 프로젝트 > 마케팅 알림에서 지정 (비우면 멘션 없음)
+        $managerIds = json_decode((string) Setting::get('marketing_alert_managers', '[]'), true);
+        $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
+            ->get()
+            ->map(fn (User $u) => $channelTalk->managerMention($u->email, $u->display_name))
+            ->implode(' ');
+        if ($mentions !== '') {
+            $lines[] = "\n담당자: ".$mentions;
+        }
+
+        // 톡방 — 관리 설정값, 비우면 기본 팀챗 그룹(.env, 아웃바운드)
+        $group = trim((string) Setting::get('marketing_alert_group', ''));
+
+        $result = $channelTalk->sendGroupMessage(implode("\n", $lines), $group !== '' ? $group : null);
         if (! $result['ok']) {
             $this->error($result['error']);
 

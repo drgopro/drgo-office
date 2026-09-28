@@ -545,6 +545,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/admin/post-alert-test', [AdminController::class, 'postAlertTest']); // 게시물 알림 톡방 연결 확인
         Route::post('/api/admin/wiki-alert-test', [AdminController::class, 'wikiAlertTest']); // 위키 알림 톡방 연결 확인
         Route::post('/api/admin/calendar-alert-test', [AdminController::class, 'calendarAlertTest']); // 캘린더 알림 톡방 연결 확인
+        Route::post('/api/admin/marketing-alert-test', [AdminController::class, 'marketingAlertTest']); // 마케팅 동의 다이제스트 톡방 연결 확인
         Route::post('/api/admin/seller-stamp', [AdminController::class, 'uploadSellerStamp']);
         Route::delete('/api/admin/seller-stamp', [AdminController::class, 'deleteSellerStamp']);
         Route::get('/api/admin/users', [AdminController::class, 'users']);

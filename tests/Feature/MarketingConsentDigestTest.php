@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -79,6 +80,55 @@ class MarketingConsentDigestTest extends TestCase
                 && ! str_contains($text, '이틀전 프로젝트')
                 && ! str_contains($text, '되돌린 프로젝트');
         });
+    }
+
+    public function test_digest_uses_configured_group_and_mentions_managers(): void
+    {
+        $manager = User::factory()->create(['role' => 'admin', 'display_name' => '김광래', 'email' => 'kk@drgo.pro']);
+        Setting::set('marketing_alert_group', '마케팅알림방');
+        Setting::set('marketing_alert_managers', json_encode([$manager->id]));
+
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response(['managers' => [
+                ['id' => 'mgr-9', 'name' => '김광래', 'email' => 'kk@drgo.pro'],
+            ]]),
+            'api.channel.io/*' => Http::response(['ok' => true]),
+        ]);
+
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        Project::create(['client_id' => $client->id, 'name' => '동의 프로젝트', 'stage' => 'consulting', 'marketing_consent' => true, 'marketing_consent_updated_at' => now()->subDay()]);
+
+        $this->artisan('marketing:consent-digest')->assertSuccessful();
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('마케팅알림방').'/messages')
+            && str_contains($r['blocks'][0]['value'] ?? '', '<link type="manager" value="mgr-9">'));
+    }
+
+    public function test_admin_marketing_alert_settings_page_save_and_test_endpoint(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // 관리 페이지에 마케팅 알림 탭/패널 렌더
+        $this->actingAs($admin)->get('/admin')->assertOk()
+            ->assertSee('마케팅 알림')
+            ->assertSee('id="mkaGroup"', false)
+            ->assertSee('marketing-alert-test', false);
+
+        // 설정 저장 → 조회 왕복
+        $this->actingAs($admin)->postJson('/api/settings', [
+            'marketing_alert_group' => '마케팅알림방',
+            'marketing_alert_managers' => json_encode([$admin->id]),
+        ])->assertOk();
+        $this->actingAs($admin)->getJson('/api/settings')->assertOk()
+            ->assertJsonPath('marketing_alert_group', '마케팅알림방');
+
+        // 테스트 발송 — 저장된 톡방으로
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response(['managers' => []]),
+            'api.channel.io/*' => Http::response(['ok' => true]),
+        ]);
+        $this->actingAs($admin)->postJson('/api/admin/marketing-alert-test')->assertOk();
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('마케팅알림방').'/messages'));
     }
 
     public function test_digest_skips_when_no_changes(): void

@@ -1068,6 +1068,29 @@
         </div>
     </div>
 
+    {{-- 마케팅 알림 — 마케팅 활용 동의/거부 다이제스트 톡방 + 담당자 --}}
+    <div class="tab-panel" id="panel-marketingAlert">
+        <div class="settings-form">
+            <div class="cf-hint" style="margin-bottom:14px;">
+                전날 마케팅 활용 <b>동의/거부</b>로 변경된 프로젝트 목록이 매일 오전 9시 5분 이 톡방으로 발송됩니다 (변경이 없으면 발송하지 않음).<br>
+                <span style="opacity:0.75;">비워두면 기본 팀챗 그룹(.env CHANNELTALK_GROUP, 아웃바운드)으로 발송됩니다. 담당자를 고르면 알림에서 멘션되어 개인 알림을 받습니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
+            </div>
+            <div class="field-group">
+                <div class="field-label">채널톡 마케팅 알림 톡방 (그룹 이름 또는 그룹 ID)</div>
+                <input class="field-input" id="mkaGroup" placeholder="비워두면 기본 팀챗 그룹 (아웃바운드)">
+            </div>
+            <div class="field-group">
+                <div class="field-label">마케팅 담당자 — 알림에서 멘션할 사용자 (복수 선택, 비우면 멘션 없음)</div>
+                <div id="mkaManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-save" onclick="saveMarketingAlertSettings()">저장</button>
+                <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testAlertRoom('marketing-alert-test', 'mkaSaveMsg')">테스트 발송</button>
+                <span class="save-msg" id="mkaSaveMsg"></span>
+            </div>
+        </div>
+    </div>
+
     {{-- 캘린더 알림 톡방 — 담당자 지정 알림 + D-2 일정 다이제스트 --}}
     <div class="tab-panel" id="panel-calendarAlert">
         <div class="settings-form">
@@ -1251,6 +1274,7 @@ const SETTINGS_PANEL_MAP = {
     postAlert: { panel: 'panel-postAlert', load: () => typeof loadPostAlertSettings === 'function' && loadPostAlertSettings() },
     wikiAlert: { panel: 'panel-wikiAlert', load: () => typeof loadWikiAlertSettings === 'function' && loadWikiAlertSettings() },
     calendarAlert: { panel: 'panel-calendarAlert', load: () => typeof loadCalendarAlertSettings === 'function' && loadCalendarAlertSettings() },
+    marketingAlert: { panel: 'panel-marketingAlert', load: () => typeof loadMarketingAlertSettings === 'function' && loadMarketingAlertSettings() },
 };
 
 // ── 결제 알림 설정 — 페이앱 결제완료 채널톡 톡방 + 담당자 멘션 ──
@@ -1312,7 +1336,7 @@ async function testPaymentAlert() {
 // 설정 그룹 — 페이지별 상단 탭과 하위 항목(세로 탭) 구성
 const SETTINGS_GROUPS = {
     clients: { label: '의뢰자', items: [['clientFields', '의뢰자 필드']] },
-    projects: { label: '프로젝트', items: [['projectFields', '장비 항목 관리'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿']] },
+    projects: { label: '프로젝트', items: [['projectFields', '장비 항목 관리'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿'], ['marketingAlert', '마케팅 알림']] },
     calendar: { label: '캘린더', items: [['calendarCategories', '캘린더 카테고리'], ['visitOptions', '내방 옵션'], ['calendarAlert', '알림 톡방']] },
     estimates: { label: '견적서', items: [['seller', '판매처 설정'], ['paymentAlert', '결제 알림']] },
     boards: { label: '게시판/위키', items: [['postAlert', 'drgo.pro 게시판 알림'], ['wikiAlert', '위키 알림']] },
@@ -1390,6 +1414,32 @@ async function saveWikiAlertSettings() {
         }),
     });
     flashSaveMsg('wkSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
+}
+
+// ── 마케팅 알림 설정 — 마케팅 활용 동의/거부 다이제스트 톡방 + 담당자 ──
+let mkaLoaded = false;
+async function loadMarketingAlertSettings() {
+    if (mkaLoaded) return;
+    try {
+        const { settings, users } = await fetchAlertSettingsAndUsers();
+        document.getElementById('mkaGroup').value = settings.marketing_alert_group || '';
+        renderManagerChips('mkaManagers', 'mkaManager', users, settings.marketing_alert_managers);
+        mkaLoaded = true;
+    } catch (e) {
+        document.getElementById('mkaManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
+    }
+}
+async function saveMarketingAlertSettings() {
+    const ids = [...document.querySelectorAll('input[name=mkaManager]:checked')].map(c => +c.value);
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({
+            marketing_alert_group: document.getElementById('mkaGroup').value.trim(),
+            marketing_alert_managers: JSON.stringify(ids),
+        }),
+    });
+    flashSaveMsg('mkaSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
 }
 
 // ── 캘린더 알림 톡방 설정 — 담당자 지정 알림 + D-2 다이제스트 ──
