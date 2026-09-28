@@ -15,27 +15,30 @@ class KoreanHolidaySyncTest extends TestCase
 
     public function test_sync_stores_holidays_including_substitutes(): void
     {
+        // holidays-kr(공공데이터 기반) — 대체공휴일이 정확한 한글 명칭으로 온다
+        $thisYear = now()->year;
         Http::fake([
-            'date.nager.at/api/v3/PublicHolidays/*/KR' => Http::sequence()
-                ->push([['date' => '2025-10-08', 'localName' => '대체공휴일', 'name' => 'Substitute Holiday']])
-                ->push([['date' => '2026-01-01', 'localName' => '새해', 'name' => "New Year's Day"],
-                    ['date' => '2026-05-24', 'localName' => '부처님 오신 날', 'name' => 'Buddha Day'],
-                    ['date' => '2026-05-25', 'localName' => '대체공휴일', 'name' => 'Substitute Holiday']])
-                ->push([])->push([]),
+            'holidays.hyunbin.page/basic.json' => Http::response([
+                '2018-01-01' => ['신정'], // 유지 범위(작년~) 밖 — 저장 안 함
+                "{$thisYear}-10-03" => ['개천절'],
+                "{$thisYear}-10-05" => ['대체공휴일'],
+                ($thisYear + 1).'-05-05' => ['어린이날', '부처님 오신 날'], // 같은 날 복수 — 이어 붙임
+            ]),
         ]);
 
         $this->artisan('holidays:sync')->assertSuccessful();
 
         $stored = json_decode(Setting::get('kr_holidays'), true);
-        $this->assertSame('대체공휴일', $stored['2025-10-08']);
-        $this->assertSame('대체공휴일', $stored['2026-05-25']);
-        $this->assertSame('새해', $stored['2026-01-01']);
+        $this->assertSame('대체공휴일', $stored["{$thisYear}-10-05"]);
+        $this->assertSame('개천절', $stored["{$thisYear}-10-03"]);
+        $this->assertSame('어린이날·부처님 오신 날', $stored[($thisYear + 1).'-05-05']);
+        $this->assertArrayNotHasKey('2018-01-01', $stored);
     }
 
     public function test_sync_failure_keeps_previous_data(): void
     {
         Setting::set('kr_holidays', json_encode(['2026-01-01' => '새해']));
-        Http::fake(['date.nager.at/*' => Http::response('err', 500)]);
+        Http::fake(['holidays.hyunbin.page/*' => Http::response('err', 500)]);
 
         $this->artisan('holidays:sync')->assertFailed();
         $this->assertSame('새해', json_decode(Setting::get('kr_holidays'), true)['2026-01-01']);
