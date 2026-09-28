@@ -93,12 +93,15 @@ async function runAgendaSearch(){
 }
 async function openSearchListView(){
     const q=document.getElementById('calSearchInput').value.trim();
-    if(!q) return;
+    // 검색 조건 패널(담당자/카테고리) — 검색어 없이 조건만으로도 검색 가능
+    const color=document.getElementById('calSearchColor')?.value||'';
+    const asg=document.getElementById('calSearchAssignee')?.value||'';
+    if(!q && !color && !asg) return;
     closeCalSearch();
     document.getElementById('calSearchInput').blur();
     if(currentView!=='list'){ preSearchView=currentView; switchView('list'); } // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
     agendaSearchQuery=q;
-    agendaSearchColor=''; agendaSearchAssignee=''; // 새 검색 — 필터 초기화
+    agendaSearchColor=color; agendaSearchAssignee=asg; // 패널에서 고른 조건으로 시작 (결과 화면 칩과 동기화)
     await runAgendaSearch();
 }
 // 검색 결과 필터 칩 — 카테고리/담당자 (같은 칩 재탭 = 해제)
@@ -122,15 +125,23 @@ async function openSearchResultDetail(id){
         openDetailModal(await res.json());
     }catch(e){}
 }
+function agendaSearchLabel(){
+    // 검색어 + 조건 요약 — 검색어 없이 조건만 검색한 경우도 표기
+    const parts=[];
+    if(agendaSearchQuery) parts.push(`"${agendaSearchQuery}"`);
+    if(agendaSearchColor && typeof CS_CATS!=='undefined' && CS_CATS[agendaSearchColor]) parts.push(CS_CATS[agendaSearchColor].label||agendaSearchColor);
+    if(agendaSearchAssignee){ const a=(assignees||[]).find(x=>String(x.id)===String(agendaSearchAssignee)); if(a) parts.push(a.name); }
+    return parts.join(' · ')||'전체';
+}
 function renderAgendaSearch(){
     const strip=document.getElementById('agendaStrip');
     if(strip) strip.style.display='none';
-    document.getElementById('periodTitle').textContent=`검색: "${agendaSearchQuery}"`;
+    document.getElementById('periodTitle').textContent=`검색: ${agendaSearchLabel()}`;
     const wrap=document.getElementById('agendaWrap');
     if(!wrap) return;
     const list=agendaSearchResults;
     let html=`<div class="agenda-search-head">
-        <span>🔍 <b>"${_esc(agendaSearchQuery)}"</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
+        <span>🔍 <b>${_esc(agendaSearchLabel())}</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
         <button type="button" class="ship-mini-btn primary" onclick="clearAgendaSearch()" title="검색을 끝내고 전체 일정으로 돌아갑니다">✕ 검색 초기화</button>
     </div>`;
     // ── 카테고리/담당자 필터 칩 — 모바일 가로 스크롤, 재탭으로 해제 ──
@@ -258,7 +269,25 @@ function toggleCalSearch(){
     const show=w.style.display==='none';
     w.style.display=show?'':'none';
     document.querySelector('.cal-header')?.classList.toggle('searching', show); // 모바일: 열려 있는 동안 타이틀 숨김
-    if(show) setTimeout(()=>document.getElementById('calSearchInput')?.focus(),0);
+    if(show){
+        populateSearchFilterPanel();
+        setTimeout(()=>document.getElementById('calSearchInput')?.focus(),0);
+    }
+}
+// 검색 조건 패널 채우기 — 담당자/카테고리 선택지, 현재 검색 상태 유지
+function populateSearchFilterPanel(){
+    const aSel=document.getElementById('calSearchAssignee');
+    const cSel=document.getElementById('calSearchColor');
+    if(aSel){
+        aSel.innerHTML='<option value="">담당자: 전체</option>'
+            +(Array.isArray(assignees)?assignees.map(a=>`<option value="${a.id}">${(a.name||'').replace(/[<>&"]/g,'')}</option>`).join(''):'');
+        aSel.value=String(agendaSearchAssignee||'');
+    }
+    if(cSel && typeof CS_CATS!=='undefined'){
+        cSel.innerHTML='<option value="">카테고리: 전체</option>'
+            +Object.keys(CS_CATS).map(k=>`<option value="${k}">${(CS_CATS[k].label||k).replace(/[<>&"]/g,'')}</option>`).join('');
+        cSel.value=agendaSearchColor||'';
+    }
 }
 function goToday() {
     const now = new Date();

@@ -163,7 +163,7 @@ function moveAgendaWeek(dir){
 }
 function renderAgenda(){
     // 검색 결과 모드
-    if(agendaSearchQuery){ renderAgendaSearch(); return; }
+    if(agendaSearchQuery!==null){ renderAgendaSearch(); return; } // 빈 검색어 + 조건(담당자/카테고리)만 검색한 경우 포함
     const stripEl=document.getElementById('agendaStrip');
     if(stripEl) stripEl.style.display='';
     const ts=todayStr();

@@ -40,6 +40,12 @@
                 onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
             <button type="button" class="cal-search-clear" id="calSearchClear" title="검색어 지우기"
                 onclick="const i=document.getElementById('calSearchInput');i.value='';this.classList.remove('show');i.focus();">✕</button>
+            {{-- 검색 조건 패널 — 담당자/카테고리를 붙여서 검색 (검색어 없이 조건만으로도 가능) --}}
+            <div class="cal-search-panel" id="calSearchPanel">
+                <select id="calSearchAssignee" title="담당자로 검색"><option value="">담당자: 전체</option></select>
+                <select id="calSearchColor" title="카테고리로 검색"><option value="">카테고리: 전체</option></select>
+                <button type="button" class="csp-go" onclick="openSearchListView()">검색</button>
+            </div>
         </div>
         @endif
     </div>

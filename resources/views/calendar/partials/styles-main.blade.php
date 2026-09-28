@@ -55,6 +55,12 @@
 
     /* 일정 검색 */
     .cal-search-wrap { position:relative; flex-shrink:1; min-width:0; }
+    /* 검색 조건 패널 — 입력창 아래 드롭 패널 (담당자/카테고리 선택 후 검색) */
+    .cal-search-panel { position:absolute; top:calc(100% + 6px); left:0; z-index:210; display:flex; flex-direction:column; gap:7px; width:220px; max-width:calc(100vw - 24px); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px; box-shadow:0 10px 28px rgba(0,0,0,0.28); }
+    .cal-search-panel select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:12.5px; outline:none; }
+    .cal-search-panel select:focus { border-color:var(--accent); }
+    .cal-search-panel .csp-go { width:100%; border:none; border-radius:8px; padding:9px 0; background:var(--accent); color:var(--accent-text, #1a1207); font-size:12.5px; font-weight:700; cursor:pointer; }
+    .cal-search-panel .csp-go:hover { filter:brightness(1.08); }
     .cal-search-input { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:7px 26px 7px 12px; color:var(--text); font-size:12px; outline:none; width:170px; max-width:100%; transition:border-color .15s, width .2s; }
     /* 검색어 전체 지우기 ✕ — 내용이 있을 때만 표시 */
     .cal-search-clear { display:none; position:absolute; right:6px; top:50%; transform:translateY(-50%); width:18px; height:18px; border:none; border-radius:50%; background:var(--border); color:var(--text); font-size:10px; line-height:1; cursor:pointer; align-items:center; justify-content:center; padding:0; }
