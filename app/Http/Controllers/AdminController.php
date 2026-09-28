@@ -146,7 +146,31 @@ class AdminController extends Controller
 
         return ($res['ok'] ?? false)
             ? response()->json(['message' => '테스트 메시지를 보냈습니다. 채널톡 톡방을 확인하세요.'])
-            : response()->json(['message' => '발송 실패: '.($res['error'] ?? '알 수 없는 오류')], 502);
+            : response()->json(['message' => $this->paymentAlertFailureMessage($channelTalk, $group, $res['error'] ?? '알 수 없는 오류')], 502);
+    }
+
+    /**
+     * 테스트 발송 실패 안내 — 채널톡에서 실제로 보이는 그룹 목록을 덧붙여
+     * 이름 오타/비공개 그룹(API 발송 불가) 문제를 바로 확인할 수 있게 한다.
+     */
+    private function paymentAlertFailureMessage(ChannelTalkClient $channelTalk, string $group, string $error): string
+    {
+        $message = '발송 실패: '.$error;
+
+        $list = $channelTalk->listGroups();
+        if ($list['ok'] ?? false) {
+            $names = collect($list['groups'])->pluck('name')->filter()->values();
+            if ($names->contains($group)) {
+                $message .= " — 그룹 '{$group}'은(는) 존재합니다. 봇 발송 권한/설정을 확인하세요.";
+            } elseif ($names->isNotEmpty()) {
+                $message .= ' — 채널톡 API에서 보이는 그룹: '.$names->implode(', ')
+                    ."\n'{$group}'이(가) 목록에 없다면 비공개 그룹입니다. 그룹을 공개로 바꾸거나 목록의 이름으로 저장하세요.";
+            } else {
+                $message .= ' — 채널톡 API에서 보이는 공개 그룹이 없습니다. 그룹을 공개로 만들어야 API 발송이 가능합니다.';
+            }
+        }
+
+        return $message;
     }
 
     /** 직인 이미지 업로드 — 견적서 판매처 영역 배경으로 표시 */

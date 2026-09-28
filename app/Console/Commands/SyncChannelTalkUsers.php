@@ -45,6 +45,12 @@ class SyncChannelTalkUsers extends Command
         for ($page = 0; $page < $maxPages; $page++) {
             $res = $channelTalk->listUsers($states[$stateIdx], $cursor ?: null);
             if (! ($res['ok'] ?? false)) {
+                // 일시 오류(레이트리밋/네트워크) 대비 1회 재시도 — 매 10분 스케줄이라
+                // 단발 실패가 곧바로 서버 에러 알림으로 이어지는 것을 줄인다
+                sleep(3);
+                $res = $channelTalk->listUsers($states[$stateIdx], $cursor ?: null);
+            }
+            if (! ($res['ok'] ?? false)) {
                 Setting::set(self::CURSOR_KEY, json_encode(['s' => $stateIdx, 'c' => $cursor]));
                 $this->error('채널톡 고객 조회 실패: '.($res['error'] ?? '알 수 없는 오류'));
 

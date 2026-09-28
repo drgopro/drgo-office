@@ -111,6 +111,24 @@ class PaymentCompleteAlertTest extends TestCase
         $this->actingAs($member)->postJson('/api/admin/payment-alert-test')->assertForbidden();
     }
 
+    public function test_test_endpoint_failure_lists_visible_groups(): void
+    {
+        // 422 등 발송 실패 시 — 채널톡에서 보이는 그룹 목록을 안내 (비공개/오타 진단)
+        Setting::set('payment_alert_group', '견적서결제');
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response(['managers' => []]),
+            'api.channel.io/open/v5/groups/@*' => Http::response(['error' => 'unknown group'], 422),
+            'api.channel.io/open/v5/groups*' => Http::response(['groups' => [
+                ['id' => 'g1', 'name' => '팀챗기본'], ['id' => 'g2', 'name' => '배송알림'],
+            ]]),
+        ]);
+
+        $res = $this->actingAs($this->admin)->postJson('/api/admin/payment-alert-test')->assertStatus(502);
+        $message = $res->json('message');
+        $this->assertStringContainsString('보이는 그룹: 팀챗기본, 배송알림', $message);
+        $this->assertStringContainsString('비공개 그룹', $message);
+    }
+
     public function test_settings_save_and_admin_page_renders_tab(): void
     {
         $this->actingAs($this->admin)->postJson('/api/settings', [

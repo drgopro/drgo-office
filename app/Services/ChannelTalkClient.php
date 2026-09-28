@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -57,6 +58,13 @@ class ChannelTalkClient
                         ['type' => 'text', 'value' => $text],
                     ],
                 ]);
+        } catch (RequestException $e) {
+            // 일부 환경에서 4xx가 예외로 던져질 때 응답 본문 보존 — 422 원인(그룹 없음 등) 진단용
+            $status = $e->response?->status();
+            $body = mb_substr((string) $e->response?->body(), 0, 300);
+            $this->log('전송 실패 HTTP '.$status, $text, 'url='.$url."\n".$body);
+
+            return ['ok' => false, 'error' => "채널톡 응답 오류 (HTTP {$status}): ".$body];
         } catch (\Throwable $e) {
             $this->log('전송 실패', $text, '통신 오류: '.$e->getMessage());
 
@@ -74,6 +82,42 @@ class ChannelTalkClient
         }
 
         return ['ok' => true];
+    }
+
+    /**
+     * 팀챗 그룹 목록 — 공개 그룹만 반환된다 (채널톡 제약: 비공개 그룹은 API로 조회·발송 불가).
+     * 결제 알림 테스트 실패 시 사용 가능한 그룹 이름을 안내하는 데 쓴다.
+     *
+     * @return array{ok:bool, groups?:array<int, array{id:string, name:string}>, error?:string}
+     */
+    public function listGroups(): array
+    {
+        if ((string) config('services.channeltalk.access_key') === ''
+            || (string) config('services.channeltalk.access_secret') === '') {
+            return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
+        }
+
+        try {
+            $res = Http::timeout(10)->connectTimeout(5)
+                ->withHeaders([
+                    'x-access-key' => config('services.channeltalk.access_key'),
+                    'x-access-secret' => config('services.channeltalk.access_secret'),
+                ])
+                ->get(self::API_BASE.'/groups', ['limit' => 100]);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+        }
+
+        if (! $res->successful()) {
+            return ['ok' => false, 'error' => 'HTTP '.$res->status().': '.mb_substr($res->body(), 0, 160)];
+        }
+
+        $groups = [];
+        foreach ($res->json('groups') ?? [] as $g) {
+            $groups[] = ['id' => (string) ($g['id'] ?? ''), 'name' => (string) ($g['name'] ?? '')];
+        }
+
+        return ['ok' => true, 'groups' => $groups];
     }
 
     /**
