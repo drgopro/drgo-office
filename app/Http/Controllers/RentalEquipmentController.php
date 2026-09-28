@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * 대여 장비 현황판 — 제품 관리(Product)와 독립된 장비·대상·이력 관리.
+ * 대여 장비 현황판 — 제품 관리(Product)와 독립된 장비·위치·이력 관리.
  */
 class RentalEquipmentController extends Controller
 {
@@ -131,7 +131,7 @@ class RentalEquipmentController extends Controller
         return response()->json(['message' => '삭제되었습니다.']);
     }
 
-    // === 대상 CRUD ===
+    // === 위치 CRUD ===
 
     public function storeTarget(Request $request): JsonResponse
     {
@@ -145,7 +145,7 @@ class RentalEquipmentController extends Controller
         $validated['sort_order'] = (RentalTarget::max('sort_order') ?? 0) + 1;
 
         $target = RentalTarget::create($validated);
-        $this->log(null, $target->id, '대상 추가', $target->name.' 등록');
+        $this->log(null, $target->id, '위치 추가', $target->name.' 등록');
 
         return response()->json($target, 201);
     }
@@ -160,7 +160,7 @@ class RentalEquipmentController extends Controller
         ]);
 
         $target->update($validated);
-        $this->log(null, $target->id, '대상 편집', $target->name.' 정보 수정');
+        $this->log(null, $target->id, '위치 편집', $target->name.' 정보 수정');
 
         return response()->json($target);
     }
@@ -169,7 +169,7 @@ class RentalEquipmentController extends Controller
     {
         $name = $target->name;
         $target->delete();
-        $this->log(null, null, '대상 삭제', $name.' 제거');
+        $this->log(null, null, '위치 삭제', $name.' 제거');
 
         return response()->json(['message' => '삭제되었습니다.']);
     }

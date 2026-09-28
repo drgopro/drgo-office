@@ -129,23 +129,23 @@
 
     <div class="board-toolbar">
         <div class="search-box">
-            <input type="text" id="bdSearch" placeholder="장비명, 시리얼, 대상 검색…">
+            <input type="text" id="bdSearch" placeholder="장비명, 시리얼, 위치 검색…">
         </div>
         <span class="stat-pill">장비 <strong id="bdStatItems">0</strong></span>
         <span class="stat-pill">대여중 <strong id="bdStatInUse">0</strong></span>
-        <span class="stat-pill">대상 <strong id="bdStatTargets">0</strong></span>
+        <span class="stat-pill">위치 <strong id="bdStatTargets">0</strong></span>
         <div class="spacer"></div>
         <button class="tb-btn" id="bdScanBtn" title="QR 스캔"><x-icon name="qr" :size="13"/> 스캔</button>
         <button class="tb-btn" id="bdCategoryBtn" title="카테고리 관리"><x-icon name="tag" :size="13"/> 카테고리</button>
         <button class="tb-btn" id="bdGroupBtn" title="그룹 관리"><x-icon name="box" :size="13"/> 그룹</button>
         <button class="tb-btn" id="bdLogBtn" title="변경 이력"><x-icon name="clip" :size="13"/> 이력</button>
         <button class="tb-btn" onclick="openRentalItemModal(null)">＋ 장비</button>
-        <button class="tb-btn primary" onclick="openRentalTargetModal(null)">＋ 대상</button>
+        <button class="tb-btn primary" onclick="openRentalTargetModal(null)">＋ 위치</button>
     </div>
     <div class="board-wrap" id="bdBoardWrap">
         <div class="eq-board" id="bdBoard"></div>
     </div>
-    <div class="text-muted" style="margin-top:8px; font-size:11px;">셀을 클릭하면 해당 대상으로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다.</div>
+    <div class="text-muted" style="margin-top:8px; font-size:11px;">셀을 클릭하면 해당 위치로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다.</div>
 </div>
 
 <!-- 대여 장비: 추가/편집 모달 -->
@@ -206,11 +206,11 @@
     </div>
 </div>
 
-<!-- 대여 대상: 추가/편집 모달 -->
+<!-- 위치: 추가/편집 모달 -->
 <div class="modal-overlay" id="rentalTargetModal">
     <div class="modal">
         <div class="modal-header">
-            <div class="modal-title" id="rentalTargetTitle">＋ 사용 대상 추가</div>
+            <div class="modal-title" id="rentalTargetTitle">＋ 위치 추가</div>
             <button class="modal-close" onclick="closeModal('rentalTargetModal')">×</button>
         </div>
         <div class="field-group">
@@ -301,7 +301,7 @@
             <button class="modal-close" onclick="closeModal('groupAssignModal')">×</button>
         </div>
         <div class="field-group">
-            <div class="field-label">이동할 대상</div>
+            <div class="field-label">이동할 위치</div>
             <select class="field-select" id="gaTarget"><option value="">선택하세요</option></select>
         </div>
         <input type="hidden" id="gaGroupId">
@@ -360,7 +360,7 @@
             <button class="modal-close" onclick="closeModal('moveItemModal')">×</button>
         </div>
         <div class="field-group">
-            <div class="field-label">이동할 대상</div>
+            <div class="field-label">이동할 위치</div>
             <select class="field-select" id="miTarget"><option value="">선택하세요</option></select>
         </div>
         <input type="hidden" id="miItemId">
@@ -494,14 +494,14 @@ function bdRender() {
     const colWidth = 120, firstColWidth = 200;
     board.style.gridTemplateColumns = `${firstColWidth}px repeat(${totalCols}, minmax(${colWidth}px, 1fr))`;
 
-    let html = `<div class="eq-cell-base eq-corner">장비 \\ 대상 →</div>`;
+    let html = `<div class="eq-cell-base eq-corner">장비 \\ 위치 →</div>`;
     targets.forEach(t => {
         html += `<div class="eq-cell-base eq-col-header" data-target-id="${t.id}">
             <div class="ch-name">${bdEsc(t.name)}</div>
             ${t.phone ? `<div class="ch-sub">${bdEsc(t.phone)}</div>` : ''}
         </div>`;
     });
-    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1">＋ 대상 추가</div>`;
+    html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1">＋ 위치 추가</div>`;
 
     items.forEach(item => {
         // 다른 위치에 남겨진 구성품 경고 — 이름 옆 Red 배지
@@ -828,11 +828,11 @@ async function deleteRentalItem() {
     await loadBoard();
 }
 
-// === 대상 모달 ===
+// === 위치 모달 ===
 function openRentalTargetModal(targetId) {
     const isEdit = !!targetId;
     const tg = isEdit ? bdState.targets.find(t=>t.id===targetId) : null;
-    document.getElementById('rentalTargetTitle').textContent = isEdit ? '사용 대상 편집' : '＋ 사용 대상 추가';
+    document.getElementById('rentalTargetTitle').textContent = isEdit ? '위치 편집' : '＋ 위치 추가';
     document.getElementById('rtId').value = targetId || '';
     document.getElementById('rtName').value = tg?.name || '';
     document.getElementById('rtPhone').value = tg?.phone || '';
@@ -872,18 +872,18 @@ async function saveRentalTarget() {
     const res = await fetch(url, {method, headers:H, body:JSON.stringify(body)});
     if (!res.ok) { const e = await res.json(); bdToast(Object.values(e.errors||{}).flat().join('\n') || e.message || '오류'); return; }
     closeModal('rentalTargetModal');
-    bdToast(id ? '대상 정보가 수정되었습니다.' : '새 대상이 추가되었습니다.');
+    bdToast(id ? '위치 정보가 수정되었습니다.' : '새 위치가 추가되었습니다.');
     await loadBoard();
 }
 async function deleteRentalTarget() {
     const id = document.getElementById('rtId').value;
     if (!id) return;
     const tg = bdState.targets.find(t=>t.id===+id);
-    if (!confirm(`"${tg?.name}" 대상을 삭제하시겠습니까?\n이 대상에 지정된 장비는 위치가 해제됩니다.`)) return;
+    if (!confirm(`"${tg?.name}" 위치를 삭제하시겠습니까?\n이 위치에 있던 장비는 위치 지정이 해제됩니다.`)) return;
     const res = await fetch(`/api/rental/targets/${id}`, {method:'DELETE', headers:H});
     if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
     closeModal('rentalTargetModal');
-    bdToast('대상이 삭제되었습니다.');
+    bdToast('위치가 삭제되었습니다.');
     await loadBoard();
 }
 
@@ -982,7 +982,7 @@ function openGroupAssignModal(groupId) {
 async function gaAssign() {
     const groupId = +document.getElementById('gaGroupId').value;
     const targetId = document.getElementById('gaTarget').value;
-    if (!targetId) { bdToast('대상을 선택하세요.'); return; }
+    if (!targetId) { bdToast('위치를 선택하세요.'); return; }
     const res = await fetch('/api/rental/assign-group', {method:'POST', headers:H, body:JSON.stringify({group_id: groupId, target_id: +targetId})});
     if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
     const data = await res.json();
@@ -1128,7 +1128,7 @@ function openMoveItemModal(itemId) {
 async function miAssign() {
     const itemId = +document.getElementById('miItemId').value;
     const targetId = document.getElementById('miTarget').value;
-    if (!targetId) { bdToast('대상을 선택하세요.'); return; }
+    if (!targetId) { bdToast('위치를 선택하세요.'); return; }
     closeModal('moveItemModal');
     await bdAssign(itemId, +targetId, 'QR 스캔으로 이동');
 }

@@ -28,6 +28,15 @@ class RentalComponentTrackingTest extends TestCase
         $this->client = RentalTarget::create(['name' => '의뢰자A']);
     }
 
+    public function test_board_page_uses_location_wording_instead_of_target(): void
+    {
+        $this->actingAs($this->admin)->get('/rental-equipment')->assertOk()
+            ->assertSee('＋ 위치')
+            ->assertSee('이동할 위치')
+            ->assertDontSee('＋ 대상')
+            ->assertDontSee('사용 대상');
+    }
+
     public function test_in_use_count_excludes_items_still_at_home_location(): void
     {
         // 원래 위치 그대로 — 대여 아님
