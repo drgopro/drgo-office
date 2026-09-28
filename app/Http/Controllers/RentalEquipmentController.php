@@ -27,7 +27,7 @@ class RentalEquipmentController extends Controller
     public function board(): JsonResponse
     {
         $items = RentalItem::orderBy('name')->get([
-            'id', 'name', 'serial', 'category_id', 'components', 'description',
+            'id', 'name', 'serial', 'category_id', 'components', 'component_items', 'description',
             'current_target_id', 'home_target_id', 'group_id',
         ]);
 
@@ -111,6 +111,9 @@ class RentalEquipmentController extends Controller
             'serial' => 'nullable|string|max:100',
             'category_id' => 'nullable|exists:rental_categories,id',
             'components' => 'nullable|string',
+            'component_items' => 'nullable|array|max:100', // 구성품 목록 — 이동 시 체크 추적
+            'component_items.*.name' => 'required|string|max:200',
+            'component_items.*.left_target_id' => 'nullable|integer|exists:rental_targets,id',
             'description' => 'nullable|string',
             'home_target_id' => 'nullable|exists:rental_targets,id',
             'group_id' => 'nullable|exists:rental_groups,id',
@@ -178,6 +181,8 @@ class RentalEquipmentController extends Controller
             'target_id' => 'nullable|exists:rental_targets,id',
             'return' => 'nullable|boolean',
             'memo' => 'nullable|string|max:500',
+            'components_moved' => 'nullable|array', // 함께 이동하는 구성품 인덱스 — 미전달 시 전부 이동
+            'components_moved.*' => 'integer|min:0',
         ]);
 
         return DB::transaction(function () use ($validated) {
@@ -200,6 +205,26 @@ class RentalEquipmentController extends Controller
             $next = $newTargetId ? RentalTarget::find($newTargetId) : null;
 
             [$action, $detail] = $this->describeMovement($item->name, $prev, $next, $isReturn);
+
+            // 구성품 추적 — 체크된 것은 본체와 함께(left_target_id=null),
+            // 이번에 빠진 것은 이전 위치에 남김, 이미 다른 곳에 남아있던 것은 그대로 유지
+            $components = $item->component_items ?? [];
+            if ($components) {
+                $moved = array_map('intval', $validated['components_moved'] ?? array_keys($components));
+                $leftNames = [];
+                foreach ($components as $i => $comp) {
+                    if (in_array($i, $moved, true)) {
+                        $components[$i]['left_target_id'] = null;
+                    } elseif (($comp['left_target_id'] ?? null) === null && $prevTargetId !== null) {
+                        $components[$i]['left_target_id'] = $prevTargetId;
+                        $leftNames[] = (string) $comp['name'];
+                    }
+                }
+                $item->update(['component_items' => array_values($components)]);
+                if ($leftNames) {
+                    $detail .= ' · 구성품 남김('.($prev?->name ?? '이전 위치').'): '.implode(', ', $leftNames);
+                }
+            }
 
             if (! empty($validated['memo'])) {
                 $detail .= " ({$validated['memo']})";

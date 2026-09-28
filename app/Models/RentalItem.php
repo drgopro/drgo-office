@@ -14,11 +14,14 @@ class RentalItem extends Model
         'serial',
         'category_id',
         'components',
+        'component_items',
         'description',
         'current_target_id',
         'home_target_id',
         'group_id',
     ];
+
+    protected $casts = ['component_items' => 'array'];
 
     public function category()
     {

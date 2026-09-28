@@ -10,6 +10,7 @@
 
     .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
+    .rh-left-warn { color:var(--red); font-size:11px; font-weight:700; margin-left:4px; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
     .btn-danger-sm { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:5px 8px; }
@@ -171,8 +172,11 @@
             </div>
         </div>
         <div class="field-group">
-            <div class="field-label">제품 구성</div>
-            <textarea class="field-input" id="riComponents" rows="2"></textarea>
+            <div class="field-label" style="display:flex; align-items:center; gap:8px;">구성품
+                <button type="button" class="btn-sm" id="riCompAddBtn" onclick="riAddComp()" style="padding:2px 10px; font-size:11.5px;">＋ 구성품 추가</button>
+                <span class="text-muted" style="font-size:11px;">이동할 때마다 구성품 체크로 동행 여부를 추적합니다</span>
+            </div>
+            <div id="riCompList"></div>
         </div>
         <div class="field-group">
             <div class="field-label">제품 설명 / 비고</div>
@@ -356,6 +360,27 @@
     </div>
 </div>
 
+<!-- 구성품 확인 모달 — 이동/반납 시 함께 가는 구성품 체크 -->
+<div class="modal-overlay" id="compMoveModal">
+    <div class="modal" style="width:440px;">
+        <div class="modal-header">
+            <div class="modal-title">구성품 확인</div>
+            <button class="modal-close" onclick="closeModal('compMoveModal')">×</button>
+        </div>
+        <div id="cmInfo" style="font-size:13px; line-height:1.6; margin-bottom:10px;"></div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <button type="button" class="btn-cancel btn-sm" onclick="cmSetAll(true)">전체선택</button>
+            <button type="button" class="btn-cancel btn-sm" onclick="cmSetAll(false)">전체선택 해제</button>
+            <span class="text-muted" style="font-size:11.5px; align-self:center;">체크한 구성품만 함께 이동합니다</span>
+        </div>
+        <div id="cmList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('compMoveModal')">취소</button>
+            <button class="btn-save" onclick="cmConfirm()">이동</button>
+        </div>
+    </div>
+</div>
+
 <!-- 셀 액션 모달 -->
 <div class="modal-overlay" id="bdCellModal">
     <div class="modal" style="width:400px;">
@@ -468,8 +493,11 @@ function bdRender() {
     html += `<div class="eq-cell-base eq-col-header empty" data-add-target="1">＋ 대상 추가</div>`;
 
     items.forEach(item => {
+        // 다른 위치에 남겨진 구성품 경고 — 이름 옆 Red 배지
+        const leftComps = (item.component_items||[]).filter(c=>c.left_target_id);
+        const warn = leftComps.length ? `<span class="rh-left-warn" title="구성품 ${leftComps.length}개가 다른 위치에 남아 있음: ${bdEsc(leftComps.map(c=>c.name).join(', '))}">⚠${leftComps.length}</span>` : '';
         html += `<div class="eq-cell-base eq-row-header" data-item-id="${item.id}">
-            <div class="rh-name">${bdEsc(item.name)}</div>
+            <div class="rh-name">${bdEsc(item.name)}${warn}</div>
             ${item.serial ? `<div class="rh-serial">${bdEsc(item.serial)}</div>` : ''}
         </div>`;
         targets.forEach(t => {
@@ -622,25 +650,103 @@ document.getElementById('bdCellClearBtn').addEventListener('click', async () => 
 });
 
 async function bdAssign(itemId, targetId, memo) {
-    const body = { item_id: itemId, target_id: targetId, memo: memo || null };
+    // 구성품이 있는 장비는 이동 전에 동행 구성품 확인 모달을 거친다
+    const item = bdState.items.find(i=>i.id===itemId);
+    if ((item?.component_items || []).length) { openCompMoveModal(itemId, targetId, false, memo); return; }
+    await bdDoAssign(itemId, targetId, false, memo, null);
+}
+async function bdClear(itemId, memo) {
+    const item = bdState.items.find(i=>i.id===itemId);
+    if ((item?.component_items || []).length) { openCompMoveModal(itemId, null, true, memo); return; }
+    await bdDoAssign(itemId, null, true, memo, null);
+}
+async function bdDoAssign(itemId, targetId, isReturn, memo, movedIdx) {
+    const body = isReturn
+        ? { item_id: itemId, return: true, memo: memo || null }
+        : { item_id: itemId, target_id: targetId, memo: memo || null };
+    if (movedIdx !== null) body.components_moved = movedIdx;
     const res = await fetch('/api/rental/assign', {method:'POST', headers:H, body:JSON.stringify(body)});
     if (!res.ok) { const e = await res.json(); bdToast(e.message || Object.values(e.errors||{}).flat().join('\n') || '오류'); return; }
     const item = bdState.items.find(i=>i.id===itemId);
-    const target = bdState.targets.find(t=>t.id===targetId);
-    bdToast(`${item?.name||''} → ${target?.name||''}`);
-    await loadBoard();
-}
-async function bdClear(itemId, memo) {
-    const body = { item_id: itemId, return: true, memo: memo || null };
-    const res = await fetch('/api/rental/assign', {method:'POST', headers:H, body:JSON.stringify(body)});
-    if (!res.ok) { const e = await res.json(); bdToast(e.message || '오류'); return; }
-    const item = bdState.items.find(i=>i.id===itemId);
-    const home = item?.home_target_id ? bdState.targets.find(t=>t.id===item.home_target_id) : null;
-    bdToast(home ? `${item?.name||''} → ${home.name} (원위치)` : `${item?.name||''} 반납 처리`);
+    if (isReturn) {
+        const home = item?.home_target_id ? bdState.targets.find(t=>t.id===item.home_target_id) : null;
+        bdToast(home ? `${item?.name||''} → ${home.name} (원위치)` : `${item?.name||''} 반납 처리`);
+    } else {
+        const target = bdState.targets.find(t=>t.id===targetId);
+        bdToast(`${item?.name||''} → ${target?.name||''}`);
+    }
     await loadBoard();
 }
 
+// === 구성품 확인 모달 — 이동/반납 시 함께 가는 구성품 체크 ===
+let cmCtx = { itemId:null, targetId:null, isReturn:false, memo:null };
+function openCompMoveModal(itemId, targetId, isReturn, memo) {
+    cmCtx = { itemId, targetId, isReturn, memo };
+    const item = bdState.items.find(i=>i.id===itemId);
+    const comps = item?.component_items || [];
+    const destId = isReturn ? item?.home_target_id : targetId;
+    const dest = destId ? bdState.targets.find(t=>t.id===destId) : null;
+    document.getElementById('cmInfo').innerHTML = `
+        <b>${bdEsc(item?.name||'')}</b> → <span style="color:var(--accent);font-weight:600;">${dest?bdEsc(dest.name):(isReturn?'반납':'미지정')}</span>
+        <div class="text-muted" style="font-size:11.5px;">함께 이동하는 구성품을 확인하세요. 체크하지 않은 구성품은 ${isReturn?'현재':'이전'} 위치에 남은 것으로 기록됩니다.</div>`;
+    document.getElementById('cmList').innerHTML = comps.map((c, i) => {
+        const leftAt = c.left_target_id ? bdState.targets.find(t=>t.id===c.left_target_id) : null;
+        // 이전 이동에서 남겨진 구성품 — Red 하이라이트 + 마지막 위치 표시, 기본 체크 해제
+        return `<label style="display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid ${leftAt?'var(--red)':'var(--border)'}; border-radius:8px; cursor:pointer; ${leftAt?'background:rgba(212,110,110,0.08);':''}">
+            <input type="checkbox" name="cmComp" value="${i}" ${leftAt?'':'checked'} style="width:14px; height:14px;">
+            <span style="font-size:13px; ${leftAt?'color:var(--red); font-weight:600;':''}">${bdEsc(c.name)}</span>
+            ${leftAt?`<span style="margin-left:auto; font-size:11px; color:var(--red);">마지막 위치: ${bdEsc(leftAt.name)}</span>`:''}
+        </label>`;
+    }).join('');
+    openModal('compMoveModal');
+}
+function cmSetAll(on) {
+    document.querySelectorAll('input[name=cmComp]').forEach(c => c.checked = on);
+}
+async function cmConfirm() {
+    const item = bdState.items.find(i=>i.id===cmCtx.itemId);
+    const comps = item?.component_items || [];
+    const moved = [...document.querySelectorAll('input[name=cmComp]:checked')].map(c => +c.value);
+    // 누락 구성품 팝업 — 이번에 새로 남겨지는 것 + 기존에 다른 곳에 남아있는 것 구분 안내
+    const missing = comps.map((c, i) => ({...c, i})).filter(c => !moved.includes(c.i));
+    if (missing.length) {
+        const curTarget = bdState.targets.find(t=>t.id===bdState.assignments[cmCtx.itemId]);
+        const lines = missing.map(c => {
+            const leftAt = c.left_target_id ? bdState.targets.find(t=>t.id===c.left_target_id) : null;
+            return `· ${c.name} — ${leftAt?`마지막 위치 유지 (${leftAt.name})`:`${curTarget?curTarget.name:'이전 위치'}에 남음`}`;
+        });
+        if (!confirm(`구성품 ${missing.length}개가 함께 이동하지 않습니다.\n\n${lines.join('\n')}\n\n계속할까요?`)) return;
+    }
+    closeModal('compMoveModal');
+    await bdDoAssign(cmCtx.itemId, cmCtx.targetId, cmCtx.isReturn, cmCtx.memo, moved);
+}
+
 // === 장비 모달 ===
+// 구성품 편집기 상태 — [{name, left_target_id}] (left_target_id: 이동 시 남겨진 마지막 위치)
+let riCompState = [];
+function riRenderComps() {
+    const wrap = document.getElementById('riCompList');
+    if (!riCompState.length) {
+        wrap.innerHTML = '<div class="text-muted" style="font-size:12px; padding:4px 0;">구성품이 없습니다. [＋ 구성품 추가]로 항목을 등록하세요.</div>';
+        return;
+    }
+    wrap.innerHTML = riCompState.map((c, i) => {
+        const leftAt = c.left_target_id ? bdState.targets.find(t=>t.id===c.left_target_id) : null;
+        return `<div style="display:flex; align-items:center; gap:6px; margin-bottom:5px;">
+            <input class="field-input" style="flex:1; ${leftAt?'border-color:var(--red); color:var(--red);':''}" value="${bdEsc(c.name)}" placeholder="구성품 이름 (예: 전원 케이블)" oninput="riCompState[${i}].name=this.value">
+            ${leftAt?`<span style="font-size:11px; color:var(--red); white-space:nowrap;">마지막 위치: ${bdEsc(leftAt.name)}</span>
+                <button type="button" class="btn-cancel btn-sm" onclick="riCompState[${i}].left_target_id=null; riRenderComps()" title="본체와 함께 있는 것으로 표시">회수됨</button>`:''}
+            <button type="button" class="btn-cancel btn-sm" onclick="riCompState.splice(${i},1); riRenderComps()" title="구성품 삭제">×</button>
+        </div>`;
+    }).join('');
+}
+function riAddComp() {
+    riCompState.push({ name: '', left_target_id: null });
+    riRenderComps();
+    const inputs = document.querySelectorAll('#riCompList input.field-input');
+    inputs[inputs.length-1]?.focus();
+}
+
 function openRentalItemModal(itemId) {
     const isEdit = !!itemId;
     const it = isEdit ? bdState.items.find(i=>i.id===itemId) : null;
@@ -648,7 +754,9 @@ function openRentalItemModal(itemId) {
     document.getElementById('riId').value = itemId || '';
     document.getElementById('riName').value = it?.name || '';
     document.getElementById('riSerial').value = it?.serial || '';
-    document.getElementById('riComponents').value = it?.components || '';
+    // 구성품 편집기 — 항목 단위 추가/삭제, 남겨진 구성품은 Red + 마지막 위치 표시
+    riCompState = (it?.component_items || []).map(c => ({ name: c.name, left_target_id: c.left_target_id ?? null }));
+    riRenderComps();
     document.getElementById('riDesc').value = it?.description || '';
 
     const catSel = document.getElementById('riCategory');
@@ -681,7 +789,7 @@ async function saveRentalItem() {
         name: document.getElementById('riName').value.trim(),
         serial: document.getElementById('riSerial').value.trim() || null,
         category_id: document.getElementById('riCategory').value ? +document.getElementById('riCategory').value : null,
-        components: document.getElementById('riComponents').value.trim() || null,
+        component_items: riCompState.map(c => ({ name: (c.name||'').trim(), left_target_id: c.left_target_id ?? null })).filter(c => c.name),
         description: document.getElementById('riDesc').value.trim() || null,
         home_target_id: document.getElementById('riHomeTarget').value ? +document.getElementById('riHomeTarget').value : null,
         group_id: document.getElementById('riGroup').value ? +document.getElementById('riGroup').value : null,
