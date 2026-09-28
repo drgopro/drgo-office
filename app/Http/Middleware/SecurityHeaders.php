@@ -25,7 +25,9 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('Referrer-Policy', 'no-referrer');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        // camera=(self): 장비 위치 QR 스캔용 — camera=()로 전면 차단하면 권한 프롬프트
+        // 자체가 뜨지 않는다 (동일 출처 + 탭 iframe allow="camera" 위임으로만 사용)
+        $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
 
         if ($request->secure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

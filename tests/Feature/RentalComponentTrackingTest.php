@@ -86,6 +86,17 @@ class RentalComponentTrackingTest extends TestCase
         $this->assertSame($other->id, $item->fresh()->component_items[0]['left_target_id']);
     }
 
+    public function test_camera_permission_policy_allows_self_for_qr_scan(): void
+    {
+        // camera=()로 전면 차단하면 안드로이드에서 권한 프롬프트 자체가 뜨지 않음 —
+        // QR 스캔을 위해 동일 출처(self)만 허용, 마이크/위치는 계속 차단
+        $res = $this->actingAs($this->admin)->get('/rental-equipment')->assertOk();
+        $policy = $res->headers->get('Permissions-Policy');
+        $this->assertStringContainsString('camera=(self)', $policy);
+        $this->assertStringContainsString('microphone=()', $policy);
+        $this->assertStringContainsString('geolocation=()', $policy);
+    }
+
     public function test_board_returns_components_and_page_renders_ui(): void
     {
         RentalItem::create(['name' => '송출컴', 'component_items' => [['name' => '케이블', 'left_target_id' => null]]]);
