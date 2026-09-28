@@ -313,7 +313,7 @@
             <button class="modal-close" onclick="stopQrScan(true)">×</button>
         </div>
         <div id="qrScanReader" style="width:100%; background:#000; border-radius:8px; overflow:hidden; min-height:260px;"></div>
-        <div class="text-muted" style="font-size:11px; margin-top:6px;">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
+        <div class="text-muted" style="font-size:11px; margin-top:6px;" id="qrScanHint">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
         <div class="field-group" style="margin-top:10px;">
             <div class="field-label">수동 입력 (테스트)</div>
             <div style="display:flex; gap:6px;">
@@ -992,8 +992,15 @@ async function gaReturnAll() {
 document.getElementById('bdScanBtn').addEventListener('click', () => startQrScan());
 async function startQrScan() {
     document.getElementById('qrManual').value = '';
+    const hint = document.getElementById('qrScanHint');
+    hint.style.color = '';
+    hint.textContent = '장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.';
     openModal('qrScanModal');
-    if (typeof Html5Qrcode === 'undefined') { return; }
+    if (typeof Html5Qrcode === 'undefined') {
+        hint.style.color = 'var(--red)';
+        hint.textContent = '스캐너 스크립트를 불러오지 못했습니다 — 네트워크 확인 후 새로고침하거나 아래 수동 입력을 사용하세요.';
+        return;
+    }
     try {
         qrScanner = new Html5Qrcode('qrScanReader');
         await qrScanner.start(
@@ -1002,7 +1009,25 @@ async function startQrScan() {
             (decoded) => { handleScanResult(decoded); },
             () => {}
         );
-    } catch (err) {}
+    } catch (err) {
+        // 권한 거부/미지원을 조용히 삼키지 않고 원인별 안내 — 안드로이드에서 프롬프트가
+        // 안 뜨는 경우는 대부분 이전에 '차단'을 눌렀거나 인앱 브라우저 사용 시
+        qrScanner = null;
+        hint.style.color = 'var(--red)';
+        const name = err && (err.name || String(err));
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || /permission/i.test(String(err))) {
+            hint.innerHTML = '카메라 권한이 거부되어 있습니다.<br>'
+                + '· 크롬: 주소창 자물쇠(🔒) → 권한 → 카메라 허용 후 다시 시도<br>'
+                + '· 안드로이드: 설정 → 애플리케이션 → Chrome → 권한 → 카메라 허용<br>'
+                + '· 카카오톡 등 인앱 브라우저에서는 권한 창이 뜨지 않으니 Chrome으로 열어주세요.';
+        } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+            hint.textContent = '사용 가능한 카메라를 찾지 못했습니다. 아래 수동 입력을 사용하세요.';
+        } else if (name === 'NotReadableError') {
+            hint.textContent = '다른 앱이 카메라를 사용 중입니다. 카메라 앱을 닫고 다시 시도하세요.';
+        } else {
+            hint.textContent = '카메라를 시작하지 못했습니다 (' + name + '). 아래 수동 입력을 사용하세요.';
+        }
+    }
 }
 async function stopQrScan(alsoClose) {
     if (qrScanner) {

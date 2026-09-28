@@ -945,6 +945,9 @@ window.drgoTabs = {
     _load(tab, pane) {
         const iframe = document.createElement('iframe');
         iframe.src = tab.url;
+        // iframe 안에서도 카메라(QR 스캔)·마이크·클립보드가 동작하도록 권한 위임
+        // — allow 없이는 안드로이드 크롬이 권한 프롬프트 없이 조용히 거부한다
+        iframe.setAttribute('allow', 'camera; microphone; clipboard-write; clipboard-read');
         iframe.style.cssText = 'width:100%;height:calc(100vh / var(--ui-zoom, 1) - var(--chrome-h, 86px));border:none;display:block;';
         iframe.onload = () => { tab.loaded = true; this._fitPanes(); };
         iframe.onerror = () => {
