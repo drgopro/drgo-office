@@ -29,7 +29,9 @@ class EstimateController extends Controller
 
     public function estimates(Request $request)
     {
-        $query = Estimate::with('creator')
+        // 차수(추가 견적)는 목록에 따로 나열하지 않는다 — 부모 행의 rounds로 아코디언 표시
+        $query = Estimate::with(['creator', 'rounds' => fn ($q) => $q->where('status', '!=', 'temp')->with(['parent:id,estimate_no', 'creator'])])
+            ->whereNull('parent_estimate_id')
             ->where('status', '!=', 'temp')
             ->orderBy('created_at', 'desc');
 
@@ -539,7 +541,8 @@ class EstimateController extends Controller
      */
     private function assignEstimateNo(Estimate $estimate): void
     {
-        if ($estimate->estimate_no || $estimate->status === 'temp') {
+        // 차수(추가 견적)는 자체 번호를 받지 않는다 — 표시 번호는 부모 번호-차수 (예: 200-2)
+        if ($estimate->estimate_no || $estimate->status === 'temp' || $estimate->parent_estimate_id) {
             return;
         }
 
@@ -610,13 +613,27 @@ class EstimateController extends Controller
 
     public function print(Estimate $estimate)
     {
+        // 차수를 열면 부모의 최종 견적서(합산 1장)로 — 문서는 항상 한 장
+        if ($estimate->parent_estimate_id && $estimate->parent) {
+            $estimate = $estimate->parent;
+        }
         $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
         ]);
+        $rounds = $this->visibleRounds($estimate);
 
-        return view('estimates.print', compact('estimate', 'settings'));
+        return view('estimates.print', compact('estimate', 'settings', 'rounds'));
+    }
+
+    /** 공개/인쇄 문서에 싣는 차수 — 임시(temp)와 아직 발행 전(created) 차수는 의뢰자에게 보이지 않는다 */
+    private function visibleRounds(Estimate $estimate)
+    {
+        return $estimate->rounds()
+            ->whereIn('status', ['issued', 'paid', 'cancelled'])
+            ->orderBy('round')
+            ->get();
     }
 
     /** 주문/배송 운송장 등록 — 견적서 편집에서 새 창으로 연다 */
@@ -652,6 +669,7 @@ class EstimateController extends Controller
         return view('estimates.print', [
             'estimate' => $estimate,
             'settings' => $settings,
+            'rounds' => $this->visibleRounds($estimate),
             'publicMode' => true,
         ]);
     }
@@ -855,11 +873,60 @@ class EstimateController extends Controller
 
     public function destroy(Estimate $estimate)
     {
+        // 차수가 남아 있는 부모는 삭제 불가 — 차수(추가 견적)부터 정리해야 결제 기록이 고아가 되지 않는다
+        if ($estimate->rounds()->exists()) {
+            return response()->json(['message' => '추가 차수가 있는 견적서입니다. 하단의 차수를 먼저 삭제해 주세요.'], 422);
+        }
+        // 결제 완료된 차수는 삭제 불가 (부모와 동일하게 문서 기록 보존)
+        if ($estimate->parent_estimate_id && $estimate->status === 'paid') {
+            return response()->json(['message' => '결제 완료된 차수는 삭제할 수 없습니다.'], 422);
+        }
+
         // 삭제 전파 — 미수 청구·프로젝트 견적/계약 카드·캘린더 연동에서 정리 + 직접발송 재고 복원
         EstimatePaymentSync::estimateDeleted($estimate);
         EstimateStockSync::release($estimate);
         $estimate->delete();
 
         return response()->json(['message' => '삭제되었습니다.']);
+    }
+
+    /**
+     * 추가 차수(N차 추가 견적) 생성 — 결제 완료(또는 발행) 이후 추가 결제 건을
+     * 부모 견적서에 묶는다. 차수는 실제 견적서 행이라 페이앱 결제·환불·매출 연동을 그대로 탄다.
+     */
+    public function storeRound(Estimate $estimate)
+    {
+        if ($estimate->parent_estimate_id) {
+            return response()->json(['message' => '차수에는 추가 차수를 만들 수 없습니다. 본 견적서에서 추가해 주세요.'], 422);
+        }
+        if (! in_array($estimate->status, Estimate::PRICE_LOCKED_STATUSES, true)) {
+            return response()->json(['message' => '발행 또는 결제 완료된 견적서에서만 추가 차수를 만들 수 있습니다. 그 전에는 본 견적서를 수정하세요.'], 422);
+        }
+
+        $round = Estimate::create([
+            'parent_estimate_id' => $estimate->id,
+            'round' => (int) ($estimate->rounds()->max('round') ?? 1) + 1,
+            'status' => 'created',
+            'client_id' => $estimate->client_id,
+            'project_id' => $estimate->project_id,
+            'client_name' => $estimate->client_name,
+            'client_nickname' => $estimate->client_nickname,
+            'client_phone' => $estimate->client_phone,
+            'ship_address' => $estimate->ship_address,
+            'ship_name' => $estimate->ship_name,
+            'ship_phone' => $estimate->ship_phone,
+            'ship_entrance' => $estimate->ship_entrance,
+            'ship_note' => $estimate->ship_note,
+            'title' => trim(($estimate->title ?: '견적서 #'.$estimate->display_no)),
+            'product_items' => [],
+            'service_items' => [],
+            'product_total' => 0,
+            'service_total' => 0,
+            'total_amount' => 0,
+            'validity_days' => $estimate->validity_days ?? 3,
+            'created_by' => Auth::id(),
+        ]);
+
+        return response()->json($round->load('parent:id,estimate_no'), 201);
     }
 }

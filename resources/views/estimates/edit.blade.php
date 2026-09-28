@@ -391,6 +391,14 @@
 </div>
 
 <div class="panel-right">
+    @if($estimate->parent_estimate_id && $estimate->parent)
+        {{-- 차수(추가 견적) 편집 중 — 어떤 견적서의 몇 차인지 항상 표시 --}}
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 16px; background:rgba(59,94,160,0.12); border-bottom:1px solid var(--border); font-size:12.5px; font-weight:700; color:var(--accent);">
+            ↳ 견적서 #{{ $estimate->parent->display_no }}의 {{ $estimate->round }}차 추가 견적입니다
+            <span style="font-weight:400; color:var(--text-muted);">— 의뢰자에게는 본 견적서와 합쳐진 최종 견적서 1장으로 보입니다</span>
+            <button class="btn btn-ghost" style="margin-left:auto; padding:4px 10px; font-size:12px;" onclick="location.href='/estimates/{{ $estimate->parent->id }}/edit'">본 견적서 열기</button>
+        </div>
+    @endif
     <div class="panel-right-header">
         <h2 id="estTitleNo" onclick="editEstTitle()" style="cursor:text; border-radius:6px; padding:2px 6px; margin-left:-6px;" title="클릭해서 견적서 제목 수정 (출력물 상단에 표시)">{{ $estimate->title ?: ($estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no) }}</h2>
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
@@ -527,6 +535,43 @@
             <div class="total-items">총 항목 수: <span id="totalItems">0</span>개 (부가세 포함)</div>
         </div>
 
+        @php
+            // 추가 차수 영역 — 본 견적서(부모)에서만, 발행/결제/취소 상태이거나 이미 차수가 있을 때 표시
+            $isChildRound = (bool) $estimate->parent_estimate_id;
+            $builderRounds = $isChildRound ? collect() : $estimate->rounds()->where('status', '!=', 'temp')->orderBy('round')->get();
+            $showRoundsSection = ! $isChildRound && ($builderRounds->isNotEmpty() || in_array($estimate->status, \App\Models\Estimate::PRICE_LOCKED_STATUSES, true));
+            $refundOfEst = fn ($e) => collect($e->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
+            $roundsActiveTotal = (int) $builderRounds->reject(fn ($r) => $r->status === 'cancelled')->sum('total_amount');
+            $allRefunds = $refundOfEst($estimate) + (int) $builderRounds->sum($refundOfEst);
+            $finalTotal = max(0, (int) $estimate->total_amount + $roundsActiveTotal - $allRefunds);
+            $roundStLabel = ['created' => '작성 중', 'editing' => '작성 중', 'completed' => '작성 완료', 'issued' => '결제 대기', 'paid' => '결제 완료', 'cancelled' => '결제 취소', 'hold' => '보류'];
+        @endphp
+        @if($showRoundsSection)
+        <!-- 추가 차수 (N차 추가 견적) — 결제 완료 후 추가 결제/취소 건을 본 견적서에 묶어 관리 -->
+        <div class="cart-section" id="roundsSection">
+            <h4>추가 차수 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 결제 완료 후의 추가 결제 건. 의뢰자에게는 본 견적서와 합쳐진 최종 견적서 1장으로 보입니다</span></h4>
+            @foreach($builderRounds as $r)
+                <div style="display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px;">
+                    <b style="color:var(--accent); white-space:nowrap;">{{ $r->round }}차</b>
+                    <span style="font-size:11px; padding:2px 8px; border-radius:5px; white-space:nowrap; {{ $r->status === 'paid' ? 'background:rgba(36,138,56,0.12); color:var(--green);' : ($r->status === 'cancelled' ? 'background:rgba(192,56,56,0.1); color:var(--red);' : 'background:rgba(59,94,160,0.12); color:var(--accent);') }} font-weight:700;">{{ $roundStLabel[$r->status] ?? $r->status }}</span>
+                    <span style="color:var(--text-muted); font-size:12px;">항목 {{ count($r->product_items ?? []) + count($r->service_items ?? []) }}개</span>
+                    <b style="margin-left:auto; white-space:nowrap; {{ $r->status === 'cancelled' ? 'text-decoration:line-through; color:var(--text-muted);' : '' }}">{{ number_format($r->total_amount) }}원</b>
+                    <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="location.href='/estimates/{{ $r->id }}/edit'">편집</button>
+                    @if($r->status !== 'paid')
+                        <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px; color:var(--red);" onclick="deleteRound({{ $r->id }}, {{ $r->round }})">삭제</button>
+                    @endif
+                </div>
+            @endforeach
+            <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+                <button class="btn btn-ghost" style="border-color:var(--accent); color:var(--accent); font-weight:700;" onclick="createRound()">+ 추가 견적 만들기</button>
+                @if($builderRounds->isNotEmpty())
+                    <span style="margin-left:auto; font-size:12.5px; color:var(--text-muted);">최종 금액 (환불 반영)</span>
+                    <b style="font-size:15px;">{{ number_format($finalTotal) }}원</b>
+                @endif
+            </div>
+        </div>
+        @endif
+
         <!-- 메모 -->
         <div class="cart-section">
             <h4>메모 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 의뢰자 견적서에 표시됩니다</span></h4>
@@ -638,6 +683,22 @@ function copyPublicLink() {
     navigator.clipboard.writeText(PUBLIC_URL)
         .then(() => alert('의뢰자용 견적서 링크가 복사되었습니다.\n카톡/문자로 전달하세요.\n\n' + PUBLIC_URL))
         .catch(() => prompt('아래 링크를 복사하세요:', PUBLIC_URL));
+}
+
+// === 추가 차수 (N차 추가 견적) ===
+async function createRound() {
+    if (!confirm('추가 견적(다음 차수)을 만들까요?\n의뢰자에게는 본 견적서와 합쳐진 최종 견적서 1장으로 보입니다.')) return;
+    const res = await fetch(`/api/estimates/${estId}/rounds`, { method: 'POST', headers: H });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(d.message || '추가 차수 생성에 실패했습니다.'); return; }
+    location.href = `/estimates/${d.id}/edit`;
+}
+async function deleteRound(id, round) {
+    if (!confirm(`${round}차 추가 견적을 삭제할까요?`)) return;
+    const res = await fetch(`/api/estimates/${id}`, { method: 'DELETE', headers: H });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(d.message || '삭제에 실패했습니다.'); return; }
+    location.reload();
 }
 
 async function payappRequest() {

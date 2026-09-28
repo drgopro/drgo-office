@@ -25,11 +25,15 @@ class Estimate extends Model
 {
     use LogsActivity;
 
-    /** 화면 표시용 번호 — 발급 전(temp)이나 구버전 행은 id로 폴백 */
+    /** 화면 표시용 번호 — 발급 전(temp)이나 구버전 행은 id로 폴백, 차수는 부모 번호-차수 (예: 200-2) */
     protected $appends = ['display_no'];
 
-    public function getDisplayNoAttribute(): int
+    public function getDisplayNoAttribute(): int|string
     {
+        if ($this->parent_estimate_id) {
+            return ($this->parent?->display_no ?? $this->parent_estimate_id).'-'.$this->round;
+        }
+
         return $this->estimate_no ?? $this->id;
     }
 
@@ -38,6 +42,8 @@ class Estimate extends Model
         'title',
         'client_id',
         'project_id',
+        'parent_estimate_id',
+        'round',
         'client_name',
         'client_nickname',
         'client_phone',
@@ -77,6 +83,7 @@ class Estimate extends Model
         'service_total' => 'integer',
         'total_amount' => 'integer',
         'validity_days' => 'integer',
+        'round' => 'integer',
         'issued_at' => 'datetime',
         'paid_at' => 'datetime',
         'payapp_state' => 'integer',
@@ -245,6 +252,11 @@ class Estimate extends Model
      */
     public function publicUrl(): string
     {
+        // 차수 견적서는 문서를 따로 발급하지 않는다 — 공개 링크는 항상 부모의 최종 견적서 1장
+        if ($this->parent_estimate_id && $this->parent) {
+            return $this->parent->publicUrl();
+        }
+
         if (! $this->share_token) {
             $this->share_token = bin2hex(random_bytes(32));
             $this->saveQuietly();
@@ -256,6 +268,18 @@ class Estimate extends Model
         }
 
         return route('estimates.public', ['token' => $this->share_token]);
+    }
+
+    /** 부모 견적서 — 이 행이 N차 추가 견적일 때 */
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_estimate_id');
+    }
+
+    /** 추가 차수(2차~) — 부모 견적서에 묶인 추가 견적들 */
+    public function rounds()
+    {
+        return $this->hasMany(self::class, 'parent_estimate_id')->orderBy('round');
     }
 
     public function client()

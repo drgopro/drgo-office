@@ -279,8 +279,29 @@ async function loadEstimates() {
 
     tb.innerHTML = data.map(e => {
         const itemCount = (e.product_items||[]).length + (e.service_items||[]).length;
+        const rounds = e.rounds || [];
+        // 추가 차수 — 부모 행 아래 아코디언으로 접힘 (기본 접힘)
+        const roundRows = rounds.map(r => {
+            const rCount = (r.product_items||[]).length + (r.service_items||[]).length;
+            return `<tr class="est-round-row" data-round-parent="${e.id}" style="display:none;">
+                <td class="text-muted" style="padding-left:22px;">└ #${r.display_no ?? r.id}</td>
+                <td style="color:var(--text-muted);">${r.round}차 추가 견적</td>
+                <td class="text-right" style="font-weight:600;">${fmt(r.total_amount)}원</td>
+                <td class="text-muted">${rCount}건</td>
+                <td><span class="badge badge-${r.status}">${stMap[r.status] || r.status}</span></td>
+                <td class="text-muted">${r.creator?.display_name || '-'}</td>
+                <td class="text-muted">${fmtDate(r.created_at)}</td>
+                <td class="text-muted">${fmtTime(r.updated_at)}</td>
+                <td onclick="event.stopPropagation()">
+                    <div class="action-cell">
+                        <button class="btn-act btn-act-edit" onclick="openEstimate(${r.id})">수정</button>
+                        ${r.status !== 'paid' ? `<button class="btn-act btn-act-delete" onclick="deleteEstimate(${r.id})">삭제</button>` : ''}
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
         return `<tr>
-            <td class="text-muted">#${e.display_no ?? e.id}</td>
+            <td class="text-muted">#${e.display_no ?? e.id}${rounds.length ? ` <button id="rndCaret-${e.id}" onclick="event.stopPropagation(); toggleEstRounds(${e.id})" title="추가 차수 펼치기/접기" style="background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--accent); font-size:10.5px; font-weight:700; padding:1px 7px; cursor:pointer; white-space:nowrap;">▸ +${rounds.length}차</button>` : ''}</td>
             <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}${e.title ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${_esc(e.title)}</div>` : ''}</td>
             <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원</td>
             <td class="text-muted">${itemCount}건</td>
@@ -303,8 +324,17 @@ async function loadEstimates() {
                     <button class="btn-act btn-act-delete" onclick="deleteEstimate(${e.id})">삭제</button>
                 </div>
             </td>
-        </tr>`;
+        </tr>${roundRows}`;
     }).join('');
+}
+
+// 추가 차수 아코디언 펼침/접기 — 부모 행의 [▸ +n차] 버튼
+function toggleEstRounds(parentId) {
+    const rows = document.querySelectorAll(`tr.est-round-row[data-round-parent="${parentId}"]`);
+    const caret = document.getElementById(`rndCaret-${parentId}`);
+    const open = rows.length && rows[0].style.display === 'none';
+    rows.forEach(r => { r.style.display = open ? '' : 'none'; });
+    if (caret) caret.textContent = (open ? '▾' : '▸') + caret.textContent.slice(1);
 }
 
 async function createEstimate(clientId) {
