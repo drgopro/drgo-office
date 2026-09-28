@@ -84,7 +84,8 @@ class PostAlertTest extends TestCase
 
     public function test_wiki_new_post_mentions_wiki_managers_separately(): void
     {
-        // 위키 전용 담당자(설정) — Free 게시판 담당자와 별도
+        // 위키 전용 톡방 + 담당자 — drgo.pro 게시판 설정과 별도
+        Setting::set('wiki_post_alert_group', '위키알림방');
         Setting::set('wiki_post_alert_managers', json_encode([$this->admin->id]));
         Setting::set('free_post_alert_managers', json_encode([])); // Free 쪽은 비움 — 분리 확인
         Http::fake([
@@ -98,8 +99,26 @@ class PostAlertTest extends TestCase
             'title' => '멘션 문서', 'content' => '<p>본문</p>',
         ]);
 
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('새게시물알림').'/messages')
+        // 게시물 알림 톡방(새게시물알림)이 아니라 위키 전용 톡방으로 발송
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('위키알림방').'/messages')
             && str_contains($r['blocks'][0]['value'] ?? '', '<link type="manager" value="mgr-9">'));
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('새게시물알림').'/messages'));
+    }
+
+    public function test_wiki_alert_test_endpoint_and_page_render(): void
+    {
+        Setting::set('wiki_post_alert_group', '위키알림방');
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response(['managers' => []]),
+            'api.channel.io/*' => Http::response(['ok' => true]),
+        ]);
+        $this->actingAs($this->admin)->postJson('/api/admin/wiki-alert-test')->assertOk();
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('위키알림방').'/messages'));
+
+        $this->actingAs($this->admin)->get('/admin')->assertOk()
+            ->assertSee('위키 알림')
+            ->assertSee('id="wkGroup"', false)
+            ->assertSee('wiki-alert-test', false);
     }
 
     public function test_wiki_draft_and_unset_group_do_not_notify(): void

@@ -1022,12 +1022,12 @@
             </div>
         </div>
     </div>
-    {{-- 게시물 알림 — drgo.pro 게시판 + 위키 새 글 채널톡 톡방 --}}
+    {{-- 게시물 알림 — drgo.pro 게시판 채널톡 톡방 --}}
     <div class="tab-panel" id="panel-postAlert">
         <div class="settings-form">
             <div class="cf-hint" style="margin-bottom:14px;">
-                drgo.pro 게시판 새 글/답변/댓글(5분 주기 폴링)과 위키 새 글이 이 톡방으로 알림됩니다.<br>
-                <span style="opacity:0.75;">Free(자유게시판)와 위키 새 글의 멘션 담당자를 각각 지정할 수 있습니다. 담당자를 비워두면 방 알림만 갑니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
+                drgo.pro 게시판 새 글/답변/댓글(5분 주기 폴링)이 이 톡방으로 알림됩니다.<br>
+                <span style="opacity:0.75;">Free(자유게시판) 소식에는 아래에서 고른 담당자가 멘션되어 개인 알림을 받습니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다. 위키 새 글 알림은 왼쪽 '위키 알림'에서 따로 설정합니다.</span>
             </div>
             <div class="field-group">
                 <div class="field-label">채널톡 게시물 알림 톡방 (그룹 이름 또는 그룹 ID)</div>
@@ -1037,14 +1037,33 @@
                 <div class="field-label">Free 게시판 담당자 — drgo.pro 새 글/댓글 알림에서 멘션할 사용자 (복수 선택)</div>
                 <div id="pbManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
             </div>
-            <div class="field-group">
-                <div class="field-label">위키 새 글 담당자 — 위키 새 글 알림에서 멘션할 사용자 (복수 선택, 비우면 멘션 없음)</div>
-                <div id="pbWikiManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
-            </div>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button class="btn-save" onclick="savePostAlertSettings()">저장</button>
                 <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testAlertRoom('post-alert-test', 'pbSaveMsg')">테스트 발송</button>
                 <span class="save-msg" id="pbSaveMsg"></span>
+            </div>
+        </div>
+    </div>
+
+    {{-- 위키 알림 — 위키 새 글 전용 톡방 + 담당자 --}}
+    <div class="tab-panel" id="panel-wikiAlert">
+        <div class="settings-form">
+            <div class="cf-hint" style="margin-bottom:14px;">
+                위키에 새 글이 발행되면 이 톡방으로 알림됩니다 (임시저장 → 발행 포함, 공지사항은 기존 전체 멘션 알림 유지).<br>
+                <span style="opacity:0.75;">톡방을 비워두면 게시물 알림 톡방으로 발송됩니다. 담당자를 고르면 알림에서 멘션되어 개인 알림을 받습니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
+            </div>
+            <div class="field-group">
+                <div class="field-label">채널톡 위키 알림 톡방 (그룹 이름 또는 그룹 ID)</div>
+                <input class="field-input" id="wkGroup" placeholder="비워두면 게시물 알림 톡방 사용">
+            </div>
+            <div class="field-group">
+                <div class="field-label">위키 새 글 담당자 — 알림에서 멘션할 사용자 (복수 선택, 비우면 멘션 없음)</div>
+                <div id="wkManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-save" onclick="saveWikiAlertSettings()">저장</button>
+                <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testAlertRoom('wiki-alert-test', 'wkSaveMsg')">테스트 발송</button>
+                <span class="save-msg" id="wkSaveMsg"></span>
             </div>
         </div>
     </div>
@@ -1230,6 +1249,7 @@ const SETTINGS_PANEL_MAP = {
     seller: { panel: 'panel-seller', load: () => {} },
     paymentAlert: { panel: 'panel-paymentAlert', load: () => typeof loadPaymentAlertSettings === 'function' && loadPaymentAlertSettings() },
     postAlert: { panel: 'panel-postAlert', load: () => typeof loadPostAlertSettings === 'function' && loadPostAlertSettings() },
+    wikiAlert: { panel: 'panel-wikiAlert', load: () => typeof loadWikiAlertSettings === 'function' && loadWikiAlertSettings() },
     calendarAlert: { panel: 'panel-calendarAlert', load: () => typeof loadCalendarAlertSettings === 'function' && loadCalendarAlertSettings() },
 };
 
@@ -1295,54 +1315,81 @@ const SETTINGS_GROUPS = {
     projects: { label: '프로젝트', items: [['projectFields', '장비 항목 관리'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿']] },
     calendar: { label: '캘린더', items: [['calendarCategories', '캘린더 카테고리'], ['visitOptions', '내방 옵션'], ['calendarAlert', '알림 톡방']] },
     estimates: { label: '견적서', items: [['seller', '판매처 설정'], ['paymentAlert', '결제 알림']] },
-    boards: { label: '게시판/위키', items: [['postAlert', '게시물 알림']] },
+    boards: { label: '게시판/위키', items: [['postAlert', 'drgo.pro 게시판 알림'], ['wikiAlert', '위키 알림']] },
 };
 function settingsGroupOf(sub) {
     return Object.keys(SETTINGS_GROUPS).find(g => SETTINGS_GROUPS[g].items.some(([key]) => key === sub)) || 'clients';
 }
-// ── 게시물 알림 설정 — drgo.pro 게시판 + 위키 새 글 톡방, Free 담당자 멘션 ──
+// ── 게시물 알림 설정 — drgo.pro 게시판 톡방 + Free 담당자 멘션 ──
+// 담당자 체크칩 공용 렌더 (게시물/위키 알림 설정 공용)
+function renderManagerChips(wrapId, inputName, users, storedJson) {
+    let selected = [];
+    try { selected = JSON.parse(storedJson || '[]') || []; } catch (e) {}
+    document.getElementById(wrapId).innerHTML = users.filter(u => u.is_active).map(u => `
+        <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
+            <input type="checkbox" name="${inputName}" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
+            ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
+        </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
+}
+async function fetchAlertSettingsAndUsers() {
+    const [settingsRes, usersRes] = await Promise.all([
+        fetch('/api/settings', { headers: { 'Accept': 'application/json' } }),
+        fetch('/api/admin/users', { headers: { 'Accept': 'application/json' } }),
+    ]);
+    return {
+        settings: settingsRes.ok ? await settingsRes.json() : {},
+        users: usersRes.ok ? await usersRes.json() : [],
+    };
+}
 let pbLoaded = false;
 async function loadPostAlertSettings() {
     if (pbLoaded) return;
     try {
-        const [settingsRes, usersRes] = await Promise.all([
-            fetch('/api/settings', { headers: { 'Accept': 'application/json' } }),
-            fetch('/api/admin/users', { headers: { 'Accept': 'application/json' } }),
-        ]);
-        const settings = settingsRes.ok ? await settingsRes.json() : {};
-        const users = usersRes.ok ? await usersRes.json() : [];
+        const { settings, users } = await fetchAlertSettingsAndUsers();
         document.getElementById('pbGroup').value = settings.post_alert_group || '';
-        // Free 게시판 / 위키 새 글 담당자를 각각 렌더 (별도 설정)
-        const renderChips = (wrapId, inputName, storedJson) => {
-            let selected = [];
-            try { selected = JSON.parse(storedJson || '[]') || []; } catch (e) {}
-            document.getElementById(wrapId).innerHTML = users.filter(u => u.is_active).map(u => `
-                <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
-                    <input type="checkbox" name="${inputName}" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
-                    ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
-                </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
-        };
-        renderChips('pbManagers', 'pbManager', settings.free_post_alert_managers);
-        renderChips('pbWikiManagers', 'pbWikiManager', settings.wiki_post_alert_managers);
+        renderManagerChips('pbManagers', 'pbManager', users, settings.free_post_alert_managers);
         pbLoaded = true;
     } catch (e) {
         document.getElementById('pbManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
-        document.getElementById('pbWikiManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
     }
 }
 async function savePostAlertSettings() {
     const ids = [...document.querySelectorAll('input[name=pbManager]:checked')].map(c => +c.value);
-    const wikiIds = [...document.querySelectorAll('input[name=pbWikiManager]:checked')].map(c => +c.value);
     const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
         body: JSON.stringify({
             post_alert_group: document.getElementById('pbGroup').value.trim(),
             free_post_alert_managers: JSON.stringify(ids),
-            wiki_post_alert_managers: JSON.stringify(wikiIds),
         }),
     });
     flashSaveMsg('pbSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
+}
+
+// ── 위키 알림 설정 — 위키 새 글 전용 톡방 + 담당자 ──
+let wkLoaded = false;
+async function loadWikiAlertSettings() {
+    if (wkLoaded) return;
+    try {
+        const { settings, users } = await fetchAlertSettingsAndUsers();
+        document.getElementById('wkGroup').value = settings.wiki_post_alert_group || '';
+        renderManagerChips('wkManagers', 'wkManager', users, settings.wiki_post_alert_managers);
+        wkLoaded = true;
+    } catch (e) {
+        document.getElementById('wkManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
+    }
+}
+async function saveWikiAlertSettings() {
+    const ids = [...document.querySelectorAll('input[name=wkManager]:checked')].map(c => +c.value);
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({
+            wiki_post_alert_group: document.getElementById('wkGroup').value.trim(),
+            wiki_post_alert_managers: JSON.stringify(ids),
+        }),
+    });
+    flashSaveMsg('wkSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
 }
 
 // ── 캘린더 알림 톡방 설정 — 담당자 지정 알림 + D-2 다이제스트 ──

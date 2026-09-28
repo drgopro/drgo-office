@@ -93,7 +93,7 @@ class AdminController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'seller_stamp_path', 'calendar_visit_options', 'project_cancel_reasons',
             'payment_alert_group', 'payment_alert_managers',
-            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_managers', 'calendar_alert_group',
+            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group',
         ]);
 
         return view('admin.index', compact('logs', 'sellerSettings'));
@@ -106,13 +106,13 @@ class AdminController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'calendar_visit_options', 'project_cancel_reasons',
             'payment_alert_group', 'payment_alert_managers',
-            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_managers', 'calendar_alert_group',
+            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group',
         ]));
     }
 
     public function updateSettings(Request $request)
     {
-        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_managers', 'calendar_alert_group'];
+        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group'];
 
         foreach ($keys as $key) {
             if ($request->has($key)) {
@@ -182,6 +182,34 @@ class AdminController extends Controller
      * 캘린더 알림 테스트 발송 — 담당자 지정 알림·D-2 다이제스트 톡방 연결 확인.
      * 비어 있으면 기본 팀챗 그룹(.env)으로 발송해 기존 동작을 확인시킨다.
      */
+    /**
+     * 위키 알림 테스트 발송 — 위키 전용 톡방(비우면 게시물 알림 톡방) 연결 확인, 담당자 멘션 포함.
+     */
+    public function wikiAlertTest(ChannelTalkClient $channelTalk)
+    {
+        $group = trim((string) Setting::get('wiki_post_alert_group', ''))
+            ?: trim((string) Setting::get('post_alert_group', ''));
+        if ($group === '') {
+            return response()->json(['message' => '위키 알림 톡방이 설정되지 않았습니다. 위키 톡방 또는 게시물 알림 톡방을 먼저 저장하세요.'], 422);
+        }
+
+        $managerIds = json_decode((string) Setting::get('wiki_post_alert_managers', '[]'), true);
+        $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
+            ->get()
+            ->map(fn (User $u) => $channelTalk->managerMention($u->email, $u->display_name))
+            ->implode(' ');
+
+        $res = $channelTalk->sendGroupMessage(
+            '[테스트] 위키 알림 연결 확인 — 위키 새 글이 이 방으로 옵니다.'
+            .($mentions !== '' ? "\n위키 담당자: ".$mentions : ''),
+            $group
+        );
+
+        return ($res['ok'] ?? false)
+            ? response()->json(['message' => "테스트 메시지를 '{$group}' 톡방으로 보냈습니다."])
+            : response()->json(['message' => $this->paymentAlertFailureMessage($channelTalk, $group, $res['error'] ?? '알 수 없는 오류')], 502);
+    }
+
     public function calendarAlertTest(ChannelTalkClient $channelTalk)
     {
         $group = trim((string) Setting::get('calendar_alert_group', ''));

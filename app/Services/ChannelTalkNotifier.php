@@ -49,10 +49,11 @@ class ChannelTalkNotifier
         return trim((string) Setting::get('calendar_alert_group', '')) ?: null;
     }
 
-    /** 위키 새 글 발행 알림 — 게시물 알림 톡방(설정)으로. 위키 전용 담당자 멘션(설정, 없으면 방 알림만). 공지는 별도 알림 유지 */
+    /** 위키 새 글 발행 알림 — 위키 전용 톡방(설정, 비우면 게시물 알림 톡방) + 위키 담당자 멘션. 공지는 별도 알림 유지 */
     public function wikiPostPublished(Wiki $wiki): void
     {
-        $group = trim((string) Setting::get('post_alert_group', ''));
+        $group = trim((string) Setting::get('wiki_post_alert_group', ''))
+            ?: trim((string) Setting::get('post_alert_group', ''));
         if ($group === '' || ! $this->client->isConfigured()) {
             return; // 톡방 미설정 — 기능 꺼짐
         }
