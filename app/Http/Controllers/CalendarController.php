@@ -176,28 +176,40 @@ class CalendarController extends Controller
         }
 
         $q = trim((string) $request->query('q', ''));
-        if (mb_strlen($q) < 1) {
+        $color = trim((string) $request->query('color', '')); // 카테고리 필터 (색상 키)
+        $assigneeId = (int) $request->query('assignee_id', 0); // 담당자 필터
+        if (mb_strlen($q) < 1 && $color === '' && $assigneeId <= 0) {
             return response()->json([]);
         }
 
         $limit = max(1, min((int) $request->query('limit', 30), 100));
 
         $like = '%'.$q.'%';
-        $events = Schedule::where(function ($w) use ($like) {
-            $w->where('title', 'like', $like)
-                ->orWhere('client_name', 'like', $like)
-                ->orWhere('location', 'like', $like)
-                ->orWhere('address', 'like', $like);
-        })
+        $events = Schedule::query()
+            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like) {
+                $w->where('title', 'like', $like)
+                    ->orWhere('client_name', 'like', $like)
+                    ->orWhere('location', 'like', $like)
+                    ->orWhere('address', 'like', $like);
+            }))
+            ->when($color !== '', fn ($query) => $query->where('color', $color))
+            ->when($assigneeId > 0, fn ($query) => $query->whereHas('assignees', fn ($a) => $a->where('assignees.id', $assigneeId)))
             ->where(function ($p) {
                 $p->where('is_private', false)
                     ->orWhere('created_by', Auth::id());
             })
             ->orderByDesc('start_date')
             ->limit($limit)
+            ->with('assignees:assignees.id,name')
             ->get(['id', 'title', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'client_name', 'location', 'completed_at']);
 
-        return response()->json($events);
+        // 담당자 이름 배열로 정리 (검색 결과 카드 표시용)
+        return response()->json($events->map(function ($e) {
+            $arr = $e->only(['id', 'title', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'client_name', 'location', 'completed_at']);
+            $arr['assignee_names'] = $e->assignees->pluck('name')->filter()->values();
+
+            return $arr;
+        }));
     }
 
     /** 구버전 클라이언트(배포 전에 열린 탭)가 보내는 색상 키 기반 필드명 → 의미 기반 필드명 승계 */

@@ -78,23 +78,36 @@ function closeCalSearch(){
 }
 // Enter → 검색 결과를 목록 뷰로 표시
 let agendaSearchQuery=null, agendaSearchResults=[], preSearchView=null; // 검색 전 보던 뷰 — 초기화 시 복귀
+let agendaSearchColor='', agendaSearchAssignee=''; // 검색 결과 화면의 카테고리/담당자 필터
+async function runAgendaSearch(){
+    // 현재 검색어 + 필터로 재조회 — 필터만으로도 검색 가능 (검색어 없이 담당자/카테고리 조회)
+    const params=new URLSearchParams({ q: agendaSearchQuery||'', limit: 100 });
+    if(agendaSearchColor) params.set('color', agendaSearchColor);
+    if(agendaSearchAssignee) params.set('assignee_id', agendaSearchAssignee);
+    try{
+        const res=await fetch(`/api/events/search?${params}`,{headers:{'Accept':'application/json'}});
+        if(!res.ok) return;
+        agendaSearchResults=await res.json();
+    }catch(e){ return; }
+    renderAgenda();
+}
 async function openSearchListView(){
     const q=document.getElementById('calSearchInput').value.trim();
     if(!q) return;
     closeCalSearch();
     document.getElementById('calSearchInput').blur();
-    try{
-        const res=await fetch(`/api/events/search?q=${encodeURIComponent(q)}&limit=100`,{headers:{'Accept':'application/json'}});
-        if(!res.ok) return;
-        agendaSearchResults=await res.json();
-    }catch(e){ return; }
     if(currentView!=='list'){ preSearchView=currentView; switchView('list'); } // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
     agendaSearchQuery=q;
-    renderAgenda();
+    agendaSearchColor=''; agendaSearchAssignee=''; // 새 검색 — 필터 초기화
+    await runAgendaSearch();
 }
+// 검색 결과 필터 칩 — 카테고리/담당자 (같은 칩 재탭 = 해제)
+function agsSetColor(k){ agendaSearchColor = agendaSearchColor===k ? '' : k; runAgendaSearch(); }
+function agsSetAssignee(id){ agendaSearchAssignee = String(agendaSearchAssignee)===String(id) ? '' : id; runAgendaSearch(); }
 // 검색 초기화 — 검색어를 지우고 검색 전에 보던 뷰(월/주/일 등)로 돌아가 전체 일정 표시
 function clearAgendaSearch(){
     agendaSearchQuery=null; agendaSearchResults=[];
+    agendaSearchColor=''; agendaSearchAssignee='';
     const inp=document.getElementById('calSearchInput'); if(inp) inp.value='';
     const clr=document.getElementById('calSearchClear'); if(clr) clr.classList.remove('show');
     const back=preSearchView; preSearchView=null;
@@ -120,6 +133,22 @@ function renderAgendaSearch(){
         <span>🔍 <b>"${_esc(agendaSearchQuery)}"</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
         <button type="button" class="ship-mini-btn primary" onclick="clearAgendaSearch()" title="검색을 끝내고 전체 일정으로 돌아갑니다">✕ 검색 초기화</button>
     </div>`;
+    // ── 카테고리/담당자 필터 칩 — 모바일 가로 스크롤, 재탭으로 해제 ──
+    const catKeys=Object.keys(typeof CS_CATS!=='undefined'?CS_CATS:{});
+    if(catKeys.length){
+        html+=`<div class="ags-filter-row">
+            <button type="button" class="ags-chip${agendaSearchColor===''?' on':''}" onclick="agsSetColor('')">카테고리 전체</button>
+            ${catKeys.map(k=>`<button type="button" class="ags-chip${agendaSearchColor===k?' on':''}" onclick="agsSetColor('${k}')">
+                <span class="ags-dot" style="background:var(--chip-${k}-bg)"></span>${_esc((CS_CATS[k].label||k))}
+            </button>`).join('')}
+        </div>`;
+    }
+    if(Array.isArray(assignees)&&assignees.length){
+        html+=`<div class="ags-filter-row">
+            <button type="button" class="ags-chip${agendaSearchAssignee===''?' on':''}" onclick="agsSetAssignee('')">담당자 전체</button>
+            ${assignees.map(a=>`<button type="button" class="ags-chip${String(agendaSearchAssignee)===String(a.id)?' on':''}" onclick="agsSetAssignee(${a.id})">${_esc(a.name||('#'+a.id))}</button>`).join('')}
+        </div>`;
+    }
     if(!list.length){
         html+='<div class="agenda-empty">검색 결과가 없습니다.</div>';
         wrap.innerHTML=html; return;
@@ -142,7 +171,8 @@ function renderAgendaSearch(){
         const ed=(ev.end_date||'').substring(0,10);
         const isMulti=ed&&ed!==sd;
         const timeLabel=ev.is_all_day?'종일':(isMulti?'기간':((ev.start_time||'').substring(0,5)||'시간 미정'));
-        const sub=[(isMulti?`${sd.slice(5).replace('-','/')}~${ed.slice(5).replace('-','/')}`:''), ev.client_name, ev.location].filter(Boolean).join(' · ');
+        const sub=[(isMulti?`${sd.slice(5).replace('-','/')}~${ed.slice(5).replace('-','/')}`:''), ev.client_name, ev.location,
+            (Array.isArray(ev.assignee_names)&&ev.assignee_names.length?'담당: '+ev.assignee_names.join(', '):'')].filter(Boolean).join(' · ');
         html+=`<div class="agenda-item${ev.completed_at?' is-completed':''}" onclick="openSearchResultDetail(${ev.id})">
             <div class="agenda-stripe" style="background:${chipColor(ev.color)}"></div>
             <div style="flex:1;min-width:0;">
