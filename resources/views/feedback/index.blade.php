@@ -66,6 +66,11 @@
     .fb-badge.hold { background:#8b5cf622; color:#a78bfa; }
     .fb-badge.done { background:#3b82f622; color:#5b8def; }
     .fb-badge.rejected { background:#ef444422; color:#e06c6c; }
+    /* 우선순위 배지 — 관리자가 지정, 전 멤버 노출 */
+    .fb-prio { font-size:11px; font-weight:700; padding:3px 10px; border-radius:7px; flex-shrink:0; }
+    .fb-prio.high { background:#ef444422; color:#e06c6c; }
+    .fb-prio.medium { background:#b8860b22; color:#c9a227; }
+    .fb-prio.low { background:#3b82f622; color:#5b8def; }
     .fb-chevron { color:var(--text-muted); font-size:11px; flex-shrink:0; transition:transform 0.15s; }
     .fb-card.open .fb-chevron { transform:rotate(180deg); }
 
@@ -188,6 +193,12 @@
                 <option value="done">완료</option>
                 <option value="rejected">반려</option>
             </select>
+            <select class="fb-select" id="fbFilterPriority" onchange="fbLoad()">
+                <option value="">우선순위: 전체</option>
+                <option value="high">높음</option>
+                <option value="medium">중간</option>
+                <option value="low">낮음</option>
+            </select>
             <select class="fb-select" id="fbFilterPage" onchange="fbLoad()">
                 <option value="">페이지: 전체</option>
                 @foreach($pageOptions as $opt)
@@ -197,6 +208,7 @@
             <select class="fb-select" id="fbSort" onchange="fbLoad()">
                 <option value="latest">최신순</option>
                 <option value="oldest">오래된순</option>
+                <option value="priority">우선순위순</option>
             </select>
             <input type="search" id="fbSearch" placeholder="제목, 내용, 작성자 검색" onkeydown="if(event.key==='Enter')fbLoad()">
         </div>
@@ -256,6 +268,7 @@ async function fbLoad(){
     fbMarkSelects();
     const params = new URLSearchParams({ type: fbType });
     const st = document.getElementById('fbFilterStatus').value; if(st) params.set('status', st);
+    const pr = document.getElementById('fbFilterPriority').value; if(pr) params.set('priority', pr);
     const pg = document.getElementById('fbFilterPage').value; if(pg) params.set('page', pg);
     params.set('sort', document.getElementById('fbSort').value);
     const q = document.getElementById('fbSearch').value.trim(); if(q) params.set('q', q);
@@ -296,6 +309,7 @@ function fbRenderFeed(){
                     <div class="fb-meta">${_e(p.author||'')} · ${p.created_at} <span class="fb-page-tag">${_e(p.page||'')}</span> 첨부 ${p.attachments.length} · 의견 ${p.comments_count}</div>
                 </div>
                 <span class="fb-badge ${p.status}">${_e(p.status_label)}</span>
+                ${p.priority ? `<span class="fb-prio ${p.priority}" title="우선순위">${_e(p.priority_label)}</span>` : ''}
                 <span class="fb-chevron">▼</span>
             </div>
             <div class="fb-card-body">${open ? fbBodyHtml(p) : ''}</div>
@@ -340,6 +354,15 @@ function fbBodyHtml(p){
             <button onclick="fbEdit(${p.id})">수정</button>
             <button onclick="fbDelete(${p.id})">삭제</button>
             <span style="margin-left:4px;">작성자·개발자만 가능</span>
+        </div>`;
+    }
+    // 우선순위 지정 — 관리자(master/admin) 전용, 같은 버튼 다시 누르면 해제
+    if(FB_IS_ADMIN){
+        html += `<div class="fb-dev-bar">
+            <span class="fb-dev-bar-label">우선순위</span>
+            <button class="fb-dev-btn ${p.priority==='high'?'on':''}" onclick="fbSetPriority(${p.id},'high')">높음</button>
+            <button class="fb-dev-btn ${p.priority==='medium'?'on':''}" onclick="fbSetPriority(${p.id},'medium')">중간</button>
+            <button class="fb-dev-btn ${p.priority==='low'?'on':''}" onclick="fbSetPriority(${p.id},'low')">낮음</button>
         </div>`;
     }
     if(FB_IS_DEV){
@@ -450,7 +473,7 @@ function fbRenderPreviews(){
     fbUpdateSubmit();
 }
 function fbMarkSelects(){
-    ['fbPage','fbFilterStatus','fbFilterPage'].forEach(id => {
+    ['fbPage','fbFilterStatus','fbFilterPriority','fbFilterPage'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.classList.toggle('has-value', !!el.value);
     });
@@ -500,6 +523,16 @@ function fbRejectClick(id){
     wrap.classList.toggle('show');
     if(wrap.classList.contains('show')) document.getElementById('fbRejectReason'+id).focus();
 }
+// 우선순위 지정 (관리자) — 이미 선택된 값을 다시 누르면 해제
+async function fbSetPriority(id, priority){
+    const post = fbPosts.find(p => p.id === id);
+    if(post && post.priority === priority) priority = null;
+    const res = await fetch(`/api/feedback/${id}/priority`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({priority})});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){ alert(data.message || '우선순위 변경 실패'); return; }
+    fbLoad();
+}
+
 async function fbSetStatus(id, status){
     const body = {status};
     if(status === 'rejected'){

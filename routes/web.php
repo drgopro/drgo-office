@@ -134,6 +134,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/feedback/{post}', [FeedbackController::class, 'update']);
         Route::delete('/api/feedback/{post}', [FeedbackController::class, 'destroy']);
         Route::post('/api/feedback/{post}/status', [FeedbackController::class, 'updateStatus']);
+        Route::post('/api/feedback/{post}/priority', [FeedbackController::class, 'updatePriority']); // 관리자 우선순위 지정
         Route::post('/api/feedback/{post}/comments', [FeedbackController::class, 'storeComment']);
         Route::delete('/api/feedback-comments/{comment}', [FeedbackController::class, 'destroyComment']);
         Route::post('/api/feedback/{post}/attachments', [FeedbackController::class, 'storeAttachments']);

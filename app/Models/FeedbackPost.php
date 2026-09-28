@@ -20,12 +20,20 @@ class FeedbackPost extends Model
         'rejected' => '반려',
     ];
 
+    /** 우선순위 → 한글 라벨 — 관리자가 지정, 전 멤버에게 노출 */
+    public const PRIORITY_LABELS = [
+        'high' => '높음',
+        'medium' => '중간',
+        'low' => '낮음',
+    ];
+
     protected $fillable = [
         'type',
         'title',
         'body',
         'page',
         'status',
+        'priority',
         'reject_reason',
         'created_by',
     ];

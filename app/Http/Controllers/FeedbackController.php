@@ -44,8 +44,9 @@ class FeedbackController extends Controller
         $validated = $request->validate([
             'type' => 'required|in:bug,feature',
             'status' => 'nullable|in:waiting,reviewing,hold,done,rejected',
+            'priority' => 'nullable|in:high,medium,low',
             'page' => 'nullable|string|max:50',
-            'sort' => 'nullable|in:latest,oldest',
+            'sort' => 'nullable|in:latest,oldest,priority',
             'q' => 'nullable|string|max:100',
         ]);
 
@@ -55,6 +56,9 @@ class FeedbackController extends Controller
 
         if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
+        }
+        if (! empty($validated['priority'])) {
+            $query->where('priority', $validated['priority']);
         }
         if (! empty($validated['page'])) {
             $query->where('page', $validated['page']);
@@ -68,8 +72,15 @@ class FeedbackController extends Controller
             });
         }
 
-        $posts = $query->orderBy('created_at', ($validated['sort'] ?? 'latest') === 'oldest' ? 'asc' : 'desc')
-            ->limit(200)
+        // 우선순위순: 높음 → 중간 → 낮음 → 미지정, 같은 순위 안에서는 최신순
+        if (($validated['sort'] ?? 'latest') === 'priority') {
+            $query->orderByRaw("case priority when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end")
+                ->orderByDesc('created_at');
+        } else {
+            $query->orderBy('created_at', ($validated['sort'] ?? 'latest') === 'oldest' ? 'asc' : 'desc');
+        }
+
+        $posts = $query->limit(200)
             ->get()
             ->map(fn ($p) => $this->postPayload($p));
 
@@ -200,6 +211,20 @@ class FeedbackController extends Controller
     }
 
     /** 상태 변경 — 개발자(master) 전용. 반려는 사유 필수 */
+    /** 우선순위 지정 — 관리자(master/admin) 전용. null이면 해제. 전 멤버에게 배지로 노출된다 */
+    public function updatePriority(Request $request, FeedbackPost $post): JsonResponse
+    {
+        abort_unless((bool) Auth::user()?->isAdmin(), 403, '관리자만 우선순위를 지정할 수 있습니다.');
+
+        $validated = $request->validate([
+            'priority' => 'nullable|in:high,medium,low',
+        ]);
+
+        $post->update(['priority' => $validated['priority'] ?? null]);
+
+        return response()->json(['ok' => true, 'priority' => $post->priority]);
+    }
+
     public function updateStatus(Request $request, FeedbackPost $post): JsonResponse
     {
         abort_unless($this->isDeveloper(), 403, '개발자만 처리할 수 있습니다.');
@@ -366,6 +391,8 @@ class FeedbackController extends Controller
             'page' => $p->page,
             'status' => $p->status,
             'status_label' => FeedbackPost::STATUS_LABELS[$p->status] ?? $p->status,
+            'priority' => $p->priority,
+            'priority_label' => $p->priority ? (FeedbackPost::PRIORITY_LABELS[$p->priority] ?? $p->priority) : null,
             'reject_reason' => $p->reject_reason,
             'author' => $p->author?->display_name ?? $p->author?->username,
             'author_id' => $p->created_by,
