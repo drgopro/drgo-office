@@ -33,7 +33,7 @@ class PaymentCompleteAlertTest extends TestCase
     private function makePaidEstimate(): Estimate
     {
         return Estimate::create([
-            'status' => 'paid', 'client_nickname' => '고블린',
+            'status' => 'paid', 'client_nickname' => '고블린', 'estimate_no' => 200,
             'product_items' => [], 'service_items' => [],
             'total_amount' => 1234000, 'created_by' => $this->admin->id,
         ]);
@@ -60,7 +60,7 @@ class PaymentCompleteAlertTest extends TestCase
             }
             $text = $request['blocks'][0]['value'] ?? '';
 
-            return str_contains($text, '[결제완료] 견적서 #')
+            return str_contains($text, '[결제완료] 견적서 #200') // 화면 표시 번호(estimate_no) — DB id 아님
                 && str_contains($text, '고블린')
                 && str_contains($text, '1,234,000원')
                 && str_contains($text, '(신용카드)')

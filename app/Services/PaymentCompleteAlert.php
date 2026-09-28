@@ -43,7 +43,7 @@ class PaymentCompleteAlert
             $payType = self::payTypeLabel((string) ($payload['pay_type'] ?? ''));
 
             $lines = [
-                '[결제완료] 견적서 #'.$estimate->id.($client ? ' · '.$client : ''),
+                '[결제완료] 견적서 #'.$estimate->display_no.($client ? ' · '.$client : ''), // 화면 표시 번호 (DB id 아님)
                 '금액 '.number_format((int) $estimate->total_amount).'원 · 페이앱'.($payType !== '' ? " ({$payType})" : ''),
                 url("/estimates/{$estimate->id}/edit"),
             ];
