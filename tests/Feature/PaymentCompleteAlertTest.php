@@ -66,8 +66,15 @@ class PaymentCompleteAlertTest extends TestCase
         });
     }
 
+    public function test_default_group_seeded_as_estimate_payment_room(): void
+    {
+        // 시드 마이그레이션 — 채널톡에 만든 '견적서결제' 그룹이 기본 톡방
+        $this->assertSame('견적서결제', Setting::get('payment_alert_group'));
+    }
+
     public function test_alert_skipped_when_group_not_configured(): void
     {
+        Setting::set('payment_alert_group', ''); // 기본 시드값(견적서결제)을 비워 기능 끔
         Http::fake();
         PaymentCompleteAlert::estimatePaid($this->makePaidEstimate());
         Http::assertNothingSent();
@@ -84,7 +91,8 @@ class PaymentCompleteAlertTest extends TestCase
 
     public function test_test_endpoint_sends_and_validates(): void
     {
-        // 톡방 미설정 → 422
+        // 톡방 미설정(기본 시드값 비움) → 422
+        Setting::set('payment_alert_group', '');
         $this->actingAs($this->admin)->postJson('/api/admin/payment-alert-test')->assertStatus(422);
 
         Setting::set('payment_alert_group', '결제완료');

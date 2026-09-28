@@ -999,7 +999,7 @@
             </div>
             <div class="field-group">
                 <div class="field-label">채널톡 결제완료 톡방 (그룹 이름 또는 그룹 ID)</div>
-                <input class="field-input" id="paGroup" placeholder="예: 결제완료">
+                <input class="field-input" id="paGroup" placeholder="예: 견적서결제">
             </div>
             <div class="field-group">
                 <div class="field-label">결제완료 담당자 — 알림에서 멘션할 사용자 (복수 선택)</div>
