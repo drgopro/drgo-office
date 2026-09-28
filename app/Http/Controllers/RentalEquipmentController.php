@@ -65,6 +65,8 @@ class RentalEquipmentController extends Controller
             'groups' => $groups,
             'categories' => $categories,
             'assignments' => $assignments,
+            // 대여중 — 원래 위치(home)에서 다른 곳으로 이동한 장비만 (원래 위치에 있으면 대여가 아님)
+            'in_use_count' => $items->filter(fn ($i) => $i->current_target_id !== null && $i->current_target_id !== $i->home_target_id)->count(),
             'logs' => $logs,
         ]);
     }

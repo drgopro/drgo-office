@@ -529,7 +529,9 @@ function bdRender() {
 
     document.getElementById('bdStatItems').textContent = bdState.items.length;
     document.getElementById('bdStatTargets').textContent = bdState.targets.length;
-    document.getElementById('bdStatInUse').textContent = Object.keys(bdState.assignments).length;
+    // 대여중 — 원래 위치(home)에서 다른 곳으로 이동한 장비만 (원래 위치 그대로면 대여 아님)
+    document.getElementById('bdStatInUse').textContent =
+        bdState.items.filter(i => i.current_target_id && i.current_target_id !== i.home_target_id).length;
 
     bdBindEvents();
 }

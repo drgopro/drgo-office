@@ -28,6 +28,22 @@ class RentalComponentTrackingTest extends TestCase
         $this->client = RentalTarget::create(['name' => '의뢰자A']);
     }
 
+    public function test_in_use_count_excludes_items_still_at_home_location(): void
+    {
+        // 원래 위치 그대로 — 대여 아님
+        RentalItem::create(['name' => '집에 있는 장비', 'current_target_id' => $this->studio->id, 'home_target_id' => $this->studio->id]);
+        // 원래 위치에서 이동 — 대여중
+        RentalItem::create(['name' => '나간 장비', 'current_target_id' => $this->client->id, 'home_target_id' => $this->studio->id]);
+        // 원래 위치 미지정 + 어딘가에 있음 — 대여중
+        RentalItem::create(['name' => '홈 미지정 장비', 'current_target_id' => $this->client->id, 'home_target_id' => null]);
+        // 위치 미지정 — 대여 아님
+        RentalItem::create(['name' => '위치 없는 장비']);
+
+        $this->actingAs($this->admin)->getJson('/api/rental/board')
+            ->assertOk()
+            ->assertJsonPath('in_use_count', 2);
+    }
+
     public function test_item_saves_structured_components(): void
     {
         $res = $this->actingAs($this->admin)->postJson('/api/rental/items', [
