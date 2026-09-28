@@ -414,7 +414,14 @@
                     @else
                         <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text-muted);cursor:pointer;border:1px dashed var(--border);" onclick="openScaleEditor()">+ 규모 지정</span>
                     @endif
-                    <span id="mkConsentChip" onclick="toggleMarketingConsent()" title="마케팅 활용 동의 여부 (클릭하여 변경)" style="font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;{{ $project->marketing_consent ? 'background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;' : 'background:var(--surface2);color:var(--text-muted);border:1px dashed var(--border);' }}">{{ $project->marketing_consent ? '✓ 마케팅 활용 동의' : '마케팅 활용 동의' }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);" title="마케팅 활용 동의 여부">
+                        마케팅 활용
+                        <select id="mkConsentSelect" onchange="saveMarketingConsent(this.value)" style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text);border:1px solid var(--border);cursor:pointer;outline:none;">
+                            <option value="" @selected($project->marketing_consent === null)>미확인</option>
+                            <option value="1" @selected($project->marketing_consent === true)>동의</option>
+                            <option value="0" @selected($project->marketing_consent === false)>거부</option>
+                        </select>
+                    </span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
                     <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
                 </div>
@@ -1829,10 +1836,10 @@ async function saveProjectName() {
     display.style.display = '';
 }
 
-// 마케팅 활용 동의 토글 — 칩 클릭으로 즉시 저장 (되돌리기 쉬움)
-let mkConsent = @json((bool) $project->marketing_consent);
-async function toggleMarketingConsent() {
-    const next = !mkConsent;
+// 마케팅 활용 동의 — 드롭다운 선택 즉시 저장 (''=미확인/null, '1'=동의, '0'=거부)
+let mkConsent = @json($project->marketing_consent);
+async function saveMarketingConsent(value) {
+    const next = value === '' ? null : value === '1';
     try {
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
         const res = await fetch(`/api/projects/{{ $project->id }}`, {
@@ -1840,21 +1847,25 @@ async function toggleMarketingConsent() {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
             body: JSON.stringify({ marketing_consent: next }),
         });
-        if (!res.ok) { alert('마케팅 활용 동의 저장에 실패했습니다.'); return; }
+        if (!res.ok) throw new Error('save failed');
         mkConsent = next;
-        renderMkConsentChip();
     } catch (e) {
-        alert('마케팅 활용 동의 저장 중 오류가 발생했습니다.');
+        alert('마케팅 활용 동의 저장에 실패했습니다.');
     }
+    renderMkConsentSelect();
 }
-function renderMkConsentChip() {
-    const chip = document.getElementById('mkConsentChip');
-    if (!chip) return;
-    chip.textContent = mkConsent ? '✓ 마케팅 활용 동의' : '마케팅 활용 동의';
-    chip.style.cssText = 'font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;' + (mkConsent
-        ? 'background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;'
-        : 'background:var(--surface2);color:var(--text-muted);border:1px dashed var(--border);');
+function renderMkConsentSelect() {
+    const sel = document.getElementById('mkConsentSelect');
+    if (!sel) return;
+    sel.value = mkConsent === null ? '' : (mkConsent ? '1' : '0');
+    const style = mkConsent === true
+        ? 'background:rgba(45,138,62,0.12);color:#2d8a3e;border-color:rgba(45,138,62,0.35);font-weight:700;'
+        : (mkConsent === false
+            ? 'background:rgba(200,80,80,0.10);color:var(--red);border-color:rgba(200,80,80,0.35);font-weight:700;'
+            : 'background:var(--surface2);color:var(--text);');
+    sel.style.cssText = 'font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);cursor:pointer;outline:none;' + style;
 }
+renderMkConsentSelect();
 
 // ── 태그 인라인 수정 ──
 function toggleTagEdit() {

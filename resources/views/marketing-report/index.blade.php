@@ -268,44 +268,88 @@
             <div class="mk-card">
                 <div class="mk-label">동의 프로젝트</div>
                 <div class="mk-value">{{ number_format($marketingConsentProjectCount) }}</div>
-                <div class="mk-sub">동의 체크된 프로젝트 수</div>
+                <div class="mk-sub">동의 선택된 프로젝트 수</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">거부 의뢰자</div>
+                <div class="mk-value" style="color:var(--red);">{{ number_format(count($marketingRefusedClients)) }}</div>
+                <div class="mk-sub">마케팅 활용 거부</div>
             </div>
         </div>
 
-        @if(count($marketingConsentClients))
-            <div class="mk-list">
-                @foreach($marketingConsentClients as $mc)
-                    <div>
-                        <div class="mk-list-item" onclick="mcToggle({{ $loop->index }})" style="cursor:pointer;" title="클릭해서 동의 프로젝트 보기">
-                            <span class="mk-list-label">
-                                @if($mc['client_id'])
-                                    <a href="/clients?open={{ $mc['client_id'] }}" onclick="event.stopPropagation();" style="font-weight:600;">{{ $mc['name'] }}</a>
-                                @else
-                                    <b>{{ $mc['name'] }}</b>
-                                @endif
-                                @if(count($mc['platforms']))
-                                    <span style="color:var(--text-muted); font-size:11px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
-                                @endif
-                            </span>
-                            <span class="mk-list-value">프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
-                        </div>
-                        <div id="mcDetail{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
-                            @foreach($mc['projects'] as $mp)
-                                <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
-                                    <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
-                                    <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
+        <div class="mk-two-col">
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:#2d8a3e;">동의 의뢰자</div>
+                @if(count($marketingConsentClients))
+                    <div class="mk-list">
+                        @foreach($marketingConsentClients as $mc)
+                            <div>
+                                <div class="mk-list-item" onclick="mcToggle('c{{ $loop->index }}')" style="cursor:pointer;" title="클릭해서 프로젝트 보기">
+                                    <span class="mk-list-label">
+                                        @if($mc['client_id'])
+                                            <a href="/clients?open={{ $mc['client_id'] }}" onclick="event.stopPropagation();" style="font-weight:600;">{{ $mc['name'] }}</a>
+                                        @else
+                                            <b>{{ $mc['name'] }}</b>
+                                        @endif
+                                        @if(count($mc['platforms']))
+                                            <span style="color:var(--text-muted); font-size:11px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
+                                        @endif
+                                    </span>
+                                    <span class="mk-list-value">프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-c{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
                                 </div>
-                            @endforeach
-                        </div>
+                                <div id="mcDetail-c{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
+                                    @foreach($mc['projects'] as $mp)
+                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
+                                            <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
+                                            <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
+                @else
+                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">아직 마케팅 활용에 동의한 프로젝트가 없습니다 — 프로젝트 상세 상단의 '마케팅 활용' 드롭다운에서 동의를 선택하면 여기에 집계됩니다.</div>
+                @endif
             </div>
-        @else
-            <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">아직 마케팅 활용에 동의한 프로젝트가 없습니다 — 프로젝트 상세 상단의 '마케팅 활용 동의' 칩을 체크하면 여기에 집계됩니다.</div>
-        @endif
+            <div>
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--red);">거부 의뢰자</div>
+                @if(count($marketingRefusedClients))
+                    <div class="mk-list">
+                        @foreach($marketingRefusedClients as $mc)
+                            <div>
+                                <div class="mk-list-item" onclick="mcToggle('r{{ $loop->index }}')" style="cursor:pointer;" title="클릭해서 프로젝트 보기">
+                                    <span class="mk-list-label">
+                                        @if($mc['client_id'])
+                                            <a href="/clients?open={{ $mc['client_id'] }}" onclick="event.stopPropagation();" style="font-weight:600;">{{ $mc['name'] }}</a>
+                                        @else
+                                            <b>{{ $mc['name'] }}</b>
+                                        @endif
+                                        @if(count($mc['platforms']))
+                                            <span style="color:var(--text-muted); font-size:11px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
+                                        @endif
+                                    </span>
+                                    <span class="mk-list-value">프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-r{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
+                                </div>
+                                <div id="mcDetail-r{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
+                                    @foreach($mc['projects'] as $mp)
+                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
+                                            <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
+                                            <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">마케팅 활용을 거부한 프로젝트가 없습니다.</div>
+                @endif
+            </div>
+        </div>
         <script>
-        function mcToggle(i){
-            const d=document.getElementById('mcDetail'+i), c=document.getElementById('mcCaret'+i);
+        function mcToggle(key){
+            const d=document.getElementById('mcDetail-'+key), c=document.getElementById('mcCaret-'+key);
             const open=d.style.display==='none';
             d.style.display=open?'':'none';
             if(c) c.textContent=open?'▾':'▸';

@@ -132,16 +132,15 @@ class MarketingReportController extends Controller
                 });
         }
 
-        // ── 마케팅 활용 동의 의뢰자 (기간 무관 스냅샷) — 동의 체크된 프로젝트의 의뢰자를 추려서 표시 ──
+        // ── 마케팅 활용 동의/거부 의뢰자 (기간 무관 스냅샷) — null=미확인, true=동의, false=거부 ──
         $marketingConsentClients = collect();
+        $marketingRefusedClients = collect();
         $marketingConsentProjectCount = 0;
         if (Schema::hasColumn('projects', 'marketing_consent')) {
-            $consentProjects = Project::where('marketing_consent', true)
+            $clientsOf = fn (bool $consent) => Project::where('marketing_consent', $consent)
                 ->with('client:id,name,nickname,platforms')
                 ->orderByDesc('created_at')
-                ->get(['id', 'name', 'client_id', 'manual_client_name', 'created_at']);
-            $marketingConsentProjectCount = $consentProjects->count();
-            $marketingConsentClients = $consentProjects
+                ->get(['id', 'name', 'client_id', 'manual_client_name', 'created_at'])
                 ->groupBy(fn ($p) => $p->client_id ?: 'm:'.($p->manual_client_name ?: '의뢰자 미상'))
                 ->map(function ($group) {
                     $first = $group->first();
@@ -159,6 +158,10 @@ class MarketingReportController extends Controller
                         ])->values()->all(),
                     ];
                 })->values();
+
+            $marketingConsentClients = $clientsOf(true);
+            $marketingRefusedClients = $clientsOf(false);
+            $marketingConsentProjectCount = Project::where('marketing_consent', true)->count();
         }
 
         // ── 상담 지표 ──
@@ -455,7 +458,7 @@ class MarketingReportController extends Controller
         return view('marketing-report.index', compact(
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
-            'marketingConsentClients', 'marketingConsentProjectCount',
+            'marketingConsentClients', 'marketingRefusedClients', 'marketingConsentProjectCount',
             'platformMoves', 'platformMoveTrend',
             'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour', 'inboundHourSeries',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',

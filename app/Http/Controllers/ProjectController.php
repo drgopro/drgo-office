@@ -305,7 +305,7 @@ class ProjectController extends Controller
             'client_scale' => 'sometimes|nullable|in:personal,studio,corporate,rental,broadcast_room',
             'work_type' => 'sometimes|nullable|string|max:50',
             'visit_report' => 'sometimes|nullable|string',
-            'marketing_consent' => 'sometimes|boolean',
+            'marketing_consent' => 'sometimes|nullable|boolean', // null=미확인, true=동의, false=거부
             'custom_data' => 'nullable|array',
             'tags' => 'sometimes|nullable|array',
             'tags.major' => 'nullable|array',
