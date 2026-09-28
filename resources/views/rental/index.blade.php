@@ -11,6 +11,14 @@
     .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
     .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
     .rh-left-warn { color:var(--red); font-size:11px; font-weight:700; margin-left:4px; }
+    /* 구성품 편집기 — 모던 필 버튼 + 고스트 삭제 버튼 */
+    .comp-add-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border:none; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+    .comp-add-btn:hover { background:color-mix(in srgb, var(--accent) 26%, transparent); }
+    .comp-add-btn svg { width:12px; height:12px; stroke:currentColor; stroke-width:2.5; fill:none; stroke-linecap:round; }
+    .comp-del-btn { flex-shrink:0; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:none; border-radius:50%; background:none; color:var(--text-muted); font-size:15px; cursor:pointer; transition:all 0.15s; }
+    .comp-del-btn:hover { background:rgba(212,110,110,0.14); color:var(--red); }
+    .comp-recover-btn { flex-shrink:0; padding:5px 11px; border:none; border-radius:999px; background:rgba(212,110,110,0.12); color:var(--red); font-size:11.5px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+    .comp-recover-btn:hover { background:rgba(212,110,110,0.24); }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
     .btn-danger-sm { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:5px 8px; }
@@ -173,7 +181,7 @@
         </div>
         <div class="field-group">
             <div class="field-label" style="display:flex; align-items:center; gap:8px;">구성품
-                <button type="button" class="btn-sm" id="riCompAddBtn" onclick="riAddComp()" style="padding:2px 10px; font-size:11.5px;">＋ 구성품 추가</button>
+                <button type="button" class="comp-add-btn" id="riCompAddBtn" onclick="riAddComp()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>구성품 추가</button>
                 <span class="text-muted" style="font-size:11px;">이동할 때마다 구성품 체크로 동행 여부를 추적합니다</span>
             </div>
             <div id="riCompList"></div>
@@ -738,8 +746,8 @@ function riRenderComps() {
         return `<div style="display:flex; align-items:center; gap:6px; margin-bottom:5px;">
             <input class="field-input" style="flex:1; ${leftAt?'border-color:var(--red); color:var(--red);':''}" value="${bdEsc(c.name)}" placeholder="구성품 이름 (예: 전원 케이블)" oninput="riCompState[${i}].name=this.value">
             ${leftAt?`<span style="font-size:11px; color:var(--red); white-space:nowrap;">마지막 위치: ${bdEsc(leftAt.name)}</span>
-                <button type="button" class="btn-cancel btn-sm" onclick="riCompState[${i}].left_target_id=null; riRenderComps()" title="본체와 함께 있는 것으로 표시">회수됨</button>`:''}
-            <button type="button" class="btn-cancel btn-sm" onclick="riCompState.splice(${i},1); riRenderComps()" title="구성품 삭제">×</button>
+                <button type="button" class="comp-recover-btn" onclick="riCompState[${i}].left_target_id=null; riRenderComps()" title="본체와 함께 있는 것으로 표시">회수됨</button>`:''}
+            <button type="button" class="comp-del-btn" onclick="riCompState.splice(${i},1); riRenderComps()" title="구성품 삭제">✕</button>
         </div>`;
     }).join('');
 }
