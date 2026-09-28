@@ -206,7 +206,7 @@
     $grandRefund = $refundTotal + $roundsRefund;
     // 최종 금액 = (1차 + 유효 차수) − 환불 합계 — 취소된 차수는 총액에서 제외
     $grandTotal = max(0, (int) $estimate->total_amount + $roundsTotal - $grandRefund);
-    $pendingRound = $rounds->first(fn ($r) => $r->status === 'issued' && $r->payapp_payurl);
+    $pendingRound = $rounds->first(fn ($r) => $r->status === 'issued' && $r->payapp_payurl && (int) $r->total_amount > 0);
 @endphp
 
 @if(!empty($publicMode))
@@ -437,10 +437,11 @@ function savePNG(){
             $rRefund = $roundRefundOf($r);
             $rCancelled = $r->status === 'cancelled';
         @endphp
+        @php $rIsDeduct = (int) $r->total_amount < 0 && ! $rCancelled; @endphp
         <div class="round-section">
             <div class="round-head">
                 <span>{{ $r->round }}차 추가 견적 <span class="r-date">{{ $r->created_at->format('Y-m-d') }}</span></span>
-                <span class="round-badge {{ $r->status }}">{{ $roundStatusLabel[$r->status] ?? $r->status }}{{ $r->status === 'paid' && $r->paid_at ? ' · '.$r->paid_at->format('m/d') : '' }}</span>
+                <span class="round-badge {{ $rIsDeduct ? 'cancelled' : $r->status }}">{{ $rIsDeduct ? '차감 정산 (환불)' : ($roundStatusLabel[$r->status] ?? $r->status) }}{{ $r->status === 'paid' && $r->paid_at ? ' · '.$r->paid_at->format('m/d') : '' }}</span>
             </div>
             <table class="est-table no-time">
                 <colgroup>
@@ -453,16 +454,17 @@ function savePNG(){
                             $rIdx++;
                             $itemRefunded = ! empty($item['refunded']) || (int) ($item['refund_qty'] ?? 0) > 0 || (int) ($item['refund_amount'] ?? 0) > 0;
                         @endphp
+                        @php $lineDeduct = (int) ($item['subtotal'] ?? 0) < 0; @endphp
                         <tr>
                             <td class="cell-no col-no">{{ $rIdx }}</td>
-                            <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
-                            <td class="cell-name"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ $item['name'] }}</span>@if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
+                            <td class="cell-cat" @if($lineDeduct) style="color:#b03030;" @endif>{{ $item['category'] ?? '' }}</td>
+                            <td class="cell-name"><span @if($rCancelled) class="round-cancelled-line" @elseif($lineDeduct) style="color:#b03030;" @endif>{{ $item['name'] }}</span>@if($lineDeduct)<span class="refund-tag">차감</span>@endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
                                 @if(!empty($item['remark']))<div style="font-size:10.5px; color:#5a6b7d; margin-top:2px;">{{ $item['remark'] }}</div>@endif
                             </td>
                             <td class="col-time"></td>
-                            <td class="text-right">{{ number_format($item['sale_price'] ?? 0) }}원</td>
+                            <td class="text-right" @if($lineDeduct) style="color:#b03030;" @endif>{{ number_format($item['sale_price'] ?? 0) }}원</td>
                             <td class="text-center">{{ $item['qty'] ?? 1 }}</td>
-                            <td class="text-right cell-total"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ number_format($item['subtotal'] ?? 0) }}원</span></td>
+                            <td class="text-right cell-total"><span @if($rCancelled) class="round-cancelled-line" @elseif($lineDeduct) style="color:#b03030;" @endif>{{ number_format($item['subtotal'] ?? 0) }}원</span></td>
                         </tr>
                     @endforeach
                     @foreach($rServices as $svc)
@@ -497,6 +499,8 @@ function savePNG(){
             @foreach($rounds as $r)
                 @if($r->status === 'cancelled')
                     <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (결제 취소)</span><span class="round-cancelled-line">{{ number_format($r->total_amount) }}원</span></div>
+                @elseif((int) $r->total_amount < 0)
+                    <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (차감 정산 · 환불)</span><span>−{{ number_format(abs($r->total_amount)) }}원</span></div>
                 @else
                     <div class="f-row"><span>{{ $r->round }}차 추가 견적{{ $r->status === 'issued' ? ' (결제 대기)' : '' }}</span><span>+{{ number_format($r->total_amount) }}원</span></div>
                 @endif

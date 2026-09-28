@@ -144,6 +144,79 @@ class EstimateRoundTest extends TestCase
             ->assertDontSee('2차 추가 견적');
     }
 
+    public function test_deduct_lines_reduce_final_total_in_public_document(): void
+    {
+        $parent = $this->makePaidParent();
+        $round = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+        // 추가 15만 + 1차 항목 차감 −5만 = 차수 합계 10만
+        $round->update([
+            'status' => 'issued',
+            'product_items' => [
+                ['name' => '추가 조명', 'sale_price' => 150000, 'qty' => 1, 'subtotal' => 150000],
+                ['name' => '[차감] 카메라 X100', 'sale_price' => -50000, 'qty' => 1, 'subtotal' => -50000, 'category' => '차감'],
+            ],
+            'total_amount' => 100000,
+        ]);
+
+        $token = tap($parent->fresh())->publicUrl()->share_token;
+        $this->actingAs($this->admin)->get("/estimate-view/{$token}")->assertOk()
+            ->assertSee('[차감] 카메라 X100')
+            ->assertSee('차감</span>', false) // 차감 태그
+            ->assertSee(number_format(600000)); // 최종 500,000 + 100,000
+    }
+
+    public function test_negative_round_marked_as_deduction_settlement(): void
+    {
+        $parent = $this->makePaidParent();
+        $round = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+        // 차감만 있는 차수 — 합계 음수 = 환불 대상
+        $round->update([
+            'status' => 'issued',
+            'product_items' => [['name' => '[차감] 카메라 X100', 'sale_price' => -50000, 'qty' => 1, 'subtotal' => -50000]],
+            'total_amount' => -50000,
+        ]);
+
+        // 공개 문서 — 차감 정산 뱃지 + 최종 금액 450,000
+        $token = tap($parent->fresh())->publicUrl()->share_token;
+        $this->actingAs($this->admin)->get("/estimate-view/{$token}")->assertOk()
+            ->assertSee('차감 정산 (환불)')
+            ->assertSee(number_format(450000));
+
+        // 부모 빌더 — 환불 처리 안내
+        $this->actingAs($this->admin)->get("/estimates/{$parent->id}/edit")->assertOk()
+            ->assertSee('환불 대상입니다');
+    }
+
+    public function test_deduct_picker_renders_only_in_round_builder(): void
+    {
+        $parent = $this->makePaidParent();
+        $round = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+
+        $this->actingAs($this->admin)->get("/estimates/{$round->id}/edit")->assertOk()
+            ->assertSee('본 견적서 항목 차감')
+            ->assertSee('id="deductPickerOverlay"', false)
+            ->assertSee('PARENT_DEDUCT_ITEMS', false)
+            ->assertSee('X100'); // 부모 항목이 피커 데이터에 포함 (한글은 @json이 유니코드 이스케이프)
+
+        $this->actingAs($this->admin)->get("/estimates/{$parent->id}/edit")->assertOk()
+            ->assertDontSee('id="deductPickerOverlay"', false);
+    }
+
+    public function test_parent_builder_shows_round_item_summary(): void
+    {
+        $parent = $this->makePaidParent();
+        $round = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+        $round->update([
+            'status' => 'issued',
+            'product_items' => [['name' => '추가 조명 세트', 'sale_price' => 150000, 'qty' => 2, 'subtotal' => 300000]],
+            'total_amount' => 300000,
+        ]);
+
+        $this->actingAs($this->admin)->get("/estimates/{$parent->id}/edit")->assertOk()
+            ->assertSee('추가 조명 세트 ×2')
+            ->assertSee('최종 금액');
+    }
+
     public function test_builder_shows_round_section_and_round_banner(): void
     {
         $parent = $this->makePaidParent();

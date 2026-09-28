@@ -521,6 +521,26 @@
             </div>
         </div>
 
+        @if($estimate->parent_estimate_id && $estimate->parent)
+        <!-- 1차 항목 차감 — 차수(추가 견적) 전용: 본 견적서 항목을 골라 −금액으로 담아 차액을 정산 -->
+        <div class="cart-section" style="border-color:rgba(192,56,56,0.35);">
+            <h4>본 견적서 항목 차감 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 견적서 #{{ $estimate->parent->display_no }}에서 취소할 항목을 골라 −금액으로 담습니다. 최종 견적서에 차감으로 표시되고 합계에서 빠집니다</span></h4>
+            <button class="btn btn-ghost" style="color:var(--red); border-color:rgba(192,56,56,0.4); font-weight:700;" onclick="openDeductPicker()">− 차감 항목 담기</button>
+        </div>
+
+        <!-- 차감 항목 피커 모달 -->
+        <div id="deductPickerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeDeductPicker()">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(460px, 100%); max-height:72vh; display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border);">
+                    <div style="font-size:14px; font-weight:700;">차감할 본 견적서(#{{ $estimate->parent->display_no }}) 항목 선택</div>
+                    <button onclick="closeDeductPicker()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">×</button>
+                </div>
+                <div style="padding:8px 16px 0; font-size:11.5px; color:var(--text-muted);">이미 환불 기록된 수량은 잔여 수량에서 빠져 있습니다.</div>
+                <div id="deductPickerList" style="overflow-y:auto; padding:8px 12px 12px;"></div>
+            </div>
+        </div>
+        @endif
+
         <!-- 서비스 항목 (구버전 견적서 호환 — 저장된 항목이 있을 때만 표시) -->
         <div class="cart-section" id="svcSection" style="display:none;">
             <h4>서비스 항목 <span style="color:var(--text-muted); font-weight:400;">(구버전 — 새 항목은 위의 수기 제품 추가를 사용하세요)</span></h4>
@@ -551,14 +571,43 @@
         <div class="cart-section" id="roundsSection">
             <h4>추가 차수 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 결제 완료 후의 추가 결제 건. 의뢰자에게는 본 견적서와 합쳐진 최종 견적서 1장으로 보입니다</span></h4>
             @foreach($builderRounds as $r)
-                <div style="display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px;">
-                    <b style="color:var(--accent); white-space:nowrap;">{{ $r->round }}차</b>
-                    <span style="font-size:11px; padding:2px 8px; border-radius:5px; white-space:nowrap; {{ $r->status === 'paid' ? 'background:rgba(36,138,56,0.12); color:var(--green);' : ($r->status === 'cancelled' ? 'background:rgba(192,56,56,0.1); color:var(--red);' : 'background:rgba(59,94,160,0.12); color:var(--accent);') }} font-weight:700;">{{ $roundStLabel[$r->status] ?? $r->status }}</span>
-                    <span style="color:var(--text-muted); font-size:12px;">항목 {{ count($r->product_items ?? []) + count($r->service_items ?? []) }}개</span>
-                    <b style="margin-left:auto; white-space:nowrap; {{ $r->status === 'cancelled' ? 'text-decoration:line-through; color:var(--text-muted);' : '' }}">{{ number_format($r->total_amount) }}원</b>
-                    <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="location.href='/estimates/{{ $r->id }}/edit'">편집</button>
-                    @if($r->status !== 'paid')
-                        <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px; color:var(--red);" onclick="deleteRound({{ $r->id }}, {{ $r->round }})">삭제</button>
+                @php
+                    $rIsDeduct = (int) $r->total_amount < 0 && $r->status !== 'cancelled';
+                    $rLabel = $rIsDeduct && in_array($r->status, ['issued', 'paid'], true) ? '차감 정산' : ($roundStLabel[$r->status] ?? $r->status);
+                @endphp
+                <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; margin-bottom:6px;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 12px; font-size:13px;">
+                        <b style="color:var(--accent); white-space:nowrap;">{{ $r->round }}차</b>
+                        <span style="font-size:11px; padding:2px 8px; border-radius:5px; white-space:nowrap; {{ $r->status === 'paid' ? 'background:rgba(36,138,56,0.12); color:var(--green);' : ($r->status === 'cancelled' || $rIsDeduct ? 'background:rgba(192,56,56,0.1); color:var(--red);' : 'background:rgba(59,94,160,0.12); color:var(--accent);') }} font-weight:700;">{{ $rLabel }}</span>
+                        <span style="color:var(--text-muted); font-size:12px;">항목 {{ count($r->product_items ?? []) + count($r->service_items ?? []) }}개</span>
+                        <b style="margin-left:auto; white-space:nowrap; {{ $r->status === 'cancelled' ? 'text-decoration:line-through; color:var(--text-muted);' : ($rIsDeduct ? 'color:var(--red);' : '') }}">{{ number_format($r->total_amount) }}원</b>
+                        <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="location.href='/estimates/{{ $r->id }}/edit'">편집</button>
+                        @if($r->status !== 'paid')
+                            <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px; color:var(--red);" onclick="deleteRound({{ $r->id }}, {{ $r->round }})">삭제</button>
+                        @endif
+                    </div>
+                    {{-- 항목 요약 — 한 페이지에서 차수 내용을 바로 확인 --}}
+                    @php
+                        $rLines = collect($r->product_items ?? [])->map(fn ($i) => ['name' => $i['name'] ?? '', 'qty' => (int) ($i['qty'] ?? 1), 'amt' => (int) ($i['subtotal'] ?? 0)])
+                            ->concat(collect($r->service_items ?? [])->map(fn ($s) => ['name' => $s['name'] ?? '', 'qty' => 1, 'amt' => (int) ($s['amount'] ?? 0)]));
+                    @endphp
+                    @if($rLines->isNotEmpty())
+                        <div style="padding:0 12px 8px; display:flex; flex-direction:column; gap:2px;">
+                            @foreach($rLines as $ln)
+                                <div style="display:flex; justify-content:space-between; gap:10px; font-size:11.5px; color:{{ $ln['amt'] < 0 ? 'var(--red)' : 'var(--text-muted)' }};">
+                                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">· {{ $ln['name'] }} ×{{ $ln['qty'] }}</span>
+                                    <span style="white-space:nowrap;">{{ number_format($ln['amt']) }}원</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    @if($rIsDeduct)
+                        <div style="display:flex; align-items:center; gap:8px; padding:7px 12px; border-top:1px dashed var(--border); font-size:11.5px; color:var(--red);">
+                            차액이 음수입니다 — {{ number_format(abs($r->total_amount)) }}원은 결제가 아니라 환불 대상입니다. 프로젝트 결제 내역의 [환불]로 처리하세요.
+                            @if($estimate->project_id)
+                                <button class="btn btn-ghost" style="margin-left:auto; padding:3px 9px; font-size:11px;" onclick="window.open('/projects/{{ $estimate->project_id }}')">프로젝트 열기</button>
+                            @endif
+                        </div>
                     @endif
                 </div>
             @endforeach
@@ -1573,6 +1622,56 @@ function addManualItem() {
     const miKind = document.getElementById('miKind'); if (miKind) miKind.value = 'product';
     renderCart();
 }
+
+// === 본 견적서 항목 차감 (차수 전용) — 부모 항목을 골라 −금액 수기 라인으로 담는다 ===
+@if($estimate->parent_estimate_id && $estimate->parent)
+@php
+    // Blade @json 지시자는 여러 줄 표현식을 제대로 못 받으므로 변수로 먼저 계산
+    $parentDeductItems = collect($estimate->parent->product_items ?? [])
+        ->map(fn ($i) => [
+            'name' => $i['name'] ?? '',
+            'category' => $i['category'] ?? '',
+            'sale_price' => (int) ($i['sale_price'] ?? 0),
+            'remain' => max(0, (int) ($i['qty'] ?? 1) - (int) ($i['refund_qty'] ?? 0)),
+        ])
+        ->filter(fn ($i) => $i['remain'] > 0 && $i['sale_price'] > 0)
+        ->values();
+@endphp
+const PARENT_DEDUCT_ITEMS = @json($parentDeductItems);
+
+function openDeductPicker() {
+    const list = document.getElementById('deductPickerList');
+    if (!PARENT_DEDUCT_ITEMS.length) {
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12.5px;">차감할 수 있는 항목이 없습니다 (전부 환불되었거나 항목이 없음).</div>';
+    } else {
+        list.innerHTML = PARENT_DEDUCT_ITEMS.map((it, i) => `
+            <div style="display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--border); font-size:13px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_escE(it.name)}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${_escE(it.category)} · ${fmt(it.sale_price)}원 · 잔여 ${it.remain}개</div>
+                </div>
+                <input id="ddQty-${i}" type="number" min="1" max="${it.remain}" value="1" style="width:52px; padding:5px 6px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; text-align:right; outline:none;">
+                <button class="btn btn-ghost" style="padding:5px 12px; font-size:12px; color:var(--red); border-color:rgba(192,56,56,0.4); white-space:nowrap;" onclick="addDeductLine(${i})">− 담기</button>
+            </div>`).join('');
+    }
+    document.getElementById('deductPickerOverlay').style.display = 'flex';
+}
+function closeDeductPicker() {
+    document.getElementById('deductPickerOverlay').style.display = 'none';
+}
+function addDeductLine(i) {
+    const it = PARENT_DEDUCT_ITEMS[i];
+    const qty = Math.max(1, Math.min(it.remain, parseInt(document.getElementById('ddQty-' + i).value) || 1));
+    // 음수 수기 라인 — 합계에서 자동 차감 (기존 할인 라인과 동일 구조)
+    insertCartItem({
+        product_id: null, sku: '', category: '차감', category_root: '차감',
+        name: '[차감] ' + it.name, purchase_price: 0, sale_price: -it.sale_price, qty,
+        time_required: '', use_time: false, subtotal: -it.sale_price * qty, manual: true, is_service: false,
+    });
+    renderCart();
+    closeDeductPicker();
+}
+@endif
 
 // === 서비스 항목 (구버전 호환 — 저장된 항목이 있을 때만 표시/수정) ===
 function renderServices() {
