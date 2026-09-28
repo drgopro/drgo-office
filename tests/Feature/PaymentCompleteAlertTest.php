@@ -129,6 +129,22 @@ class PaymentCompleteAlertTest extends TestCase
         $this->assertStringContainsString('비공개 그룹', $message);
     }
 
+    public function test_duplicate_alert_suppressed_within_window(): void
+    {
+        // 페이앱이 같은 결제완료를 재통보해도 알림은 1회만 (1시간 중복 잠금)
+        Setting::set('payment_alert_group', '견적서결제알림');
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response(['managers' => []]),
+            'api.channel.io/open/v5/groups/*' => Http::response(['ok' => true]),
+        ]);
+
+        $estimate = $this->makePaidEstimate();
+        PaymentCompleteAlert::estimatePaid($estimate);
+        PaymentCompleteAlert::estimatePaid($estimate); // 중복 호출
+
+        Http::assertSentCount(1);
+    }
+
     public function test_settings_save_and_admin_page_renders_tab(): void
     {
         $this->actingAs($this->admin)->postJson('/api/settings', [

@@ -732,6 +732,9 @@ class EstimateController extends Controller
         }
 
         $state = (int) ($payload['pay_state'] ?? 0);
+        // 페이앱은 같은 결제완료를 재통보할 수 있다 (재시도, 견적서별+기본 FEEDBACK URL 중복 등)
+        // — 알림은 '결제완료로 처음 전환될 때' 한 번만 보내기 위해 이전 상태를 기억
+        $wasAlreadyPaid = $estimate->status === 'paid' && $estimate->payapp_paid_at !== null;
         $estimate->payapp_state = $state;
 
         if ($state === PayAppClient::STATE_PAID) {
@@ -758,7 +761,9 @@ class EstimateController extends Controller
         // 결제 상태 전파 — 프로젝트 결제 내역(원장)·캘린더 일정 표시 동기화
         if ($state === PayAppClient::STATE_PAID && $estimate->status === 'paid') {
             EstimatePaymentSync::estimatePaid($estimate);
-            PaymentCompleteAlert::estimatePaid($estimate, $payload); // 결제완료 톡방 알림 + 담당자 멘션
+            if (! $wasAlreadyPaid) {
+                PaymentCompleteAlert::estimatePaid($estimate, $payload); // 결제완료 톡방 알림 + 담당자 멘션 (최초 1회)
+            }
         } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
             // 페이앱 전액환불 — 남은 금액의 취소 트랜잭션 기록 + 전 항목 환불 표시
             EstimatePaymentSync::estimateCancelled($estimate, recordLedger: true);

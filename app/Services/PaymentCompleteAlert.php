@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Estimate;
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -21,6 +22,12 @@ class PaymentCompleteAlert
             $group = trim((string) Setting::get('payment_alert_group', ''));
             if ($group === '') {
                 return; // 톡방 미설정 — 기능 꺼짐
+            }
+
+            // 같은 견적서의 중복 통보(페이앱 재시도가 거의 동시에 도착하는 경우) 방어 —
+            // Cache::add는 원자적이라 1시간 내 두 번째 호출은 발송하지 않는다
+            if (! Cache::add("payment.alert.sent.{$estimate->id}", 1, 3600)) {
+                return;
             }
 
             /** @var ChannelTalkClient $ct */
