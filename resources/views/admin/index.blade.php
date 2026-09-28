@@ -19,6 +19,18 @@
     .sub-tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
     .sub-tab-panel { display:none; }
     .sub-tab-panel.active { display:block; }
+    /* 설정 — 좌측 세로 하위 탭 + 우측 콘텐츠 */
+    .settings-split { display:flex; gap:18px; align-items:flex-start; }
+    .settings-side { flex:0 0 150px; display:flex; flex-direction:column; gap:2px; position:sticky; top:10px; }
+    .settings-side-btn { text-align:left; padding:9px 13px; font-size:13px; font-weight:600; color:var(--text-muted); background:none; border:none; border-radius:8px; cursor:pointer; transition:all 0.12s; }
+    .settings-side-btn:hover { color:var(--text); background:var(--surface2); }
+    .settings-side-btn.active { color:var(--accent); background:var(--surface2); font-weight:700; box-shadow:inset 2px 0 0 var(--accent); }
+    .settings-content-wrap { flex:1; min-width:0; }
+    @media (max-width: 768px) {
+        .settings-split { flex-direction:column; }
+        .settings-side { position:static; flex-direction:row; flex-wrap:wrap; width:100%; }
+        .settings-side-btn.active { box-shadow:inset 0 -2px 0 var(--accent); }
+    }
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
@@ -234,21 +246,18 @@
         <button class="tab-btn" data-tab="settings"><x-icon name="gear" :size="14"/> 설정</button>
     </div>
 
-    {{-- 설정 그룹 (의뢰자/프로젝트 필드 + 유형 + 캘린더 + 판매처 + 보고서 템플릿) --}}
+    {{-- 설정 그룹 — 페이지별 상단 탭(의뢰자/프로젝트/캘린더/견적서) + 하위 항목 세로 탭 --}}
     <div class="tab-panel" id="panel-settings">
-        <div class="sub-tab-bar" id="settingsSubTabBar">
-            <button class="sub-tab-btn active" data-subtab="clientFields" onclick="switchSettingsSubTab('clientFields')">의뢰자 필드</button>
-            <button class="sub-tab-btn" data-subtab="projectFields" onclick="switchSettingsSubTab('projectFields')">프로젝트 필드</button>
-            <button class="sub-tab-btn" data-subtab="projectTypes" onclick="switchSettingsSubTab('projectTypes')">프로젝트 유형</button>
-            <button class="sub-tab-btn" data-subtab="workTypes" onclick="switchSettingsSubTab('workTypes')">작업 유형</button>
-            <button class="sub-tab-btn" data-subtab="calendarCategories" onclick="switchSettingsSubTab('calendarCategories')">캘린더 카테고리</button>
-            <button class="sub-tab-btn" data-subtab="reportTemplates" onclick="switchSettingsSubTab('reportTemplates')">보고서 템플릿</button>
-            <button class="sub-tab-btn" data-subtab="visitOptions" onclick="switchSettingsSubTab('visitOptions')">내방 옵션</button>
-            <button class="sub-tab-btn" data-subtab="cancelReasons" onclick="switchSettingsSubTab('cancelReasons')">취소 사유</button>
-            <button class="sub-tab-btn" data-subtab="seller" onclick="switchSettingsSubTab('seller')">판매처 설정</button>
-            <button class="sub-tab-btn" data-subtab="paymentAlert" onclick="switchSettingsSubTab('paymentAlert')">결제 알림</button>
+        <div class="sub-tab-bar" id="settingsGroupBar">
+            <button class="sub-tab-btn active" data-group="clients" onclick="switchSettingsGroup('clients')">의뢰자</button>
+            <button class="sub-tab-btn" data-group="projects" onclick="switchSettingsGroup('projects')">프로젝트</button>
+            <button class="sub-tab-btn" data-group="calendar" onclick="switchSettingsGroup('calendar')">캘린더</button>
+            <button class="sub-tab-btn" data-group="estimates" onclick="switchSettingsGroup('estimates')">견적서</button>
         </div>
-        <div id="settingsContent"></div>
+        <div class="settings-split">
+            <div class="settings-side" id="settingsSideMenu"></div>
+            <div class="settings-content-wrap" id="settingsContent"></div>
+        </div>
     </div>
 
     {{-- 로그인 기록 --}}
@@ -995,7 +1004,7 @@
         <div class="settings-form">
             <div class="cf-hint" style="margin-bottom:14px;">
                 페이앱 결제가 완료된 견적서를 채널톡 팀챗 톡방으로 알립니다.<br>
-                <span style="opacity:0.75;">① 채널톡에서 팀챗 그룹(예: 결제완료)을 만들고 ② 아래에 그룹 이름을 입력·저장한 뒤 ③ [테스트 발송]으로 연결을 확인하세요. 담당자는 채널톡 멘션으로 개인 알림을 받습니다.</span>
+                <span style="opacity:0.75;">① 채널톡에서 팀챗 그룹을 <b>공개</b>로 만들고 (비공개 그룹은 API 발송 불가) ② 아래에 그룹 이름을 입력·저장한 뒤 ③ [테스트 발송]으로 연결을 확인하세요. 담당자는 채널톡 멘션으로 개인 알림을 받습니다.</span>
             </div>
             <div class="field-group">
                 <div class="field-label">채널톡 결제완료 톡방 (그룹 이름 또는 그룹 ID)</div>
@@ -1148,13 +1157,13 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         }
     });
 });
-// 마지막 본 탭 복원 (기본: 로그인 기록)
-(function () {
+// 마지막 본 탭 복원 (기본: 로그인 기록) — 설정 그룹 상수 등 아래쪽 선언이 끝난 뒤 실행
+setTimeout(function () {
     const last = localStorage.getItem('adminLastTab');
     if (last && last !== 'logs') {
         document.querySelector('#adminTabBar .tab-btn[data-tab="' + last + '"]')?.click();
     }
-})();
+}, 0);
 
 // 프로젝트 설정 탭 내부 서브탭 전환 (legacy, projectFields 내부 — 호환용)
 function switchProjectSubTab(sub) {
@@ -1232,8 +1241,36 @@ async function testPaymentAlert() {
     setTimeout(() => { msg.style.display = 'none'; }, 6000);
 }
 
+// 설정 그룹 — 페이지별 상단 탭과 하위 항목(세로 탭) 구성
+const SETTINGS_GROUPS = {
+    clients: { label: '의뢰자', items: [['clientFields', '의뢰자 필드']] },
+    projects: { label: '프로젝트', items: [['projectFields', '프로젝트 필드'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿']] },
+    calendar: { label: '캘린더', items: [['calendarCategories', '캘린더 카테고리'], ['visitOptions', '내방 옵션']] },
+    estimates: { label: '견적서', items: [['seller', '판매처 설정'], ['paymentAlert', '결제 알림']] },
+};
+function settingsGroupOf(sub) {
+    return Object.keys(SETTINGS_GROUPS).find(g => SETTINGS_GROUPS[g].items.some(([key]) => key === sub)) || 'clients';
+}
+function switchSettingsGroup(group, sub) {
+    const conf = SETTINGS_GROUPS[group];
+    if (!conf) return;
+    document.querySelectorAll('#settingsGroupBar .sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.group === group));
+    // 하위 항목 세로 탭 렌더
+    document.getElementById('settingsSideMenu').innerHTML = conf.items.map(([key, label]) =>
+        `<button type="button" class="settings-side-btn" data-subtab="${key}" onclick="switchSettingsSubTab('${key}')">${label}</button>`).join('');
+    // 그룹별 마지막 항목 기억, 없으면 첫 항목
+    const remembered = sessionStorage.getItem('drgo_admin_setting_subtab');
+    const target = sub || (conf.items.some(([key]) => key === remembered) ? remembered : conf.items[0][0]);
+    switchSettingsSubTab(target);
+}
 function switchSettingsSubTab(sub) {
-    document.querySelectorAll('#settingsSubTabBar .sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
+    const group = settingsGroupOf(sub);
+    // 다른 그룹의 항목이면 그룹부터 전환 (사이드 메뉴 재구성 포함)
+    if (!document.querySelector(`#settingsSideMenu [data-subtab="${sub}"]`)) {
+        switchSettingsGroup(group, sub);
+        return;
+    }
+    document.querySelectorAll('#settingsSideMenu .settings-side-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
     const conf = SETTINGS_PANEL_MAP[sub];
     if (!conf) return;
     // 설정 그룹에 속한 모든 패널은 hidden, 선택된 panel만 show
