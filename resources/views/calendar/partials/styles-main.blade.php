@@ -71,14 +71,16 @@
     .cal-sr-sub { font-size:11px; color:var(--text-muted); flex-shrink:0; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .cal-sr-empty { padding:14px; text-align:center; font-size:12px; color:var(--text-muted); }
     .agenda-search-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--border); font-size:13px; }
-    /* 검색 결과 필터 칩 — 모바일 가로 스크롤 (터치 타겟 32px+) */
-    .ags-filter-row { display:flex; gap:6px; overflow-x:auto; padding:8px 4px 2px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-    .ags-filter-row::-webkit-scrollbar { display:none; }
+    /* 검색 결과 필터 칩 — 줄바꿈 정렬 (가로 스크롤 없이 전체 노출, 터치 타겟 32px+) */
+    .ags-filter-row { display:flex; flex-wrap:wrap; gap:6px; padding:8px 4px 2px; }
     .ags-chip { flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:6px 13px; border:1px solid var(--border); border-radius:16px; background:var(--surface); color:var(--text-muted); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.12s; }
     .ags-chip:hover { border-color:var(--accent); color:var(--text); }
     .ags-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text, #1a1207); }
     .ags-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
     .ags-chip.on .ags-dot { outline:1.5px solid rgba(255,255,255,0.6); }
+    @media (max-width: 768px) {
+        .ags-chip { min-height:30px; padding:5px 11px; font-size:12px; }
+    }
     .cal-fontsize { display:flex; align-items:center; gap:2px; background:var(--surface2); border-radius:8px; padding:2px; }
     .cal-fz-btn { border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:6px; padding:4px 9px; font-size:13px; font-weight:700; line-height:1; }
     .cal-fz-btn:hover { background:var(--surface); color:var(--accent); }
