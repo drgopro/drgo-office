@@ -324,6 +324,17 @@ class ProjectController extends Controller
             $validated['tags'] = $this->normalizeTags($request->input('tags'));
         }
 
+        // 마케팅 활용 동의 변경 시각 — 값이 실제로 바뀔 때만 기록 (다음날 아웃바운드 다이제스트 기준)
+        if (array_key_exists('marketing_consent', $validated)) {
+            $newConsent = $validated['marketing_consent'] === null
+                ? null
+                : filter_var($validated['marketing_consent'], FILTER_VALIDATE_BOOLEAN);
+            $validated['marketing_consent'] = $newConsent;
+            if ($newConsent !== $project->marketing_consent) {
+                $validated['marketing_consent_updated_at'] = now();
+            }
+        }
+
         // 방문보고 작성/수정 시각 — 내용이 실제로 바뀔 때만 갱신, 비우면 최근 방문보고에서 제외
         if (array_key_exists('visit_report', $validated) && (string) $validated['visit_report'] !== (string) $project->visit_report) {
             $reportHtml = (string) $validated['visit_report'];

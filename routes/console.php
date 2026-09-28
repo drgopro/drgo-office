@@ -29,6 +29,9 @@ Schedule::command('schedules:channeltalk-digest')->dailyAt('09:00')->withoutOver
 // 할 일 리마인드 — 마감 D-1·경과 미완료 할 일을 완료 안 한 담당자에게 매일 아침 멘션
 Schedule::command('todos:remind')->dailyAt('09:00')->withoutOverlapping();
 
+// 마케팅 활용 동의/거부 변경 다이제스트 — 전날 동의·거부로 확정된 프로젝트 목록을 아웃바운드 방으로
+Schedule::command('marketing:consent-digest')->dailyAt('09:05')->withoutOverlapping();
+
 // 진행중 렌탈·방송룸 계약의 결제 반복 일정 자동 연장 (매월 1일)
 Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->withoutOverlapping();
 
