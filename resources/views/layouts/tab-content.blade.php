@@ -140,21 +140,28 @@ window.drgoModalMinimize = function(overlayEl, title, icon) {
     if (!overlayEl) return;
     const id = overlayEl.id || ('drgo_modal_' + Date.now());
     if (!overlayEl.id) overlayEl.id = id;
-
-    // 이미 최소화 상태면 무시
     if (overlayEl.dataset.minimized === '1') return;
-
-    // 현재 표시 상태 저장
-    const display = overlayEl.style.display || getComputedStyle(overlayEl).display;
-    overlayEl.dataset.prevDisplay = display === 'none' ? 'flex' : display;
+    // 클래스형(.open) 오버레이는 클래스로 숨김 — 인라인 display를 남기면 복원 후
+    // ✕/취소(classList.remove('open'))로 닫히지 않고, 최소화 중 재열기도 막힌다
+    if (overlayEl.classList.contains('open')) {
+        overlayEl.dataset.prevOpen = '1';
+        overlayEl.classList.remove('open');
+        overlayEl.style.display = '';
+        // 최소화 중 다른 경로(+ 추가 버튼 등)로 다시 열리면 칩·상태 자동 해제
+        const mo = new MutationObserver(() => {
+            if (overlayEl.classList.contains('open')) drgoModalClearMin(id);
+        });
+        mo.observe(overlayEl, { attributes: true, attributeFilter: ['class'] });
+        overlayEl.__drgoMinObserver = mo;
+    } else {
+        const display = overlayEl.style.display || getComputedStyle(overlayEl).display;
+        overlayEl.dataset.prevDisplay = display === 'none' ? 'flex' : display;
+        overlayEl.style.display = 'none';
+    }
     overlayEl.dataset.minimized = '1';
-    overlayEl.style.display = 'none';
-
-    // 도크에 칩 추가
     const dock = document.getElementById('drgoModalDock');
     if (!dock) return;
-    if (dock.querySelector(`[data-target="${id}"]`)) return; // 중복 방지
-
+    if (dock.querySelector(`[data-target="${id}"]`)) return;
     const chip = document.createElement('div');
     chip.className = 'drgo-modal-chip';
     chip.dataset.target = id;
@@ -165,35 +172,36 @@ window.drgoModalMinimize = function(overlayEl, title, icon) {
         <button class="drgo-modal-chip-close" title="닫기" aria-label="닫기">✕</button>
     `;
     chip.addEventListener('click', e => {
-        if (e.target.closest('.drgo-modal-chip-close')) {
-            // 칩의 ✕ → 모달 완전 닫기
-            drgoModalCloseFromChip(id);
-        } else {
-            drgoModalRestore(id);
-        }
+        if (e.target.closest('.drgo-modal-chip-close')) drgoModalCloseFromChip(id);
+        else drgoModalRestore(id);
     });
     dock.appendChild(chip);
 };
-
-window.drgoModalRestore = function(id) {
+// 최소화 상태 해제(칩 제거 + 상태 정리) — 표시 상태는 건드리지 않음
+window.drgoModalClearMin = function(id) {
     const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = el.dataset.prevDisplay || 'flex';
-    delete el.dataset.minimized;
+    if (el) {
+        delete el.dataset.minimized;
+        delete el.dataset.prevDisplay;
+        delete el.dataset.prevOpen;
+        if (el.__drgoMinObserver) { el.__drgoMinObserver.disconnect(); el.__drgoMinObserver = null; }
+    }
     const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
     if (chip) chip.remove();
 };
-
+window.drgoModalRestore = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.dataset.prevOpen === '1') el.classList.add('open');
+    else el.style.display = el.dataset.prevDisplay || 'flex';
+    drgoModalClearMin(id);
+};
 window.drgoModalCloseFromChip = function(id) {
     const el = document.getElementById(id);
     if (!el) return;
-    // 일반 닫힘 상태로
-    el.style.display = 'none';
-    delete el.dataset.minimized;
-    delete el.dataset.prevDisplay;
-    const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
-    if (chip) chip.remove();
-    // 폼 리셋이 필요한 경우 close 함수가 따로 처리하도록 hook
+    if (el.dataset.prevOpen === '1') { el.classList.remove('open'); el.style.display = ''; }
+    else { el.style.display = 'none'; }
+    drgoModalClearMin(id);
     if (typeof el.dataset.closeHandler === 'string' && typeof window[el.dataset.closeHandler] === 'function') {
         try { window[el.dataset.closeHandler](); } catch(e) {}
     }

@@ -469,10 +469,24 @@ window.drgoModalMinimize = function(overlayEl, title, icon) {
     const id = overlayEl.id || ('drgo_modal_' + Date.now());
     if (!overlayEl.id) overlayEl.id = id;
     if (overlayEl.dataset.minimized === '1') return;
-    const display = overlayEl.style.display || getComputedStyle(overlayEl).display;
-    overlayEl.dataset.prevDisplay = display === 'none' ? 'flex' : display;
+    // 클래스형(.open) 오버레이는 클래스로 숨김 — 인라인 display를 남기면 복원 후
+    // ✕/취소(classList.remove('open'))로 닫히지 않고, 최소화 중 재열기도 막힌다
+    if (overlayEl.classList.contains('open')) {
+        overlayEl.dataset.prevOpen = '1';
+        overlayEl.classList.remove('open');
+        overlayEl.style.display = '';
+        // 최소화 중 다른 경로(+ 추가 버튼 등)로 다시 열리면 칩·상태 자동 해제
+        const mo = new MutationObserver(() => {
+            if (overlayEl.classList.contains('open')) drgoModalClearMin(id);
+        });
+        mo.observe(overlayEl, { attributes: true, attributeFilter: ['class'] });
+        overlayEl.__drgoMinObserver = mo;
+    } else {
+        const display = overlayEl.style.display || getComputedStyle(overlayEl).display;
+        overlayEl.dataset.prevDisplay = display === 'none' ? 'flex' : display;
+        overlayEl.style.display = 'none';
+    }
     overlayEl.dataset.minimized = '1';
-    overlayEl.style.display = 'none';
     const dock = document.getElementById('drgoModalDock');
     if (!dock) return;
     if (dock.querySelector(`[data-target="${id}"]`)) return;
@@ -491,22 +505,31 @@ window.drgoModalMinimize = function(overlayEl, title, icon) {
     });
     dock.appendChild(chip);
 };
+// 최소화 상태 해제(칩 제거 + 상태 정리) — 표시 상태는 건드리지 않음
+window.drgoModalClearMin = function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        delete el.dataset.minimized;
+        delete el.dataset.prevDisplay;
+        delete el.dataset.prevOpen;
+        if (el.__drgoMinObserver) { el.__drgoMinObserver.disconnect(); el.__drgoMinObserver = null; }
+    }
+    const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
+    if (chip) chip.remove();
+};
 window.drgoModalRestore = function(id) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.style.display = el.dataset.prevDisplay || 'flex';
-    delete el.dataset.minimized;
-    const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
-    if (chip) chip.remove();
+    if (el.dataset.prevOpen === '1') el.classList.add('open');
+    else el.style.display = el.dataset.prevDisplay || 'flex';
+    drgoModalClearMin(id);
 };
 window.drgoModalCloseFromChip = function(id) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.style.display = 'none';
-    delete el.dataset.minimized;
-    delete el.dataset.prevDisplay;
-    const chip = document.querySelector(`#drgoModalDock [data-target="${id}"]`);
-    if (chip) chip.remove();
+    if (el.dataset.prevOpen === '1') { el.classList.remove('open'); el.style.display = ''; }
+    else { el.style.display = 'none'; }
+    drgoModalClearMin(id);
     if (typeof el.dataset.closeHandler === 'string' && typeof window[el.dataset.closeHandler] === 'function') {
         try { window[el.dataset.closeHandler](); } catch(e) {}
     }

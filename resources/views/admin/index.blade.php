@@ -516,7 +516,7 @@
     </div>
 
     {{-- 프로젝트 필드 추가/편집 모달 --}}
-    <div id="projectFieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '프로젝트 필드 편집', '📝')">
+    <div id="projectFieldModalOverlay" class="cf-modal-overlay" onclick="if(event.target===this) drgoModalMinimize(this, '장비 항목 편집', '📝')">
         <div class="cf-modal">
             <h3>
                 <span id="projectFieldModalTitle">+ 필드 추가</span>
@@ -1288,7 +1288,7 @@ async function testPaymentAlert() {
 // 설정 그룹 — 페이지별 상단 탭과 하위 항목(세로 탭) 구성
 const SETTINGS_GROUPS = {
     clients: { label: '의뢰자', items: [['clientFields', '의뢰자 필드']] },
-    projects: { label: '프로젝트', items: [['projectFields', '프로젝트 필드'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿']] },
+    projects: { label: '프로젝트', items: [['projectFields', '장비 항목 관리'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿']] },
     calendar: { label: '캘린더', items: [['calendarCategories', '캘린더 카테고리'], ['visitOptions', '내방 옵션'], ['calendarAlert', '알림 톡방']] },
     estimates: { label: '견적서', items: [['seller', '판매처 설정'], ['paymentAlert', '결제 알림']] },
     boards: { label: '게시판/위키', items: [['postAlert', '게시물 알림']] },
