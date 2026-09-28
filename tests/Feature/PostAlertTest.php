@@ -78,8 +78,28 @@ class PostAlertTest extends TestCase
             $text = $r['blocks'][0]['value'] ?? '';
 
             return str_contains($text, "위키 새 글: '새 문서'")
-                && ! str_contains($text, '<link type="manager"'); // 담당자 멘션 없음
+                && ! str_contains($text, '<link type="manager"'); // 위키 담당자 미지정 — 멘션 없음
         });
+    }
+
+    public function test_wiki_new_post_mentions_wiki_managers_separately(): void
+    {
+        // 위키 전용 담당자(설정) — Free 게시판 담당자와 별도
+        Setting::set('wiki_post_alert_managers', json_encode([$this->admin->id]));
+        Setting::set('free_post_alert_managers', json_encode([])); // Free 쪽은 비움 — 분리 확인
+        Http::fake([
+            'api.channel.io/open/v5/managers*' => Http::response(['managers' => [
+                ['id' => 'mgr-9', 'name' => '김광래', 'email' => 'kk@drgo.pro'],
+            ]]),
+            'api.channel.io/*' => Http::response(['ok' => true]),
+        ]);
+
+        $this->actingAs($this->admin)->postJson('/wiki', [
+            'title' => '멘션 문서', 'content' => '<p>본문</p>',
+        ]);
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/groups/@'.rawurlencode('새게시물알림').'/messages')
+            && str_contains($r['blocks'][0]['value'] ?? '', '<link type="manager" value="mgr-9">'));
     }
 
     public function test_wiki_draft_and_unset_group_do_not_notify(): void

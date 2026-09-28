@@ -49,7 +49,7 @@ class ChannelTalkNotifier
         return trim((string) Setting::get('calendar_alert_group', '')) ?: null;
     }
 
-    /** 위키 새 글 발행 알림 — 게시물 알림 톡방(설정)으로, 담당자 멘션 없음. 공지는 별도 알림 유지 */
+    /** 위키 새 글 발행 알림 — 게시물 알림 톡방(설정)으로. 위키 전용 담당자 멘션(설정, 없으면 방 알림만). 공지는 별도 알림 유지 */
     public function wikiPostPublished(Wiki $wiki): void
     {
         $group = trim((string) Setting::get('post_alert_group', ''));
@@ -59,10 +59,19 @@ class ChannelTalkNotifier
 
         try {
             $category = $wiki->categoryNode?->name ?? $wiki->category;
-            $this->client->sendGroupMessage(
-                "📄 위키 새 글: '{$wiki->title}'".($category ? " · {$category}" : '')."\n".route('wiki.show', $wiki),
-                $group
-            );
+            $message = "📄 위키 새 글: '{$wiki->title}'".($category ? " · {$category}" : '')."\n".route('wiki.show', $wiki);
+
+            // 위키 새 글 담당자 — drgo.pro Free 게시판 담당자와 별도 설정 (관리 > 설정 > 게시판/위키)
+            $managerIds = json_decode((string) Setting::get('wiki_post_alert_managers', '[]'), true);
+            $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
+                ->get()
+                ->map(fn (User $u) => $this->client->managerMention($u->email, $u->display_name))
+                ->implode(' ');
+            if ($mentions !== '') {
+                $message .= "\n".$mentions;
+            }
+
+            $this->client->sendGroupMessage($message, $group);
         } catch (\Throwable $e) {
             Log::warning('채널톡 위키 새 글 알림 실패: '.$e->getMessage());
         }

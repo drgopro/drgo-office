@@ -93,7 +93,7 @@ class AdminController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'seller_stamp_path', 'calendar_visit_options', 'project_cancel_reasons',
             'payment_alert_group', 'payment_alert_managers',
-            'post_alert_group', 'free_post_alert_managers', 'calendar_alert_group',
+            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_managers', 'calendar_alert_group',
         ]);
 
         return view('admin.index', compact('logs', 'sellerSettings'));
@@ -106,13 +106,13 @@ class AdminController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'calendar_visit_options', 'project_cancel_reasons',
             'payment_alert_group', 'payment_alert_managers',
-            'post_alert_group', 'free_post_alert_managers', 'calendar_alert_group',
+            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_managers', 'calendar_alert_group',
         ]));
     }
 
     public function updateSettings(Request $request)
     {
-        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'calendar_alert_group'];
+        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_managers', 'calendar_alert_group'];
 
         foreach ($keys as $key) {
             if ($request->has($key)) {

@@ -1027,15 +1027,19 @@
         <div class="settings-form">
             <div class="cf-hint" style="margin-bottom:14px;">
                 drgo.pro 게시판 새 글/답변/댓글(5분 주기 폴링)과 위키 새 글이 이 톡방으로 알림됩니다.<br>
-                <span style="opacity:0.75;">Free(자유게시판) 소식에는 아래에서 고른 담당자가 멘션되어 개인 알림을 받습니다. 위키 새 글은 담당자 멘션 없이 방 알림만 갑니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
+                <span style="opacity:0.75;">Free(자유게시판)와 위키 새 글의 멘션 담당자를 각각 지정할 수 있습니다. 담당자를 비워두면 방 알림만 갑니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
             </div>
             <div class="field-group">
                 <div class="field-label">채널톡 게시물 알림 톡방 (그룹 이름 또는 그룹 ID)</div>
                 <input class="field-input" id="pbGroup" placeholder="예: 새게시물알림">
             </div>
             <div class="field-group">
-                <div class="field-label">Free 게시판 담당자 — 새 글/댓글 알림에서 멘션할 사용자 (복수 선택)</div>
+                <div class="field-label">Free 게시판 담당자 — drgo.pro 새 글/댓글 알림에서 멘션할 사용자 (복수 선택)</div>
                 <div id="pbManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
+            </div>
+            <div class="field-group">
+                <div class="field-label">위키 새 글 담당자 — 위키 새 글 알림에서 멘션할 사용자 (복수 선택, 비우면 멘션 없음)</div>
+                <div id="pbWikiManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button class="btn-save" onclick="savePostAlertSettings()">저장</button>
@@ -1308,26 +1312,34 @@ async function loadPostAlertSettings() {
         const settings = settingsRes.ok ? await settingsRes.json() : {};
         const users = usersRes.ok ? await usersRes.json() : [];
         document.getElementById('pbGroup').value = settings.post_alert_group || '';
-        let selected = [];
-        try { selected = JSON.parse(settings.free_post_alert_managers || '[]') || []; } catch (e) {}
-        document.getElementById('pbManagers').innerHTML = users.filter(u => u.is_active).map(u => `
-            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
-                <input type="checkbox" name="pbManager" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
-                ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
-            </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
+        // Free 게시판 / 위키 새 글 담당자를 각각 렌더 (별도 설정)
+        const renderChips = (wrapId, inputName, storedJson) => {
+            let selected = [];
+            try { selected = JSON.parse(storedJson || '[]') || []; } catch (e) {}
+            document.getElementById(wrapId).innerHTML = users.filter(u => u.is_active).map(u => `
+                <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
+                    <input type="checkbox" name="${inputName}" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
+                    ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
+                </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
+        };
+        renderChips('pbManagers', 'pbManager', settings.free_post_alert_managers);
+        renderChips('pbWikiManagers', 'pbWikiManager', settings.wiki_post_alert_managers);
         pbLoaded = true;
     } catch (e) {
         document.getElementById('pbManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
+        document.getElementById('pbWikiManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
     }
 }
 async function savePostAlertSettings() {
     const ids = [...document.querySelectorAll('input[name=pbManager]:checked')].map(c => +c.value);
+    const wikiIds = [...document.querySelectorAll('input[name=pbWikiManager]:checked')].map(c => +c.value);
     const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
         body: JSON.stringify({
             post_alert_group: document.getElementById('pbGroup').value.trim(),
             free_post_alert_managers: JSON.stringify(ids),
+            wiki_post_alert_managers: JSON.stringify(wikiIds),
         }),
     });
     flashSaveMsg('pbSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
