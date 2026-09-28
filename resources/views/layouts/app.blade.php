@@ -187,6 +187,9 @@ document.addEventListener('click', function(e){
             .nav-mobile-only a:hover { color:var(--accent); background:var(--surface2); }
             .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
             .header-right .admin-link { display:none; }
+            /* 모바일 드로어에도 데스크탑과 동일한 카테고리 라벨 + 구분선 표시 */
+            .nav.open .nav-group-label { display:block; font-size:10px; font-weight:700; letter-spacing:0.08em; color:var(--text-muted); opacity:0.8; padding:12px 16px 4px; }
+            .nav.open .nav-group-gap { display:block; min-height:8px; border-bottom:1px solid var(--border); margin:6px 8px 8px; }
         }
 
         /* ── 탭 바 ── */
