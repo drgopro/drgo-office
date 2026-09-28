@@ -3355,6 +3355,7 @@ async function openRefundModal(chargeId, type) {
                     if (remain > 0) estItems.push({
                         name: it.name, qty: Math.max(1, remain), price: it.sale_price, maxQty: remain,
                         checked: false, estimate_item_index: it.index, refundedNote: note,
+                        officeRestockable: !!it.office_restockable, // 직접발송 아님 — 사무실 반품 입고 선택 가능
                     });
                     // 세트 구성품 — 하위 항목 단위 부분환불 (가격이 있는 구성품만)
                     (it.bundle_items || []).forEach(b => {
@@ -3363,6 +3364,7 @@ async function openRefundModal(chargeId, type) {
                         estItems.push({
                             name: b.name, sub: true, qty: Math.max(1, bRemain), price: b.price, maxQty: bRemain,
                             checked: false, estimate_item_index: it.index, bundle_index: b.bundle_index,
+                            officeRestockable: !!b.office_restockable,
                             refundedNote: b.refund_qty > 0 || b.refund_amount > 0
                                 ? `기환불 ${b.refund_qty}개 · ${_fmtPh(b.refund_amount)}원` : '',
                         });
@@ -3438,7 +3440,7 @@ function renderRefundItems() {
     wrap.innerHTML = ctx.items.map((it, i) => {
         return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; ${it.sub ? 'margin-left:22px; ' : ''}background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
             <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
-            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">세트 구성품</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
+            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">세트 구성품</span>' : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:10px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
                 <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
@@ -3513,17 +3515,32 @@ async function submitRefund(type) {
     const ctx = __refundContext;
     if (!ctx) return;
     const isManual = ctx.manualMode;
-    const selectedItems = isManual ? [] : ctx.items.filter(it => it.checked).map(it => ({
-        name: it.name, qty: it.qty, price: it.price,
-        estimate_item_index: it.estimate_item_index ?? null,
-        bundle_index: it.bundle_index ?? null,
-    }));
+    const checkedItems = isManual ? [] : ctx.items.filter(it => it.checked);
     const directAmount = isManual ? parseInt(document.getElementById('refundManualAmount').value || 0) : 0;
 
     if (type === 'refund') {
         if (isManual && !directAmount) return alert('환불 금액을 입력해 주세요.');
-        if (!isManual && !selectedItems.length) return alert('환불할 항목을 선택해 주세요.');
+        if (!isManual && !checkedItems.length) return alert('환불할 항목을 선택해 주세요.');
     }
+
+    // 직접발송이 아닌(거래처 주문) 제품 — 사무실 반품 입고 여부를 목록으로 안내하고 예/아니오 확인
+    let officeRestock = false;
+    const restockables = checkedItems.filter(it => it.officeRestockable);
+    if (restockables.length) {
+        const list = restockables.map(it => `- ${it.name} × ${it.qty}개`).join('\n');
+        officeRestock = confirm(
+            '다음 항목은 직접발송 제품이 아닙니다.\n\n' + list
+            + '\n\n사무실 반품으로 처리하여 재고를 늘릴까요?\n\n'
+            + '[확인] 사무실 재고에 입고 반영\n[취소] 재고 반영 없이 환불만 진행'
+        );
+    }
+
+    const selectedItems = checkedItems.map(it => ({
+        name: it.name, qty: it.qty, price: it.price,
+        estimate_item_index: it.estimate_item_index ?? null,
+        bundle_index: it.bundle_index ?? null,
+        office_restock: !!(officeRestock && it.officeRestockable),
+    }));
     const body = {
         parent_payment_id: ctx.chargeId,
         type,

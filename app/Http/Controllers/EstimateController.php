@@ -76,28 +76,50 @@ class EstimateController extends Controller
     /** 항목별 환불 후보 목록 — 프로젝트 환불 모달이 견적서 항목을 보고 선택 (잔여 수량 포함) */
     public function refundItems(Estimate $estimate)
     {
+        // 세트 부모 제품 일괄 로딩 — 구성품이 사무실 반품 가능한지(구성품 제품 매칭) 판단용
+        $items = $estimate->product_items ?? [];
+        $bundleParents = Product::with('bundleItems.component')
+            ->whereIn('id', collect($items)->filter(fn ($i) => ! empty($i['product_id']) && ! empty($i['bundle_items']))->pluck('product_id')->unique())
+            ->get()->keyBy('id');
+
         return response()->json([
             'estimate_id' => $estimate->id,
             'no' => $estimate->display_no,
             'title' => $estimate->title,
-            'items' => collect($estimate->product_items ?? [])->map(fn ($i, $idx) => [
-                'index' => $idx,
-                'name' => $i['name'] ?? '',
-                'qty' => (int) ($i['qty'] ?? 1),
-                'sale_price' => (int) ($i['sale_price'] ?? 0),
-                'refund_qty' => (int) ($i['refund_qty'] ?? 0),
-                'refund_amount' => (int) ($i['refund_amount'] ?? 0),
-                'refunded' => ! empty($i['refunded']),
-                // 세트 구성품 — 하위 항목 단위 부분환불용 (총 수량 = 구성 수량 × 세트 수량)
-                'bundle_items' => collect($i['bundle_items'] ?? [])->map(fn ($b, $bIdx) => [
-                    'bundle_index' => $bIdx,
-                    'name' => $b['name'] ?? '',
-                    'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
-                    'price' => (int) ($b['price'] ?? 0),
-                    'refund_qty' => (int) ($b['refund_qty'] ?? 0),
-                    'refund_amount' => (int) ($b['refund_amount'] ?? 0),
-                ])->values(),
-            ])->values(),
+            'items' => collect($items)->map(function ($i, $idx) use ($bundleParents) {
+                $parentDirect = EstimateStockSync::isDirect($i);
+
+                return [
+                    'index' => $idx,
+                    'name' => $i['name'] ?? '',
+                    'qty' => (int) ($i['qty'] ?? 1),
+                    'sale_price' => (int) ($i['sale_price'] ?? 0),
+                    'refund_qty' => (int) ($i['refund_qty'] ?? 0),
+                    'refund_amount' => (int) ($i['refund_amount'] ?? 0),
+                    'refunded' => ! empty($i['refunded']),
+                    'direct' => $parentDirect,
+                    // 직접발송이 아닌 거래처 주문분 — 환불 시 '사무실 반품 입고' 선택 가능 (등록 제품만)
+                    'office_restockable' => ! $parentDirect && ! empty($i['product_id']) && empty($i['bundle_items']),
+                    // 세트 구성품 — 하위 항목 단위 부분환불용 (총 수량 = 구성 수량 × 세트 수량)
+                    'bundle_items' => collect($i['bundle_items'] ?? [])->map(function ($b, $bIdx) use ($i, $parentDirect, $bundleParents) {
+                        $direct = $parentDirect || (! empty($b['ordered']) && ($b['source'] ?? '') === '사무실 발송');
+                        $componentId = (int) ($bundleParents->get((int) ($i['product_id'] ?? 0))?->bundleItems
+                            ->first(fn ($bi) => ($bi->component?->name ?? '') === ($b['name'] ?? ''))
+                            ?->component_product_id ?? 0);
+
+                        return [
+                            'bundle_index' => $bIdx,
+                            'name' => $b['name'] ?? '',
+                            'qty' => max(1, (int) ($b['qty'] ?? 1)) * max(1, (int) ($i['qty'] ?? 1)),
+                            'price' => (int) ($b['price'] ?? 0),
+                            'refund_qty' => (int) ($b['refund_qty'] ?? 0),
+                            'refund_amount' => (int) ($b['refund_amount'] ?? 0),
+                            'direct' => $direct,
+                            'office_restockable' => ! $direct && $componentId > 0,
+                        ];
+                    })->values(),
+                ];
+            })->values(),
         ]);
     }
 

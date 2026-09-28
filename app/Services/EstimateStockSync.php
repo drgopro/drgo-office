@@ -131,4 +131,75 @@ class EstimateStockSync
     {
         self::apply($estimate, $estimate->product_items, []);
     }
+
+    /**
+     * 항목이 직접발송인지 — 부모 기준. 세트 구성품은 componentDirect()로 판단.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    public static function isDirect(array $item): bool
+    {
+        return ! empty($item['ordered']) && ($item['purchase_source'] ?? '') === '사무실 발송';
+    }
+
+    /**
+     * 사무실 반품 입고 — 직접발송이 아닌(거래처 주문) 항목을 환불하면서 미사용 제품을
+     * 사무실 재고로 받을 때 호출. 직접발송 항목은 apply()가 환불 시 자동 복원하므로
+     * 이중 입고를 막기 위해 건너뛴다. 수기 항목(product_id 없음)도 재고 개념이 없어 제외.
+     *
+     * @param  array<int, array{index: int, bundle_index?: int|null, qty: int}>  $entries
+     */
+    public static function officeReturn(Estimate $estimate, array $entries): void
+    {
+        $items = $estimate->product_items ?? [];
+
+        foreach ($entries as $entry) {
+            $idx = (int) ($entry['index'] ?? -1);
+            $qty = max(0, (int) ($entry['qty'] ?? 0));
+            if ($qty === 0 || ! array_key_exists($idx, $items)) {
+                continue;
+            }
+            $item = $items[$idx];
+            $parentDirect = self::isDirect($item);
+
+            if (isset($entry['bundle_index']) && $entry['bundle_index'] !== null) {
+                // 세트 구성품 — 세트 구성에서 이름으로 구성품 제품을 매칭
+                $bundle = $item['bundle_items'][(int) $entry['bundle_index']] ?? null;
+                if (! $bundle) {
+                    continue;
+                }
+                $direct = $parentDirect || (! empty($bundle['ordered']) && ($bundle['source'] ?? '') === '사무실 발송');
+                if ($direct) {
+                    continue;
+                }
+                $product = Product::with('bundleItems.component')->find((int) ($item['product_id'] ?? 0));
+                $pid = (int) ($product?->bundleItems
+                    ->first(fn ($bi) => ($bi->component?->name ?? '') === ($bundle['name'] ?? ''))
+                    ?->component_product_id ?? 0);
+            } else {
+                if ($parentDirect) {
+                    continue;
+                }
+                $pid = (int) ($item['product_id'] ?? 0);
+            }
+            if (! $pid) {
+                continue;
+            }
+
+            $inventory = Inventory::firstOrCreate(
+                ['product_id' => $pid],
+                ['quantity' => 0, 'last_updated_at' => now()],
+            );
+            $newQty = (int) $inventory->quantity + $qty;
+            StockMovement::create([
+                'product_id' => $pid,
+                'movement_type' => 'return',
+                'quantity' => $qty,
+                'quantity_after' => $newQty,
+                'user_id' => Auth::id(),
+                'memo' => '견적서 #'.$estimate->display_no.' 사무실 반품 입고 (환불 · 거래처 주문분)',
+            ]);
+            $inventory->update(['quantity' => $newQty, 'last_updated_at' => now()]);
+        }
+    }
 }
