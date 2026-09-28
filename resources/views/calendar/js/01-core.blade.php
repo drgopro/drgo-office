@@ -2,8 +2,8 @@
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const DAYS_KO = ['일','월','화','수','목','금','토'];
 
-// 한국 공휴일 (양력 고정 + 음력 변동 2025~2027)
-const KR_HOLIDAYS = {
+// 한국 공휴일 — 아래 하드코딩(폴백) 위에 서버 동기화분(holidays:sync, 대체공휴일 포함)을 덮어쓴다
+const KR_HOLIDAYS = Object.assign({
     // 양력 고정
     '01-01':'신정','03-01':'삼일절','05-05':'어린이날','06-06':'현충일','08-15':'광복절','10-03':'개천절','10-09':'한글날','12-25':'성탄절',
     // 2025 음력 변동
@@ -12,7 +12,7 @@ const KR_HOLIDAYS = {
     '2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-05-24':'부처님오신날','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
     // 2027 음력 변동
     '2027-02-06':'설날 연휴','2027-02-07':'설날','2027-02-08':'설날 연휴','2027-05-13':'부처님오신날','2027-10-14':'추석 연휴','2027-10-15':'추석','2027-10-16':'추석 연휴',
-};
+}, @json(json_decode((string) \App\Models\Setting::get('kr_holidays', ''), true) ?: new \stdClass));
 function getHoliday(dateStr) {
     if (!dateStr) return null;
     return KR_HOLIDAYS[dateStr] || KR_HOLIDAYS[dateStr.substring(5)] || null;

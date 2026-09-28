@@ -175,6 +175,9 @@
     .day-num.sun { color:var(--red); }
     .day-num.sat { color:var(--accent2); }
     .holiday-label { font-size:calc(11px * var(--cal-fz,1)); color:var(--red); opacity:0.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; letter-spacing:0.02em; line-height:1; }
+    /* 공휴일 표시 — 주/일간 헤더 · 목록 뷰 날짜 헤드 */
+    .tl-holiday { font-size:10px; color:var(--red); opacity:0.9; white-space:nowrap; }
+    .ad-holiday { font-size:12px; color:var(--red); opacity:0.9; margin-left:2px; }
     .events-list { display:flex; flex-direction:column; gap:2px; }
 
     /* ── 이벤트 칩 ── */

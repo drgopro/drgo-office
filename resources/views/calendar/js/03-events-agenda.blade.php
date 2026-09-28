@@ -178,9 +178,10 @@ function renderAgenda(){
     if(strip){
         strip.innerHTML=week.map(full=>{
             const d=new Date(full+'T00:00:00'); const dow=d.getDay();
-            const cls=dow===0?'sun':dow===6?'sat':'';
+            const hol=getHoliday(full); // 공휴일 — 목록 뷰 스트립도 빨간 날 표시
+            const cls=dow===0||hol?'sun':dow===6?'sat':'';
             const hasEv=events.some(ev=>isFiltered(ev)&&evCoversDate(ev,full));
-            return `<button class="agenda-day-btn ${full===agendaSelectedDate?'active':''}" onclick="selectAgendaDate('${full}')">
+            return `<button class="agenda-day-btn ${full===agendaSelectedDate?'active':''}" onclick="selectAgendaDate('${full}')" ${hol?`title="${hol}"`:''}>
                 <span class="adb-dow ${cls}">${AGENDA_DOW[dow]}</span>
                 <span class="adb-num ${cls}">${d.getDate()}</span>
                 ${hasEv?'<span class="adb-dot"></span>':''}
@@ -194,11 +195,13 @@ function renderAgenda(){
     const full=agendaSelectedDate;
     const d=new Date(full+'T00:00:00');
     const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,full)), full);
-    const dowCls=full===ts?'ad-today':d.getDay()===0?'ad-sun':d.getDay()===6?'ad-sat':'';
+    const holSel=getHoliday(full);
+    const dowCls=full===ts?'ad-today':(d.getDay()===0||holSel)?'ad-sun':d.getDay()===6?'ad-sat':'';
 
     let html=`<div class="agenda-day"><div class="agenda-date-head">
         <span class="ad-d ${dowCls}">${d.getMonth()+1}.${d.getDate()}</span>
         <span class="ad-dow ${dowCls}">${AGENDA_DOW[d.getDay()]}요일${full===ts?' · 오늘':''}</span>
+        ${holSel?`<span class="ad-holiday">${holSel}</span>`:''}
     </div>`;
     if(!dayEvs.length){
         html+='<div class="agenda-empty">일정이 없습니다.</div>';

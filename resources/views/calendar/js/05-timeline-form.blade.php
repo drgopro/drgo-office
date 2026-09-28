@@ -25,10 +25,11 @@ function renderTimeline() {
     cols.forEach(d=>{
         const dow=d.getDay();
         const isToday=fmt(d)===ts;
+        const holiday=getHoliday(fmt(d)); // 공휴일 — 주/일간 뷰에도 표시
         const cell=document.createElement('div');
         cell.className='tl-day-col'+(isToday?' today-col':'');
-        const nc=dow===0?'sun-c':dow===6?'sat-c':'';
-        cell.innerHTML=`<div class="tl-day-name">${DAYS_KO[dow]}</div>
+        const nc=dow===0||holiday?'sun-c':dow===6?'sat-c':'';
+        cell.innerHTML=`<div class="tl-day-name">${DAYS_KO[dow]}${holiday?` <span class="tl-holiday">${holiday}</span>`:''}</div>
             <div class="tl-day-num ${nc} ${isToday?'today-num':''}">${d.getDate()}</div>`;
         // 일간 뷰에서 날짜 클릭 → 월간으로 이동
         if(currentView==='day') cell.style.cursor='default';
