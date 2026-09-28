@@ -172,6 +172,9 @@ class WikiController extends Controller
         // 공지사항 발행 → 채널톡 전체 멘션 알림 (임시저장은 발행 시점에)
         if ($wiki->type === 'notice' && ! $wiki->is_draft) {
             app(ChannelTalkNotifier::class)->wikiNoticePublished($wiki);
+        } elseif (! $wiki->is_draft) {
+            // 일반 새 글 발행 → 게시물 알림 톡방 (담당자 멘션 없음, 톡방 미설정 시 발송 안 함)
+            app(ChannelTalkNotifier::class)->wikiPostPublished($wiki);
         }
 
         if ($request->wantsJson()) {
@@ -225,12 +228,16 @@ class WikiController extends Controller
         }
         $validated['updated_by'] = Auth::id();
         $wasVisibleNotice = ! $wiki->is_draft && $wiki->type === 'notice';
+        $wasDraft = $wiki->is_draft;
         $wiki->update($validated);
         $this->linkPendingAttachments($wiki);
 
         // 공지사항이 새로 노출되는 시점(임시저장 발행 / 공지 유형 전환)에만 알림 — 단순 내용 수정은 제외
         if (! $wiki->is_draft && $wiki->type === 'notice' && ! $wasVisibleNotice) {
             app(ChannelTalkNotifier::class)->wikiNoticePublished($wiki);
+        } elseif ($wasDraft && ! $wiki->is_draft && $wiki->type !== 'notice') {
+            // 임시저장 → 발행되는 새 글도 게시물 알림 톡방으로
+            app(ChannelTalkNotifier::class)->wikiPostPublished($wiki);
         }
 
         if ($request->wantsJson()) {

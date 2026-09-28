@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Assignee;
 use App\Models\Schedule;
+use App\Models\Setting;
 use App\Models\Todo;
 use App\Models\User;
 use App\Models\Wiki;
@@ -19,7 +20,7 @@ class ChannelTalkNotifier
 {
     public function __construct(private ChannelTalkClient $client) {}
 
-    /** 일정 담당자 추가/제거 알림 (assignee id 배열) */
+    /** 일정 담당자 추가/제거 알림 (assignee id 배열) — 캘린더 알림 톡방(설정) 또는 기본 그룹 */
     public function scheduleAssigneesChanged(Schedule $schedule, array $addedIds, array $removedIds): void
     {
         if (! $this->client->isConfigured() || (! $addedIds && ! $removedIds)) {
@@ -27,17 +28,43 @@ class ChannelTalkNotifier
         }
 
         try {
+            $group = self::calendarGroup();
             $date = $schedule->start_date?->format('m/d');
             $label = "'{$schedule->title}'".($date ? " ({$date})" : '');
 
             if ($addedIds) {
-                $this->client->sendGroupMessage("🔔 {$this->mentionsByIds($addedIds)} — {$label} 일정의 담당자로 지정되었습니다");
+                $this->client->sendGroupMessage("🔔 {$this->mentionsByIds($addedIds)} — {$label} 일정의 담당자로 지정되었습니다", $group);
             }
             if ($removedIds) {
-                $this->client->sendGroupMessage("🔕 {$this->mentionsByIds($removedIds)} — {$label} 일정의 담당에서 제외되었습니다");
+                $this->client->sendGroupMessage("🔕 {$this->mentionsByIds($removedIds)} — {$label} 일정의 담당에서 제외되었습니다", $group);
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /** 캘린더 알림 톡방(관리 > 설정 > 캘린더 > 알림 톡방) — 비어 있으면 null(기본 그룹) */
+    public static function calendarGroup(): ?string
+    {
+        return trim((string) Setting::get('calendar_alert_group', '')) ?: null;
+    }
+
+    /** 위키 새 글 발행 알림 — 게시물 알림 톡방(설정)으로, 담당자 멘션 없음. 공지는 별도 알림 유지 */
+    public function wikiPostPublished(Wiki $wiki): void
+    {
+        $group = trim((string) Setting::get('post_alert_group', ''));
+        if ($group === '' || ! $this->client->isConfigured()) {
+            return; // 톡방 미설정 — 기능 꺼짐
+        }
+
+        try {
+            $category = $wiki->categoryNode?->name ?? $wiki->category;
+            $this->client->sendGroupMessage(
+                "📄 위키 새 글: '{$wiki->title}'".($category ? " · {$category}" : '')."\n".route('wiki.show', $wiki),
+                $group
+            );
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 위키 새 글 알림 실패: '.$e->getMessage());
         }
     }
 

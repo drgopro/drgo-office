@@ -542,6 +542,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/settings', [AdminController::class, 'settings']);
         Route::post('/api/settings', [AdminController::class, 'updateSettings']);
         Route::post('/api/admin/payment-alert-test', [AdminController::class, 'paymentAlertTest']); // 결제완료 톡방 연결 확인
+        Route::post('/api/admin/post-alert-test', [AdminController::class, 'postAlertTest']); // 게시물 알림 톡방 연결 확인
+        Route::post('/api/admin/calendar-alert-test', [AdminController::class, 'calendarAlertTest']); // 캘린더 알림 톡방 연결 확인
         Route::post('/api/admin/seller-stamp', [AdminController::class, 'uploadSellerStamp']);
         Route::delete('/api/admin/seller-stamp', [AdminController::class, 'deleteSellerStamp']);
         Route::get('/api/admin/users', [AdminController::class, 'users']);

@@ -253,6 +253,7 @@
             <button class="sub-tab-btn" data-group="projects" onclick="switchSettingsGroup('projects')">프로젝트</button>
             <button class="sub-tab-btn" data-group="calendar" onclick="switchSettingsGroup('calendar')">캘린더</button>
             <button class="sub-tab-btn" data-group="estimates" onclick="switchSettingsGroup('estimates')">견적서</button>
+            <button class="sub-tab-btn" data-group="boards" onclick="switchSettingsGroup('boards')">게시판/위키</button>
         </div>
         <div class="settings-split">
             <div class="settings-side" id="settingsSideMenu"></div>
@@ -1021,6 +1022,47 @@
             </div>
         </div>
     </div>
+    {{-- 게시물 알림 — drgo.pro 게시판 + 위키 새 글 채널톡 톡방 --}}
+    <div class="tab-panel" id="panel-postAlert">
+        <div class="settings-form">
+            <div class="cf-hint" style="margin-bottom:14px;">
+                drgo.pro 게시판 새 글/답변/댓글(5분 주기 폴링)과 위키 새 글이 이 톡방으로 알림됩니다.<br>
+                <span style="opacity:0.75;">Free(자유게시판) 소식에는 아래에서 고른 담당자가 멘션되어 개인 알림을 받습니다. 위키 새 글은 담당자 멘션 없이 방 알림만 갑니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
+            </div>
+            <div class="field-group">
+                <div class="field-label">채널톡 게시물 알림 톡방 (그룹 이름 또는 그룹 ID)</div>
+                <input class="field-input" id="pbGroup" placeholder="예: 새게시물알림">
+            </div>
+            <div class="field-group">
+                <div class="field-label">Free 게시판 담당자 — 새 글/댓글 알림에서 멘션할 사용자 (복수 선택)</div>
+                <div id="pbManagers" style="display:flex; flex-wrap:wrap; gap:8px;">불러오는 중…</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-save" onclick="savePostAlertSettings()">저장</button>
+                <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testAlertRoom('post-alert-test', 'pbSaveMsg')">테스트 발송</button>
+                <span class="save-msg" id="pbSaveMsg"></span>
+            </div>
+        </div>
+    </div>
+
+    {{-- 캘린더 알림 톡방 — 담당자 지정 알림 + D-2 일정 다이제스트 --}}
+    <div class="tab-panel" id="panel-calendarAlert">
+        <div class="settings-form">
+            <div class="cf-hint" style="margin-bottom:14px;">
+                캘린더 일정의 담당자 지정/제외 알림과 매일 오전 9시 D-2 일정 알림(방문의뢰·원격/방송룸)이 발송되는 톡방입니다.<br>
+                <span style="opacity:0.75;">비워두면 기본 팀챗 그룹(.env CHANNELTALK_GROUP)으로 발송됩니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
+            </div>
+            <div class="field-group">
+                <div class="field-label">채널톡 캘린더 알림 톡방 (그룹 이름 또는 그룹 ID)</div>
+                <input class="field-input" id="calAlertGroup" placeholder="비워두면 기본 팀챗 그룹">
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-save" onclick="saveCalendarAlertSettings()">저장</button>
+                <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testAlertRoom('calendar-alert-test', 'calAlertSaveMsg')">테스트 발송</button>
+                <span class="save-msg" id="calAlertSaveMsg"></span>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- 계정 수정 모달 (master 전용) --}}
@@ -1183,6 +1225,8 @@ const SETTINGS_PANEL_MAP = {
     cancelReasons: { panel: 'panel-cancelReasons', load: () => {} },
     seller: { panel: 'panel-seller', load: () => {} },
     paymentAlert: { panel: 'panel-paymentAlert', load: () => typeof loadPaymentAlertSettings === 'function' && loadPaymentAlertSettings() },
+    postAlert: { panel: 'panel-postAlert', load: () => typeof loadPostAlertSettings === 'function' && loadPostAlertSettings() },
+    calendarAlert: { panel: 'panel-calendarAlert', load: () => typeof loadCalendarAlertSettings === 'function' && loadCalendarAlertSettings() },
 };
 
 // ── 결제 알림 설정 — 페이앱 결제완료 채널톡 톡방 + 담당자 멘션 ──
@@ -1245,12 +1289,90 @@ async function testPaymentAlert() {
 const SETTINGS_GROUPS = {
     clients: { label: '의뢰자', items: [['clientFields', '의뢰자 필드']] },
     projects: { label: '프로젝트', items: [['projectFields', '프로젝트 필드'], ['projectTypes', '프로젝트 유형'], ['workTypes', '작업 유형'], ['cancelReasons', '취소 사유'], ['reportTemplates', '보고서 템플릿']] },
-    calendar: { label: '캘린더', items: [['calendarCategories', '캘린더 카테고리'], ['visitOptions', '내방 옵션']] },
+    calendar: { label: '캘린더', items: [['calendarCategories', '캘린더 카테고리'], ['visitOptions', '내방 옵션'], ['calendarAlert', '알림 톡방']] },
     estimates: { label: '견적서', items: [['seller', '판매처 설정'], ['paymentAlert', '결제 알림']] },
+    boards: { label: '게시판/위키', items: [['postAlert', '게시물 알림']] },
 };
 function settingsGroupOf(sub) {
     return Object.keys(SETTINGS_GROUPS).find(g => SETTINGS_GROUPS[g].items.some(([key]) => key === sub)) || 'clients';
 }
+// ── 게시물 알림 설정 — drgo.pro 게시판 + 위키 새 글 톡방, Free 담당자 멘션 ──
+let pbLoaded = false;
+async function loadPostAlertSettings() {
+    if (pbLoaded) return;
+    try {
+        const [settingsRes, usersRes] = await Promise.all([
+            fetch('/api/settings', { headers: { 'Accept': 'application/json' } }),
+            fetch('/api/admin/users', { headers: { 'Accept': 'application/json' } }),
+        ]);
+        const settings = settingsRes.ok ? await settingsRes.json() : {};
+        const users = usersRes.ok ? await usersRes.json() : [];
+        document.getElementById('pbGroup').value = settings.post_alert_group || '';
+        let selected = [];
+        try { selected = JSON.parse(settings.free_post_alert_managers || '[]') || []; } catch (e) {}
+        document.getElementById('pbManagers').innerHTML = users.filter(u => u.is_active).map(u => `
+            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
+                <input type="checkbox" name="pbManager" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
+                ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
+            </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
+        pbLoaded = true;
+    } catch (e) {
+        document.getElementById('pbManagers').innerHTML = '<span class="cf-hint">불러오기 실패</span>';
+    }
+}
+async function savePostAlertSettings() {
+    const ids = [...document.querySelectorAll('input[name=pbManager]:checked')].map(c => +c.value);
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({
+            post_alert_group: document.getElementById('pbGroup').value.trim(),
+            free_post_alert_managers: JSON.stringify(ids),
+        }),
+    });
+    flashSaveMsg('pbSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
+}
+
+// ── 캘린더 알림 톡방 설정 — 담당자 지정 알림 + D-2 다이제스트 ──
+let calAlertLoaded = false;
+async function loadCalendarAlertSettings() {
+    if (calAlertLoaded) return;
+    try {
+        const res = await fetch('/api/settings', { headers: { 'Accept': 'application/json' } });
+        const settings = res.ok ? await res.json() : {};
+        document.getElementById('calAlertGroup').value = settings.calendar_alert_group || '';
+        calAlertLoaded = true;
+    } catch (e) { /* 입력만 비워둠 */ }
+}
+async function saveCalendarAlertSettings() {
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ calendar_alert_group: document.getElementById('calAlertGroup').value.trim() }),
+    });
+    flashSaveMsg('calAlertSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
+}
+
+// 알림 톡방 테스트 발송 공용 — /api/admin/{endpoint}로 POST, 결과를 메시지 영역에 표시
+function flashSaveMsg(id, text, ms = 2500) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.style.display = 'inline';
+    setTimeout(() => { el.style.display = 'none'; }, ms);
+}
+async function testAlertRoom(endpoint, msgId) {
+    const el = document.getElementById(msgId);
+    el.textContent = '발송 중…';
+    el.style.display = 'inline';
+    try {
+        const res = await fetch('/api/admin/'+endpoint, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+        const d = await res.json();
+        flashSaveMsg(msgId, d.message || (res.ok ? '발송됨' : '실패'), 6000);
+    } catch (e) {
+        flashSaveMsg(msgId, '발송 실패: 통신 오류', 6000);
+    }
+}
+
 function switchSettingsGroup(group, sub) {
     const conf = SETTINGS_GROUPS[group];
     if (!conf) return;

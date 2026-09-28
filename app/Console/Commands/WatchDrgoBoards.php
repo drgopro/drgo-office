@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Setting;
+use App\Models\User;
 use App\Services\ChannelTalkClient;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -86,7 +87,23 @@ class WatchDrgoBoards extends Command
         }
 
         $message = $this->buildMessage($board, $items->all());
-        $result = $channelTalk->sendGroupMessage($message);
+
+        // 게시물 알림 톡방(설정) — 비어 있으면 기본 팀챗 그룹으로 (기존 동작)
+        $group = trim((string) Setting::get('post_alert_group', '')) ?: null;
+
+        // Free 게시판 — 관리 > 설정에서 지정한 담당자 멘션 (개인 알림)
+        if ($board === 'free') {
+            $managerIds = json_decode((string) Setting::get('free_post_alert_managers', '[]'), true);
+            $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
+                ->get()
+                ->map(fn (User $u) => $channelTalk->managerMention($u->email, $u->display_name))
+                ->implode(' ');
+            if ($mentions !== '') {
+                $message .= "\n\n".$mentions;
+            }
+        }
+
+        $result = $channelTalk->sendGroupMessage($message, $group);
         if (! ($result['ok'] ?? false)) {
             // 전송 실패 시 워터마크를 올리지 않아 다음 주기에 재알림된다
             Log::warning("drgo.pro 게시판 채널톡 전송 실패 ({$board}): ".($result['error'] ?? ''));

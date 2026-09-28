@@ -69,7 +69,7 @@ class SendChannelTalkDigest extends Command
             $lines[] = $line;
         }
 
-        $result = $channelTalk->sendGroupMessage(implode("\n", $lines));
+        $result = $channelTalk->sendGroupMessage(implode("\n", $lines), ChannelTalkNotifier::calendarGroup());
         if (! $result['ok']) {
             $this->error($result['error']);
 
