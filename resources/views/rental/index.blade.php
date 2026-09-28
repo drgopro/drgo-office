@@ -313,7 +313,10 @@
             <button class="modal-close" onclick="stopQrScan(true)">×</button>
         </div>
         <div id="qrScanReader" style="width:100%; background:#000; border-radius:8px; overflow:hidden; min-height:260px;"></div>
-        <div class="text-muted" style="font-size:11px; margin-top:6px;" id="qrScanHint">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
+        <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
+            <div class="text-muted" style="font-size:11px; flex:1;" id="qrScanHint">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
+            <button type="button" class="btn-cancel btn-sm" id="qrSwitchBtn" style="display:none; white-space:nowrap;" onclick="switchQrCamera()">카메라 전환</button>
+        </div>
         <div class="field-group" style="margin-top:10px;">
             <div class="field-label">수동 입력 (테스트)</div>
             <div style="display:flex; gap:6px;">
@@ -412,7 +415,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="/vendor/html5-qrcode.min.js" onerror="this.remove(); const s=document.createElement('script'); s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'; document.head.appendChild(s);"></script>
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
@@ -990,11 +993,16 @@ async function gaReturnAll() {
 
 // === QR 스캔 ===
 document.getElementById('bdScanBtn').addEventListener('click', () => startQrScan());
+let qrCameras = [], qrCamIdx = -1; // 사용 가능한 카메라 목록 / 현재 사용 중 인덱스 (전환용)
+function qrScanConfig() {
+    // 화면 폭에 맞춘 스캔 박스 — 작은 폰에서 박스가 영상보다 커지면 인식이 안 됨
+    return { fps: 10, qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.75); return { width: s, height: s }; } };
+}
 async function startQrScan() {
     document.getElementById('qrManual').value = '';
     const hint = document.getElementById('qrScanHint');
     hint.style.color = '';
-    hint.textContent = '장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.';
+    hint.textContent = '카메라를 시작하는 중…';
     openModal('qrScanModal');
     if (typeof Html5Qrcode === 'undefined') {
         hint.style.color = 'var(--red)';
@@ -1003,12 +1011,23 @@ async function startQrScan() {
     }
     try {
         qrScanner = new Html5Qrcode('qrScanReader');
-        await qrScanner.start(
-            { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 240, height: 240 } },
-            (decoded) => { handleScanResult(decoded); },
-            () => {}
-        );
+        try {
+            // 1차: 후면 카메라 우선
+            await qrScanner.start({ facingMode: 'environment' }, qrScanConfig(), d => handleScanResult(d), () => {});
+            qrCamIdx = -1;
+        } catch (e1) {
+            // 2차: 카메라 목록에서 후면으로 보이는 것(없으면 마지막)을 골라 재시도
+            // — 일부 안드로이드(멀티 렌즈)에서 facingMode 지정이 실패하거나 엉뚱한 렌즈가 잡힘
+            qrCameras = await Html5Qrcode.getCameras();
+            if (!qrCameras.length) throw e1;
+            const backIdx = qrCameras.findIndex(c => /back|rear|후면|environment/i.test(c.label || ''));
+            qrCamIdx = backIdx >= 0 ? backIdx : qrCameras.length - 1;
+            await qrScanner.start(qrCameras[qrCamIdx].id, qrScanConfig(), d => handleScanResult(d), () => {});
+        }
+        hint.textContent = '카메라 실행 중 — 장비 QR 코드를 박스 안에 비춰주세요.';
+        // 카메라가 여러 개면 전환 버튼 노출 (엉뚱한 렌즈가 잡혔을 때 순환 전환)
+        if (!qrCameras.length) { try { qrCameras = await Html5Qrcode.getCameras(); } catch(_) {} }
+        document.getElementById('qrSwitchBtn').style.display = qrCameras.length > 1 ? 'inline-block' : 'none';
     } catch (err) {
         // 권한 거부/미지원을 조용히 삼키지 않고 원인별 안내 — 안드로이드에서 프롬프트가
         // 안 뜨는 경우는 대부분 이전에 '차단'을 눌렀거나 인앱 브라우저 사용 시
@@ -1029,11 +1048,26 @@ async function startQrScan() {
         }
     }
 }
+// 카메라 순환 전환 — 멀티 렌즈 폰에서 접사/광각이 잡혀 초점이 안 맞을 때
+async function switchQrCamera() {
+    if (!qrScanner || qrCameras.length < 2) return;
+    const hint = document.getElementById('qrScanHint');
+    qrCamIdx = (qrCamIdx + 1) % qrCameras.length;
+    try {
+        await qrScanner.stop();
+        await qrScanner.start(qrCameras[qrCamIdx].id, qrScanConfig(), d => handleScanResult(d), () => {});
+        hint.textContent = '카메라 전환됨 (' + (qrCameras[qrCamIdx].label || (qrCamIdx + 1) + '번') + ') — QR을 비춰주세요.';
+    } catch (e) {
+        hint.style.color = 'var(--red)';
+        hint.textContent = '카메라 전환 실패 — 다시 시도하세요.';
+    }
+}
 async function stopQrScan(alsoClose) {
     if (qrScanner) {
         try { await qrScanner.stop(); qrScanner.clear(); } catch(_) {}
         qrScanner = null;
     }
+    document.getElementById('qrSwitchBtn').style.display = 'none';
     if (alsoClose) closeModal('qrScanModal');
 }
 async function handleScanResult(text) {

@@ -98,6 +98,12 @@ class RentalComponentTrackingTest extends TestCase
             ->assertSee('전체선택')
             ->assertSee('id="compMoveModal"', false)
             ->assertSee('openCompMoveModal', false)
-            ->assertSee('마지막 위치');
+            ->assertSee('마지막 위치')
+            // QR 스캐너 — 자체 호스팅 라이브러리 + 카메라 폴백/전환
+            ->assertSee('/vendor/html5-qrcode.min.js', false)
+            ->assertSee('switchQrCamera', false)
+            ->assertSee('getCameras', false);
+
+        $this->assertFileExists(public_path('vendor/html5-qrcode.min.js'));
     }
 }
