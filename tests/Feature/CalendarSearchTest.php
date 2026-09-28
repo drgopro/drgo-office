@@ -48,6 +48,36 @@ class CalendarSearchTest extends TestCase
         $this->assertCount(1, $this->actingAs($owner)->getJson('/api/events/search?q=비공개')->json());
     }
 
+    public function test_search_filters_by_multiple_categories_and_assignees(): void
+    {
+        $user = User::factory()->create(['role' => 'member']);
+        $this->makeSchedule(['title' => '세팅 A', 'color' => 'gold']);
+        $this->makeSchedule(['title' => '세팅 B', 'color' => 'teal']);
+        $this->makeSchedule(['title' => '세팅 C', 'color' => 'blue']);
+
+        // 다중 카테고리 — gold + teal
+        $multi = $this->actingAs($user)->getJson('/api/events/search?q=세팅&colors[]=gold&colors[]=teal');
+        $this->assertEqualsCanonicalizing(['세팅 A', '세팅 B'], collect($multi->json())->pluck('title')->all());
+
+        // 다중 담당자
+        $a1 = Assignee::create(['name' => '이수호']);
+        $a2 = Assignee::create(['name' => '김광래']);
+        Schedule::where('title', '세팅 A')->first()->assignees()->attach($a1->id);
+        Schedule::where('title', '세팅 C')->first()->assignees()->attach($a2->id);
+        $byAsg = $this->actingAs($user)->getJson("/api/events/search?q=&assignee_ids[]={$a1->id}&assignee_ids[]={$a2->id}");
+        $this->assertEqualsCanonicalizing(['세팅 A', '세팅 C'], collect($byAsg->json())->pluck('title')->all());
+    }
+
+    public function test_calendar_page_renders_search_drawer(): void
+    {
+        $user = User::factory()->create(['role' => 'member']);
+        $this->actingAs($user)->get('/calendar')->assertOk()
+            ->assertSee('id="calSearchDrawer"', false)
+            ->assertSee('csdToggleCat', false)
+            ->assertSee('agsToggleAssignee', false)
+            ->assertSee('복수 선택');
+    }
+
     public function test_search_filters_by_category_and_assignee(): void
     {
         $user = User::factory()->create(['role' => 'member']);
@@ -78,8 +108,8 @@ class CalendarSearchTest extends TestCase
         $user = User::factory()->create(['role' => 'member']);
         $this->actingAs($user)->get('/calendar')->assertOk()
             ->assertSee('ags-filter-row', false)
-            ->assertSee('agsSetColor', false)
-            ->assertSee('agsSetAssignee', false)
+            ->assertSee('agsToggleColor', false)
+            ->assertSee('agsToggleAssignee', false)
             ->assertSee('카테고리 전체')
             ->assertSee('담당자 전체');
     }

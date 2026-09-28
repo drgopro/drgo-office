@@ -32,21 +32,8 @@
             </div>
         </div>
         @if(!Auth::user()->isGuest())
-        {{-- 일정 검색 — 헤더 좌측 --}}
+        {{-- 일정 검색 — 헤더 좌측 버튼 → 리모컨 스타일 검색 드로어 --}}
         <button class="nav-btn" id="calSearchBtn" onclick="toggleCalSearch()" title="일정 검색"><x-icon name="search" :size="14"/></button>
-        <div class="cal-search-wrap" id="calSearchWrap" style="display:none;">
-            <input class="cal-search-input" id="calSearchInput" placeholder="일정 검색 (Enter)" autocomplete="off"
-                oninput="document.getElementById('calSearchClear').classList.toggle('show', !!this.value)"
-                onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
-            <button type="button" class="cal-search-clear" id="calSearchClear" title="검색어 지우기"
-                onclick="const i=document.getElementById('calSearchInput');i.value='';this.classList.remove('show');i.focus();">✕</button>
-            {{-- 검색 조건 패널 — 담당자/카테고리를 붙여서 검색 (검색어 없이 조건만으로도 가능) --}}
-            <div class="cal-search-panel" id="calSearchPanel">
-                <select id="calSearchAssignee" title="담당자로 검색"><option value="">담당자: 전체</option></select>
-                <select id="calSearchColor" title="카테고리로 검색"><option value="">카테고리: 전체</option></select>
-                <button type="button" class="csp-go" onclick="openSearchListView()">검색</button>
-            </div>
-        </div>
         @endif
     </div>
     <div class="cal-header-right" style="display:flex;align-items:center;gap:8px;">
@@ -168,7 +155,28 @@
 @if(Auth::user()->hasPermission('calendar.edit'))
 {{-- 모바일 플로팅 일정 추가 버튼 (화면을 따라다님) --}}
 <button type="button" id="calAddFab" onclick="openNewModal(viewedDateStr())" title="일정 추가">+</button>
+
 @endif
+
+{{-- 검색 드로어 — 헤더 밖 최상위 (스태킹 컨텍스트 회피) --}}
+<div class="cal-search-overlay" id="calSearchOverlay" onclick="closeCalSearch()"></div>
+<div class="cal-search-drawer" id="calSearchDrawer">
+    <div class="csd-head">
+        <b>일정 검색</b>
+        <button type="button" class="csd-close" onclick="closeCalSearch()" title="닫기">✕</button>
+    </div>
+    <input class="cal-search-input csd-input" id="calSearchInput" placeholder="검색어 (제목·의뢰자·장소)" autocomplete="off"
+        onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();openSearchListView();}">
+    <div class="csd-sec-label">카테고리 <span class="csd-hint">복수 선택</span></div>
+    <div id="csdCats"></div>
+    <div class="csd-sec-label">담당자 <span class="csd-hint">복수 선택</span></div>
+    <div class="csd-asg" id="csdAssignees"></div>
+    <div class="csd-actions">
+        <button type="button" class="csd-reset" onclick="csdReset()">초기화</button>
+        <button type="button" class="csd-go" onclick="openSearchListView()">검색</button>
+    </div>
+</div>
+
 <button type="button" id="calSideFab" onclick="csToggleMobile()" title="필터/미니 달력">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
 </button>

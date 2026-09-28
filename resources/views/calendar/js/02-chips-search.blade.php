@@ -70,20 +70,20 @@ function calFont(dir){
     if(typeof renderView==='function') renderView(); // 다일 제목 오버레이/행 높이 재계산
 }
 
-// ── 일정 검색 — Enter 시 목록 뷰 검색만 (자동완성 드롭다운은 리소스 절약 위해 제거) ──
+// ── 일정 검색 — 리모컨 스타일 드로어 (검색어 + 카테고리/담당자 다중선택) ──
 function closeCalSearch(){
-    const w=document.getElementById('calSearchWrap');
-    if(w) w.style.display='none';
+    document.getElementById('calSearchDrawer')?.classList.remove('open');
+    document.getElementById('calSearchOverlay')?.classList.remove('open');
     document.querySelector('.cal-header')?.classList.remove('searching');
 }
-// Enter → 검색 결과를 목록 뷰로 표시
+// 검색 상태 — 카테고리/담당자는 다중선택(Set)
 let agendaSearchQuery=null, agendaSearchResults=[], preSearchView=null; // 검색 전 보던 뷰 — 초기화 시 복귀
-let agendaSearchColor='', agendaSearchAssignee=''; // 검색 결과 화면의 카테고리/담당자 필터
+let agendaSearchColors=new Set(), agendaSearchAssignees=new Set();
 async function runAgendaSearch(){
-    // 현재 검색어 + 필터로 재조회 — 필터만으로도 검색 가능 (검색어 없이 담당자/카테고리 조회)
+    // 현재 검색어 + 조건으로 재조회 — 검색어 없이 조건만으로도 가능
     const params=new URLSearchParams({ q: agendaSearchQuery||'', limit: 100 });
-    if(agendaSearchColor) params.set('color', agendaSearchColor);
-    if(agendaSearchAssignee) params.set('assignee_id', agendaSearchAssignee);
+    agendaSearchColors.forEach(c=>params.append('colors[]', c));
+    agendaSearchAssignees.forEach(id=>params.append('assignee_ids[]', id));
     try{
         const res=await fetch(`/api/events/search?${params}`,{headers:{'Accept':'application/json'}});
         if(!res.ok) return;
@@ -92,27 +92,33 @@ async function runAgendaSearch(){
     renderAgenda();
 }
 async function openSearchListView(){
-    const q=document.getElementById('calSearchInput').value.trim();
-    // 검색 조건 패널(담당자/카테고리) — 검색어 없이 조건만으로도 검색 가능
-    const color=document.getElementById('calSearchColor')?.value||'';
-    const asg=document.getElementById('calSearchAssignee')?.value||'';
-    if(!q && !color && !asg) return;
+    const q=(document.getElementById('calSearchInput')?.value||'').trim();
+    if(!q && !agendaSearchColors.size && !agendaSearchAssignees.size) return;
     closeCalSearch();
-    document.getElementById('calSearchInput').blur();
+    document.getElementById('calSearchInput')?.blur();
     if(currentView!=='list'){ preSearchView=currentView; switchView('list'); } // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
     agendaSearchQuery=q;
-    agendaSearchColor=color; agendaSearchAssignee=asg; // 패널에서 고른 조건으로 시작 (결과 화면 칩과 동기화)
     await runAgendaSearch();
 }
-// 검색 결과 필터 칩 — 카테고리/담당자 (같은 칩 재탭 = 해제)
-function agsSetColor(k){ agendaSearchColor = agendaSearchColor===k ? '' : k; runAgendaSearch(); }
-function agsSetAssignee(id){ agendaSearchAssignee = String(agendaSearchAssignee)===String(id) ? '' : id; runAgendaSearch(); }
-// 검색 초기화 — 검색어를 지우고 검색 전에 보던 뷰(월/주/일 등)로 돌아가 전체 일정 표시
+// 검색 결과 필터 칩 — 다중선택 토글, '전체' 칩은 해당 그룹 전체 해제
+function agsToggleColor(k){
+    if(k===''){ agendaSearchColors.clear(); }
+    else if(agendaSearchColors.has(k)){ agendaSearchColors.delete(k); }
+    else { agendaSearchColors.add(k); }
+    runAgendaSearch();
+}
+function agsToggleAssignee(id){
+    const key=String(id);
+    if(key===''){ agendaSearchAssignees.clear(); }
+    else if(agendaSearchAssignees.has(key)){ agendaSearchAssignees.delete(key); }
+    else { agendaSearchAssignees.add(key); }
+    runAgendaSearch();
+}
+// 검색 초기화 — 검색어·조건을 지우고 검색 전에 보던 뷰(월/주/일 등)로 돌아가 전체 일정 표시
 function clearAgendaSearch(){
     agendaSearchQuery=null; agendaSearchResults=[];
-    agendaSearchColor=''; agendaSearchAssignee='';
+    agendaSearchColors.clear(); agendaSearchAssignees.clear();
     const inp=document.getElementById('calSearchInput'); if(inp) inp.value='';
-    const clr=document.getElementById('calSearchClear'); if(clr) clr.classList.remove('show');
     const back=preSearchView; preSearchView=null;
     if(back&&back!=='list'){ switchView(back); return; } // switchView가 renderView+loadEvents 수행
     renderView(); loadEvents();
@@ -129,8 +135,12 @@ function agendaSearchLabel(){
     // 검색어 + 조건 요약 — 검색어 없이 조건만 검색한 경우도 표기
     const parts=[];
     if(agendaSearchQuery) parts.push(`"${agendaSearchQuery}"`);
-    if(agendaSearchColor && typeof CS_CATS!=='undefined' && CS_CATS[agendaSearchColor]) parts.push(CS_CATS[agendaSearchColor].label||agendaSearchColor);
-    if(agendaSearchAssignee){ const a=(assignees||[]).find(x=>String(x.id)===String(agendaSearchAssignee)); if(a) parts.push(a.name); }
+    if(agendaSearchColors.size && typeof CS_CATS!=='undefined'){
+        parts.push([...agendaSearchColors].map(k=>CS_CATS[k]?.label||k).join(', '));
+    }
+    if(agendaSearchAssignees.size){
+        parts.push([...agendaSearchAssignees].map(id=>{const a=(assignees||[]).find(x=>String(x.id)===id);return a?a.name:('#'+id);}).join(', '));
+    }
     return parts.join(' · ')||'전체';
 }
 function renderAgendaSearch(){
@@ -144,21 +154,25 @@ function renderAgendaSearch(){
         <span>🔍 <b>${_esc(agendaSearchLabel())}</b> 검색 결과 ${list.length}건${list.length>=100?' (최대 100건 표시)':''}</span>
         <button type="button" class="ship-mini-btn primary" onclick="clearAgendaSearch()" title="검색을 끝내고 전체 일정으로 돌아갑니다">✕ 검색 초기화</button>
     </div>`;
-    // ── 카테고리/담당자 필터 칩 — 모바일 가로 스크롤, 재탭으로 해제 ──
+    // ── 카테고리/담당자 필터 칩 — 다중선택, 줄바꿈 정렬 ──
     const catKeys=Object.keys(typeof CS_CATS!=='undefined'?CS_CATS:{});
     if(catKeys.length){
         html+=`<div class="ags-filter-row">
-            <button type="button" class="ags-chip${agendaSearchColor===''?' on':''}" onclick="agsSetColor('')">카테고리 전체</button>
-            ${catKeys.map(k=>`<button type="button" class="ags-chip${agendaSearchColor===k?' on':''}" onclick="agsSetColor('${k}')">
+            <button type="button" class="ags-chip${agendaSearchColors.size===0?' on':''}" onclick="agsToggleColor('')">카테고리 전체</button>
+            ${catKeys.map(k=>`<button type="button" class="ags-chip${agendaSearchColors.has(k)?' on':''}" onclick="agsToggleColor('${k}')">
                 <span class="ags-dot" style="background:var(--chip-${k}-bg)"></span>${_esc((CS_CATS[k].label||k))}
             </button>`).join('')}
         </div>`;
     }
     if(Array.isArray(assignees)&&assignees.length){
         html+=`<div class="ags-filter-row">
-            <button type="button" class="ags-chip${agendaSearchAssignee===''?' on':''}" onclick="agsSetAssignee('')">담당자 전체</button>
-            ${assignees.map(a=>`<button type="button" class="ags-chip${String(agendaSearchAssignee)===String(a.id)?' on':''}" onclick="agsSetAssignee(${a.id})">${_esc(a.name||('#'+a.id))}</button>`).join('')}
+            <button type="button" class="ags-chip${agendaSearchAssignees.size===0?' on':''}" onclick="agsToggleAssignee('')">담당자 전체</button>
+            ${assignees.map(a=>`<button type="button" class="ags-chip${agendaSearchAssignees.has(String(a.id))?' on':''}" onclick="agsToggleAssignee(${a.id})">${_esc(a.name||('#'+a.id))}</button>`).join('')}
         </div>`;
+    } else if(!window.__agsAsgRetried){
+        // 담당자 목록 로드 전에 결과가 먼저 그려진 경우 — 1회 재조회 후 다시 렌더
+        window.__agsAsgRetried=true;
+        loadAssignees().then(()=>{ if(Array.isArray(assignees)&&assignees.length) renderAgenda(); }).catch(()=>{});
     }
     if(!list.length){
         html+='<div class="agenda-empty">검색 결과가 없습니다.</div>';
@@ -264,30 +278,51 @@ function changePeriod(dir) {
 }
 
 function toggleCalSearch(){
-    const w=document.getElementById('calSearchWrap');
-    if(!w) return;
-    const show=w.style.display==='none';
-    w.style.display=show?'':'none';
-    document.querySelector('.cal-header')?.classList.toggle('searching', show); // 모바일: 열려 있는 동안 타이틀 숨김
+    const drawer=document.getElementById('calSearchDrawer');
+    if(!drawer) return;
+    const show=!drawer.classList.contains('open');
+    drawer.classList.toggle('open', show);
+    document.getElementById('calSearchOverlay')?.classList.toggle('open', show);
+    document.querySelector('.cal-header')?.classList.toggle('searching', show);
     if(show){
-        populateSearchFilterPanel();
-        setTimeout(()=>document.getElementById('calSearchInput')?.focus(),0);
+        csdRender();
+        setTimeout(()=>document.getElementById('calSearchInput')?.focus(),150);
     }
 }
-// 검색 조건 패널 채우기 — 담당자/카테고리 선택지, 현재 검색 상태 유지
-function populateSearchFilterPanel(){
-    const aSel=document.getElementById('calSearchAssignee');
-    const cSel=document.getElementById('calSearchColor');
-    if(aSel){
-        aSel.innerHTML='<option value="">담당자: 전체</option>'
-            +(Array.isArray(assignees)?assignees.map(a=>`<option value="${a.id}">${(a.name||'').replace(/[<>&"]/g,'')}</option>`).join(''):'');
-        aSel.value=String(agendaSearchAssignee||'');
+// 검색 드로어 렌더 — 카테고리(색상 체크, 필터 리모컨과 동일 스타일) + 담당자 칩, 모두 다중선택
+function csdRender(){
+    const cats=document.getElementById('csdCats');
+    if(cats && typeof CS_CATS!=='undefined'){
+        cats.innerHTML=Object.keys(CS_CATS).map(k=>`
+            <div class="csd-cat" onclick="csdToggleCat('${k}')">
+                <span class="cs-check${agendaSearchColors.has(k)?' on':''}" style="--cat-c:var(--chip-${k}-bg)"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+                <span class="csd-cat-label">${(CS_CATS[k].label||k).replace(/[<>&]/g,'')}</span>
+            </div>`).join('');
     }
-    if(cSel && typeof CS_CATS!=='undefined'){
-        cSel.innerHTML='<option value="">카테고리: 전체</option>'
-            +Object.keys(CS_CATS).map(k=>`<option value="${k}">${(CS_CATS[k].label||k).replace(/[<>&"]/g,'')}</option>`).join('');
-        cSel.value=agendaSearchColor||'';
+    const asg=document.getElementById('csdAssignees');
+    if(asg){
+        asg.innerHTML=Array.isArray(assignees)&&assignees.length
+            ? assignees.map(a=>`<button type="button" class="ags-chip${agendaSearchAssignees.has(String(a.id))?' on':''}" onclick="csdToggleAsg(${a.id})">${(a.name||'').replace(/[<>&"]/g,'')}</button>`).join('')
+            : '<span class="csd-hint">담당자 불러오는 중…</span>';
+        // 담당자 목록이 아직 로드 전(또는 실패)이면 다시 불러와 채움
+        if(!Array.isArray(assignees)||!assignees.length){
+            loadAssignees().then(()=>{ if(Array.isArray(assignees)&&assignees.length) csdRender(); }).catch(()=>{});
+        }
     }
+}
+function csdToggleCat(k){
+    if(agendaSearchColors.has(k)) agendaSearchColors.delete(k); else agendaSearchColors.add(k);
+    csdRender();
+}
+function csdToggleAsg(id){
+    const key=String(id);
+    if(agendaSearchAssignees.has(key)) agendaSearchAssignees.delete(key); else agendaSearchAssignees.add(key);
+    csdRender();
+}
+function csdReset(){
+    agendaSearchColors.clear(); agendaSearchAssignees.clear();
+    const inp=document.getElementById('calSearchInput'); if(inp) inp.value='';
+    csdRender();
 }
 function goToday() {
     const now = new Date();

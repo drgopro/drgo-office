@@ -176,9 +176,14 @@ class CalendarController extends Controller
         }
 
         $q = trim((string) $request->query('q', ''));
-        $color = trim((string) $request->query('color', '')); // 카테고리 필터 (색상 키)
-        $assigneeId = (int) $request->query('assignee_id', 0); // 담당자 필터
-        if (mb_strlen($q) < 1 && $color === '' && $assigneeId <= 0) {
+        // 카테고리/담당자 다중 필터 — colors[]/assignee_ids[] (구버전 단수 파라미터 호환)
+        $colors = collect((array) $request->query('colors', []))
+            ->push((string) $request->query('color', ''))
+            ->map(fn ($c) => trim((string) $c))->filter()->unique()->values();
+        $assigneeIds = collect((array) $request->query('assignee_ids', []))
+            ->push($request->query('assignee_id', 0))
+            ->map(fn ($v) => (int) $v)->filter(fn ($v) => $v > 0)->unique()->values();
+        if (mb_strlen($q) < 1 && $colors->isEmpty() && $assigneeIds->isEmpty()) {
             return response()->json([]);
         }
 
@@ -192,8 +197,8 @@ class CalendarController extends Controller
                     ->orWhere('location', 'like', $like)
                     ->orWhere('address', 'like', $like);
             }))
-            ->when($color !== '', fn ($query) => $query->where('color', $color))
-            ->when($assigneeId > 0, fn ($query) => $query->whereHas('assignees', fn ($a) => $a->where('assignees.id', $assigneeId)))
+            ->when($colors->isNotEmpty(), fn ($query) => $query->whereIn('color', $colors))
+            ->when($assigneeIds->isNotEmpty(), fn ($query) => $query->whereHas('assignees', fn ($a) => $a->whereIn('assignees.id', $assigneeIds)))
             ->where(function ($p) {
                 $p->where('is_private', false)
                     ->orWhere('created_by', Auth::id());

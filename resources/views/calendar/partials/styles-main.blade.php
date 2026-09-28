@@ -55,12 +55,26 @@
 
     /* 일정 검색 */
     .cal-search-wrap { position:relative; flex-shrink:1; min-width:0; }
-    /* 검색 조건 패널 — 입력창 아래 드롭 패널 (담당자/카테고리 선택 후 검색) */
-    .cal-search-panel { position:absolute; top:calc(100% + 6px); left:0; z-index:210; display:flex; flex-direction:column; gap:7px; width:220px; max-width:calc(100vw - 24px); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px; box-shadow:0 10px 28px rgba(0,0,0,0.28); }
-    .cal-search-panel select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:12.5px; outline:none; }
-    .cal-search-panel select:focus { border-color:var(--accent); }
-    .cal-search-panel .csp-go { width:100%; border:none; border-radius:8px; padding:9px 0; background:var(--accent); color:var(--accent-text, #1a1207); font-size:12.5px; font-weight:700; cursor:pointer; }
-    .cal-search-panel .csp-go:hover { filter:brightness(1.08); }
+    /* 검색 드로어 — 필터 리모컨 스타일 우측 패널 (검색어 + 카테고리/담당자 다중선택) */
+    .cal-search-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:700; }
+    .cal-search-overlay.open { display:block; }
+    .cal-search-drawer { position:fixed; top:0; right:0; bottom:0; width:290px; max-width:86vw; background:var(--surface); border-left:1px solid var(--border); z-index:701; transform:translateX(105%); transition:transform 0.2s ease; display:flex; flex-direction:column; gap:10px; padding:16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; }
+    .cal-search-drawer.open { transform:translateX(0); }
+    .csd-head { display:flex; justify-content:space-between; align-items:center; font-size:14.5px; }
+    .csd-close { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:4px 8px; border-radius:8px; }
+    .csd-close:hover { background:var(--surface2); color:var(--text); }
+    .csd-input { width:100%; }
+    .csd-sec-label { font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:0.05em; margin-top:4px; }
+    .csd-hint { font-weight:500; opacity:0.7; margin-left:4px; font-size:11px; color:var(--text-muted); }
+    .csd-cat { display:flex; align-items:center; gap:10px; padding:8px 2px; cursor:pointer; border-radius:8px; }
+    .csd-cat:hover { background:var(--surface2); }
+    .csd-cat-label { font-size:13.5px; color:var(--text); }
+    .csd-asg { display:flex; flex-wrap:wrap; gap:6px; }
+    .csd-actions { display:flex; gap:8px; margin-top:auto; padding-top:12px; }
+    .csd-reset { flex:0 0 auto; padding:11px 16px; border:1px solid var(--border); border-radius:10px; background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
+    .csd-reset:hover { color:var(--text); border-color:var(--accent); }
+    .csd-go { flex:1; border:none; border-radius:10px; padding:11px 0; background:var(--accent); color:var(--accent-text, #1a1207); font-size:13.5px; font-weight:700; cursor:pointer; }
+    .csd-go:hover { filter:brightness(1.08); }
     .cal-search-input { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:7px 26px 7px 12px; color:var(--text); font-size:12px; outline:none; width:170px; max-width:100%; transition:border-color .15s, width .2s; }
     /* 검색어 전체 지우기 ✕ — 내용이 있을 때만 표시 */
     .cal-search-clear { display:none; position:absolute; right:6px; top:50%; transform:translateY(-50%); width:18px; height:18px; border:none; border-radius:50%; background:var(--border); color:var(--text); font-size:10px; line-height:1; cursor:pointer; align-items:center; justify-content:center; padding:0; }
