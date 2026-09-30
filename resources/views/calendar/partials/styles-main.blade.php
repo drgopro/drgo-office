@@ -56,10 +56,12 @@
     /* 일정 검색 */
     .cal-search-wrap { position:relative; flex-shrink:1; min-width:0; }
     /* 검색 드로어 — 필터 리모컨 스타일 우측 패널 (검색어 + 카테고리/담당자 다중선택) */
-    .cal-search-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:700; }
+    .cal-search-overlay { display:none; position:fixed; inset:0; background:transparent; z-index:700; }
     .cal-search-overlay.open { display:block; }
-    .cal-search-drawer { position:fixed; top:0; right:0; bottom:0; width:290px; max-width:86vw; background:var(--surface); border-left:1px solid var(--border); z-index:701; transform:translateX(105%); transition:transform 0.2s ease; display:flex; flex-direction:column; gap:10px; padding:16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; }
-    .cal-search-drawer.open { transform:translateX(0); }
+    /* 검색 패널 — 우측 드로어 대신 검색 버튼 아래로 펼쳐지는 드롭다운 (위치는 열 때 JS가 버튼 기준으로 지정) */
+    .cal-search-drawer { display:none; position:fixed; z-index:701; width:300px; max-width:calc(100vw - 16px); max-height:70vh; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,0.3); flex-direction:column; gap:10px; padding:14px; overflow-y:auto; }
+    .cal-search-drawer.open { display:flex; animation:calSearchDrop 0.16s ease; }
+    @keyframes calSearchDrop { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
     .csd-head { display:flex; justify-content:space-between; align-items:center; font-size:14.5px; }
     .csd-close { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:4px 8px; border-radius:8px; }
     .csd-close:hover { background:var(--surface2); color:var(--text); }

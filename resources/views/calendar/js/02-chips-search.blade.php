@@ -281,6 +281,28 @@ function toggleCalSearch(){
     const drawer=document.getElementById('calSearchDrawer');
     if(!drawer) return;
     const show=!drawer.classList.contains('open');
+    if(show){
+        // 검색 버튼 바로 아래로 펼침 — 좁은 화면은 좌우 8px 풀폭, 아니면 버튼 우측 정렬
+        // 직접 접속 시 body zoom(--ui-zoom)이 걸리면 fixed 좌표가 확대되므로 나눠서 보정
+        const btn=document.getElementById('calSearchBtn');
+        if(btn){
+            const z=parseFloat(getComputedStyle(document.body).zoom||'1')||1;
+            const r=btn.getBoundingClientRect();
+            drawer.style.top=((r.bottom+8)/z)+'px';
+            drawer.style.maxHeight=(Math.max(220, window.innerHeight-r.bottom-24)/z)+'px';
+            if(window.innerWidth<=640){
+                drawer.style.left=(8/z)+'px'; drawer.style.right=(8/z)+'px'; drawer.style.width='auto';
+            }else{
+                // 버튼 우측 끝에 맞추되, 화면 왼쪽으로 넘치면 버튼 왼쪽 정렬 → 그래도 넘치면 8px 클램프
+                const wCss=300, vwCss=window.innerWidth/z;
+                let leftCss=r.right/z-wCss;
+                if(leftCss<8) leftCss=Math.min(r.left/z, vwCss-wCss-8);
+                if(leftCss<8) leftCss=8;
+                drawer.style.right='auto'; drawer.style.width='';
+                drawer.style.left=leftCss+'px';
+            }
+        }
+    }
     drawer.classList.toggle('open', show);
     document.getElementById('calSearchOverlay')?.classList.toggle('open', show);
     document.querySelector('.cal-header')?.classList.toggle('searching', show);
