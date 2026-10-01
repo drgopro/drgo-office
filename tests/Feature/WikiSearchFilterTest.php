@@ -78,6 +78,31 @@ class WikiSearchFilterTest extends TestCase
         $this->assertEqualsCanonicalizing([$kim->id, $lee->id], $res->viewData('authors')->pluck('id')->all());
     }
 
+    public function test_search_matches_body_content(): void
+    {
+        $this->makeWiki('장비 안내', ['content' => '<p>송출컴 설치방법과 유의사항 정리</p>']);
+        $this->makeWiki('다른 문서', ['content' => '<p>무관한 내용</p>']);
+
+        // 본문에만 있는 단어 — 단어 중간 부분 문자열도 매칭 (mysql fulltext로는 누락되던 케이스)
+        $res = $this->actingAs($this->member())->get('/wiki?search='.urlencode('설치방법'));
+        $res->assertOk();
+        $this->assertSame(['장비 안내'], $this->titles($res));
+
+        $res2 = $this->actingAs($this->member())->get('/wiki?search='.urlencode('치방'));
+        $this->assertSame(['장비 안내'], $this->titles($res2));
+    }
+
+    public function test_multi_word_search_requires_all_terms_across_title_and_body(): void
+    {
+        $this->makeWiki('송출컴 가이드', ['content' => '<p>설치 순서 정리</p>']);
+        $this->makeWiki('송출컴 메모', ['content' => '<p>구매처 정보</p>']);
+
+        // 두 단어가 제목/본문에 나뉘어 있어도 모두 포함된 문서만
+        $res = $this->actingAs($this->member())->get('/wiki?search='.urlencode('송출컴 설치'));
+        $res->assertOk();
+        $this->assertSame(['송출컴 가이드'], $this->titles($res));
+    }
+
     public function test_search_combines_with_date_filter(): void
     {
         $this->makeWiki('세팅 가이드 v1', [], '2026-06-10 10:00:00');

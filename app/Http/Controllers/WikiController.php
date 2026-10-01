@@ -15,7 +15,6 @@ use App\Services\ImageThumbnailService;
 use App\Services\MentionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -26,17 +25,17 @@ class WikiController extends Controller
         $me = Auth::user();
         $query = Wiki::published()->visibleTo($me)->with('creator', 'updater')->withCount('comments');
 
-        // 검색어 — 그룹으로 묶어 기간/작성자 필터와 AND 유지 (mysql 외 드라이버는 like 폴백)
+        // 검색어 — 공백으로 나눈 모든 단어가 제목 또는 본문에 있어야 한다 (단어별 AND).
+        // mysql whereFullText는 한글 토크나이징이 안 되고(단어 중간 매칭 불가)
+        // 문서 절반 이상에 나오는 단어를 무시해 본문 검색이 누락되므로 like로 통일.
         if ($search = trim((string) $request->query('search'))) {
-            $query->where(function ($q) use ($search) {
-                if (DB::getDriverName() === 'mysql') {
-                    $q->whereFullText(['title', 'content'], $search)
-                        ->orWhere('title', 'like', "%{$search}%");
-                } else {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('content', 'like', "%{$search}%");
+            foreach (preg_split('/\s+/u', $search) ?: [] as $term) {
+                if ($term === '') {
+                    continue;
                 }
-            });
+                $query->where(fn ($q) => $q->where('title', 'like', "%{$term}%")
+                    ->orWhere('content', 'like', "%{$term}%"));
+            }
         }
 
         // 기간 필터 — 수정일(기본) 또는 작성일 기준
