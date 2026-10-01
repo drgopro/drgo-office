@@ -33,6 +33,9 @@ class CalendarSearchTest extends TestCase
         $byTitle = $this->actingAs($user)->getJson('/api/events/search?q=나리');
         $byTitle->assertOk();
         $this->assertCount(2, $byTitle->json()); // 제목 1 + 의뢰자 1
+        // 날짜는 그대로 Y-m-d — Carbon 그대로 직렬화하면 UTC ISO로 하루 전이 되는 회귀 방지
+        $this->assertSame('2026-07-06', $byTitle->json()[0]['start_date']);
+        $this->assertSame('2026-07-06', $byTitle->json()[0]['end_date']);
 
         $byLocation = $this->actingAs($user)->getJson('/api/events/search?q=공덕');
         $this->assertCount(2, $byLocation->json()); // 제목 1 + 장소 1

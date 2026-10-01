@@ -211,6 +211,10 @@ class CalendarController extends Controller
         // 담당자 이름 배열로 정리 (검색 결과 카드 표시용)
         return response()->json($events->map(function ($e) {
             $arr = $e->only(['id', 'title', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'client_name', 'location', 'completed_at']);
+            // only()는 Carbon 객체를 그대로 반환해 json 직렬화 시 UTC ISO(전날 15:00Z)가 된다
+            // — 하루 전 날짜로 표기되는 원인이므로 날짜 문자열로 명시 변환
+            $arr['start_date'] = $e->start_date?->format('Y-m-d');
+            $arr['end_date'] = $e->end_date?->format('Y-m-d');
             $arr['assignee_names'] = $e->assignees->pluck('name')->filter()->values();
 
             return $arr;
