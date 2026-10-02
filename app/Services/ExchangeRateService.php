@@ -37,7 +37,7 @@ class ExchangeRateService
             return ['ok' => true, 'rate' => $cached['rate'], 'date' => $cached['date']];
         }
 
-        $key = (string) config('services.koreaexim.key');
+        $key = trim((string) config('services.koreaexim.key')); // 복사 과정의 공백/개행 방어
         if ($key === '') {
             return $this->fallback('환율 API 키가 설정되지 않았습니다 (.env KOREAEXIM_API_KEY — 수출입은행 Open API에서 발급).');
         }
