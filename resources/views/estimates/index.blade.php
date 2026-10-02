@@ -198,6 +198,14 @@ const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const H = {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'};
 const stMap = {created:'생성', editing:'수정 중', completed:'작성 완료', issued:'발행 완료', paid:'결제 완료', cancelled:'결제 취소', quote_cancelled:'견적 취소', hold:'보류 중'};
 
+// 달러 적용 견적서 — 원화 아래 작게 USD 병기 (저장 시점 환율 고정)
+function estUsdSub(amount, currency, rate) {
+    if (currency !== 'USD' || !rate || rate <= 0) return '';
+    const v = (Number(amount) || 0) / Number(rate);
+    const str = (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `<div style="font-size:11px; color:var(--text-muted); font-weight:400;">${str}</div>`;
+}
+
 function fmt(n) { return n != null ? Number(n).toLocaleString() : '-'; }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ko-KR') : '-'; }
 function fmtTime(d) { return d ? new Date(d).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'; }
@@ -286,7 +294,7 @@ async function loadEstimates() {
             return `<tr class="est-round-row" data-round-parent="${e.id}" style="display:none;">
                 <td class="text-muted" style="padding-left:22px;">└ #${r.display_no ?? r.id}</td>
                 <td style="color:var(--text-muted);">${r.round}차 추가 견적</td>
-                <td class="text-right" style="font-weight:600;">${fmt(r.total_amount)}원</td>
+                <td class="text-right" style="font-weight:600;">${fmt(r.total_amount)}원${estUsdSub(r.total_amount, e.currency, e.usd_rate)}</td>
                 <td class="text-muted">${rCount}건</td>
                 <td><span class="badge badge-${r.status}">${stMap[r.status] || r.status}</span></td>
                 <td class="text-muted">${r.creator?.display_name || '-'}</td>
@@ -303,7 +311,7 @@ async function loadEstimates() {
         return `<tr>
             <td class="text-muted">#${e.display_no ?? e.id}${rounds.length ? ` <button id="rndCaret-${e.id}" onclick="event.stopPropagation(); toggleEstRounds(${e.id})" title="추가 차수 펼치기/접기" style="background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--accent); font-size:10.5px; font-weight:700; padding:1px 7px; cursor:pointer; white-space:nowrap;">▸ +${rounds.length}차</button>` : ''}</td>
             <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}${e.title ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${_esc(e.title)}</div>` : ''}</td>
-            <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원</td>
+            <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원${estUsdSub(e.total_amount, e.currency, e.usd_rate)}</td>
             <td class="text-muted">${itemCount}건</td>
             <td><span class="badge badge-${e.status}">${stMap[e.status]}</span></td>
             <td class="text-muted">${e.creator?.display_name || '-'}</td>

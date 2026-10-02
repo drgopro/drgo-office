@@ -109,6 +109,12 @@ class EstimateUsdCurrencyTest extends TestCase
         $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk()
             ->assertSee('USD($)로 적용')
             ->assertSee('id="usdTotalRow"', false);
+
+        // 목록 — 원화 아래 USD 병기 (currency/usd_rate가 응답에 포함되고 렌더 헬퍼 존재)
+        $this->actingAs($this->admin)->getJson('/api/estimates')->assertOk()
+            ->assertJsonPath('0.currency', 'USD');
+        $this->actingAs($this->admin)->get('/estimates')->assertOk()
+            ->assertSee('estUsdSub', false);
     }
 
     public function test_public_view_shows_usd_with_rate_notice_and_toggle(): void
