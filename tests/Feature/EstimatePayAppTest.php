@@ -98,7 +98,7 @@ class EstimatePayAppTest extends TestCase
 
         // 결제 완료 후 — 완료 표시
         $estimate->update(['status' => 'paid']);
-        $this->get($estimate->publicUrl())->assertSee('결제가 완료되었습니다')->assertDontSee('결제하기');
+        $this->get($estimate->publicUrl())->assertSee('원 결제되었습니다')->assertDontSee('결제하기');
     }
 
     public function test_issue_endpoint_sets_issued_and_creates_pay_request(): void
@@ -163,7 +163,7 @@ class EstimatePayAppTest extends TestCase
 
         $this->post($estimate->publicUrl(), ['dummy' => '1'])
             ->assertOk()
-            ->assertSee('결제가 완료되었습니다');
+            ->assertSee('원 결제되었습니다');
     }
 
     public function test_feedback_get_precheck_returns_ok_without_processing(): void

@@ -239,7 +239,11 @@
             @endif
         </div>
     @elseif($estimate->status === 'paid')
-        <span class="pay-done">✅ 결제가 완료되었습니다. 감사합니다!{{ $grandRefund > 0 ? ' (일부 환불 '.number_format($grandRefund).'원)' : '' }}</span>
+        @php
+            // 결제된 금액 합계 — 본 견적(결제완료) + 결제완료된 차수
+            $paidSum = (int) $estimate->total_amount + (int) $rounds->where('status', 'paid')->sum('total_amount');
+        @endphp
+        <span class="pay-done">✅ {{ number_format($paidSum) }}원 결제되었습니다. 감사합니다!{{ $grandRefund > 0 ? ' (일부 환불 '.number_format($grandRefund).'원)' : '' }}</span>
     @elseif($estimate->status === 'cancelled')
         <span class="pay-cancelled">⛔ 결제가 취소된 견적서입니다{{ $refundTotal > 0 ? ' · 환불 '.number_format($refundTotal).'원' : '' }}</span>
     @endif
