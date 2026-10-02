@@ -425,6 +425,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estimates/{estimate}/draft', [EstimateController::class, 'getDraft']);
         Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
         Route::post('/api/estimates/{estimate}/rounds', [EstimateController::class, 'storeRound']); // 추가 차수(N차 추가 견적) 생성
+        Route::get('/api/exchange-rate/usd', [EstimateController::class, 'usdRate']); // USD 매매기준율 — 빌더 달러 적용 버튼
         Route::get('/api/estimate-client-projects/{client}', [EstimateController::class, 'clientProjects']); // 프로젝트 연동(선택)용 목록
         // 주문/배송 운송장 — 새 창 등록 페이지 + API (일정 송장과 동일한 추적 파이프라인)
         Route::get('/estimates/{estimate}/shipments', [EstimateController::class, 'shipmentsPage'])->name('estimates.shipments');

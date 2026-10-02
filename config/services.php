@@ -46,6 +46,12 @@ return [
         'base_url' => env('ESTIMATE_PUBLIC_BASE_URL'),
     ],
 
+    // 한국수출입은행 환율 API — 견적서 달러 표시용 매매기준율
+    // https://www.koreaexim.go.kr/ir/HPHKIR020M01 에서 인증키 발급 후 .env KOREAEXIM_API_KEY
+    'koreaexim' => [
+        'key' => env('KOREAEXIM_API_KEY'),
+    ],
+
     // 채널톡 팀챗 알림 — 채널톡 설정 > API 관리에서 액세스 키/시크릿 발급
     // group: 메시지를 받을 팀챗 그룹 이름(또는 그룹 ID)
     'channeltalk' => [

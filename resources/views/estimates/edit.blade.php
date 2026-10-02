@@ -559,7 +559,14 @@
             <div class="total-row"><span>제품 소계</span><span id="productTotal">0원</span></div>
             <div class="total-row" id="svcTotalRow" style="display:none;"><span>서비스 소계</span><span id="serviceTotal">0원</span></div>
             <div class="total-row grand"><span>총 견적 금액</span><span id="grandTotal">0원</span></div>
+            <div class="total-row" id="usdTotalRow" style="display:none;"><span>USD 환산 <span id="usdRateInfo" style="font-size:11px; color:var(--text-muted); font-weight:400;"></span></span><span id="usdGrandTotal" style="color:var(--accent); font-weight:700;"></span></div>
             <div class="total-items">총 항목 수: <span id="totalItems">0</span>개 (부가세 포함)</div>
+            {{-- 달러 표시 — 적용 시점의 매매기준율·기준일이 저장되어 고정, 금액 저장·결제는 원화 유지 --}}
+            <div style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
+                <button type="button" class="btn-add-svc" id="btnApplyUsd" style="width:auto; padding:6px 14px;" onclick="applyUsd()" title="수출입은행 오늘 매매기준율로 달러 표시를 적용합니다. 저장하면 이 시점 환율로 고정됩니다.">USD($)로 적용</button>
+                <button type="button" class="btn-add-svc" id="btnRevertKrw" style="width:auto; padding:6px 14px; display:none;" onclick="revertKrw()">원화 표시로 되돌리기</button>
+                <span id="usdHint" style="font-size:11.5px; color:var(--text-muted);"></span>
+            </div>
         </div>
 
         @php
@@ -1845,7 +1852,57 @@ function updateTotals() {
     // 모바일 하단 고정 바·시트 하단 요약 미러링
     document.querySelectorAll('.m-grand').forEach(el => { el.textContent = fmt(pt+st)+'원'; });
     document.querySelectorAll('.m-items').forEach(el => { el.textContent = cartItems.length + svcItems.filter(s=>s.name).length; });
+    updateUsdUI(pt+st);
 }
+
+// === 달러 표시 (USD) — 적용 시점 환율·기준일 고정, 금액 저장·결제는 원화 ===
+let estCurrency = @json($estimate->currency ?? 'KRW');
+let estUsdRate = @json($estimate->usd_rate ? (float) $estimate->usd_rate : null);
+let estUsdRateDate = @json($estimate->usd_rate_date?->format('Y-m-d'));
+async function applyUsd() {
+    const res = await fetch('/api/exchange-rate/usd', { headers: { 'Accept': 'application/json' } });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(d.message || '환율을 가져오지 못했습니다.'); return; }
+    estCurrency = 'USD';
+    estUsdRate = d.rate;
+    estUsdRateDate = d.date;
+    if (d.error) alert(d.error); // 폴백 사용 안내 (마지막 고시 환율)
+    updateTotals();
+}
+function revertKrw() {
+    estCurrency = 'KRW';
+    estUsdRate = null;
+    estUsdRateDate = null;
+    updateTotals();
+}
+function usdFmt(krw) {
+    const v = krw / estUsdRate;
+    return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function usdDateLabel(d) {
+    if (!d) return '';
+    const [y, m, dd] = d.split('-');
+    return `${y}년 ${m}월 ${dd}일 환율 기준`;
+}
+function updateUsdUI(grandKrw) {
+    const on = estCurrency === 'USD' && estUsdRate > 0;
+    const row = document.getElementById('usdTotalRow');
+    if (!row) return;
+    row.style.display = on ? '' : 'none';
+    document.getElementById('btnApplyUsd').style.display = on ? 'none' : '';
+    document.getElementById('btnRevertKrw').style.display = on ? '' : 'none';
+    document.getElementById('usdHint').textContent = on
+        ? `${usdDateLabel(estUsdRateDate)} · 1 USD = ${fmt(estUsdRate)}원 (매매기준율) — 저장하면 이 환율로 고정됩니다`
+        : '';
+    if (on) {
+        if (typeof grandKrw !== 'number') {
+            grandKrw = parseInt(String(document.getElementById('grandTotal').textContent).replace(/[^\d-]/g, '')) || 0;
+        }
+        document.getElementById('usdGrandTotal').textContent = usdFmt(grandKrw);
+        document.getElementById('usdRateInfo').textContent = `(${usdDateLabel(estUsdRateDate)})`;
+    }
+}
+updateUsdUI();
 
 // === 모바일 제품/프리셋 시트 (768px 이하 전용 — 데스크탑에선 항상 닫힘 상태) ===
 function mOpenSheet() {
@@ -1928,6 +1985,9 @@ function buildEstimateBody() {
         client_phone: document.getElementById('cPhone').value || null,
         ship_address: document.getElementById('sAddr').value || null,
         ship_address_detail: document.getElementById('sAddrDetail').value || null,
+        currency: estCurrency,
+        usd_rate: estCurrency === 'USD' ? estUsdRate : null,
+        usd_rate_date: estCurrency === 'USD' ? estUsdRateDate : null,
         ship_name: document.getElementById('sName').value || null,
         ship_phone: document.getElementById('sPhone').value || null,
         ship_entrance: document.getElementById('sEntrance').value || null,

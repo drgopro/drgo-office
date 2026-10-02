@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Setting;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
+use App\Services\ExchangeRateService;
 use App\Services\PayAppClient;
 use App\Services\PaymentCompleteAlert;
 use Carbon\Carbon;
@@ -153,6 +154,16 @@ class EstimateController extends Controller
     public function publicLink(Estimate $estimate)
     {
         return response()->json(['public_url' => $estimate->publicUrl()]);
+    }
+
+    /** USD 환율 조회 — 빌더 'USD($)로 적용' 버튼용 (수출입은행 매매기준율, 적용 시점에 고정 저장) */
+    public function usdRate(ExchangeRateService $fx)
+    {
+        $res = $fx->usdRate();
+
+        return $res['ok']
+            ? response()->json($res)
+            : response()->json(['message' => $res['error']], 503);
     }
 
     public function store(Request $request)
@@ -372,6 +383,9 @@ class EstimateController extends Controller
             'client_phone' => 'nullable|string|max:50',
             'ship_address' => 'nullable|string|max:300', // 배송받을 주소 — 내부용 (의뢰자 견적서 미표시)
             'ship_address_detail' => 'nullable|string|max:200', // 상세주소 (동·호수) — 주소 검색과 분리 입력
+            'currency' => 'nullable|in:KRW,USD', // 표시 통화 — 금액 저장은 항상 원화, USD는 저장 시점 환율로 표시 변환
+            'usd_rate' => 'nullable|numeric|min:1', // 적용 환율 (1 USD = n KRW, 매매기준율) — 적용 시점에 고정
+            'usd_rate_date' => 'nullable|date', // 환율 기준일 — 'YYYY년 MM월 DD일 환율 기준' 표기
             'ship_name' => 'nullable|string|max:100', // 배송지 수령인 이름 — 내부용, 주문 내역 헤더 표시
             'ship_phone' => 'nullable|string|max:30', // 배송지 연락처 — 내부용
             'ship_entrance' => 'nullable|string|max:200', // 공동현관 출입 정보 — 내부용

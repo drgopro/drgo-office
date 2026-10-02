@@ -191,6 +191,14 @@
         .final-bar .f-row.total .f-value { font-size:26px; font-weight:700; color:#fff; }
         .final-bar .f-row.total .f-value .currency { font-size:14px; font-weight:600; }
 
+        /* 통화 토글 (원화/달러) + 환율 기준 문구 */
+        .cur-toggle { display:flex; justify-content:flex-end; margin-bottom:10px; }
+        .cur-toggle a { padding:7px 18px; font-size:12px; font-weight:700; border:1px solid #c8ccd4; color:#5a6070; text-decoration:none; background:#fff; }
+        .cur-toggle a:first-child { border-radius:8px 0 0 8px; }
+        .cur-toggle a:last-child { border-radius:0 8px 8px 0; border-left:none; }
+        .cur-toggle a.on { background:#3b5ea0; border-color:#3b5ea0; color:#fff; }
+        .fx-note { margin-top:8px; text-align:right; font-size:11px; color:#5a6b7d; }
+
         /* 푸터 */
         .est-footer { margin-top:22px; text-align:center; font-size:10.5px; color:#9aa1ab; }
     </style>
@@ -224,6 +232,21 @@
     }
     // 아직 결제할 수 없는 양수 차수 — 작성 중/보류(발행 전)
     $notReadyRounds = $rounds->filter(fn ($r) => (int) $r->total_amount > 0 && in_array($r->status, ['created', 'editing', 'completed', 'hold'], true));
+
+    // 표시 통화 — 저장된 통화가 기본, ?cur= 토글로 전환해 볼 수 있다. 환율은 'USD로 적용' 시점 값으로 고정.
+    $usdRate = (float) ($estimate->usd_rate ?? 0);
+    $docCur = strtoupper((string) request()->query('cur', $estimate->currency ?? 'KRW'));
+    $docCur = ($docCur === 'USD' && $usdRate > 0) ? 'USD' : 'KRW';
+    $money = function ($krw) use ($docCur, $usdRate) {
+        $krw = (int) $krw;
+        if ($docCur === 'USD') {
+            $v = $krw / $usdRate;
+
+            return ($v < 0 ? '-$' : '$').number_format(abs($v), 2);
+        }
+
+        return number_format($krw).'원';
+    };
 @endphp
 
 @if(!empty($publicMode))
@@ -236,6 +259,9 @@
             @endforeach
             @if($notReadyRounds->isNotEmpty())
                 <div class="pay-note">작성 중인 {{ $notReadyRounds->map(fn ($r) => $r->round.'차')->implode('·') }} 금액({{ number_format($notReadyRounds->sum('total_amount')) }}원)은 발행 후 결제하실 수 있습니다.</div>
+            @endif
+            @if($docCur === 'USD')
+                <div class="pay-note">결제는 원화 금액으로 진행됩니다.</div>
             @endif
         </div>
     @elseif($estimate->status === 'paid')
@@ -322,6 +348,14 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
 @endif
 
 <div class="estimate-wrap" style="margin-top:{{ !empty($publicMode) ? '0' : '50px' }};">
+
+    @if($usdRate > 0)
+        {{-- 통화 토글 — 달러 적용 견적서는 원화/달러로 전환해 볼 수 있다 (인쇄에는 미포함) --}}
+        <div class="cur-toggle no-print">
+            <a href="?cur=KRW" class="{{ $docCur === 'KRW' ? 'on' : '' }}">원화</a>
+            <a href="?cur=USD" class="{{ $docCur === 'USD' ? 'on' : '' }}">달러 ($)</a>
+        </div>
+    @endif
 
     <div class="est-band">
         <div>
@@ -417,26 +451,26 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                     <tr>
                         <td class="cell-no col-no">{{ $globalIdx }}</td>
                         <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
-                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif<span @if(!empty($item['replaced'])) style="text-decoration:line-through; color:#8a94a0;" @endif>{{ $item['name'] }}</span>@if(!empty($item['replaced']))<span class="deal-tag discount" style="text-decoration:none;">대체</span>@if(!empty($item['replaced_note']))<div style="font-size:10.5px; color:#c03838; margin-top:2px;">↳ {{ $item['replaced_note'] }}</div>@endif @endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif @if(($item['deal_type'] ?? null) === 'special')<span class="deal-tag special">특가</span>@elseif(($item['deal_type'] ?? null) === 'discount')<span class="deal-tag discount">할인{{ !empty($item['discount_rate']) ? ' '.rtrim(rtrim(number_format($item['discount_rate'], 1), '0'), '.').'%' : '' }}</span>@endif
+                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif<span @if(!empty($item['replaced'])) style="text-decoration:line-through; color:#8a94a0;" @endif>{{ $item['name'] }}</span>@if(!empty($item['replaced']))<span class="deal-tag discount" style="text-decoration:none;">대체</span>@if(!empty($item['replaced_note']))<div style="font-size:10.5px; color:#c03838; margin-top:2px;">↳ {{ $item['replaced_note'] }}</div>@endif @endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.$money($item['refund_amount']) : '' }}</span>@endif @if(($item['deal_type'] ?? null) === 'special')<span class="deal-tag special">특가</span>@elseif(($item['deal_type'] ?? null) === 'discount')<span class="deal-tag discount">할인{{ !empty($item['discount_rate']) ? ' '.rtrim(rtrim(number_format($item['discount_rate'], 1), '0'), '.').'%' : '' }}</span>@endif
                             @if($refundedParts->isNotEmpty())
                                 <div class="refund-detail">
                                     @foreach($refundedParts as $b)
-                                        <div>└ {{ $b['name'] ?? '' }} 환불 {{ (int) ($b['refund_qty'] ?? 0) > 0 ? $b['refund_qty'].'개' : '' }}{{ (int) ($b['refund_amount'] ?? 0) > 0 ? ' · '.number_format($b['refund_amount']).'원' : '' }}</div>
+                                        <div>└ {{ $b['name'] ?? '' }} 환불 {{ (int) ($b['refund_qty'] ?? 0) > 0 ? $b['refund_qty'].'개' : '' }}{{ (int) ($b['refund_amount'] ?? 0) > 0 ? ' · '.$money($b['refund_amount']) : '' }}</div>
                                     @endforeach
                                 </div>
                             @endif
                             @if(!empty($item['remark']))<div style="font-size:10.5px; color:#5a6b7d; margin-top:2px;">{{ $item['remark'] }}</div>@endif
                         </td>
                         <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
-                        <td class="text-right">@if(!empty($item['deal_type']) && (int) ($item['original_price'] ?? 0) > (int) $item['sale_price'])<div class="deal-orig">{{ number_format($item['original_price']) }}원</div>@endif{{ number_format($item['sale_price']) }}원</td>
+                        <td class="text-right">@if(!empty($item['deal_type']) && (int) ($item['original_price'] ?? 0) > (int) $item['sale_price'])<div class="deal-orig">{{ $money($item['original_price']) }}</div>@endif{{ $money($item['sale_price']) }}</td>
                         <td class="text-center">{{ $item['qty'] }}</td>
-                        <td class="text-right cell-total">@if(!empty($item['replaced']))<span style="text-decoration:line-through; color:#8a94a0; font-weight:400;">{{ number_format($item['subtotal']) }}원</span>@else{{ number_format($item['subtotal']) }}원 @endif</td>
+                        <td class="text-right cell-total">@if(!empty($item['replaced']))<span style="text-decoration:line-through; color:#8a94a0; font-weight:400;">{{ $money($item['subtotal']) }}</span>@else{{ $money($item['subtotal']) }} @endif</td>
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
                     <td colspan="6" class="sub-label">{{ $category ?: '기타' }} 소계</td>
                     {{-- 대체된(취소선) 항목은 소계에서 제외 --}}
-                    <td class="text-right">{{ number_format($catItems->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal')) }}원</td>
+                    <td class="text-right">{{ $money($catItems->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal')) }}</td>
                 </tr>
             @endforeach
 
@@ -450,14 +484,14 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                         <td class="cell-cat">서비스</td>
                         <td class="cell-name">{{ $svc['name'] }}</td>
                         <td class="col-time"></td>
-                        <td class="text-right">{{ number_format($svc['amount']) }}원</td>
+                        <td class="text-right">{{ $money($svc['amount']) }}</td>
                         <td class="text-center">1</td>
-                        <td class="text-right cell-total">{{ number_format($svc['amount']) }}원</td>
+                        <td class="text-right cell-total">{{ $money($svc['amount']) }}</td>
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
                     <td colspan="6" class="sub-label">서비스 소계</td>
-                    <td class="text-right">{{ number_format($estimate->service_total) }}원</td>
+                    <td class="text-right">{{ $money($estimate->service_total) }}</td>
                 </tr>
             @endif
         </tbody>
@@ -468,17 +502,21 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
             <span class="t-label">총 견적 금액</span>
             <span class="t-sub">부가세 포함 · 총 {{ count($items) + count($services) }}개 항목 (수량 미포함)</span>
         </div>
-        <div class="total-amount">{{ number_format($estimate->total_amount) }}<span class="currency"> 원</span></div>
+        <div class="total-amount">@if($docCur === 'USD'){{ $money($estimate->total_amount) }}@else{{ number_format($estimate->total_amount) }}<span class="currency"> 원</span>@endif</div>
     </div>
+
+    @if($docCur === 'USD')
+        <div class="fx-note">{{ $estimate->usd_rate_date?->format('Y년 m월 d일') }} 환율 기준 · 1 USD = {{ number_format($usdRate, 2) }}원 (매매기준율)</div>
+    @endif
 
     @if($refundTotal > 0)
         {{-- 부분환불/결제취소 반영 — 총 견적 금액은 그대로 두고 환불 합계를 별도 표기 --}}
         <div class="refund-bar">
             <div>
                 <span class="t-label">환불 합계</span>
-                <span class="t-sub">환불 반영 후 {{ number_format(max(0, (int) $estimate->total_amount - $refundTotal)) }}원</span>
+                <span class="t-sub">환불 반영 후 {{ $money(max(0, (int) $estimate->total_amount - $refundTotal)) }}</span>
             </div>
-            <div class="refund-amount">−{{ number_format($refundTotal) }}<span class="currency"> 원</span></div>
+            <div class="refund-amount">−@if($docCur === 'USD'){{ $money($refundTotal) }}@else{{ number_format($refundTotal) }}<span class="currency"> 원</span>@endif</div>
         </div>
     @endif
 
@@ -511,13 +549,13 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                         <tr>
                             <td class="cell-no col-no">{{ $rIdx }}</td>
                             <td class="cell-cat" @if($lineDeduct) style="color:#b03030;" @endif>{{ $item['category'] ?? '' }}</td>
-                            <td class="cell-name"><span @if($rCancelled) class="round-cancelled-line" @elseif($lineDeduct) style="color:#b03030;" @endif>{{ $item['name'] }}</span>@if($lineDeduct)<span class="refund-tag">차감</span>@endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.number_format($item['refund_amount']).'원' : '' }}</span>@endif
+                            <td class="cell-name"><span @if($rCancelled) class="round-cancelled-line" @elseif($lineDeduct) style="color:#b03030;" @endif>{{ $item['name'] }}</span>@if($lineDeduct)<span class="refund-tag">차감</span>@endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.$money($item['refund_amount']) : '' }}</span>@endif
                                 @if(!empty($item['remark']))<div style="font-size:10.5px; color:#5a6b7d; margin-top:2px;">{{ $item['remark'] }}</div>@endif
                             </td>
                             <td class="col-time"></td>
-                            <td class="text-right" @if($lineDeduct) style="color:#b03030;" @endif>{{ number_format($item['sale_price'] ?? 0) }}원</td>
+                            <td class="text-right" @if($lineDeduct) style="color:#b03030;" @endif>{{ $money($item['sale_price'] ?? 0) }}</td>
                             <td class="text-center">{{ $item['qty'] ?? 1 }}</td>
-                            <td class="text-right cell-total"><span @if($rCancelled) class="round-cancelled-line" @elseif($lineDeduct) style="color:#b03030;" @endif>{{ number_format($item['subtotal'] ?? 0) }}원</span></td>
+                            <td class="text-right cell-total"><span @if($rCancelled) class="round-cancelled-line" @elseif($lineDeduct) style="color:#b03030;" @endif>{{ $money($item['subtotal'] ?? 0) }}</span></td>
                         </tr>
                     @endforeach
                     @foreach($rServices as $svc)
@@ -527,19 +565,19 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                             <td class="cell-cat">서비스</td>
                             <td class="cell-name"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ $svc['name'] }}</span></td>
                             <td class="col-time"></td>
-                            <td class="text-right">{{ number_format($svc['amount'] ?? 0) }}원</td>
+                            <td class="text-right">{{ $money($svc['amount'] ?? 0) }}</td>
                             <td class="text-center">1</td>
-                            <td class="text-right cell-total"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ number_format($svc['amount'] ?? 0) }}원</span></td>
+                            <td class="text-right cell-total"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ $money($svc['amount'] ?? 0) }}</span></td>
                         </tr>
                     @endforeach
                     <tr class="round-total-row">
                         <td colspan="6" class="text-right">{{ $r->round }}차 합계{{ $rCancelled ? ' (결제 취소)' : '' }}</td>
-                        <td class="text-right"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ number_format($r->total_amount) }}원</span></td>
+                        <td class="text-right"><span @if($rCancelled) class="round-cancelled-line" @endif>{{ $money($r->total_amount) }}</span></td>
                     </tr>
                 </tbody>
             </table>
             @if($rRefund > 0 && ! $rCancelled)
-                <div class="refund-detail" style="padding:4px 10px 0;">└ {{ $r->round }}차 환불 합계 −{{ number_format($rRefund) }}원</div>
+                <div class="refund-detail" style="padding:4px 10px 0;">└ {{ $r->round }}차 환불 합계 −{{ $money($rRefund) }}</div>
             @endif
         </div>
     @endforeach
@@ -548,22 +586,22 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
         {{-- 최종 정산 — 1차 + 추가 차수 − 환불/취소 = 최종 금액 --}}
         <div class="final-bar">
             <div class="f-title">최종 정산</div>
-            <div class="f-row"><span>본 견적 (1차)</span><span>{{ number_format($estimate->total_amount) }}원</span></div>
+            <div class="f-row"><span>본 견적 (1차)</span><span>{{ $money($estimate->total_amount) }}</span></div>
             @foreach($rounds as $r)
                 @if($r->status === 'cancelled')
-                    <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (결제 취소)</span><span class="round-cancelled-line">{{ number_format($r->total_amount) }}원</span></div>
+                    <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (결제 취소)</span><span class="round-cancelled-line">{{ $money($r->total_amount) }}</span></div>
                 @elseif((int) $r->total_amount < 0)
-                    <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (차감 정산 · 환불)</span><span>−{{ number_format(abs($r->total_amount)) }}원</span></div>
+                    <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (차감 정산 · 환불)</span><span>−{{ $money(abs($r->total_amount)) }}</span></div>
                 @else
-                    <div class="f-row"><span>{{ $r->round }}차 추가 견적{{ $r->status === 'issued' ? ' (결제 대기)' : (in_array($r->status, ['created', 'editing', 'completed', 'hold'], true) ? ' (작성 중)' : '') }}</span><span>+{{ number_format($r->total_amount) }}원</span></div>
+                    <div class="f-row"><span>{{ $r->round }}차 추가 견적{{ $r->status === 'issued' ? ' (결제 대기)' : (in_array($r->status, ['created', 'editing', 'completed', 'hold'], true) ? ' (작성 중)' : '') }}</span><span>+{{ $money($r->total_amount) }}</span></div>
                 @endif
             @endforeach
             @if($grandRefund > 0)
-                <div class="f-row minus"><span>환불 합계</span><span>−{{ number_format($grandRefund) }}원</span></div>
+                <div class="f-row minus"><span>환불 합계</span><span>−{{ $money($grandRefund) }}</span></div>
             @endif
             <div class="f-row total">
                 <span class="f-label">최종 금액</span>
-                <span class="f-value">{{ number_format($grandTotal) }}<span class="currency"> 원</span></span>
+                <span class="f-value">@if($docCur === 'USD'){{ $money($grandTotal) }}@else{{ number_format($grandTotal) }}<span class="currency"> 원</span>@endif</span>
             </div>
         </div>
     @endif
