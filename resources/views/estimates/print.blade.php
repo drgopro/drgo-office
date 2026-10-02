@@ -256,14 +256,43 @@ function savePNG(){
         ctx.fillStyle='#f2f2f3';
         ctx.fillRect(0,0,c.width,c.height);
         ctx.drawImage(src,pad,pad);
-        const link=document.createElement('a');
         // 파일명: 'yyyy-mm-dd 닉네임(이름).png' — 캘린더 자동 첨부와 동일 형식, 날짜는 저장한 날
         const t=new Date();
         const ds=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-        link.download=`${ds} ${@json($pngWho)}.png`;
+        const filename=`${ds} ${@json($pngWho)}.png`;
+        const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+        if(isMobile){
+            // 모바일/PWA — a.download가 무시되므로 미리보기 오버레이(공유·저장/길게 눌러 저장)로
+            c.toBlob(blob=>showMobileSaveOverlay(c.toDataURL('image/png'), blob, filename),'image/png');
+            return;
+        }
+        const link=document.createElement('a');
+        link.download=filename;
         link.href=c.toDataURL('image/png');
         link.click();
     });
+}
+function showMobileSaveOverlay(dataUrl, blob, filename){
+    document.getElementById('pngSaveOverlay')?.remove();
+    const file=blob?new File([blob],filename,{type:'image/png'}):null;
+    const canShare=!!(file&&navigator.canShare&&navigator.canShare({files:[file]}));
+    const ov=document.createElement('div');
+    ov.id='pngSaveOverlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;';
+    ov.innerHTML=`
+        <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%;">
+            <img src="${dataUrl}" alt="" style="max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.45);background:#fff;">
+        </div>
+        <div style="font-size:12px;color:#eee;text-align:center;">이미지를 길게 눌러 '사진에 저장'을 선택하거나, 아래 버튼을 사용하세요.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+            ${canShare?'<button id="pngShareBtn" style="background:#3b5ea0;color:#fff;border:none;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">공유·저장</button>':''}
+            <button id="pngCloseBtn" style="background:none;color:#ddd;border:1px solid #777;padding:12px 22px;border-radius:10px;font-size:14px;cursor:pointer;">닫기</button>
+        </div>`;
+    document.body.appendChild(ov);
+    document.getElementById('pngShareBtn')?.addEventListener('click',async()=>{
+        try{ await navigator.share({files:[file]}); }catch(e){ /* 사용자가 공유 취소 */ }
+    });
+    document.getElementById('pngCloseBtn').addEventListener('click',()=>ov.remove());
 }
 </script>
 @endif

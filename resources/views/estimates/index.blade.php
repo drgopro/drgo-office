@@ -409,6 +409,46 @@ function estExportName(id) {
     return `${ds} ${who}`;
 }
 
+// 모바일/태블릿 판별 — PWA(홈화면 앱)에서는 a.download 클릭이 무시되므로 저장 UX를 분기
+function estIsMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)); // iPadOS는 Mac으로 표기됨
+}
+
+// 모바일 저장 오버레이 — 미리보기 + [공유·저장](네이티브 시트, 사진 저장 가능) + 다운로드 시도 + 길게 눌러 저장 안내
+function estShowExportOverlay({ dataUrl, blob, filename, mime }) {
+    document.getElementById('estExportOverlay')?.remove();
+    const file = blob ? new File([blob], filename, { type: mime }) : null;
+    const canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+    const ov = document.createElement('div');
+    ov.id = 'estExportOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;';
+    ov.innerHTML = `
+        <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%;">
+            <img src="${dataUrl}" alt="${filename}" style="max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.45);background:#fff;">
+        </div>
+        <div style="font-size:12px;color:#eee;text-align:center;">${mime === 'application/pdf' ? 'PDF가 준비되었습니다 — 아래 버튼으로 저장하세요.' : '이미지를 길게 눌러 ‘사진에 저장’을 선택하거나, 아래 버튼을 사용하세요.'}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+            ${canShare ? '<button id="estExpShare" style="background:#3b5ea0;color:#fff;border:none;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">공유·저장</button>' : ''}
+            <button id="estExpDown" style="background:#2d8a3e;color:#fff;border:none;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">다운로드</button>
+            <button id="estExpClose" style="background:none;color:#ddd;border:1px solid #777;padding:12px 22px;border-radius:10px;font-size:14px;cursor:pointer;">닫기</button>
+        </div>`;
+    document.body.appendChild(ov);
+    // 공유·저장 — 버튼 클릭(새 사용자 제스처)에서 호출해야 iOS/안드로이드가 허용한다
+    document.getElementById('estExpShare')?.addEventListener('click', async () => {
+        try { await navigator.share({ files: [file] }); } catch (e) { /* 사용자가 공유 취소 */ }
+    });
+    document.getElementById('estExpDown').addEventListener('click', () => {
+        const url = blob ? URL.createObjectURL(blob) : dataUrl;
+        const a = document.createElement('a');
+        a.download = filename;
+        a.href = url;
+        a.click();
+        if (blob) setTimeout(() => URL.revokeObjectURL(url), 10000);
+    });
+    document.getElementById('estExpClose').addEventListener('click', () => ov.remove());
+}
+
 async function exportEstimate(id, type) {
     document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show'));
     const printUrl = `/estimates/${id}/print`;
@@ -435,10 +475,17 @@ async function exportEstimate(id, type) {
                 ctx.drawImage(srcCanvas, pad, pad);
 
                 if (type === 'image') {
-                    const link = document.createElement('a');
-                    link.download = `${estExportName(id)}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
+                    const filename = `${estExportName(id)}.png`;
+                    if (estIsMobile()) {
+                        // 모바일/PWA — a.download 클릭이 무시되므로 미리보기 오버레이(공유·저장/길게 눌러 저장)로
+                        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                        estShowExportOverlay({ dataUrl: canvas.toDataURL('image/png'), blob, filename, mime: 'image/png' });
+                    } else {
+                        const link = document.createElement('a');
+                        link.download = filename;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }
                 } else if (type === 'pdf') {
                     const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm');
                     const imgData = canvas.toDataURL('image/png');
@@ -447,7 +494,12 @@ async function exportEstimate(id, type) {
                     const pdfH = (pxH * pdfW) / pxW;
                     const pdf = new jsPDF({ unit:'mm', format:[pdfW, pdfH] });
                     pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-                    pdf.save(`${estExportName(id)}.pdf`);
+                    const filename = `${estExportName(id)}.pdf`;
+                    if (estIsMobile()) {
+                        estShowExportOverlay({ dataUrl: canvas.toDataURL('image/png'), blob: pdf.output('blob'), filename, mime: 'application/pdf' });
+                    } else {
+                        pdf.save(filename);
+                    }
                 }
                 w.close();
             } catch(err) {
