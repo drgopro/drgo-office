@@ -57,12 +57,38 @@ class EstimateUsdCurrencyTest extends TestCase
     public function test_usd_rate_api_falls_back_to_last_known_rate_on_failure(): void
     {
         Setting::set('usd_rate_last', json_encode(['rate' => 1390.5, 'date' => '2026-09-30']));
-        Http::fake(['oapi.koreaexim.go.kr/*' => Http::response(null, 500)]);
+        Http::fake([
+            'oapi.koreaexim.go.kr/*' => Http::response(null, 500),
+            'www.koreaexim.go.kr/*' => Http::response(null, 500),
+        ]);
 
         $this->actingAs($this->admin)->getJson('/api/exchange-rate/usd')
             ->assertOk()
             ->assertJsonPath('rate', 1390.5)
             ->assertJsonPath('date', '2026-09-30');
+    }
+
+    public function test_usd_rate_api_reports_auth_error_code(): void
+    {
+        // 인증코드 오류(result:3) — 7일 메시지가 아니라 키 문제를 바로 안내
+        Http::fake(['*koreaexim.go.kr/*' => Http::response([['result' => 3]], 200)]);
+
+        $res = $this->actingAs($this->admin)->getJson('/api/exchange-rate/usd');
+        $res->assertStatus(503);
+        $this->assertStringContainsString('인증코드 오류', $res->json('message'));
+    }
+
+    public function test_usd_rate_api_falls_back_to_www_domain(): void
+    {
+        // oapi 도메인이 막힌 환경 — 구 도메인(www)으로 폴백해 성공
+        Http::fake([
+            'oapi.koreaexim.go.kr/*' => Http::response(null, 500),
+            'www.koreaexim.go.kr/*' => Http::response([['cur_unit' => 'USD', 'deal_bas_r' => '1,382.00', 'result' => 1]], 200),
+        ]);
+
+        $res = $this->actingAs($this->admin)->getJson('/api/exchange-rate/usd');
+        $res->assertOk();
+        $this->assertSame(1382.0, (float) $res->json('rate'));
     }
 
     public function test_currency_saved_with_fixed_rate_and_date(): void
