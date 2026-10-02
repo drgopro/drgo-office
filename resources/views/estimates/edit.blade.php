@@ -564,6 +564,7 @@
             {{-- 달러 표시 — 적용 시점의 매매기준율·기준일이 저장되어 고정, 금액 저장·결제는 원화 유지 --}}
             <div style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
                 <button type="button" class="btn-add-svc" id="btnApplyUsd" style="width:auto; padding:6px 14px;" onclick="applyUsd()" title="수출입은행 오늘 매매기준율로 달러 표시를 적용합니다. 저장하면 이 시점 환율로 고정됩니다.">USD($)로 적용</button>
+                <button type="button" class="btn-add-svc" id="btnRefreshUsd" style="width:auto; padding:6px 14px; display:none;" onclick="applyUsd()" title="입금이 늦어지는 등 환율을 다시 잡아야 할 때 — 오늘 고시 환율로 재적용하고 저장하면 그 값으로 고정됩니다">오늘 환율로 갱신</button>
                 <button type="button" class="btn-add-svc" id="btnRevertKrw" style="width:auto; padding:6px 14px; display:none;" onclick="revertKrw()">원화 표시로 되돌리기</button>
                 <span id="usdHint" style="font-size:11.5px; color:var(--text-muted);"></span>
             </div>
@@ -1890,6 +1891,7 @@ function updateUsdUI(grandKrw) {
     if (!row) return;
     row.style.display = on ? '' : 'none';
     document.getElementById('btnApplyUsd').style.display = on ? 'none' : '';
+    document.getElementById('btnRefreshUsd').style.display = on ? '' : 'none';
     document.getElementById('btnRevertKrw').style.display = on ? '' : 'none';
     document.getElementById('usdHint').textContent = on
         ? `${usdDateLabel(estUsdRateDate)} · 1 USD = ${fmt(estUsdRate)}원 (매매기준율) — 발행완료 처리 시점의 고시 환율로 최종 고정됩니다`

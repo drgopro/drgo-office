@@ -105,9 +105,10 @@ class EstimateUsdCurrencyTest extends TestCase
         $this->assertSame(1385.2, (float) $fresh->usd_rate);
         $this->assertSame('2026-10-02', $fresh->usd_rate_date->format('Y-m-d'));
 
-        // 빌더 — USD 적용 UI
+        // 빌더 — USD 적용 UI + 환율 재고정 버튼 (입금 지연 시 오늘 고시로 갱신)
         $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")->assertOk()
             ->assertSee('USD($)로 적용')
+            ->assertSee('오늘 환율로 갱신')
             ->assertSee('id="usdTotalRow"', false);
 
         // 목록 — 원화 아래 USD 병기 (currency/usd_rate가 응답에 포함되고 렌더 헬퍼 존재)
