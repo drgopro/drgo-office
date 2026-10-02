@@ -334,6 +334,23 @@ class EstimateController extends Controller
 
     public function edit(Estimate $estimate)
     {
+        // 차수(추가 견적) — 비어 있는 주문/배송 정보는 본 견적서 값으로 상속해 채운다
+        // (차수 생성 후에 본 견적서에 입력된 수령인·주소·연락처도 공유되도록)
+        if ($estimate->parent_estimate_id && $estimate->parent) {
+            $inherited = false;
+            foreach (['client_name', 'client_nickname', 'client_phone', 'ship_name', 'ship_phone', 'ship_address', 'ship_address_detail', 'ship_entrance', 'ship_note'] as $f) {
+                if (blank($estimate->$f) && filled($estimate->parent->$f)) {
+                    $estimate->$f = $estimate->parent->$f;
+                    $inherited = true;
+                }
+            }
+            if ($inherited) {
+                $estimate->timestamps = false;
+                $estimate->saveQuietly();
+                $estimate->timestamps = true;
+            }
+        }
+
         $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
         $estimate->load('client', 'creator');
         $settings = Setting::getMany([
@@ -354,6 +371,7 @@ class EstimateController extends Controller
             'client_nickname' => 'nullable|string|max:100',
             'client_phone' => 'nullable|string|max:50',
             'ship_address' => 'nullable|string|max:300', // 배송받을 주소 — 내부용 (의뢰자 견적서 미표시)
+            'ship_address_detail' => 'nullable|string|max:200', // 상세주소 (동·호수) — 주소 검색과 분리 입력
             'ship_name' => 'nullable|string|max:100', // 배송지 수령인 이름 — 내부용, 주문 내역 헤더 표시
             'ship_phone' => 'nullable|string|max:30', // 배송지 연락처 — 내부용
             'ship_entrance' => 'nullable|string|max:200', // 공동현관 출입 정보 — 내부용
@@ -913,6 +931,7 @@ class EstimateController extends Controller
             'client_nickname' => $estimate->client_nickname,
             'client_phone' => $estimate->client_phone,
             'ship_address' => $estimate->ship_address,
+            'ship_address_detail' => $estimate->ship_address_detail,
             'ship_name' => $estimate->ship_name,
             'ship_phone' => $estimate->ship_phone,
             'ship_entrance' => $estimate->ship_entrance,

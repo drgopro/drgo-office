@@ -126,7 +126,7 @@ class OfficeOrderController extends Controller
                 'no' => $e->display_no,
                 'title' => $e->title ?: "견적서 #{$e->display_no}",
                 'client' => $e->client_nickname ?: $e->client_name,
-                'ship_address' => $e->ship_address, // 배송지 정보 — 내부용 (주문 내역 헤더 readonly 표시)
+                'ship_address' => trim(($e->ship_address ?? '').' '.($e->ship_address_detail ?? '')), // 배송지 정보 — 내부용 (주문 내역 헤더 readonly 표시, 상세주소 포함)
                 'ship_name' => $e->ship_name,
                 'ship_phone' => $e->ship_phone,
                 'ship_entrance' => $e->ship_entrance,

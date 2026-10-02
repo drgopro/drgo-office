@@ -473,7 +473,14 @@
             <div class="client-row" style="margin-top:10px;">
                 <div class="field" style="flex:2;">
                     <label>배송받을 주소 <span style="color:var(--text-muted); font-weight:400;">— 내부용, 의뢰자 견적서 미표시</span></label>
-                    <input id="sAddr" value="{{ $estimate->ship_address }}" maxlength="300" placeholder="예: 서울 강남구 ○○로 12, 101동 1001호">
+                    <div style="display:flex; gap:6px;">
+                        <input id="sAddr" value="{{ $estimate->ship_address }}" maxlength="300" placeholder="주소 검색 또는 직접 입력" style="flex:1; min-width:0;">
+                        <button type="button" class="btn-add-svc" style="width:auto; padding:6px 12px; white-space:nowrap;" onclick="searchShipAddress()">주소 검색</button>
+                    </div>
+                </div>
+                <div class="field" style="flex:1;">
+                    <label>상세주소</label>
+                    <input id="sAddrDetail" value="{{ $estimate->ship_address_detail }}" maxlength="200" placeholder="동·호수 등">
                 </div>
                 <div class="field" style="flex:1;">
                     <label>공동현관 정보</label>
@@ -732,6 +739,22 @@ function copyPublicLink() {
     navigator.clipboard.writeText(PUBLIC_URL)
         .then(() => alert('의뢰자용 견적서 링크가 복사되었습니다.\n카톡/문자로 전달하세요.\n\n' + PUBLIC_URL))
         .catch(() => prompt('아래 링크를 복사하세요:', PUBLIC_URL));
+}
+
+// === 배송지 주소 검색 (다음 우편번호) — 스크립트는 첫 클릭 때 로드 ===
+function searchShipAddress() {
+    const open = () => new daum.Postcode({
+        oncomplete: (d) => {
+            document.getElementById('sAddr').value = d.userSelectedType === 'R' ? d.roadAddress : d.jibunAddress;
+            document.getElementById('sAddrDetail').focus();
+        },
+    }).open();
+    if (window.daum && window.daum.Postcode) return open();
+    const s = document.createElement('script');
+    s.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    s.onload = open;
+    s.onerror = () => alert('주소 검색 스크립트를 불러오지 못했습니다. 주소를 직접 입력해 주세요.');
+    document.head.appendChild(s);
 }
 
 // === 추가 차수 (N차 추가 견적) ===
@@ -1904,6 +1927,7 @@ function buildEstimateBody() {
         client_nickname: document.getElementById('cNickname').value || null,
         client_phone: document.getElementById('cPhone').value || null,
         ship_address: document.getElementById('sAddr').value || null,
+        ship_address_detail: document.getElementById('sAddrDetail').value || null,
         ship_name: document.getElementById('sName').value || null,
         ship_phone: document.getElementById('sPhone').value || null,
         ship_entrance: document.getElementById('sEntrance').value || null,

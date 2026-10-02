@@ -36,6 +36,61 @@ class EstimateShipAddressTest extends TestCase
             ->assertOk()->assertDontSee('테스트로 12')->assertDontSee('#1234*');
     }
 
+    public function test_ship_address_detail_saved_and_search_button_rendered(): void
+    {
+        $user = User::factory()->create(['role' => 'master']);
+        $estimate = Estimate::create(['status' => 'created', 'product_items' => [], 'service_items' => [], 'total_amount' => 0, 'created_by' => $user->id]);
+
+        $this->actingAs($user)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => [], 'service_items' => [], 'status' => 'created',
+            'ship_address' => '서울 강남구 테스트로 12',
+            'ship_address_detail' => '101동 1001호',
+        ])->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame('서울 강남구 테스트로 12', $fresh->ship_address);
+        $this->assertSame('101동 1001호', $fresh->ship_address_detail);
+
+        // 빌더 — 주소 검색 버튼 + 상세주소 입력란
+        $this->actingAs($user)->get("/estimates/{$estimate->id}/edit")->assertOk()
+            ->assertSee('주소 검색')
+            ->assertSee('searchShipAddress', false)
+            ->assertSee('id="sAddrDetail"', false)
+            ->assertSee('101동 1001호');
+    }
+
+    public function test_round_inherits_parent_order_and_ship_info_added_later(): void
+    {
+        // 차수 생성 '후'에 본 견적서에 입력된 수령인/주소/연락처도 차수에 상속
+        $user = User::factory()->create(['role' => 'master']);
+        $parent = Estimate::create([
+            'estimate_no' => 300, 'status' => 'paid', 'product_items' => [], 'service_items' => [],
+            'total_amount' => 100000, 'created_by' => $user->id,
+        ]);
+        $round = Estimate::find($this->actingAs($user)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+        $this->assertNull($round->ship_name); // 생성 시점엔 부모에도 없음
+
+        // 차수 생성 후 부모에 배송 정보 입력
+        $parent->update([
+            'client_phone' => '010-1111-2222', 'ship_name' => '김수령', 'ship_phone' => '010-3333-4444',
+            'ship_address' => '서울 송파구 배송로 9', 'ship_address_detail' => '202호', 'ship_entrance' => '#7777',
+        ]);
+
+        // 차수 빌더를 열면 비어 있는 필드가 부모 값으로 채워져 저장됨
+        $this->actingAs($user)->get("/estimates/{$round->id}/edit")->assertOk()->assertSee('김수령');
+        $fresh = $round->fresh();
+        $this->assertSame('김수령', $fresh->ship_name);
+        $this->assertSame('010-3333-4444', $fresh->ship_phone);
+        $this->assertSame('서울 송파구 배송로 9', $fresh->ship_address);
+        $this->assertSame('202호', $fresh->ship_address_detail);
+        $this->assertSame('010-1111-2222', $fresh->client_phone);
+
+        // 차수에 이미 입력된 값은 덮어쓰지 않음
+        $fresh->update(['ship_name' => '차수수령인']);
+        $this->actingAs($user)->get("/estimates/{$round->id}/edit")->assertOk();
+        $this->assertSame('차수수령인', $round->fresh()->ship_name);
+    }
+
     public function test_ship_recipient_fields_saved_and_hidden_from_public_view(): void
     {
         // 배송지 수령인 이름/연락처/요청사항 — 수기 입력 저장 + 의뢰자용 견적서 미노출
