@@ -150,6 +150,37 @@ class EstimateRoundTest extends TestCase
             ->assertDontSee('2차 추가 견적');
     }
 
+    public function test_public_pay_bar_lists_each_payable_item(): void
+    {
+        // 1차 발행(미결제) + 2차 발행 + 3차 작성완료 — 결제 가능한 건마다 버튼, 미발행은 안내
+        $parent = $this->makePaidParent();
+        $parent->update(['status' => 'issued', 'payapp_payurl' => 'https://payapp.example/pay/p1']);
+
+        $round2 = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+        $round2->update([
+            'status' => 'issued', 'payapp_payurl' => 'https://payapp.example/pay/r2',
+            'product_items' => [['name' => '추가 조명', 'sale_price' => 150000, 'qty' => 1, 'subtotal' => 150000]],
+            'total_amount' => 150000,
+        ]);
+        $round3 = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
+        $round3->update(['status' => 'completed', 'total_amount' => 80000]);
+
+        $token = tap($parent->fresh())->publicUrl()->share_token;
+        $res = $this->actingAs($this->admin)->get("/estimate-view/{$token}");
+        $res->assertOk()
+            ->assertSee('본 견적 (1차) '.number_format(500000).'원 결제하기')
+            ->assertSee('2차 추가 '.number_format(150000).'원 결제하기')
+            ->assertSee('https://payapp.example/pay/p1')
+            ->assertSee('https://payapp.example/pay/r2')
+            ->assertSee('작성 중인 3차 금액('.number_format(80000).'원)은 발행 후 결제하실 수 있습니다');
+
+        // 1차 결제 완료 후 — 1차 버튼은 사라지고 2차 버튼만 남음
+        $parent->update(['status' => 'paid']);
+        $this->actingAs($this->admin)->get("/estimate-view/{$token}")->assertOk()
+            ->assertDontSee('본 견적 (1차) '.number_format(500000).'원 결제하기')
+            ->assertSee('2차 추가 '.number_format(150000).'원 결제하기');
+    }
+
     public function test_deduct_lines_reduce_final_total_in_public_document(): void
     {
         $parent = $this->makePaidParent();

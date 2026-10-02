@@ -36,6 +36,10 @@
         /* 의뢰자용 하단 결제 바 */
         .pay-bar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #d8dce4; padding:12px 16px; display:flex; gap:10px; align-items:center; justify-content:center; z-index:100; box-shadow:0 -4px 16px rgba(0,0,0,0.08); }
         .pay-btn { flex:1; max-width:420px; text-align:center; background:#3b5ea0; color:#fff; text-decoration:none; padding:14px 20px; border-radius:10px; font-size:16px; font-weight:800; }
+        /* 결제 건이 여러 개(1차 + 차수)면 세로로 쌓기 */
+        .pay-col { flex:1; max-width:420px; display:flex; flex-direction:column; gap:8px; }
+        .pay-col .pay-btn { flex:none; max-width:none; }
+        .pay-note { font-size:11px; color:#8a94a0; text-align:center; }
         .pay-btn:active { filter:brightness(1.1); }
         .pay-done { flex:1; max-width:420px; text-align:center; background:#e8f5e8; color:#1a7a2a; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
         .pay-cancelled { flex:1; max-width:420px; text-align:center; background:#f5eaea; color:#b03030; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
@@ -207,22 +211,37 @@
     $grandRefund = $refundTotal + $roundsRefund;
     // 최종 금액 = (1차 + 유효 차수) − 환불 합계 — 취소된 차수는 총액에서 제외
     $grandTotal = max(0, (int) $estimate->total_amount + $roundsTotal - $grandRefund);
-    $pendingRound = $rounds->first(fn ($r) => $r->status === 'issued' && $r->payapp_payurl && (int) $r->total_amount > 0);
+    // 결제 가능한 건 목록 — 1차(발행완료·미결제)와 발행완료된 차수 각각 버튼으로.
+    // 페이앱 결제요청은 견적서(차수) 단위라 합산 한 건으로 묶지 않고 순차/병행 결제한다.
+    $payables = collect();
+    if ($estimate->status === 'issued' && $estimate->payapp_payurl && (int) $estimate->total_amount > 0) {
+        $payables->push(['label' => $rounds->isNotEmpty() ? '본 견적 (1차)' : '', 'amount' => (int) $estimate->total_amount, 'url' => $estimate->payapp_payurl]);
+    }
+    foreach ($rounds as $r) {
+        if ($r->status === 'issued' && $r->payapp_payurl && (int) $r->total_amount > 0) {
+            $payables->push(['label' => $r->round.'차 추가', 'amount' => (int) $r->total_amount, 'url' => $r->payapp_payurl]);
+        }
+    }
+    // 아직 결제할 수 없는 양수 차수 — 작성 중/보류(발행 전)
+    $notReadyRounds = $rounds->filter(fn ($r) => (int) $r->total_amount > 0 && in_array($r->status, ['created', 'editing', 'completed', 'hold'], true));
 @endphp
 
 @if(!empty($publicMode))
-{{-- 의뢰자용 하단 결제 바 --}}
+{{-- 의뢰자용 하단 결제 바 — 결제 가능한 건(1차·발행된 차수)마다 버튼, 순차/병행 결제 --}}
 <div class="pay-bar no-print">
-    @if($estimate->status === 'paid' && $pendingRound)
-        {{-- 추가 차수 결제 대기 — 본 견적은 결제 완료, 추가분 결제 버튼 노출 --}}
-        <a class="pay-btn" href="{{ $pendingRound->payapp_payurl }}" target="_blank" rel="noopener">💳 {{ $pendingRound->round }}차 추가 {{ number_format($pendingRound->total_amount) }}원 결제하기</a>
+    @if($payables->isNotEmpty())
+        <div class="pay-col">
+            @foreach($payables as $p)
+                <a class="pay-btn" href="{{ $p['url'] }}" target="_blank" rel="noopener">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</a>
+            @endforeach
+            @if($notReadyRounds->isNotEmpty())
+                <div class="pay-note">작성 중인 {{ $notReadyRounds->map(fn ($r) => $r->round.'차')->implode('·') }} 금액({{ number_format($notReadyRounds->sum('total_amount')) }}원)은 발행 후 결제하실 수 있습니다.</div>
+            @endif
+        </div>
     @elseif($estimate->status === 'paid')
         <span class="pay-done">✅ 결제가 완료되었습니다. 감사합니다!{{ $grandRefund > 0 ? ' (일부 환불 '.number_format($grandRefund).'원)' : '' }}</span>
     @elseif($estimate->status === 'cancelled')
         <span class="pay-cancelled">⛔ 결제가 취소된 견적서입니다{{ $refundTotal > 0 ? ' · 환불 '.number_format($refundTotal).'원' : '' }}</span>
-    @elseif($estimate->status === 'issued' && $estimate->payapp_payurl)
-        {{-- 결제 버튼은 발행완료 단계에서만 노출 --}}
-        <a class="pay-btn" href="{{ $estimate->payapp_payurl }}" target="_blank" rel="noopener">💳 {{ number_format($estimate->total_amount) }}원 결제하기</a>
     @endif
     <button class="pay-print" onclick="window.print()">🖨 인쇄</button>
 </div>
