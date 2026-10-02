@@ -173,6 +173,7 @@
         .round-badge.paid { background:#e8f5e8; color:#1a7a2a; }
         .round-badge.issued { background:#fdf3e0; color:#b07714; }
         .round-badge.cancelled { background:#f5eaea; color:#b03030; }
+        .round-badge.created, .round-badge.editing, .round-badge.completed, .round-badge.hold { background:#eef1f5; color:#5a6b7d; }
         .round-total-row td { background:#f2f4f6; border-bottom:1px solid #dfe3e8; padding:10px 12px; font-size:12.5px; font-weight:700; color:var(--navy); }
         .round-cancelled-line { text-decoration:line-through; color:#8a94a0; }
 
@@ -198,7 +199,7 @@
 
     // 추가 차수(N차 추가 견적) — 발행/결제/취소된 차수만 문서에 표시
     $rounds = collect($rounds ?? []);
-    $roundStatusLabel = ['issued' => '결제 대기', 'paid' => '결제완료', 'cancelled' => '결제 취소'];
+    $roundStatusLabel = ['created' => '작성 중', 'editing' => '작성 중', 'completed' => '작성 완료', 'hold' => '보류', 'issued' => '결제 대기', 'paid' => '결제완료', 'cancelled' => '결제 취소'];
     $roundRefundOf = fn ($r) => collect($r->product_items ?? [])->sum(fn ($i) => (int) ($i['refund_amount'] ?? 0));
     $activeRounds = $rounds->reject(fn ($r) => $r->status === 'cancelled');
     $roundsTotal = (int) $activeRounds->sum('total_amount');
@@ -531,7 +532,7 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                 @elseif((int) $r->total_amount < 0)
                     <div class="f-row minus"><span>{{ $r->round }}차 추가 견적 (차감 정산 · 환불)</span><span>−{{ number_format(abs($r->total_amount)) }}원</span></div>
                 @else
-                    <div class="f-row"><span>{{ $r->round }}차 추가 견적{{ $r->status === 'issued' ? ' (결제 대기)' : '' }}</span><span>+{{ number_format($r->total_amount) }}원</span></div>
+                    <div class="f-row"><span>{{ $r->round }}차 추가 견적{{ $r->status === 'issued' ? ' (결제 대기)' : (in_array($r->status, ['created', 'editing', 'completed', 'hold'], true) ? ' (작성 중)' : '') }}</span><span>+{{ number_format($r->total_amount) }}원</span></div>
                 @endif
             @endforeach
             @if($grandRefund > 0)

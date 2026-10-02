@@ -627,11 +627,11 @@ class EstimateController extends Controller
         return view('estimates.print', compact('estimate', 'settings', 'rounds'));
     }
 
-    /** 공개/인쇄 문서에 싣는 차수 — 임시(temp)와 아직 발행 전(created) 차수는 의뢰자에게 보이지 않는다 */
+    /** 공개/인쇄 문서에 싣는 차수 — 1차~n차 전부 최종 견적서 1장에 표시 (임시·견적취소만 제외) */
     private function visibleRounds(Estimate $estimate)
     {
         return $estimate->rounds()
-            ->whereIn('status', ['issued', 'paid', 'cancelled'])
+            ->whereNotIn('status', ['temp', 'quote_cancelled'])
             ->orderBy('round')
             ->get();
     }

@@ -138,8 +138,14 @@ class EstimateRoundTest extends TestCase
             ->assertSee('최종 정산')
             ->assertSee(number_format(650000)); // 500,000 + 150,000
 
-        // 작성 중(created) 차수는 의뢰자 문서에 보이지 않음
+        // 작성 중(created) 차수도 최종 문서에 포함 — 1차~n차 전부 한 장 ('작성 중' 뱃지)
         $round->update(['status' => 'created']);
+        $this->actingAs($this->admin)->get("/estimate-view/{$token}")->assertOk()
+            ->assertSee('2차 추가 견적')
+            ->assertSee('작성 중');
+
+        // 견적 취소(무산)된 차수만 문서에서 제외
+        $round->update(['status' => 'quote_cancelled']);
         $this->actingAs($this->admin)->get("/estimate-view/{$token}")->assertOk()
             ->assertDontSee('2차 추가 견적');
     }
