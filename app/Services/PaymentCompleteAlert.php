@@ -15,8 +15,11 @@ use Illuminate\Support\Facades\Log;
  */
 class PaymentCompleteAlert
 {
-    /** @param array<string, mixed> $payload 페이앱 feedback 원본 (pay_type 등 표기용) */
-    public static function estimatePaid(Estimate $estimate, array $payload = []): void
+    /**
+     * @param  array<string, mixed>  $payload  페이앱 feedback 원본 (pay_type 등 표기용)
+     * @param  string  $methodLabel  결제수단 표기 — 페이앱 외 경로(계좌이체 매칭 등)에서 교체
+     */
+    public static function estimatePaid(Estimate $estimate, array $payload = [], string $methodLabel = '페이앱'): void
     {
         try {
             $group = trim((string) Setting::get('payment_alert_group', ''));
@@ -44,7 +47,7 @@ class PaymentCompleteAlert
 
             $lines = [
                 '[결제완료] 견적서 #'.$estimate->display_no.($client ? ' · '.$client : ''), // 화면 표시 번호 (DB id 아님)
-                '금액 '.number_format((int) $estimate->total_amount).'원 · 페이앱'.($payType !== '' ? " ({$payType})" : ''),
+                '금액 '.number_format((int) $estimate->total_amount).'원 · '.$methodLabel.($payType !== '' ? " ({$payType})" : ''),
                 url("/estimates/{$estimate->id}/edit"),
             ];
             if ($mentions !== '') {

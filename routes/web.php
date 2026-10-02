@@ -524,6 +524,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/deposits', [BankDepositController::class, 'index'])->name('deposits');
         Route::get('/api/bank-deposits', [BankDepositController::class, 'list']);
         Route::delete('/api/bank-deposits', [BankDepositController::class, 'destroyMany']);
+        Route::get('/api/bank-deposits/{deposit}/match-candidates', [BankDepositController::class, 'matchCandidates']); // 견적서 매칭 후보
+        Route::post('/api/bank-deposits/{deposit}/match', [BankDepositController::class, 'match']); // 매칭 확정 — 합계 도달 시 결제완료
+        Route::delete('/api/bank-deposits/{deposit}/match', [BankDepositController::class, 'unmatch']);
         Route::get('/api/payapp-payments', [BankDepositController::class, 'payappList']);
         Route::post('/api/payapp-payments/import', [BankDepositController::class, 'payappImport']); // 페이앱 결제내역 엑셀 백필
     });

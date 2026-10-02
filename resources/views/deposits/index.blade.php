@@ -118,9 +118,10 @@
                 <th style="width:110px;">은행</th>
                 <th class="text-center" style="width:150px;">입금 금액</th>
                 <th style="width:180px;">입금자명</th>
+                <th style="width:170px;">견적서 매칭</th>
                 <th>원문</th>
             </tr></thead>
-            <tbody id="depBody"><tr><td colspan="6" class="empty-row">로딩 중...</td></tr></tbody>
+            <tbody id="depBody"><tr><td colspan="7" class="empty-row">로딩 중...</td></tr></tbody>
         </table>
     </div>
     <div class="mob-cards" id="depCards"></div>
@@ -164,6 +165,22 @@
         </div>
         <div class="mob-cards" id="paCards"></div>
         <div class="pager" id="paPager"></div>
+    </div>
+</div>
+
+{{-- 입금 ↔ 견적서 매칭 모달 — 자동 후보(금액 일치·이름 유사) + 검색 --}}
+<div id="depMatchOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:300;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this) closeDepMatch()">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(560px,100%);max-height:80vh;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+            <div style="font-size:14px;font-weight:700;">견적서 매칭</div>
+            <button onclick="closeDepMatch()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">×</button>
+        </div>
+        <div style="padding:12px 16px 0;">
+            <div id="dmInfo" style="font-size:13px;font-weight:600;margin-bottom:10px;"></div>
+            <input type="text" id="dmSearch" placeholder="견적서 번호·의뢰자·제목 검색" oninput="dmSearchInput()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;">
+            <div class="text-muted" style="margin-top:6px;">매칭된 입금 합계가 견적 금액에 도달하면 결제완료(계좌이체)로 전환되고 결제완료 톡방 알림이 발송됩니다.</div>
+        </div>
+        <div id="dmList" style="overflow-y:auto;padding:6px 16px 14px;"></div>
     </div>
 </div>
 
@@ -238,10 +255,12 @@ async function loadDeposits() {
     depPageIds = data.map(d => d.id);
     updateDepSelUI();
     if (!data.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="empty-row">입금 내역이 없습니다.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="7" class="empty-row">입금 내역이 없습니다.</td></tr>';
         cards.innerHTML = '<div class="empty-row">입금 내역이 없습니다.</div>';
         return;
     }
+    window.__depRows = {};
+    data.forEach(d => { window.__depRows[d.id] = d; });
     // 원문은 '원문 보기' 클릭 시 행 아래로 펼침
     tb.innerHTML = data.map(d => `<tr>
         <td class="sel-col"><input type="checkbox" class="dep-sel" ${depSel.has(d.id)?'checked':''} onchange="toggleDepSel(${d.id}, this.checked)"></td>
@@ -249,6 +268,7 @@ async function loadDeposits() {
         <td>${d.bank ? `<span class="bank-badge">${_esc(d.bank)}</span>` : '<span class="text-muted">-</span>'}</td>
         <td class="text-center amt">${d.amount!=null ? fmt(d.amount)+'원' : '<span class="text-muted">-</span>'}</td>
         <td style="font-weight:600;">${_esc(d.depositor_name)||'<span class="text-muted">(파싱 실패)</span>'}</td>
+        <td>${depMatchCell(d)}</td>
         <td>${d.raw_text ? `<div style="display:flex;align-items:flex-start;gap:12px;">
             <div class="dep-raw" id="depRaw${d.id}" style="display:none;"><pre>${_esc(d.raw_text)}</pre></div>
             <button type="button" class="raw-btn" id="depRawBtn${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>
@@ -266,8 +286,100 @@ async function loadDeposits() {
             <span>${fmtDt(d.received_at)}${d.bank ? ' · '+_esc(d.bank) : ''}</span>
             ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtnM${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
         </div>
+        <div style="margin-top:8px;">${depMatchCell(d)}</div>
         ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;"><pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre></div>` : ''}
     </div>`).join('');
+}
+
+// === 견적서 매칭 — 입금 건을 견적서에 수동 연결, 합계 도달 시 결제완료(계좌이체) ===
+function depMatchCell(d) {
+    if (d.estimate_id && d.estimate) {
+        return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="pa-badge paid">견적서 #${_esc(String(d.estimate.display_no ?? d.estimate_id))} 매칭</span>
+            <button type="button" class="raw-btn" onclick="depUnmatch(${d.id})">해제</button>
+        </div>`;
+    }
+    return `<button type="button" class="btn-outline" style="padding:5px 12px;font-size:12px;" onclick="openDepMatch(${d.id})">매칭</button>`;
+}
+
+let depMatchId = null;
+async function openDepMatch(id) {
+    depMatchId = id;
+    const d = (window.__depRows || {})[id] || {};
+    document.getElementById('dmInfo').textContent =
+        `${fmtDt(d.received_at)} · ${_fmtOrDash(d.amount)} · ${d.depositor_name || '(입금자명 없음)'}`;
+    document.getElementById('dmSearch').value = '';
+    document.getElementById('dmList').innerHTML = '<div class="empty-row">후보를 불러오는 중...</div>';
+    document.getElementById('depMatchOverlay').style.display = 'flex';
+    await loadDepCandidates();
+}
+function _fmtOrDash(n){ return n!=null ? fmt(n)+'원' : '-'; }
+function closeDepMatch() {
+    document.getElementById('depMatchOverlay').style.display = 'none';
+    depMatchId = null;
+}
+let dmSearchTimer = null;
+function dmSearchInput() {
+    clearTimeout(dmSearchTimer);
+    dmSearchTimer = setTimeout(loadDepCandidates, 300);
+}
+async function loadDepCandidates() {
+    if (!depMatchId) return;
+    const q = document.getElementById('dmSearch').value.trim();
+    const res = await fetch(`/api/bank-deposits/${depMatchId}/match-candidates${q ? '?q='+encodeURIComponent(q) : ''}`);
+    const dData = await res.json().catch(() => ({ candidates: [] }));
+    const list = dData.candidates || [];
+    const el = document.getElementById('dmList');
+    if (!list.length) {
+        el.innerHTML = `<div class="empty-row">${q ? '검색 결과가 없습니다.' : '자동 후보가 없습니다 — 견적서 번호나 의뢰자명으로 검색해 주세요.'}</div>`;
+        return;
+    }
+    const dep = (window.__depRows || {})[depMatchId] || {};
+    el.innerHTML = list.map(c => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;">#${_esc(String(c.no))} ${c.title ? '· '+_esc(c.title) : ''}</div>
+                <div class="text-muted" style="margin-top:2px;">
+                    ${_esc(c.client)} · ${fmt(c.total_amount)}원 · ${_esc(c.status)}
+                    ${c.amount_match ? ' <span class="pa-badge paid" style="font-size:10px;">금액 일치</span>' : ''}
+                    ${c.name_match ? ' <span class="pa-badge waiting" style="font-size:10px;">이름 유사</span>' : ''}
+                    ${c.matched_sum > 0 ? ` <span class="pa-badge waiting" style="font-size:10px;">기존 매칭 ${fmt(c.matched_sum)}원</span>` : ''}
+                </div>
+            </div>
+            <button type="button" class="btn-outline" style="padding:6px 14px;font-size:12px;white-space:nowrap;" onclick="depMatchConfirm(${c.id}, ${c.total_amount}, ${c.matched_sum})">이 견적서로 매칭</button>
+        </div>`).join('');
+}
+async function depMatchConfirm(estimateId, totalAmount, matchedSum) {
+    const dep = (window.__depRows || {})[depMatchId] || {};
+    const amt = dep.amount || 0;
+    if ((matchedSum + amt) < totalAmount) {
+        if (!confirm(`입금액(${fmt(amt)}원)과 견적 금액(${fmt(totalAmount)}원)이 다릅니다.\n매칭만 기록되고, 매칭된 입금 합계가 견적 금액에 도달하면 결제완료로 전환됩니다.\n계속할까요?`)) return;
+    }
+    const res = await fetch(`/api/bank-deposits/${depMatchId}/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': DEP_CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ estimate_id: estimateId }),
+    });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(r.message || '매칭에 실패했습니다.'); return; }
+    alert(r.paid
+        ? `견적서 #${r.estimate_no} 결제완료(계좌이체) 처리되었습니다.\n결제완료 톡방 알림이 발송됩니다.`
+        : `매칭이 기록되었습니다 — 입금 합계 ${fmt(r.matched_sum)} / ${fmt(r.total_amount)}원 (결제완료 전환 전)`);
+    closeDepMatch();
+    loadDeposits();
+}
+async function depUnmatch(id) {
+    if (!confirm('이 입금의 견적서 매칭을 해제할까요?')) return;
+    const res = await fetch(`/api/bank-deposits/${id}/match`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': DEP_CSRF, 'Accept': 'application/json' },
+    });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(r.message || '해제에 실패했습니다.'); return; }
+    if (r.estimate_paid) {
+        alert('매칭을 해제했습니다.\n견적서는 결제완료 상태로 남아 있습니다 — 잘못 처리된 결제라면 견적서에서 상태를 조정해 주세요.');
+    }
+    loadDeposits();
 }
 
 // 원문 펼침/접힘 — 테이블 행(depRaw{id})과 모바일 카드(depRawM{id}) 공용

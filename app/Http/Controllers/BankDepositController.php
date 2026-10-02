@@ -6,7 +6,9 @@ use App\Models\BankDeposit;
 use App\Models\Estimate;
 use App\Models\PayappPayment;
 use App\Services\DepositSmsParser;
+use App\Services\EstimatePaymentSync;
 use App\Services\PayAppClient;
+use App\Services\PaymentCompleteAlert;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
@@ -170,7 +172,7 @@ class BankDepositController extends Controller
             'page' => 'nullable|integer|min:1',
         ]);
 
-        $query = BankDeposit::query();
+        $query = BankDeposit::with(['estimate.parent:id,estimate_no', 'matcher:id,display_name']);
 
         if (! empty($validated['from'])) {
             $query->where('received_at', '>=', $validated['from'].' 00:00:00');
@@ -200,6 +202,126 @@ class BankDepositController extends Controller
             'current_page' => $page->currentPage(),
             'last_page' => $page->lastPage(),
             'total_amount' => (int) $totalAmount, // 필터 조건 전체 합계 (페이지 무관)
+        ]);
+    }
+
+    /** 매칭 대상이 될 수 있는 미결제 상태 — 결제완료/취소/견적취소/임시는 제외 */
+    private const MATCHABLE_STATUSES = ['created', 'editing', 'completed', 'issued', 'hold'];
+
+    /**
+     * 입금 건 ↔ 견적서 매칭 후보 — 금액 일치·입금자명 유사·최근 발행 순으로 점수화.
+     * q(검색어)가 오면 번호/의뢰자/제목 검색으로 직접 찾는다.
+     */
+    public function matchCandidates(Request $request, BankDeposit $deposit): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+        $name = trim((string) $deposit->depositor_name);
+
+        $base = Estimate::with('parent:id,estimate_no')->whereIn('status', self::MATCHABLE_STATUSES);
+        if ($q !== '') {
+            $numeric = (int) str_replace([',', '#'], '', $q);
+            $base->where(function ($w) use ($q, $numeric) {
+                $w->where('client_name', 'like', "%{$q}%")
+                    ->orWhere('client_nickname', 'like', "%{$q}%")
+                    ->orWhere('title', 'like', "%{$q}%");
+                if ($numeric > 0) {
+                    $w->orWhere('estimate_no', $numeric)->orWhere('id', $numeric);
+                }
+            });
+            $rows = $base->orderByDesc('updated_at')->limit(20)->get();
+        } else {
+            // 자동 후보 — 금액 일치 또는 입금자명 유사 (둘 다 없으면 빈 목록, 검색으로 유도)
+            $rows = $base->where(function ($w) use ($deposit, $name) {
+                $w->where('total_amount', (int) $deposit->amount);
+                if ($name !== '') {
+                    $w->orWhere('client_name', 'like', "%{$name}%")
+                        ->orWhere('client_nickname', 'like', "%{$name}%")
+                        ->orWhere('ship_name', 'like', "%{$name}%");
+                }
+            })->orderByDesc('updated_at')->limit(30)->get();
+        }
+
+        $matchedSums = BankDeposit::whereIn('estimate_id', $rows->pluck('id'))
+            ->selectRaw('estimate_id, sum(amount) as s')->groupBy('estimate_id')->pluck('s', 'estimate_id');
+        $stLabel = ['created' => '생성', 'editing' => '수정 중', 'completed' => '작성 완료', 'issued' => '발행 완료', 'hold' => '보류'];
+
+        $items = $rows->map(function (Estimate $e) use ($deposit, $name, $matchedSums, $stLabel) {
+            $amountMatch = (int) $e->total_amount === (int) $deposit->amount;
+            $nameMatch = $name !== '' && collect([$e->client_name, $e->client_nickname, $e->ship_name])
+                ->contains(fn ($v) => $v && (mb_stripos($v, $name) !== false || mb_stripos($name, $v) !== false));
+            $recent = $e->updated_at && abs($e->updated_at->diffInDays($deposit->received_at ?? now())) <= 14;
+
+            return [
+                'id' => $e->id,
+                'no' => $e->display_no,
+                'title' => $e->title,
+                'client' => $e->client_nickname ?: $e->client_name ?: '-',
+                'total_amount' => (int) $e->total_amount,
+                'status' => $stLabel[$e->status] ?? $e->status,
+                'matched_sum' => (int) ($matchedSums[$e->id] ?? 0), // 이미 매칭된 다른 입금 합계 (분할 입금)
+                'amount_match' => $amountMatch,
+                'name_match' => $nameMatch,
+                'score' => ($amountMatch ? 3 : 0) + ($nameMatch ? 2 : 0) + ($recent ? 1 : 0),
+            ];
+        })->sortByDesc('score')->values();
+
+        return response()->json(['candidates' => $items]);
+    }
+
+    /**
+     * 매칭 확정 — 입금 건을 견적서에 연결하고, 매칭된 입금 합계가 견적 금액에 도달하면
+     * 결제완료 처리(계좌이체): 프로젝트 결제 원장·청구 동기화 + 채널톡 결제완료 알림.
+     */
+    public function match(Request $request, BankDeposit $deposit): JsonResponse
+    {
+        $validated = $request->validate(['estimate_id' => 'required|integer|exists:estimates,id']);
+
+        if ($deposit->estimate_id) {
+            return response()->json(['message' => '이미 매칭된 입금입니다. 먼저 해제해 주세요.'], 422);
+        }
+        $estimate = Estimate::findOrFail($validated['estimate_id']);
+        if (! in_array($estimate->status, self::MATCHABLE_STATUSES, true)) {
+            return response()->json(['message' => '결제완료/취소된 견적서에는 매칭할 수 없습니다.'], 422);
+        }
+
+        $deposit->update(['estimate_id' => $estimate->id, 'matched_at' => now(), 'matched_by' => $request->user()->id]);
+
+        // 분할 입금 지원 — 이 견적서에 매칭된 입금 합계가 견적 금액 이상이면 결제완료
+        $matchedSum = (int) BankDeposit::where('estimate_id', $estimate->id)->sum('amount');
+        $paid = false;
+        if ($matchedSum >= (int) $estimate->total_amount && (int) $estimate->total_amount > 0) {
+            $estimate->update(['status' => 'paid', 'paid_at' => $deposit->received_at ?? now()]);
+            EstimatePaymentSync::estimatePaid($estimate->fresh(), '계좌이체');
+            EstimatePaymentSync::syncProjectBilling($estimate->fresh());
+            PaymentCompleteAlert::estimatePaid($estimate->fresh(), [], '계좌이체');
+            $paid = true;
+        }
+
+        return response()->json([
+            'ok' => true,
+            'paid' => $paid,
+            'matched_sum' => $matchedSum,
+            'total_amount' => (int) $estimate->total_amount,
+            'estimate_no' => $estimate->display_no,
+        ]);
+    }
+
+    /**
+     * 매칭 해제 — 입금 연결만 끊는다. 견적서가 이미 결제완료로 전환된 경우 상태는 건드리지
+     * 않고(원장·알림이 이미 나감) 안내만 반환 — 필요하면 견적서에서 직접 상태를 조정한다.
+     */
+    public function unmatch(BankDeposit $deposit): JsonResponse
+    {
+        if (! $deposit->estimate_id) {
+            return response()->json(['message' => '매칭되지 않은 입금입니다.'], 422);
+        }
+        $estimate = $deposit->estimate;
+        $deposit->update(['estimate_id' => null, 'matched_at' => null, 'matched_by' => null]);
+
+        return response()->json([
+            'ok' => true,
+            'estimate_paid' => $estimate && $estimate->status === 'paid',
+            'estimate_id' => $estimate?->id,
         ]);
     }
 
