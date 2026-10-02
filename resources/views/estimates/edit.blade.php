@@ -1892,7 +1892,7 @@ function updateUsdUI(grandKrw) {
     document.getElementById('btnApplyUsd').style.display = on ? 'none' : '';
     document.getElementById('btnRevertKrw').style.display = on ? '' : 'none';
     document.getElementById('usdHint').textContent = on
-        ? `${usdDateLabel(estUsdRateDate)} · 1 USD = ${fmt(estUsdRate)}원 (매매기준율) — 저장하면 이 환율로 고정됩니다`
+        ? `${usdDateLabel(estUsdRateDate)} · 1 USD = ${fmt(estUsdRate)}원 (매매기준율) — 발행완료 처리 시점의 고시 환율로 최종 고정됩니다`
         : '';
     if (on) {
         if (typeof grandKrw !== 'number') {

@@ -156,6 +156,21 @@ class EstimateController extends Controller
         return response()->json(['public_url' => $estimate->publicUrl()]);
     }
 
+    /**
+     * 달러 견적서의 환율 고정 — 발행완료 처리 시점의 고시 환율로 갱신한다.
+     * 조회 실패 시 기존(적용 시점) 환율을 그대로 유지하고 발행은 막지 않는다.
+     */
+    private function fixUsdRateOnIssue(Estimate $estimate): void
+    {
+        if ($estimate->currency !== 'USD') {
+            return;
+        }
+        $fx = app(ExchangeRateService::class)->usdRate();
+        if ($fx['ok'] ?? false) {
+            $estimate->update(['usd_rate' => $fx['rate'], 'usd_rate_date' => $fx['date']]);
+        }
+    }
+
     /** USD 환율 조회 — 빌더 'USD($)로 적용' 버튼용 (수출입은행 매매기준율, 적용 시점에 고정 저장) */
     public function usdRate(ExchangeRateService $fx)
     {
@@ -538,6 +553,11 @@ class EstimateController extends Controller
             // 첫 실제 저장(temp 탈출) 시 표시 번호 발급 — 만들고 버린 견적서는 번호를 쓰지 않는다
             $this->assignEstimateNo($estimate->fresh());
 
+            // 달러 견적서 — 환율은 발행완료 처리 시점의 고시로 최종 고정
+            if ($becameIssued) {
+                $this->fixUsdRateOnIssue($estimate->fresh());
+            }
+
             // 발행완료로 전환 시 페이앱 결제요청 자동 생성 (실패해도 저장은 유지)
             $warning = $becameIssued ? $this->ensurePayappRequest($estimate->fresh(), $payapp) : null;
 
@@ -595,6 +615,7 @@ class EstimateController extends Controller
             'issued_at' => now(),
         ]);
         $this->assignEstimateNo($estimate);
+        $this->fixUsdRateOnIssue($estimate->fresh());
 
         $warning = $this->ensurePayappRequest($estimate, $payapp);
 

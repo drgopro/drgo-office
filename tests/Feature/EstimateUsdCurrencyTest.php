@@ -117,6 +117,33 @@ class EstimateUsdCurrencyTest extends TestCase
             ->assertSee('estUsdSub', false);
     }
 
+    public function test_usd_rate_fixed_at_issue_time(): void
+    {
+        // 적용 시점 환율(1,370)로 저장돼 있어도, 발행완료 처리 시점의 고시(1,385.20)로 최종 고정
+        Http::fake(['*koreaexim.go.kr/*' => Http::response([['cur_unit' => 'USD', 'deal_bas_r' => '1,385.20', 'result' => 1]], 200)]);
+        $estimate = $this->makeEstimate(['status' => 'created', 'currency' => 'USD', 'usd_rate' => 1370.00, 'usd_rate_date' => '2026-09-25']);
+
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $estimate->product_items, 'service_items' => [], 'status' => 'issued',
+            'currency' => 'USD', 'usd_rate' => 1370.00, 'usd_rate_date' => '2026-09-25',
+        ])->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame(1385.2, (float) $fresh->usd_rate);
+        $this->assertSame(now()->format('Y-m-d'), $fresh->usd_rate_date->format('Y-m-d'));
+
+    }
+
+    public function test_issue_keeps_existing_rate_when_fx_api_fails(): void
+    {
+        // 환율 API 장애 시 — 기존(적용 시점) 환율 유지, 발행은 정상 진행
+        Http::fake(['*koreaexim.go.kr/*' => Http::response(null, 500)]);
+        $other = $this->makeEstimate(['estimate_no' => 502, 'status' => 'created', 'currency' => 'USD', 'usd_rate' => 1370.00, 'usd_rate_date' => '2026-09-25']);
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$other->id}/issue")->assertOk();
+        $this->assertSame('issued', $other->fresh()->status);
+        $this->assertSame(1370.0, (float) $other->fresh()->usd_rate);
+    }
+
     public function test_public_view_shows_usd_with_rate_notice_and_toggle(): void
     {
         $estimate = $this->makeEstimate(['currency' => 'USD', 'usd_rate' => 1385.20, 'usd_rate_date' => '2026-10-02', 'payapp_payurl' => 'https://payapp.example/p1']);
