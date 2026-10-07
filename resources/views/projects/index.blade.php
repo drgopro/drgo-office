@@ -125,6 +125,14 @@
     [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
     .pst-count-all { background:rgba(150,150,170,0.16); color:var(--text-muted); }
     .cancel-reason-sub { font-size:11px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pj-restore-btn { margin-left:6px; padding:3px 9px; font-size:11px; font-weight:600; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
+    .pj-restore-btn:hover { border-color:var(--accent); color:var(--accent); }
+    /* 검색어 지우기 ✕ — 입력 내용이 있을 때만 표시 */
+    .search-input-wrap { position:relative; display:inline-flex; flex:0 1 auto; }
+    .search-input-wrap .search-input { padding-right:32px; width:260px; }
+    .search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text-muted); font-size:14px; cursor:pointer; padding:2px 4px; line-height:1; display:none; }
+    .search-input-wrap.has-text .search-clear { display:block; }
+    .search-clear:hover { color:var(--text); }
 
     .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
     .pagination { display:flex; justify-content:center; margin-top:20px; }
@@ -222,7 +230,11 @@
     <form method="GET" action="{{ route('projects.index') }}" class="search-bar">
         @if($statusTab !== 'active')<input type="hidden" name="status" value="{{ $statusTab }}">@endif
         <div class="search-row">
-            <input class="search-input" type="text" name="search" placeholder="의뢰자명, 프로젝트명 검색" value="{{ request('search') }}">
+            <span class="search-input-wrap {{ request('search') ? 'has-text' : '' }}">
+                <input class="search-input" type="text" name="search" placeholder="의뢰자명, 프로젝트명 검색" value="{{ request('search') }}"
+                       oninput="this.closest('.search-input-wrap').classList.toggle('has-text', this.value.length > 0)">
+                <button type="button" class="search-clear" title="검색어 지우기" onclick="const f=this.closest('form'); f.querySelector('.search-input').value=''; f.submit();">✕</button>
+            </span>
             <button type="submit" class="btn-search">검색</button>
             @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search') || request()->boolean('has_report'))
                 <a href="{{ $statusTab !== 'active' ? route('projects.index', ['status' => $statusTab]) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
@@ -316,6 +328,27 @@
             });
         }
         bindFilterAutoSubmit();
+
+        // 취소 복구 — 취소 직전 단계로 되돌림 (취소 기록은 서버에서 초기화)
+        async function restoreProject(id, stage, btn) {
+            if (!confirm('이 프로젝트의 취소를 해제하고 진행 상태로 복구할까요?')) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/projects/${id}/stage`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+                    body: JSON.stringify({ stage }),
+                });
+                if (!res.ok) {
+                    const d = await res.json().catch(() => ({}));
+                    alert(d.message || '복구하지 못했습니다.');
+                    btn.disabled = false;
+                    return;
+                }
+                location.reload();
+            } catch (e) { alert('복구하지 못했습니다.'); btn.disabled = false; }
+        }
+        window.restoreProject = restoreProject;
 
         // ── 상태 탭 — 슬라이딩 알약 + 새로고침 없는 목록 전환 ──
         (function () {
@@ -449,6 +482,9 @@
                             <span class="stage-badge stage-cancelled">취소</span>
                             @if($project->cancelled_from_stage)
                                 <span style="font-size:11px; color:var(--text-muted);">{{ $stageOptions[$project->cancelled_from_stage] ?? $project->cancelled_from_stage }} 중</span>
+                            @endif
+                            @if(Auth::user()->hasPermission('projects.edit'))
+                                <button type="button" class="pj-restore-btn" onclick="restoreProject({{ $project->id }}, '{{ $project->cancelled_from_stage ?: 'consulting' }}', this)" title="취소를 해제하고 취소 직전 단계로 되돌립니다">↩ 복구</button>
                             @endif
                             @if($project->cancel_reason || $project->cancel_detail)
                                 <div class="cancel-reason-sub" title="{{ trim($project->cancel_reason.' '.$project->cancel_detail) }}">{{ $project->cancel_reason }}{{ $project->cancel_detail ? ' — '.$project->cancel_detail : '' }}</div>

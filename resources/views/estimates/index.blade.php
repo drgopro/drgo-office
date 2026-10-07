@@ -10,8 +10,13 @@
     .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
 
     .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
-    .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:260px; }
+    .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 32px 8px 14px; color:var(--text); font-size:13px; outline:none; width:260px; box-sizing:border-box; }
     .toolbar input:focus { border-color:var(--accent); }
+    /* 검색 — 엔터로 실행, ✕로 지우기 (내용 있을 때만 표시) */
+    .search-wrap { position:relative; display:inline-flex; }
+    .search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text-muted); font-size:14px; cursor:pointer; padding:2px 4px; line-height:1; display:none; }
+    .search-wrap.has-text .search-clear { display:block; }
+    .search-clear:hover { color:var(--text); }
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -178,7 +183,13 @@
 
     <div id="tabList">
     <div class="toolbar">
-        <input type="text" id="estSearch" placeholder="의뢰자명/번호 검색" oninput="estPage=1; loadEstimates()">
+        <span class="search-wrap" id="estSearchWrap">
+            {{-- 즉시 검색은 목록이 타이핑마다 출렁여 혼란 — 엔터로 실행 --}}
+            <input type="text" id="estSearch" placeholder="의뢰자명/번호 검색 (엔터)"
+                   onkeydown="if(event.key==='Enter'){estPage=1; loadEstimates();}"
+                   oninput="document.getElementById('estSearchWrap').classList.toggle('has-text', this.value.length > 0)">
+            <button type="button" class="search-clear" title="검색어 지우기" onclick="const i=document.getElementById('estSearch'); i.value=''; document.getElementById('estSearchWrap').classList.remove('has-text'); estPage=1; loadEstimates();">✕</button>
+        </span>
         <select id="estPerPage" onchange="estPage=1; setEstPerPage(this.value)" title="페이지당 표시 개수" style="width:auto;">
             <option value="10">10개씩</option>
             <option value="20">20개씩</option>

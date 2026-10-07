@@ -269,6 +269,14 @@ class ProjectController extends Controller
             $data['completed_at'] = null; // 완료 취소(되돌리기) — 재완료 시 새 시각 기록
         }
 
+        // 취소 복구 — 취소 기록을 비워 진행 프로젝트로 되돌린다 (취소 탭 복구 버튼)
+        if ($project->stage === 'cancelled' && $request->stage !== 'cancelled') {
+            $data['cancel_reason'] = null;
+            $data['cancel_detail'] = null;
+            $data['cancelled_at'] = null;
+            $data['cancelled_from_stage'] = null;
+        }
+
         if ($request->stage === 'cancelled') {
             $data['cancel_reason'] = $request->cancel_reason;
             $data['cancel_detail'] = $request->cancel_detail;

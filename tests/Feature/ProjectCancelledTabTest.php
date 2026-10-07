@@ -123,6 +123,25 @@ class ProjectCancelledTabTest extends TestCase
             ->assertSee('취소된 프로젝트가 없습니다.');
     }
 
+    public function test_restore_clears_cancel_records_and_returns_to_previous_stage(): void
+    {
+        $cancelled = Project::where('name', '취소 프로젝트')->firstOrFail();
+
+        // 취소 탭에 복구 버튼 렌더
+        $this->actingAs($this->admin)->get('/projects?status=cancelled')
+            ->assertOk()->assertSee('restoreProject', false)->assertSee('↩ 복구', false);
+
+        // 복구 — 취소 직전 단계로 + 취소 기록 초기화
+        $this->actingAs($this->admin)->patchJson("/projects/{$cancelled->id}/stage", ['stage' => 'estimate'])
+            ->assertOk();
+        $fresh = $cancelled->fresh();
+        $this->assertSame('estimate', $fresh->stage);
+        $this->assertNull($fresh->cancel_reason);
+        $this->assertNull($fresh->cancel_detail);
+        $this->assertNull($fresh->cancelled_at);
+        $this->assertNull($fresh->cancelled_from_stage);
+    }
+
     public function test_stage_filter_is_ignored_on_cancelled_tab(): void
     {
         // 남아 있는 stage 파라미터가 취소 조건과 AND로 충돌해 빈 결과가 되지 않아야 한다
