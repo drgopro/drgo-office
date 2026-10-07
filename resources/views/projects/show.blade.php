@@ -348,6 +348,17 @@
     .rqm-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; font-size:13px; padding:8px 18px; }
     /* ── 추가 정보 저장 상태 배지 + 수동 저장 버튼 ── */
     .pcf-badge { font-size:11.5px; font-weight:600; letter-spacing:0; }
+    /* 요약 보기 — 값 있는 항목만 압축 표시 (캘린더 요약과 동일 개념) */
+    .pcf-sum-row { display:flex; gap:10px; padding:5px 0; border-bottom:1px dashed var(--border); font-size:12.5px; align-items:baseline; }
+    .pcf-sum-row:last-child { border-bottom:none; }
+    .pcf-sum-label { color:var(--text-muted); min-width:120px; flex-shrink:0; }
+    .pcf-sum-val { font-weight:600; word-break:break-all; }
+    .pcf-ent-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+    .pcf-ent-row .pcf-input { flex:1; min-width:0; }
+    .pcf-ent-del { flex-shrink:0; width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); font-size:12px; cursor:pointer; line-height:1; }
+    .pcf-ent-del:hover { border-color:var(--red); color:var(--red); }
+    .pcf-ent-add { border:1px dashed var(--border); background:none; color:var(--accent); border-radius:6px; padding:4px 10px; font-size:11.5px; cursor:pointer; }
+    .pcf-ent-add:hover { border-color:var(--accent); }
     .pcf-badge.dirty { color:#d4a96a; }
     .pcf-badge.saving { color:var(--text-muted); }
     .pcf-badge.saved { color:#5cb87a; }
@@ -1137,7 +1148,11 @@
             <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <span>추가 정보</span>
                 <span id="pcfSaveBadge" class="pcf-badge"></span>
-                <button type="button" class="pcf-save-btn" onclick="pcfSaveNow()" title="변경 내용을 즉시 저장">저장</button>
+                <button type="button" class="pcf-save-btn" id="pcfSaveBtn" onclick="pcfSaveNow()" title="변경 내용을 즉시 저장" style="display:none;">저장</button>
+                <button type="button" class="pcf-save-btn" id="pcfModeBtn" onclick="togglePcfEditMode()" title="기본은 입력된 값만 요약 표시 — 편집을 눌러 입력 폼을 엽니다" style="border-color:var(--accent); color:var(--accent);">✎ 편집</button>
+                @if($project->client_id)
+                <button type="button" class="pcf-save-btn" onclick="pcfPinAsClientEquip()" title="의뢰자 페이지의 장비 요약이 이 프로젝트 기준으로 고정됩니다" style="margin-left:auto;">현재 장비를 의뢰자에 연동</button>
+                @endif
             </div>
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
         </div>
@@ -2549,8 +2564,27 @@ const PROJECT_ID = {{ $project->id }};
 const CSRF_PJ = document.querySelector('meta[name="csrf-token"]').content;
 let projectFieldDefs = [];
 let projectCustomData = @json($project->custom_data ?? new \stdClass);
+// 빈 custom_data는 PHP 배열이라 []로 직렬화됨 — 배열이면 객체로 바꿔야 키 저장이 JSON에 실린다
+if (Array.isArray(projectCustomData)) projectCustomData = Object.assign({}, projectCustomData);
 const PCF_SECTIONS = { equipment:'장비 정보', basic:'기본 정보', schedule:'일정 정보', billing:'금액/결제', etc:'기타' }; // 장비를 맨 위로 (하단에 묻히던 문제)
 const PCF_CAN_MANAGE = @json(auth()->user()->isAdmin()); // 필드 정의 API는 master/admin 전용
+const PROJECT_CLIENT_ID = @json($project->client_id);
+
+// 의뢰자 대표 장비 지정 — 의뢰자 페이지의 장비 요약이 이 프로젝트 기준으로 고정된다
+async function pcfPinAsClientEquip() {
+    if (!PROJECT_CLIENT_ID) return;
+    if (!confirm('의뢰자 페이지의 장비 요약을 이 프로젝트 기준으로 고정할까요?')) return;
+    try {
+        const res = await fetch(`/api/clients/${PROJECT_CLIENT_ID}/equipment-source`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-CSRF-TOKEN':CSRF_PJ, 'Accept':'application/json'},
+            body: JSON.stringify({ project_id: PROJECT_ID })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.message || '지정하지 못했습니다.'); return; }
+        alert('이 프로젝트의 장비가 의뢰자 대표 장비로 지정되었습니다.');
+    } catch (e) { alert('지정하지 못했습니다.'); }
+}
 
 function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -2598,8 +2632,84 @@ function pcfSubIcon(name) {
     return '📦';
 }
 
+// 요약/편집 모드 — 기본은 요약 (값 있는 항목만 압축 표시), [편집]으로 입력 폼 전환
+let pcfEditMode = false;
+function togglePcfEditMode() {
+    if (pcfEditMode && pcfDirty) pcfSaveNow(); // 편집 종료 시 미저장분 저장
+    pcfEditMode = !pcfEditMode;
+    const btn = document.getElementById('pcfModeBtn');
+    if (btn) btn.textContent = pcfEditMode ? '완료' : '✎ 편집';
+    const save = document.getElementById('pcfSaveBtn');
+    if (save) save.style.display = pcfEditMode ? '' : 'none';
+    renderProjectCustomFields();
+}
+
+// 값 배열 정규화 — 다중 값([{value,qty},…]) / 수량형({value,qty}) / 평문 모두 entries 배열로
+function pcfEntriesOf(val) {
+    if (Array.isArray(val) && (val.length === 0 || (val[0] && typeof val[0] === 'object' && 'value' in val[0]))) {
+        return val.map(e => ({ value: e?.value ?? '', qty: e?.qty ?? '' }));
+    }
+    const vq = pcfGetVQ(val);
+    return [{ value: vq.value, qty: vq.qty }];
+}
+
+// 요약 표시용 값 문자열 — 비어 있으면 null (해당 항목 숨김)
+function pcfDisplayVal(f, val) {
+    if (val === null || val === undefined || val === '') return null;
+    if (f.type === 'checkbox') {
+        const arr = Array.isArray(val) ? val.filter(Boolean) : [];
+        return arr.length ? arr.join(', ') : null;
+    }
+    if (f.type === 'toggle') {
+        const vq = pcfGetVQ(val);
+        const on = vq.value === true || vq.value === 'true' || vq.value === 1 || vq.value === '1' || vq.value === '있음';
+        if (!on) return null;
+        return '있음' + (vq.qty ? ` ×${vq.qty}` : '');
+    }
+    const entries = pcfEntriesOf(val).filter(e => String(e.value ?? '').trim() !== '' && e.value !== false);
+    if (!entries.length) return null;
+    return entries.map(e => `${e.value}${e.qty ? ` ×${e.qty}` : ''}`).join(' · ');
+}
+
+function renderPcfSummary(wrap) {
+    const grouped = {};
+    pcfAllDefs().forEach(f => {
+        const disp = pcfDisplayVal(f, projectCustomData[f.key]);
+        if (disp === null) return; // 공란은 요약에서 숨김
+        const sec = f.section || 'etc';
+        const sub = f.subsection || '';
+        if (!grouped[sec]) grouped[sec] = {};
+        if (!grouped[sec][sub]) grouped[sec][sub] = [];
+        grouped[sec][sub].push({ f, disp });
+    });
+
+    let html = '';
+    Object.entries(PCF_SECTIONS).forEach(([k, lbl]) => {
+        if (!grouped[k] && k !== 'equipment') return;
+        const subs = grouped[k] || {};
+        const subKeys = Object.keys(subs);
+        html += `<div class="pcf-section" data-section="${k}">
+            <div class="pcf-sec-title">${pcfEsc(lbl)}
+                ${k === 'equipment' && PCF_CAN_MANAGE ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">⚙ 항목 편집</button>` : ''}
+            </div>`;
+        if (!subKeys.length) {
+            html += `<div style="font-size:12px; color:var(--text-muted);">입력된 정보가 없습니다 — 상단 <b>✎ 편집</b>으로 입력하세요.</div>`;
+        } else {
+            subKeys.sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'ko'))).forEach(sub => {
+                if (sub !== '') html += `<div class="pcf-sub-title" style="margin-top:6px;"><span class="pcf-sub-icon">${pcfSubIcon(sub)}</span>${pcfEsc(sub)}</div>`;
+                subs[sub].sort((a, b) => (b.f.priority || 0) - (a.f.priority || 0)).forEach(({ f, disp }) => {
+                    html += `<div class="pcf-sum-row"><span class="pcf-sum-label">${pcfEsc(f.label)}</span><span class="pcf-sum-val">${pcfEsc(disp)}</span></div>`;
+                });
+            });
+        }
+        html += `</div>`;
+    });
+    wrap.innerHTML = html || '<div style="font-size:12px; color:var(--text-muted);">입력된 추가 정보가 없습니다.</div>';
+}
+
 function renderProjectCustomFields() {
     const wrap = document.getElementById('projectCustomFields');
+    if (!pcfEditMode) { renderPcfSummary(wrap); return; }
     // section → subsection → fields 2단 그룹 + priority 집계 (전역 정의 + 프로젝트 전용 장비 항목)
     const grouped = {};
     const subMaxPrio = {};
@@ -2627,9 +2737,13 @@ function renderProjectCustomFields() {
     const renderFieldHtml = (f) => {
         const val = projectCustomData[f.key];
         const w = resolveWidth(f);
+        // 장비 섹션의 입력/선택 항목 — 같은 카테고리에 + 버튼으로 여러 값 추가 (외장/내장 등)
+        const body = ((f.section || '') === 'equipment' && ['text', 'select'].includes(f.type))
+            ? pcfMultiInput(f, val)
+            : pcfInput(f, val);
         return `<div class="pcf-field w-${w}">
             <div class="pcf-label">${pcfEsc(f.label)}${f.is_required?' <span style="color:var(--red)">*</span>':''}</div>
-            ${pcfInput(f, val)}
+            ${body}
             ${f.help_text?`<div class="pcf-help">${pcfEsc(f.help_text)}</div>`:''}
         </div>`;
     };
@@ -2760,6 +2874,84 @@ function pcfInputCore(f, val) {
         default:
             return `<input type="text" class="pcf-input" value="${pcfEsc(val)}" data-key="${f.key}" oninput="pcfChange(this)" placeholder="${ph}">`;
     }
+}
+
+// ── 장비 다중 값 입력 — entries 배열 렌더 (+ 추가 / − 제거), 1개면 기존 저장 형식 유지 ──
+function pcfMultiInput(f, val) {
+    const entries = pcfEntriesOf(val);
+    const useQty = !!f.has_quantity;
+    const rows = entries.map((e, i) => {
+        const core = f.type === 'select'
+            ? `<select class="pcf-input" data-key="${f.key}" data-ent="${i}" onchange="pcfEntChange(this)"><option value="">선택...</option>${(f.options||[]).map(o => `<option value="${pcfEsc(o)}"${String(e.value)===o?' selected':''}>${pcfEsc(o)}</option>`).join('')}${f.options && f.options.includes(String(e.value)) || String(e.value)==='' ? '' : `<option value="${pcfEsc(e.value)}" selected>${pcfEsc(e.value)}</option>`}<option value="__custom__">＋ 직접 입력…</option></select>`
+            : `<input type="text" class="pcf-input" value="${pcfEsc(e.value ?? '')}" data-key="${f.key}" data-ent="${i}" oninput="pcfEntChange(this)" placeholder="${pcfEsc(f.placeholder || '')}">`;
+        const qty = useQty ? `<input type="number" class="pcf-input" min="0" step="1" value="${pcfEsc(e.qty ?? '')}" data-key="${f.key}" data-ent="${i}" oninput="pcfEntQtyChange(this)" placeholder="수량" style="max-width:76px; flex:none;">` : '';
+        const del = entries.length > 1 ? `<button type="button" class="pcf-ent-del" onclick="pcfEntRemove('${f.key}', ${i})" title="이 값 제거">✕</button>` : '';
+        return `<div class="pcf-ent-row">${core}${qty}${del}</div>`;
+    }).join('');
+    return `<div>${rows}<button type="button" class="pcf-ent-add" onclick="pcfEntAdd('${f.key}')" title="같은 항목에 값을 하나 더 추가 (예: 외장/내장 캡처보드)">＋ 추가</button></div>`;
+}
+function pcfEntStore(key, entries) {
+    // 1개면 기존 형식(평문 또는 {value,qty}) 유지 — 다른 화면(의뢰자 상세 등) 호환
+    const f = pcfDefOf(key);
+    if (entries.length <= 1) {
+        const e = entries[0] || { value: '', qty: '' };
+        projectCustomData[key] = (f && f.has_quantity) ? { value: e.value, qty: e.qty === '' ? null : e.qty } : e.value;
+    } else {
+        projectCustomData[key] = entries.map(e => ({ value: e.value, qty: e.qty === '' ? null : e.qty }));
+    }
+    pcfScheduleSave();
+}
+function pcfEntChange(el) {
+    const key = el.dataset.key, i = parseInt(el.dataset.ent, 10);
+    if (el.value === '__custom__') { pcfCustomOption(key, i); return; }
+    const entries = pcfEntriesOf(projectCustomData[key]);
+    while (entries.length <= i) entries.push({ value: '', qty: '' });
+    entries[i].value = el.value;
+    pcfEntStore(key, entries);
+}
+function pcfEntQtyChange(el) {
+    const key = el.dataset.key, i = parseInt(el.dataset.ent, 10);
+    const entries = pcfEntriesOf(projectCustomData[key]);
+    while (entries.length <= i) entries.push({ value: '', qty: '' });
+    const num = parseInt(el.value, 10);
+    entries[i].qty = Number.isFinite(num) && num >= 0 ? num : '';
+    pcfEntStore(key, entries);
+}
+function pcfEntAdd(key) {
+    const entries = pcfEntriesOf(projectCustomData[key]);
+    entries.push({ value: '', qty: '' });
+    pcfEntStore(key, entries);
+    renderProjectCustomFields();
+}
+function pcfEntRemove(key, i) {
+    const entries = pcfEntriesOf(projectCustomData[key]);
+    entries.splice(i, 1);
+    pcfEntStore(key, entries.length ? entries : [{ value: '', qty: '' }]);
+    renderProjectCustomFields();
+}
+// 드롭다운에 없는 제품 수기 입력 — 저장하면 이 항목의 선택 목록에도 추가 (멤버 가능)
+async function pcfCustomOption(key, entIdx) {
+    const name = prompt('새 제품명을 입력하세요.\n저장하면 이 항목의 선택 목록에도 추가되어 다음부터 바로 고를 수 있습니다.');
+    if (!name || !name.trim()) { renderProjectCustomFields(); return; }
+    const value = name.trim();
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}/equip-field-options`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_PJ, 'Accept': 'application/json' },
+            body: JSON.stringify({ key, value }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.message || '선택 목록 추가에 실패했습니다.'); renderProjectCustomFields(); return; }
+        // 로컬 정의에도 반영 — 리렌더 시 새 옵션이 바로 보이게
+        const g = projectFieldDefs.find(x => x.key === key);
+        if (g) g.options = d.options;
+        (projectCustomData.__equip_items || []).forEach(it => { if (it.key === key) it.options = d.options; });
+    } catch (e) { alert('선택 목록 추가 중 오류가 발생했습니다.'); }
+    const entries = pcfEntriesOf(projectCustomData[key]);
+    while (entries.length <= entIdx) entries.push({ value: '', qty: '' });
+    entries[entIdx].value = value;
+    pcfEntStore(key, entries);
+    renderProjectCustomFields();
 }
 
 function pcfChange(el) {

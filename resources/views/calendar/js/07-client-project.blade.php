@@ -203,6 +203,10 @@ function linkedEquipData(){
 }
 // 장비 값 표시 — 수량형 {value,qty}·배열·토글 포함 (의뢰자 페이지 표기 규칙과 동일)
 function calEquipDisplay(v){
+    // 다중 값 [{value,qty},…] — 엔트리별 수량형 표기를 이어붙임
+    if(Array.isArray(v)&&v.length&&v[0]&&typeof v[0]==='object'&&('value' in v[0]||'qty' in v[0])){
+        return v.map(e=>calEquipDisplay(e)).filter(Boolean).join(', ');
+    }
     if(Array.isArray(v)) return v.join(', ');
     if(v&&typeof v==='object'&&('value' in v||'qty' in v)){
         const val=v.value===true?'있음':v.value===false?'없음':String(v.value??'').trim();

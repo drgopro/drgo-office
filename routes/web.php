@@ -246,6 +246,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/clients/{client}/contacts', [ClientController::class, 'storeContact']);
         Route::patch('/api/client-contacts/{contact}', [ClientController::class, 'updateContact']);
         Route::delete('/api/client-contacts/{contact}', [ClientController::class, 'destroyContact']);
+        Route::post('/api/clients/{client}/equipment-source', [ClientController::class, 'setEquipmentSource']); // 대표 장비 프로젝트 지정
     });
 
     // 의뢰자 (create가 {client} 와일드카드보다 먼저)
@@ -270,6 +271,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/api/projects/{project}', [ProjectController::class, 'updateJson']);
         Route::delete('/api/projects/{project}', [ProjectController::class, 'destroy']);
         Route::post('/api/projects/{project}/memos', [ProjectController::class, 'storeMemo']);
+        Route::post('/api/projects/{project}/equip-field-options', [ProjectController::class, 'addEquipFieldOption']); // 장비 드롭다운에 제품 수기 추가 (멤버 가능)
         Route::delete('/api/project-memos/{memo}', [ProjectController::class, 'destroyMemo']);
         Route::post('/api/projects/{project}/payment', [ProjectController::class, 'savePayment'])->name('projects.payment');
         Route::patch('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'updatePayment']);

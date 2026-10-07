@@ -2226,6 +2226,10 @@ function escText(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g
 
 // has_quantity 필드: {value, qty} → 표시용 문자열
 function formatCfDisplay(v) {
+    // 다중 값 [{value,qty},…] — 각 엔트리를 수량형 규칙으로 이어붙임 (예: '외장 × 1, 내장')
+    if (Array.isArray(v) && v.length && v[0] && typeof v[0] === 'object' && ('value' in v[0] || 'qty' in v[0])) {
+        return v.map(e => formatCfDisplay(e)).filter(Boolean).join(', ');
+    }
     if (Array.isArray(v)) return v.join(', ');
     if (v && typeof v === 'object' && !Array.isArray(v) && ('value' in v || 'qty' in v)) {
         // 토글 수량형 {value:true, qty:2} → '있음 × 2'
@@ -2330,13 +2334,16 @@ function renderClientView(d) {
     const eqProjects = (d.projects || []).filter(p => p.equipment && (p.equipment.fields || []).length).sort((a, b) => b.id - a.id);
     let equipBody, equipRail;
     if (eqProjects.length) {
-        const selId = eqProjects.some(p => p.id === window.__cvEqSel[d.id]) ? window.__cvEqSel[d.id] : eqProjects[0].id;
+        // 기본 선택 — 탭에서 고른 프로젝트 > 대표 지정(equipment_project_id) > 최신
+        const pinnedId = eqProjects.some(p => p.id === d.equipment_project_id) ? d.equipment_project_id : null;
+        const selId = eqProjects.some(p => p.id === window.__cvEqSel[d.id]) ? window.__cvEqSel[d.id]
+            : (pinnedId || eqProjects[0].id);
         const selEq = eqProjects.find(p => p.id === selId).equipment;
         const tabs = eqProjects.length > 1
-            ? `<div class="cv-eqtabs">${eqProjects.map(p => `<button type="button" class="cv-eqtab${p.id === selId ? ' active' : ''}" data-eqtab="${p.id}" onclick="cvEqSelect(${d.id}, ${p.id})">${_esc(p.name)}</button>`).join('')}</div>`
+            ? `<div class="cv-eqtabs">${eqProjects.map(p => `<button type="button" class="cv-eqtab${p.id === selId ? ' active' : ''}" data-eqtab="${p.id}" onclick="cvEqSelect(${d.id}, ${p.id})">${_esc(p.name)}${p.id === pinnedId ? ' ★' : ''}</button>`).join('')}</div>`
             : '';
-        equipBody = `${tabs}<div id="cv-eq-body-${d.id}">${cvEqBodyHtml(selEq)}</div>`;
-        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd" id="cv-eq-rail-${d.id}">${cvEqRailHtml(selEq, eqProjects.length)}</div>`;
+        equipBody = `${tabs}<div id="cv-eq-body-${d.id}">${cvEqBodyHtml(selEq, d.id, pinnedId)}</div>`;
+        equipRail = `<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div><div class="cv-rd" id="cv-eq-rail-${d.id}">${cvEqRailHtml(selEq, eqProjects.length, pinnedId)}</div>`;
     } else {
         equipBody = '<div class="cv-v dim">연동된 장비 정보가 없습니다 — 프로젝트에서 장비 정보를 입력하면 여기에 표시됩니다.</div>';
         equipRail = '<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div>';
@@ -2361,17 +2368,26 @@ function renderClientView(d) {
     </div>`;
 }
 // 장비 정보 바디/레일 — 프로젝트 선택 탭과 공유
-function cvEqBodyHtml(eq) {
+function cvEqBodyHtml(eq, clientId, pinnedId) {
     const groups = {};
     eq.fields.forEach(f => { const s = f.subsection || '기타'; (groups[s] = groups[s] || []).push(f); });
+    // 대표 지정 — 이 프로젝트 장비를 기본 표시로 고정 (clients.edit 권한)
+    let pinBtn = '';
+    if (CAN_CLIENT_EDIT && clientId) {
+        pinBtn = eq.project_id === pinnedId
+            ? `<button type="button" class="cv-eqlink" style="border:0;background:none;cursor:pointer;" onclick="cvEqPin(${clientId}, null)" title="대표 지정을 해제하면 최신 프로젝트 기준으로 표시됩니다">★ 대표 장비 (해제)</button>`
+            : `<button type="button" class="cv-eqlink" style="border:0;background:none;cursor:pointer;" onclick="cvEqPin(${clientId}, ${eq.project_id})" title="이 프로젝트 장비를 기본 표시로 고정합니다">☆ 대표로 지정</button>`;
+    }
     return Object.keys(groups).map(sub => `<div class="cv-eqgroup">
             <span class="cv-subchip">${_esc(sub)}</span>
             <div class="cv-grid3">${groups[sub].map(f => `<div><div class="cv-l">${_esc(f.label)}</div>${cvVal(formatCfDisplay(f.value))}</div>`).join('')}</div>
         </div>`).join('')
-        + `<a class="cv-eqlink" href="/projects/${eq.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))">프로젝트에서 원본 보기 →</a>`;
+        + `<a class="cv-eqlink" href="/projects/${eq.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))">프로젝트에서 원본 보기 →</a>`
+        + pinBtn;
 }
-function cvEqRailHtml(eq, count) {
-    return `${count > 1 ? '프로젝트 ' + count + '곳 중 선택 표시' : '최근 프로젝트'}<br>「${_esc(eq.project_name)}」 · ${eq.created_at}`;
+function cvEqRailHtml(eq, count, pinnedId) {
+    const head = eq.project_id === pinnedId ? '★ 대표 지정 프로젝트' : (count > 1 ? '프로젝트 ' + count + '곳 중 선택 표시' : '최근 프로젝트');
+    return `${head}<br>「${_esc(eq.project_name)}」 · ${eq.created_at}`;
 }
 // 장비 탭 전환 — 선택 상태를 기억하고 바디/레일만 갈아끼움
 function cvEqSelect(clientId, projectId) {
@@ -2382,10 +2398,32 @@ function cvEqSelect(clientId, projectId) {
     if (!p?.equipment) return;
     const body = document.getElementById('cv-eq-body-' + clientId);
     const rail = document.getElementById('cv-eq-rail-' + clientId);
-    if (body) body.innerHTML = cvEqBodyHtml(p.equipment);
+    if (body) body.innerHTML = cvEqBodyHtml(p.equipment, clientId, tab?.data?.equipment_project_id ?? null);
     const eqCount = (tab.data.projects || []).filter(x => x.equipment && (x.equipment.fields || []).length).length;
-    if (rail) rail.innerHTML = cvEqRailHtml(p.equipment, eqCount);
+    if (rail) rail.innerHTML = cvEqRailHtml(p.equipment, eqCount, tab?.data?.equipment_project_id ?? null);
     document.querySelectorAll(`#cpane-${clientId} .cv-eqtab`).forEach(b => b.classList.toggle('active', String(b.dataset.eqtab) === String(projectId)));
+}
+
+// 대표 장비 프로젝트 지정/해제 — 기본 표시 프로젝트를 서버에 고정 (null = 최신 프로젝트 자동)
+async function cvEqPin(clientId, projectId) {
+    try {
+        const res = await fetch(`/api/clients/${clientId}/equipment-source`, {
+            method: 'POST', headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+            body: JSON.stringify({ project_id: projectId })
+        });
+        const dd = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(dd.message || '대표 장비를 지정하지 못했습니다.'); return; }
+        const tab = openClientTabs.find(t => t.id === clientId);
+        if (tab?.data) tab.data.equipment_project_id = projectId;
+        // 탭 ★ 표시와 바디의 지정 버튼 상태 갱신 — 현재 보던 프로젝트 유지
+        const eqProjects = (tab?.data?.projects || []).filter(x => x.equipment && (x.equipment.fields || []).length);
+        document.querySelectorAll(`#cpane-${clientId} .cv-eqtab`).forEach(b => {
+            const p = eqProjects.find(x => String(x.id) === String(b.dataset.eqtab));
+            if (p) b.textContent = p.name + (p.id === projectId ? ' ★' : '');
+        });
+        const curId = eqProjects.some(p => p.id === window.__cvEqSel[clientId]) ? window.__cvEqSel[clientId] : (projectId || eqProjects.sort((a,b)=>b.id-a.id)[0]?.id);
+        if (curId) cvEqSelect(clientId, curId);
+    } catch (e) { alert('대표 장비를 지정하지 못했습니다.'); }
 }
 
 // 수정 폼 작성 현황 (등록 모달의 ncmRefresh와 동일 규칙 — 카드별 채움/전체 %/필수)

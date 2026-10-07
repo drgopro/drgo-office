@@ -395,6 +395,10 @@ class ClientController extends Controller
             $values = [];
             foreach ($eqFields->concat($localDefs) as $f) {
                 $v = $custom[$f->key] ?? null;
+                // 다중 값 [{value,qty},…] — 빈 엔트리는 걸러서 표시
+                if (is_array($v) && array_is_list($v) && isset($v[0]) && is_array($v[0]) && array_key_exists('value', $v[0])) {
+                    $v = array_values(array_filter($v, fn ($e) => is_array($e) && ! in_array($e['value'] ?? null, [null, '', false], true)));
+                }
                 // false = 토글 '없음' — 미입력과 동일하게 표시하지 않음 ({value:false, qty:…} 수량형 포함)
                 if ($v === null || $v === '' || $v === false || (is_array($v) && empty($v))
                     || (is_array($v) && array_key_exists('value', $v) && in_array($v['value'], [null, '', false], true))) {
@@ -423,9 +427,12 @@ class ClientController extends Controller
             ];
         };
 
-        // 폴백 표시용 — 최신 프로젝트 우선, 비어 있으면 장비 정보가 적힌 가장 최근 프로젝트
+        // 폴백 표시용 — 대표 지정 프로젝트 우선, 없으면 장비 정보가 적힌 가장 최근 프로젝트
         $projectEquipments = $sortedProjects->mapWithKeys(fn (Project $p) => [$p->id => $equipmentOf($p)]);
-        $lastProjectEquipment = $projectEquipments->filter()->first();
+        $pinnedId = $client->equipment_project_id;
+        $lastProjectEquipment = ($pinnedId && ($projectEquipments[$pinnedId] ?? null))
+            ? $projectEquipments[$pinnedId]
+            : $projectEquipments->filter()->first();
 
         return response()->json([
             'id' => $client->id,
@@ -448,6 +455,8 @@ class ClientController extends Controller
             'client_type' => $client->client_type,
             'custom_data' => $client->custom_data ?? new \stdClass,
             'last_project_equipment' => $lastProjectEquipment,
+            'equipment_project_id' => $client->equipment_project_id, // 대표 장비 프로젝트 고정
+
             'gender' => $client->gender,
             'affiliation' => $client->affiliation,
             'important_memo' => $client->important_memo,
@@ -517,6 +526,23 @@ class ClientController extends Controller
                 'edit_url' => route('estimates.edit', $e),
             ]),
         ]);
+    }
+
+    /** 대표 장비 프로젝트 지정 — 의뢰자 장비 요약이 이 프로젝트 기준으로 고정된다 (null이면 최신 프로젝트 자동) */
+    public function setEquipmentSource(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'project_id' => 'nullable|integer|exists:projects,id',
+        ]);
+
+        $projectId = $validated['project_id'] ?? null;
+        if ($projectId !== null && ! $client->projects()->whereKey($projectId)->exists()) {
+            return response()->json(['message' => '이 의뢰자의 프로젝트가 아닙니다.'], 422);
+        }
+
+        $client->update(['equipment_project_id' => $projectId]);
+
+        return response()->json(['ok' => true, 'equipment_project_id' => $client->equipment_project_id]);
     }
 
     // JSON 업데이트 API

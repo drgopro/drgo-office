@@ -37,6 +37,7 @@ class Client extends Model
         'personality',
         'budget_style',
         'custom_data',
+        'equipment_project_id',
         'assigned_user_id',
         'status',
         'last_contact_at',

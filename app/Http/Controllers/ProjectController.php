@@ -7,6 +7,7 @@ use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\ProjectFeedback;
+use App\Models\ProjectFieldDefinition;
 use App\Models\ProjectPayment;
 use App\Models\ProjectSubtag;
 use App\Models\Schedule;
@@ -356,6 +357,53 @@ class ProjectController extends Controller
         $project->update($validated);
 
         return response()->json(['success' => true, 'project' => $project]);
+    }
+
+    /**
+     * 장비 선택 목록에 제품 추가 — 상담 중 드롭다운에 없는 제품을 수기 입력하면
+     * 해당 항목의 선택 목록(options)에 등록된다. 필드 정의 전체가 아니라 options만
+     * 갱신하므로 멤버도 가능 (항목 정의 생성/삭제는 여전히 관리자 전용).
+     */
+    public function addEquipFieldOption(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'key' => 'required|string|max:120',
+            'value' => 'required|string|max:150',
+        ]);
+        $value = trim($validated['value']);
+        if ($value === '') {
+            return response()->json(['message' => '값을 입력하세요.'], 422);
+        }
+
+        // 프로젝트 전용 항목(custom_data.__equip_items) 우선
+        $custom = $project->custom_data ?? [];
+        $items = $custom['__equip_items'] ?? [];
+        foreach ($items as $i => $item) {
+            if (($item['key'] ?? '') === $validated['key']) {
+                $options = array_values(array_filter((array) ($item['options'] ?? []), 'is_string'));
+                if (! in_array($value, $options, true)) {
+                    $options[] = $value;
+                }
+                $items[$i]['options'] = $options;
+                $custom['__equip_items'] = $items;
+                $project->forceFill(['custom_data' => $custom])->save();
+
+                return response()->json(['scope' => 'local', 'options' => $options]);
+            }
+        }
+
+        // 전역 장비 항목 정의
+        $field = ProjectFieldDefinition::where('key', $validated['key'])->where('section', 'equipment')->first();
+        if (! $field) {
+            return response()->json(['message' => '해당 장비 항목을 찾을 수 없습니다.'], 404);
+        }
+        $options = array_values(array_filter((array) ($field->options ?? []), 'is_string'));
+        if (! in_array($value, $options, true)) {
+            $options[] = $value;
+            $field->update(['options' => $options]);
+        }
+
+        return response()->json(['scope' => 'global', 'options' => $options]);
     }
 
     /** 캘린더 연동 — 프로젝트에 작성된 의뢰 내용(세팅 항목 선택, custom_data.__req_items) 조회 */
