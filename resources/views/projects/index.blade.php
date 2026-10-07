@@ -110,7 +110,8 @@
     .pst-tab.active { color:var(--text); background:var(--surface); border-color:var(--border); border-bottom:1px solid var(--surface); }
     .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
     .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
-    .pst-count-done { background:var(--surface2); color:var(--text-muted); }
+    .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
+    [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
     .cancel-reason-sub { font-size:11px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
