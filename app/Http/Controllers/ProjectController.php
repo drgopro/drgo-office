@@ -26,8 +26,11 @@ class ProjectController extends Controller
     // 목록
     public function index(Request $request)
     {
+        // 취소 탭 — 취소된 프로젝트(stage=cancelled)만 분리해서 모아 본다
+        $showCancelled = $request->query('status') === 'cancelled';
         $query = Project::with('client', 'assignedUser')
-            ->where('status', '!=', 'cancelled');
+            ->where('status', '!=', 'cancelled')
+            ->where('stage', $showCancelled ? '=' : '!=', 'cancelled');
 
         // 검색 — 의뢰자명/닉네임/프로젝트명/미연동 주관식 이름 (그룹으로 묶어 status 필터와 AND 유지)
         if ($search = $request->query('search')) {
@@ -41,8 +44,8 @@ class ProjectController extends Controller
             });
         }
 
-        // 단계 필터 (단일/콤마 구분/배열 모두 지원)
-        if ($stage = $request->query('stage')) {
+        // 단계 필터 (단일/콤마 구분/배열 모두 지원) — 취소 탭에서는 의미 없어 무시
+        if (! $showCancelled && ($stage = $request->query('stage'))) {
             $stages = is_array($stage)
                 ? array_values(array_filter($stage))
                 : array_values(array_filter(array_map('trim', explode(',', (string) $stage))));
@@ -81,7 +84,8 @@ class ProjectController extends Controller
             $query->whereNotNull('visit_report_updated_at')->orderByDesc('visit_report_updated_at');
         }
 
-        $projects = $query->orderBy('created_at', 'desc')->paginate(20);
+        $projects = ($showCancelled ? $query->orderByDesc('cancelled_at') : $query)
+            ->orderBy('created_at', 'desc')->paginate(20);
 
         // 필터 드롭다운용 태그 목록
         $tagOptions = [
@@ -89,7 +93,10 @@ class ProjectController extends Controller
             'minor' => ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name')->all(),
         ];
 
-        return view('projects.index', compact('projects', 'tagOptions'));
+        // 취소 탭 배지용 카운트
+        $cancelledCount = Project::where('status', '!=', 'cancelled')->where('stage', 'cancelled')->count();
+
+        return view('projects.index', compact('projects', 'tagOptions', 'showCancelled', 'cancelledCount'));
     }
 
     // 등록 (의뢰자 연동)

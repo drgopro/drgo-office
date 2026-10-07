@@ -101,6 +101,15 @@
     .stage-visit      { background:#1a2a1a; color:#7ac87a; }
     .stage-as         { background:#2a1a1a; color:#c87a7a; }
     .stage-done       { background:var(--surface2); color:var(--text-muted); }
+    .stage-cancelled  { background:rgba(200,80,80,0.12); color:var(--red); }
+
+    /* 진행/취소 탭 — 목록을 상태별로 분리해 보는 상단 탭 */
+    .proj-status-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:14px; }
+    .pst-tab { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border:1px solid transparent; border-bottom:none; border-radius:9px 9px 0 0; margin-bottom:-1px; }
+    .pst-tab:hover { color:var(--text); background:var(--surface2); }
+    .pst-tab.active { color:var(--text); background:var(--surface); border-color:var(--border); border-bottom:1px solid var(--surface); }
+    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
+    .cancel-reason-sub { font-size:11px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
     .pagination { display:flex; justify-content:center; margin-top:20px; }
@@ -115,6 +124,7 @@
     [data-theme="light"] .stage-visit      { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .stage-as         { background:#ffe8e8; color:#c03838; }
     [data-theme="light"] .stage-done       { background:#e8eaef; color:#5a6070; }
+    [data-theme="light"] .stage-cancelled  { background:#ffe8e8; color:#c03838; }
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
@@ -186,14 +196,22 @@
         $typeOptions = \App\Models\ConsultationType::map(false); // 비활성 포함 — 기존 A/S 등 레거시 프로젝트 필터/라벨용
     @endphp
 
+    {{-- 진행/취소 탭 — 취소된 프로젝트만 모아 보기 --}}
+    <div class="proj-status-tabs">
+        <a href="{{ route('projects.index') }}" class="pst-tab {{ $showCancelled ? '' : 'active' }}">진행 프로젝트</a>
+        <a href="{{ route('projects.index', ['status' => 'cancelled']) }}" class="pst-tab {{ $showCancelled ? 'active' : '' }}">취소된 프로젝트@if(($cancelledCount ?? 0) > 0)<span class="pst-count">{{ $cancelledCount }}</span>@endif</a>
+    </div>
+
     <form method="GET" action="{{ route('projects.index') }}" class="search-bar">
+        @if($showCancelled)<input type="hidden" name="status" value="cancelled">@endif
         <div class="search-row">
             <input class="search-input" type="text" name="search" placeholder="의뢰자명, 프로젝트명 검색" value="{{ request('search') }}">
             <button type="submit" class="btn-search">검색</button>
             @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search') || request()->boolean('has_report'))
-                <a href="{{ route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
+                <a href="{{ $showCancelled ? route('projects.index', ['status' => 'cancelled']) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
+        @unless($showCancelled)
         <div class="filter-group">
             <span class="filter-label">단계</span>
             @foreach($stageOptions as $v => $lbl)
@@ -203,6 +221,7 @@
                 </label>
             @endforeach
         </div>
+        @endunless
         <div class="filter-group">
             <span class="filter-label">보고</span>
             <label class="chip-toggle">
@@ -272,9 +291,9 @@
                     <th>프로젝트명</th>
                     <th>의뢰자</th>
                     <th>유형</th>
-                    <th>단계</th>
+                    <th>{{ $showCancelled ? '취소 사유' : '단계' }}</th>
                     <th>담당자</th>
-                    <th>시작일</th>
+                    <th>{{ $showCancelled ? '취소일' : '시작일' }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -323,18 +342,28 @@
                         </span>
                     </td>
                     <td>
-                        <span class="stage-badge stage-{{ $project->stage }}">
-                            {{ $project->stageLabel() }}
-                        </span>
+                        @if($showCancelled)
+                            <span class="stage-badge stage-cancelled">취소</span>
+                            @if($project->cancelled_from_stage)
+                                <span style="font-size:11px; color:var(--text-muted);">{{ $stageOptions[$project->cancelled_from_stage] ?? $project->cancelled_from_stage }} 중</span>
+                            @endif
+                            @if($project->cancel_reason || $project->cancel_detail)
+                                <div class="cancel-reason-sub" title="{{ trim($project->cancel_reason.' '.$project->cancel_detail) }}">{{ $project->cancel_reason }}{{ $project->cancel_detail ? ' — '.$project->cancel_detail : '' }}</div>
+                            @endif
+                        @else
+                            <span class="stage-badge stage-{{ $project->stage }}">
+                                {{ $project->stageLabel() }}
+                            </span>
+                        @endif
                     </td>
                     <td>{{ $project->assignedUser?->display_name ?? '-' }}</td>
-                    <td>{{ $project->created_at->format('Y.m.d') }}</td>
+                    <td>{{ $showCancelled ? ($project->cancelled_at?->format('Y.m.d') ?? $project->created_at->format('Y.m.d')) : $project->created_at->format('Y.m.d') }}</td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
         @else
-            <div class="empty">프로젝트가 없습니다.</div>
+            <div class="empty">{{ $showCancelled ? '취소된 프로젝트가 없습니다.' : '프로젝트가 없습니다.' }}</div>
         @endif
     </div>
 
