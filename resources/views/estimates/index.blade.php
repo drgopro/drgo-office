@@ -139,6 +139,12 @@
     [data-theme="light"] .est-pill { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
     .est-tabs:not(.est-js) .est-tab.active { background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); }
     [data-theme="light"] .est-tabs:not(.est-js) .est-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    /* 탭 건수 배지 — 목록=초록, 취소=빨강, 프리셋=파랑 (프로젝트 목록과 동일 규칙) */
+    .est-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; margin-left:6px; }
+    .est-count-list { background:rgba(45,138,62,0.12); color:#2d8a3e; }
+    .est-count-cancelled { background:rgba(200,80,80,0.12); color:var(--red); }
+    .est-count-presets { background:rgba(74,144,217,0.14); color:#4a90d9; }
+    [data-theme="light"] .est-count-presets { background:#e0f0ff; color:#2e6a9a; }
 </style>
 @endpush
 
@@ -150,9 +156,9 @@
     </div>
 
     <div class="est-tabs">
-        <button class="est-tab active" id="tabBtnList" onclick="setEstTab('list')">견적서 목록</button>
-        <button class="est-tab" id="tabBtnCancelled" onclick="setEstTab('cancelled')">취소된 견적서</button>
-        <button class="est-tab" id="tabBtnPresets" onclick="setEstTab('presets')">프리셋</button>
+        <button class="est-tab active" id="tabBtnList" onclick="setEstTab('list')">견적서 목록<span class="est-count est-count-list">{{ $tabCounts['list'] ?? 0 }}</span></button>
+        <button class="est-tab" id="tabBtnCancelled" onclick="setEstTab('cancelled')">취소된 견적서<span class="est-count est-count-cancelled">{{ $tabCounts['cancelled'] ?? 0 }}</span></button>
+        <button class="est-tab" id="tabBtnPresets" onclick="setEstTab('presets')">프리셋<span class="est-count est-count-presets">{{ $tabCounts['presets'] ?? 0 }}</span></button>
     </div>
 
     <div id="tabPresets" style="display:none;">

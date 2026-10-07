@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\EstimatePreset;
 use App\Models\Inventory;
 use App\Models\PayappPayment;
 use App\Models\Product;
@@ -25,7 +26,15 @@ class EstimateController extends Controller
 {
     public function index()
     {
-        return view('estimates.index');
+        // 탭 건수 배지 — 목록/취소 분류 기준은 estimates() 쿼리와 동일 (부모만, temp 제외)
+        $base = Estimate::whereNull('parent_estimate_id')->where('status', '!=', 'temp');
+        $tabCounts = [
+            'list' => (clone $base)->where('status', '!=', 'quote_cancelled')->count(),
+            'cancelled' => (clone $base)->whereIn('status', ['quote_cancelled', 'cancelled'])->count(),
+            'presets' => EstimatePreset::count(),
+        ];
+
+        return view('estimates.index', compact('tabCounts'));
     }
 
     public function estimates(Request $request)
