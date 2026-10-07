@@ -129,10 +129,16 @@
     .st-pill:hover { color:var(--text); border-color:var(--text-muted); }
     .st-pill.on { background:var(--accent); border-color:var(--accent); color:#fff; }
     /* 탭 (견적서 목록 | 프리셋) */
-    .est-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); }
-    .est-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
-    .est-tab:hover { color:var(--text); }
-    .est-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    /* 탭 (견적서 목록 | 취소 | 프리셋) — 알약 세그먼트: 선택 탭에 흰 알약 고정, hover는 옅은 톤 */
+    .est-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:16px; overflow-x:auto; }
+    .est-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:999px; padding:8px 16px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; transition:color 0.15s, background 0.15s; }
+    .est-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); }
+    [data-theme="light"] .est-tab:hover:not(.active) { background:rgba(255,255,255,0.65); }
+    .est-tab.active { color:var(--text); font-weight:800; }
+    .est-pill { position:absolute; top:5px; bottom:5px; left:0; width:0; border-radius:999px; background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); transition:left 0.28s cubic-bezier(.4,0,.2,1), width 0.28s cubic-bezier(.4,0,.2,1); z-index:0; }
+    [data-theme="light"] .est-pill { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    .est-tabs:not(.est-js) .est-tab.active { background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); }
+    [data-theme="light"] .est-tabs:not(.est-js) .est-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
 </style>
 @endpush
 
@@ -536,6 +542,23 @@ const CAN_EST_EDIT = @json(Auth::user()->hasPermission('estimates.edit'));
 let PRESETS = [];
 function _esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// 탭 알약 — 선택 탭 위치로 미끄러져 이동 (초기엔 전환 없이 배치)
+function estMovePill(instant) {
+    const bar = document.querySelector('.est-tabs');
+    if (!bar) return;
+    bar.classList.add('est-js');
+    let pill = bar.querySelector('.est-pill');
+    if (!pill) { pill = document.createElement('span'); pill.className = 'est-pill'; bar.prepend(pill); }
+    const el = bar.querySelector('.est-tab.active');
+    if (!el) return;
+    if (instant) pill.style.transition = 'none';
+    pill.style.left = el.offsetLeft + 'px';
+    pill.style.width = el.offsetWidth + 'px';
+    if (instant) requestAnimationFrame(() => { pill.style.transition = ''; });
+}
+window.addEventListener('resize', () => estMovePill(true));
+document.addEventListener('DOMContentLoaded', () => estMovePill(true));
+
 function setEstTab(tab) {
     const isList = tab === 'list' || tab === 'cancelled';
     document.getElementById('tabList').style.display = isList ? '' : 'none';
@@ -543,6 +566,7 @@ function setEstTab(tab) {
     document.getElementById('tabBtnList').classList.toggle('active', tab === 'list');
     document.getElementById('tabBtnCancelled').classList.toggle('active', tab === 'cancelled');
     document.getElementById('tabBtnPresets').classList.toggle('active', tab === 'presets');
+    estMovePill();
     const btn = document.getElementById('headerActionBtn');
     if (tab === 'presets') {
         btn.textContent = '+ 프리셋 만들기';
