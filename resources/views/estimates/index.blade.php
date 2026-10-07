@@ -56,6 +56,14 @@
     .print-dropdown-menu.show { display:block; }
     .print-dropdown-menu button { display:block; width:100%; text-align:left; background:none; border:none; color:var(--text); padding:8px 12px; font-size:12px; cursor:pointer; border-radius:4px; white-space:nowrap; }
     .print-dropdown-menu button:hover { background:var(--surface2); color:var(--accent); }
+    .print-dropdown-menu .menu-danger { color:var(--red); }
+    .print-dropdown-menu .menu-danger:hover { background:rgba(192,56,56,0.12); color:var(--red); }
+    .btn-act-more { background:var(--surface2); border:1px solid var(--border); color:var(--text); font-weight:700; padding:2px 10px 6px; font-size:16px; line-height:1; }
+    .btn-act-more:hover { border-color:var(--accent); color:var(--accent); }
+    /* 좁은 화면 — 작성자·최근 수정 열을 접어 가로 스크롤 없이 작업 버튼까지 보이게 */
+    @media (max-width: 1180px) {
+        .col-opt { display:none; }
+    }
     [data-theme="light"] .btn-primary { color:#fff; }
     [data-theme="light"] .badge-created   { background:#f0ebe2; color:#8a6d30; }
     [data-theme="light"] .badge-editing   { background:#e0f0ff; color:#2e6a9a; }
@@ -177,9 +185,9 @@
                     <th class="text-right">견적금액</th>
                     <th>항목수</th>
                     <th>상태</th>
-                    <th>작성자</th>
+                    <th class="col-opt">작성자</th>
                     <th>작성일</th>
-                    <th>최근 수정</th>
+                    <th class="col-opt">최근 수정</th>
                     <th></th>
                 </tr>
             </thead>
@@ -297,9 +305,9 @@ async function loadEstimates() {
                 <td class="text-right" style="font-weight:600;">${fmt(r.total_amount)}원${estUsdSub(r.total_amount, e.currency, e.usd_rate)}</td>
                 <td class="text-muted">${rCount}건</td>
                 <td><span class="badge badge-${r.status}">${stMap[r.status] || r.status}</span></td>
-                <td class="text-muted">${r.creator?.display_name || '-'}</td>
+                <td class="text-muted col-opt">${r.creator?.display_name || '-'}</td>
                 <td class="text-muted">${fmtDate(r.created_at)}</td>
-                <td class="text-muted">${fmtTime(r.updated_at)}</td>
+                <td class="text-muted col-opt">${fmtTime(r.updated_at)}</td>
                 <td onclick="event.stopPropagation()">
                     <div class="action-cell">
                         <button class="btn-act btn-act-edit" onclick="openEstimate(${r.id})">수정</button>
@@ -314,22 +322,22 @@ async function loadEstimates() {
             <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원${estUsdSub(e.total_amount, e.currency, e.usd_rate)}</td>
             <td class="text-muted">${itemCount}건</td>
             <td><span class="badge badge-${e.status}">${stMap[e.status]}</span></td>
-            <td class="text-muted">${e.creator?.display_name || '-'}</td>
+            <td class="text-muted col-opt">${e.creator?.display_name || '-'}</td>
             <td class="text-muted">${fmtDate(e.created_at)}</td>
-            <td class="text-muted">${fmtTime(e.updated_at)}</td>
+            <td class="text-muted col-opt">${fmtTime(e.updated_at)}</td>
             <td onclick="event.stopPropagation()">
                 <div class="action-cell">
                     <button class="btn-act btn-act-edit" onclick="openEstimate(${e.id})">수정</button>
-                    <button class="btn-act btn-act-link" onclick="copyEstimateLink(${e.id})" title="의뢰자용 견적서 링크 복사">링크</button>
                     <div class="print-dropdown">
-                        <button class="btn-act btn-act-print" onclick="togglePrintMenu(event,${e.id})">출력 ▾</button>
+                        <button class="btn-act btn-act-more" onclick="togglePrintMenu(event,${e.id})" title="링크 복사 · 출력 · 삭제">⋯</button>
                         <div class="print-dropdown-menu" id="printMenu-${e.id}">
+                            <button onclick="copyEstimateLink(${e.id})">링크 복사</button>
                             <button onclick="exportEstimate(${e.id},'image')">이미지 저장</button>
                             <button onclick="exportEstimate(${e.id},'pdf')">PDF 저장</button>
                             <button onclick="window.open('/estimates/${e.id}/print','_blank')">인쇄 미리보기</button>
+                            <button class="menu-danger" onclick="deleteEstimate(${e.id})">삭제</button>
                         </div>
                     </div>
-                    <button class="btn-act btn-act-delete" onclick="deleteEstimate(${e.id})">삭제</button>
                 </div>
             </td>
         </tr>${roundRows}`;
