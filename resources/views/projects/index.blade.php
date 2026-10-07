@@ -108,7 +108,9 @@
     /* 전체/진행/완료/취소 탭 — 알약(세그먼트) 형태, 선택 탭은 떠 있는 흰 알약 */
     .proj-status-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
     .pst-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.15s; }
-    .pst-tab:hover { color:var(--text); }
+    /* hover — 선택 알약은 그대로 두고, 더 옅은 톤의 알약이 살짝 비친다 */
+    .pst-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); transition:color 0.15s, background 0.15s; }
+    [data-theme="light"] .pst-tab:hover:not(.active) { background:rgba(255,255,255,0.65); }
     .pst-tab.active { color:var(--text); font-weight:800; }
     /* 슬라이딩 알약 — JS가 active/hover 탭 위치로 움직인다. JS 전에는 active 탭 자체 배경으로 폴백 */
     .pst-pill { position:absolute; top:5px; bottom:5px; left:0; width:0; border-radius:999px; background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); transition:left 0.28s cubic-bezier(.4,0,.2,1), width 0.28s cubic-bezier(.4,0,.2,1); z-index:0; }
@@ -331,9 +333,9 @@
                 pill.style.width = el.offsetWidth + 'px';
                 if (instant) requestAnimationFrame(() => { pill.style.transition = ''; });
             };
+            // 알약은 선택 탭에 고정 — hover는 CSS의 옅은 배경으로만, 이동은 탭 전환 때만
             movePill(activeTab(), true);
             window.addEventListener('resize', () => movePill(activeTab(), true));
-            bar.addEventListener('mouseleave', () => movePill(activeTab()));
 
             let pstBusy = false;
             async function pstGo(url, tab) {
@@ -375,7 +377,6 @@
                 }
             }
             bar.querySelectorAll('.pst-tab').forEach(tab => {
-                tab.addEventListener('mouseenter', () => movePill(tab));
                 tab.addEventListener('click', e => {
                     if (e.metaKey || e.ctrlKey || e.shiftKey) return; // 새 탭 열기는 그대로
                     e.preventDefault();
