@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Assignee;
+use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
@@ -215,6 +216,39 @@ class DashboardExcelExportTest extends TestCase
         // 영문 코드가 그대로 노출되지 않아야 함
         $statusCol = $byClient->pluck(2)->all();
         $this->assertEmpty(array_intersect($statusCol, ['temp', 'issued', 'cancelled', 'quote_cancelled']));
+    }
+
+    public function test_work_log_maps_custom_category_and_falls_back_to_title(): void
+    {
+        // 커스텀 카테고리 라벨('스튜디오')도 키워드 매칭으로 분류되고, 의뢰자 미연동
+        // 일정은 의뢰자명이 공란 대신 제목으로 표시되어야 한다 (조유신 피드백)
+        $user = User::factory()->create(['role' => 'admin']);
+        CalendarCategory::create([
+            'key' => 'custom-studio', 'label' => '스튜디오', 'color' => '#333333',
+            'text_color' => '#ffffff', 'sort_order' => 99, 'is_active' => true,
+        ]);
+        $schedule = Schedule::create([
+            'title' => '광우상사 스튜디오 촬영', 'color' => 'custom-studio',
+            'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+            'is_all_day' => true, 'created_by' => $user->id,
+        ]);
+        $worker = Assignee::create(['name' => '한창진']);
+        $schedule->assignees()->attach($worker->id, ['sort_order' => 0]);
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('작업 일지');
+        unlink($tmp);
+
+        $row = collect($sheet->toArray())->skip(1)->first(fn ($r) => str_contains((string) $r[7], '한창진'));
+        $this->assertNotNull($row, '작업 일지에 해당 일정이 없습니다');
+        $this->assertSame('광우상사 스튜디오 촬영', $row[2]); // 의뢰자명 — 공란 대신 제목 폴백
+        $this->assertSame('촬영', $row[5]);                   // 작업 방식 — '기타'가 아닌 촬영
+        $this->assertSame('스튜디오', $row[9]);               // 카테고리 라벨 그대로
     }
 
     public function test_export_includes_work_log_sheet(): void

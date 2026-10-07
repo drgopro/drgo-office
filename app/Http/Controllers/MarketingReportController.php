@@ -656,7 +656,9 @@ class MarketingReportController extends Controller
                 }
             });
 
-        // 유형 매핑 — 카테고리 라벨 + 원격/방송룸 모드 + 계약 동기화 출처
+        // 유형 매핑 — 카테고리 라벨 + 원격/방송룸 모드 + 계약 동기화 출처.
+        // 운영에서 카테고리 라벨을 바꿔 쓰는 경우('스튜디오' 등)가 있어 정확 일치가 아닌
+        // 키워드 포함 매칭으로 분류한다 (조유신 피드백 — 커스텀 라벨이 전부 '기타'로 빠지던 문제)
         $typeOf = function (Schedule $s) use ($catMap): string {
             $label = $catMap[$s->color]['label'] ?? $s->color;
             if ($s->source_type === 'rental_contract') {
@@ -665,16 +667,17 @@ class MarketingReportController extends Controller
             if ($s->source_type === 'broadcast_contract') {
                 return '방송룸 대여';
             }
+            $has = fn (string $needle): bool => mb_stripos($label, $needle) !== false;
 
-            return match ($label) {
-                '방문의뢰' => '방문세팅',
-                '원격/방송룸' => data_get($s->remote_data, 'mode') === 'studio' ? '방송룸 대여' : '원격',
-                '촬영/스튜디오' => '촬영',
-                '미팅/내방' => '내방',
-                '사내업무' => '사내업무',
-                '휴가/개인' => '휴가/개인',
-                '렌탈' => '장비 렌탈',
-                '방송룸 대여' => '방송룸 대여',
+            return match (true) {
+                $has('사내') => '사내업무',
+                $has('휴가') || $has('개인') => '휴가/개인',
+                $has('방문') => '방문세팅',
+                $has('원격') => data_get($s->remote_data, 'mode') === 'studio' ? '방송룸 대여' : '원격',
+                $has('촬영') || $has('스튜디오') => '촬영',
+                $has('미팅') || $has('내방') => '내방',
+                $has('방송룸') => '방송룸 대여',
+                $has('렌탈') => '장비 렌탈',
                 default => $label,
             };
         };
@@ -731,7 +734,11 @@ class MarketingReportController extends Controller
                     ?? ['personal' => '개인', 'enterprise' => '엔터', 'studio' => '스튜디오'][$client?->client_type]
                     ?? '');
 
+            // 의뢰자명 — 미연동 일정(의뢰자명 칸·연동 모두 비음)은 제목으로 폴백해 공란을 줄인다
             $clientName = trim((string) ($s->client_name ?: ($g['nickname'] ?? '') ?: ($g['name'] ?? '') ?: ($client->nickname ?? '')));
+            if ($clientName === '' && ! $isInternal) {
+                $clientName = trim((string) $s->title);
+            }
             $platform = trim((string) (($g['platform'] ?? '') ?: implode(', ', $client->platforms ?? []) ?: data_get($s->remote_data, 'platform', '')));
             $career = trim((string) (($g['career'] ?? '') ?: ($client->career ?? '')));
             $career = in_array($career, ['처음', '신규'], true) ? '처음' : (in_array($career, ['초보', '경력'], true) ? $career : '');
