@@ -1010,6 +1010,12 @@ class ProjectController extends Controller
         }
 
         $billingId = $payment->billing_id;
+
+        // 삭제되는 환불/취소 행 수집 — 견적서 항목별 환불 기록을 함께 되돌리기 위해 (삭제 전 스냅샷)
+        $refundRows = $payment->type === 'charge'
+            ? ProjectPayment::where('parent_payment_id', $payment->id)->whereIn('type', ['refund', 'cancel'])->get()
+            : (in_array($payment->type, ['refund', 'cancel'], true) ? collect([$payment]) : collect());
+
         DB::transaction(function () use ($payment) {
             if ($payment->type === 'charge') {
                 // 자식 환불/취소 트랜잭션 함께 삭제
@@ -1019,6 +1025,27 @@ class ProjectController extends Controller
         });
         if ($billingId) {
             ProjectBilling::find($billingId)?->refreshStatus(); // 입금 삭제 시 청구 잔금 재계산
+        }
+
+        // 견적서 스냅샷의 항목별 환불 기록 되돌리기 — 잘못 환불해 내역을 지운 경우
+        // 잔여 수량이 다시 살아나 재환불이 가능해진다 (직접발송 복원분은 재고 재차감)
+        foreach ($refundRows->filter(fn ($r) => $r->estimate_id)->groupBy('estimate_id') as $estimateId => $rows) {
+            $estimate = Estimate::find($estimateId);
+            if (! $estimate) {
+                continue;
+            }
+            $reversals = $rows->flatMap(fn ($row) => collect($row->items ?? [])
+                ->filter(fn ($i) => isset($i['estimate_item_index']))
+                ->map(fn ($i) => [
+                    'index' => (int) $i['estimate_item_index'],
+                    'bundle_index' => $i['bundle_index'] ?? null,
+                    'qty' => (int) ($i['qty'] ?? 0),
+                    'amount' => ((int) ($i['qty'] ?? 1)) * ((int) ($i['price'] ?? 0)),
+                ]))->values()->all();
+            if ($reversals !== []) {
+                $estimate->reverseItemRefunds($reversals);
+                EstimatePaymentSync::syncRefundDisplay($estimate->fresh()); // 연동 캘린더 환불 표시 갱신
+            }
         }
 
         // 마지막 결제 삭제 시 payment_info(프리필 JSON)도 정리 — 남겨두면 요약의

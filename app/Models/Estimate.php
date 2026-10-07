@@ -251,6 +251,53 @@ class Estimate extends Model
     }
 
     /**
+     * 항목별 환불 기록 되돌리기 — 환불/취소 내역을 '삭제'할 때 applyItemRefunds의 역방향.
+     * 잔여 수량이 다시 살아나 재환불이 가능해지고, 직접발송 복원분은 재고에서 다시 차감된다.
+     *
+     * @param  array<int, array{index: int, bundle_index?: int|null, qty?: int, amount?: int}>  $refunds
+     */
+    public function reverseItemRefunds(array $refunds): bool
+    {
+        $items = $this->product_items ?? [];
+        $before = $items;
+        $changed = false;
+        foreach ($refunds as $r) {
+            $idx = (int) ($r['index'] ?? -1);
+            if (! array_key_exists($idx, $items)) {
+                continue;
+            }
+            $qty = max(0, (int) ($r['qty'] ?? 0));
+            $amount = max(0, (int) ($r['amount'] ?? 0));
+            if (isset($r['bundle_index']) && $r['bundle_index'] !== null && isset($items[$idx]['bundle_items'][(int) $r['bundle_index']])) {
+                $b = (int) $r['bundle_index'];
+                $items[$idx]['bundle_items'][$b]['refund_qty'] = max(0, (int) ($items[$idx]['bundle_items'][$b]['refund_qty'] ?? 0) - $qty);
+                $items[$idx]['bundle_items'][$b]['refund_amount'] = max(0, (int) ($items[$idx]['bundle_items'][$b]['refund_amount'] ?? 0) - $amount);
+            } else {
+                $items[$idx]['refund_qty'] = max(0, (int) ($items[$idx]['refund_qty'] ?? 0) - $qty);
+            }
+            $items[$idx]['refund_amount'] = max(0, (int) ($items[$idx]['refund_amount'] ?? 0) - $amount);
+
+            // 환불 기록이 전부 사라졌으면 환불 표시도 해제
+            $bundleLeft = collect($items[$idx]['bundle_items'] ?? [])
+                ->sum(fn ($bb) => (int) ($bb['refund_qty'] ?? 0) + (int) ($bb['refund_amount'] ?? 0));
+            if ((int) ($items[$idx]['refund_qty'] ?? 0) === 0 && (int) ($items[$idx]['refund_amount'] ?? 0) === 0 && $bundleLeft === 0) {
+                unset($items[$idx]['refunded'], $items[$idx]['refunded_at']);
+            }
+            $changed = true;
+        }
+        if (! $changed) {
+            return false;
+        }
+        $this->timestamps = false;
+        $this->forceFill(['product_items' => $items])->save();
+        $this->timestamps = true;
+        // 환불로 복원됐던 직접발송 수량을 다시 차감 (환불 기록이 사라졌으므로)
+        EstimateStockSync::apply($this, $before, $items);
+
+        return true;
+    }
+
+    /**
      * 의뢰자에게 전달하는 공개 견적서 링크.
      * 순번 ID 대신 난수 토큰(64자)을 사용해 주소 조작으로 다른 견적서를
      * 열람할 수 없다. 토큰은 최초 호출 시 생성 후 고정.
