@@ -390,7 +390,7 @@
                 <select id="npType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
             </div>
             <div id="npScaleRow" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div>
+                <div id="npScaleCol">
                     <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
                     <select id="npScale" onchange="updateNpWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
                         <option value="">선택</option>
@@ -540,21 +540,35 @@ function togglePaymentOnly(checked) {
     applyNpSimplify();
 }
 
-// 폼 간소화 — 단순 결제: 유형/규모/메모 숨김, 익명(의뢰자명 확인 불가): 유형까지만 남기고 규모/메모/태그 숨김
+// 폼 간소화 — 단순 결제: 유형/규모/메모 숨김, 익명(의뢰자명 확인 불가): 규모/메모/태그 숨김.
+// 작업 유형은 익명에서도 선택 가능 — 익명 프로젝트도 어떤 문의였는지 구분하기 위해
 function applyNpSimplify() {
     const payOnly = document.getElementById('npPaymentOnly').checked;
     const noClient = document.getElementById('npNoClient').checked;
     const set = (id, disp, hide) => { const el = document.getElementById(id); if (el) el.style.display = hide ? 'none' : disp; };
     set('npTypeRow', 'block', payOnly);
-    set('npScaleRow', 'grid', payOnly || noClient);
+    set('npScaleRow', 'grid', payOnly);
+    set('npScaleCol', 'block', noClient); // 익명: 규모 칸만 숨기고 작업 유형은 남김
+    const scaleRow = document.getElementById('npScaleRow');
+    if (scaleRow) scaleRow.style.gridTemplateColumns = noClient ? '1fr' : '1fr 1fr';
     set('npMemoRow', 'block', payOnly || noClient);
     set('npTagRow', 'block', noClient);
 }
 
 function updateNpWorkType() {
-    const projectType = document.getElementById('npType').value;
+    const typeSel = document.getElementById('npType');
+    const projectType = typeSel.value;
     const opts = NP_WORK_TYPES_FOR(projectType);
-    document.getElementById('npWorkType').innerHTML = '<option value="">선택</option>' + opts.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+    const sel = document.getElementById('npWorkType');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">선택</option>' + opts.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+    // 유형 변경 전 선택이 새 목록에도 있으면 유지, 없으면 문의 유형 기본값 '단순'
+    if (prev && opts.some(([v]) => v === prev)) { sel.value = prev; return; }
+    const typeLabel = typeSel.selectedOptions?.[0]?.textContent || '';
+    if (/문의/.test(typeLabel)) {
+        const def = opts.find(([v, l]) => v === 'simple' || l === '단순');
+        if (def) sel.value = def[0];
+    }
 }
 
 let __npSearchTimer;
@@ -634,7 +648,8 @@ async function submitNewProject() {
         body = {
             name,
             project_type: projectType,
-            client_scale: document.getElementById('npScale').value || null,
+            // 익명은 규모 칸을 숨기므로 기본값('개인')이 몰래 저장되지 않게 비움
+            client_scale: noClient ? null : (document.getElementById('npScale').value || null),
             work_type: document.getElementById('npWorkType').value || null,
             overview: document.getElementById('npMemo').value || null,
         };

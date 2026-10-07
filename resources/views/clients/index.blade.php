@@ -1538,10 +1538,17 @@ function workTypeOptionsFor(projectType) {
 
 async function updateWorkTypeOptions(clientId) {
     await loadWorkTypesCache();
-    const projectType = document.getElementById('pf-type-' + clientId).value;
+    const typeSel = document.getElementById('pf-type-' + clientId);
+    const projectType = typeSel.value;
     const sel = document.getElementById('pf-work_type-' + clientId);
     const opts = workTypeOptionsFor(projectType);
     sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+    // 문의 유형은 '단순'이 기본값
+    const typeLabel = typeSel.selectedOptions?.[0]?.textContent || '';
+    if (/문의/.test(typeLabel)) {
+        const def = opts.find(([v, l]) => v === 'simple' || l === '단순');
+        if (def) sel.value = def[0];
+    }
 }
 
 function openProjectForm(clientId) {
