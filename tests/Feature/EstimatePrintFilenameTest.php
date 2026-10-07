@@ -46,7 +46,10 @@ class EstimatePrintFilenameTest extends TestCase
             ->assertSee('`${estExportName(id)}.png`', false)
             ->assertSee('`${estExportName(id)}.pdf`', false)
             ->assertSee('estShowExportOverlay', false) // 모바일 PWA — 공유·저장 오버레이
-            ->assertSee('window.__estMeta[e.id]', false);
+            ->assertSee('window.__estMeta[e.id]', false)
+            // 작업 버튼 — 데스크탑은 ⋯ 글리프 수직 중앙, 카드형은 드롭다운 대신 전부 인라인 펼침
+            ->assertSee('align-items:center; justify-content:center; align-self:stretch;', false)
+            ->assertSee('#estBody .print-dropdown, #estBody .print-dropdown-menu { display:contents; }', false);
     }
 
     public function test_png_filename_falls_back_to_estimate_number(): void

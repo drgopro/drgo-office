@@ -51,14 +51,14 @@
     .btn-act-edit:hover { border-color:var(--accent); color:var(--accent); }
     .btn-act-print { background:var(--blue); color:#fff; }
     .btn-act-delete { background:var(--red); color:#fff; }
-    .print-dropdown { position:relative; display:inline-block; }
+    .print-dropdown { position:relative; display:inline-flex; align-self:stretch; }
     .print-dropdown-menu { display:none; position:absolute; right:0; top:calc(100% + 4px); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px; z-index:20; min-width:130px; box-shadow:0 4px 16px rgba(0,0,0,0.4); }
     .print-dropdown-menu.show { display:block; }
     .print-dropdown-menu button { display:block; width:100%; text-align:left; background:none; border:none; color:var(--text); padding:8px 12px; font-size:12px; cursor:pointer; border-radius:4px; white-space:nowrap; }
     .print-dropdown-menu button:hover { background:var(--surface2); color:var(--accent); }
     .print-dropdown-menu .menu-danger { color:var(--red); }
     .print-dropdown-menu .menu-danger:hover { background:rgba(192,56,56,0.12); color:var(--red); }
-    .btn-act-more { background:var(--surface2); border:1px solid var(--border); color:var(--text); font-weight:700; padding:2px 10px 6px; font-size:16px; line-height:1; }
+    .btn-act-more { background:var(--surface2); border:1px solid var(--border); color:var(--text); font-weight:700; padding:0 10px; font-size:16px; line-height:1; display:inline-flex; align-items:center; justify-content:center; align-self:stretch; }
     .btn-act-more:hover { border-color:var(--accent); color:var(--accent); }
     /* 좁은 화면 — 작성자·최근 수정 열을 접어 가로 스크롤 없이 작업 버튼까지 보이게 */
     @media (max-width: 1180px) {
@@ -106,6 +106,11 @@
         #estBody td:nth-child(9) { order:9; flex-basis:100%; margin-top:4px; }
         #estBody .action-cell { display:flex; gap:6px; flex-wrap:wrap; }
         #estBody .btn-act { padding:7px 12px; font-size:12.5px; }
+        /* 카드형 — ⋯ 드롭다운 대신 모든 작업 버튼을 수정 버튼 옆에 나란히 펼침 */
+        #estBody .btn-act-more { display:none; }
+        #estBody .print-dropdown, #estBody .print-dropdown-menu { display:contents; }
+        #estBody .print-dropdown-menu button { display:inline-block; width:auto; white-space:nowrap; padding:7px 12px; font-size:12.5px; font-weight:600; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); }
+        #estBody .print-dropdown-menu .menu-danger { color:var(--red); border-color:rgba(192,56,56,0.5); }
 
         /* 프리셋: 제목 / 금액·품목수 / 작성자·수정일 / 버튼 */
         #presetBody td:nth-child(1) { order:0; flex-basis:100%; font-size:14.5px; }
