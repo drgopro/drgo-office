@@ -182,6 +182,41 @@ class DashboardExcelExportTest extends TestCase
         $this->assertContains('A5:K5', array_keys($sheet->getMergeCells()));
     }
 
+    public function test_estimate_sheet_excludes_temp_and_uses_korean_status_labels(): void
+    {
+        // 견적서 시트 — temp(작성 전 임시)는 제외, 상태는 영문 코드 대신 한글 라벨 (조유신 피드백)
+        $user = User::factory()->create(['role' => 'admin']);
+        $mk = fn (string $status, string $nick) => Estimate::create([
+            'status' => $status, 'client_nickname' => $nick,
+            'product_items' => [], 'service_items' => [], 'total_amount' => 10000,
+            'validity_days' => 3, 'created_by' => $user->id,
+        ]);
+        $mk('temp', '임시건');
+        $mk('issued', '발행건');
+        $mk('quote_cancelled', '견적취소건');
+        $mk('cancelled', '결제취소건');
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('견적서');
+        unlink($tmp);
+
+        $this->assertNotNull($sheet, "'견적서' 시트가 없습니다");
+        $rows = $sheet->toArray();
+        $byClient = collect($rows)->skip(1)->keyBy(fn ($r) => $r[1]);
+        $this->assertArrayNotHasKey('임시건', $byClient->all()); // temp 제외
+        $this->assertSame('발행 완료', $byClient['발행건'][2]);
+        $this->assertSame('견적 취소', $byClient['견적취소건'][2]);
+        $this->assertSame('결제 취소', $byClient['결제취소건'][2]);
+        // 영문 코드가 그대로 노출되지 않아야 함
+        $statusCol = $byClient->pluck(2)->all();
+        $this->assertEmpty(array_intersect($statusCol, ['temp', 'issued', 'cancelled', 'quote_cancelled']));
+    }
+
     public function test_export_includes_work_log_sheet(): void
     {
         // 작업 일지 시트 — 요일/날짜/의뢰자/플랫폼/경력/작업 방식/유형/작업자/수량 + 우측 선택지 목록 + 자동필터

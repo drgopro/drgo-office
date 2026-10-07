@@ -375,7 +375,7 @@ class DashboardController extends Controller
         $stageL = ['consulting' => '상담', 'equipment' => '장비파악', 'proposal' => '일정제안', 'estimate' => '견적/계약', 'payment' => '결제/예약', 'visit' => '세팅', 'as' => 'AS', 'done' => '완료', 'cancelled' => '취소'];
         $typeL = ['visit' => '방문세팅', 'remote' => '원격세팅', 'design' => '디자인', 'inquiry' => '단순문의', 'as' => 'A/S', 'troubleshoot' => '문제 해결'];
         $consultL = ['kakao' => '카카오톡', 'phone' => '전화', 'visit' => '내방상담', 'field' => '현장답사'];
-        $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
+        $statusL = ['temp' => '작성 전(임시)', 'created' => '작성중', 'editing' => '수정중', 'completed' => '작성 완료', 'issued' => '발행 완료', 'paid' => '결제완료', 'cancelled' => '결제 취소', 'quote_cancelled' => '견적 취소', 'hold' => '보류'];
         $colorL = CalendarCategory::labels();
         $resultL = ['in_progress' => '진행중', 'waiting' => '대기', 'valid' => '유효', 'invalid' => '무효', 'done' => '완료'];
 
@@ -449,7 +449,7 @@ class DashboardController extends Controller
         $typeL = ['visit' => '방문세팅', 'remote' => '원격세팅', 'design' => '디자인', 'inquiry' => '단순문의', 'as' => 'A/S', 'troubleshoot' => '문제 해결'];
         $stageL = ['consulting' => '상담', 'equipment' => '장비파악', 'proposal' => '일정제안', 'estimate' => '견적/계약', 'payment' => '결제/예약', 'visit' => '세팅', 'as' => 'AS', 'done' => '완료', 'cancelled' => '취소'];
         $consultL = ['kakao' => '카카오톡', 'phone' => '전화', 'visit' => '내방상담', 'field' => '현장답사'];
-        $statusL = ['created' => '작성중', 'editing' => '수정중', 'completed' => '완료', 'paid' => '결제완료', 'hold' => '보류'];
+        $statusL = ['temp' => '작성 전(임시)', 'created' => '작성중', 'editing' => '수정중', 'completed' => '작성 완료', 'issued' => '발행 완료', 'paid' => '결제완료', 'cancelled' => '결제 취소', 'quote_cancelled' => '견적 취소', 'hold' => '보류'];
         $colorL = CalendarCategory::labels();
         $resultL = ['in_progress' => '진행중', 'waiting' => '대기', 'valid' => '유효', 'invalid' => '무효', 'done' => '완료'];
 
@@ -1017,7 +1017,8 @@ class DashboardController extends Controller
         $s6->fromArray(['#', '의뢰자', '상태', '금액', '작성자', '등록일'], null, 'A1');
         $bold($s6, 'A1:F1');
         $row = 2;
-        Estimate::with('creator')->whereBetween('created_at', [$fromDt, $toDt])->orderByDesc('created_at')->chunk(200, function ($items) use ($s6, &$row, $statusL) {
+        // 작성이 완료된 항목만 — temp(작성 전 임시) 견적은 출력양 파악에 의미 없어 제외 (조유신 피드백)
+        Estimate::with('creator')->whereBetween('created_at', [$fromDt, $toDt])->where('status', '!=', 'temp')->orderByDesc('created_at')->chunk(200, function ($items) use ($s6, &$row, $statusL) {
             foreach ($items as $e) {
                 $s6->fromArray([$e->id, $e->client_nickname ?: $e->client_name, $statusL[$e->status] ?? $e->status, $e->total_amount ?? 0, $e->creator?->display_name, $e->created_at->format('Y.m.d')], null, "A{$row}");
                 $row++;
