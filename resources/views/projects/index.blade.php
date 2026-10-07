@@ -106,11 +106,17 @@
     .stage-cancelled  { background:rgba(200,80,80,0.12); color:var(--red); }
 
     /* 전체/진행/완료/취소 탭 — 알약(세그먼트) 형태, 선택 탭은 떠 있는 흰 알약 */
-    .proj-status-tabs { display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
-    .pst-tab { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.12s, background 0.12s; }
+    .proj-status-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
+    .pst-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.15s; }
     .pst-tab:hover { color:var(--text); }
-    .pst-tab.active { background:var(--surface); color:var(--text); font-weight:800; box-shadow:0 2px 8px rgba(0,0,0,0.22); }
-    [data-theme="light"] .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    .pst-tab.active { color:var(--text); font-weight:800; }
+    /* 슬라이딩 알약 — JS가 active/hover 탭 위치로 움직인다. JS 전에는 active 탭 자체 배경으로 폴백 */
+    .pst-pill { position:absolute; top:5px; bottom:5px; left:0; width:0; border-radius:999px; background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); transition:left 0.28s cubic-bezier(.4,0,.2,1), width 0.28s cubic-bezier(.4,0,.2,1); z-index:0; }
+    [data-theme="light"] .pst-pill { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    .proj-status-tabs:not(.pst-js) .pst-tab.active { background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); }
+    [data-theme="light"] .proj-status-tabs:not(.pst-js) .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    /* 탭 전환 시 목록 페이드 */
+    .table-wrap, .pagination { transition:opacity 0.18s ease; }
     .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
     .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
     .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
@@ -299,10 +305,84 @@
         @endif
     </form>
     <script>
-        // 체크박스 변경 시 자동 폼 제출 (UX 개선)
-        document.querySelectorAll('.search-bar .chip-toggle input').forEach(el => {
-            el.addEventListener('change', () => el.closest('form').submit());
-        });
+        // 체크박스 변경 시 자동 폼 제출 (UX 개선) — 탭 AJAX 전환으로 폼이 교체되면 재바인딩
+        function bindFilterAutoSubmit() {
+            document.querySelectorAll('.search-bar .chip-toggle input').forEach(el => {
+                if (el.dataset.autoSubmit) return;
+                el.dataset.autoSubmit = '1';
+                el.addEventListener('change', () => el.closest('form').submit());
+            });
+        }
+        bindFilterAutoSubmit();
+
+        // ── 상태 탭 — 슬라이딩 알약 + 새로고침 없는 목록 전환 ──
+        (function () {
+            const bar = document.querySelector('.proj-status-tabs');
+            if (!bar) return;
+            bar.classList.add('pst-js');
+            const pill = document.createElement('span');
+            pill.className = 'pst-pill';
+            bar.prepend(pill);
+            const activeTab = () => bar.querySelector('.pst-tab.active');
+            const movePill = (el, instant) => {
+                if (!el) return;
+                if (instant) pill.style.transition = 'none';
+                pill.style.left = el.offsetLeft + 'px';
+                pill.style.width = el.offsetWidth + 'px';
+                if (instant) requestAnimationFrame(() => { pill.style.transition = ''; });
+            };
+            movePill(activeTab(), true);
+            window.addEventListener('resize', () => movePill(activeTab(), true));
+            bar.addEventListener('mouseleave', () => movePill(activeTab()));
+
+            let pstBusy = false;
+            async function pstGo(url, tab) {
+                if (pstBusy) return;
+                pstBusy = true;
+                bar.querySelectorAll('.pst-tab').forEach(t => t.classList.toggle('active', t === tab));
+                movePill(tab);
+                const wrap = document.querySelector('.table-wrap');
+                const pag = document.querySelector('.pagination');
+                const form = document.querySelector('form.search-bar');
+                if (wrap) wrap.style.opacity = '0.3';
+                if (pag) pag.style.opacity = '0.3';
+                try {
+                    const res = await fetch(url, { headers: { 'Accept': 'text/html' } });
+                    if (!res.ok) throw new Error(res.status);
+                    const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+                    const nw = doc.querySelector('.table-wrap');
+                    if (!nw) throw new Error('no table');
+                    // 탭별 필터 구성(단계 칩·hidden status)과 목록·페이지네이션 교체
+                    const nf = doc.querySelector('form.search-bar');
+                    if (form && nf) form.replaceWith(nf);
+                    const np = doc.querySelector('.pagination');
+                    wrap.replaceWith(nw);
+                    if (pag && np) pag.replaceWith(np);
+                    // 건수 배지만 동기화 (탭바는 유지 — 알약·리스너 보존)
+                    const nTabs = doc.querySelectorAll('.proj-status-tabs .pst-tab');
+                    bar.querySelectorAll('.pst-tab').forEach((t, i) => {
+                        const c = t.querySelector('.pst-count'), nc = nTabs[i]?.querySelector('.pst-count');
+                        if (c && nc) c.textContent = nc.textContent;
+                    });
+                    nw.style.opacity = '0.3';
+                    requestAnimationFrame(() => { nw.style.opacity = ''; const p = document.querySelector('.pagination'); if (p) p.style.opacity = ''; });
+                    try { history.replaceState(null, '', url); } catch (e) {}
+                    bindFilterAutoSubmit();
+                } catch (err) {
+                    location.href = url; // 실패 시 일반 이동 폴백
+                } finally {
+                    pstBusy = false;
+                }
+            }
+            bar.querySelectorAll('.pst-tab').forEach(tab => {
+                tab.addEventListener('mouseenter', () => movePill(tab));
+                tab.addEventListener('click', e => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey) return; // 새 탭 열기는 그대로
+                    e.preventDefault();
+                    pstGo(tab.href, tab);
+                });
+            });
+        })();
     </script>
 
     <div class="table-wrap">
