@@ -26,16 +26,45 @@ class ProjectCancelledTabTest extends TestCase
             'cancel_reason' => '가격 부담', 'cancel_detail' => '타사 견적 선택', 'cancelled_at' => now()->subDay(),
             'cancelled_from_stage' => 'estimate',
         ]);
+        Project::create([
+            'client_id' => $client->id, 'name' => '완료세팅건', 'stage' => 'done', 'status' => 'active',
+            'completed_at' => now()->subDays(2),
+        ]);
     }
 
-    public function test_default_list_excludes_cancelled_and_shows_tab_with_count(): void
+    public function test_default_list_excludes_cancelled_and_done_with_tab_counts(): void
     {
         $this->actingAs($this->admin)->get('/projects')
             ->assertOk()
             ->assertSee('진행중세팅건')
             ->assertDontSee('취소 프로젝트')
-            ->assertSee('취소된 프로젝트', false)
-            ->assertSee('pst-count', false); // 카운트 배지 (1건)
+            ->assertDontSee('완료세팅건')
+            // 탭 3종 + 건수 배지 (진행 1 · 완료 1 · 취소 1)
+            ->assertSee('pst-count pst-count-active', false)
+            ->assertSee('pst-count pst-count-done', false)
+            ->assertSee('status=done', false)
+            ->assertSee('status=cancelled', false);
+    }
+
+    public function test_done_tab_shows_only_completed_with_completed_date(): void
+    {
+        $this->actingAs($this->admin)->get('/projects?status=done')
+            ->assertOk()
+            ->assertSee('완료세팅건')
+            ->assertDontSee('진행중세팅건')
+            ->assertDontSee('취소 프로젝트')
+            ->assertSee('완료일')
+            ->assertSee(now()->subDays(2)->format('Y.m.d'));
+    }
+
+    public function test_has_report_view_spans_all_tabs_except_cancelled(): void
+    {
+        // 대시보드 '최근 방문보고 > 전체' 진입 — 방문보고는 완료 건이 많아 탭 분리 없이 노출
+        Project::where('name', '완료세팅건')->update(['visit_report_updated_at' => now()]);
+
+        $this->actingAs($this->admin)->get('/projects?has_report=1')
+            ->assertOk()
+            ->assertSee('완료세팅건');
     }
 
     public function test_cancelled_tab_shows_only_cancelled_with_reason_and_date(): void

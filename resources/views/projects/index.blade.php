@@ -109,6 +109,8 @@
     .pst-tab:hover { color:var(--text); background:var(--surface2); }
     .pst-tab.active { color:var(--text); background:var(--surface); border-color:var(--border); border-bottom:1px solid var(--surface); }
     .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
+    .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
+    .pst-count-done { background:var(--surface2); color:var(--text-muted); }
     .cancel-reason-sub { font-size:11px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
@@ -196,32 +198,34 @@
         $typeOptions = \App\Models\ConsultationType::map(false); // 비활성 포함 — 기존 A/S 등 레거시 프로젝트 필터/라벨용
     @endphp
 
-    {{-- 진행/취소 탭 — 취소된 프로젝트만 모아 보기 --}}
+    {{-- 진행/완료/취소 탭 — 상태별로 모아 보기 (건수 배지) --}}
     <div class="proj-status-tabs">
-        <a href="{{ route('projects.index') }}" class="pst-tab {{ $showCancelled ? '' : 'active' }}">진행 프로젝트</a>
-        <a href="{{ route('projects.index', ['status' => 'cancelled']) }}" class="pst-tab {{ $showCancelled ? 'active' : '' }}">취소된 프로젝트@if(($cancelledCount ?? 0) > 0)<span class="pst-count">{{ $cancelledCount }}</span>@endif</a>
+        <a href="{{ route('projects.index') }}" class="pst-tab {{ $statusTab === 'active' ? 'active' : '' }}">진행 중<span class="pst-count pst-count-active">{{ $tabCounts['active'] }}</span></a>
+        <a href="{{ route('projects.index', ['status' => 'done']) }}" class="pst-tab {{ $showDone ? 'active' : '' }}">완료<span class="pst-count pst-count-done">{{ $tabCounts['done'] }}</span></a>
+        <a href="{{ route('projects.index', ['status' => 'cancelled']) }}" class="pst-tab {{ $showCancelled ? 'active' : '' }}">취소<span class="pst-count">{{ $tabCounts['cancelled'] }}</span></a>
     </div>
 
     <form method="GET" action="{{ route('projects.index') }}" class="search-bar">
-        @if($showCancelled)<input type="hidden" name="status" value="cancelled">@endif
+        @if($statusTab !== 'active')<input type="hidden" name="status" value="{{ $statusTab }}">@endif
         <div class="search-row">
             <input class="search-input" type="text" name="search" placeholder="의뢰자명, 프로젝트명 검색" value="{{ request('search') }}">
             <button type="submit" class="btn-search">검색</button>
             @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search') || request()->boolean('has_report'))
-                <a href="{{ $showCancelled ? route('projects.index', ['status' => 'cancelled']) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
+                <a href="{{ $statusTab !== 'active' ? route('projects.index', ['status' => $statusTab]) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
-        @unless($showCancelled)
+        @if($statusTab === 'active')
         <div class="filter-group">
             <span class="filter-label">단계</span>
             @foreach($stageOptions as $v => $lbl)
+                @continue($v === 'done') {{-- 완료 건은 완료 탭에서 — 진행 탭 단계 필터에서 제외 --}}
                 <label class="chip-toggle" data-stage="{{ $v }}">
                     <input type="checkbox" name="stage[]" value="{{ $v }}" {{ in_array($v, $selectedStages, true) ? 'checked' : '' }}>
                     <span class="chip">{{ $lbl }}</span>
                 </label>
             @endforeach
         </div>
-        @endunless
+        @endif
         <div class="filter-group">
             <span class="filter-label">보고</span>
             <label class="chip-toggle">
@@ -293,7 +297,7 @@
                     <th>유형</th>
                     <th>{{ $showCancelled ? '취소 사유' : '단계' }}</th>
                     <th>담당자</th>
-                    <th>{{ $showCancelled ? '취소일' : '시작일' }}</th>
+                    <th>{{ $showCancelled ? '취소일' : ($showDone ? '완료일' : '시작일') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -357,13 +361,21 @@
                         @endif
                     </td>
                     <td>{{ $project->assignedUser?->display_name ?? '-' }}</td>
-                    <td>{{ $showCancelled ? ($project->cancelled_at?->format('Y.m.d') ?? $project->created_at->format('Y.m.d')) : $project->created_at->format('Y.m.d') }}</td>
+                    <td>
+                        @if($showCancelled)
+                            {{ $project->cancelled_at?->format('Y.m.d') ?? $project->created_at->format('Y.m.d') }}
+                        @elseif($showDone)
+                            {{ $project->completed_at?->format('Y.m.d') ?? $project->created_at->format('Y.m.d') }}
+                        @else
+                            {{ $project->created_at->format('Y.m.d') }}
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
         @else
-            <div class="empty">{{ $showCancelled ? '취소된 프로젝트가 없습니다.' : '프로젝트가 없습니다.' }}</div>
+            <div class="empty">{{ $showCancelled ? '취소된 프로젝트가 없습니다.' : ($showDone ? '완료된 프로젝트가 없습니다.' : '진행 중인 프로젝트가 없습니다.') }}</div>
         @endif
     </div>
 

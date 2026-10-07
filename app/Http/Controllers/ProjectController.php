@@ -26,11 +26,23 @@ class ProjectController extends Controller
     // 목록
     public function index(Request $request)
     {
-        // 취소 탭 — 취소된 프로젝트(stage=cancelled)만 분리해서 모아 본다
-        $showCancelled = $request->query('status') === 'cancelled';
+        // 진행/완료/취소 탭 — 목록을 상태별로 분리해서 모아 본다
+        $statusTab = in_array($request->query('status'), ['done', 'cancelled'], true) ? $request->query('status') : 'active';
+        // 방문보고 보기(대시보드 진입)는 완료 건의 보고가 핵심이라 탭 분리 없이 전체(취소 제외)에서 찾는다
+        $hasReport = $request->boolean('has_report');
+        $showCancelled = $statusTab === 'cancelled';
+        $showDone = $statusTab === 'done';
         $query = Project::with('client', 'assignedUser')
-            ->where('status', '!=', 'cancelled')
-            ->where('stage', $showCancelled ? '=' : '!=', 'cancelled');
+            ->where('status', '!=', 'cancelled');
+        if ($showCancelled) {
+            $query->where('stage', 'cancelled');
+        } elseif ($showDone) {
+            $query->where('stage', 'done');
+        } elseif (! $hasReport) {
+            $query->whereNotIn('stage', ['cancelled', 'done']);
+        } else {
+            $query->where('stage', '!=', 'cancelled');
+        }
 
         // 검색 — 의뢰자명/닉네임/프로젝트명/미연동 주관식 이름 (그룹으로 묶어 status 필터와 AND 유지)
         if ($search = $request->query('search')) {
@@ -44,8 +56,8 @@ class ProjectController extends Controller
             });
         }
 
-        // 단계 필터 (단일/콤마 구분/배열 모두 지원) — 취소 탭에서는 의미 없어 무시
-        if (! $showCancelled && ($stage = $request->query('stage'))) {
+        // 단계 필터 (단일/콤마 구분/배열 모두 지원) — 완료/취소 탭에서는 의미 없어 무시
+        if ($statusTab === 'active' && ($stage = $request->query('stage'))) {
             $stages = is_array($stage)
                 ? array_values(array_filter($stage))
                 : array_values(array_filter(array_map('trim', explode(',', (string) $stage))));
@@ -84,8 +96,12 @@ class ProjectController extends Controller
             $query->whereNotNull('visit_report_updated_at')->orderByDesc('visit_report_updated_at');
         }
 
-        $projects = ($showCancelled ? $query->orderByDesc('cancelled_at') : $query)
-            ->orderBy('created_at', 'desc')->paginate(20);
+        if ($showCancelled) {
+            $query->orderByDesc('cancelled_at');
+        } elseif ($showDone) {
+            $query->orderByDesc('completed_at');
+        }
+        $projects = $query->orderBy('created_at', 'desc')->paginate(20);
 
         // 필터 드롭다운용 태그 목록
         $tagOptions = [
@@ -93,10 +109,19 @@ class ProjectController extends Controller
             'minor' => ProjectSubtag::orderBy('sort_order')->orderBy('id')->pluck('name')->all(),
         ];
 
-        // 취소 탭 배지용 카운트
-        $cancelledCount = Project::where('status', '!=', 'cancelled')->where('stage', 'cancelled')->count();
+        // 탭 배지용 상태별 카운트 (진행/완료/취소)
+        $tabCounts = Project::where('status', '!=', 'cancelled')->selectRaw(
+            "SUM(CASE WHEN stage = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_cnt,
+             SUM(CASE WHEN stage = 'done' THEN 1 ELSE 0 END) AS done_cnt,
+             SUM(CASE WHEN stage NOT IN ('cancelled', 'done') THEN 1 ELSE 0 END) AS active_cnt"
+        )->first();
+        $tabCounts = [
+            'active' => (int) ($tabCounts->active_cnt ?? 0),
+            'done' => (int) ($tabCounts->done_cnt ?? 0),
+            'cancelled' => (int) ($tabCounts->cancelled_cnt ?? 0),
+        ];
 
-        return view('projects.index', compact('projects', 'tagOptions', 'showCancelled', 'cancelledCount'));
+        return view('projects.index', compact('projects', 'tagOptions', 'statusTab', 'showCancelled', 'showDone', 'tabCounts'));
     }
 
     // 등록 (의뢰자 연동)
