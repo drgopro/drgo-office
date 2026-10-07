@@ -95,6 +95,18 @@ class EstimateQuoteCancelTest extends TestCase
         $cancelled = $this->actingAs($this->admin)->getJson('/api/estimates?view=cancelled')->assertOk()->json();
         $cNames = array_column($cancelled, 'client_nickname');
         $this->assertSame(['견적취소건', '결제취소건'], collect($cNames)->sort()->values()->all());
+
+        // 전체 탭 — 견적 취소 포함 모든 견적서 (temp만 제외)
+        $all = $this->actingAs($this->admin)->getJson('/api/estimates?view=all')->assertOk()->json();
+        $aNames = array_column($all, 'client_nickname');
+        $this->assertContains('일반건', $aNames);
+        $this->assertContains('결제취소건', $aNames);
+        $this->assertContains('견적취소건', $aNames);
+
+        // 전체 탭 렌더 — 탭 버튼 + 건수 배지
+        $this->actingAs($this->admin)->get('/estimates')->assertOk()
+            ->assertSee('tabBtnAll', false)
+            ->assertSee('est-count-all', false);
     }
 
     public function test_multi_status_filter_with_comma(): void

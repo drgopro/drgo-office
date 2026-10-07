@@ -29,6 +29,7 @@ class EstimateController extends Controller
         // 탭 건수 배지 — 목록/취소 분류 기준은 estimates() 쿼리와 동일 (부모만, temp 제외)
         $base = Estimate::whereNull('parent_estimate_id')->where('status', '!=', 'temp');
         $tabCounts = [
+            'all' => (clone $base)->count(),
             'list' => (clone $base)->where('status', '!=', 'quote_cancelled')->count(),
             'cancelled' => (clone $base)->whereIn('status', ['quote_cancelled', 'cancelled'])->count(),
             'presets' => EstimatePreset::count(),
@@ -51,8 +52,8 @@ class EstimateController extends Controller
         } elseif ($status = $request->query('status')) {
             // 콤마 구분 다중 상태 필터 (목록 pill 다중 선택)
             $query->whereIn('status', array_values(array_filter(explode(',', (string) $status))));
-        } else {
-            // 견적 취소 건은 기본 목록에서 제외 — 전용 탭에서만 표시
+        } elseif ($request->query('view') !== 'all') {
+            // 견적 취소 건은 기본 목록에서 제외 — 전용 탭에서만 표시 (전체 탭은 제한 없음)
             $query->where('status', '!=', 'quote_cancelled');
         }
 

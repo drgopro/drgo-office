@@ -144,6 +144,7 @@
     .est-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; margin-left:6px; }
     .est-count-list { background:rgba(45,138,62,0.12); color:#2d8a3e; }
     .est-count-cancelled { background:rgba(200,80,80,0.12); color:var(--red); }
+    .est-count-all { background:rgba(150,150,170,0.16); color:var(--text-muted); }
     .est-count-presets { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .est-count-presets { background:#e0f0ff; color:#2e6a9a; }
 </style>
@@ -157,6 +158,7 @@
     </div>
 
     <div class="est-tabs">
+        <button class="est-tab" id="tabBtnAll" onclick="setEstTab('all')">전체<span class="est-count est-count-all">{{ $tabCounts['all'] ?? 0 }}</span></button>
         <button class="est-tab active" id="tabBtnList" onclick="setEstTab('list')">견적서 목록<span class="est-count est-count-list">{{ $tabCounts['list'] ?? 0 }}</span></button>
         <button class="est-tab" id="tabBtnCancelled" onclick="setEstTab('cancelled')">취소된 견적서<span class="est-count est-count-cancelled">{{ $tabCounts['cancelled'] ?? 0 }}</span></button>
         <button class="est-tab" id="tabBtnPresets" onclick="setEstTab('presets')">프리셋<span class="est-count est-count-presets">{{ $tabCounts['presets'] ?? 0 }}</span></button>
@@ -286,6 +288,7 @@ async function loadEstimates() {
     if (estListView === 'cancelled') {
         params.set('view', 'cancelled');
     } else {
+        if (estListView === 'all') params.set('view', 'all');
         const sts = selectedEstStatuses();
         if (sts.length) params.set('status', sts.join(','));
     }
@@ -393,10 +396,9 @@ function openEstimate(id) {
 }
 
 async function deleteEstimate(id, roundCount) {
-    const msg = roundCount > 0
-        ? `이 견적서를 삭제할까요?\n붙어 있는 추가 차수 ${roundCount}건도 함께 삭제됩니다.`
-        : '이 견적서를 삭제할까요?';
-    if (!confirm(msg)) return;
+    if (!confirm('이 견적서를 삭제할까요?')) return;
+    // 차수가 붙은 부모 — 자식 견적서(차수) 동반 삭제를 한 번 더 확인
+    if (roundCount > 0 && !confirm(`이 견적서에 추가 차수 ${roundCount}건이 붙어 있습니다.\n자식 견적서(차수)도 함께 삭제할까요?\n\n[취소]를 누르면 아무것도 삭제되지 않습니다.`)) return;
     const res = await fetch(`/api/estimates/${id}`, {method:'DELETE', headers:H});
     if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -578,6 +580,7 @@ function setEstTab(tab) {
     const isList = tab === 'list' || tab === 'cancelled';
     document.getElementById('tabList').style.display = isList ? '' : 'none';
     document.getElementById('tabPresets').style.display = tab === 'presets' ? '' : 'none';
+    document.getElementById('tabBtnAll').classList.toggle('active', tab === 'all');
     document.getElementById('tabBtnList').classList.toggle('active', tab === 'list');
     document.getElementById('tabBtnCancelled').classList.toggle('active', tab === 'cancelled');
     document.getElementById('tabBtnPresets').classList.toggle('active', tab === 'presets');
@@ -593,7 +596,7 @@ function setEstTab(tab) {
         btn.onclick = createEstimate;
         btn.style.display = CAN_EST_EDIT ? '' : 'none';
         // 취소 탭은 견적 취소·결제 취소만 모아 보여주므로 상태 pill 필터는 숨김
-        estListView = tab === 'cancelled' ? 'cancelled' : 'active';
+        estListView = tab === 'cancelled' ? 'cancelled' : (tab === 'all' ? 'all' : 'active');
         document.getElementById('estStatusPills').style.display = tab === 'cancelled' ? 'none' : 'flex';
         estPage = 1;
         loadEstimates();
