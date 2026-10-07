@@ -32,6 +32,7 @@
     .empty-row { text-align:center; padding:40px !important; color:var(--text-muted); font-size:13px; }
     .text-muted { color:var(--text-muted); font-size:12px; }
     .text-right { text-align:right; }
+    .data-table th.text-right { text-align:right; } /* th 기본 left보다 특이성 보강 — 금액 헤더를 값과 같은 우측 정렬로 */
 
     .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-created { background:#2a2010; color:var(--accent); }
