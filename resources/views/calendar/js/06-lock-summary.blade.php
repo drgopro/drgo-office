@@ -198,6 +198,12 @@ function renderLockSummary(){
             <a class="ls-map-ico" href="${naverMapUrl(q)}" target="_blank" title="네이버 지도에서 열기">${LS_NAVER_SVG}</a>
         </div>` : '';
     const addrActions = addr ? mapIconBtns(addr) : '';
+    // 현장 출입 정보 — 공동현관·반려동물 (주소 아래 한 줄씩)
+    const entranceTxt=_val('modalEntranceInfo'), petTxt=_val('modalPetInfo');
+    const accessLine=(entranceTxt||petTxt)?`<div class="ls-addr" style="margin-top:4px;">${[
+        entranceTxt?`🔑 공동현관 — ${_esc(entranceTxt)}`:'',
+        petTxt?`반려동물 — ${_esc(petTxt)}`:'',
+    ].filter(Boolean).join('<br>')}</div>`:'';
     if (isMove && mfAddr && addr) { LS_ROUTE_FROM = mfAddr; LS_ROUTE_TO = addr; }
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
@@ -208,6 +214,7 @@ function renderLockSummary(){
             <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
                 <div class="ls-addr" style="margin-top:2px;">${addrLine(_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>', location || addr, '도착지 주소')}</div>
                 ${mapIconBtns(addr || location)}</div>
+            ${accessLine}
             ${specialLine}`, '', 'ls-c-time ls-time-card'));
     } else {
         // 미팅/내방·사내업무: 장소를 체크박스 선택지로 지정하면 location이 비므로 옵션 값을 장소로 표시
@@ -216,6 +223,7 @@ function renderLockSummary(){
         left.push(lsCard('일시 · 장소', `
             <div class="ls-big">${timeBig}${durTxt}</div>
             <div class="ls-addr">${addrLine(locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>', (location || addr) ? (location || addr) : '', '주소')}</div>
+            ${accessLine}
             ${specialLine}
             ${addrActions}`, '', 'ls-c-time ls-time-card'));
     }

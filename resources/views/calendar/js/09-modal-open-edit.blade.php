@@ -20,7 +20,7 @@ function resetModalForm(){
     // 조건부 필드 숨기기
     document.querySelectorAll('.conditional-field').forEach(f=>f.classList.remove('visible'));
     // 텍스트 초기화
-    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalAddress','moveFromLocation','moveFromDetail','moveFromAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    ['g_nickname','g_name','g_phone','g_platform_etc','g_source_ref','g_topic_etc','g_budget_etc','g_equipment','g_req_topic_etc','g_req_detail','g_special','g_estimate_amount','g_balance_amount','t_remote_name','t_remote_platform','t_remote_content','t_studio_name','t_studio_platform','t_studio_content','t_desc','commonDesc','commonHandoverNote','modalLocation','modalLocationDetail','modalEntranceInfo','modalPetInfo','modalAddress','moveFromLocation','moveFromDetail','moveFromAddress','schedAfterReason'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
     // 연차 차감 초기화 (휴가/개인 전용)
     {const ldc=document.getElementById('leaveDeductChk'); if(ldc){ ldc.checked=false; document.getElementById('leaveDeductType').style.display='none'; document.getElementById('leaveDeductType').value='full'; }}
     // 의뢰자/프로젝트/견적서/잠금/잔금
@@ -466,6 +466,8 @@ function openEditModal(ev){
         document.getElementById('modalLocation').value = road;
         document.getElementById('modalAddress').value = ev.address || road;
         const det=document.getElementById('modalLocationDetail'); if(det) det.value = detail;
+        const ent=document.getElementById('modalEntranceInfo'); if(ent) ent.value = ev.entrance_info||'';
+        const pet=document.getElementById('modalPetInfo'); if(pet) pet.value = ev.pet_info||'';
     }
     // 주말 제외
     {const xw=document.getElementById('excludeWeekendsChk'); if(xw) xw.checked=!!ev.exclude_weekends;}

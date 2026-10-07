@@ -118,6 +118,11 @@
                             <span style="font-size:11px;color:var(--text-muted);">도로명은 검색으로만, 상세주소는 아래 직접 입력</span>
                         </div>
                         <input class="field-input" id="modalLocationDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">
+                        {{-- 현장 출입 정보 — 공동현관 출입 방법·반려동물 유무 수기 기입 --}}
+                        <div style="display:flex; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                            <input class="field-input" id="modalEntranceInfo" placeholder="공동현관 정보 (출입 방법·비밀번호 등)" autocomplete="off" style="flex:1.4; min-width:160px;">
+                            <input class="field-input" id="modalPetInfo" placeholder="반려동물 여부 (예: 강아지 1마리)" autocomplete="off" style="flex:1; min-width:130px;">
+                        </div>
                     </div>
                     <input type="hidden" id="modalAddress" value="">
                 </div>

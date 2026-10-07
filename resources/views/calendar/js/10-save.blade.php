@@ -119,6 +119,8 @@ async function doSaveEvent(){
         // address=도로명(검색), location=도로명+상세주소(표시용)
         address:document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim(),
         location:[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
+        entrance_info:document.getElementById('modalEntranceInfo')?.value.trim()||null,
+        pet_info:document.getElementById('modalPetInfo')?.value.trim()||null,
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
         // 전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),

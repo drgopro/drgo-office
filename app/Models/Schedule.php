@@ -29,6 +29,8 @@ class Schedule extends Model
         'client_name',
         'address',
         'location',
+        'entrance_info',
+        'pet_info',
         'description',
         'special_note',
         'handover_note',

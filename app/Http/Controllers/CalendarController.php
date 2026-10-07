@@ -103,6 +103,10 @@ class CalendarController extends Controller
     private function maskEventPii(array $event): array
     {
         $event['address'] = $this->truncateAddressToDistrict($event['address'] ?? null);
+        // 공동현관 정보(출입 방법·비밀번호)는 상세 주소와 같은 등급 — 권한 없으면 비노출
+        if (! empty($event['entrance_info'])) {
+            $event['entrance_info'] = '';
+        }
         if (is_array($event['request_data'] ?? null)) {
             if (! empty($event['request_data']['phone'])) {
                 $event['request_data']['phone'] = '';
@@ -249,6 +253,8 @@ class CalendarController extends Controller
             'client_name' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:300',
             'location' => 'nullable|string|max:200',
+            'entrance_info' => 'nullable|string|max:200',
+            'pet_info' => 'nullable|string|max:200',
             'description' => 'nullable|string',
             'special_note' => 'nullable|string|max:2000',
             'handover_note' => 'nullable|string|max:2000',
@@ -584,6 +590,8 @@ class CalendarController extends Controller
             'client_name' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:300',
             'location' => 'nullable|string|max:200',
+            'entrance_info' => 'nullable|string|max:200',
+            'pet_info' => 'nullable|string|max:200',
             'description' => 'nullable|string',
             'special_note' => 'nullable|string|max:2000',
             'handover_note' => 'nullable|string|max:2000',
@@ -1323,6 +1331,8 @@ class CalendarController extends Controller
             'client_name' => $e->client_name,
             'address' => $e->address,
             'location' => $e->location,
+            'entrance_info' => $e->entrance_info,
+            'pet_info' => $e->pet_info,
             'description' => $e->description,
             'special_note' => $e->special_note,
             'handover_note' => $e->handover_note,
@@ -1373,6 +1383,8 @@ class CalendarController extends Controller
                 'client_name' => $item['client_name'] ?? null,
                 'address' => $item['address'] ?? null,
                 'location' => $item['location'] ?? null,
+                'entrance_info' => $item['entrance_info'] ?? null,
+                'pet_info' => $item['pet_info'] ?? null,
                 'description' => $item['description'] ?? null,
                 'notif_minutes' => $item['notif_minutes'] ?? null,
                 'is_locked' => $item['is_locked'] ?? false,
