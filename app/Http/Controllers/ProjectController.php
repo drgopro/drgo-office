@@ -58,8 +58,8 @@ class ProjectController extends Controller
             });
         }
 
-        // 단계 필터 (단일/콤마 구분/배열 모두 지원) — 완료/취소 탭에서는 의미 없어 무시
-        if ($statusTab === 'active' && ($stage = $request->query('stage'))) {
+        // 단계 필터 (단일/콤마 구분/배열 모두 지원) — 진행·전체 탭에서만 (완료/취소 탭은 의미 없어 무시)
+        if (in_array($statusTab, ['active', 'all'], true) && ($stage = $request->query('stage'))) {
             $stages = is_array($stage)
                 ? array_values(array_filter($stage))
                 : array_values(array_filter(array_map('trim', explode(',', (string) $stage))));

@@ -55,7 +55,26 @@ class ProjectCancelledTabTest extends TestCase
             ->assertSee('진행중세팅건')
             ->assertSee('완료세팅건')
             ->assertSee('취소 프로젝트')
-            ->assertSee('status=all', false); // 전체 탭 링크
+            ->assertSee('status=all', false) // 전체 탭 링크
+            // 전체 탭에도 단계 필터 노출 — 완료·취소 칩 포함
+            ->assertSee('data-stage="done"', false)
+            ->assertSee('data-stage="cancelled"', false);
+    }
+
+    public function test_all_tab_stage_filter_narrows_to_selected_stage(): void
+    {
+        // 전체 탭 + 단계 필터 '완료' → 완료 건만
+        $this->actingAs($this->admin)->get('/projects?status=all&stage[]=done')
+            ->assertOk()
+            ->assertSee('완료세팅건')
+            ->assertDontSee('진행중세팅건')
+            ->assertDontSee('취소 프로젝트');
+
+        // 전체 탭 + 단계 필터 '취소'
+        $this->actingAs($this->admin)->get('/projects?status=all&stage[]=cancelled')
+            ->assertOk()
+            ->assertSee('취소 프로젝트')
+            ->assertDontSee('완료세팅건');
     }
 
     public function test_done_tab_shows_only_completed_with_completed_date(): void

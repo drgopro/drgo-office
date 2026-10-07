@@ -220,17 +220,23 @@
                 <a href="{{ $statusTab !== 'active' ? route('projects.index', ['status' => $statusTab]) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
-        @if($statusTab === 'active')
+        @if($statusTab === 'active' || $statusTab === 'all')
         <div class="filter-group">
             <span class="filter-label">단계</span>
             <div class="filter-chips">
             @foreach($stageOptions as $v => $lbl)
-                @continue($v === 'done') {{-- 완료 건은 완료 탭에서 — 진행 탭 단계 필터에서 제외 --}}
+                @continue($v === 'done' && $statusTab === 'active') {{-- 진행 탭에서 완료 건은 완료 탭으로 --}}
                 <label class="chip-toggle" data-stage="{{ $v }}">
                     <input type="checkbox" name="stage[]" value="{{ $v }}" {{ in_array($v, $selectedStages, true) ? 'checked' : '' }}>
                     <span class="chip">{{ $lbl }}</span>
                 </label>
             @endforeach
+            @if($statusTab === 'all')
+                <label class="chip-toggle" data-stage="cancelled">
+                    <input type="checkbox" name="stage[]" value="cancelled" {{ in_array('cancelled', $selectedStages, true) ? 'checked' : '' }}>
+                    <span class="chip">취소</span>
+                </label>
+            @endif
             </div>
         </div>
         @endif
