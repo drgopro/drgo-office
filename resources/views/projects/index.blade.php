@@ -106,8 +106,8 @@
     .stage-cancelled  { background:rgba(200,80,80,0.12); color:var(--red); }
 
     /* 전체/진행/완료/취소 탭 — 알약(세그먼트) 형태, 선택 탭은 떠 있는 흰 알약 */
-    .proj-status-tabs { display:inline-flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; max-width:100%; overflow-x:auto; }
-    .pst-tab { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.12s, background 0.12s; }
+    .proj-status-tabs { display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
+    .pst-tab { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.12s, background 0.12s; }
     .pst-tab:hover { color:var(--text); }
     .pst-tab.active { background:var(--surface); color:var(--text); font-weight:800; box-shadow:0 2px 8px rgba(0,0,0,0.22); }
     [data-theme="light"] .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
