@@ -43,7 +43,9 @@ class ProjectCancelledTabTest extends TestCase
             ->assertSee('pst-count pst-count-active', false)
             ->assertSee('pst-count pst-count-done', false)
             ->assertSee('status=done', false)
-            ->assertSee('status=cancelled', false);
+            ->assertSee('status=cancelled', false)
+            // 필터 칩 열 분리 — 줄바꿈된 칩이 라벨 오른쪽 열 안에서 정렬 (단계·보고·유형 3곳)
+            ->assertSee('filter-chips', false);
     }
 
     public function test_all_tab_shows_every_project_including_cancelled(): void

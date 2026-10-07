@@ -32,12 +32,14 @@
     .btn-search-reset:hover { border-color:var(--accent); color:var(--accent); }
 
     /* 체크박스 칩 그룹 */
-    .filter-group { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .filter-label { font-size:11px; color:var(--text-muted); letter-spacing:0.06em; min-width:42px; }
+    /* 라벨 열 + 칩 열 분리 — 칩이 줄바꿈돼도 라벨 오른쪽 열 안에서 가지런히 정렬 */
+    .filter-group { display:flex; align-items:flex-start; gap:8px; }
+    .filter-label { font-size:11px; color:var(--text-muted); letter-spacing:0.06em; min-width:42px; padding-top:6px; flex-shrink:0; }
+    .filter-chips { display:flex; flex-wrap:wrap; gap:5px 6px; flex:1; min-width:0; }
     .chip-toggle { position:relative; display:inline-flex; align-items:center; }
     .chip-toggle input { position:absolute; opacity:0; pointer-events:none; }
-    .chip-toggle .chip { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border:1px solid var(--border); border-radius:20px; background:var(--surface); color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; user-select:none; line-height:1.4; }
-    .chip-toggle .chip::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--text-muted); opacity:0.4; transition:all .15s; }
+    .chip-toggle .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--border); border-radius:20px; background:var(--surface); color:var(--text-muted); font-size:11.5px; cursor:pointer; transition:all .15s; user-select:none; line-height:1.4; white-space:nowrap; }
+    .chip-toggle .chip::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--text-muted); opacity:0.4; transition:all .15s; }
     .chip-toggle:hover .chip { border-color:var(--accent); color:var(--text); }
     .chip-toggle input:checked + .chip { color:var(--text); border-color:var(--accent); background:var(--surface2); }
     .chip-toggle input:checked + .chip::before { background:var(--accent); opacity:1; }
@@ -221,6 +223,7 @@
         @if($statusTab === 'active')
         <div class="filter-group">
             <span class="filter-label">단계</span>
+            <div class="filter-chips">
             @foreach($stageOptions as $v => $lbl)
                 @continue($v === 'done') {{-- 완료 건은 완료 탭에서 — 진행 탭 단계 필터에서 제외 --}}
                 <label class="chip-toggle" data-stage="{{ $v }}">
@@ -228,23 +231,28 @@
                     <span class="chip">{{ $lbl }}</span>
                 </label>
             @endforeach
+            </div>
         </div>
         @endif
         <div class="filter-group">
             <span class="filter-label">보고</span>
+            <div class="filter-chips">
             <label class="chip-toggle">
                 <input type="checkbox" name="has_report" value="1" {{ request()->boolean('has_report') ? 'checked' : '' }}>
                 <span class="chip">방문보고 작성</span>
             </label>
+            </div>
         </div>
         <div class="filter-group">
             <span class="filter-label">유형</span>
+            <div class="filter-chips">
             @foreach($typeOptions as $v => $lbl)
                 <label class="chip-toggle">
                     <input type="checkbox" name="project_type[]" value="{{ $v }}" {{ in_array($v, $selectedTypes, true) ? 'checked' : '' }}>
                     <span class="chip">{{ $lbl }}</span>
                 </label>
             @endforeach
+            </div>
         </div>
         @if(!empty($tagOptions['major']) || !empty($tagOptions['minor']))
         <div class="tag-filter {{ !empty($selectedTags) ? 'open' : '' }}" id="tagFilter">
