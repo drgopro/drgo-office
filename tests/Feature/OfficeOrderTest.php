@@ -317,6 +317,16 @@ class OfficeOrderTest extends TestCase
             ->assertSee('견적서 열기 → 주문 정보에서 수정', false); // 텍스트 표시 (입력폼 아님)
     }
 
+    public function test_bundle_item_row_omits_duplicate_source_and_memo_inputs(): void
+    {
+        // 세트 항목 행의 구매처/메모 칸은 구성품별 칸과 중복 — 물류팀 혼동 방지로 제거하고
+        // 안내 문구로 대체. 저장 시에도 해당 키를 보내지 않아 기존 값이 지워지지 않는다
+        $this->actingAs($this->admin)->get('/inventory')->assertOk()
+            ->assertSee('구매처·메모는 세트 구성에서', false) // 세트 행 안내 문구
+            ->assertSee('isBundleItem', false)              // 분기 렌더
+            ->assertSee('if (srcEl) body.purchase_source', false); // 칸 없으면 키 미전송
+    }
+
     public function test_order_list_exposes_ship_recipient_fields_and_amount(): void
     {
         // 견적서의 배송지 수령인/연락처/요청사항이 주문 내역 헤더(readonly)용으로 내려온다

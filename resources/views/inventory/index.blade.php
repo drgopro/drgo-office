@@ -2110,6 +2110,8 @@ function renderOrderCard(o) {
                 // 미주문 항목 — 기입칸은 비활성으로 두고 주문완료/직접발송 버튼으로 먼저 처리 (누르면 활성화)
                 const itemOrdered = o.type !== 'estimate' || !!it.ordered
                     || (it.bundle_items||[]).some(b => b.ordered);
+                // 세트 항목 — 구매처/메모는 구성품별 칸으로만 입력 (세트 행에도 두면 물류팀이 헷갈림)
+                const isBundleItem = (it.bundle_items||[]).length > 0;
                 const noteCells = o.type === 'estimate' && it.replaced
                     ? `<td colspan="6"><span class="badge badge-low" title="견적서에서 대체 처리된 항목 — 주문 대상 아님">대체됨</span>${it.replaced_note ? ` <span class="text-muted" style="font-size:12px;">↳ ${_esc(it.replaced_note)}</span>` : ''}</td>`
                     : o.type === 'estimate'
@@ -2118,8 +2120,10 @@ function renderOrderCard(o) {
                        <button class="btn-outline btn-sm" style="padding:5px 12px; font-size:12px;" onclick="event.stopPropagation(); markItemOrdered(${o.id}, ${it.index}, true, this)" title="사무실 재고로 직접 발송 — 구매처가 '사무실 발송'으로 기록되고 재고가 차감됩니다">직접발송</button>
                        ${stockChip(it.stock, it.qty, it.stock_buildable)}`}
                        <input class="oi-amt field-input" type="number" min="0" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:118px; text-align:right; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="${it.default_amount ? fmt(it.default_amount) : '구매 금액'}" title="구매 금액 (비우면 미기록 — 흐린 값은 매입가×수량 참고치)" value="${it.amount ?? ''}" onclick="event.stopPropagation()">
-                       <input class="oi-src field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:130px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()">
-                       <input class="oi-memo field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; flex:1; min-width:80px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
+                       ${isBundleItem
+                         ? `<span class="text-muted" style="font-size:11.5px; flex:1; min-width:80px;" title="세트 항목의 구매처/메모는 아래 세트 구성에서 구성품별로 입력합니다">구매처·메모는 세트 구성에서 ↓</span>`
+                         : `<input class="oi-src field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:130px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()">
+                       <input class="oi-memo field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; flex:1; min-width:80px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">`}
                        <label style="display:${itemOrdered ? 'inline-flex' : 'none'}; align-items:center; gap:4px; font-size:12px; white-space:nowrap; cursor:pointer;" title="환불/결제취소 수동 체크 — 프로젝트에서 환불 처리하면 자동으로 표시됩니다" onclick="event.stopPropagation()">
                            <input type="checkbox" class="oi-ref" ${it.refunded ? 'checked' : ''} onchange="this.closest('td').querySelector('.oi-refamt').style.display=this.checked?'':'none'">환불/취소</label>
                        <input class="oi-refamt field-input" type="number" min="0" style="padding:6px 9px; font-size:12px; width:110px; text-align:right; ${it.refunded && itemOrdered ? '' : 'display:none;'}" placeholder="${it.sale_subtotal ? fmt(it.sale_subtotal) : '환불액'}" title="환불 금액 (판매가 합계: ${fmt(it.sale_subtotal||0)}원)" value="${it.refunded && it.refund_amount ? it.refund_amount : ''}" onclick="event.stopPropagation()">
@@ -2296,9 +2300,10 @@ function captureOrderEdits() {
     const snap = { items: {}, bundles: {} };
     document.querySelectorAll('#orderBody tr[data-oik]').forEach(tr => {
         if (!tr.querySelector('.oi-amt')) return;
+        // 세트 항목 행에는 구매처/메모 칸이 없음 (구성품별 칸만 사용)
         snap.items[tr.dataset.oik] = {
-            amt: tr.querySelector('.oi-amt').value, src: tr.querySelector('.oi-src').value,
-            memo: tr.querySelector('.oi-memo').value, ref: tr.querySelector('.oi-ref').checked,
+            amt: tr.querySelector('.oi-amt').value, src: tr.querySelector('.oi-src')?.value ?? null,
+            memo: tr.querySelector('.oi-memo')?.value ?? null, ref: tr.querySelector('.oi-ref').checked,
             refamt: tr.querySelector('.oi-refamt').value,
         };
     });
@@ -2317,8 +2322,9 @@ function restoreOrderEdits(snap) {
     document.querySelectorAll('#orderBody tr[data-oik]').forEach(tr => {
         const s = snap.items[tr.dataset.oik];
         if (!s || !tr.querySelector('.oi-amt')) return;
-        tr.querySelector('.oi-amt').value = s.amt; tr.querySelector('.oi-src').value = s.src;
-        tr.querySelector('.oi-memo').value = s.memo;
+        tr.querySelector('.oi-amt').value = s.amt;
+        const srcEl = tr.querySelector('.oi-src'); if (srcEl && s.src !== null) srcEl.value = s.src;
+        const memoEl = tr.querySelector('.oi-memo'); if (memoEl && s.memo !== null) memoEl.value = s.memo;
         const ref = tr.querySelector('.oi-ref'); ref.checked = s.ref;
         const refamt = tr.querySelector('.oi-refamt');
         refamt.value = s.refamt; refamt.style.display = s.ref ? '' : 'none';
@@ -2338,14 +2344,17 @@ function buildItemNoteBody(tr, index) {
     const amtRaw = tr.querySelector('.oi-amt').value.trim();
     const refunded = tr.querySelector('.oi-ref').checked;
     const refAmtRaw = tr.querySelector('.oi-refamt').value.trim();
-    return {
+    const body = {
         index,
         amount: amtRaw === '' ? null : Math.max(0, parseInt(amtRaw) || 0),
-        purchase_source: tr.querySelector('.oi-src').value.trim(),
-        memo: tr.querySelector('.oi-memo').value.trim(),
         refunded,
         refund_amount: refunded && refAmtRaw !== '' ? Math.max(0, parseInt(refAmtRaw) || 0) : null,
     };
+    // 세트 항목 행에는 구매처/메모 칸이 없음 — 키를 보내지 않아 서버의 기존 값을 건드리지 않는다
+    const srcEl = tr.querySelector('.oi-src'), memoEl = tr.querySelector('.oi-memo');
+    if (srcEl) body.purchase_source = srcEl.value.trim();
+    if (memoEl) body.memo = memoEl.value.trim();
+    return body;
 }
 function buildBundleNoteBody(row, index, bundleIndex) {
     const refunded = row.querySelector('.ob-ref').checked;
