@@ -193,6 +193,36 @@ class EstimatePresetTest extends TestCase
         $this->assertSame($url, $again);
     }
 
+    public function test_preset_items_keep_saved_order_and_builder_loads_verbatim(): void
+    {
+        // 프리셋에서 드래그로 지정한 순서가 저장·조회 모두에서 유지되어야 한다 (김광래 피드백)
+        $items = [
+            ['name' => '다이나믹 마이크', 'category' => '마이크', 'sale_price' => 10000, 'qty' => 1, 'manual' => true],
+            ['name' => '송출 컴퓨터', 'category' => '컴퓨터', 'sale_price' => 20000, 'qty' => 1, 'manual' => true],
+        ];
+        $id = $this->actingAs($this->admin)->postJson('/api/estimate-presets', [
+            'title' => '순서 테스트', 'items' => $items,
+        ])->assertCreated()->json('id');
+
+        // 역순으로 재저장 — 저장/목록 응답 모두 보낸 순서 그대로
+        $this->actingAs($this->admin)->patchJson("/api/estimate-presets/{$id}", [
+            'items' => array_reverse($items),
+        ])->assertOk();
+        $names = collect(EstimatePreset::find($id)->items)->pluck('name')->all();
+        $this->assertSame(['송출 컴퓨터', '다이나믹 마이크'], $names);
+        $listNames = collect($this->actingAs($this->admin)->getJson('/api/estimate-presets')->json('0.items'))->pluck('name')->all();
+        $this->assertSame(['송출 컴퓨터', '다이나믹 마이크'], $listNames);
+
+        // 빌더 — 빈 장바구니에 불러올 때 카테고리 재정렬 없이 프리셋 순서 그대로 담는 분기
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'total_amount' => 0, 'created_by' => $this->admin->id,
+        ]);
+        $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/edit")
+            ->assertOk()
+            ->assertSee('keepPresetOrder', false);
+    }
+
     public function test_estimate_saves_manual_items_as_snapshot(): void
     {
         // 수기 품목(product_id 없음)도 견적서 product_items에 작성 시점 가격으로 저장

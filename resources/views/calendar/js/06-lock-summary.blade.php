@@ -19,6 +19,9 @@ function applyLockUI(){
     } else {
         body.classList.remove('is-locked');
         renderChildrenCard(); // 요약 → 폼 전환 시 폼 쪽 컨테이너에 다시 렌더
+        // 요약 뷰로 열린 동안엔 폼이 숨겨져 있어 textarea 자동 높이가 0으로 측정됨 —
+        // 폼이 보이게 된 지금 다시 측정해야 기존 내용만큼 늘어난다
+        if (typeof calRefreshAutoGrow === 'function') setTimeout(calRefreshAutoGrow, 0);
     }
 }
 

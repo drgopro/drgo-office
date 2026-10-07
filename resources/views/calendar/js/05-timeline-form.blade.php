@@ -325,6 +325,9 @@ function setColor(c){
     if(gAttSec) gAttSec.style.display=(c==='gold')?'none':'';
     // 연동 프로젝트 첨부 문서 — 방문의뢰는 첨부 이미지 그룹 안에, 그 외는 하단 블록에 (배치가 카테고리에 따라 달라짐)
     if(typeof renderLinkedProjDocs==='function') renderLinkedProjDocs();
+    // 카테고리 전환으로 방금 보이게 된 섹션의 textarea는 숨김 상태에서 높이가 0으로
+    // 측정돼 있음 — 표시 후 다시 측정해야 기존 내용만큼 늘어난다
+    if(typeof calRefreshAutoGrow==='function') setTimeout(calRefreshAutoGrow,0);
 }
 
 // ── 미팅/내방 · 사내업무(blue) 옵션 선택 UI — 목록은 '내방 옵션' 설정 공유 ──

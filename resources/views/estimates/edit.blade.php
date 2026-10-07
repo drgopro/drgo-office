@@ -1824,6 +1824,9 @@ function applyPresetById(id) {
         return item;
     });
     if (document.getElementById('presetReplaceMode').checked) { cartItems.length = 0; }
+    // 빈 장바구니에 불러올 때는 프리셋에 저장된 순서 그대로 — insertCartItem(카테고리
+    // 우선순위 정렬)을 거치면 프리셋에서 드래그로 지정한 순서가 무시된다 (김광래 피드백)
+    const keepPresetOrder = cartItems.length === 0;
     // 이미 담긴 품목은 행을 늘리지 않고 수량을 더한다 — 제품 클릭(addToCart)과 동일 동작
     // (프리셋을 다시 누르면 같은 항목이 행으로 중복 생성되던 버그 수정)
     items.forEach(item => {
@@ -1833,6 +1836,8 @@ function applyPresetById(id) {
         if (existing) {
             existing.qty += item.qty;
             existing.subtotal = Number(existing.sale_price) * existing.qty;
+        } else if (keepPresetOrder) {
+            cartItems.push(item);
         } else {
             insertCartItem(item);
         }
