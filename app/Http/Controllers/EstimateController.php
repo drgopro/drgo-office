@@ -935,16 +935,22 @@ class EstimateController extends Controller
 
     public function destroy(Estimate $estimate)
     {
-        // 차수가 남아 있는 부모는 삭제 불가 — 차수(추가 견적)부터 정리해야 결제 기록이 고아가 되지 않는다
-        if ($estimate->rounds()->exists()) {
-            return response()->json(['message' => '추가 차수가 있는 견적서입니다. 하단의 차수를 먼저 삭제해 주세요.'], 422);
-        }
         // 결제 완료된 차수는 삭제 불가 (부모와 동일하게 문서 기록 보존)
         if ($estimate->parent_estimate_id && $estimate->status === 'paid') {
             return response()->json(['message' => '결제 완료된 차수는 삭제할 수 없습니다.'], 422);
         }
+        // 부모 삭제 시 차수도 함께 — 단, 결제 완료된 차수가 하나라도 있으면 기록 보존을 위해 거부
+        $rounds = $estimate->rounds()->get();
+        if ($rounds->contains(fn (Estimate $r) => $r->status === 'paid')) {
+            return response()->json(['message' => '결제 완료된 추가 차수가 있는 견적서는 삭제할 수 없습니다.'], 422);
+        }
 
         // 삭제 전파 — 미수 청구·프로젝트 견적/계약 카드·캘린더 연동에서 정리 + 직접발송 재고 복원
+        foreach ($rounds as $round) {
+            EstimatePaymentSync::estimateDeleted($round);
+            EstimateStockSync::release($round);
+            $round->delete();
+        }
         EstimatePaymentSync::estimateDeleted($estimate);
         EstimateStockSync::release($estimate);
         $estimate->delete();

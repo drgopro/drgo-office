@@ -353,7 +353,7 @@ async function loadEstimates() {
                             <button onclick="exportEstimate(${e.id},'image')">이미지 저장</button>
                             <button onclick="exportEstimate(${e.id},'pdf')">PDF 저장</button>
                             <button onclick="window.open('/estimates/${e.id}/print','_blank')">인쇄 미리보기</button>
-                            <button class="menu-danger" onclick="deleteEstimate(${e.id})">삭제</button>
+                            <button class="menu-danger" onclick="deleteEstimate(${e.id}, ${(e.rounds||[]).length})">삭제</button>
                         </div>
                     </div>
                 </div>
@@ -392,9 +392,17 @@ function openEstimate(id) {
     window.open(`/estimates/${id}/edit`, `estimate_${id}`, `width=${w},height=${h},scrollbars=yes,resizable=yes`);
 }
 
-async function deleteEstimate(id) {
-    if (!confirm('이 견적서를 삭제할까요?')) return;
-    await fetch(`/api/estimates/${id}`, {method:'DELETE', headers:H});
+async function deleteEstimate(id, roundCount) {
+    const msg = roundCount > 0
+        ? `이 견적서를 삭제할까요?\n붙어 있는 추가 차수 ${roundCount}건도 함께 삭제됩니다.`
+        : '이 견적서를 삭제할까요?';
+    if (!confirm(msg)) return;
+    const res = await fetch(`/api/estimates/${id}`, {method:'DELETE', headers:H});
+    if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.message || '삭제하지 못했습니다.');
+        return;
+    }
     loadEstimates();
 }
 

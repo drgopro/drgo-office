@@ -102,19 +102,22 @@ class EstimateRoundTest extends TestCase
         $this->assertSame($round->id, $rows->firstWhere('id', $parent->id)['rounds'][0]['id']); // 부모 안에 중첩
     }
 
-    public function test_parent_with_rounds_cannot_be_deleted_and_paid_round_protected(): void
+    public function test_parent_delete_cascades_rounds_and_paid_round_protected(): void
     {
         $parent = $this->makePaidParent();
         $round = Estimate::find($this->actingAs($this->admin)->postJson("/api/estimates/{$parent->id}/rounds")->json('id'));
 
-        $this->actingAs($this->admin)->deleteJson("/api/estimates/{$parent->id}")->assertStatus(422);
-
+        // 결제 완료된 차수 — 단독 삭제도, 부모를 통한 동반 삭제도 불가 (기록 보존)
         $round->update(['status' => 'paid']);
         $this->actingAs($this->admin)->deleteJson("/api/estimates/{$round->id}")->assertStatus(422);
+        $this->actingAs($this->admin)->deleteJson("/api/estimates/{$parent->id}")->assertStatus(422);
+        $this->assertNotNull(Estimate::find($parent->id));
 
+        // 미결제 차수는 부모 삭제 시 함께 삭제 (차수를 먼저 지울 필요 없음 — 버그 수정)
         $round->update(['status' => 'issued']);
-        $this->actingAs($this->admin)->deleteJson("/api/estimates/{$round->id}")->assertOk();
         $this->actingAs($this->admin)->deleteJson("/api/estimates/{$parent->id}")->assertOk();
+        $this->assertNull(Estimate::find($parent->id));
+        $this->assertNull(Estimate::find($round->id));
     }
 
     public function test_public_view_merges_rounds_into_final_document(): void
