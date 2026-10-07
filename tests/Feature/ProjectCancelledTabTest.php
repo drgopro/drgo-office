@@ -46,6 +46,16 @@ class ProjectCancelledTabTest extends TestCase
             ->assertSee('status=cancelled', false);
     }
 
+    public function test_all_tab_shows_every_project_including_cancelled(): void
+    {
+        $this->actingAs($this->admin)->get('/projects?status=all')
+            ->assertOk()
+            ->assertSee('진행중세팅건')
+            ->assertSee('완료세팅건')
+            ->assertSee('취소 프로젝트')
+            ->assertSee('status=all', false); // 전체 탭 링크
+    }
+
     public function test_done_tab_shows_only_completed_with_completed_date(): void
     {
         $this->actingAs($this->admin)->get('/projects?status=done')

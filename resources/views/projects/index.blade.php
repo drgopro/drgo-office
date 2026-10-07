@@ -103,15 +103,17 @@
     .stage-done       { background:var(--surface2); color:var(--text-muted); }
     .stage-cancelled  { background:rgba(200,80,80,0.12); color:var(--red); }
 
-    /* 진행/취소 탭 — 목록을 상태별로 분리해 보는 상단 탭 */
-    .proj-status-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:14px; }
-    .pst-tab { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border:1px solid transparent; border-bottom:none; border-radius:9px 9px 0 0; margin-bottom:-1px; }
-    .pst-tab:hover { color:var(--text); background:var(--surface2); }
-    .pst-tab.active { color:var(--text); background:var(--surface); border-color:var(--border); border-bottom:1px solid var(--surface); }
+    /* 전체/진행/완료/취소 탭 — 알약(세그먼트) 형태, 선택 탭은 떠 있는 흰 알약 */
+    .proj-status-tabs { display:inline-flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; max-width:100%; overflow-x:auto; }
+    .pst-tab { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.12s, background 0.12s; }
+    .pst-tab:hover { color:var(--text); }
+    .pst-tab.active { background:var(--surface); color:var(--text); font-weight:800; box-shadow:0 2px 8px rgba(0,0,0,0.22); }
+    [data-theme="light"] .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
     .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
     .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
     .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
+    .pst-count-all { background:rgba(150,150,170,0.16); color:var(--text-muted); }
     .cancel-reason-sub { font-size:11px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
@@ -199,8 +201,9 @@
         $typeOptions = \App\Models\ConsultationType::map(false); // 비활성 포함 — 기존 A/S 등 레거시 프로젝트 필터/라벨용
     @endphp
 
-    {{-- 진행/완료/취소 탭 — 상태별로 모아 보기 (건수 배지) --}}
+    {{-- 전체/진행/완료/취소 탭 — 상태별로 모아 보기 (건수 배지) --}}
     <div class="proj-status-tabs">
+        <a href="{{ route('projects.index', ['status' => 'all']) }}" class="pst-tab {{ $statusTab === 'all' ? 'active' : '' }}">전체<span class="pst-count pst-count-all">{{ $tabCounts['all'] }}</span></a>
         <a href="{{ route('projects.index') }}" class="pst-tab {{ $statusTab === 'active' ? 'active' : '' }}">진행 중<span class="pst-count pst-count-active">{{ $tabCounts['active'] }}</span></a>
         <a href="{{ route('projects.index', ['status' => 'done']) }}" class="pst-tab {{ $showDone ? 'active' : '' }}">완료<span class="pst-count pst-count-done">{{ $tabCounts['done'] }}</span></a>
         <a href="{{ route('projects.index', ['status' => 'cancelled']) }}" class="pst-tab {{ $showCancelled ? 'active' : '' }}">취소<span class="pst-count">{{ $tabCounts['cancelled'] }}</span></a>
@@ -376,7 +379,7 @@
             </tbody>
         </table>
         @else
-            <div class="empty">{{ $showCancelled ? '취소된 프로젝트가 없습니다.' : ($showDone ? '완료된 프로젝트가 없습니다.' : '진행 중인 프로젝트가 없습니다.') }}</div>
+            <div class="empty">{{ $showCancelled ? '취소된 프로젝트가 없습니다.' : ($showDone ? '완료된 프로젝트가 없습니다.' : ($statusTab === 'all' ? '프로젝트가 없습니다.' : '진행 중인 프로젝트가 없습니다.')) }}</div>
         @endif
     </div>
 

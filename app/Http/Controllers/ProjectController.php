@@ -26,8 +26,8 @@ class ProjectController extends Controller
     // 목록
     public function index(Request $request)
     {
-        // 진행/완료/취소 탭 — 목록을 상태별로 분리해서 모아 본다
-        $statusTab = in_array($request->query('status'), ['done', 'cancelled'], true) ? $request->query('status') : 'active';
+        // 전체/진행/완료/취소 탭 — 목록을 상태별로 분리해서 모아 본다
+        $statusTab = in_array($request->query('status'), ['all', 'done', 'cancelled'], true) ? $request->query('status') : 'active';
         // 방문보고 보기(대시보드 진입)는 완료 건의 보고가 핵심이라 탭 분리 없이 전체(취소 제외)에서 찾는다
         $hasReport = $request->boolean('has_report');
         $showCancelled = $statusTab === 'cancelled';
@@ -38,6 +38,8 @@ class ProjectController extends Controller
             $query->where('stage', 'cancelled');
         } elseif ($showDone) {
             $query->where('stage', 'done');
+        } elseif ($statusTab === 'all') {
+            // 전체 탭 — 진행·완료·취소 모두
         } elseif (! $hasReport) {
             $query->whereNotIn('stage', ['cancelled', 'done']);
         } else {
@@ -120,6 +122,7 @@ class ProjectController extends Controller
             'done' => (int) ($tabCounts->done_cnt ?? 0),
             'cancelled' => (int) ($tabCounts->cancelled_cnt ?? 0),
         ];
+        $tabCounts['all'] = $tabCounts['active'] + $tabCounts['done'] + $tabCounts['cancelled'];
 
         return view('projects.index', compact('projects', 'tagOptions', 'statusTab', 'showCancelled', 'showDone', 'tabCounts'));
     }
