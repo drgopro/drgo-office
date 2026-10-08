@@ -624,6 +624,7 @@ const projTabs = {
         const pane = document.getElementById('projPane-' + (id === 'list' ? 'list' : id));
         if (pane) pane.classList.add('active');
         this.render();
+        this.persist();
     },
     close(id) {
         id = String(id);
@@ -633,7 +634,19 @@ const projTabs = {
         const pane = document.getElementById('projPane-' + id);
         if (pane) pane.remove();
         if (this.active === id) this.activate('list');
-        else this.render();
+        else { this.render(); this.persist(); }
+    },
+    // 새로고침해도 열린 프로젝트 탭과 활성 상태 유지 (의뢰자 페이지와 동일 방식)
+    persist() {
+        try { sessionStorage.setItem('drgo_proj_tabs', JSON.stringify({ tabs: this.tabs, activeId: this.active })); } catch (e) {}
+    },
+    restore() {
+        try {
+            const d = JSON.parse(sessionStorage.getItem('drgo_proj_tabs') || 'null');
+            if (!d || !Array.isArray(d.tabs) || !d.tabs.length) return;
+            d.tabs.forEach(t => this.open(t.id, t.title));
+            this.activate(d.activeId && this.tabs.find(t => t.id === String(d.activeId)) ? d.activeId : 'list');
+        } catch (e) {}
     },
     render() {
         const strip = document.getElementById('projTabStrip');
@@ -645,6 +658,7 @@ const projTabs = {
     },
 };
 window.projTabs = projTabs;
+projTabs.restore(); // 새로고침 후 열려 있던 프로젝트 탭 복원
 // 프로젝트 상세 iframe에서 '목록으로'/삭제 시 호출 — 내부 탭 닫고 목록으로
 window.projInternalBack = function(id) { if (id) projTabs.close(id); else projTabs.activate('list'); };
 

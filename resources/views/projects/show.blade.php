@@ -10,7 +10,9 @@
     .back-btn { color:var(--text-muted); text-decoration:none; font-size:13px; }
     .back-btn:hover { color:var(--text); }
     .project-name { font-size:22px; font-weight:700; }
-    .project-meta { font-size:13px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:8px; }
+    /* 모바일에서 항목이 눌려 글자가 세로로 꺾이지 않게 — 줄바꿈 허용 + 항목 단위 nowrap */
+    .project-meta { font-size:13px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:6px 8px; flex-wrap:wrap; }
+    .project-meta > span { white-space:nowrap; flex-shrink:0; }
 
     .process-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-bottom:16px; }
 

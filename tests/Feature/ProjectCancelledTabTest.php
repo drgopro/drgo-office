@@ -45,7 +45,10 @@ class ProjectCancelledTabTest extends TestCase
             ->assertSee('status=done', false)
             ->assertSee('status=cancelled', false)
             // 필터 칩 열 분리 — 줄바꿈된 칩이 라벨 오른쪽 열 안에서 정렬 (단계·보고·유형 3곳)
-            ->assertSee('filter-chips', false);
+            ->assertSee('filter-chips', false)
+            // 새로고침 시 열린 프로젝트 탭·활성 상태 복원 (sessionStorage)
+            ->assertSee('drgo_proj_tabs', false)
+            ->assertSee('projTabs.restore()', false);
     }
 
     public function test_all_tab_shows_every_project_including_cancelled(): void
