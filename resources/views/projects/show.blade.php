@@ -1147,15 +1147,18 @@
 
         <!-- 추가 정보 (관리자 정의 동적 필드) -->
         <div class="info-card full" id="customDataCard" style="display:none;">
-            <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-start;">
                 <span>추가 정보</span>
                 <span id="pcfSaveBadge" class="pcf-badge"></span>
-                <button type="button" class="pcf-save-btn" id="pcfSaveBtn" onclick="pcfSaveNow()" title="변경 내용을 즉시 저장" style="display:none;">저장</button>
-                <button type="button" class="pcf-save-btn" id="pcfModeBtn" onclick="togglePcfEditMode()" title="기본은 입력된 값만 요약 표시 — 편집을 눌러 입력 폼을 엽니다" style="background:none; border:1px solid var(--accent); color:var(--accent);">✎ 편집</button>
-                @if($project->client_id)
-                <button type="button" class="pcf-save-btn" onclick="openEquipImport()" title="의뢰자 장비 정보 또는 같은 의뢰자의 이전 프로젝트 장비를 복사해 채웁니다" style="background:none; border:1px solid var(--accent); color:var(--accent);">불러오기</button>
-                <button type="button" class="pcf-save-btn" onclick="pcfPinAsClientEquip()" title="의뢰자 페이지의 장비 요약이 이 프로젝트 기준으로 고정됩니다" style="margin-left:auto;">현재 장비를 의뢰자에 연동</button>
-                @endif
+                {{-- 버튼은 우측에 한 그룹으로 — card-title의 space-between 때문에 낱개로 두면 퍼진다 --}}
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto;">
+                    <button type="button" class="pcf-save-btn" id="pcfSaveBtn" onclick="pcfSaveNow()" title="변경 내용을 즉시 저장" style="display:none;">저장</button>
+                    <button type="button" class="pcf-save-btn" id="pcfModeBtn" onclick="togglePcfEditMode()" title="기본은 입력된 값만 요약 표시 — 편집을 눌러 입력 폼을 엽니다" style="background:none; border:1px solid var(--accent); color:var(--accent);">✎ 편집</button>
+                    @if($project->client_id)
+                    <button type="button" class="pcf-save-btn" onclick="openEquipImport()" title="의뢰자 장비 정보 또는 같은 의뢰자의 이전 프로젝트 장비를 복사해 채웁니다" style="background:none; border:1px solid var(--accent); color:var(--accent);">불러오기</button>
+                    <button type="button" class="pcf-save-btn" onclick="pcfPinAsClientEquip()" title="의뢰자 페이지의 장비 요약이 이 프로젝트 기준으로 고정됩니다">현재 장비를 의뢰자에 연동</button>
+                    @endif
+                </div>
             </div>
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
         </div>
