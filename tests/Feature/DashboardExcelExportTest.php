@@ -220,8 +220,8 @@ class DashboardExcelExportTest extends TestCase
 
     public function test_work_log_maps_custom_category_and_falls_back_to_title(): void
     {
-        // 커스텀 카테고리 라벨('스튜디오')도 키워드 매칭으로 분류되고, 의뢰자 미연동
-        // 일정은 의뢰자명이 공란 대신 제목으로 표시되어야 한다 (조유신 피드백)
+        // 커스텀 카테고리 라벨('스튜디오')은 스튜디오 방문 세팅 — 작업 방식 '방문'으로 분류되고,
+        // 의뢰자 미연동 일정은 의뢰자명이 공란 대신 제목으로 표시되어야 한다 (조유신 피드백)
         $user = User::factory()->create(['role' => 'admin']);
         CalendarCategory::create([
             'key' => 'custom-studio', 'label' => '스튜디오', 'color' => '#333333',
@@ -247,7 +247,7 @@ class DashboardExcelExportTest extends TestCase
         $row = collect($sheet->toArray())->skip(1)->first(fn ($r) => str_contains((string) $r[7], '한창진'));
         $this->assertNotNull($row, '작업 일지에 해당 일정이 없습니다');
         $this->assertSame('광우상사 스튜디오 촬영', $row[2]); // 의뢰자명 — 공란 대신 제목 폴백
-        $this->assertSame('촬영', $row[5]);                   // 작업 방식 — '기타'가 아닌 촬영
+        $this->assertSame('방문', $row[5]);                   // 작업 방식 — 스튜디오 카테고리는 방문 세팅
         $this->assertSame('스튜디오', $row[9]);               // 카테고리 라벨 그대로
     }
 
