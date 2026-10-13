@@ -145,6 +145,30 @@ class EstimateStockSync
     }
 
     /**
+     * 세트 구성품 스냅샷 → 구성품 제품 ID — 스냅샷 product_id 우선, 세트 구성 이름 매칭,
+     * 제품명 직접 조회 순. 표시 이름이 제품명과 다르거나 세트 구성이 바뀐 뒤에도
+     * 입고/복원이 조용히 누락되지 않게 한다.
+     *
+     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $bundle
+     */
+    public static function componentProductId(array $item, array $bundle): int
+    {
+        $pid = (int) ($bundle['product_id'] ?? 0);
+        if (! $pid) {
+            $product = Product::with('bundleItems.component')->find((int) ($item['product_id'] ?? 0));
+            $pid = (int) ($product?->bundleItems
+                ->first(fn ($bi) => ($bi->component?->name ?? '') === ($bundle['name'] ?? ''))
+                ?->component_product_id ?? 0);
+        }
+        if (! $pid && trim((string) ($bundle['name'] ?? '')) !== '') {
+            $pid = (int) (Product::where('name', trim((string) $bundle['name']))->value('id') ?? 0);
+        }
+
+        return $pid;
+    }
+
+    /**
      * 사무실 반품 입고 — 직접발송이 아닌(거래처 주문) 항목을 환불하면서 미사용 제품을
      * 사무실 재고로 받을 때 호출. 직접발송 항목은 apply()가 환불 시 자동 복원하므로
      * 이중 입고를 막기 위해 건너뛴다. 수기 항목(product_id 없음)도 재고 개념이 없어 제외.
@@ -174,18 +198,7 @@ class EstimateStockSync
                 if ($direct) {
                     continue;
                 }
-                // 스냅샷 product_id 우선 → 세트 구성 이름 매칭 → 제품명 직접 조회 순으로 구성품을 찾는다
-                // (표시 이름이 제품명과 다르거나 세트 구성이 바뀐 뒤에도 입고가 조용히 누락되지 않게)
-                $pid = (int) ($bundle['product_id'] ?? 0);
-                if (! $pid) {
-                    $product = Product::with('bundleItems.component')->find((int) ($item['product_id'] ?? 0));
-                    $pid = (int) ($product?->bundleItems
-                        ->first(fn ($bi) => ($bi->component?->name ?? '') === ($bundle['name'] ?? ''))
-                        ?->component_product_id ?? 0);
-                }
-                if (! $pid && trim((string) ($bundle['name'] ?? '')) !== '') {
-                    $pid = (int) (Product::where('name', trim((string) $bundle['name']))->value('id') ?? 0);
-                }
+                $pid = self::componentProductId($item, $bundle);
             } else {
                 if ($parentDirect) {
                     continue;

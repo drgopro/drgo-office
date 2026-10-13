@@ -353,6 +353,7 @@
             </span>
             <span style="margin-left:auto; display:flex; gap:8px;">
                 <button class="btn-outline" onclick="loadOrders()">새로고침</button>
+                <a class="btn-outline" href="/inventory/refund-restock-audit" target="_blank" style="text-decoration:none;" title="과거 환불 로직 결함으로 누락된 재고 입고를 확인하고 보정하는 임시 페이지">환불 재고 보정</a>
                 <button class="btn-primary" onclick="openOrderCreate()">+ 주문 추가</button>
             </span>
         </div>

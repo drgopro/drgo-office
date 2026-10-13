@@ -34,6 +34,7 @@ use App\Http\Controllers\ProjectFieldDefinitionController;
 use App\Http\Controllers\ProjectTagController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\RefundRestockAuditController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
 use App\Http\Controllers\RequestItemPresetController;
@@ -342,6 +343,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/office-orders', [OfficeOrderController::class, 'index']); // 주문 내역 (견적 파생 + 직접 주문)
     });
     Route::middleware('permission:inventory.edit')->group(function () {
+        // 환불 재고 보정 (임시 점검) — 과거 환불 로직 결함으로 누락된 입고를 확인 후 적용
+        Route::get('/inventory/refund-restock-audit', [RefundRestockAuditController::class, 'page'])->name('inventory.refund-restock-audit');
+        Route::post('/api/inventory/refund-restock-audit/apply', [RefundRestockAuditController::class, 'apply']);
         Route::post('/api/inventory/categories', [InventoryController::class, 'storeCategory']);
         Route::patch('/api/inventory/categories/{category}', [InventoryController::class, 'updateCategory']);
         Route::post('/api/inventory/categories/{category}/move', [InventoryController::class, 'moveCategory']);
