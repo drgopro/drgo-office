@@ -314,7 +314,10 @@ class OfficeOrderTest extends TestCase
             ->assertSee('<th style="width:104px;">주문일</th>', false)
             ->assertSee('<th style="width:140px;">상태</th>', false)
             ->assertSee('배송 요청사항', false)
-            ->assertSee('견적서 열기 → 주문 정보에서 수정', false); // 텍스트 표시 (입력폼 아님)
+            ->assertSee('견적서 열기 → 주문 정보에서 수정', false) // 텍스트 표시 (입력폼 아님)
+            // 중간 해상도 — 비핵심 열 접기(견적서 목록과 동일 방식)로 버튼 가로스크롤 방지
+            ->assertSee('class="ord-opt"', false)
+            ->assertSee('#orderCard .ord-opt { display:none; }', false);
     }
 
     public function test_bundle_item_row_omits_duplicate_source_and_memo_inputs(): void

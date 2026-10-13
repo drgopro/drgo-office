@@ -183,6 +183,17 @@
     .mob-card-actions { display:flex; gap:6px; margin-top:11px; }
     .mob-card-actions button { flex:1; padding:8px 0; font-size:12.5px; }
     [data-theme="light"] .mob-card { border-color:#c8ccd4; }
+    /* 중간 해상도 — 주문 내역 비핵심 열(품목·결제완료·주문일)을 접어 버튼이 가로스크롤로
+       밀리지 않게 (견적서 목록과 동일 방식). 세트 구성 그리드도 줄바꿈 가능한 flex로 전환 */
+    @media (max-width: 1480px) {
+        #orderCard .ord-opt { display:none; }
+        #orderCard [data-brow] { display:flex !important; flex-wrap:wrap; gap:4px 8px; align-items:center; }
+        #orderCard [data-brow] > div:first-child { flex-basis:100%; }
+        #orderCard [data-brow] .ob-src { width:130px !important; flex:none; }
+        #orderCard [data-brow] .ob-memo { width:auto !important; flex:1 1 140px; min-width:120px; }
+        #orderCard [data-brow] .ob-qty { width:58px !important; flex:none; }
+        #orderCard [data-brow] .ob-amt { width:100px !important; flex:none; }
+    }
     @media (max-width: 768px) {
         #panel-products .data-card { display:none; }
         .mob-cards { display:block; }
@@ -359,7 +370,7 @@
         </div>
         <div class="data-card" id="orderCard">
             <table class="data-table">
-                <thead><tr><th style="width:100px;">유형</th><th>주문명</th><th style="width:52px;">품목</th><th style="width:110px; text-align:right;">금액</th><th>의뢰자</th><th style="width:104px;">결제완료</th><th style="width:104px;">주문일</th><th style="width:140px;">상태</th><th style="width:170px;"></th></tr></thead>
+                <thead><tr><th style="width:100px;">유형</th><th>주문명</th><th class="ord-opt" style="width:52px;">품목</th><th style="width:110px; text-align:right;">금액</th><th>의뢰자</th><th class="ord-opt" style="width:104px;">결제완료</th><th class="ord-opt" style="width:104px;">주문일</th><th style="width:140px;">상태</th><th style="width:170px;"></th></tr></thead>
                 <tbody id="orderBody"><tr><td colspan="9" class="empty-row">로딩 중...</td></tr></tbody>
             </table>
         </div>
@@ -2081,11 +2092,11 @@ function renderOrderCard(o) {
         let html = `<tr style="cursor:pointer;" onclick="toggleOrderGroup('${k}')">
             <td>${badge}</td>
             <td><span class="grp-arrow">${open ? '▾' : '▸'}</span><b>${_esc(o.title)}</b></td>
-            <td class="text-muted">${(o.items||[]).length}</td>
+            <td class="text-muted ord-opt">${(o.items||[]).length}</td>
             <td class="text-right"><b>${orderTotal > 0 ? fmt(orderTotal) : '—'}</b></td>
             <td class="text-muted">${_esc(who)}</td>
-            <td class="text-muted" style="white-space:nowrap;">${paidCell}</td>
-            <td class="text-muted" style="white-space:nowrap;">${orderedCell}</td>
+            <td class="text-muted ord-opt" style="white-space:nowrap;">${paidCell}</td>
+            <td class="text-muted ord-opt" style="white-space:nowrap;">${orderedCell}</td>
             <td>${stateCell}</td>
             <td class="action-cell">${acts}</td>
         </tr>`;
