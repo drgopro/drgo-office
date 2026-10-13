@@ -312,7 +312,8 @@
             </form>
             @if($client->documents->count() > 0)
                 <div class="doc-grid">
-                    @foreach($client->documents->sortByDesc('created_at') as $i => $doc)
+                    {{-- values() 필수 — sortByDesc는 원본 키를 보존하므로 $i가 앨범 배열과 어긋나 다른 이미지가 열린다 --}}
+                    @foreach($client->documents->sortByDesc('created_at')->values() as $i => $doc)
                     @php
                         $isImg = str_starts_with($doc->mime_type ?? '', 'image/');
                         $isVid = str_starts_with($doc->mime_type ?? '', 'video/');

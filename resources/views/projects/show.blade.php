@@ -1370,7 +1370,9 @@
                     </div>
                 @endif
                 <div class="doc-grid">
-                    @foreach($project->documents->sortByDesc('created_at') as $i => $doc)
+                    {{-- values() 필수 — sortByDesc는 원본 키를 보존하므로 $i가 앨범 배열(values 재인덱스)과 어긋나
+                         클릭한 것과 다른(역순) 이미지가 열린다 --}}
+                    @foreach($project->documents->sortByDesc('created_at')->values() as $i => $doc)
                     @php
                         $isImg = str_starts_with($doc->mime_type ?? '', 'image/');
                         $isVid = str_starts_with($doc->mime_type ?? '', 'video/');
