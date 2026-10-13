@@ -137,6 +137,26 @@ class EstimateBundleRefundRestockTest extends TestCase
             ->assertSee('세트 구성품', false);
     }
 
+    public function test_order_view_bundle_refund_check_syncs_parent_and_stock(): void
+    {
+        // 주문 내역의 구성품 '환불' 체크 — 구성품 전부 체크되면 세트도 자동 취소 + 직발 재고 복원
+        [, $estimate] = $this->makePaidBundleSetup();
+
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 0, 'refunded' => 1, 'refund_qty' => 1,
+        ])->assertOk();
+        $this->assertSame(10, $this->cam->inventory->fresh()->quantity);
+        $this->assertSame(0, (int) $estimate->fresh()->product_items[0]['refund_qty']); // 아직 미완성
+
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'bundle_index' => 1, 'refunded' => 1, 'refund_qty' => 2,
+        ])->assertOk();
+        $this->assertSame(10, $this->mic->inventory->fresh()->quantity);
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertSame(1, (int) $item['refund_qty']); // 세트 자동 취소
+        $this->assertTrue((bool) $item['refunded']);
+    }
+
     public function test_legacy_snapshot_without_product_id_restores_by_product_name(): void
     {
         // 옛 스냅샷 — 구성품 product_id 없음 + 세트 제품도 조회 불가. 제품명 직접 조회 폴백으로 복원

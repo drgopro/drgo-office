@@ -429,6 +429,8 @@ class OfficeOrderController extends Controller
             unset($bundles[$bIdx]['refund_qty'], $bundles[$bIdx]['refund_amount']);
         }
         $items[$idx]['bundle_items'] = array_values($bundles);
+        // 세트 부모 환불 수량 — 구성품 기록 기준 '완성 세트 수'로 동기화 (전부 환불되면 세트도 취소 처리)
+        Estimate::syncBundleParentRefundQty($items, $idx);
 
         // 항목 표시 — 구성품 변경분만큼 델타 반영 (세트 전체 환불 기록과 병존 가능하도록 합산 재계산 대신 증감)
         $afterAmount = (int) ($bundles[$bIdx]['refund_amount'] ?? 0);

@@ -319,12 +319,13 @@ class OfficeOrderTest extends TestCase
 
     public function test_bundle_item_row_omits_duplicate_source_and_memo_inputs(): void
     {
-        // 세트 항목 행의 구매처/메모 칸은 구성품별 칸과 중복 — 물류팀 혼동 방지로 제거하고
+        // 세트 항목 행의 구매처/메모/환불 칸은 구성품별 칸과 중복 — 물류팀 혼동 방지로 제거하고
         // 안내 문구로 대체. 저장 시에도 해당 키를 보내지 않아 기존 값이 지워지지 않는다
         $this->actingAs($this->admin)->get('/inventory')->assertOk()
-            ->assertSee('구매처·메모는 세트 구성에서', false) // 세트 행 안내 문구
+            ->assertSee('구매처·메모·환불은 세트 구성에서', false) // 세트 행 안내 문구
             ->assertSee('isBundleItem', false)              // 분기 렌더
-            ->assertSee('if (srcEl) body.purchase_source', false); // 칸 없으면 키 미전송
+            ->assertSee('if (srcEl) body.purchase_source', false) // 칸 없으면 키 미전송
+            ->assertSee('if (refEl) {', false);             // 환불 칸도 없으면 키 미전송
     }
 
     public function test_order_list_exposes_ship_recipient_fields_and_amount(): void

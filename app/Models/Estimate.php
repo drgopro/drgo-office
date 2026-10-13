@@ -270,7 +270,7 @@ class Estimate extends Model
      *
      * @param  array<int, array<string, mixed>>  $items
      */
-    private static function syncBundleParentRefundQty(array &$items, int $idx): void
+    public static function syncBundleParentRefundQty(array &$items, int $idx): void
     {
         $bundles = $items[$idx]['bundle_items'] ?? null;
         if (! is_array($bundles) || $bundles === []) {
