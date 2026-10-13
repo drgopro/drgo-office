@@ -273,6 +273,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/projects/{project}', [ProjectController::class, 'destroy']);
         Route::post('/api/projects/{project}/memos', [ProjectController::class, 'storeMemo']);
         Route::post('/api/projects/{project}/equip-field-options', [ProjectController::class, 'addEquipFieldOption']); // 장비 드롭다운에 제품 수기 추가 (멤버 가능)
+        // 장비 불러오기 — 의뢰자 대표 장비 또는 같은 의뢰자의 이전 프로젝트 장비를 복사
+        Route::get('/api/projects/{project}/equipment-import-sources', [ProjectController::class, 'equipmentImportSources']);
+        Route::post('/api/projects/{project}/equipment-import', [ProjectController::class, 'importEquipment']);
         Route::delete('/api/project-memos/{memo}', [ProjectController::class, 'destroyMemo']);
         Route::post('/api/projects/{project}/payment', [ProjectController::class, 'savePayment'])->name('projects.payment');
         Route::patch('/api/projects/{project}/payments/{payment}', [ProjectController::class, 'updatePayment']);

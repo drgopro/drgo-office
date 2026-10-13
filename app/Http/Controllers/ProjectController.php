@@ -17,6 +17,7 @@ use App\Services\EstimateStockSync;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -447,6 +448,134 @@ class ProjectController extends Controller
         }
 
         return response()->json(['scope' => 'global', 'options' => $options]);
+    }
+
+    /** 장비 값이 '입력됨'으로 치는지 — 의뢰자 장비 요약과 동일 기준 (false=없음 토글, 빈 다중 엔트리 제외) */
+    private function hasEquipValue(mixed $v): bool
+    {
+        if (is_array($v) && array_is_list($v) && isset($v[0]) && is_array($v[0]) && array_key_exists('value', $v[0])) {
+            $v = array_values(array_filter($v, fn ($e) => is_array($e) && ! in_array($e['value'] ?? null, [null, '', false], true)));
+        }
+        if ($v === null || $v === '' || $v === false || (is_array($v) && empty($v))) {
+            return false;
+        }
+        if (is_array($v) && array_key_exists('value', $v) && in_array($v['value'], [null, '', false], true)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 프로젝트의 장비 섹션 값 — 전역 장비 필드(section=equipment) + 프로젝트 전용 항목(__equip_items).
+     *
+     * @return array{values: array<string, mixed>, local_defs: array<int, array<string, mixed>>}
+     */
+    private function equipmentValuesOf(Project $project, Collection $globalKeys): array
+    {
+        $custom = (array) ($project->custom_data ?? []);
+        $localDefs = collect($custom['__equip_items'] ?? [])
+            ->filter(fn ($i) => is_array($i) && ! empty($i['key']) && ! empty($i['label']))
+            ->values();
+        $keys = $globalKeys->concat($localDefs->pluck('key'))->unique();
+
+        $values = [];
+        foreach ($keys as $key) {
+            $v = $custom[$key] ?? null;
+            if ($this->hasEquipValue($v)) {
+                $values[$key] = $v;
+            }
+        }
+
+        return ['values' => $values, 'local_defs' => $localDefs->all()];
+    }
+
+    /** 장비 불러오기 후보 — 의뢰자 대표 장비(고정 또는 최신)와 장비가 입력된 이전 프로젝트 목록 */
+    public function equipmentImportSources(Project $project): JsonResponse
+    {
+        if (! $project->client_id) {
+            return response()->json(['message' => '의뢰자가 연동된 프로젝트에서만 불러올 수 있습니다.'], 422);
+        }
+
+        $globalKeys = ProjectFieldDefinition::where('section', 'equipment')->where('is_active', true)->pluck('key');
+        $others = Project::where('client_id', $project->client_id)
+            ->where('id', '!=', $project->id)
+            ->orderByDesc('created_at')
+            ->get(['id', 'name', 'created_at', 'custom_data']);
+
+        $projects = $others
+            ->map(function (Project $p) use ($globalKeys) {
+                $eq = $this->equipmentValuesOf($p, $globalKeys);
+
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'created_at' => $p->created_at?->format('Y.m.d'),
+                    'count' => count($eq['values']),
+                ];
+            })
+            ->filter(fn ($row) => $row['count'] > 0)
+            ->values();
+
+        // 의뢰자 대표 장비 — 고정(equipment_project_id)이 유효하면 그 프로젝트, 아니면 장비가 있는 최신 프로젝트
+        $pinnedId = $project->client?->equipment_project_id;
+        $clientSource = $projects->firstWhere('id', $pinnedId) ?? $projects->first();
+
+        return response()->json([
+            'client' => $clientSource,
+            'projects' => $projects,
+        ]);
+    }
+
+    /** 장비 불러오기 — 같은 의뢰자의 다른 프로젝트 장비 값을 이 프로젝트에 복사 (같은 항목은 덮어씀) */
+    public function importEquipment(Request $request, Project $project): JsonResponse
+    {
+        $validated = $request->validate([
+            'source_project_id' => 'required|integer',
+        ]);
+
+        if (! $project->client_id) {
+            return response()->json(['message' => '의뢰자가 연동된 프로젝트에서만 불러올 수 있습니다.'], 422);
+        }
+        $source = Project::find($validated['source_project_id']);
+        if (! $source || $source->client_id !== $project->client_id || $source->id === $project->id) {
+            return response()->json(['message' => '같은 의뢰자의 다른 프로젝트에서만 불러올 수 있습니다.'], 422);
+        }
+
+        $globalKeys = ProjectFieldDefinition::where('section', 'equipment')->where('is_active', true)->pluck('key');
+        $eq = $this->equipmentValuesOf($source, $globalKeys);
+        if (empty($eq['values'])) {
+            return response()->json(['message' => '선택한 프로젝트에 입력된 장비 정보가 없습니다.'], 422);
+        }
+
+        $custom = (array) ($project->custom_data ?? []);
+
+        // 원본의 프로젝트 전용 장비 항목 정의도 함께 복사 — 없으면 값이 화면에 안 보인다 (기존 같은 키 정의는 유지)
+        $targetDefs = collect($custom['__equip_items'] ?? [])
+            ->filter(fn ($i) => is_array($i) && ! empty($i['key']))
+            ->values();
+        $existingKeys = $targetDefs->pluck('key')->all();
+        foreach ($eq['local_defs'] as $def) {
+            if (isset($eq['values'][$def['key']]) && ! in_array($def['key'], $existingKeys, true)) {
+                $targetDefs->push($def);
+            }
+        }
+        if ($targetDefs->isNotEmpty()) {
+            $custom['__equip_items'] = $targetDefs->all();
+        }
+
+        foreach ($eq['values'] as $key => $value) {
+            $custom[$key] = $value;
+        }
+
+        $project->forceFill(['custom_data' => $custom])->save();
+
+        return response()->json([
+            'ok' => true,
+            'imported' => count($eq['values']),
+            'source' => ['id' => $source->id, 'name' => $source->name],
+            'custom_data' => $project->custom_data,
+        ]);
     }
 
     /** 캘린더 연동 — 프로젝트에 작성된 의뢰 내용(세팅 항목 선택, custom_data.__req_items) 조회 */

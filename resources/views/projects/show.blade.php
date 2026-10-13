@@ -1153,11 +1153,25 @@
                 <button type="button" class="pcf-save-btn" id="pcfSaveBtn" onclick="pcfSaveNow()" title="변경 내용을 즉시 저장" style="display:none;">저장</button>
                 <button type="button" class="pcf-save-btn" id="pcfModeBtn" onclick="togglePcfEditMode()" title="기본은 입력된 값만 요약 표시 — 편집을 눌러 입력 폼을 엽니다" style="background:none; border:1px solid var(--accent); color:var(--accent);">✎ 편집</button>
                 @if($project->client_id)
+                <button type="button" class="pcf-save-btn" onclick="openEquipImport()" title="의뢰자 장비 정보 또는 같은 의뢰자의 이전 프로젝트 장비를 복사해 채웁니다" style="background:none; border:1px solid var(--accent); color:var(--accent);">불러오기</button>
                 <button type="button" class="pcf-save-btn" onclick="pcfPinAsClientEquip()" title="의뢰자 페이지의 장비 요약이 이 프로젝트 기준으로 고정됩니다" style="margin-left:auto;">현재 장비를 의뢰자에 연동</button>
                 @endif
             </div>
             <div id="projectCustomFields" style="display:flex; flex-direction:column; gap:14px;"></div>
         </div>
+
+        @if($project->client_id)
+        <!-- 장비 불러오기 모달 — 의뢰자 대표 장비 또는 같은 의뢰자의 이전 프로젝트 장비를 복사 -->
+        <div class="pfa-overlay" id="eqImportOverlay" onclick="if(event.target===this)closeEquipImport()">
+            <div class="pfa-modal">
+                <div class="pfa-title">장비 불러오기</div>
+                <div id="eqImportBody" style="display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto;"></div>
+                <div style="display:flex; justify-content:flex-end;">
+                    <button type="button" class="pfa-type-chip" onclick="closeEquipImport()">닫기</button>
+                </div>
+            </div>
+        </div>
+        @endif
 
         <!-- 장비 항목 편집 모달 — 프로젝트 전용 + 전체 공통(전역) 항목 생성/수정/삭제 -->
         <div class="pfa-overlay" id="pfaOverlay" onclick="if(event.target===this)closePcfAdd()">
@@ -2591,6 +2605,62 @@ async function pcfPinAsClientEquip() {
 }
 
 function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ── 장비 불러오기 — 의뢰자 대표 장비 또는 같은 의뢰자의 이전 프로젝트 장비를 복사 ──
+async function openEquipImport() {
+    if (!PROJECT_CLIENT_ID) return;
+    const body = document.getElementById('eqImportBody');
+    body.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">불러오는 중…</div>';
+    document.getElementById('eqImportOverlay').style.display = 'flex';
+    let data = null;
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}/equipment-import-sources`, { headers:{'Accept':'application/json'} });
+        data = res.ok ? await res.json() : null;
+    } catch(e) {}
+    if (!data || (!data.client && !(data.projects||[]).length)) {
+        body.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">불러올 장비 정보가 없습니다 — 이 의뢰자의 다른 프로젝트에 입력된 장비가 없습니다.</div>';
+        return;
+    }
+    const rowStyle = 'display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--text);font-size:12.5px;';
+    let html = '';
+    if (data.client) {
+        html += `<button type="button" style="${rowStyle}" onclick="runEquipImport(${data.client.id}, this)">`
+            + `<span style="font-weight:700;">의뢰자 장비 정보</span>`
+            + `<span style="color:var(--text-muted);margin-left:auto;">${pcfEsc(data.client.name)} · ${data.client.count}개 항목</span></button>`;
+    }
+    if ((data.projects||[]).length) {
+        html += `<div style="font-size:11.5px;color:var(--text-muted);font-weight:600;margin-top:4px;">이전 프로젝트에서 선택</div>`;
+        html += data.projects.map(p =>
+            `<button type="button" style="${rowStyle}" onclick="runEquipImport(${p.id}, this)">`
+            + `<span style="font-weight:600;">${pcfEsc(p.name)}</span>`
+            + `<span style="color:var(--text-muted);margin-left:auto;white-space:nowrap;">${pcfEsc(p.created_at||'')} · ${p.count}개</span></button>`).join('');
+    }
+    body.innerHTML = html;
+}
+function closeEquipImport() { const el = document.getElementById('eqImportOverlay'); if (el) el.style.display = 'none'; }
+async function runEquipImport(sourceId, btn) {
+    if (!confirm('선택한 프로젝트의 장비를 불러옵니다.\n이미 입력된 같은 항목은 덮어씁니다. 진행할까요?')) return;
+    if (btn) btn.disabled = true;
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}/equipment-import`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF_PJ,'Accept':'application/json'},
+            body: JSON.stringify({ source_project_id: sourceId }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.message || '불러오지 못했습니다.'); return; }
+        projectCustomData = d.custom_data || {};
+        if (Array.isArray(projectCustomData)) projectCustomData = Object.assign({}, projectCustomData);
+        pcfDirty = false;
+        renderProjectCustomFields();
+        closeEquipImport();
+        alert(`장비 ${d.imported}개 항목을 불러왔습니다. (출처: ${d.source?.name || ''})`);
+    } catch(e) {
+        alert('불러오지 못했습니다.');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
 
 // 이 프로젝트에만 적용되는 장비 항목 정의 (custom_data.__equip_items — 값은 custom_data[key]에 저장)
 function localEquipDefs() {
