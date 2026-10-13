@@ -71,7 +71,9 @@ class EstimateStockSync
             }
             $components = $product->bundleItems->keyBy(fn ($bi) => $bi->component?->name ?? '');
             foreach ($bundles as $b) {
-                $cid = (int) ($components->get($b['name'] ?? '')?->component_product_id ?? 0);
+                // 스냅샷의 구성품 product_id 우선 — 표시 이름이 제품명과 달라도 매칭되도록 (이름은 폴백)
+                $cid = (int) ($b['product_id'] ?? 0)
+                    ?: (int) ($components->get($b['name'] ?? '')?->component_product_id ?? 0);
                 if (! $cid) {
                     continue;
                 }
@@ -172,10 +174,18 @@ class EstimateStockSync
                 if ($direct) {
                     continue;
                 }
-                $product = Product::with('bundleItems.component')->find((int) ($item['product_id'] ?? 0));
-                $pid = (int) ($product?->bundleItems
-                    ->first(fn ($bi) => ($bi->component?->name ?? '') === ($bundle['name'] ?? ''))
-                    ?->component_product_id ?? 0);
+                // 스냅샷 product_id 우선 → 세트 구성 이름 매칭 → 제품명 직접 조회 순으로 구성품을 찾는다
+                // (표시 이름이 제품명과 다르거나 세트 구성이 바뀐 뒤에도 입고가 조용히 누락되지 않게)
+                $pid = (int) ($bundle['product_id'] ?? 0);
+                if (! $pid) {
+                    $product = Product::with('bundleItems.component')->find((int) ($item['product_id'] ?? 0));
+                    $pid = (int) ($product?->bundleItems
+                        ->first(fn ($bi) => ($bi->component?->name ?? '') === ($bundle['name'] ?? ''))
+                        ?->component_product_id ?? 0);
+                }
+                if (! $pid && trim((string) ($bundle['name'] ?? '')) !== '') {
+                    $pid = (int) (Product::where('name', trim((string) $bundle['name']))->value('id') ?? 0);
+                }
             } else {
                 if ($parentDirect) {
                     continue;

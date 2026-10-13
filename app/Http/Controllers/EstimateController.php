@@ -116,9 +116,12 @@ class EstimateController extends Controller
                     // 세트 구성품 — 하위 항목 단위 부분환불용 (총 수량 = 구성 수량 × 세트 수량)
                     'bundle_items' => collect($i['bundle_items'] ?? [])->map(function ($b, $bIdx) use ($i, $parentDirect, $bundleParents) {
                         $direct = $parentDirect || (! empty($b['ordered']) && ($b['source'] ?? '') === '사무실 발송');
-                        $componentId = (int) ($bundleParents->get((int) ($i['product_id'] ?? 0))?->bundleItems
-                            ->first(fn ($bi) => ($bi->component?->name ?? '') === ($b['name'] ?? ''))
-                            ?->component_product_id ?? 0);
+                        // 스냅샷 product_id 우선 → 세트 구성 이름 매칭 → 제품명 직접 조회 (officeReturn과 동일 규칙)
+                        $componentId = (int) ($b['product_id'] ?? 0)
+                            ?: (int) ($bundleParents->get((int) ($i['product_id'] ?? 0))?->bundleItems
+                                ->first(fn ($bi) => ($bi->component?->name ?? '') === ($b['name'] ?? ''))
+                                ?->component_product_id ?? 0)
+                            ?: (int) (Product::where('name', trim((string) ($b['name'] ?? '')))->value('id') ?? 0);
 
                         return [
                             'bundle_index' => $bIdx,

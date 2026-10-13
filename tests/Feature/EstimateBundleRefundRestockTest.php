@@ -104,6 +104,51 @@ class EstimateBundleRefundRestockTest extends TestCase
         $this->assertSame(0, (int) ($item['bundle_items'][1]['refund_qty'] ?? 0));
     }
 
+    public function test_office_restock_of_vendor_component_uses_snapshot_product_id(): void
+    {
+        // 혼합 세트 — MT-88은 직접발송, 룩스패드는 거래처 주문. 스냅샷 표시명이 제품명과
+        // 달라도(스냅샷 product_id로) 사무실 반품 입고가 누락되지 않아야 한다 (김광래 피드백)
+        $lux = Product::create(['sku' => 'LUX-1', 'name' => '[유쾌한생각] 룩스패드 K22H', 'sale_price' => 75000, 'is_active' => true]);
+        Inventory::create(['product_id' => $lux->id, 'quantity' => 5, 'last_updated_at' => now()]);
+
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '혼합 세트 환불', 'stage' => 'consulting']);
+        $estimate = Estimate::create([
+            'status' => 'paid', 'client_id' => $client->id, 'project_id' => $project->id,
+            'product_items' => [[
+                'product_id' => $this->bundle->id, 'name' => '룩스패드 세트', 'sale_price' => 93000,
+                'qty' => 2, 'subtotal' => 186000,
+                'bundle_items' => [
+                    // 표시명에 '단품' 접미 — 세트 구성 이름 매칭은 실패하지만 product_id로 매칭
+                    ['product_id' => $lux->id, 'name' => '[유쾌한생각] 룩스패드 K22H 단품', 'qty' => 1, 'price' => 75000, 'ordered' => true, 'source' => '컴퓨존'],
+                    ['name' => '마이크', 'qty' => 2, 'price' => 9000, 'ordered' => true, 'source' => '사무실 발송'],
+                ],
+            ]],
+            'service_items' => [], 'product_total' => 186000, 'total_amount' => 186000,
+            'created_by' => $this->admin->id,
+        ]);
+        $charge = ProjectPayment::create([
+            'project_id' => $project->id, 'type' => 'charge', 'estimate_id' => $estimate->id,
+            'amount' => 186000, 'paid_at' => now()->toDateString(), 'recorded_by' => $this->admin->id,
+        ]);
+
+        // 거래처 주문 구성품(룩스패드) 1개 환불 + 사무실 반품 입고 '예'
+        $this->actingAs($this->admin)->postJson("/api/projects/{$project->id}/payments/refund", [
+            'parent_payment_id' => $charge->id, 'type' => 'refund',
+            'items' => [[
+                'name' => '[유쾌한생각] 룩스패드 K22H 단품', 'qty' => 1, 'price' => 75000,
+                'estimate_item_index' => 0, 'bundle_index' => 0, 'office_restock' => true,
+            ]],
+        ])->assertCreated();
+
+        // 이름 매칭 실패에도 product_id로 입고 (5 → 6)
+        $this->assertSame(6, $lux->inventory->fresh()->quantity);
+
+        // 환불 모달 목록에서도 '거래처 주문' 표시가 유지 (office_restockable)
+        $items = $this->actingAs($this->admin)->getJson("/api/estimates/{$estimate->id}/refund-items")->json('items');
+        $this->assertTrue((bool) $items[0]['bundle_items'][0]['office_restockable']);
+    }
+
     public function test_component_level_refund_then_parent_refund_does_not_over_restore(): void
     {
         [$project, $estimate, $charge] = $this->makePaidBundleSetup();
