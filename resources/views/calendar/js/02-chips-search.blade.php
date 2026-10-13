@@ -93,7 +93,12 @@ async function runAgendaSearch(){
 }
 async function openSearchListView(){
     const q=(document.getElementById('calSearchInput')?.value||'').trim();
-    if(!q && !agendaSearchColors.size && !agendaSearchAssignees.size) return;
+    if(!q && !agendaSearchColors.size && !agendaSearchAssignees.size){
+        // 빈 조건 검색 방지 가드 — 조용히 무시하면 버튼이 고장난 것처럼 보이므로 안내
+        if(typeof showCalToast==='function') showCalToast('검색어 또는 필터를 입력하세요');
+        document.getElementById('calSearchInput')?.focus();
+        return;
+    }
     closeCalSearch();
     document.getElementById('calSearchInput')?.blur();
     if(currentView!=='list'){ preSearchView=currentView; switchView('list'); } // switchView가 agendaSearchQuery를 초기화하므로 이후에 설정
