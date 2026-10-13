@@ -64,16 +64,15 @@ class EstimateStockSync
                 continue;
             }
 
-            // 세트 — 스냅샷 구성품을 현재 세트 구성과 이름으로 매칭해 구성품 제품 재고를 다룬다
+            // 세트 — 스냅샷 구성품을 구성품 제품에 매칭해 재고를 다룬다 (세트 제품이 삭제돼도 폴백 매칭)
             $product = $bundleProducts->get($pid);
-            if (! $product) {
-                continue;
-            }
-            $components = $product->bundleItems->keyBy(fn ($bi) => $bi->component?->name ?? '');
+            $components = $product?->bundleItems->keyBy(fn ($bi) => $bi->component?->name ?? '') ?? collect();
             foreach ($bundles as $b) {
-                // 스냅샷의 구성품 product_id 우선 — 표시 이름이 제품명과 달라도 매칭되도록 (이름은 폴백)
+                // 스냅샷 product_id → 세트 구성 이름 → 제품명 직접 조회 (componentProductId와 동일 규칙)
                 $cid = (int) ($b['product_id'] ?? 0)
-                    ?: (int) ($components->get($b['name'] ?? '')?->component_product_id ?? 0);
+                    ?: (int) ($components->get($b['name'] ?? '')?->component_product_id ?? 0)
+                    ?: ((trim((string) ($b['name'] ?? '')) !== '')
+                        ? (int) (Product::where('name', trim((string) $b['name']))->value('id') ?? 0) : 0);
                 if (! $cid) {
                     continue;
                 }

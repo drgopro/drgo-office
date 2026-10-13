@@ -94,9 +94,9 @@ async function runAgendaSearch(){
 async function openSearchListView(){
     const q=(document.getElementById('calSearchInput')?.value||'').trim();
     if(!q && !agendaSearchColors.size && !agendaSearchAssignees.size){
-        // 빈 조건 검색 방지 가드 — 조용히 무시하면 버튼이 고장난 것처럼 보이므로 안내
-        if(typeof showCalToast==='function') showCalToast('검색어 또는 필터를 입력하세요');
-        document.getElementById('calSearchInput')?.focus();
+        // 빈 조건 검색 — 검색을 끝내고 전체 일정(메인 뷰)으로 돌아간다
+        closeCalSearch();
+        clearAgendaSearch();
         return;
     }
     closeCalSearch();

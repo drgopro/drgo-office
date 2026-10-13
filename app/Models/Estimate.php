@@ -244,6 +244,8 @@ class Estimate extends Model
                     }
                 }
             }
+            // 세트 — 부모 환불 수량은 '완성된 세트 환불 수'로 동기화 (구성품 전부 환불되면 세트도 취소 처리)
+            self::syncBundleParentRefundQty($items, $idx);
             $items[$idx]['refunded'] = true;
             $items[$idx]['refund_amount'] = (int) ($items[$idx]['refund_amount'] ?? 0) + $amount;
             $items[$idx]['refunded_at'] = now()->format('Y-m-d H:i');
@@ -259,6 +261,27 @@ class Estimate extends Model
         EstimateStockSync::apply($this, $before, $items);
 
         return true;
+    }
+
+    /**
+     * 세트 항목의 부모 환불 수량 동기화 — 구성품 환불 기록으로부터 '완성된 세트 환불 수'
+     * (min(구성품 환불 수량 ÷ 구성 수량))를 계산해 부모 refund_qty로 기록한다.
+     * 구성품을 각각 환불해 전부 채워지면 세트 자체도 환불(취소)된 것으로 표시된다.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private static function syncBundleParentRefundQty(array &$items, int $idx): void
+    {
+        $bundles = $items[$idx]['bundle_items'] ?? null;
+        if (! is_array($bundles) || $bundles === []) {
+            return;
+        }
+        $sets = max(1, (int) ($items[$idx]['qty'] ?? 1));
+        foreach ($bundles as $b) {
+            $per = max(1, (int) ($b['qty'] ?? 1));
+            $sets = min($sets, intdiv((int) ($b['refund_qty'] ?? 0), $per));
+        }
+        $items[$idx]['refund_qty'] = $sets;
     }
 
     /**
@@ -293,6 +316,8 @@ class Estimate extends Model
                     }
                 }
             }
+            // 세트 — 부모 환불 수량을 구성품 기록 기준으로 재동기화
+            self::syncBundleParentRefundQty($items, $idx);
             $items[$idx]['refund_amount'] = max(0, (int) ($items[$idx]['refund_amount'] ?? 0) - $amount);
 
             // 환불 기록이 전부 사라졌으면 환불 표시도 해제

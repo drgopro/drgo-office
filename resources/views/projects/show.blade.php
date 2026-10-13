@@ -3545,10 +3545,13 @@ async function openRefundModal(chargeId, type) {
                 const d = await res.json();
                 const estItems = [];
                 (d.items || []).forEach(it => {
+                    const hasBundle = (it.bundle_items || []).length > 0;
                     const remain = Math.max(0, it.qty - it.refund_qty);
                     const note = it.refund_qty > 0 || it.refund_amount > 0
                         ? `기환불 ${it.refund_qty > 0 ? it.refund_qty + '개 · ' : ''}${_fmtPh(it.refund_amount)}원` : '';
-                    if (remain > 0) estItems.push({
+                    // 세트는 부모 행을 빼고 구성품 단위로만 환불 — 구성품이 전부 환불되면
+                    // 세트도 자동 취소 처리되고, 재고도 구성품 개수대로 복원된다
+                    if (remain > 0 && !hasBundle) estItems.push({
                         name: it.name, qty: Math.max(1, remain), price: it.sale_price, maxQty: remain,
                         checked: false, estimate_item_index: it.index, refundedNote: note,
                         officeRestockable: !!it.office_restockable, // 직접발송 아님 — 사무실 반품 입고 선택 가능
@@ -3558,7 +3561,7 @@ async function openRefundModal(chargeId, type) {
                         const bRemain = Math.max(0, b.qty - b.refund_qty);
                         if (bRemain <= 0 || !b.price) return;
                         estItems.push({
-                            name: b.name, sub: true, qty: Math.max(1, bRemain), price: b.price, maxQty: bRemain,
+                            name: b.name, sub: true, setName: it.name, qty: Math.max(1, bRemain), price: b.price, maxQty: bRemain,
                             checked: false, estimate_item_index: it.index, bundle_index: b.bundle_index,
                             officeRestockable: !!b.office_restockable,
                             refundedNote: b.refund_qty > 0 || b.refund_amount > 0
@@ -3636,7 +3639,7 @@ function renderRefundItems() {
     wrap.innerHTML = ctx.items.map((it, i) => {
         return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; ${it.sub ? 'margin-left:22px; ' : ''}background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
             <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
-            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">세트 구성품</span>' : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:10px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
+            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ` <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">${it.setName ? _escPh(it.setName) + ' ' : ''}세트 구성품</span>` : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:10px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
                 <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>

@@ -104,6 +104,69 @@ class EstimateBundleRefundRestockTest extends TestCase
         $this->assertSame(0, (int) ($item['bundle_items'][1]['refund_qty'] ?? 0));
     }
 
+    public function test_refunding_each_component_cancels_set_and_restores_stock(): void
+    {
+        // 새 UX — 환불 모달에는 구성품 행만 노출되고, 구성품을 각각 환불하면
+        // 세트도 자동 취소 처리되며 재고는 구성품 개수대로 복원된다
+        [$project, $estimate, $charge] = $this->makePaidBundleSetup();
+        $this->assertSame(9, $this->cam->inventory->fresh()->quantity);
+        $this->assertSame(8, $this->mic->inventory->fresh()->quantity);
+
+        // 카메라(구성 1개) 환불 — 세트는 아직 미완성 환불
+        $this->actingAs($this->admin)->postJson("/api/projects/{$project->id}/payments/refund", [
+            'parent_payment_id' => $charge->id, 'type' => 'refund',
+            'items' => [['name' => '카메라', 'qty' => 1, 'price' => 100000, 'estimate_item_index' => 0, 'bundle_index' => 0]],
+        ])->assertCreated();
+        $this->assertSame(10, $this->cam->inventory->fresh()->quantity);
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertSame(0, (int) $item['refund_qty']); // 완성 세트 환불 수 아직 0
+
+        // 마이크(구성 2개) 환불 — 구성품 전부 환불 → 세트 자동 취소(완성 세트 1)
+        $this->actingAs($this->admin)->postJson("/api/projects/{$project->id}/payments/refund", [
+            'parent_payment_id' => $charge->fresh()->id, 'type' => 'refund',
+            'items' => [['name' => '마이크', 'qty' => 2, 'price' => 50000, 'estimate_item_index' => 0, 'bundle_index' => 1]],
+        ])->assertCreated();
+        $this->assertSame(10, $this->mic->inventory->fresh()->quantity);
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertSame(1, (int) $item['refund_qty']); // 세트 자체도 환불(취소)로 집계
+        $this->assertTrue((bool) $item['refunded']);
+
+        // 환불 모달 렌더 — 세트 부모 행은 목록에서 제외하는 분기
+        $this->actingAs($this->admin)->get("/projects/{$project->id}")->assertOk()
+            ->assertSee('remain > 0 && !hasBundle', false)
+            ->assertSee('세트 구성품', false);
+    }
+
+    public function test_legacy_snapshot_without_product_id_restores_by_product_name(): void
+    {
+        // 옛 스냅샷 — 구성품 product_id 없음 + 세트 제품도 조회 불가. 제품명 직접 조회 폴백으로 복원
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '레거시 세트', 'stage' => 'consulting']);
+        $estimate = Estimate::create([
+            'status' => 'paid', 'client_id' => $client->id, 'project_id' => $project->id,
+            'product_items' => [[
+                'product_id' => 424242, 'name' => '삭제된 세트', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000,
+                'bundle_items' => [
+                    ['name' => '카메라', 'qty' => 1, 'price' => 100000, 'ordered' => true, 'source' => '사무실 발송'],
+                ],
+            ]],
+            'service_items' => [], 'product_total' => 100000, 'total_amount' => 100000,
+            'created_by' => $this->admin->id,
+        ]);
+        EstimateStockSync::apply($estimate, [], $estimate->product_items);
+        $this->assertSame(9, $this->cam->inventory->fresh()->quantity);
+
+        $charge = ProjectPayment::create([
+            'project_id' => $project->id, 'type' => 'charge', 'estimate_id' => $estimate->id,
+            'amount' => 100000, 'paid_at' => now()->toDateString(), 'recorded_by' => $this->admin->id,
+        ]);
+        $this->actingAs($this->admin)->postJson("/api/projects/{$project->id}/payments/refund", [
+            'parent_payment_id' => $charge->id, 'type' => 'refund',
+            'items' => [['name' => '카메라', 'qty' => 1, 'price' => 100000, 'estimate_item_index' => 0, 'bundle_index' => 0]],
+        ])->assertCreated();
+        $this->assertSame(10, $this->cam->inventory->fresh()->quantity);
+    }
+
     public function test_office_restock_of_vendor_component_uses_snapshot_product_id(): void
     {
         // 혼합 세트 — MT-88은 직접발송, 룩스패드는 거래처 주문. 스냅샷 표시명이 제품명과
