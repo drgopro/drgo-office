@@ -53,14 +53,15 @@
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal(viewedDateStr())">+ 일정 추가</button>
         @endif
+        @if(Auth::user()->hasPermission('calendar.edit'))
+            {{-- 휴지통 — 더보기 메뉴에서 꺼내 ⋯ 버튼 바로 왼쪽에 (데스크탑 우측 정렬은 아래 미디어쿼리에서) --}}
+            <button class="nav-btn" id="calTrashBtn" onclick="openTrashModal()" title="휴지통 — 삭제된 일정 확인/복구"><x-icon name="trash" :size="14"/></button>
+        @endif
         <div style="position:relative;" id="calMoreWrap">
             <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:14px;">⋯</button>
             <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
                 {{-- 캘린더 이력 — 사용 빈도가 낮아 비활성화 (라우트는 유지, 필요 시 버튼만 복원) --}}
-                @if(Auth::user()->hasPermission('calendar.edit'))
-                <button onclick="toggleCalMenu();openTrashModal()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="trash" :size="13"/> 휴지통</button>
-                @endif
-                <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+                {{-- 휴지통 — 헤더(⋯ 좌측) 버튼으로 이동 --}}
                 <div class="cal-fontsize" title="글자 크기 조절 (월간 뷰)" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 14px;background:none;">
                     <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
                     <span id="calFontLabel" style="font-size:11px;color:var(--text-muted);min-width:34px;text-align:center;">100%</span>
@@ -105,6 +106,9 @@
         /* 우측 그룹을 헤더 직속으로 풀어 2행 구성: 1행 도구/타이틀/더보기, 2행 뷰 버튼+주 수 */
         .cal-header-right { display:contents !important; }
         #calMoreWrap { margin-left:auto; }
+        /* 휴지통 버튼이 있으면 그 버튼이 우측 정렬을 맡고 ⋯은 바로 옆에 붙임 */
+        #calTrashBtn { margin-left:auto; }
+        #calTrashBtn + #calMoreWrap { margin-left:0; }
         .cal-header::before { content:''; order:9; flex-basis:100%; height:0; } /* 행 구분선(줄바꿈) */
         .view-toggle-group { order:10; margin-left:auto; }
         #monthWeeksCtl { order:11; margin-right:auto; margin-left:8px; } /* 주 수 스텝퍼도 2행으로 — 1행 겹침 방지 */
