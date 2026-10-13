@@ -1151,6 +1151,8 @@ class DashboardController extends Controller
 
             return match ($r['type']) {
                 '방문세팅' => in_array('재방문', $r['attrs'], true) ? '재방문' : '방문',
+                // 스튜디오 카테고리 일정은 스튜디오에 방문해 세팅하는 작업 — 작업 방식 '방문' (조유신 피드백)
+                '스튜디오' => in_array('재방문', $r['attrs'], true) ? '재방문' : '방문',
                 '원격' => mb_stripos($title, '수정') !== false ? '수정원격' : '원격',
                 '촬영' => '촬영',
                 '내방' => '내방',
