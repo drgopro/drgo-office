@@ -232,6 +232,17 @@ class Estimate extends Model
                 $items[$idx]['bundle_items'][$b]['refund_amount'] = (int) ($items[$idx]['bundle_items'][$b]['refund_amount'] ?? 0) + $amount;
             } else {
                 $items[$idx]['refund_qty'] = (int) ($items[$idx]['refund_qty'] ?? 0) + $qty;
+                // 세트 부모 단위 환불 — 재고 복원은 구성품 기록 기준이므로 구성품에도 비례 수량을 기록
+                // (세트 N개 환불 = 각 구성품 구성수량×N, 기환불 포함 총량을 넘지 않게 제한)
+                if ($qty > 0 && is_array($items[$idx]['bundle_items'] ?? null)) {
+                    $itemQty = max(1, (int) ($items[$idx]['qty'] ?? 1));
+                    foreach ($items[$idx]['bundle_items'] as $bi => $bItem) {
+                        $per = max(1, (int) ($bItem['qty'] ?? 1));
+                        $total = $per * $itemQty;
+                        $cur = (int) ($bItem['refund_qty'] ?? 0);
+                        $items[$idx]['bundle_items'][$bi]['refund_qty'] = min($total, $cur + $per * $qty);
+                    }
+                }
             }
             $items[$idx]['refunded'] = true;
             $items[$idx]['refund_amount'] = (int) ($items[$idx]['refund_amount'] ?? 0) + $amount;
@@ -274,6 +285,13 @@ class Estimate extends Model
                 $items[$idx]['bundle_items'][$b]['refund_amount'] = max(0, (int) ($items[$idx]['bundle_items'][$b]['refund_amount'] ?? 0) - $amount);
             } else {
                 $items[$idx]['refund_qty'] = max(0, (int) ($items[$idx]['refund_qty'] ?? 0) - $qty);
+                // 세트 부모 단위 환불의 역방향 — applyItemRefunds가 구성품에 기록한 비례 수량도 되돌린다
+                if ($qty > 0 && is_array($items[$idx]['bundle_items'] ?? null)) {
+                    foreach ($items[$idx]['bundle_items'] as $bi => $bItem) {
+                        $per = max(1, (int) ($bItem['qty'] ?? 1));
+                        $items[$idx]['bundle_items'][$bi]['refund_qty'] = max(0, (int) ($bItem['refund_qty'] ?? 0) - $per * $qty);
+                    }
+                }
             }
             $items[$idx]['refund_amount'] = max(0, (int) ($items[$idx]['refund_amount'] ?? 0) - $amount);
 
