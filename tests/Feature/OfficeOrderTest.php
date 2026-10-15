@@ -62,10 +62,15 @@ class OfficeOrderTest extends TestCase
         $this->assertSame('estimate', $row['type']);
         $this->assertSame('스튜디오 구축', $row['title']);
         $this->assertSame('고블린', $row['client']);
-        // 주문완료 항목만, 원본 인덱스 유지
-        $this->assertCount(1, $row['items']);
+        // 미결제 건도 전 항목 노출 — 주문이 먼저 시작된 분할납부 건에서 남은 항목을
+        // 주문 내역에서 바로 처리할 수 있어야 한다 (원본 인덱스 유지)
+        $this->assertCount(2, $row['items']);
         $this->assertSame('카메라', $row['items'][0]['name']);
         $this->assertSame(0, $row['items'][0]['index']);
+        $this->assertTrue($row['items'][0]['ordered']);
+        $this->assertSame('마이크', $row['items'][1]['name']);
+        $this->assertFalse($row['items'][1]['ordered']); // 미주문 항목 — 버튼으로 처리 가능
+        $this->assertTrue($row['unordered']); // 남은 항목이 있으므로 미주문 태그 유지
         // 운송장 포함
         $this->assertCount(1, $row['shipments']);
         $this->assertSame('123456789', $row['shipments'][0]['tracking_no']);

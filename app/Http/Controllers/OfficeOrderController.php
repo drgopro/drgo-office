@@ -173,9 +173,9 @@ class OfficeOrderController extends Controller
                             'refund_amount' => (int) ($b['refund_amount'] ?? 0),
                         ])->values()->all(),
                     ])
-                    // 결제완료 건은 전 항목 노출(미주문 항목도 주문 내역에서 바로 주문완료 처리),
-                    // 그 외(주문 표시로만 등재된 건)는 기존처럼 주문완료 항목만
-                    ->filter(fn ($i) => $e->status === 'paid' || $isOrdered($i))
+                    // 전 항목 노출 — 결제완료 건은 물론, 주문 표시로 등재된 미결제 건(분할납부 등
+                    // 결제 전에 주문이 먼저 들어간 경우)도 남은 항목을 주문완료/직접발송 버튼으로
+                    // 바로 처리할 수 있어야 한다 (김광래 피드백)
                     ->values(),
                 'shipments' => $e->shipments->map(fn (ScheduleShipment $s) => [
                     'carrier_label' => $s->carrierLabel(),
@@ -198,13 +198,13 @@ class OfficeOrderController extends Controller
                     ?? (($firstOrdered = collect($e->product_items ?? [])
                         ->flatMap(fn ($i) => [$i['ordered_at'] ?? null, ...collect($i['bundle_items'] ?? [])->pluck('ordered_at')])
                         ->filter()->max()) ? substr($firstOrdered, 0, 10) : $e->updated_at->format('Y-m-d')),
-                // 미주문 상태 — 결제완료 건에서 장비 항목이 하나라도 주문 처리 전이면 표시,
-                // 전 항목(세트는 구성품 전부)이 주문완료/직접발송돼야 해제 (서비스 항목은 주문완료 취급)
-                'unordered' => $e->status === 'paid'
-                    && collect($e->product_items ?? [])->reject($isServiceItem)
-                        ->reject(fn ($i) => ! empty($i['replaced'])) // 대체된 항목은 주문 대상 아님
-                        ->reject(fn ($i) => (int) ($i['subtotal'] ?? 0) < 0) // 음수(할인) 항목도 주문 대상 아님
-                        ->contains(fn ($i) => ! $isFullyOrdered($i)),
+                // 미주문 상태 — 장비 항목이 하나라도 주문 처리 전이면 표시 (결제완료 건과,
+                // 주문이 먼저 시작된 미결제 건 공통), 전 항목(세트는 구성품 전부)이
+                // 주문완료/직접발송돼야 해제 (서비스 항목은 주문완료 취급)
+                'unordered' => collect($e->product_items ?? [])->reject($isServiceItem)
+                    ->reject(fn ($i) => ! empty($i['replaced'])) // 대체된 항목은 주문 대상 아님
+                    ->reject(fn ($i) => (int) ($i['subtotal'] ?? 0) < 0) // 음수(할인) 항목도 주문 대상 아님
+                    ->contains(fn ($i) => ! $isFullyOrdered($i)),
             ])
             ->values();
 
