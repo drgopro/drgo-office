@@ -671,10 +671,12 @@ window.openTopTab = function(type, url, title) {
 @if($gnbNotice)
 <style>
     .global-notice-bar { display:none; align-items:center; gap:10px; padding:7px 16px; min-width:0;
-        background:rgba(58,86,131,0.08); border-bottom:1px solid var(--border); font-size:13px; }
+        background:#eef1f6; border-bottom:1px solid var(--border); font-size:13px;
+        /* 스크롤해도 유지 — 헤더/탭 바와 같은 sticky 체인으로 탭 바 바로 아래 고정 */
+        position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--tab-h)); z-index:189; }
     .global-notice-bar.show { display:flex; }
     body.in-iframe .global-notice-bar { display:none !important; } /* 탭 iframe에서는 셸의 띠만 */
-    @media (min-width: 981px) { .global-notice-bar { margin-left:var(--sidebar-w); } }
+    @media (min-width: 981px) { .global-notice-bar { margin-left:var(--sidebar-w); top:var(--tab-h); } }
     .gnb-badge { background:#3A5683; color:#fff; border-radius:5px; font-size:11px; font-weight:700; padding:2px 8px; white-space:nowrap; }
     .gnb-title { color:var(--text); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
     .gnb-title:hover { text-decoration:underline; }
