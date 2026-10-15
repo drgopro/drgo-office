@@ -87,9 +87,13 @@ function openDayPopover(dateStr, anchorEl){
     if(!pop||!overlay) return;
 
     const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)), dateStr);
+    // 삭제/변경 흔적 필터가 켜져 있으면 월간 셀과 동일 기준으로 그 날의 흔적도 함께 나열
+    const dayGhosts=(typeof showGhosts!=='undefined'&&showGhosts&&(ghostEvents||[]).length)
+        ? ghostEvents.filter(g=>g.display_start_date<=dateStr&&(g.display_end_date||g.display_start_date)>=dateStr&&activeFilters.has(g.color))
+        : [];
     const d=new Date(dateStr+'T00:00:00');
     const DAYS=['일','월','화','수','목','금','토'];
-    document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`;
+    document.getElementById('dpTitle').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]}) · ${dayEvs.length}건`+(dayGhosts.length?` · 흔적 ${dayGhosts.length}건`:'');
     // 주소를 도로명까지만 (상세주소·동/호수 등 쉼표 뒷부분 제거)
     const roadOnly=(addr)=>{
         if(!addr) return '';
@@ -118,6 +122,20 @@ function openDayPopover(dateStr, anchorEl){
                 ${moveHtml}
             </div>
         </div>`;
+    }).join('')
+    // 흔적 항목 — 월간 셀 고스트 칩과 동일한 구분(취소선·아이콘)과 클릭 동작
+    +dayGhosts.map((g,gi)=>{
+        const at=g.change_at?String(g.change_at).substring(0,16).replace('T',' '):'';
+        const label=g.state==='deleted'?'삭제된 일정':'이동 전 위치';
+        return `<div class="dp-item dp-ghost" onclick="closeDayPopover(); dpOpenGhost(${g.schedule_id||0}, '${g.state}')" title="${label}${at?` · ${at}`:''}">
+            <span class="dp-dot" style="background:${chipColor(g.color)}; opacity:.55;"></span>
+            <div class="dp-info">
+                <div class="dp-title-row">
+                    <span class="dp-title" style="text-decoration:line-through; opacity:.75;">${g.state==='deleted'?'🗑':'↪'} ${_esc(g.title||'(제목 없음)')}</span>
+                </div>
+                <div class="dp-meta">${_esc(label)}${at?` · ${_esc(at)}`:''}</div>
+            </div>
+        </div>`;
     }).join('');
 
     // 위치: 화면 정중앙 고정 — 셀 근처 배치는 해상도/스크롤 조합에 따라 잘리는 예외가 계속 발생해 중앙 고정으로 단순화
@@ -132,6 +150,12 @@ function openDayPopover(dateStr, anchorEl){
     const ph=pop.offsetHeight;
     pop.style.left=Math.round(vx+(vw-pw)/2)+'px';
     pop.style.top=Math.round(vy+Math.max(12,(vh-ph)/2))+'px';
+}
+// 더보기 팝업의 흔적 클릭 — 이동 전 위치면 현재 일정 열기, 아니면 변경 이력으로 (고스트 칩과 동일)
+function dpOpenGhost(scheduleId, state){
+    const cur=events.find(ev=>ev.id===scheduleId);
+    if(state==='modified'&&cur){ openDetailModal(cur); }
+    else{ openChangeLog(); }
 }
 function closeDayPopover(){
     const pop=document.getElementById('dayPopover');

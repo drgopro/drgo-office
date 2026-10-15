@@ -130,6 +130,16 @@ class CalendarHistoryEventsTest extends TestCase
         $this->assertCount(0, collect($res->json()));
     }
 
+    public function test_day_popover_includes_ghost_entries_markup(): void
+    {
+        // 더보기 팝업 — 삭제/변경 흔적 필터가 켜져 있으면 그 날의 흔적도 함께 나열하는 JS 포함
+        $this->actingAs($this->member())->get('/calendar')
+            ->assertOk()
+            ->assertSee('dayGhosts', false)
+            ->assertSee('dpOpenGhost', false)
+            ->assertSee('dp-ghost', false);
+    }
+
     public function test_deleted_schedule_shows_only_deleted_chip(): void
     {
         $member = $this->member();
