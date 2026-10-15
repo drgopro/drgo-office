@@ -353,6 +353,27 @@ class OfficeOrderController extends Controller
                 unset($items[$validated['index']]['purchase_amount']);
             }
         }
+        // 세트 직접발송 전파 — 부모를 직접발송하면 구성품도 '사무실 발송'으로 함께 기록해
+        // 주문 내역에서 거래처 주문 대상으로 남지 않게 한다. 완료 취소(구매처 초기화 동반) 시에는
+        // '사무실 발송'으로 기록된 구성품만 원복한다 (수기로 적은 거래처 구성품은 유지).
+        if (! empty($items[$validated['index']]['bundle_items']) && $request->has('ordered') && $request->has('purchase_source')) {
+            $bundles = $items[$validated['index']]['bundle_items'];
+            if ($request->boolean('ordered') && ($validated['purchase_source'] ?? '') === '사무실 발송') {
+                foreach ($bundles as $i => $b) {
+                    $bundles[$i]['ordered'] = true;
+                    $bundles[$i]['ordered_at'] = $b['ordered_at'] ?? now()->format('Y-m-d H:i');
+                    $bundles[$i]['source'] = '사무실 발송';
+                }
+            } elseif (! $request->boolean('ordered')) {
+                foreach ($bundles as $i => $b) {
+                    if (($b['source'] ?? '') === '사무실 발송') {
+                        unset($bundles[$i]['ordered'], $bundles[$i]['ordered_at']);
+                        $bundles[$i]['source'] = '';
+                    }
+                }
+            }
+            $items[$validated['index']]['bundle_items'] = $bundles;
+        }
         // 환불/결제취소 수동 체크 — refunded 키가 요청에 있을 때만 갱신 (해제 시 기록 초기화)
         if ($request->has('refunded')) {
             if ($request->boolean('refunded')) {

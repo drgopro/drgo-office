@@ -176,6 +176,87 @@ class OfficeOrderTest extends TestCase
         $this->assertFalse($row['unordered']);
     }
 
+    public function test_direct_ship_on_bundle_parent_propagates_to_components(): void
+    {
+        $cam = Product::create(['sku' => 'CAM-DS', 'name' => '캠DS', 'sale_price' => 100000, 'is_active' => true]);
+        Inventory::create(['product_id' => $cam->id, 'quantity' => 10, 'last_updated_at' => now()]);
+        $mic = Product::create(['sku' => 'MIC-DS', 'name' => '마이크DS', 'sale_price' => 50000, 'is_active' => true]);
+        Inventory::create(['product_id' => $mic->id, 'quantity' => 10, 'last_updated_at' => now()]);
+        $set = Product::create(['sku' => 'SET-DS', 'name' => '세트DS', 'sale_price' => 200000, 'is_active' => true, 'is_bundle' => true]);
+        ProductBundleItem::create(['bundle_product_id' => $set->id, 'component_product_id' => $cam->id, 'quantity' => 1]);
+        ProductBundleItem::create(['bundle_product_id' => $set->id, 'component_product_id' => $mic->id, 'quantity' => 2]);
+
+        $estimate = Estimate::create([
+            'status' => 'paid', 'title' => '세트 직발', 'client_nickname' => '고블린',
+            'product_items' => [[
+                'product_id' => $set->id, 'name' => '세트DS', 'sale_price' => 200000, 'qty' => 1, 'subtotal' => 200000,
+                'bundle_items' => [
+                    ['product_id' => $cam->id, 'name' => '캠DS', 'qty' => 1, 'price' => 100000],
+                    ['product_id' => $mic->id, 'name' => '마이크DS', 'qty' => 2, 'price' => 50000],
+                ],
+            ]],
+            'service_items' => [], 'product_total' => 200000, 'service_total' => 0, 'total_amount' => 200000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        // 세트 부모 행 직접발송 — 구성품도 '사무실 발송'으로 전파 + 재고 1회 차감
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'ordered' => 1, 'purchase_source' => '사무실 발송',
+        ])->assertOk();
+
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertSame('사무실 발송', $item['purchase_source']);
+        foreach ($item['bundle_items'] as $b) {
+            $this->assertTrue((bool) ($b['ordered'] ?? false), $b['name'].' 구성품이 주문완료로 전파돼야 한다');
+            $this->assertSame('사무실 발송', $b['source'] ?? '', $b['name'].' 구성품 구매처가 사무실 발송이어야 한다');
+            $this->assertNotEmpty($b['ordered_at'] ?? null);
+        }
+        $this->assertSame(9, Inventory::where('product_id', $cam->id)->value('quantity'));
+        $this->assertSame(8, Inventory::where('product_id', $mic->id)->value('quantity'));
+
+        // 완료 취소 — 전파됐던 구성품도 원복 + 재고 복원
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'ordered' => 0, 'purchase_source' => '',
+        ])->assertOk();
+
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertArrayNotHasKey('ordered', $item);
+        foreach ($item['bundle_items'] as $b) {
+            $this->assertArrayNotHasKey('ordered', $b);
+            $this->assertSame('', $b['source'] ?? '');
+        }
+        $this->assertSame(10, Inventory::where('product_id', $cam->id)->value('quantity'));
+        $this->assertSame(10, Inventory::where('product_id', $mic->id)->value('quantity'));
+    }
+
+    public function test_direct_ship_cancel_keeps_vendor_sourced_components(): void
+    {
+        $estimate = Estimate::create([
+            'status' => 'paid', 'title' => '세트 혼합', 'client_nickname' => '고블린',
+            'product_items' => [[
+                'name' => '혼합 세트', 'sale_price' => 100000, 'qty' => 1, 'subtotal' => 100000,
+                'bundle_items' => [
+                    ['name' => '수기거래처 구성품', 'qty' => 1, 'ordered' => true, 'ordered_at' => '2026-10-01 10:00', 'source' => '다나와'],
+                    ['name' => '일반 구성품', 'qty' => 1],
+                ],
+            ]],
+            'service_items' => [], 'product_total' => 100000, 'service_total' => 0, 'total_amount' => 100000,
+            'validity_days' => 3, 'created_by' => $this->admin->id,
+        ]);
+
+        // 직접발송 → 완료 취소 — 수기 거래처 구성품은 전파 시 덮어쓰지 않도록 보호되지 않음에 유의:
+        // 직발 전파는 모든 구성품을 사무실 발송으로 바꾸므로, 여기서는 '주문완료'만 눌렀을 때
+        // (purchase_source 미전송) 구성품이 바뀌지 않는 것을 확인한다.
+        $this->actingAs($this->admin)->patchJson("/api/inventory/office-orders/estimate/{$estimate->id}/item-note", [
+            'index' => 0, 'ordered' => 1,
+        ])->assertOk();
+
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertTrue((bool) $item['ordered']);
+        $this->assertSame('다나와', $item['bundle_items'][0]['source']);
+        $this->assertArrayNotHasKey('source', $item['bundle_items'][1]);
+    }
+
     public function test_item_note_endpoint_toggles_ordered_with_timestamp(): void
     {
         // 수기 항목(product_id 없음) — 직접발송 재고 연동 없이 주문 토글만 검증
@@ -310,8 +391,8 @@ class OfficeOrderTest extends TestCase
             ->assertSee('cancelBundleOrdered', false) // 주문완료 취소 (구성품)
             ->assertSee('sheetCancelOrdered', false)  // 주문완료 취소 (시트)
             // 개편 레이아웃 — 결제완료/주문일/상태 열 + 헤더 아래 배송 정보 readonly 필드
-            ->assertSee('<th style="width:104px;">결제완료</th>', false)
-            ->assertSee('<th style="width:104px;">주문일</th>', false)
+            ->assertSee('<th class="ord-opt" style="width:104px;">결제완료</th>', false)
+            ->assertSee('<th class="ord-opt" style="width:104px;">주문일</th>', false)
             ->assertSee('<th style="width:140px;">상태</th>', false)
             ->assertSee('배송 요청사항', false)
             ->assertSee('견적서 열기 → 주문 정보에서 수정', false) // 텍스트 표시 (입력폼 아님)

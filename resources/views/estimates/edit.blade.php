@@ -1124,7 +1124,13 @@ function toggleOrderMode() {
 function toggleOrdered(idx) {
     cartItems[idx].ordered = !cartItems[idx].ordered;
     // 주문완료 해제 시 직접발송으로 기록된 구매처도 초기화 (수기로 적은 구매처는 유지)
-    if (!cartItems[idx].ordered && cartItems[idx].purchase_source === '사무실 발송') cartItems[idx].purchase_source = '';
+    if (!cartItems[idx].ordered && cartItems[idx].purchase_source === '사무실 발송') {
+        cartItems[idx].purchase_source = '';
+        // 세트 직접발송 해제 — '사무실 발송'으로 전파됐던 구성품도 함께 원복
+        (cartItems[idx].bundle_items || []).forEach(b => {
+            if (b.source === '사무실 발송') { b.ordered = false; b.source = ''; }
+        });
+    }
     renderCart();
     saveEstimate(true); // 주문완료 표시는 즉시 저장 (알림 없이)
 }
@@ -1155,6 +1161,8 @@ async function directShip(idx) {
     if (!(await confirmDirectShipStock(idx))) return;
     cartItems[idx].ordered = true;
     cartItems[idx].purchase_source = '사무실 발송';
+    // 세트 직접발송 전파 — 구성품도 '사무실 발송'으로 기록해 거래처 주문 대상으로 남지 않게
+    (cartItems[idx].bundle_items || []).forEach(b => { b.ordered = true; b.source = '사무실 발송'; });
     renderCart();
     saveEstimate(true);
 }
