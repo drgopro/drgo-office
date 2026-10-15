@@ -61,7 +61,7 @@ document.addEventListener('click', function(e){
             --header-h: 48px;
             --tab-h: 36px;
             /* 노치/다이나믹아일랜드 기기: 헤더가 safe-area만큼 커지므로 chrome 높이에도 포함 */
-            --chrome-h: calc(var(--header-h) + var(--tab-h) + 2px + env(safe-area-inset-top, 0px));
+            --chrome-h: calc(var(--header-h) + var(--tab-h) + 2px + env(safe-area-inset-top, 0px) + var(--gnb-h, 0px));
             --full-h: 100vh;
         }
         [data-theme="light"] {
@@ -246,7 +246,7 @@ document.addEventListener('click', function(e){
            (마크업/JS 변경 없음, CSS 전용. 모바일 ≤980px는 기존 햄버거 유지)
            ══════════════════════════════════════════════ */
         @media (min-width: 981px) {
-            :root { --sidebar-w: 200px; --chrome-h: calc(var(--tab-h) + 2px); --ui-zoom: 1.07; }
+            :root { --sidebar-w: 200px; --chrome-h: calc(var(--tab-h) + 2px + var(--gnb-h, 0px)); --ui-zoom: 1.07; }
             /* 데스크탑 가독성 확대 — px 고정 폰트가 많아 zoom으로 일괄 확대.
                셸에서 1회만 적용 (iframe 내부 문서는 셸 배율이 화면에 이미 반영되므로 제외) */
             body:not(.in-iframe) { zoom: var(--ui-zoom); min-height:calc(100vh / var(--ui-zoom)); }
@@ -659,6 +659,54 @@ window.openTopTab = function(type, url, title) {
         </div>
     </div>
 </div>
+
+{{-- ── 전역 공지 띠 — 최신 공지사항 1건을 모든 탭 상단에 표시 (닫으면 해당 공지는 숨김, 새 공지 등록 시 재노출) ── --}}
+{{-- 블레이드 php 블록 지시어를 쓰면 56행의 인라인 지시어와 한 블록으로 오인 컴파일되므로 순수 PHP 태그 사용 --}}
+<?php
+    $gnbNotice = Auth::check()
+        ? \App\Models\Wiki::published()->visibleTo(Auth::user())->where('type', 'notice')
+            ->orderByDesc('created_at')->first(['id', 'title', 'created_at'])
+        : null;
+?>
+@if($gnbNotice)
+<style>
+    .global-notice-bar { display:none; align-items:center; gap:10px; padding:7px 16px; min-width:0;
+        background:rgba(58,86,131,0.08); border-bottom:1px solid var(--border); font-size:13px; }
+    .global-notice-bar.show { display:flex; }
+    body.in-iframe .global-notice-bar { display:none !important; } /* 탭 iframe에서는 셸의 띠만 */
+    @media (min-width: 981px) { .global-notice-bar { margin-left:var(--sidebar-w); } }
+    .gnb-badge { background:#3A5683; color:#fff; border-radius:5px; font-size:11px; font-weight:700; padding:2px 8px; white-space:nowrap; }
+    .gnb-title { color:var(--text); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .gnb-title:hover { text-decoration:underline; }
+    .gnb-date { color:var(--text-muted); font-size:11.5px; white-space:nowrap; }
+    .gnb-close { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 6px; line-height:1; }
+    .gnb-close:hover { color:var(--text); }
+</style>
+<div class="global-notice-bar" id="globalNoticeBar">
+    <span class="gnb-badge">공지</span>
+    <a href="/wiki/{{ $gnbNotice->id }}" class="gnb-title"
+       onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
+    <span class="gnb-date">{{ $gnbNotice->created_at->format('Y.m.d') }}</span>
+    <button type="button" class="gnb-close" onclick="gnbDismiss({{ $gnbNotice->id }})" title="이 공지 닫기 — 새 공지가 등록되면 다시 표시됩니다">✕</button>
+</div>
+<script>
+// 전역 공지 띠 — 닫은 공지 id를 기억해 같은 공지는 숨기고, 띠 높이만큼 탭 iframe 높이(--gnb-h)를 보정
+(function(){
+    if (window !== window.top) return; // iframe에서는 셸의 띠만 사용
+    let dismissed = null;
+    try { dismissed = localStorage.getItem('drgo_gnb_dismiss'); } catch(e) {}
+    if (dismissed === String({{ $gnbNotice->id }})) return;
+    const bar = document.getElementById('globalNoticeBar');
+    bar.classList.add('show');
+    document.documentElement.style.setProperty('--gnb-h', bar.offsetHeight + 'px');
+})();
+function gnbDismiss(id){
+    try { localStorage.setItem('drgo_gnb_dismiss', String(id)); } catch(e) {}
+    document.getElementById('globalNoticeBar').classList.remove('show');
+    document.documentElement.style.setProperty('--gnb-h', '0px');
+}
+</script>
+@endif
 
 {{-- ── 콘텐츠 영역 ── --}}
 <div class="main" id="tabContent">
