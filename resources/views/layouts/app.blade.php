@@ -665,7 +665,7 @@ window.openTopTab = function(type, url, title) {
 <?php
     $gnbNotice = Auth::check()
         ? \App\Models\Wiki::published()->visibleTo(Auth::user())->where('type', 'notice')
-            ->orderByDesc('created_at')->first(['id', 'title', 'created_at'])
+            ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at'])
         : null;
 ?>
 @if($gnbNotice)

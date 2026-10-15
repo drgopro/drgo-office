@@ -15,7 +15,8 @@ class GlobalNoticeBarTest extends TestCase
     public function test_latest_notice_appears_as_global_bar(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Wiki::create(['title' => '옛 공지', 'type' => 'notice', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id, 'created_at' => now()->subDay()]);
+        $old = Wiki::create(['title' => '옛 공지', 'type' => 'notice', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]);
+        $old->forceFill(['created_at' => now()->subDay()])->save();
         Wiki::create(['title' => '최신 공지 제목', 'type' => 'notice', 'content' => 'y', 'is_draft' => false, 'created_by' => $admin->id]);
 
         $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
