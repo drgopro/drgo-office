@@ -1248,7 +1248,8 @@ function renderCart() {
                 ? `<div style="font-size:11.5px; color:var(--text-muted); font-weight:400; margin-top:2px;">${item.purchase_source === '사무실 발송' ? '발송처' : '구매처'}: ${_escE(item.purchase_source)}</div>`
                 : '';
             // 주문/배송 뷰 전용 — 제품 메모를 제품명 아래 회색으로 (스냅샷에 저장하지 않아 출력물 미노출)
-            const prodMemo = orderMode && item.product_id ? (allProds.find(x => x.id === item.product_id)?.memo || '') : '';
+            // 제품 메모 — 빌더(편집/주문 뷰) 전용 표시. 스냅샷에 저장하지 않으므로 의뢰자 링크·출력물에는 노출되지 않는다
+            const prodMemo = item.product_id ? (allProds.find(x => x.id === item.product_id)?.memo || '') : '';
             const memoLine = prodMemo ? `<div style="font-size:12px; color:var(--text-muted); font-weight:400; margin-top:3px; white-space:pre-line;">${_escE(prodMemo)}</div>` : '';
             // 엑셀 가져오기 중분류(제품명 위 작은 라벨) + 항목 비고(클릭해서 수정, 의뢰자 견적서에 표시)
             const midLine = item.mid_category ? `<div style="font-size:11px; color:var(--text-muted); margin-bottom:1px;">${_escE(item.mid_category)}</div>` : '';
