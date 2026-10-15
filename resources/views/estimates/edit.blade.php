@@ -899,7 +899,7 @@ function filterProducts() {
         // 띄어쓰기·대소문자 무시 — 'EOS R50 V'도 'r50v'로 매칭
         const norm = s => (s || '').toLowerCase().replace(/\s+/g, '');
         const q = norm(search);
-        filtered = filtered.filter(p => norm(p.name).includes(q) || norm(p.sku).includes(q)
+        filtered = filtered.filter(p => norm(p.name).includes(q) || norm(p.sku).includes(q) || norm(p.memo).includes(q)
             || norm(p.group_name).includes(q) || norm(p.option_name).includes(q) || norm(p.search_tags).includes(q));
     }
     filtered = sortProds(filtered);
@@ -923,7 +923,7 @@ function filterProducts() {
         <div class="product-item" onclick="addToCart(${p.id})">
             <div>
                 <div class="pi-name">${p.name}</div>
-                <div class="pi-cat">${p.sku} · ${p.category_path || p.category || ''}</div>
+                <div class="pi-cat">${[_escE(p.memo).replace(/\n/g, ' '), p.category_path || p.category || ''].filter(Boolean).join(' · ')}</div>
             </div>
             <div style="text-align:right;">
                 <div class="pi-price">${fmt(p.sale_price)}원</div>
@@ -958,7 +958,7 @@ function openOptionPicker(groupId) {
         <div class="product-item" onclick="addToCart(${o.id}); closeOptionPicker();">
             <div>
                 <div class="pi-name">${o.option_name || o.name}</div>
-                <div class="pi-cat">${o.sku}</div>
+                <div class="pi-cat">${_escE(o.memo).replace(/\n/g, ' ')}</div>
             </div>
             <div style="text-align:right;">
                 <div class="pi-price">${fmt(o.sale_price)}원</div>
