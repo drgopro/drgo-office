@@ -410,6 +410,10 @@
                     $workDefaults = ['setup'=>'세팅','remote'=>'원격','survey'=>'답사','filming'=>'촬영중계','design'=>'디자인','as'=>'A/S','dispatch'=>'파견','monthly'=>'월 계약','hourly'=>'시간 대여'];
                     $workLabelMap = rescue(fn () => \App\Models\WorkType::pluck('label', 'key')->toArray(), [], false);
                     $workTypeLabel = $project->work_type ? ($workLabelMap[$project->work_type] ?? ($workDefaults[$project->work_type] ?? $project->work_type)) : null;
+
+                    // 원격 프로젝트는 실제 방문이 없으므로 보고서 라벨만 '원격 보고서'로 (로직은 방문 보고서와 동일)
+                    $isRemoteProject = $project->project_type === 'remote' || str_contains((string) $projectTypeLabel, '원격');
+                    $vrLabel = $isRemoteProject ? '원격 보고서' : '방문 보고서';
                 @endphp
                 <div class="project-meta">
                     <span class="badge badge-{{ $project->project_type }}">
@@ -716,7 +720,7 @@
         @if($visitData && !empty($visitData['report']))
         <div class="info-card full">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>🛠 방문 보고서</span>
+                <span>🛠 {{ $vrLabel }}</span>
                 <button type="button" onclick="openVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
             </div>
             <div style="font-size:13px; color:var(--text); white-space:pre-wrap; line-height:1.55;">{{ $visitData['report'] }}</div>
@@ -880,14 +884,14 @@
         </div>
 
         <!-- 방문 보고서 모달 -->
-        <div id="visitReportModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) drgoModalMinimize(this, '🛠 방문 보고서', '🛠')">
+        <div id="visitReportModalOverlay" class="modal-overlay" style="{{ $sdModalStyle }}" onclick="if(event.target===this) drgoModalMinimize(this, '🛠 {{ $vrLabel }}', '🛠')">
             <div class="modal" style="{{ $sdInnerStyle }} max-width:820px;">
                 <div style="{{ $sdHeadStyle }}">
-                    <div style="font-size:15px; font-weight:700;">🛠 방문 보고서</div>
+                    <div style="font-size:15px; font-weight:700;">🛠 {{ $vrLabel }}</div>
                     <button type="button" onclick="closeVisitReportModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
                 <div style="{{ $sdBodyStyle }}">
-                    <div style="font-size:11px; color:var(--text-muted);">방문 현장 상황, 진행한 작업, 특이사항 등을 자유롭게 작성합니다.</div>
+                    <div style="font-size:11px; color:var(--text-muted);">{{ $isRemoteProject ? '원격으로 진행한 작업, 특이사항 등을 자유롭게 작성합니다.' : '방문 현장 상황, 진행한 작업, 특이사항 등을 자유롭게 작성합니다.' }}</div>
                     <textarea id="visitReportText" rows="14" placeholder="예:&#10;• 방문 일시: 2026-05-13 14:00&#10;• 동행: 김광래, 황진선&#10;• 작업 내역: 카메라 설치, 음향 세팅 등&#10;• 특이사항: …" style="{{ $sdInputStyle }} resize:vertical; line-height:1.6; min-height:300px;"></textarea>
                 </div>
                 <div style="{{ $sdFootStyle }}">
@@ -1041,7 +1045,7 @@
         {{-- 방문 보고서 (stage=done 일 때만 노출 — 추가 정보 영역 상단) --}}
         <div class="info-card full {{ $hasReport ? 'is-collapsed' : '' }}" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                <span>📋 방문 보고서</span>
+                <span>📋 {{ $vrLabel }}</span>
                 <div style="display:flex; gap:6px; align-items:center;">
                     <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
                     <button type="button" id="vrBtnEdit" onclick="vrSetMode('edit')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'inline-flex' : 'none' }};">✏️ 수정</button>
@@ -1447,7 +1451,7 @@
             byTitle('태그'), byTitle('일정 제안'), byTitle('견적/계약'),
             document.getElementById('paymentHistoryCard')]
             .filter(Boolean).forEach(c => L.appendChild(c));
-        [byTitle('프로젝트 개요'), document.getElementById('reqItemsCard'), byTitle('🛠 방문 보고서'),
+        [byTitle('프로젝트 개요'), document.getElementById('reqItemsCard'), byTitle('🛠 {{ $vrLabel }}'),
             document.getElementById('visitReportCard'), byTitle('상담 이력'),
             byTitle('피드백'), byTitle('첨부 문서')]
             .filter(Boolean).forEach(c => R.appendChild(c));
@@ -4416,7 +4420,7 @@ window.saveVisitReportEditor = async function() {
     } else {
         statusEl.textContent = '저장 실패';
         statusEl.style.color = 'var(--red)';
-        await showFetchErrorVR(res, '방문 보고서 저장 실패');
+        await showFetchErrorVR(res, '{{ $vrLabel }} 저장 실패');
     }
 };
 
@@ -4693,7 +4697,7 @@ if (editorEl) {
             StarterKit.configure({ heading: { levels: [1,2,3] } }),
             ResizableImage.configure({ inline: false }),
             Link.configure({ openOnClick: false }),
-            Placeholder.configure({ placeholder: '방문/세팅 보고서를 작성하세요. ("/" 입력으로 블록 추가)' }),
+            Placeholder.configure({ placeholder: '{{ $isRemoteProject ? '원격' : '방문/세팅' }} 보고서를 작성하세요. ("/" 입력으로 블록 추가)' }),
             Table.configure({ resizable: true }),
             TableRow, TableCell, TableHeader,
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
