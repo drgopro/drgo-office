@@ -588,7 +588,7 @@ window.addEventListener('resize', () => estMovePill(true));
 document.addEventListener('DOMContentLoaded', () => estMovePill(true));
 
 function setEstTab(tab) {
-    const isList = tab === 'list' || tab === 'cancelled';
+    const isList = tab === 'all' || tab === 'list' || tab === 'cancelled';
     document.getElementById('tabList').style.display = isList ? '' : 'none';
     document.getElementById('tabPresets').style.display = tab === 'presets' ? '' : 'none';
     document.getElementById('tabBtnAll').classList.toggle('active', tab === 'all');
