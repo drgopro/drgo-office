@@ -193,7 +193,7 @@ document.addEventListener('click', function(e){
         }
 
         /* ── 탭 바 ── */
-        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:flex-end; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:190; }
+        .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:flex-end; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--gnb-h, 0px)); z-index:190; }
         .tab-strip { display:flex; align-items:flex-end; flex:1; height:100%; overflow-x:auto; gap:2px; scrollbar-width:none; }
 
         /* ── 상단 우측 알림 + 가이드 ── */
@@ -268,7 +268,7 @@ document.addEventListener('click', function(e){
             .header-right form { width:100%; }
             .header-right .logout-btn { width:100%; padding:7px 0; }
             /* 탭바/콘텐츠는 사이드바 폭만큼 밀기 */
-            .tab-bar-wrap { margin-left:var(--sidebar-w); top:0; }
+            .tab-bar-wrap { margin-left:var(--sidebar-w); top:var(--gnb-h, 0px); }
             .main { margin-left:var(--sidebar-w); }
             /* 접기 버튼 */
             .side-toggle { display:flex; align-items:center; justify-content:center; position:absolute; top:12px; right:10px; width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; transition:all .15s; }
@@ -636,6 +636,53 @@ window.openTopTab = function(type, url, title) {
     </div>
 </div>
 
+{{-- ── 전역 공지 띠 — 최신 공지사항 1건을 모든 탭 상단에 표시 (닫으면 해당 공지는 숨김, 새 공지 등록 시 재노출) ── --}}
+{{-- 블레이드 php 블록 지시어를 쓰면 56행의 인라인 지시어와 한 블록으로 오인 컴파일되므로 순수 PHP 태그 사용 --}}
+<?php
+    $gnbNotice = Auth::check()
+        ? \App\Models\Wiki::published()->visibleTo(Auth::user())->where('type', 'notice')
+            ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at'])
+        : null;
+?>
+@if($gnbNotice)
+<style>
+    .global-notice-bar { display:none; align-items:center; gap:10px; padding:7px 16px; min-width:0;
+        background:#eef1f6; border-bottom:1px solid var(--border); font-size:13px;
+        /* 스크롤해도 유지 — 헤더/탭 바와 같은 sticky 체인으로 탭 바 바로 아래 고정 */
+        position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); z-index:191; }
+    .global-notice-bar.show { display:flex; }
+    body.in-iframe .global-notice-bar { display:none !important; } /* 탭 iframe에서는 셸의 띠만 */
+    @media (min-width: 981px) { .global-notice-bar { margin-left:var(--sidebar-w); top:0; } }
+    .gnb-badge { background:#3A5683; color:#fff; border-radius:5px; font-size:11px; font-weight:700; padding:2px 8px; white-space:nowrap; }
+    .gnb-title { color:var(--text); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .gnb-title:hover { text-decoration:underline; }
+    .gnb-date { color:var(--text-muted); font-size:11.5px; white-space:nowrap; }
+    .gnb-close { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 6px; line-height:1; }
+    .gnb-close:hover { color:var(--text); }
+</style>
+<div class="global-notice-bar" id="globalNoticeBar">
+    <span class="gnb-badge">공지</span>
+    <a href="/wiki/{{ $gnbNotice->id }}" class="gnb-title"
+       onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
+    <span class="gnb-date">{{ $gnbNotice->created_at->format('Y.m.d') }}</span>
+    <button type="button" class="gnb-close" onclick="gnbDismiss()" title="이 공지 닫기 — 새로고침하면 다시 표시됩니다">✕</button>
+</div>
+<script>
+// 전역 공지 띠 — 닫기는 현재 화면에서만 숨김(저장 안 함 — 새로고침하면 다시 표시),
+// 띠 높이만큼 탭 iframe 높이(--gnb-h)를 보정
+(function(){
+    if (window !== window.top) return; // iframe에서는 셸의 띠만 사용
+    const bar = document.getElementById('globalNoticeBar');
+    bar.classList.add('show');
+    document.documentElement.style.setProperty('--gnb-h', bar.offsetHeight + 'px');
+})();
+function gnbDismiss(){
+    document.getElementById('globalNoticeBar').classList.remove('show');
+    document.documentElement.style.setProperty('--gnb-h', '0px');
+}
+</script>
+@endif
+
 {{-- ── 탭 바 ── --}}
 <div class="tab-bar-wrap">
     <div class="tab-strip" id="tabStrip"></div>
@@ -660,55 +707,6 @@ window.openTopTab = function(type, url, title) {
     </div>
 </div>
 
-{{-- ── 전역 공지 띠 — 최신 공지사항 1건을 모든 탭 상단에 표시 (닫으면 해당 공지는 숨김, 새 공지 등록 시 재노출) ── --}}
-{{-- 블레이드 php 블록 지시어를 쓰면 56행의 인라인 지시어와 한 블록으로 오인 컴파일되므로 순수 PHP 태그 사용 --}}
-<?php
-    $gnbNotice = Auth::check()
-        ? \App\Models\Wiki::published()->visibleTo(Auth::user())->where('type', 'notice')
-            ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at'])
-        : null;
-?>
-@if($gnbNotice)
-<style>
-    .global-notice-bar { display:none; align-items:center; gap:10px; padding:7px 16px; min-width:0;
-        background:#eef1f6; border-bottom:1px solid var(--border); font-size:13px;
-        /* 스크롤해도 유지 — 헤더/탭 바와 같은 sticky 체인으로 탭 바 바로 아래 고정 */
-        position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--tab-h)); z-index:189; }
-    .global-notice-bar.show { display:flex; }
-    body.in-iframe .global-notice-bar { display:none !important; } /* 탭 iframe에서는 셸의 띠만 */
-    @media (min-width: 981px) { .global-notice-bar { margin-left:var(--sidebar-w); top:var(--tab-h); } }
-    .gnb-badge { background:#3A5683; color:#fff; border-radius:5px; font-size:11px; font-weight:700; padding:2px 8px; white-space:nowrap; }
-    .gnb-title { color:var(--text); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
-    .gnb-title:hover { text-decoration:underline; }
-    .gnb-date { color:var(--text-muted); font-size:11.5px; white-space:nowrap; }
-    .gnb-close { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 6px; line-height:1; }
-    .gnb-close:hover { color:var(--text); }
-</style>
-<div class="global-notice-bar" id="globalNoticeBar">
-    <span class="gnb-badge">공지</span>
-    <a href="/wiki/{{ $gnbNotice->id }}" class="gnb-title"
-       onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
-    <span class="gnb-date">{{ $gnbNotice->created_at->format('Y.m.d') }}</span>
-    <button type="button" class="gnb-close" onclick="gnbDismiss({{ $gnbNotice->id }})" title="이 공지 닫기 — 새 공지가 등록되면 다시 표시됩니다">✕</button>
-</div>
-<script>
-// 전역 공지 띠 — 닫은 공지 id를 기억해 같은 공지는 숨기고, 띠 높이만큼 탭 iframe 높이(--gnb-h)를 보정
-(function(){
-    if (window !== window.top) return; // iframe에서는 셸의 띠만 사용
-    let dismissed = null;
-    try { dismissed = localStorage.getItem('drgo_gnb_dismiss'); } catch(e) {}
-    if (dismissed === String({{ $gnbNotice->id }})) return;
-    const bar = document.getElementById('globalNoticeBar');
-    bar.classList.add('show');
-    document.documentElement.style.setProperty('--gnb-h', bar.offsetHeight + 'px');
-})();
-function gnbDismiss(id){
-    try { localStorage.setItem('drgo_gnb_dismiss', String(id)); } catch(e) {}
-    document.getElementById('globalNoticeBar').classList.remove('show');
-    document.documentElement.style.setProperty('--gnb-h', '0px');
-}
-</script>
-@endif
 
 {{-- ── 콘텐츠 영역 ── --}}
 <div class="main" id="tabContent">
