@@ -17,7 +17,7 @@
     .dash-main { display:flex; flex-direction:column; gap:16px; min-width:0; }
     .dash-side { display:flex; flex-direction:column; gap:16px; }
     .side-stack { display:flex; flex-direction:column; gap:16px; } /* 공지+업데이트 묶음 — 그리드에서 한 칸 차지 */
-    /* 중간 해상도(~1200px): 사이드 레일을 본문 위 그리드로 재배치 (잔금·휴가·공지+업데이트 순) */
+    /* 중간 해상도(~1200px): 사이드 레일을 본문 위 그리드로 재배치 (공지+업데이트·잔금·휴가 순) */
     @media (max-width:1200px) {
         .dash-grid { grid-template-columns:1fr; }
         .dash-side { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); align-items:start; order:-1; }
@@ -387,6 +387,43 @@
 
     {{-- 우측 레일 --}}
     <aside class="dash-side">
+        {{-- 공지사항 + 업데이트 — 반응형 그리드에서 한 칸을 차지하도록 묶음 --}}
+        <div class="side-stack">
+        {{-- 공지사항 (최근 2건) --}}
+        <div class="dcard">
+            <div class="dcard-head">
+                공지사항
+                <a class="dc-link" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
+            </div>
+            @forelse($wikiNoticeList as $w)
+                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
+                    <span class="nu-badge notice">공지</span>
+                    <span class="nu-title">{{ $w->title }}</span>
+                    <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
+                </div>
+            @empty
+                <div class="dcard-empty">등록된 공지사항이 없습니다</div>
+            @endforelse
+        </div>
+
+        {{-- 업데이트 (최근 1건) --}}
+        <div class="dcard">
+            <div class="dcard-head">
+                업데이트
+                <a class="dc-link" href="/wiki?type=update" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=update'); else location.href=this.href;">전체 보기 →</a>
+            </div>
+            @forelse($wikiUpdateList as $w)
+                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
+                    <span class="nu-badge update">업뎃</span>
+                    <span class="nu-title">{{ $w->title }}</span>
+                    <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
+                </div>
+            @empty
+                <div class="dcard-empty">등록된 업데이트가 없습니다</div>
+            @endforelse
+        </div>
+        </div>{{-- /side-stack --}}
+
         {{-- 잔금 미수 --}}
         @if(Auth::user()->hasPermission('projects.view'))
         <div class="dcard">
@@ -474,42 +511,7 @@
         </div>
         @endif
 
-        {{-- 공지사항 + 업데이트 — 반응형 그리드에서 한 칸을 차지하도록 묶음 --}}
-        <div class="side-stack">
-        {{-- 공지사항 (최근 2건) --}}
-        <div class="dcard">
-            <div class="dcard-head">
-                공지사항
-                <a class="dc-link" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
-            </div>
-            @forelse($wikiNoticeList as $w)
-                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
-                    <span class="nu-badge notice">공지</span>
-                    <span class="nu-title">{{ $w->title }}</span>
-                    <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
-                </div>
-            @empty
-                <div class="dcard-empty">등록된 공지사항이 없습니다</div>
-            @endforelse
-        </div>
 
-        {{-- 업데이트 (최근 1건) --}}
-        <div class="dcard">
-            <div class="dcard-head">
-                업데이트
-                <a class="dc-link" href="/wiki?type=update" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=update'); else location.href=this.href;">전체 보기 →</a>
-            </div>
-            @forelse($wikiUpdateList as $w)
-                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
-                    <span class="nu-badge update">업뎃</span>
-                    <span class="nu-title">{{ $w->title }}</span>
-                    <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>
-                </div>
-            @empty
-                <div class="dcard-empty">등록된 업데이트가 없습니다</div>
-            @endforelse
-        </div>
-        </div>{{-- /side-stack --}}
     </aside>
     </div>{{-- /dash-grid --}}
 
