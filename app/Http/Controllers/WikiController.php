@@ -8,6 +8,7 @@ use App\Models\Wiki;
 use App\Models\WikiAttachment;
 use App\Models\WikiCategory;
 use App\Models\WikiComment;
+use App\Models\WikiRead;
 use App\Notifications\MentionAlert;
 use App\Rules\SafeAttachment;
 use App\Services\ChannelTalkNotifier;
@@ -141,7 +142,32 @@ class WikiController extends Controller
         $tree = WikiCategory::orderBy('sort_order')->orderBy('id')->get();
         $teams = Team::orderBy('name')->get(['id', 'name']);
 
-        return view('wiki.show', compact('wiki', 'tree', 'teams'));
+        // 읽음 확인 — 문서를 열면 기록 (게스트 제외, 임시저장 문서는 공개 전이므로 기록/표시 제외)
+        $readStatus = null;
+        if (! $wiki->is_draft && ! Auth::user()->isGuest()) {
+            WikiRead::firstOrCreate(
+                ['wiki_id' => $wiki->id, 'user_id' => Auth::id()],
+                ['read_at' => now()],
+            );
+
+            // 집계 대상: 활성 직원(master/admin/member) 중 이 문서를 열람할 수 있는 사람
+            $staff = User::where('is_active', true)
+                ->whereIn('role', ['master', 'admin', 'member'])
+                ->get(['id', 'display_name', 'username', 'role', 'team_id'])
+                ->filter(fn (User $u) => $wiki->canView($u))
+                ->values();
+            $readAt = $wiki->reads()->whereIn('user_id', $staff->pluck('id'))->pluck('read_at', 'user_id');
+            [$readers, $unreaders] = $staff->partition(fn (User $u) => isset($readAt[$u->id]));
+            $readStatus = [
+                'readers' => $readers->map(fn (User $u) => [
+                    'name' => $u->display_name ?? $u->username,
+                    'read_at' => $readAt[$u->id]->format('m.d H:i'),
+                ])->sortBy('read_at')->values()->all(),
+                'unreaders' => $unreaders->map(fn (User $u) => ['name' => $u->display_name ?? $u->username])->values()->all(),
+            ];
+        }
+
+        return view('wiki.show', compact('wiki', 'tree', 'teams', 'readStatus'));
     }
 
     public function store(Request $request)

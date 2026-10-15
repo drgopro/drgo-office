@@ -86,6 +86,12 @@ class Wiki extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** 읽음 확인 기록 — 문서를 연 사용자 (문서당 사용자 1행) */
+    public function reads()
+    {
+        return $this->hasMany(WikiRead::class);
+    }
+
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');

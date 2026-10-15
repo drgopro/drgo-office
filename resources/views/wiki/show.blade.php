@@ -5,6 +5,24 @@
 @push('styles')
 <style>
     .wiki-wrap { padding:24px; max-width:900px; margin:0 auto; }
+    /* 읽음 확인 — 게시물 상단 '읽음 n명 · 안읽음 n명' + 클릭 시 명단 */
+    .wiki-read-status { margin-top:8px; }
+    .wrs-toggle { display:inline-flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border);
+        border-radius:14px; padding:4px 12px; font-size:12px; cursor:pointer; color:var(--text); }
+    .wrs-toggle:hover { border-color:var(--accent); }
+    .wrs-read { color:var(--accent); font-weight:700; }
+    .wrs-sep { color:var(--text-muted); }
+    .wrs-unread { color:var(--text-muted); font-weight:600; }
+    .wrs-unread.has { color:var(--red, #dc2626); }
+    .wrs-panel { display:none; margin-top:8px; border:1px solid var(--border); border-radius:10px; background:var(--surface);
+        padding:10px 12px; gap:18px; max-width:520px; }
+    .wrs-panel.open { display:flex; }
+    .wrs-col { flex:1; min-width:0; }
+    .wrs-col-head { font-size:11.5px; font-weight:700; color:var(--accent); padding-bottom:5px; border-bottom:1px solid var(--border); margin-bottom:5px; }
+    .wrs-col-head.unread { color:var(--red, #dc2626); }
+    .wrs-row { display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:2px 0; }
+    .wrs-at { color:var(--text-muted); font-size:11px; white-space:nowrap; }
+    .wrs-empty { font-size:12px; color:var(--text-muted); padding:4px 0; }
     .wiki-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:12px; }
     .wiki-back { color:var(--text-muted); text-decoration:none; font-size:13px; }
     .wiki-back:hover { color:var(--text); }
@@ -218,6 +236,35 @@
                     <span>수정: {{ $wiki->updater?->display_name ?? '' }} · {{ $wiki->updated_at->format('Y.m.d H:i') }}</span>
                 @endif
             </div>
+            @if(!empty($readStatus))
+            {{-- 읽음 확인 — 클릭하면 읽은 사람/안 읽은 사람 명단 (활성 직원 기준) --}}
+            <div class="wiki-read-status">
+                <button type="button" class="wrs-toggle" onclick="document.getElementById('wrsPanel').classList.toggle('open')"
+                        title="클릭하면 누가 읽었는지/안 읽었는지 명단이 보입니다">
+                    <span class="wrs-read">읽음 {{ count($readStatus['readers']) }}명</span>
+                    <span class="wrs-sep">·</span>
+                    <span class="wrs-unread {{ count($readStatus['unreaders']) ? 'has' : '' }}">안읽음 {{ count($readStatus['unreaders']) }}명</span>
+                </button>
+                <div class="wrs-panel" id="wrsPanel">
+                    <div class="wrs-col">
+                        <div class="wrs-col-head">읽음 {{ count($readStatus['readers']) }}명</div>
+                        @forelse($readStatus['readers'] as $r)
+                            <div class="wrs-row"><span>{{ $r['name'] }}</span><span class="wrs-at">{{ $r['read_at'] }}</span></div>
+                        @empty
+                            <div class="wrs-empty">아직 읽은 사람이 없습니다</div>
+                        @endforelse
+                    </div>
+                    <div class="wrs-col">
+                        <div class="wrs-col-head unread">안읽음 {{ count($readStatus['unreaders']) }}명</div>
+                        @forelse($readStatus['unreaders'] as $r)
+                            <div class="wrs-row"><span>{{ $r['name'] }}</span></div>
+                        @empty
+                            <div class="wrs-empty">전원이 읽었습니다</div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
         @php
             $canEditWiki = $wiki->canEdit(auth()->user());
