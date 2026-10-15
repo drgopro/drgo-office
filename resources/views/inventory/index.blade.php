@@ -1209,7 +1209,7 @@ async function loadProducts() {
     const prodRowHtml = (p, child) => `<tr data-pid="${p.id}" ${child ? `data-gchild="${p.group_id}" style="${(E || expandedGroups.has(p.group_id)) ? '' : 'display:none;'} background:var(--surface2);"` : ''}>
         <td><input type="checkbox" class="prod-row-check" data-id="${p.id}" ${prodSelection.has(p.id)?'checked':''} onchange="toggleProductSelection(${p.id}, this.checked)"></td>
         <td class="text-muted sku-cell">${_esc(p.sku)}</td>
-        <td class="text-wrap">${child ? '<span class="grp-toggle"></span>'+optionChipHtml(p) : ''}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}</td>
+        <td class="text-wrap">${child ? '<span class="grp-toggle"></span>'+optionChipHtml(p) : ''}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}${!E && p.memo ? `<div class="text-muted" style="font-size:11px; margin-top:2px; white-space:pre-line;" title="제품 메모 — 견적 빌더 상품 리스트에도 표시됩니다">${_esc(p.memo)}</div>` : ''}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${E ? peInput(p,'purchase_price',p.purchase_price??0) : fmt(p.purchase_price)}</td>
         <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : fmt(p.sale_price)}</td>
@@ -1260,6 +1260,7 @@ async function loadProducts() {
             <div>
                 <div class="mob-card-title">${child ? optionChipHtml(p) : ''}${bundleBadgeHtml(p)}${_esc(p.name)}</div>
                 <div class="mob-card-sub">${_esc(p.sku)}${p.category ? ' · '+_esc(p.category) : ''}${p.safety_stock ? ' · 안전재고 '+p.safety_stock : ''}${p.show_in_estimate ? ' · <span class="badge badge-ok">노출</span>' : ''}</div>
+                ${p.memo ? `<div class="mob-card-sub" style="white-space:pre-line;">${_esc(p.memo)}</div>` : ''}
             </div>
         </div>
         <div class="mob-card-line">매입 ${fmt(p.purchase_price)} → 판매 ${fmt(p.sale_price)} · ${marginCellHtml(p)}</div>
