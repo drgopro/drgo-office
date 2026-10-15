@@ -25,6 +25,8 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LinkPreviewController;
 use App\Http\Controllers\MarketingReportController;
+use App\Http\Controllers\NoticeCategoryController;
+use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfficeOrderController;
 use App\Http\Controllers\ProfileController;
@@ -527,6 +529,30 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/wiki-categories/reorder', [WikiCategoryController::class, 'reorder']);
         Route::patch('/api/wiki-categories/{category}', [WikiCategoryController::class, 'update']);
         Route::delete('/api/wiki-categories/{category}', [WikiCategoryController::class, 'destroy']);
+    });
+
+    // 공지사항 — 위키에서 분리한 독립 게시판 (조회는 전 직원, 작성/수정/삭제는 컨트롤러에서 관리자 확인)
+    Route::get('/notices', [NoticeController::class, 'index'])->name('notices.index');
+    Route::get('/notices/create', [NoticeController::class, 'create'])->name('notices.create');
+    Route::get('/notices/{notice}', [NoticeController::class, 'show'])->name('notices.show');
+    Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
+    Route::patch('/notices/{notice}', [NoticeController::class, 'update'])->name('notices.update');
+    Route::delete('/notices/{notice}', [NoticeController::class, 'destroy'])->name('notices.destroy');
+    Route::post('/api/notices/reorder', [NoticeController::class, 'reorder'])->name('notices.reorder');
+    Route::get('/api/notices/order', [NoticeController::class, 'orderState']);
+    Route::get('/api/notices/drafts', [NoticeController::class, 'drafts'])->name('notices.drafts');
+    Route::get('/api/notices/drafts/{notice}', [NoticeController::class, 'draftShow']);
+    Route::post('/api/notices/upload', [NoticeController::class, 'uploadFile'])->name('notices.upload');
+    Route::post('/api/notices/bulk-category', [NoticeController::class, 'bulkCategory'])->name('notices.bulk-category');
+    Route::get('/notice-files/{attachment}', [NoticeController::class, 'serveFile'])->name('notices.file');
+    Route::get('/notice-files/{attachment}/thumb', [NoticeController::class, 'thumbFile'])->name('notices.file.thumb');
+    // 공지 카테고리 (계층) — 조회는 전 직원, 편집은 master/admin
+    Route::get('/api/notice-categories', [NoticeCategoryController::class, 'index']);
+    Route::middleware('role:master,admin')->group(function () {
+        Route::post('/api/notice-categories', [NoticeCategoryController::class, 'store']);
+        Route::post('/api/notice-categories/reorder', [NoticeCategoryController::class, 'reorder']);
+        Route::patch('/api/notice-categories/{category}', [NoticeCategoryController::class, 'update']);
+        Route::delete('/api/notice-categories/{category}', [NoticeCategoryController::class, 'destroy']);
     });
 
     // 입금 내역 (팀 관리에서 deposits.view 권한 부여, admin 이상 항상 허용)

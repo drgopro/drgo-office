@@ -1,0 +1,936 @@
+@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
+
+@section('title', $notice->title . ' - 위키')
+
+@push('styles')
+<style>
+    .wiki-wrap { padding:24px; max-width:900px; margin:0 auto; }
+    /* 읽음 확인 — 게시물 상단 '읽음 n명 · 안읽음 n명' + 클릭 시 명단 */
+    .wiki-read-status { margin-top:8px; }
+    .wrs-toggle { display:inline-flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border);
+        border-radius:14px; padding:4px 12px; font-size:12px; cursor:pointer; color:var(--text); }
+    .wrs-toggle:hover { border-color:var(--accent); }
+    .wrs-read { color:var(--accent); font-weight:700; }
+    .wrs-sep { color:var(--text-muted); }
+    .wrs-unread { color:var(--text-muted); font-weight:600; }
+    .wrs-unread.has { color:var(--red, #dc2626); }
+    .wrs-panel { display:none; margin-top:8px; border:1px solid var(--border); border-radius:10px; background:var(--surface);
+        padding:10px 12px; gap:18px; max-width:520px; }
+    .wrs-panel.open { display:flex; }
+    .wrs-col { flex:1; min-width:0; }
+    .wrs-col-head { font-size:11.5px; font-weight:700; color:var(--accent); padding-bottom:5px; border-bottom:1px solid var(--border); margin-bottom:5px; }
+    .wrs-col-head.unread { color:var(--red, #dc2626); }
+    .wrs-row { display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:2px 0; }
+    .wrs-at { color:var(--text-muted); font-size:11px; white-space:nowrap; }
+    .wrs-empty { font-size:12px; color:var(--text-muted); padding:4px 0; }
+    .wiki-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:12px; }
+    .wiki-back { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .wiki-back:hover { color:var(--text); }
+    .wiki-title-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+    .wiki-title-text { font-size:22px; font-weight:700; }
+    .wiki-cat { font-size:10px; padding:3px 10px; border-radius:12px; background:var(--surface2); color:var(--accent); font-weight:600; border:1px solid var(--border); }
+    .wiki-cat-path { font-size:12px; color:var(--text-muted); margin-bottom:6px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+    .wiki-cat-path .wcp-seg { color:var(--accent); font-weight:600; }
+    .wiki-cat-path .wcp-sep { color:var(--text-muted); opacity:0.6; }
+    .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .wiki-actions { display:flex; gap:6px; flex-shrink:0; }
+    .wiki-actions button, .wiki-actions a { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+    .wiki-actions button:hover, .wiki-actions a:hover { border-color:var(--accent); color:var(--accent); }
+    .wiki-actions .btn-del { border-color:var(--red); color:var(--red); }
+    .wiki-actions .btn-del:hover { background:rgba(200,50,50,0.1); }
+
+    /* 댓글 — 회의록 전용 */
+    .wiki-comments { margin-top:24px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; }
+    .wiki-comments-title { font-size:14px; font-weight:700; margin-bottom:14px; }
+    .wiki-comments-title span { color:var(--accent); }
+    .wiki-reply { margin-left:24px; padding-left:12px; border-left:2px solid var(--border); }
+    .wiki-reply-form { margin-left:24px; }
+    .wiki-mention { color:var(--accent); font-weight:700; }
+    .wiki-comment { padding:12px 0; border-top:1px solid var(--border); }
+    .wiki-comment-meta { display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted); margin-bottom:6px; }
+    .wiki-comment-author { font-weight:600; color:var(--text); font-size:12px; }
+    .wiki-comment-del { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; border-radius:4px; }
+    .wiki-comment-del:hover { color:var(--red); background:var(--surface2); }
+    .wiki-comment-actions { display:flex; gap:2px; margin-left:auto; }
+    .wiki-comment-edit-form { margin-top:8px; }
+    .wiki-comment-edit-btns { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+    .wiki-comment-edit-btns .cancel { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); padding:8px 16px; border-radius:8px; font-size:12px; cursor:pointer; }
+    .wiki-comment-body { font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+    .wiki-comment-empty { padding:14px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:12px; text-align:center; }
+    .wiki-comment-atts { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center; }
+    .wiki-catt-img { width:84px; height:84px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:zoom-in; }
+    .wiki-catt-file { font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--border); padding:5px 10px; border-radius:8px; }
+    .wiki-catt-file:hover { border-color:var(--accent); }
+    .wiki-catt-file span { color:var(--text-muted); font-size:11px; }
+    .wiki-comment-form-side { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+    .wiki-catt-add { display:flex; align-items:center; justify-content:center; gap:4px; border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+    .wiki-catt-add:hover { border-color:var(--accent); color:var(--accent); }
+    .wiki-catt-add .cnt { color:var(--accent); font-weight:700; }
+    .wiki-comment-form { display:flex; gap:8px; margin-top:14px; align-items:flex-end; }
+    .wiki-comment-form textarea { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:13px; outline:none; resize:vertical; min-height:64px; line-height:1.6; font-family:inherit; }
+    .wiki-comment-form textarea:focus { border-color:var(--accent); }
+    .wiki-comment-form button { background:var(--accent); color:var(--accent-text); border:none; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0; }
+
+    /* 보기 모드 콘텐츠 */
+    .wiki-content { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px 32px; line-height:1.85; font-size:14px; }
+    .wiki-content h1 { font-size:24px; font-weight:700; margin:24px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--border); }
+    .wiki-content h2 { font-size:20px; font-weight:700; margin:20px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+    .wiki-content h3 { font-size:16px; font-weight:600; margin:16px 0 8px; }
+    .wiki-content p { margin:0 0 12px; }
+    /* 에디터의 빈 줄(<p></p>)이 조회 화면에서 높이 0으로 사라지지 않도록 보존 */
+    .wiki-content p:empty::after { content:'\00a0'; }
+    .wiki-content ul, .wiki-content ol { margin:0 0 12px; padding-left:24px; }
+    .wiki-content li { margin:4px 0; }
+    .wiki-content code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-size:13px; font-family:monospace; }
+    .wiki-content pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; overflow-x:auto; margin:12px 0; font-size:13px; line-height:1.5; }
+    .wiki-content pre code { background:none; padding:0; }
+    .wiki-content blockquote { border-left:3px solid var(--accent); margin:12px 0; padding:8px 16px; color:var(--text-muted); background:var(--surface2); border-radius:0 8px 8px 0; }
+    .wiki-content table { width:100%; border-collapse:collapse; margin:12px 0; }
+    .wiki-content th, .wiki-content td { border:1px solid var(--border); padding:8px 12px; text-align:left; font-size:13px; }
+    .wiki-content th { background:var(--surface2); font-weight:600; }
+    .wiki-content img { max-width:100%; border-radius:8px; margin:8px 0; height:auto; cursor:zoom-in; transition:opacity 0.15s; }
+    .wiki-content img:hover { opacity:0.85; }
+    .wiki-content a { color:var(--accent); text-decoration:underline; }
+    .wiki-content hr { border:none; border-top:1px solid var(--border); margin:20px 0; }
+
+    /* 모바일 — 헤더 세로 배치 + 여백 축소로 본문 폭 확보 */
+    @media (max-width: 640px) {
+        .wiki-wrap { padding:14px 12px; }
+        .wiki-header { flex-direction:column; gap:10px; margin-bottom:14px; }
+        .wiki-title-text { font-size:18px; }
+        .wiki-actions { width:100%; }
+        .wiki-actions button, .wiki-actions a { flex:1; justify-content:center; padding:7px 6px; font-size:11.5px; }
+        .wiki-content { padding:16px 14px; font-size:13.5px; }
+        .wiki-content h1 { font-size:20px; }
+        .wiki-content h2 { font-size:17px; }
+        .wiki-content pre { padding:10px 12px; }
+        .wiki-comments { padding:14px; }
+        .wiki-comment-form { flex-direction:column; align-items:stretch; }
+        .wiki-comment-form button { width:100%; }
+    }
+
+    /* 수정 모드 */
+    .edit-form { display:none; }
+    .edit-form.active { display:block; }
+    .view-mode.hidden { display:none; }
+    .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+    .field-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
+    .field-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; }
+    .field-input:focus { border-color:var(--accent); }
+
+    /* Tiptap 에디터 */
+    .tiptap-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+    .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
+    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
+    .tiptap-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+    [data-theme="light"] .tiptap-toolbar button.is-active { color:#fff; }
+    .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
+    .tiptap-toolbar .file-label { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; cursor:pointer; color:var(--text-muted); font-size:13px; transition:all 0.12s; }
+    .tiptap-toolbar .file-label:hover { background:var(--surface); color:var(--text); }
+    .ProseMirror { padding:20px 24px; min-height:400px; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
+    .ProseMirror p { margin:0 0 10px; }
+    .ProseMirror h1 { font-size:24px; font-weight:700; margin:20px 0 10px; }
+    .ProseMirror h2 { font-size:20px; font-weight:700; margin:16px 0 8px; }
+    .ProseMirror h3 { font-size:16px; font-weight:600; margin:14px 0 6px; }
+    .ProseMirror ul, .ProseMirror ol { margin:0 0 10px; padding-left:24px; }
+    .ProseMirror li { margin:3px 0; }
+    .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:13px; }
+    .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
+    .ProseMirror pre code { background:none; padding:0; }
+    .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
+    .ProseMirror img { max-width:100%; border-radius:8px; margin:6px 0; display:block; }
+    .ProseMirror hr { border:none; border-top:1px solid var(--border); margin:16px 0; }
+    .ProseMirror table { width:100%; border-collapse:collapse; margin:10px 0; }
+    .ProseMirror th, .ProseMirror td { border:1px solid var(--border); padding:6px 10px; min-width:60px; }
+    .ProseMirror th { background:var(--surface2); font-weight:600; }
+    .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
+    .ProseMirror img { cursor:pointer; transition:outline 0.15s; border-radius:6px; }
+
+    /* 슬래시 메뉴 */
+    .slash-menu { position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:200px; box-shadow:0 4px 20px rgba(0,0,0,0.2); display:none; }
+    /* 선택 영역 색상 팝업 */
+    .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
+    .fmt-bubble.show { display:flex; }
+    .fmt-bubble .fb-label { font-size:10px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
+    .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+    .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
+    .fmt-bubble .fb-h { width:22px; height:22px; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+    .fmt-bubble .fb-reset { background:var(--surface2); color:var(--text-muted); font-weight:600; font-size:11px; }
+    .ProseMirror mark { border-radius:3px; padding:0 2px; }
+    .slash-menu.visible { display:block; }
+    .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); transition:background 0.1s; }
+    .slash-item:hover, .slash-item.selected { background:var(--surface2); }
+    .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+    .slash-label { font-weight:500; }
+    .slash-desc { font-size:11px; color:var(--text-muted); }
+
+    /* 이미지 뷰어 모달 */
+    .img-viewer { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; }
+    .img-viewer.open { display:flex; }
+    .img-viewer-wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; overflow:visible; }
+    .img-viewer-wrap img { max-width:90vw; max-height:85vh; border-radius:8px; object-fit:contain; box-shadow:0 4px 32px rgba(0,0,0,0.5); transform-origin:center center; transition:transform 0.15s ease; user-select:none; -webkit-user-drag:none; }
+    .img-viewer-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; z-index:1; }
+    .imgv-nav { position:absolute; top:50%; transform:translateY(-50%); z-index:2; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.14); color:#fff; font-size:26px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+    .imgv-nav:hover { background:rgba(255,255,255,0.3); }
+    .imgv-nav.prev { left:18px; }
+    .imgv-nav.next { right:18px; }
+    .img-viewer-close:hover { background:rgba(255,255,255,0.3); }
+    .img-viewer-zoom { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:10px; z-index:1; }
+    .img-viewer-zoom button { background:rgba(255,255,255,0.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+    .img-viewer-zoom button:hover { background:rgba(255,255,255,0.3); }
+    .img-viewer-zoom span { color:#fff; font-size:12px; min-width:40px; text-align:center; }
+    .img-viewer-hint { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.4); font-size:11px; pointer-events:none; }
+</style>
+@endpush
+
+@section('content')
+@php
+    // ← 위키 목록 — 진입 시점의 목록 상태(back 파라미터: 목록에서 클릭 시 전달)를 우선 복원.
+    // back 없이 직접 열린 경우(대시보드 위젯·알림 링크 등)만 문서 자신의 분류로 폴백.
+    // 빈 back(전체 문서 뷰)은 ConvertEmptyStringsToNull로 null이 되므로 키 존재 여부로 판정
+    $wikiBackRaw = request()->has('back') ? (string) request()->query('back') : null;
+    if ($wikiBackRaw !== null) {
+        parse_str((string) $wikiBackRaw, $wikiBackParsed);
+        $wikiListParams = array_intersect_key(
+            array_filter($wikiBackParsed, 'is_scalar'),
+            array_flip(['cat', 'search', 'date_field', 'date_from', 'date_to', 'author'])
+        );
+    } else {
+        $wikiListParams = ['cat' => $notice->category_id ?: 'uncat'];
+    }
+@endphp
+<div class="wiki-wrap">
+    <div class="wiki-header">
+        <div style="flex:1;min-width:0;">
+            <a href="{{ route('notices.index', $wikiListParams) }}" class="wiki-back">← 공지사항 목록</a>
+            <div class="wiki-title-row" id="viewTitle">
+                @if($notice->is_pinned)<span style="font-size:10px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 고정</span>@endif
+                <span class="wiki-title-text">{{ $notice->title }}</span>
+            </div>
+            @php
+                $catPath = [];
+                if ($notice->category_id) {
+                    $byId = $tree->keyBy('id');
+                    $node = $byId->get($notice->category_id);
+                    while ($node) {
+                        array_unshift($catPath, $node->name);
+                        $node = $node->parent_id ? $byId->get($node->parent_id) : null;
+                    }
+                }
+            @endphp
+            <div class="wiki-cat-path">
+                @if(!empty($catPath))
+                    🗂 @foreach($catPath as $i => $seg)<span class="wcp-seg">{{ $seg }}</span>@if($i < count($catPath) - 1)<span class="wcp-sep">›</span>@endif @endforeach
+                @else
+                    <span style="color:var(--text-muted);">🗂 {{ $notice->category ?: '미분류' }}</span>
+                @endif
+            </div>
+            <div class="wiki-meta">
+                @if(!empty($notice->allowed_team_ids))
+                    <span title="열람 제한 문서">🔒 {{ $teams->whereIn('id', array_map('intval', $notice->allowed_team_ids))->pluck('name')->join(', ') }} 열람</span>
+                @endif
+                <span>작성: {{ $notice->creator?->display_name ?? '알 수 없음' }} · {{ $notice->created_at->format('Y.m.d H:i') }}</span>
+                @if($notice->updated_by && $notice->updated_at->gt($notice->created_at->addMinutes(1)))
+                    <span>수정: {{ $notice->updater?->display_name ?? '' }} · {{ $notice->updated_at->format('Y.m.d H:i') }}</span>
+                @endif
+            </div>
+            @if(!empty($readStatus))
+            {{-- 읽음 확인 — 클릭하면 읽은 사람/안 읽은 사람 명단 (활성 직원 기준) --}}
+            <div class="wiki-read-status">
+                <button type="button" class="wrs-toggle" onclick="document.getElementById('wrsPanel').classList.toggle('open')"
+                        title="클릭하면 누가 읽었는지/안 읽었는지 명단이 보입니다">
+                    <span class="wrs-read">읽음 {{ count($readStatus['readers']) }}명</span>
+                    <span class="wrs-sep">·</span>
+                    <span class="wrs-unread {{ count($readStatus['unreaders']) ? 'has' : '' }}">안읽음 {{ count($readStatus['unreaders']) }}명</span>
+                </button>
+                <div class="wrs-panel" id="wrsPanel">
+                    <div class="wrs-col">
+                        <div class="wrs-col-head">읽음 {{ count($readStatus['readers']) }}명</div>
+                        @forelse($readStatus['readers'] as $r)
+                            <div class="wrs-row"><span>{{ $r['name'] }}</span><span class="wrs-at">{{ $r['read_at'] }}</span></div>
+                        @empty
+                            <div class="wrs-empty">아직 읽은 사람이 없습니다</div>
+                        @endforelse
+                    </div>
+                    <div class="wrs-col">
+                        <div class="wrs-col-head unread">안읽음 {{ count($readStatus['unreaders']) }}명</div>
+                        @forelse($readStatus['unreaders'] as $r)
+                            <div class="wrs-row"><span>{{ $r['name'] }}</span></div>
+                        @empty
+                            <div class="wrs-empty">전원이 읽었습니다</div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+        @php
+            $canEditWiki = $notice->canEdit(auth()->user());
+        @endphp
+        <div class="wiki-actions" id="viewActions">
+            <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
+            <button onclick="openActivityLog('Notice',{{ $notice->id }},'{{ addslashes($notice->title) }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
+            @if($canEditWiki)
+            <button onclick="toggleEdit()">수정</button>
+            <form method="POST" action="{{ route('notices.destroy', $notice) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
+                @csrf @method('DELETE')
+                @if($wikiBackRaw !== null)<input type="hidden" name="back" value="{{ $wikiBackRaw }}">@endif
+                <button type="submit" class="btn-del">삭제</button>
+            </form>
+            @endif
+        </div>
+    </div>
+
+    <!-- 보기 모드 -->
+    @if(str_starts_with(trim($notice->content ?? ''), '<'))
+        <div class="wiki-content view-mode" id="viewContent">{!! $notice->content !!}</div>
+    @else
+        <div class="wiki-content view-mode" id="viewContent">{!! Str::markdown($notice->content ?? '', ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}</div>
+    @endif
+
+    <!-- 수정 모드 — 수정 권한이 있는 사용자에게만 렌더 -->
+    @if($canEditWiki)
+    <div class="edit-form" id="editForm">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:700;">공지 수정</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                <button onclick="saveWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:14px;">
+            <div class="field-group" style="flex:1;margin:0;">
+                <div class="field-label">제목</div>
+                <input class="field-input" id="editTitle" value="{{ $notice->title }}" required>
+            </div>
+            <div class="field-group" id="editCatWrap" style="width:220px;margin:0;">
+                <div class="field-label">카테고리</div>
+                @php
+                    $catFlat = [];
+                    $walkCat = function ($parentId, $depth) use (&$walkCat, $tree, &$catFlat) {
+                        foreach ($tree->where('parent_id', $parentId) as $c) {
+                            $catFlat[] = ['id' => $c->id, 'name' => str_repeat('— ', $depth - 1).$c->name];
+                            $walkCat($c->id, $depth + 1);
+                        }
+                    };
+                    $walkCat(null, 1);
+                @endphp
+                <select class="field-input" id="editCategoryId">
+                    <option value="">(미분류)</option>
+                    @foreach($catFlat as $cf)<option value="{{ $cf['id'] }}" {{ (int) $notice->category_id === $cf['id'] ? 'selected' : '' }}>{{ $cf['name'] }}</option>@endforeach
+                </select>
+            </div>
+            <div class="field-group" style="width:auto;margin:0;">
+                <div class="field-label">고정</div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0;">
+                    <input type="checkbox" id="editPinned" {{ $notice->is_pinned ? 'checked' : '' }} onchange="document.getElementById('editPinnedUntilWrap').style.display=this.checked?'':'none'">
+                    <span style="font-size:12px;">📌</span>
+                </label>
+            </div>
+            <div class="field-group" id="editPinnedUntilWrap" style="width:160px;margin:0;{{ $notice->is_pinned ? '' : 'display:none;' }}">
+                <div class="field-label">고정 기한 <span style="font-weight:400;text-transform:none;letter-spacing:0;">(비우면 무기한)</span></div>
+                <input class="field-input" type="date" id="editPinnedUntil" value="{{ $notice->pinned_until?->format('Y-m-d') }}" title="이 날짜까지 상단 고정 — 지나면 일반 글처럼 정렬됩니다">
+            </div>
+        </div>
+
+        {{-- 열람 권한 — 팀을 선택하면 그 팀(+작성자·관리자)만 볼 수 있음. 비우면 전체 공개 --}}
+        <div class="field-group" style="margin-bottom:14px;">
+            <div class="field-label">열람 권한 <span style="font-weight:400;color:var(--text-muted);">선택한 팀만 열람 (아무것도 선택하지 않으면 전체 공개)</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;">
+                @foreach($teams as $t)
+                    <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;border:1px solid var(--border);border-radius:999px;padding:6px 13px;">
+                        <input type="checkbox" class="edit-allowed-team" value="{{ $t->id }}" @checked(in_array($t->id, array_map('intval', $notice->allowed_team_ids ?? [])))>
+                        {{ $t->name }}
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="tiptap-wrap">
+            <div class="tiptap-toolbar" id="toolbar">
+                <button onclick="editor.chain().focus().toggleHeading({level:1}).run()" title="제목 1">H1</button>
+                <button onclick="editor.chain().focus().toggleHeading({level:2}).run()" title="제목 2">H2</button>
+                <button onclick="editor.chain().focus().toggleHeading({level:3}).run()" title="제목 3">H3</button>
+                <div class="sep"></div>
+                <button onclick="editor.chain().focus().toggleBold().run()" title="굵게"><b>B</b></button>
+                <button onclick="editor.chain().focus().toggleItalic().run()" title="기울임"><i>I</i></button>
+                <button onclick="editor.chain().focus().toggleStrike().run()" title="취소선"><s>S</s></button>
+                <button onclick="editor.chain().focus().toggleCode().run()" title="인라인 코드">&lt;&gt;</button>
+                <div class="sep"></div>
+                <button onclick="editor.chain().focus().toggleBulletList().run()" title="글머리 목록">•</button>
+                <button onclick="editor.chain().focus().toggleOrderedList().run()" title="번호 목록">1.</button>
+                <button onclick="editor.chain().focus().toggleBlockquote().run()" title="인용">"</button>
+                <button onclick="editor.chain().focus().toggleCodeBlock().run()" title="코드 블록">{ }</button>
+                <button onclick="editor.chain().focus().setHorizontalRule().run()" title="구분선">—</button>
+                <div class="sep"></div>
+                <button onclick="editor.chain().focus().setTextAlign('left').run()" title="좌측 정렬" style="font-size:11px;">≡←</button>
+                <button onclick="editor.chain().focus().setTextAlign('center').run()" title="중앙 정렬" style="font-size:11px;">≡</button>
+                <button onclick="editor.chain().focus().setTextAlign('right').run()" title="우측 정렬" style="font-size:11px;">→≡</button>
+                <div class="sep"></div>
+                <label class="file-label" title="이미지/파일 첨부">
+                    📎
+                    <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
+                </label>
+            </div>
+            <div id="editor"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+            <button onclick="toggleEdit()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
+            <button onclick="saveWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+        </div>
+    </div>
+    @endif
+
+
+</div>
+
+<div class="slash-menu" id="slashMenu"></div>
+
+{{-- 선택 영역 색상 팝업 (노션식) --}}
+<div class="fmt-bubble" id="fmtBubble">
+    <span class="fb-label">글자</span>
+    <button type="button" class="fb-c" data-color="#e03131" style="color:#e03131">A</button>
+    <button type="button" class="fb-c" data-color="#f08c00" style="color:#f08c00">A</button>
+    <button type="button" class="fb-c" data-color="#2f9e44" style="color:#2f9e44">A</button>
+    <button type="button" class="fb-c" data-color="#1971c2" style="color:#1971c2">A</button>
+    <button type="button" class="fb-c" data-color="#9c36b5" style="color:#9c36b5">A</button>
+    <button type="button" class="fb-c" data-color="#868e96" style="color:#868e96">A</button>
+    <button type="button" class="fb-c fb-reset" data-color="" title="글자색 해제">A⨯</button>
+    <span class="fb-sep"></span>
+    <span class="fb-label">배경</span>
+    <button type="button" class="fb-h" data-hl="#ffec99" style="background:#ffec99"></button>
+    <button type="button" class="fb-h" data-hl="#ffd8a8" style="background:#ffd8a8"></button>
+    <button type="button" class="fb-h" data-hl="#b2f2bb" style="background:#b2f2bb"></button>
+    <button type="button" class="fb-h" data-hl="#a5d8ff" style="background:#a5d8ff"></button>
+    <button type="button" class="fb-h" data-hl="#eebefa" style="background:#eebefa"></button>
+    <button type="button" class="fb-h" data-hl="#dee2e6" style="background:#dee2e6"></button>
+    <button type="button" class="fb-h fb-reset" data-hl="" title="배경색 해제">⨯</button>
+</div>
+
+<!-- 이미지 뷰어 모달 -->
+<div class="img-viewer" id="imgViewer">
+    <button class="img-viewer-close" onclick="closeImgViewer()"><x-icon name="close" :size="15"/></button>
+    <button class="imgv-nav prev" id="imgvPrev" onclick="imgViewerNav(-1)" title="이전 이미지">‹</button>
+    <button class="imgv-nav next" id="imgvNext" onclick="imgViewerNav(1)" title="다음 이미지">›</button>
+    <div class="img-viewer-wrap" id="imgViewerWrap">
+        <img id="imgViewerImg" src="" alt="">
+    </div>
+    <div class="img-viewer-zoom">
+        <button onclick="imgViewerZoom(-0.2)">−</button>
+        <span id="imgViewerLevel">100%</span>
+        <button onclick="imgViewerZoom(0.2)">+</button>
+        <button onclick="imgViewerZoomReset()" style="font-size:10px;width:auto;padding:0 8px;border-radius:12px;">맞춤</button>
+    </div>
+    <div class="img-viewer-hint">스크롤: 확대/축소 · 더블클릭: 원본 크기 · 드래그: 이동</div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+// 위키 문서 링크 복사 (내부 공유용)
+async function copyWikiLink(){
+    const url = location.origin + '/wiki/' + {{ $notice->id }};
+    const btn = document.getElementById('copyWikiLinkBtn');
+    const done = () => {
+        if(!btn) return;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓ 복사됨';
+        btn.style.borderColor = 'var(--green, #248a38)';
+        btn.style.color = 'var(--green, #248a38)';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.borderColor=''; btn.style.color=''; }, 1600);
+    };
+    try {
+        await navigator.clipboard.writeText(url);
+        done();
+    } catch(e) {
+        // 클립보드 API 실패 시 폴백
+        const ta = document.createElement('textarea');
+        ta.value = url; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch(e2) { prompt('아래 링크를 복사하세요', url); }
+        ta.remove();
+    }
+}
+</script>
+<script type="importmap">
+{
+    "imports": {
+        "@tiptap/core": "https://esm.sh/@tiptap/core@2.11.5",
+        "@tiptap/starter-kit": "https://esm.sh/@tiptap/starter-kit@2.11.5",
+        "@tiptap/extension-image": "https://esm.sh/@tiptap/extension-image@2.11.5",
+        "@tiptap/extension-link": "https://esm.sh/@tiptap/extension-link@2.11.5",
+        "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@2.11.5",
+        "@tiptap/extension-table": "https://esm.sh/@tiptap/extension-table@2.11.5",
+        "@tiptap/extension-table-row": "https://esm.sh/@tiptap/extension-table-row@2.11.5",
+        "@tiptap/extension-table-cell": "https://esm.sh/@tiptap/extension-table-cell@2.11.5",
+        "@tiptap/extension-table-header": "https://esm.sh/@tiptap/extension-table-header@2.11.5",
+        "@tiptap/extension-text-align": "https://esm.sh/@tiptap/extension-text-align@2.11.5",
+        "@tiptap/extension-text-style": "https://esm.sh/@tiptap/extension-text-style@2.11.5",
+        "@tiptap/extension-color": "https://esm.sh/@tiptap/extension-color@2.11.5",
+        "@tiptap/extension-highlight": "https://esm.sh/@tiptap/extension-highlight@2.11.5"
+    }
+}
+</script>
+<script type="module">
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+
+// Image 확장 커스텀 — width/height 속성 보존
+const ResizableImage = Image.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px','') || null, renderHTML: attrs => attrs.width ? { width: attrs.width, style: `width:${attrs.width}px;height:auto;` } : {} },
+            height: { default: null, renderHTML: () => ({}) },
+        };
+    },
+});
+
+const wikiContent = @json($notice->content);
+
+window.editor = new Editor({
+    element: document.getElementById('editor') || document.createElement('div'), // 수정 권한 없으면 편집 폼 미렌더 — 더미 엘리먼트로 초기화
+    extensions: [
+        StarterKit.configure({ heading: { levels: [1,2,3] } }),
+        ResizableImage.configure({ inline: false, allowBase64: true }),
+        Link.configure({ openOnClick: false }),
+        Placeholder.configure({ placeholder: '내용을 입력하세요... ("/" 입력으로 블록 추가)' }),
+        Table.configure({ resizable: true }),
+        TableRow,
+        TableCell,
+        TableHeader,
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        TextStyle,
+        Color,
+        Highlight.configure({ multicolor: true }),
+    ],
+    content: wikiContent,
+    editorProps: {
+        handleKeyDown(view, event) {
+            if (event.key === '/') {
+                setTimeout(() => showSlashMenu(view), 10);
+            }
+            return false;
+        },
+        handleDrop(view, event) {
+            const files = event.dataTransfer?.files;
+            if (files?.length) {
+                event.preventDefault();
+                uploadAndInsertToEditor(files[0]);
+                return true;
+            }
+            return false;
+        },
+        handlePaste(view, event) {
+            const items = event.clipboardData?.items;
+            if (!items) return false;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    event.preventDefault();
+                    uploadAndInsertToEditor(item.getAsFile());
+                    return true;
+                }
+            }
+            return false;
+        },
+    },
+    onUpdate({ editor: e }) {
+        updateToolbar(e);
+        markWikiDirty();
+    },
+    onSelectionUpdate({ editor: e }) {
+        updateToolbar(e);
+    },
+});
+
+// 툴바 active 상태
+function updateToolbar(e) {
+    document.querySelectorAll('.tiptap-toolbar button').forEach(btn => btn.classList.remove('is-active'));
+    const tb = document.getElementById('toolbar');
+    if (e.isActive('heading',{level:1})) tb.children[0].classList.add('is-active');
+    if (e.isActive('heading',{level:2})) tb.children[1].classList.add('is-active');
+    if (e.isActive('heading',{level:3})) tb.children[2].classList.add('is-active');
+    if (e.isActive('bold')) tb.children[4].classList.add('is-active');
+    if (e.isActive('italic')) tb.children[5].classList.add('is-active');
+    if (e.isActive('strike')) tb.children[6].classList.add('is-active');
+    if (e.isActive('code')) tb.children[7].classList.add('is-active');
+    if (e.isActive('bulletList')) tb.children[9].classList.add('is-active');
+    if (e.isActive('orderedList')) tb.children[10].classList.add('is-active');
+    if (e.isActive('blockquote')) tb.children[11].classList.add('is-active');
+    if (e.isActive('codeBlock')) tb.children[12].classList.add('is-active');
+}
+
+// ── 선택 영역 색상 팝업 (노션식) ──
+(function(){
+    const bubble = document.getElementById('fmtBubble');
+    if (!bubble) return;
+    function updateFmtBubble(){
+        if (!window.editor || !editor.isEditable) { bubble.classList.remove('show'); return; }
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount===0 || sel.isCollapsed || editor.state.selection.empty) { bubble.classList.remove('show'); return; }
+        const rect = sel.getRangeAt(0).getBoundingClientRect();
+        if (!rect || (rect.width===0 && rect.height===0)) { bubble.classList.remove('show'); return; }
+        bubble.classList.add('show');
+        const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+        let left = rect.left + rect.width/2 - bw/2;
+        left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+        let top = rect.top - bh - 8;
+        if (top < 8) top = rect.bottom + 8;
+        bubble.style.left = left + 'px'; bubble.style.top = top + 'px';
+    }
+    bubble.addEventListener('mousedown', e => e.preventDefault());
+    bubble.querySelectorAll('.fb-c').forEach(b => b.addEventListener('click', () => {
+        const c = b.dataset.color;
+        c ? editor.chain().focus().setColor(c).run() : editor.chain().focus().unsetColor().run();
+        updateFmtBubble();
+    }));
+    bubble.querySelectorAll('.fb-h').forEach(b => b.addEventListener('click', () => {
+        const c = b.dataset.hl;
+        c ? editor.chain().focus().setHighlight({ color: c }).run() : editor.chain().focus().unsetHighlight().run();
+        updateFmtBubble();
+    }));
+    editor.on('selectionUpdate', updateFmtBubble);
+    editor.on('blur', () => setTimeout(() => { if (!bubble.matches(':hover')) bubble.classList.remove('show'); }, 150));
+    window.addEventListener('scroll', () => { if (bubble.classList.contains('show')) updateFmtBubble(); }, true);
+})();
+
+// 슬래시 메뉴
+const SLASH_ITEMS = [
+    { icon:'📝', label:'텍스트', desc:'기본 텍스트', action:()=>editor.chain().focus().setParagraph().run() },
+    { icon:'H1', label:'제목 1', desc:'큰 제목', action:()=>editor.chain().focus().toggleHeading({level:1}).run() },
+    { icon:'H2', label:'제목 2', desc:'중간 제목', action:()=>editor.chain().focus().toggleHeading({level:2}).run() },
+    { icon:'H3', label:'제목 3', desc:'작은 제목', action:()=>editor.chain().focus().toggleHeading({level:3}).run() },
+    { icon:'•', label:'글머리 목록', desc:'순서 없는 목록', action:()=>editor.chain().focus().toggleBulletList().run() },
+    { icon:'1.', label:'번호 목록', desc:'순서 있는 목록', action:()=>editor.chain().focus().toggleOrderedList().run() },
+    { icon:'"', label:'인용', desc:'인용 블록', action:()=>editor.chain().focus().toggleBlockquote().run() },
+    { icon:'{ }', label:'코드 블록', desc:'코드 삽입', action:()=>editor.chain().focus().toggleCodeBlock().run() },
+    { icon:'—', label:'구분선', desc:'수평 구분선', action:()=>editor.chain().focus().setHorizontalRule().run() },
+    { icon:'🖼', label:'이미지', desc:'파일에서 업로드', action:()=>document.querySelector('.tiptap-toolbar input[type=file]').click() },
+    { icon:'📊', label:'표', desc:'3x3 표 삽입', action:()=>editor.chain().focus().insertTable({rows:3,cols:3,withHeaderRow:true}).run() },
+];
+
+let slashIdx = 0;
+function showSlashMenu(view) {
+    const menu = document.getElementById('slashMenu');
+    const { from } = view.state.selection;
+    const coords = view.coordsAtPos(from);
+    menu.style.top = (coords.bottom + 4) + 'px';
+    menu.style.left = coords.left + 'px';
+    slashIdx = 0;
+    renderSlashMenu('');
+    menu.classList.add('visible');
+
+    const handler = (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = Math.min(slashIdx+1, SLASH_ITEMS.length-1); renderSlashMenu(''); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = Math.max(slashIdx-1, 0); renderSlashMenu(''); }
+        else if (e.key === 'Enter') { e.preventDefault(); SLASH_ITEMS[slashIdx].action(); hideSlashMenu(); editor.commands.deleteRange({from:from-1,to:from}); }
+        else if (e.key === 'Escape') { hideSlashMenu(); }
+        else { setTimeout(()=>hideSlashMenu(), 100); }
+        if (!menu.classList.contains('visible')) document.removeEventListener('keydown', handler);
+    };
+    document.addEventListener('keydown', handler);
+    document.addEventListener('click', function once(){ hideSlashMenu(); document.removeEventListener('click', once); }, {once:true});
+}
+function renderSlashMenu(filter) {
+    const menu = document.getElementById('slashMenu');
+    menu.innerHTML = SLASH_ITEMS.map((item,i) =>
+        `<div class="slash-item ${i===slashIdx?'selected':''}" onmouseenter="slashIdx=${i}" onclick="SLASH_ITEMS[${i}].action();hideSlashMenu();">
+            <div class="slash-icon">${item.icon}</div>
+            <div><div class="slash-label">${item.label}</div><div class="slash-desc">${item.desc}</div></div>
+        </div>`
+    ).join('');
+}
+function hideSlashMenu() { document.getElementById('slashMenu').classList.remove('visible'); }
+window.SLASH_ITEMS = SLASH_ITEMS;
+window.slashIdx = slashIdx;
+window.hideSlashMenu = hideSlashMenu;
+
+// 파일 업로드
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
+window.uploadAndInsert = async function(file) {
+    if (!file) return;
+    uploadAndInsertToEditor(file);
+};
+async function uploadAndInsertToEditor(file) {
+    const fd = new FormData(); fd.append('file', file); fd.append('wiki_id', '{{ $notice->id }}');
+    try {
+        const res = await fetch('/api/notices/upload', {method:'POST',headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:fd});
+        if (!res.ok) { alert('업로드 실패'); return; }
+        const data = await res.json();
+        if (data.is_image) {
+            editor.chain().focus().setImage({src:data.url,alt:data.name}).run();
+        } else {
+            editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank">${data.name}</a>`).run();
+        }
+    } catch(e) { alert('업로드 오류'); }
+}
+
+// 저장 — HTML을 마크다운으로 변환하지 않고 HTML로 저장 (서버에서 처리)
+let WIKI_SAVING = false;
+let WIKI_DIRTY = false; // 마지막 저장 이후 변경 여부 — 자동저장 지점 표시 + 불필요한 저장 방지
+function setAutosaveStatus(msg){ const el=document.getElementById('autosaveStatus'); if(el) el.textContent=msg; }
+function markWikiDirty(){ WIKI_DIRTY = true; setAutosaveStatus('● 저장되지 않은 변경 — 1분 내 자동 저장'); }
+document.getElementById('editTitle')?.addEventListener('input', markWikiDirty);
+async function doSaveWiki(silent) {
+    const html = editor.getHTML();
+    const title = document.getElementById('editTitle').value.trim();
+    const categoryId = document.getElementById('editCategoryId').value || null;
+    const isPinned = document.getElementById('editPinned').checked;
+    if (!title) { if(!silent){alert('제목을 입력해주세요.');} return; }
+    if (!html || html==='<p></p>') { if(!silent){alert('내용을 입력해주세요.');} return; }
+    if (WIKI_SAVING) return;
+    WIKI_SAVING = true;
+    if (silent) setAutosaveStatus('저장 중…');
+    try {
+        const pinnedUntil = document.getElementById('editPinnedUntil').value || null;
+        const res = await fetch('{{ route("notices.update", $notice) }}', {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+            body:JSON.stringify({ title, category_id:categoryId, content:html, is_pinned:isPinned?1:0, pinned_until:isPinned?pinnedUntil:null,
+                allowed_team_ids:[...document.querySelectorAll('.edit-allowed-team:checked')].map(c=>parseInt(c.value,10)) }),
+        });
+        if (!res.ok) {
+            if(!silent){ try { const err=await res.json(); alert(err.errors?Object.values(err.errors).flat().join('\n'):(err.message||'저장 실패')); } catch(e) { alert('저장 실패'); } }
+            else setAutosaveStatus('자동 저장 실패');
+            return;
+        }
+        WIKI_DIRTY = false;
+        if (silent) {
+            const now=new Date(); setAutosaveStatus(`✓ ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} 자동 저장됨`);
+        } else {
+            location.reload();
+        }
+    } finally { WIKI_SAVING = false; }
+}
+window.saveWiki = function() { doSaveWiki(false); };
+// 1분마다 자동 저장 (수정 모드 + 변경이 있을 때만)
+setInterval(() => {
+    if (!document.getElementById('editForm').classList.contains('active')) return;
+    if (!WIKI_DIRTY) return;
+    const title = document.getElementById('editTitle').value.trim();
+    const html = editor?.getHTML?.() || '';
+    if (title && html && html !== '<p></p>') doSaveWiki(true);
+}, 60000);
+
+// 수정 모드 토글
+window.toggleEdit = function() {
+    const editMode = document.getElementById('editForm').classList.toggle('active');
+    if (editMode) { WIKI_DIRTY = false; setAutosaveStatus('자동 저장 켜짐 (1분마다)'); }
+    document.getElementById('viewContent').classList.toggle('hidden', editMode);
+    document.getElementById('viewActions').style.display = editMode ? 'none' : '';
+    document.getElementById('viewTitle').style.display = editMode ? 'none' : '';
+    if (editMode) editor.commands.focus();
+};
+
+// 이미지 리사이즈 — 네이버 에디터 스타일 (이미지 위에 크기 조절 바)
+(function(){
+    let popup = null, activeImg = null;
+
+    function removePopup() {
+        if (popup) { popup.remove(); popup = null; }
+        if (activeImg) { activeImg.style.outline = ''; activeImg = null; }
+    }
+
+    function showPopup(img) {
+        removePopup();
+        activeImg = img;
+        img.style.outline = '2px solid var(--accent)';
+        img.style.outlineOffset = '2px';
+
+        popup = document.createElement('div');
+        popup.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:12px;';
+        popup.innerHTML = `
+            <span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">크기:</span>
+            <button onclick="imgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">25%</button>
+            <button onclick="imgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">50%</button>
+            <button onclick="imgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">75%</button>
+            <button onclick="imgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">100%</button>
+            <span style="color:var(--text-muted);">|</span>
+            <input type="number" id="imgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
+            <span style="color:var(--text-muted);font-size:11px;">px</span>
+            <button onclick="imgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>
+        `;
+        document.body.appendChild(popup);
+
+        // 이미지 위 가운데에 위치
+        const rect = img.getBoundingClientRect();
+        popup.style.left = Math.max(8, rect.left + (rect.width - popup.offsetWidth) / 2) + 'px';
+        popup.style.top = Math.max(8, rect.top - popup.offsetHeight - 8) + 'px';
+        // 화면 밖이면 아래로
+        if (parseFloat(popup.style.top) < 8) {
+            popup.style.top = (rect.bottom + 8) + 'px';
+        }
+
+        // Enter키로 적용
+        popup.querySelector('#imgWidthInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); imgApplyWidth(); }
+        });
+
+        // 클릭 이벤트 전파 방지
+        popup.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+    }
+
+    function applyImgWidth(w) {
+        if (!activeImg) return;
+        w = Math.max(30, Math.min(2000, w));
+        activeImg.style.width = w + 'px';
+        activeImg.style.height = 'auto';
+        activeImg.setAttribute('width', w);
+        activeImg.removeAttribute('height');
+        if (popup) popup.querySelector('#imgWidthInput').value = w;
+        // Tiptap 내부 상태 업데이트
+        try {
+            const pos = editor.view.posAtDOM(activeImg, 0);
+            if (pos != null) {
+                const tr = editor.view.state.tr.setNodeMarkup(pos, undefined, { ...editor.view.state.doc.nodeAt(pos)?.attrs, width: String(w) });
+                editor.view.dispatch(tr);
+            }
+        } catch(e) {}
+    }
+
+    // 퍼센트 리사이즈 — 에디터 너비 기준
+    window.imgResize = function(ratio) {
+        if (!activeImg) return;
+        const editorEl = document.querySelector('.ProseMirror');
+        const maxW = editorEl ? editorEl.clientWidth - 48 : 800;
+        applyImgWidth(Math.round(maxW * ratio));
+    };
+
+    // px 직접 입력
+    window.imgApplyWidth = function() {
+        if (!activeImg || !popup) return;
+        applyImgWidth(parseInt(popup.querySelector('#imgWidthInput').value) || 200);
+    };
+
+    // ProseMirror 내 이미지 클릭 감지
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName === 'IMG' && e.target.closest('.ProseMirror')) {
+            e.preventDefault();
+            showPopup(e.target);
+        } else if (popup && !popup.contains(e.target)) {
+            removePopup();
+        }
+    });
+
+    // Escape로 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && popup) removePopup();
+    });
+})();
+
+// ── 위키 뷰 이미지 뷰어 (확대/축소/드래그) ──
+(function(){
+    let vZoom=1, vPanX=0, vPanY=0, vDragging=false, vStartX=0, vStartY=0;
+    const viewer=document.getElementById('imgViewer');
+    const vImg=document.getElementById('imgViewerImg');
+    const vWrap=document.getElementById('imgViewerWrap');
+
+    function vUpdate(){
+        vImg.style.transform=`translate(${vPanX}px,${vPanY}px) scale(${vZoom})`;
+        vImg.style.transition=vDragging?'none':'transform 0.15s ease';
+        document.getElementById('imgViewerLevel').textContent=Math.round(vZoom*100)+'%';
+    }
+    function vReset(){vZoom=1;vPanX=0;vPanY=0;vUpdate();}
+
+    let vList=[], vIdx=0;
+    function vUpdateNav(){
+        const multi=vList.length>1;
+        const pb=document.getElementById('imgvPrev'), nb=document.getElementById('imgvNext');
+        if(pb) pb.style.display=multi?'':'none';
+        if(nb) nb.style.display=multi?'':'none';
+    }
+    window.openImgViewer=function(src){
+        // 공용 drgoViewer로 위임 — 본문 이미지 전체를 앨범으로 (확대·핀치·스와이프·넘김)
+        const list=[...document.querySelectorAll('.wiki-content img')].map(im=>({src:im.src}));
+        drgoViewer.open(list, Math.max(0, list.findIndex(i=>i.src===src)));
+    };
+    window.imgViewerNav=function(dir){
+        if(vList.length<2) return;
+        vIdx=(vIdx+dir+vList.length)%vList.length;
+        vReset();
+        vImg.src=vList[vIdx];
+    };
+    document.addEventListener('keydown',function(e){
+        if(!viewer.classList.contains('open')) return;
+        if(e.key==='ArrowLeft') imgViewerNav(-1);
+        if(e.key==='ArrowRight') imgViewerNav(1);
+        if(e.key==='Escape') closeImgViewer();
+    });
+    window.closeImgViewer=function(){
+        viewer.classList.remove('open');
+        vImg.src='';
+    };
+    window.imgViewerZoom=function(d){
+        vZoom=Math.max(0.3,Math.min(8,vZoom+d));
+        if(vZoom<1.05){vPanX=0;vPanY=0;}
+        vUpdate();
+    };
+    window.imgViewerZoomReset=function(){vReset();};
+
+    // 휠 줌
+    viewer.addEventListener('wheel',function(e){
+        e.preventDefault();
+        const d=e.deltaY>0?-0.15:0.15;
+        vZoom=Math.max(0.3,Math.min(8,vZoom+d*vZoom));
+        if(vZoom<1.05){vPanX=0;vPanY=0;}
+        vUpdate();
+    },{passive:false});
+
+    // 더블클릭 줌 토글
+    vWrap.addEventListener('dblclick',function(e){
+        e.preventDefault();
+        if(vZoom>1.05){vReset();}else{vZoom=3;vPanX=0;vPanY=0;vUpdate();}
+    });
+
+    // 드래그 팬
+    vWrap.addEventListener('mousedown',function(e){
+        if(vZoom<=1.05)return;
+        e.preventDefault();vDragging=true;vStartX=e.clientX-vPanX;vStartY=e.clientY-vPanY;
+        vWrap.style.cursor='grabbing';
+    });
+    document.addEventListener('mousemove',function(e){
+        if(!vDragging)return;
+        vPanX=e.clientX-vStartX;vPanY=e.clientY-vStartY;vUpdate();
+    });
+    document.addEventListener('mouseup',function(){
+        if(!vDragging)return;vDragging=false;vWrap.style.cursor='';
+    });
+
+    // 배경 클릭으로 닫기
+    viewer.addEventListener('click',function(e){
+        if(e.target===viewer&&vZoom<=1.05)closeImgViewer();
+    });
+
+    // 키보드
+    document.addEventListener('keydown',function(e){
+        if(!viewer.classList.contains('open'))return;
+        if(e.key==='Escape')closeImgViewer();
+        if(e.key==='+'||e.key==='=')imgViewerZoom(0.3);
+        if(e.key==='-')imgViewerZoom(-0.3);
+        if(e.key==='0')imgViewerZoomReset();
+    });
+
+    // 위키 뷰 콘텐츠 내 이미지 클릭 감지
+    document.getElementById('viewContent')?.addEventListener('click',function(e){
+        if(e.target.tagName==='IMG'){
+            e.preventDefault();
+            openImgViewer(e.target.src);
+        }
+    });
+})();
+</script>
+@include('partials.tiptap-sticky-toolbar')
+@endpush
