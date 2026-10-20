@@ -152,6 +152,34 @@ class ProductPeriodDiscountTest extends TestCase
         $this->assertCount(0, $this->actingAs($this->admin)->getJson('/api/inventory/discount-logs?search=zzz')->json('data'));
     }
 
+    public function test_logs_filter_by_product_and_mark_expired_period(): void
+    {
+        $a = $this->makeProduct(['name' => '만료 상품']);
+        $b = $this->makeProduct(['name' => '다른 상품']);
+        $base = fn (Product $p) => ['name' => $p->name, 'category_id' => $this->cat->id, 'sale_price' => 1400000];
+
+        // 기간이 이미 지난 할인 설정 → 이력에 '기간 종료(expired)'로 표시
+        $this->actingAs($this->admin)->patchJson("/api/inventory/products/{$a->id}", [
+            ...$base($a), 'discount_amount' => 100000,
+            'discount_starts_at' => now()->subDays(3)->format('Y-m-d\TH:i'), 'discount_ends_at' => now()->subDay()->format('Y-m-d\TH:i'),
+        ])->assertOk();
+        $this->actingAs($this->admin)->patchJson("/api/inventory/products/{$b->id}", [
+            ...$base($b), 'discount_amount' => 50000, 'discount_ends_at' => now()->addWeek()->format('Y-m-d\TH:i'),
+        ])->assertOk();
+
+        // 제품별 필터 — a의 이력만
+        $logs = $this->actingAs($this->admin)->getJson("/api/inventory/discount-logs?product_id={$a->id}")
+            ->assertOk()->json('data');
+        $this->assertCount(1, $logs);
+        $this->assertTrue($logs[0]['expired']);
+
+        // 진행 중인 할인은 expired 아님 + 제품 목록에 이력 건수 포함
+        $logsB = $this->actingAs($this->admin)->getJson("/api/inventory/discount-logs?product_id={$b->id}")->json('data');
+        $this->assertFalse($logsB[0]['expired']);
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/products?per_page=50')->json('data');
+        $this->assertSame(1, collect($rows)->firstWhere('id', $a->id)['discount_logs_count']);
+    }
+
     public function test_discount_amount_is_capped_to_sale_price_on_save(): void
     {
         $product = $this->makeProduct();

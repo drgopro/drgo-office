@@ -459,20 +459,25 @@
                 <input class="field-input" id="pSale" type="number" min="0">
             </div>
         </div>
-        <div class="field-group" style="border:1px dashed var(--border); border-radius:8px; padding:10px 12px;">
-            <div class="field-label">기간 할인 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 할인액을 넣으면 할인가로 표시되고, 견적서에 담을 때 '할인'으로 자동 적용됩니다</span></div>
-            <input class="field-input" id="pDiscount" type="number" min="0" placeholder="할인액 (원) — 비우면 할인 없음" oninput="updateDiscountHint()">
-            <div class="field-row" style="margin-top:8px;">
-                <div class="field-group" style="margin:0;">
-                    <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 시작 (비우면 즉시)</div>
-                    <input class="field-input" id="pDiscountStart" type="datetime-local" onchange="updateDiscountHint()">
+        <div class="field-group" id="discountBox" style="border:1.5px dashed var(--border); border-radius:8px; padding:10px 12px; transition:border-color 0.15s, background 0.15s;">
+            <label style="display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; cursor:pointer;">
+                <input type="checkbox" id="pDiscountOn" onchange="toggleDiscountFields()" style="accent-color:var(--red, #c03838); width:15px; height:15px; cursor:pointer;">
+                기간 할인 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 할인가로 판매되고, 견적서에 담을 때 '할인'으로 자동 표시</span>
+            </label>
+            <div id="discountFields" style="display:none; margin-top:10px;">
+                <input class="field-input" id="pDiscount" type="number" min="0" placeholder="할인액 (원)" oninput="updateDiscountHint()">
+                <div class="field-row" style="margin-top:8px;">
+                    <div class="field-group" style="margin:0;">
+                        <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 시작 (비우면 즉시)</div>
+                        <input class="field-input" id="pDiscountStart" type="datetime-local" onchange="updateDiscountHint()">
+                    </div>
+                    <div class="field-group" style="margin:0;">
+                        <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 종료 (비우면 계속)</div>
+                        <input class="field-input" id="pDiscountEnd" type="datetime-local" onchange="updateDiscountHint()">
+                    </div>
                 </div>
-                <div class="field-group" style="margin:0;">
-                    <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 종료 (비우면 계속)</div>
-                    <input class="field-input" id="pDiscountEnd" type="datetime-local" onchange="updateDiscountHint()">
-                </div>
+                <div id="discountHint" style="font-size:12px; margin-top:7px;"></div>
             </div>
-            <div id="discountHint" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;"></div>
         </div>
         <div class="field-group" id="marketUrlGroup1">
             <div class="field-label">시세 URL — 컴퓨존</div>
@@ -527,6 +532,7 @@
             </label>
         </div>
         <input type="hidden" id="pEditId">
+        <div id="pDiscountLogLink" style="display:none; margin-top:4px;"></div>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('productModal')">취소</button>
             <button class="btn-save" onclick="saveProduct()">저장</button>
@@ -1167,9 +1173,13 @@ syncDiscountSeg();
 
 // ── 할인 이력 모달 ──
 let discLogPage = 1;
-function openDiscountLogs() {
+let discLogProductId = null;
+function openDiscountLogs(productId, productName) {
     discLogPage = 1;
+    discLogProductId = productId || null;
     document.getElementById('discLogSearch').value = '';
+    document.getElementById('discLogSearch').style.display = discLogProductId ? 'none' : '';
+    document.querySelector('#discountLogModal .modal-title').textContent = discLogProductId ? `할인 이력 — ${productName || ''}` : '할인 이력';
     openModal('discountLogModal');
     loadDiscountLogs();
 }
@@ -1177,6 +1187,7 @@ function goDiscLogPage(n) { discLogPage = n; loadDiscountLogs(); }
 async function loadDiscountLogs() {
     const tb = document.getElementById('discLogBody');
     const qs = new URLSearchParams({ page: discLogPage, per_page: 20 });
+    if (discLogProductId) qs.set('product_id', discLogProductId);
     const search = document.getElementById('discLogSearch').value.trim();
     if (search) qs.set('search', search);
     let payload;
@@ -1202,7 +1213,7 @@ async function loadDiscountLogs() {
         <td class="text-right">${fmt(l.sale_price)}</td>
         <td class="text-right">${l.action === 'set' ? fmt(l.discount_amount) : '-'}</td>
         <td class="text-right">${l.action === 'set' ? `<b style="color:var(--red, #c03838);">${fmt(l.discounted_price)}</b>` : '-'}</td>
-        <td class="text-muted" style="font-size:11.5px;">${l.action !== 'set' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}</td>
+        <td class="text-muted" style="font-size:11.5px;">${l.action !== 'set' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}${l.expired ? ' <span style="font-size:10.5px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0 5px;" title="할인 기간이 지나 자동 종료된 기간 할인 이력">기간 종료</span>' : ''}</td>
         <td class="text-muted">${_esc(l.user_name || '-')}</td>
     </tr>`).join('');
 }
@@ -1782,15 +1793,28 @@ function activeDiscount(p) {
     if (p.discount_ends_at && now > new Date(p.discount_ends_at).getTime()) return 0;
     return Math.min(amt, sale);
 }
+// 체크하면 할인 입력칸이 열리고 박스가 강조색으로, 해제하면 닫히고 저장 시 할인도 해제된다
+function toggleDiscountFields() {
+    const on = document.getElementById('pDiscountOn').checked;
+    document.getElementById('discountFields').style.display = on ? '' : 'none';
+    const box = document.getElementById('discountBox');
+    box.style.borderColor = on ? 'var(--red, #c03838)' : 'var(--border)';
+    box.style.borderStyle = on ? 'solid' : 'dashed';
+    box.style.background = on ? 'rgba(192,56,56,0.05)' : '';
+    if (on) updateDiscountHint();
+}
 function updateDiscountHint() {
     const el = document.getElementById('discountHint');
     const amt = parseInt(document.getElementById('pDiscount').value, 10) || 0;
     const sale = parseInt(document.getElementById('pSale').value, 10) || 0;
-    if (!amt) { el.textContent = ''; return; }
-    if (!sale) { el.textContent = '판매가를 먼저 입력해주세요.'; return; }
+    if (!amt) { el.innerHTML = '<span style="color:var(--text-muted);">할인액을 입력하세요.</span>'; return; }
+    if (!sale) { el.innerHTML = '<span style="color:var(--text-muted);">판매가를 먼저 입력해주세요.</span>'; return; }
     const final = Math.max(0, sale - Math.min(amt, sale));
     const rate = Math.round(Math.min(amt, sale) / sale * 100);
-    el.innerHTML = `할인가 <b style="color:var(--red);">${fmt(final)}원</b> (${fmt(Math.min(amt, sale))}원 할인 · 약 ${rate}%)`;
+    const end = document.getElementById('pDiscountEnd').value;
+    const expired = end && new Date(end).getTime() < Date.now();
+    el.innerHTML = `할인가 <b style="color:var(--red, #c03838); font-size:13.5px;">${fmt(final)}원</b> <span style="color:var(--text-muted);">(${fmt(Math.min(amt, sale))}원 할인 · 약 ${rate}%)</span>`
+        + (expired ? ' <span style="font-size:11px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 6px;">기간 종료 — 현재 미적용</span>' : '');
 }
 
 async function openProductModal(p) {
@@ -1804,7 +1828,18 @@ async function openProductModal(p) {
     document.getElementById('pDiscount').value = p && Number(p.discount_amount) ? p.discount_amount : '';
     document.getElementById('pDiscountStart').value = p ? toLocalDT(p.discount_starts_at) : '';
     document.getElementById('pDiscountEnd').value = p ? toLocalDT(p.discount_ends_at) : '';
-    updateDiscountHint();
+    document.getElementById('pDiscountOn').checked = !!(p && Number(p.discount_amount) > 0);
+    toggleDiscountFields();
+    // 최하단 — 이 제품의 할인 이력 N건 링크 (기존 제품만)
+    const logLink = document.getElementById('pDiscountLogLink');
+    if (p) {
+        const n = Number(p.discount_logs_count) || 0;
+        logLink.style.display = '';
+        logLink.innerHTML = `<a href="javascript:void(0)" onclick="openDiscountLogs(${p.id}, '${_esc(String(p.name).replace(/'/g, ''))}')" style="font-size:12px; color:var(--accent); text-decoration:underline;">할인 이력 ${n}건 보기</a>`;
+    } else {
+        logLink.style.display = 'none';
+        logLink.innerHTML = '';
+    }
     const mps = (p && p.market_prices) || [];
     document.getElementById('pMarketUrlCompuzone').value = mps.find(m=>m.vendor==='compuzone')?.url || '';
     document.getElementById('pMarketUrlPcfactory').value = mps.find(m=>m.vendor==='pcfactory')?.url || '';
@@ -1879,9 +1914,10 @@ async function saveProduct() {
         // 매입가는 비워두면 0으로 자동 저장
         purchase_price: parseInt(document.getElementById('pPurchase').value, 10) || 0,
         sale_price: document.getElementById('pSale').value || null,
-        discount_amount: parseInt(document.getElementById('pDiscount').value, 10) || 0,
-        discount_starts_at: document.getElementById('pDiscountStart').value || null,
-        discount_ends_at: document.getElementById('pDiscountEnd').value || null,
+        // 기간 할인 — 체크 해제 상태로 저장하면 할인이 해제된다
+        discount_amount: document.getElementById('pDiscountOn').checked ? (parseInt(document.getElementById('pDiscount').value, 10) || 0) : 0,
+        discount_starts_at: document.getElementById('pDiscountOn').checked ? (document.getElementById('pDiscountStart').value || null) : null,
+        discount_ends_at: document.getElementById('pDiscountOn').checked ? (document.getElementById('pDiscountEnd').value || null) : null,
         market_price_url_compuzone: document.getElementById('pMarketUrlCompuzone').value.trim() || null,
         market_price_url_pcfactory: document.getElementById('pMarketUrlPcfactory').value.trim() || null,
         safety_stock: document.getElementById('pSafety').value || null,

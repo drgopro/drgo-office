@@ -240,6 +240,7 @@ class InventoryController extends Controller
         }
 
         $query = Product::with('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory', 'group')
+            ->withCount('discountLogs') // 제품 모달 '할인 이력 N건' 표시용
             ->where('is_active', true);
 
         if ($search = $request->query('search')) {
@@ -927,6 +928,11 @@ class InventoryController extends Controller
         $query = ProductDiscountLog::with('product:id,name,sku', 'user:id,display_name,username')
             ->orderByDesc('id');
 
+        // 특정 제품의 이력만 (제품 모달 '할인 이력 N건' 링크)
+        if ($productId = (int) $request->query('product_id')) {
+            $query->where('product_id', $productId);
+        }
+
         if ($search = trim((string) $request->query('search'))) {
             $compact = '%'.str_replace(' ', '', $search).'%';
             $query->whereHas('product', function ($q) use ($compact) {
@@ -949,6 +955,8 @@ class InventoryController extends Controller
                 'discounted_price' => max(0, $log->sale_price - min($log->discount_amount, $log->sale_price)),
                 'starts_at' => $log->discount_starts_at?->format('Y-m-d H:i'),
                 'ends_at' => $log->discount_ends_at?->format('Y-m-d H:i'),
+                // 기간이 지나 자연 종료된 할인 — 목록에 '기간 종료'로 표시
+                'expired' => $log->action === 'set' && $log->discount_ends_at !== null && $log->discount_ends_at->isPast(),
                 'user_name' => $log->user?->display_name ?? $log->user?->username,
             ])->values(),
             'total' => $page->total(),

@@ -107,6 +107,12 @@ class Product extends Model
         return max(0, (int) $this->sale_price - $this->activeDiscountAmount());
     }
 
+    /** 기간 할인 이력 (설정/변경/해제 기록) */
+    public function discountLogs()
+    {
+        return $this->hasMany(ProductDiscountLog::class);
+    }
+
     /** 옵션 그룹 (블랙/화이트 등 같은 상품 묶음) */
     public function group()
     {
