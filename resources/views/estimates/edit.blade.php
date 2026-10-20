@@ -1028,7 +1028,8 @@ function addToCart(productId) {
             subtotal: price,
             is_service: !!p.is_service, // 서비스/제품 분류 — 담는 시점에 박제 (매출 통계 세팅비/장비 구분)
             // 기간 할인 중인 제품 — 기존 특가/할인 체계로 스냅샷 (정가 취소선 + '할인 n%' 배지)
-            ...(onSale ? { deal_type: 'discount', original_price: Number(p.sale_price) || 0, discount_rate: saleRate(p) } : {}),
+            ...(onSale ? { deal_type: 'discount', original_price: Number(p.sale_price) || 0, discount_rate: saleRate(p),
+                deal_starts_at: p.discount_starts_at || null, deal_ends_at: p.discount_ends_at || null } : {}),
             // 세트 구성품 스냅샷 — 빌더에서 접기/펼치기 (출력물·의뢰자 견적서에는 세트 한 줄만)
             bundle_items: p.is_bundle && (p.bundle_items || []).length ? p.bundle_items : undefined,
         });
@@ -1380,6 +1381,7 @@ function setItemDeal(idx) {
         const price = parseInt(String(p).replace(/[^\d]/g, ''), 10) || 0;
         if (price <= 0) return alert('금액을 확인해주세요.');
         item.deal_type = 'special'; item.original_price = orig; item.discount_rate = null;
+        delete item.deal_starts_at; delete item.deal_ends_at;
         item.sale_price = price;
     } else {
         const p = prompt(`할인율(%) 또는 할인 후 금액(원)을 입력하세요.\n예: 10%  또는  ${fmt(Math.round(orig * 0.9))}\n정가 ${fmt(orig)}원`, item.discount_rate ? item.discount_rate + '%' : '');
@@ -1408,6 +1410,7 @@ function clearItemDeal(idx) {
         item.subtotal = item.sale_price * item.qty;
     }
     delete item.deal_type; delete item.original_price; delete item.discount_rate;
+    delete item.deal_starts_at; delete item.deal_ends_at;
     renderCart();
 }
 
@@ -1849,6 +1852,8 @@ function applyPresetById(id) {
                 item.original_price = Number(cur.sale_price) || 0;
                 item.discount_rate = saleRate(cur);
                 item.sale_price = Number(cur.discounted_price) || 0;
+                item.deal_starts_at = cur.discount_starts_at || null;
+                item.deal_ends_at = cur.discount_ends_at || null;
             }
             if (cur.is_bundle && (cur.bundle_items || []).length) item.bundle_items = cur.bundle_items;
         }

@@ -608,13 +608,23 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
 
     @php
         $hasSpecial = collect($items)->contains(fn ($i) => ($i['deal_type'] ?? null) === 'special');
-        $hasDiscount = collect($items)->contains(fn ($i) => ($i['deal_type'] ?? null) === 'discount');
+        // 기간 할인(제품 기간 할인 스냅샷) — 하단에 'N일까지 기간 한정 할인' 문구, 기간별로 묶어 중복 없이
+        $dealPeriods = collect($items)
+            ->filter(fn ($i) => ($i['deal_type'] ?? null) === 'discount' && ! empty($i['deal_ends_at']))
+            ->map(fn ($i) => [$i['deal_starts_at'] ?? null, $i['deal_ends_at']])
+            ->unique()->values();
+        // 기간 정보 없는 일반 할인(수동 지정)만 기존 문구 사용
+        $hasDiscount = collect($items)->contains(fn ($i) => ($i['deal_type'] ?? null) === 'discount' && empty($i['deal_ends_at']));
+        $kdate = fn ($d) => \Carbon\Carbon::parse($d)->format('Y년 m월 d일');
     @endphp
-    @if($hasSpecial || $hasDiscount)
+    @if($hasSpecial || $hasDiscount || $dealPeriods->isNotEmpty())
         {{-- 특가/할인 각주 — 해당 표시가 있는 견적서에만 자동 노출 --}}
         <div class="deal-notes">
             @if($hasSpecial)<div><span class="deal-tag special">특가</span>닥터고블린컴퍼니 세팅 진행 시 단독 특가로 납품되는 금액입니다.</div>@endif
             @if($hasDiscount)<div><span class="deal-tag discount">할인</span>재방문 세팅비 할인 또는 이벤트 할인이 적용된 금액입니다.</div>@endif
+            @foreach($dealPeriods as [$dealStart, $dealEnd])
+                <div><span class="deal-tag discount">할인</span>{{ $dealStart ? $kdate($dealStart).' ~ ' : '' }}{{ $kdate($dealEnd) }}까지 기간 한정 할인이 적용된 금액입니다.</div>
+            @endforeach
         </div>
     @endif
 

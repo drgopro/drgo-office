@@ -1004,6 +1004,8 @@ class InventoryController extends Controller
                 'discount_active' => $p->activeDiscountAmount() > 0,
                 'discount_amount' => $p->activeDiscountAmount(),
                 'discounted_price' => $p->discountedPrice(),
+                'discount_starts_at' => $p->discount_starts_at?->format('Y-m-d H:i'),
+                'discount_ends_at' => $p->discount_ends_at?->format('Y-m-d H:i'),
                 'purchase_price' => $p->purchase_price,
                 'quantity' => $p->inventory?->quantity ?? 0,
                 'buildable' => $p->buildableQuantity(), // 세트 조립 가능 수 (min(구성품 재고 ÷ 필요 수량)), 세트 아니면 null

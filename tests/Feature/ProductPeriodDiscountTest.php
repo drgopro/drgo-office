@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Estimate;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -206,6 +207,31 @@ class ProductPeriodDiscountTest extends TestCase
         // 다시 실행해도 중복 기록 없음
         $this->artisan('products:expire-discounts')->assertSuccessful();
         $this->assertSame(1, $expired->discountLogs()->count());
+    }
+
+    public function test_print_shows_limited_period_notice(): void
+    {
+        $estimate = Estimate::create([
+            'status' => 'created', 'product_items' => [], 'service_items' => [],
+            'product_total' => 0, 'total_amount' => 0, 'created_by' => $this->admin->id,
+        ]);
+        $items = [
+            ['name' => '기간할인 마이크', 'sale_price' => 1090000, 'qty' => 1, 'subtotal' => 1090000,
+                'deal_type' => 'discount', 'original_price' => 1400000, 'discount_rate' => 22,
+                'deal_starts_at' => '2026-10-14 11:00', 'deal_ends_at' => '2026-12-31 16:59'],
+            ['name' => '수동할인 케이블', 'sale_price' => 9000, 'qty' => 1, 'subtotal' => 9000,
+                'deal_type' => 'discount', 'original_price' => 10000, 'discount_rate' => 10],
+        ];
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", [
+            'product_items' => $items, 'service_items' => [],
+        ])->assertOk();
+
+        // 기간 스냅샷 저장 + 출력물 하단 문구
+        $this->assertSame('2026-12-31 16:59', $estimate->fresh()->product_items[0]['deal_ends_at']);
+        $html = $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/print")->assertOk()->getContent();
+        $this->assertStringContainsString('2026년 10월 14일 ~ 2026년 12월 31일까지 기간 한정 할인이 적용된 금액입니다.', $html);
+        // 기간 없는 수동 할인은 기존 문구 유지
+        $this->assertStringContainsString('재방문 세팅비 할인 또는 이벤트 할인이 적용된 금액입니다.', $html);
     }
 
     public function test_discount_amount_is_capped_to_sale_price_on_save(): void

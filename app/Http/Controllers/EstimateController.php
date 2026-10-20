@@ -442,6 +442,8 @@ class EstimateController extends Controller
             'product_items.*.replaced_note' => 'nullable|string|max:300', // 대체 사유/대체 제품 설명
             'product_items.*.original_price' => 'nullable|numeric|min:0', // 특가/할인 전 정가 — 출력물 취소선 표시
             'product_items.*.discount_rate' => 'nullable|numeric|min:0|max:100', // 할인율 % (금액 직접 입력이면 비움)
+            'product_items.*.deal_starts_at' => 'nullable|string|max:20', // 기간 할인 시작 — 출력물 '기간 한정 할인' 문구용 스냅샷
+            'product_items.*.deal_ends_at' => 'nullable|string|max:20', // 기간 할인 종료
             'product_items.*.ordered' => 'nullable|boolean', // 주문/배송 뷰의 주문완료 표시
             'product_items.*.ordered_at' => 'nullable|string|max:20', // 주문완료 처리 시각 (서버 기록 에코)
             'product_items.*.purchase_source' => 'nullable|string|max:100', // 주문 내역의 구매처

@@ -51,12 +51,12 @@ class EstimateValidationTest extends TestCase
             'service_items' => [['amount' => 50000]],
         ])->assertStatus(422)->assertJsonValidationErrors(['service_items.0.name']);
 
-        // 음수·0수량 거부
+        // 0 이하 수량 거부 — 금액 음수는 차감 라인(재방문 할인 등)으로 허용된다
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
             'product_items' => [['name' => 'X', 'sale_price' => -1, 'qty' => 0, 'subtotal' => -1]],
-        ])->assertStatus(422)->assertJsonValidationErrors([
-            'product_items.0.sale_price', 'product_items.0.qty', 'product_items.0.subtotal',
-        ]);
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['product_items.0.qty'])
+            ->assertJsonMissingValidationErrors(['product_items.0.sale_price', 'product_items.0.subtotal']);
     }
 
     public function test_snapshot_fields_survive_validation_filtering(): void
