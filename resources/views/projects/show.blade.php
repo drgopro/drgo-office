@@ -676,6 +676,12 @@
         </div>
         @endif
 
+        <!-- 연동 일정 — 캘린더에서 이 프로젝트로 연결된 일정 (클릭 시 캘린더에서 열기) -->
+        <div class="info-card full" id="linkedScheduleCard" style="display:none;">
+            <div class="card-title"><span>📅 연동 일정</span></div>
+            <div id="linkedScheduleList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
         <!-- 견적/계약 (연동 견적서) -->
         @if($estimateData && (!empty($estimateData['estimate_ids']) || !empty($estimateData['note'])))
         <div class="info-card full">
@@ -1448,7 +1454,7 @@
         cols.append(L, R);
         grid.parentNode.insertBefore(cols, grid);
         [byTitle('의뢰자 정보'), byTitle('세팅 장소'), document.getElementById('customDataCard'),
-            byTitle('태그'), byTitle('일정 제안'), byTitle('견적/계약'),
+            byTitle('태그'), byTitle('일정 제안'), document.getElementById('linkedScheduleCard'), byTitle('견적/계약'),
             document.getElementById('paymentHistoryCard')]
             .filter(Boolean).forEach(c => L.appendChild(c));
         [byTitle('프로젝트 개요'), document.getElementById('reqItemsCard'), byTitle('🛠 {{ $vrLabel }}'),
@@ -3942,6 +3948,36 @@ async function saveProposal() {
             return `<div style="display:flex; gap:8px; align-items:center; font-size:13px; margin-bottom:3px;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--chip-${s.color||'gold'}-bg);"></span><span>${pcfEsc(s.title||'(제목 없음)')}</span><span style="color:var(--text-muted); font-size:11px;">${dateLabel}</span></div>`;
         }).join('');
     } catch { el.textContent = ''; }
+})();
+
+// ── 연동 일정 — 캘린더에서 이 프로젝트로 연결(request_data.project_id)된 일정 카드 ──
+(async function fillLinkedSchedules() {
+    const card = document.getElementById('linkedScheduleCard');
+    const list = document.getElementById('linkedScheduleList');
+    if (!card || !list) return;
+    let rows = [];
+    try {
+        const res = await fetch(`/api/projects/${PROJECT_ID}/schedules?linked=1`, { headers:{'Accept':'application/json'} });
+        if (res.ok) rows = await res.json();
+    } catch (e) {}
+    if (!rows.length) return; // 연동 일정 없음 — 카드 숨김 유지
+    const today = new Date().toISOString().slice(0, 10);
+    list.innerHTML = rows.map(sc => {
+        const dateLabel = sc.start_date + (sc.end_date && sc.end_date !== sc.start_date ? ' ~ ' + sc.end_date : '');
+        const timeLabel = sc.is_all_day ? '종일' : (sc.start_time ? sc.start_time.slice(0,5) + (sc.end_time ? '-' + sc.end_time.slice(0,5) : '') : '');
+        const upcoming = (sc.end_date || sc.start_date) >= today;
+        return `<div onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar?focus=${sc.id}'); else location.href='/calendar?focus=${sc.id}';" title="캘린더에서 열기"
+            style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; ${upcoming ? '' : 'opacity:0.65;'}"
+            onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg, var(--accent)); flex-shrink:0;"></span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pcfEsc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:10px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + pcfEsc(sc.location) : ''}</div>
+            </div>
+            <span style="font-size:11px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
+        </div>`;
+    }).join('');
+    card.style.display = 'block';
 })();
 
 // ── 견적/계약 ──

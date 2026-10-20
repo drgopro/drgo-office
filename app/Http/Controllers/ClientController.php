@@ -8,6 +8,7 @@ use App\Models\ClientContact;
 use App\Models\ClientMemo;
 use App\Models\Project;
 use App\Models\ProjectFieldDefinition;
+use App\Models\Schedule;
 use App\Services\ChannelTalkClient;
 use App\Services\ChannelTalkProfileSync;
 use Illuminate\Http\Request;
@@ -288,6 +289,38 @@ class ClientController extends Controller
     }
 
     // 수정 폼
+    /** 의뢰자 연동 일정 — 캘린더에서 이 의뢰자(client_id 연결 또는 이름/닉네임 일치)로 등록된 일정 */
+    public function schedules(Client $client)
+    {
+        $names = array_filter([$client->name, $client->nickname]);
+
+        $q = Schedule::query()->where(function ($qq) use ($client, $names) {
+            // request_data.client_id 연결 (숫자/문자 저장 모두) + 이름/닉네임 일치 폴백
+            $qq->whereIn('request_data->client_id', [$client->id, (string) $client->id]);
+            foreach ($names as $n) {
+                $qq->orWhere('client_name', 'like', '%'.$n.'%');
+            }
+        });
+
+        return response()->json(
+            $q->orderByDesc('start_date')->limit(100)
+                ->get(['id', 'title', 'client_name', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'location', 'completed_at', 'request_data'])
+                ->map(fn ($s) => [
+                    'id' => $s->id,
+                    'title' => $s->title,
+                    'start_date' => $s->start_date?->format('Y-m-d'),
+                    'end_date' => $s->end_date?->format('Y-m-d'),
+                    'start_time' => $s->start_time,
+                    'end_time' => $s->end_time,
+                    'is_all_day' => (bool) $s->is_all_day,
+                    'color' => $s->color,
+                    'location' => $s->location,
+                    'completed' => (bool) $s->completed_at,
+                    'project_id' => (int) (($s->request_data['project_id'] ?? 0)) ?: null,
+                ])
+        );
+    }
+
     public function edit(Client $client)
     {
         // 구(舊) 수정 폼은 항목·순서가 달라 혼선 — 기준 화면(의뢰자 상세의 수정 모드)으로 통합

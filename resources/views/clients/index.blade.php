@@ -1092,6 +1092,7 @@ function renderClientContent(id) {
         <div class="sub-tabs" id="subtabs-${id}">
             <button class="sub-tab active" onclick="switchSubTab(${id},'info',this)">기본 정보</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'projects',this)">프로젝트 ${d.projects.length}</button>
+            <button class="sub-tab" id="cschtab-${id}" onclick="switchSubTab(${id},'schedules',this)">일정</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'docs',this)">첨부파일 ${d.documents.length}</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'estimates',this)">견적서 ${(d.estimates||[]).length}</button>
             <button class="sub-tab" onclick="switchSubTab(${id},'memo',this)">메모</button>
@@ -1336,6 +1337,11 @@ function renderClientContent(id) {
         </div>
 
         <!-- 견적서 -->
+        <!-- 일정 — 캘린더에서 이 의뢰자로 등록된 일정 (클릭 시 캘린더에서 열기) -->
+        <div class="sub-panel" id="sub-schedules-${id}">
+            <div id="csch-list-${id}" style="display:flex; flex-direction:column; gap:8px;"><div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">탭을 열면 불러옵니다…</div></div>
+        </div>
+
         <div class="sub-panel" id="sub-estimates-${id}">
             ${CAN_EST_EDIT ? `<div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
                 <button onclick="createEstimateForClient(${id})" style="padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">+ 새 견적서 (이 의뢰자 연동)</button>
@@ -1831,10 +1837,48 @@ function switchSubTab(clientId, tab, btn) {
     document.querySelectorAll(`#subtabs-${clientId} .sub-tab`).forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    ['info','projects','docs','estimates','memo'].forEach(k => {
+    ['info','projects','schedules','docs','estimates','memo'].forEach(k => {
         const panel = document.getElementById(`sub-${k}-${clientId}`);
         if (panel) panel.classList.toggle('active', k === tab);
     });
+    if (tab === 'schedules') loadClientSchedules(clientId);
+}
+
+// 의뢰자 연동 일정 — 캘린더(request_data.client_id 연결 + 이름 일치) 일정을 리스트로, 클릭 시 캘린더에서 열기
+const __cschLoaded = new Set();
+async function loadClientSchedules(clientId, force = false) {
+    if (!force && __cschLoaded.has(clientId)) return;
+    const wrap = document.getElementById(`csch-list-${clientId}`);
+    if (!wrap) return;
+    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">불러오는 중…</div>';
+    let rows = [];
+    try {
+        const res = await fetch(`/api/clients/${clientId}/schedules`, { headers:{'Accept':'application/json'} });
+        if (res.ok) rows = await res.json();
+    } catch (e) {}
+    __cschLoaded.add(clientId);
+    const tabBtn = document.getElementById(`cschtab-${clientId}`);
+    if (tabBtn) tabBtn.textContent = `일정 ${rows.length}`;
+    if (!rows.length) {
+        wrap.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">캘린더에 등록된 일정이 없습니다.</div>';
+        return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    wrap.innerHTML = rows.map(sc => {
+        const dateLabel = sc.start_date + (sc.end_date && sc.end_date !== sc.start_date ? ' ~ ' + sc.end_date : '');
+        const timeLabel = sc.is_all_day ? '종일' : (sc.start_time ? sc.start_time.slice(0,5) + (sc.end_time ? '-' + sc.end_time.slice(0,5) : '') : '');
+        const upcoming = (sc.end_date || sc.start_date) >= today;
+        return `<div onclick="openTopTab('calendar','/calendar?focus=${sc.id}')" title="캘린더에서 열기"
+            style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; ${upcoming ? '' : 'opacity:0.65;'}"
+            onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg); flex-shrink:0;"></span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:10px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + _esc(sc.location) : ''}</div>
+            </div>
+            <span style="font-size:11px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
+        </div>`;
+    }).join('');
 }
 
 // ── 저장/삭제 ──

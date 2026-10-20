@@ -828,8 +828,30 @@ class ProjectController extends Controller
     /**
      * 일정제안 모달용 — 같은 의뢰자(client_name 매칭)의 캘린더 일정 목록.
      */
-    public function projectSchedules(Project $project): JsonResponse
+    public function projectSchedules(Project $project, Request $request): JsonResponse
     {
+        // linked=1 — 캘린더에서 이 프로젝트로 연결(request_data.project_id)된 일정만 (상세 '연동 일정' 카드)
+        if ($request->boolean('linked')) {
+            $q = Schedule::whereIn('request_data->project_id', [$project->id, (string) $project->id]);
+
+            return response()->json(
+                $q->orderByDesc('start_date')->limit(50)
+                    ->get(['id', 'title', 'client_name', 'start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'color', 'location', 'completed_at'])
+                    ->map(fn ($s) => [
+                        'id' => $s->id,
+                        'title' => $s->title,
+                        'start_date' => $s->start_date?->format('Y-m-d'),
+                        'end_date' => $s->end_date?->format('Y-m-d'),
+                        'start_time' => $s->start_time,
+                        'end_time' => $s->end_time,
+                        'is_all_day' => (bool) $s->is_all_day,
+                        'color' => $s->color,
+                        'location' => $s->location,
+                        'completed' => (bool) $s->completed_at,
+                    ])
+            );
+        }
+
         $client = $project->client;
         $names = array_filter([$client?->name, $client?->nickname]);
 

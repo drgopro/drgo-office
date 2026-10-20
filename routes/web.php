@@ -240,6 +240,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/channeltalk/users', [ClientController::class, 'channeltalkUsers']); // 채널톡 고객 미러 검색 (의뢰자 등록 연동)
         Route::get('/api/channeltalk/users/{ctId}/fresh', [ClientController::class, 'channeltalkUserFresh']); // 선택 시 실시간 프로필 조회
         Route::get('/api/clients/{client}/detail', [ClientController::class, 'detail']);
+        Route::get('/api/clients/{client}/schedules', [ClientController::class, 'schedules']); // 의뢰자 연동 일정 탭
     });
     Route::middleware('permission:clients.edit')->group(function () {
         Route::post('/api/clients', [ClientController::class, 'storeJson']);
