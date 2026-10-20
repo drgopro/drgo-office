@@ -145,6 +145,23 @@ function renderLockSummary(){
 
     // ── 2a 요약 레이아웃: 상단 메타 행 + 좌/우 2컬럼 카드 그리드 ──
     const left = [], right = [];
+    // 연동 견적서 바로 열기 — 일정에 연결된 견적서(estimate_ids)를 결제 금액 카드에 링크로 노출
+    function lsLinkedEstimates(withHeading = true){
+        if(typeof linkedEstimateIds==='undefined'||!linkedEstimateIds.length) return '';
+        return `<div style="${withHeading?'margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);':''}display:flex;flex-direction:column;gap:5px;">
+            ${withHeading?'<div class="ls-sub" style="margin:0;">연동 견적서</div>':''}`
+            +linkedEstimateIds.map(id=>{
+                const m=(typeof linkedEstimateMeta!=='undefined'&&linkedEstimateMeta[id])||{};
+                const label=`견적서 #${m.display_no??id}`;
+                const meta=[m.name?_esc(m.name):'', m.total?`${m.total.toLocaleString()}원`:''].filter(Boolean).join(' · ');
+                return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0;">
+                    <a href="/estimates/${id}/edit" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:700;white-space:nowrap;" title="견적서 편집 화면 열기">${label} →</a>
+                    <span style="color:var(--text-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${meta}</span>
+                    <button onclick="event.stopPropagation();window.open('/estimates/${id}/print','estimate_print_'+${id},'width=900,height=700,scrollbars=yes,resizable=yes')" data-always-active style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:10.5px;cursor:pointer;flex-shrink:0;">출력 보기</button>
+                </div>`;
+            }).join('')+'</div>';
+    }
+
     const lsCard = (title, body, extra = '', cls = '') =>
         `<div class="ls-card${cls ? ' ' + cls : ''}">${title ? `<div class="ls-card-head"><span class="ls-card-title">${title}</span>${extra ? `<span class="ls-card-extra">${extra}</span>` : ''}</div>` : ''}${body}</div>`;
 
@@ -346,7 +363,8 @@ function renderLockSummary(){
                 </span>
             </div>
             ${lsRefundLine}
-            ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}`,
+            ${balanceVal==='O'&&balanceAmount?`<div class="ls-balance-warn">💰 잔금 ${_esc(_fmtAmt(balanceAmount))}원 있음</div>`:''}
+            ${lsLinkedEstimates()}`,
             '', 'ls-c-pay'));
 
         // 우측: 의뢰 내용 다음 — 의뢰 세부항목 / 특이사항 (틴트)
@@ -387,6 +405,12 @@ function renderLockSummary(){
             <div class="ls-card-head"><span class="ls-card-title">📁 연결 프로젝트 요약</span></div>
             <div class="ls-text-block muted">불러오는 중…</div>
         </div>`);
+    }
+
+    // 공통: 연동 견적서 — gold는 결제 금액 카드 안에 포함, 그 외 카테고리는 별도 카드로
+    if (color !== 'gold') {
+        const lsEstHtml = lsLinkedEstimates(false);
+        if (lsEstHtml) left.push(lsCard('연동 견적서', lsEstHtml, '', 'ls-c-pay'));
     }
 
     // 공통: 상세 설명 / 전달사항

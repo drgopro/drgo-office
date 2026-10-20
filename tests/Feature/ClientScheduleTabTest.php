@@ -73,4 +73,15 @@ class ClientScheduleTabTest extends TestCase
             ->assertSee('id="linkedScheduleCard"', false)
             ->assertSee('fillLinkedSchedules', false);
     }
+
+    public function test_calendar_summary_includes_linked_estimate_markup(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // 요약(잠금) 화면에 연동 견적서 섹션 — 편집/출력 바로 열기
+        $this->actingAs($admin)->get('/calendar')->assertOk()
+            ->assertSee('lsLinkedEstimates', false)
+            ->assertSee('연동 견적서', false)
+            ->assertSee('/estimates/${id}/edit', false);
+    }
 }
