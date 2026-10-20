@@ -1075,7 +1075,7 @@ function renderClientContent(id) {
         <div class="detail-header">
             <div class="detail-identity">
                 <div>
-                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;">${_esc(d.nickname || d.name || '(이름 없음)')}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}</div>
+                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">${_esc(d.nickname || d.name || '(이름 없음)')}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}${d.marketing_consent_count ? `<span title="마케팅 활용 동의 ${d.marketing_consent_count}회 — 프로젝트의 마케팅 활용 동의 기준" style="font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:2px 9px;white-space:nowrap;">마케팅 동의 ${d.marketing_consent_count}회</span>` : ''}</div>
                     <div class="detail-meta">${_esc([d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · '))}</div>
                 </div>
             </div>
