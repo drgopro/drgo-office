@@ -640,12 +640,13 @@ window.openTopTab = function(type, url, title) {
 {{-- ── 전역 공지 띠 — 노출 기한 내의 '전체 공지' 중 최신 1건을 모든 탭 상단에 표시 (기간이 지나면 띠에서 내려가고 카테고리에서만 보임) ── --}}
 {{-- 블레이드 php 블록 지시어를 쓰면 56행의 인라인 지시어와 한 블록으로 오인 컴파일되므로 순수 PHP 태그 사용 --}}
 <?php
-    $gnbNotice = Auth::check()
+    $gnbQuery = Auth::check()
         ? \App\Models\Notice::published()->visibleTo(Auth::user())
             ->where('is_pinned', true)
             ->where(fn ($q) => $q->whereNull('pinned_until')->orWhereDate('pinned_until', '>=', now()->toDateString()))
-            ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at'])
         : null;
+    $gnbNoticeCount = $gnbQuery ? (clone $gnbQuery)->count() : 0; // 유효한 전체 공지 수 — 띠의 '+n건 더보기'
+    $gnbNotice = $gnbQuery ? $gnbQuery->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at']) : null;
 ?>
 @if($gnbNotice)
 <style>
@@ -660,6 +661,8 @@ window.openTopTab = function(type, url, title) {
     .gnb-title { color:var(--text); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
     .gnb-title:hover { text-decoration:underline; }
     .gnb-date { color:var(--text-muted); font-size:11.5px; white-space:nowrap; }
+    .gnb-more { background:none; border:1px solid #3A5683; color:#3A5683; border-radius:11px; font-size:11px; font-weight:700; padding:2px 10px; cursor:pointer; white-space:nowrap; }
+    .gnb-more:hover { background:rgba(58,86,131,0.1); }
     .gnb-close { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 6px; line-height:1; }
     .gnb-close:hover { color:var(--text); }
 </style>
@@ -668,6 +671,9 @@ window.openTopTab = function(type, url, title) {
     <a href="/notices/{{ $gnbNotice->id }}" class="gnb-title"
        onclick="event.preventDefault(); drgoTabs.openNav('notices','/notices/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
     <span class="gnb-date">{{ $gnbNotice->created_at->format('Y.m.d') }}</span>
+    @if($gnbNoticeCount > 1)
+    <button type="button" class="gnb-more" onclick="drgoTabs.openNav('notices','/notices');" title="고정된 전체 공지 {{ $gnbNoticeCount }}건 — 공지사항 게시판으로 이동">+{{ $gnbNoticeCount - 1 }}건 더보기</button>
+    @endif
     <button type="button" class="gnb-close" onclick="gnbDismiss()" title="이 공지 닫기 — 새로고침하면 다시 표시됩니다">✕</button>
 </div>
 <script>

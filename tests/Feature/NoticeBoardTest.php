@@ -93,6 +93,41 @@ class NoticeBoardTest extends TestCase
         $this->actingAs($member)->get('/notices')->assertOk()->assertDontSee('팀한정 공지');
     }
 
+    public function test_subcategory_creation_works_up_to_depth_limit(): void
+    {
+        $admin = $this->admin();
+        $rootId = $this->actingAs($admin)->postJson('/api/notice-categories', ['name' => '1차'])->assertCreated()->json('id');
+        // 2차 하위 생성 — depth() 누락으로 500이 나던 회귀 지점
+        $subId = $this->actingAs($admin)->postJson('/api/notice-categories', ['name' => '2차', 'parent_id' => $rootId])
+            ->assertCreated()->json('id');
+        $this->assertSame($rootId, NoticeCategory::find($subId)->parent_id);
+
+        // 5단계 제한 — 6차는 거부
+        $pid = $subId;
+        foreach (['3차', '4차', '5차'] as $name) {
+            $pid = $this->actingAs($admin)->postJson('/api/notice-categories', ['name' => $name, 'parent_id' => $pid])
+                ->assertCreated()->json('id');
+        }
+        $this->actingAs($admin)->postJson('/api/notice-categories', ['name' => '6차', 'parent_id' => $pid])
+            ->assertStatus(422);
+    }
+
+    public function test_global_bar_shows_more_button_when_multiple_active(): void
+    {
+        $admin = $this->admin();
+        Notice::create(['title' => '전체공지A', 'content' => 'x', 'is_pinned' => true, 'created_by' => $admin->id]);
+        Notice::create(['title' => '전체공지B', 'content' => 'x', 'is_pinned' => true, 'created_by' => $admin->id]);
+        Notice::create(['title' => '일반', 'content' => 'x', 'created_by' => $admin->id]); // 집계 제외
+
+        $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('+1건 더보기', $html);
+
+        // 유효 전체 공지 1건뿐이면 더보기 없음
+        Notice::where('title', '전체공지A')->delete();
+        $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
+        $this->assertStringNotContainsString('건 더보기', $html);
+    }
+
     public function test_category_crud_api_and_update_destroy(): void
     {
         $admin = $this->admin();
