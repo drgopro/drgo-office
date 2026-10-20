@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\SyncKoreanHolidays;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,5 +55,17 @@ class KoreanHolidaySyncTest extends TestCase
             ->assertSee('Object.assign', false)
             ->assertSee('tl-holiday', false) // 주/일간 헤더 표시
             ->assertSee('ad-holiday', false); // 목록 뷰 날짜 헤드 표시
+    }
+
+    public function test_transient_failure_recovers_via_retry(): void
+    {
+        // 첫 2회 실패 후 성공 — 재시도로 회복되어 알람 없이 저장된다
+        Http::fakeSequence()
+            ->push('', 503)
+            ->push('', 503)
+            ->push(['2026-01-01' => ['신정']], 200);
+
+        $this->artisan('holidays:sync')->assertExitCode(0);
+        $this->assertStringContainsString('신정', (string) Setting::get(SyncKoreanHolidays::SETTING_KEY));
     }
 }

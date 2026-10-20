@@ -25,7 +25,10 @@ class SyncKoreanHolidays extends Command
     public function handle(): int
     {
         try {
-            $res = Http::timeout(20)->connectTimeout(5)->get(self::SOURCE_URL);
+            // 주 1회 실행 — 일시적 네트워크/서버 장애에 알람이 울리지 않도록 3회(10초 간격) 재시도
+            $res = Http::timeout(20)->connectTimeout(5)
+                ->retry(3, app()->environment('testing') ? 0 : 10000, throw: false)
+                ->get(self::SOURCE_URL);
         } catch (\Throwable $e) {
             Log::warning('공휴일 동기화 실패: '.$e->getMessage());
             $this->error('공휴일 동기화 통신 실패 — 기존 저장값 유지');
