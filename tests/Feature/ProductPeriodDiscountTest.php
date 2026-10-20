@@ -144,7 +144,8 @@ class ProductPeriodDiscountTest extends TestCase
         $this->assertSame(['clear', 'set', 'set'], collect($logs)->pluck('action')->all()); // 최신순
         $this->assertSame(200000, $logs[1]['discount_amount']);
         $this->assertSame(1200000, $logs[1]['discounted_price']);
-        $this->assertSame($this->admin->name, $logs[1]['user_name']);
+        $this->assertNotNull($logs[1]['user_name'], '처리자 이름이 비어있음');
+        $this->assertSame($this->admin->display_name ?? $this->admin->username, $logs[1]['user_name']);
         $this->assertSame('2026-12-31 16:59', $logs[1]['ends_at']);
 
         // 무관한 검색어는 미매칭

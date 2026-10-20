@@ -1179,8 +1179,15 @@ async function loadDiscountLogs() {
     const qs = new URLSearchParams({ page: discLogPage, per_page: 20 });
     const search = document.getElementById('discLogSearch').value.trim();
     if (search) qs.set('search', search);
-    const res = await fetch('/api/inventory/discount-logs?' + qs.toString());
-    const payload = await res.json();
+    let payload;
+    try {
+        const res = await fetch('/api/inventory/discount-logs?' + qs.toString());
+        if (!res.ok) throw new Error('서버 오류 (' + res.status + ')');
+        payload = await res.json();
+    } catch (err) {
+        tb.innerHTML = `<tr><td colspan="8" class="empty-row">이력을 불러오지 못했습니다 — ${_esc(err.message)}</td></tr>`;
+        return;
+    }
     renderPagerInto('discLogPager', payload, 'goDiscLogPage');
     if (!payload.data.length) {
         tb.innerHTML = '<tr><td colspan="8" class="empty-row">할인 이력이 없습니다.</td></tr>';
@@ -1290,6 +1297,8 @@ async function loadProducts() {
     [...prodSelection].forEach(id => { if (!visibleIds.has(id)) prodSelection.delete(id); });
     const E = PROD_EDIT_MODE; // 전체 편집 모드 — 값 셀을 입력폼으로 렌더
 
+    // '할인 중' 보기에서는 옵션 그룹을 자동으로 펼친다 — 할인 대상 옵션이 접혀 안 보이는 일 방지
+    if (discountOnly) allProducts.forEach(p => { if (p.group_id) expandedGroups.add(p.group_id); });
     // 옵션 그룹은 대표 행 하나로 접어서 표시 — 펼치면 안에서 옵션(자식) 행이 보임
     const seq = [];
     const seenGroups = new Set();

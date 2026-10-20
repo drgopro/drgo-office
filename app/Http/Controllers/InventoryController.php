@@ -924,7 +924,7 @@ class InventoryController extends Controller
     /** 할인 이력 조회 — 제품명/SKU 검색 + 페이지네이션 */
     public function discountLogs(Request $request): JsonResponse
     {
-        $query = ProductDiscountLog::with('product:id,name,sku', 'user:id,name')
+        $query = ProductDiscountLog::with('product:id,name,sku', 'user:id,display_name,username')
             ->orderByDesc('id');
 
         if ($search = trim((string) $request->query('search'))) {
@@ -949,7 +949,7 @@ class InventoryController extends Controller
                 'discounted_price' => max(0, $log->sale_price - min($log->discount_amount, $log->sale_price)),
                 'starts_at' => $log->discount_starts_at?->format('Y-m-d H:i'),
                 'ends_at' => $log->discount_ends_at?->format('Y-m-d H:i'),
-                'user_name' => $log->user?->name,
+                'user_name' => $log->user?->display_name ?? $log->user?->username,
             ])->values(),
             'total' => $page->total(),
             'current_page' => $page->currentPage(),
