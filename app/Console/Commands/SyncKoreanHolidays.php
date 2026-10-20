@@ -17,32 +17,54 @@ class SyncKoreanHolidays extends Command
     public const SETTING_KEY = 'kr_holidays';
 
     /**
-     * 공공데이터포털(한국천문연구원) 특일정보를 매일 갱신·배포하는 공개 JSON.
-     * 형식: {"YYYY-MM-DD": ["이름", ...]} — 대체공휴일은 '대체공휴일'로 정확히 표기된다.
+     * 관보 기준 holidays-kr 공개 JSON — GitHub 원본을 1순위로, 배포 도메인을 폴백으로 사용
+     * (배포 도메인 DNS가 간헐적으로 끊긴 사례가 있어 순서를 바꿈).
+     * 형식: {"YYYY": {"YYYY-MM-DD": ["이름", ...]}} 중첩 — 구버전 평면 형식({"YYYY-MM-DD": [...]})도 함께 지원한다.
      */
-    private const SOURCE_URL = 'https://holidays.hyunbin.page/basic.json';
+    private const SOURCE_URLS = [
+        'https://raw.githubusercontent.com/hyunbinseo/holidays-kr/main/public/basic.json',
+        'https://holidays.hyunbin.page/basic.json',
+    ];
 
     public function handle(): int
     {
-        try {
-            // 주 1회 실행 — 일시적 네트워크/서버 장애에 알람이 울리지 않도록 3회(10초 간격) 재시도
-            $res = Http::timeout(20)->connectTimeout(5)
-                ->retry(3, app()->environment('testing') ? 0 : 10000, throw: false)
-                ->get(self::SOURCE_URL);
-        } catch (\Throwable $e) {
-            Log::warning('공휴일 동기화 실패: '.$e->getMessage());
-            $this->error('공휴일 동기화 통신 실패 — 기존 저장값 유지');
+        $data = null;
+        foreach (self::SOURCE_URLS as $url) {
+            try {
+                // 주 1회 실행 — 일시 장애에 알람이 울리지 않도록 소스별 3회(10초 간격) 재시도
+                $res = Http::timeout(20)->connectTimeout(5)
+                    ->retry(3, app()->environment('testing') ? 0 : 10000, throw: false)
+                    ->get($url);
+            } catch (\Throwable $e) {
+                Log::warning("공휴일 동기화 실패({$url}): ".$e->getMessage());
+
+                continue;
+            }
+            $json = $res->successful() ? $res->json() : null;
+            if (is_array($json) && $json) {
+                $data = $json;
+                break;
+            }
+            Log::warning("공휴일 동기화 응답 오류({$url}): HTTP ".$res->status());
+        }
+        if ($data === null) {
+            $this->error('공휴일 동기화 실패 — 모든 소스 불가, 기존 저장값 유지');
 
             return self::FAILURE;
         }
 
-        $data = $res->successful() ? $res->json() : null;
-        if (! is_array($data) || ! $data) {
-            Log::warning('공휴일 동기화 응답 오류: HTTP '.$res->status());
-            $this->error('공휴일 응답 오류 — 기존 저장값 유지');
-
-            return self::FAILURE;
+        // 중첩 형식({연도: {날짜: [이름]}})이면 평면으로 — 구 평면 형식은 그대로
+        $flat = [];
+        foreach ($data as $key => $value) {
+            if (preg_match('/^\d{4}$/', (string) $key) && is_array($value)) {
+                foreach ($value as $d => $names) {
+                    $flat[$d] = $names;
+                }
+            } else {
+                $flat[$key] = $value;
+            }
         }
+        $data = $flat;
 
         $startYear = now()->year - 1;
         $endYear = $startYear + max(1, min(6, (int) $this->option('years'))) - 1;

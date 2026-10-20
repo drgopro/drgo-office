@@ -264,19 +264,40 @@
 
     {{-- 메뉴 구성 — 좌측 사이드바 순서/섹션 라벨/구분선 조정 --}}
     <div class="tab-panel" id="panel-menu">
-        <div class="data-card" style="max-width:560px;">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                <b style="font-size:13.5px;">좌측 메뉴 구성</b>
-                <span style="font-size:11px;color:var(--text-muted);">순서를 옮기고 섹션 라벨·구분선을 배치합니다. 저장 후 새로고침하면 전 직원에게 적용됩니다 (권한 없는 메뉴는 각자에게 숨겨짐)</span>
+        <style>
+            .sm-card { max-width:520px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+            .sm-desc { font-size:11.5px; color:var(--text-muted); margin:4px 0 12px; line-height:1.6; }
+            .sm-toolbar { display:flex; gap:6px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+            .sm-add { background:none; border:1px dashed var(--border); color:var(--text-muted); border-radius:7px; font-size:11.5px; padding:5px 11px; cursor:pointer; }
+            .sm-add:hover { color:var(--text); border-color:var(--text-muted); }
+            .sm-reset { background:none; border:none; color:var(--text-muted); font-size:11.5px; cursor:pointer; text-decoration:underline; margin-left:auto; }
+            .sm-list { display:flex; flex-direction:column; gap:3px; }
+            .sm-row { display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:8px; padding:0 8px 0 10px; height:34px; background:var(--surface); }
+            .sm-row.sec, .sm-row.gap { background:var(--surface2); border-style:dashed; }
+            .sm-row.gap { height:26px; }
+            .sm-row.drag-over { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+            .sm-grip { cursor:grab; color:var(--text-muted); font-size:12px; user-select:none; flex-shrink:0; }
+            .sm-name { font-size:12.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .sm-tag { font-size:9.5px; font-weight:700; color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); padding:1px 6px; border-radius:7px; flex-shrink:0; }
+            .sm-gaptext { flex:1; text-align:center; font-size:10px; color:var(--text-muted); letter-spacing:0.2em; }
+            .sm-input { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); outline:none; }
+            .sm-input:focus { border-color:var(--accent); }
+            .sm-ctl { display:flex; gap:3px; margin-left:auto; flex-shrink:0; }
+            .sm-ico { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:10px; padding:0; }
+            .sm-ico:hover:not(:disabled) { background:var(--surface2); color:var(--text); }
+            .sm-ico:disabled { opacity:.25; cursor:default; }
+            .sm-ico.del:hover { color:var(--red, #dc2626); }
+        </style>
+        <div class="sm-card">
+            <b style="font-size:13.5px;">좌측 메뉴 구성</b>
+            <div class="sm-desc">드래그(⠿) 또는 ▲▼로 순서를 옮기고 섹션 라벨·구분선을 배치합니다.<br>저장 후 새로고침하면 전 직원에게 적용됩니다 — 권한 없는 메뉴는 각자에게 자동으로 숨겨집니다.</div>
+            <div class="sm-toolbar">
+                <button class="sm-add" onclick="smAddRow('label')">+ 섹션 라벨</button>
+                <button class="sm-add" onclick="smAddRow('gap')">+ 구분선</button>
+                <button class="sm-reset" onclick="smReset()">기본값 복원</button>
+                <button class="btn-sm" onclick="smSave(this)">저장</button>
             </div>
-            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-                <button class="btn-outline btn-sm" onclick="smAddRow('label')">+ 섹션 라벨</button>
-                <button class="btn-outline btn-sm" onclick="smAddRow('gap')">+ 구분선</button>
-                <span style="flex:1;"></span>
-                <button class="btn-outline btn-sm" onclick="smReset()">기본값 복원</button>
-                <button class="btn-primary btn-sm" onclick="smSave(this)">저장</button>
-            </div>
-            <div id="smList" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div id="smList" class="sm-list"></div>
         </div>
     </div>
 
@@ -2948,7 +2969,7 @@ async function deleteWorkType() {
 }
 
 // ── 메뉴 구성 — 좌측 사이드바 순서/섹션 라벨/구분선 ──
-let SM_ROWS = [], SM_LABELS = {};
+let SM_ROWS = [], SM_LABELS = {}, SM_DRAG = null;
 function smEsc(x){ return String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 async function loadSidebarMenuAdmin() {
     try {
@@ -2961,24 +2982,37 @@ async function loadSidebarMenuAdmin() {
 function renderSmList() {
     const el = document.getElementById('smList');
     if (!el) return;
-    const btn = 'background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:11px;padding:3px 8px;flex-shrink:0;';
     el.innerHTML = SM_ROWS.map((r, i) => {
-        const mv = `<button style="${btn}" onclick="smMove(${i},-1)" title="위로" ${i===0?'disabled':''}>▲</button>
-                    <button style="${btn}" onclick="smMove(${i},1)" title="아래로" ${i===SM_ROWS.length-1?'disabled':''}>▼</button>`;
+        const ctl = `<span class="sm-ctl">
+            <button class="sm-ico" onclick="smMove(${i},-1)" title="위로" ${i===0?'disabled':''}>▲</button>
+            <button class="sm-ico" onclick="smMove(${i},1)" title="아래로" ${i===SM_ROWS.length-1?'disabled':''}>▼</button>
+            ${r.t!=='menu' ? `<button class="sm-ico del" onclick="smRemove(${i})" title="삭제">✕</button>` : ''}</span>`;
+        const grip = `<span class="sm-grip" title="드래그하여 이동">⠿</span>`;
         if (r.t === 'menu') {
-            return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;">
-                <span style="flex:1;font-size:13px;font-weight:600;">${smEsc(SM_LABELS[r.k] || r.k)}</span>${mv}</div>`;
+            return `<div class="sm-row menu" draggable="true" data-i="${i}">${grip}<span class="sm-name">${smEsc(SM_LABELS[r.k] || r.k)}</span>${ctl}</div>`;
         }
         if (r.t === 'label') {
-            return `<div style="display:flex;align-items:center;gap:8px;border:1px dashed var(--border);border-radius:8px;padding:6px 10px;background:var(--surface2);">
-                <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;">섹션</span>
-                <input class="field-input" value="${smEsc(r.text)}" maxlength="30" style="flex:1;padding:4px 8px;font-size:12px;" oninput="SM_ROWS[${i}].text=this.value">
-                ${mv}<button style="${btn}color:var(--red, #dc2626);border-color:var(--red, #dc2626);" onclick="smRemove(${i})">✕</button></div>`;
+            return `<div class="sm-row sec" draggable="true" data-i="${i}">${grip}<span class="sm-tag">섹션</span>
+                <input class="sm-input" value="${smEsc(r.text)}" maxlength="30" placeholder="섹션 이름" oninput="SM_ROWS[${i}].text=this.value">${ctl}</div>`;
         }
-        return `<div style="display:flex;align-items:center;gap:8px;border:1px dashed var(--border);border-radius:8px;padding:6px 10px;background:var(--surface2);">
-            <span style="flex:1;font-size:11px;color:var(--text-muted);text-align:center;">── 구분선 ──</span>
-            ${mv}<button style="${btn}color:var(--red, #dc2626);border-color:var(--red, #dc2626);" onclick="smRemove(${i})">✕</button></div>`;
+        return `<div class="sm-row gap" draggable="true" data-i="${i}">${grip}<span class="sm-gaptext">구분선</span>${ctl}</div>`;
     }).join('') || '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+
+    // 드래그 정렬 — 행을 집어 원하는 위치에 놓기 (▲▼ 버튼과 병행)
+    el.querySelectorAll('.sm-row').forEach(row => {
+        row.addEventListener('dragstart', e => { SM_DRAG = parseInt(row.dataset.i, 10); e.dataTransfer.effectAllowed = 'move'; });
+        row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('drag-over'); });
+        row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+        row.addEventListener('drop', e => {
+            e.preventDefault();
+            const to = parseInt(row.dataset.i, 10);
+            if (SM_DRAG === null || SM_DRAG === to) return;
+            const [moved] = SM_ROWS.splice(SM_DRAG, 1);
+            SM_ROWS.splice(to, 0, moved);
+            SM_DRAG = null;
+            renderSmList();
+        });
+    });
 }
 function smMove(i, dir) {
     const j = i + dir;
@@ -2988,8 +3022,9 @@ function smMove(i, dir) {
 }
 function smRemove(i) { SM_ROWS.splice(i, 1); renderSmList(); }
 function smAddRow(t) {
-    SM_ROWS.unshift(t === 'label' ? { t:'label', text:'새 섹션' } : { t:'gap' });
+    SM_ROWS.unshift(t === 'label' ? { t:'label', text:'' } : { t:'gap' });
     renderSmList();
+    if (t === 'label') document.querySelector('#smList .sm-input')?.focus();
 }
 async function smSave(btn) {
     const rows = SM_ROWS.filter(r => r.t !== 'label' || (r.text || '').trim() !== '');

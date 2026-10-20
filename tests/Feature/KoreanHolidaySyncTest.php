@@ -19,7 +19,7 @@ class KoreanHolidaySyncTest extends TestCase
         // holidays-kr(공공데이터 기반) — 대체공휴일이 정확한 한글 명칭으로 온다
         $thisYear = now()->year;
         Http::fake([
-            'holidays.hyunbin.page/basic.json' => Http::response([
+            '*' => Http::response([
                 '2018-01-01' => ['신정'], // 유지 범위(작년~) 밖 — 저장 안 함
                 "{$thisYear}-10-03" => ['개천절'],
                 "{$thisYear}-10-05" => ['대체공휴일'],
@@ -39,7 +39,7 @@ class KoreanHolidaySyncTest extends TestCase
     public function test_sync_failure_keeps_previous_data(): void
     {
         Setting::set('kr_holidays', json_encode(['2026-01-01' => '새해']));
-        Http::fake(['holidays.hyunbin.page/*' => Http::response('err', 500)]);
+        Http::fake(['*' => Http::response('err', 500)]); // 모든 소스 실패
 
         $this->artisan('holidays:sync')->assertFailed();
         $this->assertSame('새해', json_decode(Setting::get('kr_holidays'), true)['2026-01-01']);
@@ -67,5 +67,36 @@ class KoreanHolidaySyncTest extends TestCase
 
         $this->artisan('holidays:sync')->assertExitCode(0);
         $this->assertStringContainsString('신정', (string) Setting::get(SyncKoreanHolidays::SETTING_KEY));
+    }
+
+    public function test_nested_year_format_is_flattened(): void
+    {
+        // 소스가 2026년부터 {연도: {날짜: [이름]}} 중첩 형식으로 바뀜 — 평면/중첩 모두 지원
+        $year = now()->year;
+        Http::fake(['*' => Http::response([
+            (string) $year => [
+                "{$year}-01-01" => ['1월 1일'],
+                "{$year}-05-05" => ['어린이날', '부처님 오신 날'],
+            ],
+            '2018' => ['2018-01-01' => ['신정']], // 사용 범위 밖 — 제외
+        ])]);
+
+        $this->artisan('holidays:sync')->assertExitCode(0);
+        $saved = (string) Setting::get(SyncKoreanHolidays::SETTING_KEY);
+        $this->assertStringContainsString("{$year}-05-05", $saved);
+        $this->assertStringContainsString('어린이날·부처님 오신 날', $saved);
+        $this->assertStringNotContainsString('2018-01-01', $saved);
+    }
+
+    public function test_falls_back_to_second_source_when_first_fails(): void
+    {
+        $year = now()->year;
+        Http::fake([
+            'raw.githubusercontent.com/*' => Http::response('', 500),
+            'holidays.hyunbin.page/*' => Http::response([(string) $year => ["{$year}-01-01" => ['1월 1일']]]),
+        ]);
+
+        $this->artisan('holidays:sync')->assertExitCode(0);
+        $this->assertStringContainsString("{$year}-01-01", (string) Setting::get(SyncKoreanHolidays::SETTING_KEY));
     }
 }
