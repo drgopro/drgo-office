@@ -107,6 +107,43 @@ class Product extends Model
         return max(0, (int) $this->sale_price - $this->activeDiscountAmount());
     }
 
+    /**
+     * 종료 일시가 지난 기간 할인 일괄 해제 — 할인 필드 초기화 + 이력에 '기간 종료' 기록.
+     * 스케줄(30분)과 제품 목록 로드 시점에 호출되어, 만료되면 바로 해제된 상태로 보인다.
+     * 동시 요청 중복 방지를 위해 조건부 update가 성공한 건만 이력을 남긴다.
+     */
+    public static function clearExpiredDiscounts(): int
+    {
+        $expired = static::where('discount_amount', '>', 0)
+            ->whereNotNull('discount_ends_at')
+            ->where('discount_ends_at', '<', now())
+            ->get();
+
+        $count = 0;
+        foreach ($expired as $product) {
+            $cleared = static::whereKey($product->id)
+                ->where('discount_amount', '>', 0)
+                ->whereNotNull('discount_ends_at')
+                ->where('discount_ends_at', '<', now())
+                ->update(['discount_amount' => 0, 'discount_starts_at' => null, 'discount_ends_at' => null, 'updated_at' => now()]);
+            if (! $cleared) {
+                continue; // 다른 요청이 먼저 처리
+            }
+            ProductDiscountLog::create([
+                'product_id' => $product->id,
+                'action' => 'expire',
+                'sale_price' => (int) $product->sale_price,
+                'discount_amount' => (int) $product->discount_amount,
+                'discount_starts_at' => $product->discount_starts_at,
+                'discount_ends_at' => $product->discount_ends_at,
+                'user_id' => null, // 시스템 자동 처리
+            ]);
+            $count++;
+        }
+
+        return $count;
+    }
+
     /** 기간 할인 이력 (설정/변경/해제 기록) */
     public function discountLogs()
     {

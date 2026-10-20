@@ -177,8 +177,9 @@ class ProductPeriodDiscountTest extends TestCase
         // 진행 중인 할인은 expired 아님 + 제품 목록에 이력 건수 포함
         $logsB = $this->actingAs($this->admin)->getJson("/api/inventory/discount-logs?product_id={$b->id}")->json('data');
         $this->assertFalse($logsB[0]['expired']);
+        // 목록 로드가 만료 할인을 즉시 정리하므로 a는 설정 + 기간 종료 = 2건
         $rows = $this->actingAs($this->admin)->getJson('/api/inventory/products?per_page=50')->json('data');
-        $this->assertSame(1, collect($rows)->firstWhere('id', $a->id)['discount_logs_count']);
+        $this->assertSame(2, collect($rows)->firstWhere('id', $a->id)['discount_logs_count']);
     }
 
     public function test_expired_discounts_are_cleared_by_command_with_expire_log(): void
@@ -207,6 +208,26 @@ class ProductPeriodDiscountTest extends TestCase
         // 다시 실행해도 중복 기록 없음
         $this->artisan('products:expire-discounts')->assertSuccessful();
         $this->assertSame(1, $expired->discountLogs()->count());
+    }
+
+    public function test_expired_discount_clears_immediately_on_list_load(): void
+    {
+        // 스케줄을 기다리지 않고 — 제품 목록을 여는 순간 만료 할인 해제 (모달 체크 해제 상태)
+        $expired = $this->makeProduct(['name' => '방금 만료', 'discount_amount' => 300000,
+            'discount_starts_at' => now()->subHours(2), 'discount_ends_at' => now()->subMinute()]);
+
+        $rows = $this->actingAs($this->admin)->getJson('/api/inventory/products?per_page=50')->assertOk()->json('data');
+
+        $row = collect($rows)->firstWhere('id', $expired->id);
+        $this->assertSame(0, (int) $row['discount_amount']);
+        $this->assertNull($row['discount_ends_at']);
+        $this->assertSame('expire', $expired->discountLogs()->latest('id')->first()->action);
+
+        // 견적 빌더 카탈로그도 동일
+        $expired2 = $this->makeProduct(['name' => '빌더 만료', 'discount_amount' => 10000, 'discount_ends_at' => now()->subMinute()]);
+        $est = collect($this->actingAs($this->admin)->getJson('/api/inventory/estimate-products')->json());
+        $this->assertFalse($est->firstWhere('name', '빌더 만료')['discount_active']);
+        $this->assertSame(0, $expired2->fresh()->discount_amount);
     }
 
     public function test_print_shows_limited_period_notice(): void

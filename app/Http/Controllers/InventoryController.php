@@ -239,6 +239,9 @@ class InventoryController extends Controller
             );
         }
 
+        // 종료된 기간 할인은 목록을 여는 순간 바로 해제 상태로 (30분 스케줄을 기다리지 않음)
+        Product::clearExpiredDiscounts();
+
         $query = Product::with('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory', 'group')
             ->withCount('discountLogs') // 제품 모달 '할인 이력 N건' 표시용
             ->where('is_active', true);
@@ -969,6 +972,8 @@ class InventoryController extends Controller
 
     public function estimateProducts(Request $request)
     {
+        Product::clearExpiredDiscounts(); // 견적 빌더 리스트도 만료 할인 즉시 해제 반영
+
         $query = Product::with('inventory', 'categoryRelation.parent.parent.parent', 'group', 'bundleItems.component.inventory')
             ->where('is_active', true)
             ->where('show_in_estimate', true);

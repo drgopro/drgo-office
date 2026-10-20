@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Product;
-use App\Models\ProductDiscountLog;
 use Illuminate\Console\Command;
 
 /**
@@ -18,29 +17,9 @@ class ExpireProductDiscounts extends Command
 
     public function handle(): int
     {
-        $expired = Product::where('discount_amount', '>', 0)
-            ->whereNotNull('discount_ends_at')
-            ->where('discount_ends_at', '<', now())
-            ->get();
+        $count = Product::clearExpiredDiscounts();
 
-        foreach ($expired as $product) {
-            ProductDiscountLog::create([
-                'product_id' => $product->id,
-                'action' => 'expire',
-                'sale_price' => (int) $product->sale_price,
-                'discount_amount' => (int) $product->discount_amount,
-                'discount_starts_at' => $product->discount_starts_at,
-                'discount_ends_at' => $product->discount_ends_at,
-                'user_id' => null, // 시스템 자동 처리
-            ]);
-            $product->update([
-                'discount_amount' => 0,
-                'discount_starts_at' => null,
-                'discount_ends_at' => null,
-            ]);
-        }
-
-        $this->info("기간 종료 할인 {$expired->count()}건 해제");
+        $this->info("기간 종료 할인 {$count}건 해제");
 
         return self::SUCCESS;
     }
