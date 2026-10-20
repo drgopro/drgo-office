@@ -46,9 +46,10 @@ class ProjectDocumentAlbumIndexTest extends TestCase
         $old->forceFill(['created_at' => now()->subDay()])->save();
         ClientDocument::create(['client_id' => $client->id, 'file_name' => 'new-c.png', 'file_path' => 'x/nc.png', 'mime_type' => 'image/png', 'file_size' => 10]);
 
-        $html = $this->actingAs($admin)->get("/clients/{$client->id}")->assertOk()->getContent();
-
-        $this->assertSame(1, preg_match('/onclick="openAlbum\((\d+)\)"[^>]*>(?:(?!doc-thumb-card).)*?new-c\.png/s', $html, $m), '최신 문서 카드를 찾지 못함');
-        $this->assertSame('0', $m[1], '최신 문서 카드의 앨범 인덱스가 0이 아님 (역순 버그)');
+        // 구 상세 페이지는 기준 화면으로 리다이렉트 — 문서 목록은 detail API 순서(최신순)를
+        // 기준 화면 JS가 그대로 사용하므로, API 정렬이 곧 앨범 순서다 (역순 버그 회귀 방지)
+        $docs = $this->actingAs($admin)->getJson("/api/clients/{$client->id}/detail")->assertOk()->json('documents');
+        $this->assertSame('new-c.png', $docs[0]['file_name'], '최신 문서가 첫 번째(앨범 인덱스 0)가 아님');
+        $this->assertSame('old-c.png', $docs[1]['file_name']);
     }
 }

@@ -43,9 +43,9 @@ class ClientController extends Controller
     // 상세
     public function show(Client $client)
     {
-        $client->load('assignedUser', 'projects', 'documents', 'estimates.creator');
-
-        return view('clients.show', compact('client'));
+        // 의뢰자 정보 화면 통일 — 캘린더/프로젝트/대시보드 어디서 열어도
+        // 기준 화면(의뢰자 목록의 상세 탭)이 열리도록 구 상세 페이지를 리다이렉트
+        return redirect('/clients?open='.$client->id);
     }
 
     // 등록 폼 — 기준 화면(의뢰자 목록의 등록 모달)으로 통합
@@ -492,7 +492,7 @@ class ClientController extends Controller
                     'created_at' => $d->created_at->format('Y.m.d'),
                 ]),
             ]),
-            'documents' => $client->documents->map(fn ($d) => [
+            'documents' => $client->documents->sortByDesc('created_at')->values()->map(fn ($d) => [
                 'id' => $d->id,
                 'file_name' => $d->file_name,
                 'mime_type' => $d->mime_type,

@@ -37,8 +37,10 @@ class ClientEstimateLinkTest extends TestCase
 
         $this->assertSame(1, $client->fresh()->estimates->count()); // temp 제외
 
-        // 상세 페이지 표시 + 목록 페이지 딥링크(client_id 자동 생성) 스크립트 렌더
-        $this->actingAs($user)->get("/clients/{$client->id}")->assertOk()->assertSee('견적서 (1건)');
+        // 구 상세 페이지는 기준 화면(상세 탭)으로 리다이렉트, 데이터는 detail API로 제공
+        $this->actingAs($user)->get("/clients/{$client->id}")->assertRedirect("/clients?open={$client->id}");
+        $detail = $this->actingAs($user)->getJson("/api/clients/{$client->id}/detail")->assertOk()->json();
+        $this->assertCount(1, $detail['estimates']); // temp 제외
         $this->actingAs($user)->get('/estimates')->assertOk()->assertSee('createEstimate(qcid)', false);
         $this->actingAs($user)->get('/clients')->assertOk()
             ->assertSee('createEstimateForClient', false)

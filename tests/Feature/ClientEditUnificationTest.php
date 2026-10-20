@@ -37,13 +37,13 @@ class ClientEditUnificationTest extends TestCase
             ->assertSee("urlParams.get('new')", false);
     }
 
-    public function test_show_page_edit_button_targets_detail_edit_mode(): void
+    public function test_legacy_show_page_redirects_to_detail_tab(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $client = Client::create(['nickname' => '유라', 'grade' => 'normal']);
 
-        $this->actingAs($admin)->get("/clients/{$client->id}")->assertOk()
-            ->assertSee("/clients?open={$client->id}&edit=1", false)
-            ->assertDontSee("/clients/{$client->id}/edit", false);
+        // 캘린더/프로젝트 등 어디서 /clients/{id}를 열어도 기준 화면(상세 탭)으로
+        $this->actingAs($admin)->get("/clients/{$client->id}")
+            ->assertRedirect("/clients?open={$client->id}");
     }
 }
