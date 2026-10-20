@@ -488,6 +488,9 @@ class ClientController extends Controller
             'inflow_source' => $client->inflow_source,
             'client_type' => $client->client_type,
             'custom_data' => $client->custom_data ?? new \stdClass,
+            // 마케팅 활용 동의 횟수 — 이 의뢰자의 프로젝트 중 동의 건수 (거부/미확인은 별도)
+            'marketing_consent_count' => $client->projects->where('marketing_consent', true)->count(),
+            'marketing_denied_count' => $client->projects->filter(fn ($p) => $p->marketing_consent === false)->count(),
             'last_project_equipment' => $lastProjectEquipment,
             'equipment_project_id' => $client->equipment_project_id, // 대표 장비 프로젝트 고정
 

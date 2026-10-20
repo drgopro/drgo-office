@@ -2352,6 +2352,7 @@ function renderClientView(d) {
         ${cvField('유입경로', CV_SRC[d.inflow_source] || '')}
         ${cvField('의뢰자 유형', CV_TYPE[d.client_type] || '')}
         ${cvField('등록일', d.created_at)}
+        <div><div class="cv-l">마케팅 활용 동의</div><div class="cv-v">${d.marketing_consent_count ? `<span style="color:var(--accent);font-weight:700;">동의 ${d.marketing_consent_count}회</span>` : '<span class="dim">동의 이력 없음</span>'}${d.marketing_denied_count ? ` <span style="color:var(--red, #dc2626);font-size:12px;">· 거부 ${d.marketing_denied_count}회</span>` : ''}</div></div>
         ${cvField((d.extra_addresses||[]).length ? '주소 1 (메인)' : '주소', addr, true)}
         ${(d.extra_addresses||[]).map((a, i) => cvField(`주소 ${i+2}`, [a.address, a.address_detail].filter(Boolean).join(', '), true)).join('')}
         ${cvField('특이사항', d.important_memo, true)}

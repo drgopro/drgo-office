@@ -69,6 +69,25 @@ class ProjectController extends Controller
             }
         }
 
+        // 마케팅 활용 동의 필터 (agreed/denied/unknown — 단일/콤마/배열)
+        if ($mk = $request->query('marketing')) {
+            $vals = is_array($mk)
+                ? array_values(array_filter($mk))
+                : array_values(array_filter(array_map('trim', explode(',', (string) $mk))));
+            $vals = array_intersect($vals, ['agreed', 'denied', 'unknown']);
+            if (! empty($vals)) {
+                $query->where(function ($q) use ($vals) {
+                    foreach ($vals as $v) {
+                        match ($v) {
+                            'agreed' => $q->orWhere('marketing_consent', true),
+                            'denied' => $q->orWhere('marketing_consent', false),
+                            'unknown' => $q->orWhereNull('marketing_consent'),
+                        };
+                    }
+                });
+            }
+        }
+
         // 유형 필터 (단일/콤마 구분/배열 모두 지원)
         if ($type = $request->query('project_type')) {
             $types = is_array($type)

@@ -198,6 +198,10 @@
         $selectedTypes = is_array($rawType)
             ? array_filter($rawType)
             : array_filter(array_map('trim', explode(',', (string) $rawType)));
+        $rawMk = request('marketing');
+        $selectedMarketing = is_array($rawMk)
+            ? array_filter($rawMk)
+            : array_filter(array_map('trim', explode(',', (string) $rawMk)));
         $rawTag = request('tag');
         $selectedTags = is_array($rawTag)
             ? array_filter($rawTag)
@@ -236,7 +240,7 @@
                 <button type="button" class="search-clear" title="검색어 지우기" onclick="const f=this.closest('form'); f.querySelector('.search-input').value=''; f.submit();">✕</button>
             </span>
             <button type="submit" class="btn-search">검색</button>
-            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || request('search') || request()->boolean('has_report'))
+            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || !empty($selectedMarketing) || request('search') || request()->boolean('has_report'))
                 <a href="{{ $statusTab !== 'active' ? route('projects.index', ['status' => $statusTab]) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
@@ -260,6 +264,17 @@
             </div>
         </div>
         @endif
+        <div class="filter-group">
+            <span class="filter-label">마케팅</span>
+            <div class="filter-chips">
+            @foreach(['agreed' => '동의', 'denied' => '거부', 'unknown' => '미확인'] as $mv => $ml)
+                <label class="chip-toggle">
+                    <input type="checkbox" name="marketing[]" value="{{ $mv }}" {{ in_array($mv, $selectedMarketing, true) ? 'checked' : '' }}>
+                    <span class="chip">{{ $ml }}</span>
+                </label>
+            @endforeach
+            </div>
+        </div>
         <div class="filter-group">
             <span class="filter-label">보고</span>
             <div class="filter-chips">
