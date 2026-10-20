@@ -178,7 +178,7 @@
         </div>
         <div style="display:flex; gap:8px;">
             <button class="btn-edit" onclick="openActivityLog('Client',{{ $client->id }},'{{ $client->name ?: $client->nickname }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
-            <a href="{{ route('clients.edit', $client) }}" class="btn-edit">수정</a>
+            <a href="/clients?open={{ $client->id }}&edit=1" class="btn-edit" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('clients','/clients?open={{ $client->id }}&edit=1'); else location.href=this.href;">수정</a>
             <a href="#" class="btn-primary" onclick="openProjectModal(); return false;">+ 프로젝트</a>
         </div>
     </div>

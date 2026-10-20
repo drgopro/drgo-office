@@ -48,10 +48,10 @@ class ClientController extends Controller
         return view('clients.show', compact('client'));
     }
 
-    // 등록 폼
+    // 등록 폼 — 기준 화면(의뢰자 목록의 등록 모달)으로 통합
     public function create()
     {
-        return view('clients.form', ['client' => null]);
+        return redirect('/clients?new=1');
     }
 
     // 저장
@@ -290,7 +290,8 @@ class ClientController extends Controller
     // 수정 폼
     public function edit(Client $client)
     {
-        return view('clients.form', compact('client'));
+        // 구(舊) 수정 폼은 항목·순서가 달라 혼선 — 기준 화면(의뢰자 상세의 수정 모드)으로 통합
+        return redirect('/clients?open='.$client->id.'&edit=1');
     }
 
     // 업데이트

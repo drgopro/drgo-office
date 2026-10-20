@@ -830,8 +830,11 @@ loadClientList(__savedClientState.page || 1).then(async () => {
     const openId = urlParams.get('open');
     if (openId) {
         await openClient(parseInt(openId));
+        // 구 수정 페이지에서 통합 — ?edit=1이면 바로 수정 모드로
+        if (urlParams.get('edit') === '1' && CAN_CLIENT_EDIT) clientEditMode(parseInt(openId), true);
         history.replaceState(null, '', window.location.pathname);
     } else {
+        if (urlParams.get('new') === '1') { openNewClientModal(); history.replaceState(null, '', window.location.pathname); }
         await restoreClientTabs();
     }
 });
