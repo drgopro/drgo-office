@@ -233,6 +233,7 @@
             <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')"><x-icon name="gear" :size="13"/> 연결도 에디터</button>
             @if(auth()->user()->isAdmin())
                 <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="genUpdateNoteDraft()">⚡ 업데이트 초안 생성</button>
+                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:12px;" onclick="openWikiTrash()" title="삭제된 게시물 — 복구하거나 영구 삭제할 수 있습니다 (기존 공지사항 게시물도 새 게시판으로 이관 후 여기 보관)">🗑 삭제된 게시물</button>
             @endif
         </div>
     </div>
@@ -323,7 +324,6 @@
                     <select class="field-input" name="type" onchange="document.getElementById('wikiModalCatWrap').style.display=this.value==='normal'?'':'none'">
                         <option value="normal">일반 문서</option>
                         @if(auth()->user()->isAdmin())
-                        <option value="notice">공지사항</option>
                         <option value="update">업데이트</option>
                         @endif
                         <option value="meeting">회의록</option>
@@ -371,6 +371,18 @@
 
 @if(auth()->user()->isAdmin())
 <!-- 카테고리 편집 모달 -->
+{{-- 삭제된 게시물 보관함 — 관리자 전용 --}}
+<div class="ce-overlay" id="wikiTrashModal">
+    <div class="ce-modal" style="max-width:560px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <b style="font-size:15px;">🗑 삭제된 게시물</b>
+            <button onclick="document.getElementById('wikiTrashModal').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
+        <div id="wikiTrashList" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+</div>
+
 <div class="ce-overlay" id="catEditModal">
     <div class="ce-modal">
         <div class="ce-head"><span><x-icon name="folder" :size="14"/> 카테고리 편집</span><button class="ce-mini" onclick="closeCatEditor()"><x-icon name="close" :size="14"/></button></div>
@@ -691,7 +703,7 @@ function updateSelCount() {
 function buildSelTargetOptions() {
     const sel = document.getElementById('wikiSelTarget');
     const childMap = wikiChildrenMap(WIKI_TREE_DATA);
-    const boardTypes = WIKI_IS_ADMIN ? ['notice', 'update', 'meeting'] : ['meeting'];
+    const boardTypes = WIKI_IS_ADMIN ? ['update', 'meeting'] : ['meeting']; // 공지는 독립 게시판으로 분리
     let opts = '<optgroup label="게시판">' + boardTypes.map(t => `<option value="type:${t}">${WIKI_TYPE_LABELS[t]}</option>`).join('') + '</optgroup>';
     opts += '<optgroup label="카테고리"><option value="">(미분류)</option>';
     function walk(parentId, depth) {
@@ -905,6 +917,41 @@ async function ceDelete(id) {
     CE_DIRTY = true; await ceFetch();
 }
 document.getElementById('catEditModal')?.addEventListener('click', e => { if (e.target.id === 'catEditModal') closeCatEditor(); });
+
+// ── 삭제된 게시물 보관함 (관리자) ──
+async function openWikiTrash() {
+    const list = document.getElementById('wikiTrashList');
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+    document.getElementById('wikiTrashModal').classList.add('open');
+    let rows = [];
+    try { const res = await fetch('/api/wiki/trash', { headers:{'Accept':'application/json'} }); if (res.ok) rows = await res.json(); } catch (e) {}
+    if (!rows.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">삭제된 게시물이 없습니다.</div>'; return; }
+    list.innerHTML = rows.map(r => `
+        <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:9px;padding:9px 12px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${wikiEsc(r.title)}</div>
+                <div style="font-size:11px;color:var(--text-muted);">${wikiEsc(r.type_label)} · ${wikiEsc(r.creator)} · 삭제 ${r.deleted_at}</div>
+            </div>
+            <button class="btn-new" style="background:none;border:1px solid var(--accent);color:var(--accent);cursor:pointer;font-size:11.5px;padding:5px 10px;" onclick="wikiTrashRestore(${r.id}, this)">복구</button>
+            <button class="btn-new" style="background:none;border:1px solid var(--red, #dc2626);color:var(--red, #dc2626);cursor:pointer;font-size:11.5px;padding:5px 10px;" onclick="wikiTrashForce(${r.id}, this)">영구 삭제</button>
+        </div>`).join('');
+}
+async function wikiTrashRestore(id, btn) {
+    if (!confirm('이 게시물을 복구할까요? 원래 분류의 목록으로 돌아갑니다.')) return;
+    btn.disabled = true;
+    const res = await fetch(`/api/wiki/trash/${id}/restore`, { method:'POST', headers:{'X-CSRF-TOKEN':WIKI_CSRF,'Accept':'application/json'} });
+    if (!res.ok) { alert('복구에 실패했습니다.'); btn.disabled = false; return; }
+    location.reload();
+}
+async function wikiTrashForce(id, btn) {
+    if (!confirm('이 게시물을 영구 삭제할까요?\n되돌릴 수 없습니다.')) return;
+    btn.disabled = true;
+    const res = await fetch(`/api/wiki/trash/${id}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':WIKI_CSRF,'Accept':'application/json'} });
+    if (!res.ok) { alert('영구 삭제에 실패했습니다.'); btn.disabled = false; return; }
+    openWikiTrash();
+}
+document.getElementById('wikiTrashModal')?.addEventListener('click', e => { if (e.target.id === 'wikiTrashModal') e.target.classList.remove('open'); });
+
 
 function openWikiModal() { document.getElementById('wikiModal').classList.add('open'); }
 function closeWikiModal() { document.getElementById('wikiModal').classList.remove('open'); }

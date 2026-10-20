@@ -328,15 +328,15 @@ class ChannelTalkDigestTest extends TestCase
         $this->actingAs($member)->get('/admin/channeltalk-test')->assertForbidden();
     }
 
-    // === 위키 공지사항 알림 ===
+    // === 공지사항 게시판 알림 (위키에서 분리) ===
 
-    public function test_wiki_notice_publish_sends_mention_all(): void
+    public function test_notice_publish_sends_mention_all(): void
     {
         $this->fakeChannelApis();
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->postJson('/wiki', [
-            'title' => '8월 휴무 안내', 'type' => 'notice', 'content' => '<p>내용</p>',
+        $this->actingAs($admin)->postJson('/notices', [
+            'title' => '8월 휴무 안내', 'content' => '<p>내용</p>',
         ])->assertCreated();
 
         Http::assertSent(function ($request) {
@@ -351,20 +351,20 @@ class ChannelTalkDigestTest extends TestCase
         });
     }
 
-    public function test_wiki_notice_draft_notifies_on_publish_only(): void
+    public function test_notice_draft_notifies_on_publish_only(): void
     {
         $this->fakeChannelApis();
         $admin = User::factory()->create(['role' => 'admin']);
 
         // 임시저장 — 알림 없음
-        $res = $this->actingAs($admin)->postJson('/wiki', [
-            'title' => '초안 공지', 'type' => 'notice', 'content' => '<p>내용</p>', 'is_draft' => 1,
+        $res = $this->actingAs($admin)->postJson('/notices', [
+            'title' => '초안 공지', 'content' => '<p>내용</p>', 'is_draft' => 1,
         ]);
         $res->assertCreated();
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/groups/'));
 
         // 발행 — 알림 발송
-        $this->actingAs($admin)->patchJson('/wiki/'.$res->json('id'), ['is_draft' => 0])->assertOk();
+        $this->actingAs($admin)->patchJson('/notices/'.$res->json('id'), ['is_draft' => 0])->assertOk();
         Http::assertSent(fn ($request) => str_contains($request->url(), '/groups/')
             && str_contains($request['blocks'][0]['value'] ?? '', '초안 공지'));
     }
@@ -374,24 +374,25 @@ class ChannelTalkDigestTest extends TestCase
         $this->fakeChannelApis();
         $admin = User::factory()->create(['role' => 'admin']);
 
-        // 일반 문서 — 알림 없음
+        // 일반 문서 — 게시물 알림(새 글 톡방)은 가되, 전체 멘션 공지 알림은 없음
         $this->actingAs($admin)->postJson('/wiki', [
             'title' => '일반 문서', 'type' => 'normal', 'content' => '<p>내용</p>',
         ])->assertCreated();
-        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/groups/'));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/groups/')
+            && str_contains($request['blocks'][0]['value'] ?? '', '새 공지사항'));
 
         // 발행된 공지의 단순 내용 수정 — 추가 알림 없음
-        $res = $this->actingAs($admin)->postJson('/wiki', [
-            'title' => '공지', 'type' => 'notice', 'content' => '<p>내용</p>',
+        $res = $this->actingAs($admin)->postJson('/notices', [
+            'title' => '공지', 'content' => '<p>내용</p>',
         ]);
         $sentBefore = 1; // 위 공지 등록으로 1회 발송
-        $this->actingAs($admin)->patchJson('/wiki/'.$res->json('id'), ['content' => '<p>수정</p>'])->assertOk();
+        $this->actingAs($admin)->patchJson('/notices/'.$res->json('id'), ['content' => '<p>수정</p>'])->assertOk();
         $sent = 0;
         Http::recorded(function ($request) use (&$sent) {
-            if (str_contains($request->url(), '/groups/')) {
+            if (str_contains($request->url(), '/groups/') && str_contains($request['blocks'][0]['value'] ?? '', '새 공지사항')) {
                 $sent++;
             }
         });
-        $this->assertSame($sentBefore, $sent, '내용 수정으로는 추가 알림이 없어야 함');
+        $this->assertSame($sentBefore, $sent, '내용 수정으로는 추가 공지 알림이 없어야 함');
     }
 }

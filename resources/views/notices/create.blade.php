@@ -1,6 +1,6 @@
 @extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
 
-@section('title', '새 문서 작성 - 위키')
+@section('title', '새 공지 작성 - 공지사항')
 
 @push('styles')
 <style>

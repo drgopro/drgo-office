@@ -393,10 +393,10 @@
         <div class="dcard">
             <div class="dcard-head">
                 공지사항
-                <a class="dc-link" href="/wiki?type=notice" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki?type=notice'); else location.href=this.href;">전체 보기 →</a>
+                <a class="dc-link" href="/notices" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('notices','/notices'); else location.href=this.href;">전체 보기 →</a>
             </div>
             @forelse($wikiNoticeList as $w)
-                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('wiki','/wiki/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/wiki/{{ $w->id }}';">
+                <div class="nu-row" onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('notices','/notices/{{ $w->id }}','{{ addslashes($w->title) }}'); else location.href='/notices/{{ $w->id }}';">
                     <span class="nu-badge notice">공지</span>
                     <span class="nu-title">{{ $w->title }}</span>
                     <span class="nu-date">{{ $w->created_at->format('m.d') }}</span>

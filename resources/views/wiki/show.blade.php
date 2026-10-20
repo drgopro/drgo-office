@@ -310,7 +310,6 @@
                 <select class="field-input" id="editType" onchange="document.getElementById('editCatWrap').style.display=this.value==='normal'?'':'none'">
                     <option value="normal" @selected($wiki->type === 'normal')>일반 문서</option>
                     @if(auth()->user()->isAdmin())
-                    <option value="notice" @selected($wiki->type === 'notice')>공지사항</option>
                     <option value="update" @selected($wiki->type === 'update')>업데이트</option>
                     @endif
                     <option value="meeting" @selected($wiki->type === 'meeting')>회의록</option>

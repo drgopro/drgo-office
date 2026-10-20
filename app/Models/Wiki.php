@@ -4,13 +4,15 @@ namespace App\Models;
 
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Wiki extends Model
 {
     use LogsActivity;
+    use SoftDeletes; // 삭제된 게시물 — 관리자 전용 보관함에서 복구/영구 삭제
 
-    /** 특수 유형(카테고리와 별개로 고정 섹션 관리) — 코드 → 라벨 */
-    public const SPECIAL_TYPES = ['notice' => '공지사항', 'update' => '업데이트', 'meeting' => '회의록'];
+    /** 특수 유형(카테고리와 별개로 고정 섹션 관리) — 코드 → 라벨. 공지사항은 독립 게시판(/notices)으로 분리됨 */
+    public const SPECIAL_TYPES = ['update' => '업데이트', 'meeting' => '회의록'];
 
     /** 특수 유형 중 관리자만 작성/수정/삭제할 수 있는 유형 (회의록은 전 직원 가능) */
     public const ADMIN_ONLY_TYPES = ['notice', 'update'];

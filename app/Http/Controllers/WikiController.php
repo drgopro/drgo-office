@@ -24,7 +24,7 @@ class WikiController extends Controller
     public function index(Request $request)
     {
         $me = Auth::user();
-        $query = Wiki::published()->visibleTo($me)->with('creator', 'updater')->withCount('comments');
+        $query = Wiki::published()->visibleTo($me)->where('type', '!=', 'notice')->with('creator', 'updater')->withCount('comments'); // 공지는 독립 게시판으로 분리
 
         // 검색어 — 공백으로 나눈 모든 단어가 제목 또는 본문에 있어야 한다 (단어별 AND).
         // mysql whereFullText는 한글 토크나이징이 안 되고(단어 중간 매칭 불가)
@@ -177,7 +177,7 @@ class WikiController extends Controller
             'title' => 'required|string|max:200',
             'category' => 'nullable|string|max:50',
             'category_id' => 'nullable|integer|exists:wiki_categories,id',
-            'type' => 'nullable|in:normal,notice,update,meeting',
+            'type' => 'nullable|in:normal,update,meeting',
             'content' => 'required|string',
             'is_pinned' => 'boolean',
             'is_draft' => 'boolean', // 자동저장 = 임시저장 (목록 미노출)
@@ -216,7 +216,7 @@ class WikiController extends Controller
             'title' => 'sometimes|string|max:200',
             'category' => 'sometimes|nullable|string|max:50',
             'category_id' => 'sometimes|nullable|integer|exists:wiki_categories,id',
-            'type' => 'sometimes|in:normal,notice,update,meeting',
+            'type' => 'sometimes|in:normal,update,meeting',
             'content' => 'sometimes|string',
             'is_pinned' => 'boolean',
             'is_draft' => 'sometimes|boolean',
@@ -279,7 +279,7 @@ class WikiController extends Controller
             'ids' => 'required|array|min:1',
             'ids.*' => 'integer|exists:wikis,id',
             'category_id' => 'nullable|integer|exists:wiki_categories,id',
-            'type' => 'nullable|in:notice,update,meeting',
+            'type' => 'nullable|in:update,meeting',
         ]);
 
         $targetType = $validated['type'] ?? null;
@@ -494,6 +494,43 @@ class WikiController extends Controller
             Wiki::published()->get(['id', 'sort_order', 'is_pinned'])
                 ->map(fn ($w) => ['id' => $w->id, 'sort_order' => $w->sort_order, 'is_pinned' => (bool) $w->is_pinned])
         );
+    }
+
+    /** 삭제된 게시물 보관함 — 관리자 전용 (복구/영구 삭제 전까지 보존) */
+    public function trash()
+    {
+        abort_unless(Auth::user()->isAdmin(), 403, '삭제된 게시물은 관리자만 볼 수 있습니다.');
+
+        return response()->json(
+            Wiki::onlyTrashed()->with('creator')->orderByDesc('deleted_at')->get()
+                ->map(fn (Wiki $w) => [
+                    'id' => $w->id,
+                    'title' => $w->title,
+                    'type_label' => $w->type === 'notice' ? '공지(새 게시판으로 이관됨)' : (Wiki::SPECIAL_TYPES[$w->type] ?? '일반'),
+                    'creator' => $w->creator?->display_name ?? '알 수 없음',
+                    'deleted_at' => $w->deleted_at->format('Y.m.d H:i'),
+                ])
+        );
+    }
+
+    /** 삭제된 게시물 복구 — 관리자 전용 */
+    public function restoreTrashed(int $wikiId)
+    {
+        abort_unless(Auth::user()->isAdmin(), 403, '복구는 관리자만 가능합니다.');
+        $wiki = Wiki::onlyTrashed()->findOrFail($wikiId);
+        $wiki->restore();
+
+        return response()->json(['ok' => true, 'id' => $wiki->id]);
+    }
+
+    /** 삭제된 게시물 영구 삭제 — 관리자 전용 */
+    public function forceDestroyTrashed(int $wikiId)
+    {
+        abort_unless(Auth::user()->isAdmin(), 403, '영구 삭제는 관리자만 가능합니다.');
+        $wiki = Wiki::onlyTrashed()->findOrFail($wikiId);
+        $wiki->forceDelete();
+
+        return response()->json(['ok' => true]);
     }
 
     /** 내 임시저장 목록 — 작성 페이지 '불러오기' 모달용 */

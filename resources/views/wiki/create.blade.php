@@ -124,7 +124,6 @@
             <select class="field-input" id="wikiType" onchange="document.getElementById('wikiCatWrap').style.display=this.value==='normal'?'':'none'">
                 <option value="normal">일반 문서</option>
                 @if(auth()->user()->isAdmin())
-                <option value="notice" @selected($presetType === 'notice')>공지사항</option>
                 <option value="update" @selected($presetType === 'update')>업데이트</option>
                 @endif
                 <option value="meeting" @selected($presetType === 'meeting')>회의록</option>

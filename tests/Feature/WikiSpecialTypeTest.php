@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Notice;
 use App\Models\User;
 use App\Models\Wiki;
 use App\Models\WikiCategory;
@@ -63,9 +64,10 @@ class WikiSpecialTypeTest extends TestCase
 
     public function test_member_cannot_create_or_edit_notice(): void
     {
+        // 공지는 독립 게시판으로 분리 — 위키에서는 유형 자체가 유효하지 않다
         $this->actingAs($this->member())->postJson('/wiki', [
             'title' => '공지', 'type' => 'notice', 'content' => '<p>x</p>',
-        ])->assertForbidden();
+        ])->assertUnprocessable();
 
         $notice = Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
         $this->actingAs($this->member())->patchJson("/wiki/{$notice->id}", [
@@ -151,7 +153,7 @@ class WikiSpecialTypeTest extends TestCase
     {
         $doc = Wiki::create(['title' => '일반', 'content' => 'x']);
 
-        $this->actingAs($this->member())->patchJson("/wiki/{$doc->id}", ['type' => 'notice'])->assertForbidden();
+        $this->actingAs($this->member())->patchJson("/wiki/{$doc->id}", ['type' => 'update'])->assertForbidden();
         $this->assertSame('normal', $doc->fresh()->type);
     }
 
@@ -197,9 +199,12 @@ class WikiSpecialTypeTest extends TestCase
         $notice = Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
         $normal = Wiki::create(['title' => '일반', 'content' => 'x']);
 
-        // 공지/업데이트 대상 지정은 관리자만
+        // 공지는 위키 이동 대상에서 제거(422), 업데이트 대상 지정은 관리자만(403)
         $this->actingAs($this->member())->postJson('/api/wiki/bulk-category', [
             'ids' => [$normal->id], 'type' => 'notice',
+        ])->assertUnprocessable();
+        $this->actingAs($this->member())->postJson('/api/wiki/bulk-category', [
+            'ids' => [$normal->id], 'type' => 'update',
         ])->assertForbidden();
 
         // 회의록으로 이동 시 공지 문서는 건너뜀
@@ -212,21 +217,25 @@ class WikiSpecialTypeTest extends TestCase
 
     public function test_wiki_index_separates_special_from_uncategorized(): void
     {
-        Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
+        Wiki::create(['title' => '공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']); // 레거시 공지 행 — 목록 제외
         Wiki::create(['title' => '미분류 일반', 'content' => 'x']);
+        Wiki::create(['title' => '회의록 글', 'type' => 'meeting', 'content' => 'x', 'category' => '회의록']);
 
         $res = $this->actingAs($this->member())->get('/wiki');
 
         $res->assertOk();
         $this->assertSame(1, $res->viewData('uncategorized'), '공지는 미분류 카운트에서 제외');
-        $this->assertSame(1, (int) $res->viewData('typeCounts')['notice']);
+        // 공지는 독립 게시판으로 분리 — 위키 유형 카운트에서 빠진다
+        $this->assertArrayNotHasKey('notice', $res->viewData('typeCounts')->toArray());
+        $this->assertSame(1, (int) $res->viewData('typeCounts')['meeting']);
+        $this->assertFalse(collect($res->viewData('wikis'))->pluck('title')->contains('공지'), '레거시 공지는 위키 목록 미노출');
     }
 
     public function test_dashboard_shows_notice_and_update_panels_separately(): void
     {
-        $old = Wiki::create(['title' => '옛 공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
+        $old = Notice::create(['title' => '옛 공지', 'content' => 'x']);
         $old->forceFill(['created_at' => now()->subDays(3)])->save();
-        Wiki::create(['title' => '새 공지', 'type' => 'notice', 'content' => 'x', 'category' => '공지사항']);
+        Notice::create(['title' => '새 공지', 'content' => 'x']);
         Wiki::create(['title' => '업데이트 글', 'type' => 'update', 'content' => 'x', 'category' => '업데이트']);
         Wiki::create(['title' => '일반 문서', 'content' => 'x']);
 

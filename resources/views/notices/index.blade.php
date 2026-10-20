@@ -1,6 +1,6 @@
 @extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
 
-@section('title', '위키 - 닥터고블린 오피스')
+@section('title', '공지사항 - 닥터고블린 오피스')
 
 @push('styles')
 <style>
@@ -240,7 +240,7 @@
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="wiki-main-count" id="wikiMainCount">{{ $notices->count() }}건</div>
                 <button type="button" class="wiki-cat-edit-btn" id="wikiFilterToggle" onclick="toggleFilterBar()"><x-icon name="search" :size="13"/> 검색</button>
-                <button type="button" class="wiki-cat-edit-btn" id="wikiSelToggle" onclick="toggleSelMode()"><x-icon name="check" :size="13"/> 게시물 편집</button>
+                <button type="button" class="wiki-cat-edit-btn" id="wikiSelToggle" onclick="toggleSelMode()"><x-icon name="check" :size="13"/> 공지 편집</button>
                 @if(auth()->user()->isAdmin())
                     <button type="button" class="wiki-cat-edit-btn" onclick="openCatEditor()"><x-icon name="folder" :size="13"/> 카테고리 편집</button>
                 @endif
@@ -495,7 +495,7 @@ function wikiDescendantSet(rootId) {
     while (stack.length) { const cur = stack.pop(); (childMap[cur] || []).forEach(ch => { ids.add(ch.id); stack.push(ch.id); }); }
     return ids;
 }
-function wikiCatName(id) { const c = WIKI_TREE_DATA.find(x => x.id === id); return c ? c.name : '전체 문서'; }
+function wikiCatName(id) { const c = WIKI_TREE_DATA.find(x => x.id === id); return c ? c.name : '전체 공지'; }
 function wikiCatPathStr(id) {
     if (!id) return '미분류';
     const byId = {}; WIKI_TREE_DATA.forEach(c => byId[c.id] = c);
@@ -526,13 +526,13 @@ function renderDocList() {
             || ((a.sort_order ?? 0) - (b.sort_order ?? 0))
             || (a.created < b.created ? 1 : -1));
     }
-    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_TYPE ? WIKI_TYPE_LABELS[WIKI_CUR_TYPE] : (WIKI_CUR_UNCAT ? '미분류' : (WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 문서'));
+    document.getElementById('wikiMainTitle').textContent = WIKI_CUR_TYPE ? WIKI_TYPE_LABELS[WIKI_CUR_TYPE] : (WIKI_CUR_UNCAT ? '미분류' : (WIKI_CUR_CAT ? wikiCatName(WIKI_CUR_CAT) : '전체 공지'));
     document.getElementById('wikiMainCount').textContent = docs.length + '건';
-    if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 문서가 없습니다.</div>'; return; }
+    if (!docs.length) { list.innerHTML = '<div class="empty">해당하는 공지가 없습니다.</div>'; return; }
     // 순서 편집 가능: 게시물 편집 모드 + 특정 카테고리 뷰 + 관리자 (필터 미적용)
     const canReorder = WIKI_SEL_MODE && wikiManualSortActive() && WIKI_IS_ADMIN;
     list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `openWikiDoc(${d.id})`}">
-        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}${d.restricted ? '<span title="열람 제한 문서" style="font-size:12px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
+        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}${d.restricted ? '<span title="열람 제한 공지" style="font-size:12px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
             ${canReorder ? `<span class="wiki-order-btns" onclick="event.stopPropagation()">
                 <button type="button" title="위로" onclick="wikiMoveDoc(${d.id},-1)">▲</button>
                 <button type="button" title="아래로" onclick="wikiMoveDoc(${d.id},1)">▼</button>
@@ -860,7 +860,7 @@ async function ceRename(id, name) {
     CE_DIRTY = true; await ceFetch();
 }
 async function ceDelete(id) {
-    if (!confirm('이 카테고리를 삭제할까요?\n하위 카테고리는 상위로 이동하고, 연결된 문서는 상위(또는 미분류)로 이동합니다.')) return;
+    if (!confirm('이 카테고리를 삭제할까요?\n하위 카테고리는 상위로 이동하고, 연결된 공지는 상위(또는 미분류)로 이동합니다.')) return;
     const res = await fetch(`/api/notice-categories/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': WIKI_CSRF, 'Accept': 'application/json' } });
     if (!res.ok) { alert('삭제 실패'); return; }
     CE_DIRTY = true; await ceFetch();

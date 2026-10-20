@@ -1,6 +1,6 @@
 @extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
 
-@section('title', $notice->title . ' - 위키')
+@section('title', $notice->title . ' - 공지사항')
 
 @push('styles')
 <style>
@@ -229,7 +229,7 @@
             </div>
             <div class="wiki-meta">
                 @if(!empty($notice->allowed_team_ids))
-                    <span title="열람 제한 문서">🔒 {{ $teams->whereIn('id', array_map('intval', $notice->allowed_team_ids))->pluck('name')->join(', ') }} 열람</span>
+                    <span title="열람 제한 공지">🔒 {{ $teams->whereIn('id', array_map('intval', $notice->allowed_team_ids))->pluck('name')->join(', ') }} 열람</span>
                 @endif
                 <span>작성: {{ $notice->creator?->display_name ?? '알 수 없음' }} · {{ $notice->created_at->format('Y.m.d H:i') }}</span>
                 @if($notice->updated_by && $notice->updated_at->gt($notice->created_at->addMinutes(1)))
@@ -270,11 +270,11 @@
             $canEditWiki = $notice->canEdit(auth()->user());
         @endphp
         <div class="wiki-actions" id="viewActions">
-            <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
+            <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="공지 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
             <button onclick="openActivityLog('Notice',{{ $notice->id }},'{{ addslashes($notice->title) }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
             @if($canEditWiki)
             <button onclick="toggleEdit()">수정</button>
-            <form method="POST" action="{{ route('notices.destroy', $notice) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
+            <form method="POST" action="{{ route('notices.destroy', $notice) }}" style="display:inline;" onsubmit="return confirm('이 공지를 삭제하시겠습니까?')">
                 @csrf @method('DELETE')
                 @if($wikiBackRaw !== null)<input type="hidden" name="back" value="{{ $wikiBackRaw }}">@endif
                 <button type="submit" class="btn-del">삭제</button>

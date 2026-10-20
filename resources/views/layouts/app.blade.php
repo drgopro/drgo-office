@@ -641,7 +641,7 @@ window.openTopTab = function(type, url, title) {
 {{-- 블레이드 php 블록 지시어를 쓰면 56행의 인라인 지시어와 한 블록으로 오인 컴파일되므로 순수 PHP 태그 사용 --}}
 <?php
     $gnbNotice = Auth::check()
-        ? \App\Models\Wiki::published()->visibleTo(Auth::user())->where('type', 'notice')
+        ? \App\Models\Notice::published()->visibleTo(Auth::user())
             ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at'])
         : null;
 ?>
@@ -663,8 +663,8 @@ window.openTopTab = function(type, url, title) {
 </style>
 <div class="global-notice-bar" id="globalNoticeBar">
     <span class="gnb-badge">공지</span>
-    <a href="/wiki/{{ $gnbNotice->id }}" class="gnb-title"
-       onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
+    <a href="/notices/{{ $gnbNotice->id }}" class="gnb-title"
+       onclick="event.preventDefault(); drgoTabs.openNav('notices','/notices/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
     <span class="gnb-date">{{ $gnbNotice->created_at->format('Y.m.d') }}</span>
     <button type="button" class="gnb-close" onclick="gnbDismiss()" title="이 공지 닫기 — 새로고침하면 다시 표시됩니다">✕</button>
 </div>

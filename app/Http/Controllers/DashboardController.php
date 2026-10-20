@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\ConsultationType;
 use App\Models\Estimate;
+use App\Models\Notice;
 use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\ProjectPayment;
@@ -348,7 +349,8 @@ class DashboardController extends Controller
         $wikiAll = $wikiVisible()->orderByDesc('is_pinned')->orderByDesc('updated_at')->limit(5)->get(['id', 'title', 'is_pinned', 'updated_at']);
         $wikiRecent = $wikiVisible()->orderByDesc('created_at')->limit(3)->get(['id', 'title', 'created_at']);
         // 공지사항/업데이트 — 최신순 (대시보드 우측 카드: 공지 2건 + 업데이트 1건)
-        $wikiNoticeList = Wiki::published()->where('type', 'notice')
+        // 공지사항 — 독립 게시판(notices)에서 최신 2건
+        $wikiNoticeList = Notice::published()
             ->orderByDesc('created_at')->limit(2)->get(['id', 'title', 'created_at']);
         $wikiUpdateList = Wiki::published()->where('type', 'update')
             ->orderByDesc('created_at')->limit(1)->get(['id', 'title', 'created_at']);

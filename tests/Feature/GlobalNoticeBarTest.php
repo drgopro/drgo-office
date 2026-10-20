@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Notice;
 use App\Models\User;
 use App\Models\Wiki;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,9 +16,9 @@ class GlobalNoticeBarTest extends TestCase
     public function test_latest_notice_appears_as_global_bar(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $old = Wiki::create(['title' => '옛 공지', 'type' => 'notice', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]);
+        $old = Notice::create(['title' => '옛 공지', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]);
         $old->forceFill(['created_at' => now()->subDay()])->save();
-        Wiki::create(['title' => '최신 공지 제목', 'type' => 'notice', 'content' => 'y', 'is_draft' => false, 'created_by' => $admin->id]);
+        Notice::create(['title' => '최신 공지 제목', 'content' => 'y', 'is_draft' => false, 'created_by' => $admin->id]);
 
         $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
 
@@ -39,8 +40,8 @@ class GlobalNoticeBarTest extends TestCase
     public function test_bar_absent_without_notice_or_with_draft_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Wiki::create(['title' => '임시 공지', 'type' => 'notice', 'content' => 'x', 'is_draft' => true, 'created_by' => $admin->id]);
-        Wiki::create(['title' => '일반 문서', 'type' => 'normal', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]);
+        Notice::create(['title' => '임시 공지', 'content' => 'x', 'is_draft' => true, 'created_by' => $admin->id]);
+        Wiki::create(['title' => '일반 문서', 'type' => 'normal', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]); // 위키 일반 글은 띠에 안 뜸
 
         $this->actingAs($admin)->get('/')
             ->assertOk()
@@ -50,7 +51,7 @@ class GlobalNoticeBarTest extends TestCase
     public function test_restricted_notice_hidden_from_other_team_member(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Wiki::create(['title' => '팀한정 공지', 'type' => 'notice', 'content' => 'x', 'is_draft' => false,
+        Notice::create(['title' => '팀한정 공지', 'content' => 'x', 'is_draft' => false,
             'created_by' => $admin->id, 'allowed_team_ids' => [999]]);
         $member = User::factory()->create(['role' => 'member']);
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Assignee;
+use App\Models\Notice;
 use App\Models\Schedule;
 use App\Models\Setting;
 use App\Models\Todo;
@@ -120,6 +121,22 @@ class ChannelTalkNotifier
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 할 일 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /** 공지사항 게시판 발행 알림 — 매니저 전원 멘션(@all 효과) */
+    public function noticePublished(Notice $notice): void
+    {
+        if (! $this->client->isConfigured()) {
+            return;
+        }
+
+        try {
+            $this->client->sendGroupMessage(
+                "📢 {$this->client->mentionAll()}\n새 공지사항이 등록되었습니다: '{$notice->title}'\n".route('notices.show', $notice)
+            );
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 공지 알림 실패: '.$e->getMessage());
         }
     }
 

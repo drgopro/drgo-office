@@ -9,6 +9,7 @@ use App\Models\NoticeRead;
 use App\Models\Team;
 use App\Models\User;
 use App\Rules\SafeAttachment;
+use App\Services\ChannelTalkNotifier;
 use App\Services\ImageThumbnailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -143,6 +144,11 @@ class NoticeController extends Controller
         $notice = Notice::create($validated);
         $this->linkPendingAttachments($notice);
 
+        // 발행 → 채널톡 전체 멘션 알림 (임시저장은 발행 시점에)
+        if (! $notice->is_draft) {
+            app(ChannelTalkNotifier::class)->noticePublished($notice);
+        }
+
         if ($request->wantsJson()) {
             return response()->json($notice, 201);
         }
@@ -164,8 +170,14 @@ class NoticeController extends Controller
         }
 
         $validated['updated_by'] = Auth::id();
+        $wasDraft = $notice->is_draft;
         $notice->update($validated);
         $this->linkPendingAttachments($notice);
+
+        // 임시저장 → 발행되는 시점에만 채널톡 알림 (단순 내용 수정은 제외)
+        if ($wasDraft && ! $notice->is_draft) {
+            app(ChannelTalkNotifier::class)->noticePublished($notice);
+        }
 
         if ($request->wantsJson()) {
             return response()->json($notice);

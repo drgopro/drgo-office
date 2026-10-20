@@ -19,6 +19,7 @@ class Notice extends Model
         'is_draft',
         'allowed_team_ids',
         'sort_order',
+        'legacy_wiki_id', // 위키에서 이관된 공지의 원본 id — /wiki/{id} 리다이렉트용
         'created_by',
         'updated_by',
     ];
