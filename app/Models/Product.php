@@ -21,6 +21,9 @@ class Product extends Model
         'option_name',
         'purchase_price',
         'sale_price',
+        'discount_amount',
+        'discount_starts_at',
+        'discount_ends_at',
         'safety_stock',
         'memo',
         'search_tags',
@@ -34,6 +37,9 @@ class Product extends Model
     protected $casts = [
         'purchase_price' => 'integer',
         'sale_price' => 'integer',
+        'discount_amount' => 'integer',
+        'discount_starts_at' => 'datetime',
+        'discount_ends_at' => 'datetime',
         'safety_stock' => 'integer',
         'is_active' => 'boolean',
         'show_in_estimate' => 'boolean',
@@ -73,6 +79,32 @@ class Product extends Model
         }
 
         return false;
+    }
+
+    /**
+     * 지금 적용 중인 기간 할인액 — 할인액이 없거나 기간 밖이면 0.
+     * 할인액이 판매가를 넘으면 판매가까지만 깎는다 (할인가 음수 방지).
+     */
+    public function activeDiscountAmount(): int
+    {
+        if ((int) $this->discount_amount <= 0 || (int) $this->sale_price <= 0) {
+            return 0;
+        }
+        $now = now();
+        if ($this->discount_starts_at && $now->lt($this->discount_starts_at)) {
+            return 0;
+        }
+        if ($this->discount_ends_at && $now->gt($this->discount_ends_at)) {
+            return 0;
+        }
+
+        return min((int) $this->discount_amount, (int) $this->sale_price);
+    }
+
+    /** 할인 적용 판매가 — 할인 중이 아니면 정가 그대로 */
+    public function discountedPrice(): int
+    {
+        return max(0, (int) $this->sale_price - $this->activeDiscountAmount());
     }
 
     /** 옵션 그룹 (블랙/화이트 등 같은 상품 묶음) */

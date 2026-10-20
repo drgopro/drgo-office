@@ -343,6 +343,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/inventory/stock', [InventoryController::class, 'stock']);
         Route::get('/api/inventory/estimate-products', [InventoryController::class, 'estimateProducts']);
         Route::get('/api/inventory/movements', [InventoryController::class, 'movements']);
+        Route::get('/api/inventory/discount-logs', [InventoryController::class, 'discountLogs']); // 기간 할인 이력
         Route::get('/api/inventory/projects', [InventoryController::class, 'projectsForMovement']);
         Route::get('/api/inventory/movement-clients', [InventoryController::class, 'clientsForMovement']); // 출고 대상 의뢰자 검색 (연결 프로젝트 포함)
         Route::get('/api/inventory/orders', [PurchaseOrderController::class, 'index']);

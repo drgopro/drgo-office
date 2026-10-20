@@ -7,6 +7,7 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductBundleItem;
 use App\Models\ProductCategory;
+use App\Models\ProductDiscountLog;
 use App\Models\ProductGroup;
 use App\Models\ProductMarketPrice;
 use App\Models\Project;
@@ -255,6 +256,15 @@ class InventoryController extends Controller
             $query->whereNotNull('group_id');
         }
 
+        // 지금 기간 할인 중인 제품만 (제품 탭 '할인 중' 보기)
+        if ($request->query('discount') === 'active') {
+            $now = now();
+            $query->where('discount_amount', '>', 0)
+                ->where('sale_price', '>', 0)
+                ->where(fn ($q) => $q->whereNull('discount_starts_at')->orWhere('discount_starts_at', '<=', $now))
+                ->where(fn ($q) => $q->whereNull('discount_ends_at')->orWhere('discount_ends_at', '>=', $now));
+        }
+
         // 특정 그룹의 구성원만 (그룹 수정 모달 — 페이지에 없는 구성원도 전부 불러온다)
         if ($groupId = (int) $request->query('group_id')) {
             $query->where('group_id', $groupId);
@@ -399,6 +409,9 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0', // 기간 할인액 (0 = 할인 없음, 판매가 초과분은 판매가로 절삭)
+            'discount_starts_at' => 'nullable|date',
+            'discount_ends_at' => 'nullable|date|after_or_equal:discount_starts_at',
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
@@ -430,6 +443,7 @@ class InventoryController extends Controller
             // 입력 누락이든 null이든 0으로 안전 변환
             $validated['purchase_price'] = (int) ($validated['purchase_price'] ?? 0);
             $validated['sale_price'] = (int) ($validated['sale_price'] ?? 0);
+            $validated['discount_amount'] = min((int) ($validated['discount_amount'] ?? 0), $validated['sale_price']);
             $validated['safety_stock'] = (int) ($validated['safety_stock'] ?? 0);
 
             $product = Product::create([
@@ -462,6 +476,9 @@ class InventoryController extends Controller
 
             $this->syncBundleItems($product, $bundleItems);
             $this->syncMarketPriceUrls($product, $marketUrls);
+            if ($product->discount_amount > 0) {
+                $this->logDiscountChange($product, 'set');
+            }
 
             return response()->json($product->load('inventory', 'categoryRelation', 'marketPrices', 'bundleItems.component.inventory'), 201);
         } catch (\Throwable $e) {
@@ -484,6 +501,9 @@ class InventoryController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0', // 기간 할인액 (0 = 할인 없음, 판매가 초과분은 판매가로 절삭)
+            'discount_starts_at' => 'nullable|date',
+            'discount_ends_at' => 'nullable|date|after_or_equal:discount_starts_at',
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
@@ -534,6 +554,10 @@ class InventoryController extends Controller
             if (array_key_exists('sale_price', $validated)) {
                 $validated['sale_price'] = (int) ($validated['sale_price'] ?? 0);
             }
+            if (array_key_exists('discount_amount', $validated)) {
+                $salePrice = (int) ($validated['sale_price'] ?? $product->sale_price);
+                $validated['discount_amount'] = min((int) ($validated['discount_amount'] ?? 0), $salePrice);
+            }
             if (array_key_exists('safety_stock', $validated)) {
                 $validated['safety_stock'] = (int) ($validated['safety_stock'] ?? 0);
             }
@@ -546,7 +570,21 @@ class InventoryController extends Controller
             $validated['category'] = $cat->name;
             $serviceKindChanged = array_key_exists('service_kind', $validated)
                 && $product->service_kind !== ($validated['service_kind'] ?: null);
+            $discountBefore = [
+                (int) $product->discount_amount,
+                $product->discount_starts_at?->format('Y-m-d H:i'),
+                $product->discount_ends_at?->format('Y-m-d H:i'),
+            ];
             $product->update($validated);
+            // 할인 설정이 바뀌었으면 이력 기록 (설정/변경 = set, 0원으로 끔 = clear)
+            $discountAfter = [
+                (int) $product->discount_amount,
+                $product->discount_starts_at?->format('Y-m-d H:i'),
+                $product->discount_ends_at?->format('Y-m-d H:i'),
+            ];
+            if ($discountBefore !== $discountAfter) {
+                $this->logDiscountChange($product, $product->discount_amount > 0 ? 'set' : 'clear');
+            }
             // 서비스/제품 분류 재정의가 바뀌면 매출 원장 재계산 (분류 스냅샷 없는 과거 견적서 반영)
             if ($serviceKindChanged) {
                 RevenueLedger::rebuild();
@@ -869,6 +907,56 @@ class InventoryController extends Controller
         ]);
     }
 
+    /** 할인 이력 한 줄 기록 — 현재 제품 값 스냅샷 */
+    private function logDiscountChange(Product $product, string $action): void
+    {
+        ProductDiscountLog::create([
+            'product_id' => $product->id,
+            'action' => $action,
+            'sale_price' => (int) $product->sale_price,
+            'discount_amount' => (int) $product->discount_amount,
+            'discount_starts_at' => $product->discount_starts_at,
+            'discount_ends_at' => $product->discount_ends_at,
+            'user_id' => Auth::id(),
+        ]);
+    }
+
+    /** 할인 이력 조회 — 제품명/SKU 검색 + 페이지네이션 */
+    public function discountLogs(Request $request): JsonResponse
+    {
+        $query = ProductDiscountLog::with('product:id,name,sku', 'user:id,name')
+            ->orderByDesc('id');
+
+        if ($search = trim((string) $request->query('search'))) {
+            $compact = '%'.str_replace(' ', '', $search).'%';
+            $query->whereHas('product', function ($q) use ($compact) {
+                $q->whereRaw("REPLACE(name, ' ', '') LIKE ?", [$compact])
+                    ->orWhereRaw("REPLACE(sku, ' ', '') LIKE ?", [$compact]);
+            });
+        }
+
+        $page = $query->paginate(min(max((int) $request->query('per_page', 20), 1), 100));
+
+        return response()->json([
+            'data' => collect($page->items())->map(fn ($log) => [
+                'id' => $log->id,
+                'created_at' => $log->created_at?->format('Y-m-d H:i'),
+                'action' => $log->action,
+                'product_name' => $log->product?->name ?? '(삭제된 제품)',
+                'sku' => $log->product?->sku,
+                'sale_price' => $log->sale_price,
+                'discount_amount' => $log->discount_amount,
+                'discounted_price' => max(0, $log->sale_price - min($log->discount_amount, $log->sale_price)),
+                'starts_at' => $log->discount_starts_at?->format('Y-m-d H:i'),
+                'ends_at' => $log->discount_ends_at?->format('Y-m-d H:i'),
+                'user_name' => $log->user?->name,
+            ])->values(),
+            'total' => $page->total(),
+            'current_page' => $page->currentPage(),
+            'last_page' => $page->lastPage(),
+        ]);
+    }
+
     // === 견적서 제품 ===
 
     public function estimateProducts(Request $request)
@@ -904,6 +992,10 @@ class InventoryController extends Controller
                 'category_path' => $chain !== [] ? implode(' › ', array_reverse($chain)) : $p->category,
                 'category_id' => $p->category_id,
                 'sale_price' => $p->sale_price,
+                // 기간 할인 — 지금 할인 중이면 할인액/할인가를 함께 내려 빌더에서 자동 적용
+                'discount_active' => $p->activeDiscountAmount() > 0,
+                'discount_amount' => $p->activeDiscountAmount(),
+                'discounted_price' => $p->discountedPrice(),
                 'purchase_price' => $p->purchase_price,
                 'quantity' => $p->inventory?->quantity ?? 0,
                 'buildable' => $p->buildableQuantity(), // 세트 조립 가능 수 (min(구성품 재고 ÷ 필요 수량)), 세트 아니면 null

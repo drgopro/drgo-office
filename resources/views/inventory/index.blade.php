@@ -16,6 +16,10 @@
     .tab-btn { flex:1; padding:10px 0; text-align:center; font-size:13px; font-weight:600; border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:8px; transition:all 0.15s; }
     .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     .tab-btn:not(.active):hover { color:var(--text); background:var(--surface2); }
+    .disc-seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; flex-shrink:0; }
+    .disc-seg button { border:none; background:var(--surface); color:var(--text-muted); font-size:12.5px; font-weight:600; padding:8px 13px; cursor:pointer; }
+    .disc-seg button + button { border-left:1px solid var(--border); }
+    .disc-seg button.active { background:var(--accent); color:var(--accent-text, #fff); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
 
@@ -275,6 +279,11 @@
     <div class="tab-panel active" id="panel-products">
         <div class="toolbar">
             <input type="text" id="productSearch" placeholder="제품명/SKU 검색 후 Enter" onkeydown="if(event.key==='Enter'){prodPage=1;loadProducts();}">
+            <div class="disc-seg" title="기간 할인 중인 제품만 모아보기">
+                <button type="button" id="discSegAll" class="active" onclick="setDiscountFilter(false)">전체</button>
+                <button type="button" id="discSegOn" onclick="setDiscountFilter(true)">할인 중</button>
+            </div>
+            <button class="btn-outline" onclick="openDiscountLogs()" title="할인 설정/변경/해제 이력 조회">할인 이력</button>
             <select id="stockFilterOp" onchange="onStockFilterChange()" title="재고 수량으로 필터 (세트는 조립 가능 수 기준)">
                 <option value="">재고 전체</option>
                 <option value="zero">재고 0개</option>
@@ -450,6 +459,21 @@
                 <input class="field-input" id="pSale" type="number" min="0">
             </div>
         </div>
+        <div class="field-group" style="border:1px dashed var(--border); border-radius:8px; padding:10px 12px;">
+            <div class="field-label">기간 할인 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 할인액을 넣으면 할인가로 표시되고, 견적서에 담을 때 '할인'으로 자동 적용됩니다</span></div>
+            <input class="field-input" id="pDiscount" type="number" min="0" placeholder="할인액 (원) — 비우면 할인 없음" oninput="updateDiscountHint()">
+            <div class="field-row" style="margin-top:8px;">
+                <div class="field-group" style="margin:0;">
+                    <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 시작 (비우면 즉시)</div>
+                    <input class="field-input" id="pDiscountStart" type="datetime-local" onchange="updateDiscountHint()">
+                </div>
+                <div class="field-group" style="margin:0;">
+                    <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 종료 (비우면 계속)</div>
+                    <input class="field-input" id="pDiscountEnd" type="datetime-local" onchange="updateDiscountHint()">
+                </div>
+            </div>
+            <div id="discountHint" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;"></div>
+        </div>
         <div class="field-group" id="marketUrlGroup1">
             <div class="field-label">시세 URL — 컴퓨존</div>
             <input class="field-input" id="pMarketUrlCompuzone" placeholder="https://www.compuzone.co.kr/... 제품 페이지 주소 (선택)">
@@ -545,6 +569,25 @@
 </div>
 
 <!-- 옵션 그룹 묶기 모달 — 기존 제품(ID 유지)들을 하나의 상품으로 묶고 옵션명 지정 -->
+<div class="modal-overlay" id="discountLogModal">
+    <div class="modal" style="width:760px; max-width:94vw;">
+        <div class="modal-header">
+            <div class="modal-title">할인 이력</div>
+            <button class="modal-close" onclick="closeModal('discountLogModal')">×</button>
+        </div>
+        <div class="field-group">
+            <input class="field-input" id="discLogSearch" placeholder="제품명/SKU 검색 후 Enter" onkeydown="if(event.key==='Enter'){discLogPage=1;loadDiscountLogs();}">
+        </div>
+        <div class="data-card" style="max-height:52vh; overflow:auto;">
+            <table class="data-table">
+                <thead><tr><th>일시</th><th>구분</th><th>제품</th><th class="text-right">정가</th><th class="text-right">할인액</th><th class="text-right">할인가</th><th>할인 기간</th><th>처리자</th></tr></thead>
+                <tbody id="discLogBody"><tr><td colspan="8" class="empty-row">로딩 중...</td></tr></tbody>
+            </table>
+        </div>
+        <div class="pager" id="discLogPager"></div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="groupModal">
     <div class="modal" style="width:520px;">
         <div class="modal-header">
@@ -1074,6 +1117,7 @@ function prodFilterParams() {
     const catId = prodCatFilterId();
     if (catId) qs.set('category_id', catId); // 하위 카테고리 포함 (서버 필터)
     if (groupOnly) qs.set('grouped_only', '1'); // 옵션 그룹으로 묶인 제품만
+    if (discountOnly) qs.set('discount', 'active'); // 기간 할인 중인 제품만
     if (prodSort) { qs.set('sort', prodSort.key); qs.set('dir', prodSort.dir); } // 헤더 클릭 정렬
     return qs;
 }
@@ -1105,6 +1149,56 @@ function toggleGroupOnly() {
     loadProducts();
 }
 document.getElementById('groupOnlyBtn').classList.toggle('on', groupOnly);
+
+// ── '할인 중' 보기 (전체/할인 중 세그먼트, 선택은 브라우저에 기억) ──
+let discountOnly = localStorage.getItem('invDiscountOnly') === '1';
+function setDiscountFilter(on) {
+    discountOnly = !!on;
+    localStorage.setItem('invDiscountOnly', discountOnly ? '1' : '0');
+    syncDiscountSeg();
+    prodPage = 1;
+    loadProducts();
+}
+function syncDiscountSeg() {
+    document.getElementById('discSegAll').classList.toggle('active', !discountOnly);
+    document.getElementById('discSegOn').classList.toggle('active', discountOnly);
+}
+syncDiscountSeg();
+
+// ── 할인 이력 모달 ──
+let discLogPage = 1;
+function openDiscountLogs() {
+    discLogPage = 1;
+    document.getElementById('discLogSearch').value = '';
+    openModal('discountLogModal');
+    loadDiscountLogs();
+}
+function goDiscLogPage(n) { discLogPage = n; loadDiscountLogs(); }
+async function loadDiscountLogs() {
+    const tb = document.getElementById('discLogBody');
+    const qs = new URLSearchParams({ page: discLogPage, per_page: 20 });
+    const search = document.getElementById('discLogSearch').value.trim();
+    if (search) qs.set('search', search);
+    const res = await fetch('/api/inventory/discount-logs?' + qs.toString());
+    const payload = await res.json();
+    renderPagerInto('discLogPager', payload, 'goDiscLogPage');
+    if (!payload.data.length) {
+        tb.innerHTML = '<tr><td colspan="8" class="empty-row">할인 이력이 없습니다.</td></tr>';
+        return;
+    }
+    tb.innerHTML = payload.data.map(l => `<tr>
+        <td class="text-muted">${l.created_at || '-'}</td>
+        <td>${l.action === 'set'
+            ? '<span style="font-size:11px; font-weight:700; color:var(--red, #c03838); border:1px solid currentColor; border-radius:4px; padding:1px 6px;">설정</span>'
+            : '<span style="font-size:11px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 6px;">해제</span>'}</td>
+        <td class="text-wrap">${_esc(l.product_name)}${l.sku ? `<div class="text-muted" style="font-size:11px;">${_esc(l.sku)}</div>` : ''}</td>
+        <td class="text-right">${fmt(l.sale_price)}</td>
+        <td class="text-right">${l.action === 'set' ? fmt(l.discount_amount) : '-'}</td>
+        <td class="text-right">${l.action === 'set' ? `<b style="color:var(--red, #c03838);">${fmt(l.discounted_price)}</b>` : '-'}</td>
+        <td class="text-muted" style="font-size:11.5px;">${l.action !== 'set' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}</td>
+        <td class="text-muted">${_esc(l.user_name || '-')}</td>
+    </tr>`).join('');
+}
 
 // ── ⋮ 더보기 메뉴 (엑셀 가져오기/수정 로그) ──
 function toggleInvMenu(e) {
@@ -1184,7 +1278,7 @@ async function loadProducts() {
     const tb = document.getElementById('productBody');
     const cards = document.getElementById('productCards');
     if (!allProducts.length) {
-        const filtered = document.getElementById('productSearch').value || prodCatFilterId();
+        const filtered = document.getElementById('productSearch').value || prodCatFilterId() || discountOnly;
         const msg = filtered ? '조건에 맞는 제품이 없습니다.' : '등록된 제품이 없습니다.';
         tb.innerHTML = `<tr><td colspan="12" class="empty-row">${msg}</td></tr>`;
         cards.innerHTML = `<div class="empty-row">${msg}</div>`;
@@ -1212,7 +1306,7 @@ async function loadProducts() {
         <td class="text-wrap">${child ? '<span class="grp-toggle"></span>'+optionChipHtml(p) : ''}${E ? bundleBadgeHtml(p)+peInput(p,'name',p.name,'text') : bundleBadgeHtml(p)+_esc(p.name)}${!E && p.memo ? `<div class="text-muted" style="font-size:11px; margin-top:2px; white-space:pre-line;" title="제품 메모 — 견적 빌더 상품 리스트에도 표시됩니다">${_esc(p.memo)}</div>` : ''}</td>
         <td class="text-muted text-wrap">${p.category||'-'}</td>
         <td class="text-right">${E ? peInput(p,'purchase_price',p.purchase_price??0) : fmt(p.purchase_price)}</td>
-        <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : fmt(p.sale_price)}</td>
+        <td class="text-right">${E ? peInput(p,'sale_price',p.sale_price??0) : saleCellHtml(p)}</td>
         <td class="text-right">${marginCellHtml(p)}</td>
         <td class="text-right">${marketPriceCellHtml(p)}</td>
         <td class="text-right">${E && !p.is_bundle ? peInput(p,'stock_quantity',p.inventory?(p.inventory.quantity??0):0) : stockCellHtml(p)}</td>
@@ -1263,7 +1357,7 @@ async function loadProducts() {
                 ${p.memo ? `<div class="mob-card-sub" style="white-space:pre-line;">${_esc(p.memo)}</div>` : ''}
             </div>
         </div>
-        <div class="mob-card-line">매입 ${fmt(p.purchase_price)} → 판매 ${fmt(p.sale_price)} · ${marginCellHtml(p)}</div>
+        <div class="mob-card-line">매입 ${fmt(p.purchase_price)} → 판매 ${saleCellHtml(p)} · ${marginCellHtml(p)}</div>
         <div class="mob-card-line">재고 ${stockCellHtml(p)} · 안전재고 ${p.safety_stock||'-'}</div>
         <div class="mob-card-line">시세 ${marketPriceCellHtml(p)}</div>
         <div class="mob-card-actions">
@@ -1651,6 +1745,44 @@ function updateSaleHint() {
         : '';
 }
 document.getElementById('pPurchase').addEventListener('input', updateSaleHint);
+document.getElementById('pSale').addEventListener('input', updateDiscountHint);
+
+// === 기간 할인 ===
+// ISO(UTC) → datetime-local 값 (브라우저 로컬 시각). 비어 있으면 ''
+function toLocalDT(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+// 판매가 셀 — 기간 할인 중이면 정가 취소선 + 할인가(빨강) + 할인 배지
+function saleCellHtml(p) {
+    const amt = activeDiscount(p);
+    if (!amt) return fmt(p.sale_price);
+    const until = p.discount_ends_at ? ` · ${toLocalDT(p.discount_ends_at).replace('T',' ')}까지` : '';
+    return `<span style="text-decoration:line-through; color:var(--text-muted); font-size:11px;">${fmt(p.sale_price)}</span> <b style="color:var(--red, #dc2626);">${fmt(Math.max(0, Number(p.sale_price) - amt))}</b> <span style="font-size:10px; color:var(--red, #dc2626); border:1px solid currentColor; border-radius:3px; padding:0 4px; white-space:nowrap;" title="기간 할인 ${fmt(amt)}원${until}">할인</span>`;
+}
+// 지금 적용 중인 할인액 — 서버 Product::activeDiscountAmount()와 동일 규칙
+function activeDiscount(p) {
+    const amt = Number(p.discount_amount) || 0;
+    const sale = Number(p.sale_price) || 0;
+    if (amt <= 0 || sale <= 0) return 0;
+    const now = Date.now();
+    if (p.discount_starts_at && now < new Date(p.discount_starts_at).getTime()) return 0;
+    if (p.discount_ends_at && now > new Date(p.discount_ends_at).getTime()) return 0;
+    return Math.min(amt, sale);
+}
+function updateDiscountHint() {
+    const el = document.getElementById('discountHint');
+    const amt = parseInt(document.getElementById('pDiscount').value, 10) || 0;
+    const sale = parseInt(document.getElementById('pSale').value, 10) || 0;
+    if (!amt) { el.textContent = ''; return; }
+    if (!sale) { el.textContent = '판매가를 먼저 입력해주세요.'; return; }
+    const final = Math.max(0, sale - Math.min(amt, sale));
+    const rate = Math.round(Math.min(amt, sale) / sale * 100);
+    el.innerHTML = `할인가 <b style="color:var(--red);">${fmt(final)}원</b> (${fmt(Math.min(amt, sale))}원 할인 · 약 ${rate}%)`;
+}
 
 async function openProductModal(p) {
     if (!catData.length) await loadCategories();
@@ -1660,6 +1792,10 @@ async function openProductModal(p) {
     document.getElementById('pPurchase').value = p ? (p.purchase_price||'') : '';
     document.getElementById('pSale').value = p ? (p.sale_price||'') : '';
     updateSaleHint();
+    document.getElementById('pDiscount').value = p && Number(p.discount_amount) ? p.discount_amount : '';
+    document.getElementById('pDiscountStart').value = p ? toLocalDT(p.discount_starts_at) : '';
+    document.getElementById('pDiscountEnd').value = p ? toLocalDT(p.discount_ends_at) : '';
+    updateDiscountHint();
     const mps = (p && p.market_prices) || [];
     document.getElementById('pMarketUrlCompuzone').value = mps.find(m=>m.vendor==='compuzone')?.url || '';
     document.getElementById('pMarketUrlPcfactory').value = mps.find(m=>m.vendor==='pcfactory')?.url || '';
@@ -1699,6 +1835,9 @@ const PRODUCT_FIELD_LABELS = {
     category_id: '카테고리',
     purchase_price: '매입가',
     sale_price: '판매가',
+    discount_amount: '할인액',
+    discount_starts_at: '할인 시작',
+    discount_ends_at: '할인 종료',
     market_price_url_compuzone: '시세 URL(컴퓨존)',
     market_price_url_pcfactory: '시세 URL(피씨팩토리)',
     safety_stock: '안전재고',
@@ -1731,6 +1870,9 @@ async function saveProduct() {
         // 매입가는 비워두면 0으로 자동 저장
         purchase_price: parseInt(document.getElementById('pPurchase').value, 10) || 0,
         sale_price: document.getElementById('pSale').value || null,
+        discount_amount: parseInt(document.getElementById('pDiscount').value, 10) || 0,
+        discount_starts_at: document.getElementById('pDiscountStart').value || null,
+        discount_ends_at: document.getElementById('pDiscountEnd').value || null,
         market_price_url_compuzone: document.getElementById('pMarketUrlCompuzone').value.trim() || null,
         market_price_url_pcfactory: document.getElementById('pMarketUrlPcfactory').value.trim() || null,
         safety_stock: document.getElementById('pSafety').value || null,

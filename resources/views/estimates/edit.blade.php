@@ -926,13 +926,14 @@ function filterProducts() {
                 <div class="pi-cat">${[_escE(p.memo).replace(/\n/g, ' '), p.category_path || p.category || ''].filter(Boolean).join(' · ')}</div>
             </div>
             <div style="text-align:right;">
-                <div class="pi-price">${fmt(p.sale_price)}원</div>
+                <div class="pi-price">${piPriceHtml(p)}</div>
                 <div class="pi-stock ${p.is_bundle ? (p.buildable > 0 ? 'ok' : 'low') : (p.is_low ? 'low' : 'ok')}">${p.is_bundle ? `조립가능 ${p.buildable ?? 0}` : `재고 ${p.quantity}`}</div>
             </div>
         </div>`;
         }
         const g = e.group;
-        const prices = g.options.map(o => Number(o.sale_price) || 0);
+        const prices = g.options.map(o => prodOnSale(o) ? (Number(o.discounted_price) || 0) : (Number(o.sale_price) || 0));
+        const groupSale = g.options.some(prodOnSale);
         const mn = Math.min(...prices), mx = Math.max(...prices);
         const totalQty = g.options.reduce((s, o) => s + (o.quantity || 0), 0);
         return `
@@ -942,7 +943,7 @@ function filterProducts() {
                 <div class="pi-cat">${g.options[0]?.category_path || g.options[0]?.category || ''} · ${g.options.map(o => o.option_name || o.name).join(' / ')}</div>
             </div>
             <div style="text-align:right;">
-                <div class="pi-price">${mn === mx ? fmt(mn) : fmt(mn) + '~' + fmt(mx)}원</div>
+                <div class="pi-price">${groupSale ? `<span style="font-size:9.5px; color:var(--red); border:1px solid currentColor; border-radius:3px; padding:0 3px;">할인</span> ` : ''}${mn === mx ? fmt(mn) : fmt(mn) + '~' + fmt(mx)}원</div>
                 <div class="pi-stock ${totalQty > 0 ? 'ok' : 'low'}">재고 ${totalQty}</div>
             </div>
         </div>`;
@@ -961,7 +962,7 @@ function openOptionPicker(groupId) {
                 <div class="pi-cat">${_escE(o.memo).replace(/\n/g, ' ')}</div>
             </div>
             <div style="text-align:right;">
-                <div class="pi-price">${fmt(o.sale_price)}원</div>
+                <div class="pi-price">${piPriceHtml(o)}</div>
                 <div class="pi-stock ${o.is_bundle ? (o.buildable > 0 ? 'ok' : 'low') : (o.is_low ? 'low' : 'ok')}">${o.is_bundle ? `조립가능 ${o.buildable ?? 0}` : `재고 ${o.quantity}`}</div>
             </div>
         </div>`).join('');
@@ -988,11 +989,25 @@ function getCatDescendants(id) {
     return ids;
 }
 
+// === 제품 기간 할인 — 재고 관리에서 설정. 담는 순간 '할인' 스냅샷으로 자동 적용되어
+// 의뢰자 견적서·출력물에 정가 취소선 + 할인 배지로 표시된다 (이후 제품 할인이 끝나도 견적서는 유지)
+function prodOnSale(p) { return !!p.discount_active && Number(p.discounted_price) < (Number(p.sale_price) || 0); }
+function saleRate(p) {
+    const orig = Number(p.sale_price) || 0;
+    if (!orig) return null;
+    return Math.round((Number(p.discount_amount) || 0) / orig * 100) || null;
+}
+function piPriceHtml(p) {
+    if (!prodOnSale(p)) return `${fmt(p.sale_price)}원`;
+    return `<span style="text-decoration:line-through; color:var(--text-muted); font-size:10.5px; font-weight:400;">${fmt(p.sale_price)}</span> <span style="color:var(--red);">${fmt(p.discounted_price)}원</span> <span style="font-size:9.5px; color:var(--red); border:1px solid currentColor; border-radius:3px; padding:0 3px;" title="기간 할인 ${fmt(p.discount_amount)}원 — 담으면 '할인'으로 자동 표시">할인</span>`;
+}
+
 // === 장바구니 ===
 function addToCart(productId) {
     const p = allProds.find(x => x.id === productId);
     if (!p) return;
-    const price = Number(p.sale_price) || 0;
+    const onSale = prodOnSale(p);
+    const price = onSale ? (Number(p.discounted_price) || 0) : (Number(p.sale_price) || 0);
     const existing = cartItems.find(i => i.product_id === productId);
     if (existing) { existing.qty++; existing.subtotal = Number(existing.sale_price) * existing.qty; }
     else {
@@ -1012,6 +1027,8 @@ function addToCart(productId) {
             use_time: !!p.use_time_required,
             subtotal: price,
             is_service: !!p.is_service, // 서비스/제품 분류 — 담는 시점에 박제 (매출 통계 세팅비/장비 구분)
+            // 기간 할인 중인 제품 — 기존 특가/할인 체계로 스냅샷 (정가 취소선 + '할인 n%' 배지)
+            ...(onSale ? { deal_type: 'discount', original_price: Number(p.sale_price) || 0, discount_rate: saleRate(p) } : {}),
             // 세트 구성품 스냅샷 — 빌더에서 접기/펼치기 (출력물·의뢰자 견적서에는 세트 한 줄만)
             bundle_items: p.is_bundle && (p.bundle_items || []).length ? p.bundle_items : undefined,
         });
@@ -1826,6 +1843,13 @@ function applyPresetById(id) {
             item.sku = cur.sku;
             item.sale_price = Number(cur.sale_price) || 0;
             item.purchase_price = Number(cur.purchase_price) || 0;
+            // 지금 기간 할인 중인 제품은 프리셋으로 담아도 할인가로 (프리셋에 저장된 수동 특가/할인은 존중)
+            if (!item.deal_type && prodOnSale(cur)) {
+                item.deal_type = 'discount';
+                item.original_price = Number(cur.sale_price) || 0;
+                item.discount_rate = saleRate(cur);
+                item.sale_price = Number(cur.discounted_price) || 0;
+            }
             if (cur.is_bundle && (cur.bundle_items || []).length) item.bundle_items = cur.bundle_items;
         }
         item.qty = Math.max(1, parseInt(item.qty) || 1);
