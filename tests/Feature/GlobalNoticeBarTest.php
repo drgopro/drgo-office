@@ -16,9 +16,9 @@ class GlobalNoticeBarTest extends TestCase
     public function test_latest_notice_appears_as_global_bar(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $old = Notice::create(['title' => '옛 공지', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]);
+        $old = Notice::create(['title' => '옛 공지', 'content' => 'x', 'is_pinned' => true, 'is_draft' => false, 'created_by' => $admin->id]);
         $old->forceFill(['created_at' => now()->subDay()])->save();
-        Notice::create(['title' => '최신 공지 제목', 'content' => 'y', 'is_draft' => false, 'created_by' => $admin->id]);
+        Notice::create(['title' => '최신 공지 제목', 'content' => 'y', 'is_pinned' => true, 'is_draft' => false, 'created_by' => $admin->id]);
 
         $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
 
@@ -40,7 +40,10 @@ class GlobalNoticeBarTest extends TestCase
     public function test_bar_absent_without_notice_or_with_draft_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Notice::create(['title' => '임시 공지', 'content' => 'x', 'is_draft' => true, 'created_by' => $admin->id]);
+        Notice::create(['title' => '임시 공지', 'content' => 'x', 'is_pinned' => true, 'is_draft' => true, 'created_by' => $admin->id]);
+        Notice::create(['title' => '일반 공지(전체 공지 아님)', 'content' => 'x', 'created_by' => $admin->id]); // 띠 미노출
+        Notice::create(['title' => '기한 지난 전체 공지', 'content' => 'x', 'is_pinned' => true,
+            'pinned_until' => now()->subDay()->toDateString(), 'created_by' => $admin->id]); // 기간 만료 — 띠 미노출
         Wiki::create(['title' => '일반 문서', 'type' => 'normal', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]); // 위키 일반 글은 띠에 안 뜸
 
         $this->actingAs($admin)->get('/')
@@ -51,7 +54,7 @@ class GlobalNoticeBarTest extends TestCase
     public function test_restricted_notice_hidden_from_other_team_member(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Notice::create(['title' => '팀한정 공지', 'content' => 'x', 'is_draft' => false,
+        Notice::create(['title' => '팀한정 공지', 'content' => 'x', 'is_pinned' => true, 'is_draft' => false,
             'created_by' => $admin->id, 'allowed_team_ids' => [999]]);
         $member = User::factory()->create(['role' => 'member']);
 

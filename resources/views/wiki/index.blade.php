@@ -373,13 +373,15 @@
 <!-- 카테고리 편집 모달 -->
 {{-- 삭제된 게시물 보관함 — 관리자 전용 --}}
 <div class="ce-overlay" id="wikiTrashModal">
-    <div class="ce-modal" style="max-width:560px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <b style="font-size:15px;">🗑 삭제된 게시물</b>
+    <div class="ce-modal">
+        <div class="ce-head">
+            <span>🗑 삭제된 게시물</span>
             <button onclick="document.getElementById('wikiTrashModal').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
-        <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
-        <div id="wikiTrashList" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+        <div class="ce-body">
+            <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
+            <div id="wikiTrashList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
     </div>
 </div>
 
@@ -926,14 +928,15 @@ async function openWikiTrash() {
     let rows = [];
     try { const res = await fetch('/api/wiki/trash', { headers:{'Accept':'application/json'} }); if (res.ok) rows = await res.json(); } catch (e) {}
     if (!rows.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">삭제된 게시물이 없습니다.</div>'; return; }
+    const tBtn = 'background:none;border-radius:7px;cursor:pointer;font-size:11.5px;padding:5px 10px;white-space:nowrap;flex-shrink:0;';
     list.innerHTML = rows.map(r => `
-        <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:9px;padding:9px 12px;">
-            <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:0;">
+            <div style="flex:1 1 auto;min-width:0;">
                 <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${wikiEsc(r.title)}</div>
-                <div style="font-size:11px;color:var(--text-muted);">${wikiEsc(r.type_label)} · ${wikiEsc(r.creator)} · 삭제 ${r.deleted_at}</div>
+                <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wikiEsc(r.type_label)} · ${wikiEsc(r.creator)} · 삭제 ${r.deleted_at}</div>
             </div>
-            <button class="btn-new" style="background:none;border:1px solid var(--accent);color:var(--accent);cursor:pointer;font-size:11.5px;padding:5px 10px;" onclick="wikiTrashRestore(${r.id}, this)">복구</button>
-            <button class="btn-new" style="background:none;border:1px solid var(--red, #dc2626);color:var(--red, #dc2626);cursor:pointer;font-size:11.5px;padding:5px 10px;" onclick="wikiTrashForce(${r.id}, this)">영구 삭제</button>
+            <button style="${tBtn}border:1px solid var(--accent);color:var(--accent);" onclick="wikiTrashRestore(${r.id}, this)">복구</button>
+            <button style="${tBtn}border:1px solid var(--red, #dc2626);color:var(--red, #dc2626);" onclick="wikiTrashForce(${r.id}, this)">영구 삭제</button>
         </div>`).join('');
 }
 async function wikiTrashRestore(id, btn) {

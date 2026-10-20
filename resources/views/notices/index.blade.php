@@ -202,7 +202,8 @@
         'title' => $w->title,
         'category_id' => $w->category_id,
         'type' => 'normal', // 공지 게시판은 단일 유형 — 위키 JS 구조 호환용
-        'is_pinned' => (bool) $w->is_pinned,
+        'is_pinned' => $w->isPinnedNow(), // 전체 공지(기간 유효) — 배지·상단 정렬
+        'global_expired' => $w->is_pinned && ! $w->isPinnedNow(), // 기간 만료 — 전체 뷰에서 숨기고 카테고리에서만
         'restricted' => ! empty($w->allowed_team_ids), // 열람 제한 문서 (🔒 표시)
         'sort_order' => $w->sort_order, // 카테고리 내 수동 순서 (null = 최신순)
         'comments' => $w->comments_count ?? 0,
@@ -335,10 +336,14 @@
                     <div id="previewPane" class="wiki-preview-pane hidden" style="flex:1;min-height:300px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;overflow-y:auto;font-size:14px;line-height:1.85;"></div>
                 </div>
             </div>
-            <div class="field-group">
+            <div class="field-group" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" name="is_pinned" value="1">
-                    <span style="font-size:12px;"><x-icon name="pin" :size="12"/> 상단 고정</span>
+                    <input type="checkbox" name="is_pinned" value="1" onchange="this.closest('.field-group').querySelector('.np-pin-until').style.display=this.checked?'':'none'">
+                    <span style="font-size:12px;"><x-icon name="pin" :size="12"/> 전체 공지</span>
+                </label>
+                <label class="np-pin-until" style="display:none;align-items:center;gap:6px;font-size:12px;">
+                    노출 기한 <input class="field-input" type="date" name="pinned_until" style="width:150px;" title="이 날짜까지 전체 공지로 노출 — 기간이 지나면 지정한 카테고리에서만 보입니다">
+                    <span style="color:var(--text-muted);font-size:11px;">(비우면 무기한)</span>
                 </label>
             </div>
             <div class="modal-actions">
@@ -518,6 +523,7 @@ function renderDocList() {
     if (WIKI_CUR_TYPE) { docs = WIKI_DOCS.filter(d => d.type === WIKI_CUR_TYPE); }
     else if (WIKI_CUR_UNCAT) { docs = WIKI_DOCS.filter(d => !d.category_id && d.type === 'normal'); }
     else if (WIKI_CUR_CAT) { const ids = wikiDescendantSet(WIKI_CUR_CAT); docs = WIKI_DOCS.filter(d => ids.has(d.category_id)); }
+    else if (!WIKI_FILTER_ACTIVE) { docs = WIKI_DOCS.filter(d => !d.global_expired); } // 전체 뷰 — 노출 기한 지난 전체 공지는 카테고리에서만
     // 카테고리 뷰: 고정(📌) → 수동 순서(sort_order) → 최신순
     if (wikiManualSortActive()) {
         docs = [...docs].sort((a, b) =>
@@ -532,7 +538,7 @@ function renderDocList() {
     // 순서 편집 가능: 게시물 편집 모드 + 특정 카테고리 뷰 + 관리자 (필터 미적용)
     const canReorder = WIKI_SEL_MODE && wikiManualSortActive() && WIKI_IS_ADMIN;
     list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `openWikiDoc(${d.id})`}">
-        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}${d.restricted ? '<span title="열람 제한 공지" style="font-size:12px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
+        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 전체 공지</span>' : ''}${d.restricted ? '<span title="열람 제한 공지" style="font-size:12px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
             ${canReorder ? `<span class="wiki-order-btns" onclick="event.stopPropagation()">
                 <button type="button" title="위로" onclick="wikiMoveDoc(${d.id},-1)">▲</button>
                 <button type="button" title="아래로" onclick="wikiMoveDoc(${d.id},1)">▼</button>

@@ -206,7 +206,8 @@
         <div style="flex:1;min-width:0;">
             <a href="{{ route('notices.index', $wikiListParams) }}" class="wiki-back">← 공지사항 목록</a>
             <div class="wiki-title-row" id="viewTitle">
-                @if($notice->is_pinned)<span style="font-size:10px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 고정</span>@endif
+                @if($notice->isPinnedNow())<span style="font-size:10px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 전체 공지{{ $notice->pinned_until ? ' ~'.$notice->pinned_until->format('m.d') : '' }}</span>
+                @elseif($notice->is_pinned)<span style="font-size:10px; padding:3px 9px; border-radius:10px; color:var(--text-muted); border:1px solid var(--border); white-space:nowrap;" title="노출 기한({{ $notice->pinned_until?->format('Y.m.d') }})이 지나 지정한 카테고리에서만 보입니다">전체 공지 종료</span>@endif
                 <span class="wiki-title-text">{{ $notice->title }}</span>
             </div>
             @php
@@ -323,15 +324,15 @@
                 </select>
             </div>
             <div class="field-group" style="width:auto;margin:0;">
-                <div class="field-label">고정</div>
+                <div class="field-label">전체 공지</div>
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0;">
                     <input type="checkbox" id="editPinned" {{ $notice->is_pinned ? 'checked' : '' }} onchange="document.getElementById('editPinnedUntilWrap').style.display=this.checked?'':'none'">
                     <span style="font-size:12px;">📌</span>
                 </label>
             </div>
             <div class="field-group" id="editPinnedUntilWrap" style="width:160px;margin:0;{{ $notice->is_pinned ? '' : 'display:none;' }}">
-                <div class="field-label">고정 기한 <span style="font-weight:400;text-transform:none;letter-spacing:0;">(비우면 무기한)</span></div>
-                <input class="field-input" type="date" id="editPinnedUntil" value="{{ $notice->pinned_until?->format('Y-m-d') }}" title="이 날짜까지 상단 고정 — 지나면 일반 글처럼 정렬됩니다">
+                <div class="field-label">노출 기한 <span style="font-weight:400;text-transform:none;letter-spacing:0;">(비우면 무기한)</span></div>
+                <input class="field-input" type="date" id="editPinnedUntil" value="{{ $notice->pinned_until?->format('Y-m-d') }}" title="이 날짜까지 전체 공지로 노출 — 기간이 지나면 지정한 카테고리에서만 보입니다">
             </div>
         </div>
 

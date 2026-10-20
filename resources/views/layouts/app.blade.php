@@ -637,11 +637,13 @@ window.openTopTab = function(type, url, title) {
     </div>
 </div>
 
-{{-- ── 전역 공지 띠 — 최신 공지사항 1건을 모든 탭 상단에 표시 (닫으면 해당 공지는 숨김, 새 공지 등록 시 재노출) ── --}}
+{{-- ── 전역 공지 띠 — 노출 기한 내의 '전체 공지' 중 최신 1건을 모든 탭 상단에 표시 (기간이 지나면 띠에서 내려가고 카테고리에서만 보임) ── --}}
 {{-- 블레이드 php 블록 지시어를 쓰면 56행의 인라인 지시어와 한 블록으로 오인 컴파일되므로 순수 PHP 태그 사용 --}}
 <?php
     $gnbNotice = Auth::check()
         ? \App\Models\Notice::published()->visibleTo(Auth::user())
+            ->where('is_pinned', true)
+            ->where(fn ($q) => $q->whereNull('pinned_until')->orWhereDate('pinned_until', '>=', now()->toDateString()))
             ->orderByDesc('created_at')->orderByDesc('id')->first(['id', 'title', 'created_at'])
         : null;
 ?>

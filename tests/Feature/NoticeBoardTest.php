@@ -78,6 +78,8 @@ class NoticeBoardTest extends TestCase
         $titles = collect($res->viewData('notices'))->pluck('title')->values()->all();
 
         $this->assertSame(['유효 고정', '일반 최신글', '기한지난 고정'], $titles);
+        // 기한 지난 전체 공지는 전체 뷰에서 숨기는 플래그가 내려간다 (카테고리 뷰에서만 노출)
+        $this->assertStringContainsString('"global_expired":true', $res->getContent());
     }
 
     public function test_draft_hidden_from_list_and_restricted_hidden_from_other_team(): void

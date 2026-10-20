@@ -127,15 +127,15 @@
             </select>
         </div>
         <div class="field-group" style="width:auto;margin:0;">
-            <div class="field-label">고정</div>
+            <div class="field-label">전체 공지</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0;">
                 <input type="checkbox" id="wikiPinned" onchange="document.getElementById('pinnedUntilWrap').style.display=this.checked?'':'none'">
                 <span style="font-size:12px;">📌</span>
             </label>
         </div>
         <div class="field-group" id="pinnedUntilWrap" style="width:160px;margin:0;display:none;">
-            <div class="field-label">고정 기한 <span style="font-weight:400;text-transform:none;letter-spacing:0;">(비우면 무기한)</span></div>
-            <input class="field-input" type="date" id="wikiPinnedUntil" title="이 날짜까지 상단 고정 — 지나면 일반 글처럼 정렬됩니다">
+            <div class="field-label">노출 기한 <span style="font-weight:400;text-transform:none;letter-spacing:0;">(비우면 무기한)</span></div>
+            <input class="field-input" type="date" id="wikiPinnedUntil" title="이 날짜까지 전체 공지로 노출 — 기간이 지나면 지정한 카테고리에서만 보입니다">
         </div>
     </div>
 
