@@ -243,6 +243,7 @@
         <button class="tab-btn" data-tab="teams">팀 관리</button>
         <button class="tab-btn" data-tab="assignees">담당자 관리</button>
         <button class="tab-btn" data-tab="server">서버 상태</button>
+        <button class="tab-btn" data-tab="menu">메뉴 구성</button>
         <button class="tab-btn" data-tab="settings"><x-icon name="gear" :size="14"/> 설정</button>
     </div>
 
@@ -258,6 +259,24 @@
         <div class="settings-split">
             <div class="settings-side" id="settingsSideMenu"></div>
             <div class="settings-content-wrap" id="settingsContent"></div>
+        </div>
+    </div>
+
+    {{-- 메뉴 구성 — 좌측 사이드바 순서/섹션 라벨/구분선 조정 --}}
+    <div class="tab-panel" id="panel-menu">
+        <div class="data-card" style="max-width:560px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <b style="font-size:13.5px;">좌측 메뉴 구성</b>
+                <span style="font-size:11px;color:var(--text-muted);">순서를 옮기고 섹션 라벨·구분선을 배치합니다. 저장 후 새로고침하면 전 직원에게 적용됩니다 (권한 없는 메뉴는 각자에게 숨겨짐)</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+                <button class="btn-outline btn-sm" onclick="smAddRow('label')">+ 섹션 라벨</button>
+                <button class="btn-outline btn-sm" onclick="smAddRow('gap')">+ 구분선</button>
+                <span style="flex:1;"></span>
+                <button class="btn-outline btn-sm" onclick="smReset()">기본값 복원</button>
+                <button class="btn-primary btn-sm" onclick="smSave(this)">저장</button>
+            </div>
+            <div id="smList" style="display:flex;flex-direction:column;gap:4px;"></div>
         </div>
     </div>
 
@@ -1239,6 +1258,7 @@ document.querySelectorAll('#adminTabBar .tab-btn').forEach(btn => {
         if (tab === 'teams') loadTeams();
         if (tab === 'assignees') loadAssigneesAdmin();
         if (tab === 'server') loadServerStatus();
+        if (tab === 'menu') loadSidebarMenuAdmin();
         if (tab === 'settings') {
             const last = sessionStorage.getItem('drgo_admin_setting_subtab') || 'clientFields';
             switchSettingsSubTab(last);
@@ -2925,6 +2945,72 @@ async function deleteWorkType() {
         const err = await res.json().catch(() => ({}));
         alert(err.message || '삭제 실패');
     }
+}
+
+// ── 메뉴 구성 — 좌측 사이드바 순서/섹션 라벨/구분선 ──
+let SM_ROWS = [], SM_LABELS = {};
+function smEsc(x){ return String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function loadSidebarMenuAdmin() {
+    try {
+        const res = await fetch('/api/admin/sidebar-menu', { headers:{'Accept':'application/json'} });
+        const d = await res.json();
+        SM_ROWS = d.layout; SM_LABELS = d.labels;
+    } catch (e) { SM_ROWS = []; }
+    renderSmList();
+}
+function renderSmList() {
+    const el = document.getElementById('smList');
+    if (!el) return;
+    const btn = 'background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:11px;padding:3px 8px;flex-shrink:0;';
+    el.innerHTML = SM_ROWS.map((r, i) => {
+        const mv = `<button style="${btn}" onclick="smMove(${i},-1)" title="위로" ${i===0?'disabled':''}>▲</button>
+                    <button style="${btn}" onclick="smMove(${i},1)" title="아래로" ${i===SM_ROWS.length-1?'disabled':''}>▼</button>`;
+        if (r.t === 'menu') {
+            return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;">
+                <span style="flex:1;font-size:13px;font-weight:600;">${smEsc(SM_LABELS[r.k] || r.k)}</span>${mv}</div>`;
+        }
+        if (r.t === 'label') {
+            return `<div style="display:flex;align-items:center;gap:8px;border:1px dashed var(--border);border-radius:8px;padding:6px 10px;background:var(--surface2);">
+                <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;">섹션</span>
+                <input class="field-input" value="${smEsc(r.text)}" maxlength="30" style="flex:1;padding:4px 8px;font-size:12px;" oninput="SM_ROWS[${i}].text=this.value">
+                ${mv}<button style="${btn}color:var(--red, #dc2626);border-color:var(--red, #dc2626);" onclick="smRemove(${i})">✕</button></div>`;
+        }
+        return `<div style="display:flex;align-items:center;gap:8px;border:1px dashed var(--border);border-radius:8px;padding:6px 10px;background:var(--surface2);">
+            <span style="flex:1;font-size:11px;color:var(--text-muted);text-align:center;">── 구분선 ──</span>
+            ${mv}<button style="${btn}color:var(--red, #dc2626);border-color:var(--red, #dc2626);" onclick="smRemove(${i})">✕</button></div>`;
+    }).join('') || '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+}
+function smMove(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= SM_ROWS.length) return;
+    [SM_ROWS[i], SM_ROWS[j]] = [SM_ROWS[j], SM_ROWS[i]];
+    renderSmList();
+}
+function smRemove(i) { SM_ROWS.splice(i, 1); renderSmList(); }
+function smAddRow(t) {
+    SM_ROWS.unshift(t === 'label' ? { t:'label', text:'새 섹션' } : { t:'gap' });
+    renderSmList();
+}
+async function smSave(btn) {
+    const rows = SM_ROWS.filter(r => r.t !== 'label' || (r.text || '').trim() !== '');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/admin/sidebar-menu', {
+            method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+            body: JSON.stringify({ rows }),
+        });
+        if (!res.ok) { alert('저장에 실패했습니다.'); return; }
+        const d = await res.json();
+        SM_ROWS = d.layout; renderSmList();
+        alert('저장되었습니다. 새로고침하면 사이드바에 적용됩니다.');
+    } finally { btn.disabled = false; }
+}
+async function smReset() {
+    if (!confirm('메뉴 구성을 기본값으로 되돌릴까요?')) return;
+    const res = await fetch('/api/admin/sidebar-menu/reset', { method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'} });
+    if (!res.ok) { alert('초기화에 실패했습니다.'); return; }
+    const d = await res.json();
+    SM_ROWS = d.layout; renderSmList();
 }
 </script>
 @endpush

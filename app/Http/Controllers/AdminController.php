@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\ChannelTalkClient;
+use App\Services\SidebarMenu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,38 @@ class AdminController extends Controller
      *
      * @return JsonResponse array{total:int, free:int, used:int, used_percent:int, dirs:array<int, array{name:string, label:string, size:?int}>, checked_at:string}
      */
+    /** 사이드바 메뉴 구성 조회 — 저장된 배치(정규화) + 메뉴 라벨 */
+    public function sidebarMenu()
+    {
+        return response()->json([
+            'layout' => SidebarMenu::layout(),
+            'labels' => collect(SidebarMenu::registry())->map(fn ($m) => $m['label']),
+        ]);
+    }
+
+    /** 사이드바 메뉴 구성 저장 — 순서/섹션 라벨/구분선 (메뉴 집합은 레지스트리가 보장) */
+    public function saveSidebarMenu(Request $request)
+    {
+        $v = $request->validate([
+            'rows' => 'required|array|max:100',
+            'rows.*.t' => 'required|in:menu,label,gap',
+            'rows.*.k' => 'nullable|string|max:40',
+            'rows.*.text' => 'nullable|string|max:30',
+        ]);
+
+        Setting::set(SidebarMenu::SETTING_KEY, json_encode($v['rows'], JSON_UNESCAPED_UNICODE));
+
+        return response()->json(['ok' => true, 'layout' => SidebarMenu::layout()]);
+    }
+
+    /** 사이드바 메뉴 구성 초기화 — 기본 배치로 */
+    public function resetSidebarMenu()
+    {
+        Setting::set(SidebarMenu::SETTING_KEY, '');
+
+        return response()->json(['ok' => true, 'layout' => SidebarMenu::defaultLayout()]);
+    }
+
     public function serverStatus(Request $request)
     {
         if ($request->boolean('refresh')) {

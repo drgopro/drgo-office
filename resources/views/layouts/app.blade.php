@@ -569,48 +569,18 @@ window.openTopTab = function(type, url, title) {
             <kbd>Ctrl K</kbd>
         </button>
         <nav class="nav" id="mainNav">
-            <div class="nav-group-label">워크스페이스</div>
-            @if(!Auth::user()->isGuest())
-                <a href="/" class="{{ request()->is('/') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('dashboard','/');" title="대시보드"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>대시보드</a>
-            @endif
-            <a href="/calendar" class="{{ request()->is('calendar*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('calendar','/calendar');" title="캘린더"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>캘린더</a>
-            @if(!Auth::user()->isGuest())
-                <a href="/todos" class="{{ request()->is('todos*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('todos','/todos');" title="할 일"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>할 일</a>
-            @endif
-            @if(Auth::user()->hasPermission('clients.view'))
-                <a href="/clients" class="{{ request()->is('clients*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('clients','/clients');" title="의뢰자"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>의뢰자</a>
-            @endif
-            @if(Auth::user()->hasPermission('projects.view'))
-                <a href="/projects" class="{{ request()->is('projects*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('projects','/projects');" title="프로젝트"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>프로젝트</a>
-            @endif
-            @if(Auth::user()->hasPermission('estimates.view'))
-                <a href="/estimates" class="{{ request()->is('estimates*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('estimates','/estimates');" title="견적서"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>견적서</a>
-            @endif
-            <div class="nav-group-gap"></div>
-            <div class="nav-group-label">지식 · 자산</div>
-            @if(Auth::user()->hasPermission('inventory.view'))
-                <a href="/inventory" class="{{ request()->is('inventory*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('inventory','/inventory');" title="재고"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>재고</a>
-            @endif
-            <a href="/notices" class="{{ request()->is('notices*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('notices','/notices');" title="공지사항"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 13v-2z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>공지사항</a>
-            <a href="/wiki" class="{{ request()->is('wiki*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('wiki','/wiki');" title="위키"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>위키</a>
-            @if(Auth::user()->hasPermission('rental.view'))
-                <a href="/rental-equipment" class="{{ request()->is('rental-equipment*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental','/rental-equipment');" title="장비 위치"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>장비 위치</a>
-                <a href="/rental-contracts" class="{{ request()->is('rental-contracts*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('rental-contracts','/rental-contracts');" title="렌탈"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>렌탈</a>
-            @endif
-            @if(Auth::user()->hasPermission('broadcast.view'))
-                <a href="/broadcast-room" class="{{ request()->is('broadcast-room*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('broadcast-room','/broadcast-room');" title="방송룸"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"></path></svg>방송룸</a>
-            @endif
-            <div class="nav-group-gap"></div>
-            @if(Auth::user()->hasPermission('deposits.view'))
-                <a href="/deposits" class="{{ request()->is('deposits*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('deposits','/deposits');" title="입금 내역"><svg class="nav-ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20M6 15h4"></path></svg>입금 내역</a>
-            @endif
-            @if(Auth::user()->hasPermission('stats.view'))
-                <a href="/marketing-report" class="{{ request()->is('marketing-report*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('marketing-report','/marketing-report');" title="통계"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m7 15 4-4 3 3 5-6"></path></svg>통계</a>
-            @endif
-            @if(in_array(Auth::user()->role, ['master','admin','member']))
-                <a href="/feedback" class="{{ request()->is('feedback*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('feedback','/feedback');" title="피드백"><svg class="nav-ico" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M8 9h8M8 12h5"></path></svg>피드백</a>
-                <a href="/leave" class="{{ request()->is('leave*') ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('leave','/leave');" title="연차"><svg class="nav-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>연차</a>
-            @endif
+            {{-- 메뉴 배치(순서/섹션 라벨/구분선)는 관리 > 메뉴 구성에서 조정 — 항목·권한·아이콘은 SidebarMenu 레지스트리 기준 --}}
+            <?php $sbRegistry = \App\Services\SidebarMenu::registry(); ?>
+            @foreach(\App\Services\SidebarMenu::visibleRows(Auth::user()) as $sbRow)
+                @if($sbRow['t'] === 'label')
+                    <div class="nav-group-label">{{ $sbRow['text'] }}</div>
+                @elseif($sbRow['t'] === 'gap')
+                    <div class="nav-group-gap"></div>
+                @else
+                    <?php $sbM = $sbRegistry[$sbRow['k']]; ?>
+                    <a href="{{ $sbM['href'] }}" class="{{ request()->is($sbM['pattern']) ? 'active' : '' }}" onclick="event.preventDefault(); drgoTabs.openNav('{{ $sbM['tab'] }}','{{ $sbM['nav'] }}');" title="{{ $sbM['label'] }}">{!! $sbM['icon'] !!}{{ $sbM['label'] }}</a>
+                @endif
+            @endforeach
             <div class="nav-mobile-only">
                 @if(Auth::user()->isAdmin())
                     <a href="#" onclick="event.preventDefault(); drgoTabs.openNav('admin','/admin');">관리</a>

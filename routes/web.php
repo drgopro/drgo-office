@@ -583,6 +583,11 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/admin', [AdminController::class, 'index'])->name('admin');
         Route::get('/api/admin/server-status', [AdminController::class, 'serverStatus']);
+        // 사이드바 메뉴 구성 (순서/섹션/구분선)
+        Route::get('/api/admin/sidebar-menu', [AdminController::class, 'sidebarMenu']);
+        Route::post('/api/admin/sidebar-menu', [AdminController::class, 'saveSidebarMenu']);
+        Route::post('/api/admin/sidebar-menu/reset', [AdminController::class, 'resetSidebarMenu']);
+
         Route::get('/api/settings', [AdminController::class, 'settings']);
         Route::post('/api/settings', [AdminController::class, 'updateSettings']);
         Route::post('/api/admin/payment-alert-test', [AdminController::class, 'paymentAlertTest']); // 결제완료 톡방 연결 확인
