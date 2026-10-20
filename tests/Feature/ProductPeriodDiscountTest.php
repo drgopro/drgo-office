@@ -180,6 +180,34 @@ class ProductPeriodDiscountTest extends TestCase
         $this->assertSame(1, collect($rows)->firstWhere('id', $a->id)['discount_logs_count']);
     }
 
+    public function test_expired_discounts_are_cleared_by_command_with_expire_log(): void
+    {
+        $expired = $this->makeProduct(['name' => '만료될 상품', 'discount_amount' => 310000,
+            'discount_starts_at' => now()->subWeek(), 'discount_ends_at' => now()->subHour()]);
+        $running = $this->makeProduct(['name' => '진행 중 상품', 'discount_amount' => 100000,
+            'discount_ends_at' => now()->addDay()]);
+        $always = $this->makeProduct(['name' => '상시 할인 상품', 'discount_amount' => 50000]);
+
+        $this->artisan('products:expire-discounts')->assertSuccessful();
+
+        // 만료 건만 초기화(체크 해제 상태) — 기간 없는 상시 할인과 진행 중 할인은 유지
+        $fresh = $expired->fresh();
+        $this->assertSame(0, $fresh->discount_amount);
+        $this->assertNull($fresh->discount_ends_at);
+        $this->assertSame(100000, $running->fresh()->discount_amount);
+        $this->assertSame(50000, $always->fresh()->discount_amount);
+
+        // 이력에 '기간 종료(expire)' 행 — 종료된 할인 값 스냅샷 보존, 처리자 없음(자동)
+        $log = $expired->discountLogs()->latest('id')->first();
+        $this->assertSame('expire', $log->action);
+        $this->assertSame(310000, $log->discount_amount);
+        $this->assertNull($log->user_id);
+
+        // 다시 실행해도 중복 기록 없음
+        $this->artisan('products:expire-discounts')->assertSuccessful();
+        $this->assertSame(1, $expired->discountLogs()->count());
+    }
+
     public function test_discount_amount_is_capped_to_sale_price_on_save(): void
     {
         $product = $this->makeProduct();

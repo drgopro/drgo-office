@@ -1208,13 +1208,15 @@ async function loadDiscountLogs() {
         <td class="text-muted">${l.created_at || '-'}</td>
         <td>${l.action === 'set'
             ? '<span style="font-size:11px; font-weight:700; color:var(--red, #c03838); border:1px solid currentColor; border-radius:4px; padding:1px 6px;">설정</span>'
+            : l.action === 'expire'
+            ? '<span style="font-size:11px; font-weight:700; color:var(--gold, #907030); border:1px solid currentColor; border-radius:4px; padding:1px 6px;" title="종료 일시가 지나 자동 해제된 기간 할인">기간 종료</span>'
             : '<span style="font-size:11px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 6px;">해제</span>'}</td>
         <td class="text-wrap">${_esc(l.product_name)}${l.sku ? `<div class="text-muted" style="font-size:11px;">${_esc(l.sku)}</div>` : ''}</td>
         <td class="text-right">${fmt(l.sale_price)}</td>
-        <td class="text-right">${l.action === 'set' ? fmt(l.discount_amount) : '-'}</td>
-        <td class="text-right">${l.action === 'set' ? `<b style="color:var(--red, #c03838);">${fmt(l.discounted_price)}</b>` : '-'}</td>
-        <td class="text-muted" style="font-size:11.5px;">${l.action !== 'set' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}${l.expired ? ' <span style="font-size:10.5px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0 5px;" title="할인 기간이 지나 자동 종료된 기간 할인 이력">기간 종료</span>' : ''}</td>
-        <td class="text-muted">${_esc(l.user_name || '-')}</td>
+        <td class="text-right">${l.action !== 'clear' ? fmt(l.discount_amount) : '-'}</td>
+        <td class="text-right">${l.action !== 'clear' ? `<b style="color:var(--red, #c03838);">${fmt(l.discounted_price)}</b>` : '-'}</td>
+        <td class="text-muted" style="font-size:11.5px;">${l.action === 'clear' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}${l.expired ? ' <span style="font-size:10.5px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0 5px;" title="할인 기간이 지나 자동 종료된 기간 할인 이력">기간 종료</span>' : ''}</td>
+        <td class="text-muted">${_esc(l.user_name || (l.action === 'expire' ? '자동' : '-'))}</td>
     </tr>`).join('');
 }
 

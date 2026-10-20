@@ -52,3 +52,6 @@ Schedule::command('attachments:prune-orphans')->weeklyOn(1, '04:00')->withoutOve
 
 // 위키 임시저장 정리 — 7일 지난 초안 삭제 (매일 새벽 4시 15분)
 Schedule::command('wiki:prune-drafts')->dailyAt('04:15')->withoutOverlapping();
+
+// 기간 지난 제품 할인 자동 해제 — 할인 필드 초기화 + 이력에 '기간 종료' 기록 (30분마다)
+Schedule::command('products:expire-discounts')->everyThirtyMinutes()->withoutOverlapping();
