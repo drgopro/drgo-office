@@ -670,6 +670,7 @@
     <div class="m-more-head">더보기 <button onclick="mCloseMoreSheet()" title="닫기">×</button></div>
     <button class="m-more-row" onclick="mCloseMoreSheet(); loadDraft()">임시저장 불러오기 <span>마지막 저장본</span></button>
     <button class="m-more-row" onclick="mCloseMoreSheet(); openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그 <span>변경 이력</span></button>
+    <button class="m-more-row" onclick="mCloseMoreSheet(); openStatement()">거래명세서 <span>공급가액·세액 분리 출력</span></button>
     <button class="m-more-row m-more-danger" onclick="mCloseMoreSheet(); deleteEstimate()">삭제 <span>이 견적서 삭제</span></button>
     <button class="m-more-close" onclick="mCloseMoreSheet()">닫기</button>
 </div>
