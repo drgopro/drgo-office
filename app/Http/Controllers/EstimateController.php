@@ -704,6 +704,71 @@ class EstimateController extends Controller
             ->get();
     }
 
+    /**
+     * 거래명세서 — 견적서(차수 합산) 기반 공급 명세 출력.
+     * 금액은 부가세 포함가이므로 공급가액 = 금액 ÷ 1.1(원 미만 반올림), 세액 = 금액 − 공급가액로 분해한다.
+     */
+    public function statement(Estimate $estimate)
+    {
+        // 차수를 열면 부모 기준 — 거래명세서는 항상 거래 전체(합산) 한 장
+        if ($estimate->parent_estimate_id && $estimate->parent) {
+            $estimate = $estimate->parent;
+        }
+        $estimate->syncSnapshotPrices();
+        $settings = Setting::getMany([
+            'seller_name', 'seller_biz_no', 'seller_address',
+            'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
+        ]);
+
+        // 명세 라인 — 부모+차수 품목(대체 제외) + 서비스 항목, 환불은 음수 라인으로 상계
+        $lines = collect();
+        $append = function ($doc, ?string $label = null) use ($lines) {
+            foreach (($doc->product_items ?? []) as $i) {
+                if (! empty($i['replaced'])) {
+                    continue;
+                }
+                $qty = max(1, (int) ($i['qty'] ?? 1));
+                $amount = (int) ($i['subtotal'] ?? ((int) ($i['sale_price'] ?? 0) * $qty));
+                $lines->push([
+                    'name' => ($label ? "[{$label}] " : '').($i['name'] ?? ''),
+                    'qty' => $qty,
+                    'unit' => (int) ($i['sale_price'] ?? 0),
+                    'amount' => $amount,
+                    'remark' => (string) ($i['remark'] ?? ''),
+                ]);
+                if ((int) ($i['refund_amount'] ?? 0) > 0) {
+                    $refund = (int) $i['refund_amount'];
+                    $lines->push(['name' => '환불 — '.($i['name'] ?? ''), 'qty' => 1, 'unit' => -$refund, 'amount' => -$refund, 'remark' => '']);
+                }
+            }
+            foreach (($doc->service_items ?? []) as $sv) {
+                if (trim((string) ($sv['name'] ?? '')) === '') {
+                    continue;
+                }
+                $amount = (int) ($sv['amount'] ?? 0);
+                $lines->push(['name' => ($label ? "[{$label}] " : '').$sv['name'], 'qty' => 1, 'unit' => $amount, 'amount' => $amount, 'remark' => '']);
+            }
+        };
+        $append($estimate);
+        foreach ($this->visibleRounds($estimate) as $round) {
+            $append($round, "{$round->round}차");
+        }
+
+        // 부가세 분해 (음수 환불 라인 포함 동일 규칙)
+        $lines = $lines->map(function ($line) {
+            $supply = (int) round($line['amount'] / 1.1);
+
+            return [...$line, 'supply' => $supply, 'vat' => $line['amount'] - $supply];
+        })->values();
+
+        return view('estimates.statement', [
+            'estimate' => $estimate,
+            'settings' => $settings,
+            'lines' => $lines,
+            'txDate' => $estimate->payapp_paid_at ?? now(),
+        ]);
+    }
+
     /** 주문/배송 운송장 등록 — 견적서 편집에서 새 창으로 연다 */
     public function shipmentsPage(Estimate $estimate)
     {

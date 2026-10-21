@@ -656,6 +656,7 @@
         <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
         <button class="btn btn-ghost m-more-item" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
         <button class="btn btn-delete m-more-item" onclick="deleteEstimate()">삭제</button>
+        <button class="btn btn-print m-more-item" onclick="openStatement()" title="이 견적서(차수 합산) 기준 거래명세서 — 공급가액/세액 분리 출력">거래명세서</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
@@ -2147,6 +2148,9 @@ function resetEstimate() {
 
 function printEstimate() {
     window.open(`/estimates/${estId}/print`, `print_${estId}`, 'width=900,height=700,scrollbars=yes');
+}
+function openStatement() {
+    window.open(`/estimates/${estId}/statement`, `stmt_${estId}`, 'width=900,height=700,scrollbars=yes');
 }
 
 async function deleteEstimate() {
