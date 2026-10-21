@@ -1030,7 +1030,7 @@ function addToCart(productId) {
             subtotal: price,
             is_service: !!p.is_service, // 서비스/제품 분류 — 담는 시점에 박제 (매출 통계 세팅비/장비 구분)
             // 기간 할인 중인 제품 — 기존 특가/할인 체계로 스냅샷 (정가 취소선 + '할인 n%' 배지)
-            ...(onSale ? { deal_type: 'discount', original_price: Number(p.sale_price) || 0, discount_rate: saleRate(p),
+            ...(onSale ? { deal_type: 'discount', auto_deal: true, original_price: Number(p.sale_price) || 0, discount_rate: saleRate(p),
                 deal_starts_at: p.discount_starts_at || null, deal_ends_at: p.discount_ends_at || null } : {}),
             // 세트 구성품 스냅샷 — 빌더에서 접기/펼치기 (출력물·의뢰자 견적서에는 세트 한 줄만)
             bundle_items: p.is_bundle && (p.bundle_items || []).length ? p.bundle_items : undefined,
@@ -1383,7 +1383,7 @@ function setItemDeal(idx) {
         const price = parseInt(String(p).replace(/[^\d]/g, ''), 10) || 0;
         if (price <= 0) return alert('금액을 확인해주세요.');
         item.deal_type = 'special'; item.original_price = orig; item.discount_rate = null;
-        delete item.deal_starts_at; delete item.deal_ends_at;
+        delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
         item.sale_price = price;
     } else {
         const p = prompt(`할인율(%) 또는 할인 후 금액(원)을 입력하세요.\n예: 10%  또는  ${fmt(Math.round(orig * 0.9))}\n정가 ${fmt(orig)}원`, item.discount_rate ? item.discount_rate + '%' : '');
@@ -1393,11 +1393,13 @@ function setItemDeal(idx) {
             const rate = parseFloat(s);
             if (!(rate > 0 && rate < 100)) return alert('할인율은 0~100 사이여야 합니다.');
             item.deal_type = 'discount'; item.original_price = orig; item.discount_rate = rate;
+            delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
             item.sale_price = Math.round(orig * (1 - rate / 100));
         } else {
             const price = parseInt(s.replace(/[^\d]/g, ''), 10) || 0;
             if (!(price > 0 && price < orig)) return alert('할인 후 금액은 정가보다 작아야 합니다.');
             item.deal_type = 'discount'; item.original_price = orig; item.discount_rate = null;
+            delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
             item.sale_price = price;
         }
     }
@@ -1412,7 +1414,7 @@ function clearItemDeal(idx) {
         item.subtotal = item.sale_price * item.qty;
     }
     delete item.deal_type; delete item.original_price; delete item.discount_rate;
-    delete item.deal_starts_at; delete item.deal_ends_at;
+    delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
     renderCart();
 }
 
@@ -1851,6 +1853,7 @@ function applyPresetById(id) {
             // 지금 기간 할인 중인 제품은 프리셋으로 담아도 할인가로 (프리셋에 저장된 수동 특가/할인은 존중)
             if (!item.deal_type && prodOnSale(cur)) {
                 item.deal_type = 'discount';
+                item.auto_deal = true;
                 item.original_price = Number(cur.sale_price) || 0;
                 item.discount_rate = saleRate(cur);
                 item.sale_price = Number(cur.discounted_price) || 0;

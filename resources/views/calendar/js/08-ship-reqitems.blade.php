@@ -276,17 +276,19 @@ function searchEstimates(query){
     },300);
 }
 // 여러 견적서 연동 — 선택 시 목록에 추가 (중복 방지), 견적서별 보기/해제
-function selectEstimate(id,name,amount,no){
+async function selectEstimate(id,name,amount,no){
     if(!linkedEstimateIds.some(x=>String(x)===String(id))) linkedEstimateIds.push(id);
     const cm=(window.__estSearchMeta||{})[id]||{};
     linkedEstimateMeta[id]={display_no:no??id,name:name||'',total:Number(amount)||0,client_nickname:cm.nickname||'',client_name:cm.cname||''};
     renderLinkedEstimates();
     document.getElementById('estimateSearchOverlay').style.display='none';
-    // 금액 칸이 비어 있으면 연동 견적서 총액 합계로 채움
+    autoAttachEstimatePng(id,no??id); // 견적서 PNG를 '견적서' 첨부 대기열에 자동 추가
+    // 금액 칸이 비어 있으면 연동 견적서 총액 합계로 채움 — 목록 캐시 대신 단건 재조회로
+    // 서버 가격 동기화(기간 할인 반영)를 거친 최신 총액을 사용
+    try{ await refreshLinkedEstimateLabels(); }catch(e){}
     const inp=document.getElementById('g_estimate_amount');
     const sum=linkedEstimatesTotal();
     if(inp&&!inp.value.trim()&&sum) inp.value=sum.toLocaleString();
-    autoAttachEstimatePng(id,no??id); // 견적서 PNG를 '견적서' 첨부 대기열에 자동 추가
 }
 
 // 견적서 불러오기 시 PNG 자동 첨부 — 인쇄 페이지를 숨은 iframe으로 렌더해 캡처 (팝업 없음),

@@ -44,6 +44,6 @@ class ClientEstimateLinkTest extends TestCase
         $this->actingAs($user)->get('/estimates')->assertOk()->assertSee('createEstimate(qcid)', false);
         $this->actingAs($user)->get('/clients')->assertOk()
             ->assertSee('createEstimateForClient', false)
-            ->assertSee("['info','projects','docs','estimates','memo']", false); // 견적서 탭 패널 토글 누락 회귀 방지
+            ->assertSee("['info','projects','schedules','docs','estimates','memo']", false); // 견적서 탭 패널 토글 누락 회귀 방지
     }
 }

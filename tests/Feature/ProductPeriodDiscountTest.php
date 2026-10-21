@@ -255,6 +255,64 @@ class ProductPeriodDiscountTest extends TestCase
         $this->assertStringContainsString('재방문 세팅비 할인 또는 이벤트 할인이 적용된 금액입니다.', $html);
     }
 
+    public function test_unlocked_estimate_syncs_period_discount_and_calendar_meta_total(): void
+    {
+        $product = $this->makeProduct(['name' => '동기화 마이크']);
+        // 정가 시절에 담긴 견적서 (미잠금)
+        $estimate = Estimate::create([
+            'status' => 'created', 'created_by' => $this->admin->id,
+            'product_items' => [[
+                'product_id' => $product->id, 'name' => $product->name,
+                'sale_price' => 1400000, 'purchase_price' => 1000000, 'qty' => 1, 'subtotal' => 1400000,
+            ]],
+            'service_items' => [], 'product_total' => 1400000, 'total_amount' => 1400000,
+        ]);
+
+        // 이후 제품에 기간 할인 설정 → 캘린더 메타 조회(ID 검색)가 동기화를 거쳐 할인 총액을 반환
+        $product->update(['discount_amount' => 310000, 'discount_ends_at' => now()->addWeek()]);
+        $row = collect($this->actingAs($this->admin)->getJson("/api/estimates?search={$estimate->id}")->assertOk()->json())
+            ->firstWhere('id', $estimate->id);
+        $this->assertSame(1090000, (int) $row['total_amount']);
+
+        $item = $estimate->fresh()->product_items[0];
+        $this->assertSame('discount', $item['deal_type']);
+        $this->assertTrue($item['auto_deal']);
+        $this->assertSame(1400000, (int) $item['original_price']);
+
+        // 할인이 끝나면 정가로 복원 (자동 적용분만 — 수동 특가/할인은 보호)
+        $product->update(['discount_amount' => 0, 'discount_ends_at' => null]);
+        $estimate->fresh()->syncSnapshotPrices();
+        $synced = $estimate->fresh();
+        $this->assertSame(1400000, (int) $synced->total_amount);
+        $this->assertArrayNotHasKey('deal_type', $synced->product_items[0]);
+
+        // 수동 특가 항목은 할인 동기화가 건드리지 않는다
+        $manual = Estimate::create([
+            'status' => 'created', 'created_by' => $this->admin->id,
+            'product_items' => [[
+                'product_id' => $product->id, 'name' => $product->name,
+                'sale_price' => 999000, 'qty' => 1, 'subtotal' => 999000,
+                'deal_type' => 'special', 'original_price' => 1400000,
+            ]],
+            'service_items' => [], 'product_total' => 999000, 'total_amount' => 999000,
+        ]);
+        $product->update(['discount_amount' => 310000]);
+        $manual->fresh()->syncSnapshotPrices();
+        $this->assertSame(999000, (int) $manual->fresh()->product_items[0]['sale_price']);
+
+        // 잠금 상태(결제완료)는 불변
+        $paid = Estimate::create([
+            'status' => 'paid', 'created_by' => $this->admin->id,
+            'product_items' => [[
+                'product_id' => $product->id, 'name' => $product->name,
+                'sale_price' => 1400000, 'qty' => 1, 'subtotal' => 1400000,
+            ]],
+            'service_items' => [], 'product_total' => 1400000, 'total_amount' => 1400000,
+        ]);
+        $paid->fresh()->syncSnapshotPrices();
+        $this->assertSame(1400000, (int) $paid->fresh()->product_items[0]['sale_price']);
+    }
+
     public function test_discount_amount_is_capped_to_sale_price_on_save(): void
     {
         $product = $this->makeProduct();

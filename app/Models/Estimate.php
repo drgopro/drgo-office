@@ -148,13 +148,35 @@ class Estimate extends Model
             $newPurchase = (int) $product->purchase_price;
             $qty = max(1, (int) ($item['qty'] ?? 1));
             // price_fixed: 엑셀 가져오기 등으로 담은 과거 가격 항목 — 현재 판매가로 덮어쓰지 않는다
-            // deal_type: 특가/할인 지정 항목 — 지정한 가격이 정가 동기화로 되돌아가지 않게 보호
+            // 수동 특가/할인(auto_deal 없음): 지정한 가격이 동기화로 되돌아가지 않게 보호
             // replaced: 대체된(취소선) 항목 — 기록 보존, 가격 갱신 불필요
-            if (! $locked && empty($item['price_fixed']) && empty($item['deal_type']) && empty($item['replaced']) && ((int) ($item['sale_price'] ?? 0) !== $newSale || (int) ($item['purchase_price'] ?? 0) !== $newPurchase)) {
-                $item['sale_price'] = $newSale;
-                $item['purchase_price'] = $newPurchase;
-                $item['subtotal'] = $newSale * $qty;
-                $changed = true;
+            // 제품 기간 할인은 자동 반영: 할인 중이면 할인가+'할인' 스냅샷(auto_deal), 끝나면 정가로 복원
+            $manualDeal = ! empty($item['deal_type']) && empty($item['auto_deal']);
+            if (! $locked && empty($item['price_fixed']) && empty($item['replaced']) && ! $manualDeal) {
+                $discount = $product->activeDiscountAmount();
+                $effectiveSale = $discount > 0 ? $product->discountedPrice() : $newSale;
+                $newStarts = $discount > 0 ? $product->discount_starts_at?->format('Y-m-d H:i') : null;
+                $newEnds = $discount > 0 ? $product->discount_ends_at?->format('Y-m-d H:i') : null;
+                $dirty = (int) ($item['sale_price'] ?? 0) !== $effectiveSale
+                    || (int) ($item['purchase_price'] ?? 0) !== $newPurchase
+                    || empty($item['deal_type']) === ($discount > 0)
+                    || ($discount > 0 && ((($item['deal_starts_at'] ?? null) !== $newStarts) || (($item['deal_ends_at'] ?? null) !== $newEnds)));
+                if ($dirty) {
+                    $item['sale_price'] = $effectiveSale;
+                    $item['purchase_price'] = $newPurchase;
+                    $item['subtotal'] = $effectiveSale * $qty;
+                    if ($discount > 0) {
+                        $item['deal_type'] = 'discount';
+                        $item['auto_deal'] = true;
+                        $item['original_price'] = $newSale;
+                        $item['discount_rate'] = $newSale > 0 ? ((int) round($discount / $newSale * 100) ?: null) : null;
+                        $item['deal_starts_at'] = $newStarts;
+                        $item['deal_ends_at'] = $newEnds;
+                    } else {
+                        unset($item['deal_type'], $item['auto_deal'], $item['original_price'], $item['discount_rate'], $item['deal_starts_at'], $item['deal_ends_at']);
+                    }
+                    $changed = true;
+                }
             }
             // 담은 뒤에 세트로 바뀐 제품 — 스냅샷에 구성이 없으면 현재 세트 구성을 백필해
             // 빌더 펼치기·부분환불에서 세트로 보이게 한다 (잠금 상태 포함, 발행일시 불변)
