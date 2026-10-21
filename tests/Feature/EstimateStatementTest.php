@@ -77,6 +77,26 @@ class EstimateStatementTest extends TestCase
         $this->assertStringContainsString('155,000', $html); // 합계금액
     }
 
+    public function test_tx_date_is_paid_time_for_paid_and_today_before(): void
+    {
+        // 결제완료 건 — 결제완료 시점 (paid_at은 상태 전환 시 자동 기록)
+        $paid = Estimate::create([
+            'status' => 'paid', 'created_by' => $this->admin->id,
+            'paid_at' => '2026-10-01 14:00:00',
+            'product_items' => [], 'service_items' => [], 'product_total' => 0, 'total_amount' => 0,
+        ]);
+        $this->actingAs($this->admin)->get("/estimates/{$paid->id}/statement")->assertOk()
+            ->assertSee('거래일자: 2026년 10월 01일');
+
+        // 결제 전 단계 — 발행 당일
+        $issued = Estimate::create([
+            'status' => 'issued', 'created_by' => $this->admin->id,
+            'product_items' => [], 'service_items' => [], 'product_total' => 0, 'total_amount' => 0,
+        ]);
+        $this->actingAs($this->admin)->get("/estimates/{$issued->id}/statement")->assertOk()
+            ->assertSee('거래일자: '.now()->format('Y년 m월 d일'));
+    }
+
     public function test_statement_requires_estimates_view_permission(): void
     {
         $estimate = Estimate::create([

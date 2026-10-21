@@ -765,7 +765,10 @@ class EstimateController extends Controller
             'estimate' => $estimate,
             'settings' => $settings,
             'lines' => $lines,
-            'txDate' => $estimate->payapp_paid_at ?? now(),
+            // 거래일자 — 결제완료 건은 결제완료 시점(수동 처리 paid_at·페이앱 결제 시각), 그 전 단계는 발행 당일
+            'txDate' => $estimate->status === 'paid'
+                ? ($estimate->paid_at ?? $estimate->payapp_paid_at ?? now())
+                : now(),
         ]);
     }
 
