@@ -2,16 +2,17 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{-- 모바일에서도 PC와 같은 고정 문서 폭으로 보이도록 (축소 표시) --}}
+    <meta name="viewport" content="width=920">
     <title>거래명세서 #{{ $estimate->display_no }}</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; background:#f2f2f3; color:#1d1f24; }
-        .no-print-bar { position:fixed; top:0; left:0; right:0; background:#222; padding:10px 20px; display:flex; gap:10px; align-items:center; z-index:100; }
+        .no-print-bar { position:fixed; top:0; left:0; right:0; min-width:920px; flex-wrap:nowrap; white-space:nowrap; background:#222; padding:10px 20px; display:flex; gap:10px; align-items:center; z-index:100; }
         .no-print-bar button { background:#c8b08a; color:#1a1207; border:none; padding:8px 18px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
         .no-print-bar span { color:#aaa; font-size:12px; }
-        .stmt-wrap { max-width:860px; margin:70px auto 40px; background:#fff; padding:42px 46px 48px; box-shadow:0 2px 14px rgba(0,0,0,0.1); }
+        .stmt-wrap { width:860px; max-width:860px; margin:70px auto 40px; background:#fff; padding:42px 46px 48px; box-shadow:0 2px 14px rgba(0,0,0,0.1); }
         h1 { text-align:center; font-size:26px; letter-spacing:0.55em; text-indent:0.55em; font-weight:800; margin-bottom:6px; }
         .stmt-sub { text-align:center; font-size:12px; color:#6b7684; margin-bottom:22px; }
         .party-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
