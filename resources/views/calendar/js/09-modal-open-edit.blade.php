@@ -623,7 +623,10 @@ function openEditModal(ev){
         if(restoredIds.length){
             linkedEstimateIds=restoredIds;
             renderLinkedEstimates();
-            if(typeof refreshLinkedEstimateLabels==='function') refreshLinkedEstimateLabels(); // 표시 번호·이름·총액 갱신
+            // 표시 번호·이름·총액(+상태) 갱신 후 — 연동 견적서가 결제완료면 결제 여부도 자동 반영
+            if(typeof refreshLinkedEstimateLabels==='function') refreshLinkedEstimateLabels().then(()=>{
+                if(typeof syncPaidStateFromEstimates==='function') syncPaidStateFromEstimates();
+            });
             // 결제완료인데 금액이 비어 있으면(0원 기록 방지) 연동 견적서 총액 합계 자동 입력
             if(g.paid==='결제완료'&&!(g.estimate_amount||'').toString().trim()&&typeof autofillEstimateAmountIfEmpty==='function') autofillEstimateAmountIfEmpty();
         }

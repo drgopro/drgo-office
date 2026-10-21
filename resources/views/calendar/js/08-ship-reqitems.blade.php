@@ -233,7 +233,7 @@ function renderEstimateList(list){
     if(!list.length) return '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">결과 없음</div>';
     // 자동 첨부 파일명(날짜 닉네임(이름))용 의뢰자 메타 — 선택 시 참조
     window.__estSearchMeta=window.__estSearchMeta||{};
-    list.forEach(e=>{ window.__estSearchMeta[e.id]={nickname:e.client_nickname||'',cname:e.client_name||''}; });
+    list.forEach(e=>{ window.__estSearchMeta[e.id]={nickname:e.client_nickname||'',cname:e.client_name||'',status:e.status||''}; });
     return list.map(e=>{
         const amt=e.total_amount?Number(e.total_amount).toLocaleString()+'원':'';
         const date=e.created_at?(e.created_at.substring(0,10)):'';
@@ -279,7 +279,7 @@ function searchEstimates(query){
 async function selectEstimate(id,name,amount,no){
     if(!linkedEstimateIds.some(x=>String(x)===String(id))) linkedEstimateIds.push(id);
     const cm=(window.__estSearchMeta||{})[id]||{};
-    linkedEstimateMeta[id]={display_no:no??id,name:name||'',total:Number(amount)||0,client_nickname:cm.nickname||'',client_name:cm.cname||''};
+    linkedEstimateMeta[id]={display_no:no??id,name:name||'',total:Number(amount)||0,client_nickname:cm.nickname||'',client_name:cm.cname||'',status:cm.status||''};
     renderLinkedEstimates();
     document.getElementById('estimateSearchOverlay').style.display='none';
     autoAttachEstimatePng(id,no??id); // 견적서 PNG를 '견적서' 첨부 대기열에 자동 추가
@@ -289,6 +289,19 @@ async function selectEstimate(id,name,amount,no){
     const inp=document.getElementById('g_estimate_amount');
     const sum=linkedEstimatesTotal();
     if(inp&&!inp.value.trim()&&sum) inp.value=sum.toLocaleString();
+    syncPaidStateFromEstimates();
+}
+
+// 결제완료 견적서가 연동되면 결제 여부를 자동으로 '결제완료'로 — 사용자가 이미
+// 결제완료로 바꿔둔 상태는 건드리지 않고, 기본값(미결제)일 때만 올린다
+function syncPaidStateFromEstimates(){
+    if(!linkedEstimateIds.some(id=>(linkedEstimateMeta[id]||{}).status==='paid')) return;
+    if(typeof getRadio==='function'&&getRadio('g_paid_group')==='결제완료') return;
+    if(typeof setRadio==='function'){
+        setRadio('g_paid_group','결제완료');
+        autofillEstimateAmountIfEmpty();
+        _setEstimateStatus('결제완료 견적서 연동 — 결제 여부 자동 설정');
+    }
 }
 
 // 견적서 불러오기 시 PNG 자동 첨부 — 인쇄 페이지를 숨은 iframe으로 렌더해 캡처 (팝업 없음),
@@ -382,7 +395,7 @@ async function refreshLinkedEstimateLabels(){
             if(!res.ok) continue;
             const data=await res.json();const list=data.data||data;
             const est=(list||[]).find(e=>e.id==id); // 문자열 id 구데이터 대비 느슨 비교
-            if(est) linkedEstimateMeta[id]={display_no:est.display_no??est.id,name:est.client_nickname||est.client_name||'',total:Number(est.total_amount)||0};
+            if(est) linkedEstimateMeta[id]={display_no:est.display_no??est.id,name:est.client_nickname||est.client_name||'',total:Number(est.total_amount)||0,status:est.status||''};
         }catch(e){}
     }
     renderLinkedEstimates();
