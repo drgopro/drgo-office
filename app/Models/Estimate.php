@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
@@ -218,11 +219,16 @@ class Estimate extends Model
         }
 
         $productTotal = (int) collect($items)->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal');
+        $totalChanged = (int) $this->total_amount !== $productTotal + (int) $this->service_total;
         $this->forceFill([
             'product_items' => $items,
             'product_total' => $productTotal,
             'total_amount' => $productTotal + (int) $this->service_total,
         ])->save();
+        if ($totalChanged) {
+            // 기간 할인 반영 등으로 총액이 바뀌면 자동 기록 원장·결제완료 일정 금액도 따라간다
+            EstimatePaymentSync::estimateTotalsChanged($this);
+        }
 
         return true;
     }

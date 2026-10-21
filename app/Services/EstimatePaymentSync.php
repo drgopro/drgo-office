@@ -32,17 +32,15 @@ class EstimatePaymentSync
                 'type' => 'charge',
                 'estimate_id' => $estimate->id,
                 'amount' => (int) $estimate->total_amount,
-                'items' => collect($estimate->product_items ?? [])->map(fn ($i, $idx) => [
-                    'name' => $i['name'] ?? '항목',
-                    'qty' => (int) ($i['qty'] ?? 1),
-                    'price' => (int) ($i['sale_price'] ?? 0),
-                    'estimate_item_index' => $idx,
-                ])->values()->all() ?: null,
+                'items' => self::chargeItems($estimate),
                 'method' => $method,
                 'paid_at' => now()->toDateString(),
                 'memo' => "견적서 #{$estimate->display_no} 결제완료 자동 기록",
                 'recorded_by' => Auth::id(),
             ]);
+        } else {
+            // 이미 자동 기록된 원장이 있으면 — 재결제 처리 등으로 총액이 바뀐 경우 금액을 따라잡는다
+            self::estimateTotalsChanged($estimate);
         }
 
         // 미수 청구가 연동돼 있으면 실제 결제된 금액으로 확정하고 charge와 연결 → 청구 상태 '결제됨'
@@ -59,6 +57,56 @@ class EstimatePaymentSync
         }
 
         self::syncSchedules($estimate, '결제완료');
+    }
+
+    /**
+     * 견적서 총액 변경 전파 — 기간 할인 자동 반영 등으로 총액이 바뀌었을 때,
+     * '결제완료 자동 기록'으로 생성된 원장(charge)과 결제완료 표시 일정의 금액을 따라잡는다.
+     * 수동 기록(선금·분할 등), 환불/취소 하위 기록이 달린 원장, 잔금(O) 일정은 건드리지 않는다.
+     */
+    public static function estimateTotalsChanged(Estimate $estimate): void
+    {
+        $total = (int) $estimate->total_amount;
+        if ($total <= 0) {
+            return;
+        }
+
+        $charge = ProjectPayment::where('estimate_id', $estimate->id)
+            ->where('type', 'charge')
+            ->where('memo', 'like', '%결제완료 자동 기록%')
+            ->first();
+        if ($charge && (int) $charge->amount !== $total
+            && ! ProjectPayment::where('parent_payment_id', $charge->id)->exists()) {
+            $charge->update(['amount' => $total, 'items' => self::chargeItems($estimate)]);
+            $charge->billing?->refreshStatus();
+        }
+
+        self::linkedSchedules($estimate)->each(function (Schedule $s) {
+            $g = $s->request_data ?? [];
+            if (($g['paid'] ?? '') !== '결제완료' || ($g['balance'] ?? '') === 'O') {
+                return;
+            }
+            $amt = number_format((int) Estimate::whereIn('id', self::scheduleEstimateIds($g))->sum('total_amount'));
+            if (($g['estimate_amount'] ?? '') !== $amt) {
+                $g['estimate_amount'] = $amt;
+                $s->update(['request_data' => $g]);
+            }
+        });
+    }
+
+    /**
+     * 원장 items 스냅샷 — 견적서 품목을 결제 내역 표시용으로 변환.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private static function chargeItems(Estimate $estimate): ?array
+    {
+        return collect($estimate->product_items ?? [])->map(fn ($i, $idx) => [
+            'name' => $i['name'] ?? '항목',
+            'qty' => (int) ($i['qty'] ?? 1),
+            'price' => (int) ($i['sale_price'] ?? 0),
+            'estimate_item_index' => $idx,
+        ])->values()->all() ?: null;
     }
 
     /**

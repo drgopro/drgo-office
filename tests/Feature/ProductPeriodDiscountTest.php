@@ -5,7 +5,11 @@ namespace Tests\Feature;
 use App\Models\Estimate;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Project;
+use App\Models\ProjectPayment;
+use App\Models\Schedule;
 use App\Models\User;
+use App\Services\EstimatePaymentSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -311,6 +315,47 @@ class ProductPeriodDiscountTest extends TestCase
         ]);
         $paid->fresh()->syncSnapshotPrices();
         $this->assertSame(1400000, (int) $paid->fresh()->product_items[0]['sale_price']);
+    }
+
+    public function test_total_change_propagates_to_auto_charge_and_paid_schedule(): void
+    {
+        $product = $this->makeProduct(['name' => '원장 마이크']);
+        $project = Project::create(['name' => '원장 테스트', 'stage' => 'consult']);
+        $estimate = Estimate::create([
+            'status' => 'created', 'created_by' => $this->admin->id, 'project_id' => $project->id,
+            'product_items' => [['product_id' => $product->id, 'name' => $product->name,
+                'sale_price' => 1400000, 'purchase_price' => 1000000, 'qty' => 1, 'subtotal' => 1400000]],
+            'service_items' => [], 'product_total' => 1400000, 'total_amount' => 1400000,
+        ]);
+        // 자동 기록 원장 + 수동 기록(선금) 원장 + 결제완료 일정
+        $auto = ProjectPayment::create(['project_id' => $project->id, 'type' => 'charge',
+            'estimate_id' => $estimate->id, 'amount' => 1400000, 'paid_at' => '2026-10-08',
+            'memo' => "견적서 #{$estimate->id} 결제완료 자동 기록"]);
+        $manual = ProjectPayment::create(['project_id' => $project->id, 'type' => 'charge',
+            'estimate_id' => $estimate->id, 'amount' => 500000, 'paid_at' => '2026-10-08', 'memo' => '선금']);
+        $schedule = Schedule::create(['title' => '결제 일정', 'start_date' => '2026-10-08', 'end_date' => '2026-10-08',
+            'request_data' => ['paid' => '결제완료', 'estimate_ids' => [$estimate->id], 'estimate_amount' => '1,400,000']]);
+
+        // 제품에 할인 설정 → 동기화 시 원장(자동)·일정 금액이 할인 총액으로
+        $product->update(['discount_amount' => 310000, 'discount_ends_at' => now()->addWeek()]);
+        $estimate->fresh()->syncSnapshotPrices();
+
+        $this->assertSame(1090000, (int) $auto->fresh()->amount);
+        $this->assertSame(1090000, (int) collect($auto->fresh()->items)->sum(fn ($i) => $i['qty'] * $i['price']));
+        $this->assertSame(500000, (int) $manual->fresh()->amount, '수동 기록(선금)은 불변');
+        $this->assertSame('1,090,000', $schedule->fresh()->request_data['estimate_amount']);
+
+        // 결제 내역 API를 열어도 어긋난 자동 원장을 따라잡는다 (과거 데이터 회복 경로)
+        $auto->forceFill(['amount' => 1469000])->save();
+        $this->actingAs($this->admin)->getJson("/api/projects/{$project->id}/payments")->assertOk();
+        $this->assertSame(1090000, (int) $auto->fresh()->amount);
+
+        // 환불 하위 기록이 달린 자동 원장은 보존
+        ProjectPayment::create(['project_id' => $project->id, 'type' => 'refund',
+            'parent_payment_id' => $auto->id, 'estimate_id' => $estimate->id, 'amount' => -100000, 'paid_at' => '2026-10-09']);
+        $auto->refresh()->forceFill(['amount' => 1469000])->save();
+        EstimatePaymentSync::estimateTotalsChanged($estimate->fresh());
+        $this->assertSame(1469000, (int) $auto->fresh()->amount);
     }
 
     public function test_discount_amount_is_capped_to_sale_price_on_save(): void

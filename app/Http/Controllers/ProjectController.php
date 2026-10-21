@@ -977,6 +977,12 @@ class ProjectController extends Controller
      */
     public function payments(Project $project): JsonResponse
     {
+        // 자동 기록(charge) 원장이 견적서 총액과 어긋나 있으면(기간 할인 반영 등) 먼저 따라잡는다
+        Estimate::whereIn('id', ProjectPayment::where('project_id', $project->id)
+            ->where('type', 'charge')->whereNotNull('estimate_id')
+            ->where('memo', 'like', '%결제완료 자동 기록%')->pluck('estimate_id')->unique())
+            ->get()->each(fn ($e) => EstimatePaymentSync::estimateTotalsChanged($e));
+
         $rows = ProjectPayment::with('recorder', 'refunds')
             ->where('project_id', $project->id)
             ->orderByDesc('created_at')
