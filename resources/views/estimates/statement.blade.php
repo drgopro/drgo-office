@@ -45,6 +45,12 @@
 <body>
 <div class="no-print-bar no-print">
     <button onclick="window.print()">인쇄</button>
+    <label style="display:inline-flex; align-items:center; gap:6px; color:#ddd; font-size:12.5px;">
+        거래일자
+        <input type="date" value="{{ $txDate->format('Y-m-d') }}"
+               onchange="if(this.value){ location.href = location.pathname + '?date=' + this.value; }"
+               style="background:#333; color:#eee; border:1px solid #555; border-radius:6px; padding:6px 8px; font-size:12.5px; cursor:pointer;">
+    </label>
     <span>인쇄 대화상자에서 'PDF로 저장'을 선택하면 파일로 저장됩니다.</span>
 </div>
 

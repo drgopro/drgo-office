@@ -95,6 +95,12 @@ class EstimateStatementTest extends TestCase
         ]);
         $this->actingAs($this->admin)->get("/estimates/{$issued->id}/statement")->assertOk()
             ->assertSee('거래일자: '.now()->format('Y년 m월 d일'));
+
+        // 수동 지정(?date=)이 항상 우선 — 잘못된 값은 무시하고 기본 규칙
+        $this->actingAs($this->admin)->get("/estimates/{$paid->id}/statement?date=2026-09-15")->assertOk()
+            ->assertSee('거래일자: 2026년 09월 15일');
+        $this->actingAs($this->admin)->get("/estimates/{$paid->id}/statement?date=abc")->assertOk()
+            ->assertSee('거래일자: 2026년 10월 01일');
     }
 
     public function test_statement_requires_estimates_view_permission(): void

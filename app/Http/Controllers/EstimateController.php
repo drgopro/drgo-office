@@ -765,10 +765,9 @@ class EstimateController extends Controller
             'estimate' => $estimate,
             'settings' => $settings,
             'lines' => $lines,
-            // 거래일자 — 결제완료 건은 결제완료 시점(수동 처리 paid_at·페이앱 결제 시각), 그 전 단계는 발행 당일
-            'txDate' => $estimate->status === 'paid'
-                ? ($estimate->paid_at ?? $estimate->payapp_paid_at ?? now())
-                : now(),
+            // 거래일자 — ?date=YYYY-MM-DD 수동 지정이 우선, 기본은 결제완료 시점(결제완료 건) 또는 발행 당일
+            'txDate' => rescue(fn () => request()->filled('date') ? Carbon::parse(request('date')) : null, null, false)
+                ?? ($estimate->status === 'paid' ? ($estimate->paid_at ?? $estimate->payapp_paid_at ?? now()) : now()),
         ]);
     }
 
