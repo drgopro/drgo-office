@@ -30,13 +30,10 @@
         .items td.ctr { text-align:center; white-space:nowrap; }
         .items .minus td { color:#b03030; }
         .items tfoot td { font-weight:800; background:#f7f8fa; border-top:1.5px solid #39485c; }
-        .grand-bar { display:flex; justify-content:space-between; align-items:center; border:1.5px solid #39485c; border-top:none; background:#39485c; color:#fff; padding:10px 16px; margin-bottom:18px; }
+        .grand-bar { display:flex; justify-content:space-between; align-items:center; border:1.5px solid #39485c; border-top:none; background:#39485c; color:#fff; padding:10px 16px; }
         .grand-bar .lbl { font-size:12.5px; font-weight:800; letter-spacing:0.25em; }
         .grand-bar .val { font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
         .grand-bar .val small { font-size:12px; font-weight:600; }
-        .stmt-note { font-size:11px; color:#6b7684; line-height:1.7; }
-        .receiver { margin-top:26px; display:flex; justify-content:flex-end; align-items:center; gap:10px; font-size:12.5px; }
-        .receiver .sign { display:inline-block; width:150px; border-bottom:1px solid #8a94a0; height:22px; }
         @media print {
             body { background:#fff; }
             .no-print { display:none !important; }
@@ -61,7 +58,7 @@
 <div class="stmt-wrap">
     <h1>거래명세서</h1>
     <div class="stmt-sub">
-        거래일자: {{ $txDate->format('Y년 m월 d일') }} · 문서번호: 견적서 #{{ $estimate->display_no }}
+        거래일자: {{ $txDate->format('Y년 m월 d일') }}
     </div>
 
     <div class="party-grid">
@@ -127,14 +124,6 @@
         <span class="val">{{ $money($grandTotal) }}<small> 원</small></span>
     </div>
 
-    <div class="stmt-note">
-        · 단가·합계금액은 부가가치세가 포함된 금액이며, 공급가액과 세액은 포함가 기준(÷1.1)으로 분리 표기했습니다.<br>
-        · 본 명세서는 견적서 #{{ $estimate->display_no }}{{ $estimate->estimate_no ? ' ('.$estimate->estimate_no.')' : '' }} 거래 내역을 기준으로 발행되었습니다.
-    </div>
-
-    <div class="receiver no-print-keep">
-        인수자: <span class="sign"></span> (서명)
-    </div>
 </div>
 </body>
 </html>
