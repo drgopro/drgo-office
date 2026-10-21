@@ -295,13 +295,31 @@ async function selectEstimate(id,name,amount,no){
 // 결제완료 견적서가 연동되면 결제 여부를 자동으로 '결제완료'로 — 사용자가 이미
 // 결제완료로 바꿔둔 상태는 건드리지 않고, 기본값(미결제)일 때만 올린다
 function syncPaidStateFromEstimates(){
-    if(!linkedEstimateIds.some(id=>(linkedEstimateMeta[id]||{}).status==='paid')) return;
-    if(typeof getRadio==='function'&&getRadio('g_paid_group')==='결제완료') return;
-    if(typeof setRadio==='function'){
+    if(!linkedEstimateIds.some(id=>(linkedEstimateMeta[id]||{}).status==='paid')){ syncLinkedEstimateAmount(); return; }
+    if(typeof getRadio==='function'&&getRadio('g_paid_group')!=='결제완료'&&typeof setRadio==='function'){
         setRadio('g_paid_group','결제완료');
         autofillEstimateAmountIfEmpty();
         _setEstimateStatus('결제완료 견적서 연동 — 결제 여부 자동 설정');
     }
+    syncLinkedEstimateAmount();
+}
+
+// 결제 금액을 연동 견적서 총액과 일치시킨다 — 할인 반영 등으로 견적서 총액이 바뀌었는데
+// 일정에 옛 금액(정가)이 남아 어긋나는 문제 방지. 잔금(분할 결제) 건은 수동 금액을 존중한다
+function syncLinkedEstimateAmount(){
+    const inp=document.getElementById('g_estimate_amount');
+    if(!inp||!linkedEstimateIds.length) return;
+    if(typeof getRadio==='function'&&getRadio('g_paid_group')!=='결제완료') return;
+    if(typeof getRadio==='function'&&getRadio('g_balance_group')==='O') return;
+    // 환불이 있는 건 — 결제 금액을 환불 반영액으로 수동 관리할 수 있어 덮지 않는다
+    const refundView=document.getElementById('g_estimate_refund_view');
+    if(refundView&&Number(refundView.dataset.amt||0)>0) return;
+    const sum=linkedEstimatesTotal();
+    const cur=parseInt(String(inp.value||'').replace(/[^\d]/g,''),10)||0;
+    if(!sum||cur===sum) return;
+    inp.value=sum.toLocaleString();
+    _setEstimateStatus('연동 견적서 총액으로 갱신됨 — 저장하면 반영');
+    if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
 }
 
 // 견적서 불러오기 시 PNG 자동 첨부 — 인쇄 페이지를 숨은 iframe으로 렌더해 캡처 (팝업 없음),
