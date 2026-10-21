@@ -250,7 +250,7 @@ class ProductPeriodDiscountTest extends TestCase
         // 기간 스냅샷 저장 + 출력물 하단 문구
         $this->assertSame('2026-12-31 16:59', $estimate->fresh()->product_items[0]['deal_ends_at']);
         $html = $this->actingAs($this->admin)->get("/estimates/{$estimate->id}/print")->assertOk()->getContent();
-        $this->assertStringContainsString('2026년 10월 14일 ~ 2026년 12월 31일까지 기간 한정 할인이 적용된 금액입니다.', $html);
+        $this->assertStringContainsString('2026년 10월 14일 11시 ~ 2026년 12월 31일 16시 59분까지 기간 한정 할인이 적용된 금액입니다.', $html);
         // 기간 없는 수동 할인은 기존 문구 유지
         $this->assertStringContainsString('재방문 세팅비 할인 또는 이벤트 할인이 적용된 금액입니다.', $html);
     }

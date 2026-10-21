@@ -615,7 +615,16 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
             ->unique()->values();
         // 기간 정보 없는 일반 할인(수동 지정)만 기존 문구 사용
         $hasDiscount = collect($items)->contains(fn ($i) => ($i['deal_type'] ?? null) === 'discount' && empty($i['deal_ends_at']));
-        $kdate = fn ($d) => \Carbon\Carbon::parse($d)->format('Y년 m월 d일');
+        // 종료 '시간'이 마감 기준(예: 당일 13시 출고 마감)일 수 있어 자정류(23:59/00:00)가 아니면 시각까지 표기
+        $kdate = function ($d) {
+            $c = \Carbon\Carbon::parse($d);
+            $hm = $c->format('H:i');
+            if (in_array($hm, ['23:59', '00:00'], true)) {
+                return $c->format('Y년 m월 d일');
+            }
+
+            return $c->format('Y년 m월 d일 ').((int) $c->format('i') === 0 ? $c->format('G시') : $c->format('G시 i분'));
+        };
     @endphp
     @if($hasSpecial || $hasDiscount || $dealPeriods->isNotEmpty())
         {{-- 특가/할인 각주 — 해당 표시가 있는 견적서에만 자동 노출 --}}
