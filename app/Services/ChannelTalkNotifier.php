@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Console\Commands\RefreshStaleIssuedEstimates;
 use App\Models\Assignee;
+use App\Models\Estimate;
 use App\Models\Notice;
 use App\Models\Schedule;
 use App\Models\Setting;
@@ -153,6 +155,27 @@ class ChannelTalkNotifier
             );
         } catch (\Throwable $e) {
             Log::warning('채널톡 공지 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /** 발행 24시간 재갱신 알림 — 금액이 바뀐 견적서를 팀챗에 공유 (수신 확인용 전원 멘션) */
+    public function estimateReissued(Estimate $estimate, int $oldTotal, int $newTotal, string $note): void
+    {
+        if (! $this->client->isConfigured()) {
+            return;
+        }
+
+        try {
+            $who = trim((string) ($estimate->client_nickname ?: $estimate->client_name));
+            $this->client->sendGroupMessage(
+                "{$this->client->mentionAll()}\n"
+                ."견적서 #{$estimate->display_no}".($who !== '' ? " ({$who})" : '')
+                .' — 발행 '.RefreshStaleIssuedEstimates::GUARANTEE_HOURS.'시간 경과 재갱신: '
+                .number_format($oldTotal).'원 → '.number_format($newTotal)."원\n{$note}\n"
+                .url("/estimates/{$estimate->id}/edit")
+            );
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 견적 재갱신 알림 실패: '.$e->getMessage());
         }
     }
 

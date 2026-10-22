@@ -55,3 +55,6 @@ Schedule::command('wiki:prune-drafts')->dailyAt('04:15')->withoutOverlapping();
 
 // 기간 지난 제품 할인 자동 해제 — 할인 필드 초기화 + 이력에 '기간 종료' 기록 (30분마다)
 Schedule::command('products:expire-discounts')->everyThirtyMinutes()->withoutOverlapping();
+
+// 발행 24시간 가격 보장 — 미결제 발행 건을 현재 가격으로 재갱신 (금액 변경 시 페이앱 재요청 + 채널톡 알림)
+Schedule::command('estimates:refresh-stale-issued')->hourly()->withoutOverlapping();

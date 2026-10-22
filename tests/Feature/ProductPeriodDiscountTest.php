@@ -358,6 +358,38 @@ class ProductPeriodDiscountTest extends TestCase
         $this->assertSame(1469000, (int) $auto->fresh()->amount);
     }
 
+    public function test_stale_issued_estimates_refresh_after_guarantee_hours(): void
+    {
+        $product = $this->makeProduct(['name' => '재갱신 마이크', 'discount_amount' => 310000,
+            'discount_ends_at' => now()->subHour()]); // 할인 종료됨
+        $makeIssued = fn (array $attrs) => Estimate::create([
+            'status' => 'issued', 'created_by' => $this->admin->id,
+            'product_items' => [['product_id' => $product->id, 'name' => $product->name,
+                'sale_price' => 1090000, 'qty' => 1, 'subtotal' => 1090000,
+                'deal_type' => 'discount', 'auto_deal' => true, 'original_price' => 1400000,
+                'deal_ends_at' => now()->subHour()->format('Y-m-d H:i')]],
+            'service_items' => [], 'product_total' => 1090000, 'total_amount' => 1090000,
+            ...$attrs,
+        ]);
+
+        $stale = $makeIssued(['issued_at' => now()->subHours(25)]);
+        $recent = $makeIssued(['issued_at' => now()->subHours(3)]);
+
+        $this->artisan('estimates:refresh-stale-issued')->assertSuccessful();
+
+        // 24시간 지난 발행 건만 정가로 재갱신 — 보장 시간 내 건은 할인가 유지
+        $this->assertSame(1400000, (int) $stale->fresh()->total_amount);
+        $this->assertArrayNotHasKey('deal_type', $stale->fresh()->product_items[0]);
+        $this->assertSame(1090000, (int) $recent->fresh()->total_amount);
+        $this->assertSame('issued', $stale->fresh()->status, '상태는 발행완료 유지');
+
+        // 결제완료 건은 대상 아님
+        $paid = $makeIssued(['issued_at' => now()->subHours(30)]);
+        $paid->forceFill(['status' => 'paid'])->save();
+        $this->artisan('estimates:refresh-stale-issued')->assertSuccessful();
+        $this->assertSame(1090000, (int) $paid->fresh()->total_amount);
+    }
+
     public function test_discount_amount_is_capped_to_sale_price_on_save(): void
     {
         $product = $this->makeProduct();

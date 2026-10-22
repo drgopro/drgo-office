@@ -128,9 +128,11 @@ class Estimate extends Model
      * — 부분환불 계산에 필요하지만 가격 필드 도입 전 스냅샷에는 없기 때문 (기존 값은 불변).
      * 변경이 있을 때만 저장하며, 저장 여부를 반환.
      */
-    public function syncSnapshotPrices(): bool
+    public function syncSnapshotPrices(bool $ignoreLock = false): bool
     {
-        $locked = in_array($this->status, self::PRICE_LOCKED_STATUSES, true);
+        // ignoreLock: 발행 24시간 재갱신(estimates:refresh-stale-issued) 전용 — 발행완료 가격 보장을
+        // 시간으로 한정할 때만 잠금을 무시하고 현재 가격(기간 할인 반영/종료)으로 재계산한다
+        $locked = ! $ignoreLock && in_array($this->status, self::PRICE_LOCKED_STATUSES, true);
 
         $items = $this->product_items ?? [];
         $ids = collect($items)->pluck('product_id')->filter()->unique()->values();
