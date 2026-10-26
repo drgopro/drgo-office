@@ -89,6 +89,15 @@
         <div id="pushStatus" class="field-hint" style="margin-top:8px"></div>
     </div>
 
+    {{-- AI 에이전트 작업 현황 (관리자 전용, 시연용 샘플) --}}
+    @if($user->isAdmin())
+    <div class="section-card">
+        <div class="section-title">AI 에이전트</div>
+        <div class="field-hint" style="margin-bottom:12px">Claude Code · Codex · Git이 어떻게 함께 일하는지 보여주는 작업 현황 화면입니다. 지금은 시연용 샘플 데이터로 동작합니다.</div>
+        <a href="{{ route('agent') }}" class="btn-save" style="display:inline-block; text-decoration:none" onclick="event.preventDefault(); openAgentPage(this.href)">작업 현황 열기</a>
+    </div>
+    @endif
+
     {{-- 비밀번호 변경 --}}
     <div class="section-card">
         <div class="section-title">비밀번호 변경</div>
@@ -181,5 +190,20 @@ async function togglePush(){
 }
 
 pushInit();
+
+// AI 에이전트 화면 — 상위 탭 셸이 있으면 탭으로, 없으면 새 창으로
+function openAgentPage(url){
+    try {
+        let w = window;
+        for (let i = 0; i < 5 && w !== w.parent; i++) {
+            if (w.parent && w.parent.drgoTabs && typeof w.parent.drgoTabs.openNav === 'function') {
+                w.parent.drgoTabs.openNav('agent', url, 'AI 에이전트');
+                return;
+            }
+            w = w.parent;
+        }
+    } catch (e) { /* cross-origin 등 */ }
+    window.open(url, '_blank');
+}
 </script>
 @endsection

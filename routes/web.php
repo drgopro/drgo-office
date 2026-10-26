@@ -162,6 +162,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
+    // AI 에이전트 작업 현황 (시연용 샘플 화면) — 마이페이지에서 진입, master/admin 전용
+    Route::view('/agent', 'agent')->middleware('role:master,admin')->name('agent');
+
     // 캘린더 (조회: 전체, 수정: 권한 필요)
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::view('/calendar/widget', 'calendar.widget')->name('calendar.widget'); // 데스크탑 위젯용 컴팩트 뷰
