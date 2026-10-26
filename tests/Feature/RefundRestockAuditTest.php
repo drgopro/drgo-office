@@ -9,6 +9,7 @@ use App\Models\StockMovement;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -106,6 +107,76 @@ class RefundRestockAuditTest extends TestCase
         // 입고 이력이 생겼으므로 재감사에서 제외 (멱등)
         $this->actingAs($this->admin)->get('/inventory/refund-restock-audit')
             ->assertOk()->assertSee('보정이 필요한 건이 없습니다.');
+    }
+
+    /** 직발 세트 환불 견적서 — 출고 이력 $outQty개, 복원 이력 $returnQty개 */
+    private function makeDirectRefundEstimate(int $estimateNo, Product $product, int $outQty, int $returnQty): Estimate
+    {
+        $estimate = Estimate::create([
+            'estimate_no' => $estimateNo, 'status' => 'paid', 'client_nickname' => '고블린',
+            'product_items' => [[
+                'product_id' => 999999, 'name' => '세트', 'sale_price' => 10000, 'qty' => $outQty, 'subtotal' => 10000,
+                'refunded' => true, 'refund_qty' => $outQty, 'refund_amount' => 10000, 'refunded_at' => '2026-10-12 19:52',
+                'bundle_items' => [
+                    ['product_id' => $product->id, 'name' => $product->name, 'qty' => 1, 'price' => 10000, 'ordered' => true, 'source' => '사무실 발송'],
+                ],
+            ]],
+            'service_items' => [], 'total_amount' => 10000, 'created_by' => $this->admin->id,
+        ]);
+        StockMovement::create([
+            'product_id' => $product->id, 'movement_type' => 'out', 'quantity' => $outQty, 'quantity_after' => 0,
+            'user_id' => $this->admin->id, 'memo' => '견적서 #'.$estimateNo.' 직접발송',
+        ]);
+        if ($returnQty > 0) {
+            StockMovement::create([
+                'product_id' => $product->id, 'movement_type' => 'return', 'quantity' => $returnQty, 'quantity_after' => 0,
+                'user_id' => $this->admin->id, 'memo' => '견적서 #'.$estimateNo.' 직접발송 복원',
+            ]);
+        }
+
+        return $estimate;
+    }
+
+    public function test_movements_are_matched_to_exact_estimate_number_across_batch(): void
+    {
+        $cam = Product::create(['sku' => 'A-CAM', 'name' => '카메라', 'sale_price' => 100000, 'is_active' => true]);
+        Inventory::create(['product_id' => $cam->id, 'quantity' => 0, 'last_updated_at' => now()]);
+        // #7은 복원 완료(대상 아님), #77은 2개 중 1개만 복원 → 1개 누락. 접두어가 겹쳐도 섞이면 안 된다.
+        $this->makeDirectRefundEstimate(7, $cam, 2, 2);
+        $e77 = $this->makeDirectRefundEstimate(77, $cam, 2, 1);
+
+        $this->actingAs($this->admin)->postJson('/api/inventory/refund-restock-audit/apply', [
+            'estimate_id' => $e77->id, 'product_id' => $cam->id, 'kind' => 'direct', 'qty' => 2,
+        ])->assertStatus(422)->assertJsonPath('message', '보정 가능 수량(1개)을 초과합니다.');
+
+        $e7 = Estimate::where('estimate_no', 7)->first();
+        $this->actingAs($this->admin)->postJson('/api/inventory/refund-restock-audit/apply', [
+            'estimate_id' => $e7->id, 'product_id' => $cam->id, 'kind' => 'direct', 'qty' => 1,
+        ])->assertStatus(422)->assertJsonPath('message', '이미 보정됐거나 대상이 아닙니다. 새로고침 후 다시 확인해 주세요.');
+    }
+
+    public function test_audit_query_count_does_not_grow_with_refund_estimates(): void
+    {
+        $countQueries = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $this->actingAs($this->admin)->get('/inventory/refund-restock-audit')->assertOk();
+            $count = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $count;
+        };
+
+        $products = collect(range(1, 4))->map(fn ($i) => Product::create(['sku' => 'Q-'.$i, 'name' => '제품'.$i, 'sale_price' => 1000, 'is_active' => true]));
+        $this->makeDirectRefundEstimate(101, $products[0], 1, 0);
+        $countQueries(); // 레이아웃 공용 캐시 예열 — 첫 요청에만 있는 쿼리를 비교에서 제외
+        $baseline = $countQueries();
+
+        foreach ([102, 103, 104] as $i => $no) {
+            $this->makeDirectRefundEstimate($no, $products[$i + 1], 1, 0);
+        }
+
+        $this->assertSame($baseline, $countQueries());
     }
 
     public function test_requires_inventory_edit_permission(): void

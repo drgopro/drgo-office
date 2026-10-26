@@ -6,6 +6,7 @@ use App\Models\Estimate;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\StockMovement;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -25,17 +26,18 @@ class EstimateStockSync
      * 세트는 구성품 단위로 계산: 부모가 직접발송이면 전 구성품, 아니면 직접발송 표시된 구성품만.
      *
      * @param  array<int, array<string, mixed>>|null  $items
+     * @param  Collection<int, Product>|null  $preloadedBundleProducts  여러 견적서를 연달아 계산할 때 미리 읽은 세트 제품 (id 키, bundleItems.component 로드)
      * @return array<int, int>
      */
-    public static function netShippedMap(?array $items): array
+    public static function netShippedMap(?array $items, ?Collection $preloadedBundleProducts = null): array
     {
         $items = $items ?? [];
         $bundleParentIds = collect($items)
             ->filter(fn ($i) => ! empty($i['product_id']) && ! empty($i['bundle_items']))
             ->pluck('product_id')->unique()->values();
-        $bundleProducts = $bundleParentIds->isEmpty()
+        $bundleProducts = $preloadedBundleProducts ?? ($bundleParentIds->isEmpty()
             ? collect()
-            : Product::with('bundleItems.component')->whereIn('id', $bundleParentIds)->get()->keyBy('id');
+            : Product::with('bundleItems.component')->whereIn('id', $bundleParentIds)->get()->keyBy('id'));
 
         $map = [];
         foreach ($items as $item) {

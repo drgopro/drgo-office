@@ -73,15 +73,24 @@ class RefundRestockAuditController extends Controller
     private function audit(): array
     {
         $rows = [];
-        Estimate::whereNotNull('product_items')->orderByDesc('id')->chunk(100, function ($estimates) use (&$rows) {
-            foreach ($estimates as $e) {
+        Estimate::with('parent')->whereNotNull('product_items')->orderByDesc('id')->chunk(100, function ($estimates) use (&$rows) {
+            $refundEstimates = $estimates->filter(fn ($e) => collect($e->product_items ?? [])->contains(fn ($i) => ! empty($i['refunded'])
+                || (int) ($i['refund_qty'] ?? 0) > 0
+                || collect($i['bundle_items'] ?? [])->contains(fn ($b) => (int) ($b['refund_qty'] ?? 0) > 0)));
+            if ($refundEstimates->isEmpty()) {
+                return;
+            }
+            $movementsByNo = $this->movementsByEstimateNo($refundEstimates->map(fn ($e) => (string) $e->display_no)->all());
+            // 세트 제품을 청크 단위로 한 번에 읽어 netShippedMap에 넘긴다 — 견적서마다 조회하던 N+1 제거
+            $bundleParentIds = $refundEstimates->flatMap(fn ($e) => collect($e->product_items ?? [])
+                ->filter(fn ($i) => ! empty($i['product_id']) && ! empty($i['bundle_items']))
+                ->pluck('product_id'))->unique()->values();
+            $bundleProducts = $bundleParentIds->isEmpty()
+                ? collect()
+                : Product::with('bundleItems.component')->whereIn('id', $bundleParentIds)->get()->keyBy('id');
+
+            foreach ($refundEstimates as $e) {
                 $items = $e->product_items ?? [];
-                $hasRefund = collect($items)->contains(fn ($i) => ! empty($i['refunded'])
-                    || (int) ($i['refund_qty'] ?? 0) > 0
-                    || collect($i['bundle_items'] ?? [])->contains(fn ($b) => (int) ($b['refund_qty'] ?? 0) > 0));
-                if (! $hasRefund) {
-                    continue;
-                }
                 $no = (string) $e->display_no;
                 $meta = [
                     'estimate_id' => $e->id, 'no' => $no,
@@ -94,9 +103,9 @@ class RefundRestockAuditController extends Controller
                 $normItems = $this->normalizeParentRefunds($items);
 
                 // ── 직접발송 복원 누락 — 기대 순출고(현재 스냅샷) vs 실제 입출고 이력 순출고 ──
-                $expected = EstimateStockSync::netShippedMap($normItems);
+                $expected = EstimateStockSync::netShippedMap($normItems, $bundleProducts);
                 $actual = [];
-                StockMovement::where('memo', 'like', '견적서 #'.$no.' 직접발송%')->get()
+                collect($movementsByNo[$no]['direct'] ?? [])
                     ->each(function ($m) use (&$actual) {
                         $actual[$m->product_id] = ($actual[$m->product_id] ?? 0)
                             + ($m->movement_type === 'out' ? (int) $m->quantity : -(int) $m->quantity);
@@ -106,7 +115,6 @@ class RefundRestockAuditController extends Controller
                     if ($diff > 0) {
                         $rows[] = $meta + [
                             'kind' => 'direct', 'product_id' => (int) $pid,
-                            'product' => Product::where('id', $pid)->value('name') ?? ('#'.$pid),
                             'qty' => $diff,
                             'refunded_at' => $this->lastRefundedAt($items),
                         ];
@@ -115,7 +123,7 @@ class RefundRestockAuditController extends Controller
 
                 // ── 거래처 주문 반품 미입고 — 주문완료된 거래처 주문분 환불인데 입고 이력 없음 ──
                 $restockedByPid = [];
-                StockMovement::where('memo', 'like', '견적서 #'.$no.' 사무실 반품 입고%')->get()
+                collect($movementsByNo[$no]['vendor'] ?? [])
                     ->each(function ($m) use (&$restockedByPid) {
                         $restockedByPid[$m->product_id] = ($restockedByPid[$m->product_id] ?? 0) + (int) $m->quantity;
                     });
@@ -146,7 +154,6 @@ class RefundRestockAuditController extends Controller
                     if ($missing > 0) {
                         $rows[] = $meta + [
                             'kind' => 'vendor', 'product_id' => (int) $pid,
-                            'product' => Product::where('id', $pid)->value('name') ?? ('#'.$pid),
                             'qty' => $missing,
                             'refunded_at' => $this->lastRefundedAt($items),
                         ];
@@ -155,7 +162,42 @@ class RefundRestockAuditController extends Controller
             }
         });
 
+        // 제품명은 마지막에 한 번에 조회 — 행마다 조회하던 N+1 제거
+        $names = Product::whereIn('id', array_unique(array_column($rows, 'product_id')))->pluck('name', 'id');
+        foreach ($rows as $i => $row) {
+            $rows[$i]['product'] = $names[$row['product_id']] ?? ('#'.$row['product_id']);
+        }
+
         return $rows;
+    }
+
+    /**
+     * 견적서 번호들의 직접발송/사무실 반품 입고 이력을 한 쿼리로 읽어 번호·유형별로 묶는다.
+     * 메모 패턴은 기존 개별 조회('견적서 #{no} 직접발송%', '견적서 #{no} 사무실 반품 입고%')와 같다.
+     *
+     * @param  array<int, string>  $nos
+     * @return array<string, array{direct?: array<int, StockMovement>, vendor?: array<int, StockMovement>}>
+     */
+    private function movementsByEstimateNo(array $nos): array
+    {
+        $movements = StockMovement::query()
+            ->select(['id', 'product_id', 'movement_type', 'quantity', 'memo'])
+            ->where(function ($q) use ($nos) {
+                foreach ($nos as $no) {
+                    $q->orWhere('memo', 'like', '견적서 #'.$no.' 직접발송%')
+                        ->orWhere('memo', 'like', '견적서 #'.$no.' 사무실 반품 입고%');
+                }
+            })
+            ->get();
+
+        $grouped = [];
+        foreach ($movements as $m) {
+            if (preg_match('/^견적서 #(\S+) (직접발송|사무실 반품 입고)/u', (string) $m->memo, $match)) {
+                $grouped[$match[1]][$match[2] === '직접발송' ? 'direct' : 'vendor'][] = $m;
+            }
+        }
+
+        return $grouped;
     }
 
     /**
