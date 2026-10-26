@@ -5,6 +5,7 @@ const SPECIAL_OPT_LABELS={car:'차량 이용 필요',brief:'들고 갈 제품 �
 const SCHED_ICONS={suggest:'💬',hope:'🙏',target:'🎯'};
 function buildChipHtml(ev){
     let html='';
+    if(CAL_V2&&ev.completed_at) html+=`<span class="opt-ic ev-done-ic" title="완료">${CAL_V2_ICONS.check}</span>`;
     const time=ev.start_time?ev.start_time.substring(0,5):'';
     if(time) html+=`<span class="chip-time">${time}</span>`;
     // 옵션 칩(특수/세부유형/일정옵션) — 타이틀 앞 배치, 모든 뷰 공통 순서
@@ -219,17 +220,27 @@ function renderAgendaSearch(){
 let calResizeTimer=null;
 window.addEventListener('resize',()=>{
     clearTimeout(calResizeTimer);
-    calResizeTimer=setTimeout(()=>renderView(),150);
+    calResizeTimer=setTimeout(()=>{
+        // v2: 768px 경계를 넘으면(회전·창 크기) 월 ↔ 칩형 월간 대체를 다시 맞추고 탭 표시 갱신
+        if(CAL_V2){
+            if(calMobileV2()&&currentView==='month'){ switchView('month'); return; }
+            if(!calMobileV2()&&currentView==='monthc'&&calV2MonthAlias){ switchView('month'); return; }
+            document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
+            document.getElementById(calTabId(currentView))?.classList.add('active');
+        }
+        renderView();
+    },150);
 });
 
 function switchView(view) {
     agendaSearchQuery=null; // 뷰 전환 시 검색 결과 모드 해제 (openSearchListView는 호출 후 다시 설정)
+    calV2MonthAlias=view==='month'&&calMobileV2();
+    if(calV2MonthAlias) view='monthc'; // v2 모바일: 월 탭 = 칩형 월간 레이아웃
     currentView = view;
     try{ localStorage.setItem('calLastView', view); }catch(e){} // 마지막 본 모드 기억 (다음 방문 시 자동 복원)
     csLoadFilters(); // 뷰별 카테고리 필터 적용 (월/주/일/목록 각각 개인 설정)
-    const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
     document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById(TAB_IDS[view])?.classList.add('active');
+    document.getElementById(calTabId(view))?.classList.add('active');
     document.getElementById('monthView').style.display    = view==='month' ? '' : 'none';
     document.getElementById('monthCompactView').style.display = view==='monthc' ? '' : 'none';
     document.getElementById('timelineView').style.display = (view==='week'||view==='day') ? '' : 'none';

@@ -10,6 +10,10 @@ function mcAssignee(ev){
     const an=names.length>1?` data-anames="${esc(names.join('|'))}" data-atitle="${esc(ev.title||'')}"`:'';
     return `<span class="mc-assignee"${an}>${_esc(display)}</span>`;
 }
+// 칩 상태 클래스 — 완료 / 미확정(점선) / 지난 일정(v2 모바일에서 흐림)
+function mcStateCls(ev,ts){
+    return (ev.completed_at?' is-completed':'')+(isTentativeEv(ev)?' is-tentative':'')+(evEnd(ev)<ts?' is-past':'');
+}
 function renderMonthCompact(){
     const view=document.getElementById('monthCompactView');
     if(!view) return;
@@ -27,8 +31,10 @@ function renderMonthCompact(){
         const reserve=mcMobile?26+54:26+14+mcListH+12; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 핸들+리스트 영역)
         rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/6));
     }
-    const CHIP=mcMobile?19:17, BAR=17, HEAD=20, LANE_CAP=3;
-    if(mcMobile) rowH=Math.max(rowH, HEAD+CHIP*6+4); // 모바일: 셀당 칩 6개 수준 확보 (네이버식 밀도)
+    const mv2=CAL_V2&&mcMobile; // v2 모바일: 20px 진한 칩, 하루 최대 2행 + 별도 +N 행
+    const CHIP=mv2?22:mcMobile?19:17, BAR=mv2?22:17, HEAD=mv2?30:20, LANE_CAP=mv2?2:3;
+    if(mv2) rowH=Math.max(rowH, HEAD+CHIP*2+18);
+    else if(mcMobile) rowH=Math.max(rowH, HEAD+CHIP*6+4); // 모바일: 셀당 칩 6개 수준 확보 (네이버식 밀도)
 
     let html=`<div class="mc-weekdays">${['일','월','화','수','목','금','토'].map(d=>`<span>${d}</span>`).join('')}</div>`;
     for(let w=0;w<6;w++){
@@ -57,7 +63,7 @@ function renderMonthCompact(){
             const c0=days.findIndex(d=>fmt(d)===s), c1=days.findIndex(d=>fmt(d)===e);
             if(c0<0||c1<0) return;
             const label=_d(ev.start_date)>=weekStart||w===0?`<span>${eventOptIconsHtml(ev)}<span class="mc-title">${_esc(ev.title||'(제목 없음)')}</span>${schedStatusChip(ev)}${mcAssignee(ev)}</span>`:'<span></span>';
-            bars+=`<div class="mc-bar color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}"
+            bars+=`<div class="mc-bar color-${ev.color}${mcStateCls(ev,ts)}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}"
                 style="left:calc(${c0} * 100% / 7 + 2px); width:calc(${c1-c0+1} * 100% / 7 - 5px); top:${HEAD+lane*BAR}px;">${label}</div>`;
         });
 
@@ -77,15 +83,15 @@ function renderMonthCompact(){
             const laneRows=laneSet.size?Math.max(...laneSet)+1:0;
             const freeLanes=laneRows-laneSet.size;
             const extraCap=Math.max(0,Math.floor((rowH-HEAD-laneRows*BAR)/CHIP));
-            const singleBudget=Math.max(1,freeLanes+extraCap);
+            const singleBudget=mv2?freeLanes+Math.max(0,2-laneRows):Math.max(1,freeLanes+extraCap);
             let show=daySingles, moreCnt=hiddenMulti;
             if(daySingles.length+hiddenMulti>singleBudget){
-                const cut=Math.max(0,singleBudget-1);
-                moreCnt=hiddenMulti+(daySingles.length-cut);
+                const cut=mv2?singleBudget:Math.max(0,singleBudget-1); // v2 모바일은 +N이 별도 행이라 칩 자리를 양보하지 않음
+                moreCnt=hiddenMulti+Math.max(0,daySingles.length-cut);
                 show=daySingles.slice(0,cut);
             }
             // 시간을 칩 맨 앞 고정폭으로 — 아이콘 폭 차이로 시간 열이 어긋나지 않게 (시간 → 아이콘 → 제목 순)
-            const chipOf=(ev,inLane)=>`<div class="mc-chip${inLane?' in-lane':''} color-${ev.color}${ev.completed_at?' is-completed':''}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}<span class="mc-title">${_esc(ev.title||'(제목 없음)')}</span>${schedStatusChip(ev)}${mcAssignee(ev)}</div>`;
+            const chipOf=(ev,inLane)=>`<div class="mc-chip${inLane?' in-lane':''} color-${ev.color}${mcStateCls(ev,ts)}" data-mcid="${ev.id}" title="${_esc(ev.title||'')}">${ev.is_all_day||!ev.start_time?'':`<span class="mc-time">${(ev.start_time||'').slice(0,5)}</span>`}${eventOptIconsHtml(ev)}<span class="mc-title">${_esc(ev.title||'(제목 없음)')}</span>${schedStatusChip(ev)}${mcAssignee(ev)}</div>`;
             let body='', si=0;
             for(let L=0;L<laneRows;L++){
                 if(laneSet.has(L)) body+='<div class="mc-slot"></div>';
@@ -303,7 +309,7 @@ function renderMonth() {
         rowMin=Math.max(rowMin, Math.floor((avail-N-1)/N)); // N주 + 1px 경계선
     }
     // 셀 높이에 들어가는 만큼 일정 칩 표시 (기존 고정 3개 → 동적, 최소 3개 보장)
-    const chipH=22*calFzScale+2, headH=12+28*calFzScale, badgeH=18;
+    const chipH=(CAL_V2?26:22)*calFzScale+(CAL_V2?3:2), headH=12+28*calFzScale, badgeH=18;
     const MAX_VISIBLE=Math.max(3, Math.floor((rowMin-headH-badgeH)/chipH));
 
     // 주 단위로 렌더링
@@ -405,6 +411,7 @@ function renderMonth() {
                     let cls=`event-chip single color-${ev.color} multi-day`;
                     cls+= isStart&&isEnd?' day-start day-end':isStart?' day-start':isEnd?' day-end':' day-cont';
                     if(ev.completed_at) cls+=' is-completed';
+                    if(isTentativeEv(ev)) cls+=' is-tentative';
                     chip.className=cls;
                     chip.innerHTML=''; // 제목은 주 단위 오버레이가 바 전체 폭에 걸쳐 그림 (PC/모바일 공통)
                     chip.dataset.mev=ev.id; // 오버레이 위치 측정용
@@ -412,7 +419,7 @@ function renderMonth() {
                     const mnames=assigneeNamesOf(ev);
                     if(mnames.length>1){ chip.dataset.anames=mnames.join('|'); chip.dataset.atitle=isGuestUser?(ev.location||'일정'):(ev.title||''); }
                 } else {
-                    chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'');
+                    chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'')+(isTentativeEv(ev)?' is-tentative':'');
                     chip.innerHTML=buildChipHtml(ev);
                 }
                 chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
@@ -545,7 +552,7 @@ function renderMobileDayEvents(dateStr, container){
         const sub=[catLabel,dur,(!moveHtml&&ev.location)?ev.location:''].filter(Boolean).join(' · ');
         return `<div class="mde-item${ev.completed_at?' is-completed':''}" onclick="openDetailModal(events.find(e=>e.id===${ev.id}))">
             <div class="mde-time">${time}</div>
-            <div class="mde-bar" style="background:${chipColor(ev.color)}"></div>
+            <div class="mde-bar${isTentativeEv(ev)?' is-tentative':''}" style="background:${chipColor(ev.color)};--mde-c:${chipColor(ev.color)}"></div>
             <div class="mde-info">
                 <div class="mde-title-row">
                     <div class="mde-title">${eventOptIconsHtml(ev)}${_esc(title)}${schedStatusChip(ev)}${shipStatusIcon(ev)}</div>

@@ -1,6 +1,17 @@
 {{-- 전역 상수·필터·사이드바·헬퍼 --}}
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const DAYS_KO = ['일','월','화','수','목','금','토'];
+// 디자인 v2 (가독성 개선) — styles-v2 partial이 html.cal-v2를 붙임. ⋯ 메뉴에서 v1로 되돌리기 (localStorage calDesign)
+const CAL_V2 = document.documentElement.classList.contains('cal-v2');
+function calMobileV2(){ return CAL_V2 && window.innerWidth<=768; }
+let calV2MonthAlias=false; // 모바일에서 '월'을 칩형 월간(monthc)으로 대신 보여주는 중 — 데스크탑 폭으로 넓히면 월간으로 복귀
+function toggleCalDesign(){ try{ localStorage.setItem('calDesign', CAL_V2?'v1':'v2'); }catch(e){} location.reload(); }
+(function(){ const l=document.getElementById('calDesignToggleLabel'); if(l) l.textContent=CAL_V2?'이전 디자인으로 보기':'새 디자인으로 보기'; })();
+// 뷰 → 탭 버튼 id (v2 모바일은 월 탭이 칩형 월간(monthc)을 담당)
+function calTabId(view){
+    if(view==='monthc'&&calMobileV2()) view='month';
+    return {month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'}[view];
+}
 
 // 한국 공휴일 — 아래 하드코딩(폴백) 위에 서버 동기화분(holidays:sync, 대체공휴일 포함)을 덮어쓴다
 const KR_HOLIDAYS = Object.assign({
@@ -118,6 +129,23 @@ const SCHED_EVENT_ICONS={fast:'←',urgent:'🚨',after:'→',no_change:'🔒'};
 // 확정 상태 — 리스트/칩에는 한 글자로 축약 표시 (제목 끝), 툴팁·설명에는 전체 라벨
 const SCHED_CHIP_LABELS={suggest:'제',hope:'희',target:'목',confirmed:'확'};
 const SCHED_FULL_LABELS={suggest:'제안',hope:'희망',target:'목표',confirmed:'확정'};
+// 미확정(제안·희망·목표) 일정 — v2에서 점선/테두리 칩으로 구분
+function isTentativeEv(ev){ return !!ev && ['suggest','hope','target'].includes(ev.sched_opt); }
+// v2 선 아이콘 (이모지 대체, currentColor)
+const CAL_SVG=p=>`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const CAL_V2_ICONS={
+    fast:CAL_SVG('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>'),
+    after:CAL_SVG('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'),
+    urgent:CAL_SVG('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'),
+    no_change:CAL_SVG('<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+    car:CAL_SVG('<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>'),
+    brief:CAL_SVG('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'),
+    group:CAL_SVG('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+    ladder:CAL_SVG('<path d="M8 3v18"/><path d="M16 3v18"/><path d="M8 7h8"/><path d="M8 12h8"/><path d="M8 17h8"/>'),
+    pet:CAL_SVG('<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>'),
+    external_operator:CAL_SVG('<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M2 14h4"/><path d="M10 8h4"/><path d="M18 16h4"/>'),
+    check:CAL_SVG('<path d="M20 6 9 17l-5-5"/>'),
+};
 // 확정 상태 단계 설명 — 버튼 선택 시 모달에 표시
 const SCHED_OPT_DESCS={
     suggest:'💬 제안 — 우리가 의뢰자에게 제안해 둔 날짜 (아직 미확정)',
@@ -138,13 +166,15 @@ function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''
 function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
-    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic${(o==='fast'||o==='after')?' opt-ic-arrow':''}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${SCHED_EVENT_ICONS[o]}</span>`; });
-    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic" title="${SPECIAL_OPT_LABELS[o]||o}">${SPECIAL_ICONS[o]}</span>`; });
+    const ico=(k,fallback)=>(CAL_V2&&CAL_V2_ICONS[k])||fallback;
+    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic${(o==='fast'||o==='after')?' opt-ic-arrow':''}${o==='urgent'?' ic-urgent':''}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${ico(o,SCHED_EVENT_ICONS[o])}</span>`; });
+    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic" title="${SPECIAL_OPT_LABELS[o]||o}">${ico(o,SPECIAL_ICONS[o])}</span>`; });
     return h;
 }
 // 확정 상태 — 한 글자 칩(확/목/희/제), 제목 끝에 붙임
 function schedStatusChip(ev){
     if(!ev||!ev.sched_opt||!SCHED_CHIP_LABELS[ev.sched_opt]) return '';
+    if(CAL_V2) return optChip(SCHED_FULL_LABELS[ev.sched_opt],'sched-pill sched-end'+(ev.sched_opt==='confirmed'?' confirmed':''),SCHED_FULL_LABELS[ev.sched_opt]);
     return optChip(SCHED_CHIP_LABELS[ev.sched_opt],(ev.sched_opt==='confirmed'?'confirmed':'accent')+' sched-end',SCHED_FULL_LABELS[ev.sched_opt]);
 }
 // 출발지/도착지 표시 여부 — 이사세팅 체크 또는 출발지 데이터가 저장된 일정
@@ -197,11 +227,11 @@ function init() {
     }
     // 마지막으로 본 캘린더 모드 복원 (탭 UI/뷰 표시까지 switchView와 동일하게 반영)
     let savedView=localStorage.getItem('calLastView');
+    if(calMobileV2()&&(savedView||currentView)==='month'){ savedView='monthc'; calV2MonthAlias=true; } // v2 모바일: 월 = 칩형 월간
     if(savedView&&['month','monthc','week','day','list'].includes(savedView)&&savedView!==currentView){
         currentView=savedView;
-        const TAB_IDS={month:'tabMonth',monthc:'tabMonthC',week:'tabWeek',day:'tabDay',list:'tabList'};
         document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
-        document.getElementById(TAB_IDS[savedView])?.classList.add('active');
+        document.getElementById(calTabId(savedView))?.classList.add('active');
         document.getElementById('monthView').style.display=savedView==='month'?'':'none';
         document.getElementById('monthCompactView').style.display=savedView==='monthc'?'':'none';
         document.getElementById('timelineView').style.display=(savedView==='week'||savedView==='day')?'':'none';

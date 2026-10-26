@@ -13,6 +13,10 @@
 @include('calendar.partials.styles-light')
 @endpush
 
+@push('styles')
+@include('calendar.partials.styles-v2')
+@endpush
+
 @section('content')
 @include('calendar.partials.layout')
 @include('calendar.partials.modal')
