@@ -3,18 +3,44 @@
 namespace App\Notifications;
 
 use App\Models\Schedule;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
-class ScheduleCreated extends Notification
+class ScheduleCreated extends Notification implements ShouldQueue
 {
+    use Queueable;
+
+    /** 웹푸시 재시도 (database 채널은 viaConnections로 즉시 저장) */
+    public int $tries = 3;
+
+    public int $timeout = 30;
+
+    /** @var array<int, int> */
+    public array $backoff = [10, 60];
+
+    /** 발송 전에 일정이 영구 삭제되면 조용히 버린다 */
+    public bool $deleteWhenMissingModels = true;
+
     /** 담당자 이름 — 채널(database·WebPush)·수신자마다 다시 조회하지 않도록 생성 시 한 번만 읽는다 */
     private string $assigneeNames;
 
     public function __construct(public Schedule $schedule)
     {
         $this->assigneeNames = $schedule->assignees()->pluck('name')->implode(', ');
+        $this->afterCommit();
+    }
+
+    /**
+     * 상단 알림 목록(database)은 요청 안에서 즉시 저장하고, 외부 전송(웹푸시)만 큐로 보낸다.
+     *
+     * @return array<string, string>
+     */
+    public function viaConnections(): array
+    {
+        return ['database' => 'sync'];
     }
 
     /** @return array<int, string> */

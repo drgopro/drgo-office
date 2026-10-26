@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendChannelTalkGroupMessage;
 use App\Models\Estimate;
 use App\Models\Setting;
 use App\Models\User;
@@ -29,17 +30,15 @@ class PaymentCompleteAlert
 
             // 같은 견적서의 중복 통보(페이앱 재시도가 거의 동시에 도착하는 경우) 방어 —
             // Cache::add는 원자적이라 1시간 내 두 번째 호출은 발송하지 않는다
-            if (! Cache::add("payment.alert.sent.{$estimate->id}", 1, 3600)) {
+            $dedupeKey = "payment.alert.sent.{$estimate->id}";
+            if (! Cache::add($dedupeKey, 1, 3600)) {
                 return;
             }
-
-            /** @var ChannelTalkClient $ct */
-            $ct = app(ChannelTalkClient::class);
 
             $managerIds = json_decode((string) Setting::get('payment_alert_managers', '[]'), true);
             $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
                 ->get()
-                ->map(fn (User $u) => $ct->managerMention($u->email, $u->display_name))
+                ->map(fn (User $u) => ChannelTalkClient::deferredMention($u->email, $u->display_name))
                 ->implode(' ');
 
             $client = $estimate->client_nickname ?: $estimate->client?->nickname;
@@ -54,9 +53,12 @@ class PaymentCompleteAlert
                 $lines[] = $mentions;
             }
 
-            $res = $ct->sendGroupMessage(implode("\n", $lines), $group);
-            if (! ($res['ok'] ?? false)) {
-                Log::warning('결제완료 채널톡 알림 실패: '.($res['error'] ?? '알 수 없음')." (견적서 #{$estimate->id})");
+            // 외부 전송(멘션 매칭 포함)은 큐로 — 페이앱 feedback 응답이 채널톡 응답을 기다리지 않도록
+            try {
+                SendChannelTalkGroupMessage::dispatch(implode("\n", $lines), $group, "결제완료 채널톡 알림 (견적서 #{$estimate->id})", $dedupeKey);
+            } catch (\Throwable $e) {
+                Cache::forget($dedupeKey); // 큐 등록 실패 — 페이앱 재통보 때 다시 시도되도록 중복 잠금 해제
+                throw $e;
             }
         } catch (\Throwable $e) {
             Log::warning('결제완료 채널톡 알림 오류: '.$e->getMessage()." (견적서 #{$estimate->id})");

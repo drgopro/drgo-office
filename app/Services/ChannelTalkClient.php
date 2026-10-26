@@ -29,6 +29,50 @@ class ChannelTalkClient
     }
 
     /**
+     * 매니저 멘션 자리표시자 — 매니저 목록 조회(외부 API)를 발송 시점으로 미룬다.
+     * 발송 시 이메일(1순위)·이름으로 매칭한 멘션 태그로 바뀐다. 앱 키 서명을 붙여
+     * 사용자가 제목 등에 같은 형식을 입력해도 멘션으로 바뀌지 않게 한다.
+     */
+    public static function deferredMention(?string $email, string $name): string
+    {
+        $payload = base64_encode((string) json_encode([$email, $name]));
+
+        return '[[ct-mention:'.$payload.':'.self::placeholderSignature($payload).']]';
+    }
+
+    /** 전체 매니저 멘션 자리표시자 */
+    public static function deferredMentionAll(): string
+    {
+        return '[[ct-mention-all:'.self::placeholderSignature('all').']]';
+    }
+
+    private static function placeholderSignature(string $payload): string
+    {
+        return substr(hash_hmac('sha256', $payload, (string) config('app.key')), 0, 16);
+    }
+
+    /** 서명이 맞는 자리표시자만 실제 멘션 태그로 치환 (서명이 틀리면 그대로 둔다) */
+    private function resolveMentions(string $text): string
+    {
+        if (! str_contains($text, '[[ct-mention')) {
+            return $text;
+        }
+
+        $text = preg_replace_callback('/\[\[ct-mention:([A-Za-z0-9+\/=]+):([0-9a-f]{16})\]\]/', function ($m) {
+            if (! hash_equals(self::placeholderSignature($m[1]), $m[2])) {
+                return $m[0];
+            }
+            [$email, $name] = json_decode((string) base64_decode($m[1]), true) ?: [null, ''];
+
+            return $this->managerMention($email, (string) $name);
+        }, $text) ?? $text;
+
+        $all = self::deferredMentionAll();
+
+        return str_contains($text, $all) ? str_replace($all, $this->mentionAll(), $text) : $text;
+    }
+
+    /**
      * 팀챗 그룹으로 메시지 발송.
      * $groupOverride 지정 시 기본 그룹(.env) 대신 해당 그룹(이름 또는 ID)으로 발송 — 결제완료 톡방 등.
      *
@@ -36,6 +80,7 @@ class ChannelTalkClient
      */
     public function sendGroupMessage(string $text, ?string $groupOverride = null): array
     {
+        $text = $this->resolveMentions($text); // 지연 멘션 자리표시자 → 실제 멘션 태그 (큐·즉시 발송 공통)
         $group = trim((string) ($groupOverride ?? config('services.channeltalk.group')));
         if ((string) config('services.channeltalk.access_key') === ''
             || (string) config('services.channeltalk.access_secret') === ''

@@ -21,12 +21,15 @@ class RefreshShipments extends Command
         }
 
         // 배송 완료 건은 다시 조회하지 않음. 오래된(30일+) 미완료 건도 제외해 호출량 낭비 방지.
+        // 상태값이 고정 목록이 아니어서(manual, 택배사 원문 등) '배송완료 제외' 조건을 유지하고, 100건씩 나눠 읽는다
         $pending = ScheduleShipment::where('status', '!=', 'delivered')
             ->where('created_at', '>=', now()->subDays(30))
-            ->get();
+            ->lazyById(100);
 
+        $checked = 0;
         $updated = 0;
         foreach ($pending as $shipment) {
+            $checked++;
             $before = $shipment->status;
             $tracker->refresh($shipment);
             if ($shipment->status !== $before) {
@@ -34,7 +37,7 @@ class RefreshShipments extends Command
             }
         }
 
-        $this->info("조회 {$pending->count()}건, 상태 변경 {$updated}건");
+        $this->info("조회 {$checked}건, 상태 변경 {$updated}건");
 
         return self::SUCCESS;
     }

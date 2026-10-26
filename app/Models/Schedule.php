@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Schema;
 
 class Schedule extends Model
 {
@@ -137,7 +136,7 @@ class Schedule extends Model
 
         // 연차 차감은 담당자 기준 — 저장 이벤트(saved) 시점에는 담당자가 아직 연결되지 않으므로 여기서 재동기화
         if (($changes['attached'] || $changes['detached'])
-            && Schema::hasTable('leave_usages')) {
+            && LeaveLedger::tableReady()) {
             LeaveLedger::syncSchedule($this);
         }
     }

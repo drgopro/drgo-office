@@ -64,6 +64,29 @@ class ScheduleShipmentTest extends TestCase
         $response->assertJsonPath('shipments.0.last_location', '강남2');
     }
 
+    public function test_refresh_command_updates_only_recent_undelivered_shipments(): void
+    {
+        config(['services.delivery_tracker.url' => 'http://tracker.test']);
+        Http::fake(['tracker.test*' => Http::response($this->deliveredResponse())]);
+        $schedule = $this->makeSchedule();
+        $make = fn (string $no, string $status) => ScheduleShipment::create([
+            'schedule_id' => $schedule->id, 'carrier' => 'kr.cjlogistics', 'tracking_no' => $no, 'status' => $status,
+        ]);
+        $pending = $make('111', 'pending');
+        $manual = $make('222', 'manual'); // 고정 목록 밖 상태값도 갱신 대상
+        $delivered = $make('333', 'delivered');
+        $old = $make('444', 'in_transit');
+        $old->forceFill(['created_at' => now()->subDays(31)])->save();
+
+        $this->artisan('shipments:refresh')->expectsOutput('조회 2건, 상태 변경 2건')->assertSuccessful();
+
+        $this->assertSame('delivered', $pending->fresh()->status);
+        $this->assertSame('delivered', $manual->fresh()->status);
+        $this->assertSame('in_transit', $old->fresh()->status);
+        Http::assertSentCount(2);
+        $this->assertSame('delivered', $delivered->fresh()->status);
+    }
+
     public function test_duplicate_shipment_rejected(): void
     {
         config(['services.delivery_tracker.url' => 'http://tracker.test']);

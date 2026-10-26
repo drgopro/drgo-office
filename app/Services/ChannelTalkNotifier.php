@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Console\Commands\RefreshStaleIssuedEstimates;
+use App\Jobs\SendChannelTalkGroupMessage;
 use App\Models\Assignee;
 use App\Models\Estimate;
 use App\Models\Notice;
@@ -36,10 +37,10 @@ class ChannelTalkNotifier
             $label = "'{$schedule->title}'".($date ? " ({$date})" : '');
 
             if ($addedIds) {
-                $this->client->sendGroupMessage("🔔 {$this->mentionsByIds($addedIds)} — {$label} 일정의 담당자로 지정되었습니다", $group);
+                $this->send("🔔 {$this->mentionsByIds($addedIds)} — {$label} 일정의 담당자로 지정되었습니다", $group);
             }
             if ($removedIds) {
-                $this->client->sendGroupMessage("🔕 {$this->mentionsByIds($removedIds)} — {$label} 일정의 담당에서 제외되었습니다", $group);
+                $this->send("🔕 {$this->mentionsByIds($removedIds)} — {$label} 일정의 담당에서 제외되었습니다", $group);
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 담당자 알림 실패: '.$e->getMessage());
@@ -69,13 +70,13 @@ class ChannelTalkNotifier
             $managerIds = json_decode((string) Setting::get('wiki_post_alert_managers', '[]'), true);
             $mentions = User::whereIn('id', is_array($managerIds) ? $managerIds : [])
                 ->get()
-                ->map(fn (User $u) => $this->client->managerMention($u->email, $u->display_name))
+                ->map(fn (User $u) => ChannelTalkClient::deferredMention($u->email, $u->display_name))
                 ->implode(' ');
             if ($mentions !== '') {
                 $message .= "\n".$mentions;
             }
 
-            $this->client->sendGroupMessage($message, $group);
+            $this->send($message, $group);
         } catch (\Throwable $e) {
             Log::warning('채널톡 위키 새 글 알림 실패: '.$e->getMessage());
         }
@@ -97,7 +98,7 @@ class ChannelTalkNotifier
             }
 
             $due = $todo->due_date ? ' (마감 '.$todo->due_date->format('m/d').')' : '';
-            $this->client->sendGroupMessage("📌 {$this->mentionList($assignees)} — 새 할 일: '{$todo->title}'{$due}");
+            $this->send("📌 {$this->mentionList($assignees)} — 새 할 일: '{$todo->title}'{$due}");
         } catch (\Throwable $e) {
             Log::warning('채널톡 할 일 알림 실패: '.$e->getMessage());
         }
@@ -115,11 +116,11 @@ class ChannelTalkNotifier
 
             if ($addedUserIds) {
                 $users = User::whereIn('id', $addedUserIds)->get();
-                $this->client->sendGroupMessage("📌 {$this->mentionList($users)} — '{$todo->title}' 할 일의 담당자로 지정되었습니다{$due}");
+                $this->send("📌 {$this->mentionList($users)} — '{$todo->title}' 할 일의 담당자로 지정되었습니다{$due}");
             }
             if ($removedUserIds) {
                 $users = User::whereIn('id', $removedUserIds)->get();
-                $this->client->sendGroupMessage("🔕 {$this->mentionList($users)} — '{$todo->title}' 할 일의 담당에서 제외되었습니다");
+                $this->send("🔕 {$this->mentionList($users)} — '{$todo->title}' 할 일의 담당에서 제외되었습니다");
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 할 일 담당자 알림 실패: '.$e->getMessage());
@@ -134,8 +135,8 @@ class ChannelTalkNotifier
         }
 
         try {
-            $this->client->sendGroupMessage(
-                "📢 {$this->client->mentionAll()}\n새 공지사항이 등록되었습니다: '{$notice->title}'\n".route('notices.show', $notice)
+            $this->send(
+                '📢 '.ChannelTalkClient::deferredMentionAll()."\n새 공지사항이 등록되었습니다: '{$notice->title}'\n".route('notices.show', $notice)
             );
         } catch (\Throwable $e) {
             Log::warning('채널톡 공지 알림 실패: '.$e->getMessage());
@@ -150,8 +151,8 @@ class ChannelTalkNotifier
         }
 
         try {
-            $this->client->sendGroupMessage(
-                "📢 {$this->client->mentionAll()}\n새 공지사항이 등록되었습니다: '{$wiki->title}'\n".route('wiki.show', $wiki)
+            $this->send(
+                '📢 '.ChannelTalkClient::deferredMentionAll()."\n새 공지사항이 등록되었습니다: '{$wiki->title}'\n".route('wiki.show', $wiki)
             );
         } catch (\Throwable $e) {
             Log::warning('채널톡 공지 알림 실패: '.$e->getMessage());
@@ -167,8 +168,8 @@ class ChannelTalkNotifier
 
         try {
             $who = trim((string) ($estimate->client_nickname ?: $estimate->client_name));
-            $this->client->sendGroupMessage(
-                "{$this->client->mentionAll()}\n"
+            $this->send(
+                ChannelTalkClient::deferredMentionAll()."\n"
                 ."견적서 #{$estimate->display_no}".($who !== '' ? " ({$who})" : '')
                 .' — 발행 '.RefreshStaleIssuedEstimates::GUARANTEE_HOURS.'시간 경과 재갱신: '
                 .number_format($oldTotal).'원 → '.number_format($newTotal)."원\n{$note}\n"
@@ -187,11 +188,17 @@ class ChannelTalkNotifier
     {
         return collect($people)->map(function ($p) {
             if ($p instanceof User) {
-                return $this->client->managerMention($p->email, $p->display_name ?? $p->username ?? '담당자');
+                return ChannelTalkClient::deferredMention($p->email, $p->display_name ?? $p->username ?? '담당자');
             }
 
-            return $this->client->managerMention($p->user?->email, $p->name);
+            return ChannelTalkClient::deferredMention($p->user?->email, $p->name);
         })->implode(', ');
+    }
+
+    /** 그룹 메시지 발송 — 본문만 여기서 완성하고 외부 전송은 큐로 넘긴다 (저장 요청이 채널톡 응답을 기다리지 않도록) */
+    private function send(string $text, ?string $group = null): void
+    {
+        SendChannelTalkGroupMessage::dispatch($text, $group);
     }
 
     private function mentionsByIds(array $assigneeIds): string
