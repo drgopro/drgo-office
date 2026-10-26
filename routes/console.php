@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AgentEvent;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -58,3 +59,6 @@ Schedule::command('products:expire-discounts')->everyThirtyMinutes()->withoutOve
 
 // 발행 24시간 가격 보장 — 미결제 발행 건을 현재 가격으로 재갱신 (금액 변경 시 페이앱 재요청 + 채널톡 알림)
 Schedule::command('estimates:refresh-stale-issued')->hourly()->withoutOverlapping();
+
+// AI 에이전트 작업 이벤트 정리 — 90일 지난 기록 삭제 (매일 새벽 4시 30분)
+Schedule::call(fn () => AgentEvent::where('occurred_at', '<', now()->subDays(90))->delete())->dailyAt('04:30')->name('agent-events:prune');

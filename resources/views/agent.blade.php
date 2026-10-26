@@ -1,5 +1,6 @@
-{{-- AI 에이전트 작업 현황 (시연용 샘플 데이터) — master/admin 전용. 원본 시안: github/Projects/agent-dashboard/design/pixel-office-mock.html
-     실제 데이터 연동(맥북 훅 → 서버 중계)은 별도 단계. 이 페이지는 Blade 문법 없이 정적 HTML이라 @verbatim으로 감쌈 --}}
+{{-- AI 에이전트 작업 현황 — master/admin 전용. 맥북 Claude Code 훅이 /api/agent-events/ingest 로 보낸 이벤트를 2초 폴링으로 그림.
+     이 파일은 생성물: 원본은 github/Projects/agent-dashboard/design/pixel-office-mock.html, 빌드는 design/build-blade.py (직접 고치지 말 것).
+     Blade 문법 없는 정적 HTML이라 verbatim 블록으로 감쌈 (주석 안에 지시어 이름을 쓰면 렌더되므로 금지) --}}
 @verbatim
 <!doctype html>
 <html lang="ko">
@@ -182,6 +183,8 @@ body.present .main { display: none; }
 .rp .bd { padding: 0 11px 11px; font-size: 12.5px; border-top: 1px dashed var(--line); }
 .rp .bd p { margin: 8px 0 6px; color: var(--muted); font-size: 12px; }
 mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+.rbody { margin: 8px 0 0; padding: 8px 10px; background: var(--panel-2); border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; color: var(--muted); }
+.badge.off { background: color-mix(in srgb, var(--bad) 18%, #fff); color: var(--bad-ink); }
 .empty { padding: 26px 14px; text-align: center; color: var(--muted); font-size: 12.5px; }
 .store { font-size: 11px; color: var(--faint); padding: 8px 12px 10px; border-top: 1px solid var(--line); font-family: var(--font-mono); overflow-wrap: anywhere; }
 .counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px 0; }
@@ -192,11 +195,11 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 @media (prefers-reduced-motion: reduce) { .node.working .f1, .node.working .f2, .node.working .scr, .node.working .led, .step.working .ic, .typing .dots i, .lead.live::after, .msg, .rp { animation: none; } }
 </style>
 </head>
-<body>
+<body data-live="1">
 
 <div class="app">
   <header class="top">
-    <h1>drgo-office 작업 현황 <small>Claude Code · Codex · Git · 시연용 샘플</small></h1>
+    <h1>drgo-office 작업 현황 <small>Claude Code · Codex · Git</small></h1>
     <div class="session"><span class="live-dot" aria-hidden="true"></span><span>세션 <b id="session-state">진행 중</b></span><span>·</span><span class="mono" id="session-elapsed">0분</span><span>·</span><span>마지막 이벤트 <span class="mono" id="last-event-age">없음</span></span></div>
     <div class="acts">
       <span class="badge" id="source-badge">시연용 샘플 데이터</span>
@@ -256,7 +259,8 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 <script>
 (function () {
   'use strict';
-  var MOCK = true, NS = 'http://www.w3.org/2000/svg';
+  var LIVE = !!(document.body && document.body.dataset.live === '1');   // 서버 페이지에서는 <body data-live="1"> → 실시간 폴링, 아니면 샘플 재생
+  var NS = 'http://www.w3.org/2000/svg';
   var $ = function (id) { return document.getElementById(id); };
   var NAME = { user: '사용자', claude: 'Claude Code', codex: 'Codex', payapp: 'payapp MCP', git: 'Git', github: 'GitHub', forge: 'Laravel Forge' };
   var INIT = { claude: 'C', codex: 'X', payapp: '₩', git: 'G', github: 'H', forge: 'F' };
@@ -378,22 +382,27 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   var courierLayer = document.createElementNS(NS, 'g'); svg.appendChild(courierLayer);
 
   /* ───────── 상태 표현 ───────── */
-  var state = { counts: { prompts: 0, reviews: 0, commits: 0, pushes: 0 }, lastId: 0, lastTs: 0, msgs: 0, live: null, sessionStart: Date.now() - 11 * 60000 };
+  var SILENT = false;   // 과거 이벤트 되감기 중에는 애니메이션·말풍선·타이머 생략
+  var NODE_LABEL = { codex: '리뷰 중', payapp: '조회 중', git: '커밋 중', github: 'push 중', forge: '배포 중' };
+  var state = { counts: { prompts: 0, reviews: 0, commits: 0, pushes: 0 }, lastId: 0, lastTs: 0, lastEvent: null, msgs: 0, live: null, sessionStart: null, demo: false, connected: false, gen: 0 };
+  // gen: 실시간↔샘플 전환마다 1씩 증가. 늦게 도착한 fetch 응답이 새 모드를 건드리지 않도록 응답마다 대조
   function setNode(key, status, label, autoMs) {
     var n = nodes[key]; if (n.timer) { clearTimeout(n.timer); n.timer = null; }
     n.status = status; n.label = label || ''; n.since = Date.now();
     n.g.classList.remove('idle', 'working', 'done', 'error'); n.g.classList.add(status);
     paintPill(key); paintTyping();
-    if (autoMs) n.timer = setTimeout(function () { if (key === 'claude' && status !== 'done') setNode('claude', 'working', '응답 중'); else setNode(key, 'idle', ''); }, autoMs);
+    if (autoMs && !SILENT) n.timer = setTimeout(function () { if (key === 'claude' && status !== 'done') setNode('claude', 'working', '응답 중'); else setNode(key, 'idle', ''); }, autoMs);
   }
   function paintPill(key) {
     var n = nodes[key]; if (n.status === 'idle') return;
-    var s = n.status === 'working' ? n.label + ' · ' + Math.max(0, Math.round((Date.now() - n.since) / 1000)) + '초' : (n.status === 'done' ? '완료' : '오류');
+    var s = n.status === 'working' ? n.label + ' · ' + fmtAge(Date.now() - n.since) : (n.status === 'done' ? '완료' : '오류');
     var t = n.pill.querySelector('text'), r = n.pill.querySelector('rect'); t.textContent = s;
     var w = Math.ceil((t.getComputedTextLength ? t.getComputedTextLength() : 20) + 4);
     r.setAttribute('x', n.px - w / 2); r.setAttribute('y', n.py); r.setAttribute('width', w); t.setAttribute('x', n.px); t.setAttribute('y', n.py + 4.4);
   }
+  function fmtAge(ms) { var s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + '초' : Math.floor(s / 60) + '분 ' + (s % 60) + '초'; }
   function say(key, text, isErr, ms) {
+    if (SILENT) return;
     var n = nodes[key]; if (!n.bub) return;
     if (n.bt) clearTimeout(n.bt);
     var t = n.bub.querySelector('text'); t.textContent = text.length > 24 ? text.slice(0, 23) + '…' : text;
@@ -409,6 +418,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     n.bt = setTimeout(function () { n.bub.classList.remove('show'); }, ms || 3500);
   }
   function travel(from, to, kind, ms) {
+    if (SILENT) return;
     ms = ms || 900;
     var g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'courier'); courierLayer.appendChild(g);
     spr(g, kind || 'doc', -3, -4);
@@ -423,19 +433,20 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     t.innerHTML = '<span class="dots"><i></i><i></i><i></i></span><span></span>';
     t.lastChild.textContent = who.map(function (k) { return NAME[k]; }).join(', ') + (who.length === 1 && who[0] !== 'claude' ? ' 작업 중' : ' 입력 중');
   }
+  function allIdle() { Object.keys(nodes).forEach(function (k) { nodes[k].step = null; if (nodes[k].status !== 'idle') setNode(k, 'idle', ''); }); }
 
   /* ───────── 대화 ───────── */
   var chat = $('chat');
   function fmt(ts) { var d = ts ? new Date(ts) : new Date(); return [d.getHours(), d.getMinutes()].map(function (v) { return String(v).padStart(2, '0'); }).join(':'); }
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function scrollDown() { if (chat.scrollHeight - chat.scrollTop - chat.clientHeight < 160) chat.scrollTop = chat.scrollHeight; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function scrollDown() { if (SILENT || chat.scrollHeight - chat.scrollTop - chat.clientHeight < 160) chat.scrollTop = chat.scrollHeight; }
   function sys(text) { var d = document.createElement('div'); d.className = 'sys'; d.textContent = text; chat.appendChild(d); scrollDown(); }
   function msg(node, html, ts) {
     var m = document.createElement('div'), cls = node === 'user' ? 'me' : node === 'claude' ? 'claude' : node === 'codex' ? 'codex' : 'bot';
     m.className = 'msg ' + cls;
     m.innerHTML = (node === 'user' ? '' : '<span class="av ' + node + '">' + INIT[node] + '</span>') + '<div><div class="meta"><span class="nm"></span><time>' + fmt(ts) + '</time></div><div class="bub">' + html + '</div></div>';
     m.querySelector('.nm').textContent = NAME[node]; chat.appendChild(m); scrollDown();
-    while (chat.children.length > 150) chat.removeChild(chat.firstChild);
+    while (chat.children.length > 200) chat.removeChild(chat.firstChild);
     state.msgs++; $('msg-count').textContent = state.msgs + '건'; return m;
   }
   function maskSecrets(t) { return t.replace(/\b(sk|pk|ghp|gho|xox[abp]|AKIA)[-_A-Za-z0-9]{12,}\b/g, '••••(가림)').replace(/\b[A-Fa-f0-9]{32,}\b/g, '••••(가림)'); }
@@ -450,7 +461,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   }
   function promptBubble(ev) {
     if (!ev.prompt) return esc(ev.summary);
-    var p = readablePrompt(ev.prompt), id = 'p' + state.lastId;
+    var p = readablePrompt(ev.prompt), id = 'p' + (ev.id || state.lastId);
     return '<div class="prompt' + (p.long ? ' clamp' : '') + '" id="' + id + '">' + p.html + '</div><div class="pfoot"><span>' + ev.prompt.length + '자 · 원문 보관됨</span>' +
       (p.long ? '<button type="button" data-more="' + id + '">더 보기</button>' : '') + '<button type="button" data-raw="' + id + '">원문 보기</button></div><pre class="raw" id="' + id + '-raw">' + esc(p.raw) + '</pre>';
   }
@@ -466,36 +477,46 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   }
   function addStep(node, text, ts) {
     var lb = liveBubble(ts), li = document.createElement('li'); li.className = 'step working';
-    li.innerHTML = '<span class="ic"></span><span class="txt"></span><span class="dur"></span>'; li.querySelector('.txt').textContent = text; li.dataset.t0 = Date.now();
+    li.innerHTML = '<span class="ic"></span><span class="txt"></span><span class="dur"></span>'; li.querySelector('.txt').textContent = text; li.dataset.t0 = ts ? new Date(ts).getTime() : Date.now();
     lb.steps.appendChild(li); nodes[node].step = li; scrollDown();
+    while (lb.steps.children.length > 60) lb.steps.removeChild(lb.steps.firstChild);
   }
-  function endStep(node, ok, text) {
+  function endStep(node, ok, text, ev) {
     var li = nodes[node].step; if (!li) return;
     li.classList.remove('working'); li.classList.add(ok ? 'done' : 'error'); if (text) li.querySelector('.txt').textContent = text;
-    li.querySelector('.dur').textContent = ((Date.now() - li.dataset.t0) / 1000).toFixed(1) + '초'; nodes[node].step = null;
+    var ms = ev && ev.duration_ms != null ? ev.duration_ms : ((ev && ev.ts ? new Date(ev.ts).getTime() : Date.now()) - li.dataset.t0);
+    li.querySelector('.dur').textContent = (ms / 1000).toFixed(1) + '초'; nodes[node].step = null;
   }
   function finishLive(s) { if (!state.live) return; state.live.lead.classList.remove('live'); state.live.lead.textContent = s || '작업 완료'; state.live.steps.querySelectorAll('.step.working').forEach(function (li) { li.classList.remove('working'); li.classList.add('done'); }); state.live = null; }
-  function itemsHTML(items, hl) { return (items || []).map(function (it) { return '<li><span class="tag ' + (it.ok ? 'ok' : 'hold') + '">' + (it.ok ? '반영' : '보류') + '</span><span>' + (hl ? hl(it.t) : esc(it.t)) + '</span></li>'; }).join(''); }
-  function cardHTML(r) { return '<div class="card"><span class="kind">' + KIND[r.type] + '</span><span class="ct">' + esc(r.title) + '</span>' + (r.note ? '<span class="cm">' + esc(r.note) + '</span>' : '') + (r.items && r.items.length ? '<ul>' + itemsHTML(r.items) + '</ul>' : '') + '</div>'; }
+  function tagOf(it) { return it.ok === true ? ['ok', '반영'] : it.ok === false ? ['hold', '보류'] : ['hold', '지적']; }
+  function itemsHTML(items, hl) { return (items || []).map(function (it) { var t = tagOf(it); return '<li><span class="tag ' + t[0] + '">' + t[1] + '</span><span>' + (hl ? hl(it.t) : esc(it.t)) + '</span></li>'; }).join(''); }
+  function cardHTML(r) {
+    var body = r.body && !(r.items && r.items.length) ? '<pre class="rbody">' + esc(r.body.length > 600 ? r.body.slice(0, 600) + '…' : r.body) + '</pre>' : '';
+    return '<div class="card"><span class="kind">' + KIND[r.type] + '</span><span class="ct">' + esc(r.title) + '</span>' + (r.note ? '<span class="cm">' + esc(r.note) + '</span>' : '') + (r.items && r.items.length ? '<ul>' + itemsHTML(r.items) + '</ul>' : '') + body + '</div>';
+  }
   function renderCounts() { var c = state.counts; ['prompts', 'reviews', 'commits', 'pushes'].forEach(function (k) { $('c-' + k).textContent = c[k]; }); }
 
-  /* ───────── 보고서: 일자별 저장 + 검색 ───────── */
+  /* ───────── 보고서: 일자별 + 검색 ───────── */
   function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   var today = ymd(new Date()), dayMs = 86400000;
   var d1 = ymd(new Date(Date.now() - dayMs)), d2 = ymd(new Date(Date.now() - 2 * dayMs));
-  var REPORTS = {};   // date → [report]
-  REPORTS[d1] = [
-    { time: '10:42', type: 'review', title: '재고 조정 화면 변경분 리뷰', note: '지적 2건 · 반영 2건 · 6.1초', items: [{ ok: true, t: '수량 음수 입력 시 검증 누락 → FormRequest 규칙 추가' }, { ok: true, t: '조정 사유 미입력 저장 가능 → 필수 처리' }] },
-    { time: '10:55', type: 'commit', title: 'feat: 재고 조정 사유 입력과 검증', note: '파일 6개 변경 · 리뷰 반영 후 커밋' },
-    { time: '11:20', type: 'push', title: 'origin/main 에 1개 커밋 push', note: '사용자 승인 후 실행' },
-    { time: '11:21', type: 'deploy', title: 'office.drgo.pro 배포 완료', note: 'Quick Deploy · 4.9초' }
-  ];
-  REPORTS[d2] = [
-    { time: '15:03', type: 'review', title: '직원 근태 집계 오류 수정 리뷰', note: '지적 4건 · 반영 3건 · 보류 1건 · 9.4초', items: [{ ok: true, t: '월말 경계일 계산이 시간대를 무시함 → KST 기준으로 수정' }, { ok: true, t: '휴일 테이블 캐시 무효화 누락 → 저장 시 캐시 삭제' }, { ok: true, t: '테스트가 현재 날짜에 의존 → 고정 날짜로 변경' }, { ok: false, t: '집계 쿼리를 뷰로 분리 제안 → 이번 범위 밖, 다음에 검토' }] },
-    { time: '15:30', type: 'commit', title: 'fix: 근태 집계 월말 경계 계산', note: '파일 3개 변경' },
-    { time: '15:34', type: 'commit', title: 'chore: 근태 집계 테스트 보강', note: '파일 2개 변경' }
-  ];
-  REPORTS[today] = [];
+  var REPORTS = {};   // date → [report] (실시간 모드: 서버에서 날짜별로 가져와 캐시)
+  function sampleReports() {
+    var R = {};
+    R[d1] = [
+      { time: '10:42', type: 'review', title: '재고 조정 화면 변경분 리뷰', note: '지적 2건 · 반영 2건 · 6.1초', items: [{ ok: true, t: '수량 음수 입력 시 검증 누락 → FormRequest 규칙 추가' }, { ok: true, t: '조정 사유 미입력 저장 가능 → 필수 처리' }] },
+      { time: '10:55', type: 'commit', title: 'feat: 재고 조정 사유 입력과 검증', note: '파일 6개 변경 · 리뷰 반영 후 커밋' },
+      { time: '11:20', type: 'push', title: 'origin/main 에 1개 커밋 push', note: '사용자 승인 후 실행' },
+      { time: '11:21', type: 'deploy', title: 'office.drgo.pro 배포 완료', note: 'Quick Deploy · 4.9초' }
+    ];
+    R[d2] = [
+      { time: '15:03', type: 'review', title: '직원 근태 집계 오류 수정 리뷰', note: '지적 4건 · 반영 3건 · 보류 1건 · 9.4초', items: [{ ok: true, t: '월말 경계일 계산이 시간대를 무시함 → KST 기준으로 수정' }, { ok: true, t: '휴일 테이블 캐시 무효화 누락 → 저장 시 캐시 삭제' }, { ok: true, t: '테스트가 현재 날짜에 의존 → 고정 날짜로 변경' }, { ok: false, t: '집계 쿼리를 뷰로 분리 제안 → 이번 범위 밖, 다음에 검토' }] },
+      { time: '15:30', type: 'commit', title: 'fix: 근태 집계 월말 경계 계산', note: '파일 3개 변경' },
+      { time: '15:34', type: 'commit', title: 'chore: 근태 집계 테스트 보강', note: '파일 2개 변경' }
+    ];
+    R[today] = [];
+    return R;
+  }
   var filter = { date: today, kind: 'all', q: '' };
   var pick = $('d-pick'); pick.value = today; pick.max = today;
   function shiftDay(n) { var d = new Date(filter.date + 'T00:00:00'); d.setDate(d.getDate() + n); var v = ymd(d); if (v > today) return; filter.date = v; pick.value = v; renderReports(); }
@@ -516,34 +537,65 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   function matches(r) {
     if (filter.kind !== 'all' && r.type !== filter.kind) return false;
     if (!filter.q) return true;
-    var hay = (r.title + ' ' + (r.note || '') + ' ' + (r.items || []).map(function (i) { return i.t; }).join(' ') + ' ' + KIND[r.type]).toLowerCase();
+    var hay = (r.title + ' ' + (r.note || '') + ' ' + (r.body || '') + ' ' + (r.items || []).map(function (i) { return i.t; }).join(' ') + ' ' + KIND[r.type]).toLowerCase();
     return filter.q.toLowerCase().split(/\s+/).filter(Boolean).every(function (t) { return hay.indexOf(t) >= 0; });
   }
+  function totalReports() { return Object.keys(REPORTS).reduce(function (a, k) { return a + REPORTS[k].length; }, 0); }
   function renderReports() {
-    var all = REPORTS[filter.date] || [], list = all.filter(matches), ul = $('rlist'); ul.innerHTML = '';
+    var ul = $('rlist'), em = $('rempty');
+    if (!(filter.date in REPORTS)) {
+      if (LIVE && !state.demo) { ul.innerHTML = ''; em.hidden = false; em.textContent = '불러오는 중…'; loadReports(filter.date); return; }
+      REPORTS[filter.date] = [];
+    }
+    var all = REPORTS[filter.date], list = all.filter(matches); ul.innerHTML = '';
     list.slice().reverse().forEach(function (r) {
       var li = document.createElement('li'); li.className = 'rp ' + r.type;
-      li.innerHTML = '<details' + (filter.q ? ' open' : '') + '><summary><span class="kd">' + KIND[r.type] + '</span><span class="tt">' + hl(r.title) + '</span><span class="tm">' + r.time + '</span></summary><div class="bd">' + (r.note ? '<p>' + hl(r.note) + '</p>' : '') + (r.items && r.items.length ? '<ul>' + itemsHTML(r.items, hl) + '</ul>' : '') + '</div></details>';
+      var body = r.body ? '<pre class="rbody">' + hl(r.body) + '</pre>' : '';
+      li.innerHTML = '<details' + (filter.q ? ' open' : '') + '><summary><span class="kd">' + KIND[r.type] + '</span><span class="tt">' + hl(r.title) + '</span><span class="tm">' + r.time + '</span></summary><div class="bd">' + (r.note ? '<p>' + hl(r.note) + '</p>' : '') + (r.items && r.items.length ? '<ul>' + itemsHTML(r.items, hl) + '</ul>' : '') + body + '</div></details>';
       ul.appendChild(li);
     });
     var lab = filter.date === today ? '오늘' : filter.date === d1 ? '어제' : filter.date;
     $('rcount').textContent = lab + ' · ' + list.length + '건' + (filter.q || filter.kind !== 'all' ? ' (전체 ' + all.length + '건 중)' : '');
     $('rscope').textContent = filter.q ? '검색: ' + filter.q : '';
-    $('rcount-top').textContent = Object.keys(REPORTS).reduce(function (a, k) { return a + REPORTS[k].length; }, 0) + '건 보관';
-    var em = $('rempty'); em.hidden = list.length > 0;
+    $('rcount-top').textContent = totalReports() + '건' + (LIVE && !state.demo ? ' (불러온 날짜 기준)' : ' 보관');
+    em.hidden = list.length > 0;
     em.textContent = all.length === 0 ? (filter.date === today ? '오늘 보고서가 아직 없습니다. 리뷰, 커밋, push, 배포가 끝나면 쌓입니다.' : filter.date + ' 에는 기록이 없습니다.') : '조건에 맞는 보고서가 없습니다.';
-    $('store').textContent = '저장 위치 ~/.claude/agent-reports/' + filter.date + '.jsonl';
+    $('store').textContent = LIVE && !state.demo ? '저장: 서버 agent_events (90일 보관) · 맥북 ~/.claude/agent-events.jsonl' : '샘플 데이터 · 실제 서비스에서는 서버 agent_events 테이블에 날짜별로 저장';
   }
-  function addReport(ev) { var r = Object.assign({ time: fmt(ev.ts) }, ev.report); REPORTS[today].push(r); if (filter.date === today) renderReports(); else $('rcount-top').textContent = Object.keys(REPORTS).reduce(function (a, k) { return a + REPORTS[k].length; }, 0) + '건 보관'; }
-  renderReports();
+  function loadReports(date) {
+    var g = state.gen;   // 집계(counts)는 서버값을 쓰지 않고 이벤트 재생으로만 센다 (이중 집계 방지)
+    fetch('/api/agent-reports?date=' + date, { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        if (g !== state.gen) return;
+        var fresh = d.reports || [];
+        if (REPORTS[date] && REPORTS[date].length) {   // 폴링으로 먼저 들어온 보고서를 지우지 않도록 id 기준 병합
+          var byId = {}; REPORTS[date].concat(fresh).forEach(function (r) { if (r.id) byId[r.id] = r; });
+          fresh = Object.keys(byId).map(function (k) { return byId[k]; }).sort(function (a, b) { return a.id - b.id; });
+        }
+        REPORTS[date] = fresh;
+        if (filter.date === date) renderReports();
+      }).catch(function () { if (g !== state.gen) return; if (filter.date === date) { $('rempty').hidden = false; $('rempty').textContent = '보고서를 불러오지 못했습니다. 잠시 후 다시 시도합니다.'; setTimeout(function () { if (g === state.gen && filter.date === date && !(date in REPORTS)) loadReports(date); }, 5000); } });
+  }
+  function addReport(ev) {
+    var r = Object.assign({ id: ev.id, time: fmt(ev.ts) }, ev.report);
+    if (!(today in REPORTS)) REPORTS[today] = [];
+    if (REPORTS[today].some(function (x) { return x.id && x.id === r.id; })) return;
+    REPORTS[today].push(r); if (filter.date === today) renderReports(); else $('rcount-top').textContent = totalReports() + '건';
+  }
 
   /* ───────── 이벤트 적용 ───────── */
   function applyEvent(ev) {
-    state.lastId = ev.id || state.lastId + 1; state.lastTs = Date.now();
+    if (ev.id) state.lastId = Math.max(state.lastId, ev.id); else state.lastId++;
+    state.lastTs = ev.ts ? new Date(ev.ts).getTime() : Date.now(); state.lastEvent = ev;
     var node = ev.node || 'claude';
     switch (ev.event) {
-      case 'SessionStart': sys('세션 시작 · drgo-office · ' + fmt(ev.ts)); break;
+      case 'SessionStart':
+        state.sessionStart = state.lastTs; finishLive('작업 완료'); allIdle();
+        sys('세션 시작 · ' + (ev.project || 'drgo-office') + ' · ' + fmt(ev.ts)); break;
+      case 'SessionEnd':
+        finishLive('작업 완료'); allIdle(); sys('세션 종료 · ' + fmt(ev.ts)); break;
       case 'UserPromptSubmit':
+        if (!state.sessionStart) state.sessionStart = state.lastTs;
         state.counts.prompts++; finishLive('작업 완료'); msg('user', promptBubble(ev), ev.ts);
         say('user', ev.prompt ? ev.prompt.split('\n')[0] : ev.summary); travel('user', 'claude', 'doc', 1100);
         setNode('user', 'done', '', 1500); setNode('claude', 'working', '응답 중'); break;
@@ -551,8 +603,8 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
         if (node === 'claude') { addStep('claude', ev.summary, ev.ts); setNode('claude', 'working', ev.summary.split(':')[0]); say('claude', ev.summary); }
         else {
           var ask = { codex: 'Codex에게 리뷰 요청', payapp: 'payapp MCP 조회', git: '커밋', github: 'GitHub로 push (사용자 승인)', forge: 'Forge 배포' }[node] || ev.summary;
-          addStep(node, ask, ev.ts); setNode(node, 'working', ev.label || '작업 중'); setNode('claude', 'working', NAME[node] + ' 대기');
-          if (node === 'codex') { say('claude', '리뷰 부탁해요'); travel('claude', 'codex', 'doc'); setTimeout(function () { say('codex', '리뷰 중…', false, 6000); }, 900); }
+          addStep(node, ask, ev.ts); setNode(node, 'working', ev.label || NODE_LABEL[node] || '작업 중'); setNode('claude', 'working', NAME[node] + ' 대기');
+          if (node === 'codex') { say('claude', '리뷰 부탁해요'); travel('claude', 'codex', 'doc'); if (!SILENT) setTimeout(function () { say('codex', '리뷰 중…', false, 6000); }, 900); }
           else if (node === 'payapp') travel('claude', 'payapp', 'doc');
           else if (node === 'git') travel('claude', 'git', 'folder');
           else if (node === 'github') travel('git', 'github', 'plane', 1300);
@@ -560,7 +612,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
         }
         break;
       case 'PostToolUse':
-        endStep(node, true);
+        endStep(node, true, null, ev);
         if (node === 'codex') { state.counts.reviews++; say('codex', '리뷰 끝났어요'); travel('codex', 'claude', 'stamp'); }
         if (node === 'git') state.counts.commits++;
         if (node === 'github') state.counts.pushes++;
@@ -568,23 +620,69 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
         if (node !== 'claude') { msg(node, ev.report ? cardHTML(ev.report) : esc(ev.summary), ev.ts); setNode(node, 'done', '', 3000); }
         setNode('claude', 'working', '응답 중'); break;
       case 'PostToolUseFailure':
-        endStep(node, false, ev.summary); setNode(node, 'error', '', 3000); say(node, ev.summary, true);
+        endStep(node, false, ev.summary, ev); setNode(node, 'error', '', 3000); say(node, ev.summary, true);
         setNode('claude', 'working', node === 'claude' ? '오류 수정 중' : '응답 중'); break;
       case 'Stop': finishLive('작업 완료'); msg('claude', esc(ev.summary), ev.ts); say('claude', ev.summary); setNode('claude', 'done', '', 3000); break;
     }
     if (ev.report) addReport(ev);
     renderCounts();
   }
+  // 되감기 후 현재 상태 추정: 최근 10분 안의 마지막 이벤트가 작업 시작이면 그 노드를 작업 중으로
+  function settleAfterReplay() {
+    allIdle(); var ev = state.lastEvent; if (!ev) return;
+    var fresh = Date.now() - state.lastTs < 10 * 60000;
+    if (!fresh) { finishLive('작업 완료'); return; }
+    if (ev.event === 'PreToolUse') { setNode(ev.node, 'working', NODE_LABEL[ev.node] || (ev.node === 'claude' ? ev.summary.split(':')[0] : '작업 중')); nodes[ev.node].since = state.lastTs; if (ev.node !== 'claude') { setNode('claude', 'working', NAME[ev.node] + ' 대기'); nodes.claude.since = state.lastTs; } }
+    else if (ev.event === 'UserPromptSubmit' || ev.event === 'PostToolUse' || ev.event === 'PostToolUseFailure') { setNode('claude', 'working', '응답 중'); nodes.claude.since = state.lastTs; }
+  }
 
+  /* ───────── 상단 상태 · 버튼 ───────── */
   $('present-btn').addEventListener('click', function () { var on = document.body.classList.toggle('present'); this.setAttribute('aria-pressed', on); this.classList.toggle('on', on); });
+  function setBadge(text, cls) { var b = $('source-badge'); b.textContent = text; b.className = 'badge' + (cls ? ' ' + cls : ''); }
   setInterval(function () {
-    $('session-elapsed').textContent = Math.floor((Date.now() - state.sessionStart) / 60000) + '분';
+    var el = $('session-elapsed'), st = $('session-state');
+    if (state.sessionStart) el.textContent = Math.floor((Date.now() - state.sessionStart) / 60000) + '분'; else el.textContent = '-';
     var age = state.lastTs ? Math.round((Date.now() - state.lastTs) / 1000) : null;
-    $('last-event-age').textContent = age === null ? '없음' : (age < 3 ? '방금' : age + '초 전');
+    $('last-event-age').textContent = age === null ? '없음' : (age < 3 ? '방금' : age < 60 ? age + '초 전' : age < 3600 ? Math.floor(age / 60) + '분 전' : Math.floor(age / 3600) + '시간 전');
+    if (!state.demo) { var active = age !== null && age < 10 * 60 && !(state.lastEvent && (state.lastEvent.event === 'SessionEnd')); st.textContent = age === null ? '기록 없음' : active ? '진행 중' : '대기'; document.querySelector('.live-dot').style.background = active ? 'var(--good)' : 'var(--faint)'; }
     Object.keys(nodes).forEach(function (k) { if (nodes[k].status === 'working') paintPill(k); });
+    if (ymd(new Date()) !== today) rollDay();
   }, 1000);
+  function rollDay() {   // 페이지를 자정 넘겨 열어 둔 경우: 날짜 변수를 갱신하고 실시간 모드는 새 날짜로 다시 불러온다
+    var was = today; today = ymd(new Date()); d1 = ymd(new Date(Date.now() - dayMs)); d2 = ymd(new Date(Date.now() - 2 * dayMs)); pick.max = today;
+    if (filter.date === was) { filter.date = today; pick.value = today; }
+    if (LIVE && !state.demo) startLive(); else { REPORTS[today] = REPORTS[today] || []; renderReports(); }
+  }
 
-  /* ───────── 샘플 시나리오 ───────── */
+  /* ───────── 실시간 모드: 서버 폴링 ───────── */
+  var pollTimer = null, retryTimer = null, pollBusy = false;
+  function resetView() {
+    chat.innerHTML = ''; state.msgs = 0; $('msg-count').textContent = '0건'; state.live = null; state.lastEvent = null; state.lastTs = 0; state.sessionStart = null;
+    allIdle(); state.counts = { prompts: 0, reviews: 0, commits: 0, pushes: 0 }; renderCounts();
+  }
+  function startLive() {
+    stopLive(); var g = ++state.gen; pollBusy = false;
+    state.demo = false; state.lastId = 0; resetView(); REPORTS = {}; setBadge('연결 중…');
+    $('session-state').textContent = '불러오는 중'; renderReports();
+    fetch('/api/agent-events?date=' + today, { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        if (g !== state.gen) return;
+        SILENT = true; (d.events || []).forEach(applyEvent); SILENT = false; settleAfterReplay();
+        chat.scrollTop = chat.scrollHeight; state.connected = true; setBadge('실시간');
+        if (!(d.events || []).length) sys('오늘 기록이 아직 없습니다. 맥북에서 cc-office로 작업을 시작하면 여기에 나타납니다.');
+        pollTimer = setInterval(pollLive, 2000);
+      }).catch(function (e) { if (g !== state.gen) return; setBadge(String(e.message) === '401' ? '로그인 필요' : '연결 실패 · 재시도 중', 'off'); retryTimer = setTimeout(function () { if (g === state.gen) startLive(); }, 5000); });
+  }
+  function pollLive() {
+    if (pollBusy || state.demo) return; pollBusy = true; var g = state.gen;
+    fetch('/api/agent-events?since=' + state.lastId, { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { if (g !== state.gen) return; (d.events || []).forEach(applyEvent); if (!state.connected) { state.connected = true; setBadge('실시간'); } })
+      .catch(function (e) { if (g !== state.gen) return; state.connected = false; setBadge(String(e.message) === '401' ? '로그인 필요' : '연결 끊김 · 재시도 중', 'off'); })
+      .then(function () { if (g === state.gen) pollBusy = false; });
+  }
+  function stopLive() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; } }
+
+  /* ───────── 시연 모드: 샘플 시나리오 ───────── */
   var SCENARIO = [
     [0.0, { event: 'SessionStart', node: 'user', summary: '세션 시작' }],
     [1.2, { event: 'UserPromptSubmit', node: 'user', summary: '지시 전달 (186자)', prompt: '인보이스 상세 화면에서 금액이 0.5원 단위일 때 반올림이 이상하게 나와요.\n`app/Http/Controllers/InvoiceController.php`랑 resources/views/invoice-show.blade.php 확인해서 고쳐주고 테스트도 추가해줘.\n\n재현 데이터:\n```php\n$invoice->amount = 1234.5;\n$invoice->vat = 123.45;\n```\n\npayapp 결제 상태도 같이 확인해줘. **커밋 전에 codex 리뷰** 받고.' }],
@@ -616,32 +714,38 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     [43.6, { event: 'PreToolUse', node: 'forge', label: '배포 중', summary: 'Forge 배포 시작' }],
     [49.0, { event: 'PostToolUse', node: 'forge', summary: 'Forge 배포 완료', report: { type: 'deploy', title: 'office.drgo.pro 배포 완료', note: 'Quick Deploy · 5.4초 · 운영 반영됨' } }]
   ];
-  var playing = true, idx = 0, loopTimer = null, nextAt = 0;
-  // 반복 재생 시 시연 상태 초기화 — 대화·보고서·집계가 무한히 쌓이지 않도록
-  function resetDemo() {
-    chat.innerHTML = ''; state.msgs = 0; $('msg-count').textContent = '0건'; state.live = null;
-    Object.keys(nodes).forEach(function (k) { nodes[k].step = null; if (nodes[k].status !== 'idle') setNode(k, 'idle', ''); });
-    state.counts = { prompts: 0, reviews: 0, commits: 0, pushes: 0 }; renderCounts();
-    REPORTS[today] = []; renderReports();
-    sys('시연 반복 재생 · 화면을 비우고 처음부터 다시 보여줍니다');
-  }
+  var playing = false, idx = 0, loopTimer = null, nextAt = 0;
+  function resetDemo() { resetView(); REPORTS[today] = []; renderReports(); sys('시연 반복 재생 · 화면을 비우고 처음부터 다시 보여줍니다'); }
   function schedule() {
     if (!playing) return;
     if (idx >= SCENARIO.length) { idx = 1; nextAt = Date.now() + 7000; resetDemo(); }
     var delay = idx === 0 ? 500 : Math.max(0, nextAt - Date.now());
     loopTimer = setTimeout(function () {
-      var item = SCENARIO[idx], ev = Object.assign({ id: state.lastId + 1 }, item[1]); applyEvent(ev);
+      var item = SCENARIO[idx], ev = Object.assign({ id: state.lastId + 1, ts: new Date().toISOString() }, item[1]); applyEvent(ev);
       var next = SCENARIO[idx + 1]; nextAt = Date.now() + (next ? (next[0] - item[0]) * 1000 : 7000); idx++; schedule();
     }, delay);
   }
+  function startDemo() {
+    stopLive(); state.gen++; state.demo = true; state.lastId = 0; idx = 0; resetView(); REPORTS = sampleReports(); renderReports();
+    state.sessionStart = Date.now() - 11 * 60000; $('session-state').textContent = '진행 중'; document.querySelector('.live-dot').style.background = 'var(--good)';
+    setBadge('시연용 샘플 데이터'); playing = true; nextAt = Date.now(); schedule();
+  }
+  function stopDemo() { playing = false; clearTimeout(loopTimer); }
   $('toggle-btn').addEventListener('click', function () {
-    playing = !playing; this.textContent = playing ? '일시정지' : '재생'; $('source-badge').textContent = playing ? '시연용 샘플 데이터' : '시연용 샘플 · 일시정지';
+    if (LIVE) {   // 실시간 ↔ 샘플
+      if (state.demo) { stopDemo(); this.textContent = '샘플 보기'; this.classList.remove('on'); startLive(); }
+      else { this.textContent = '실시간으로'; this.classList.add('on'); startDemo(); }
+      return;
+    }
+    playing = !playing; this.textContent = playing ? '일시정지' : '재생';
+    setBadge(playing ? '시연용 샘플 데이터' : '시연용 샘플 · 일시정지');
     if (playing) { nextAt = Date.now() + 600; schedule(); } else clearTimeout(loopTimer);
   });
-  function pollLive() { fetch('/api/events?since=' + state.lastId).then(function (r) { return r.json(); }).then(function (d) { (d.events || []).forEach(applyEvent); }).catch(function () {}); }
-  if (MOCK) { nextAt = Date.now(); schedule(); } else { pollLive(); setInterval(pollLive, 2000); }
+
+  if (LIVE) { $('toggle-btn').textContent = '샘플 보기'; startLive(); } else { $('toggle-btn').textContent = '일시정지'; startDemo(); }
 })();
 </script>
+
 
 </body>
 </html>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentEventController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AssigneeController;
@@ -62,6 +63,8 @@ use Illuminate\Support\Facades\Route;
 // 무통장입금 SMS 포워딩 웹훅 — 폰 앱에서 호출 (세션 인증 대신 시크릿 토큰, CSRF 제외)
 // GET은 연결 테스트용 (?token=... 으로 브라우저에서 URL/토큰 확인)
 Route::match(['get', 'post'], '/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
+// AI 에이전트 이벤트 수신 — 개발자 맥북 Claude Code 훅이 토큰(X-Agent-Token)으로 전송 (세션 밖, CSRF 제외)
+Route::match(['get', 'post'], '/api/agent-events/ingest', [AgentEventController::class, 'ingest'])->middleware('throttle:120,1');
 
 // 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요)
 // POST도 허용: 페이앱이 결제 후 returnurl로 POST 리다이렉트함 (405 방지)
@@ -162,8 +165,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
-    // AI 에이전트 작업 현황 (시연용 샘플 화면) — 마이페이지에서 진입, master/admin 전용
-    Route::view('/agent', 'agent')->middleware('role:master,admin')->name('agent');
+    // AI 에이전트 작업 현황 — 마이페이지에서 진입, master/admin 전용 (화면 + 폴링/보고서 API)
+    Route::middleware('role:master,admin')->group(function () {
+        Route::view('/agent', 'agent')->name('agent');
+        Route::get('/api/agent-events', [AgentEventController::class, 'index']);
+        Route::get('/api/agent-reports', [AgentEventController::class, 'reports']);
+    });
 
     // 캘린더 (조회: 전체, 수정: 권한 필요)
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');

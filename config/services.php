@@ -40,6 +40,11 @@ return [
         'token' => env('BANK_DEPOSIT_TOKEN'),
     ],
 
+    // AI 에이전트 작업 이벤트 수신 토큰 — 개발자 맥북 ~/.claude/agent-dashboard.env 의 값과 같아야 함
+    'agent_events' => [
+        'token' => env('AGENT_EVENTS_TOKEN'),
+    ],
+
     // 의뢰자용 공개 견적서 링크의 도메인 (office 서브도메인 노출 방지)
     // 예: ESTIMATE_PUBLIC_BASE_URL=https://e.drgo.pro — 미설정 시 APP_URL 사용
     'estimate_share' => [
