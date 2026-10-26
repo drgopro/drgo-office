@@ -38,8 +38,9 @@ class SendScheduleReminders extends Command
                 continue;
             }
 
+            $notification = new ScheduleReminder($schedule);
             foreach ($schedule->notificationRecipients() as $user) {
-                $user->notify(new ScheduleReminder($schedule));
+                $user->notify($notification);
             }
 
             $schedule->update(['notified_at' => $now]);

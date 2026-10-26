@@ -21,4 +21,6 @@ if [ -f artisan ]; then
     $FORGE_PHP artisan view:cache
     $FORGE_PHP artisan event:cache
     $FORGE_PHP artisan storage:link
+    # 큐 worker가 새 코드를 쓰도록 재시작 신호 (worker가 없으면 아무 영향 없음)
+    $FORGE_PHP artisan queue:restart
 fi

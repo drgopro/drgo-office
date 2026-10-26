@@ -28,13 +28,22 @@ class RevenueLedger
     /** @var array<int, Collection> 견적서별 제품 분류 캐시 — 재계산 1회 동안만 유효 */
     private static array $productCache = [];
 
+    /** 원장 테이블 존재 확인 결과 — 있다고 확인되면 프로세스 동안 기억해 저장마다 스키마를 조회하지 않는다 */
+    private static bool $tableReady = false;
+
     /** rebuild 중인지 — 결제 일시 단서가 전혀 없는 견적의 인식일 폴백이 달라진다 (아래 주석 참고) */
     private static bool $rebuilding = false;
+
+    /** 원장 테이블이 있는지 — 없으면(마이그레이션 전) 다음 호출에서 다시 확인한다 */
+    public static function tableReady(): bool
+    {
+        return self::$tableReady = self::$tableReady || Schema::hasTable('revenue_entries');
+    }
 
     /** 견적서 단위 재계산 — 결제 이력이 있는 견적서만 원장에 남는다 */
     public static function syncEstimate(?Estimate $estimate): void
     {
-        if (! $estimate || ! Schema::hasTable('revenue_entries')) {
+        if (! $estimate || ! self::tableReady()) {
             return;
         }
         unset(self::$productCache[$estimate->id]); // 분류가 바뀌었을 수 있으니 매 재계산마다 새로 읽는다
@@ -134,7 +143,7 @@ class RevenueLedger
     /** 결제 행 변경 훅 — 견적 연동이면 견적 단위 재계산, 아니면 단순 결제 1:1 기록 */
     public static function onPaymentChanged(ProjectPayment $payment): void
     {
-        if (! Schema::hasTable('revenue_entries')) {
+        if (! self::tableReady()) {
             return;
         }
         if ($payment->estimate_id) {
@@ -163,7 +172,7 @@ class RevenueLedger
 
     public static function onPaymentDeleted(ProjectPayment $payment): void
     {
-        if (! Schema::hasTable('revenue_entries')) {
+        if (! self::tableReady()) {
             return;
         }
         if ($payment->estimate_id) {
@@ -203,7 +212,7 @@ class RevenueLedger
     /** 프로젝트 완료(done) 전환/해제 — 연동 견적서들의 인식일 이동 */
     public static function onProjectStageChanged(Project $project): void
     {
-        if (! Schema::hasTable('revenue_entries')) {
+        if (! self::tableReady()) {
             return;
         }
         Estimate::where('project_id', $project->id)
@@ -214,7 +223,7 @@ class RevenueLedger
     /** 전체 재구축 — 배포/롤백/규칙 변경 후 언제든 원장을 처음부터 다시 만든다 */
     public static function rebuild(): int
     {
-        if (! Schema::hasTable('revenue_entries')) {
+        if (! self::tableReady()) {
             return 0;
         }
         RevenueEntry::query()->delete();

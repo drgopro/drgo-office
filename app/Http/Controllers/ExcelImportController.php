@@ -104,11 +104,12 @@ class ExcelImportController extends Controller
             $catSheet->getColumnDimensionByColumn($col + 1)->setAutoSize(true);
         }
 
-        // 모든 카테고리 트리 평탄화
-        $roots = ProductCategory::whereNull('parent_id')->orderBy('sort_order')->orderBy('id')->get();
+        // 모든 카테고리 트리 평탄화 — 한 번에 읽어 부모별로 묶는다 (단계마다 조회하던 N+1 제거)
+        $byParent = ProductCategory::orderBy('sort_order')->orderBy('id')->get()->groupBy(fn ($c) => (int) $c->parent_id);
+        $roots = $byParent->get(0, collect());
         $row = 2;
         foreach ($roots as $r1) {
-            $children1 = ProductCategory::where('parent_id', $r1->id)->orderBy('sort_order')->orderBy('id')->get();
+            $children1 = $byParent->get($r1->id, collect());
             if ($children1->isEmpty()) {
                 $catSheet->setCellValue("A{$row}", $r1->code);
                 $catSheet->setCellValue("B{$row}", $r1->name);
@@ -118,7 +119,7 @@ class ExcelImportController extends Controller
                 continue;
             }
             foreach ($children1 as $r2) {
-                $children2 = ProductCategory::where('parent_id', $r2->id)->orderBy('sort_order')->orderBy('id')->get();
+                $children2 = $byParent->get($r2->id, collect());
                 if ($children2->isEmpty()) {
                     $catSheet->setCellValue("A{$row}", $r1->code);
                     $catSheet->setCellValue("B{$row}", $r1->name);
@@ -130,7 +131,7 @@ class ExcelImportController extends Controller
                     continue;
                 }
                 foreach ($children2 as $r3) {
-                    $children3 = ProductCategory::where('parent_id', $r3->id)->orderBy('sort_order')->orderBy('id')->get();
+                    $children3 = $byParent->get($r3->id, collect());
                     if ($children3->isEmpty()) {
                         $catSheet->setCellValue("A{$row}", $r1->code);
                         $catSheet->setCellValue("B{$row}", $r1->name);

@@ -549,8 +549,9 @@ class CalendarController extends Controller
             if ($schedule->assignees()->count() === 0 && empty($schedule->notify_assignees)) {
                 return;
             }
+            $notification = new ScheduleCreated($schedule);
             foreach ($schedule->notificationRecipients() as $user) {
-                $user->notify(new ScheduleCreated($schedule));
+                $user->notify($notification);
             }
         } catch (\Throwable $e) {
             Log::warning('일정 등록 푸시 발송 실패: '.$e->getMessage());
@@ -564,8 +565,9 @@ class CalendarController extends Controller
             if ($schedule->assignees()->count() === 0 && empty($schedule->notify_assignees)) {
                 return;
             }
+            $notification = new ScheduleUpdated($schedule);
             foreach ($schedule->notificationRecipients() as $user) {
-                $user->notify(new ScheduleUpdated($schedule));
+                $user->notify($notification);
             }
         } catch (\Throwable $e) {
             Log::warning('일정 변경 푸시 발송 실패: '.$e->getMessage());
@@ -1357,7 +1359,7 @@ class CalendarController extends Controller
     // JSON 가져오기
     public function importJson(Request $request)
     {
-        $request->validate(['file' => 'required|file']);
+        $request->validate(['file' => 'required|file|max:20480']); // 20MB — 전체를 메모리에 읽으므로 상한을 둔다
 
         $ext = strtolower($request->file('file')->getClientOriginalExtension());
         if (! in_array($ext, ['json', 'txt'])) {
@@ -1451,7 +1453,7 @@ class CalendarController extends Controller
      */
     public function importIcal(Request $request)
     {
-        $request->validate(['file' => 'required|file', 'until' => 'nullable|date']);
+        $request->validate(['file' => 'required|file|max:20480', 'until' => 'nullable|date']); // 20MB 상한 — 전체를 메모리에 읽는다
         $dry = $request->boolean('dry');
         $until = $request->input('until'); // 이 날짜(포함) 이후에 시작하는 일정은 제외
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\LeaveUsage;
 use App\Models\Schedule;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * 연차 사용 원장 동기화 — 캘린더 휴가/개인(red) 일정의 '연차 차감' 체크를
@@ -18,6 +19,15 @@ use Carbon\Carbon;
  */
 class LeaveLedger
 {
+    /** 원장 테이블 존재 확인 결과 — 있다고 확인되면 프로세스 동안 기억해 저장마다 스키마를 조회하지 않는다 */
+    private static bool $tableReady = false;
+
+    /** 원장 테이블이 있는지 — 없으면(마이그레이션 전) 다음 호출에서 다시 확인한다 */
+    public static function tableReady(): bool
+    {
+        return self::$tableReady = self::$tableReady || Schema::hasTable('leave_usages');
+    }
+
     public static function syncSchedule(Schedule $schedule): void
     {
         // 이 일정의 자동 기록 재계산 — 수동 기록(schedule_id null)은 건드리지 않음

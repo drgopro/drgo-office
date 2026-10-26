@@ -9,7 +9,13 @@ use NotificationChannels\WebPush\WebPushMessage;
 
 class ScheduleReminder extends Notification
 {
-    public function __construct(public Schedule $schedule) {}
+    /** 담당자 이름 — 채널(database·WebPush)·수신자마다 다시 조회하지 않도록 생성 시 한 번만 읽는다 */
+    private string $assigneeNames;
+
+    public function __construct(public Schedule $schedule)
+    {
+        $this->assigneeNames = $schedule->assignees()->pluck('name')->implode(', ');
+    }
 
     /** @return array<int, string> */
     public function via(object $notifiable): array
@@ -21,7 +27,7 @@ class ScheduleReminder extends Notification
     {
         $s = $this->schedule;
         $time = $s->is_all_day || ! $s->start_time ? '종일' : substr((string) $s->start_time, 0, 5);
-        $names = $s->assignees()->pluck('name')->implode(', ');
+        $names = $this->assigneeNames;
 
         return '📅 '.collect([$time, $s->title ?: '(제목 없음)', $names])->filter()->implode(' - ');
     }
