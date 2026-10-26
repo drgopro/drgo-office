@@ -13,7 +13,8 @@
     .cal-v2 .event-chip.multi-day.day-end { border-radius:0 6px 6px 0; }
     .cal-v2 .event-chip.multi-day.day-start.day-end { border-radius:6px; }
     .cal-v2 .lane-spacer { height:calc(26px * var(--cal-fz,1)); }
-    .cal-v2 .mday-title-overlay { font-size:calc(13px * var(--cal-fz,1)); gap:5px; padding:0 8px 0 10px; }
+    /* 다일 제목은 연한 바탕 위라 카테고리 글자색(진한 바 기준, 흰색 계열) 대신 본문색 */
+    .cal-v2 .mday-title-overlay { font-size:calc(13px * var(--cal-fz,1)); gap:5px; padding:0 8px 0 10px; color:var(--text) !important; }
     .cal-v2 .event-chip .chip-title, .cal-v2 .mday-title-overlay .chip-title { font-weight:500; }
     .cal-v2 .chip-time { flex-shrink:0; font-size:calc(12px * var(--cal-fz,1)); font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums; }
     .cal-v2 .ev-assignee-badge { font-size:calc(12px * var(--cal-fz,1)); font-weight:500; letter-spacing:0; padding:0 0 0 4px; background:none; color:var(--text-muted); }
@@ -21,11 +22,28 @@
     .cal-v2 .event-chip.single.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 18%, var(--surface)); border-left-color:var(--chip-{{ $__ck }}-bg); }
     .cal-v2 .event-chip.single.is-tentative.color-{{ $__ck }}:not(.multi-day) { background:var(--surface); border:1.5px dashed var(--chip-{{ $__ck }}-bg); }
     {{-- 다일 미확정 — 셀마다 끊기는 점선 대신 사선 줄무늬로 바 전체를 구분 --}}
-    .cal-v2 .event-chip.single.multi-day.is-tentative.color-{{ $__ck }} { background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 22%, var(--surface)) 0 6px, var(--surface) 6px 12px); }
+    .cal-v2 .event-chip.single.multi-day.is-tentative.color-{{ $__ck }} { background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 14%, var(--surface)) 0 6px, var(--surface) 6px 12px); }
     @endforeach
 
     /* 옵션 아이콘 — 이모지 대신 선 아이콘 (긴급만 빨강) */
-    .cal-v2 .opt-ic { display:inline-flex; align-items:center; flex-shrink:0; margin-right:0; color:var(--text-muted); }
+    /* .event-chip span 의 min-width:0 때문에 좁은 칸에서 아이콘이 0px로 눌리던 문제 — 아이콘은 줄이지 않고 제목이 먼저 줄어듦 */
+    .cal-v2 .opt-ic { display:inline-flex; align-items:center; flex-shrink:0; min-width:auto; overflow:visible; margin-right:0; color:var(--text-muted); }
+    .cal-v2 .event-chip .chip-title, .cal-v2 .mc-title { flex:1 1 0; min-width:0; }
+    .cal-v2 .opt-chip.sched-pill { flex-shrink:0; }
+    .cal-v2 .sp-short { display:none; }
+    /* 칸이 좁아질수록 담당자 → 시간 순으로 숨기고 상태는 한 글자로 — 아이콘·제목은 끝까지 유지 */
+    /* .mc-bar 는 셀 밖(.mc-week 직속)에 그려지므로 바 자체를 컨테이너로 */
+    .cal-v2 .day-cell, .cal-v2 .mc-cell, .cal-v2 .mc-bar { container-type:inline-size; }
+    @container (max-width: 150px) {
+        .cal-v2 .event-chip .chip-badges, .cal-v2 .mc-chip .mc-assignee, .cal-v2 .mc-bar .mc-assignee { display:none; }
+        .cal-v2 .sched-pill .sp-full { display:none; }
+        .cal-v2 .sched-pill .sp-short { display:inline; }
+        .cal-v2 .opt-chip.sched-pill { padding:0 4px; }
+    }
+    @container (max-width: 110px) {
+        .cal-v2 .event-chip .chip-time, .cal-v2 .mc-chip .mc-time { display:none; }
+        .cal-v2 .event-chip { gap:3px; padding:0 5px 0 5px; }
+    }
     .cal-v2 .opt-ic svg { width:calc(13px * var(--cal-fz,1)); height:calc(13px * var(--cal-fz,1)); display:block; }
     .cal-v2 .opt-ic.ic-urgent { color:#C03838; }
     .cal-v2 .opt-ic.opt-ic-arrow { color:var(--accent); }
@@ -34,6 +52,8 @@
     /* 확정 상태 — 한 글자 대신 전체 단어 알약 (제안·희망·목표 테두리 / 확정 초록) */
     .cal-v2 .opt-chip.sched-pill { font-size:calc(11px * var(--cal-fz,1)); font-weight:700; line-height:16px; padding:0 6px; margin-left:4px; margin-right:0; border-radius:999px; background:transparent; border:1px solid color-mix(in srgb, var(--text) 40%, transparent); color:var(--text); }
     .cal-v2 .opt-chip.sched-pill.confirmed { background:#2f9e44; border-color:#2f9e44; color:#fff; }
+    /* 전체(컴팩트) 뷰 칩은 16px 높이 — 알약도 그에 맞춰 축소 */
+    .cal-v2 .mc-chip .opt-chip.sched-pill, .cal-v2 .mc-bar .opt-chip.sched-pill { font-size:9.5px; line-height:12px; padding:0 4px; margin-left:3px; }
 
     /* 완료 — 체크 아이콘 + 55% */
     .cal-v2 .event-chip.is-completed, .cal-v2 .mday-title-overlay.is-completed, .cal-v2 .mc-chip.is-completed,
@@ -55,8 +75,12 @@
         .cal-v2 .mc-chip, .cal-v2 .mc-chip.in-lane, .cal-v2 .mc-bar { height:20px; line-height:20px; font-size:12.5px; font-weight:700; letter-spacing:-0.04em; padding:0 3px; border-left:none; border-radius:5px; color:#fff; }
         .cal-v2 .mc-bar { padding:0 4px; }
         .cal-v2 .mc-title { text-overflow:clip; }
-        .cal-v2 .mc-chip .mc-time, .cal-v2 .mc-chip .opt-ic, .cal-v2 .mc-chip .opt-chip,
-        .cal-v2 .mc-bar .opt-ic, .cal-v2 .mc-bar .opt-chip { display:none; }
+        .cal-v2 .mc-chip .mc-time, .cal-v2 .mc-chip .opt-chip, .cal-v2 .mc-bar .opt-chip { display:none; }
+        /* 모바일 칩도 특징 아이콘은 유지 — 흰 선 아이콘을 제목 앞에 */
+        .cal-v2 .mc-chip, .cal-v2 .mc-bar > span { gap:1px; }
+        .cal-v2 .mc-chip .opt-ic, .cal-v2 .mc-bar .opt-ic { color:inherit; }
+        .cal-v2 .mc-chip .opt-ic svg, .cal-v2 .mc-bar .opt-ic svg { width:11px; height:11px; stroke-width:2.4; }
+        .cal-v2 .mc-chip .opt-ic.ic-urgent, .cal-v2 .mc-bar .opt-ic.ic-urgent { color:#FFD0D0; }
         .cal-v2 .mc-chip.is-past, .cal-v2 .mc-bar.is-past { opacity:0.45; }
         .cal-v2 .mc-more { font-size:12px; font-weight:800; line-height:16px; text-align:center; padding:0; }
         @foreach(\App\Models\CalendarCategory::map() as $__ck => $__cc)

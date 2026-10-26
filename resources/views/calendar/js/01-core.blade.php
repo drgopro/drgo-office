@@ -174,7 +174,7 @@ function eventOptIconsHtml(ev){
 // 확정 상태 — 한 글자 칩(확/목/희/제), 제목 끝에 붙임
 function schedStatusChip(ev){
     if(!ev||!ev.sched_opt||!SCHED_CHIP_LABELS[ev.sched_opt]) return '';
-    if(CAL_V2) return optChip(SCHED_FULL_LABELS[ev.sched_opt],'sched-pill sched-end'+(ev.sched_opt==='confirmed'?' confirmed':''),SCHED_FULL_LABELS[ev.sched_opt]);
+    if(CAL_V2) return optChip(`<span class="sp-full">${SCHED_FULL_LABELS[ev.sched_opt]}</span><span class="sp-short">${SCHED_CHIP_LABELS[ev.sched_opt]}</span>`,'sched-pill sched-end'+(ev.sched_opt==='confirmed'?' confirmed':''),SCHED_FULL_LABELS[ev.sched_opt]);
     return optChip(SCHED_CHIP_LABELS[ev.sched_opt],(ev.sched_opt==='confirmed'?'confirmed':'accent')+' sched-end',SCHED_FULL_LABELS[ev.sched_opt]);
 }
 // 출발지/도착지 표시 여부 — 이사세팅 체크 또는 출발지 데이터가 저장된 일정

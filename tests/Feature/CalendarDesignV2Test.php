@@ -28,8 +28,9 @@ class CalendarDesignV2Test extends TestCase
         preg_match('/<style>(.*?)<\/style>/s', $this->v2Partial(), $m);
         $rules = array_filter(array_map('trim', preg_split('/\{[^{}]*\}/', preg_replace('/\/\*.*?\*\//s', '', $m[1]))));
         foreach ($rules as $selectorGroup) {
-            if (str_starts_with($selectorGroup, '@media')) {
-                $selectorGroup = trim(preg_replace('/^@media[^{]*\{/', '', $selectorGroup));
+            $selectorGroup = ltrim($selectorGroup, "} \n");
+            if (str_starts_with($selectorGroup, '@')) {
+                $selectorGroup = trim(preg_replace('/^@(media|container)[^{]*\{/', '', $selectorGroup));
             }
             if ($selectorGroup === '' || $selectorGroup === '}') {
                 continue;
@@ -77,6 +78,21 @@ class CalendarDesignV2Test extends TestCase
             ->assertSee("calV2MonthAlias=view==='month'&&calMobileV2();", false)
             ->assertSee("if(!calMobileV2()&&currentView==='monthc'&&calV2MonthAlias)", false)
             ->assertSee('.cal-v2 .event-chip.single.multi-day.is-tentative.color-', false);
+    }
+
+    public function test_option_icons_survive_narrow_cells(): void
+    {
+        // 화면이 좁아지면 아이콘(차량 등)이 0px로 눌려 일정 특징을 알 수 없던 문제 — 아이콘은 줄지 않고 담당자·시간이 먼저 빠짐
+        $partial = $this->v2Partial();
+
+        $this->assertStringContainsString('.cal-v2 .opt-ic { display:inline-flex; align-items:center; flex-shrink:0; min-width:auto; overflow:visible;', $partial);
+        $this->assertStringContainsString('.cal-v2 .day-cell, .cal-v2 .mc-cell, .cal-v2 .mc-bar { container-type:inline-size; }', $partial);
+        $this->assertStringContainsString('.cal-v2 .mc-bar .mc-assignee { display:none; }', $partial);
+        $this->assertMatchesRegularExpression('/@container \(max-width: 150px\) \{[^@]*\.chip-badges[^@]*sp-short/s', $partial);
+        $this->assertMatchesRegularExpression('/@container \(max-width: 110px\) \{[^@]*\.chip-time/s', $partial);
+        // 모바일 칩에서도 아이콘을 숨기지 않음
+        $this->assertStringNotContainsString('.cal-v2 .mc-chip .opt-ic, .cal-v2 .mc-chip .opt-chip', $partial);
+        $this->assertStringContainsString('.cal-v2 .mc-chip .opt-ic, .cal-v2 .mc-bar .opt-ic { color:inherit; }', $partial);
     }
 
     private function v2Partial(): string
