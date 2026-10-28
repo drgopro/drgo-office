@@ -1,7 +1,7 @@
 {{-- 전역 상수·필터·사이드바·헬퍼 --}}
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const DAYS_KO = ['일','월','화','수','목','금','토'];
-// 디자인 v2 (가독성 개선) — styles-v2 partial이 html.cal-v2를 붙임. ⋯ 메뉴에서 v1로 되돌리기 (localStorage calDesign)
+// 디자인 v2 (가독성 개선, 기본 꺼짐) — localStorage calDesign=v2 일 때만 styles-v2 partial이 html.cal-v2를 붙임. ⋯ 메뉴에서 전환
 const CAL_V2 = document.documentElement.classList.contains('cal-v2');
 function calMobileV2(){ return CAL_V2 && window.innerWidth<=768; }
 let calV2MonthAlias=false; // 모바일에서 '월'을 칩형 월간(monthc)으로 대신 보여주는 중 — 데스크탑 폭으로 넓히면 월간으로 복귀

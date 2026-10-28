@@ -7,19 +7,20 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** 캘린더 디자인 v2 (가독성 개선) — html.cal-v2 범위 스타일 + 이전 디자인 복귀 토글 */
+/** 캘린더 디자인 v2 (가독성 개선) — 기본은 이전 디자인(v1), html.cal-v2 범위 스타일은 opt-in 토글로만 적용 */
 class CalendarDesignV2Test extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_v2_styles_are_scoped_and_enabled_unless_opted_out(): void
+    public function test_v2_styles_are_scoped_and_off_unless_opted_in(): void
     {
         $user = User::factory()->create(['role' => 'member']);
 
         $response = $this->actingAs($user)->get('/calendar')->assertOk();
 
-        // localStorage calDesign=v1 이면 클래스를 붙이지 않아 기존 디자인 유지
-        $response->assertSee("localStorage.getItem('calDesign')!=='v1'", false)
+        // 기본은 이전 디자인 — localStorage calDesign=v2 로 직접 켠 사람에게만 cal-v2 클래스를 붙임
+        $response->assertSee("var v2=false;try{v2=localStorage.getItem('calDesign')==='v2';}", false)
+            ->assertDontSee("localStorage.getItem('calDesign')!=='v1'", false)
             ->assertSee("document.documentElement.classList.add('cal-v2')", false)
             ->assertSee('.cal-v2 .event-chip {', false)
             ->assertSee('.cal-v2 .mc-chip, .cal-v2 .mc-chip.in-lane, .cal-v2 .mc-bar {', false);
@@ -53,7 +54,7 @@ class CalendarDesignV2Test extends TestCase
         }
     }
 
-    public function test_menu_has_toggle_back_to_previous_design(): void
+    public function test_menu_has_opt_in_toggle_to_new_design(): void
     {
         $user = User::factory()->create(['role' => 'member']);
 
@@ -61,7 +62,7 @@ class CalendarDesignV2Test extends TestCase
             ->assertOk()
             ->assertSee('id="calDesignToggle"', false)
             ->assertSee('onclick="toggleCalDesign()"', false)
-            ->assertSee('이전 디자인으로 보기')
+            ->assertSee('<span id="calDesignToggleLabel">새 디자인으로 보기</span>', false)
             ->assertSee("localStorage.setItem('calDesign', CAL_V2?'v1':'v2')", false);
     }
 

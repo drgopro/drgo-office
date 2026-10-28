@@ -1,6 +1,7 @@
 {{-- 캘린더 디자인 v2 (가독성 개선) — html.cal-v2 일 때만 적용.
-     되돌리기: ⋯ 메뉴 '이전 디자인으로 보기'(개인, localStorage calDesign=v1) / 전체 롤백은 index의 이 include 삭제 또는 git tag calendar-v1 --}}
-<script>(function(){var v2=true;try{v2=localStorage.getItem('calDesign')!=='v1';}catch(e){}if(v2)document.documentElement.classList.add('cal-v2');})();</script>
+     기본은 이전 디자인(v1). 불편하다는 평이 많아 v2는 ⋯ 메뉴 '새 디자인으로 보기'(개인, localStorage calDesign=v2)로 켠 사람에게만 적용.
+     완전 제거는 index의 이 include 삭제 또는 git tag calendar-v1 --}}
+<script>(function(){var v2=false;try{v2=localStorage.getItem('calDesign')==='v2';}catch(e){}if(v2)document.documentElement.classList.add('cal-v2');})();</script>
 <style>
     /* ── 데스크탑 월간 — 13px/26px 칩, 연한 분류색 바탕 + 왼쪽 실선 ── */
     .cal-v2 .events-list { gap:3px; }
