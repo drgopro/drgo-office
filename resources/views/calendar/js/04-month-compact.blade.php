@@ -451,6 +451,8 @@ function renderMonth() {
                 } else {
                     chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'')+(isTentativeEv(ev)?' is-tentative':'')+(card?' chip-card':'');
                     chip.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);
+                    // 카드 모드: 담당자가 여럿이면 카드 어디에 올려도 전원 명단 툴팁 (이름 배지는 잘려 있어 올리기 어려움)
+                    if(card){ const sn=assigneeNamesOf(ev); if(sn.length>1){ chip.dataset.anames=sn.join('|'); chip.dataset.atitle=isGuestUser?(ev.location||'일정'):(ev.title||''); } }
                 }
                 chip.onclick=e=>{e.stopPropagation();if(dragEvent||isDragging)return; if(card)openEventPopover(ev,chip); else openDetailModal(ev);};
                 chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};

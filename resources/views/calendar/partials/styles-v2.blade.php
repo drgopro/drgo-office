@@ -105,13 +105,13 @@
         .cal-v2 .chip-card .cc-body { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:2px; }
         .cal-v2 .chip-card .chip-l1, .cal-v2 .chip-card .chip-l2 { display:flex; align-items:center; min-width:0; }
         .cal-v2 .chip-card .chip-l1 { gap:4px; }
-        .cal-v2 .chip-card .chip-l2 { gap:4px; }
+        .cal-v2 .chip-card .chip-l2 { gap:3px; }
         .cal-v2 .chip-card .chip-ship { flex-shrink:0; margin-left:auto; }
         .cal-v2 .chip-card .opt-ic svg { width:calc(12px * var(--cal-fz,1)); height:calc(12px * var(--cal-fz,1)); }
         .cal-v2 .chip-card .chip-title { font-size:calc(12.5px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.01em; }
         .cal-v2 .chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10px * var(--cal-fz,1)); padding:0 4px; line-height:15px; }
         .cal-v2 .chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; flex:1 1 0; } /* 기본 flex-shrink:0 이면 줄지 않고 잘려 말줄임이 안 보임 */
-        .cal-v2 .chip-card .ev-assignee-badge { display:block; flex:1 1 0; min-width:0; padding:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cal-v2 .chip-card .ev-assignee-badge { display:block; flex:1 1 0; min-width:0; padding:0; font-size:calc(10px * var(--cal-fz,1)); letter-spacing:-0.02em; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cal-v2 .chip-card .chip-cat { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cal-v2 .event-chip.chip-card:hover { filter:brightness(0.96); transform:none; }
         .cal-v2 .event-chip.chip-card.is-popped, .cal-v2 .event-chip.multi-day.is-popped { box-shadow:0 0 0 2px var(--accent); }

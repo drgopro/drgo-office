@@ -50,7 +50,7 @@ function buildChipCardHtml(ev){
     if(names.length){
         const attrEsc=s=>s.replace(/"/g,'&quot;').replace(/</g,'&lt;');
         const anames=names.length>1?` data-anames="${attrEsc(names.join('|'))}" data-atitle="${attrEsc(title)}"`:'';
-        who=`<span class="chip-badges"><span class="ev-assignee-badge"${anames}>${_esc(names.join(', '))}</span></span>`;
+        who=`<span class="chip-badges"><span class="ev-assignee-badge"${anames}>${_esc(names.join(','))}</span></span>`; // 공백 없는 쉼표 — 좁은 칸에서 한 명이라도 더
     }
     let l2=schedStatusChip(ev)+eventOptIconsHtml(ev)+who;
     if(!l2){
