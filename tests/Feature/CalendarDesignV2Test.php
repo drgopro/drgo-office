@@ -110,11 +110,15 @@ class CalendarDesignV2Test extends TestCase
             ->assertSee('id="calLegend"', false)
             ->assertSee('chip.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);', false)
             ->assertSee('if(card)openEventPopover(ev,chip); else openDetailModal(ev);', false)
-            ->assertSee('else if(!card&&si<singles.length) rows.push({multi:false, ev:singles[si++]});', false);
+            // 연일(다일) 바도 2행 카드 — 제목 오버레이가 카드 레이아웃을 그리고 바 높이를 셀 칩과 맞춤
+            ->assertSee("ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'')+(card?' chip-card':'');", false)
+            ->assertSee('ov.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);', false);
 
         $partial = $this->v2Partial();
         $this->assertStringContainsString('@media (min-width: 769px) {', $partial);
         $this->assertStringContainsString('.cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:column;', $partial);
+        $this->assertStringContainsString('.cal-v2 .event-chip.multi-day, .cal-v2 .lane-spacer { height:calc(42px * var(--cal-fz,1)); }', $partial);
+        $this->assertStringContainsString('.cal-v2 .mday-title-overlay.chip-card { flex-direction:column;', $partial);
         $this->assertStringContainsString('.cal-v2 .ev-pop { position:fixed;', $partial);
         $this->assertStringContainsString('.cal-v2 .cal-legend { order:12;', $partial);
         // 모바일 규칙 블록에는 카드/팝오버가 없음

@@ -329,14 +329,16 @@ function renderMonth() {
     const isMobileCal = window.innerWidth<=768; // 모바일: 점 표시 간소화 모드
     // ── 반응형: 그리드가 화면 높이를 꽉 채우도록 주 행 높이 계산 (110px*배율은 하한) ──
     const card=typeof calV2Card==='function'&&calV2Card(); // v2 데스크탑: 2행 카드 칩 + 클릭 팝오버
-    let rowMin=Math.round((card?160:110)*calFzScale);
+    // 칩 1행 높이(간격 포함) / 날짜 헤더 / 더보기 배지 — 행 높이 하한과 표시 행 수 계산에 공용
+    const chipH=card?42*calFzScale+4:(CAL_V2?26:22)*calFzScale+(CAL_V2?3:2), headH=12+28*calFzScale, badgeH=18;
+    // 카드 모드 하한: 최소 3행 + 더보기가 잘리지 않는 높이 (셀이 overflow:hidden이라 화면이 낮으면 하단이 잘리던 문제)
+    let rowMin=card?Math.ceil(headH+3*chipH+badgeH):Math.round(110*calFzScale);
     if(window.innerWidth>768){
         const gTop=grid.getBoundingClientRect().top;
         const avail=window.innerHeight-gTop-24; // 하단 여백
         rowMin=Math.max(rowMin, Math.floor((avail-N-1)/N)); // N주 + 1px 경계선
     }
     // 셀 높이에 들어가는 만큼 일정 칩 표시 (기존 고정 3개 → 동적, 최소 3개 보장)
-    const chipH=card?42*calFzScale+4:(CAL_V2?26:22)*calFzScale+(CAL_V2?3:2), headH=12+28*calFzScale, badgeH=18;
     const MAX_VISIBLE=Math.max(3, Math.floor((rowMin-headH-badgeH)/chipH));
 
     // 주 단위로 렌더링
@@ -415,11 +417,11 @@ function renderMonth() {
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
-            // 카드 모드는 단일(42px)과 다일 바(26px) 높이가 달라 빈 레인을 단일로 채우면 옆 셀의 바와 어긋남 → 스페이서로 유지
+            // (카드 모드도 다일 바를 같은 42px 높이로 맞춰 두어 단일로 채워도 옆 셀의 바와 행이 맞음)
             const rows=[];
             for(let L=0;L<=maxLane;L++){
                 if(coveringByLane[L]) rows.push({multi:true, ev:coveringByLane[L]});
-                else if(!card&&si<singles.length) rows.push({multi:false, ev:singles[si++]});
+                else if(si<singles.length) rows.push({multi:false, ev:singles[si++]});
                 else rows.push({spacer:true});
             }
             while(si<singles.length) rows.push({multi:false, ev:singles[si++]});
@@ -524,14 +526,14 @@ function renderMonth() {
                     const chipRect=chip.getBoundingClientRect();
                     const endRect=weekRow.children[sg.e].getBoundingClientRect();
                     const ov=document.createElement('div');
-                    ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'');
+                    ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'')+(card?' chip-card':'');
                     // 제목 글자색도 카테고리 설정(text_color)과 연동
                     if(window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[ev.color]) ov.style.color=`var(--chip-${ev.color}-text)`;
                     ov.style.top=(chipRect.top-wrRect.top)+'px';
                     ov.style.height=chipRect.height+'px';
                     ov.style.left=(chipRect.left-wrRect.left)+'px';
                     ov.style.width=Math.max(0, (endRect.right-6)-chipRect.left)+'px';
-                    ov.innerHTML=buildChipHtml(ev); // 제목 + 담당자 배지 등(연속 일정도 담당자 표기)
+                    ov.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev); // 제목 + 담당자 배지 등(연속 일정도 담당자 표기) — 카드 모드는 2행
                     weekRow.appendChild(ov);
                 });
             });

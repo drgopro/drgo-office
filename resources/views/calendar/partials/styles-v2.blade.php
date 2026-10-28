@@ -46,8 +46,8 @@
         .cal-v2 .event-chip:not(.chip-card) { gap:3px; padding:0 5px 0 5px; }
     }
     /* 카드 칩은 2행이라 여유가 있음 — 상태 알약은 항상 전체 단어, 담당자는 아주 좁을 때만 숨김 (아이콘·제목·상태는 유지) */
-    .cal-v2 .event-chip.chip-card .sched-pill .sp-full { display:inline; }
-    .cal-v2 .event-chip.chip-card .sched-pill .sp-short { display:none; }
+    .cal-v2 .chip-card .sched-pill .sp-full { display:inline; }
+    .cal-v2 .chip-card .sched-pill .sp-short { display:none; }
     @container (max-width: 95px) {
         .cal-v2 .event-chip.chip-card .chip-badges { display:none; }
     }
@@ -85,16 +85,21 @@
         .cal-v2 .events-list { gap:4px; }
         /* 카드 칩 — 고정 2행 높이 (renderMonth 행 수 계산과 동일: 42px × 배율 + 4px 간격) */
         .cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:column; align-items:stretch; justify-content:center; gap:2px; padding:3px 6px 4px 8px; border-radius:7px; line-height:1.3; }
-        .cal-v2 .event-chip.chip-card .chip-l1, .cal-v2 .event-chip.chip-card .chip-l2 { display:flex; align-items:center; min-width:0; }
-        .cal-v2 .event-chip.chip-card .chip-l1 { gap:4px; }
-        .cal-v2 .event-chip.chip-card .chip-l2 { gap:5px; }
-        .cal-v2 .event-chip.chip-card .chip-time { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; color:var(--text); margin:0; }
-        .cal-v2 .event-chip.chip-card .chip-title { font-size:calc(12.5px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.01em; }
-        .cal-v2 .event-chip.chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10.5px * var(--cal-fz,1)); }
-        .cal-v2 .event-chip.chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; }
-        .cal-v2 .event-chip.chip-card .ev-assignee-badge { padding:0; font-size:calc(11.5px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; }
-        .cal-v2 .event-chip.chip-card .chip-cat { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .cal-v2 .event-chip.chip-card .ev-done-ic { color:#2f9e44; }
+        /* 연일(다일) 바도 같은 2행 높이 — 제목·아이콘·담당자를 1행에 뭉개지 않고 셀 칩과 행이 맞음. 제목 오버레이가 2행 카드 레이아웃을 그림 */
+        .cal-v2 .event-chip.multi-day, .cal-v2 .lane-spacer { height:calc(42px * var(--cal-fz,1)); }
+        .cal-v2 .mday-title-overlay.chip-card { flex-direction:column; align-items:stretch; justify-content:center; gap:2px; padding:3px 6px 4px 10px; line-height:1.3; }
+        .cal-v2 .mday-title-overlay.chip-card .chip-title { flex:1 1 0; }
+        .cal-v2 .mday-title-overlay.chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; }
+        .cal-v2 .chip-card .chip-l1, .cal-v2 .chip-card .chip-l2 { display:flex; align-items:center; min-width:0; }
+        .cal-v2 .chip-card .chip-l1 { gap:4px; }
+        .cal-v2 .chip-card .chip-l2 { gap:5px; }
+        .cal-v2 .chip-card .chip-time { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; color:var(--text); margin:0; }
+        .cal-v2 .chip-card .chip-title { font-size:calc(12.5px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.01em; }
+        .cal-v2 .chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10.5px * var(--cal-fz,1)); }
+        .cal-v2 .chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; }
+        .cal-v2 .chip-card .ev-assignee-badge { padding:0; font-size:calc(11.5px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; }
+        .cal-v2 .chip-card .chip-cat { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cal-v2 .chip-card .ev-done-ic { color:#2f9e44; }
         .cal-v2 .event-chip.chip-card:hover { filter:brightness(0.96); transform:none; }
         .cal-v2 .event-chip.chip-card.is-popped, .cal-v2 .event-chip.multi-day.is-popped { box-shadow:0 0 0 2px var(--accent); }
         .cal-v2 .event-chip.chip-card.is-completed { opacity:0.6; }
