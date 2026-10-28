@@ -34,7 +34,7 @@ function buildChipHtml(ev){
 
 // ── v2 데스크탑 월간 카드 칩 (디자인 'Calendar Dual View' + 사용자 스케치) ──
 // [왼쪽] 시작/종료 시각 세로 2줄 (종일·시간 없음이면 생략) | [1행] 제목 · 배송 체크 | [2행] 확정 상태 알약 · 일정 아이콘(긴급·차량 등) · 담당자 전원
-// 완료 일정은 아이콘을 따로 두지 않고 CSS가 글씨 위에 체크를 덮음 (.is-completed::after)
+// 완료 일정은 1행 제목 오른쪽 끝에 작은 초록 체크 (글씨 위에 덮는 방식은 제목 중간에 걸려 불편하다는 피드백으로 변경)
 function calV2Card(){ return CAL_V2 && window.innerWidth>768; }
 function buildChipCardHtml(ev){
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
@@ -57,7 +57,8 @@ function buildChipCardHtml(ev){
         const cat=(typeof CS_CATS!=='undefined'&&CS_CATS[ev.color]&&CS_CATS[ev.color].label)||'';
         if(cat) l2=`<span class="chip-cat">${_esc(cat)}</span>`;
     }
-    return `${timeHtml}<div class="cc-body"><div class="chip-l1"><span class="chip-title">${_esc(title)}</span>${shipStatusIcon(ev)}</div><div class="chip-l2">${l2}</div></div>`;
+    const done=ev.completed_at?`<span class="opt-ic ev-done-ic" title="완료">${CAL_V2_ICONS.check}</span>`:'';
+    return `${timeHtml}<div class="cc-body"><div class="chip-l1"><span class="chip-title">${_esc(title)}</span>${done}${shipStatusIcon(ev)}</div><div class="chip-l2">${l2}</div></div>`;
 }
 
 // ── 담당자 전체 명단 툴팁 (hover 즉시 표시) ──

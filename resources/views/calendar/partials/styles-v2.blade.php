@@ -117,9 +117,9 @@
         .cal-v2 .event-chip.chip-card.is-popped, .cal-v2 .event-chip.multi-day.is-popped { box-shadow:0 0 0 2px var(--accent); }
         /* 완료 — 흐리게 하지 않고 글씨 위에 초록 체크를 덮음 (사용자 요청) */
         .cal-v2 .event-chip.chip-card.is-completed, .cal-v2 .mday-title-overlay.chip-card.is-completed { opacity:0.9; }
-        /* 체크는 제목 글자 앞머리 위에 작게 (카드 가운데 큰 체크는 연일 바에서 바 한가운데 떠 보여 산만했음) */
-        .cal-v2 .chip-card.is-completed .chip-title { position:relative; }
-        .cal-v2 .chip-card.is-completed .chip-title::after { content:''; position:absolute; left:0; top:0; width:16px; height:100%; pointer-events:none; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f9e44' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.75'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") left center / 15px 15px no-repeat; }
+        /* 체크는 1행 제목 오른쪽 끝에 별도 아이콘 (글씨 위에 덮으면 제목 중간에 걸려 불편) */
+        .cal-v2 .chip-card .ev-done-ic { color:#2f9e44; flex-shrink:0; }
+        .cal-v2 .chip-card .ev-done-ic svg { stroke-width:3; }
         .cal-v2 .more-badge { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; padding:2px 3px 0; }
         .cal-v2 .more-badge:hover { background:none; text-decoration:underline; }
         /* 일정 클릭 요약 팝오버 — 왼쪽 카테고리색 바, 수정 / 상세 보기 */
