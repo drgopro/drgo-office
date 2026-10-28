@@ -108,6 +108,7 @@ function openDayPopover(dateStr, anchorEl){
     const pop=document.getElementById('dayPopover');
     const overlay=document.getElementById('dayPopoverOverlay');
     if(!pop||!overlay) return;
+    if(typeof closeEventPopover==='function') closeEventPopover();
 
     const dayEvs=sortByTime(events.filter(ev=>isFiltered(ev)&&evCoversDate(ev,dateStr)), dateStr);
     // 삭제/변경 흔적 필터가 켜져 있으면 월간 셀과 동일 기준으로 그 날의 흔적도 함께 나열
@@ -186,6 +187,59 @@ function closeDayPopover(){
     if(pop) pop.style.display='none';
     if(overlay) overlay.classList.remove('open');
 }
+
+// ── v2 데스크탑 월간: 일정 클릭 요약 팝오버 (디자인 'Calendar Dual View' — 월은 시간+제목만, 상세는 팝오버) ──
+let evPopId=null;
+function openEventPopover(ev, anchorEl){
+    const pop=document.getElementById('calEvPop');
+    if(!pop||!anchorEl){ openDetailModal(ev); return; }
+    if(isGuestUser) return; // 게스트는 일정 내용 비노출 (openDetailModal과 동일)
+    if(ev&&ev.parent_id){ const p=events.find(e=>e.id===ev.parent_id); if(p) ev=p; } // 하위 일정은 부모 기준
+    closeEventPopover();
+    evPopId=ev.id;
+    const t=s=>(s||'').substring(0,5);
+    const stD=(ev.start_date||'').substring(0,10), enD=evEnd(ev);
+    const md=d=>d.substring(5).replace('-','.');
+    let range=ev.is_all_day?'종일':(t(ev.start_time)+(ev.end_time?'~'+t(ev.end_time):''));
+    if(enD&&enD!==stD) range=`${md(stD)}~${md(enD)}`+(ev.is_all_day?'':' '+range);
+    const cat=(typeof CS_CATS!=='undefined'&&CS_CATS[ev.color]&&CS_CATS[ev.color].label)||'';
+    const urgent=(ev.sched_event_opts||[]).includes('urgent');
+    const names=assigneeNamesOf(ev).join(', ');
+    const moveHtml=moveAddrLinesHtml(ev);
+    const addr=moveHtml?'':(ev.location||'');
+    pop.style.setProperty('--ev-pop-c', chipColor(ev.color));
+    pop.innerHTML=`
+        <div class="ep-head">${eventOptIconsHtml(ev)}<span class="ep-title" title="${_esc(ev.title||'')}">${_esc(ev.title||'(제목 없음)')}</span>${schedStatusChip(ev)}</div>
+        <div class="ep-sub">${_esc([range,cat].filter(Boolean).join(' · '))}${urgent?'<span class="ep-urgent">🚨 긴급</span>':''}</div>
+        ${names?`<div class="ep-row"><span class="ep-k">담당</span><span class="ep-v">${_esc(names)}</span></div>`:''}
+        ${addr?`<div class="ep-addr">${_esc(addr)}</div>`:''}${moveHtml}
+        <div class="ep-actions">${canEditCalendar?'<button type="button" class="ep-edit" onclick="evPopEdit()">수정</button>':''}<button type="button" class="ep-detail" onclick="evPopDetail()">상세 보기</button></div>`;
+    pop.style.display='flex';
+    // 위치: 칩 아래, 아래 공간이 부족하면 칩 위 — 화면 안으로 클램프
+    const r=anchorEl.getBoundingClientRect();
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const pw=pop.offsetWidth||300, ph=pop.offsetHeight||240;
+    // 데스크탑 body zoom(1.07) 보정 — getBoundingClientRect/offset은 시각 px, style.left/top은 CSS px
+    const z=parseFloat(getComputedStyle(document.body).zoom)||1;
+    const pwv=pw*z, phv=ph*z;
+    let x=Math.min(r.left, vw-pwv-12); if(x<12) x=12;
+    let y=r.bottom+6; if(y+phv>vh-12) y=r.top-phv-6; if(y<12) y=12;
+    pop.style.left=(x/z)+'px'; pop.style.top=(y/z)+'px';
+    anchorEl.classList.add('is-popped');
+}
+function closeEventPopover(){
+    const pop=document.getElementById('calEvPop');
+    if(pop) pop.style.display='none';
+    document.querySelectorAll('.event-chip.is-popped').forEach(c=>c.classList.remove('is-popped'));
+    evPopId=null;
+}
+function evPopCurrent(){ return events.find(e=>e.id===evPopId); }
+function evPopEdit(){ const ev=evPopCurrent(); closeEventPopover(); if(ev) openEditModal(ev); }
+function evPopDetail(){ const ev=evPopCurrent(); closeEventPopover(); if(ev) openDetailModal(ev); }
+document.addEventListener('click', e=>{ if(evPopId===null) return; if(e.target.closest('#calEvPop')) return; closeEventPopover(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&evPopId!==null) closeEventPopover(); });
+window.addEventListener('resize', ()=>{ if(evPopId!==null) closeEventPopover(); });
+window.addEventListener('scroll', ()=>{ if(evPopId!==null) closeEventPopover(); }, true);
 
 // ── 목록(아젠다) 뷰 ─────────────────────────────────────────────
 // 오늘 기준 7일 스트립에서 날짜를 고르고, 선택한 날의 일정을 시간순으로 표시

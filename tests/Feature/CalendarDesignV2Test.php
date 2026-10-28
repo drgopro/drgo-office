@@ -96,6 +96,33 @@ class CalendarDesignV2Test extends TestCase
         $this->assertStringContainsString('.cal-v2 .mc-chip .opt-ic, .cal-v2 .mc-bar .opt-ic { color:inherit; }', $partial);
     }
 
+    public function test_desktop_month_card_chip_and_click_popover_hooks(): void
+    {
+        // 디자인 'Calendar Dual View' — 데스크탑 월간은 2행 카드 칩(시간·제목 / 상태·담당자), 상세는 클릭 팝오버. 모바일은 기존 그대로
+        $user = User::factory()->create(['role' => 'member']);
+
+        $this->actingAs($user)->get('/calendar')
+            ->assertOk()
+            ->assertSee('function calV2Card(){ return CAL_V2 && window.innerWidth>768; }', false)
+            ->assertSee('function buildChipCardHtml', false)
+            ->assertSee('function openEventPopover', false)
+            ->assertSee('id="calEvPop"', false)
+            ->assertSee('id="calLegend"', false)
+            ->assertSee('chip.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);', false)
+            ->assertSee('if(card)openEventPopover(ev,chip); else openDetailModal(ev);', false)
+            ->assertSee('else if(!card&&si<singles.length) rows.push({multi:false, ev:singles[si++]});', false);
+
+        $partial = $this->v2Partial();
+        $this->assertStringContainsString('@media (min-width: 769px) {', $partial);
+        $this->assertStringContainsString('.cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:column;', $partial);
+        $this->assertStringContainsString('.cal-v2 .ev-pop { position:fixed;', $partial);
+        $this->assertStringContainsString('.cal-v2 .cal-legend { order:12;', $partial);
+        // 모바일 규칙 블록에는 카드/팝오버가 없음
+        preg_match('/@media \(max-width: 768px\) \{(.*)$/s', $partial, $m);
+        $this->assertStringNotContainsString('chip-card', $m[1]);
+        $this->assertStringNotContainsString('.ev-pop', $m[1]);
+    }
+
     private function v2Partial(): string
     {
         return view('calendar.partials.styles-v2')->render();

@@ -328,14 +328,15 @@ function renderMonth() {
 
     const isMobileCal = window.innerWidth<=768; // 모바일: 점 표시 간소화 모드
     // ── 반응형: 그리드가 화면 높이를 꽉 채우도록 주 행 높이 계산 (110px*배율은 하한) ──
-    let rowMin=Math.round(110*calFzScale);
+    const card=typeof calV2Card==='function'&&calV2Card(); // v2 데스크탑: 2행 카드 칩 + 클릭 팝오버
+    let rowMin=Math.round((card?160:110)*calFzScale);
     if(window.innerWidth>768){
         const gTop=grid.getBoundingClientRect().top;
         const avail=window.innerHeight-gTop-24; // 하단 여백
         rowMin=Math.max(rowMin, Math.floor((avail-N-1)/N)); // N주 + 1px 경계선
     }
     // 셀 높이에 들어가는 만큼 일정 칩 표시 (기존 고정 3개 → 동적, 최소 3개 보장)
-    const chipH=(CAL_V2?26:22)*calFzScale+(CAL_V2?3:2), headH=12+28*calFzScale, badgeH=18;
+    const chipH=card?42*calFzScale+4:(CAL_V2?26:22)*calFzScale+(CAL_V2?3:2), headH=12+28*calFzScale, badgeH=18;
     const MAX_VISIBLE=Math.max(3, Math.floor((rowMin-headH-badgeH)/chipH));
 
     // 주 단위로 렌더링
@@ -414,10 +415,11 @@ function renderMonth() {
             let si=0; // 단일 큐 인덱스
 
             // 행 구성: 레인 0..maxLane 은 다일 우선, 빈 레인은 단일로 채움(시간 빠른 단일이 위로). 이후 남은 단일.
+            // 카드 모드는 단일(42px)과 다일 바(26px) 높이가 달라 빈 레인을 단일로 채우면 옆 셀의 바와 어긋남 → 스페이서로 유지
             const rows=[];
             for(let L=0;L<=maxLane;L++){
                 if(coveringByLane[L]) rows.push({multi:true, ev:coveringByLane[L]});
-                else if(si<singles.length) rows.push({multi:false, ev:singles[si++]});
+                else if(!card&&si<singles.length) rows.push({multi:false, ev:singles[si++]});
                 else rows.push({spacer:true});
             }
             while(si<singles.length) rows.push({multi:false, ev:singles[si++]});
@@ -425,7 +427,7 @@ function renderMonth() {
             const isExpanded=expandedDays.has(cell.full);
             if(isExpanded) div.classList.add('expanded');
             // 셀 높이에 들어가는 만큼 표시 (창이 크거나 주 수를 줄이면 그만큼 더 노출, 최소 4행)
-            const TARGET_ROWS=Math.max(4, MAX_VISIBLE);
+            const TARGET_ROWS=Math.max(card?3:4, MAX_VISIBLE);
             const shownRows=isExpanded?rows:rows.slice(0, TARGET_ROWS);
             shownRows.forEach(r=>{
                 if(r.spacer){ const sp=document.createElement('div'); sp.className='lane-spacer'; evList.appendChild(sp); return; }
@@ -445,10 +447,10 @@ function renderMonth() {
                     const mnames=assigneeNamesOf(ev);
                     if(mnames.length>1){ chip.dataset.anames=mnames.join('|'); chip.dataset.atitle=isGuestUser?(ev.location||'일정'):(ev.title||''); }
                 } else {
-                    chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'')+(isTentativeEv(ev)?' is-tentative':'');
-                    chip.innerHTML=buildChipHtml(ev);
+                    chip.className=`event-chip single color-${ev.color}`+(ev.completed_at?' is-completed':'')+(isTentativeEv(ev)?' is-tentative':'')+(card?' chip-card':'');
+                    chip.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);
                 }
-                chip.onclick=e=>{e.stopPropagation();if(!dragEvent&&!isDragging)openDetailModal(ev);};
+                chip.onclick=e=>{e.stopPropagation();if(dragEvent||isDragging)return; if(card)openEventPopover(ev,chip); else openDetailModal(ev);};
                 chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
                 evList.appendChild(chip);
             });

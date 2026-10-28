@@ -50,6 +50,12 @@
             <span id="mwLabel">월 전체</span>
             <button type="button" onclick="mwStep(1)">›</button>
         </div>
+        {{-- v2 데스크탑 월간 범례 (확정 = 연한 바탕 / 제안·희망·목표 = 점선) — renderView가 v2·데스크탑·월간일 때만 표시 --}}
+        <div class="cal-legend" id="calLegend" style="display:none;">
+            <span class="lg-confirmed"><i></i>확정</span>
+            <span class="lg-tentative"><i></i>제안·희망·목표</span>
+            <span class="lg-hint">· 일정을 누르면 상세</span>
+        </div>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal(viewedDateStr())">+ 일정 추가</button>
         @endif
@@ -261,6 +267,8 @@
     </div>
     <div id="dpList" class="dp-list"></div>
 </div>
+{{-- v2 데스크탑 월간: 일정 클릭 요약 팝오버 (수정 / 상세 보기) — openEventPopover --}}
+<div id="calEvPop" class="ev-pop" style="display:none;"></div>
 
 <!-- 주간/일간 뷰 -->
 <div id="timelineView" style="display:none;">

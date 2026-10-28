@@ -36,14 +36,20 @@
     /* .mc-bar 는 셀 밖(.mc-week 직속)에 그려지므로 바 자체를 컨테이너로 */
     .cal-v2 .day-cell, .cal-v2 .mc-cell, .cal-v2 .mc-bar { container-type:inline-size; }
     @container (max-width: 150px) {
-        .cal-v2 .event-chip .chip-badges, .cal-v2 .mc-chip .mc-assignee, .cal-v2 .mc-bar .mc-assignee { display:none; }
+        .cal-v2 .event-chip:not(.chip-card) .chip-badges, .cal-v2 .mc-chip .mc-assignee, .cal-v2 .mc-bar .mc-assignee { display:none; }
         .cal-v2 .sched-pill .sp-full { display:none; }
         .cal-v2 .sched-pill .sp-short { display:inline; }
         .cal-v2 .opt-chip.sched-pill { padding:0 4px; }
     }
     @container (max-width: 110px) {
         .cal-v2 .event-chip .chip-time, .cal-v2 .mc-chip .mc-time { display:none; }
-        .cal-v2 .event-chip { gap:3px; padding:0 5px 0 5px; }
+        .cal-v2 .event-chip:not(.chip-card) { gap:3px; padding:0 5px 0 5px; }
+    }
+    /* 카드 칩은 2행이라 여유가 있음 — 상태 알약은 항상 전체 단어, 담당자는 아주 좁을 때만 숨김 (아이콘·제목·상태는 유지) */
+    .cal-v2 .event-chip.chip-card .sched-pill .sp-full { display:inline; }
+    .cal-v2 .event-chip.chip-card .sched-pill .sp-short { display:none; }
+    @container (max-width: 95px) {
+        .cal-v2 .event-chip.chip-card .chip-badges { display:none; }
     }
     .cal-v2 .opt-ic svg { width:calc(13px * var(--cal-fz,1)); height:calc(13px * var(--cal-fz,1)); display:block; }
     .cal-v2 .opt-ic.ic-urgent { color:#C03838; }
@@ -59,6 +65,63 @@
     /* 완료 — 체크 아이콘 + 55% */
     .cal-v2 .event-chip.is-completed, .cal-v2 .mday-title-overlay.is-completed, .cal-v2 .mc-chip.is-completed,
     .cal-v2 .mc-bar.is-completed, .cal-v2 .mde-item.is-completed { opacity:0.55; }
+
+    /* ── 데스크탑 월간 카드 칩 (디자인 'Calendar Dual View') — 1행: 시간·아이콘·제목 / 2행: 확정 상태·담당자, 상세는 클릭 팝오버 ── */
+    @media (min-width: 769px) {
+        .cal-v2 .cal-center-nav .month-label { font-size:20px; font-weight:700; letter-spacing:-0.01em; }
+        .cal-v2 .cal-center-nav .nav-btn { border:1px solid var(--border); border-radius:10px; width:32px; height:32px; font-size:16px; }
+        .cal-v2 .cal-center-nav .nav-btn:hover { border-color:var(--accent); }
+        /* 범례 — 2행 우측 (확정 = 연한 바탕 + 왼쪽 실선 / 제안·희망·목표 = 점선) */
+        .cal-v2 .cal-legend { order:12; display:flex; align-items:center; gap:12px; margin-left:12px; font-size:12px; color:var(--text-muted); white-space:nowrap; }
+        .cal-v2 .cal-legend > span { display:inline-flex; align-items:center; gap:5px; }
+        .cal-v2 .cal-legend i { display:inline-block; width:28px; height:14px; border-radius:4px; box-sizing:border-box; }
+        .cal-v2 .cal-legend .lg-confirmed i { background:color-mix(in srgb, #70c870 30%, var(--surface)); border-left:3px solid #70c870; }
+        .cal-v2 .cal-legend .lg-tentative i { border:1.5px dashed #70c870; border-left:3px solid #70c870; }
+        .cal-v2 .cal-legend .lg-hint { opacity:0.75; }
+        .cal-v2 .weekday { font-size:calc(12px * var(--cal-fz,1)); font-weight:600; letter-spacing:0; }
+        .cal-v2 .day-cell { padding:6px 5px 8px; }
+        .cal-v2 .week-row > .day-cell.other-month { background:var(--surface); opacity:0.45; }
+        .cal-v2 .day-num-row { margin-bottom:3px; padding:0 2px; }
+        .cal-v2 .events-list { gap:4px; }
+        /* 카드 칩 — 고정 2행 높이 (renderMonth 행 수 계산과 동일: 42px × 배율 + 4px 간격) */
+        .cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:column; align-items:stretch; justify-content:center; gap:2px; padding:3px 6px 4px 8px; border-radius:7px; line-height:1.3; }
+        .cal-v2 .event-chip.chip-card .chip-l1, .cal-v2 .event-chip.chip-card .chip-l2 { display:flex; align-items:center; min-width:0; }
+        .cal-v2 .event-chip.chip-card .chip-l1 { gap:4px; }
+        .cal-v2 .event-chip.chip-card .chip-l2 { gap:5px; }
+        .cal-v2 .event-chip.chip-card .chip-time { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; color:var(--text); margin:0; }
+        .cal-v2 .event-chip.chip-card .chip-title { font-size:calc(12.5px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.01em; }
+        .cal-v2 .event-chip.chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10.5px * var(--cal-fz,1)); }
+        .cal-v2 .event-chip.chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; }
+        .cal-v2 .event-chip.chip-card .ev-assignee-badge { padding:0; font-size:calc(11.5px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; }
+        .cal-v2 .event-chip.chip-card .chip-cat { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cal-v2 .event-chip.chip-card .ev-done-ic { color:#2f9e44; }
+        .cal-v2 .event-chip.chip-card:hover { filter:brightness(0.96); transform:none; }
+        .cal-v2 .event-chip.chip-card.is-popped, .cal-v2 .event-chip.multi-day.is-popped { box-shadow:0 0 0 2px var(--accent); }
+        .cal-v2 .event-chip.chip-card.is-completed { opacity:0.6; }
+        .cal-v2 .more-badge { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; padding:2px 3px 0; }
+        .cal-v2 .more-badge:hover { background:none; text-decoration:underline; }
+        /* 일정 클릭 요약 팝오버 — 왼쪽 카테고리색 바, 수정 / 상세 보기 */
+        .cal-v2 .ev-pop { position:fixed; z-index:520; width:300px; background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--ev-pop-c, var(--accent)); border-radius:14px; box-shadow:0 1px 2px rgba(16,24,40,.04), 0 12px 32px rgba(16,24,40,.16); padding:14px 14px 12px; display:flex; flex-direction:column; gap:8px; color:var(--text); }
+        .cal-v2 .ev-pop .ep-head { display:flex; align-items:center; gap:6px; min-width:0; }
+        .cal-v2 .ev-pop .ep-head .opt-ic { color:var(--text-muted); }
+        .cal-v2 .ev-pop .ep-head .opt-ic.ic-urgent { color:#C03838; }
+        .cal-v2 .ev-pop .ep-head .opt-ic svg { width:15px; height:15px; }
+        .cal-v2 .ev-pop .ep-title { font-size:15px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cal-v2 .ev-pop .ep-head .opt-chip.sched-pill { margin:0; font-size:11px; line-height:18px; padding:0 7px; }
+        .cal-v2 .ev-pop .ep-sub { font-size:12.5px; color:var(--text-muted); }
+        .cal-v2 .ev-pop .ep-urgent { margin-left:6px; color:#C03838; font-weight:700; }
+        .cal-v2 .ev-pop .ep-row { display:flex; align-items:center; gap:6px; font-size:12.5px; }
+        .cal-v2 .ev-pop .ep-k { color:var(--text-muted); opacity:0.8; }
+        .cal-v2 .ev-pop .ep-v { font-weight:600; }
+        .cal-v2 .ev-pop .ep-addr { font-size:12.5px; color:var(--text-muted); line-height:1.45; }
+        .cal-v2 .ev-pop .agenda-move { font-size:12.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px; }
+        .cal-v2 .ev-pop .ep-actions { display:flex; gap:6px; margin-top:4px; }
+        .cal-v2 .ev-pop .ep-actions button { flex:1; height:30px; border-radius:8px; font-size:12.5px; cursor:pointer; }
+        .cal-v2 .ev-pop .ep-edit { border:1px solid var(--border); background:var(--surface); color:var(--text); }
+        .cal-v2 .ev-pop .ep-edit:hover { background:var(--surface2); }
+        .cal-v2 .ev-pop .ep-detail { border:none; background:var(--accent); color:var(--accent-text); font-weight:600; }
+        .cal-v2 .ev-pop .ep-detail:hover { filter:brightness(1.06); }
+    }
 
     /* ── 모바일 월간 — 진한 분류색 칩 + 흰 글자, 하루 최대 2행 + +N, 세로선 제거 ── */
     @media (max-width: 768px) {
