@@ -204,7 +204,7 @@ function init() {
     let base = now;
     if (qd && /^\d{4}-\d{2}-\d{2}$/.test(qd)) {
         const d = new Date(qd + 'T00:00:00');
-        if (!isNaN(d)) { base = d; multiWeekStart = getWeekStart(d); } // 다중 주 모드도 대상 주에 앵커
+        if (!isNaN(d)) { base = d; multiWeekStart = getWeekStart(d); agendaWeekStart = getWeekStart(d); agendaSelectedDate = qd; } // 다중 주·목록 뷰도 대상 주에 앵커
     }
     window.__calFocusId = parseInt(qs.get('focus'), 10) || null;
     if (qd || qs.get('focus')) history.replaceState(null, '', location.pathname); // 새로고침 시 재이동 방지

@@ -1868,7 +1868,7 @@ async function loadClientSchedules(clientId, force = false) {
         const dateLabel = sc.start_date + (sc.end_date && sc.end_date !== sc.start_date ? ' ~ ' + sc.end_date : '');
         const timeLabel = sc.is_all_day ? '종일' : (sc.start_time ? sc.start_time.slice(0,5) + (sc.end_time ? '-' + sc.end_time.slice(0,5) : '') : '');
         const upcoming = (sc.end_date || sc.start_date) >= today;
-        return `<div onclick="openTopTab('calendar','/calendar?focus=${sc.id}')" title="캘린더에서 열기"
+        return `<div onclick="openTopTab('calendar','/calendar?date=${sc.start_date}&focus=${sc.id}&_='+Date.now())" title="캘린더에서 열기"
             style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; ${upcoming ? '' : 'opacity:0.65;'}"
             onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg); flex-shrink:0;"></span>

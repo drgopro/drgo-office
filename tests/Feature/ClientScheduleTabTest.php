@@ -41,7 +41,8 @@ class ClientScheduleTabTest extends TestCase
         $this->actingAs($admin)->get('/clients')->assertOk()
             ->assertSee('loadClientSchedules', false)
             ->assertSee("'schedules'", false)
-            ->assertSee('/calendar?focus=', false);
+            // 날짜(date)를 함께 넘겨야 캘린더가 해당 달로 이동한 뒤 일정을 찾는다 (focus만 넘기면 이번 달 밖은 '찾을 수 없음')
+            ->assertSee('/calendar?date=${sc.start_date}&focus=${sc.id}', false);
     }
 
     public function test_project_linked_schedules_api_filters_by_project_id(): void
@@ -71,7 +72,25 @@ class ClientScheduleTabTest extends TestCase
 
         $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk()
             ->assertSee('id="linkedScheduleCard"', false)
-            ->assertSee('fillLinkedSchedules', false);
+            ->assertSee('fillLinkedSchedules', false)
+            ->assertSee('/calendar?date=${sc.start_date}&focus=${sc.id}', false);
+    }
+
+    public function test_calendar_focus_fallback_looks_up_schedule_directly_and_404s_when_deleted(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $schedule = Schedule::create(['title' => '다른 달 일정', 'color' => 'gold', 'start_date' => '2027-03-05', 'end_date' => '2027-03-05']);
+
+        // 캘린더 딥링크 폴백(focusScheduleOutOfRange)이 쓰는 직접 조회 — 표시 범위 밖이어도 날짜를 돌려줘야 이동 가능
+        $this->actingAs($admin)->getJson("/api/events/{$schedule->id}/detail")->assertOk()
+            ->assertJsonPath('start_date', '2027-03-05');
+
+        // 삭제된 일정은 404 → '삭제되었습니다' 안내
+        $schedule->delete();
+        $this->actingAs($admin)->getJson("/api/events/{$schedule->id}/detail")->assertNotFound();
+
+        $this->actingAs($admin)->get('/calendar')->assertOk()
+            ->assertSee('focusScheduleOutOfRange', false);
     }
 
     public function test_calendar_summary_includes_linked_estimate_markup(): void

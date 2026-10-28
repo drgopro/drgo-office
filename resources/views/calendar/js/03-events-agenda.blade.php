@@ -55,9 +55,32 @@ async function loadEvents() {
     if(window.__calFocusId){
         const fid=window.__calFocusId; window.__calFocusId=null;
         const target=events.find(e=>e.id===fid);
-        if(target) openDetailModal(target);
-        else if(typeof showCalToast==='function') showCalToast('해당 일정을 찾을 수 없습니다 — 삭제되었거나 표시 범위 밖입니다');
+        if(target){ openDetailModal(target); return; }
+        // 현재 표시 범위에 없으면 일정을 직접 조회해 그 날짜로 이동한 뒤 한 번만 재시도 (삭제된 일정은 404)
+        await focusScheduleOutOfRange(fid);
     }
+}
+
+let __calFocusRetried=null;
+async function focusScheduleOutOfRange(fid){
+    const toast=(m)=>{ if(typeof showCalToast==='function') showCalToast(m); };
+    if(__calFocusRetried===fid){ toast('해당 일정을 찾을 수 없습니다 — 비공개이거나 표시 범위 밖입니다'); return; }
+    __calFocusRetried=fid;
+    let r;
+    try{ r=await fetch(`/api/events/${fid}/detail`,{headers:{'Accept':'application/json'}}); }
+    catch(e){ toast('해당 일정을 찾을 수 없습니다'); return; }
+    if(r.status===404){ toast('해당 일정은 삭제되었습니다'); return; }
+    if(!r.ok){ toast('해당 일정을 찾을 수 없습니다'); return; }
+    const d=await r.json();
+    const ds=(d.start_date||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ds)){ toast('해당 일정을 찾을 수 없습니다'); return; }
+    const dt=new Date(ds+'T00:00:00');
+    currentYear=dt.getFullYear(); currentMonth=dt.getMonth();
+    currentWeekStart=getWeekStart(dt); multiWeekStart=getWeekStart(dt);
+    currentDay=new Date(dt); currentDay.setHours(0,0,0,0);
+    agendaWeekStart=getWeekStart(dt); agendaSelectedDate=ds;
+    window.__calFocusId=fid;
+    await loadEvents();
 }
 
 async function loadAssignees() {

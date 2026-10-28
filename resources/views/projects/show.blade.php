@@ -3951,6 +3951,12 @@ async function saveProposal() {
 })();
 
 // ── 연동 일정 — 캘린더에서 이 프로젝트로 연결(request_data.project_id)된 일정 카드 ──
+// 캐시버스터(_)는 클릭 시점에 붙인다 — 렌더 시점에 고정하면 같은 카드 재클릭 시 탭 URL이 같아 재로드되지 않음
+function openLinkedSchedule(url) {
+    url += '&_=' + Date.now();
+    if (window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar', url);
+    else location.href = url;
+}
 (async function fillLinkedSchedules() {
     const card = document.getElementById('linkedScheduleCard');
     const list = document.getElementById('linkedScheduleList');
@@ -3966,7 +3972,8 @@ async function saveProposal() {
         const dateLabel = sc.start_date + (sc.end_date && sc.end_date !== sc.start_date ? ' ~ ' + sc.end_date : '');
         const timeLabel = sc.is_all_day ? '종일' : (sc.start_time ? sc.start_time.slice(0,5) + (sc.end_time ? '-' + sc.end_time.slice(0,5) : '') : '');
         const upcoming = (sc.end_date || sc.start_date) >= today;
-        return `<div onclick="if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('calendar','/calendar?focus=${sc.id}'); else location.href='/calendar?focus=${sc.id}';" title="캘린더에서 열기"
+        // 날짜(date)를 함께 넘겨 캘린더가 그 달/주로 이동한 뒤 일정을 찾도록 함 — focus만 넘기면 이번 달 밖 일정은 '찾을 수 없음'
+        return `<div onclick="openLinkedSchedule('/calendar?date=${sc.start_date}&focus=${sc.id}')" title="캘린더에서 열기"
             style="display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; ${upcoming ? '' : 'opacity:0.65;'}"
             onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg, var(--accent)); flex-shrink:0;"></span>
