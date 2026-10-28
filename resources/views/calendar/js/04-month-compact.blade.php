@@ -130,19 +130,45 @@ document.getElementById('monthCompactView')?.addEventListener('click', e=>{
 window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCompact(); });
 
 // ── 월간·전체 뷰: 마우스 휠로 이전/다음 달 이동 (데스크탑 전용) ──
+// 평소엔 페이지 스크롤 그대로 두고, 스크롤이 끝(맨 위/맨 아래)에 닿은 뒤 "한 번 더" 굴린 새 휠 동작에서만 이동
+// (휠만 굴리면 바로 달이 넘어가던 불편 해소). 휠 이벤트 간격이 WHEEL_GESTURE_GAP 이상이면 새 동작으로 본다.
+const WHEEL_GESTURE_GAP=300, WHEEL_MOVE_COOLDOWN=600;
+function wheelInsideInnerScroller(el, stopAt){
+    // 휠 대상이 뷰 안의 자체 스크롤 영역(펼친 일정 목록 등) 안인지 — 그 안에서는 달을 넘기지 않고 목록만 스크롤
+    for(let n=el; n&&n!==stopAt&&n!==document.body; n=n.parentElement){
+        const o=getComputedStyle(n).overflowY;
+        if((o==='auto'||o==='scroll')&&n.scrollHeight>n.clientHeight+1) return true;
+    }
+    return false;
+}
+function wheelAtEdge(sc,dir){
+    return dir>0 ? sc.scrollTop+sc.clientHeight>=sc.scrollHeight-1 : sc.scrollTop<=0;
+}
+// 예고(arm)가 유효한 화면 — 버튼으로 달을 바꾸거나 뷰를 오가면 예고는 무효
+function wheelPeriodKey(){ return currentView+'|'+(document.getElementById('periodTitle')?.textContent||''); }
 (function(){
-    let lock=0;
+    let armedDir=0, armedKey='', lastAt=0, movedAt=0;
     [['monthView','month'],['monthCompactView','monthc']].forEach(([id,view])=>{
         const el=document.getElementById(id);
         if(!el) return;
         el.addEventListener('wheel', e=>{
             if(currentView!==view||window.innerWidth<=768) return; // 모바일 터치 스크롤 간섭 방지
             if(Math.abs(e.deltaY)<=Math.abs(e.deltaX)) return;     // 가로 스크롤 무시
-            e.preventDefault();
-            const now=Date.now();
-            if(now-lock<400||Math.abs(e.deltaY)<15) return;        // 트랙팩 미세 스크롤 무시 + 연타 쿨다운
-            lock=now;
-            changePeriod(e.deltaY>0?1:-1);
+            if(wheelInsideInnerScroller(e.target, el)){ armedDir=0; return; }
+            const now=Date.now(), gap=now-lastAt; lastAt=now;
+            if(now-movedAt<WHEEL_MOVE_COOLDOWN){ e.preventDefault(); return; } // 이동 직후 관성 꼬리는 통째로 무시
+            const dir=e.deltaY>0?1:-1, sc=document.scrollingElement||document.documentElement;
+            if(!wheelAtEdge(sc,dir)){ armedDir=0; return; }        // 페이지에 아직 스크롤할 여지 → 그냥 스크롤
+            e.preventDefault();                                     // 끝점: 바운스 방지
+            if(Math.abs(e.deltaY)<15) return;                       // 트랙패드 미세 스크롤 무시
+            const key=wheelPeriodKey();
+            if(armedDir===dir&&armedKey===key&&gap>WHEEL_GESTURE_GAP){ // 끝점 도달 후 같은 화면에서 새로 시작한 휠 동작 → 이동
+                armedDir=0; movedAt=now;
+                changePeriod(dir);
+                sc.scrollTop = dir>0 ? 0 : sc.scrollHeight;         // 다음 달은 위부터, 이전 달은 아래부터 이어 보기
+                return;
+            }
+            armedDir=dir; armedKey=key;                             // 끝점에 닿은 이 동작은 예고만 — 한 번 더 굴리면 이동
         }, {passive:false});
     });
 })();
