@@ -52,8 +52,17 @@
         .cal-v2 .event-chip.chip-card .chip-badges { display:none; }
     }
     .cal-v2 .opt-ic svg { width:calc(13px * var(--cal-fz,1)); height:calc(13px * var(--cal-fz,1)); display:block; }
+    /* 픽토그램 종류별 색 — 작은 크기에서도 눈에 띄게 (선도 굵게). 라이트/다크 공통으로 채도 있는 중간 톤 */
+    .cal-v2 .opt-ic svg { stroke-width:2.4; }
     .cal-v2 .opt-ic.ic-urgent { color:#C03838; }
     .cal-v2 .opt-ic.opt-ic-arrow { color:var(--accent); }
+    .cal-v2 .opt-ic.ic-no_change { color:#64748b; }
+    .cal-v2 .opt-ic.ic-car { color:#2f7fd1; }
+    .cal-v2 .opt-ic.ic-brief { color:#b7791f; }
+    .cal-v2 .opt-ic.ic-group { color:#8b5cf6; }
+    .cal-v2 .opt-ic.ic-ladder { color:#0f8f8f; }
+    .cal-v2 .opt-ic.ic-pet { color:#c2410c; }
+    .cal-v2 .opt-ic.ic-external_operator { color:#4f46e5; }
     .cal-v2 .ev-done-ic { color:inherit; }
 
     /* 확정 상태 — 한 글자 대신 전체 단어 알약 (제안·희망·목표 테두리 / 확정 초록) */
@@ -116,8 +125,6 @@
         /* 일정 클릭 요약 팝오버 — 왼쪽 카테고리색 바, 수정 / 상세 보기 */
         .cal-v2 .ev-pop { position:fixed; z-index:520; width:300px; background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--ev-pop-c, var(--accent)); border-radius:14px; box-shadow:0 1px 2px rgba(16,24,40,.04), 0 12px 32px rgba(16,24,40,.16); padding:14px 14px 12px; display:flex; flex-direction:column; gap:8px; color:var(--text); }
         .cal-v2 .ev-pop .ep-head { display:flex; align-items:center; gap:6px; min-width:0; }
-        .cal-v2 .ev-pop .ep-head .opt-ic { color:var(--text-muted); }
-        .cal-v2 .ev-pop .ep-head .opt-ic.ic-urgent { color:#C03838; }
         .cal-v2 .ev-pop .ep-head .opt-ic svg { width:15px; height:15px; }
         .cal-v2 .ev-pop .ep-title { font-size:15px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cal-v2 .ev-pop .ep-head .opt-chip.sched-pill { margin:0; font-size:11px; line-height:18px; padding:0 7px; }

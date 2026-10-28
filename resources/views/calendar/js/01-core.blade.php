@@ -167,8 +167,9 @@ function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
     const ico=(k,fallback)=>(CAL_V2&&CAL_V2_ICONS[k])||fallback;
-    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic${(o==='fast'||o==='after')?' opt-ic-arrow':''}${o==='urgent'?' ic-urgent':''}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${ico(o,SCHED_EVENT_ICONS[o])}</span>`; });
-    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic" title="${SPECIAL_OPT_LABELS[o]||o}">${ico(o,SPECIAL_ICONS[o])}</span>`; });
+    // ic-{종류} 클래스 — v2 픽토그램에 종류별 색 (styles-v2)
+    (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic ic-${o}${(o==='fast'||o==='after')?' opt-ic-arrow':''}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${ico(o,SCHED_EVENT_ICONS[o])}</span>`; });
+    (ev.special_opts||[]).forEach(o=>{ if(SPECIAL_ICONS[o]) h+=`<span class="opt-ic ic-${o}" title="${SPECIAL_OPT_LABELS[o]||o}">${ico(o,SPECIAL_ICONS[o])}</span>`; });
     return h;
 }
 // 확정 상태 — 한 글자 칩(확/목/희/제), 제목 끝에 붙임
