@@ -84,25 +84,31 @@
         .cal-v2 .day-num-row { margin-bottom:3px; padding:0 2px; }
         .cal-v2 .events-list { gap:4px; }
         /* 카드 칩 — 고정 2행 높이 (renderMonth 행 수 계산과 동일: 42px × 배율 + 4px 간격) */
-        .cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:column; align-items:stretch; justify-content:center; gap:2px; padding:3px 6px 4px 8px; border-radius:7px; line-height:1.3; }
+        .cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:row; align-items:center; gap:6px; padding:3px 6px 3px 7px; border-radius:7px; line-height:1.3; position:relative; }
         /* 연일(다일) 바도 같은 2행 높이 — 제목·아이콘·담당자를 1행에 뭉개지 않고 셀 칩과 행이 맞음. 제목 오버레이가 2행 카드 레이아웃을 그림 */
         .cal-v2 .event-chip.multi-day, .cal-v2 .lane-spacer { height:calc(42px * var(--cal-fz,1)); }
-        .cal-v2 .mday-title-overlay.chip-card { flex-direction:column; align-items:stretch; justify-content:center; gap:2px; padding:3px 6px 4px 10px; line-height:1.3; }
+        .cal-v2 .mday-title-overlay.chip-card { flex-direction:row; align-items:center; gap:6px; padding:3px 6px 3px 9px; line-height:1.3; }
         .cal-v2 .mday-title-overlay.chip-card .chip-title { flex:1 1 0; }
         .cal-v2 .mday-title-overlay.chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; }
+        /* 왼쪽 시간 칸 — 시작/종료를 세로로 (사용자 스케치) */
+        .cal-v2 .chip-card .cc-time { display:flex; flex-direction:column; align-items:center; flex-shrink:0; gap:1px; font-size:calc(11.5px * var(--cal-fz,1)); font-weight:700; line-height:1; color:var(--text); font-variant-numeric:tabular-nums; }
+        .cal-v2 .chip-card .cc-tilde { font-size:9px; line-height:0.6; color:var(--text-muted); }
+        .cal-v2 .chip-card .cc-body { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:2px; }
         .cal-v2 .chip-card .chip-l1, .cal-v2 .chip-card .chip-l2 { display:flex; align-items:center; min-width:0; }
         .cal-v2 .chip-card .chip-l1 { gap:4px; }
-        .cal-v2 .chip-card .chip-l2 { gap:5px; }
-        .cal-v2 .chip-card .chip-time { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; color:var(--text); margin:0; }
+        .cal-v2 .chip-card .chip-l2 { gap:4px; }
+        .cal-v2 .chip-card .chip-ship { flex-shrink:0; margin-left:auto; }
+        .cal-v2 .chip-card .opt-ic svg { width:calc(12px * var(--cal-fz,1)); height:calc(12px * var(--cal-fz,1)); }
         .cal-v2 .chip-card .chip-title { font-size:calc(12.5px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.01em; }
-        .cal-v2 .chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10.5px * var(--cal-fz,1)); }
+        .cal-v2 .chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10px * var(--cal-fz,1)); padding:0 5px; line-height:15px; }
         .cal-v2 .chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; }
-        .cal-v2 .chip-card .ev-assignee-badge { padding:0; font-size:calc(11.5px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; }
+        .cal-v2 .chip-card .ev-assignee-badge { display:block; padding:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cal-v2 .chip-card .chip-cat { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .cal-v2 .chip-card .ev-done-ic { color:#2f9e44; }
         .cal-v2 .event-chip.chip-card:hover { filter:brightness(0.96); transform:none; }
         .cal-v2 .event-chip.chip-card.is-popped, .cal-v2 .event-chip.multi-day.is-popped { box-shadow:0 0 0 2px var(--accent); }
-        .cal-v2 .event-chip.chip-card.is-completed { opacity:0.6; }
+        /* 완료 — 흐리게 하지 않고 글씨 위에 초록 체크를 덮음 (사용자 요청) */
+        .cal-v2 .event-chip.chip-card.is-completed, .cal-v2 .mday-title-overlay.chip-card.is-completed { opacity:0.9; }
+        .cal-v2 .chip-card.is-completed::after { content:''; position:absolute; inset:0; pointer-events:none; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f9e44' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' opacity='0.6'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 30px 30px no-repeat; }
         .cal-v2 .more-badge { font-size:calc(12px * var(--cal-fz,1)); font-weight:700; padding:2px 3px 0; }
         .cal-v2 .more-badge:hover { background:none; text-decoration:underline; }
         /* 일정 클릭 요약 팝오버 — 왼쪽 카테고리색 바, 수정 / 상세 보기 */

@@ -32,35 +32,32 @@ function buildChipHtml(ev){
     return html;
 }
 
-// ── v2 데스크탑 월간 카드 칩 (디자인 'Calendar Dual View') ──
-// 1행: [완료✓] 시간 · 옵션 아이콘 · 제목 / 2행: 확정 상태 알약 · 배송 · 담당자 (둘 다 없으면 분류명)
+// ── v2 데스크탑 월간 카드 칩 (디자인 'Calendar Dual View' + 사용자 스케치) ──
+// [왼쪽] 시작/종료 시각 세로 2줄 (종일·시간 없음이면 생략) | [1행] 제목 · 배송 체크 | [2행] 확정 상태 알약 · 일정 아이콘(긴급·차량 등) · 담당자 전원
+// 완료 일정은 아이콘을 따로 두지 않고 CSS가 글씨 위에 체크를 덮음 (.is-completed::after)
 function calV2Card(){ return CAL_V2 && window.innerWidth>768; }
-function chipTimeShort(t){
-    if(!t) return '';
-    const hh=t.substring(0,2), mm=t.substring(3,5);
-    return mm==='00'?`${parseInt(hh,10)}시`:`${hh}:${mm}`;
-}
 function buildChipCardHtml(ev){
     const title=isGuestUser?(ev.location||'일정'):(ev.title||'');
-    let l1='';
-    if(ev.completed_at) l1+=`<span class="opt-ic ev-done-ic" title="완료">${CAL_V2_ICONS.check}</span>`;
-    const time=ev.is_all_day?'':chipTimeShort(ev.start_time);
-    if(time) l1+=`<span class="chip-time">${time}</span>`;
-    l1+=eventOptIconsHtml(ev);
-    l1+=`<span class="chip-title">${_esc(title)}</span>`;
-    let l2=schedStatusChip(ev)+shipStatusIcon(ev);
-    const names=assigneeNamesOf(ev);
-    if(names.length){
-        const extra=names.length-1, display=extra>0?`${names[0]} +${extra}`:names[0];
-        const attrEsc=s=>s.replace(/"/g,'&quot;').replace(/</g,'&lt;');
-        const anames=extra>0?` data-anames="${attrEsc(names.join('|'))}" data-atitle="${attrEsc(title)}"`:'';
-        l2+=`<span class="chip-badges"><span class="ev-assignee-badge"${anames}>${_esc(display)}</span></span>`;
+    const t=s=>(s||'').substring(0,5);
+    let timeHtml='';
+    if(!ev.is_all_day&&ev.start_time){
+        timeHtml=ev.end_time
+            ?`<div class="cc-time"><span>${t(ev.start_time)}</span><span class="cc-tilde">~</span><span>${t(ev.end_time)}</span></div>`
+            :`<div class="cc-time"><span>${t(ev.start_time)}</span></div>`;
     }
+    const names=assigneeNamesOf(ev);
+    let who='';
+    if(names.length){
+        const attrEsc=s=>s.replace(/"/g,'&quot;').replace(/</g,'&lt;');
+        const anames=names.length>1?` data-anames="${attrEsc(names.join('|'))}" data-atitle="${attrEsc(title)}"`:'';
+        who=`<span class="chip-badges"><span class="ev-assignee-badge"${anames}>${_esc(names.join(', '))}</span></span>`;
+    }
+    let l2=schedStatusChip(ev)+eventOptIconsHtml(ev)+who;
     if(!l2){
         const cat=(typeof CS_CATS!=='undefined'&&CS_CATS[ev.color]&&CS_CATS[ev.color].label)||'';
         if(cat) l2=`<span class="chip-cat">${_esc(cat)}</span>`;
     }
-    return `<div class="chip-l1">${l1}</div><div class="chip-l2">${l2}</div>`;
+    return `${timeHtml}<div class="cc-body"><div class="chip-l1"><span class="chip-title">${_esc(title)}</span>${shipStatusIcon(ev)}</div><div class="chip-l2">${l2}</div></div>`;
 }
 
 // ── 담당자 전체 명단 툴팁 (hover 즉시 표시) ──

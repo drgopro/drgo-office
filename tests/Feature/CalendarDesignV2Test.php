@@ -116,9 +116,12 @@ class CalendarDesignV2Test extends TestCase
 
         $partial = $this->v2Partial();
         $this->assertStringContainsString('@media (min-width: 769px) {', $partial);
-        $this->assertStringContainsString('.cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:column;', $partial);
+        $this->assertStringContainsString('.cal-v2 .event-chip.chip-card { height:calc(42px * var(--cal-fz,1)); flex-direction:row;', $partial);
+        // 사용자 스케치: 왼쪽 시간 세로 2줄 / 완료는 글씨 위 체크
+        $this->assertStringContainsString('.cal-v2 .chip-card .cc-time { display:flex; flex-direction:column;', $partial);
+        $this->assertStringContainsString('.cal-v2 .chip-card.is-completed::after {', $partial);
         $this->assertStringContainsString('.cal-v2 .event-chip.multi-day, .cal-v2 .lane-spacer { height:calc(42px * var(--cal-fz,1)); }', $partial);
-        $this->assertStringContainsString('.cal-v2 .mday-title-overlay.chip-card { flex-direction:column;', $partial);
+        $this->assertStringContainsString('.cal-v2 .mday-title-overlay.chip-card { flex-direction:row;', $partial);
         $this->assertStringContainsString('.cal-v2 .ev-pop { position:fixed;', $partial);
         $this->assertStringContainsString('.cal-v2 .cal-legend { order:12;', $partial);
         // 모바일 규칙 블록에는 카드/팝오버가 없음
