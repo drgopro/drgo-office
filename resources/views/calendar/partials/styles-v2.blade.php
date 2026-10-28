@@ -45,9 +45,9 @@
         .cal-v2 .event-chip .chip-time, .cal-v2 .mc-chip .mc-time { display:none; }
         .cal-v2 .event-chip:not(.chip-card) { gap:3px; padding:0 5px 0 5px; }
     }
-    /* 카드 칩은 2행이라 여유가 있음 — 상태 알약은 항상 전체 단어, 담당자는 아주 좁을 때만 숨김 (아이콘·제목·상태는 유지) */
-    .cal-v2 .chip-card .sched-pill .sp-full { display:inline; }
-    .cal-v2 .chip-card .sched-pill .sp-short { display:none; }
+    /* 카드 칩 2행: 상태 알약은 한 글자(확/제/희/목)로 — 셀 폭(약 125px)에서 아이콘·담당자 이름 공간 확보 (사용자 선택). 담당자는 아주 좁을 때만 숨김 */
+    .cal-v2 .chip-card .sched-pill .sp-full { display:none; }
+    .cal-v2 .chip-card .sched-pill .sp-short { display:inline; }
     @container (max-width: 95px) {
         .cal-v2 .event-chip.chip-card .chip-badges { display:none; }
     }
@@ -100,7 +100,7 @@
         .cal-v2 .chip-card .chip-ship { flex-shrink:0; margin-left:auto; }
         .cal-v2 .chip-card .opt-ic svg { width:calc(12px * var(--cal-fz,1)); height:calc(12px * var(--cal-fz,1)); }
         .cal-v2 .chip-card .chip-title { font-size:calc(12.5px * var(--cal-fz,1)); font-weight:600; letter-spacing:-0.01em; }
-        .cal-v2 .chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10px * var(--cal-fz,1)); padding:0 5px; line-height:15px; }
+        .cal-v2 .chip-card .opt-chip.sched-pill { margin-left:0; font-size:calc(10px * var(--cal-fz,1)); padding:0 4px; line-height:15px; }
         .cal-v2 .chip-card .chip-badges { margin-left:0; padding-left:0; min-width:0; flex:1 1 0; } /* 기본 flex-shrink:0 이면 줄지 않고 잘려 말줄임이 안 보임 */
         .cal-v2 .chip-card .ev-assignee-badge { display:block; padding:0; font-size:calc(11px * var(--cal-fz,1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cal-v2 .chip-card .chip-cat { font-size:calc(11px * var(--cal-fz,1)); color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
