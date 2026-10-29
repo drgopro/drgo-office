@@ -639,7 +639,7 @@ window.openTopTab = function(type, url, title) {
 <div class="global-notice-bar" id="globalNoticeBar">
     <span class="gnb-badge">공지</span>
     <a href="/notices/{{ $gnbNotice->id }}" class="gnb-title"
-       onclick="event.preventDefault(); drgoTabs.openNav('notices','/notices/{{ $gnbNotice->id }}','{{ addslashes($gnbNotice->title) }}');">{{ $gnbNotice->title }}</a>
+       onclick="event.preventDefault(); drgoTabs.openNav('notices','/notices/{{ $gnbNotice->id }}');">{{ $gnbNotice->title }}</a>
     <span class="gnb-date">{{ $gnbNotice->created_at->format('Y.m.d') }}</span>
     @if($gnbNoticeCount > 1)
     <button type="button" class="gnb-more" onclick="drgoTabs.openNav('notices','/notices');" title="고정된 전체 공지 {{ $gnbNoticeCount }}건 — 공지사항 게시판으로 이동">+{{ $gnbNoticeCount - 1 }}건 더보기</button>
@@ -772,7 +772,8 @@ window.drgoTabs = {
         //    메뉴를 눌렀는데 견적서 등 엉뚱한 페이지가 그대로 보이는 문제 방지
         const existing = this.tabs.find(t => t.url === url);
         if (existing) {
-            if (title) { existing.title = title; this.render(); this._save(); }
+            // 제목을 넘기지 않으면 라벨로 복귀 (이전 세션에 저장된 게시물 제목 등 잔여 제목 제거) — 멀티 인스턴스 탭은 페이지가 setActiveTitle로 관리
+            if (title || !this._isMultiInstance(type, url)) { existing.title = title || null; this.render(); this._save(); }
             const iframe = document.querySelector('#pane-' + existing.id + ' iframe');
             if (iframe && this._iframeDrifted(iframe, url)) iframe.src = url;
             this.activate(existing.id);
@@ -787,7 +788,7 @@ window.drgoTabs = {
             const sameType = this.tabs.find(t => t.type === type && !this._isMultiInstance(t.type, t.url));
             if (sameType) {
                 sameType.url = url;
-                if (title) sameType.title = title;
+                sameType.title = title || null; // 다른 화면으로 갈아끼우므로 이전 제목은 폐기
                 const pane = document.getElementById('pane-' + sameType.id);
                 const iframe = pane?.querySelector('iframe');
                 if (iframe) {
