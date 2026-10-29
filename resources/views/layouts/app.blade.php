@@ -61,6 +61,7 @@ document.addEventListener('click', function(e){
             --header-h: 48px;
             --tab-h: 36px;
             /* 노치/다이나믹아일랜드 기기: 헤더가 safe-area만큼 커지므로 chrome 높이에도 포함 */
+            --gnb-h: calc(var(--notice-bar-h, 0px) + var(--update-bar-h, 0px)); /* 상단 띠(전역 공지 + 업데이트 안내) 높이 합 */
             --chrome-h: calc(var(--header-h) + var(--tab-h) + 2px + env(safe-area-inset-top, 0px) + var(--gnb-h, 0px));
             --full-h: 100vh;
         }
@@ -374,7 +375,7 @@ document.addEventListener('click', function(e){
             .nav-mobile-only a:hover { color:var(--accent); background:var(--surface2); }
             .nav-mobile-only .mobile-user { font-size:12px; color:var(--text-muted); padding:8px 16px; }
 
-            .tab-bar-wrap { top:calc(var(--header-h) + env(safe-area-inset-top, 0px)); height:var(--tab-h); padding:0 8px; }
+            .tab-bar-wrap { top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--gnb-h, 0px)); height:var(--tab-h); padding:0 8px; }
             .tab-item { font-size:11px; padding:0 10px; }
             .tab-item .tab-close { opacity:0.5; position:relative; }
             .tab-item .tab-close::before { content:''; position:absolute; top:-10px; right:-8px; bottom:-10px; left:-8px; }
@@ -653,14 +654,86 @@ window.openTopTab = function(type, url, title) {
     if (window !== window.top) return; // iframe에서는 셸의 띠만 사용
     const bar = document.getElementById('globalNoticeBar');
     bar.classList.add('show');
-    document.documentElement.style.setProperty('--gnb-h', bar.offsetHeight + 'px');
+    document.documentElement.style.setProperty('--notice-bar-h', bar.offsetHeight + 'px');
 })();
 function gnbDismiss(){
     document.getElementById('globalNoticeBar').classList.remove('show');
-    document.documentElement.style.setProperty('--gnb-h', '0px');
+    document.documentElement.style.setProperty('--notice-bar-h', '0px');
 }
 </script>
 @endif
+
+{{-- ── 업데이트 안내 띠 — 배포 후 새로고침하지 않은 화면에 '새로운 업데이트가 있습니다' 표시 (공지 띠 아래, 탭 바 위) ── --}}
+@auth
+<style>
+    .app-update-bar { display:none; align-items:center; gap:10px; padding:7px 16px; min-width:0;
+        background:color-mix(in srgb, var(--accent) 12%, var(--surface)); border-bottom:1px solid var(--border); font-size:13px;
+        position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--notice-bar-h, 0px)); z-index:191; }
+    .app-update-bar.show { display:flex; }
+    body.in-iframe .app-update-bar { display:none !important; } /* 탭 iframe에서는 셸의 띠만 */
+    @media (min-width: 981px) { .app-update-bar { margin-left:var(--sidebar-w); top:var(--notice-bar-h, 0px); } }
+    .aub-badge { background:var(--accent); color:var(--accent-text, #fff); border-radius:5px; font-size:11px; font-weight:700; padding:2px 8px; white-space:nowrap; }
+    .aub-text { color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .aub-sub { color:var(--text-muted); font-size:11.5px; white-space:nowrap; }
+    .aub-reload { background:var(--accent); color:var(--accent-text, #fff); border:none; border-radius:11px; font-size:11px; font-weight:700; padding:3px 12px; cursor:pointer; white-space:nowrap; }
+    .aub-reload:hover { filter:brightness(0.95); }
+    .aub-close { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 6px; line-height:1; }
+    .aub-close:hover { color:var(--text); }
+    @media (max-width: 600px) { .aub-sub { display:none; } }
+</style>
+<div class="app-update-bar" id="appUpdateBar" role="status">
+    <span class="aub-badge">업데이트</span>
+    <span class="aub-text">새로운 업데이트가 있습니다.</span>
+    <span class="aub-sub">새로고침하면 최신 버전이 적용됩니다.</span>
+    <button type="button" class="aub-reload" onclick="appUpdateReload()">새로고침</button>
+    <button type="button" class="aub-close" onclick="appUpdateDismiss()" title="이번 업데이트 안내 닫기 — 다음 배포 때 다시 표시됩니다">✕</button>
+</div>
+<script>
+// 배포 버전 감시 — 페이지 로드 시 심은 버전과 서버의 현재 버전이 다르면 띠 표시.
+// 1분 간격 + 탭이 다시 보일 때 즉시 확인. 로그인 만료 등 JSON이 아닌 응답은 무시.
+window.DRGO_APP_VERSION = @json(app(\App\Services\AppVersion::class)->current());
+(function(){
+    if (window !== window.top) return; // iframe에서는 셸의 띠만 사용
+    const bar = document.getElementById('appUpdateBar');
+    const DISMISS_KEY = 'drgo_update_dismissed';
+    let latest = null;
+    let inFlight = false;
+    let lastCheck = 0;
+    let timer = null;
+    function fit(){
+        document.documentElement.style.setProperty('--update-bar-h', (bar.classList.contains('show') ? bar.offsetHeight : 0) + 'px');
+        if (window.drgoTabs && typeof drgoTabs._fitPanes === 'function') requestAnimationFrame(() => drgoTabs._fitPanes());
+    }
+    function show(version){
+        latest = version;
+        if (sessionStorage.getItem(DISMISS_KEY) === version) return; // 이번 버전은 닫아둠
+        if (!bar.classList.contains('show')) { bar.classList.add('show'); fit(); }
+    }
+    async function check(){
+        if (inFlight || document.visibilityState === 'hidden') return;
+        if (Date.now() - lastCheck < 20 * 1000) return; // 탭 전환 연타 등 과도한 요청 방지
+        inFlight = true;
+        lastCheck = Date.now();
+        try {
+            const res = await fetch('/api/app-version', { cache:'no-store', credentials:'same-origin', headers:{ 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' } });
+            if (res.status === 401 || res.status === 419) { if (timer) clearInterval(timer); timer = null; return; } // 로그인 만료 — 더 묻지 않음
+            if (!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) return;
+            const data = await res.json();
+            if (data && data.version && data.version !== window.DRGO_APP_VERSION) show(String(data.version));
+        } catch (e) { /* 네트워크 일시 오류 — 다음 주기에 재시도 */ }
+        finally { inFlight = false; }
+    }
+    window.appUpdateReload = function(){ location.reload(); };
+    window.appUpdateDismiss = function(){
+        if (latest) sessionStorage.setItem(DISMISS_KEY, latest);
+        bar.classList.remove('show'); fit();
+    };
+    timer = setInterval(check, 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && timer) check(); });
+    setTimeout(check, 15 * 1000); // 로드 직후에도 가볍게 한 번
+})();
+</script>
+@endauth
 
 {{-- ── 탭 바 ── --}}
 <div class="tab-bar-wrap">

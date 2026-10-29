@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AgentEventController;
+use App\Http\Controllers\AppVersionController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BankDepositController;
@@ -242,6 +243,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/assignees/{assignee}', [AssigneeController::class, 'destroy']);
     });
     Route::get('/api/activity-logs', [ActivityLogController::class, 'index']);
+    // 배포 버전 — 셸이 1분마다 비교해 새 배포가 있으면 새로고침 안내 띠 표시
+    Route::get('/api/app-version', AppVersionController::class)->name('api.app-version');
 
     // 의뢰자 JSON API
     Route::middleware('permission:clients.view')->group(function () {
