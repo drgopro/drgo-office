@@ -288,6 +288,21 @@
             </div>
             </div>{{-- /field-section (의뢰자/프로젝트) --}}
 
+            {{-- 견적서 연동 — 스튜디오/촬영 카테고리 (방문의뢰는 gold 템플릿의 첨부 '견적서' 영역에서). setColor에서 토글 --}}
+            <div class="field-section" id="studioEstimateSection" style="display:none;">
+                <div class="section-heading" style="margin-bottom:4px;">견적서 연동</div>
+                <div style="display:flex;gap:8px;margin-bottom:6px;">
+                    <button type="button" onclick="openEstimateSearch()" class="action-btn" style="flex:1;">📋 견적서 불러오기</button>
+                </div>
+                <div data-linked-est-box style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <span style="font-size:11px;color:var(--text-muted);">연결된 견적서</span>
+                        <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:11px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
+                    </div>
+                    <div data-linked-est-list style="margin-top:4px;"></div>
+                </div>
+            </div>
+
             {{-- Gold 템플릿 (방문의뢰) --}}
             <div class="gold-only" style="display:none;flex-direction:column;gap:14px;">
                 <div class="section-heading">의뢰자 정보</div>
@@ -515,12 +530,12 @@
                     </div>
                     <div class="img-grid" id="quoteGrid"></div>
                     {{-- 연결된 견적서 — 추가 견적 등 여러 개 연동 가능, 견적서별 보기/해제 --}}
-                    <div id="linkedEstimateInfo" style="display:none;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+                    <div id="linkedEstimateInfo" data-linked-est-box style="display:none;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <span style="font-size:11px;color:var(--text-muted);">연결된 견적서</span>
                             <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:11px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
                         </div>
-                        <div id="linkedEstimateList" style="margin-top:4px;"></div>
+                        <div id="linkedEstimateList" data-linked-est-list style="margin-top:4px;"></div>
                     </div>
                     <div class="lpd-inline" data-lpd-group="quote" style="display:none;"></div>
                 </div>

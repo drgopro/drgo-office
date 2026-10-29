@@ -262,6 +262,10 @@ function handleConditional(gid){
     }
 }
 
+// 스튜디오/촬영 카테고리 판정 — 라벨 매칭 (커스텀 키 대응). 시기요청·특수옵션·외부 오퍼레이터·견적서 연동 노출 기준
+function isStudioCategory(c){
+    return Object.keys(CS_CATS).some(k=>k===c&&/스튜디오|촬영/.test((CS_CATS[k]&&CS_CATS[k].label)||''));
+}
 // ── 색상 전환 ──
 function setColor(c){
     currentColor=c;
@@ -282,8 +286,11 @@ function setColor(c){
     // 시기 요청·특수 옵션: 방문의뢰(gold) + 스튜디오/촬영 카테고리 (라벨 매칭 — 커스텀 키 대응)
     const soCard=document.getElementById('schedOptCard');
     if(soCard) soCard.style.display='flex';
-    const isStudioCat=Object.keys(CS_CATS).some(k=>k===c&&/스튜디오|촬영/.test((CS_CATS[k]&&CS_CATS[k].label)||''));
+    const isStudioCat=isStudioCategory(c);
     const optExtra=c==='gold'||isStudioCat;
+    // 견적서 연동 블록 — 스튜디오/촬영에서만 (gold는 첨부 '견적서' 영역에 동일 기능)
+    const seEst=document.getElementById('studioEstimateSection');
+    if(seEst) seEst.style.display=isStudioCat?'':'none';
     const seSec=document.getElementById('schedEventSection');
     if(seSec) seSec.style.display=optExtra?'':'none';
     const spGrp=document.getElementById('specialOptsGroup');

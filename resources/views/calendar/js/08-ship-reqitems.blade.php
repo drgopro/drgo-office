@@ -386,13 +386,14 @@ function openLinkedEstimate(id){
 function linkedEstimatesTotal(){
     return linkedEstimateIds.reduce((s,id)=>s+((linkedEstimateMeta[id]||{}).total||0),0);
 }
+// 연결된 견적서 목록 — gold(첨부 '견적서' 영역)와 스튜디오/촬영(견적서 연동 섹션) 컨테이너 모두에 같은 내용 렌더
 function renderLinkedEstimates(){
-    const wrap=document.getElementById('linkedEstimateInfo');
-    const list=document.getElementById('linkedEstimateList');
-    if(!wrap||!list) return;
-    if(!linkedEstimateIds.length){wrap.style.display='none';list.innerHTML='';return;}
-    wrap.style.display='';
-    list.innerHTML=linkedEstimateIds.map(id=>{
+    const boxes=[...document.querySelectorAll('[data-linked-est-box]')];
+    const lists=[...document.querySelectorAll('[data-linked-est-list]')];
+    if(!boxes.length||!lists.length) return;
+    if(!linkedEstimateIds.length){boxes.forEach(b=>b.style.display='none');lists.forEach(l=>l.innerHTML='');return;}
+    boxes.forEach(b=>b.style.display='');
+    const html=linkedEstimateIds.map(id=>{
         const m=linkedEstimateMeta[id]||{};
         const label=`#${m.display_no??id}${m.name?' '+_esc(m.name):''}`;
         const amt=m.total?` · ${m.total.toLocaleString()}원`:'';
@@ -403,6 +404,7 @@ function renderLinkedEstimates(){
                 <button type="button" onclick="unlinkEstimate(${id})" data-always-active style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
             </div></div>`;
     }).join('');
+    lists.forEach(l=>{l.innerHTML=html;});
     if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
 }
 // 연동 견적서 메타(표시 번호·이름·총액) 최신화 — 복원 직후·금액 추출 전 호출

@@ -33,8 +33,7 @@ function resetModalForm(){
     syncProjectPaymentFields(); // 연동 해제 — 결제/잔금 수기 입력 복원
     document.getElementById('clientSearchInput').value='';
     linkedEstimateIds=[]; linkedEstimateMeta={};
-    document.getElementById('linkedEstimateInfo').style.display='none';
-    {const ll=document.getElementById('linkedEstimateList'); if(ll) ll.innerHTML='';}
+    if(typeof renderLinkedEstimates==='function') renderLinkedEstimates(); // gold·스튜디오 컨테이너 모두 숨김/비움
     {const rv=document.getElementById('g_estimate_refund_view'); if(rv){rv.dataset.amt='';rv.textContent='';rv.style.display='none';}} // 이전 일정 환불 표시 잔여 제거
     document.getElementById('catQuickPick')?.remove(); // 카테고리 빠른 변경 팝업 잔여 제거
     // 대여 이력 등록 초기화 (표시 여부는 setColor→updateBrRentalUI가 결정)
@@ -147,6 +146,7 @@ function fmtLogValue(key, val) {
         if (Array.isArray(val)) {
             if (val.length === 0) return '(없음)';
             if (val.every(x => typeof x === 'number')) return `${val.length}명`;
+            if (val.every(x => typeof x === 'string')) return val.join(', '); // 담당자 이름 목록 등
             const names = val.map(o => o?.name || o?.title).filter(Boolean).slice(0,3);
             if (names.length) return names.join(', ') + (val.length > 3 ? ` 외 ${val.length-3}` : '');
             return `(${val.length}개 항목)`;

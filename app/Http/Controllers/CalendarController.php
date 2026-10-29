@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assignee;
 use App\Models\BroadcastRoomContract;
 use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
@@ -477,6 +478,26 @@ class CalendarController extends Controller
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
+    /**
+     * 담당자 구성 변경 diff — 이름 목록 {old, new}. 구성원이 같으면(순서만 달라도) null.
+     * 이름을 저장해 담당자가 나중에 삭제·개명돼도 이력은 당시 그대로 읽힌다.
+     *
+     * @param  array<int, int|string|null>  $newIds
+     * @return array{old: array<int, string>, new: array<int, string>}|null
+     */
+    private function assigneesDiff(Schedule $schedule, array $newIds): ?array
+    {
+        $oldIds = $schedule->assignees()->pluck('assignees.id')->map(fn ($id) => (int) $id)->all();
+        $newIds = array_values(array_unique(array_map('intval', array_filter($newIds, fn ($id) => $id !== null && $id !== ''))));
+        if (array_diff($oldIds, $newIds) === [] && array_diff($newIds, $oldIds) === []) {
+            return null;
+        }
+        $names = Assignee::whereIn('id', array_unique([...$oldIds, ...$newIds]))->pluck('name', 'id');
+        $toNames = fn (array $ids) => array_values(array_map(fn (int $id) => (string) ($names[$id] ?? "#{$id}"), $ids));
+
+        return ['old' => $toNames($oldIds), 'new' => $toNames($newIds)];
+    }
+
     private function stripClientLinkForExcludedColors(array $validated, ?string $color): array
     {
         if (in_array($color, self::CLIENT_LINK_EXCLUDED_COLORS, true)) {
@@ -638,6 +659,14 @@ class CalendarController extends Controller
             $oldVal = $schedule->getOriginal($key);
             if ($this->normalizeForDiff($key, $oldVal) !== $this->normalizeForDiff($key, $newVal)) {
                 $diff[$key] = ['old' => $oldVal, 'new' => $newVal];
+            }
+        }
+        // 담당자 변경 — pivot이라 getOriginal로 비교 불가. 구성원이 바뀔 때만(순서 변경 제외) 이름 목록으로 기록.
+        // 아래 실제 동기화 조건(isset — null은 '건드리지 않음')과 반드시 같아야 이력과 실제 상태가 어긋나지 않는다
+        if (isset($validated['assignees'])) {
+            $assigneeDiff = $this->assigneesDiff($schedule, $validated['assignees']);
+            if ($assigneeDiff !== null) {
+                $diff['assignees'] = $assigneeDiff;
             }
         }
         if (! empty($diff)) {
