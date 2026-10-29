@@ -36,6 +36,9 @@
     .mk-list-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:6px; font-size:13px; }
     .mk-list-item .mk-list-label { color:var(--text); }
     .mk-list-item .mk-list-value { font-weight:700; color:var(--accent); }
+    /* 목록 안 링크 — 브라우저 기본(파랑/보라 밑줄) 대신 본문색, hover 시에만 강조 */
+    .mk-list a, .mk-list a:visited { color:var(--text); text-decoration:none; border-bottom:1px solid transparent; transition:color 0.12s, border-color 0.12s; }
+    .mk-list a:hover { color:var(--accent); border-bottom-color:var(--accent); }
 
     .mk-bar { background:var(--surface2); border-radius:4px; overflow:hidden; height:20px; display:flex; align-items:center; padding:0 8px; position:relative; }
     .mk-bar-fill { position:absolute; left:0; top:0; bottom:0; background:rgba(200,176,138,0.3); z-index:0; }
