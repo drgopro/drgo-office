@@ -8,8 +8,10 @@ use App\Models\ClientMemo;
 use App\Models\ProjectDocument;
 use App\Models\ProjectFeedback;
 use App\Models\ProjectPayment;
+use App\Models\Schedule;
 use App\Models\ScheduleAttachment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityLogController extends Controller
 {
@@ -31,7 +33,16 @@ class ActivityLogController extends Controller
 
     public function index(Request $request)
     {
-        $query = ActivityLog::with('user')->orderByDesc('created_at');
+        // 타인의 비공개 일정 로그는 캘린더와 같은 정책으로 비노출 (의뢰자 정보·담당자 이름이 변경 내역에 포함됨)
+        if ($request->filled('id') && str_contains((string) $request->type, 'Schedule')) {
+            $schedule = Schedule::withTrashed()->find($request->integer('id'));
+            if ($schedule && $schedule->is_private && $schedule->created_by !== Auth::id()) {
+                return response()->json([]);
+            }
+        }
+
+        // 같은 초에 기록된 로그(생성 직후 수정 등)는 id로 순서 고정
+        $query = ActivityLog::with('user')->orderByDesc('created_at')->orderByDesc('id');
 
         // 복수 타입 지원
         if ($request->filled('type')) {

@@ -124,9 +124,23 @@ class Schedule extends Model
      */
     public function syncAssigneesOrdered(array $ids, bool $notify = true): void
     {
+        $oldNames = $this->assignees()->pluck('assignees.name')->all();
         $changes = $this->assignees()->sync(
             collect($ids)->values()->mapWithKeys(fn ($id, $i) => [(int) $id => ['sort_order' => $i]])->all()
         );
+
+        // 활동 로그('변경 로그' 모달) — pivot 변경은 LogsActivity의 updated 훅에 잡히지 않으므로 여기서 직접 기록.
+        // 구성원이 바뀔 때만(순서만 바뀌면 attached/detached 없음) 이름 목록으로 남긴다.
+        // 생성 직후의 최초 지정은 '생성' 로그로 충분 — 별도 '수정' 로그 생략 (반복 생성·백업 가져오기 로그 폭주 방지)
+        if (! $this->wasRecentlyCreated && ($changes['attached'] || $changes['detached'])) {
+            $newNames = $this->assignees()->pluck('assignees.name')->all();
+            $this->logActivity('update', [
+                '담당자' => [
+                    'old' => $oldNames ? implode(', ', $oldNames) : '—',
+                    'new' => $newNames ? implode(', ', $newNames) : '—',
+                ],
+            ], $this->getActivitySummary('update'));
+        }
 
         // 담당자 추가/제거 채널톡 알림 (백업 가져오기 등 대량 작업은 notify: false)
         if ($notify && ($changes['attached'] || $changes['detached'])) {
