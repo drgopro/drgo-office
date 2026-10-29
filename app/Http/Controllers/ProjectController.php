@@ -74,12 +74,13 @@ class ProjectController extends Controller
             $vals = is_array($mk)
                 ? array_values(array_filter($mk))
                 : array_values(array_filter(array_map('trim', explode(',', (string) $mk))));
-            $vals = array_intersect($vals, ['agreed', 'denied', 'unknown']);
+            $vals = array_intersect($vals, ['agreed', 'posted', 'denied', 'unknown']);
             if (! empty($vals)) {
                 $query->where(function ($q) use ($vals) {
                     foreach ($vals as $v) {
                         match ($v) {
                             'agreed' => $q->orWhere('marketing_consent', true),
+                            'posted' => $q->orWhere(fn ($qq) => $qq->where('marketing_consent', true)->whereNotNull('marketing_posted_at')), // 동의 + 포스팅 완료
                             'denied' => $q->orWhere('marketing_consent', false),
                             'unknown' => $q->orWhereNull('marketing_consent'),
                         };

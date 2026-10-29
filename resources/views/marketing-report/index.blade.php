@@ -28,6 +28,7 @@
     .mk-card .mk-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
 
     .mk-two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .mk-three-col { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; }
     .mk-chart-wrap { position:relative; width:100%; height:240px; }
     .mk-chart-wrap canvas { position:absolute; inset:0; width:100% !important; height:100% !important; }
 
@@ -50,6 +51,7 @@
 
     @media (max-width:768px) {
         .mk-two-col { grid-template-columns:1fr; }
+        .mk-three-col { grid-template-columns:1fr; }
         .mk-matrix { font-size:11px; }
     }
 </style>
@@ -271,7 +273,12 @@
                 <div class="mk-sub">동의 선택된 프로젝트 수</div>
             </div>
             <div class="mk-card">
-                <div class="mk-label">포스팅 완료</div>
+                <div class="mk-label">포스팅 완료 의뢰자</div>
+                <div class="mk-value" style="color:#2563eb;">{{ number_format(count($marketingPostedClients)) }}</div>
+                <div class="mk-sub">포스팅 대기 {{ number_format(count($marketingPendingClients)) }}명</div>
+            </div>
+            <div class="mk-card">
+                <div class="mk-label">포스팅 완료 프로젝트</div>
                 <div class="mk-value" style="color:#2563eb;">{{ number_format($marketingPostedProjectCount) }}<span style="font-size:13px; font-weight:400; color:var(--text-muted);"> / {{ number_format($marketingConsentProjectCount) }}</span></div>
                 <div class="mk-sub">포스팅 대기 {{ number_format(max(0, $marketingConsentProjectCount - $marketingPostedProjectCount)) }}건 · 프로젝트 상세에서 완료 처리</div>
             </div>
@@ -282,14 +289,27 @@
             </div>
         </div>
 
-        <div class="mk-two-col">
+        @php
+            // 포스팅 대기 → 포스팅 완료 → 거부 순 3열. 동의 의뢰자는 포스팅 상태로 나눠 각각 집계
+            $mkConsentSections = [
+                ['key' => 'p', 'title' => '포스팅 대기 의뢰자', 'color' => '#b45309', 'items' => $marketingPendingClients, 'posting' => true,
+                    'empty' => count($marketingConsentClients) ? '동의 의뢰자의 포스팅이 모두 완료됐습니다.' : "아직 마케팅 활용에 동의한 프로젝트가 없습니다 — 프로젝트 상세 상단의 '마케팅 활용' 드롭다운에서 동의를 선택하면 여기에 집계됩니다."],
+                ['key' => 'd', 'title' => '포스팅 완료 의뢰자', 'color' => '#2563eb', 'items' => $marketingPostedClients, 'posting' => true,
+                    'empty' => '아직 포스팅 완료 처리된 프로젝트가 없습니다 — 프로젝트 상세 상단의 \'포스팅 완료 처리\' 버튼으로 표시하면 여기로 옮겨집니다.'],
+                ['key' => 'r', 'title' => '거부 의뢰자', 'color' => 'var(--red)', 'items' => $marketingRefusedClients, 'posting' => false,
+                    'empty' => '마케팅 활용을 거부한 프로젝트가 없습니다.'],
+            ];
+        @endphp
+        <div class="mk-three-col">
+            @foreach($mkConsentSections as $sec)
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:#2d8a3e;">동의 의뢰자</div>
-                @if(count($marketingConsentClients))
+                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:{{ $sec['color'] }};">{{ $sec['title'] }} <span style="font-weight:400; color:var(--text-muted);">· {{ count($sec['items']) }}</span></div>
+                @if(count($sec['items']))
                     <div class="mk-list">
-                        @foreach($marketingConsentClients as $mc)
+                        @foreach($sec['items'] as $mc)
+                            @php $mcKey = $sec['key'].$loop->index; @endphp
                             <div>
-                                <div class="mk-list-item" onclick="mcToggle('c{{ $loop->index }}')" style="cursor:pointer;" title="클릭해서 프로젝트 보기">
+                                <div class="mk-list-item" onclick="mcToggle('{{ $mcKey }}')" style="cursor:pointer;" title="클릭해서 프로젝트 보기">
                                     <span class="mk-list-label">
                                         @if($mc['client_id'])
                                             <a href="/clients?open={{ $mc['client_id'] }}" onclick="event.stopPropagation();" style="font-weight:600;">{{ $mc['name'] }}</a>
@@ -301,23 +321,27 @@
                                         @endif
                                     </span>
                                     <span class="mk-list-value">
-                                        @if($mc['posted_count'] >= count($mc['projects']))
-                                            <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:10px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
-                                        @else
-                                            <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:10px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
+                                        @if($sec['posting'])
+                                            @if($mc['posted_count'] >= count($mc['projects']))
+                                                <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:10px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
+                                            @else
+                                                <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:10px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
+                                            @endif
                                         @endif
-                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-c{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span>
+                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-{{ $mcKey }}" style="color:var(--text-muted); font-size:10px;">▸</span>
                                     </span>
                                 </div>
-                                <div id="mcDetail-c{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
+                                <div id="mcDetail-{{ $mcKey }}" style="display:none; padding:2px 10px 8px 14px;">
                                     @foreach($mc['projects'] as $mp)
                                         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
                                             <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
                                             <span style="display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                                                @if($mp['posted_at'])
-                                                    <span style="font-size:11px; color:#2563eb; font-weight:600;">✓ 포스팅 {{ $mp['posted_at'] }}</span>
-                                                @else
-                                                    <span style="font-size:11px; color:#b45309;">포스팅 대기</span>
+                                                @if($sec['posting'])
+                                                    @if($mp['posted_at'])
+                                                        <span style="font-size:11px; color:#2563eb; font-weight:600;">✓ 포스팅 {{ $mp['posted_at'] }}</span>
+                                                    @else
+                                                        <span style="font-size:11px; color:#b45309;">포스팅 대기</span>
+                                                    @endif
                                                 @endif
                                                 <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
                                             </span>
@@ -328,43 +352,10 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">아직 마케팅 활용에 동의한 프로젝트가 없습니다 — 프로젝트 상세 상단의 '마케팅 활용' 드롭다운에서 동의를 선택하면 여기에 집계됩니다.</div>
+                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">{{ $sec['empty'] }}</div>
                 @endif
             </div>
-            <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--red);">거부 의뢰자</div>
-                @if(count($marketingRefusedClients))
-                    <div class="mk-list">
-                        @foreach($marketingRefusedClients as $mc)
-                            <div>
-                                <div class="mk-list-item" onclick="mcToggle('r{{ $loop->index }}')" style="cursor:pointer;" title="클릭해서 프로젝트 보기">
-                                    <span class="mk-list-label">
-                                        @if($mc['client_id'])
-                                            <a href="/clients?open={{ $mc['client_id'] }}" onclick="event.stopPropagation();" style="font-weight:600;">{{ $mc['name'] }}</a>
-                                        @else
-                                            <b>{{ $mc['name'] }}</b>
-                                        @endif
-                                        @if(count($mc['platforms']))
-                                            <span style="color:var(--text-muted); font-size:11px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
-                                        @endif
-                                    </span>
-                                    <span class="mk-list-value">프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-r{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
-                                </div>
-                                <div id="mcDetail-r{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
-                                    @foreach($mc['projects'] as $mp)
-                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
-                                            <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
-                                            <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">마케팅 활용을 거부한 프로젝트가 없습니다.</div>
-                @endif
-            </div>
+            @endforeach
         </div>
         <script>
         function mcToggle(key){

@@ -398,7 +398,11 @@
                 @endif
             </div>
             <div>
-                <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
+                    {{-- 마케팅 포스팅 완료 — 제목 옆 배지 (상단 '포스팅 완료 처리' 버튼과 동기화) --}}
+                    <span id="mkPostedTitleBadge" title="마케팅 포스팅 완료" style="display:{{ ($project->marketing_consent === true && $project->marketing_posted_at) ? 'inline-block' : 'none' }};font-size:11px;padding:2px 9px;border-radius:10px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;">✓ 포스팅 완료</span>
+                </div>
                 <input id="projectNameEdit" type="text" value="{{ $project->name }}" style="display:none;font-size:22px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);width:100%;outline:none;" onblur="saveProjectName()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.value='{{ addslashes($project->name) }}';this.blur();}">
                 @php
                     // 동적 라벨 매핑 — 관리자 정의(consultation_types/work_types)에서 라벨 우선, 폴백은 하드코딩 기본 셋
@@ -1930,6 +1934,9 @@ function mkFormatLocalDate(d) {
     return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}`;
 }
 function renderMkConsentSelect() {
+    // 제목 배지는 목록·통계와 같은 기준(동의 + 완료)으로만 표시 — 동의 철회 시 완료 시각은 보존하되 배지는 숨김
+    const titleBadge = document.getElementById('mkPostedTitleBadge');
+    if (titleBadge) titleBadge.style.display = (mkConsent === true && mkPostedAt) ? 'inline-block' : 'none';
     const btn = document.getElementById('mkPostedBtn');
     if (btn) {
         btn.style.display = mkConsent === true ? '' : 'none';

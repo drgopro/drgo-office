@@ -135,6 +135,8 @@ class MarketingReportController extends Controller
         // ── 마케팅 활용 동의/거부 의뢰자 (기간 무관 스냅샷) — null=미확인, true=동의, false=거부 ──
         $marketingConsentClients = collect();
         $marketingRefusedClients = collect();
+        $marketingPostedClients = collect();  // 동의 프로젝트가 전부 포스팅 완료된 의뢰자
+        $marketingPendingClients = collect(); // 포스팅 대기 프로젝트가 1건 이상 남은 의뢰자
         $marketingConsentProjectCount = 0;
         $marketingPostedProjectCount = 0; // 동의 프로젝트 중 포스팅 완료 건수
         if (Schema::hasColumn('projects', 'marketing_consent')) {
@@ -165,6 +167,9 @@ class MarketingReportController extends Controller
 
             $marketingConsentClients = $clientsOf(true);
             $marketingRefusedClients = $clientsOf(false);
+            [$marketingPostedClients, $marketingPendingClients] = $marketingConsentClients
+                ->partition(fn ($c) => $c['posted_count'] >= count($c['projects']))
+                ->map(fn ($part) => $part->values());
             $marketingConsentProjectCount = Project::where('marketing_consent', true)->count();
             $marketingPostedProjectCount = $hasPostedColumn
                 ? Project::where('marketing_consent', true)->whereNotNull('marketing_posted_at')->count()
@@ -465,7 +470,7 @@ class MarketingReportController extends Controller
         return view('marketing-report.index', compact(
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
-            'marketingConsentClients', 'marketingRefusedClients', 'marketingConsentProjectCount', 'marketingPostedProjectCount',
+            'marketingConsentClients', 'marketingRefusedClients', 'marketingPostedClients', 'marketingPendingClients', 'marketingConsentProjectCount', 'marketingPostedProjectCount',
             'platformMoves', 'platformMoveTrend',
             'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour', 'inboundHourSeries',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',

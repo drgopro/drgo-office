@@ -105,8 +105,24 @@ class ProjectMarketingConsentTest extends TestCase
 
         $list = $this->actingAs($admin)->get('/projects');
         $list->assertOk();
-        $this->assertSame(1, substr_count($list->getContent(), '✓ 마케팅 · 포스팅'));
+        $this->assertSame(1, substr_count($list->getContent(), 'title="마케팅 포스팅 완료 ')); // 목록 배지 (필터 칩 '포스팅 완료'와 구분)
         $this->assertSame(2, substr_count($list->getContent(), '✓ 마케팅'));
+
+        // 마케팅 필터 '포스팅 완료' — 완료 건만
+        $filtered = $this->actingAs($admin)->get('/projects?marketing=posted');
+        $filtered->assertOk()->assertSee('포스팅된 프로젝트')->assertDontSee('대기 프로젝트');
+
+        // 제목 옆 배지 — 완료 프로젝트는 표시, 대기 프로젝트는 숨김
+        $pendingProject = Project::where('name', '대기 프로젝트')->first();
+        $this->actingAs($admin)->get("/projects/{$posted->id}")->assertSee('id="mkPostedTitleBadge" title="마케팅 포스팅 완료" style="display:inline-block;', false);
+        $this->actingAs($admin)->get("/projects/{$pendingProject->id}")->assertSee('id="mkPostedTitleBadge" title="마케팅 포스팅 완료" style="display:none;', false);
+
+        // 동의 철회 후 — 완료 시각은 보존되지만 제목 배지·목록 배지·통계 어디에도 완료로 보이지 않아야 함
+        $this->actingAs($admin)->patchJson("/api/projects/{$posted->id}", ['marketing_consent' => false])->assertSuccessful();
+        $this->assertNotNull($posted->fresh()->marketing_posted_at);
+        $this->actingAs($admin)->get("/projects/{$posted->id}")->assertSee('id="mkPostedTitleBadge" title="마케팅 포스팅 완료" style="display:none;', false);
+        $this->assertSame(0, substr_count($this->actingAs($admin)->get('/projects')->getContent(), 'title="마케팅 포스팅 완료 '));
+        $this->assertSame(0, $this->actingAs($admin)->get('/marketing-report')->viewData('marketingPostedProjectCount'));
     }
 
     public function test_marketing_report_counts_posted_projects(): void
@@ -122,11 +138,16 @@ class ProjectMarketingConsentTest extends TestCase
 
         $res = $this->actingAs($admin)->get('/marketing-report');
         $res->assertOk()
+            ->assertSee('포스팅 완료 의뢰자')
+            ->assertSee('포스팅 대기 의뢰자')
             ->assertSee('✓ 포스팅 완료')
             ->assertSee('포스팅 대기 1');
 
         $this->assertSame(3, $res->viewData('marketingConsentProjectCount'));
         $this->assertSame(2, $res->viewData('marketingPostedProjectCount'));
+        // 포스팅 완료 의뢰자 = 동의 프로젝트가 전부 완료된 의뢰자, 1건이라도 남으면 대기 쪽
+        $this->assertSame(['완료의뢰자'], $res->viewData('marketingPostedClients')->pluck('name')->all());
+        $this->assertSame(['대기의뢰자'], $res->viewData('marketingPendingClients')->pluck('name')->all());
         $byName = $res->viewData('marketingConsentClients')->keyBy('name');
         $this->assertSame(1, $byName['완료의뢰자']['posted_count']);
         $this->assertSame(1, $byName['대기의뢰자']['posted_count']);
