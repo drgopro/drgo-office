@@ -421,21 +421,17 @@
     #calSide { width:230px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; transition:width 0.15s ease, padding 0.15s ease; }
     #calSideSticky { position:sticky; top:10px; }
     /* 접힘: 슬림 레일 — 토글 버튼 + 카테고리 점 (점 클릭으로 필터 토글 가능) */
-    #calSide.collapsed { width:36px; padding:8px 5px; }
+    #calSide.collapsed { width:36px; padding:14px 5px 8px; } /* 상단 패딩은 펼침 상태와 동일 — 접기/펼치기 버튼 높이 일치 */
     #calSide.collapsed #calSideBody { display:none; }
     #csRail { display:none; }
-    #calSide.collapsed #csRail { display:flex; flex-direction:column; align-items:center; gap:9px; margin-top:12px; }
+    #calSide.collapsed #csRail { display:flex; flex-direction:column; align-items:center; gap:9px; }
     #csRail .cs-dot { width:10px; height:10px; cursor:pointer; }
     #csRail .cs-dot.off { opacity:0.25; }
     #csRail .cs-dot:hover { transform:scale(1.25); }
     .cs-collapse-btn { display:block; width:22px; height:22px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); cursor:pointer; font-size:11px; line-height:1; padding:0; }
     .cs-collapse-btn:hover { color:var(--text); border-color:var(--text-muted); }
-    #csRail .cs-collapse-btn { margin:0 auto 2px; width:24px; height:24px; border-radius:8px; }
-    /* 필터 접힘 시 펼치기 버튼 — 스크롤 위치와 무관하게 브라우저 하단 좌측에 고정 */
-    @media (min-width:1025px) {
-        #calSide.collapsed #csRail .cs-collapse-btn { position:fixed; left:12px; bottom:18px; z-index:130; width:36px; height:36px; border-radius:10px; font-size:15px; background:var(--surface); box-shadow:0 4px 14px rgba(0,0,0,0.35); }
-        #calSide.collapsed #csRail .cs-collapse-btn:hover { border-color:var(--accent); color:var(--accent); }
-    }
+    /* 접힘 레일의 펼치기(») 버튼 — 펼침 상태의 접기(«) 버튼과 같은 상단 위치 (예전 하단 고정은 세로 중앙 sticky 시절 대응이라 제거) */
+    #csRail .cs-collapse-btn { margin:0 auto 4px; width:24px; height:22px; border-radius:6px; }
     #filterBar { display:none; } /* 카테고리/담당자 필터는 사이드 패널로 일원화 */
     #calSideFab { display:none; position:fixed; left:14px; bottom:16px; z-index:601; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text); align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; opacity:0.9; }
     #calSideFab:hover { opacity:1; }
