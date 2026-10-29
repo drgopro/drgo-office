@@ -141,7 +141,9 @@ class MarketingReportController extends Controller
         $marketingPostedProjectCount = 0; // 동의 프로젝트 중 포스팅 완료 건수
         if (Schema::hasColumn('projects', 'marketing_consent')) {
             $hasPostedColumn = Schema::hasColumn('projects', 'marketing_posted_at'); // 마이그레이션 전 배포 과도기 대비
+            // 취소된 프로젝트는 동의/거부 값은 그대로 두고 통계 목록·집계에서만 제외
             $clientsOf = fn (bool $consent) => Project::where('marketing_consent', $consent)
+                ->where('stage', '!=', 'cancelled')
                 ->with('client:id,name,nickname,platforms')
                 ->orderByDesc('created_at')
                 ->get(array_merge(['id', 'name', 'client_id', 'manual_client_name', 'created_at'], $hasPostedColumn ? ['marketing_posted_at'] : []))
@@ -170,9 +172,9 @@ class MarketingReportController extends Controller
             [$marketingPostedClients, $marketingPendingClients] = $marketingConsentClients
                 ->partition(fn ($c) => $c['posted_count'] >= count($c['projects']))
                 ->map(fn ($part) => $part->values());
-            $marketingConsentProjectCount = Project::where('marketing_consent', true)->count();
+            $marketingConsentProjectCount = Project::where('marketing_consent', true)->where('stage', '!=', 'cancelled')->count();
             $marketingPostedProjectCount = $hasPostedColumn
-                ? Project::where('marketing_consent', true)->whereNotNull('marketing_posted_at')->count()
+                ? Project::where('marketing_consent', true)->where('stage', '!=', 'cancelled')->whereNotNull('marketing_posted_at')->count()
                 : 0;
         }
 

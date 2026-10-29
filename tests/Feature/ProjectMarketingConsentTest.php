@@ -154,6 +154,38 @@ class ProjectMarketingConsentTest extends TestCase
         $this->assertCount(2, $byName['대기의뢰자']['projects']);
     }
 
+    public function test_marketing_report_excludes_cancelled_projects_but_keeps_consent_value(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $onlyCancelled = Client::create(['nickname' => '취소만의뢰자', 'grade' => 'normal']);
+        $mixed = Client::create(['nickname' => '혼합의뢰자', 'grade' => 'normal']);
+        $refusedCancelled = Client::create(['nickname' => '거부취소의뢰자', 'grade' => 'normal']);
+        $cancelled = Project::create(['client_id' => $onlyCancelled->id, 'name' => '취소된 동의 프로젝트', 'stage' => 'cancelled', 'marketing_consent' => true, 'marketing_posted_at' => now()]);
+        Project::create(['client_id' => $mixed->id, 'name' => '살아있는 동의 프로젝트', 'stage' => 'consulting', 'marketing_consent' => true]);
+        Project::create(['client_id' => $mixed->id, 'name' => '취소된 완료 프로젝트', 'stage' => 'cancelled', 'marketing_consent' => true, 'marketing_posted_at' => now()]);
+        Project::create(['client_id' => $refusedCancelled->id, 'name' => '취소된 거부 프로젝트', 'stage' => 'cancelled', 'marketing_consent' => false]);
+
+        $res = $this->actingAs($admin)->get('/marketing-report');
+        $res->assertOk()
+            ->assertSee('혼합의뢰자')
+            ->assertSee('살아있는 동의 프로젝트')
+            ->assertDontSee('취소만의뢰자')
+            ->assertDontSee('취소된 동의 프로젝트')
+            ->assertDontSee('취소된 완료 프로젝트')
+            ->assertDontSee('거부취소의뢰자');
+
+        // 취소 프로젝트는 의뢰자·프로젝트·포스팅 완료 집계 어디에도 들어가지 않음
+        $this->assertSame(['혼합의뢰자'], $res->viewData('marketingConsentClients')->pluck('name')->all());
+        $this->assertCount(0, $res->viewData('marketingRefusedClients'));
+        $this->assertSame(1, $res->viewData('marketingConsentProjectCount'));
+        $this->assertSame(0, $res->viewData('marketingPostedProjectCount'));
+        $this->assertCount(1, $res->viewData('marketingConsentClients')->first()['projects']);
+
+        // 동의 값 자체는 보존 — 프로젝트 상세·목록에는 그대로 남음
+        $this->assertTrue($cancelled->fresh()->marketing_consent);
+        $this->assertNotNull($cancelled->fresh()->marketing_posted_at);
+    }
+
     public function test_project_list_shows_consent_and_refusal_badges(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

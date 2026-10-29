@@ -262,7 +262,7 @@
 
     {{-- 섹션 1.1: 마케팅 활용 동의 의뢰자 — 프로젝트에서 동의 체크된 의뢰자만 추림 (기간 무관 스냅샷) --}}
     <div class="mk-section">
-        <div class="mk-section-title"><x-icon name="check" :size="15"/> 마케팅 활용 동의 의뢰자 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관 · 동의 체크된 프로젝트 기준)</span></div>
+        <div class="mk-section-title"><x-icon name="check" :size="15"/> 마케팅 활용 동의 의뢰자 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관 · 동의 체크된 프로젝트 기준 · 취소 프로젝트 제외)</span></div>
 
         <div class="mk-grid" style="margin-bottom:16px;">
             <div class="mk-card">
