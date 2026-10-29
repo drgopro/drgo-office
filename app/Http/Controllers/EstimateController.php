@@ -1037,6 +1037,85 @@ class EstimateController extends Controller
     }
 
     /**
+     * 견적서 복제 — 항목·의뢰자·배송지·메모를 복사한 독립 견적서(작성중)를 만든다.
+     * 번호(발행 시 부여)·공유 링크·페이앱·발행/결제 시각·임시저장은 새로 시작하고,
+     * 항목의 주문/환불/대체 같은 거래 이력은 떼어낸 채 상품 구성만 가져온다. 차수에서 복제해도 결과는 본 견적서.
+     */
+    public function duplicate(Estimate $estimate)
+    {
+        $copy = Estimate::create([
+            'status' => 'created',
+            'title' => $this->duplicateTitle($estimate),
+            'client_id' => $estimate->client_id,
+            'project_id' => $estimate->project_id,
+            'client_name' => $estimate->client_name,
+            'client_nickname' => $estimate->client_nickname,
+            'client_phone' => $estimate->client_phone,
+            'ship_address' => $estimate->ship_address,
+            'ship_address_detail' => $estimate->ship_address_detail,
+            'ship_name' => $estimate->ship_name,
+            'ship_phone' => $estimate->ship_phone,
+            'ship_entrance' => $estimate->ship_entrance,
+            'ship_note' => $estimate->ship_note,
+            'product_items' => $this->itemsForDuplicate($estimate->product_items ?? []),
+            'service_items' => $this->itemsForDuplicate($estimate->service_items ?? []),
+            'product_total' => $estimate->product_total,
+            'service_total' => $estimate->service_total,
+            'total_amount' => $estimate->total_amount,
+            'currency' => $estimate->currency,
+            'usd_rate' => $estimate->usd_rate,
+            'usd_rate_date' => $estimate->usd_rate_date,
+            'category_breakdown' => $estimate->category_breakdown,
+            'validity_days' => $estimate->validity_days ?? 3,
+            'memo' => $estimate->memo,
+            'internal_memo' => $estimate->internal_memo,
+            'created_by' => Auth::id(),
+        ]);
+
+        // 원본에 흔적 — 어느 견적서로 복제됐는지 로그에서 추적
+        $estimate->logActivity('update', ['복제' => ['old' => '—', 'new' => '견적서 #'.$copy->display_no.' 로 복제']], '[견적서] #'.$estimate->display_no.' 복제');
+
+        return response()->json($copy, 201);
+    }
+
+    /** 복제본 제목 — 원제목 + ' (복제)'. 컬럼 길이(200)를 넘지 않도록 원제목을 먼저 자른다 (반복 복제 대비) */
+    private function duplicateTitle(Estimate $estimate): string
+    {
+        $suffix = ' (복제)';
+        $base = trim((string) ($estimate->title ?: '견적서 #'.$estimate->display_no));
+
+        return mb_substr($base, 0, 200 - mb_strlen($suffix)).$suffix;
+    }
+
+    /**
+     * 복제용 항목 정리 — 대체(취소선) 항목은 제외하고, 주문/환불 등 거래 이력 키는 제거.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function itemsForDuplicate(array $items): array
+    {
+        $txKeys = ['ordered', 'ordered_at', 'purchase_source', 'order_memo', 'purchase_amount',
+            'refunded', 'refund_qty', 'refund_amount', 'refunded_at', 'replaced', 'replaced_note'];
+        $bundleTxKeys = ['refund_qty', 'refund_amount', 'ordered', 'ordered_at', 'source', 'memo']; // 구성품 주문일·구매처·메모도 거래 이력
+
+        return collect($items)
+            ->filter(fn ($item) => is_array($item) && empty($item['replaced']))
+            ->map(function (array $item) use ($txKeys, $bundleTxKeys) {
+                $clean = array_diff_key($item, array_flip($txKeys));
+                if (isset($clean['bundle_items']) && is_array($clean['bundle_items'])) {
+                    $clean['bundle_items'] = array_values(array_map(
+                        fn ($b) => is_array($b) ? array_diff_key($b, array_flip($bundleTxKeys)) : $b,
+                        $clean['bundle_items']
+                    ));
+                }
+
+                return $clean;
+            })
+            ->values()->all();
+    }
+
+    /**
      * 추가 차수(N차 추가 견적) 생성 — 결제 완료(또는 발행) 이후 추가 결제 건을
      * 부모 견적서에 묶는다. 차수는 실제 견적서 행이라 페이앱 결제·환불·매출 연동을 그대로 탄다.
      */

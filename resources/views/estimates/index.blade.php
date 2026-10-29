@@ -364,6 +364,7 @@ async function loadEstimates() {
                         <button class="btn-act btn-act-more" onclick="togglePrintMenu(event,${e.id})" title="링크 복사 · 출력 · 삭제">⋯</button>
                         <div class="print-dropdown-menu" id="printMenu-${e.id}">
                             <button onclick="copyEstimateLink(${e.id})">링크 복사</button>
+                            <button onclick="duplicateEstimate(${e.id})" title="항목·의뢰자·배송지를 복사한 새 견적서(작성중)를 만듭니다">복제</button>
                             <button onclick="exportEstimate(${e.id},'image')">이미지 저장</button>
                             <button onclick="exportEstimate(${e.id},'pdf')">PDF 저장</button>
                             <button onclick="window.open('/estimates/${e.id}/print','_blank')">인쇄 미리보기</button>
@@ -439,6 +440,23 @@ document.addEventListener('click', () => document.querySelectorAll('.print-dropd
 window.addEventListener('scroll', () => document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show')), true);
 
 // 의뢰자용 공개 링크 복사 — 토큰이 없으면 서버에서 생성해 받아온다
+// 복제 — 항목·의뢰자·배송지만 복사한 새 견적서(작성중) 생성 후 바로 빌더로
+let duplicateInFlight = false; // 더블클릭·느린 네트워크 재클릭으로 복제본이 여러 개 생기는 것 방지
+async function duplicateEstimate(id) {
+    if (duplicateInFlight) return;
+    if (!confirm('이 견적서를 복제해 새 견적서를 만들까요?\n(항목·의뢰자·배송지가 복사되고 번호·링크·결제 정보는 새로 시작합니다)')) return;
+    duplicateInFlight = true;
+    try {
+        const res = await fetch(`/api/estimates/${id}/duplicate`, { method: 'POST', headers: H });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.id) { alert(d.message || '복제하지 못했습니다.'); return; }
+        loadEstimates();
+        openEstimate(d.id);
+    } finally {
+        duplicateInFlight = false;
+    }
+}
+
 async function copyEstimateLink(id) {
     const res = await fetch(`/api/estimates/${id}/public-url`, { headers: H });
     const d = await res.json().catch(() => ({}));

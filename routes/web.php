@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\AgentEventController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AgentEventController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BankDepositController;
@@ -448,6 +448,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estimates/{estimate}/draft', [EstimateController::class, 'getDraft']);
         Route::post('/api/estimates/{estimate}/issue', [EstimateController::class, 'issue']);
         Route::post('/api/estimates/{estimate}/rounds', [EstimateController::class, 'storeRound']); // 추가 차수(N차 추가 견적) 생성
+        Route::post('/api/estimates/{estimate}/duplicate', [EstimateController::class, 'duplicate']); // 복제 — 항목·의뢰자·배송지를 복사한 새 견적서
         Route::get('/api/exchange-rate/usd', [EstimateController::class, 'usdRate']); // USD 매매기준율 — 빌더 달러 적용 버튼
         Route::get('/api/estimate-client-projects/{client}', [EstimateController::class, 'clientProjects']); // 프로젝트 연동(선택)용 목록
         // 주문/배송 운송장 — 새 창 등록 페이지 + API (일정 송장과 동일한 추적 파이프라인)

@@ -655,6 +655,7 @@
         <button class="btn btn-ghost m-more-item" onclick="loadDraft()">임시저장 불러오기</button>
         <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
         <button class="btn btn-ghost m-more-item" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
+        <button class="btn btn-ghost m-more-item" onclick="duplicateEstimate()" title="항목·의뢰자·배송지를 복사한 새 견적서(작성중)를 만듭니다">복제</button>
         <button class="btn btn-delete m-more-item" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print m-more-item" onclick="openStatement()" title="이 견적서(차수 합산) 기준 거래명세서 — 공급가액/세액 분리 출력">거래명세서</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
@@ -671,6 +672,7 @@
     <button class="m-more-row" onclick="mCloseMoreSheet(); loadDraft()">임시저장 불러오기 <span>마지막 저장본</span></button>
     <button class="m-more-row" onclick="mCloseMoreSheet(); openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그 <span>변경 이력</span></button>
     <button class="m-more-row" onclick="mCloseMoreSheet(); openStatement()">거래명세서 <span>공급가액·세액 분리 출력</span></button>
+    <button class="m-more-row" onclick="mCloseMoreSheet(); duplicateEstimate()">복제 <span>항목·의뢰자를 복사한 새 견적서</span></button>
     <button class="m-more-row m-more-danger" onclick="mCloseMoreSheet(); deleteEstimate()">삭제 <span>이 견적서 삭제</span></button>
     <button class="m-more-close" onclick="mCloseMoreSheet()">닫기</button>
 </div>
@@ -2155,6 +2157,23 @@ function printEstimate() {
 }
 function openStatement() {
     window.open(`/estimates/${estId}/statement`, `stmt_${estId}`, 'width=900,height=700,scrollbars=yes');
+}
+
+// 복제 — 저장하지 않은 변경은 복제본에 들어가지 않으므로 먼저 저장 안내
+let duplicateInFlight = false; // 더블클릭·느린 네트워크 재클릭으로 복제본이 여러 개 생기는 것 방지
+async function duplicateEstimate() {
+    if (duplicateInFlight) return;
+    if (!confirm('이 견적서를 복제해 새 견적서를 만들까요?\n(저장된 내용 기준 — 항목·의뢰자·배송지가 복사되고 번호·링크·결제 정보는 새로 시작합니다)')) return;
+    duplicateInFlight = true;
+    try {
+        const res = await fetch(`/api/estimates/${estId}/duplicate`, { method: 'POST', headers: H });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.id) { alert(d.message || '복제하지 못했습니다.'); return; }
+        if (window.opener) try { window.opener.loadEstimates?.(); } catch(e) {}
+        window.open(`/estimates/${d.id}/edit`, `est_${d.id}`);
+    } finally {
+        duplicateInFlight = false;
+    }
 }
 
 async function deleteEstimate() {
