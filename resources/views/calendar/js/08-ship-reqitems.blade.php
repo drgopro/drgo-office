@@ -1,6 +1,8 @@
 {{-- 배송 현황·세팅 항목 표시·견적서 연동 --}}
-// ── 배송 현황 (송장 추적) — 방문의뢰(gold)·촬영/스튜디오(green), 저장된 일정만 ──
-const SHIP_COLORS=['gold','green'];
+// ── 배송 현황 (송장 추적) — 방문의뢰(gold)·촬영/스튜디오(라벨 매칭 — 분리·커스텀 키 대응), 저장된 일정만 ──
+function shipColorSupported(c){
+    return c==='gold' || c==='green' || (typeof isStudioCategory==='function' && isStudioCategory(c));
+}
 let shipCache={shipments:[],carriers:{}};
 function toggleShipmentBody(force){
     const body=document.getElementById('shipmentBody');
@@ -12,10 +14,10 @@ function toggleShipmentBody(force){
 }
 function updateShipmentSectionVisibility(){
     const sec=document.getElementById('shipmentSection');
-    if(sec) sec.style.display=(editingId&&SHIP_COLORS.includes(currentColor))?'':'none';
+    if(sec) sec.style.display=(editingId&&shipColorSupported(currentColor))?'':'none';
 }
 async function loadShipments(){
-    if(!editingId||!SHIP_COLORS.includes(currentColor)) return;
+    if(!editingId||!shipColorSupported(currentColor)) return;
     const sid=editingId;
     // 캐시 즉시 표시 → 백그라운드 최신화 (재열람 시 늦은 갱신으로 화면이 바뀌어 보이는 문제 완화)
     const cached=swrGet('ship:'+sid);

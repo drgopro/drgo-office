@@ -23,6 +23,9 @@ class CalendarStudioEstimateLinkTest extends TestCase
 
         $this->assertStringContainsString('id="studioEstimateSection"', $html);
         $this->assertStringContainsString('function isStudioCategory(', $html);
+        $this->assertStringContainsString('function supportsEstimateLinkSection(', $html);
+        $this->assertStringContainsString('function shipColorSupported(', $html);
+        $this->assertStringNotContainsString('SHIP_COLORS', $html);
         // gold 첨부 영역과 스튜디오 섹션 양쪽에 공용 컨테이너 — renderLinkedEstimates가 둘 다 채움
         $this->assertSame(2, substr_count($html, 'data-linked-est-box style='));
         $this->assertSame(2, substr_count($html, 'data-linked-est-list style='));

@@ -266,6 +266,12 @@ function handleConditional(gid){
 function isStudioCategory(c){
     return Object.keys(CS_CATS).some(k=>k===c&&/스튜디오|촬영/.test((CS_CATS[k]&&CS_CATS[k].label)||''));
 }
+// 견적서 연동 블록 노출 기준 — 의뢰자 연결이 가능한 모든 카테고리(촬영·스튜디오·미팅/내방·원격/방송룸·커스텀).
+// gold는 첨부 '견적서' 영역에 같은 기능이 있어 제외, 사내업무/휴가는 의뢰자 연결 자체가 없음
+function supportsEstimateLinkSection(c){
+    if(c==='gold') return false;
+    return typeof colorSupportsClientLink==='function' ? colorSupportsClientLink(c) : !['blue','red'].includes(c);
+}
 // ── 색상 전환 ──
 function setColor(c){
     currentColor=c;
@@ -288,9 +294,9 @@ function setColor(c){
     if(soCard) soCard.style.display='flex';
     const isStudioCat=isStudioCategory(c);
     const optExtra=c==='gold'||isStudioCat;
-    // 견적서 연동 블록 — 스튜디오/촬영에서만 (gold는 첨부 '견적서' 영역에 동일 기능)
+    // 견적서 연동 블록 — 의뢰자 연결 가능한 비-gold 카테고리 전부 (gold는 첨부 '견적서' 영역에 동일 기능)
     const seEst=document.getElementById('studioEstimateSection');
-    if(seEst) seEst.style.display=isStudioCat?'':'none';
+    if(seEst) seEst.style.display=supportsEstimateLinkSection(c)?'':'none';
     const seSec=document.getElementById('schedEventSection');
     if(seSec) seSec.style.display=optExtra?'':'none';
     const spGrp=document.getElementById('specialOptsGroup');

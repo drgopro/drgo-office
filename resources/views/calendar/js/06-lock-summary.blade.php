@@ -246,7 +246,7 @@ function renderLockSummary(){
     }
 
     // 배송 현황 (gold/green, 송장 있을 때만) — 결제 카드 배지용 수치 겸용
-    const lsShips=(SHIP_COLORS.includes(color)?(shipCache.shipments||[]):[]);
+    const lsShips=((typeof shipColorSupported==="function"&&shipColorSupported(color))?(shipCache.shipments||[]):[]);
     const lsShipsDone=lsShips.filter(s=>s.status==='delivered').length;
 
     if (color === 'gold') {

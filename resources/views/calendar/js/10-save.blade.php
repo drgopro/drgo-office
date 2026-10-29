@@ -139,9 +139,9 @@ async function doSaveEvent(){
         request_data:isGold?collectGoldFields():((linkedClientId&&colorSupportsClientLink(currentColor))?{client_id:linkedClientId,project_id:(document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,nickname:'',name:'',phone:''}:null),
         remote_data:currentColor==='teal'?collectTealFields():null,
     };
-    // 스튜디오/촬영: 견적서 연동 — 의뢰자 연결 없이도 request_data.estimate_ids 로 저장 (배송 현황·요약 '연동 견적서' 카드 기준).
+    // 비-gold(촬영·스튜디오·미팅 등): 견적서 연동 — 의뢰자 연결 없이도 request_data.estimate_ids 로 저장 (배송 현황·요약 '연동 견적서' 카드 기준).
     // 연동을 모두 해제한 경우도 키를 null로 명시해야 서버의 estimate_ids 보존 가드(키 없음=구버전 탭)에 걸리지 않는다
-    if(!isGold && typeof isStudioCategory==='function' && isStudioCategory(currentColor) && (linkedEstimateIds.length || data.request_data)){
+    if(!isGold && typeof supportsEstimateLinkSection==='function' && supportsEstimateLinkSection(currentColor) && (linkedEstimateIds.length || data.request_data)){
         data.request_data=Object.assign(data.request_data||{},{estimate_id:linkedEstimateIds[0]??null, estimate_ids:linkedEstimateIds.length?[...linkedEstimateIds]:null});
     }
     // 연차 차감 (휴가/개인 전용) — request_data.leave_deduct: 'full'|'half'

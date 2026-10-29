@@ -288,7 +288,7 @@
             </div>
             </div>{{-- /field-section (의뢰자/프로젝트) --}}
 
-            {{-- 견적서 연동 — 스튜디오/촬영 카테고리 (방문의뢰는 gold 템플릿의 첨부 '견적서' 영역에서). setColor에서 토글 --}}
+            {{-- 견적서 연동 — 의뢰자 연결 가능한 비-gold 카테고리(촬영·스튜디오·미팅/내방·원격/방송룸·커스텀). 방문의뢰는 gold 템플릿의 첨부 '견적서' 영역에서. setColor에서 토글 --}}
             <div class="field-section" id="studioEstimateSection" style="display:none;">
                 <div class="section-heading" style="margin-bottom:4px;">견적서 연동</div>
                 <div style="display:flex;gap:8px;margin-bottom:6px;">
