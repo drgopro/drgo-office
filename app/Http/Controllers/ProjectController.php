@@ -371,6 +371,7 @@ class ProjectController extends Controller
             'work_type' => 'sometimes|nullable|string|max:50',
             'visit_report' => 'sometimes|nullable|string',
             'marketing_consent' => 'sometimes|nullable|boolean', // null=미확인, true=동의, false=거부
+            'marketing_posted' => 'sometimes|boolean', // 마케팅 포스팅 완료 여부 — true면 완료 시각 기록, false면 해제
             'custom_data' => 'nullable|array',
             'tags' => 'sometimes|nullable|array',
             'tags.major' => 'nullable|array',
@@ -397,6 +398,22 @@ class ProjectController extends Controller
             $validated['marketing_consent'] = $newConsent;
             if ($newConsent !== $project->marketing_consent) {
                 $validated['marketing_consent_updated_at'] = now();
+            }
+        }
+
+        // 마케팅 포스팅 완료 — 체크 시각을 기록해 통계에서 완료/대기를 구분, 해제하면 비움
+        if (array_key_exists('marketing_posted', $validated)) {
+            $posted = filter_var($validated['marketing_posted'], FILTER_VALIDATE_BOOLEAN);
+            unset($validated['marketing_posted']);
+            // 같은 요청에서 동의 상태를 바꾸는 경우까지 포함해, 동의(true)인 프로젝트만 완료 처리 가능
+            $effectiveConsent = array_key_exists('marketing_consent', $validated) ? $validated['marketing_consent'] : $project->marketing_consent;
+            if ($posted && $effectiveConsent !== true) {
+                return response()->json(['message' => '마케팅 활용에 동의한 프로젝트만 포스팅 완료 처리할 수 있습니다.'], 422);
+            }
+            if ($posted && ! $project->marketing_posted_at) {
+                $validated['marketing_posted_at'] = now();
+            } elseif (! $posted) {
+                $validated['marketing_posted_at'] = null;
             }
         }
 

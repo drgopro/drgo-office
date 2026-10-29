@@ -438,6 +438,8 @@
                             <option value="1" @selected($project->marketing_consent === true)>동의</option>
                             <option value="0" @selected($project->marketing_consent === false)>거부</option>
                         </select>
+                        {{-- 포스팅 완료 — 동의 프로젝트에서만 노출, 클릭으로 완료/해제 (마케팅 통계의 포스팅 완료·대기 집계 기준) --}}
+                        <button type="button" id="mkPostedBtn" onclick="toggleMarketingPosted()" style="display:none;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;"></button>
                     </span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
                     <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
@@ -1900,7 +1902,45 @@ async function saveMarketingConsent(value) {
     }
     renderMkConsentSelect();
 }
+// 마케팅 포스팅 완료 — 동의 프로젝트에서만 토글 노출, 완료 시각은 서버가 기록
+let mkPostedAt = @json($project->marketing_posted_at?->format('Y.m.d'));
+async function toggleMarketingPosted() {
+    const next = !mkPostedAt;
+    if (!next && !confirm('포스팅 완료를 해제할까요?')) return;
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').content;
+        const res = await fetch(`/api/projects/{{ $project->id }}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            body: JSON.stringify({ marketing_posted: next }),
+        });
+        if (res.status === 422) throw new Error('consent');
+        if (!res.ok) throw new Error('save failed');
+        const data = await res.json().catch(() => ({}));
+        const at = data?.project?.marketing_posted_at;
+        mkPostedAt = next ? mkFormatLocalDate(at ? new Date(at) : new Date()) : null;
+    } catch (e) {
+        alert(e?.message === 'consent' ? '마케팅 활용에 동의한 프로젝트만 포스팅 완료 처리할 수 있습니다.' : '포스팅 완료 저장에 실패했습니다.');
+    }
+    renderMkConsentSelect();
+}
+// 서버 ISO(UTC) 시각 → 브라우저 로컬(KST) 기준 'YYYY.MM.DD' — toISOString 날짜 자르기는 자정~09시에 전날로 보임
+function mkFormatLocalDate(d) {
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}`;
+}
 function renderMkConsentSelect() {
+    const btn = document.getElementById('mkPostedBtn');
+    if (btn) {
+        btn.style.display = mkConsent === true ? '' : 'none';
+        btn.textContent = mkPostedAt ? '✓ 포스팅 완료 · ' + mkPostedAt : '포스팅 완료 처리';
+        btn.title = mkPostedAt ? '포스팅 완료 (클릭하면 해제)' : '마케팅 콘텐츠 포스팅을 마쳤으면 클릭';
+        btn.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;'
+            + (mkConsent === true ? '' : 'display:none;')
+            + (mkPostedAt
+                ? 'background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;'
+                : 'background:var(--surface2);color:var(--text-muted);border:1px dashed var(--border);');
+    }
     const sel = document.getElementById('mkConsentSelect');
     if (!sel) return;
     sel.value = mkConsent === null ? '' : (mkConsent ? '1' : '0');

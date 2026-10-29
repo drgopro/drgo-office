@@ -458,7 +458,7 @@
                     <td>
                         <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '{{ addslashes($project->name) }}');">{{ $project->name }}</a>
                         @if($project->marketing_consent === true)
-                            <span title="마케팅 활용 동의" style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✓ 마케팅</span>
+                            <span title="마케팅 활용 동의{{ $project->marketing_posted_at ? ' · 포스팅 완료 '.$project->marketing_posted_at->format('Y.m.d') : '' }}" style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✓ 마케팅{{ $project->marketing_posted_at ? ' · 포스팅' : '' }}</span>
                         @elseif($project->marketing_consent === false)
                             <span title="마케팅 활용 거부" style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(200,80,80,0.10);color:var(--red);border:1px solid rgba(200,80,80,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✕ 마케팅</span>
                         @endif

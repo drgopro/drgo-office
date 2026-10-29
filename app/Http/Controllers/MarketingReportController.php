@@ -136,13 +136,15 @@ class MarketingReportController extends Controller
         $marketingConsentClients = collect();
         $marketingRefusedClients = collect();
         $marketingConsentProjectCount = 0;
+        $marketingPostedProjectCount = 0; // 동의 프로젝트 중 포스팅 완료 건수
         if (Schema::hasColumn('projects', 'marketing_consent')) {
+            $hasPostedColumn = Schema::hasColumn('projects', 'marketing_posted_at'); // 마이그레이션 전 배포 과도기 대비
             $clientsOf = fn (bool $consent) => Project::where('marketing_consent', $consent)
                 ->with('client:id,name,nickname,platforms')
                 ->orderByDesc('created_at')
-                ->get(['id', 'name', 'client_id', 'manual_client_name', 'created_at'])
+                ->get(array_merge(['id', 'name', 'client_id', 'manual_client_name', 'created_at'], $hasPostedColumn ? ['marketing_posted_at'] : []))
                 ->groupBy(fn ($p) => $p->client_id ?: 'm:'.($p->manual_client_name ?: '의뢰자 미상'))
-                ->map(function ($group) {
+                ->map(function ($group) use ($hasPostedColumn) {
                     $first = $group->first();
 
                     return [
@@ -151,10 +153,12 @@ class MarketingReportController extends Controller
                             ? ($first->client->nickname ?: $first->client->name ?: '의뢰자 #'.$first->client_id)
                             : ($first->manual_client_name ?: '의뢰자 미상'),
                         'platforms' => $first->client->platforms ?? [],
+                        'posted_count' => $hasPostedColumn ? $group->whereNotNull('marketing_posted_at')->count() : 0,
                         'projects' => $group->map(fn ($p) => [
                             'id' => $p->id,
                             'name' => $p->name,
                             'date' => $p->created_at->format('Y-m-d'),
+                            'posted_at' => $hasPostedColumn ? $p->marketing_posted_at?->format('Y-m-d') : null,
                         ])->values()->all(),
                     ];
                 })->values();
@@ -162,6 +166,9 @@ class MarketingReportController extends Controller
             $marketingConsentClients = $clientsOf(true);
             $marketingRefusedClients = $clientsOf(false);
             $marketingConsentProjectCount = Project::where('marketing_consent', true)->count();
+            $marketingPostedProjectCount = $hasPostedColumn
+                ? Project::where('marketing_consent', true)->whereNotNull('marketing_posted_at')->count()
+                : 0;
         }
 
         // ── 상담 지표 ──
@@ -458,7 +465,7 @@ class MarketingReportController extends Controller
         return view('marketing-report.index', compact(
             'from', 'to', 'schedStats',
             'newClients', 'clientsByInflow', 'clientsByType', 'clientsByGrade', 'platformCounts', 'platformTotal', 'contentCounts',
-            'marketingConsentClients', 'marketingRefusedClients', 'marketingConsentProjectCount',
+            'marketingConsentClients', 'marketingRefusedClients', 'marketingConsentProjectCount', 'marketingPostedProjectCount',
             'platformMoves', 'platformMoveTrend',
             'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour', 'inboundHourSeries',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',

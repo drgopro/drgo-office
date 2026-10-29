@@ -38,6 +38,101 @@ class ProjectMarketingConsentTest extends TestCase
         $this->assertNull($project->fresh()->marketing_consent);
     }
 
+    public function test_marketing_posted_toggle_records_and_clears_posted_at(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '스튜디오 세팅', 'stage' => 'consulting', 'marketing_consent' => true]);
+
+        $this->assertNull($project->fresh()->marketing_posted_at);
+
+        // 완료 처리 — 시각 기록, 응답에도 포함
+        $res = $this->actingAs($admin)->patchJson("/api/projects/{$project->id}", ['marketing_posted' => true]);
+        $res->assertSuccessful();
+        $firstAt = $project->fresh()->marketing_posted_at;
+        $this->assertNotNull($firstAt);
+        $this->assertNotNull($res->json('project.marketing_posted_at'));
+
+        // 이미 완료인 상태로 다시 true — 최초 완료 시각 유지
+        $this->travel(1)->days();
+        $this->actingAs($admin)->patchJson("/api/projects/{$project->id}", ['marketing_posted' => true])->assertSuccessful();
+        $this->assertTrue($firstAt->equalTo($project->fresh()->marketing_posted_at));
+
+        // 해제 — 비움
+        $this->actingAs($admin)->patchJson("/api/projects/{$project->id}", ['marketing_posted' => false])->assertSuccessful();
+        $this->assertNull($project->fresh()->marketing_posted_at);
+
+        // 잘못된 값은 422
+        $this->actingAs($admin)->patchJson("/api/projects/{$project->id}", ['marketing_posted' => 'yes'])->assertStatus(422);
+    }
+
+    public function test_marketing_posted_requires_consent(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $unknown = Project::create(['client_id' => $client->id, 'name' => '미확인', 'stage' => 'consulting']);
+        $refused = Project::create(['client_id' => $client->id, 'name' => '거부', 'stage' => 'consulting', 'marketing_consent' => false]);
+        $agreed = Project::create(['client_id' => $client->id, 'name' => '동의', 'stage' => 'consulting', 'marketing_consent' => true]);
+
+        $this->actingAs($admin)->patchJson("/api/projects/{$unknown->id}", ['marketing_posted' => true])->assertStatus(422);
+        $this->actingAs($admin)->patchJson("/api/projects/{$refused->id}", ['marketing_posted' => true])->assertStatus(422);
+        $this->assertNull($unknown->fresh()->marketing_posted_at);
+        $this->assertNull($refused->fresh()->marketing_posted_at);
+
+        // 같은 요청에서 거부로 바꾸며 완료 처리 → 거절, 동의 유지되고 완료 시각도 비어 있어야 함
+        $this->actingAs($admin)->patchJson("/api/projects/{$agreed->id}", ['marketing_consent' => false, 'marketing_posted' => true])->assertStatus(422);
+        $this->assertTrue($agreed->fresh()->marketing_consent);
+        $this->assertNull($agreed->fresh()->marketing_posted_at);
+
+        // 같은 요청에서 동의로 바꾸며 완료 처리 → 허용
+        $this->actingAs($admin)->patchJson("/api/projects/{$unknown->id}", ['marketing_consent' => true, 'marketing_posted' => true])->assertSuccessful();
+        $this->assertNotNull($unknown->fresh()->marketing_posted_at);
+
+        // 해제는 동의 상태와 무관하게 가능
+        $this->actingAs($admin)->patchJson("/api/projects/{$refused->id}", ['marketing_posted' => false])->assertSuccessful();
+    }
+
+    public function test_project_show_renders_posted_toggle_and_list_shows_posted_badge(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $posted = Project::create(['client_id' => $client->id, 'name' => '포스팅된 프로젝트', 'stage' => 'consulting', 'marketing_consent' => true, 'marketing_posted_at' => now()]);
+        Project::create(['client_id' => $client->id, 'name' => '대기 프로젝트', 'stage' => 'consulting', 'marketing_consent' => true]);
+
+        $this->actingAs($admin)->get("/projects/{$posted->id}")->assertOk()
+            ->assertSee('id="mkPostedBtn"', false)
+            ->assertSee('toggleMarketingPosted', false);
+
+        $list = $this->actingAs($admin)->get('/projects');
+        $list->assertOk();
+        $this->assertSame(1, substr_count($list->getContent(), '✓ 마케팅 · 포스팅'));
+        $this->assertSame(2, substr_count($list->getContent(), '✓ 마케팅'));
+    }
+
+    public function test_marketing_report_counts_posted_projects(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $done = Client::create(['nickname' => '완료의뢰자', 'grade' => 'normal']);
+        $pending = Client::create(['nickname' => '대기의뢰자', 'grade' => 'normal']);
+        Project::create(['client_id' => $done->id, 'name' => '완료 프로젝트', 'stage' => 'done', 'marketing_consent' => true, 'marketing_posted_at' => now()]);
+        Project::create(['client_id' => $pending->id, 'name' => '대기 프로젝트 A', 'stage' => 'done', 'marketing_consent' => true, 'marketing_posted_at' => now()]);
+        Project::create(['client_id' => $pending->id, 'name' => '대기 프로젝트 B', 'stage' => 'consulting', 'marketing_consent' => true]);
+        // 거부 프로젝트의 포스팅 시각은 완료 집계에 들어가지 않음
+        Project::create(['client_id' => $pending->id, 'name' => '거부 프로젝트', 'stage' => 'consulting', 'marketing_consent' => false, 'marketing_posted_at' => now()]);
+
+        $res = $this->actingAs($admin)->get('/marketing-report');
+        $res->assertOk()
+            ->assertSee('✓ 포스팅 완료')
+            ->assertSee('포스팅 대기 1');
+
+        $this->assertSame(3, $res->viewData('marketingConsentProjectCount'));
+        $this->assertSame(2, $res->viewData('marketingPostedProjectCount'));
+        $byName = $res->viewData('marketingConsentClients')->keyBy('name');
+        $this->assertSame(1, $byName['완료의뢰자']['posted_count']);
+        $this->assertSame(1, $byName['대기의뢰자']['posted_count']);
+        $this->assertCount(2, $byName['대기의뢰자']['projects']);
+    }
+
     public function test_project_list_shows_consent_and_refusal_badges(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

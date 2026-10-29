@@ -271,6 +271,11 @@
                 <div class="mk-sub">동의 선택된 프로젝트 수</div>
             </div>
             <div class="mk-card">
+                <div class="mk-label">포스팅 완료</div>
+                <div class="mk-value" style="color:#2563eb;">{{ number_format($marketingPostedProjectCount) }}<span style="font-size:13px; font-weight:400; color:var(--text-muted);"> / {{ number_format($marketingConsentProjectCount) }}</span></div>
+                <div class="mk-sub">포스팅 대기 {{ number_format(max(0, $marketingConsentProjectCount - $marketingPostedProjectCount)) }}건 · 프로젝트 상세에서 완료 처리</div>
+            </div>
+            <div class="mk-card">
                 <div class="mk-label">거부 의뢰자</div>
                 <div class="mk-value" style="color:var(--red);">{{ number_format(count($marketingRefusedClients)) }}</div>
                 <div class="mk-sub">마케팅 활용 거부</div>
@@ -295,13 +300,27 @@
                                             <span style="color:var(--text-muted); font-size:11px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
                                         @endif
                                     </span>
-                                    <span class="mk-list-value">프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-c{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
+                                    <span class="mk-list-value">
+                                        @if($mc['posted_count'] >= count($mc['projects']))
+                                            <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:10px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
+                                        @else
+                                            <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:10px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
+                                        @endif
+                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-c{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span>
+                                    </span>
                                 </div>
                                 <div id="mcDetail-c{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
                                     @foreach($mc['projects'] as $mp)
-                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
                                             <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
-                                            <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
+                                            <span style="display:flex; align-items:center; gap:8px; white-space:nowrap;">
+                                                @if($mp['posted_at'])
+                                                    <span style="font-size:11px; color:#2563eb; font-weight:600;">✓ 포스팅 {{ $mp['posted_at'] }}</span>
+                                                @else
+                                                    <span style="font-size:11px; color:#b45309;">포스팅 대기</span>
+                                                @endif
+                                                <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
+                                            </span>
                                         </div>
                                     @endforeach
                                 </div>
