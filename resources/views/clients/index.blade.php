@@ -233,6 +233,21 @@
     .cv-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:36px; row-gap:16px; }
     .cv-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; column-gap:30px; row-gap:14px; }
     .cv-l { font-size:12px; color:var(--text-muted); font-weight:600; }
+    /* 사업자 정보 — 사업자등록증 첨부 (썸네일 클릭 = 미리보기, 이미지·PDF) */
+    .cv-bizdocs { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+    .cv-bizdoc { width:132px; position:relative; }
+    .cv-bizdoc-thumb { width:132px; height:96px; border:1px solid var(--border); border-radius:8px; overflow:hidden; cursor:pointer; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--text-muted); transition:border-color .12s, transform .12s; }
+    .cv-bizdoc-thumb:hover { border-color:var(--accent); transform:translateY(-1px); }
+    .cv-bizdoc-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .cv-bizdoc-thumb .pdf { color:var(--red); }
+    .cv-bizdoc-name { font-size:11px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cv-bizdoc-meta { font-size:10px; color:var(--text-muted); display:flex; justify-content:space-between; gap:6px; }
+    .cv-bizdoc-meta a, .cv-bizdoc-meta button { font-size:10px; color:var(--accent); text-decoration:none; background:none; border:0; padding:0; cursor:pointer; font-family:inherit; }
+    .cv-bizdoc-meta button.del { color:var(--red); }
+    .cv-bizdoc-add { width:132px; height:96px; border:1px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; background:transparent; transition:border-color .12s, color .12s; }
+    .cv-bizdoc-add:hover { border-color:var(--accent); color:var(--accent); }
+    .cv-bizdoc-add.busy { opacity:.6; pointer-events:none; }
+    .cv-bizdoc-add input { display:none; }
     .cv-v { font-size:14.5px; color:var(--text); margin-top:4px; font-weight:500; word-break:break-word; white-space:pre-wrap; }
     .cv-v.dim { color:var(--text-muted); opacity:0.55; font-weight:400; }
     .cv-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
@@ -2403,11 +2418,19 @@ function renderClientView(d) {
         equipBody = '<div class="cv-v dim">연동된 장비 정보가 없습니다 — 프로젝트에서 장비 정보를 입력하면 여기에 표시됩니다.</div>';
         equipRail = '<div class="cv-rd"><span class="cv-badge">프로젝트 연동</span></div>';
     }
-    // 기타 커스텀 필드 (장비 섹션 제외) — 관리자 정의 필드를 섹션별 읽기 전용으로
+    // 사업자 정보 — 관리자 정의 필드(현금영수증 번호 등) + 사업자등록증 첨부(미리보기). 필드가 없어도 첨부 칸은 항상 표시
+    const bizDefs = (typeof customFieldDefs !== 'undefined' && customFieldDefs?.length) ? customFieldDefs.filter(f => f.section === 'business') : [];
+    const bizDocs = cvBizDocs(d);
+    const business = `<div class="cv-grid">
+        ${bizDefs.map(f => cvField(f.label, formatCfDisplay((d.custom_data || {})[f.key]))).join('')}
+        <div style="grid-column:span 2;"><div class="cv-l">사업자등록증</div>${cvBizDocsHtml(d, bizDocs)}</div>
+    </div>`;
+    const businessRail = `<div class="cv-rd">현금영수증 · 사업자등록증</div>${bizDocs.length ? `<div class="cv-rd"><span class="cv-badge">등록증 ${bizDocs.length}건</span></div>` : ''}`;
+    // 기타 커스텀 필드 (장비·사업자 섹션 제외) — 관리자 정의 필드를 섹션별 읽기 전용으로
     let customSections = '';
     if (typeof customFieldDefs !== 'undefined' && customFieldDefs?.length) {
         const bySec = {};
-        customFieldDefs.filter(f => (f.section || 'etc') !== 'equipment')
+        customFieldDefs.filter(f => !['equipment', 'business'].includes(f.section || 'etc'))
             .forEach(f => { const s = f.section || 'etc'; (bySec[s] = bySec[s] || []).push(f); });
         customSections = Object.keys(bySec).map(sec => cvSection(
             CV_SECTION_LABELS[sec] || sec,
@@ -2419,8 +2442,54 @@ function renderClientView(d) {
         ${cvSection('인적 정보', '<div class="cv-rd">이름 · 연락 · 주소 등<br>개인 식별 정보</div>', personal)}
         ${cvSection('방송 정보', '<div class="cv-rd">플랫폼 · 주제 · 경력</div>', broadcast)}
         ${cvSection('장비 정보', equipRail, `<div class="cv-eqwrap">${equipBody}</div>`)}
+        ${cvSection('사업자 정보', businessRail, business)}
         ${customSections}
     </div>`;
+}
+// 사업자등록증 첨부 — 첨부파일 중 분류가 '사업자등록증'인 문서 (분류는 note 앞부분에 기록됨)
+const BIZ_DOC_CATEGORY = '사업자등록증';
+function cvBizDocs(d) {
+    return (d.documents || []).map((doc, i) => ({ doc, i })).filter(x => String(x.doc.note || '').startsWith(BIZ_DOC_CATEGORY));
+}
+function cvBizDocsHtml(d, bizDocs) {
+    const cards = bizDocs.map(({ doc, i }) => {
+        const isImg = doc.mime_type && doc.mime_type.startsWith('image/');
+        const isPdf = doc.mime_type === 'application/pdf';
+        const ext = (doc.file_name.split('.').pop() || '').toUpperCase();
+        const thumb = isImg ? `<img src="${doc.thumb_url || doc.view_url}" alt="" loading="lazy" decoding="async">` : (isPdf ? '<span class="pdf">PDF</span>' : `<span>${_esc(ext)}</span>`);
+        const note = String(doc.note || '').replace(new RegExp('^' + BIZ_DOC_CATEGORY + '\\s*-?\\s*'), '');
+        return `<div class="cv-bizdoc">
+            <div class="cv-bizdoc-thumb" title="클릭하면 크게 보기" onclick="openAlbumViewer(${d.id}, ${i})">${thumb}</div>
+            <div class="cv-bizdoc-name" title="${_esc(doc.file_name)}">${_esc(doc.file_name)}</div>
+            <div class="cv-bizdoc-meta"><span title="${_esc(note)}">${_esc(doc.created_at.slice(0, 10))}</span><span><a href="${doc.download_url}">다운로드</a>${CAN_DOC_EDIT ? ` · <button type="button" class="del" onclick="deleteDoc(${doc.id}, ${d.id})">삭제</button>` : ''}</span></div>
+        </div>`;
+    }).join('');
+    const add = CAN_DOC_EDIT
+        ? `<label class="cv-bizdoc-add" id="bizdoc-add-${d.id}"><span style="font-size:18px; line-height:1;">+</span><span>${bizDocs.length ? '추가 첨부' : '사업자등록증 첨부'}</span><span style="font-size:10px; font-weight:400;">이미지 · PDF</span><input type="file" accept="image/*,application/pdf" multiple onchange="bizDocUpload(${d.id}, this)"></label>`
+        : (bizDocs.length ? '' : '<div class="cv-v dim">—</div>');
+    return `<div class="cv-bizdocs">${cards}${add}</div>`;
+}
+// 사업자등록증 바로 업로드 — 첨부파일 탭과 같은 저장소, 분류 '사업자등록증'으로 기록되어 첨부파일 목록에도 보인다
+async function bizDocUpload(clientId, input) {
+    const files = [...input.files];
+    input.value = '';
+    if (!files.length) return;
+    const formData = new FormData();
+    files.forEach(f => formData.append('files[]', f));
+    formData.append('category', BIZ_DOC_CATEGORY);
+    const box = document.getElementById('bizdoc-add-' + clientId);
+    if (box) box.classList.add('busy');
+    try {
+        const res = await fetch(`/clients/${clientId}/documents`, { method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:formData });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(body.message || '업로드 실패'); return; }
+        await refreshClientData(clientId);
+        showToast(body.message || `${files.length}개 파일 업로드 완료`);
+    } catch (e) {
+        alert('업로드 실패');
+    } finally {
+        if (box) box.classList.remove('busy');
+    }
 }
 // 장비 정보 바디/레일 — 프로젝트 선택 탭과 공유
 function cvEqBodyHtml(eq, clientId, pinnedId) {
