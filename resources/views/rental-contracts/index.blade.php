@@ -127,6 +127,37 @@
     .client-search-result { padding:10px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border); }
     .client-search-result:hover { background:var(--surface2); }
 
+    /* 계약 관리 모달 — 조회 모드 */
+    .cvw-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .cvw-product { font-size:17px; font-weight:800; line-height:1.3; min-width:0; word-break:keep-all; }
+    .cvw-product.none { color:var(--text-muted); font-weight:600; }
+    .cvw-client { font-size:13px; color:var(--text-muted); margin-top:3px; }
+    .cvw-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; padding:12px 14px; background:var(--surface2); border-radius:10px; margin-bottom:12px; }
+    .cvw-grid .k { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px; }
+    .cvw-grid .v { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; }
+    .cvw-row { display:flex; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid var(--border); }
+    .cvw-row .k { flex:0 0 84px; color:var(--text-muted); font-size:12px; padding-top:1px; }
+    .cvw-row .v { flex:1; min-width:0; word-break:break-word; white-space:pre-wrap; }
+    .cvw-row .v.dim { color:var(--text-muted); opacity:.6; }
+    .cvw-sec { margin-top:16px; margin-bottom:14px; }
+    .cvw-sec-title { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; font-weight:800; margin-bottom:8px; }
+    .cvw-sec-title small { font-weight:600; color:var(--text-muted); font-size:11px; }
+    .pay-hist { display:flex; flex-direction:column; gap:4px; max-height:280px; overflow-y:auto; padding-right:2px; }
+    .pay-hist-row { display:grid; grid-template-columns:96px auto minmax(0, 1fr) auto; align-items:center; gap:10px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); font-size:12px; }
+    .pay-hist-row.paid { border-color:rgba(122,200,122,0.35); }
+    .pay-hist-row.overdue { border-color:rgba(200,80,80,0.4); }
+    .pay-hist-row.due { border-color:rgba(230,160,60,0.55); }
+    .pay-hist-row .d { font-weight:700; white-space:nowrap; }
+    .pay-hist-row .info { color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pay-hist-row .act { padding:3px 9px; min-height:26px; font-size:11px; }
+    .pay-hist-empty { font-size:12px; color:var(--text-muted); padding:10px; text-align:center; border:1px dashed var(--border); border-radius:8px; }
+    @media (max-width:639px) {
+        .cvw-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; padding:10px; }
+        .cvw-grid .v { font-size:13px; }
+        .pay-hist-row { grid-template-columns:auto auto 1fr; }
+        .pay-hist-row .info { grid-column:1 / -1; }
+    }
+
     /* 상품 관리 모달 */
     .prod-list { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
     .prod-row { display:grid; grid-template-columns:minmax(0, 1fr) 110px auto; gap:8px; align-items:center; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); }
@@ -234,6 +265,12 @@
         <input type="hidden" id="contractId">
         <input type="hidden" id="contractKind" value="equipment">
 
+        {{-- 조회 모드: 저장된 내용 + 결제 이력 (결제 체크는 여기서) --}}
+        <div id="contractView"></div>
+
+        {{-- 수정 모드 --}}
+        <div id="contractForm">
+
         <div class="field-group">
             <div class="field-label"><span>상품명 (렌탈 항목) *</span>@if(Auth::user()->hasPermission('rental.edit'))<button type="button" class="link-btn" onclick="openProductModal()">⚙ 상품 관리</button>@endif</div>
             <select class="field-input" id="productSelect" onchange="onProductChange()"></select>
@@ -300,9 +337,14 @@
             <div class="field-label">메모</div>
             <textarea class="field-input" id="memo" rows="2"></textarea>
         </div>
-        <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button class="btn-outline danger" id="deleteBtn" style="margin-right:auto; display:none;" onclick="deleteContract()">삭제</button>
-            <button class="btn-outline" onclick="closeContractModal()">취소</button>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;" id="viewFooter">
+            @if(Auth::user()->hasPermission('rental.edit'))<button class="btn-outline danger" style="margin-right:auto;" onclick="deleteContract()">삭제</button>@endif
+            <button class="btn-outline" onclick="closeContractModal()">닫기</button>
+            @if(Auth::user()->hasPermission('rental.edit'))<button class="btn-primary" onclick="setContractMode('edit')">수정</button>@endif
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;" id="formFooter">
+            <button class="btn-outline" onclick="cancelContractEdit()">취소</button>
             <button class="btn-primary" onclick="saveContract()">저장</button>
         </div>
     </div>
@@ -380,28 +422,19 @@ window.addEventListener('resize', () => moveKindPill(true));
 let kindPillPlaced = false;
 
 const PAY_STATE_LABEL = { paid:'결제됨', due:'오늘 결제일', overdue:'미납', upcoming:'예정' };
-const PAY_VISIBLE = 8; // 카드당 기본 노출 결제일 수 — 넘치면 '+N' 칩으로 펼침
-const expandedPay = new Set();
-function payChipLabel(dateStr) {
-    const [y, m] = dateStr.split('-');
-    return (String(new Date().getFullYear()) === y ? '' : y.slice(2) + '.') + parseInt(m, 10) + '월';
-}
-function payStripHtml(c) {
+/** 카드용 결제 요약 — 월별 칩을 전부 펼치지 않고 결제 횟수·다음 결제일만. 월별 이력·체크는 '관리' 모달에서 */
+function paySummaryHtml(c) {
     if (c.status === 'pending') return '<div class="card-pay"><span class="pay-label">결제</span><span class="pay-chip">준비중 — 결제 일정 없음</span></div>';
     const pays = c.payments || [];
     if (!pays.length) return '';
-    const show = expandedPay.has(c.id) ? pays : pays.slice(-PAY_VISIBLE);
-    const hidden = pays.length - show.length;
-    const more = hidden > 0 ? `<button type="button" class="pay-chip more" onclick="expandedPay.add(${c.id}); renderContracts();" title="이전 결제일 ${hidden}개 펼치기">+${hidden}</button>` : '';
-    const chips = show.map(p => {
-        const title = `${p.due_date} · ${PAY_STATE_LABEL[p.state] || p.state}` + (p.state === 'paid' && p.paid_at ? ` · ${p.paid_by || ''} ${p.paid_at}`.replace(/\s+/g, ' ') : '') + (canEdit ? (p.state === 'paid' ? ' — 클릭: 결제 해제' : ' — 클릭: 결제됨으로 체크') : '');
-        const mark = p.state === 'paid' ? '✓ ' : (p.state === 'overdue' ? '! ' : '');
-        const inner = `${mark}${payChipLabel(p.due_date)}`;
-        return canEdit
-            ? `<button type="button" class="pay-chip ${p.state}" title="${esc(title)}" aria-pressed="${p.state === 'paid'}" onclick="togglePay(${c.id}, '${p.due_date}', ${p.state !== 'paid'})">${inner}</button>`
-            : `<span class="pay-chip ${p.state}" title="${esc(title)}">${inner}</span>`;
-    }).join('');
-    return `<div class="card-pay"><span class="pay-label">결제</span>${more}${chips}</div>`;
+    const ps = c.payment_summary || {};
+    const lastPaid = [...pays].reverse().find(p => p.state === 'paid');
+    const paidChip = `<span class="pay-chip ${ps.paid ? 'paid' : ''}" title="${lastPaid ? '최근 결제 ' + esc(lastPaid.due_date) + (lastPaid.paid_at ? ' (' + esc(lastPaid.paid_at) + ')' : '') : '결제 기록 없음'}">${ps.paid ? '✓ ' : ''}결제 ${ps.paid || 0}회</span>`;
+    let nextChip = '';
+    if (ps.due > 0) nextChip = '<span class="pay-chip due">오늘 결제일</span>';
+    else if (ps.next_due) nextChip = `<span class="pay-chip upcoming" title="다음 결제일">다음 ${esc(ps.next_due.slice(5))}</span>`;
+    else if (c.end_date) nextChip = '<span class="pay-chip">결제 종료</span>';
+    return `<div class="card-pay"><span class="pay-label">결제</span>${paidChip}${nextChip}</div>`;
 }
 async function togglePay(id, dueDate, paid) {
     const res = await fetch(`/api/rental-contracts/${id}/payments`, {
@@ -413,6 +446,10 @@ async function togglePay(id, dueDate, paid) {
     const i = allContracts.findIndex(c => c.id === updated.id);
     if (i >= 0) allContracts[i] = updated; else allContracts.push(updated);
     renderContracts();
+    // 관리 모달이 이 계약을 보고 있으면 이력도 갱신
+    if (document.getElementById('contractModal').classList.contains('open') && String(document.getElementById('contractId').value) === String(updated.id) && modalMode === 'view') {
+        renderContractView(updated);
+    }
 }
 
 /** 최근 업데이트 기준일 — 시작일·종료일 중 늦은 날짜 */
@@ -488,11 +525,11 @@ function renderContracts() {
                 <div><div class="k">월 금액</div><div class="v fee">${won(c.monthly_fee)}${manual}</div></div>
             </div>
             <div class="card-body">
-                ${payStripHtml(c)}
+                ${paySummaryHtml(c)}
                 <div class="card-memo" title="${esc(c.memo || '')}">${memo}</div>
             </div>
             <div class="card-side">
-                <div class="card-side-row">${payTag}<span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span>${canEdit ? `<button class="btn-outline" onclick='editContract(${c.id})'>편집</button>` : ''}</div>
+                <div class="card-side-row">${payTag}<span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span><button class="btn-outline" onclick='manageContract(${c.id})' title="저장된 내용·결제 이력 보기${canEdit ? ', 수정' : ''}">관리</button></div>
                 <div class="card-updated" title="시작일·종료일 중 늦은 날짜 — 최근 업데이트순 정렬 기준">업데이트 <b>${esc(updated)}</b></div>
             </div>
         </article>`;
@@ -545,12 +582,70 @@ function pickStatus(s) {
     document.querySelectorAll('.status-pick button').forEach(b => { const on = b.dataset.status === s; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
 }
 
-async function openContractModal(data) {
+let modalMode = 'edit'; // 'view'(관리: 저장된 내용 + 결제 이력) | 'edit'(수정/등록 폼)
+function setContractMode(mode) {
+    modalMode = mode;
+    const id = document.getElementById('contractId').value;
+    const kind = document.getElementById('contractKind').value || KIND;
+    document.getElementById('contractView').style.display = mode === 'view' ? '' : 'none';
+    document.getElementById('contractForm').style.display = mode === 'edit' ? '' : 'none';
+    document.getElementById('viewFooter').style.display = mode === 'view' ? 'flex' : 'none';
+    document.getElementById('formFooter').style.display = mode === 'edit' ? 'flex' : 'none';
+    document.getElementById('modalTitle').textContent = (mode === 'view' ? '계약 관리' : (id ? '계약 수정' : '+ 계약 등록')) + ' · ' + KIND_LABEL[kind];
+    if (mode === 'view') {
+        const c = allContracts.find(x => String(x.id) === String(id));
+        if (c) renderContractView(c);
+    }
+}
+function cancelContractEdit() {
+    if (document.getElementById('contractId').value) setContractMode('view'); // 기존 계약이면 조회로 복귀
+    else closeContractModal();
+}
+/** 조회 모드 — 저장된 내용 + 결제 이력(결제일별, 최신순). 결제 체크/해제는 여기서 */
+function renderContractView(c) {
+    const el = document.getElementById('contractView');
+    const clientLabel = esc((c.client_name || c.client_nickname || '-') + (c.client_name && c.client_nickname ? ` (${c.client_nickname})` : ''));
+    const endLabel = c.end_date ? esc(c.end_date) : (c.status === 'pending' ? '미정' : '진행중');
+    const manual = c.fee_manual ? '<span class="fee-manual-tag" title="상품 기본 금액 대신 직접 입력한 금액">수동</span>' : '';
+    const row = (k, v, mono) => `<div class="cvw-row"><div class="k">${k}</div><div class="v ${v ? '' : 'dim'} ${mono ? 'mono' : ''}">${v ? esc(v) : '—'}</div></div>`;
+    const server = c.kind === 'server' ? row('서버명', c.server_name) + row('사양', c.server_spec) + row('접속 정보', c.server_access, true) : '';
+    const pays = [...(c.payments || [])].sort((a, b) => b.due_date.localeCompare(a.due_date));
+    const ps = c.payment_summary || {};
+    let hist;
+    if (c.status === 'pending') hist = '<div class="pay-hist-empty">준비중 — 진행중으로 바꾸면 결제 일정이 생깁니다.</div>';
+    else if (!pays.length) hist = '<div class="pay-hist-empty">결제 일정이 없습니다.</div>';
+    else hist = `<div class="pay-hist">${pays.map(p => {
+        const info = p.state === 'paid'
+            ? `${p.paid_by ? esc(p.paid_by) + ' · ' : ''}${esc(p.paid_at || '')}${p.amount ? ' · ' + won(p.amount) : ''}`
+            : (p.state === 'overdue' ? '결제일이 지났습니다' : (p.state === 'due' ? '오늘이 결제일입니다' : '예정'));
+        const act = canEdit
+            ? `<button type="button" class="btn-outline act ${p.state === 'paid' ? '' : ''}" onclick="togglePay(${c.id}, '${p.due_date}', ${p.state !== 'paid'})">${p.state === 'paid' ? '해제' : '결제됨 체크'}</button>`
+            : '';
+        return `<div class="pay-hist-row ${p.state}"><span class="d">${esc(p.due_date)}</span><span class="pay-chip ${p.state}">${p.state === 'paid' ? '✓ ' : (p.state === 'overdue' ? '! ' : '')}${PAY_STATE_LABEL[p.state] || esc(p.state)}</span><span class="info" title="${esc(info)}">${info}</span>${act}</div>`;
+    }).join('')}</div>`;
+    el.innerHTML = `
+        <div class="cvw-head">
+            <div style="min-width:0;"><div class="cvw-product ${c.product_name ? '' : 'none'}">${c.product_name ? esc(c.product_name) : '상품 미지정'}</div><div class="cvw-client">${clientLabel}</div></div>
+            <span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span>
+        </div>
+        <div class="cvw-grid">
+            <div><div class="k">시작일</div><div class="v">${esc(c.start_date)}</div></div>
+            <div><div class="k">종료일</div><div class="v">${endLabel}</div></div>
+            <div><div class="k">월 금액</div><div class="v" style="color:var(--accent);">${won(c.monthly_fee)}${manual}</div></div>
+        </div>
+        ${server}
+        ${row('메모', c.memo)}
+        <div class="cvw-sec">
+            <div class="cvw-sec-title"><span>결제 이력</span><small>결제 ${ps.paid || 0}회${ps.overdue ? ` · <span style="color:var(--red);">미납 ${ps.overdue}</span>` : ''}${ps.next_due ? ` · 다음 ${esc(ps.next_due)}` : ''}</small></div>
+            ${hist}
+        </div>`;
+}
+
+async function openContractModal(data, mode) {
     const kind = data?.kind || KIND;
     if (!products[kind].length) await loadProducts().catch(() => {});
     document.getElementById('contractModal').classList.add('open');
     document.getElementById('contractModal').classList.toggle('kind-server', kind === 'server');
-    document.getElementById('modalTitle').textContent = (data ? '계약 편집' : '+ 계약 등록') + ' · ' + KIND_LABEL[kind];
     document.getElementById('contractId').value = data?.id || '';
     document.getElementById('contractKind').value = kind;
     document.getElementById('clientId').value = data?.client_id || '';
@@ -569,7 +664,7 @@ async function openContractModal(data) {
     document.getElementById('serverSpec').value = data?.server_spec || '';
     document.getElementById('serverAccess').value = data?.server_access || '';
     document.getElementById('memo').value = data?.memo || '';
-    document.getElementById('deleteBtn').style.display = data ? 'inline-flex' : 'none';
+    setContractMode(mode || (data ? 'view' : 'edit'));
 }
 
 function closeContractModal() {
@@ -577,9 +672,10 @@ function closeContractModal() {
     document.getElementById('clientResults').classList.remove('open');
 }
 
-function editContract(id) {
+/** '관리' — 저장된 내용과 결제 이력을 먼저 보여주고, '수정' 버튼으로 폼 전환 */
+function manageContract(id) {
     const c = allContracts.find(x => x.id === id);
-    if (c) openContractModal(c);
+    if (c) openContractModal(c, 'view');
 }
 
 let searchTimer;
@@ -647,8 +743,17 @@ async function saveContract() {
     });
 
     if (res.ok) {
-        closeContractModal();
-        await loadContracts();
+        const saved = await res.json().catch(() => null);
+        if (id && saved?.id) {
+            // 기존 계약 수정 — 목록 갱신 후 조회 모드로 복귀 (변경 내용·결제 이력 확인)
+            const i = allContracts.findIndex(c => c.id === saved.id);
+            if (i >= 0) allContracts[i] = saved;
+            renderContracts();
+            setContractMode('view');
+        } else {
+            closeContractModal();
+            await loadContracts();
+        }
     } else {
         const err = await res.json().catch(() => ({}));
         alert('저장 실패: ' + (err.message || Object.values(err.errors || {}).flat().join(', ')));

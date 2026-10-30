@@ -155,7 +155,13 @@ class RentalPaymentTest extends TestCase
     public function test_page_renders_payment_strip_and_overdue_filter(): void
     {
         $html = $this->actingAs($this->master)->get('/rental-contracts')->assertOk()->getContent();
-        $this->assertStringContainsString('function payStripHtml', $html);
+        // 목록은 결제 요약만, 월별 이력·체크는 '관리' 모달(조회 모드 → '수정'으로 폼 전환)
+        $this->assertStringContainsString('function paySummaryHtml', $html);
+        $this->assertStringContainsString('function renderContractView', $html);
+        $this->assertStringContainsString('id="contractView"', $html);
+        $this->assertStringContainsString("onclick=\"setContractMode('edit')\">수정</button>", $html);
+        $this->assertStringContainsString('>관리</button>', $html);
+        $this->assertStringNotContainsString('expandedPay', $html);
         $this->assertStringContainsString('<option value="overdue">미납 있음</option>', $html);
         $this->assertStringContainsString('id="statOverdue"', $html);
     }
