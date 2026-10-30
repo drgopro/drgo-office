@@ -23,8 +23,11 @@ use Illuminate\Support\Str;
  */
 class ContractCalendarSync
 {
-    /** 진행중(종료일 없음) 계약의 결제 반복 생성 범위 (개월) */
+    /** 진행중(종료일 없음) 계약의 결제 반복 생성 범위 (개월) — 시작일 또는 오늘 중 늦은 쪽부터. 매월 크론이 재동기화해 앞으로 밀어준다 */
     public const ONGOING_MONTHS = 12;
+
+    /** 결제 체크된 결제일의 캘린더 일정 제목 앞에 붙는 표시 */
+    public const PAID_PREFIX = '✅ ';
 
     /** @var array<class-string, array{source:string, category:string}> */
     private const KINDS = [
@@ -130,18 +133,38 @@ class ContractCalendarSync
         // 해지(terminated)면 종료일 이후 생성 안 함 (until이 자연히 잘라줌)
         // 준비중(설치·개통 전) 렌탈 계약은 결제 반복을 만들지 않는다 — 진행중으로 바뀔 때 재동기화로 생성
         $isPending = $contract instanceof RentalContract && $contract->isPending();
-        $until = $end ?? $start->copy()->addMonthsNoOverflow(self::ONGOING_MONTHS);
+        // 오래된 진행중 계약도 오늘 이후 결제일이 캘린더에 있도록 — 시작일이 아니라 max(시작일, 오늘) 기준으로 12개월
+        $anchor = $start->gt(Carbon::today()) ? $start : Carbon::today();
+        $until = $end ?? $anchor->copy()->addMonthsNoOverflow(self::ONGOING_MONTHS);
         if (! $isBroadcast && ! $isPending && $until->gt($start)) {
+            // 이미 결제 체크된 날짜는 재동기화해도 ✅ 표시 유지
+            $paidDates = $contract instanceof RentalContract
+                ? $contract->payments()->pluck('due_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->all()
+                : [];
             $meta['repeat_group'] = $this->createMonthlyOccurrences(
                 $base,
                 $titles['pay'].($contract->monthly_fee ? ' ('.number_format($contract->monthly_fee).'원)' : ''),
                 $start,
                 $until,
+                $paidDates,
             );
         }
 
         // 이벤트 없이 저장되는 경우는 없음(시작 이벤트 항상 생성)
         $contract->forceFill(['calendar_meta' => $meta])->saveQuietly();
+    }
+
+    /** 결제 체크 ↔ 캘린더 결제 일정 제목의 ✅ 표시 동기화 (해당 날짜의 반복 일정만) */
+    public function markPayment(RentalContract $contract, string $dueDate, bool $paid): void
+    {
+        $group = $contract->calendar_meta['repeat_group'] ?? null;
+        if (! $group) {
+            return;
+        }
+        Schedule::where('repeat_group', $group)->whereDate('start_date', $dueDate)->get()->each(function (Schedule $s) use ($paid) {
+            $bare = Str::startsWith($s->title, self::PAID_PREFIX) ? Str::after($s->title, self::PAID_PREFIX) : $s->title;
+            $s->forceFill(['title' => ($paid ? self::PAID_PREFIX : '').$bare])->saveQuietly();
+        });
     }
 
     /** 계약 삭제 시 연결 일정 정리 */
@@ -168,7 +191,7 @@ class ContractCalendarSync
      * 매월 반복(시작일의 '일' 기준, 말일 클램프) 종일 일정 생성.
      * 캘린더 반복 UI와 일관되도록 repeat_group/repeat_* 필드 기록.
      */
-    private function createMonthlyOccurrences(array $base, string $title, Carbon $first, Carbon $until): string
+    private function createMonthlyOccurrences(array $base, string $title, Carbon $first, Carbon $until, array $paidDates = []): string
     {
         $group = (string) Str::uuid();
         $repeatFields = [
@@ -177,13 +200,13 @@ class ContractCalendarSync
             'repeat_until' => $until->toDateString(),
         ];
 
-        for ($i = 0; $i <= 60; $i++) {
+        for ($i = 0; $i <= 1200; $i++) {
             $date = $first->copy()->addMonthsNoOverflow($i);
             if ($date->gt($until)) {
                 break;
             }
             Schedule::create($base + $repeatFields + [
-                'title' => $title,
+                'title' => (in_array($date->toDateString(), $paidDates, true) ? self::PAID_PREFIX : '').$title,
                 'start_date' => $date->toDateString(),
                 'end_date' => $date->toDateString(),
             ]);

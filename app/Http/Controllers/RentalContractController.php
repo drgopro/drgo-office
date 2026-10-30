@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\RentalContract;
+use App\Models\RentalPayment;
 use App\Models\RentalProduct;
 use App\Services\ContractCalendarSync;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -26,12 +28,29 @@ class RentalContractController extends Controller
     /** 계약 목록 — kind 지정 시 해당 종류만 (미지정 시 전체, 구버전 탭 호환) */
     public function list(Request $request)
     {
-        $query = RentalContract::with(['client', 'product'])->orderByDesc('start_date')->limit(500);
+        $query = RentalContract::with(['client', 'product', 'payments.payer'])->orderByDesc('start_date')->limit(500);
         if ($request->filled('kind')) {
             $query->where('kind', $this->kindFrom($request->query('kind')));
         }
 
-        $contracts = $query->get()->map(fn (RentalContract $c) => [
+        $contracts = $query->get()->map(fn (RentalContract $c) => $this->toArray($c));
+
+        return response()->json($contracts);
+    }
+
+    /**
+     * 계약 → 화면 payload (목록·저장·결제 체크 응답 공용). 결제 현황은 결제일별 상태 + 요약.
+     *
+     * @return array<string, mixed>
+     */
+    private function toArray(RentalContract $c): array
+    {
+        $c->loadMissing(['client', 'product', 'payments.payer']);
+        $payments = $c->paymentStatus();
+        $counts = array_count_values(array_column($payments, 'state'));
+        $next = collect($payments)->first(fn (array $p) => in_array($p['state'], ['due', 'upcoming'], true));
+
+        return [
             'id' => $c->id,
             'kind' => $c->kind,
             'product_id' => $c->product_id,
@@ -49,9 +68,44 @@ class RentalContractController extends Controller
             'server_spec' => $c->server_spec,
             'server_access' => $c->server_access,
             'calendar_synced' => ! empty($c->calendar_meta),
-        ]);
+            'payments' => $payments,
+            'payment_summary' => [
+                'paid' => $counts['paid'] ?? 0,
+                'due' => $counts['due'] ?? 0,
+                'overdue' => $counts['overdue'] ?? 0,
+                'next_due' => $next['due_date'] ?? null,
+            ],
+        ];
+    }
 
-        return response()->json($contracts);
+    /**
+     * 결제 체크 토글 — 결제일(갱신일)에 결제가 됐는지 표시. paid=true 면 기록, false 면 해제.
+     * 체크는 계약의 결제 일정(dueDates)에 있는 날짜만, 해제는 기록이 있는 날짜면 허용(일정이 바뀌어 벗어난 기록 정리용).
+     * 캘린더의 해당 결제 일정 제목에도 ✅ 를 붙이거나 뗀다.
+     */
+    public function togglePayment(Request $request, RentalContract $contract)
+    {
+        $validated = $request->validate([
+            'due_date' => 'required|date_format:Y-m-d',
+            'paid' => 'required|boolean',
+        ]);
+        if ($validated['paid'] && ! in_array($validated['due_date'], $contract->dueDates(), true)) {
+            throw ValidationException::withMessages(['due_date' => '이 계약의 결제일이 아닙니다.']);
+        }
+
+        DB::transaction(function () use ($contract, $validated) {
+            if ($validated['paid']) {
+                RentalPayment::updateOrCreate(
+                    ['contract_id' => $contract->id, 'due_date' => $validated['due_date']],
+                    ['amount' => $contract->monthly_fee, 'paid_at' => now(), 'paid_by' => Auth::id()],
+                );
+            } else {
+                $contract->payments()->whereDate('due_date', $validated['due_date'])->delete();
+            }
+            $this->calendarSync->markPayment($contract, $validated['due_date'], (bool) $validated['paid']);
+        });
+
+        return response()->json($this->toArray($contract->fresh()));
     }
 
     private function kindFrom(?string $kind): string
@@ -154,7 +208,7 @@ class RentalContractController extends Controller
             return $contract;
         });
 
-        return response()->json($contract->load('client'), 201);
+        return response()->json($this->toArray($contract), 201);
     }
 
     public function update(Request $request, RentalContract $contract)
@@ -187,7 +241,7 @@ class RentalContractController extends Controller
             $this->calendarSync->sync($contract); // 변경 사항 캘린더 재동기화
         });
 
-        return response()->json($contract->load('client'));
+        return response()->json($this->toArray($contract->fresh()));
     }
 
     public function destroy(RentalContract $contract)

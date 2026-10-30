@@ -8,6 +8,7 @@ use App\Models\RentalProduct;
 use App\Models\Schedule;
 use App\Models\Team;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,9 +21,16 @@ class RentalProductTest extends TestCase
 
     private Client $client;
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
+        Carbon::setTestNow('2026-07-18 10:00:00'); // 결제 반복은 max(시작일, 오늘)+12개월 — 시작일에 고정해 13건 기대치 유지
         $this->master = User::factory()->create(['role' => 'master']);
         $this->client = Client::create(['nickname' => '윤민아', 'grade' => 'normal', 'status' => 'active']);
     }

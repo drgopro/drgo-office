@@ -425,6 +425,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/rental-contracts', [RentalContractController::class, 'store']);
         Route::patch('/api/rental-contracts/{contract}', [RentalContractController::class, 'update']);
         Route::delete('/api/rental-contracts/{contract}', [RentalContractController::class, 'destroy']);
+        Route::post('/api/rental-contracts/{contract}/payments', [RentalContractController::class, 'togglePayment']);
         Route::post('/api/rental-products', [RentalProductController::class, 'store']);
         Route::patch('/api/rental-products/{product}', [RentalProductController::class, 'update']);
         Route::delete('/api/rental-products/{product}', [RentalProductController::class, 'destroy']);

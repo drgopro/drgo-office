@@ -9,7 +9,7 @@
     .page-title { font-size:20px; font-weight:700; display:flex; align-items:center; gap:8px; min-width:0; }
     .header-actions { display:flex; gap:8px; flex-shrink:0; }
 
-    .stat-row { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin-bottom:20px; }
+    .stat-row { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:20px; }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 18px; min-width:0; }
     .stat-label { font-size:10px; color:var(--text-muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .stat-value { font-size:22px; font-weight:700; white-space:nowrap; }
@@ -54,7 +54,7 @@
     /* 계약 카드 — 리스트형: 한 줄에 한 계약 (최신순이 위→아래로 읽히도록). 폭이 줄면 한 카드 안에서 줄바꿈 */
     .cards { display:flex; flex-direction:column; gap:8px; }
     .cards-empty { text-align:center; padding:40px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:12px; }
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; display:grid; grid-template-columns:minmax(0, 1.3fr) auto minmax(0, 1fr) auto; grid-template-areas:"main meta memo side"; align-items:center; gap:10px 18px; min-width:0; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; display:grid; grid-template-columns:minmax(180px, 0.8fr) 340px minmax(0, 1.5fr) auto; grid-template-areas:"main meta body side"; align-items:center; gap:10px 16px; min-width:0; }
     .card-main { grid-area:main; display:flex; flex-direction:column; gap:4px; min-width:0; }
     .card-product { font-size:15px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.35; }
     .card-product.none { color:var(--text-muted); font-weight:600; }
@@ -62,14 +62,33 @@
     .card-client span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
     .card-client svg { flex-shrink:0; width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; }
     .card-client a { text-decoration:none; flex-shrink:0; }
-    .card-meta { grid-area:meta; display:flex; gap:18px; padding:8px 14px; background:var(--surface2); border-radius:8px; }
+    .card-meta { grid-area:meta; display:grid; grid-template-columns:1fr 1fr 1.1fr; gap:10px; padding:8px 14px; background:var(--surface2); border-radius:8px; min-width:0; }
     .card-meta div { min-width:0; }
     .card-meta .k { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:2px; white-space:nowrap; }
-    .card-meta .v { font-size:13px; font-weight:600; white-space:nowrap; display:flex; align-items:center; }
+    .card-meta .v { font-size:13px; font-weight:600; white-space:nowrap; display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis; }
     .card-meta .fee { color:var(--accent); font-weight:700; }
     .card-access { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); min-width:0; }
     .card-access span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
-    .card-memo { grid-area:memo; font-size:12px; color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-body { grid-area:body; display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .card-memo { font-size:12px; color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* 결제 현황 — 결제일(갱신일)마다 칩 하나. 클릭(rental.edit)으로 결제됨 체크/해제 */
+    .card-pay { display:flex; align-items:center; gap:4px; flex-wrap:wrap; min-width:0; }
+    .pay-label { font-size:11px; color:var(--text-muted); margin-right:2px; white-space:nowrap; }
+    .pay-chip { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); white-space:nowrap; line-height:1.7; cursor:default; font-family:inherit; }
+    button.pay-chip { cursor:pointer; }
+    button.pay-chip:hover { filter:brightness(1.08); }
+    .pay-chip.paid { background:rgba(122,200,122,0.18); color:#7ac87a; border-color:rgba(122,200,122,0.45); }
+    .pay-chip.due { background:rgba(230,160,60,0.16); color:#d9a24a; border-color:rgba(230,160,60,0.55); box-shadow:0 0 0 2px rgba(230,160,60,0.12); }
+    .pay-chip.overdue { background:rgba(200,80,80,0.14); color:var(--red); border-color:rgba(200,80,80,0.5); }
+    .pay-chip.upcoming { border-style:dashed; opacity:.8; }
+    .pay-chip.more { font-weight:600; }
+    [data-theme="light"] .pay-chip.paid { background:#e8f5e8; color:#1a7a2a; border-color:#a0d8a0; }
+    [data-theme="light"] .pay-chip.due { background:#fff3e0; color:#9a5a10; border-color:#f0c890; }
+    [data-theme="light"] .pay-chip.overdue { background:#fdecec; color:#b03030; border-color:#f0b0b0; }
+    .overdue-tag { display:inline-flex; align-items:center; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; background:rgba(200,80,80,0.14); color:var(--red); border:1px solid rgba(200,80,80,0.45); line-height:1.7; }
+    .due-tag { display:inline-flex; align-items:center; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; background:rgba(230,160,60,0.16); color:#d9a24a; border:1px solid rgba(230,160,60,0.5); line-height:1.7; }
+    [data-theme="light"] .overdue-tag { background:#fdecec; color:#b03030; border-color:#f0b0b0; }
+    [data-theme="light"] .due-tag { background:#fff3e0; color:#9a5a10; border-color:#f0c890; }
     .card-side { grid-area:side; display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
     .card-side-row { display:flex; align-items:center; gap:8px; }
     .card-updated { font-size:11px; color:var(--text-muted); white-space:nowrap; }
@@ -122,7 +141,7 @@
     .prod-form-actions { grid-column:1 / -1; display:flex; gap:8px; justify-content:flex-end; }
 
     @media (max-width:1023px) {
-        .card { grid-template-columns:minmax(0, 1fr) auto; grid-template-areas:"main side" "meta meta" "memo memo"; gap:10px 12px; }
+        .card { grid-template-columns:minmax(0, 1fr) auto; grid-template-areas:"main side" "meta meta" "body body"; gap:10px 12px; }
         .card-meta { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
         .card-meta .v { overflow:hidden; text-overflow:ellipsis; }
         .card-memo { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
@@ -133,13 +152,13 @@
         .rental-kind-tabs .pst-tab { min-width:0; padding:8px 10px; }
         .page-header { flex-wrap:wrap; }
         .page-title { font-size:18px; }
-        .stat-row { gap:8px; }
+        .stat-row { gap:8px; grid-template-columns:repeat(2, minmax(0, 1fr)); }
         .stat-card { padding:10px 12px; }
         .stat-label { letter-spacing:0.06em; font-size:9px; }
         .stat-value { font-size:16px; }
         .toolbar input[type=text] { width:100%; flex:1 1 100%; }
         .toolbar select { flex:1; min-width:0; }
-        .card { grid-template-columns:minmax(0, 1fr); grid-template-areas:"main" "meta" "memo" "side"; }
+        .card { grid-template-columns:minmax(0, 1fr); grid-template-areas:"main" "meta" "body" "side"; }
         .card-side { flex-direction:row; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:10px; }
         .field-row { grid-template-columns:1fr; }
         .prod-row { grid-template-columns:minmax(0, 1fr) auto; }
@@ -178,6 +197,10 @@
             <div class="stat-value" style="color:var(--accent);" id="statRevenue">–</div>
         </div>
         <div class="stat-card">
+            <div class="stat-label">미납 결제</div>
+            <div class="stat-value" id="statOverdue" style="color:var(--red);">–</div>
+        </div>
+        <div class="stat-card">
             <div class="stat-label">전체 계약</div>
             <div class="stat-value" id="statTotal">–</div>
         </div>
@@ -195,6 +218,7 @@
             <option value="active">진행중</option>
             <option value="pending">준비중</option>
             <option value="terminated">해지</option>
+            <option value="overdue">미납 있음</option>
         </select>
     </div>
 
@@ -355,6 +379,42 @@ function moveKindPill(instant) {
 window.addEventListener('resize', () => moveKindPill(true));
 let kindPillPlaced = false;
 
+const PAY_STATE_LABEL = { paid:'결제됨', due:'오늘 결제일', overdue:'미납', upcoming:'예정' };
+const PAY_VISIBLE = 8; // 카드당 기본 노출 결제일 수 — 넘치면 '+N' 칩으로 펼침
+const expandedPay = new Set();
+function payChipLabel(dateStr) {
+    const [y, m] = dateStr.split('-');
+    return (String(new Date().getFullYear()) === y ? '' : y.slice(2) + '.') + parseInt(m, 10) + '월';
+}
+function payStripHtml(c) {
+    if (c.status === 'pending') return '<div class="card-pay"><span class="pay-label">결제</span><span class="pay-chip">준비중 — 결제 일정 없음</span></div>';
+    const pays = c.payments || [];
+    if (!pays.length) return '';
+    const show = expandedPay.has(c.id) ? pays : pays.slice(-PAY_VISIBLE);
+    const hidden = pays.length - show.length;
+    const more = hidden > 0 ? `<button type="button" class="pay-chip more" onclick="expandedPay.add(${c.id}); renderContracts();" title="이전 결제일 ${hidden}개 펼치기">+${hidden}</button>` : '';
+    const chips = show.map(p => {
+        const title = `${p.due_date} · ${PAY_STATE_LABEL[p.state] || p.state}` + (p.state === 'paid' && p.paid_at ? ` · ${p.paid_by || ''} ${p.paid_at}`.replace(/\s+/g, ' ') : '') + (canEdit ? (p.state === 'paid' ? ' — 클릭: 결제 해제' : ' — 클릭: 결제됨으로 체크') : '');
+        const mark = p.state === 'paid' ? '✓ ' : (p.state === 'overdue' ? '! ' : '');
+        const inner = `${mark}${payChipLabel(p.due_date)}`;
+        return canEdit
+            ? `<button type="button" class="pay-chip ${p.state}" title="${esc(title)}" aria-pressed="${p.state === 'paid'}" onclick="togglePay(${c.id}, '${p.due_date}', ${p.state !== 'paid'})">${inner}</button>`
+            : `<span class="pay-chip ${p.state}" title="${esc(title)}">${inner}</span>`;
+    }).join('');
+    return `<div class="card-pay"><span class="pay-label">결제</span>${more}${chips}</div>`;
+}
+async function togglePay(id, dueDate, paid) {
+    const res = await fetch(`/api/rental-contracts/${id}/payments`, {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        body: JSON.stringify({ due_date: dueDate, paid }),
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); return alert('저장 실패: ' + (err.message || Object.values(err.errors || {}).flat().join(', '))); }
+    const updated = await res.json();
+    const i = allContracts.findIndex(c => c.id === updated.id);
+    if (i >= 0) allContracts[i] = updated; else allContracts.push(updated);
+    renderContracts();
+}
+
 /** 최근 업데이트 기준일 — 시작일·종료일 중 늦은 날짜 */
 function updatedKey(c) { return [c.start_date, c.end_date].filter(Boolean).sort().pop() || ''; }
 
@@ -374,12 +434,14 @@ function renderContracts() {
     document.getElementById('statActive').textContent = active.length.toLocaleString() + '건';
     document.getElementById('statRevenue').textContent = won(active.reduce((s, c) => s + (Number(c.monthly_fee) || 0), 0));
     document.getElementById('statTotal').textContent = ofKind.length.toLocaleString() + '건';
+    document.getElementById('statOverdue').textContent = ofKind.reduce((s, c) => s + (c.payment_summary?.overdue || 0), 0).toLocaleString() + '건';
 
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
     const status = document.getElementById('statusFilter').value;
     const sort = document.getElementById('sortSelect').value;
     const filtered = ofKind.filter(c => {
-        if (status && c.status !== status) return false;
+        if (status === 'overdue') { if (!(c.payment_summary?.overdue > 0)) return false; }
+        else if (status && c.status !== status) return false;
         if (search) {
             const hay = [c.product_name, c.client_name, c.client_nickname, c.server_name, c.server_spec, c.server_access, c.memo].map(v => (v || '').toLowerCase()).join(' ');
             if (!hay.includes(search)) return false;
@@ -412,6 +474,8 @@ function renderContracts() {
             : '';
         const memo = c.memo ? esc(c.memo) : '<span style="opacity:.6">메모 없음</span>';
         const updated = updatedKey(c);
+        const ps = c.payment_summary || {};
+        const payTag = ps.overdue > 0 ? `<span class="overdue-tag" title="결제일이 지났는데 체크되지 않은 결제 ${ps.overdue}건">미납 ${ps.overdue}</span>` : (ps.due > 0 ? '<span class="due-tag">오늘 결제일</span>' : '');
         return `<article class="card">
             <div class="card-main">
                 ${product}
@@ -423,9 +487,12 @@ function renderContracts() {
                 <div><div class="k">종료일</div><div class="v">${endLabel}</div></div>
                 <div><div class="k">월 금액</div><div class="v fee">${won(c.monthly_fee)}${manual}</div></div>
             </div>
-            <div class="card-memo" title="${esc(c.memo || '')}">${memo}</div>
+            <div class="card-body">
+                ${payStripHtml(c)}
+                <div class="card-memo" title="${esc(c.memo || '')}">${memo}</div>
+            </div>
             <div class="card-side">
-                <div class="card-side-row"><span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span>${canEdit ? `<button class="btn-outline" onclick='editContract(${c.id})'>편집</button>` : ''}</div>
+                <div class="card-side-row">${payTag}<span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span>${canEdit ? `<button class="btn-outline" onclick='editContract(${c.id})'>편집</button>` : ''}</div>
                 <div class="card-updated" title="시작일·종료일 중 늦은 날짜 — 최근 업데이트순 정렬 기준">업데이트 <b>${esc(updated)}</b></div>
             </div>
         </article>`;
