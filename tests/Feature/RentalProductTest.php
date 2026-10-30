@@ -171,6 +171,7 @@ class RentalProductTest extends TestCase
         $this->assertStringContainsString('data-status="pending"', $html);
         $this->assertStringContainsString('<option value="updated">최근 업데이트순</option>', $html);
         $this->assertStringContainsString('id="productModal"', $html);
+        $this->assertStringContainsString('class="card-updated"', $html, '리스트형 카드 — 정렬 기준일(업데이트) 표시');
         $this->assertStringNotContainsString('<table>', $html, '표 대신 모든 폭에서 카드');
     }
 }

@@ -51,26 +51,29 @@
     [data-theme="light"] .fee-manual-tag { background:#fff3e0; color:#9a5a10; border-color:#f0c890; }
     .mono { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
 
-    /* 계약 카드 — 모든 폭 공통, 열 수만 바뀜 (PC 3 · 태블릿 2 · 모바일 1) */
-    .cards { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
-    .cards-empty { grid-column:1 / -1; text-align:center; padding:40px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:12px; }
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; min-width:0; }
-    .card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; min-width:0; }
+    /* 계약 카드 — 리스트형: 한 줄에 한 계약 (최신순이 위→아래로 읽히도록). 폭이 줄면 한 카드 안에서 줄바꿈 */
+    .cards { display:flex; flex-direction:column; gap:8px; }
+    .cards-empty { text-align:center; padding:40px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 16px; display:grid; grid-template-columns:minmax(0, 1.3fr) auto minmax(0, 1fr) auto; grid-template-areas:"main meta memo side"; align-items:center; gap:10px 18px; min-width:0; }
+    .card-main { grid-area:main; display:flex; flex-direction:column; gap:4px; min-width:0; }
     .card-product { font-size:15px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.35; }
     .card-product.none { color:var(--text-muted); font-weight:600; }
     .card-client { display:flex; align-items:center; gap:6px; font-size:13px; min-width:0; }
     .card-client span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
     .card-client svg { flex-shrink:0; width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; }
     .card-client a { text-decoration:none; flex-shrink:0; }
-    .card-meta { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; padding:10px 12px; background:var(--surface2); border-radius:8px; }
+    .card-meta { grid-area:meta; display:flex; gap:18px; padding:8px 14px; background:var(--surface2); border-radius:8px; }
     .card-meta div { min-width:0; }
     .card-meta .k { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:2px; white-space:nowrap; }
-    .card-meta .v { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; }
+    .card-meta .v { font-size:13px; font-weight:600; white-space:nowrap; display:flex; align-items:center; }
     .card-meta .fee { color:var(--accent); font-weight:700; }
     .card-access { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); min-width:0; }
     .card-access span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
-    .card-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid var(--border); padding-top:10px; min-width:0; }
-    .card-foot .memo { font-size:12px; color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-memo { grid-area:memo; font-size:12px; color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-side { grid-area:side; display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+    .card-side-row { display:flex; align-items:center; gap:8px; }
+    .card-updated { font-size:11px; color:var(--text-muted); white-space:nowrap; }
+    .card-updated b { font-weight:600; color:var(--text); }
 
     /* 모달 */
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
@@ -119,7 +122,10 @@
     .prod-form-actions { grid-column:1 / -1; display:flex; gap:8px; justify-content:flex-end; }
 
     @media (max-width:1023px) {
-        .cards { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+        .card { grid-template-columns:minmax(0, 1fr) auto; grid-template-areas:"main side" "meta meta" "memo memo"; gap:10px 12px; }
+        .card-meta { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+        .card-meta .v { overflow:hidden; text-overflow:ellipsis; }
+        .card-memo { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
     }
     @media (max-width:639px) {
         .page-wrap { padding:16px; }
@@ -133,7 +139,8 @@
         .stat-value { font-size:16px; }
         .toolbar input[type=text] { width:100%; flex:1 1 100%; }
         .toolbar select { flex:1; min-width:0; }
-        .cards { grid-template-columns:minmax(0, 1fr); }
+        .card { grid-template-columns:minmax(0, 1fr); grid-template-areas:"main" "meta" "memo" "side"; }
+        .card-side { flex-direction:row; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:10px; }
         .field-row { grid-template-columns:1fr; }
         .prod-row { grid-template-columns:minmax(0, 1fr) auto; }
         .prod-row .pf { grid-column:1; text-align:left; }
@@ -404,16 +411,23 @@ function renderContracts() {
             ? `<div class="card-access"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2"></rect><rect x="2" y="14" width="20" height="8" rx="2"></rect></svg><span class="mono">${c.server_access ? esc(c.server_access) : '접속 정보 미입력'}</span>${c.server_spec ? `<span title="${esc(c.server_spec)}">· ${esc(c.server_spec)}</span>` : ''}</div>`
             : '';
         const memo = c.memo ? esc(c.memo) : '<span style="opacity:.6">메모 없음</span>';
+        const updated = updatedKey(c);
         return `<article class="card">
-            <div class="card-head">${product}<span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span></div>
-            <div class="card-client">${personIcon}<span title="${clientName}">${clientName}</span>${calBadge}</div>
+            <div class="card-main">
+                ${product}
+                <div class="card-client">${personIcon}<span title="${clientName}">${clientName}</span>${calBadge}</div>
+                ${access}
+            </div>
             <div class="card-meta">
                 <div><div class="k">시작일</div><div class="v">${esc(c.start_date)}</div></div>
                 <div><div class="k">종료일</div><div class="v">${endLabel}</div></div>
                 <div><div class="k">월 금액</div><div class="v fee">${won(c.monthly_fee)}${manual}</div></div>
             </div>
-            ${access}
-            <div class="card-foot"><div class="memo" title="${esc(c.memo || '')}">${memo}</div>${canEdit ? `<button class="btn-outline" onclick='editContract(${c.id})'>편집</button>` : ''}</div>
+            <div class="card-memo" title="${esc(c.memo || '')}">${memo}</div>
+            <div class="card-side">
+                <div class="card-side-row"><span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span>${canEdit ? `<button class="btn-outline" onclick='editContract(${c.id})'>편집</button>` : ''}</div>
+                <div class="card-updated" title="시작일·종료일 중 늦은 날짜 — 최근 업데이트순 정렬 기준">업데이트 <b>${esc(updated)}</b></div>
+            </div>
         </article>`;
     }).join('');
 }
