@@ -46,11 +46,19 @@ class ContractCalendarSync
             return ['start' => "{$prefix} 시작", 'end' => "{$prefix} 종료", 'pay' => "{$prefix} 결제"];
         }
 
+        $word = $contract->isServer() ? '서버 렌탈' : '렌탈';
+
         return [
-            'start' => "렌탈 시작 · {$clientLabel}",
-            'end' => "렌탈 종료 · {$clientLabel}",
-            'pay' => "렌탈 결제 · {$clientLabel}",
+            'start' => "{$word} 시작 · {$clientLabel}",
+            'end' => "{$word} 종료 · {$clientLabel}",
+            'pay' => "{$word} 결제 · {$clientLabel}",
         ];
+    }
+
+    /** 캘린더 카테고리 라벨 — 서버 렌탈은 별도 카테고리로 필터·색 구분 */
+    private function categoryLabel(RentalContract|BroadcastRoomContract $contract, array $kind): string
+    {
+        return ($contract instanceof RentalContract && $contract->isServer()) ? '서버 렌탈' : $kind['category'];
     }
 
     /** 계약 → 캘린더 재동기화 (등록/수정 공용) */
@@ -61,13 +69,24 @@ class ContractCalendarSync
 
         $contract->loadMissing('client');
         $clientLabel = trim(($contract->client?->nickname ?: $contract->client?->name) ?? '');
-        $colorKey = CalendarCategory::ensureByLabel($kind['category']);
+        $colorKey = CalendarCategory::ensureByLabel($this->categoryLabel($contract, $kind));
         $start = Carbon::parse($contract->start_date->format('Y-m-d'));
         $end = $contract->end_date ? Carbon::parse($contract->end_date->format('Y-m-d')) : null;
 
         // 방송룸 월대여: 별도 결제 반복 일정 없이 시작 일정 내용에 결제 내역 기재
         $isBroadcast = $contract instanceof BroadcastRoomContract;
         $description = $contract->memo ?: null;
+        if ($contract instanceof RentalContract && $contract->isServer()) {
+            // 서버 렌탈: 서버명·사양만 일정 내용에 기재. 접속 정보(IP·계정)는 렌탈 화면(rental.view 권한)에서만 —
+            // 캘린더는 전 직원에게 보이고 내보내기·변경 이력에도 사본이 남으므로 복제하지 않는다
+            $serverInfo = array_filter([
+                $contract->server_name ? "· 서버: {$contract->server_name}" : null,
+                $contract->server_spec ? "· 사양: {$contract->server_spec}" : null,
+            ]);
+            if ($serverInfo) {
+                $description = "[서버 정보]\n".implode("\n", $serverInfo).($contract->memo ? "\n\n".$contract->memo : '');
+            }
+        }
         if ($isBroadcast) {
             $paymentInfo = "[결제 내역]\n"
                 .'· 월 요금: '.number_format($contract->monthly_fee).'원'

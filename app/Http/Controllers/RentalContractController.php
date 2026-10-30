@@ -7,36 +7,31 @@ use App\Models\RentalContract;
 use App\Services\ContractCalendarSync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RentalContractController extends Controller
 {
     public function __construct(private ContractCalendarSync $calendarSync) {}
 
+    /** 탭(장비 렌탈 / 서버 렌탈) 골격 — 목록·통계는 /api/rental-contracts?kind= 로 탭별 로드 */
     public function index(Request $request)
     {
-        $query = RentalContract::with('client');
+        $kind = $this->kindFrom($request->query('kind'));
 
-        if ($status = $request->query('status')) {
-            $query->where('status', $status);
-        }
-
-        if ($search = $request->query('search')) {
-            $query->whereHas('client', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")->orWhere('nickname', 'like', "%{$search}%");
-            });
-        }
-
-        $contracts = $query->orderByDesc('start_date')->paginate(30);
-        $activeCount = RentalContract::where('status', 'active')->count();
-        $monthlyRevenue = RentalContract::where('status', 'active')->sum('monthly_fee');
-
-        return view('rental-contracts.index', compact('contracts', 'activeCount', 'monthlyRevenue'));
+        return view('rental-contracts.index', compact('kind'));
     }
 
-    public function list()
+    /** 계약 목록 — kind 지정 시 해당 종류만 (미지정 시 전체, 구버전 탭 호환) */
+    public function list(Request $request)
     {
-        $contracts = RentalContract::with('client')->orderByDesc('start_date')->limit(500)->get()->map(fn ($c) => [
+        $query = RentalContract::with('client')->orderByDesc('start_date')->limit(500);
+        if ($request->filled('kind')) {
+            $query->where('kind', $this->kindFrom($request->query('kind')));
+        }
+
+        $contracts = $query->get()->map(fn (RentalContract $c) => [
             'id' => $c->id,
+            'kind' => $c->kind,
             'client_id' => $c->client_id,
             'client_name' => $c->client?->name,
             'client_nickname' => $c->client?->nickname,
@@ -45,22 +40,53 @@ class RentalContractController extends Controller
             'monthly_fee' => $c->monthly_fee,
             'status' => $c->status,
             'memo' => $c->memo,
+            'server_name' => $c->server_name,
+            'server_spec' => $c->server_spec,
+            'server_access' => $c->server_access,
             'calendar_synced' => ! empty($c->calendar_meta),
         ]);
 
         return response()->json($contracts);
     }
 
+    private function kindFrom(?string $kind): string
+    {
+        return in_array($kind, RentalContract::KINDS, true) ? $kind : RentalContract::KIND_EQUIPMENT;
+    }
+
+    /**
+     * 장비 렌탈에는 서버 필드가 남지 않도록 — 종류를 서버→장비로 바꾸면 접속 정보 등을 함께 지운다.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function clearServerFieldsUnlessServer(array $data, string $kind): array
+    {
+        if ($kind !== RentalContract::KIND_SERVER) {
+            $data['server_name'] = null;
+            $data['server_spec'] = null;
+            $data['server_access'] = null;
+        }
+
+        return $data;
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
+            'kind' => ['sometimes', Rule::in(RentalContract::KINDS)],
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'monthly_fee' => 'required|integer|min:0',
             'status' => 'required|in:active,terminated',
             'memo' => 'nullable|string',
+            'server_name' => 'nullable|string|max:100',
+            'server_spec' => 'nullable|string|max:200',
+            'server_access' => 'nullable|string|max:200',
         ]);
+
+        $validated = $this->clearServerFieldsUnlessServer($validated, $validated['kind'] ?? RentalContract::KIND_EQUIPMENT);
 
         $contract = DB::transaction(function () use ($validated) {
             $contract = RentalContract::create($validated);
@@ -76,12 +102,18 @@ class RentalContractController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'sometimes|exists:clients,id',
+            'kind' => ['sometimes', Rule::in(RentalContract::KINDS)],
             'start_date' => 'sometimes|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'monthly_fee' => 'sometimes|integer|min:0',
             'status' => 'sometimes|in:active,terminated',
             'memo' => 'nullable|string',
+            'server_name' => 'nullable|string|max:100',
+            'server_spec' => 'nullable|string|max:200',
+            'server_access' => 'nullable|string|max:200',
         ]);
+
+        $validated = $this->clearServerFieldsUnlessServer($validated, $validated['kind'] ?? $contract->kind);
 
         DB::transaction(function () use ($contract, $validated) {
             $contract->update($validated);

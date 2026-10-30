@@ -45,7 +45,7 @@ class SyncContractCalendars extends Command
         $this->table(
             ['유형', 'ID', '의뢰자', '시작일', '종료일', '사유'],
             collect($targets)->map(fn ($t) => [
-                $t['label'], $t['c']->id,
+                ($t['c'] instanceof RentalContract) ? $t['c']->kindLabel() : $t['label'], $t['c']->id,
                 $t['c']->client?->nickname ?: $t['c']->client?->name,
                 $t['c']->start_date?->format('Y-m-d'), $t['c']->end_date?->format('Y-m-d') ?: '(진행중)',
                 $t['reason'],

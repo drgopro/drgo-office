@@ -93,7 +93,7 @@ class CalendarCategory extends Model
             }
         }
 
-        $known = ['디자인' => 'design', '렌탈' => 'rental', '촬영' => 'shoot', '스튜디오' => 'studio', '방송룸 대여' => 'broadcast_rental'];
+        $known = ['디자인' => 'design', '렌탈' => 'rental', '서버 렌탈' => 'server_rental', '촬영' => 'shoot', '스튜디오' => 'studio', '방송룸 대여' => 'broadcast_rental'];
         $base = $known[$label] ?? (preg_replace('/[^a-z0-9_]/', '', Str::slug($label, '_')) ?: 'cat_'.time());
         $key = $base;
         $i = 1;
