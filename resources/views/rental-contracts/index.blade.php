@@ -47,13 +47,26 @@
     .client-search-result { padding:10px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border); }
     .client-search-result:hover { background:var(--surface2); }
 
-    /* 서브 탭 — 장비 렌탈 / 서버 렌탈 */
-    .sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
-    .sub-tab { padding:8px 16px; font-size:13px; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.12s; display:inline-flex; align-items:center; gap:6px; }
-    .sub-tab:hover { color:var(--text); }
-    .sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
-    .sub-tab .cnt { font-size:11px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:0 7px; color:var(--text-muted); }
-    .sub-tab.active .cnt { color:var(--accent); border-color:var(--accent); }
+    /* 장비 렌탈 / 서버 렌탈 탭 — 프로젝트 목록의 전체/진행/완료/취소 탭과 동일한 알약(세그먼트) 형태, 상단 가운데 */
+    .proj-status-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
+    .pst-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.15s; }
+    /* hover — 선택 알약은 그대로 두고, 더 옅은 톤의 알약이 살짝 비친다 */
+    .pst-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); transition:color 0.15s, background 0.15s; }
+    [data-theme="light"] .pst-tab:hover:not(.active) { background:rgba(255,255,255,0.65); }
+    .pst-tab.active { color:var(--text); font-weight:800; }
+    /* 슬라이딩 알약 — JS가 active 탭 위치로 움직인다. JS 전에는 active 탭 자체 배경으로 폴백 */
+    .pst-pill { position:absolute; top:5px; bottom:5px; left:0; width:0; border-radius:999px; background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); transition:left 0.28s cubic-bezier(.4,0,.2,1), width 0.28s cubic-bezier(.4,0,.2,1); z-index:0; }
+    [data-theme="light"] .pst-pill { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    .proj-status-tabs:not(.pst-js) .pst-tab.active { background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); }
+    [data-theme="light"] .proj-status-tabs:not(.pst-js) .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
+    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
+    .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
+    .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
+    [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
+    /* 상단 가운데 — 내용 폭만큼만 차지하고 중앙 정렬 */
+    .rental-kind-tabs { width:max-content; max-width:100%; margin:0 auto 18px; }
+    .rental-kind-tabs .pst-tab { min-width:150px; }
+
     .server-only { display:none; }
     .kind-server .server-only { display:block; }
     .kind-server .field-row.server-only { display:grid; }
@@ -69,17 +82,17 @@
 
 @section('content')
 <div class="page-wrap" id="pageWrap">
+    {{-- 탭: 장비 렌탈(기존) / 서버 렌탈(서버 대여 현황) — 상단 가운데 알약 탭, URL ?kind= 로 복원 --}}
+    <div class="proj-status-tabs rental-kind-tabs" id="kindTabs" role="tablist">
+        <a href="?kind=equipment" class="pst-tab" role="tab" data-kind="equipment" onclick="event.preventDefault(); switchKind('equipment')">장비 렌탈<span class="pst-count pst-count-done" id="cntEquipment">–</span></a>
+        <a href="?kind=server" class="pst-tab" role="tab" data-kind="server" onclick="event.preventDefault(); switchKind('server')">서버 렌탈<span class="pst-count pst-count-active" id="cntServer">–</span></a>
+    </div>
+
     <div class="page-header">
-        <div class="page-title"><x-icon name="home" :size="18"/> 렌탈 계약</div>
+        <div class="page-title"><x-icon name="home" :size="18"/> <span id="pageTitleText">렌탈 계약</span></div>
         @if(Auth::user()->hasPermission('clients.edit'))
             <button class="btn-primary" id="addBtn" onclick="openContractModal()">+ 계약 등록</button>
         @endif
-    </div>
-
-    {{-- 탭: 장비 렌탈(기존) / 서버 렌탈(서버 대여 현황) — URL ?kind= 로 복원 --}}
-    <div class="sub-tabs" role="tablist">
-        <button type="button" class="sub-tab" role="tab" data-kind="equipment" onclick="switchKind('equipment')">🏠 장비 렌탈 <span class="cnt" id="cntEquipment">–</span></button>
-        <button type="button" class="sub-tab" role="tab" data-kind="server" onclick="switchKind('server')">🖥️ 서버 렌탈 <span class="cnt" id="cntServer">–</span></button>
     </div>
 
     <div class="stat-row">
@@ -211,9 +224,29 @@ function switchKind(kind) {
     renderContracts();
 }
 
+// ── 종류 탭 — 슬라이딩 알약 (프로젝트 상태 탭과 동일) ──
+const kindBar = document.getElementById('kindTabs');
+const kindPill = document.createElement('span');
+kindPill.className = 'pst-pill';
+kindBar.classList.add('pst-js');
+kindBar.prepend(kindPill);
+function moveKindPill(instant) {
+    const el = kindBar.querySelector('.pst-tab.active');
+    if (!el) return;
+    if (instant) kindPill.style.transition = 'none';
+    kindPill.style.left = el.offsetLeft + 'px';
+    kindPill.style.width = el.offsetWidth + 'px';
+    if (instant) requestAnimationFrame(() => { kindPill.style.transition = ''; });
+}
+window.addEventListener('resize', () => moveKindPill(true));
+let kindPillPlaced = false;
+
 function renderContracts() {
     document.getElementById('pageWrap').classList.toggle('kind-server', KIND === 'server');
-    document.querySelectorAll('.sub-tab').forEach(b => b.classList.toggle('active', b.dataset.kind === KIND));
+    kindBar.querySelectorAll('.pst-tab').forEach(b => b.classList.toggle('active', b.dataset.kind === KIND));
+    moveKindPill(!kindPillPlaced); kindPillPlaced = true; // 첫 배치는 즉시, 이후 전환은 슬라이드
+    const titleEl = document.getElementById('pageTitleText');
+    if (titleEl) titleEl.textContent = KIND === 'server' ? '서버 렌탈 계약' : '렌탈 계약';
     document.getElementById('cntEquipment').textContent = allContracts.filter(c => (c.kind || 'equipment') === 'equipment').length;
     document.getElementById('cntServer').textContent = allContracts.filter(c => c.kind === 'server').length;
     const addBtn = document.getElementById('addBtn');
