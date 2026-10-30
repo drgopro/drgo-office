@@ -388,13 +388,29 @@ function onRepeatFreqChange(){
 }
 
 // ── 담당자 ──
+// 담당자가 많아져 전체 칩을 펼치지 않는다: 접힘 상태에는 본인 + 이미 선택된 담당자 + 최근 선택한 3명만 보이고,
+// 나머지는 이름 검색으로 찾는다. 최근 선택은 이 브라우저의 localStorage 에 저장(저장·즉시 변경 시 갱신).
+const RECENT_ASSIGNEE_KEY='calRecentAssignees:'+CAL_USER_ID; // 사용자별 — 같은 브라우저에서 계정을 바꿔도 남의 최근 선택이 보이지 않게
+const RECENT_ASSIGNEE_MAX=3;
 let assigneePanelOpen=false;
-let assigneeShowAll=false; // 본인 외 나머지 펼침 여부
+let assigneeQuery=''; // 검색어 (비어 있으면 접힘 상태)
+function recentAssigneeIds(){
+    try{ const v=JSON.parse(localStorage.getItem(RECENT_ASSIGNEE_KEY)||'[]'); return Array.isArray(v)?v.map(Number).filter(Number.isFinite):[]; }
+    catch(e){ return []; }
+}
+/** 저장/변경한 담당자를 최근 목록 맨 앞에 — 본인은 항상 보이므로 제외, 최대 3명 */
+function rememberRecentAssignees(ids){
+    const selfId=assignees.find(a=>a.user_id===CAL_USER_ID)?.id;
+    const picked=(ids||[]).map(Number).filter(id=>Number.isFinite(id)&&id!==selfId);
+    if(!picked.length) return;
+    const next=[...picked.slice().reverse(), ...recentAssigneeIds()].filter((id,i,arr)=>arr.indexOf(id)===i).slice(0,RECENT_ASSIGNEE_MAX);
+    try{ localStorage.setItem(RECENT_ASSIGNEE_KEY, JSON.stringify(next)); }catch(e){}
+}
 function toggleAssigneePanel(){
     assigneePanelOpen=!assigneePanelOpen;
     document.getElementById('assigneeList').style.display=assigneePanelOpen?'flex':'none';
     if(assigneePanelOpen){
-        assigneeShowAll=false; renderAssigneeList();
+        assigneeQuery=''; renderAssigneeList();
         // 캘린더는 상주 탭이라 목록이 페이지 로드 시점 스냅샷 — 열 때마다 최신화
         // (관리 페이지에서 방금 추가한 외부 담당자도 새로고침 없이 반영)
         loadAssignees().then(()=>{ if(assigneePanelOpen) renderAssigneeList(); }).catch(()=>{});
@@ -416,29 +432,51 @@ function updateAssigneeBtn(){
 function renderAssigneeList(){
     const c=document.getElementById('assigneeList');
     if(!assignees.length){c.innerHTML='<div style="font-size:12px;color:var(--text-muted);">등록된 담당자 없음</div>';return;}
-    // 로그인 본인을 맨 앞으로 정렬
-    const ordered=[...assignees].sort((a,b)=>((a.user_id===CAL_USER_ID)?0:1)-((b.user_id===CAL_USER_ID)?0:1));
-    c.innerHTML='';
-    let hidden=0;
-    ordered.forEach(a=>{
-        const isSelf=a.user_id===CAL_USER_ID;
+    // 검색창은 한 번만 만들고 유지 (칩만 다시 그려야 입력 중 포커스·커서가 안 날아감)
+    let search=document.getElementById('assigneeSearch');
+    let chips=document.getElementById('assigneeChips');
+    if(!search||!chips){
+        c.innerHTML='';
+        search=document.createElement('input');
+        search.type='search'; search.id='assigneeSearch'; search.className='assignee-search';
+        search.placeholder='이름으로 담당자 검색'; search.autocomplete='off'; search.setAttribute('aria-label','담당자 검색');
+        search.oninput=()=>{ assigneeQuery=search.value.trim(); renderAssigneeList(); };
+        search.onkeydown=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); search.value=''; assigneeQuery=''; renderAssigneeList(); } };
+        chips=document.createElement('div'); chips.id='assigneeChips'; chips.className='assignee-chips';
+        c.appendChild(search); c.appendChild(chips);
+    }
+    if(search.value.trim()!==assigneeQuery) search.value=assigneeQuery;
+    const q=assigneeQuery.toLowerCase();
+    const recent=recentAssigneeIds();
+    const isSelfOf=a=>a.user_id===CAL_USER_ID;
+    // 접힘: 본인 → 선택된 담당자(선택 순) → 최근 선택 3명. 검색: 이름 부분일치 전체
+    let visible;
+    if(q){
+        visible=assignees.filter(a=>(a.name||'').toLowerCase().includes(q));
+    }else{
+        const self=assignees.filter(isSelfOf);
+        const selected=selectedAssignees.map(id=>assignees.find(a=>a.id===id)).filter(a=>a&&!isSelfOf(a));
+        const recents=recent.map(id=>assignees.find(a=>a.id===id)).filter(a=>a&&!isSelfOf(a)&&!selectedAssignees.includes(a.id));
+        visible=[...self, ...selected, ...recents];
+    }
+    chips.innerHTML='';
+    visible.forEach(a=>{
+        const isSelf=isSelfOf(a);
         const isSel=selectedAssignees.includes(a.id);
         const chip=document.createElement('div');
         chip.className='assignee-chip'+(isSel?' selected':'')+(isSelf?' self':'');
         chip.textContent=a.name+(isSelf?' (나)':''); chip.dataset.id=a.id;
-        // 접힘 상태: 본인/이미 선택된 담당자만 노출, 나머지는 숨김
-        if(!assigneeShowAll && !isSelf && !isSel){ chip.style.display='none'; hidden++; }
         chip.onclick=async ()=>{
             // 보기 모드: 수정 진입 없이 클릭 즉시 서버 반영
             if(viewMode&&editingId){
                 if(!canEditCalendar) return;
-                const next=selectedAssignees.includes(a.id)
-                    ? selectedAssignees.filter(id=>id!==a.id)
-                    : [...selectedAssignees, a.id];
+                const adding=!selectedAssignees.includes(a.id);
+                const next=adding ? [...selectedAssignees, a.id] : selectedAssignees.filter(id=>id!==a.id);
                 if(!(await quickUpdateEvent({assignees:next}))) return;
                 selectedAssignees=next;
+                if(adding) rememberRecentAssignees([a.id]);
                 if(detailEvent) detailEvent.assignees=assignees.filter(x=>next.includes(x.id));
-                updateAssigneeBtn(); renderAssigneeList();
+                assigneeQuery=''; updateAssigneeBtn(); renderAssigneeList();
                 showCalToast('담당자가 변경되었습니다');
                 loadEvents();
                 return;
@@ -446,19 +484,20 @@ function renderAssigneeList(){
             if(isLocked) return;
             if(selectedAssignees.includes(a.id)){selectedAssignees=selectedAssignees.filter(id=>id!==a.id);}
             else{selectedAssignees.push(a.id);}
+            assigneeQuery=''; // 고른 뒤에는 접힘 상태로 돌아가 선택 결과가 바로 보이게
             updateAssigneeBtn(); renderAssigneeList();
         };
-        c.appendChild(chip);
+        chips.appendChild(chip);
     });
-    // 더보기/접기
-    const remaining=ordered.filter(a=>a.user_id!==CAL_USER_ID && !selectedAssignees.includes(a.id)).length;
-    if(remaining>0 || assigneeShowAll){
-        const more=document.createElement('button');
-        more.type='button'; more.className='assignee-more';
-        more.textContent=assigneeShowAll?'접기 ▲':`+${remaining}명 더보기 ▼`;
-        more.onclick=(e)=>{ e.stopPropagation(); assigneeShowAll=!assigneeShowAll; renderAssigneeList(); };
-        c.appendChild(more);
+    const hint=document.createElement('div');
+    hint.className='assignee-hint';
+    if(q){
+        if(!visible.length) hint.textContent='검색 결과 없음';
+    }else{
+        const others=assignees.length-visible.length;
+        if(others>0) hint.textContent=`그 외 ${others}명은 이름으로 검색`;
     }
+    if(hint.textContent) chips.appendChild(hint);
 }
 
 // ── 알림 받을 멤버 ──

@@ -194,6 +194,7 @@ async function doSaveEvent(){
         const saved=await res.json();
         const hasFiles=Object.values(pendingAttachments).some(arr=>arr.length);
         if(hasFiles) await uploadPendingAttachments(saved.id);
+        if(typeof rememberRecentAssignees==='function') rememberRecentAssignees(selectedAssignees); // 담당자 패널 '최근 선택 3명'
         closeModal();loadEvents();
     }else{
         const err=await res.json();

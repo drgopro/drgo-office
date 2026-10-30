@@ -1015,8 +1015,11 @@
     .assignee-chip:hover { border-color:var(--accent); }
     .assignee-chip.self { border-color:rgba(100,160,240,.5); color:var(--accent); }
     .assignee-chip.self.selected { color:var(--accent-text); }
-    .assignee-more { padding:4px 10px; border-radius:20px; border:1px dashed var(--border); background:none; font-size:11px; cursor:pointer; color:var(--text-muted); }
-    .assignee-more:hover { border-color:var(--accent); color:var(--accent); }
+    .assignee-search { flex:1 1 100%; width:100%; min-width:0; padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text); font-size:12px; outline:none; }
+    .assignee-search:focus { border-color:var(--accent); }
+    .assignee-search::placeholder { color:var(--text-muted); }
+    .assignee-chips { display:flex; flex-wrap:wrap; gap:6px; width:100%; }
+    .assignee-hint { font-size:11px; color:var(--text-muted); align-self:center; padding:4px 2px; }
 
     /* ── 장소/주소 ── */
     .location-input-wrap { display:flex; flex-direction:column; gap:6px; }
