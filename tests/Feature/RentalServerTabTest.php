@@ -44,7 +44,7 @@ class RentalServerTabTest extends TestCase
         $this->assertStringContainsString('data-kind="equipment"', $html);
         $this->assertStringContainsString('data-kind="server"', $html);
         $this->assertStringContainsString('let KIND = "equipment"', $html);
-        $this->assertStringContainsString('id="serverName"', $html);
+        $this->assertStringContainsString('id="serverAccess"', $html);
 
         $html = $this->actingAs($this->user)->get('/rental-contracts?kind=server')->assertOk()->getContent();
         $this->assertStringContainsString('let KIND = "server"', $html);

@@ -47,11 +47,13 @@ class ContractCalendarSync
         }
 
         $word = $contract->isServer() ? '서버 렌탈' : '렌탈';
+        $product = $contract->displayProductName();
+        $suffix = $product ? "{$clientLabel} · {$product}" : $clientLabel; // 상품명이 있으면 '의뢰자 · 상품명'
 
         return [
-            'start' => "{$word} 시작 · {$clientLabel}",
-            'end' => "{$word} 종료 · {$clientLabel}",
-            'pay' => "{$word} 결제 · {$clientLabel}",
+            'start' => "{$word} 시작 · {$suffix}",
+            'end' => "{$word} 종료 · {$suffix}",
+            'pay' => "{$word} 결제 · {$suffix}",
         ];
     }
 
@@ -126,8 +128,10 @@ class ContractCalendarSync
 
         // 매월 결제일 반복 — 렌탈 계약만 (방송룸 월대여는 결제 내역을 일정 내용으로 대체)
         // 해지(terminated)면 종료일 이후 생성 안 함 (until이 자연히 잘라줌)
+        // 준비중(설치·개통 전) 렌탈 계약은 결제 반복을 만들지 않는다 — 진행중으로 바뀔 때 재동기화로 생성
+        $isPending = $contract instanceof RentalContract && $contract->isPending();
         $until = $end ?? $start->copy()->addMonthsNoOverflow(self::ONGOING_MONTHS);
-        if (! $isBroadcast && $until->gt($start)) {
+        if (! $isBroadcast && ! $isPending && $until->gt($start)) {
             $meta['repeat_group'] = $this->createMonthlyOccurrences(
                 $base,
                 $titles['pay'].($contract->monthly_fee ? ' ('.number_format($contract->monthly_fee).'원)' : ''),

@@ -41,6 +41,7 @@ use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RefundRestockAuditController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalEquipmentController;
+use App\Http\Controllers\RentalProductController;
 use App\Http\Controllers\RequestItemPresetController;
 use App\Http\Controllers\ScheduleAttachmentController;
 use App\Http\Controllers\ShipmentController;
@@ -404,6 +405,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/rental-contracts', [RentalContractController::class, 'index'])->name('rental-contracts');
         Route::get('/api/rental-contracts', [RentalContractController::class, 'list']);
         Route::get('/api/rental-contracts/search-clients', [RentalContractController::class, 'searchClients']);
+        Route::get('/api/rental-products', [RentalProductController::class, 'index']);
     });
     Route::middleware('permission:rental.edit')->group(function () {
         Route::post('/api/rental/items', [RentalEquipmentController::class, 'storeItem']);
@@ -423,6 +425,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/rental-contracts', [RentalContractController::class, 'store']);
         Route::patch('/api/rental-contracts/{contract}', [RentalContractController::class, 'update']);
         Route::delete('/api/rental-contracts/{contract}', [RentalContractController::class, 'destroy']);
+        Route::post('/api/rental-products', [RentalProductController::class, 'store']);
+        Route::patch('/api/rental-products/{product}', [RentalProductController::class, 'update']);
+        Route::delete('/api/rental-products/{product}', [RentalProductController::class, 'destroy']);
     });
 
     // 방송룸 — 팀 관리의 '방송룸' 권한
