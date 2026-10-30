@@ -16,10 +16,11 @@ Schedule::command('schedules:remind-stale')->dailyAt('09:10'); // 지난 미완�
 // 미배송 송장 배송상태 갱신 (30분 주기)
 Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping();
 
-// drgo.pro 게시판 새 글/답변/댓글 감시 → 채널톡 알림 (1분 주기 — 등록 후 1분 내 도착)
-Schedule::command('drgo:watch-boards')->everyMinute()->withoutOverlapping();
-// 채널톡 고객 미러 동기화 — 의뢰자 등록 '채널톡 연동' 검색 + 전화번호 자동 연동
-Schedule::command('drgo:sync-channeltalk-users')->everyTenMinutes()->withoutOverlapping();
+// drgo.pro 게시판 새 글/답변/댓글 감시 → 채널톡 알림 (2분 주기 — 등록 후 2분 내 도착.
+// 1코어 운영 서버에서 매분 artisan 부팅이 겹쳐 CPU가 포화되어 1분 → 2분으로 완화)
+Schedule::command('drgo:watch-boards')->everyTwoMinutes()->withoutOverlapping();
+// 채널톡 고객 미러 동기화 — 의뢰자 등록 '채널톡 연동' 검색 + 전화번호 자동 연동 (30분 주기 — 실행당 CPU 수 초·90MB)
+Schedule::command('drgo:sync-channeltalk-users')->everyThirtyMinutes()->withoutOverlapping();
 
 // 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
 Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();

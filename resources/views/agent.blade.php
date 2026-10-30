@@ -655,7 +655,9 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   }
 
   /* ───────── 실시간 모드: 서버 폴링 ───────── */
+  var POLL_MS = 10000; // 1코어 운영 서버 — 2초 폴링은 열어 둔 탭 하나가 분당 30회 요청을 만들어 10초로 완화
   var pollTimer = null, retryTimer = null, pollBusy = false;
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && pollTimer) pollLive(); }); // 다시 보이면 즉시 따라잡기
   function resetView() {
     chat.innerHTML = ''; state.msgs = 0; $('msg-count').textContent = '0건'; state.live = null; state.lastEvent = null; state.lastTs = 0; state.sessionStart = null;
     allIdle(); state.counts = { prompts: 0, reviews: 0, commits: 0, pushes: 0 }; renderCounts();
@@ -670,11 +672,11 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
         SILENT = true; (d.events || []).forEach(applyEvent); SILENT = false; settleAfterReplay();
         chat.scrollTop = chat.scrollHeight; state.connected = true; setBadge('실시간');
         if (!(d.events || []).length) sys('오늘 기록이 아직 없습니다. 맥북에서 cc-office로 작업을 시작하면 여기에 나타납니다.');
-        pollTimer = setInterval(pollLive, 2000);
+        pollTimer = setInterval(pollLive, POLL_MS);
       }).catch(function (e) { if (g !== state.gen) return; setBadge(String(e.message) === '401' ? '로그인 필요' : '연결 실패 · 재시도 중', 'off'); retryTimer = setTimeout(function () { if (g === state.gen) startLive(); }, 5000); });
   }
   function pollLive() {
-    if (pollBusy || state.demo) return; pollBusy = true; var g = state.gen;
+    if (pollBusy || state.demo || document.visibilityState === 'hidden') return; pollBusy = true; var g = state.gen;
     fetch('/api/agent-events?since=' + state.lastId, { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (d) { if (g !== state.gen) return; (d.events || []).forEach(applyEvent); if (!state.connected) { state.connected = true; setBadge('실시간'); } })
       .catch(function (e) { if (g !== state.gen) return; state.connected = false; setBadge(String(e.message) === '401' ? '로그인 필요' : '연결 끊김 · 재시도 중', 'off'); })

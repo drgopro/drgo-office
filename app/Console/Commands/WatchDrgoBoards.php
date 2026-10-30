@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 #[Signature('drgo:watch-boards')]
-#[Description('drgo.pro 게시판 새 글/답변/댓글을 폴링해 채널톡 팀챗으로 알림 (5분 주기)')]
+#[Description('drgo.pro 게시판 새 글/답변/댓글을 폴링해 채널톡 팀챗으로 알림 (2분 주기)')]
 class WatchDrgoBoards extends Command
 {
     /** 게시판 ID → 표시 이름 */

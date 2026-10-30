@@ -690,16 +690,13 @@ function gnbDismiss(){
 </div>
 <script>
 // 배포 버전 감시 — 페이지 로드 시 심은 버전과 서버의 현재 버전이 다르면 띠 표시.
-// 1분 간격 + 탭이 다시 보일 때 즉시 확인. 로그인 만료 등 JSON이 아닌 응답은 무시.
+// 별도 요청 없이 알림 폴링(/api/notifications, 1분) 응답에 실려 오는 version 으로 판단한다 (1코어 서버 요청 수 절감).
 window.DRGO_APP_VERSION = @json(app(\App\Services\AppVersion::class)->current());
 (function(){
     if (window !== window.top) return; // iframe에서는 셸의 띠만 사용
     const bar = document.getElementById('appUpdateBar');
     const DISMISS_KEY = 'drgo_update_dismissed';
     let latest = null;
-    let inFlight = false;
-    let lastCheck = 0;
-    let timer = null;
     function fit(){
         document.documentElement.style.setProperty('--update-bar-h', (bar.classList.contains('show') ? bar.offsetHeight : 0) + 'px');
         if (window.drgoTabs && typeof drgoTabs._fitPanes === 'function') requestAnimationFrame(() => drgoTabs._fitPanes());
@@ -709,28 +706,15 @@ window.DRGO_APP_VERSION = @json(app(\App\Services\AppVersion::class)->current())
         if (sessionStorage.getItem(DISMISS_KEY) === version) return; // 이번 버전은 닫아둠
         if (!bar.classList.contains('show')) { bar.classList.add('show'); fit(); }
     }
-    async function check(){
-        if (inFlight || document.visibilityState === 'hidden') return;
-        if (Date.now() - lastCheck < 20 * 1000) return; // 탭 전환 연타 등 과도한 요청 방지
-        inFlight = true;
-        lastCheck = Date.now();
-        try {
-            const res = await fetch('/api/app-version', { cache:'no-store', credentials:'same-origin', headers:{ 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' } });
-            if (res.status === 401 || res.status === 419) { if (timer) clearInterval(timer); timer = null; return; } // 로그인 만료 — 더 묻지 않음
-            if (!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) return;
-            const data = await res.json();
-            if (data && data.version && data.version !== window.DRGO_APP_VERSION) show(String(data.version));
-        } catch (e) { /* 네트워크 일시 오류 — 다음 주기에 재시도 */ }
-        finally { inFlight = false; }
-    }
+    /** 알림 폴링이 받은 서버 버전을 넘겨준다 — 심어둔 버전과 다르면 띠 표시 */
+    window.appUpdateObserve = function(version){
+        if (version && String(version) !== window.DRGO_APP_VERSION) show(String(version));
+    };
     window.appUpdateReload = function(){ location.reload(); };
     window.appUpdateDismiss = function(){
         if (latest) sessionStorage.setItem(DISMISS_KEY, latest);
         bar.classList.remove('show'); fit();
     };
-    timer = setInterval(check, 60 * 1000);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && timer) check(); });
-    setTimeout(check, 15 * 1000); // 로드 직후에도 가볍게 한 번
 })();
 </script>
 @endauth
@@ -1500,17 +1484,25 @@ document.addEventListener('keydown',e=>{
 const NOTIF_CSRF = document.querySelector('meta[name="csrf-token"]')?.content;
 let notifItems = [];
 function notifEsc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let notifInFlight = false, notifLastFetch = 0, notifTimer = null, notifAuthLost = false;
 async function notifFetch(){
+    if(notifInFlight) return;
+    notifInFlight = true;
+    notifLastFetch = Date.now();
     try{
         {{-- X-Requested-With: 폴링 GET이 세션의 '이전 URL'을 덮어써 back() 리다이렉트가 알림 JSON으로 가는 것을 방지 --}}
-        const res = await fetch('/api/notifications', {headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
-        if(!res.ok) return;
+        const res = await fetch('/api/notifications', {cache:'no-store', headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
+        if(res.status === 401 || res.status === 419){ notifAuthLost = true; return; } // 로그인 만료 — 탭이 다시 보일 때까지 쉼 (다른 탭에서 재로그인하면 그때 재개)
+        notifAuthLost = false;
+        if(!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) return;
         const d = await res.json();
+        if(typeof window.appUpdateObserve === 'function') window.appUpdateObserve(d.version);
         notifItems = d.items || [];
         const badge = document.getElementById('notifBadge');
         if(badge){ badge.style.display = d.unread > 0 ? 'flex' : 'none'; badge.textContent = d.unread > 99 ? '99+' : d.unread; }
         if(document.getElementById('notifPanel')?.classList.contains('open')) notifRender();
     }catch(e){}
+    finally{ notifInFlight = false; }
 }
 function notifRender(){
     const list = document.getElementById('notifList');
@@ -1556,8 +1548,17 @@ async function notifReadAll(){
     await notifMarkRead(null);
     notifFetch();
 }
-notifFetch();
-setInterval(notifFetch, 60000); // 1분마다 새 알림 확인
+// 폴링은 최상위 셸에서만 — 탭 iframe 안의 페이지는 종이 숨겨져 있어 요청만 낭비한다.
+// 숨겨진 탭은 건너뛰고, 다시 보일 때 즉시 확인 (단, 20초 안에 받은 결과가 있으면 생략).
+if(window === window.top){
+    notifFetch();
+    notifTimer = setInterval(() => { if(document.visibilityState !== 'hidden' && !notifAuthLost) notifFetch(); }, 60000); // 1분마다 새 알림 + 배포 버전 확인
+    document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState !== 'visible') return;
+        if(notifAuthLost){ notifAuthLost = false; notifFetch(); return; } // 세션 복구 여부를 다시 확인
+        if(Date.now() - notifLastFetch > 20000) notifFetch();
+    });
+}
 </script>
 @stack('scripts')
 </body>
