@@ -234,7 +234,13 @@ function closeEventPopover(){
     evPopId=null;
 }
 function evPopCurrent(){ return events.find(e=>e.id===evPopId); }
-function evPopEdit(){ const ev=evPopCurrent(); closeEventPopover(); if(ev) openEditModal(ev); }
+// '수정'은 요약(잠금)이 아니라 바로 편집 폼으로 — openEditModal이 기존 일정을 기본 요약으로 열기 때문에
+// 열림 직후(applyLockUI 큐 이후)에 잠금을 해제한다
+function evPopEdit(){
+    const ev=evPopCurrent(); closeEventPopover(); if(!ev) return;
+    openEditModal(ev);
+    setTimeout(()=>{ if(typeof isLocked!=='undefined'&&isLocked&&typeof toggleLock==='function') toggleLock(); },0);
+}
 function evPopDetail(){ const ev=evPopCurrent(); closeEventPopover(); if(ev) openDetailModal(ev); }
 document.addEventListener('click', e=>{ if(evPopId===null) return; if(e.target.closest('#calEvPop')) return; closeEventPopover(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&evPopId!==null) closeEventPopover(); });
