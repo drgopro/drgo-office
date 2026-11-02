@@ -528,7 +528,8 @@ function renderMonth() {
                     const chipRect=chip.getBoundingClientRect();
                     const endRect=weekRow.children[sg.e].getBoundingClientRect();
                     const ov=document.createElement('div');
-                    ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'')+(card?' chip-card':'');
+                    // v2: 오버레이에 카테고리색 배경을 입혀 셀 경계 이음새를 덮는다 (바가 날짜마다 나뉘어 보이던 문제)
+                    ov.className='mday-title-overlay color-'+ev.color+(ev.completed_at?' is-completed':'')+(card?' chip-card':'')+(isTentativeEv(ev)?' is-tentative':'');
                     // 제목 글자색도 카테고리 설정(text_color)과 연동
                     if(window.CALENDAR_CATEGORIES&&window.CALENDAR_CATEGORIES[ev.color]) ov.style.color=`var(--chip-${ev.color}-text)`;
                     ov.style.top=(chipRect.top-wrRect.top)+'px';

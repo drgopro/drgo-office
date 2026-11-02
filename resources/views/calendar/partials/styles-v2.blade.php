@@ -24,6 +24,9 @@
     .cal-v2 .event-chip.single.is-tentative.color-{{ $__ck }}:not(.multi-day) { background:var(--surface); border:1.5px dashed var(--chip-{{ $__ck }}-bg); }
     {{-- 다일 미확정 — 셀마다 끊기는 점선 대신 사선 줄무늬로 바 전체를 구분 --}}
     .cal-v2 .event-chip.single.multi-day.is-tentative.color-{{ $__ck }} { background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 14%, var(--surface)) 0 6px, var(--surface) 6px 12px); }
+    {{-- 다일 제목 오버레이에 바와 같은 배경 — 셀 overflow:hidden 탓에 조각 사이 1px 이음새가 연한 바탕에서 세로줄로 보이던 문제를 바 전체를 덮어 해결 --}}
+    .cal-v2 .mday-title-overlay.color-{{ $__ck }} { background:color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 18%, var(--surface)); border-left:3px solid var(--chip-{{ $__ck }}-bg); border-radius:6px; }
+    .cal-v2 .mday-title-overlay.is-tentative.color-{{ $__ck }} { background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--chip-{{ $__ck }}-bg) 14%, var(--surface)) 0 6px, var(--surface) 6px 12px); }
     @endforeach
 
     /* 옵션 아이콘 — 이모지 대신 선 아이콘 (긴급만 빨강) */
