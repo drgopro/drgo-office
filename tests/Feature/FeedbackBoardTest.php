@@ -332,20 +332,22 @@ class FeedbackBoardTest extends TestCase
         $this->assertNull($post->fresh()->done_at);
     }
 
-    public function test_전체_목록은_완료된_순으로_정렬(): void
+    public function test_미완료는_최신순_상단_완료는_하단에_완료된_순(): void
     {
-        // 완료 글은 완료 시각, 미완료 글은 등록 시각 기준으로 한 줄로 정렬 (최신이 위)
         $author = $this->member();
         $a = $this->makePost($author, ['title' => 'A 사흘 전 등록']);
         $a->forceFill(['created_at' => now()->subDays(3)])->save();
         $b = $this->makePost($author, ['title' => 'B 어제 등록']);
         $b->forceFill(['created_at' => now()->subDay()])->save();
-        $c = $this->makePost($author, ['title' => 'C 닷새 전 등록 그저께 완료', 'status' => 'done']);
+        // 완료 글 2건 — 등록이 아무리 최근이어도 하단, 서로는 완료된 순(최근 완료 먼저)
+        $c = $this->makePost($author, ['title' => 'C 그저께 완료', 'status' => 'done']);
         $c->forceFill(['created_at' => now()->subDays(5), 'done_at' => now()->subDays(2)])->save();
+        $d = $this->makePost($author, ['title' => 'D 오늘 완료', 'status' => 'done']);
+        $d->forceFill(['created_at' => now()->subDays(10), 'done_at' => now()])->save();
 
         $titles = $this->actingAs($author)->getJson('/api/feedback?type=bug')
             ->assertOk()->json('posts.*.title');
 
-        $this->assertSame(['B 어제 등록', 'C 닷새 전 등록 그저께 완료', 'A 사흘 전 등록'], $titles);
+        $this->assertSame(['B 어제 등록', 'A 사흘 전 등록', 'D 오늘 완료', 'C 그저께 완료'], $titles);
     }
 }

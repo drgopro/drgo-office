@@ -72,11 +72,12 @@ class FeedbackController extends Controller
             });
         }
 
-        // 전체 목록을 '처리된 순'으로 — 완료 글은 완료 시각(done_at), 그 외는 등록 시각 기준.
-        // 최신순이면 방금 완료/등록된 건이 맨 위로 온다.
+        // 미완료 글이 최신순으로 상단, 완료 글은 하단에 완료된 순(최근 완료 먼저).
+        // 정렬 키: 완료 글은 완료 시각(done_at), 미완료 글은 등록 시각
+        $query->orderByRaw("case when status = 'done' then 1 else 0 end");
         $sortKey = 'coalesce(done_at, created_at)';
         if (($validated['sort'] ?? 'latest') === 'priority') {
-            // 우선순위순: 높음 → 중간 → 낮음 → 미지정, 같은 순위 안에서는 처리된 순
+            // 우선순위순: 높음 → 중간 → 낮음 → 미지정, 같은 순위 안에서는 최신순
             $query->orderByRaw("case priority when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end")
                 ->orderByRaw("{$sortKey} desc");
         } else {
