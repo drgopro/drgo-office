@@ -111,7 +111,8 @@
         .cal-center-nav .nav-btn { border:none; background:none; box-shadow:none; width:28px; height:28px; font-size:19px; color:var(--text-muted); }
         .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
         .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
-        .cal-center-nav .cal-today-btn { width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; margin-right:6px; color:var(--text); }
+        /* 오늘 — 묶음 폭에서 빼서(절대배치, ‹ 왼쪽) 연.월 자체가 화면 정중앙에 오게 */
+        .cal-header .cal-center-nav .cal-today-btn { position:absolute; right:100%; top:50%; transform:translateY(-50%); margin:0 6px 0 0; width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; color:var(--text); }
         /* 우측 그룹을 헤더 직속으로 풀어 2행 구성: 1행 도구/타이틀/더보기, 2행 뷰 버튼+주 수 */
         .cal-header-right { display:contents !important; }
         #calMoreWrap { margin-left:auto; }
@@ -121,6 +122,8 @@
         .cal-header::before { content:''; order:9; flex-basis:100%; height:0; } /* 행 구분선(줄바꿈) */
         .view-toggle-group { order:10; margin-left:auto; }
         #monthWeeksCtl { order:11; margin-right:auto; margin-left:8px; } /* 주 수 스텝퍼도 2행으로 — 1행 겹침 방지 */
+        /* 범례(v2)는 2행 흐름에서 빼서 우측 끝에 절대배치 — 뷰 버튼+주 수 묶음이 범례 폭에 밀리지 않고 정중앙 */
+        .cal-header .cal-legend { position:absolute; right:24px; bottom:16px; height:28px; margin:0; }
         .cal-search-input { width:150px; }
         /* + 일정 추가는 모바일처럼 우하단 플로팅 버튼으로 */
         .cal-header .add-btn { display:none; }
