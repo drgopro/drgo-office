@@ -4,50 +4,95 @@
 
 @push('styles')
 <style>
-    .page-wrap { padding:24px; max-width:1200px; margin:0 auto; }
-    .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .page-wrap { padding:24px; max-width:1100px; margin:0 auto; }
+    .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
     .page-title { font-size:20px; font-weight:800; }
-    .page-sub { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
-    .btn-primary { background:var(--accent); border:none; color:var(--accent-text); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .page-sub { font-size:12px; color:var(--text-muted); margin-bottom:18px; }
+    .btn-primary { background:var(--accent); border:none; color:var(--accent-text); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    [data-theme="light"] .btn-primary { color:#fff; }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
 
-    .as-tabs { display:flex; gap:6px; margin-bottom:12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-    .as-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 12px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; white-space:nowrap; }
-    .as-tab:hover { color:var(--text); }
-    .as-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
-    .as-tab .cnt { font-size:11.5px; font-weight:700; margin-left:4px; opacity:0.8; }
+    /* 단계 카운트 카드 — 클릭 시 해당 단계 필터 */
+    .stat-row { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:16px; }
+    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px 16px; min-width:0; cursor:pointer; text-align:left; transition:border-color 0.15s, box-shadow 0.15s; position:relative; overflow:hidden; }
+    .stat-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--sc, var(--border)); }
+    .stat-card:hover { border-color:var(--accent); }
+    .stat-card.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+    .stat-label { font-size:10.5px; color:var(--text-muted); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stat-value { font-size:22px; font-weight:800; white-space:nowrap; line-height:1; }
+    .stat-card.received { --sc:#d9a24a; }
+    .stat-card.in_repair { --sc:#4a90d9; }
+    .stat-card.repaired { --sc:#9b70c8; }
+    .stat-card.done { --sc:#7ac87a; }
 
-    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-    .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:230px; }
+    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+    .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:240px; min-height:36px; box-sizing:border-box; }
     .toolbar input:focus { border-color:var(--accent); }
+    .filter-hint { font-size:12px; color:var(--text-muted); }
+    .filter-hint b { color:var(--accent); }
 
-    .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .data-table { width:100%; border-collapse:collapse; min-width:860px; }
-    .data-table th { text-align:left; padding:11px 12px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; }
-    .data-table td { padding:11px 12px; font-size:13px; border-bottom:1px solid var(--border); vertical-align:top; }
-    .data-table tr:last-child td { border-bottom:none; }
-    .as-empty { padding:40px 16px; text-align:center; color:var(--text-muted); font-size:13px; }
+    /* ── AS 카드 목록 ── */
+    .cards { display:flex; flex-direction:column; gap:10px; }
+    .cards-empty { text-align:center; padding:48px 16px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:12px; font-size:13px; }
+    .as-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; display:grid; grid-template-columns:minmax(200px, 0.85fr) minmax(0, 1.2fr) auto; grid-template-areas:"main steps side"; align-items:center; gap:10px 20px; min-width:0; transition:border-color 0.15s; }
+    .as-card:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--border)); }
+    .as-card.is-done { opacity:0.6; }
+    .as-card.is-done:hover { opacity:1; }
 
-    .as-badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
-    .as-badge.received { background:#fef3e2; color:#b45309; }
-    .as-badge.in_repair { background:#e8f0fe; color:#1d4ed8; }
-    .as-badge.repaired { background:#ede9fe; color:#6d28d9; }
-    .as-badge.done { background:#e7f6ec; color:#15803d; }
-    .cost-badge { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; }
-    .cost-badge.free { background:#e7f6ec; color:#15803d; }
-    .cost-badge.paid { background:#fdeaea; color:#dc2626; }
+    .ac-main { grid-area:main; display:flex; flex-direction:column; gap:5px; min-width:0; }
+    .ac-product { font-size:15px; font-weight:800; line-height:1.35; word-break:break-all; }
+    .ac-links { display:flex; align-items:center; gap:6px; font-size:12.5px; min-width:0; flex-wrap:wrap; }
+    .ac-links svg { flex-shrink:0; width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; color:var(--text-muted); }
+    .ac-links a { color:var(--accent); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px; }
+    .ac-links a:hover { text-decoration:underline; }
+    .ac-links .sep { color:var(--text-muted); }
+    .ac-desc { font-size:12px; color:var(--text-muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; cursor:default; }
+    .ac-cost { display:flex; align-items:center; gap:6px; font-size:12px; }
+    .cost-badge { display:inline-flex; align-items:center; font-size:10.5px; font-weight:800; padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.7; }
+    .cost-badge.free { background:rgba(122,200,122,0.15); color:#7ac87a; border:1px solid rgba(122,200,122,0.35); }
+    .cost-badge.paid { background:rgba(200,80,80,0.13); color:#e08585; border:1px solid rgba(200,80,80,0.35); }
+    .cost-badge.unset { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
+    [data-theme="light"] .cost-badge.free { background:#e8f5e8; color:#1a7a2a; border-color:#a0d8a0; }
+    [data-theme="light"] .cost-badge.paid { background:#fdeaea; color:#c22; border-color:#f0b0b0; }
+    .ac-cost .amount { font-weight:800; color:var(--text); }
 
-    .as-link { color:var(--accent); cursor:pointer; text-decoration:none; }
-    .as-link:hover { text-decoration:underline; }
-    .as-desc { color:var(--text-muted); font-size:12px; white-space:pre-wrap; word-break:break-word; max-width:320px; }
-    .as-dates { font-size:11px; color:var(--text-muted); line-height:1.7; white-space:nowrap; }
-    .status-sel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 8px; color:var(--text); font-size:12px; outline:none; cursor:pointer; }
-    .row-done td { opacity:0.55; }
-    tr.row-done:hover td { opacity:1; }
-    .mini-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:11.5px; padding:4px 8px; cursor:pointer; white-space:nowrap; }
+    /* 4단계 스테퍼 */
+    .ac-steps { grid-area:steps; display:flex; min-width:0; padding:2px 0; }
+    .step { flex:1; min-width:0; text-align:center; position:relative; }
+    .step::before { content:''; position:absolute; top:7px; left:-50%; width:100%; height:2px; background:var(--border); }
+    .step:first-child::before { display:none; }
+    .step.on::before { background:var(--accent); }
+    .step-dot { position:relative; z-index:1; width:14px; height:14px; margin:0 auto 5px; border-radius:50%; background:var(--surface); border:2px solid var(--border); box-sizing:border-box; }
+    .step.on .step-dot { background:var(--accent); border-color:var(--accent); }
+    .step.cur .step-dot { box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .step-name { font-size:10.5px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .step.on .step-name { color:var(--text); }
+    .step.cur .step-name { color:var(--accent); }
+    .step-date { font-size:10px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+
+    .ac-side { grid-area:side; display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+    .status-sel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:12px; font-weight:600; outline:none; cursor:pointer; }
+    .status-sel:focus { border-color:var(--accent); }
+    .as-badge { display:inline-flex; align-items:center; font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; white-space:nowrap; line-height:1.8; }
+    .as-badge.received { background:rgba(230,160,60,0.16); color:#d9a24a; border:1px solid rgba(230,160,60,0.4); }
+    .as-badge.in_repair { background:rgba(74,144,217,0.14); color:#6aa8e8; border:1px solid rgba(74,144,217,0.35); }
+    .as-badge.repaired { background:rgba(155,112,200,0.16); color:#b394d9; border:1px solid rgba(155,112,200,0.4); }
+    .as-badge.done { background:rgba(122,200,122,0.15); color:#7ac87a; border:1px solid rgba(122,200,122,0.35); }
+    .ac-btns { display:flex; gap:6px; }
+    .mini-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; }
     .mini-btn:hover { border-color:var(--accent); color:var(--accent); }
     .mini-btn.danger:hover { border-color:#dc2626; color:#dc2626; }
+    .next-btn { background:none; border:1px solid var(--accent); border-radius:6px; color:var(--accent); font-size:11.5px; font-weight:700; padding:4px 10px; cursor:pointer; white-space:nowrap; }
+    .next-btn:hover { background:var(--accent); color:var(--accent-text); }
+    [data-theme="light"] .next-btn:hover { color:#fff; }
+
+    @media (max-width: 920px) {
+        .page-wrap { padding:14px; }
+        .stat-row { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+        .as-card { grid-template-columns:1fr; grid-template-areas:"main" "steps" "side"; gap:12px; }
+        .ac-side { flex-direction:row; align-items:center; justify-content:space-between; width:100%; }
+    }
 
     /* ── 등록/수정 모달 ── */
     .as-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:none; align-items:flex-start; justify-content:center; padding:5vh 12px; overflow-y:auto; }
@@ -65,7 +110,7 @@
     .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
     .form-error { color:#dc2626; font-size:12px; margin-top:8px; display:none; white-space:pre-wrap; }
 
-    /* 의뢰자 검색 */
+    /* 검색 드롭다운 (의뢰자/제품 공용) */
     .cl-search-wrap { position:relative; }
     .cl-results { position:absolute; top:100%; left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-top:4px; max-height:220px; overflow-y:auto; z-index:10; box-shadow:0 8px 24px rgba(0,0,0,0.25); display:none; }
     .cl-results.open { display:block; }
@@ -78,7 +123,6 @@
     .cl-picked button { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; }
 
     @media (max-width: 760px) {
-        .page-wrap { padding:14px; }
         .field-row { flex-direction:column; gap:0; }
     }
 </style>
@@ -94,29 +138,14 @@
     </div>
     <div class="page-sub">사무실에서 물건을 <b>받은 시점부터</b> 기재합니다. 상담 중 AS 얘기만 나온 건은 기재하지 않습니다.</div>
 
-    <div class="as-tabs" id="asTabs"></div>
+    <div class="stat-row" id="asStats"></div>
 
     <div class="toolbar">
         <input type="text" id="asSearch" placeholder="제품명·의뢰자·프로젝트 검색" oninput="asSearchDebounced()">
+        <span class="filter-hint" id="asFilterHint"></span>
     </div>
 
-    <div class="data-card">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>상태</th>
-                    <th>의뢰자</th>
-                    <th>프로젝트</th>
-                    <th>제품명</th>
-                    <th>상세설명</th>
-                    <th>무상/유상</th>
-                    <th>진행 일자</th>
-                    @if($canEdit)<th></th>@endif
-                </tr>
-            </thead>
-            <tbody id="asBody"><tr><td colspan="8" class="as-empty">불러오는 중...</td></tr></tbody>
-        </table>
-    </div>
+    <div class="cards" id="asCards"><div class="cards-empty">불러오는 중...</div></div>
 </div>
 
 {{-- 등록/수정 모달 --}}
@@ -185,6 +214,7 @@
 <script>
 const AS_CAN_EDIT = @json($canEdit);
 const AS_STATUS = @json(\App\Models\AsRequest::STATUS_LABELS);
+const AS_ORDER = Object.keys(AS_STATUS);
 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
 let asItems = [];
@@ -209,56 +239,81 @@ async function asLoad(){
         asItems = data.items || [];
         asCounts = data.counts || {};
     } catch (e) {
-        document.getElementById('asBody').innerHTML = '<tr><td colspan="8" class="as-empty">목록을 불러오지 못했습니다. 새로고침 해주세요.</td></tr>';
+        document.getElementById('asCards').innerHTML = '<div class="cards-empty">목록을 불러오지 못했습니다. 새로고침 해주세요.</div>';
         return;
     }
-    asRenderTabs();
+    asRenderStats();
     asRenderList();
 }
 
-function asRenderTabs(){
-    const total = Object.values(asCounts).reduce((a,b)=>a+Number(b||0), 0);
-    let html = `<button class="as-tab ${asActiveTab===''?'active':''}" onclick="asSetTab('')">전체<span class="cnt">${total}</span></button>`;
-    for (const [key, label] of Object.entries(AS_STATUS)) {
-        html += `<button class="as-tab ${asActiveTab===key?'active':''}" onclick="asSetTab('${key}')">${_e(label)}<span class="cnt">${asCounts[key]||0}</span></button>`;
-    }
-    document.getElementById('asTabs').innerHTML = html;
+function asRenderStats(){
+    document.getElementById('asStats').innerHTML = Object.entries(AS_STATUS).map(([key, label]) =>
+        `<button class="stat-card ${key} ${asActiveTab===key?'active':''}" onclick="asSetTab('${key}')" title="클릭하면 이 단계만 필터 (다시 클릭하면 전체)">
+            <div class="stat-label">${_e(label)}</div>
+            <div class="stat-value">${asCounts[key]||0}</div>
+        </button>`
+    ).join('');
+    document.getElementById('asFilterHint').innerHTML = asActiveTab
+        ? `<b>${_e(AS_STATUS[asActiveTab])}</b> 단계만 표시 중 — 카드를 다시 누르면 전체로`
+        : '';
 }
 
-function asSetTab(key){ asActiveTab = key; asLoad(); }
+function asSetTab(key){ asActiveTab = (asActiveTab === key) ? '' : key; asLoad(); }
 function asSearchDebounced(){ clearTimeout(asSearchTimer); asSearchTimer = setTimeout(asLoad, 300); }
 
+const STEP_DATES = { received:'received_at', in_repair:'sent_at', repaired:'repaired_at', done:'done_at' };
+const CAL_SVG_USER = '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>';
+const CAL_SVG_PROJ = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 4v16"></path></svg>';
+
+function asStepsHtml(r){
+    const curIdx = AS_ORDER.indexOf(r.status);
+    return '<div class="ac-steps">' + AS_ORDER.map((key, i) => {
+        const date = r[STEP_DATES[key]];
+        const cls = (i <= curIdx ? ' on' : '') + (i === curIdx ? ' cur' : '');
+        return `<div class="step${cls}">
+            <div class="step-dot"></div>
+            <div class="step-name">${_e(AS_STATUS[key])}</div>
+            <div class="step-date">${i <= curIdx && date ? date.slice(5).replace('-','/') : '&nbsp;'}</div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
 function asRenderList(){
-    const body = document.getElementById('asBody');
+    const wrap = document.getElementById('asCards');
     if (!asItems.length) {
-        body.innerHTML = '<tr><td colspan="8" class="as-empty">표시할 AS 건이 없습니다.</td></tr>';
+        wrap.innerHTML = '<div class="cards-empty">표시할 AS 건이 없습니다.' + (AS_CAN_EDIT ? ' 우측 상단 <b>+ AS 접수</b>로 등록하세요.' : '') + '</div>';
         return;
     }
-    body.innerHTML = asItems.map(r => {
+    wrap.innerHTML = asItems.map(r => {
         const cost = r.cost_type
-            ? `<span class="cost-badge ${r.cost_type}">${_e(r.cost_label)}</span>${r.cost_type==='paid' && r.cost_amount!=null ? '<div style="margin-top:4px; font-size:12px;">'+_won(r.cost_amount)+'</div>' : ''}`
-            : '<span style="color:var(--text-muted); font-size:12px;">미정</span>';
-        const dates = [
-            r.received_at ? '접수 ' + r.received_at : null,
-            r.sent_at ? '발송 ' + r.sent_at : null,
-            r.repaired_at ? 'AS완료 ' + r.repaired_at : null,
-            r.done_at ? '배송완료 ' + r.done_at : null,
-        ].filter(Boolean).join('<br>');
-        const statusCell = AS_CAN_EDIT
-            ? `<select class="status-sel" onchange="asSetStatus(${r.id}, this.value)">`
-                + Object.entries(AS_STATUS).map(([k,l]) => `<option value="${k}" ${r.status===k?'selected':''}>${_e(l)}</option>`).join('')
-                + '</select>'
+            ? `<span class="cost-badge ${r.cost_type}">${_e(r.cost_label)}</span>${r.cost_type==='paid' && r.cost_amount!=null ? '<span class="amount">'+_won(r.cost_amount)+'</span>' : ''}`
+            : '<span class="cost-badge unset">무상/유상 미정</span>';
+        const curIdx = AS_ORDER.indexOf(r.status);
+        const nextKey = curIdx >= 0 && curIdx < AS_ORDER.length - 1 ? AS_ORDER[curIdx + 1] : null;
+        const side = AS_CAN_EDIT
+            ? `${nextKey ? `<button class="next-btn" onclick="asSetStatus(${r.id}, '${nextKey}')">${_e(AS_STATUS[nextKey])} →</button>` : `<span class="as-badge done">${_e(AS_STATUS.done)}</span>`}
+               <div class="ac-btns">
+                   <select class="status-sel" onchange="asSetStatus(${r.id}, this.value)" title="단계 직접 지정">
+                       ${AS_ORDER.map(k => `<option value="${k}" ${r.status===k?'selected':''}>${_e(AS_STATUS[k])}</option>`).join('')}
+                   </select>
+                   <button class="mini-btn" onclick="asOpenModal(${r.id})">수정</button>
+                   <button class="mini-btn danger" onclick="asDelete(${r.id})">삭제</button>
+               </div>`
             : `<span class="as-badge ${r.status}">${_e(r.status_label)}</span>`;
-        return `<tr class="${r.status==='done'?'row-done':''}">
-            <td>${statusCell}</td>
-            <td><a class="as-link" href="/clients?open=${r.client_id}" target="_blank" rel="noopener">${_e(r.client||'-')}</a></td>
-            <td><a class="as-link" href="/projects/${r.project_id}" target="_blank" rel="noopener">${_e(r.project||'-')}</a></td>
-            <td style="font-weight:600;">${_e(r.product_name)}</td>
-            <td><div class="as-desc">${_e(r.description||'')}</div></td>
-            <td>${cost}</td>
-            <td><div class="as-dates">${dates}</div></td>
-            ${AS_CAN_EDIT ? `<td style="white-space:nowrap;"><button class="mini-btn" onclick="asOpenModal(${r.id})">수정</button> <button class="mini-btn danger" onclick="asDelete(${r.id})">삭제</button></td>` : ''}
-        </tr>`;
+        return `<div class="as-card ${r.status==='done'?'is-done':''}">
+            <div class="ac-main">
+                <div class="ac-product">${_e(r.product_name)}</div>
+                <div class="ac-links">
+                    ${CAL_SVG_USER}<a href="/clients?open=${r.client_id}" target="_blank" rel="noopener">${_e(r.client||'-')}</a>
+                    <span class="sep">·</span>
+                    ${CAL_SVG_PROJ}<a href="/projects/${r.project_id}" target="_blank" rel="noopener">${_e(r.project||'-')}</a>
+                </div>
+                ${r.description ? `<div class="ac-desc" title="${_e(r.description)}">${_e(r.description)}</div>` : ''}
+                <div class="ac-cost">${cost}</div>
+            </div>
+            ${asStepsHtml(r)}
+            <div class="ac-side">${side}</div>
+        </div>`;
     }).join('');
 }
 
