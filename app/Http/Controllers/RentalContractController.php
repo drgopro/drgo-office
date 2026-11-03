@@ -17,13 +17,17 @@ class RentalContractController extends Controller
 {
     public function __construct(private ContractCalendarSync $calendarSync) {}
 
-    /** 탭(장비 렌탈 / 서버 렌탈) 골격 — 목록·통계는 /api/rental-contracts?kind= 로 탭별 로드 */
+    /** 탭(전체 / 장비 렌탈 / 서버 렌탈) 골격 — 기본은 전체 보기. 목록·통계는 /api/rental-contracts?kind= 로 종류별 로드 후 화면에서 거른다 */
     public function index(Request $request)
     {
-        $kind = $this->kindFrom($request->query('kind'));
+        $kind = $request->query('kind');
+        $kind = in_array($kind, RentalContract::KINDS, true) ? $kind : self::TAB_ALL;
 
         return view('rental-contracts.index', compact('kind'));
     }
+
+    /** 렌탈 화면 탭 — 종류(KINDS) 외에 '전체' 탭 */
+    public const TAB_ALL = 'all';
 
     /** 계약 목록 — kind 지정 시 해당 종류만 (미지정 시 전체, 구버전 탭 호환) */
     public function list(Request $request)

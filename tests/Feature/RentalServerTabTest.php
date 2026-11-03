@@ -40,18 +40,36 @@ class RentalServerTabTest extends TestCase
 
     public function test_page_renders_tabs_and_restores_kind_from_query(): void
     {
+        // 기본은 전체 보기 — 장비·서버가 한 목록에 섞여 보이고 카드마다 종류 칩으로 구분
         $html = $this->actingAs($this->user)->get('/rental-contracts')->assertOk()->getContent();
+        $this->assertStringContainsString('data-kind="all"', $html);
         $this->assertStringContainsString('data-kind="equipment"', $html);
         $this->assertStringContainsString('data-kind="server"', $html);
-        $this->assertStringContainsString('let KIND = "equipment"', $html);
+        $this->assertStringContainsString('let KIND = "all"', $html);
+        $this->assertStringContainsString('function kindTagHtml', $html);
         $this->assertStringContainsString('id="serverAccess"', $html);
 
         $html = $this->actingAs($this->user)->get('/rental-contracts?kind=server')->assertOk()->getContent();
         $this->assertStringContainsString('let KIND = "server"', $html);
 
-        // 알 수 없는 종류는 장비 렌탈로
-        $html = $this->actingAs($this->user)->get('/rental-contracts?kind=foo')->assertOk()->getContent();
+        $html = $this->actingAs($this->user)->get('/rental-contracts?kind=equipment')->assertOk()->getContent();
         $this->assertStringContainsString('let KIND = "equipment"', $html);
+
+        // 알 수 없는 종류는 전체 보기로
+        $html = $this->actingAs($this->user)->get('/rental-contracts?kind=foo')->assertOk()->getContent();
+        $this->assertStringContainsString('let KIND = "all"', $html);
+    }
+
+    public function test_form_has_kind_picker_so_kind_is_chosen_while_registering(): void
+    {
+        // 탭이 아니라 등록 폼 안에서 장비/서버를 고른다 — 고른 종류의 상품만 선택지에 뜬다
+        $html = $this->actingAs($this->user)->get('/rental-contracts')->assertOk()->getContent();
+        $this->assertStringContainsString('data-kind-pick="equipment" onclick="pickKind(\'equipment\')"', $html);
+        $this->assertStringContainsString('data-kind-pick="server" onclick="pickKind(\'server\')"', $html);
+        $this->assertStringContainsString('function pickKind(', $html);
+        $this->assertStringContainsString('fillProductSelect(kind, null, \'\')', $html);
+        // 상품 관리 모달도 종류를 전환할 수 있다
+        $this->assertStringContainsString('function switchProductKind(', $html);
     }
 
     public function test_store_server_contract_saves_server_fields_and_syncs_own_calendar_category(): void

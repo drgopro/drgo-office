@@ -38,7 +38,23 @@
     .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
     .rental-kind-tabs { width:max-content; max-width:100%; margin:0 auto 18px; }
-    .rental-kind-tabs .pst-tab { min-width:150px; }
+    .rental-kind-tabs .pst-tab { min-width:130px; }
+    .pst-count-all { background:rgba(160,160,160,0.16); color:var(--text-muted); }
+
+    /* 종류 칩 — 전체 보기에서 장비/서버를 한눈에 구분 (카드·관리 모달 공통) */
+    .kind-tag { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:800; padding:0 7px; border-radius:999px; white-space:nowrap; flex-shrink:0; line-height:1.8; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); }
+    .kind-tag.server { background:rgba(110,140,230,0.14); color:#8aa4f0; border-color:rgba(110,140,230,0.4); }
+    [data-theme="light"] .kind-tag.server { background:#e8ecfd; color:#3a52b0; border-color:#b8c4f0; }
+    .card-product-row { display:flex; align-items:center; gap:8px; min-width:0; }
+    .card-product-row .card-product { flex:1 1 auto; }
+
+    /* 모달 — 장비/서버 종류 선택 (등록 과정에서 고른다, 상품 목록은 그 종류만) */
+    .kind-pick { display:flex; gap:6px; }
+    .kind-pick button { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:9px 6px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; min-height:40px; }
+    .kind-pick button.on { background:rgba(230,160,60,0.14); color:var(--accent); border-color:var(--accent); }
+    .kind-pick button.on[data-kind-pick="server"] { background:rgba(110,140,230,0.14); color:#8aa4f0; border-color:rgba(110,140,230,0.6); }
+    [data-theme="light"] .kind-pick button.on[data-kind-pick="server"] { background:#e8ecfd; color:#3a52b0; border-color:#8a9ee0; }
+    .kind-pick button:disabled { cursor:default; opacity:.9; }
 
     /* 상태 칩 — 어떤 폭에서도 한 줄 (nowrap + 축소 금지) */
     .status-badge { display:inline-flex; align-items:center; font-size:11px; padding:2px 9px; border-radius:999px; font-weight:700; white-space:nowrap; flex-shrink:0; line-height:1.7; }
@@ -204,6 +220,7 @@
 <div class="page-wrap" id="pageWrap">
     {{-- 탭: 장비 렌탈(기존) / 서버 렌탈(서버 대여 현황) — 상단 가운데 알약 탭, URL ?kind= 로 복원 --}}
     <div class="proj-status-tabs rental-kind-tabs" id="kindTabs" role="tablist">
+        <a href="?kind=all" class="pst-tab" role="tab" data-kind="all" onclick="event.preventDefault(); switchKind('all')">전체<span class="pst-count pst-count-all" id="cntAll">–</span></a>
         <a href="?kind=equipment" class="pst-tab" role="tab" data-kind="equipment" onclick="event.preventDefault(); switchKind('equipment')">장비 렌탈<span class="pst-count pst-count-done" id="cntEquipment">–</span></a>
         <a href="?kind=server" class="pst-tab" role="tab" data-kind="server" onclick="event.preventDefault(); switchKind('server')">서버 렌탈<span class="pst-count pst-count-active" id="cntServer">–</span></a>
     </div>
@@ -259,7 +276,7 @@
 </div>
 
 {{-- 계약 등록/편집 모달 --}}
-<div class="modal-overlay" id="contractModal" onclick="if(event.target===this) drgoModalMinimize(this, KIND==='server' ? '서버 렌탈 계약' : '렌탈 계약', KIND==='server' ? '🖥️' : '🏠')">
+<div class="modal-overlay" id="contractModal" onclick="if(event.target===this) { const k = document.getElementById('contractKind').value; drgoModalMinimize(this, k==='server' ? '서버 렌탈 계약' : '장비 렌탈 계약', k==='server' ? '🖥️' : '🏠'); }">
     <div class="modal">
         <h3 id="modalTitle">+ 계약 등록</h3>
         <input type="hidden" id="contractId">
@@ -270,6 +287,15 @@
 
         {{-- 수정 모드 --}}
         <div id="contractForm">
+
+        <div class="field-group">
+            <div class="field-label">렌탈 종류 *</div>
+            <div class="kind-pick" role="radiogroup" aria-label="렌탈 종류">
+                <button type="button" data-kind-pick="equipment" onclick="pickKind('equipment')">🏠 장비 렌탈</button>
+                <button type="button" data-kind-pick="server" onclick="pickKind('server')">🖥️ 서버 렌탈</button>
+            </div>
+            <div class="field-hint">종류에 따라 고를 수 있는 상품 목록이 바뀝니다. 서버 렌탈은 서버명·사양·접속 정보를 함께 적을 수 있습니다.</div>
+        </div>
 
         <div class="field-group">
             <div class="field-label"><span>상품명 (렌탈 항목) *</span>@if(Auth::user()->hasPermission('rental.edit'))<button type="button" class="link-btn" onclick="openProductModal()">⚙ 상품 관리</button>@endif</div>
@@ -353,7 +379,11 @@
 {{-- 상품 관리 모달 — 렌탈 담당자가 탭별 상품을 생성·편집·삭제 --}}
 <div class="modal-overlay" id="productModal" onclick="if(event.target===this) closeProductModal()">
     <div class="modal">
-        <h3><span>⚙ 상품 관리</span><span class="status-badge status-pending" id="productModalKind">장비 렌탈</span></h3>
+        <h3><span>⚙ 상품 관리</span></h3>
+        <div class="kind-pick" role="tablist" aria-label="상품 종류" style="margin-bottom:12px;">
+            <button type="button" data-kind-pick="equipment" onclick="switchProductKind('equipment')">🏠 장비 렌탈</button>
+            <button type="button" data-kind-pick="server" onclick="switchProductKind('server')">🖥️ 서버 렌탈</button>
+        </div>
         <div class="prod-list" id="productList"><div class="field-hint">로딩 중...</div></div>
         <div class="prod-form">
             <input type="hidden" id="prodEditId">
@@ -375,7 +405,11 @@ const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const canEdit = @json(Auth::user()->hasPermission('rental.edit'));
 const KIND_LABEL = { equipment:'장비 렌탈', server:'서버 렌탈' };
 const STATUS_LABEL = { pending:'준비중', active:'진행중', terminated:'해지' };
-let KIND = @json($kind); // 현재 탭 (장비/서버)
+let KIND = @json($kind); // 현재 탭 ('all' 전체 / 장비 / 서버)
+const KIND_TAG = { equipment:'🏠 장비', server:'🖥️ 서버' };
+function kindTagHtml(kind) { const k = kind === 'server' ? 'server' : 'equipment'; return `<span class="kind-tag ${k}" title="${KIND_LABEL[k]}">${KIND_TAG[k]}</span>`; }
+/** 현재 탭이 특정 종류면 그 종류, 전체 탭이면 장비 (신규 등록 기본값) */
+function defaultKind() { return KIND_LABEL[KIND] ? KIND : 'equipment'; }
 let allContracts = []; // 전체 종류 — 탭 전환은 요청 없이 화면에서 거른다
 let products = { equipment: [], server: [] }; // 탭별 상품 목록 (활성)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -397,7 +431,7 @@ async function loadProducts() {
 }
 
 function switchKind(kind) {
-    if (!KIND_LABEL[kind]) return;
+    if (kind !== 'all' && !KIND_LABEL[kind]) return;
     KIND = kind;
     // URL 에 기록 (새로고침·탭 복원), 다른 파라미터(_tab 등)는 유지
     const url = new URL(location.href); url.searchParams.set('kind', kind); history.replaceState(null, '', url);
@@ -460,13 +494,14 @@ function renderContracts() {
     kindBar.querySelectorAll('.pst-tab').forEach(b => b.classList.toggle('active', b.dataset.kind === KIND));
     moveKindPill(!kindPillPlaced); kindPillPlaced = true; // 첫 배치는 즉시, 이후 전환은 슬라이드
     const titleEl = document.getElementById('pageTitleText');
-    if (titleEl) titleEl.textContent = KIND === 'server' ? '서버 렌탈 계약' : '렌탈 계약';
+    if (titleEl) titleEl.textContent = KIND === 'server' ? '서버 렌탈 계약' : (KIND === 'equipment' ? '장비 렌탈 계약' : '렌탈 계약');
+    document.getElementById('cntAll').textContent = allContracts.length;
     document.getElementById('cntEquipment').textContent = allContracts.filter(c => (c.kind || 'equipment') === 'equipment').length;
     document.getElementById('cntServer').textContent = allContracts.filter(c => c.kind === 'server').length;
     const addBtn = document.getElementById('addBtn');
-    if (addBtn) addBtn.textContent = KIND === 'server' ? '+ 서버 렌탈 등록' : '+ 계약 등록';
+    if (addBtn) addBtn.textContent = KIND === 'server' ? '+ 서버 렌탈 등록' : (KIND === 'equipment' ? '+ 장비 렌탈 등록' : '+ 렌탈 등록');
 
-    const ofKind = allContracts.filter(c => (c.kind || 'equipment') === KIND);
+    const ofKind = KIND === 'all' ? allContracts : allContracts.filter(c => (c.kind || 'equipment') === KIND);
     const active = ofKind.filter(c => c.status === 'active');
     document.getElementById('statActive').textContent = active.length.toLocaleString() + '건';
     document.getElementById('statRevenue').textContent = won(active.reduce((s, c) => s + (Number(c.monthly_fee) || 0), 0));
@@ -494,7 +529,7 @@ function renderContracts() {
 
     const wrap = document.getElementById('contractCards');
     if (!filtered.length) {
-        wrap.innerHTML = `<div class="cards-empty">${KIND === 'server' ? '서버 렌탈 계약이 없습니다.' : '계약이 없습니다.'}</div>`;
+        wrap.innerHTML = `<div class="cards-empty">${KIND === 'server' ? '서버 렌탈 계약이 없습니다.' : (KIND === 'equipment' ? '장비 렌탈 계약이 없습니다.' : '렌탈 계약이 없습니다.')}</div>`;
         return;
     }
     const personIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
@@ -503,7 +538,7 @@ function renderContracts() {
         const calBadge = c.calendar_synced
             ? `<a href="/calendar" title="캘린더에 연동됨 — 클릭 시 캘린더로 이동" onclick="event.preventDefault();if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('calendar','/calendar');}else{location.href='/calendar';}">📅</a>`
             : '';
-        const product = c.product_name ? `<div class="card-product" title="${esc(c.product_name)}">${esc(c.product_name)}</div>` : `<div class="card-product none">상품 미지정</div>`;
+        const product = `<div class="card-product-row">${kindTagHtml(c.kind)}${c.product_name ? `<div class="card-product" title="${esc(c.product_name)}">${esc(c.product_name)}</div>` : `<div class="card-product none">상품 미지정</div>`}</div>`;
         const endLabel = c.end_date ? esc(c.end_date) : (c.status === 'pending' ? '<span style="color:var(--text-muted);">미정</span>' : '<span style="color:var(--text-muted);">진행중</span>');
         const manual = c.fee_manual ? '<span class="fee-manual-tag" title="상품 기본 금액 대신 직접 입력한 금액">수동</span>' : '';
         const access = (c.kind === 'server')
@@ -577,6 +612,22 @@ function onFeeManualChange() {
         ? '직접 입력한 금액으로 저장됩니다 (카드에 \'수동\' 표시).'
         : '세트 일부 제외 등 예외 금액은 \'금액 직접 입력\'을 켜고 수정하세요. 카드에 \'수동\' 표시가 붙습니다.';
 }
+/** 폼의 렌탈 종류 선택 — 상품 목록을 그 종류로 바꾸고(이전 선택은 비움), 서버 전용 필드를 켜거나 끈다 */
+function pickKind(kind, keepProduct) {
+    if (!KIND_LABEL[kind]) kind = 'equipment';
+    const prev = document.getElementById('contractKind').value;
+    document.getElementById('contractKind').value = kind;
+    document.querySelectorAll('#contractForm .kind-pick button').forEach(b => { const on = b.dataset.kindPick === kind; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    document.getElementById('contractModal').classList.toggle('kind-server', kind === 'server');
+    const id = document.getElementById('contractId').value;
+    document.getElementById('modalTitle').textContent = (id ? '계약 수정' : '+ 계약 등록') + ' · ' + KIND_LABEL[kind];
+    if (!keepProduct && prev !== kind) {
+        fillProductSelect(kind, null, '');
+        document.getElementById('productNameInput').value = '';
+        if (!document.getElementById('feeManual').checked) document.getElementById('monthlyFee').value = '';
+        onFeeManualChange();
+    }
+}
 function pickStatus(s) {
     document.getElementById('status').value = s;
     document.querySelectorAll('.status-pick button').forEach(b => { const on = b.dataset.status === s; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
@@ -586,7 +637,7 @@ let modalMode = 'edit'; // 'view'(관리: 저장된 내용 + 결제 이력) | 'e
 function setContractMode(mode) {
     modalMode = mode;
     const id = document.getElementById('contractId').value;
-    const kind = document.getElementById('contractKind').value || KIND;
+    const kind = KIND_LABEL[document.getElementById('contractKind').value] ? document.getElementById('contractKind').value : defaultKind();
     document.getElementById('contractView').style.display = mode === 'view' ? '' : 'none';
     document.getElementById('contractForm').style.display = mode === 'edit' ? '' : 'none';
     document.getElementById('viewFooter').style.display = mode === 'view' ? 'flex' : 'none';
@@ -625,7 +676,7 @@ function renderContractView(c) {
     }).join('')}</div>`;
     el.innerHTML = `
         <div class="cvw-head">
-            <div style="min-width:0;"><div class="cvw-product ${c.product_name ? '' : 'none'}">${c.product_name ? esc(c.product_name) : '상품 미지정'}</div><div class="cvw-client">${clientLabel}</div></div>
+            <div style="min-width:0;"><div style="margin-bottom:4px;">${kindTagHtml(c.kind)}</div><div class="cvw-product ${c.product_name ? '' : 'none'}">${c.product_name ? esc(c.product_name) : '상품 미지정'}</div><div class="cvw-client">${clientLabel}</div></div>
             <span class="status-badge status-${esc(c.status)}">${STATUS_LABEL[c.status] || esc(c.status)}</span>
         </div>
         <div class="cvw-grid">
@@ -642,12 +693,11 @@ function renderContractView(c) {
 }
 
 async function openContractModal(data, mode) {
-    const kind = data?.kind || KIND;
+    const kind = KIND_LABEL[data?.kind] ? data.kind : defaultKind();
     if (!products[kind].length) await loadProducts().catch(() => {});
     document.getElementById('contractModal').classList.add('open');
-    document.getElementById('contractModal').classList.toggle('kind-server', kind === 'server');
     document.getElementById('contractId').value = data?.id || '';
-    document.getElementById('contractKind').value = kind;
+    pickKind(kind, true);
     document.getElementById('clientId').value = data?.client_id || '';
     document.getElementById('clientSearch').value = data ? (data.client_nickname || data.client_name || '') : '';
     document.getElementById('selectedClient').textContent = data ? `✓ ${data.client_name || data.client_nickname || ''}${data.client_name && data.client_nickname ? ' ('+data.client_nickname+')' : ''}` : '';
@@ -771,9 +821,14 @@ async function deleteContract() {
 let productModalKind = 'equipment';
 let allProductsForKind = [];
 async function openProductModal() {
-    productModalKind = document.getElementById('contractModal').classList.contains('open') ? (document.getElementById('contractKind').value || KIND) : KIND;
-    document.getElementById('productModalKind').textContent = KIND_LABEL[productModalKind];
+    const fromForm = document.getElementById('contractModal').classList.contains('open') ? document.getElementById('contractKind').value : null;
     document.getElementById('productModal').classList.add('open');
+    await switchProductKind(KIND_LABEL[fromForm] ? fromForm : defaultKind());
+}
+/** 상품 관리 모달의 종류 전환 — 그 종류의 상품만 보이고, 새 상품도 그 종류로 추가된다 */
+async function switchProductKind(kind) {
+    productModalKind = KIND_LABEL[kind] ? kind : 'equipment';
+    document.querySelectorAll('#productModal .kind-pick button').forEach(b => { const on = b.dataset.kindPick === productModalKind; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     resetProductForm();
     await refreshProductList();
 }

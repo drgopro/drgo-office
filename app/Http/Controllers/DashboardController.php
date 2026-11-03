@@ -20,6 +20,7 @@ use App\Models\Todo;
 use App\Models\Wiki;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Chart\Chart;
@@ -285,22 +286,28 @@ class DashboardController extends Controller
                 ];
             });
 
-        // 잔금 미수 — 미입금·부분입금 청구 상위 + 합계
-        $outstanding = collect();
-        $outstandingTotal = 0;
-        $outstandingCount = 0;
+        // 잔금 미수 — 프로젝트 미입금·부분입금 청구 + 렌탈 미납(결제일이 지났는데 체크되지 않은 결제). 오래된 것부터 상위 4건 + 합계
+        $outstandingAll = collect();
         if (auth()->user()->hasPermission('projects.view')) {
             $obs = ProjectBilling::with('project.client')
                 ->whereIn('status', ['unpaid', 'partial'])->orderBy('billed_at')->get();
-            $outstandingCount = $obs->count();
-            $outstandingTotal = $obs->sum(fn ($b) => $b->balance());
-            $outstanding = $obs->take(4)->map(fn ($b) => [
-                'project_id' => $b->project_id,
+            $outstandingAll = $outstandingAll->concat($obs->map(fn ($b) => [
+                'type' => 'project',
+                'href' => '/projects/'.$b->project_id,
+                'tab' => 'projects',
                 'label' => $b->project?->clientDisplayName() ?: ($b->project?->name ?? '프로젝트 #'.$b->project_id),
                 'sub' => trim(($b->project?->name ?? '').' · 청구 '.$b->billed_at?->format('m.d'), ' ·'),
                 'balance' => $b->balance(),
-            ]);
+                'sort' => $b->billed_at?->toDateString() ?? '',
+            ]));
         }
+        if (auth()->user()->hasPermission('rental.view') && Schema::hasTable('rental_contracts')) {
+            $outstandingAll = $outstandingAll->concat($this->rentalOverdueRows());
+        }
+        $outstandingAll = $outstandingAll->sortBy('sort')->values();
+        $outstandingCount = $outstandingAll->count();
+        $outstandingTotal = $outstandingAll->sum('balance');
+        $outstanding = $outstandingAll->take(4);
 
         // 나의 할 일 — 미완료, 기한 임박·우선순위 순 (우측 카드). 복수 담당자에 포함된 것도 포함
         $myTodoAll = Todo::where(fn ($q) => $q->where('assignee_id', auth()->id())
@@ -1436,5 +1443,46 @@ class DashboardController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    /**
+     * 렌탈 미납 — 결제일이 지났는데 체크되지 않은 결제가 있는 계약을 '렌탈미납' 행으로.
+     * 대상은 진행중 계약과 종료일이 있는 해지 계약(종료일까지의 미납). 준비중은 결제 일정이 없고,
+     * 종료일 없는 해지 계약은 결제일이 끝없이 늘어나 미납이 계속 쌓이므로 제외.
+     *
+     * @return Collection<int, array{type:string, href:string, tab:string, label:string, sub:string, balance:int, sort:string}>
+     */
+    private function rentalOverdueRows(): Collection
+    {
+        return RentalContract::with(['client', 'payments'])
+            ->where(fn ($q) => $q->where('status', RentalContract::STATUS_ACTIVE)
+                ->orWhere(fn ($q2) => $q2->where('status', RentalContract::STATUS_TERMINATED)->whereNotNull('end_date')))
+            ->whereDate('start_date', '<', now()->toDateString()) // 오늘 시작한 계약은 아직 지난 결제일이 없다
+            ->get()
+            ->map(function (RentalContract $c) {
+                $overdue = array_values(array_filter($c->paymentStatus(), fn (array $p) => $p['state'] === 'overdue'));
+                if (! $overdue) {
+                    return null;
+                }
+                $client = $c->client;
+                $label = $client ? ($client->name ?: $client->nickname) : '의뢰자 미지정';
+                if ($client && $client->name && $client->nickname) {
+                    $label .= ' ('.$client->nickname.')';
+                }
+                $first = Carbon::parse($overdue[0]['due_date']);
+                $count = count($overdue);
+
+                return [
+                    'type' => 'rental',
+                    'href' => '/rental-contracts?kind='.$c->kind,
+                    'tab' => 'rental-contracts',
+                    'label' => $label,
+                    'sub' => trim(($c->displayProductName() ?? '').' · 미납 '.$count.'회 · 결제일 '.$first->format('m.d'), ' ·'),
+                    'balance' => (int) array_sum(array_column($overdue, 'amount')),
+                    'sort' => $first->toDateString(),
+                ];
+            })
+            ->filter()
+            ->values();
     }
 }

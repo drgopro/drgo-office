@@ -74,6 +74,8 @@
     .ob-row:hover { background:var(--surface2); }
     .ob-body { flex:1; min-width:0; }
     .ob-label { font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ob-chip { display:inline-block; vertical-align:middle; margin-right:6px; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px; background:rgba(200,80,80,0.14); color:var(--red); border:1px solid rgba(200,80,80,0.45); line-height:1.6; }
+    [data-theme="light"] .ob-chip { background:#fdecec; color:#b03030; border-color:#f0b0b0; }
     .ob-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
     .ob-amt { flex:none; font-size:13.5px; font-weight:800; }
     .ob-total { display:flex; align-items:center; justify-content:space-between; padding:11px 16px; font-size:12.5px; font-weight:700; background:var(--surface2); }
@@ -424,24 +426,28 @@
         </div>
         </div>{{-- /side-stack --}}
 
-        {{-- 잔금 미수 --}}
-        @if(Auth::user()->hasPermission('projects.view'))
+        {{-- 잔금 미수 — 프로젝트 잔금 + 렌탈 미납(렌탈미납 칩) --}}
+        @if(Auth::user()->hasPermission('projects.view') || Auth::user()->hasPermission('rental.view'))
         <div class="dcard">
             <div class="dcard-head">
                 잔금 미수
                 @if($outstandingCount)<span class="dc-count">{{ $outstandingCount }}</span>@endif
+                @if(Auth::user()->hasPermission('projects.view'))
                 <a class="dc-link" href="/projects-billing" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects-billing'); else location.href='/projects-billing';">전체 →</a>
+                @else
+                <a class="dc-link" href="/rental-contracts" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('rental-contracts','/rental-contracts'); else location.href='/rental-contracts';">전체 →</a>
+                @endif
             </div>
             @forelse($outstanding as $o)
-                <div class="ob-row" onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('projects','/projects/{{ $o['project_id'] }}');}else{location.href='/projects/{{ $o['project_id'] }}';}">
+                <div class="ob-row" onclick="if(window.parent&&window.parent.drgoTabs){window.parent.drgoTabs.openNav('{{ $o['tab'] }}','{{ $o['href'] }}');}else{location.href='{{ $o['href'] }}';}">
                     <span class="ob-body">
-                        <div class="ob-label">{{ $o['label'] }}</div>
+                        <div class="ob-label">@if($o['type'] === 'rental')<span class="ob-chip">렌탈미납</span>@endif{{ $o['label'] }}</div>
                         <div class="ob-sub">{{ $o['sub'] }}</div>
                     </span>
                     <span class="ob-amt">{{ number_format($o['balance']) }}원</span>
                 </div>
             @empty
-                <div class="dcard-empty">잔금이 남은 프로젝트가 없습니다</div>
+                <div class="dcard-empty">잔금이 남은 프로젝트·렌탈이 없습니다</div>
             @endforelse
             @if($outstandingCount)
                 <div class="ob-total"><span>합계</span><b>{{ number_format($outstandingTotal) }}원</b></div>
