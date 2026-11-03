@@ -139,6 +139,26 @@ class ConsultationInboundTimeTest extends TestCase
             ->assertJson(['found' => true, 'time' => '09:47', 'chats' => 2]);
     }
 
+    public function test_inbound_suggest_uses_reopened_chat_time(): void
+    {
+        // 채널톡은 기존 챗을 재오픈해 이어가는 경우가 많다 — 생성일이 과거여도
+        // 상담일에 재오픈(openedAt)된 챗이면 그 시각으로 자동 기입되어야 한다.
+        $this->configureChannelTalk();
+        $this->project->client->update(['channeltalk_user_id' => 'ct-user-3']);
+
+        $ms = fn (string $dt) => Carbon::parse($dt, config('app.timezone'))->getTimestampMs();
+        Http::fake([
+            'api.channel.io/open/v5/users/ct-user-3/user-chats*' => Http::response(['userChats' => [
+                ['id' => 'c1', 'createdAt' => $ms('2026-08-01 10:00'), 'openedAt' => $ms('2026-09-18 14:01'), 'state' => 'snoozed'],
+            ]]),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
+            ->assertOk()
+            ->assertJson(['found' => true, 'time' => '14:01', 'chats' => 1]);
+    }
+
     public function test_inbound_suggest_without_linked_client_skips_channeltalk(): void
     {
         $this->configureChannelTalk();

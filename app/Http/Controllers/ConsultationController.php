@@ -15,7 +15,8 @@ class ConsultationController extends Controller
 {
     /**
      * 상담 등록 시 인입 시간 자동 제안 — 연동 의뢰자의 채널톡 유저챗 중
-     * 해당 날짜에 시작된 챗의 가장 이른 시각을 그대로(분 단위) 돌려준다.
+     * 해당 날짜에 시작되었거나 재오픈된 챗의 가장 이른 시각을 그대로(분 단위) 돌려준다.
+     * (채널톡은 기존 챗을 재오픈해 이어가는 경우가 많아 생성 시각만 보면 당일 문의를 놓친다.)
      *
      * @return JsonResponse array{found:bool, time?:string, chats?:int}
      */
@@ -37,16 +38,22 @@ class ConsultationController extends Controller
             $earliest = null;
             $count = 0;
             foreach ($res['chats'] as $chat) {
-                if ($chat['created_at'] === null) {
-                    continue;
+                $matched = false;
+                foreach ([$chat['created_at'], $chat['opened_at'] ?? null] as $ms) {
+                    if ($ms === null) {
+                        continue;
+                    }
+                    $at = Carbon::createFromTimestampMs($ms)->timezone(config('app.timezone'));
+                    if ($at->format('Y-m-d') !== $date) {
+                        continue;
+                    }
+                    $matched = true;
+                    if ($earliest === null || $at->lt($earliest)) {
+                        $earliest = $at;
+                    }
                 }
-                $startedAt = Carbon::createFromTimestampMs($chat['created_at'])->timezone(config('app.timezone'));
-                if ($startedAt->format('Y-m-d') !== $date) {
-                    continue;
-                }
-                $count++;
-                if ($earliest === null || $startedAt->lt($earliest)) {
-                    $earliest = $startedAt;
+                if ($matched) {
+                    $count++;
                 }
             }
 

@@ -1766,7 +1766,7 @@ async function suggestInboundTime(date) {
         setInboundLock(true);
         ciAutoFilled = true;
         if (hint) {
-            hint.textContent = `채널톡 ${date} 첫 챗 시작 시각(${data.time})으로 자동 기입됨${data.chats > 1 ? ` · 당일 챗 ${data.chats}건` : ''} — 수동 변경 불가`;
+            hint.textContent = `채널톡 ${date} 첫 문의 시각(${data.time})으로 자동 기입됨${data.chats > 1 ? ` · 당일 챗 ${data.chats}건` : ''} — 수동 변경 불가`;
             hint.style.display = 'block';
         }
     } else {
