@@ -296,9 +296,8 @@ function fbRenderCounts(counts){
 function fbRenderFeed(){
     const feed = document.getElementById('fbFeed');
     if(!fbPosts.length){ feed.innerHTML = '<div class="fb-empty">아직 등록된 글이 없습니다. 첫 글을 남겨보세요!</div>'; return; }
-    // 완료된 글은 목록 최하단으로 (그 외는 기존 정렬 유지 — sort는 stable)
-    const ordered = [...fbPosts].sort((a,b) => (a.status==='done'?1:0) - (b.status==='done'?1:0));
-    feed.innerHTML = ordered.map(p => {
+    // 서버 정렬 그대로 사용 — 완료 글은 완료 시각, 그 외는 등록 시각 기준으로 섞여 정렬됨
+    feed.innerHTML = fbPosts.map(p => {
         const open = p.id === fbOpenId;
         const initial = _e((p.author||'?').charAt(0));
         return `<div class="fb-card status-${p.status}${open?' open':''}" id="fbCard${p.id}">

@@ -35,7 +35,12 @@ class FeedbackPost extends Model
         'status',
         'priority',
         'reject_reason',
+        'done_at',
         'created_by',
+    ];
+
+    protected $casts = [
+        'done_at' => 'datetime',
     ];
 
     /** @return BelongsTo<User, $this> */

@@ -318,4 +318,34 @@ class FeedbackBoardTest extends TestCase
         $res = $this->actingAs($author)->getJson('/api/feedback?type=bug&sort=oldest')->assertOk();
         $this->assertSame('먼저 등록', $res->json('posts.0.title'));
     }
+
+    public function test_완료_전환_시_done_at_기록_해제_시_초기화(): void
+    {
+        Notification::fake();
+        $post = $this->makePost($this->member());
+        $dev = $this->master();
+
+        $this->actingAs($dev)->postJson("/api/feedback/{$post->id}/status", ['status' => 'done'])->assertOk();
+        $this->assertNotNull($post->fresh()->done_at);
+
+        $this->actingAs($dev)->postJson("/api/feedback/{$post->id}/status", ['status' => 'reviewing'])->assertOk();
+        $this->assertNull($post->fresh()->done_at);
+    }
+
+    public function test_전체_목록은_완료된_순으로_정렬(): void
+    {
+        // 완료 글은 완료 시각, 미완료 글은 등록 시각 기준으로 한 줄로 정렬 (최신이 위)
+        $author = $this->member();
+        $a = $this->makePost($author, ['title' => 'A 사흘 전 등록']);
+        $a->forceFill(['created_at' => now()->subDays(3)])->save();
+        $b = $this->makePost($author, ['title' => 'B 어제 등록']);
+        $b->forceFill(['created_at' => now()->subDay()])->save();
+        $c = $this->makePost($author, ['title' => 'C 닷새 전 등록 그저께 완료', 'status' => 'done']);
+        $c->forceFill(['created_at' => now()->subDays(5), 'done_at' => now()->subDays(2)])->save();
+
+        $titles = $this->actingAs($author)->getJson('/api/feedback?type=bug')
+            ->assertOk()->json('posts.*.title');
+
+        $this->assertSame(['B 어제 등록', 'C 닷새 전 등록 그저께 완료', 'A 사흘 전 등록'], $titles);
+    }
 }

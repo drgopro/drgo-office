@@ -72,12 +72,15 @@ class FeedbackController extends Controller
             });
         }
 
-        // 우선순위순: 높음 → 중간 → 낮음 → 미지정, 같은 순위 안에서는 최신순
+        // 전체 목록을 '처리된 순'으로 — 완료 글은 완료 시각(done_at), 그 외는 등록 시각 기준.
+        // 최신순이면 방금 완료/등록된 건이 맨 위로 온다.
+        $sortKey = 'coalesce(done_at, created_at)';
         if (($validated['sort'] ?? 'latest') === 'priority') {
+            // 우선순위순: 높음 → 중간 → 낮음 → 미지정, 같은 순위 안에서는 처리된 순
             $query->orderByRaw("case priority when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end")
-                ->orderByDesc('created_at');
+                ->orderByRaw("{$sortKey} desc");
         } else {
-            $query->orderBy('created_at', ($validated['sort'] ?? 'latest') === 'oldest' ? 'asc' : 'desc');
+            $query->orderByRaw($sortKey.(($validated['sort'] ?? 'latest') === 'oldest' ? ' asc' : ' desc'));
         }
 
         $posts = $query->limit(200)
@@ -239,6 +242,8 @@ class FeedbackController extends Controller
         $post->update([
             'status' => $validated['status'],
             'reject_reason' => $validated['status'] === 'rejected' ? $validated['reject_reason'] : null,
+            // 완료 전환 시점 기록 — 완료 글은 완료된 순으로 정렬. 완료 해제 시 초기화
+            'done_at' => $validated['status'] === 'done' ? ($post->done_at ?? now()) : null,
         ]);
 
         $label = FeedbackPost::STATUS_LABELS[$validated['status']];
@@ -399,6 +404,7 @@ class FeedbackController extends Controller
             'is_mine' => $p->created_by === Auth::id(),
             'locked' => $p->isLockedForAuthor(),
             'created_at' => $p->created_at->format('n/j'),
+            'done_at' => $p->done_at?->format('n/j'),
             'comments_count' => $p->comments_count ?? 0,
             'comments' => $p->relationLoaded('comments') ? $p->comments->map(fn ($c) => $this->commentPayload($c))->all() : [],
             'attachments' => $p->relationLoaded('attachments') ? $p->attachments->map(fn ($a) => [
