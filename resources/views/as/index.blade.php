@@ -144,8 +144,11 @@
         </div>
 
         <div class="field-group">
-            <div class="field-label">제품명 <span class="req">*</span></div>
-            <input type="text" class="field-input" id="asProduct" placeholder="AS 대상 제품명" maxlength="200">
+            <div class="field-label">제품명 <span class="req">*</span> <span style="font-weight:400;">— 제품관리에서 검색해 넣거나 직접 입력</span></div>
+            <div class="cl-search-wrap" id="prodSearchWrap">
+                <input type="text" class="field-input" id="asProduct" placeholder="제품명 검색 또는 직접 입력" maxlength="200" autocomplete="off" oninput="prodSearchInput()">
+                <div class="cl-results" id="prodResults"></div>
+            </div>
         </div>
 
         <div class="field-group">
@@ -336,6 +339,28 @@ function clClear(){
     sel.innerHTML = '<option value="">의뢰자를 먼저 선택하세요</option>';
 }
 
+// ── 제품명 자동완성 — 제품관리 카탈로그 검색, 선택하면 이름이 채워지고 수동 입력도 그대로 허용 ──
+let prodTimer = null;
+function prodSearchInput(){
+    clearTimeout(prodTimer);
+    const q = document.getElementById('asProduct').value.trim();
+    const box = document.getElementById('prodResults');
+    if (q.length < 1) { box.classList.remove('open'); return; }
+    prodTimer = setTimeout(async () => {
+        try {
+            const res = await fetch('/api/as-requests/product-search?q=' + encodeURIComponent(q), { headers:{ 'Accept':'application/json' } });
+            const list = await res.json();
+            if (!list.length) { box.classList.remove('open'); return; }
+            box.innerHTML = list.map(p => `<div class="cl-item" data-label="${_e(p.label)}" onclick="prodPick(this)">${_e(p.label)}</div>`).join('');
+            box.classList.add('open');
+        } catch (e) { /* 검색 실패 — 수동 입력으로 진행 */ }
+    }, 250);
+}
+function prodPick(el){
+    document.getElementById('asProduct').value = el.dataset.label;
+    document.getElementById('prodResults').classList.remove('open');
+}
+
 // ── 등록/수정 모달 ──
 function asOpenModal(id){
     asEditId = id || null;
@@ -404,6 +429,7 @@ async function asSave(){
 
 document.addEventListener('click', e => {
     if (!e.target.closest('#clSearchWrap')) document.getElementById('clResults')?.classList.remove('open');
+    if (!e.target.closest('#prodSearchWrap')) document.getElementById('prodResults')?.classList.remove('open');
 });
 
 asLoad();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AsRequest;
 use App\Models\Client;
+use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,6 +71,32 @@ class AsRequestController extends Controller
         return response()->json(
             $client->projects()->orderByDesc('created_at')->get(['id', 'name', 'created_at'])
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'created' => $p->created_at?->format('Y-m-d')])
+        );
+    }
+
+    /** 제품명 자동완성 — 제품관리 카탈로그에서 이름으로 검색 (연동은 이름 기입 방식, 수동 입력도 허용) */
+    public function productSearch(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '') {
+            return response()->json([]);
+        }
+        $like = '%'.$q.'%';
+
+        return response()->json(
+            Product::where('is_active', true)
+                ->where(function ($query) use ($like) {
+                    $query->where('name', 'like', $like)
+                        ->orWhere('option_name', 'like', $like)
+                        ->orWhere('search_tags', 'like', $like);
+                })
+                ->orderBy('name')
+                ->limit(10)
+                ->get(['id', 'name', 'option_name'])
+                ->map(fn (Product $p) => [
+                    'id' => $p->id,
+                    'label' => trim($p->name.($p->option_name ? ' · '.$p->option_name : '')),
+                ])
         );
     }
 

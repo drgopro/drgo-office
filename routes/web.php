@@ -355,6 +355,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/as', [AsRequestController::class, 'index'])->name('as.index');
         Route::get('/api/as-requests', [AsRequestController::class, 'list']);
         Route::get('/api/as-requests/client-projects/{client}', [AsRequestController::class, 'clientProjects']);
+        Route::get('/api/as-requests/product-search', [AsRequestController::class, 'productSearch']);
     });
     Route::middleware('permission:projects.edit')->group(function () {
         Route::post('/api/as-requests', [AsRequestController::class, 'store']);

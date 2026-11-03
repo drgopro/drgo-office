@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AsRequest;
 use App\Models\Client;
+use App\Models\Product;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -132,6 +133,19 @@ class AsBoardTest extends TestCase
     {
         $this->actingAs($this->admin)->getJson("/api/as-requests/client-projects/{$this->client->id}")
             ->assertOk()->assertJsonPath('0.name', '옴니버 세팅');
+    }
+
+    public function test_제품명_검색_api(): void
+    {
+        Product::create(['sku' => 'AS-TEST-1', 'name' => '오디오 인터페이스 X2', 'option_name' => '블랙', 'sale_price' => 100000, 'is_active' => true]);
+        Product::create(['sku' => 'AS-TEST-2', 'name' => '비활성 제품', 'sale_price' => 1000, 'is_active' => false]);
+
+        $res = $this->actingAs($this->admin)->getJson('/api/as-requests/product-search?q=오디오')->assertOk();
+        $this->assertCount(1, $res->json());
+        $this->assertSame('오디오 인터페이스 X2 · 블랙', $res->json('0.label'));
+
+        // 비활성 제품은 검색되지 않는다
+        $this->assertCount(0, $this->actingAs($this->admin)->getJson('/api/as-requests/product-search?q=비활성')->json());
     }
 
     public function test_현황판_페이지_렌더(): void
