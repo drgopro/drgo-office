@@ -393,7 +393,7 @@
             <div class="mk-card">
                 <div class="mk-label">재방문율</div>
                 <div class="mk-value">{{ $schedStats['revisit_rate'] }}%</div>
-                <div class="mk-sub">재방문 {{ number_format($schedStats['revisit_cnt']) }}건 (이력 자동 판정)</div>
+                <div class="mk-sub">재방문 {{ number_format($schedStats['revisit_cnt']) }}건 (수동 기록 기준)</div>
             </div>
             <div class="mk-card">
                 <div class="mk-label">급행 · 사전답사</div>

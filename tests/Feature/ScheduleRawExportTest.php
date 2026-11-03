@@ -77,7 +77,7 @@ class ScheduleRawExportTest extends TestCase
         $this->assertSame('SOOP', $visitRow[9]);       // soop·숲·아프리카 → SOOP 정규화
         $this->assertSame('처음', $visitRow[10]);    // 신규 → 처음 통합
         $this->assertEquals(2500000, $visitRow[11]);
-        $this->assertSame('급행;재방문', $visitRow[12]); // 제목 급행 + 과거 이력 재방문
+        $this->assertSame('급행', $visitRow[12]); // 제목 급행 — 재방문은 수동 기록(제목/프로젝트 작업유형)만 인정
         $this->assertSame('완료', $visitRow[13]);
         $this->assertSame('서울 강남구', $visitRow[16]);
 
@@ -91,39 +91,9 @@ class ScheduleRawExportTest extends TestCase
         $this->assertSame('예정', $internalRow[13]);
     }
 
-    public function test_revisit_ignores_non_work_history_and_same_day(): void
+    public function test_revisit_is_manual_only(): void
     {
-        // 과거 이력이 미팅(작업 아님)뿐인 의뢰자 — 첫 방문세팅은 재방문이 아니다
-        Schedule::create([
-            'title' => '유라 상담 미팅', 'start_date' => '2026-06-20', 'end_date' => '2026-06-20',
-            'color' => 'purple', 'is_all_day' => true, 'client_name' => '유라',
-        ]);
-        Schedule::create([
-            'title' => '유라 금천 방문세팅', 'start_date' => '2026-07-10', 'end_date' => '2026-07-10',
-            'color' => 'gold', 'is_all_day' => true, 'client_name' => '유라',
-        ]);
-
-        // 과거 이력이 사전답사뿐인 의뢰자 — 역시 재방문 아님
-        Schedule::create([
-            'title' => '이백조 사전답사', 'start_date' => '2026-07-01', 'end_date' => '2026-07-01',
-            'color' => 'gold', 'is_all_day' => true, 'client_name' => '이백조',
-        ]);
-        Schedule::create([
-            'title' => '이백조 경기고양 방문', 'start_date' => '2026-07-12', 'end_date' => '2026-07-12',
-            'color' => 'gold', 'is_all_day' => true, 'client_name' => '이백조',
-        ]);
-
-        // 같은 날 작업 일정 2건 — 둘 다 재방문 아님
-        Schedule::create([
-            'title' => '보아 원격 1차', 'start_date' => '2026-07-15', 'end_date' => '2026-07-15',
-            'color' => 'teal', 'start_time' => '10:00', 'is_all_day' => false, 'client_name' => '보아',
-        ]);
-        Schedule::create([
-            'title' => '보아 원격 2차', 'start_date' => '2026-07-15', 'end_date' => '2026-07-15',
-            'color' => 'teal', 'start_time' => '15:00', 'is_all_day' => false, 'client_name' => '보아',
-        ]);
-
-        // 진짜 재방문 — 이전 날짜에 작업 일정이 있는 경우만
+        // 과거 이력이 있어도 자동 판정하지 않는다 — 수동 기록(제목 표기 또는 프로젝트 작업유형)만 인정
         Schedule::create([
             'title' => '옴니버 1차 방문', 'start_date' => '2026-06-10', 'end_date' => '2026-06-10',
             'color' => 'gold', 'is_all_day' => true, 'client_name' => '옴니버',
@@ -133,14 +103,30 @@ class ScheduleRawExportTest extends TestCase
             'color' => 'gold', 'is_all_day' => true, 'client_name' => '옴니버',
         ]);
 
+        // 제목에 '재방문' 표기 — 수동 기록으로 인정
+        Schedule::create([
+            'title' => '유라 재방문 세팅', 'start_date' => '2026-07-10', 'end_date' => '2026-07-10',
+            'color' => 'gold', 'is_all_day' => true, 'client_name' => '유라',
+        ]);
+
+        // 연결 프로젝트의 작업유형이 재방문(revisit) — 수동 기록으로 인정
+        $client = Client::create(['nickname' => '보아', 'grade' => 'normal']);
+        $project = Project::create([
+            'name' => '보아 재방문', 'project_type' => 'visit', 'stage' => 'consulting',
+            'client_id' => $client->id, 'work_type' => 'revisit',
+        ]);
+        Schedule::create([
+            'title' => '보아 원격', 'start_date' => '2026-07-15', 'end_date' => '2026-07-15',
+            'color' => 'teal', 'is_all_day' => true, 'client_name' => '보아',
+            'request_data' => ['client_id' => $client->id, 'project_id' => $project->id],
+        ]);
+
         $rows = collect($this->download('2026-07-01', '2026-07-31')->getSheet(0)->toArray());
         $attrOf = fn (string $title) => (string) $rows->first(fn ($r) => $r[5] === $title)[12];
 
-        $this->assertStringNotContainsString('재방문', $attrOf('유라 금천 방문세팅'));
-        $this->assertStringNotContainsString('재방문', $attrOf('이백조 경기고양 방문'));
-        $this->assertStringNotContainsString('재방문', $attrOf('보아 원격 1차'));
-        $this->assertStringNotContainsString('재방문', $attrOf('보아 원격 2차'));
-        $this->assertStringContainsString('재방문', $attrOf('옴니버 2차 방문'));
+        $this->assertStringNotContainsString('재방문', $attrOf('옴니버 2차 방문'));
+        $this->assertStringContainsString('재방문', $attrOf('유라 재방문 세팅'));
+        $this->assertStringContainsString('재방문', $attrOf('보아 원격'));
     }
 
     public function test_guest_is_blocked(): void

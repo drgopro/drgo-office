@@ -648,18 +648,8 @@ class MarketingReportController extends Controller
         $clientIds = $schedules->map(fn ($s) => data_get($s->request_data, 'client_id'))->filter()->unique();
         $clients = Client::whereIn('id', $clientIds)->get()->keyBy('id');
         $projectIds = $schedules->map(fn ($s) => data_get($s->request_data, 'project_id'))->filter()->unique();
-        $projects = Project::whereIn('id', $projectIds)->get(['id', 'client_scale'])->keyBy('id');
+        $projects = Project::whereIn('id', $projectIds)->get(['id', 'client_scale', 'work_type'])->keyBy('id');
 
-        // 재방문 판정용 — 의뢰자 식별키별 최초 일정일 (기간 이전 이력 포함 전체 조회)
-        $clientKey = function (Schedule $s): ?string {
-            $cid = data_get($s->request_data, 'client_id');
-            if ($cid) {
-                return 'c'.$cid;
-            }
-            $name = trim((string) ($s->client_name ?: data_get($s->request_data, 'nickname') ?: data_get($s->request_data, 'name') ?: ''));
-
-            return $name !== '' ? 'n'.mb_strtolower($name) : null;
-        };
         // 유형 매핑 — 카테고리 라벨 + 원격/방송룸 모드 + 계약 동기화 출처.
         // 운영에서 카테고리 라벨을 바꿔 쓰는 경우('스튜디오' 등)가 있어 정확 일치가 아닌
         // 키워드 포함 매칭으로 분류한다 (조유신 피드백 — 커스텀 라벨이 전부 '기타'로 빠지던 문제)
@@ -687,29 +677,6 @@ class MarketingReportController extends Controller
                 default => $label,
             };
         };
-
-        // 재방문 판정용 — 의뢰자 식별키별 최초 '작업' 일정일 (기간 이전 이력 포함 전체 조회).
-        // 미팅·내방·사전답사·계약 자동결제·미확정(제안/희망/목표) 등 작업이 아닌 일정을
-        // 이력으로 치면 첫 작업이 재방문으로 오판되므로 실제 작업 유형만 센다.
-        $workTypes = ['방문세팅', '원격', '스튜디오', '촬영', '방송룸 대여', '장비 렌탈'];
-        $countsAsWork = function (Schedule $s) use ($typeOf, $workTypes): bool {
-            return in_array($typeOf($s), $workTypes, true)
-                && mb_stripos($s->title, '답사') === false
-                && ! in_array($s->sched_opt, ['suggest', 'hope', 'target'], true)
-                && ! (in_array($s->source_type, ['rental_contract', 'broadcast_contract'], true) && str_contains($s->title, '결제'));
-        };
-        $firstSeen = [];
-        Schedule::topLevel()->orderBy('start_date')
-            ->get(['id', 'start_date', 'client_name', 'title', 'color', 'source_type', 'sched_opt', 'remote_data', 'request_data'])
-            ->each(function (Schedule $s) use ($clientKey, $countsAsWork, &$firstSeen) {
-                if (! $countsAsWork($s)) {
-                    return;
-                }
-                $key = $clientKey($s);
-                if ($key && ! isset($firstSeen[$key])) {
-                    $firstSeen[$key] = $s->start_date->format('Y-m-d');
-                }
-            });
 
         $platformNorm = function (string $raw): string {
             $v = mb_strtolower(trim($raw));
@@ -750,7 +717,7 @@ class MarketingReportController extends Controller
             return trim($first.' '.($tokens[1] ?? ''));
         };
 
-        return $schedules->map(function (Schedule $s) use ($dows, $catMap, $clients, $projects, $typeOf, $platformNorm, $regionOf, $clientKey, $firstSeen): array {
+        return $schedules->map(function (Schedule $s) use ($dows, $catMap, $clients, $projects, $typeOf, $platformNorm, $regionOf): array {
             $g = (array) ($s->request_data ?? []);
             $client = ! empty($g['client_id']) ? $clients->get($g['client_id']) : null;
             $type = $typeOf($s);
@@ -772,7 +739,8 @@ class MarketingReportController extends Controller
             $career = trim((string) (($g['career'] ?? '') ?: ($client->career ?? '')));
             $career = in_array($career, ['처음', '신규'], true) ? '처음' : (in_array($career, ['초보', '경력'], true) ? $career : '');
 
-            // 속성 — 급행/사전답사는 제목 표기, 자동결제는 계약 동기화 결제 일정, 재방문은 과거 이력 자동 판정
+            // 속성 — 급행/사전답사/재방문은 수동 표기 기준(제목 또는 프로젝트 작업유형), 자동결제는 계약 동기화 결제 일정.
+            // 재방문 과거 이력 자동 판정은 오판(미팅·답사 이력, 같은 날 중복 등)이 잦아 제거 — 수동 기록만 인정.
             $attrs = [];
             if (mb_stripos($s->title, '급행') !== false) {
                 $attrs[] = '급행';
@@ -780,9 +748,8 @@ class MarketingReportController extends Controller
             if (mb_stripos($s->title, '답사') !== false) {
                 $attrs[] = '사전답사';
             }
-            // 같은 날 일정(답사+세팅, 중복 등록 등)은 재방문으로 치지 않는다 — 이전 날짜 작업 이력만
-            $key = $clientKey($s);
-            if (! $isInternal && $key && isset($firstSeen[$key]) && $firstSeen[$key] < $s->start_date->format('Y-m-d')) {
+            $projectWorkType = ! empty($g['project_id']) ? ($projects->get($g['project_id'])->work_type ?? null) : null;
+            if (! $isInternal && (mb_stripos($s->title, '재방문') !== false || $projectWorkType === 'revisit')) {
                 $attrs[] = '재방문';
             }
             if (in_array($s->source_type, ['rental_contract', 'broadcast_contract'], true) && str_contains($s->title, '결제')) {
