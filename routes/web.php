@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AgentEventController;
 use App\Http\Controllers\AppVersionController;
+use App\Http\Controllers\AsRequestController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BankDepositController;
@@ -347,6 +348,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/projects/{project}/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
         Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
         Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');
+    });
+
+    // AS 현황판 — 사무실로 들어온 AS 건 (의뢰자·프로젝트 연동 필수)
+    Route::middleware('permission:projects.view')->group(function () {
+        Route::get('/as', [AsRequestController::class, 'index'])->name('as.index');
+        Route::get('/api/as-requests', [AsRequestController::class, 'list']);
+        Route::get('/api/as-requests/client-projects/{client}', [AsRequestController::class, 'clientProjects']);
+    });
+    Route::middleware('permission:projects.edit')->group(function () {
+        Route::post('/api/as-requests', [AsRequestController::class, 'store']);
+        Route::patch('/api/as-requests/{asRequest}', [AsRequestController::class, 'update']);
+        Route::post('/api/as-requests/{asRequest}/status', [AsRequestController::class, 'updateStatus']);
+        Route::delete('/api/as-requests/{asRequest}', [AsRequestController::class, 'destroy']);
     });
 
     // 재고 관리
