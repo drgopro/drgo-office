@@ -1145,7 +1145,7 @@ class DashboardController extends Controller
             if (in_array('자동결제', $r['attrs'], true)) {
                 return '자동결제';
             }
-            foreach (['답사' => '사전답사', '컨설팅' => '컨설팅', '회수' => '대여회수', '소스' => '소스제작'] as $needle => $method) {
+            foreach (['재방문' => '재방문', '답사' => '사전답사', '컨설팅' => '컨설팅', '회수' => '대여회수', '소스' => '소스제작'] as $needle => $method) {
                 if (mb_stripos($title, $needle) !== false) {
                     return $method;
                 }

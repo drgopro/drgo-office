@@ -251,6 +251,38 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('스튜디오', $row[9]);               // 카테고리 라벨 그대로
     }
 
+    public function test_work_log_method_follows_title_keywords(): void
+    {
+        // 제목에 재방문/컨설팅/답사 표기가 있으면 작업 방식이 해당 값으로 분류된다 (수동 표기 우선)
+        $user = User::factory()->create(['role' => 'admin']);
+        $make = fn (string $title, string $color) => Schedule::create([
+            'title' => $title, 'color' => $color,
+            'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(),
+            'is_all_day' => true, 'created_by' => $user->id,
+        ]);
+        $make('유라 재방문 세팅', 'gold');
+        $make('이백조 방문 컨설팅', 'gold');
+        $make('보아 사전답사', 'gold');
+        $make('장지 방문세팅', 'gold');
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('작업 일지');
+        unlink($tmp);
+
+        $rows = collect($sheet->toArray())->skip(1);
+        $methodOf = fn (string $client) => (string) $rows->first(fn ($r) => $r[2] === $client)[5];
+
+        $this->assertSame('재방문', $methodOf('유라 재방문 세팅'));
+        $this->assertSame('컨설팅', $methodOf('이백조 방문 컨설팅'));
+        $this->assertSame('사전답사', $methodOf('보아 사전답사'));
+        $this->assertSame('방문', $methodOf('장지 방문세팅')); // 표기 없는 방문 일정은 그대로 '방문'
+    }
+
     public function test_export_includes_work_log_sheet(): void
     {
         // 작업 일지 시트 — 요일/날짜/의뢰자/플랫폼/경력/작업 방식/유형/작업자/수량 + 우측 선택지 목록 + 자동필터
