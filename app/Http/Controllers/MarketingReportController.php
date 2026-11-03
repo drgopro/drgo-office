@@ -660,16 +660,6 @@ class MarketingReportController extends Controller
 
             return $name !== '' ? 'n'.mb_strtolower($name) : null;
         };
-        $firstSeen = [];
-        Schedule::topLevel()->orderBy('start_date')
-            ->get(['id', 'start_date', 'client_name', 'request_data'])
-            ->each(function (Schedule $s) use ($clientKey, &$firstSeen) {
-                $key = $clientKey($s);
-                if ($key && ! isset($firstSeen[$key])) {
-                    $firstSeen[$key] = $s->start_date->format('Y-m-d').'#'.$s->id;
-                }
-            });
-
         // 유형 매핑 — 카테고리 라벨 + 원격/방송룸 모드 + 계약 동기화 출처.
         // 운영에서 카테고리 라벨을 바꿔 쓰는 경우('스튜디오' 등)가 있어 정확 일치가 아닌
         // 키워드 포함 매칭으로 분류한다 (조유신 피드백 — 커스텀 라벨이 전부 '기타'로 빠지던 문제)
@@ -697,6 +687,29 @@ class MarketingReportController extends Controller
                 default => $label,
             };
         };
+
+        // 재방문 판정용 — 의뢰자 식별키별 최초 '작업' 일정일 (기간 이전 이력 포함 전체 조회).
+        // 미팅·내방·사전답사·계약 자동결제·미확정(제안/희망/목표) 등 작업이 아닌 일정을
+        // 이력으로 치면 첫 작업이 재방문으로 오판되므로 실제 작업 유형만 센다.
+        $workTypes = ['방문세팅', '원격', '스튜디오', '촬영', '방송룸 대여', '장비 렌탈'];
+        $countsAsWork = function (Schedule $s) use ($typeOf, $workTypes): bool {
+            return in_array($typeOf($s), $workTypes, true)
+                && mb_stripos($s->title, '답사') === false
+                && ! in_array($s->sched_opt, ['suggest', 'hope', 'target'], true)
+                && ! (in_array($s->source_type, ['rental_contract', 'broadcast_contract'], true) && str_contains($s->title, '결제'));
+        };
+        $firstSeen = [];
+        Schedule::topLevel()->orderBy('start_date')
+            ->get(['id', 'start_date', 'client_name', 'title', 'color', 'source_type', 'sched_opt', 'remote_data', 'request_data'])
+            ->each(function (Schedule $s) use ($clientKey, $countsAsWork, &$firstSeen) {
+                if (! $countsAsWork($s)) {
+                    return;
+                }
+                $key = $clientKey($s);
+                if ($key && ! isset($firstSeen[$key])) {
+                    $firstSeen[$key] = $s->start_date->format('Y-m-d');
+                }
+            });
 
         $platformNorm = function (string $raw): string {
             $v = mb_strtolower(trim($raw));
@@ -767,8 +780,9 @@ class MarketingReportController extends Controller
             if (mb_stripos($s->title, '답사') !== false) {
                 $attrs[] = '사전답사';
             }
+            // 같은 날 일정(답사+세팅, 중복 등록 등)은 재방문으로 치지 않는다 — 이전 날짜 작업 이력만
             $key = $clientKey($s);
-            if (! $isInternal && $key && isset($firstSeen[$key]) && $firstSeen[$key] < $s->start_date->format('Y-m-d').'#'.$s->id) {
+            if (! $isInternal && $key && isset($firstSeen[$key]) && $firstSeen[$key] < $s->start_date->format('Y-m-d')) {
                 $attrs[] = '재방문';
             }
             if (in_array($s->source_type, ['rental_contract', 'broadcast_contract'], true) && str_contains($s->title, '결제')) {
