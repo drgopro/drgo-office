@@ -14,6 +14,7 @@ use App\Models\Schedule;
 use App\Models\ScheduleChange;
 use App\Notifications\ScheduleCreated;
 use App\Notifications\ScheduleUpdated;
+use App\Services\ChannelTalkNotifier;
 use App\Services\ContractCalendarSync;
 use App\Services\EstimatePaymentSync;
 use Carbon\Carbon;
@@ -986,6 +987,11 @@ class CalendarController extends Controller
                 $target->delete();
             }
 
+            // 아웃바운드 알림 — 반복 일괄 삭제는 대표 1건 + 건수로 요약
+            app(ChannelTalkNotifier::class)->scheduleDeleted(
+                $schedule, $validated['reason'], Auth::user()?->display_name, $targets->count()
+            );
+
             return response()->json(['ok' => true, 'deleted' => $targets->count()]);
         }
 
@@ -1007,6 +1013,11 @@ class CalendarController extends Controller
         ]);
 
         $schedule->delete(); // SoftDeletes → deleted_at만 set
+
+        // 아웃바운드 알림 — 삭제자·사유·담당자 멘션을 캘린더 톡방으로 (비공개 일정 제외)
+        app(ChannelTalkNotifier::class)->scheduleDeleted(
+            $schedule, $validated['reason'], Auth::user()?->display_name
+        );
 
         // 캘린더 잔금 청구 정리 — 입금 이력이 없을 때만 함께 제거
         $balanceBillingId = data_get($schedule->request_data, 'balance_billing_id');

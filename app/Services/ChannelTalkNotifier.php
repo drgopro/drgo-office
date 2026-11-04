@@ -47,6 +47,33 @@ class ChannelTalkNotifier
         }
     }
 
+    /**
+     * 일정 삭제 알림 — 삭제자·사유와 담당자 멘션을 캘린더 톡방으로.
+     * 비공개 일정은 제목 노출 방지를 위해 보내지 않는다. 반복 일괄 삭제는 1건으로 요약.
+     */
+    public function scheduleDeleted(Schedule $schedule, string $reason, ?string $deletedBy = null, int $bulkCount = 1): void
+    {
+        if (! $this->client->isConfigured() || $schedule->is_private) {
+            return;
+        }
+
+        try {
+            $date = $schedule->start_date?->format('m/d');
+            $label = "'{$schedule->title}'".($date ? " ({$date})" : '');
+            $bulk = $bulkCount > 1 ? ' 외 반복 일정 '.($bulkCount - 1).'건' : '';
+            $assigneeIds = $schedule->assignees->pluck('id')->all();
+            $mentions = $assigneeIds ? "\n".$this->mentionsByIds($assigneeIds) : '';
+
+            $this->send(
+                "🗑 {$label}{$bulk} 일정이 삭제되었습니다".($deletedBy ? " — 처리: {$deletedBy}" : '')
+                ."\n사유: {$reason}{$mentions}",
+                self::calendarGroup()
+            );
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 일정 삭제 알림 실패: '.$e->getMessage());
+        }
+    }
+
     /** 캘린더 알림 톡방(관리 > 설정 > 캘린더 > 알림 톡방) — 비어 있으면 null(기본 그룹) */
     public static function calendarGroup(): ?string
     {
