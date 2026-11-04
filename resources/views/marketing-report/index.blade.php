@@ -694,7 +694,7 @@
 
         {{-- 의뢰자 규모 × 매출 구분 매트릭스 — 개인 세팅 / 개인 장비판매 / 스튜디오 세팅 / ... --}}
         @if(!empty($revenueByScale))
-        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형 × 매출 구분 <span style="font-weight:400;">(연결 프로젝트의 규모 기준, 미연동=미지정 · 기타=세팅/장비 구분 없는 수기 결제)</span></div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형 × 매출 구분 <span style="font-weight:400;">(프로젝트 규모 → 의뢰자 유형 순 판정, 둘 다 없으면 미지정 · 기타=세팅/장비 구분 없는 수기 결제)</span></div>
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow-x:auto; margin-bottom:20px;">
             <table style="width:100%; border-collapse:collapse; min-width:520px;">
                 <thead>

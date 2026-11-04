@@ -72,15 +72,28 @@ class MarketingRevenueBreakdownTest extends TestCase
             'service_amount' => 0, 'product_amount' => 0, 'amount' => 90000,
         ]);
 
+        // 프로젝트에 규모가 비어 있으면 의뢰자 유형(client_type)으로 폴백 — 미지정 최소화
+        $ent = Client::create(['nickname' => '엔터사', 'grade' => 'normal', 'client_type' => 'enterprise']);
+        $noScale = Project::create([
+            'client_id' => $ent->id, 'name' => '규모 미입력', 'project_type' => 'visit', 'stage' => 'payment',
+        ]);
+        RevenueEntry::create([
+            'kind' => 'estimate', 'project_id' => $noScale->id, 'recognized_on' => now()->toDateString(),
+            'service_amount' => 40000, 'product_amount' => 0, 'amount' => 40000,
+        ]);
+
         $res = $this->actingAs($user)->get('/marketing-report');
 
         $res->assertOk()
             ->assertSee('의뢰자 유형 × 매출 구분')
             ->assertSee('개인')->assertSee('스튜디오')->assertSee('미지정')
+            ->assertSee('기업')             // 매출 0이어도 행 표시
+            ->assertSee('엔터')             // client_type 폴백 행
             ->assertSee('300,000원')   // 개인 세팅비
             ->assertSee('700,000원')   // 개인 장비판매
             ->assertSee('500,000원')   // 스튜디오 세팅비
             ->assertSee('1,000,000원') // 개인 합계
+            ->assertSee('40,000원')    // 엔터 (규모 미입력 → 의뢰자 유형 폴백)
             ->assertSee('90,000원');   // 미지정(수기 결제) 기타
     }
 

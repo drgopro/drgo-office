@@ -385,32 +385,45 @@ class MarketingReportController extends Controller
         $revenueByWorkType = array_filter($revenueByWorkType, fn ($v) => $v !== 0);
         arsort($revenueByWorkType);
 
-        // 4) 의뢰자 규모(개인/스튜디오/기업) × 매출 구분(세팅비/장비판매) 매트릭스 — 원장 기준.
-        //    규모는 연결 프로젝트의 client_scale, 프로젝트 미연동 건은 '미지정'.
+        // 4) 의뢰자 규모(개인/스튜디오/기업/엔터) × 매출 구분(세팅비/장비판매) 매트릭스 — 원장 기준.
+        //    규모 판정 폴백: 프로젝트 client_scale → 프로젝트 의뢰자의 client_type →
+        //    (프로젝트 미연동이면) 견적서 의뢰자의 client_type → 미지정.
         //    기타 = 총액 - 세팅비 - 장비판매 (수기 결제 등 구분 불가분)
         $revenueByScale = [];
         if ($ledgerUsed) {
-            $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업'];
-            $rows = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt])
-                ->leftJoin('projects', 'projects.id', '=', 'revenue_entries.project_id')
-                ->selectRaw("coalesce(projects.client_scale, '') as scale,
-                    sum(revenue_entries.service_amount) as service,
-                    sum(revenue_entries.product_amount) as product,
-                    sum(revenue_entries.amount) as total")
-                ->groupBy('scale')->get();
-            foreach ($rows as $r) {
-                if ((int) $r->total === 0 && (int) $r->service === 0 && (int) $r->product === 0) {
-                    continue;
-                }
-                $label = $r->scale === '' ? '미지정' : ($scaleLabels[$r->scale] ?? $r->scale);
-                $revenueByScale[$label] = [
-                    'setup' => (int) $r->service,
-                    'product' => (int) $r->product,
-                    'other' => (int) $r->total - (int) $r->service - (int) $r->product,
-                    'total' => (int) $r->total,
-                ];
+            $entries = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt])
+                ->get(['project_id', 'estimate_id', 'service_amount', 'product_amount', 'amount']);
+            $projMap = Project::whereIn('id', $entries->pluck('project_id')->filter()->unique())
+                ->get(['id', 'client_scale', 'client_id'])->keyBy('id');
+            $estMap = Estimate::whereIn('id', $entries->pluck('estimate_id')->filter()->unique())
+                ->get(['id', 'client_id'])->keyBy('id');
+            $clientTypeMap = Client::whereIn('id', $projMap->pluck('client_id')->merge($estMap->pluck('client_id'))->filter()->unique())
+                ->pluck('client_type', 'id');
+
+            $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'enterprise' => '엔터'];
+            $resolveScale = function ($e) use ($projMap, $estMap, $clientTypeMap): string {
+                $proj = $e->project_id ? $projMap->get($e->project_id) : null;
+                $raw = $proj?->client_scale
+                    ?: ($proj?->client_id ? $clientTypeMap[$proj->client_id] ?? null : null)
+                    ?: ($e->estimate_id && $estMap->get($e->estimate_id)?->client_id
+                        ? $clientTypeMap[$estMap->get($e->estimate_id)->client_id] ?? null : null);
+
+                return (string) ($raw ?? '');
+            };
+
+            // 매출 0이어도 모든 유형 행을 표시 (요청사항) — 고정 순서
+            foreach ([...array_values($scaleLabels), '미지정'] as $label) {
+                $revenueByScale[$label] = ['setup' => 0, 'product' => 0, 'other' => 0, 'total' => 0];
             }
-            uasort($revenueByScale, fn ($a, $b) => $b['total'] <=> $a['total']);
+            foreach ($entries as $e) {
+                $raw = $resolveScale($e);
+                $label = $raw === '' ? '미지정' : ($scaleLabels[$raw] ?? $raw);
+                $revenueByScale[$label] ??= ['setup' => 0, 'product' => 0, 'other' => 0, 'total' => 0];
+                $revenueByScale[$label]['setup'] += (int) $e->service_amount;
+                $revenueByScale[$label]['product'] += (int) $e->product_amount;
+                $revenueByScale[$label]['other'] += (int) $e->amount - (int) $e->service_amount - (int) $e->product_amount;
+                $revenueByScale[$label]['total'] += (int) $e->amount;
+            }
         }
 
         // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──
