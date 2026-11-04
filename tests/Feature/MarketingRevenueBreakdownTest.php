@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\ConsultationType;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
@@ -95,6 +96,23 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertSee('1,000,000원') // 개인 합계
             ->assertSee('40,000원')    // 엔터 (규모 미입력 → 의뢰자 유형 폴백)
             ->assertSee('90,000원');   // 미지정(수기 결제) 기타
+    }
+
+    public function test_project_type_label_falls_back_to_config(): void
+    {
+        // 관리자 정의(consultation_types)에 없는 기본 유형은 config 라벨로 — 'rental'이 원문 키로 노출되던 문제
+        $user = User::factory()->create(['role' => 'admin']);
+        ConsultationType::where('key', 'rental')->delete(); // 관리자 정의에서 지워진 상태 재현
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $rental = Project::create([
+            'client_id' => $client->id, 'name' => '장비 렌탈 건', 'project_type' => 'rental', 'stage' => 'payment',
+        ]);
+        ProjectPayment::create(['project_id' => $rental->id, 'type' => 'charge', 'amount' => 150000, 'paid_at' => now()->toDateString()]);
+
+        $this->actingAs($user)->get('/marketing-report')
+            ->assertOk()
+            ->assertSee('렌탈')
+            ->assertDontSee('>rental<', false);
     }
 
     public function test_revenue_projects_drilldown(): void

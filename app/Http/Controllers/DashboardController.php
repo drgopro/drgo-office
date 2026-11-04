@@ -1395,16 +1395,56 @@ class DashboardController extends Controller
         $s10->fromArray(['카테고리', '금액(원)', '비율(%)'], null, 'A1');
         $bold($s10, 'A1:C1');
 
-        $breakdownTotal = array_sum($revenueBreakdown);
+        // 매출 인식 원장이 있으면 그 기준으로 (웹 통계와 동일) — 결제가 원장으로 옮겨간 뒤
+        // 레거시 견적 category_breakdown만 보면 전부 0으로 나온다
         $row = 2;
-        foreach ($breakdownL as $key => $label) {
-            $val = $revenueBreakdown[$key] ?? 0;
-            $ratio = $breakdownTotal > 0 ? round(($val / $breakdownTotal) * 100, 1) : 0;
-            $s10->fromArray([$label, $val, $ratio.'%'], null, "A{$row}");
+        if (Schema::hasTable('revenue_entries')) {
+            $led = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt]);
+            $ledService = (int) (clone $led)->sum('service_amount');
+            $ledProduct = (int) (clone $led)->sum('product_amount');
+            $ledTotal = (int) (clone $led)->sum('amount');
+            $ledOther = $ledTotal - $ledService - $ledProduct;
+            foreach ([['세팅비', $ledService], ['장비판매', $ledProduct], ['기타 (세팅/장비 구분 없는 수기 결제)', $ledOther]] as [$label, $val]) {
+                $ratio = $ledTotal > 0 ? round(($val / $ledTotal) * 100, 1) : 0;
+                $s10->fromArray([$label, $val, $ratio.'%'], null, "A{$row}");
+                $row++;
+            }
+            $s10->fromArray(['합계', $ledTotal, '100%'], null, "A{$row}");
+            $bold($s10, "A{$row}:C{$row}");
             $row++;
+
+            // 의뢰자 유형 × 매출 구분 매트릭스 (통계 화면과 동일 로직)
+            $row++;
+            $s10->fromArray(['의뢰자 유형', '세팅비(원)', '장비판매(원)', '기타(원)', '합계(원)'], null, "A{$row}");
+            $bold($s10, "A{$row}:E{$row}");
+            $row++;
+            $scaleMatrix = app(MarketingReportController::class)->revenueScaleMatrix($fromDt, $toDt);
+            foreach ($scaleMatrix as $scaleLabel => $d) {
+                $s10->fromArray([$scaleLabel, $d['setup'], $d['product'], $d['other'], $d['total']], null, "A{$row}");
+                $row++;
+            }
+            $s10->fromArray([
+                '합계',
+                array_sum(array_column($scaleMatrix, 'setup')),
+                array_sum(array_column($scaleMatrix, 'product')),
+                array_sum(array_column($scaleMatrix, 'other')),
+                array_sum(array_column($scaleMatrix, 'total')),
+            ], null, "A{$row}");
+            $bold($s10, "A{$row}:E{$row}");
+            foreach (['D', 'E'] as $col) {
+                $s10->getColumnDimension($col)->setWidth(16);
+            }
+        } else {
+            $breakdownTotal = array_sum($revenueBreakdown);
+            foreach ($breakdownL as $key => $label) {
+                $val = $revenueBreakdown[$key] ?? 0;
+                $ratio = $breakdownTotal > 0 ? round(($val / $breakdownTotal) * 100, 1) : 0;
+                $s10->fromArray([$label, $val, $ratio.'%'], null, "A{$row}");
+                $row++;
+            }
+            $s10->fromArray(['합계', $breakdownTotal, '100%'], null, "A{$row}");
+            $bold($s10, "A{$row}:C{$row}");
         }
-        $s10->fromArray(['합계', $breakdownTotal, '100%'], null, "A{$row}");
-        $bold($s10, "A{$row}:C{$row}");
 
         // Sheet 11: 렌탈/방송룸 현황 (테이블 있을 때만)
         if (Schema::hasTable('rental_contracts') || Schema::hasTable('broadcast_room_contracts')) {

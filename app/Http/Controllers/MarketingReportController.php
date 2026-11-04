@@ -363,7 +363,8 @@ class MarketingReportController extends Controller
         $revenueByProjectType = [];
         $revenueByWorkType = [];
         foreach ($revenueMatrix as $t => $works) {
-            $tLabel = $t === '' ? '미지정' : ($typeLabels[$t] ?? $t);
+            // 관리자 정의에 없는 기본 유형(rental 등)은 config 라벨로 폴백 — 원문 키가 그대로 노출되지 않게
+            $tLabel = $t === '' ? '미지정' : ($typeLabels[$t] ?? config("crm.project_types.{$t}.label") ?? $t);
             foreach ($works as $w => $amount) {
                 if ((int) $amount === 0) {
                     continue;
@@ -385,46 +386,8 @@ class MarketingReportController extends Controller
         $revenueByWorkType = array_filter($revenueByWorkType, fn ($v) => $v !== 0);
         arsort($revenueByWorkType);
 
-        // 4) 의뢰자 규모(개인/스튜디오/기업/엔터) × 매출 구분(세팅비/장비판매) 매트릭스 — 원장 기준.
-        //    규모 판정 폴백: 프로젝트 client_scale → 프로젝트 의뢰자의 client_type →
-        //    (프로젝트 미연동이면) 견적서 의뢰자의 client_type → 미지정.
-        //    기타 = 총액 - 세팅비 - 장비판매 (수기 결제 등 구분 불가분)
-        $revenueByScale = [];
-        if ($ledgerUsed) {
-            $entries = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt])
-                ->get(['project_id', 'estimate_id', 'service_amount', 'product_amount', 'amount']);
-            $projMap = Project::whereIn('id', $entries->pluck('project_id')->filter()->unique())
-                ->get(['id', 'client_scale', 'client_id'])->keyBy('id');
-            $estMap = Estimate::whereIn('id', $entries->pluck('estimate_id')->filter()->unique())
-                ->get(['id', 'client_id'])->keyBy('id');
-            $clientTypeMap = Client::whereIn('id', $projMap->pluck('client_id')->merge($estMap->pluck('client_id'))->filter()->unique())
-                ->pluck('client_type', 'id');
-
-            $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'enterprise' => '엔터'];
-            $resolveScale = function ($e) use ($projMap, $estMap, $clientTypeMap): string {
-                $proj = $e->project_id ? $projMap->get($e->project_id) : null;
-                $raw = $proj?->client_scale
-                    ?: ($proj?->client_id ? $clientTypeMap[$proj->client_id] ?? null : null)
-                    ?: ($e->estimate_id && $estMap->get($e->estimate_id)?->client_id
-                        ? $clientTypeMap[$estMap->get($e->estimate_id)->client_id] ?? null : null);
-
-                return (string) ($raw ?? '');
-            };
-
-            // 매출 0이어도 모든 유형 행을 표시 (요청사항) — 고정 순서
-            foreach ([...array_values($scaleLabels), '미지정'] as $label) {
-                $revenueByScale[$label] = ['setup' => 0, 'product' => 0, 'other' => 0, 'total' => 0];
-            }
-            foreach ($entries as $e) {
-                $raw = $resolveScale($e);
-                $label = $raw === '' ? '미지정' : ($scaleLabels[$raw] ?? $raw);
-                $revenueByScale[$label] ??= ['setup' => 0, 'product' => 0, 'other' => 0, 'total' => 0];
-                $revenueByScale[$label]['setup'] += (int) $e->service_amount;
-                $revenueByScale[$label]['product'] += (int) $e->product_amount;
-                $revenueByScale[$label]['other'] += (int) $e->amount - (int) $e->service_amount - (int) $e->product_amount;
-                $revenueByScale[$label]['total'] += (int) $e->amount;
-            }
-        }
+        // 4) 의뢰자 규모 × 매출 구분(세팅비/장비판매) 매트릭스 — 통계 화면·대시보드 엑셀 공용
+        $revenueByScale = $ledgerUsed ? $this->revenueScaleMatrix($fromDt, $toDt) : [];
 
         // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──
         $rentalActive = 0;
@@ -525,6 +488,53 @@ class MarketingReportController extends Controller
             'funnelInquiry', 'funnelEstimateIssued', 'funnelPaid', 'funnelSettingDone', 'funnelConversion',
             'avgInquiryToComplete', 'avgPaidToComplete', 'pipeline'
         ));
+    }
+
+    /**
+     * 의뢰자 규모(개인/스튜디오/기업/엔터) × 매출 구분(세팅비/장비판매) 매트릭스 — 매출 인식 원장 기준.
+     * 규모 판정 폴백: 프로젝트 client_scale → 프로젝트 의뢰자의 client_type →
+     * (프로젝트 미연동이면) 견적서 의뢰자의 client_type → 미지정.
+     * 기타 = 총액 - 세팅비 - 장비판매 (수기 결제 등 구분 불가분). 매출 0 유형도 고정 순서로 포함.
+     *
+     * @return array<string, array{setup:int, product:int, other:int, total:int}>
+     */
+    public function revenueScaleMatrix(mixed $fromDt, mixed $toDt): array
+    {
+        $entries = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt])
+            ->get(['project_id', 'estimate_id', 'service_amount', 'product_amount', 'amount']);
+        $projMap = Project::whereIn('id', $entries->pluck('project_id')->filter()->unique())
+            ->get(['id', 'client_scale', 'client_id'])->keyBy('id');
+        $estMap = Estimate::whereIn('id', $entries->pluck('estimate_id')->filter()->unique())
+            ->get(['id', 'client_id'])->keyBy('id');
+        $clientTypeMap = Client::whereIn('id', $projMap->pluck('client_id')->merge($estMap->pluck('client_id'))->filter()->unique())
+            ->pluck('client_type', 'id');
+
+        $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'enterprise' => '엔터'];
+        $resolveScale = function ($e) use ($projMap, $estMap, $clientTypeMap): string {
+            $proj = $e->project_id ? $projMap->get($e->project_id) : null;
+            $raw = $proj?->client_scale
+                ?: ($proj?->client_id ? $clientTypeMap[$proj->client_id] ?? null : null)
+                ?: ($e->estimate_id && $estMap->get($e->estimate_id)?->client_id
+                    ? $clientTypeMap[$estMap->get($e->estimate_id)->client_id] ?? null : null);
+
+            return (string) ($raw ?? '');
+        };
+
+        $matrix = [];
+        foreach ([...array_values($scaleLabels), '미지정'] as $label) {
+            $matrix[$label] = ['setup' => 0, 'product' => 0, 'other' => 0, 'total' => 0];
+        }
+        foreach ($entries as $e) {
+            $raw = $resolveScale($e);
+            $label = $raw === '' ? '미지정' : ($scaleLabels[$raw] ?? $raw);
+            $matrix[$label] ??= ['setup' => 0, 'product' => 0, 'other' => 0, 'total' => 0];
+            $matrix[$label]['setup'] += (int) $e->service_amount;
+            $matrix[$label]['product'] += (int) $e->product_amount;
+            $matrix[$label]['other'] += (int) $e->amount - (int) $e->service_amount - (int) $e->product_amount;
+            $matrix[$label]['total'] += (int) $e->amount;
+        }
+
+        return $matrix;
     }
 
     /** 매출 상세 페이지 — 결제 발생 프로젝트 목록 (통계 총 매출 카드에서 진입, 메뉴 미노출) */

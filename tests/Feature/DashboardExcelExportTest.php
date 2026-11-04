@@ -283,6 +283,38 @@ class DashboardExcelExportTest extends TestCase
         $this->assertSame('방문', $methodOf('장지 방문세팅')); // 표기 없는 방문 일정은 그대로 '방문'
     }
 
+    public function test_revenue_detail_sheet_uses_ledger_and_scale_matrix(): void
+    {
+        // 매출 세부 시트 — 원장 기준 세팅비/장비판매 + 의뢰자 유형 매트릭스 (레거시 견적 기준이면 전부 0으로 나오던 문제)
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create([
+            'client_id' => $client->id, 'name' => '개인 세팅', 'project_type' => 'visit',
+            'stage' => 'payment', 'client_scale' => 'personal',
+        ]);
+        RevenueEntry::create([
+            'kind' => 'estimate', 'project_id' => $project->id, 'recognized_on' => now()->toDateString(),
+            'service_amount' => 300000, 'product_amount' => 700000, 'amount' => 1000000,
+        ]);
+
+        $from = now()->startOfMonth()->format('Y-m-d');
+        $to = now()->format('Y-m-d');
+        $res = $this->actingAs($user)->get("/api/dashboard-export/excel?from={$from}&to={$to}")->assertOk();
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($tmp, $res->streamedContent());
+        $sheet = IOFactory::load($tmp)->getSheetByName('매출 세부');
+        unlink($tmp);
+
+        $rows = $sheet->toArray();
+        $cell = fn (string $label) => collect($rows)->first(fn ($r) => $r[0] === $label);
+        $this->assertEquals(300000, $cell('세팅비')[1]);
+        $this->assertEquals(700000, $cell('장비판매')[1]);
+        $this->assertEquals(1000000, $cell('개인')[4]);   // 매트릭스 — 개인 행 합계
+        $this->assertNotNull($cell('스튜디오'));          // 매출 0 유형도 행 표시
+        $this->assertNotNull($cell('의뢰자 유형'));       // 매트릭스 헤더
+    }
+
     public function test_export_includes_work_log_sheet(): void
     {
         // 작업 일지 시트 — 요일/날짜/의뢰자/플랫폼/경력/작업 방식/유형/작업자/수량 + 우측 선택지 목록 + 자동필터
