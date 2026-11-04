@@ -385,6 +385,34 @@ class MarketingReportController extends Controller
         $revenueByWorkType = array_filter($revenueByWorkType, fn ($v) => $v !== 0);
         arsort($revenueByWorkType);
 
+        // 4) 의뢰자 규모(개인/스튜디오/기업) × 매출 구분(세팅비/장비판매) 매트릭스 — 원장 기준.
+        //    규모는 연결 프로젝트의 client_scale, 프로젝트 미연동 건은 '미지정'.
+        //    기타 = 총액 - 세팅비 - 장비판매 (수기 결제 등 구분 불가분)
+        $revenueByScale = [];
+        if ($ledgerUsed) {
+            $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업'];
+            $rows = RevenueEntry::whereBetween('recognized_on', [$fromDt, $toDt])
+                ->leftJoin('projects', 'projects.id', '=', 'revenue_entries.project_id')
+                ->selectRaw("coalesce(projects.client_scale, '') as scale,
+                    sum(revenue_entries.service_amount) as service,
+                    sum(revenue_entries.product_amount) as product,
+                    sum(revenue_entries.amount) as total")
+                ->groupBy('scale')->get();
+            foreach ($rows as $r) {
+                if ((int) $r->total === 0 && (int) $r->service === 0 && (int) $r->product === 0) {
+                    continue;
+                }
+                $label = $r->scale === '' ? '미지정' : ($scaleLabels[$r->scale] ?? $r->scale);
+                $revenueByScale[$label] = [
+                    'setup' => (int) $r->service,
+                    'product' => (int) $r->product,
+                    'other' => (int) $r->total - (int) $r->service - (int) $r->product,
+                    'total' => (int) $r->total,
+                ];
+            }
+            uasort($revenueByScale, fn ($a, $b) => $b['total'] <=> $a['total']);
+        }
+
         // ── 렌탈/방송룸 현황 (테이블 있을 때만) ──
         $rentalActive = 0;
         $rentalMonthlyRevenue = 0;
@@ -477,7 +505,7 @@ class MarketingReportController extends Controller
             'totalConsults', 'reConsultCount', 'inboundByHour', 'inboundTimeTotal', 'inboundPeakHour', 'inboundHourSeries',
             'projectsByScale', 'projectsByWorkType', 'scaleWorkMatrix',
             'newProjects', 'settingDone', 'cancelled', 'cancelReasons',
-            'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown', 'revenueByProjectType', 'revenueByWorkType',
+            'revenueService', 'revenueProduct', 'revenueTotal', 'revenueBreakdown', 'revenueByProjectType', 'revenueByWorkType', 'revenueByScale',
             'rentalActive', 'rentalMonthlyRevenue', 'rentalNewInPeriod',
             'broadcastActive', 'broadcastMonthlyRevenue', 'broadcastUsagesInPeriod', 'broadcastUsageRevenue',
             'monthlyTrend',

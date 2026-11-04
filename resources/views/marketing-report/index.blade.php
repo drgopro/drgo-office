@@ -692,6 +692,42 @@
         </div>
         @endif
 
+        {{-- 의뢰자 규모 × 매출 구분 매트릭스 — 개인 세팅 / 개인 장비판매 / 스튜디오 세팅 / ... --}}
+        @if(!empty($revenueByScale))
+        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형 × 매출 구분 <span style="font-weight:400;">(연결 프로젝트의 규모 기준, 미연동=미지정 · 기타=세팅/장비 구분 없는 수기 결제)</span></div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow-x:auto; margin-bottom:20px;">
+            <table style="width:100%; border-collapse:collapse; min-width:520px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">의뢰자 유형</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">세팅비</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">장비판매</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">기타</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">합계</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($revenueByScale as $scaleLabel => $d)
+                    <tr>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:700; border-bottom:1px solid var(--border);">{{ $scaleLabel }}</td>
+                        <td style="padding:9px 14px; font-size:13px; text-align:right; border-bottom:1px solid var(--border);">{{ $d['setup'] ? number_format($d['setup']).'원' : '-' }}</td>
+                        <td style="padding:9px 14px; font-size:13px; text-align:right; border-bottom:1px solid var(--border);">{{ $d['product'] ? number_format($d['product']).'원' : '-' }}</td>
+                        <td style="padding:9px 14px; font-size:13px; text-align:right; border-bottom:1px solid var(--border); color:var(--text-muted);">{{ $d['other'] ? number_format($d['other']).'원' : '-' }}</td>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right; border-bottom:1px solid var(--border); color:var(--accent);">{{ number_format($d['total']) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($d['total'] / $revenueTotal * 100) : 0 }}%)</span></td>
+                    </tr>
+                    @endforeach
+                    <tr>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:800;">합계</td>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right;">{{ number_format(array_sum(array_column($revenueByScale, 'setup'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right;">{{ number_format(array_sum(array_column($revenueByScale, 'product'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right; color:var(--text-muted);">{{ number_format(array_sum(array_column($revenueByScale, 'other'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:13px; font-weight:800; text-align:right; color:var(--accent);">{{ number_format(array_sum(array_column($revenueByScale, 'total'))) }}원</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        @endif
+
         {{-- 어떤 일(프로젝트 유형·작업 유형)에서 결제가 이루어졌는지 세분화 --}}
         @if(count($revenueByProjectType) || count($revenueByWorkType))
         <div class="mk-two-col">

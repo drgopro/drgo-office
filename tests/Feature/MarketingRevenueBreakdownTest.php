@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
+use App\Models\RevenueEntry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -41,6 +42,46 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertSee('100,000원')      // 원격
             ->assertSee('└ 세팅', false)  // 방문 하위 작업 유형 분해
             ->assertSee('미지정');         // 원격 프로젝트의 work_type 없음
+    }
+
+    public function test_revenue_by_client_scale_matrix(): void
+    {
+        // 의뢰자 유형(개인/스튜디오) × 매출 구분(세팅비/장비판매) 매트릭스 — 매출 인식 원장 기준
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+
+        $personal = Project::create([
+            'client_id' => $client->id, 'name' => '개인 세팅', 'project_type' => 'visit',
+            'stage' => 'payment', 'client_scale' => 'personal',
+        ]);
+        $studio = Project::create([
+            'client_id' => $client->id, 'name' => '스튜디오 세팅', 'project_type' => 'visit',
+            'stage' => 'payment', 'client_scale' => 'studio',
+        ]);
+
+        RevenueEntry::create([
+            'kind' => 'estimate', 'project_id' => $personal->id, 'recognized_on' => now()->toDateString(),
+            'service_amount' => 300000, 'product_amount' => 700000, 'amount' => 1000000,
+        ]);
+        RevenueEntry::create([
+            'kind' => 'estimate', 'project_id' => $studio->id, 'recognized_on' => now()->toDateString(),
+            'service_amount' => 500000, 'product_amount' => 0, 'amount' => 500000,
+        ]);
+        RevenueEntry::create([ // 프로젝트 미연동 — 미지정 행
+            'kind' => 'payment_only', 'recognized_on' => now()->toDateString(),
+            'service_amount' => 0, 'product_amount' => 0, 'amount' => 90000,
+        ]);
+
+        $res = $this->actingAs($user)->get('/marketing-report');
+
+        $res->assertOk()
+            ->assertSee('의뢰자 유형 × 매출 구분')
+            ->assertSee('개인')->assertSee('스튜디오')->assertSee('미지정')
+            ->assertSee('300,000원')   // 개인 세팅비
+            ->assertSee('700,000원')   // 개인 장비판매
+            ->assertSee('500,000원')   // 스튜디오 세팅비
+            ->assertSee('1,000,000원') // 개인 합계
+            ->assertSee('90,000원');   // 미지정(수기 결제) 기타
     }
 
     public function test_revenue_projects_drilldown(): void
