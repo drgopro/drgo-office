@@ -9,6 +9,8 @@ use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RevenueEntry;
 use App\Models\Schedule;
+use App\Models\Setting;
+use App\Models\Team;
 use App\Models\User;
 use App\Models\WorkType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -158,6 +160,20 @@ class MarketingRevenueBreakdownTest extends TestCase
         $this->assertSame(500000, $row['amount']);
         $this->assertSame(100000, $row['service']);
 
+        // 견적 연동 행 — display_no는 accessor라 실제 컬럼 선택 회귀 방지
+        $est = Estimate::create([
+            'client_id' => $client->id, 'client_name' => '탐색의뢰자', 'status' => 'paid',
+            'total_amount' => 70000, 'created_by' => $user->id,
+        ]);
+        RevenueEntry::create([
+            'kind' => 'estimate_paid', 'estimate_id' => $est->id, 'recognized_on' => '2026-10-09',
+            'service_amount' => 0, 'product_amount' => 70000, 'amount' => 70000,
+        ]);
+        $rows = $this->actingAs($user)
+            ->getJson('/api/marketing-report/revenue-explorer-data?from=2026-10-01&to=2026-10-31')
+            ->assertOk()->json('rows');
+        $this->assertNotNull(collect($rows)->firstWhere('estimate_no', $est->display_no));
+
         // 일정 데이터셋 — 일정 지표와 동일 기준의 RAW 행
         Schedule::create([
             'title' => '탐색 방문세팅', 'start_date' => '2026-10-10', 'end_date' => '2026-10-10',
@@ -173,6 +189,30 @@ class MarketingRevenueBreakdownTest extends TestCase
         $guest = User::factory()->create(['role' => 'guest']);
         $this->actingAs($guest)->getJson('/api/marketing-report/revenue-explorer-data?from=2026-10-01&to=2026-10-31')
             ->assertForbidden();
+    }
+
+    public function test_explorer_custom_view_admin_only_save(): void
+    {
+        // 커스텀 뷰 저장은 관리자 이상만 — 멤버는 거부, 저장 후 페이지에 포함
+        $member = User::factory()->create(['role' => 'member', 'team_id' => Team::create(['name' => '통계팀', 'slug' => 'stats-team', 'permissions' => ['stats.view']])->id]);
+        $this->actingAs($member)->postJson('/api/marketing-report/explorer-custom', ['html' => '<p>x</p>'])
+            ->assertForbidden();
+
+        // stats.custom 권한을 받은 멤버는 관리자 승격 없이 편집 가능
+        $editorTeam = Team::create(['name' => '통계편집팀', 'slug' => 'stats-editor', 'permissions' => ['stats.view', 'stats.custom']]);
+        $editor = User::factory()->create(['role' => 'member', 'team_id' => $editorTeam->id]);
+        $this->actingAs($editor)->postJson('/api/marketing-report/explorer-custom', ['html' => '<p>멤버편집</p>'])
+            ->assertOk();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->postJson('/api/marketing-report/explorer-custom', ['html' => '<p>커스텀뷰테스트</p>'])
+            ->assertOk();
+        $this->assertSame('<p>커스텀뷰테스트</p>', Setting::get('stats_explorer_custom_html'));
+
+        $res = $this->actingAs($admin)->get('/marketing-report/revenue-explorer')->assertOk()
+            ->assertSee('rxCustomFrame', false);
+        // @json은 유니코드를 이스케이프하므로 동일 인코딩으로 포함 확인
+        $this->assertStringContainsString(json_encode('<p>커스텀뷰테스트</p>', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), $res->getContent());
     }
 
     public function test_revenue_projects_drilldown(): void

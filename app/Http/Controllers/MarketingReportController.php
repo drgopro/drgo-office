@@ -15,10 +15,12 @@ use App\Models\ProjectPayment;
 use App\Models\RentalContract;
 use App\Models\RevenueEntry;
 use App\Models\Schedule;
+use App\Models\Setting;
 use App\Models\WorkType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -455,7 +457,20 @@ class MarketingReportController extends Controller
         return view('marketing-report.revenue-explorer', [
             'from' => $request->query('from', now()->startOfMonth()->toDateString()),
             'to' => $request->query('to', now()->toDateString()),
+            'customHtml' => (string) (Setting::get('stats_explorer_custom_html') ?? ''),
+            'canEditCustom' => (bool) Auth::user()?->hasPermission('stats.custom'),
         ]);
+    }
+
+    /** 탐색기 커스텀 뷰 저장 — 직원이 GPT/클로드로 고쳐 쓴 HTML (sandbox iframe에서만 렌더, 관리자 이상) */
+    public function saveExplorerCustom(Request $request): JsonResponse
+    {
+        // 별도 권한(stats.custom) — 팀 권한에서 부여 (admin 이상은 항상 허용)
+        abort_unless((bool) Auth::user()?->hasPermission('stats.custom'), 403, '커스텀 뷰 편집 권한이 없습니다. (팀 권한: 통계 > 커스텀 뷰 편집)');
+        $validated = $request->validate(['html' => 'nullable|string|max:300000']);
+        Setting::set('stats_explorer_custom_html', (string) ($validated['html'] ?? ''));
+
+        return response()->json(['ok' => true]);
     }
 
     /**
@@ -504,7 +519,7 @@ class MarketingReportController extends Controller
         $projMap = Project::whereIn('id', $entries->pluck('project_id')->filter()->unique())
             ->get(['id', 'name', 'client_scale', 'client_id', 'project_type', 'work_type'])->keyBy('id');
         $estMap = Estimate::whereIn('id', $entries->pluck('estimate_id')->filter()->unique())
-            ->get(['id', 'display_no', 'client_id', 'client_name', 'client_nickname'])->keyBy('id');
+            ->get(['id', 'estimate_no', 'parent_estimate_id', 'round', 'client_id', 'client_name', 'client_nickname'])->keyBy('id');
         $clientIds = $projMap->pluck('client_id')->merge($estMap->pluck('client_id'))->filter()->unique();
         $clients = Client::whereIn('id', $clientIds)->get(['id', 'name', 'nickname', 'client_type'])->keyBy('id');
 

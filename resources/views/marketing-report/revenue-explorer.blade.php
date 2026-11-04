@@ -38,6 +38,22 @@
     .rx-table td.zero { color:var(--text-muted); opacity:0.45; }
     .rx-empty { padding:48px 16px; text-align:center; color:var(--text-muted); font-size:13px; }
 
+    /* 커스텀 뷰 */
+    .rx-mode { display:inline-flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:3px; }
+    .rx-mode button { border:none; background:none; color:var(--text-muted); font-size:12px; font-weight:700; padding:5px 13px; border-radius:999px; cursor:pointer; }
+    .rx-mode button.on { background:var(--accent); color:var(--accent-text); }
+    [data-theme="light"] .rx-mode button.on { color:#fff; }
+    #rxCustomFrame { width:100%; height:calc(100vh - 320px); min-height:420px; border:none; display:block; background:#fff; border-radius:12px; }
+    .rxc-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:none; align-items:flex-start; justify-content:center; padding:4vh 12px; overflow-y:auto; }
+    .rxc-overlay.open { display:flex; }
+    .rxc-modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:860px; max-width:100%; padding:22px; }
+    .rxc-modal h3 { margin:0 0 10px; font-size:16px; }
+    .rxc-guide { font-size:12px; color:var(--text-muted); line-height:1.7; background:var(--surface2); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+    .rxc-guide b { color:var(--text); }
+    .rxc-modal textarea { width:100%; min-height:320px; box-sizing:border-box; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:ui-monospace, Menlo, monospace; font-size:12px; padding:12px; outline:none; resize:vertical; }
+    .rxc-modal textarea:focus { border-color:var(--accent); }
+    .rxc-actions { display:flex; gap:8px; margin-top:12px; align-items:center; }
+
     @media (max-width:760px) { .rx-wrap { padding:14px; } .rx-csv { margin-left:0; } }
 </style>
 @endpush
@@ -48,7 +64,16 @@
         <div>
             <h1>통계 탐색기</h1>
         </div>
-        <a class="rx-back" href="{{ route('marketing-report') }}" onclick="event.preventDefault(); location.href=this.href + (location.search.includes('_tab') ? '?_tab=1' : '');">← 통계로</a>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <div class="rx-mode" id="rxMode">
+                <button class="on" id="rxModeBasic" onclick="rxSetMode('basic')">기본 피벗</button>
+                <button id="rxModeCustom" onclick="rxSetMode('custom')">커스텀 뷰</button>
+            </div>
+            @if($canEditCustom)
+                <button class="rx-csv" style="margin-left:0;" onclick="rxcOpen()">커스텀 편집</button>
+            @endif
+            <a class="rx-back" href="{{ route('marketing-report') }}" onclick="event.preventDefault(); location.href=this.href + (location.search.includes('_tab') ? '?_tab=1' : '');">← 통계로</a>
+        </div>
     </div>
     <div class="rx-sub">통계 데이터를 원하는 차원으로 직접 조합해 보는 셀프서비스 페이지입니다. 행/열/값을 바꾸면 즉시 다시 집계됩니다. 매출은 통계 총 매출과 동일 기준(환불 음수 차감), 일정·작업은 엑셀 RAW와 동일 기준입니다.</div>
 
@@ -80,9 +105,36 @@
         <button class="rx-csv" onclick="rxCsv()">CSV 다운로드</button>
     </div>
 
-    <div class="rx-summary" id="rxSummary"></div>
-    <div class="rx-card"><div id="rxTableWrap"><div class="rx-empty">불러오는 중...</div></div></div>
+    <div id="rxBasicArea">
+        <div class="rx-summary" id="rxSummary"></div>
+        <div class="rx-card"><div id="rxTableWrap"><div class="rx-empty">불러오는 중...</div></div></div>
+    </div>
+    <div id="rxCustomArea" style="display:none;">
+        <div class="rx-card" style="max-height:none;"><iframe id="rxCustomFrame" sandbox="allow-scripts" title="커스텀 통계 뷰"></iframe></div>
+    </div>
 </div>
+
+{{-- 커스텀 뷰 편집 — GPT/클로드로 고쳐 쓴 HTML을 저장 (sandbox iframe에서만 실행, 오피스 데이터/세션 접근 불가) --}}
+@if($canEditCustom)
+<div class="rxc-overlay" id="rxcOverlay" onclick="if(event.target===this) rxcClose()">
+    <div class="rxc-modal">
+        <h3>커스텀 뷰 편집</h3>
+        <div class="rxc-guide">
+            <b>사용법</b>: ① [현재 코드 복사] 또는 [기본 템플릿 넣기] → ② ChatGPT/Claude에 붙여넣고 "<b>월별 매출을 막대 차트로 보여줘</b>"처럼 원하는 변경을 요청 → ③ 받은 HTML 전체를 아래에 붙여넣고 저장.<br>
+            커스텀 코드는 <b>격리된 창(sandbox)</b>에서만 실행되고 오피스 데이터·로그인에 접근할 수 없습니다. 데이터는 오피스가 <code>message</code> 이벤트로 넣어줍니다 — 템플릿의 수신 부분을 유지하라고 AI에게 함께 요청하세요. 코드가 망가져도 저장을 비우면 원래대로 돌아갑니다.
+        </div>
+        <textarea id="rxcHtml" spellcheck="false" placeholder="여기에 커스텀 HTML 전체를 붙여넣으세요"></textarea>
+        <div class="rxc-actions">
+            <button class="rx-csv" style="margin-left:0;" onclick="rxcInsertTemplate()">기본 템플릿 넣기</button>
+            <button class="rx-csv" style="margin-left:0;" onclick="rxcCopy()">현재 코드 복사</button>
+            <span id="rxcStatus" style="font-size:12px; color:var(--text-muted);"></span>
+            <span style="flex:1;"></span>
+            <button class="rx-csv" style="margin-left:0;" onclick="rxcClose()">닫기</button>
+            <button class="rx-go" onclick="rxcSave()">저장</button>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
@@ -140,6 +192,7 @@ async function rxLoad(){
         return;
     }
     rxRender();
+    if (rxMode === 'custom') rxCustomSend(); // 기간/데이터셋 변경 시 커스텀 뷰에도 최신 데이터 주입
 }
 
 function rxQuick(kind){
@@ -235,6 +288,92 @@ function rxCsv(){
     a.download = `통계탐색기_${rxDataset()}_${document.getElementById('rxFrom').value}_${document.getElementById('rxTo').value}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+}
+
+// ── 커스텀 뷰 — sandbox iframe + postMessage 데이터 주입 ──
+let rxCustomHtml = @json($customHtml);
+let rxMode = 'basic';
+
+function rxSetMode(m){
+    if (m === 'custom' && !rxCustomHtml.trim()) {
+        alert('저장된 커스텀 뷰가 없습니다.' + (@json($canEditCustom) ? ' [커스텀 편집]에서 템플릿으로 시작해보세요.' : ' 관리자에게 요청하세요.'));
+        return;
+    }
+    rxMode = m;
+    document.getElementById('rxModeBasic').classList.toggle('on', m === 'basic');
+    document.getElementById('rxModeCustom').classList.toggle('on', m === 'custom');
+    document.getElementById('rxBasicArea').style.display = m === 'basic' ? '' : 'none';
+    document.getElementById('rxCustomArea').style.display = m === 'custom' ? '' : 'none';
+    if (m === 'custom') rxCustomBoot();
+}
+
+function rxCustomBoot(){
+    const frame = document.getElementById('rxCustomFrame');
+    frame.srcdoc = rxCustomHtml; // sandbox="allow-scripts" — 쿠키/세션/부모 접근 불가
+    frame.onload = () => rxCustomSend();
+}
+
+function rxCustomSend(){
+    const frame = document.getElementById('rxCustomFrame');
+    frame?.contentWindow?.postMessage({
+        type: 'drgo-stats-data',
+        dataset: rxDataset(),
+        from: document.getElementById('rxFrom').value,
+        to: document.getElementById('rxTo').value,
+        rows: rxRows,
+    }, '*');
+}
+
+const RXC_TEMPLATE = `<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<style>body{font-family:system-ui,sans-serif;margin:16px;color:#222;} table{border-collapse:collapse;width:100%;} th,td{border-bottom:1px solid #ddd;padding:6px 10px;font-size:13px;text-align:right;} th:first-child,td:first-child{text-align:left;}</style>
+</head><body>
+<!-- 닥터고블린 오피스 통계 커스텀 뷰 템플릿.
+     오피스가 아래 형식으로 데이터를 보내줍니다 (이 수신부는 반드시 유지):
+     { type:'drgo-stats-data', dataset:'revenue'|'schedules', from:'YYYY-MM-DD', to:'YYYY-MM-DD', rows:[...] }
+     revenue 행: {date, month, kind, scale, ptype, work, client, project, service, product, other, amount}
+     schedules 행: {date, month, dow, type, category, client_type, client, platform, career, attrs, status, main, region, amount} -->
+<h3 id="title">데이터 대기 중...</h3>
+<div id="out"></div>
+<script>
+window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'drgo-stats-data') return;
+    const { dataset, from, to, rows } = e.data;
+    document.getElementById('title').textContent =
+        (dataset === 'revenue' ? '매출' : '일정') + ' ' + from + ' ~ ' + to + ' · ' + rows.length + '건';
+    // 예시: 월별 합계 표 — 이 아래를 원하는 대로 바꿔 쓰세요
+    const byMonth = {};
+    rows.forEach(r => { byMonth[r.month] = (byMonth[r.month] || 0) + (r.amount || 0); });
+    document.getElementById('out').innerHTML =
+        '<table><tr><th>월</th><th>금액(원)</th></tr>' +
+        Object.keys(byMonth).sort().map(m => '<tr><td>' + m + '</td><td>' + byMonth[m].toLocaleString() + '</td></tr>').join('') +
+        '</table>';
+});
+</scr' + 'ipt>
+</body></html>`;
+
+function rxcOpen(){
+    document.getElementById('rxcHtml').value = rxCustomHtml;
+    document.getElementById('rxcStatus').textContent = '';
+    document.getElementById('rxcOverlay').classList.add('open');
+}
+function rxcClose(){ document.getElementById('rxcOverlay').classList.remove('open'); }
+function rxcInsertTemplate(){ document.getElementById('rxcHtml').value = RXC_TEMPLATE; }
+async function rxcCopy(){
+    try { await navigator.clipboard.writeText(document.getElementById('rxcHtml').value || rxCustomHtml || RXC_TEMPLATE);
+        document.getElementById('rxcStatus').textContent = '복사됨 — AI에 붙여넣어 수정 요청하세요'; } catch (e) {}
+}
+async function rxcSave(){
+    const html = document.getElementById('rxcHtml').value;
+    const res = await fetch('/api/marketing-report/explorer-custom', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}' },
+        body: JSON.stringify({ html }),
+    });
+    if (!res.ok) { document.getElementById('rxcStatus').textContent = '저장 실패'; return; }
+    rxCustomHtml = html;
+    document.getElementById('rxcStatus').textContent = '저장 완료';
+    if (rxMode === 'custom') rxCustomBoot();
 }
 
 rxFillSelects(false);
