@@ -369,7 +369,7 @@ class MarketingReportController extends Controller
                 if ((int) $amount === 0) {
                     continue;
                 }
-                $wLabel = $w === '' ? '미지정' : ($workLabels[$w] ?? $w);
+                $wLabel = $w === '' ? '미지정' : ($workLabels[$w] ?? WorkType::FALLBACK_LABELS[$w] ?? $w);
                 $revenueByProjectType[$tLabel]['total'] = ($revenueByProjectType[$tLabel]['total'] ?? 0) + (int) $amount;
                 $revenueByProjectType[$tLabel]['works'][$wLabel] = ($revenueByProjectType[$tLabel]['works'][$wLabel] ?? 0) + (int) $amount;
                 $revenueByWorkType[$wLabel] = ($revenueByWorkType[$wLabel] ?? 0) + (int) $amount;
@@ -931,7 +931,7 @@ class MarketingReportController extends Controller
                 'name' => $r->name,
                 'client' => $r->client_nickname ?: $r->client_name ?: $r->manual_client_name ?: '(의뢰자 없음)',
                 'type' => $typeLabels[$r->project_type] ?? $r->project_type,
-                'work' => $r->work_type ? ($workLabels[$r->work_type] ?? $r->work_type) : '미지정',
+                'work' => $r->work_type ? ($workLabels[$r->work_type] ?? WorkType::FALLBACK_LABELS[$r->work_type] ?? $r->work_type) : '미지정',
                 'amount' => (int) $r->total,
                 'pay_count' => (int) $r->pay_count,
                 'last_paid_at' => $r->last_paid_at,
@@ -1017,7 +1017,7 @@ class MarketingReportController extends Controller
                     'name' => $e->project?->name ?? '견적 #'.$e->id.' (프로젝트 미연결)',
                     'client' => $e->client_nickname ?: $e->client_name ?: ($e->project?->client?->nickname ?? '(의뢰자 없음)'),
                     'type' => $e->project ? ($typeLabels[$e->project->project_type] ?? $e->project->project_type) : '견적',
-                    'work' => $e->project?->work_type ? ($workLabels[$e->project->work_type] ?? $e->project->work_type) : '미지정',
+                    'work' => $e->project?->work_type ? ($workLabels[$e->project->work_type] ?? WorkType::FALLBACK_LABELS[$e->project->work_type] ?? $e->project->work_type) : '미지정',
                     'amount' => $paidAmount + ($refund ? (int) $refund->refund_sum : 0),
                     'pay_count' => count($payments),
                     'last_paid_at' => $paidOn,

@@ -14,6 +14,29 @@ class WorkType extends Model
         'sort_order' => 'integer',
     ];
 
+    /**
+     * 관리자 정의(work_types)에서 지워진 키의 폴백 라벨 — 통계 등에서 원문 키 노출 방지.
+     * 시드(2026_07_16 add_type_key_to_work_types_and_seed) 라벨 기준.
+     *
+     * @var array<string, string>
+     */
+    public const FALLBACK_LABELS = self::DEFAULTS + [
+        'simple' => '단순',
+        'general' => '일반',
+        'revisit' => '재방문',
+        'rush' => '급행',
+        'outdoor_setup' => '야외방송 세팅(1차)',
+        'edu_consulting' => '교육·컨설팅',
+        'relay' => '중계',
+        'outdoor' => '야외',
+        'video' => '영상',
+        'audio' => '음향',
+        'rental' => '렌탈',
+        'equip_single' => '장비(단품)',
+        'daily' => '일대여',
+        'shop' => '쇼핑몰',
+    ];
+
     /** @var array<string, string> 기본 셋 (마이그레이션과 일치) */
     public const DEFAULTS = [
         'setup' => '세팅',

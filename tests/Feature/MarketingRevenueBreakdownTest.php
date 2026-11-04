@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RevenueEntry;
 use App\Models\User;
+use App\Models\WorkType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -103,9 +104,11 @@ class MarketingRevenueBreakdownTest extends TestCase
         // 관리자 정의(consultation_types)에 없는 기본 유형은 config 라벨로 — 'rental'이 원문 키로 노출되던 문제
         $user = User::factory()->create(['role' => 'admin']);
         ConsultationType::where('key', 'rental')->delete(); // 관리자 정의에서 지워진 상태 재현
+        WorkType::where('key', 'rental')->delete(); // 작업 유형도 동일 상황 재현
         $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
         $rental = Project::create([
-            'client_id' => $client->id, 'name' => '장비 렌탈 건', 'project_type' => 'rental', 'stage' => 'payment',
+            'client_id' => $client->id, 'name' => '장비 렌탈 건', 'project_type' => 'rental',
+            'work_type' => 'rental', 'stage' => 'payment',
         ]);
         ProjectPayment::create(['project_id' => $rental->id, 'type' => 'charge', 'amount' => 150000, 'paid_at' => now()->toDateString()]);
 
