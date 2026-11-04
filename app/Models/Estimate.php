@@ -133,8 +133,11 @@ class Estimate extends Model
     public function syncSnapshotPrices(bool $ignoreLock = false): bool
     {
         // ignoreLock: 발행 24시간 재갱신(estimates:refresh-stale-issued) 전용 — 발행완료 가격 보장을
-        // 시간으로 한정할 때만 잠금을 무시하고 현재 가격(기간 할인 반영/종료)으로 재계산한다
-        $locked = ! $ignoreLock && in_array($this->status, self::PRICE_LOCKED_STATUSES, true);
+        // 시간으로 한정할 때만 잠금을 무시하고 현재 가격(기간 할인 반영/종료)으로 재계산한다.
+        // 페이앱 결제요청이 진행 중(state=1)이면 상태와 무관하게 잠금 — 청구해 둔 금액과 총액이
+        // 어긋나면 결제 통지가 금액 불일치로 보류된다 (견적서 #641: 결제요청 10분 뒤 기간할인 종료 사례)
+        $pendingPayRequest = (int) $this->payapp_state === 1 && $this->payapp_mul_no !== null;
+        $locked = ! $ignoreLock && (in_array($this->status, self::PRICE_LOCKED_STATUSES, true) || $pendingPayRequest);
 
         $items = $this->product_items ?? [];
         $ids = collect($items)->pluck('product_id')->filter()->unique()->values();

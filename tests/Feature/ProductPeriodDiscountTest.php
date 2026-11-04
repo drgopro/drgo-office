@@ -317,6 +317,34 @@ class ProductPeriodDiscountTest extends TestCase
         $this->assertSame(1400000, (int) $paid->fresh()->product_items[0]['sale_price']);
     }
 
+    public function test_pending_pay_request_locks_prices_regardless_of_status(): void
+    {
+        // 페이앱 결제요청이 진행 중이면 상태가 미잠금(created 등)이어도 가격을 재계산하지 않는다
+        // — 청구해 둔 금액과 총액이 어긋나면 결제 통지가 불일치로 보류되기 때문 (#641 사례)
+        $product = $this->makeProduct(['name' => '결제요청 잠금 마이크',
+            'discount_amount' => 1500, 'discount_ends_at' => now()->addMinutes(10)]);
+        $estimate = Estimate::create([
+            'status' => 'created', 'created_by' => $this->admin->id,
+            'payapp_state' => 1, 'payapp_mul_no' => 'MUL-LOCK-1', 'payapp_req_price' => 1398500,
+            'product_items' => [[
+                'product_id' => $product->id, 'name' => $product->name,
+                'sale_price' => 1398500, 'qty' => 1, 'subtotal' => 1398500,
+                'deal_type' => 'discount', 'auto_deal' => true, 'original_price' => 1400000,
+            ]],
+            'service_items' => [], 'product_total' => 1398500, 'total_amount' => 1398500,
+        ]);
+
+        // 할인 종료 후 동기화 — 결제요청이 살아 있으므로 금액이 복원되지 않아야 한다
+        $this->travel(11)->minutes();
+        $estimate->fresh()->syncSnapshotPrices();
+        $this->assertSame(1398500, (int) $estimate->fresh()->total_amount);
+
+        // 결제요청이 끝난(철회) 뒤에는 정상 복원
+        $estimate->forceFill(['payapp_state' => 8])->save();
+        $estimate->fresh()->syncSnapshotPrices();
+        $this->assertSame(1400000, (int) $estimate->fresh()->total_amount);
+    }
+
     public function test_total_change_propagates_to_auto_charge_and_paid_schedule(): void
     {
         $product = $this->makeProduct(['name' => '원장 마이크']);
