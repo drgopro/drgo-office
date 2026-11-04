@@ -343,6 +343,17 @@ class EstimatePayAppTest extends TestCase
         $this->assertSame(1500000, $estimate->fresh()->payapp_req_price);
     }
 
+    public function test_feedback_stores_receipt_url(): void
+    {
+        $estimate = $this->makeEstimate(['payapp_mul_no' => '98765']);
+
+        $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, [
+            'csturl' => 'https://www.payapp.kr/CST/abc123',
+        ]))->assertOk();
+
+        $this->assertSame('https://www.payapp.kr/CST/abc123', $estimate->fresh()->payapp_csturl);
+    }
+
     public function test_feedback_accepts_var2_token_without_link_credentials(): void
     {
         // 실제 운영 사례: 페이앱 통지에 linkkey/linkval이 없어도 var2 토큰이 맞으면 인정

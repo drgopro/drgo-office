@@ -379,7 +379,7 @@ class BankDepositController extends Controller
                     'paid_at' => $e->payapp_paid_at?->format('Y-m-d H:i'),
                     'payurl' => $e->payapp_payurl,
                     'estimate_url' => $e->publicUrl(),
-                    'receipt_url' => null,
+                    'receipt_url' => $e->payapp_csturl,
                     'mul_no' => $e->payapp_mul_no,
                     // 결제완료됐지만 청구 시점 금액과 현재 총액이 다른 건 — 확인 필요 배지
                     'amount_diff' => $status['key'] === 'paid'

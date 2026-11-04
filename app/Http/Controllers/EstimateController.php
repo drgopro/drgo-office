@@ -919,6 +919,9 @@ class EstimateController extends Controller
         // — 알림은 '결제완료로 처음 전환될 때' 한 번만 보내기 위해 이전 상태를 기억
         $wasAlreadyPaid = $estimate->status === 'paid' && $estimate->payapp_paid_at !== null;
         $estimate->payapp_state = $state;
+        if (! empty($payload['csturl'])) {
+            $estimate->payapp_csturl = mb_substr((string) $payload['csturl'], 0, 300); // 매출전표 URL
+        }
 
         if ($state === PayAppClient::STATE_PAID) {
             // 금액 대조 — 현재 총액 또는 '청구 시점 금액'(payapp_req_price)과 일치하면 결제완료.
