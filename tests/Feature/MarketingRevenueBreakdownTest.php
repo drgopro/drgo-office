@@ -8,6 +8,7 @@ use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RevenueEntry;
+use App\Models\Schedule;
 use App\Models\User;
 use App\Models\WorkType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -128,6 +129,50 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertOk()
             ->assertSee('렌탈')
             ->assertDontSee('>rental<', false);
+    }
+
+    public function test_revenue_explorer_page_and_data(): void
+    {
+        // 매출 탐색기 — 원장 행 단위 데이터(차원 라벨 포함)를 내려주고 페이지가 렌더된다
+        $user = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '탐색의뢰자', 'grade' => 'normal', 'client_type' => 'studio']);
+        $project = Project::create([
+            'client_id' => $client->id, 'name' => '탐색 프로젝트', 'project_type' => 'visit',
+            'work_type' => 'setup', 'stage' => 'payment', 'client_scale' => 'studio',
+        ]);
+        RevenueEntry::create([
+            'kind' => 'estimate_paid', 'project_id' => $project->id, 'recognized_on' => '2026-10-08',
+            'service_amount' => 100000, 'product_amount' => 400000, 'amount' => 500000,
+        ]);
+
+        $this->actingAs($user)->get('/marketing-report/revenue-explorer')->assertOk()
+            ->assertSee('통계 탐색기')->assertSee('revenue-explorer-data', false);
+
+        $row = $this->actingAs($user)
+            ->getJson('/api/marketing-report/revenue-explorer-data?from=2026-10-01&to=2026-10-31')
+            ->assertOk()->json('rows.0');
+        $this->assertSame('2026-10', $row['month']);
+        $this->assertSame('스튜디오', $row['scale']);
+        $this->assertSame('세팅', $row['work']);
+        $this->assertSame('탐색의뢰자', $row['client']);
+        $this->assertSame(500000, $row['amount']);
+        $this->assertSame(100000, $row['service']);
+
+        // 일정 데이터셋 — 일정 지표와 동일 기준의 RAW 행
+        Schedule::create([
+            'title' => '탐색 방문세팅', 'start_date' => '2026-10-10', 'end_date' => '2026-10-10',
+            'color' => 'gold', 'is_all_day' => true, 'client_name' => '탐색의뢰자',
+        ]);
+        $sched = $this->actingAs($user)
+            ->getJson('/api/marketing-report/revenue-explorer-data?from=2026-10-01&to=2026-10-31&dataset=schedules')
+            ->assertOk()->json('rows.0');
+        $this->assertSame('방문세팅', $sched['type']);
+        $this->assertSame('2026-10', $sched['month']);
+
+        // 권한 — 통계 보기 권한 없는 사용자는 차단
+        $guest = User::factory()->create(['role' => 'guest']);
+        $this->actingAs($guest)->getJson('/api/marketing-report/revenue-explorer-data?from=2026-10-01&to=2026-10-31')
+            ->assertForbidden();
     }
 
     public function test_revenue_projects_drilldown(): void

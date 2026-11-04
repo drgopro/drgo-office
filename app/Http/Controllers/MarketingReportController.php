@@ -16,10 +16,12 @@ use App\Models\RentalContract;
 use App\Models\RevenueEntry;
 use App\Models\Schedule;
 use App\Models\WorkType;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -445,6 +447,100 @@ class MarketingReportController extends Controller
             'funnelInquiry', 'funnelEstimateIssued', 'funnelPaid', 'funnelSettingDone', 'funnelConversion',
             'avgInquiryToComplete', 'avgPaidToComplete', 'pipeline'
         ));
+    }
+
+    /** 매출 탐색기 페이지 — 직원이 기간·행/열 차원을 직접 조합해 피벗으로 보는 셀프서비스 뷰 */
+    public function revenueExplorer(Request $request): View
+    {
+        return view('marketing-report.revenue-explorer', [
+            'from' => $request->query('from', now()->startOfMonth()->toDateString()),
+            'to' => $request->query('to', now()->toDateString()),
+        ]);
+    }
+
+    /**
+     * 매출 탐색기 데이터 — 매출 인식 원장을 행 단위(차원 라벨 포함)로 내려준다.
+     * 집계는 전부 클라이언트에서 하므로 서버는 기간 필터만 적용한다.
+     */
+    public function revenueExplorerData(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'from' => 'required|date',
+            'to' => 'required|date|after_or_equal:from',
+            'dataset' => 'nullable|in:revenue,schedules',
+        ]);
+
+        // 일정·작업 데이터셋 — 일정 지표/엑셀 RAW와 동일한 rawScheduleRows 기준
+        if (($validated['dataset'] ?? 'revenue') === 'schedules') {
+            $rows = $this->rawScheduleRows($validated['from'], $validated['to'])->map(fn (array $r) => [
+                'date' => $r['date'],
+                'month' => substr($r['date'], 0, 7),
+                'dow' => $r['dow'],
+                'type' => $r['type'],
+                'category' => $r['category'],
+                'client_type' => $r['client_type'] !== '' ? $r['client_type'] : '미입력',
+                'client' => $r['client'],
+                'platform' => $r['platform'] !== '' ? $r['platform'] : '미입력',
+                'career' => $r['career'] !== '' ? $r['career'] : '미입력',
+                'attrs' => $r['attrs'] ? implode(';', $r['attrs']) : '없음',
+                'status' => $r['status'],
+                'main' => $r['main'] !== '' ? $r['main'] : '미지정',
+                'region' => $r['region'] !== '' ? $r['region'] : '미입력',
+                'internal' => $r['internal'] ? '사내/휴가' : '의뢰 건',
+                'amount' => (int) $r['amount'],
+            ])->values();
+
+            return response()->json(['rows' => $rows]);
+        }
+
+        if (! Schema::hasTable('revenue_entries')) {
+            return response()->json(['rows' => []]);
+        }
+
+        $entries = RevenueEntry::whereBetween('recognized_on', [$validated['from'], $validated['to']])
+            ->orderBy('recognized_on')
+            ->get(['id', 'kind', 'estimate_id', 'project_id', 'recognized_on', 'service_amount', 'product_amount', 'amount']);
+
+        $projMap = Project::whereIn('id', $entries->pluck('project_id')->filter()->unique())
+            ->get(['id', 'name', 'client_scale', 'client_id', 'project_type', 'work_type'])->keyBy('id');
+        $estMap = Estimate::whereIn('id', $entries->pluck('estimate_id')->filter()->unique())
+            ->get(['id', 'display_no', 'client_id', 'client_name', 'client_nickname'])->keyBy('id');
+        $clientIds = $projMap->pluck('client_id')->merge($estMap->pluck('client_id'))->filter()->unique();
+        $clients = Client::whereIn('id', $clientIds)->get(['id', 'name', 'nickname', 'client_type'])->keyBy('id');
+
+        $typeLabels = ConsultationType::map(false);
+        $workLabels = WorkType::map(false);
+        $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'enterprise' => '엔터', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
+        $kindLabels = ['estimate_paid' => '견적 결제', 'estimate_refund' => '환불/취소', 'payment_only' => '단순 결제'];
+
+        $rows = $entries->map(function (RevenueEntry $e) use ($projMap, $estMap, $clients, $typeLabels, $workLabels, $scaleLabels, $kindLabels) {
+            $proj = $e->project_id ? $projMap->get($e->project_id) : null;
+            $est = $e->estimate_id ? $estMap->get($e->estimate_id) : null;
+            $client = ($proj?->client_id ? $clients->get($proj->client_id) : null)
+                ?? ($est?->client_id ? $clients->get($est->client_id) : null);
+
+            $scaleRaw = $proj?->client_scale ?: ($client?->client_type ?? '');
+            $t = (string) ($proj?->project_type ?? '');
+            $w = (string) ($proj?->work_type ?? '');
+
+            return [
+                'date' => $e->recognized_on->format('Y-m-d'),
+                'month' => $e->recognized_on->format('Y-m'),
+                'kind' => $kindLabels[$e->kind] ?? $e->kind,
+                'scale' => $scaleRaw === '' ? '미지정' : ($scaleLabels[$scaleRaw] ?? $scaleRaw),
+                'ptype' => $t === '' ? '미지정' : ($typeLabels[$t] ?? config("crm.project_types.{$t}.label") ?? $t),
+                'work' => $w === '' ? '미지정' : ($workLabels[$w] ?? WorkType::FALLBACK_LABELS[$w] ?? $w),
+                'client' => $client?->nickname ?: $client?->name ?: ($est?->client_nickname ?: $est?->client_name) ?: '미연동',
+                'project' => $proj?->name ?? '미연동',
+                'estimate_no' => $est?->display_no,
+                'service' => (int) $e->service_amount,
+                'product' => (int) $e->product_amount,
+                'other' => (int) $e->amount - (int) $e->service_amount - (int) $e->product_amount,
+                'amount' => (int) $e->amount,
+            ];
+        })->values();
+
+        return response()->json(['rows' => $rows]);
     }
 
     /**

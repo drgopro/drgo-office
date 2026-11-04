@@ -120,6 +120,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing-report', [MarketingReportController::class, 'index'])->name('marketing-report');
         Route::get('/marketing-report/revenue', [MarketingReportController::class, 'revenuePage'])->name('marketing-report.revenue');
         Route::get('/api/marketing-report/revenue-projects', [MarketingReportController::class, 'revenueProjects']);
+        Route::get('/marketing-report/revenue-explorer', [MarketingReportController::class, 'revenueExplorer'])->name('marketing-report.revenue-explorer');
+        Route::get('/api/marketing-report/revenue-explorer-data', [MarketingReportController::class, 'revenueExplorerData']);
 
         // 일정 통계 엑셀 — 조회 권한에 더해 엑셀 출력 권한 필요
         Route::middleware('permission:stats.export')->group(function () {
