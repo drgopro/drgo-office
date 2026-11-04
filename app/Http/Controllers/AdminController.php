@@ -357,6 +357,8 @@ class AdminController extends Controller
                 'team_id' => $u->team_id,
                 'team_name' => $u->team?->name,
                 'is_active' => $u->is_active,
+                'resigned_at' => $u->resigned_at?->format('Y-m-d'),
+                'status' => $u->isResigned() ? 'resigned' : ($u->is_active ? 'active' : 'inactive'),
             ]);
 
         return response()->json($users);
@@ -394,7 +396,20 @@ class AdminController extends Controller
             'role' => 'required|in:master,admin,member,guest',
             'team_id' => 'nullable|exists:teams,id',
             'is_active' => 'boolean',
+            'status' => 'nullable|in:active,inactive,resigned',
         ]);
+
+        // 상태 3값(활성/비활성/퇴사) — 퇴사는 로그인·접근 차단 + 담당자 제외, 기록은 보존.
+        // 최초 퇴사 시각은 유지(재저장해도 퇴사일이 밀리지 않게), 복귀 시 초기화
+        if (($validated['status'] ?? null) !== null) {
+            $validated['is_active'] = $validated['status'] === 'active';
+            $validated['resigned_at'] = $validated['status'] === 'resigned' ? ($user->resigned_at ?? now()) : null;
+        }
+        unset($validated['status']);
+
+        if ($user->id === Auth::id() && (($validated['is_active'] ?? true) === false || isset($validated['resigned_at']))) {
+            return response()->json(['message' => '본인 계정은 비활성/퇴사 처리할 수 없습니다.'], 422);
+        }
 
         // admin은 master 역할 부여 불가
         if (Auth::user()->role !== 'master' && $validated['role'] === 'master') {

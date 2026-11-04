@@ -24,6 +24,7 @@ class User extends Authenticatable
         'hire_date',
         'fiscal_leave',
         'is_active',
+        'resigned_at',
     ];
 
     protected $hidden = [
@@ -39,7 +40,14 @@ class User extends Authenticatable
             'hire_date' => 'date:Y-m-d',
             'fiscal_leave' => 'boolean',
             'is_active' => 'boolean',
+            'resigned_at' => 'datetime',
         ];
+    }
+
+    /** 퇴사 처리 여부 — 퇴사자는 로그인·접근이 차단되고 담당자 목록에서 제외된다 (기록은 보존) */
+    public function isResigned(): bool
+    {
+        return $this->resigned_at !== null;
     }
 
     protected static function booted(): void
@@ -56,7 +64,7 @@ class User extends Authenticatable
      */
     public function syncAssignee(): void
     {
-        $eligible = $this->is_active && in_array($this->role, ['master', 'admin', 'member'], true);
+        $eligible = $this->is_active && ! $this->isResigned() && in_array($this->role, ['master', 'admin', 'member'], true);
 
         $assignee = Assignee::firstWhere('user_id', $this->id);
 

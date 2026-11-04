@@ -1919,15 +1919,18 @@ async function loadUsers() {
             teamsList.map(t => `<option value="${t.id}" ${u.team_id === t.id ? 'selected' : ''}>${t.name}</option>`)
         ).join('');
 
-        const activeClass = u.is_active ? 'on' : 'off';
-        const activeText = u.is_active ? '활성' : '비활성';
+        // 상태 3값 — 퇴사는 로그인·접근 차단 + 담당자 제외 (기록 보존), 퇴사일 병기
+        const statusOpts = [['active','활성'],['inactive','비활성'],['resigned','퇴사']]
+            .map(([v,l]) => `<option value="${v}" ${u.status === v ? 'selected' : ''}>${l}</option>`).join('');
+        const resignedTag = u.status === 'resigned' && u.resigned_at
+            ? `<div style="font-size:10px; color:var(--text-muted); margin-top:2px;">퇴사 ${u.resigned_at}</div>` : '';
 
-        return `<tr data-uid="${u.id}">
+        return `<tr data-uid="${u.id}" ${u.status === 'resigned' ? 'style="opacity:0.55;"' : ''}>
             <td>${u.display_name}</td>
             <td class="text-muted">${u.username}</td>
             <td><select class="inline-select ur" onchange="toggleTeamSelect(this)">${roleOpts}</select></td>
             <td><select class="inline-select ut" ${u.role !== 'member' ? 'disabled' : ''}>${teamOpts}</select></td>
-            <td><span class="toggle-active ${activeClass}" onclick="toggleActive(this)">${activeText}</span></td>
+            <td><select class="inline-select us" onchange="if(this.value==='resigned'&&!confirm('퇴사 처리하면 이 계정은 로그인과 접근이 차단되고 담당자 목록에서 빠집니다.\\n(기록·작성물은 모두 보존) 저장을 눌러야 적용됩니다.')){this.value='${u.status}';}">${statusOpts}</select>${resignedTag}</td>
             <td style="display:flex;gap:4px;">
                 <button class="btn-sm" onclick="saveUser(${u.id}, this)">저장</button>
                 ${currentRole==='master'?`<button class="btn-sm" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);" onclick="openAccountModal(${u.id},'${(u.username||'').replace(/'/g,"\\'")}','${(u.display_name||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}')">수정</button>`:''}
@@ -1941,13 +1944,6 @@ function toggleTeamSelect(sel) {
     const teamSel = row.querySelector('.ut');
     teamSel.disabled = sel.value !== 'member';
     if (sel.value !== 'member') teamSel.value = '';
-}
-
-function toggleActive(span) {
-    const isOn = span.classList.contains('on');
-    span.classList.toggle('on', !isOn);
-    span.classList.toggle('off', isOn);
-    span.textContent = isOn ? '비활성' : '활성';
 }
 
 function toggleNewUserForm() {
@@ -1990,17 +1986,18 @@ async function saveUser(id, btn) {
     const row = btn.closest('tr');
     const role = row.querySelector('.ur').value;
     const team_id = row.querySelector('.ut').value || null;
-    const is_active = row.querySelector('.toggle-active').classList.contains('on');
+    const status = row.querySelector('.us').value;
 
     const res = await fetch(`/api/admin/users/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ role, team_id, is_active }),
+        body: JSON.stringify({ role, team_id, status }),
     });
 
     if (res.ok) {
         btn.textContent = '완료';
         setTimeout(() => btn.textContent = '저장', 1500);
+        loadUsers(); // 퇴사일 표시/행 흐림 갱신
     } else {
         const err = await res.json();
         alert(err.message || '저장 실패');
