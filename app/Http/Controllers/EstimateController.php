@@ -503,6 +503,28 @@ class EstimateController extends Controller
                 ? (int) collect($validated['service_items'] ?? [])->sum('amount')
                 : (int) $estimate->service_total;
 
+            // ── 발행완료 가격 잠금 — 의뢰자에게 안내된 금액 보호 (#641 금액 불일치 재발 방지) ──
+            // 발행완료 상태를 유지한 채 총액이 바뀌는 저장은 거부. 수정하려면 상태를 먼저 되돌린다.
+            $newStatus = $validated['status'] ?? $estimate->status;
+            if ($estimate->status === 'issued' && $newStatus === 'issued'
+                && $productTotal + $serviceTotal !== (int) $estimate->total_amount) {
+                return response()->json([
+                    'message' => '발행완료 상태에서는 금액을 수정할 수 없습니다. 상태를 작성완료 등으로 되돌린 뒤 수정하세요 (의뢰자에게 안내된 금액 보호 — 되돌리면 진행 중 결제요청은 자동 철회됩니다).',
+                ], 422);
+            }
+            // 발행 해제 시 진행 중 결제요청 자동 철회 — 요청이 살아있는 채 금액이 바뀌는 구멍 차단
+            if ($estimate->status === 'issued'
+                && in_array($newStatus, ['temp', 'created', 'editing', 'completed', 'hold'], true)
+                && (int) $estimate->payapp_state === 1 && $estimate->payapp_mul_no) {
+                $cancel = $payapp->cancelRequest($estimate);
+                if (! ($cancel['ok'] ?? false)) {
+                    return response()->json([
+                        'message' => '진행 중인 결제요청 철회에 실패해 발행을 해제할 수 없습니다: '.($cancel['error'] ?? '알 수 없는 오류'),
+                    ], 422);
+                }
+                $estimate->forceFill(['payapp_payurl' => null, 'payapp_state' => 8])->save();
+            }
+
             // temp → created로 자동 전환 (첫 저장 시)
             if ($estimate->status === 'temp' && (! isset($validated['status']) || $validated['status'] === 'temp')) {
                 $validated['status'] = 'created';

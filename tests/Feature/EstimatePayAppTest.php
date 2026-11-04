@@ -343,6 +343,42 @@ class EstimatePayAppTest extends TestCase
         $this->assertSame(1500000, $estimate->fresh()->payapp_req_price);
     }
 
+    public function test_issued_estimate_rejects_amount_change(): void
+    {
+        // 발행완료 가격 잠금 — 발행 상태 유지 + 총액 변경 저장은 거부 (#641 재발 방지)
+        $estimate = $this->makeEstimate(['status' => 'issued']);
+
+        $this->actingAs($this->master())->patchJson("/api/estimates/{$estimate->id}", [
+            'status' => 'issued',
+            'product_items' => [['name' => '방송용 PC', 'sale_price' => 1600000, 'qty' => 1, 'subtotal' => 1600000, 'manual' => true]],
+        ])->assertUnprocessable();
+        $this->assertSame(1500000, (int) $estimate->fresh()->total_amount);
+
+        // 같은 총액이면(품명 수정 등) 허용
+        $this->actingAs($this->master())->patchJson("/api/estimates/{$estimate->id}", [
+            'status' => 'issued',
+            'product_items' => [['name' => '방송용 PC (사양 표기 수정)', 'sale_price' => 1500000, 'qty' => 1, 'subtotal' => 1500000, 'manual' => true]],
+        ])->assertOk();
+    }
+
+    public function test_unissuing_cancels_pending_pay_request(): void
+    {
+        // 발행 해제 시 진행 중 결제요청 자동 철회 — 요청이 살아있는 채 금액이 바뀌는 구멍 차단
+        Http::fake(['api.payapp.kr/*' => Http::response('state=1')]);
+        $estimate = $this->makeEstimate([
+            'status' => 'issued', 'payapp_mul_no' => '98765', 'payapp_state' => 1,
+            'payapp_payurl' => 'https://www.payapp.kr/L/abc',
+        ]);
+
+        $this->actingAs($this->master())->patchJson("/api/estimates/{$estimate->id}", [
+            'status' => 'completed',
+        ])->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertNull($fresh->payapp_payurl);
+        Http::assertSentCount(1); // cancelRequest 호출됨
+    }
+
     public function test_feedback_stores_receipt_url(): void
     {
         $estimate = $this->makeEstimate(['payapp_mul_no' => '98765']);
