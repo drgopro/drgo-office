@@ -93,6 +93,9 @@ class SyncChannelTalkUsers extends Command
         }
 
         Setting::set(self::CURSOR_KEY, json_encode(['s' => $stateIdx, 'c' => $cursor]));
+        // 실행 하트비트 — 값이 매번 달라 updated_at이 반드시 갱신된다 (스케줄 동작 여부 진단용.
+        // 커서는 사이클 완주 시 같은 값이라 updateOrCreate가 시각을 갱신하지 않는다)
+        Setting::set('channeltalk.users.last_sync_at', now()->toDateTimeString());
         $this->info("동기화 완료 — 갱신 {$upserted}건, 의뢰자 자동 연동 {$linked}건"
             .($stateIdx > 0 || $cursor !== '' ? ' (다음 실행에서 이어서)' : ''));
 
