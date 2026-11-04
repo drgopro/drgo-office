@@ -509,7 +509,7 @@ class MarketingReportController extends Controller
         $clientTypeMap = Client::whereIn('id', $projMap->pluck('client_id')->merge($estMap->pluck('client_id'))->filter()->unique())
             ->pluck('client_type', 'id');
 
-        $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'enterprise' => '엔터'];
+        $scaleLabels = ['personal' => '개인', 'studio' => '스튜디오', 'corporate' => '기업', 'enterprise' => '엔터', 'rental' => '렌탈', 'broadcast_room' => '방송룸'];
         $resolveScale = function ($e) use ($projMap, $estMap, $clientTypeMap): string {
             $proj = $e->project_id ? $projMap->get($e->project_id) : null;
             $raw = $proj?->client_scale

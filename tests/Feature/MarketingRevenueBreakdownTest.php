@@ -60,6 +60,10 @@ class MarketingRevenueBreakdownTest extends TestCase
             'client_id' => $client->id, 'name' => '스튜디오 세팅', 'project_type' => 'visit',
             'stage' => 'payment', 'client_scale' => 'studio',
         ]);
+        $rentalScale = Project::create([
+            'client_id' => $client->id, 'name' => '렌탈 결제', 'project_type' => 'visit',
+            'stage' => 'payment', 'client_scale' => 'rental',
+        ]);
 
         RevenueEntry::create([
             'kind' => 'estimate', 'project_id' => $personal->id, 'recognized_on' => now()->toDateString(),
@@ -68,6 +72,10 @@ class MarketingRevenueBreakdownTest extends TestCase
         RevenueEntry::create([
             'kind' => 'estimate', 'project_id' => $studio->id, 'recognized_on' => now()->toDateString(),
             'service_amount' => 500000, 'product_amount' => 0, 'amount' => 500000,
+        ]);
+        RevenueEntry::create([
+            'kind' => 'payment_only', 'project_id' => $rentalScale->id, 'recognized_on' => now()->toDateString(),
+            'service_amount' => 0, 'product_amount' => 0, 'amount' => 110000,
         ]);
         RevenueEntry::create([ // 프로젝트 미연동 — 미지정 행
             'kind' => 'payment_only', 'recognized_on' => now()->toDateString(),
@@ -91,6 +99,8 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertSee('개인')->assertSee('스튜디오')->assertSee('미지정')
             ->assertSee('기업')             // 매출 0이어도 행 표시
             ->assertSee('엔터')             // client_type 폴백 행
+            ->assertSee('렌탈')             // client_scale=rental도 한글 라벨
+            ->assertDontSee('>rental<', false)
             ->assertSee('300,000원')   // 개인 세팅비
             ->assertSee('700,000원')   // 개인 장비판매
             ->assertSee('500,000원')   // 스튜디오 세팅비
