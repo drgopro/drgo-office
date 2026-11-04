@@ -938,10 +938,12 @@ function renderClientList() {
         const active = activeClientId === c.id ? 'active' : '';
         const displayName = c.nickname && c.name ? `${c.nickname} / ${c.name}` : (c.nickname || c.name);
         const platforms = Array.isArray(c.platforms) && c.platforms.length ? c.platforms.join(', ') : '';
+        // 소속이 있으면 목록 보조줄에 플랫폼과 함께 표시 — 소속 검색 결과 식별용
+        const sub = [platforms, c.affiliation || ''].filter(Boolean).join(' · ');
         return `<div class="sidebar-item ${active}" onclick="openClient(${c.id})">
             <div class="item-info" style="flex:1;min-width:0;">
                 <div class="item-name">${_esc(displayName)}</div>
-                <div class="item-sub">${_esc(platforms) || '<span style="opacity:0.5;">플랫폼 없음</span>'}</div>
+                <div class="item-sub">${_esc(sub) || '<span style="opacity:0.5;">플랫폼 없음</span>'}</div>
             </div>
             <span class="item-grade grade-${c.grade}">${GRADE_LABELS[c.grade]||''}</span>
         </div>`;

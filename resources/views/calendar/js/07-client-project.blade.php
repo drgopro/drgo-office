@@ -14,7 +14,7 @@ function renderClientList(list){
         return `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
             <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectClient(${c.id},'${nick.replace(/'/g,"\\'")}','${nm.replace(/'/g,"\\'")}','${ph.replace(/'/g,"\\'")}')">
                 <span style="font-weight:600;font-size:13px;">${nick||nm}</span>${nick&&nm?' <span style="color:var(--text-muted);font-size:12px;">('+nm+')</span>':''}
-                <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${ph}</span>
+                <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${ph}</span>${c.affiliation?' <span style="color:var(--accent);font-size:11px;">'+c.affiliation+'</span>':''}
             </div>
             <button onclick="event.stopPropagation();window.open('/clients/${c.id}','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
         </div>`;

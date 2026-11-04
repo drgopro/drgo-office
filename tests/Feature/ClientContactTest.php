@@ -84,6 +84,21 @@ class ClientContactTest extends TestCase
         $this->assertNull($self->json('0.matched_contact'));
     }
 
+    public function test_search_matches_affiliation(): void
+    {
+        // 소속(예: #엔터테인 8기)으로도 목록·연동 검색이 걸리고, 목록 payload에 소속이 실린다
+        Client::create(['nickname' => '소속검색', 'grade' => 'normal', 'affiliation' => '엔터테인 8기']);
+
+        $list = $this->actingAs($this->master)->getJson('/api/clients/list?search='.urlencode('엔터테인'))->assertOk();
+        $this->assertSame(1, $list->json('total'));
+        $this->assertSame('소속검색', $list->json('data.0.nickname'));
+        $this->assertSame('엔터테인 8기', $list->json('data.0.affiliation'));
+
+        $search = $this->actingAs($this->master)->getJson('/api/clients/search?q='.urlencode('엔터테인'))->assertOk();
+        $this->assertSame('소속검색', $search->json('0.nickname'));
+        $this->assertSame('엔터테인 8기', $search->json('0.affiliation'));
+    }
+
     public function test_contact_write_requires_clients_edit_permission(): void
     {
         $noPerm = User::factory()->create(['role' => 'member']);

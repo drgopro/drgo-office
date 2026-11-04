@@ -710,6 +710,7 @@ class ClientController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('nickname', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('affiliation', 'like', "%{$search}%") // 소속(예: #엔터테인 8기)으로도 검색
                     // 관계자(매니저 등) 이름/연락처로도 의뢰자 검색
                     ->orWhereHas('contacts', function ($cq) use ($search) {
                         $cq->where('name', 'like', "%{$search}%")
@@ -731,7 +732,7 @@ class ClientController extends Controller
         $perPage = max(1, min($perPage, 100));
 
         $paginated = $query->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['id', 'name', 'nickname', 'phone', 'grade', 'status', 'platforms']);
+            ->paginate($perPage, ['id', 'name', 'nickname', 'phone', 'grade', 'status', 'platforms', 'affiliation']);
 
         $pii = $this->canViewPii();
 
@@ -839,6 +840,7 @@ class ClientController extends Controller
                 $query->where('name', 'like', "%{$q}%")
                     ->orWhere('nickname', 'like', "%{$q}%")
                     ->orWhere('phone', 'like', "%{$q}%")
+                    ->orWhere('affiliation', 'like', "%{$q}%") // 소속으로도 검색 (캘린더/AS 연동 검색 공용)
                     ->orWhereHas('contacts', function ($cq) use ($q) {
                         $cq->where('name', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%");
                     });
@@ -847,14 +849,14 @@ class ClientController extends Controller
                 $cq->where('name', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%");
             }])
             ->limit(10)
-            ->get(['id', 'name', 'nickname', 'phone']);
+            ->get(['id', 'name', 'nickname', 'phone', 'affiliation']);
 
         // 관계자로 매칭된 경우 어떤 관계자로 걸렸는지 병기 (예: 김실장 (실장))
         $pii = $this->canViewPii();
 
         return response()->json($clients->map(function ($c) use ($pii) {
             $matched = $c->contacts->first();
-            $arr = $c->only(['id', 'name', 'nickname', 'phone']);
+            $arr = $c->only(['id', 'name', 'nickname', 'phone', 'affiliation']);
             if (! $pii) {
                 $arr['phone'] = null;
             }

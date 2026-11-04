@@ -348,7 +348,7 @@ function clSearchInput(){
             const list = await res.json();
             const box = document.getElementById('clResults');
             box.innerHTML = list.length
-                ? list.map(c => `<div class="cl-item" onclick="clPick(${c.id}, '${_e(c.nickname||c.name||'').replace(/'/g,"\\'")}')">${_e(c.nickname||c.name)}${c.name && c.nickname ? ' <small>('+_e(c.name)+')</small>' : ''}${c.phone ? ' <small>'+_e(c.phone)+'</small>' : ''}</div>`).join('')
+                ? list.map(c => `<div class="cl-item" onclick="clPick(${c.id}, '${_e(c.nickname||c.name||'').replace(/'/g,"\\'")}')">${_e(c.nickname||c.name)}${c.name && c.nickname ? ' <small>('+_e(c.name)+')</small>' : ''}${c.phone ? ' <small>'+_e(c.phone)+'</small>' : ''}${c.affiliation ? ' <small style="color:var(--accent);">'+_e(c.affiliation)+'</small>' : ''}</div>`).join('')
                 : '<div class="cl-item" style="color:var(--text-muted); cursor:default;">검색 결과 없음</div>';
             box.classList.add('open');
         } catch (e) { /* 네트워크 오류 — 입력 계속 가능 */ }
