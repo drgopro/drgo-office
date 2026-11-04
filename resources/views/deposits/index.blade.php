@@ -523,7 +523,7 @@ async function loadPayapp() {
         const paid = d.status.key === 'paid';
         const btns = [
             d.estimate_url ? `<a class="pa-btn" href="${_esc(d.estimate_url)}" target="_blank" rel="noopener">견적서</a>` : '',
-            d.payurl ? `<a class="pa-btn" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지</a>` : '',
+            !paid && d.payurl ? `<a class="pa-btn" href="${_esc(d.payurl)}" target="_blank" rel="noopener">결제페이지</a>` : '', // 완료 건은 전표가 대신함
             d.receipt_url ? `<a class="pa-btn" href="${_esc(d.receipt_url)}" target="_blank" rel="noopener">매출전표</a>` : '',
             d.can_cancel && PA_CAN_CANCEL ? `<button class="pa-btn danger" onclick="payappCancelRow('${d.source}', ${d.id ?? 'null'}, '${_esc(d.mul_no || '')}', ${paid})">${paid ? '결제 취소' : '요청 취소'}</button>` : '',
         ].filter(Boolean).join('');
