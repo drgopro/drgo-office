@@ -10,6 +10,7 @@ use App\Models\PayappPayment;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Services\ChannelTalkClient;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
 use App\Services\ExchangeRateService;
@@ -665,6 +666,7 @@ class EstimateController extends Controller
 
         $estimate->update([
             'payapp_mul_no' => $result['mul_no'],
+            'payapp_req_price' => (int) $estimate->total_amount, // feedback 금액 대조용 — 청구 시점 금액
             'payapp_payurl' => $result['payurl'],
             'payapp_state' => 1,
             'payapp_requested_at' => now(),
@@ -831,6 +833,7 @@ class EstimateController extends Controller
 
         $estimate->update([
             'payapp_mul_no' => $result['mul_no'],
+            'payapp_req_price' => (int) $estimate->total_amount, // feedback 금액 대조용 — 청구 시점 금액
             'payapp_payurl' => $result['payurl'],
             'payapp_state' => 1,
             'payapp_requested_at' => now(),
@@ -918,13 +921,21 @@ class EstimateController extends Controller
         $estimate->payapp_state = $state;
 
         if ($state === PayAppClient::STATE_PAID) {
-            // 금액 대조 — 요청 후 견적이 수정된 경우 결제완료 처리 보류 (로그로 확인)
+            // 금액 대조 — 현재 총액 또는 '청구 시점 금액'(payapp_req_price)과 일치하면 결제완료.
+            // 요청 후 총액이 변동(기간할인 재계산 등)해도 고객이 청구된 금액 그대로 결제한 건은
+            // 완료로 인정하고, 총액과 다르면 채널톡으로 경고만 보낸다 (#641 사례 — 조용한 보류 금지)
             $paidPrice = (int) ($payload['price'] ?? 0);
-            if ($paidPrice === (int) $estimate->total_amount) {
+            $reqPrice = (int) ($estimate->payapp_req_price ?? 0);
+            if ($paidPrice === (int) $estimate->total_amount || ($reqPrice > 0 && $paidPrice === $reqPrice)) {
                 $estimate->status = 'paid';
                 $estimate->payapp_paid_at = now();
+                if ($paidPrice !== (int) $estimate->total_amount) {
+                    Log::warning("페이앱 결제금액-총액 차이(완료 처리됨): 견적서 #{$estimate->id} 총액 {$estimate->total_amount}원 vs 결제 {$paidPrice}원");
+                    $this->alertPayappMismatch($estimate, $paidPrice, resolved: true);
+                }
             } else {
-                Log::warning("페이앱 결제금액 불일치: 견적서 #{$estimate->id} 견적 {$estimate->total_amount}원 vs 결제 {$paidPrice}원");
+                Log::warning("페이앱 결제금액 불일치(보류): 견적서 #{$estimate->id} 견적 {$estimate->total_amount}원 vs 결제 {$paidPrice}원");
+                $this->alertPayappMismatch($estimate, $paidPrice, resolved: false);
             }
         } elseif (in_array($state, PayAppClient::STATES_REFUNDED, true)) {
             // 환불(승인취소) → 취소된 견적서로 표시. payurl만 비워 재결제는 발행 완료로
@@ -952,6 +963,19 @@ class EstimateController extends Controller
         $payapp->log('feedback-처리', [], json_encode($safePayload, JSON_UNESCAPED_UNICODE));
 
         return response('SUCCESS');
+    }
+
+    /** 페이앱 결제금액-총액 불일치 채널톡 경고 — 통지 응답을 막지 않도록 실패는 무시 */
+    private function alertPayappMismatch(Estimate $estimate, int $paidPrice, bool $resolved): void
+    {
+        rescue(function () use ($estimate, $paidPrice, $resolved) {
+            $msg = ($resolved
+                ? "⚠️ [확인 필요] 견적서 #{$estimate->display_no} — 청구 시점 금액 ".number_format($paidPrice).'원으로 결제완료 처리했지만, 현재 견적 총액('.number_format((int) $estimate->total_amount).'원)과 다릅니다. 결제요청 후 총액이 변동된 건이니 견적서를 확인해주세요.'
+                : "🚨 [결제 보류] 견적서 #{$estimate->display_no} — 결제 금액 ".number_format($paidPrice).'원이 견적 총액('.number_format((int) $estimate->total_amount).'원)과 달라 결제완료 처리를 보류했습니다. 확인 후 수동 처리해주세요.')
+                ."\n".url("/estimates/{$estimate->id}/edit")
+                ."\n".app(ChannelTalkClient::class)->mentionAll();
+            app(ChannelTalkClient::class)->sendGroupMessage($msg);
+        }, report: false);
     }
 
     /**

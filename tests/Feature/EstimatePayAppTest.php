@@ -298,6 +298,51 @@ class EstimatePayAppTest extends TestCase
         $this->assertNotNull($fresh->payapp_paid_at);
     }
 
+    public function test_feedback_marks_paid_when_price_matches_requested_amount(): void
+    {
+        // 결제요청 후 총액이 변동(기간할인 재계산 등)해도 '청구 시점 금액' 그대로 결제한 건은
+        // 결제완료로 인정한다 (견적서 #641 사례 — 조용한 보류 금지)
+        Http::fake(['api.channel.io/*' => Http::response(['ok' => true])]);
+        $estimate = $this->makeEstimate([
+            'payapp_mul_no' => '98765', 'payapp_req_price' => 1498500, 'total_amount' => 1500000,
+        ]);
+
+        $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, ['price' => '1498500']))
+            ->assertOk()->assertSee('SUCCESS');
+
+        $fresh = $estimate->fresh();
+        $this->assertSame('paid', $fresh->status);
+        $this->assertNotNull($fresh->payapp_paid_at);
+    }
+
+    public function test_feedback_holds_when_price_matches_neither_total_nor_requested(): void
+    {
+        Http::fake(['api.channel.io/*' => Http::response(['ok' => true])]);
+        $estimate = $this->makeEstimate([
+            'payapp_mul_no' => '98765', 'payapp_req_price' => 1498500, 'total_amount' => 1500000,
+            'status' => 'issued',
+        ]);
+
+        $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, ['price' => '990000']))
+            ->assertOk();
+
+        $fresh = $estimate->fresh();
+        $this->assertSame('issued', $fresh->status); // 보류 유지
+        $this->assertNull($fresh->payapp_paid_at);
+    }
+
+    public function test_payapp_request_records_requested_price(): void
+    {
+        $this->fakePayAppSuccess();
+        $estimate = $this->makeEstimate(['status' => 'issued', 'total_amount' => 1500000]);
+
+        $this->actingAs($this->master())
+            ->postJson("/api/estimates/{$estimate->id}/payapp-request")
+            ->assertOk();
+
+        $this->assertSame(1500000, $estimate->fresh()->payapp_req_price);
+    }
+
     public function test_feedback_accepts_var2_token_without_link_credentials(): void
     {
         // 실제 운영 사례: 페이앱 통지에 linkkey/linkval이 없어도 var2 토큰이 맞으면 인정

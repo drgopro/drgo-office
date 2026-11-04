@@ -69,6 +69,7 @@ class Estimate extends Model
         'paid_at',
         'share_token',
         'payapp_mul_no',
+        'payapp_req_price',
         'payapp_payurl',
         'payapp_state',
         'payapp_requested_at',

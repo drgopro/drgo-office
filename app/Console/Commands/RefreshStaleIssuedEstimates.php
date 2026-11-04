@@ -80,6 +80,7 @@ class RefreshStaleIssuedEstimates extends Command
             if ($request['ok']) {
                 $estimate->forceFill([
                     'payapp_mul_no' => $request['mul_no'],
+                    'payapp_req_price' => (int) $estimate->fresh()->total_amount,
                     'payapp_payurl' => $request['payurl'],
                     'payapp_state' => 1,
                     'payapp_requested_at' => now(),
