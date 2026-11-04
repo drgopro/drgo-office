@@ -339,52 +339,9 @@ class MarketingReportController extends Controller
             }
         }
 
-        // 3) 프로젝트 유형·작업 유형별 매출 세분화 — 결제를 프로젝트에 조인해 (유형 × 작업 유형) 매트릭스로 집계
-        $revenueMatrix = [];
-        if (Schema::hasTable('project_payments')) {
-            $rows = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
-                ->join('projects', 'projects.id', '=', 'project_payments.project_id')
-                ->selectRaw("coalesce(projects.project_type, '') as t, coalesce(projects.work_type, '') as w, sum(project_payments.amount) as total")
-                ->groupBy('t', 'w')->get();
-            foreach ($rows as $r) {
-                $revenueMatrix[$r->t][$r->w] = ($revenueMatrix[$r->t][$r->w] ?? 0) + (int) $r->total;
-            }
-        }
-        // 레거시 견적 매출도 연결된 프로젝트 기준으로 합산 (미연결 견적은 빈 키 = 미지정)
-        foreach ($legacyPaidEstimates as $e) {
-            $tKey = $e->project?->project_type ?? '';
-            $wKey = $e->project?->work_type ?? '';
-            $revenueMatrix[$tKey][$wKey] = ($revenueMatrix[$tKey][$wKey] ?? 0) + (int) $e->total_amount;
-        }
-
-        // 라벨 매핑 (비활성 유형 포함) — 유형별 합계 + 유형 내 작업 유형 하위 분해, 작업 유형 단독 집계
-        $typeLabels = ConsultationType::map(false);
-        $workLabels = WorkType::map(false);
-        $revenueByProjectType = [];
-        $revenueByWorkType = [];
-        foreach ($revenueMatrix as $t => $works) {
-            // 관리자 정의에 없는 기본 유형(rental 등)은 config 라벨로 폴백 — 원문 키가 그대로 노출되지 않게
-            $tLabel = $t === '' ? '미지정' : ($typeLabels[$t] ?? config("crm.project_types.{$t}.label") ?? $t);
-            foreach ($works as $w => $amount) {
-                if ((int) $amount === 0) {
-                    continue;
-                }
-                $wLabel = $w === '' ? '미지정' : ($workLabels[$w] ?? WorkType::FALLBACK_LABELS[$w] ?? $w);
-                $revenueByProjectType[$tLabel]['total'] = ($revenueByProjectType[$tLabel]['total'] ?? 0) + (int) $amount;
-                $revenueByProjectType[$tLabel]['works'][$wLabel] = ($revenueByProjectType[$tLabel]['works'][$wLabel] ?? 0) + (int) $amount;
-                $revenueByWorkType[$wLabel] = ($revenueByWorkType[$wLabel] ?? 0) + (int) $amount;
-            }
-        }
-        $revenueByProjectType = collect($revenueByProjectType)
-            ->filter(fn ($d) => ($d['total'] ?? 0) !== 0)
-            ->sortByDesc('total')
-            ->map(function ($d) {
-                arsort($d['works']);
-
-                return $d;
-            })->all();
-        $revenueByWorkType = array_filter($revenueByWorkType, fn ($v) => $v !== 0);
-        arsort($revenueByWorkType);
+        // 3) 프로젝트 유형·작업 유형별 매출 세분화 — 통계 화면·대시보드 엑셀 공용
+        ['byProjectType' => $revenueByProjectType, 'byWorkType' => $revenueByWorkType]
+            = $this->revenueTypeBreakdown($fromDt, $toDt, $legacyPaidEstimates);
 
         // 4) 의뢰자 규모 × 매출 구분(세팅비/장비판매) 매트릭스 — 통계 화면·대시보드 엑셀 공용
         $revenueByScale = $ledgerUsed ? $this->revenueScaleMatrix($fromDt, $toDt) : [];
@@ -488,6 +445,86 @@ class MarketingReportController extends Controller
             'funnelInquiry', 'funnelEstimateIssued', 'funnelPaid', 'funnelSettingDone', 'funnelConversion',
             'avgInquiryToComplete', 'avgPaidToComplete', 'pipeline'
         ));
+    }
+
+    /**
+     * 프로젝트 유형 × 작업 유형별 매출 세분화 — 결제 원장 + 레거시 견적을 유형별로 집계.
+     * 매출이 없는 기본 유형(촬영·제작 등)도 0원 행으로 포함해 항목이 항상 보이게 한다.
+     * 통계 화면과 대시보드 엑셀 '매출 세부' 시트가 공용.
+     *
+     * @param  Collection<int, Estimate>|null  $legacyPaidEstimates  이미 조회한 레거시 견적 (없으면 자체 조회)
+     * @return array{byProjectType: array<string, array{total:int, works: array<string, int>}>, byWorkType: array<string, int>}
+     */
+    public function revenueTypeBreakdown(mixed $fromDt, mixed $toDt, ?Collection $legacyPaidEstimates = null): array
+    {
+        if ($legacyPaidEstimates === null) {
+            $linkedEstimateIds = Schema::hasTable('project_payments')
+                ? ProjectPayment::whereNotNull('estimate_id')->where('type', 'charge')->distinct()->pluck('estimate_id')->all()
+                : [];
+            $legacyPaidEstimates = Estimate::with('project')
+                ->where('status', 'paid')
+                ->whereBetween('created_at', [$fromDt, $toDt])
+                ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
+                ->get();
+        }
+
+        $revenueMatrix = [];
+        if (Schema::hasTable('project_payments')) {
+            $rows = ProjectPayment::whereBetween('project_payments.created_at', [$fromDt, $toDt])
+                ->join('projects', 'projects.id', '=', 'project_payments.project_id')
+                ->selectRaw("coalesce(projects.project_type, '') as t, coalesce(projects.work_type, '') as w, sum(project_payments.amount) as total")
+                ->groupBy('t', 'w')->get();
+            foreach ($rows as $r) {
+                $revenueMatrix[$r->t][$r->w] = ($revenueMatrix[$r->t][$r->w] ?? 0) + (int) $r->total;
+            }
+        }
+        // 레거시 견적 매출도 연결된 프로젝트 기준으로 합산 (미연결 견적은 빈 키 = 미지정)
+        foreach ($legacyPaidEstimates as $e) {
+            $tKey = $e->project?->project_type ?? '';
+            $wKey = $e->project?->work_type ?? '';
+            $revenueMatrix[$tKey][$wKey] = ($revenueMatrix[$tKey][$wKey] ?? 0) + (int) $e->total_amount;
+        }
+
+        // 라벨 매핑 (비활성 유형 포함) — 유형별 합계 + 유형 내 작업 유형 하위 분해, 작업 유형 단독 집계
+        $typeLabels = ConsultationType::map(false);
+        $workLabels = WorkType::map(false);
+        $revenueByProjectType = [];
+        $revenueByWorkType = [];
+        foreach ($revenueMatrix as $t => $works) {
+            // 관리자 정의에 없는 기본 유형(rental 등)은 config 라벨로 폴백 — 원문 키가 그대로 노출되지 않게
+            $tLabel = $t === '' ? '미지정' : ($typeLabels[$t] ?? config("crm.project_types.{$t}.label") ?? $t);
+            foreach ($works as $w => $amount) {
+                if ((int) $amount === 0) {
+                    continue;
+                }
+                $wLabel = $w === '' ? '미지정' : ($workLabels[$w] ?? WorkType::FALLBACK_LABELS[$w] ?? $w);
+                $revenueByProjectType[$tLabel]['total'] = ($revenueByProjectType[$tLabel]['total'] ?? 0) + (int) $amount;
+                $revenueByProjectType[$tLabel]['works'][$wLabel] = ($revenueByProjectType[$tLabel]['works'][$wLabel] ?? 0) + (int) $amount;
+                $revenueByWorkType[$wLabel] = ($revenueByWorkType[$wLabel] ?? 0) + (int) $amount;
+            }
+        }
+        $revenueByProjectType = collect($revenueByProjectType)
+            ->filter(fn ($d) => ($d['total'] ?? 0) !== 0)
+            ->sortByDesc('total')
+            ->map(function ($d) {
+                arsort($d['works']);
+
+                return $d;
+            })->all();
+
+        // 매출이 없는 유형도 0원 행으로 — 관리자 정의 전체 + 기본 유형(촬영/제작 등) 순서대로 뒤에 붙인다
+        $allTypeLabels = array_values(array_unique(array_merge(
+            array_values($typeLabels),
+            array_values(array_filter(array_map(fn ($t) => $t['label'] ?? null, config('crm.project_types', [])))),
+        )));
+        foreach ($allTypeLabels as $label) {
+            $revenueByProjectType[$label] ??= ['total' => 0, 'works' => []];
+        }
+
+        $revenueByWorkType = array_filter($revenueByWorkType, fn ($v) => $v !== 0);
+        arsort($revenueByWorkType);
+
+        return ['byProjectType' => $revenueByProjectType, 'byWorkType' => $revenueByWorkType];
     }
 
     /**

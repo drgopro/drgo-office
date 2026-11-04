@@ -1446,6 +1446,23 @@ class DashboardController extends Controller
             $bold($s10, "A{$row}:C{$row}");
         }
 
+        // 프로젝트 유형별 매출 (하위 작업 유형 포함) — 통계 화면과 동일 로직, 매출 0 유형 포함
+        $row += 2;
+        $s10->fromArray(['프로젝트 유형 / 작업 유형', '금액(원)', '비율(%)'], null, "A{$row}");
+        $bold($s10, "A{$row}:C{$row}");
+        $row++;
+        $typeBreakdown = app(MarketingReportController::class)->revenueTypeBreakdown($fromDt, $toDt)['byProjectType'];
+        $typeGrand = array_sum(array_column($typeBreakdown, 'total'));
+        foreach ($typeBreakdown as $tLabel => $d) {
+            $s10->fromArray([$tLabel, (int) $d['total'], $typeGrand > 0 ? round($d['total'] / $typeGrand * 100, 1).'%' : '0%'], null, "A{$row}");
+            $bold($s10, "A{$row}");
+            $row++;
+            foreach ($d['works'] as $wLabel => $wVal) {
+                $s10->fromArray(['  ㄴ '.$wLabel, (int) $wVal, $d['total'] > 0 ? round($wVal / $d['total'] * 100, 1).'%' : '0%'], null, "A{$row}");
+                $row++;
+            }
+        }
+
         // Sheet 11: 렌탈/방송룸 현황 (테이블 있을 때만)
         if (Schema::hasTable('rental_contracts') || Schema::hasTable('broadcast_room_contracts')) {
             $s11 = $spreadsheet->createSheet();

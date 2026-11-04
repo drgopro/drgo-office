@@ -313,6 +313,8 @@ class DashboardExcelExportTest extends TestCase
         $this->assertEquals(1000000, $cell('개인')[4]);   // 매트릭스 — 개인 행 합계
         $this->assertNotNull($cell('스튜디오'));          // 매출 0 유형도 행 표시
         $this->assertNotNull($cell('의뢰자 유형'));       // 매트릭스 헤더
+        $this->assertNotNull($cell('프로젝트 유형 / 작업 유형')); // 유형별 매출 블록 헤더
+        $this->assertNotNull($cell('촬영'));              // 매출 0 기본 유형 포함
     }
 
     public function test_export_includes_work_log_sheet(): void

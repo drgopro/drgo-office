@@ -43,7 +43,9 @@ class MarketingRevenueBreakdownTest extends TestCase
             ->assertSee('500,000원')      // 방문 합산
             ->assertSee('100,000원')      // 원격
             ->assertSee('└ 세팅', false)  // 방문 하위 작업 유형 분해
-            ->assertSee('미지정');         // 원격 프로젝트의 work_type 없음
+            ->assertSee('미지정')          // 원격 프로젝트의 work_type 없음
+            ->assertSee('촬영')            // 매출 0 기본 유형도 항목 표시
+            ->assertSee('제작');
     }
 
     public function test_revenue_by_client_scale_matrix(): void
