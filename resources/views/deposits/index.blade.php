@@ -24,6 +24,8 @@
     .pa-badge.paid { background:#e7f6ec; color:#15803d; }
     .pa-badge.waiting { background:#fef3e2; color:#b45309; }
     .pa-badge.refunded, .pa-badge.req_cancelled { background:#fdeaea; color:#dc2626; }
+    .pa-badge.mismatch { background:#dc2626; color:#fff; }
+    .pa-badge.diff { background:#fdeaea; color:#dc2626; }
     .pa-btn { display:block; width:96px; text-align:center; border:none; border-radius:8px; padding:6px 0; font-size:12px; font-weight:600; color:var(--text-muted); text-decoration:none; white-space:nowrap; background:var(--surface2); }
     .pa-btn:hover { color:var(--accent); background:var(--border); }
     .pa-btn.danger { color:#b45309; cursor:pointer; }
@@ -542,7 +544,7 @@ async function loadPayapp() {
     }
     tb.innerHTML = data.map(d => `<tr>
         <td class="text-muted">${fmtDt(d.requested_at)}</td>
-        <td><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span></td>
+        <td><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span>${d.amount_diff ? ' <span class="pa-badge diff" title="청구 시점 금액으로 결제 완료 — 현재 견적 총액과 다릅니다">총액과 차이</span>' : ''}</td>
         <td class="text-center amt">${fmt(d.amount)}원</td>
         <td style="font-weight:600;">${clientHtml(d)}${d.client_phone ? ` <span class="text-muted" style="font-weight:400;">${_esc(d.client_phone)}</span>` : ''}
             ${d.source === 'payapp'
@@ -557,7 +559,7 @@ async function loadPayapp() {
             <div class="amt">${fmt(d.amount)}원</div>
         </div>
         <div class="mob-card-sub" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <span><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span> ${fmtDt(d.requested_at)}${payIdHtml(d)}</span>
+            <span><span class="pa-badge ${d.status.key}">${_esc(d.status.label)}</span>${d.amount_diff ? ' <span class="pa-badge diff">총액과 차이</span>' : ''} ${fmtDt(d.requested_at)}${payIdHtml(d)}</span>
             <span>${linkHtml(d)}</span>
         </div>
     </div>`).join('');

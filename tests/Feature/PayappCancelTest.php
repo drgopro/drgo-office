@@ -173,6 +173,31 @@ class PayappCancelTest extends TestCase
             ->assertOk();
     }
 
+    public function test_list_marks_amount_mismatch_hold_as_error(): void
+    {
+        // 결제완료 통지(state=4)는 왔지만 금액 불일치로 보류된 건 — '결제 대기'가 아니라 오류로 노출
+        $this->makeEstimate(['payapp_state' => 4, 'payapp_paid_at' => null]);
+
+        $row = collect($this->actingAs($this->user)->getJson('/api/payapp-payments')->assertOk()->json('data'))
+            ->firstWhere('source', 'estimate');
+        $this->assertSame('mismatch', $row['status']['key']);
+        $this->assertSame('총 결제 금액 불일치', $row['status']['label']);
+    }
+
+    public function test_list_flags_paid_with_total_diff(): void
+    {
+        // 청구 시점 금액으로 결제완료됐지만 현재 총액과 다른 건 — 확인 배지
+        $this->makeEstimate([
+            'payapp_state' => 4, 'payapp_paid_at' => now(), 'status' => 'paid',
+            'payapp_req_price' => 298500, 'total_amount' => 300000,
+        ]);
+
+        $row = collect($this->actingAs($this->user)->getJson('/api/payapp-payments')->assertOk()->json('data'))
+            ->firstWhere('source', 'estimate');
+        $this->assertSame('paid', $row['status']['key']);
+        $this->assertTrue($row['amount_diff']);
+    }
+
     public function test_list_exposes_can_cancel_flag(): void
     {
         $this->makeEstimate(); // 결제 대기 — 취소 가능

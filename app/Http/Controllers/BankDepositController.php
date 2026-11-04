@@ -381,6 +381,10 @@ class BankDepositController extends Controller
                     'estimate_url' => $e->publicUrl(),
                     'receipt_url' => null,
                     'mul_no' => $e->payapp_mul_no,
+                    // 결제완료됐지만 청구 시점 금액과 현재 총액이 다른 건 — 확인 필요 배지
+                    'amount_diff' => $status['key'] === 'paid'
+                        && (int) ($e->payapp_req_price ?? 0) > 0
+                        && (int) $e->payapp_req_price !== (int) $e->total_amount,
                     'can_cancel' => $e->payapp_mul_no && in_array($status['key'], ['waiting', 'paid'], true),
                 ];
             });
@@ -543,6 +547,11 @@ class BankDepositController extends Controller
     {
         if ($e->payapp_paid_at) {
             return ['key' => 'paid', 'label' => '결제완료'];
+        }
+        // 결제완료 통지는 왔지만 금액이 견적 총액·청구 금액 어느 쪽과도 안 맞아 보류된 건 —
+        // '결제 대기'로 뭉뚱그리지 않고 오류로 노출해 수동 확인을 유도한다
+        if ((int) $e->payapp_state === PayAppClient::STATE_PAID) {
+            return ['key' => 'mismatch', 'label' => '총 결제 금액 불일치'];
         }
         if (in_array((int) $e->payapp_state, PayAppClient::STATES_REFUNDED, true) || $e->status === 'cancelled') {
             return ['key' => 'refunded', 'label' => '환불/취소'];
