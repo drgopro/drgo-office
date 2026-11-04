@@ -451,6 +451,41 @@ class MarketingReportController extends Controller
         ));
     }
 
+    /**
+     * 커스텀 뷰 기본 템플릿 — GPT/클로드에 붙여 넣고 수정 요청하는 출발점.
+     * 페이지에는 @json으로 이스케이프되어 들어가므로 (HTML 파서와 충돌 방지)
+     * 여기서는 원문 그대로 보관한다.
+     */
+    private const EXPLORER_CUSTOM_TEMPLATE = <<<'HTML'
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<style>body{font-family:system-ui,sans-serif;margin:16px;color:#222;} table{border-collapse:collapse;width:100%;} th,td{border-bottom:1px solid #ddd;padding:6px 10px;font-size:13px;text-align:right;} th:first-child,td:first-child{text-align:left;}</style>
+</head><body>
+<!-- 닥터고블린 오피스 통계 커스텀 뷰 템플릿.
+     오피스가 아래 형식으로 데이터를 보내줍니다 (이 수신부는 반드시 유지):
+     { type:'drgo-stats-data', dataset:'revenue'|'schedules', from:'YYYY-MM-DD', to:'YYYY-MM-DD', rows:[...] }
+     revenue 행: {date, month, kind, scale, ptype, work, client, project, service, product, other, amount}
+     schedules 행: {date, month, dow, type, category, client_type, client, platform, career, attrs, status, main, region, amount} -->
+<h3 id="title">데이터 대기 중...</h3>
+<div id="out"></div>
+<script>
+window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'drgo-stats-data') return;
+    const { dataset, from, to, rows } = e.data;
+    document.getElementById('title').textContent =
+        (dataset === 'revenue' ? '매출' : '일정') + ' ' + from + ' ~ ' + to + ' · ' + rows.length + '건';
+    // 예시: 월별 합계 표 — 이 아래를 원하는 대로 바꿔 쓰세요
+    const byMonth = {};
+    rows.forEach(r => { byMonth[r.month] = (byMonth[r.month] || 0) + (r.amount || 0); });
+    document.getElementById('out').innerHTML =
+        '<table><tr><th>월</th><th>금액(원)</th></tr>' +
+        Object.keys(byMonth).sort().map(m => '<tr><td>' + m + '</td><td>' + byMonth[m].toLocaleString() + '</td></tr>').join('') +
+        '</table>';
+});
+</script>
+</body></html>
+HTML;
+
     /** 매출 탐색기 페이지 — 직원이 기간·행/열 차원을 직접 조합해 피벗으로 보는 셀프서비스 뷰 */
     public function revenueExplorer(Request $request): View
     {
@@ -458,6 +493,7 @@ class MarketingReportController extends Controller
             'from' => $request->query('from', now()->startOfMonth()->toDateString()),
             'to' => $request->query('to', now()->toDateString()),
             'customHtml' => (string) (Setting::get('stats_explorer_custom_html') ?? ''),
+            'customTemplate' => self::EXPLORER_CUSTOM_TEMPLATE,
             'canEditCustom' => (bool) Auth::user()?->hasPermission('stats.custom'),
         ]);
     }

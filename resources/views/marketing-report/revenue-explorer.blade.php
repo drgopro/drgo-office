@@ -324,33 +324,7 @@ function rxCustomSend(){
     }, '*');
 }
 
-const RXC_TEMPLATE = `<!doctype html>
-<html lang="ko"><head><meta charset="utf-8">
-<style>body{font-family:system-ui,sans-serif;margin:16px;color:#222;} table{border-collapse:collapse;width:100%;} th,td{border-bottom:1px solid #ddd;padding:6px 10px;font-size:13px;text-align:right;} th:first-child,td:first-child{text-align:left;}</style>
-</head><body>
-<!-- 닥터고블린 오피스 통계 커스텀 뷰 템플릿.
-     오피스가 아래 형식으로 데이터를 보내줍니다 (이 수신부는 반드시 유지):
-     { type:'drgo-stats-data', dataset:'revenue'|'schedules', from:'YYYY-MM-DD', to:'YYYY-MM-DD', rows:[...] }
-     revenue 행: {date, month, kind, scale, ptype, work, client, project, service, product, other, amount}
-     schedules 행: {date, month, dow, type, category, client_type, client, platform, career, attrs, status, main, region, amount} -->
-<h3 id="title">데이터 대기 중...</h3>
-<div id="out"></div>
-<script>
-window.addEventListener('message', e => {
-    if (!e.data || e.data.type !== 'drgo-stats-data') return;
-    const { dataset, from, to, rows } = e.data;
-    document.getElementById('title').textContent =
-        (dataset === 'revenue' ? '매출' : '일정') + ' ' + from + ' ~ ' + to + ' · ' + rows.length + '건';
-    // 예시: 월별 합계 표 — 이 아래를 원하는 대로 바꿔 쓰세요
-    const byMonth = {};
-    rows.forEach(r => { byMonth[r.month] = (byMonth[r.month] || 0) + (r.amount || 0); });
-    document.getElementById('out').innerHTML =
-        '<table><tr><th>월</th><th>금액(원)</th></tr>' +
-        Object.keys(byMonth).sort().map(m => '<tr><td>' + m + '</td><td>' + byMonth[m].toLocaleString() + '</td></tr>').join('') +
-        '</table>';
-});
-</scr' + 'ipt>
-</body></html>`;
+const RXC_TEMPLATE = @json($customTemplate); // 서버 보관 원문 — JSON 이스케이프로 주입 (HTML 파서 충돌 방지)
 
 function rxcOpen(){
     document.getElementById('rxcHtml').value = rxCustomHtml;
