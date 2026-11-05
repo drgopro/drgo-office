@@ -176,7 +176,11 @@
         .total-items { font-size:13px; color:var(--text-muted); }
 
         /* 하단 액션 */
-        .panel-right-footer { background:var(--surface); padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+        .panel-right-footer { background:var(--surface); padding:12px 20px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-items:center; }
+        .panel-right-footer .btn { white-space:nowrap; flex-shrink:0; }
+        /* 버튼이 많아 좁은 창에서 두 줄로 떨어질 때 — 패딩을 줄여 한 줄 유지 구간을 넓힌다 */
+        @media (max-width: 1750px) { .panel-right-footer { gap:6px; } .panel-right-footer .btn { padding:9px 11px; font-size:12.5px; } }
+        @media (max-width: 1500px) { .panel-right-footer .btn { padding:8px 9px; font-size:12px; } }
         /* 버튼 위계: 저장(주요·채움) > 견적서 출력(보조·외곽선) > 삭제(위험·외곽선) > 로그(중립) */
         .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:background 0.12s, border-color 0.12s, color 0.12s, filter 0.12s; }
         .btn-save { background:var(--navy); border-color:var(--navy); color:#fff; font-weight:700; }
@@ -350,17 +354,31 @@
 <!-- 프리셋 패널 (우측) — 클릭하면 품목이 견적서에 담김, 여러 개 눌러 조립. 화살표로 접기/펼치기 -->
 <div class="panel-presets">
     <div class="panel-presets-header">
-        <h3 style="display:flex; align-items:center;">프리셋
+        <h3 style="display:flex; align-items:center; gap:4px;">
+            <button type="button" class="rvside-tab active" id="rvTabPreset" onclick="rvSideTab('preset')">프리셋</button>
+            <button type="button" class="rvside-tab" id="rvTabReview" onclick="rvSideTab('review')">검토</button>
             <button class="btn-add-svc" id="btnPresetSort" style="width:auto; padding:4px 10px; margin-left:auto; margin-right:6px; font-size:11.5px;" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">순서 변경</button>
-            <button id="presetsToggle" onclick="togglePresetsPanel()" title="프리셋 패널 접기">
+            <button id="presetsToggle" onclick="togglePresetsPanel()" title="패널 접기">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l4 4-4 4"></path></svg>
             </button>
         </h3>
-        <label style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
+        <label id="presetReplaceRow" style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
             <input type="checkbox" id="presetReplaceMode" style="width:13px; height:13px;"> 불러올 때 기존 품목 비우기
         </label>
     </div>
     <div class="preset-list" id="presetPanelList"><div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">로딩 중...</div></div>
+    <div id="rvSideWrap" style="display:none; flex:1; min-height:0; overflow-y:auto; padding:12px; background:var(--surface);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <b style="font-size:14px; color:var(--text);">견적서 검토</b>
+            <div class="rv-acts">
+                @if(auth()->user()?->hasPermission('estimates.review_admin'))
+                <a class="rv-mini" href="{{ route('estimate-review.settings') }}" style="text-decoration:none;" title="검토 규칙·역할·규격 관리">규칙 관리</a>
+                @endif
+                <button class="rv-mini pri" onclick="rvRun()">다시 검토</button>
+            </div>
+        </div>
+        <div id="rvBody"><p class="rv-empty">검토 버튼을 누르면 품목을 점검합니다.</p></div>
+    </div>
     <!-- 접힌 상태의 세로 스트립 — 클릭하면 다시 펼침 -->
     <div id="presetsCollapsedBar" onclick="togglePresetsPanel()" title="프리셋 패널 펼치기">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3L5 7l4 4"></path></svg>
@@ -2249,8 +2267,11 @@ document.addEventListener('click', e => {
 </script>
 {{-- ═══ 견적서 검토 패널 — 직원 시안(견적 검토 시스템) 디자인 이식 ═══ --}}
 <style>
-#rvPanelBg { position:fixed; inset:0; background:rgba(10,18,26,.45); z-index:300; }
-#rvPanel { position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:var(--surface); z-index:301; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; box-shadow:-4px 0 18px rgba(0,0,0,.25); }
+.rvside-tab { border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; padding:4px 12px; font-size:12.5px; font-weight:700; cursor:pointer; }
+.rvside-tab.active { background:var(--navy); border-color:var(--navy); color:#fff; }
+#rvBody { display:grid; gap:10px; align-content:start; }
+#rvBody .rv-f { background:var(--surface2); }
+#rvBody .rv-f.done { background:transparent; }
 .rv-sum { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
 .rv-sum > div { background:var(--surface2); border-radius:6px; padding:6px 4px; text-align:center; font-size:11px; color:var(--text-muted); }
 .rv-sum b { display:block; font-size:18px; line-height:1.2; font-variant-numeric:tabular-nums; color:var(--text); }
@@ -2300,20 +2321,7 @@ document.addEventListener('click', e => {
 #rvBtn.st-ok { background:rgba(36,138,56,.14); border-color:var(--green); color:var(--green); }
 </style>
 
-<div id="rvPanelBg" style="display:none" onclick="rvClose()"></div>
-<div id="rvPanel" style="display:none" role="dialog" aria-label="견적서 검토">
-    <div style="display:flex; align-items:center; justify-content:space-between;">
-        <h3 style="margin:0; font-size:16px; color:var(--text);">견적서 검토</h3>
-        <div class="rv-acts">
-            @if(auth()->user()?->hasPermission('estimates.review_admin'))
-            <a class="rv-mini" href="{{ route('estimate-review.settings') }}" style="text-decoration:none;" title="검토 규칙·역할·규격 관리">규칙 관리</a>
-            @endif
-            <button class="rv-mini pri" onclick="rvRun()">다시 검토</button>
-            <button class="rv-mini" onclick="rvClose()">닫기</button>
-        </div>
-    </div>
-    <div id="rvBody"><p class="rv-empty">검토 버튼을 누르면 품목을 점검합니다.</p></div>
-</div>
+
 
 <script>
 // ═══ 견적서 검토 — 서버 판정 엔진 호출 + 시안 디자인 패널 ═══
@@ -2337,8 +2345,22 @@ const rvSig = () => rvItems().filter(i => !i.replaced).map(i => i.name + ':' + i
 const rvStale = () => rvRes && rvItemsSig !== rvSig();
 const rvRemain = () => rvRes ? rvRes.findings.filter(f => !rvRes.answers[f.key]) : [];
 
-function rvOpen() { document.getElementById('rvPanelBg').style.display = ''; document.getElementById('rvPanel').style.display = ''; if (!rvRes) rvRun(); }
-function rvClose() { document.getElementById('rvPanelBg').style.display = 'none'; document.getElementById('rvPanel').style.display = 'none'; }
+// 우측 패널 탭 — 프리셋 ↔ 검토 (모달 대신 사이드 패널에 상주)
+function rvSideTab(tab) {
+    const review = tab === 'review';
+    document.getElementById('rvTabPreset').classList.toggle('active', !review);
+    document.getElementById('rvTabReview').classList.toggle('active', review);
+    document.getElementById('presetPanelList').style.display = review ? 'none' : '';
+    document.getElementById('presetReplaceRow').style.display = review ? 'none' : '';
+    const sort = document.getElementById('btnPresetSort');
+    if (sort) sort.style.display = review ? 'none' : '';
+    document.getElementById('rvSideWrap').style.display = review ? '' : 'none';
+}
+function rvOpen() {
+    document.body.classList.remove('presets-collapsed'); // 접혀 있으면 펼침
+    rvSideTab('review');
+    if (!rvRes) rvRun();
+}
 
 async function rvRun() {
     if (rvBusy) return; rvBusy = true;

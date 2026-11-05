@@ -159,7 +159,12 @@
 <div class="page-wrap">
     <div class="page-header">
         <div class="page-title">견적서</div>
-        <button class="btn-primary" id="headerActionBtn" onclick="createEstimate()">+ 견적서 생성</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+            @if(auth()->user()?->hasPermission('estimates.review_admin'))
+            <button class="btn-act" onclick="location.href='{{ route('estimate-review.settings') }}'" title="견적서 검토가 확인하는 규칙·역할·규격 관리">검토 규칙</button>
+            @endif
+            <button class="btn-primary" id="headerActionBtn" onclick="createEstimate()">+ 견적서 생성</button>
+        </div>
     </div>
 
     <div class="est-tabs">

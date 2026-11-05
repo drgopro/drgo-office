@@ -789,12 +789,13 @@ window.drgoTabs = {
         feedback:'<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M8 9h8M8 12h5"></path></svg>',
         leave:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>',
         deposits:'<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20M6 15h4"></path></svg>',
+        'estimate-review':'<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>',
         'as-board':'<svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>',
         admin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
         profile:'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
         _default:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>',
     },
-    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', notices:'공지사항', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', leave:'연차', deposits:'입금 내역', 'as-board':'AS 현황', admin:'관리', profile:'마이페이지', guide:'가이드' },
+    LABELS: { dashboard:'대시보드', calendar:'캘린더', todos:'할 일', clients:'의뢰자', projects:'프로젝트', inventory:'재고', estimates:'견적서', wiki:'위키', notices:'공지사항', rental:'장비 위치', 'rental-contracts':'렌탈', 'broadcast-room':'방송룸', 'marketing-report':'통계', feedback:'피드백', leave:'연차', deposits:'입금 내역', 'as-board':'AS 현황', 'estimate-review':'검토 규칙', admin:'관리', profile:'마이페이지', guide:'가이드' },
 
     init() {
         // iframe 내부에서는 탭 시스템 비활성화
@@ -1123,6 +1124,7 @@ window.drgoTabs = {
         if (p.startsWith('/clients')) return 'clients';
         if (p.startsWith('/projects')) return 'projects';
         if (p.startsWith('/inventory')) return 'inventory';
+        if (p.startsWith('/estimate-review')) return 'estimate-review';
         if (p.startsWith('/estimates')) return 'estimates';
         if (p.startsWith('/notices') || p.startsWith('/notice-files')) return 'notices';
         if (p.startsWith('/wiki')) return 'wiki';
