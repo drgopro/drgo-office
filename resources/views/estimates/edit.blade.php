@@ -2305,6 +2305,9 @@ document.addEventListener('click', e => {
     <div style="display:flex; align-items:center; justify-content:space-between;">
         <h3 style="margin:0; font-size:16px; color:var(--text);">견적서 검토</h3>
         <div class="rv-acts">
+            @if(auth()->user()?->hasPermission('estimates.review_admin'))
+            <a class="rv-mini" href="{{ route('estimate-review.settings') }}" style="text-decoration:none;" title="검토 규칙·역할·규격 관리">규칙 관리</a>
+            @endif
             <button class="rv-mini pri" onclick="rvRun()">다시 검토</button>
             <button class="rv-mini" onclick="rvClose()">닫기</button>
         </div>

@@ -21,6 +21,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EstimatePresetController;
 use App\Http\Controllers\EstimateReviewController;
+use App\Http\Controllers\EstimateReviewSettingsController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GeocodeController;
@@ -464,6 +465,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/broadcast-room/usages', [BroadcastRoomController::class, 'storeUsage']);
         Route::patch('/api/broadcast-room/usages/{usage}', [BroadcastRoomController::class, 'updateUsage']);
         Route::delete('/api/broadcast-room/usages/{usage}', [BroadcastRoomController::class, 'destroyUsage']);
+    });
+
+    // 견적서 검토 기준 관리 — 규칙·역할·규격 (기준 담당자 전용, 관리자는 자동 통과)
+    Route::middleware('permission:estimates.review_admin')->group(function () {
+        Route::get('/estimate-review/settings', [EstimateReviewSettingsController::class, 'page'])->name('estimate-review.settings');
+        Route::post('/api/estimate-review/config', [EstimateReviewSettingsController::class, 'save']);
     });
 
     // 견적서 (edit가 {estimate} 와일드카드보다 먼저)

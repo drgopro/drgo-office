@@ -1197,7 +1197,7 @@ const PERM_GROUPS = [
     { title: '재고', perms: [{ key: 'inventory.view', label: '조회' }, { key: 'inventory.edit', label: '편집' }] },
     { title: '렌탈 (장비 위치 · 렌탈 계약)', perms: [{ key: 'rental.view', label: '조회' }, { key: 'rental.edit', label: '편집' }] },
     { title: '방송룸', perms: [{ key: 'broadcast.view', label: '조회' }, { key: 'broadcast.edit', label: '편집' }] },
-    { title: '견적서', perms: [{ key: 'estimates.view', label: '조회' }, { key: 'estimates.edit', label: '편집' }] },
+    { title: '견적서', perms: [{ key: 'estimates.view', label: '조회' }, { key: 'estimates.edit', label: '편집' }, { key: 'estimates.review_admin', label: '검토 기준 관리 (규칙·역할·규격)' }] },
     { title: '입금 내역', perms: [{ key: 'deposits.view', label: '조회' }, { key: 'deposits.cancel', label: '결제 취소 (페이앱)' }] },
     { title: '통계', perms: [{ key: 'stats.view', label: '조회' }, { key: 'stats.export', label: '엑셀 출력' }] },
     { title: '문서', perms: [{ key: 'documents.edit', label: '편집' }] },
