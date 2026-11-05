@@ -11,6 +11,7 @@ use App\Models\ProjectFieldDefinition;
 use App\Models\Schedule;
 use App\Services\ChannelTalkClient;
 use App\Services\ChannelTalkProfileSync;
+use App\Services\ChannelTalkUserMirror;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -117,6 +118,47 @@ class ClientController extends Controller
                 'label' => $linked[$u->ct_id]->nickname ?: $linked[$u->ct_id]->name,
             ] : null,
         ])->values());
+    }
+
+    /**
+     * 채널톡 '지금 동기화' — 검색에 안 뜰 때 수동 버튼으로 최근 상담 고객을 즉시 미러에 반영.
+     * 각 상담 상태(진행/보류/종료)의 최신 1페이지만 훑으므로 몇 초면 끝난다.
+     * 스케줄 동기화의 커서(워터마크)는 건드리지 않는다.
+     */
+    public function channeltalkSyncRecent(ChannelTalkClient $channelTalk)
+    {
+        if (! $channelTalk->isConfigured()) {
+            return response()->json(['message' => '채널톡 연동 정보가 설정되지 않았습니다.'], 422);
+        }
+
+        // 연타 방지 — 15초 안에 다시 누르면 방금 결과를 그대로 쓰도록 안내
+        $lock = cache()->lock('channeltalk.recent-sync', 15);
+        if (! $lock->get()) {
+            return response()->json(['message' => '방금 동기화했습니다. 다시 검색해 보세요.'], 429);
+        }
+
+        $upserted = 0;
+        $linked = 0;
+        $errors = [];
+        foreach (['opened', 'snoozed', 'closed'] as $state) {
+            $res = $channelTalk->listUsers($state); // 최신순 1페이지(100명)
+            if (! ($res['ok'] ?? false)) {
+                $errors[] = (string) ($res['error'] ?? $state.' 조회 실패');
+
+                continue;
+            }
+            foreach ($res['users'] ?? [] as $u) {
+                $r = ChannelTalkUserMirror::apply($u);
+                $upserted += $r['upserted'] ? 1 : 0;
+                $linked += $r['linked'];
+            }
+        }
+
+        if ($upserted === 0 && $errors !== []) {
+            return response()->json(['message' => '채널톡 조회 실패: '.implode(' / ', $errors)], 502);
+        }
+
+        return response()->json(['upserted' => $upserted, 'linked' => $linked]);
     }
 
     /**

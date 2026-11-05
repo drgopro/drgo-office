@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ChannelTalkUser;
-use App\Models\Client;
 use App\Models\Setting;
 use App\Services\ChannelTalkClient;
+use App\Services\ChannelTalkUserMirror;
 use Illuminate\Console\Command;
 
 /**
@@ -58,25 +57,9 @@ class SyncChannelTalkUsers extends Command
             }
 
             foreach ($res['users'] ?? [] as $u) {
-                if ($u['ct_id'] === '') {
-                    continue;
-                }
-                $digits = ChannelTalkUser::normalizePhone($u['mobile']);
-                ChannelTalkUser::updateOrCreate(['ct_id' => $u['ct_id']], [
-                    'name' => $u['name'] ?: null,
-                    'mobile' => $u['mobile'] ?: null,
-                    'mobile_digits' => strlen($digits) >= 7 ? $digits : null,
-                    'email' => $u['email'] ?: null,
-                    'tags' => $u['tags'] ?: null,
-                    'profile' => ($u['profile'] ?? []) ?: null,
-                    'ct_updated_at' => $u['updated_at'] ? date('Y-m-d H:i:s', intdiv($u['updated_at'], 1000)) : null,
-                ]);
-                $upserted++;
-
-                // 전화번호 일치 + 미연동 의뢰자 자동 연동 (동번호 다건이면 오연동 방지 위해 건너뜀)
-                if (strlen($digits) >= 7) {
-                    $linked += $this->linkClientsByPhone($digits, $u['ct_id']);
-                }
+                $r = ChannelTalkUserMirror::apply($u);
+                $upserted += $r['upserted'] ? 1 : 0;
+                $linked += $r['linked'];
             }
 
             $cursor = (string) ($res['next'] ?? '');
@@ -100,25 +83,5 @@ class SyncChannelTalkUsers extends Command
             .($stateIdx > 0 || $cursor !== '' ? ' (다음 실행에서 이어서)' : ''));
 
         return self::SUCCESS;
-    }
-
-    /** 전화번호가 일치하는 미연동 의뢰자에 채널톡 고객 ID 기록 */
-    private function linkClientsByPhone(string $digits, string $ctId): int
-    {
-        // 끝 4자리 LIKE로 후보를 좁힌 뒤 정규화 완전 일치 확인 (하이픈/공백 차이 무시)
-        $candidates = Client::whereNull('channeltalk_user_id')
-            ->whereNotNull('phone')
-            ->where('phone', 'like', '%'.substr($digits, -4).'%')
-            ->get(['id', 'phone'])
-            ->filter(fn ($c) => ChannelTalkUser::normalizePhone($c->phone) === $digits);
-
-        // 같은 번호의 의뢰자가 여러 명이면 어느 쪽인지 확정 불가 — 자동 연동하지 않음
-        if ($candidates->count() !== 1) {
-            return 0;
-        }
-
-        Client::where('id', $candidates->first()->id)->update(['channeltalk_user_id' => $ctId]);
-
-        return 1;
     }
 }

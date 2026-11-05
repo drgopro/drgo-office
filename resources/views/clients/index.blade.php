@@ -387,6 +387,7 @@
             <div id="ncCtPanel" style="display:none; margin-top:10px; border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--surface2);">
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input class="ncm-input" id="ncCtSearch" placeholder="채널톡 고객 검색 — 이름/전화번호/이메일" style="flex:1;" oninput="ctSearchChanged()">
+                    <button type="button" class="ncm-btn" id="ncCtSyncBtn" style="height:30px; padding:0 10px; font-size:12px; white-space:nowrap;" onclick="ctSyncRecent()" title="검색에 안 뜨면 최근 상담 고객을 지금 바로 채널톡에서 가져옵니다">지금 동기화</button>
                     <span id="ncCtLinkedBadge" style="display:none; font-size:11px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:10px; padding:3px 9px; white-space:nowrap;">연동됨</span>
                     <button type="button" class="ncm-btn" id="ncCtUnlinkBtn" style="display:none; height:30px; padding:0 10px; font-size:12px;" onclick="ctUnlink()">해제</button>
                 </div>
@@ -2105,6 +2106,36 @@ function ctSearchChanged() {
     clearTimeout(ctSearchTimer);
     ctSearchTimer = setTimeout(ctSearch, 300);
 }
+// 수동 '지금 동기화' — 최근 상담 고객(상태별 최신 1페이지)을 즉시 미러로 가져온 뒤 재검색
+let ctSyncBusy = false;
+async function ctSyncRecent() {
+    if (ctSyncBusy) return;
+    ctSyncBusy = true;
+    const btn = document.getElementById('ncCtSyncBtn');
+    const prev = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '동기화 중...'; }
+    try {
+        const res = await fetch('/api/channeltalk/sync-recent', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            alert(body.message || '동기화에 실패했습니다.');
+            return;
+        }
+        const q = document.getElementById('ncCtSearch').value.trim();
+        if (q) {
+            await ctSearch(); // 갱신된 미러로 바로 재검색
+        } else {
+            const box = document.getElementById('ncCtResults');
+            if (box) box.innerHTML = `<div style="padding:8px; font-size:12px; color:var(--green);">동기화 완료 — 최근 상담 고객 ${body.upserted || 0}명 갱신${body.linked ? `, 의뢰자 자동 연동 ${body.linked}건` : ''}. 이제 검색해 보세요.</div>`;
+        }
+    } finally {
+        ctSyncBusy = false;
+        if (btn) { btn.disabled = false; btn.textContent = prev; }
+    }
+}
 async function ctSearch() {
     const q = document.getElementById('ncCtSearch').value.trim();
     const box = document.getElementById('ncCtResults');
@@ -2113,7 +2144,8 @@ async function ctSearch() {
     const res = await fetch('/api/channeltalk/users?q=' + encodeURIComponent(q));
     const list = res.ok ? await res.json() : [];
     if (!list.length) {
-        box.innerHTML = '<div style="padding:8px; font-size:12px; color:var(--text-muted);">채널톡에서 찾지 못했습니다 — 동기화는 10분 주기라 방금 상담한 고객은 잠시 후 다시 검색해주세요.</div>';
+        box.innerHTML = `<div style="padding:8px; font-size:12px; color:var(--text-muted);">채널톡에서 찾지 못했습니다 — 방금 상담한 고객은 아직 미러에 없을 수 있습니다.
+            <button type="button" class="ncm-btn" style="height:26px; padding:0 10px; font-size:12px; margin-left:6px;" onclick="ctSyncRecent()">지금 동기화</button></div>`;
         return;
     }
     box.innerHTML = list.map(u => `

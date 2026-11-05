@@ -257,6 +257,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/clients/list', [ClientController::class, 'listJson']);
         Route::get('/api/clients/check-phone', [ClientController::class, 'checkPhone']); // 등록 시 전화번호 중복 확인
         Route::get('/api/channeltalk/users', [ClientController::class, 'channeltalkUsers']); // 채널톡 고객 미러 검색 (의뢰자 등록 연동)
+        Route::post('/api/channeltalk/sync-recent', [ClientController::class, 'channeltalkSyncRecent']); // 검색에 안 뜰 때 수동 '지금 동기화'
         Route::get('/api/channeltalk/users/{ctId}/fresh', [ClientController::class, 'channeltalkUserFresh']); // 선택 시 실시간 프로필 조회
         Route::get('/api/clients/{client}/detail', [ClientController::class, 'detail']);
         Route::get('/api/clients/{client}/schedules', [ClientController::class, 'schedules']); // 의뢰자 연동 일정 탭
