@@ -181,6 +181,12 @@
         /* 버튼이 많아 좁은 창에서 두 줄로 떨어질 때 — 패딩을 줄여 한 줄 유지 구간을 넓힌다 */
         @media (max-width: 1750px) { .panel-right-footer { gap:6px; } .panel-right-footer .btn { padding:9px 11px; font-size:12.5px; } }
         @media (max-width: 1500px) { .panel-right-footer .btn { padding:8px 9px; font-size:12px; } }
+        #footMoreMenu { position:absolute; right:0; bottom:calc(100% + 6px); min-width:210px; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.18); padding:5px; z-index:60; }
+        #footMoreMenu button { display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%; background:none; border:none; border-radius:7px; padding:9px 11px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; text-align:left; white-space:nowrap; }
+        #footMoreMenu button span { font-size:11px; font-weight:400; color:var(--text-muted); }
+        #footMoreMenu button:hover { background:var(--surface2); }
+        #footMoreMenu .fm-danger { color:var(--red); }
+        #footMoreMenu .fm-danger span { color:var(--red); opacity:0.7; }
         /* 버튼 위계: 저장(주요·채움) > 견적서 출력(보조·외곽선) > 삭제(위험·외곽선) > 로그(중립) */
         .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:background 0.12s, border-color 0.12s, color 0.12s, filter 0.12s; }
         .btn-save { background:var(--navy); border-color:var(--navy); color:#fff; font-weight:700; }
@@ -672,12 +678,18 @@
         <span class="save-indicator" id="saveIndicator"></span>
         <button class="btn btn-ghost m-more-item" onclick="loadDraft()">임시저장 불러오기</button>
         <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
-        <button class="btn btn-ghost m-more-item" onclick="openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그</button>
         <button class="btn btn-ghost m-more-item" onclick="duplicateEstimate()" title="항목·의뢰자·배송지를 복사한 새 견적서(작성중)를 만듭니다">복제</button>
-        <button class="btn btn-delete m-more-item" onclick="deleteEstimate()">삭제</button>
-        <button class="btn btn-print m-more-item" onclick="openStatement()" title="이 견적서(차수 합산) 기준 거래명세서 — 공급가액/세액 분리 출력">거래명세서</button>
+        {{-- 빈도 낮은 액션은 ⋯ 메뉴로 — 로그/거래명세서/출력/삭제 --}}
+        <div id="footMore" class="m-more-item" style="position:relative;">
+            <button class="btn btn-ghost" onclick="toggleFootMore(event)" title="더보기 — 로그·거래명세서·견적서 출력·삭제" aria-haspopup="true" style="font-weight:800; letter-spacing:1px; padding-left:13px; padding-right:13px;">⋯</button>
+            <div id="footMoreMenu" hidden>
+                <button onclick="footMoreRun(() => openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그'))">로그 <span>변경 이력</span></button>
+                <button onclick="footMoreRun(openStatement)">거래명세서 <span>공급가액·세액 분리</span></button>
+                <button onclick="footMoreRun(printEstimate)">🖨 견적서 출력 <span>인쇄용 문서</span></button>
+                <button class="fm-danger" onclick="footMoreRun(deleteEstimate)">삭제 <span>이 견적서 삭제</span></button>
+            </div>
+        </div>
         <button class="btn" id="rvBtn" onclick="rvOpen()" title="품목 누락·수량·연결·호환을 자동 점검합니다">검토</button>
-        <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
     </div>
@@ -692,6 +704,7 @@
     <button class="m-more-row" onclick="mCloseMoreSheet(); openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그')">로그 <span>변경 이력</span></button>
     <button class="m-more-row" onclick="mCloseMoreSheet(); openStatement()">거래명세서 <span>공급가액·세액 분리 출력</span></button>
     <button class="m-more-row" onclick="mCloseMoreSheet(); duplicateEstimate()">복제 <span>항목·의뢰자를 복사한 새 견적서</span></button>
+    <button class="m-more-row" onclick="mCloseMoreSheet(); printEstimate()">견적서 출력 <span>인쇄용 문서</span></button>
     <button class="m-more-row m-more-danger" onclick="mCloseMoreSheet(); deleteEstimate()">삭제 <span>이 견적서 삭제</span></button>
     <button class="m-more-close" onclick="mCloseMoreSheet()">닫기</button>
 </div>
@@ -2044,6 +2057,21 @@ async function loadClientProjects(cid, selectedId) {
     sel.disabled = false;
     if (selectedId && projects.some(p => p.id === selectedId)) sel.value = String(selectedId);
 }
+
+// === 하단 ⋯ 더보기 메뉴 — 로그/거래명세서/출력/삭제 ===
+function toggleFootMore(e) {
+    e.stopPropagation();
+    const m = document.getElementById('footMoreMenu');
+    m.hidden = !m.hidden;
+}
+function footMoreRun(fn) {
+    document.getElementById('footMoreMenu').hidden = true;
+    fn();
+}
+document.addEventListener('click', e => {
+    const m = document.getElementById('footMoreMenu');
+    if (m && !m.hidden && !e.target.closest('#footMore')) m.hidden = true;
+});
 
 // === 저장/발행/삭제 ===
 function buildEstimateBody() {
