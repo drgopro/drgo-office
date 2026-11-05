@@ -95,6 +95,34 @@ class EstimateReviewService
         return ReviewEngine::fingerprint($this->normalizeItems($rawItems));
     }
 
+    /** 출력/발행 게이트 사용 여부 — 관리 화면에서 끌 수 있다 */
+    public function gateEnabled(): bool
+    {
+        return ($this->storedConfig()['gate'] ?? true) !== false;
+    }
+
+    /**
+     * 출력/발행 관문 — 통과하지 못하면 사유 문자열, 통과하면 null.
+     * 검토 완료 + 검토 시점 품목(지문)과 현재 품목이 같아야 한다.
+     *
+     * @param  array<string, mixed>|null  $reviewState  estimates.review_state
+     * @param  array<int, array<string, mixed>>  $items  검사 기준 품목 (저장될/저장된 product_items)
+     */
+    public function gateError(?array $reviewState, array $items): ?string
+    {
+        if (! $this->gateEnabled()) {
+            return null;
+        }
+        if (empty($reviewState['done'])) {
+            return '검토가 완료되지 않은 견적서입니다. 검토 버튼으로 품목 점검을 마친 뒤 진행하세요.';
+        }
+        if (($reviewState['fingerprint'] ?? null) !== $this->fingerprint($items)) {
+            return '검토 후 품목이 바뀌었습니다. 다시 검토를 완료한 뒤 진행하세요.';
+        }
+
+        return null;
+    }
+
     /** 운영 설정(Setting JSON) 또는 기본값 */
     public function storedConfig(): array
     {

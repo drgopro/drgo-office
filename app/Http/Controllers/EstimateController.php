@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\Setting;
 use App\Services\ChannelTalkClient;
 use App\Services\EstimatePaymentSync;
+use App\Services\EstimateReview\EstimateReviewService;
 use App\Services\EstimateStockSync;
 use App\Services\ExchangeRateService;
 use App\Services\PayAppClient;
@@ -531,6 +532,13 @@ class EstimateController extends Controller
             }
 
             $becameIssued = ($validated['status'] ?? null) === 'issued' && $estimate->status !== 'issued';
+            // ── 검토 게이트 — 발행 전환은 검토 완료(현재 품목 지문 일치) 필수 ──
+            if ($becameIssued) {
+                $gateItems = $validated['product_items'] ?? $estimate->product_items ?? [];
+                if ($msg = app(EstimateReviewService::class)->gateError($estimate->review_state, $gateItems)) {
+                    return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
+                }
+            }
             $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
             $oldItemsForStock = $estimate->product_items; // 직접발송 재고 연동 — 저장 전 스냅샷
@@ -653,6 +661,12 @@ class EstimateController extends Controller
      */
     public function issue(Estimate $estimate, PayAppClient $payapp)
     {
+        // 검토 게이트 — update()와 같은 관문 (이 엔드포인트로 우회 발행 방지)
+        if ($estimate->status !== 'issued'
+            && ($msg = app(EstimateReviewService::class)->gateError($estimate->review_state, $estimate->product_items ?? []))) {
+            return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
+        }
+
         $estimate->update([
             'status' => 'issued',
             'issued_at' => now(),
@@ -713,6 +727,13 @@ class EstimateController extends Controller
         // 차수를 열면 부모의 최종 견적서(합산 1장)로 — 문서는 항상 한 장
         if ($estimate->parent_estimate_id && $estimate->parent) {
             $estimate = $estimate->parent;
+        }
+
+        // 검토 게이트 — 발행 전 상태의 출력은 검토 완료 필수.
+        // 발행/결제 이후 상태는 이미 발행 관문을 통과한 문서라 허용 (기존 견적 포함)
+        if (! in_array($estimate->status, ['issued', 'paid', 'cancelled', 'quote_cancelled'], true)
+            && ($msg = app(EstimateReviewService::class)->gateError($estimate->review_state, $estimate->product_items ?? []))) {
+            return response()->view('estimates.review-blocked', ['estimate' => $estimate, 'message' => $msg], 423);
         }
         $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
         $settings = Setting::getMany([

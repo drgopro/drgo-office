@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,6 +19,8 @@ class EstimateRoundTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // 검토 게이트 비활성 — 이 테스트는 발행 전환의 다른 규칙을 검증한다 (게이트는 EstimateReviewGateTest가 담당)
+        Setting::set('estimate_review.config', json_encode(['gate' => false]));
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 

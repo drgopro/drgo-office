@@ -212,6 +212,10 @@ function tabRules() {
             </td>
         </tr>`).join('')).join('');
     return `
+    <div class="rvs-card rvs-pad"><h3>출력·발행 잠금</h3>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer"><input type="checkbox" ${CFG.gate !== false ? 'checked' : ''} onchange="CFG.gate=this.checked; markDirty()">
+        검토가 완료되지 않은 견적서는 출력·발행할 수 없습니다 (발행·결제 완료된 기존 견적서의 출력은 허용)</label>
+    </div>
     <div class="rvs-card rvs-pad"><h3>연결 검사 사용</h3>
         <div class="rvs-chkline">${Object.entries(CHECKS).map(([k,l]) =>
             `<label><input type="checkbox" ${CFG.checks[k] !== false ? 'checked' : ''} onchange="CFG.checks['${k}']=this.checked; markDirty()"> ${l}</label>`).join('')}</div>

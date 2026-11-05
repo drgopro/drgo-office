@@ -16,6 +16,7 @@ class DefaultReviewConfig
     {
         return [
             'version' => 1,
+            'gate' => true, // 검토 미완료 견적서의 출력·발행 잠금
             'checks' => ['video' => true, 'audio' => true, 'lens' => true, 'battery' => true, 'mount' => true, 'spec' => true],
             // 규격값 선택지 — 관리 화면의 규격 입력에서 고르는 값. 같아야 맞는 제품으로 판단한다
             'types' => [
