@@ -194,14 +194,9 @@ class MarketingRevenueBreakdownTest extends TestCase
     public function test_explorer_custom_view_admin_only_save(): void
     {
         // 커스텀 뷰 저장은 관리자 이상만 — 멤버는 거부, 저장 후 페이지에 포함
+        // 통계 조회 권한이 있으면 커스텀 뷰도 편집 가능 (별도 권한 불필요)
         $member = User::factory()->create(['role' => 'member', 'team_id' => Team::create(['name' => '통계팀', 'slug' => 'stats-team', 'permissions' => ['stats.view']])->id]);
-        $this->actingAs($member)->postJson('/api/marketing-report/explorer-custom', ['html' => '<p>x</p>'])
-            ->assertForbidden();
-
-        // stats.custom 권한을 받은 멤버는 관리자 승격 없이 편집 가능
-        $editorTeam = Team::create(['name' => '통계편집팀', 'slug' => 'stats-editor', 'permissions' => ['stats.view', 'stats.custom']]);
-        $editor = User::factory()->create(['role' => 'member', 'team_id' => $editorTeam->id]);
-        $this->actingAs($editor)->postJson('/api/marketing-report/explorer-custom', ['html' => '<p>멤버편집</p>'])
+        $this->actingAs($member)->postJson('/api/marketing-report/explorer-custom', ['html' => '<p>멤버편집</p>'])
             ->assertOk();
 
         $admin = User::factory()->create(['role' => 'admin']);

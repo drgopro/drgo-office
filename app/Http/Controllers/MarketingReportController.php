@@ -494,15 +494,15 @@ HTML;
             'to' => $request->query('to', now()->toDateString()),
             'customHtml' => (string) (Setting::get('stats_explorer_custom_html') ?? ''),
             'customTemplate' => self::EXPLORER_CUSTOM_TEMPLATE,
-            'canEditCustom' => (bool) Auth::user()?->hasPermission('stats.custom'),
+            'canEditCustom' => (bool) Auth::user()?->hasPermission('stats.view'),
         ]);
     }
 
     /** 탐색기 커스텀 뷰 저장 — 직원이 GPT/클로드로 고쳐 쓴 HTML (sandbox iframe에서만 렌더, 관리자 이상) */
     public function saveExplorerCustom(Request $request): JsonResponse
     {
-        // 별도 권한(stats.custom) — 팀 권한에서 부여 (admin 이상은 항상 허용)
-        abort_unless((bool) Auth::user()?->hasPermission('stats.custom'), 403, '커스텀 뷰 편집 권한이 없습니다. (팀 권한: 통계 > 커스텀 뷰 편집)');
+        // 통계를 볼 수 있으면 커스텀 뷰도 편집 가능 — 라우트가 stats.view로 이미 보호됨
+        abort_unless((bool) Auth::user()?->hasPermission('stats.view'), 403, '통계 조회 권한이 필요합니다.');
         $validated = $request->validate(['html' => 'nullable|string|max:300000']);
         Setting::set('stats_explorer_custom_html', (string) ($validated['html'] ?? ''));
 
