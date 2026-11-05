@@ -20,6 +20,7 @@ use App\Http\Controllers\CrmDemoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EstimatePresetController;
+use App\Http\Controllers\EstimateReviewController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GeocodeController;
@@ -484,6 +485,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/estimates/{estimate}/shipments', [ShipmentController::class, 'storeForEstimate']);
         Route::post('/api/estimates/{estimate}/shipments/refresh', [ShipmentController::class, 'refreshForEstimate']);
         Route::delete('/api/estimate-shipments/{shipment}', [ShipmentController::class, 'destroyForEstimate']);
+        // 견적서 검토 — 판정 실행/답변/완료 (견적서 검토 기능 2단계)
+        Route::post('/api/estimates/{estimate}/review', [EstimateReviewController::class, 'run']);
+        Route::post('/api/estimates/{estimate}/review/answer', [EstimateReviewController::class, 'answer']);
+        Route::post('/api/estimates/{estimate}/review/undo', [EstimateReviewController::class, 'undo']);
+        Route::post('/api/estimates/{estimate}/review/finish', [EstimateReviewController::class, 'finish']);
         Route::post('/api/estimates/{estimate}/payapp-request', [EstimateController::class, 'payappRequest']);
         Route::post('/api/estimates/{estimate}/payapp-cancel', [EstimateController::class, 'payappCancel']);
         Route::delete('/api/estimates/{estimate}', [EstimateController::class, 'destroy']);

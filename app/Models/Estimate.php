@@ -83,6 +83,7 @@ class Estimate extends Model
     ];
 
     protected $casts = [
+        'review_state' => 'array',
         'product_items' => 'array',
         'service_items' => 'array',
         'category_breakdown' => 'array',

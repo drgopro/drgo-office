@@ -658,6 +658,7 @@
         <button class="btn btn-ghost m-more-item" onclick="duplicateEstimate()" title="항목·의뢰자·배송지를 복사한 새 견적서(작성중)를 만듭니다">복제</button>
         <button class="btn btn-delete m-more-item" onclick="deleteEstimate()">삭제</button>
         <button class="btn btn-print m-more-item" onclick="openStatement()" title="이 견적서(차수 합산) 기준 거래명세서 — 공급가액/세액 분리 출력">거래명세서</button>
+        <button class="btn" id="rvBtn" onclick="rvOpen()" title="품목 누락·수량·연결·호환을 자동 점검합니다">검토</button>
         <button class="btn btn-print" onclick="printEstimate()">🖨 견적서 출력</button>
         <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
         <button class="btn btn-save" onclick="saveEstimate()">저장</button>
@@ -2246,6 +2247,207 @@ document.addEventListener('click', e => {
     if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults').classList.remove('show');
 });
 </script>
+{{-- ═══ 견적서 검토 패널 — 직원 시안(견적 검토 시스템) 디자인 이식 ═══ --}}
+<style>
+#rvPanelBg { position:fixed; inset:0; background:rgba(10,18,26,.45); z-index:300; }
+#rvPanel { position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:var(--surface); z-index:301; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; box-shadow:-4px 0 18px rgba(0,0,0,.25); }
+.rv-sum { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.rv-sum > div { background:var(--surface2); border-radius:6px; padding:6px 4px; text-align:center; font-size:11px; color:var(--text-muted); }
+.rv-sum b { display:block; font-size:18px; line-height:1.2; font-variant-numeric:tabular-nums; color:var(--text); }
+.rv-sum .c-bad b { color:var(--red); } .rv-sum .c-ask b { color:#a86300; } .rv-sum .c-ok b { color:var(--green); }
+.rv-meter { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+.rv-meter i { display:block; height:100%; background:var(--green); transition:width .3s; }
+.rv-prog { display:grid; gap:4px; font-size:13px; color:var(--text-muted); }
+.rv-notice { border-radius:8px; padding:10px 12px; display:grid; gap:8px; font-size:13px; }
+.rv-notice.stale { background:rgba(168,99,0,.12); color:#a86300; }
+.rv-notice.ok { background:rgba(36,138,56,.12); color:var(--green); }
+.rv-notice.ready { background:rgba(46,108,181,.12); color:var(--blue); }
+.rv-notice b { font-size:13.5px; }
+.rv-notice input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:13px; width:100%; }
+.rv-gl { font-size:12px; font-weight:700; color:var(--text-muted); margin:4px 0 -4px; }
+.rv-list { display:grid; gap:8px; }
+.rv-list.dim { opacity:.5; pointer-events:none; }
+.rv-f { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; display:grid; gap:7px; min-width:0; }
+.rv-f header { display:flex; gap:6px; align-items:flex-start; }
+.rv-f h4 { margin:0; font-size:13.5px; font-weight:700; line-height:1.4; flex:1; min-width:0; color:var(--text); }
+.rv-f p { margin:0; font-size:12.5px; color:var(--text-muted); }
+.rv-f.done { background:transparent; padding:7px 12px; }
+.rv-f.done h4 { font-weight:500; color:var(--text-muted); font-size:12.5px; }
+.rv-f.done p { font-size:12px; }
+.rv-pill { font-size:11px; font-weight:700; border-radius:4px; padding:1px 6px; white-space:nowrap; }
+.rv-pill.p-bad { background:rgba(192,56,56,.12); color:var(--red); }
+.rv-pill.p-ask { background:rgba(168,99,0,.12); color:#a86300; }
+.rv-pill.p-ok { background:rgba(36,138,56,.12); color:var(--green); }
+.rv-pill.p-off { background:var(--surface2); color:var(--text-muted); }
+.rv-ev { display:grid; grid-template-columns:auto minmax(0,1fr); gap:1px 8px; font-size:12px; background:var(--surface2); border-radius:6px; padding:6px 8px; margin:0; }
+.rv-ev dt { color:var(--text-muted); } .rv-ev dd { margin:0; min-width:0; color:var(--text); }
+.rv-mini { border:1px solid var(--border); background:var(--surface); border-radius:6px; padding:4px 9px; font-size:12px; font-weight:500; color:var(--text); cursor:pointer; }
+.rv-mini.pri { background:var(--navy); border-color:var(--navy); color:#fff; }
+.rv-mini.on { background:rgba(46,108,181,.12); border-color:var(--blue); color:var(--blue); }
+.rv-mini.link { border:0; background:none; color:var(--blue); padding:4px 2px; }
+.rv-acts { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.rv-form { display:grid; gap:6px; background:var(--surface2); border-radius:6px; padding:8px; }
+.rv-form input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12.5px; width:100%; }
+.rv-pass { font-size:12.5px; padding:5px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; color:var(--text); }
+.rv-pass span:last-child { color:var(--green); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.rv-more { background:none; border:0; padding:0; font-size:13px; font-weight:500; color:var(--blue); text-align:left; cursor:pointer; }
+.rv-route { font-size:12px; color:var(--text); margin:0; } .rv-route b { color:var(--green); }
+.rv-empty { color:var(--text-muted); text-align:center; padding:40px 12px; font-size:13.5px; }
+#rvBtn { border:1px solid var(--navy); background:var(--navy); color:#fff; font-weight:700; }
+#rvBtn.st-bad { background:var(--red); border-color:var(--red); }
+#rvBtn.st-stale { background:#a86300; border-color:#a86300; }
+#rvBtn.st-ready { background:var(--blue); border-color:var(--blue); }
+#rvBtn.st-ok { background:rgba(36,138,56,.14); border-color:var(--green); color:var(--green); }
+</style>
+
+<div id="rvPanelBg" style="display:none" onclick="rvClose()"></div>
+<div id="rvPanel" style="display:none" role="dialog" aria-label="견적서 검토">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3 style="margin:0; font-size:16px; color:var(--text);">견적서 검토</h3>
+        <div class="rv-acts">
+            <button class="rv-mini pri" onclick="rvRun()">다시 검토</button>
+            <button class="rv-mini" onclick="rvClose()">닫기</button>
+        </div>
+    </div>
+    <div id="rvBody"><p class="rv-empty">검토 버튼을 누르면 품목을 점검합니다.</p></div>
+</div>
+
+<script>
+// ═══ 견적서 검토 — 서버 판정 엔진 호출 + 시안 디자인 패널 ═══
+let rvState = @json($estimate->review_state); // {fingerprint, keys, answers, done, reviewer, reviewed_at}
+let rvRes = null;          // 마지막 실행 결과 {findings, passed, paths, counts, answers, done}
+let rvItemsSig = null;     // 실행 시점 품목 서명 — 바뀌면 다시 검토 안내
+let rvShowPass = false, rvOpenForm = null, rvReason = '', rvBusy = false;
+
+const RV_ESC = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const RV_REASONS = ['고객 보유', '고객 제외 요청', '다른 품목으로 대체'];
+
+function rvItems() {
+    const items = cartItems.map(i => ({
+        product_id: i.product_id || null, name: i.name, qty: +i.qty || 1,
+        sale_price: +i.sale_price || 0, is_service: !!i.is_service, manual: !!i.manual, replaced: !!i.replaced,
+    }));
+    svcItems.filter(s => s.name).forEach(s => items.push({ name: s.name, qty: 1, sale_price: +s.amount || 0, is_service: true, manual: true }));
+    return items;
+}
+const rvSig = () => rvItems().filter(i => !i.replaced).map(i => i.name + ':' + i.qty).sort().join('|');
+const rvStale = () => rvRes && rvItemsSig !== rvSig();
+const rvRemain = () => rvRes ? rvRes.findings.filter(f => !rvRes.answers[f.key]) : [];
+
+function rvOpen() { document.getElementById('rvPanelBg').style.display = ''; document.getElementById('rvPanel').style.display = ''; if (!rvRes) rvRun(); }
+function rvClose() { document.getElementById('rvPanelBg').style.display = 'none'; document.getElementById('rvPanel').style.display = 'none'; }
+
+async function rvRun() {
+    if (rvBusy) return; rvBusy = true;
+    try {
+        const res = await fetch(`/api/estimates/${estId}/review`, { method:'POST', headers:H, body: JSON.stringify({ product_items: rvItems() }) });
+        if (!res.ok) { alert('검토 실행에 실패했습니다.'); return; }
+        rvRes = await res.json();
+        rvItemsSig = rvSig();
+        rvOpenForm = null; rvReason = '';
+        rvRender(); rvButton();
+    } finally { rvBusy = false; }
+}
+
+async function rvAnswer(key, type, choice, reason, note) {
+    const res = await fetch(`/api/estimates/${estId}/review/answer`, { method:'POST', headers:H, body: JSON.stringify({ key, type, choice, reason, note }) });
+    if (!res.ok) { alert((await res.json()).message || '저장 실패'); return; }
+    rvRes.answers = (await res.json()).answers; rvRes.done = false; rvOpenForm = null; rvReason = '';
+    rvRender(); rvButton();
+}
+async function rvUndo(key) {
+    const res = await fetch(`/api/estimates/${estId}/review/undo`, { method:'POST', headers:H, body: JSON.stringify({ key }) });
+    if (!res.ok) return;
+    rvRes.answers = (await res.json()).answers; rvRes.done = false;
+    rvRender(); rvButton();
+}
+async function rvFinish() {
+    await saveEstimate(true); // 완료는 저장본 기준 — 서버가 지문 일치를 검사
+    if (rvStale()) { await rvRun(); if (rvRemain().length) { rvRender(); return; } }
+    const res = await fetch(`/api/estimates/${estId}/review/finish`, { method:'POST', headers:H, body: JSON.stringify({}) });
+    const body = await res.json();
+    if (!res.ok) { alert(body.message || '완료 처리 실패'); return; }
+    rvRes.done = true; rvState = Object.assign(rvState || {}, { done:true, reviewer: body.reviewer, reviewed_at: body.reviewed_at });
+    rvRender(); rvButton();
+}
+
+function rvCard(f) {
+    const a = rvRes.answers[f.key];
+    if (a) {
+        const t = a.type === 'ans' ? RV_ESC(a.choice) : RV_ESC(a.reason) + (a.note ? ' · ' + RV_ESC(a.note) : '');
+        return `<div class="rv-f done"><header><span class="rv-pill p-off">확인됨</span><h4>${RV_ESC(f.title)}</h4>
+            <button class="rv-mini link" onclick="rvUndo('${RV_ESC(f.key)}')">되돌리기</button></header><p>${t}${a.by ? ' — ' + RV_ESC(a.by) : ''}</p></div>`;
+    }
+    const pill = { miss:['p-bad','누락'], qty:['p-bad','수량'], link:['p-bad','연결 끊김'], fit:['p-bad','호환 안 됨'], ask:['p-ask','재검토'] }[f.kind] || ['p-ask','확인'];
+    let b = '';
+    if (f.kind === 'ask') {
+        const chs = f.choices || [];
+        b = `<p>${RV_ESC(f.desc || '')}</p><div class="rv-acts">${chs.map(c =>
+            `<button class="rv-mini" onclick="rvAnswer('${RV_ESC(f.key)}','ans','${RV_ESC(c)}')">${RV_ESC(c)}</button>`).join('')}
+            <button class="rv-mini" onclick="rvOpenForm='${RV_ESC(f.key)}'; rvRender()">기타…</button></div>`;
+        if (rvOpenForm === f.key) b += `<div class="rv-form"><input id="rvNote" placeholder="직접 입력">
+            <div class="rv-acts"><button class="rv-mini pri" onclick="rvAnswer('${RV_ESC(f.key)}','ans',document.getElementById('rvNote').value||'기타')">확인</button></div></div>`;
+    } else {
+        b = `<p>${RV_ESC(f.why || '')}</p>`;
+        if (f.short != null && f.kind !== 'link' && f.kind !== 'fit') {
+            b += `<dl class="rv-ev"><dt>부족</dt><dd>${f.short}개</dd></dl>`;
+        }
+        b += `<div class="rv-acts"><button class="rv-mini" onclick="rvOpenForm='${RV_ESC(f.key)}'; rvReason=''; rvRender()">빼고 진행</button></div>`;
+        if (rvOpenForm === f.key) {
+            b += `<div class="rv-form"><div class="rv-acts">${RV_REASONS.map(r =>
+                `<button class="rv-mini ${rvReason === r ? 'on' : ''}" onclick="rvReason='${r}'; rvRender()">${r}</button>`).join('')}</div>
+                <input id="rvNote" placeholder="메모 (선택)">
+                <div class="rv-acts"><button class="rv-mini pri" ${rvReason ? '' : 'disabled'} onclick="rvAnswer('${RV_ESC(f.key)}','ex',null,'${rvReason}',document.getElementById('rvNote').value)">기록하고 진행</button></div></div>`;
+        }
+    }
+    return `<div class="rv-f"><header><span class="rv-pill ${pill[0]}">${pill[1]}</span><h4>${RV_ESC(f.title)}</h4></header>${b}</div>`;
+}
+
+function rvRender() {
+    const el = document.getElementById('rvBody');
+    if (!rvRes) { el.innerHTML = '<p class="rv-empty">검토 버튼을 누르면 품목을 점검합니다.</p>'; return; }
+    const out = rvRes.findings, left = rvRemain(), total = out.length, done = total - left.length;
+    const cnt = k => left.filter(f => f.kind === k).length;
+    let h = `<div class="rv-sum">
+        <div class="c-bad"><b>${cnt('miss') + cnt('qty')}</b>누락·수량</div>
+        <div class="c-bad"><b>${cnt('link') + cnt('fit')}</b>연결·호환</div>
+        <div class="c-ask"><b>${cnt('ask')}</b>재검토</div>
+        <div class="c-ok"><b>${rvRes.passed.length}</b>통과</div></div>`;
+    if (total) h += `<div class="rv-prog"><span>${total}건 중 ${done}건 확인</span><div class="rv-meter"><i style="width:${total ? done / total * 100 : 0}%"></i></div></div>`;
+    if (rvStale()) h += `<div class="rv-notice stale"><b>검토 후 품목이 바뀌었습니다</b><span>다시 검토해 주세요.</span><div class="rv-acts"><button class="rv-mini pri" onclick="rvRun()">다시 검토</button></div></div>`;
+    else if (rvRes.done) h += `<div class="rv-notice ok"><b>검토를 마쳤습니다</b><span>${RV_ESC((rvState && rvState.reviewer) || '')} · ${RV_ESC((rvState && rvState.reviewed_at) || '')}</span></div>`;
+    else if (!left.length) h += `<div class="rv-notice ready"><b>모든 항목을 확인했습니다</b><div class="rv-acts"><button class="rv-mini pri" onclick="rvFinish()">저장하고 검토 완료</button></div></div>`;
+    h += `<div class="rv-list ${rvStale() ? 'dim' : ''}">`;
+    [['link','연결이 끊긴 곳'], ['fit','호환되지 않는 품목'], ['miss','빠진 품목'], ['qty','수량이 맞지 않는 품목'], ['ask','담당자 확인이 필요한 항목']].forEach(([k, t]) => {
+        const g = out.filter(f => f.kind === k);
+        if (g.length) h += `<div class="rv-gl">${t}</div>` + g.map(rvCard).join('');
+    });
+    h += '</div>';
+    if (!total) h += '<div class="rv-notice ok"><b>걸린 항목이 없습니다</b><span>규칙과 연결 검사를 모두 통과했습니다.</span>' + (rvRes.done ? '' : '<div class="rv-acts"><button class="rv-mini pri" onclick="rvFinish()">저장하고 검토 완료</button></div>') + '</div>';
+    if (rvRes.passed.length) h += `<button class="rv-more" onclick="rvShowPass=!rvShowPass; rvRender()">${rvShowPass ? '통과 항목 접기' : `통과 항목 ${rvRes.passed.length}건 보기`}</button>`;
+    if (rvShowPass) h += '<div>' + rvRes.passed.map(p => `<div class="rv-pass"><span>${RV_ESC(p.title || (p.rule || ''))}</span><span>통과</span></div>`).join('') + '</div>';
+    if (rvRes.paths && rvRes.paths.length) h += `<div class="rv-gl">연결된 경로</div><div class="rv-f">${rvRes.paths.map(r => `<p class="rv-route">${[r.from, ...(r.via || []), r.to].map(RV_ESC).join(' <b>→</b> ')}</p>`).join('')}</div>`;
+    el.innerHTML = h;
+}
+
+function rvButton() {
+    const btn = document.getElementById('rvBtn');
+    if (!btn) return;
+    let st = 'none', label = '검토';
+    if (rvRes) {
+        const left = rvRemain().length;
+        if (rvStale()) { st = 'stale'; label = '다시 검토'; }
+        else if (rvRes.done) { st = 'ok'; label = '검토 완료 ✓'; }
+        else if (left) { st = 'bad'; label = `검토 · 남은 ${left}건`; }
+        else { st = 'ready'; label = '검토 · 완료 대기'; }
+    } else if (rvState && rvState.done) { st = 'ok'; label = '검토 완료 ✓'; }
+    btn.className = 'btn' + (st === 'none' ? '' : ' st-' + st);
+    btn.id = 'rvBtn';
+    btn.textContent = label;
+}
+document.addEventListener('DOMContentLoaded', rvButton);
+</script>
+
 {{-- 수정 로그 모달 — 하단 '로그' 버튼(openActivityLog)이 사용. 빌더는 독립 레이아웃이라 직접 포함 --}}
 @include('partials.activity-log-modal')
 </body>
