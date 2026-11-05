@@ -425,6 +425,15 @@ function tabSpecs() {
     }).join('');
     return `
     <p class="rvs-lead">연결·호환 검사는 이 규격으로 판단합니다. 미입력 제품은 검토에서 "규격 미입력" 확인 질문으로 잡힙니다. 제품 지정이 카테고리 기본값보다 우선합니다.</p>
+<div class="rvs-card rvs-pad"><h3>규격값 추가</h3>
+        <p class="rvs-lead" style="margin:0">새 단자나 마운트가 생기면 여기에 추가합니다. 값이 완전히 같아야 맞는 제품으로 판단합니다.</p>
+        <div class="rvs-acts">
+            <select class="rvs-sel" id="newTypeFam">${Object.entries({video:'영상 단자',audio:'오디오 단자',lens:'렌즈 마운트',battery:'배터리 규격',mount:'조명 마운트'}).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select>
+            <input class="rvs-input" id="newTypeVal" placeholder="예: DisplayPort">
+            <button class="rvs-mini pri" onclick="addType()">추가</button>
+        </div>
+        <div class="rvs-note">${Object.entries(CFG.types).map(([k,v]) => `${k}: ${v.join(', ')}`).join(' · ')}</div>
+    </div>
     <div class="rvs-bar" style="margin-bottom:10px">
         <div class="rvs-chips">${[['miss',`미입력 ${cnt.miss}`],['ok',`입력됨 ${cnt.ok}`],['all',`전체 ${names.length}`]].map(([k,l]) =>
             `<button class="rvs-fchip ${f===k?'on':''}" onclick="UI.specFilter='${k}'; render()">${l}</button>`).join('')}</div>
@@ -433,15 +442,7 @@ function tabSpecs() {
     <div class="rvs-card rvs-tw"><table class="rvs-t" style="min-width:720px">
         <thead><tr><th>제품과 규격</th><th>출처</th><th>상태</th><th></th></tr></thead>
         <tbody>${rows || '<tr><td colspan="4" style="color:var(--text-muted)">해당 제품이 없습니다.</td></tr>'}</tbody></table></div>
-    <div class="rvs-card rvs-pad"><h3>규격값 추가</h3>
-        <p class="rvs-lead" style="margin:0">새 단자나 마운트가 생기면 여기에 추가합니다. 값이 완전히 같아야 맞는 제품으로 판단합니다.</p>
-        <div class="rvs-acts">
-            <select class="rvs-sel" id="newTypeFam">${Object.entries({video:'영상 단자',audio:'오디오 단자',lens:'렌즈 마운트',battery:'배터리 규격',mount:'조명 마운트'}).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select>
-            <input class="rvs-input" id="newTypeVal" placeholder="예: DisplayPort">
-            <button class="rvs-mini pri" onclick="addType()">추가</button>
-        </div>
-        <div class="rvs-note">${Object.entries(CFG.types).map(([k,v]) => `${k}: ${v.join(', ')}`).join(' · ')}</div>
-    </div>`;
+    `;
 }
 function addType() {
     const fam = document.getElementById('newTypeFam').value, val = document.getElementById('newTypeVal').value.trim();
