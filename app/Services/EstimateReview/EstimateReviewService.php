@@ -2,6 +2,7 @@
 
 namespace App\Services\EstimateReview;
 
+use App\Models\Estimate;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Setting;
@@ -40,6 +41,83 @@ class EstimateReviewService
         $result['findings'] = $this->attachCandidates($result['findings'], $catalog, $config);
 
         return $result;
+    }
+
+    /**
+     * 견적 단위 검토 — 본 견적은 자기 품목만, 차수(추가 견적)는
+     * 트리 전체(본 견적+다른 차수)를 컨텍스트로 판정하되 "이 차수로 새로 생긴 발견"만 보고한다.
+     * 지문은 차수의 경우 트리 전체 기준 — 본 견적/다른 차수가 바뀌어도 재검토 사유가 된다.
+     *
+     * @return array{findings: array, passed: array, paths: array, counts: array<string,int>, fingerprint: string, context?: string}
+     */
+    public function reviewFor(Estimate $estimate, ?array $itemsOverride = null): array
+    {
+        $own = $itemsOverride ?? $estimate->product_items ?? [];
+        if (! $estimate->parent_estimate_id || ! $estimate->parent) {
+            return $this->review($own);
+        }
+
+        $baseline = $this->treeBaseline($estimate);
+        $without = $this->review($baseline);
+        $with = $this->review(array_merge($baseline, $own));
+
+        $oldKeys = array_flip(array_column($without['findings'], 'key'));
+        $with['findings'] = array_values(array_filter($with['findings'], fn ($f) => ! isset($oldKeys[$f['key']])));
+        $kinds = array_count_values(array_map(fn ($f) => $f['kind'], $with['findings']));
+        $with['counts'] = [
+            'miss_qty' => ($kinds['miss'] ?? 0) + ($kinds['qty'] ?? 0),
+            'link_fit' => ($kinds['link'] ?? 0) + ($kinds['fit'] ?? 0),
+            'ask' => $kinds['ask'] ?? 0,
+            'passed' => count($with['passed']),
+        ];
+        $with['context'] = 'round';
+
+        return $with;
+    }
+
+    /** 견적 단위 지문 — 차수는 트리 전체(본 견적+다른 차수+자기) 기준 */
+    public function fingerprintFor(Estimate $estimate, ?array $itemsOverride = null): string
+    {
+        $own = $itemsOverride ?? $estimate->product_items ?? [];
+        if (! $estimate->parent_estimate_id || ! $estimate->parent) {
+            return $this->fingerprint($own);
+        }
+
+        return $this->fingerprint(array_merge($this->treeBaseline($estimate), $own));
+    }
+
+    /** 출력/발행 관문 (견적 단위) — 차수의 지문 비교도 트리 기준으로 */
+    public function gateErrorFor(Estimate $estimate, ?array $itemsOverride = null): ?string
+    {
+        if (! $this->gateEnabled()) {
+            return null;
+        }
+        $state = $estimate->review_state;
+        if (empty($state['done'])) {
+            return '검토가 완료되지 않은 견적서입니다. 검토 버튼으로 품목 점검을 마친 뒤 진행하세요.';
+        }
+        if (($state['fingerprint'] ?? null) !== $this->fingerprintFor($estimate, $itemsOverride)) {
+            return '검토 후 품목이 바뀌었습니다. 다시 검토를 완료한 뒤 진행하세요.';
+        }
+
+        return null;
+    }
+
+    /** 차수의 트리 컨텍스트 품목 — 본 견적 + 자신을 제외한 보이는 차수들 (임시·견적취소 제외) */
+    private function treeBaseline(Estimate $estimate): array
+    {
+        $parent = $estimate->parent;
+        $items = $parent->product_items ?? [];
+        $siblings = $parent->rounds()
+            ->whereNotIn('status', ['temp', 'quote_cancelled'])
+            ->where('id', '!=', $estimate->id)
+            ->orderBy('round')
+            ->get(['id', 'product_items', 'status', 'round']);
+        foreach ($siblings as $sibling) {
+            $items = array_merge($items, $sibling->product_items ?? []);
+        }
+
+        return $items;
     }
 
     /**
@@ -99,28 +177,6 @@ class EstimateReviewService
     public function gateEnabled(): bool
     {
         return ($this->storedConfig()['gate'] ?? true) !== false;
-    }
-
-    /**
-     * 출력/발행 관문 — 통과하지 못하면 사유 문자열, 통과하면 null.
-     * 검토 완료 + 검토 시점 품목(지문)과 현재 품목이 같아야 한다.
-     *
-     * @param  array<string, mixed>|null  $reviewState  estimates.review_state
-     * @param  array<int, array<string, mixed>>  $items  검사 기준 품목 (저장될/저장된 product_items)
-     */
-    public function gateError(?array $reviewState, array $items): ?string
-    {
-        if (! $this->gateEnabled()) {
-            return null;
-        }
-        if (empty($reviewState['done'])) {
-            return '검토가 완료되지 않은 견적서입니다. 검토 버튼으로 품목 점검을 마친 뒤 진행하세요.';
-        }
-        if (($reviewState['fingerprint'] ?? null) !== $this->fingerprint($items)) {
-            return '검토 후 품목이 바뀌었습니다. 다시 검토를 완료한 뒤 진행하세요.';
-        }
-
-        return null;
     }
 
     /** 운영 설정(Setting JSON) 또는 기본값 */

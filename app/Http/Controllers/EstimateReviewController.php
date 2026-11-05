@@ -32,8 +32,7 @@ class EstimateReviewController extends Controller
             'product_items.*.replaced' => 'nullable|boolean',
         ]);
 
-        $items = $data['product_items'] ?? $estimate->product_items ?? [];
-        $result = $this->service->review($items);
+        $result = $this->service->reviewFor($estimate, $data['product_items'] ?? null);
 
         $state = $estimate->review_state ?? [];
         $keys = array_column($result['findings'], 'key');
@@ -47,6 +46,7 @@ class EstimateReviewController extends Controller
 
         $estimate->forceFill(['review_state' => [
             'fingerprint' => $result['fingerprint'],
+            'context' => $result['context'] ?? 'single',
             'keys' => $keys,
             'answers' => $answers,
             'done' => $done,
@@ -60,6 +60,7 @@ class EstimateReviewController extends Controller
             'paths' => $result['paths'],
             'counts' => $result['counts'],
             'fingerprint' => $result['fingerprint'],
+            'context' => $result['context'] ?? 'single',
             'answers' => (object) $answers,
             'done' => $done,
         ]);
@@ -120,8 +121,8 @@ class EstimateReviewController extends Controller
             return response()->json(['message' => '아직 확인하지 않은 항목이 '.count($missing).'건 있습니다.'], 422);
         }
 
-        // 저장된 품목 기준 지문과 일치해야 완료 인정 — 저장 없이 품목만 바꾼 검토 방지
-        $current = $this->service->fingerprint($estimate->product_items ?? []);
+        // 저장된 품목 기준 지문과 일치해야 완료 인정 — 저장 없이 품목만 바꾼 검토 방지 (차수는 트리 기준)
+        $current = $this->service->fingerprintFor($estimate);
         if (($state['fingerprint'] ?? null) !== $current) {
             return response()->json(['message' => '검토 후 품목이 바뀌었습니다. 저장하고 다시 검토해 주세요.'], 422);
         }

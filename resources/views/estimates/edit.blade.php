@@ -679,6 +679,9 @@
         <button class="btn btn-ghost m-more-item" onclick="loadDraft()">임시저장 불러오기</button>
         <button class="btn btn-ghost" onclick="resetEstimate()">초기화</button>
         <button class="btn btn-ghost m-more-item" onclick="duplicateEstimate()" title="항목·의뢰자·배송지를 복사한 새 견적서(작성중)를 만듭니다">복제</button>
+        <button class="btn" id="rvBtn" onclick="rvOpen()" title="품목 누락·수량·연결·호환을 자동 점검합니다">검토</button>
+        <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
+        <button class="btn btn-save" onclick="saveEstimate()">저장</button>
         {{-- 빈도 낮은 액션은 ⋯ 메뉴로 — 로그/거래명세서/출력/삭제 --}}
         <div id="footMore" class="m-more-item" style="position:relative;">
             <button class="btn btn-ghost" onclick="toggleFootMore(event)" title="더보기 — 로그·거래명세서·견적서 출력·삭제" aria-haspopup="true" style="font-weight:800; letter-spacing:1px; padding-left:13px; padding-right:13px;">⋯</button>
@@ -689,9 +692,6 @@
                 <button class="fm-danger" onclick="footMoreRun(deleteEstimate)">삭제 <span>이 견적서 삭제</span></button>
             </div>
         </div>
-        <button class="btn" id="rvBtn" onclick="rvOpen()" title="품목 누락·수량·연결·호환을 자동 점검합니다">검토</button>
-        <button id="mAddProductsBtn" class="m-only" onclick="mOpenSheet()">+ 제품 담기</button>
-        <button class="btn btn-save" onclick="saveEstimate()">저장</button>
     </div>
 </div>
 
@@ -2486,7 +2486,10 @@ function rvRender() {
     if (!rvRes) { el.innerHTML = '<p class="rv-empty">검토 버튼을 누르면 품목을 점검합니다.</p>'; return; }
     const out = rvRes.findings, left = rvRemain(), total = out.length, done = total - left.length;
     const cnt = k => left.filter(f => f.kind === k).length;
-    let h = `<div class="rv-sum">
+    let h = rvRes.context === 'round'
+        ? `<div class="rv-notice ready" style="margin-bottom:0"><b>추가 차수 검토</b><span>본 견적서·기존 차수와 합산한 상태에서 이 차수로 새로 생긴 문제만 표시합니다.</span></div>`
+        : '';
+    h += `<div class="rv-sum">
         <div class="c-bad"><b>${cnt('miss') + cnt('qty')}</b>누락·수량</div>
         <div class="c-bad"><b>${cnt('link') + cnt('fit')}</b>연결·호환</div>
         <div class="c-ask"><b>${cnt('ask')}</b>재검토</div>

@@ -534,8 +534,8 @@ class EstimateController extends Controller
             $becameIssued = ($validated['status'] ?? null) === 'issued' && $estimate->status !== 'issued';
             // ── 검토 게이트 — 발행 전환은 검토 완료(현재 품목 지문 일치) 필수 ──
             if ($becameIssued) {
-                $gateItems = $validated['product_items'] ?? $estimate->product_items ?? [];
-                if ($msg = app(EstimateReviewService::class)->gateError($estimate->review_state, $gateItems)) {
+                $gateItems = $validated['product_items'] ?? null;
+                if ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate, $gateItems)) {
                     return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
                 }
             }
@@ -663,7 +663,7 @@ class EstimateController extends Controller
     {
         // 검토 게이트 — update()와 같은 관문 (이 엔드포인트로 우회 발행 방지)
         if ($estimate->status !== 'issued'
-            && ($msg = app(EstimateReviewService::class)->gateError($estimate->review_state, $estimate->product_items ?? []))) {
+            && ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate))) {
             return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
         }
 
@@ -732,7 +732,7 @@ class EstimateController extends Controller
         // 검토 게이트 — 발행 전 상태의 출력은 검토 완료 필수.
         // 발행/결제 이후 상태는 이미 발행 관문을 통과한 문서라 허용 (기존 견적 포함)
         if (! in_array($estimate->status, ['issued', 'paid', 'cancelled', 'quote_cancelled'], true)
-            && ($msg = app(EstimateReviewService::class)->gateError($estimate->review_state, $estimate->product_items ?? []))) {
+            && ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate))) {
             return response()->view('estimates.review-blocked', ['estimate' => $estimate, 'message' => $msg], 423);
         }
         $estimate->syncSnapshotPrices(); // 결제/발행 전 견적서는 현재 제품 판매가 반영
