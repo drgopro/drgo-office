@@ -71,6 +71,12 @@
         .col-opt { display:none; }
     }
     [data-theme="light"] .btn-primary { color:#fff; }
+    /* 헤더 버튼 — 생성/검토 규칙 동일한 컴팩트 사이즈 */
+    .page-header .btn-primary, .btn-review-rules { padding:6px 13px; font-size:12px; border-radius:8px; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid transparent; }
+    .btn-review-rules { background:rgba(212,160,23,0.14); color:#a86300; border:1px solid rgba(212,160,23,0.5); }
+    .btn-review-rules:hover { background:rgba(212,160,23,0.24); }
+    [data-theme="dark"] .btn-review-rules { color:#e8c268; border-color:rgba(232,194,104,0.45); background:rgba(232,194,104,0.12); }
+    [data-theme="dark"] .btn-review-rules:hover { background:rgba(232,194,104,0.2); }
     [data-theme="light"] .badge-created   { background:#f0ebe2; color:#8a6d30; }
     [data-theme="light"] .badge-editing   { background:#e0f0ff; color:#2e6a9a; }
     [data-theme="light"] .badge-completed { background:#e8f5e8; color:#248a38; }
@@ -161,7 +167,7 @@
         <div class="page-title">견적서</div>
         <div style="display:flex; gap:8px; align-items:center;">
             @if(auth()->user()?->hasPermission('estimates.review_admin'))
-            <button class="btn-act" onclick="location.href='{{ route('estimate-review.settings') }}'" title="견적서 검토가 확인하는 규칙·역할·규격 관리">검토 규칙</button>
+            <button class="btn-review-rules" onclick="location.href='{{ route('estimate-review.settings') }}'" title="견적서 검토가 확인하는 규칙·역할·규격 관리">검토 규칙</button>
             @endif
             <button class="btn-primary" id="headerActionBtn" onclick="createEstimate()">+ 견적서 생성</button>
         </div>
