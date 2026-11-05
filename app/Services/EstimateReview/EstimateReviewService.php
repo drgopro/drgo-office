@@ -37,8 +37,56 @@ class EstimateReviewService
 
         $result = ReviewEngine::run($items, $catalog, $config);
         $result['fingerprint'] = ReviewEngine::fingerprint($items);
+        $result['findings'] = $this->attachCandidates($result['findings'], $catalog, $config);
 
         return $result;
+    }
+
+    /**
+     * 발견에 후보 제품 제안 부착 — 누락/수량 발견은 필요한 역할의 제품,
+     * 확인 질문은 규칙의 추천 제품(fix). 담을 수 있는(sellable) 제품만, 추천 제품 우선.
+     */
+    private function attachCandidates(array $findings, array $catalog, array $config): array
+    {
+        $roleCache = [];
+        $byRoles = function (array $roles) use (&$roleCache, $catalog, $config): array {
+            $key = implode(',', $roles);
+            if (isset($roleCache[$key])) {
+                return $roleCache[$key];
+            }
+            $out = [];
+            foreach ($catalog as $pid => $row) {
+                if (! $row['sellable']) {
+                    continue;
+                }
+                $has = ReviewRoleCounter::rolesOf($pid, $catalog, $config);
+                foreach ($roles as $role) {
+                    if (! empty($has[$role])) {
+                        $out[] = $pid;
+                        break;
+                    }
+                }
+            }
+
+            return $roleCache[$key] = $out;
+        };
+
+        $this->catalog(); // nameIndex 준비
+        $cand = fn (int $pid) => ['product_id' => $pid, 'name' => $catalog[$pid]['name'], 'sale_price' => $catalog[$pid]['sale_price']];
+
+        foreach ($findings as &$f) {
+            $fixId = ! empty($f['fix']) ? ($this->nameIndex[$f['fix']] ?? null) : null;
+            if (in_array($f['kind'] ?? '', ['miss', 'qty'], true) && ! empty($f['need_roles'])) {
+                $pids = $byRoles((array) $f['need_roles']);
+                // 추천 제품(fix) 맨 앞, 이후 이름순 — 15개까지
+                usort($pids, fn ($a, $b) => (($b === $fixId) <=> ($a === $fixId)) ?: strcmp($catalog[$a]['name'], $catalog[$b]['name']));
+                $f['cands'] = array_map($cand, array_slice($pids, 0, 15));
+            } elseif (($f['kind'] ?? '') === 'ask' && $fixId && ($catalog[$fixId]['sellable'] ?? false)) {
+                $f['cands'] = [$cand($fixId)];
+            }
+        }
+
+        return $findings;
     }
 
     /** @param array<int, array<string, mixed>> $rawItems */
@@ -108,7 +156,7 @@ class EstimateReviewService
 
         $products = Product::query()
             ->with('bundleItems:id,bundle_product_id,component_product_id,quantity')
-            ->get(['id', 'name', 'category_id', 'group_id', 'is_bundle']);
+            ->get(['id', 'name', 'category_id', 'group_id', 'is_bundle', 'is_active', 'show_in_estimate', 'sale_price']);
 
         $catalog = [];
         $index = [];
@@ -121,6 +169,9 @@ class EstimateReviewService
                 'components' => $p->is_bundle
                     ? $p->bundleItems->map(fn ($b) => [(int) $b->component_product_id, max(1, (int) $b->quantity)])->all()
                     : [],
+                // 후보 제안용 — 견적 빌더에 담을 수 있는 제품인지 + 판매가 (매입가는 싣지 않는다)
+                'sellable' => (bool) $p->is_active && (bool) $p->show_in_estimate,
+                'sale_price' => (int) $p->sale_price,
             ];
             $index[$p->name] = $p->id;
         }

@@ -2374,6 +2374,23 @@ async function rvFinish() {
     rvRender(); rvButton();
 }
 
+// 발견 카드에서 후보 제품 바로 담기 — 담은 뒤 즉시 재검토
+async function rvFix(key, qty) {
+    const f = (rvRes && rvRes.findings || []).find(x => x.key === key);
+    if (!f || !f.cands || !f.cands.length) return;
+    const sel = document.querySelector(`[data-rvpick="${CSS.escape(key)}"]`);
+    const pid = +(sel ? sel.value : f.cands[0].product_id);
+    if (!pid) return;
+    if (!allProds.find(p => p.id === pid)) { alert('제품 목록을 아직 불러오는 중입니다. 잠시 후 다시 시도하세요.'); return; }
+    addToCart(pid); // 빌더와 같은 스냅샷 경로 — 할인/세트/소요시간 처리 동일
+    if (qty > 1) {
+        const it = cartItems.find(i => i.product_id === pid);
+        if (it) { it.qty += qty - 1; it.subtotal = Number(it.sale_price) * it.qty; renderCart(); }
+    }
+    if (typeof updateTotals === 'function') updateTotals();
+    await rvRun();
+}
+
 function rvCard(f) {
     const a = rvRes.answers[f.key];
     if (a) {
@@ -2388,12 +2405,20 @@ function rvCard(f) {
         b = `<p>${RV_ESC(f.desc || '')}</p><div class="rv-acts">${chs.map(c =>
             `<button class="rv-mini" onclick="rvAnswer('${RV_ESC(f.key)}','ans','${RV_ESC(c)}')">${RV_ESC(c)}</button>`).join('')}
             <button class="rv-mini" onclick="rvOpenForm='${RV_ESC(f.key)}'; rvRender()">기타…</button></div>`;
+        if (f.cands && f.cands.length) b += `<div class="rv-acts" style="font-size:12px; color:var(--text-muted);">제안:
+            <b style="color:var(--text);">${RV_ESC(f.cands[0].name)}</b> · ${Number(f.cands[0].sale_price).toLocaleString('ko-KR')}원
+            <button class="rv-mini" onclick="rvFix('${RV_ESC(f.key)}', 1)">담기</button></div>`;
         if (rvOpenForm === f.key) b += `<div class="rv-form"><input id="rvNote" placeholder="직접 입력">
             <div class="rv-acts"><button class="rv-mini pri" onclick="rvAnswer('${RV_ESC(f.key)}','ans',document.getElementById('rvNote').value||'기타')">확인</button></div></div>`;
     } else {
         b = `<p>${RV_ESC(f.why || '')}</p>`;
         if (f.short != null && f.kind !== 'link' && f.kind !== 'fit') {
             b += `<dl class="rv-ev"><dt>부족</dt><dd>${f.short}개</dd></dl>`;
+        }
+        if (f.cands && f.cands.length) {
+            b += `<div class="rv-acts"><select data-rvpick="${RV_ESC(f.key)}" style="flex:1; min-width:0; max-width:260px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; color:var(--text); font-size:12.5px;">
+                ${f.cands.map(c => `<option value="${c.product_id}">${RV_ESC(c.name)} · ${Number(c.sale_price).toLocaleString('ko-KR')}원</option>`).join('')}</select>
+                <button class="rv-mini pri" onclick="rvFix('${RV_ESC(f.key)}', ${Math.max(1, f.short || 1)})">${Math.max(1, f.short || 1)}개 담기</button></div>`;
         }
         b += `<div class="rv-acts"><button class="rv-mini" onclick="rvOpenForm='${RV_ESC(f.key)}'; rvReason=''; rvRender()">빼고 진행</button></div>`;
         if (rvOpenForm === f.key) {

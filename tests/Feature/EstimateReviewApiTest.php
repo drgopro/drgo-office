@@ -31,7 +31,7 @@ class EstimateReviewApiTest extends TestCase
         $this->admin = User::factory()->create(['role' => 'master', 'display_name' => '검토자']);
 
         $this->pc = Product::create(['sku' => 'PC-1', 'name' => '송출용 PC', 'category' => 'PC', 'sale_price' => 1000000, 'is_active' => 1]);
-        $this->monitor = Product::create(['sku' => 'MON-1', 'name' => '사무용 모니터', 'category' => 'PC', 'sale_price' => 200000, 'is_active' => 1]);
+        $this->monitor = Product::create(['sku' => 'MON-1', 'name' => '사무용 모니터', 'category' => 'PC', 'sale_price' => 200000, 'is_active' => 1, 'show_in_estimate' => 1]);
 
         // 최소 설정 — 컴퓨터에는 모니터가 필요
         Setting::set('estimate_review.config', json_encode([
@@ -154,6 +154,23 @@ class EstimateReviewApiTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson("/api/estimates/{$this->estimate->id}/review/finish")
             ->assertStatus(422);
+    }
+
+    public function test_miss_finding_carries_sellable_candidates_fix_first(): void
+    {
+        // 후보: 추천 제품(fix) 우선, 담을 수 없는(비활성) 제품 제외
+        $hidden = Product::create(['sku' => 'MON-X', 'name' => '구형 모니터', 'category' => 'PC', 'sale_price' => 100000, 'is_active' => 0]);
+        $cfg = json_decode(Setting::get('estimate_review.config'), true);
+        $cfg['rules'][0]['fix'] = '사무용 모니터';
+        $cfg['productRolesByName']['구형 모니터'] = [['monitor', 1]];
+        Setting::set('estimate_review.config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+
+        $res = $this->runReview()->assertOk();
+        $cands = $res->json('findings.0.cands');
+        $this->assertSame('사무용 모니터', $cands[0]['name']);
+        $this->assertSame($this->monitor->id, $cands[0]['product_id']);
+        $this->assertNotContains('구형 모니터', array_column($cands, 'name'));
+        $this->assertArrayNotHasKey('purchase_price', $cands[0]);
     }
 
     public function test_response_never_exposes_purchase_price(): void
