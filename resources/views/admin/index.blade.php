@@ -1024,6 +1024,20 @@
                 <input class="field-input" id="sellerPhone" value="{{ $sellerSettings['seller_phone'] ?? '' }}">
             </div>
             <div class="field-group">
+                <div class="field-label">결제 계좌 — 의뢰자 견적서의 '계좌이체' 안내에 표시 (비우면 카드 결제만 노출)</div>
+                <input class="field-input" id="paymentBankAccount" value="{{ $sellerSettings['payment_bank_account'] ?? '' }}" placeholder="예: 국민은행 000000-00-000000 (주)닥터고블린컴퍼니">
+            </div>
+            <div class="field-group">
+                <div class="field-label">위약 안내 전문 (HTML) — 의뢰자 견적서 '위약 안내' 새창과 공개 페이지 /terms/penalty 에 표시. 비우면 기본 초안</div>
+                <textarea class="field-input" id="termsPenaltyHtml" rows="8" style="font-family:monospace; font-size:12px;">{{ $sellerSettings['terms_penalty_html'] ?? '' }}</textarea>
+                <input class="field-input" id="termsPenaltyVersion" value="{{ $sellerSettings['terms_penalty_version'] ?? '' }}" placeholder="버전 표기 — 예: v2 (2026-11-10). 전문 개정 시 꼭 올려주세요" style="margin-top:6px;">
+            </div>
+            <div class="field-group">
+                <div class="field-label">마케팅(설치 사례 활용) 동의 전문 (HTML) — /terms/marketing. 비우면 기본 초안</div>
+                <textarea class="field-input" id="termsMarketingHtml" rows="8" style="font-family:monospace; font-size:12px;">{{ $sellerSettings['terms_marketing_html'] ?? '' }}</textarea>
+                <input class="field-input" id="termsMarketingVersion" value="{{ $sellerSettings['terms_marketing_version'] ?? '' }}" placeholder="버전 표기 — 예: v2 (2026-11-10)" style="margin-top:6px;">
+            </div>
+            <div class="field-group">
                 <div class="field-label">직인 이미지 — 견적서 판매처 영역 우측에 글자 뒤 배경으로 표시됩니다 (배경 투명 PNG 권장, 2MB 이하)</div>
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <img id="stampPreview" src="{{ !empty($sellerSettings['seller_stamp_path']) ? route('seller.stamp').'?v='.substr(md5($sellerSettings['seller_stamp_path']), 0, 8) : '' }}"
@@ -2141,6 +2155,11 @@ async function deleteTeam(id) {
 async function saveSellerSettings() {
     const body = {
         seller_name: document.getElementById('sellerName').value,
+        payment_bank_account: document.getElementById('paymentBankAccount').value,
+        terms_penalty_html: document.getElementById('termsPenaltyHtml').value,
+        terms_penalty_version: document.getElementById('termsPenaltyVersion').value,
+        terms_marketing_html: document.getElementById('termsMarketingHtml').value,
+        terms_marketing_version: document.getElementById('termsMarketingVersion').value,
         seller_biz_no: document.getElementById('sellerBizNo').value,
         seller_address: document.getElementById('sellerAddress').value,
         seller_biz_type: document.getElementById('sellerBizType').value,

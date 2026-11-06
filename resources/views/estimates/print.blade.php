@@ -35,7 +35,7 @@
 
         /* 의뢰자용 하단 결제 바 */
         .pay-bar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #d8dce4; padding:12px 16px; display:flex; gap:10px; align-items:center; justify-content:center; z-index:100; box-shadow:0 -4px 16px rgba(0,0,0,0.08); }
-        .pay-btn { flex:1; max-width:420px; text-align:center; background:#3b5ea0; color:#fff; text-decoration:none; padding:14px 20px; border-radius:10px; font-size:16px; font-weight:800; }
+        .pay-btn { flex:1; max-width:420px; text-align:center; background:#3b5ea0; color:#fff; text-decoration:none; padding:14px 20px; border-radius:10px; font-size:16px; font-weight:800; border:none; cursor:pointer; font-family:inherit; }
         /* 결제 건이 여러 개(1차 + 차수)면 세로로 쌓기 */
         .pay-col { flex:1; max-width:420px; display:flex; flex-direction:column; gap:8px; }
         .pay-col .pay-btn { flex:none; max-width:none; }
@@ -45,6 +45,26 @@
         .pay-cancelled { flex:1; max-width:420px; text-align:center; background:#f5eaea; color:#b03030; padding:14px 20px; border-radius:10px; font-size:15px; font-weight:700; }
         .pay-print { background:none; border:1px solid #c8ccd4; color:#5a6070; padding:12px 16px; border-radius:10px; font-size:13px; cursor:pointer; }
         body.public-mode { padding-bottom:90px; }
+        /* 동의 카드 — 문서 하단, 결제 전 확인 */
+        .consent-row { max-width:1080px; margin:18px auto 0; display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 4px; }
+        @media (max-width:700px) { .consent-row { grid-template-columns:1fr; } }
+        .consent-card { background:#fff; border:1.5px solid #c8ccd4; border-radius:12px; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+        .consent-card.ok { border-color:#1c7f4d; background:#f2faf5; }
+        .consent-card b { font-size:15px; }
+        .consent-card small { display:block; color:#8a94a0; font-size:12px; margin-top:2px; }
+        .consent-open { background:#1d2d3d; color:#fff; border:none; border-radius:9px; padding:10px 16px; font-size:13.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
+        .consent-ok-txt { color:#1c7f4d; font-weight:800; font-size:13.5px; white-space:nowrap; }
+        .pay-btn.locked { background:#b9c2cc; cursor:not-allowed; }
+        /* 결제 수단 선택 */
+        #payMethodBg { position:fixed; inset:0; background:rgba(10,18,26,.5); z-index:200; display:none; }
+        #payMethod { position:fixed; left:50%; bottom:0; transform:translateX(-50%); width:min(460px,100%); background:#fff; border-radius:16px 16px 0 0; padding:20px 18px calc(22px + env(safe-area-inset-bottom)); z-index:201; display:none; box-shadow:0 -8px 30px rgba(0,0,0,.25); }
+        #payMethod h3 { margin:0 0 14px; font-size:16px; text-align:center; }
+        .pm-btn { display:block; width:100%; text-align:center; border-radius:10px; padding:14px; font-size:15px; font-weight:800; margin-bottom:8px; cursor:pointer; text-decoration:none; border:none; }
+        .pm-card { background:#3b5ea0; color:#fff; }
+        .pm-bank { background:#fff; color:#1d2d3d; border:1.5px solid #c8ccd4; }
+        .pm-close { background:none; border:none; color:#8a94a0; font-size:13px; width:100%; padding:8px; cursor:pointer; }
+        #bankInfo { display:none; background:#f4f6f8; border-radius:10px; padding:14px; font-size:14px; line-height:1.7; margin-bottom:8px; }
+        #bankInfo b { font-size:16px; }
         /* 의뢰자용 화면은 전체 글자를 한 단계 키움 */
         body.public-mode .estimate-wrap { zoom:1.15; }
         @media print { body.public-mode .estimate-wrap { zoom:1; } }
@@ -254,9 +274,14 @@
 <div class="pay-bar no-print">
     @if($payables->isNotEmpty())
         <div class="pay-col">
+            @php $penaltyAgreed = !empty(($estimate->agreements ?? [])['penalty']['at']); @endphp
             @foreach($payables as $p)
-                <a class="pay-btn" href="{{ $p['url'] }}" target="_blank" rel="noopener">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</a>
+                <button class="pay-btn {{ $penaltyAgreed ? '' : 'locked' }}" data-url="{{ $p['url'] }}" data-amount="{{ number_format($p['amount']) }}"
+                    onclick="payClick(this)">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</button>
             @endforeach
+            @unless($penaltyAgreed)
+                <div class="pay-note">아래 ‘위약 안내’를 읽고 동의하시면 결제하실 수 있습니다.</div>
+            @endunless
             @if($notReadyRounds->isNotEmpty())
                 <div class="pay-note">작성 중인 {{ $notReadyRounds->map(fn ($r) => $r->round.'차')->implode('·') }} 금액({{ number_format($notReadyRounds->sum('total_amount')) }}원)은 발행 후 결제하실 수 있습니다.</div>
             @endif
@@ -649,5 +674,73 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
     </div>
 
 </div>
+
+@if(!empty($publicMode))
+@php
+    $ag = $estimate->agreements ?? [];
+    $termsBase = url('/estimate-view/'.$estimate->share_token.'/terms');
+    $bankAccount = trim((string) ($settings['payment_bank_account'] ?? ''));
+@endphp
+{{-- 동의 카드 — 위약(필수)·마케팅(선택). 버튼을 누르면 전문 새창, 완독 후 동의 --}}
+<div class="consent-row no-print">
+    <div class="consent-card {{ !empty($ag['penalty']['at']) ? 'ok' : '' }}">
+        <div><b>위약 안내 <span style="color:#b03030; font-size:12px;">(필수)</span></b>
+            <small>일정 변경·취소·환불 기준 — 결제 전 확인이 필요합니다</small></div>
+        @if(!empty($ag['penalty']['at']))
+            <span class="consent-ok-txt">✓ 동의 완료 · {{ $ag['penalty']['at'] }}</span>
+        @else
+            <button class="consent-open" onclick="openTerms('penalty')">읽고 동의하기</button>
+        @endif
+    </div>
+    <div class="consent-card {{ !empty($ag['marketing']['at']) ? 'ok' : '' }}">
+        <div><b>설치 사례 활용 동의 <span style="color:#2e6cb5; font-size:12px;">(선택)</span></b>
+            <small>세팅 사진·채널명을 사례로 소개하는 데 동의해 주시면 큰 힘이 됩니다</small></div>
+        @if(!empty($ag['marketing']['at']))
+            <span class="consent-ok-txt">✓ 동의 완료 · {{ $ag['marketing']['at'] }}</span>
+        @else
+            <button class="consent-open" onclick="openTerms('marketing')">내용 보기</button>
+        @endif
+    </div>
+</div>
+
+{{-- 결제 수단 선택 — 카드(페이앱) / 계좌이체 안내 --}}
+<div id="payMethodBg" onclick="closePayMethod()"></div>
+<div id="payMethod">
+    <h3>결제 수단을 선택해 주세요 <span id="pmAmount" style="color:#3b5ea0;"></span></h3>
+    <a class="pm-btn pm-card" id="pmCardBtn" href="#" target="_blank" rel="noopener">💳 카드 결제 (간편·휴대폰)</a>
+    @if($bankAccount !== '')
+    <button class="pm-btn pm-bank" onclick="document.getElementById('bankInfo').style.display='block'; this.style.display='none'">🏦 계좌이체로 결제</button>
+    <div id="bankInfo">
+        <b>{{ $bankAccount }}</b><br>
+        입금자명은 <b>{{ $estimate->client_nickname ?: $estimate->client_name ?: '주문자명' }}</b>(으)로 부탁드립니다.<br>
+        입금 확인 후 결제 완료 처리해 드립니다. (영업시간 기준)
+    </div>
+    @endif
+    <button class="pm-close" onclick="closePayMethod()">닫기</button>
+</div>
+
+<script>
+function openTerms(type) {
+    window.open('{{ $termsBase }}/' + type, 'drgoTerms', 'width=760,height=880,scrollbars=yes');
+}
+function payClick(btn) {
+    if (btn.classList.contains('locked')) {
+        alert('결제 전에 아래 [위약 안내]를 읽고 동의해 주세요.');
+        document.querySelector('.consent-row').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    document.getElementById('pmCardBtn').href = btn.dataset.url;
+    document.getElementById('pmAmount').textContent = btn.dataset.amount + '원';
+    document.getElementById('payMethodBg').style.display = 'block';
+    document.getElementById('payMethod').style.display = 'block';
+}
+function closePayMethod() {
+    document.getElementById('payMethodBg').style.display = 'none';
+    document.getElementById('payMethod').style.display = 'none';
+    const b = document.getElementById('bankInfo');
+    if (b) { b.style.display = 'none'; const bb = document.querySelector('.pm-bank'); if (bb) bb.style.display = 'block'; }
+}
+</script>
+@endif
 </body>
 </html>

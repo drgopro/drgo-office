@@ -128,6 +128,7 @@ class AdminController extends Controller
             'payment_alert_group', 'payment_alert_managers',
             'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group',
             'marketing_alert_group', 'marketing_alert_managers',
+            'payment_bank_account', 'terms_penalty_html', 'terms_penalty_version', 'terms_marketing_html', 'terms_marketing_version',
         ]);
 
         return view('admin.index', compact('logs', 'sellerSettings'));
@@ -142,12 +143,13 @@ class AdminController extends Controller
             'payment_alert_group', 'payment_alert_managers',
             'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group',
             'marketing_alert_group', 'marketing_alert_managers',
+            'payment_bank_account', 'terms_penalty_html', 'terms_penalty_version', 'terms_marketing_html', 'terms_marketing_version',
         ]));
     }
 
     public function updateSettings(Request $request)
     {
-        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group', 'marketing_alert_group', 'marketing_alert_managers'];
+        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group', 'marketing_alert_group', 'marketing_alert_managers', 'payment_bank_account', 'terms_penalty_html', 'terms_penalty_version', 'terms_marketing_html', 'terms_marketing_version'];
 
         foreach ($keys as $key) {
             if ($request->has($key)) {

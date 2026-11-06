@@ -849,6 +849,7 @@ class EstimateController extends Controller
         $settings = Setting::getMany([
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
+            'payment_bank_account', // 계좌이체 안내 — "은행 000-0000 (주)닥터고블린컴퍼니" 형식
         ]);
 
         return view('estimates.print', [

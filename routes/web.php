@@ -14,6 +14,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDocumentController;
 use App\Http\Controllers\ClientFieldDefinitionController;
+use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\ConsultationTypeController;
 use App\Http\Controllers\CrmDemoController;
@@ -74,6 +75,10 @@ Route::match(['get', 'post'], '/api/agent-events/ingest', [AgentEventController:
 // 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요)
 // POST도 허용: 페이앱이 결제 후 returnurl로 POST 리다이렉트함 (405 방지)
 Route::match(['get', 'post'], '/estimate-view/{token}', [EstimateController::class, 'publicView'])->name('estimates.public');
+// 의뢰자 동의 — 위약 안내(필수)·마케팅 활용(선택). /terms/{type}는 홈페이지 게시용 공개 전문
+Route::get('/terms/{type}', [ConsentController::class, 'publicTerms'])->name('terms.public');
+Route::get('/estimate-view/{token}/terms/{type}', [ConsentController::class, 'estimateTerms']);
+Route::post('/estimate-view/{token}/agree', [ConsentController::class, 'agree']);
 // 직인 이미지 — 견적서(내부·공개) 판매처 영역 배경용 (로그인 불필요)
 Route::get('/seller-stamp', [EstimateController::class, 'sellerStamp'])->name('seller.stamp');
 // 페이앱 결제 결과 통지 (feedbackurl — 연동 KEY/VALUE + 견적서 토큰으로 검증, CSRF 제외)
