@@ -20,7 +20,7 @@ class ConsentController extends Controller
 {
     public const TYPES = ['penalty', 'marketing'];
 
-    /** 공개 전문 — 홈페이지 게시용 (최신본 단일 원본) */
+    /** 공개 전문 — 홈페이지 게시용 (최신본 단일 원본). 위약은 활성 섹션 전체를 담는다 */
     public function publicTerms(string $type)
     {
         abort_unless(in_array($type, self::TYPES, true), 404);
@@ -28,14 +28,15 @@ class ConsentController extends Controller
         return view('terms.show', ['doc' => self::doc($type), 'type' => $type, 'estimate' => null]);
     }
 
-    /** 견적서 전문 — 완독 후 동의 (이미 동의했으면 상태 표시) */
+    /** 견적서 전문 — 완독 후 동의. 위약은 이 견적서에 해당하는 섹션만 조립 */
     public function estimateTerms(string $token, string $type)
     {
         abort_unless(in_array($type, self::TYPES, true), 404);
         abort_if(strlen($token) < 32, 404);
         $estimate = Estimate::where('share_token', $token)->firstOrFail();
+        $doc = $type === 'penalty' ? self::penaltyDocFor($estimate->terms_sections) : self::doc($type);
 
-        return view('terms.show', ['doc' => self::doc($type), 'type' => $type, 'estimate' => $estimate]);
+        return view('terms.show', ['doc' => $doc, 'type' => $type, 'estimate' => $estimate]);
     }
 
     /** 동의 기록 */
@@ -45,15 +46,17 @@ class ConsentController extends Controller
         $estimate = Estimate::where('share_token', $token)->firstOrFail();
         $data = $request->validate(['type' => 'required|in:penalty,marketing']);
         $type = $data['type'];
-        $doc = self::doc($type);
+        $doc = $type === 'penalty' ? self::penaltyDocFor($estimate->terms_sections) : self::doc($type);
 
         $agreements = $estimate->agreements ?? [];
         if (empty($agreements[$type]['at'])) { // 중복 클릭 — 최초 동의 시각 보존
-            $agreements[$type] = [
+            $agreements[$type] = array_filter([
                 'at' => now()->format('Y-m-d H:i:s'),
                 'ver' => $doc['version'],
                 'ip' => $request->ip(),
-            ];
+                // 위약: 어떤 섹션 조합(각 버전)에 동의했는지 — 유형별 개정 대비
+                'sections' => $doc['sections'] ?? null,
+            ]);
             $estimate->forceFill(['agreements' => $agreements])->save();
 
             // 마케팅 동의는 의뢰자에도 기록 — 이미 동의한 의뢰자는 최초 기록 유지
@@ -77,11 +80,7 @@ class ConsentController extends Controller
         $version = (string) Setting::get("terms_{$type}_version", '');
 
         if ($type === 'penalty') {
-            return [
-                'title' => '위약 안내',
-                'version' => $version !== '' ? $version : 'v1 (2026-11-06)',
-                'html' => $html !== '' ? $html : self::defaultPenalty(),
-            ];
+            return self::penaltyDocFor(null); // 선택 없음 = 활성 섹션 전체 (공개 전문)
         }
 
         return [
@@ -91,28 +90,76 @@ class ConsentController extends Controller
         ];
     }
 
-    private static function defaultPenalty(): string
+    /**
+     * 위약 안내 섹션 목록 — Setting('terms_penalty_sections') JSON 또는 기본 초안.
+     * 각 섹션: {key, name, version, active, auto_types[], html}
+     * auto_types: 연동 프로젝트 유형(crm.project_types 키)과 일치하면 견적서에 자동 제안.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function penaltySections(): array
     {
-        return <<<'HTML'
-<p>본 안내는 (주)닥터고블린컴퍼니(이하 "회사")의 장비 판매·세팅 서비스 계약의 변경·취소에 관한 기준입니다. 결제 전 반드시 확인해 주세요.</p>
-<h3>1. 일정 변경</h3>
-<ul>
-<li>설치(세팅) 예정일 <b>3일 전까지</b>의 일정 변경은 위약금 없이 1회 가능합니다.</li>
-<li>예정일 <b>2일 전~전일</b> 변경 시 출장 준비 비용이 발생할 수 있습니다.</li>
-</ul>
-<h3>2. 계약 취소·환불</h3>
-<ul>
-<li>발주 전 취소: 전액 환불됩니다.</li>
-<li>발주 후(장비 주문 완료) 취소: 개봉·주문제작 장비는 공급처 반품 조건에 따라 반품 수수료가 차감될 수 있습니다.</li>
-<li>설치 완료 후에는 장비 단순 변심 반품이 불가하며, 하자는 AS 기준에 따릅니다.</li>
-</ul>
-<h3>3. 결제·기타</h3>
-<ul>
-<li>견적 금액은 견적 유효기간 내 결제 기준이며, 기간 경과 시 재견적될 수 있습니다.</li>
-<li>현장 여건(전기·인터넷·구조물 등)으로 추가 작업이 필요한 경우 사전 협의 후 추가 비용이 발생할 수 있습니다.</li>
-</ul>
-<p style="color:#888">※ 본 문구는 기본 초안입니다 — 관리자 페이지 &gt; 판매처 설정에서 실제 약관으로 교체하세요.</p>
-HTML;
+        $json = Setting::get('terms_penalty_sections');
+        if ($json) {
+            $decoded = json_decode((string) $json, true);
+            if (is_array($decoded) && $decoded !== []) {
+                return $decoded;
+            }
+        }
+
+        return self::defaultPenaltySections();
+    }
+
+    /**
+     * 선택된 섹션 키로 위약 전문 조립 — 공통은 항상 포함, null이면 활성 섹션 전체(공개 전문용).
+     *
+     * @return array{title: string, html: string, version: string, sections: array<string, string>}
+     */
+    public static function penaltyDocFor(?array $selectedKeys): array
+    {
+        $sections = array_values(array_filter(self::penaltySections(), fn ($s) => ! empty($s['active'])));
+        $picked = array_values(array_filter($sections, fn ($s) => ($s['key'] ?? '') === 'common'
+            || $selectedKeys === null
+            || in_array($s['key'] ?? '', $selectedKeys, true)));
+
+        $html = '';
+        $versions = [];
+        foreach ($picked as $s) {
+            if (($s['key'] ?? '') !== 'common') {
+                $html .= '<h2 style="font-size:17px; color:#1d2d3d; border-bottom:2px solid #dfe3e9; padding-bottom:6px; margin:28px 0 10px;">'.e($s['name'] ?? '').'</h2>';
+            }
+            $html .= (string) ($s['html'] ?? '');
+            $versions[(string) ($s['key'] ?? '')] = (string) ($s['version'] ?? 'v1');
+        }
+
+        return [
+            'title' => '위약 안내',
+            'version' => collect($picked)->map(fn ($s) => ($s['name'] ?? $s['key']).' '.($s['version'] ?? 'v1'))->implode(' · '),
+            'html' => $html !== '' ? $html : '<p>등록된 위약 안내가 없습니다.</p>',
+            'sections' => $versions,
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private static function defaultPenaltySections(): array
+    {
+        $v = 'v1 (2026-11-06)';
+        $draft = '<p style="color:#888">※ 기본 초안입니다 — 관리자 페이지 &gt; 판매처 설정에서 실제 문구로 교체하세요.</p>';
+
+        return [
+            ['key' => 'common', 'name' => '공통', 'version' => $v, 'active' => true, 'auto_types' => [],
+                'html' => '<p>본 안내는 (주)닥터고블린컴퍼니의 거래 변경·취소에 관한 공통 기준입니다.</p><ul><li>견적 금액은 견적 유효기간 내 결제 기준이며, 기간 경과 시 재견적될 수 있습니다.</li><li>결제 후 변경·취소는 아래 해당 항목의 기준을 따릅니다.</li></ul>'.$draft],
+            ['key' => 'visit_setup', 'name' => '방문 세팅', 'version' => $v, 'active' => true, 'auto_types' => ['visit', 'onsite'],
+                'html' => '<ul><li>설치 예정일 3일 전까지 일정 변경은 위약금 없이 1회 가능합니다.</li><li>예정일 2일 전~당일 취소 시 출장 준비 비용이 발생할 수 있습니다.</li><li>현장 여건(전기·인터넷·구조물)으로 추가 작업이 필요한 경우 사전 협의 후 추가 비용이 발생할 수 있습니다.</li></ul>'.$draft],
+            ['key' => 'remote_setup', 'name' => '원격 세팅', 'version' => $v, 'active' => true, 'auto_types' => ['remote'],
+                'html' => '<ul><li>원격 세팅 예약 변경은 예정 시각 24시간 전까지 가능합니다.</li><li>세팅 완료 후에는 작업 범위 내 재설정 요청에 한해 지원합니다.</li></ul>'.$draft],
+            ['key' => 'rental', 'name' => '렌탈', 'version' => $v, 'active' => true, 'auto_types' => ['rental'],
+                'html' => '<ul><li>렌탈 기간 단축·중도 해지 시 잔여 기간 요금의 일부가 위약금으로 발생할 수 있습니다.</li><li>장비 파손·분실 시 수리비 또는 감가 기준 변상금이 청구됩니다.</li></ul>'.$draft],
+            ['key' => 'broadcast_room', 'name' => '방송룸 대여', 'version' => $v, 'active' => true, 'auto_types' => ['broadcast_room'],
+                'html' => '<ul><li>이용 예정일 전일까지 취소 시 전액 환불, 당일 취소·노쇼는 이용료가 청구될 수 있습니다.</li><li>시설·장비 파손 시 변상 기준을 따릅니다.</li></ul>'.$draft],
+            ['key' => 'goods', 'name' => '장비 판매·배송', 'version' => $v, 'active' => true, 'auto_types' => ['goods'],
+                'html' => '<ul><li>발주 전 취소는 전액 환불됩니다.</li><li>발주 후 취소는 공급처 반품 조건에 따라 반품 수수료가 차감될 수 있습니다.</li><li>개봉·설치 후 단순 변심 반품은 불가하며, 하자는 AS 기준에 따릅니다.</li></ul>'.$draft],
+        ];
     }
 
     private static function defaultMarketing(): string

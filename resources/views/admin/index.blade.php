@@ -1039,9 +1039,9 @@
                 </label>
             </div>
             <div class="field-group">
-                <div class="field-label">위약 안내 전문 (HTML) — 의뢰자 견적서 '위약 안내' 새창과 공개 페이지 /terms/penalty 에 표시. 비우면 기본 초안</div>
-                <textarea class="field-input" id="termsPenaltyHtml" rows="8" style="font-family:monospace; font-size:12px;">{{ $sellerSettings['terms_penalty_html'] ?? '' }}</textarea>
-                <input class="field-input" id="termsPenaltyVersion" value="{{ $sellerSettings['terms_penalty_version'] ?? '' }}" placeholder="버전 표기 — 예: v2 (2026-11-10). 전문 개정 시 꼭 올려주세요" style="margin-top:6px;">
+                <div class="field-label">위약 안내 섹션 — 견적서마다 공통 + 해당 섹션만 조립해 보여줍니다. '자동 적용 유형'과 일치하는 프로젝트가 연동된 견적서에는 자동 제안됩니다. 개정 시 해당 섹션의 버전을 꼭 올려주세요</div>
+                <div id="tpsList" style="display:grid; gap:10px;"></div>
+                <button type="button" class="btn-save" style="margin-top:8px; width:auto;" onclick="tpsAdd()">+ 섹션 추가</button>
             </div>
             <div class="field-group">
                 <div class="field-label">마케팅(설치 사례 활용) 동의 전문 (HTML) — /terms/marketing. 비우면 기본 초안</div>
@@ -2163,14 +2163,50 @@ async function deleteTeam(id) {
 }
 
 // ── 판매처 설정 ──
+// ── 위약 안내 섹션 편집기 — 공통(common)은 삭제·비활성 불가 ──
+const TPS = @json($penaltySections ?? []);
+const TPS_TYPES = @json($projectTypeOptions ?? []);
+function tpsRender() {
+    const box = document.getElementById('tpsList');
+    if (!box) return;
+    box.innerHTML = TPS.map((t, i) => {
+        const isCommon = t.key === 'common';
+        const typeChips = Object.entries(TPS_TYPES).map(([k, l]) => {
+            const on = (t.auto_types || []).includes(k);
+            return `<button type="button" style="font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer; border:1px solid ${on ? 'var(--accent)' : 'var(--border)'}; background:${on ? 'rgba(59,94,160,0.14)' : 'var(--surface)'}; color:${on ? 'var(--accent)' : 'var(--text-muted)'};" onclick="tpsType(${i},'${k}')">${l}</button>`;
+        }).join(' ');
+        return `<div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:grid; gap:8px; ${t.active ? '' : 'opacity:0.55;'}">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                ${isCommon ? '<b style="font-size:13.5px;">공통 (항상 포함)</b>'
+                    : `<input class="field-input" style="width:140px;" value="${(t.name||'').replace(/"/g,'&quot;')}" onchange="TPS[${i}].name=this.value" placeholder="섹션 이름">`}
+                <input class="field-input" style="width:130px;" value="${(t.version||'').replace(/"/g,'&quot;')}" onchange="TPS[${i}].version=this.value" placeholder="버전 — v1">
+                ${isCommon ? '' : `<label style="display:flex; align-items:center; gap:5px; font-size:12.5px; cursor:pointer;"><input type="checkbox" ${t.active?'checked':''} onchange="TPS[${i}].active=this.checked; tpsRender()"> 사용</label>`}
+                ${isCommon ? '' : `<button type="button" class="btn-save" style="margin:0; margin-left:auto; width:auto; background:none; border:1px solid var(--border); color:var(--red);" onclick="if(confirm('이 섹션을 삭제할까요?')){TPS.splice(${i},1); tpsRender();}">삭제</button>`}
+            </div>
+            ${isCommon ? '' : `<div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; font-size:11.5px; color:var(--text-muted);">자동 적용 유형: ${typeChips}</div>`}
+            <textarea class="field-input" rows="4" style="font-family:monospace; font-size:12px;" onchange="TPS[${i}].html=this.value" placeholder="섹션 본문 (HTML)">${(t.html||'').replace(/</g,'&lt;')}</textarea>
+        </div>`;
+    }).join('');
+}
+function tpsType(i, k) {
+    const a = TPS[i].auto_types = TPS[i].auto_types || [];
+    const j = a.indexOf(k);
+    j >= 0 ? a.splice(j, 1) : a.push(k);
+    tpsRender();
+}
+function tpsAdd() {
+    TPS.push({ key: 'sec-' + Date.now().toString(36), name: '', version: 'v1', active: true, auto_types: [], html: '' });
+    tpsRender();
+}
+document.addEventListener('DOMContentLoaded', tpsRender);
+
 async function saveSellerSettings() {
     const body = {
         seller_name: document.getElementById('sellerName').value,
         payment_bank_account: document.getElementById('paymentBankAccount').value,
         terms_penalty_enabled: document.getElementById('termsPenaltyEnabled').checked ? '1' : '0',
         terms_marketing_enabled: document.getElementById('termsMarketingEnabled').checked ? '1' : '0',
-        terms_penalty_html: document.getElementById('termsPenaltyHtml').value,
-        terms_penalty_version: document.getElementById('termsPenaltyVersion').value,
+        terms_penalty_sections: JSON.stringify(TPS),
         terms_marketing_html: document.getElementById('termsMarketingHtml').value,
         terms_marketing_version: document.getElementById('termsMarketingVersion').value,
         seller_biz_no: document.getElementById('sellerBizNo').value,

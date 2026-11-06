@@ -77,12 +77,14 @@ class Estimate extends Model
         'payapp_paid_at',
         'memo',
         'internal_memo',
+        'terms_sections',
         'draft',
         'draft_saved_at',
         'created_by',
     ];
 
     protected $casts = [
+        'terms_sections' => 'array',
         'agreements' => 'array',
         'review_state' => 'array',
         'product_items' => 'array',

@@ -403,7 +403,19 @@ class EstimateController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
         ]);
 
-        return view('estimates.edit', compact('estimate', 'settings'));
+        // 위약 안내 섹션 — 활성 목록 + 자동 제안 (연동 프로젝트 유형 기준, 저장값이 있으면 저장값 우선)
+        $penaltySections = collect(ConsentController::penaltySections())
+            ->filter(fn ($x) => ! empty($x['active']) && ($x['key'] ?? '') !== 'common')
+            ->map(fn ($x) => ['key' => $x['key'], 'name' => $x['name'], 'auto_types' => $x['auto_types'] ?? []])
+            ->values()->all();
+        $projectType = $estimate->project_id
+            ? Project::where('id', $estimate->project_id)->value('project_type')
+            : null;
+        $suggestedTermsSections = collect($penaltySections)
+            ->filter(fn ($x) => $projectType && in_array($projectType, $x['auto_types'], true))
+            ->pluck('key')->values()->all();
+
+        return view('estimates.edit', compact('estimate', 'settings', 'penaltySections', 'suggestedTermsSections'));
     }
 
     public function update(Request $request, Estimate $estimate, PayAppClient $payapp)
@@ -478,7 +490,9 @@ class EstimateController extends Controller
             // 'temp'도 허용 — 신규 견적서 작성 직후 status가 'temp'로 남아있을 수 있음
             'status' => 'nullable|in:temp,created,editing,completed,issued,paid,hold,cancelled,quote_cancelled',
             'memo' => 'nullable|string',
-            'internal_memo' => 'nullable|string', // 직원용 내부 비고 — 의뢰자 견적서에 미표시
+            'internal_memo' => 'nullable|string',
+            'terms_sections' => 'nullable|array|max:20', // 이 견적서에 적용할 위약 안내 섹션 키
+            'terms_sections.*' => 'string|max:50', // 직원용 내부 비고 — 의뢰자 견적서에 미표시
         ]);
 
         // 연동 정합성 — 프로젝트는 이 견적서의 의뢰자 소유여야 한다 (타 의뢰자 프로젝트 연결 방지)

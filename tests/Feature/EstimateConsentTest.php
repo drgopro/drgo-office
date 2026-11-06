@@ -121,13 +121,28 @@ class EstimateConsentTest extends TestCase
         $res->assertDontSee('class="consent-row', false);
     }
 
-    public function test_custom_terms_from_settings_override_defaults(): void
+    public function test_penalty_terms_assemble_sections_per_estimate(): void
     {
-        Setting::set('terms_penalty_html', '<p>커스텀 위약 조항</p>');
-        Setting::set('terms_penalty_version', 'v9');
+        // 섹션 설정: 공통 + 렌탈 + 방문 — 견적서에는 렌탈만 선택
+        Setting::set('terms_penalty_sections', json_encode([
+            ['key' => 'common', 'name' => '공통', 'version' => 'c1', 'active' => true, 'auto_types' => [], 'html' => '<p>공통 조항</p>'],
+            ['key' => 'rental', 'name' => '렌탈', 'version' => 'r2', 'active' => true, 'auto_types' => ['rental'], 'html' => '<p>렌탈 위약 조항</p>'],
+            ['key' => 'visit_setup', 'name' => '방문 세팅', 'version' => 'v1', 'active' => true, 'auto_types' => ['visit'], 'html' => '<p>방문 위약 조항</p>'],
+        ], JSON_UNESCAPED_UNICODE));
+        $this->estimate->forceFill(['terms_sections' => ['rental']])->save();
 
-        $this->get('/terms/penalty')->assertOk()->assertSee('커스텀 위약 조항')->assertSee('v9');
-        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'penalty']);
-        $this->assertSame('v9', $this->estimate->fresh()->agreements['penalty']['ver']);
+        // 공개 전문(/terms/penalty)은 활성 섹션 전체
+        $this->get('/terms/penalty')->assertOk()
+            ->assertSee('공통 조항')->assertSee('렌탈 위약 조항')->assertSee('방문 위약 조항');
+
+        // 견적서 전문은 공통 + 선택 섹션만
+        $this->get("/estimate-view/{$this->estimate->share_token}/terms/penalty")->assertOk()
+            ->assertSee('공통 조항')->assertSee('렌탈 위약 조항')->assertDontSee('방문 위약 조항');
+
+        // 동의 기록에 섹션별 버전이 남는다
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'penalty'])->assertOk();
+        $rec = $this->estimate->fresh()->agreements['penalty'];
+        $this->assertSame(['common' => 'c1', 'rental' => 'r2'], $rec['sections']);
+        $this->assertStringContainsString('렌탈 r2', $rec['ver']);
     }
 }

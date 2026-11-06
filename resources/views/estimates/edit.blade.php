@@ -666,6 +666,12 @@
             <textarea id="estMemo" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:14px; outline:none; resize:vertical; min-height:60px;">{{ $estimate->memo }}</textarea>
         </div>
 
+        <!-- 위약 안내 구성 — 의뢰자 견적서의 '위약 안내' 전문에 포함할 섹션 (공통은 항상 포함) -->
+        <div class="cart-section">
+            <h4>위약 안내 구성 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 의뢰자 동의 전문에 공통 + 선택 섹션이 포함됩니다 (프로젝트 유형으로 자동 제안)</span></h4>
+            <div id="termsSectionChips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+
         <!-- 내부 비고 (직원 전용) -->
         <div class="cart-section" style="border-style:dashed;">
             <h4>내부 비고 <span style="color:var(--text-muted); font-weight:400; letter-spacing:0;">— 직원만 볼 수 있고 의뢰자 견적서·출력물에는 표시되지 않습니다</span></h4>
@@ -835,6 +841,26 @@ async function payappCancel() {
 }
 let clientId = {{ $estimate->client_id ?? 'null' }};
 let allProds = [], catData = [], cartItems = @json($estimate->product_items ?? []), svcItems = @json($estimate->service_items ?? []);
+// 위약 안내 섹션 — [{key,name,auto_types}], 저장값 없으면 프로젝트 유형 기반 자동 제안
+const TERMS_SECTIONS = @json($penaltySections ?? []);
+let termsSelected = @json($estimate->terms_sections ?? $suggestedTermsSections ?? []);
+function renderTermsChips() {
+    const box = document.getElementById('termsSectionChips');
+    if (!box) return;
+    if (!TERMS_SECTIONS.length) { box.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">활성화된 섹션이 없습니다 — 관리자 페이지 › 판매처 설정에서 관리</span>'; return; }
+    box.innerHTML = '<span style="font-size:12px; padding:5px 10px; border-radius:7px; background:var(--navy); color:#fff; font-weight:700;">공통 (항상)</span>'
+        + TERMS_SECTIONS.map(t => {
+            const on = termsSelected.includes(t.key);
+            return `<button type="button" style="font-size:12px; padding:5px 10px; border-radius:7px; cursor:pointer; border:1px solid ${on ? 'var(--accent)' : 'var(--border)'}; background:${on ? 'rgba(59,94,160,0.14)' : 'var(--surface)'}; color:${on ? 'var(--accent)' : 'var(--text-muted)'}; font-weight:${on ? '700' : '500'};"
+                onclick="termsToggle('${t.key}')">${on ? '✓ ' : ''}${t.name}</button>`;
+        }).join('');
+}
+function termsToggle(key) {
+    const i = termsSelected.indexOf(key);
+    i >= 0 ? termsSelected.splice(i, 1) : termsSelected.push(key);
+    renderTermsChips();
+}
+document.addEventListener('DOMContentLoaded', renderTermsChips);
 
 function fmt(n) { return Number(n).toLocaleString(); }
 
@@ -2096,6 +2122,7 @@ function buildEstimateBody() {
         status: document.getElementById('estStatus').value,
         memo: document.getElementById('estMemo').value || null,
         internal_memo: document.getElementById('estInternalMemo').value || null,
+        terms_sections: termsSelected,
     };
 }
 
