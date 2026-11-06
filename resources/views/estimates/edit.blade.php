@@ -2415,13 +2415,20 @@ async function rvUndo(key) {
     rvRender(); rvButton();
 }
 async function rvFinish() {
+    // 상태가 '발행 완료'로 바뀌어 있으면 발행 전환은 검토 완료 뒤로 미룬다 —
+    // 검토 완료용 저장이 발행 게이트(422)에 걸려 검토를 끝낼 수 없는 교착 방지
+    const sel = document.getElementById('estStatus');
+    const wantIssued = sel && sel.value === 'issued' && lastSavedStatus !== 'issued';
+    if (wantIssued) sel.value = lastSavedStatus === 'temp' ? 'created' : lastSavedStatus;
     await saveEstimate(true); // 완료는 저장본 기준 — 서버가 지문 일치를 검사
-    if (rvStale()) { await rvRun(); if (rvRemain().length) { rvRender(); return; } }
+    if (rvStale()) { await rvRun(); if (rvRemain().length) { if (wantIssued) sel.value = 'issued'; rvRender(); return; } }
     const res = await fetch(`/api/estimates/${estId}/review/finish`, { method:'POST', headers:H, body: JSON.stringify({}) });
     const body = await res.json();
+    if (wantIssued) sel.value = 'issued';
     if (!res.ok) { alert(body.message || '완료 처리 실패'); return; }
     rvRes.done = true; rvState = Object.assign(rvState || {}, { done:true, reviewer: body.reviewer, reviewed_at: body.reviewed_at });
     rvRender(); rvButton();
+    if (wantIssued) await saveEstimate(); // 검토가 끝났으니 이어서 발행 저장 — 게이트 통과
 }
 
 // 발견 카드에서 후보 제품 바로 담기 — 담은 뒤 즉시 재검토
