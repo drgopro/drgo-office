@@ -720,9 +720,15 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
 </div>
 
 <script>
+let termsOpened = false;
 function openTerms(type) {
+    termsOpened = true;
     window.open('{{ $termsBase }}/' + type, 'drgoTerms', 'width=760,height=880,scrollbars=yes');
 }
+// 전문 창에서 돌아오면 동의 상태 반영 — 창이 다른 도메인(drgo.pro 경유 열람)이어도 동작
+window.addEventListener('focus', () => {
+    if (termsOpened) { termsOpened = false; location.reload(); }
+});
 function payClick(btn) {
     if (btn.classList.contains('locked')) {
         alert('결제 전에 아래 [위약 안내]를 읽고 동의해 주세요.');
