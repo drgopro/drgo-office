@@ -173,6 +173,38 @@ class EstimateReviewApiTest extends TestCase
         $this->assertArrayNotHasKey('purchase_price', $cands[0]);
     }
 
+    public function test_rule_fix_accepts_multiple_products(): void
+    {
+        // 추천 제품 배열 — 입력 순서대로 후보 맨 위에, ask 질문에도 전부 제안
+        $monitor2 = Product::create(['sku' => 'MON-2', 'name' => '게이밍 모니터', 'category' => 'PC', 'sale_price' => 400000, 'is_active' => 1, 'show_in_estimate' => 1]);
+        $cfg = json_decode(Setting::get('estimate_review.config'), true);
+        $cfg['rules'][0]['fix'] = ['게이밍 모니터', '사무용 모니터'];
+        $cfg['rules'][] = [
+            'type' => 'ask', 'group' => '컴퓨터', 'id' => 'pc-ask', 'on' => ['pc'], 'cond' => 'always', 'cmp' => [],
+            'min' => 1, 'title' => '스피커 확인 {n}', 'choices' => ['확인함'], 'fix' => ['사무용 모니터', '게이밍 모니터'], 'active' => true,
+        ];
+        Setting::set('estimate_review.config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+
+        $res = $this->runReview()->assertOk();
+        $missCands = collect($res->json('findings'))->firstWhere('kind', 'miss')['cands'];
+        $this->assertSame(['게이밍 모니터', '사무용 모니터'], array_slice(array_column($missCands, 'name'), 0, 2));
+        $askCands = collect($res->json('findings'))->firstWhere('kind', 'ask')['cands'];
+        $this->assertSame(['사무용 모니터', '게이밍 모니터'], array_column($askCands, 'name'));
+    }
+
+    public function test_rule_fix_accepts_comma_separated_string(): void
+    {
+        // 쉼표 구분 문자열도 동작 (하위호환 + 직원 피드백 케이스)
+        $monitor2 = Product::create(['sku' => 'MON-2', 'name' => '게이밍 모니터', 'category' => 'PC', 'sale_price' => 400000, 'is_active' => 1, 'show_in_estimate' => 1]);
+        $cfg = json_decode(Setting::get('estimate_review.config'), true);
+        $cfg['rules'][0]['fix'] = '게이밍 모니터, 사무용 모니터';
+        Setting::set('estimate_review.config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+
+        $res = $this->runReview()->assertOk();
+        $cands = $res->json('findings.0.cands');
+        $this->assertSame(['게이밍 모니터', '사무용 모니터'], array_slice(array_column($cands, 'name'), 0, 2));
+    }
+
     public function test_response_never_exposes_purchase_price(): void
     {
         $content = $this->runReview()->assertOk()->getContent();

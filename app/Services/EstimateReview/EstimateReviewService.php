@@ -152,15 +152,29 @@ class EstimateReviewService
         $this->catalog(); // nameIndex 준비
         $cand = fn (int $pid) => ['product_id' => $pid, 'name' => $catalog[$pid]['name'], 'sale_price' => $catalog[$pid]['sale_price']];
 
+        // 규칙의 추천 제품 — 배열 또는 쉼표 구분 문자열(하위호환), 담을 수 있는 제품만, 입력 순서 유지
+        $fixIds = function ($fix) use ($catalog): array {
+            $names = is_array($fix) ? $fix : ($fix ? preg_split('/\s*,\s*/u', trim((string) $fix)) : []);
+            $ids = [];
+            foreach ($names as $name) {
+                $id = $this->nameIndex[trim((string) $name)] ?? null;
+                if ($id && ($catalog[$id]['sellable'] ?? false) && ! in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
+            }
+
+            return $ids;
+        };
+
         foreach ($findings as &$f) {
-            $fixId = ! empty($f['fix']) ? ($this->nameIndex[$f['fix']] ?? null) : null;
+            $fixes = $fixIds($f['fix'] ?? null);
             if (in_array($f['kind'] ?? '', ['miss', 'qty'], true) && ! empty($f['need_roles'])) {
-                $pids = $byRoles((array) $f['need_roles']);
-                // 추천 제품(fix) 맨 앞, 이후 이름순 — 15개까지
-                usort($pids, fn ($a, $b) => (($b === $fixId) <=> ($a === $fixId)) ?: strcmp($catalog[$a]['name'], $catalog[$b]['name']));
-                $f['cands'] = array_map($cand, array_slice($pids, 0, 15));
-            } elseif (($f['kind'] ?? '') === 'ask' && $fixId && ($catalog[$fixId]['sellable'] ?? false)) {
-                $f['cands'] = [$cand($fixId)];
+                // 추천 제품들 맨 앞(입력 순서), 이후 역할 보유 제품 이름순 — 15개까지
+                $others = array_values(array_diff($byRoles((array) $f['need_roles']), $fixes));
+                usort($others, fn ($a, $b) => strcmp($catalog[$a]['name'], $catalog[$b]['name']));
+                $f['cands'] = array_map($cand, array_slice([...$fixes, ...$others], 0, 15));
+            } elseif (($f['kind'] ?? '') === 'ask' && $fixes !== []) {
+                $f['cands'] = array_map($cand, $fixes);
             }
         }
 

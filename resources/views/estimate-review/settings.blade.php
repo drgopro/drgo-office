@@ -234,14 +234,26 @@ function tabRules() {
 function newRule(type) {
     const id = type + '-' + Date.now().toString(36);
     UI.drawer = type === 'need'
-        ? { _new:true, type, id, group:'', on:[], need:[], mode:'perUnit', amt:1, what:'', why:'', fix:'', active:true }
-        : { _new:true, type, id, group:'', on:[], cond:'always', cmp:[], min:1, title:'', desc:'', choicesTxt:'', fix:'', active:true };
+        ? { _new:true, type, id, group:'', on:[], need:[], mode:'perUnit', amt:1, what:'', why:'', fix:[], active:true }
+        : { _new:true, type, id, group:'', on:[], cond:'always', cmp:[], min:1, title:'', desc:'', choicesTxt:'', fix:[], active:true };
     render();
 }
 function openRule(i) {
     const r = JSON.parse(JSON.stringify(CFG.rules[i]));
     r._i = i; r.choicesTxt = (r.choices || []).join(', ');
+    r.fix = Array.isArray(r.fix) ? r.fix : (r.fix ? String(r.fix).split(',').map(x => x.trim()).filter(Boolean) : []);
     UI.drawer = r; render();
+}
+function dFixAdd() {
+    const inp = document.getElementById('dFixAdd');
+    const name = (inp.value || '').trim();
+    if (!name) return;
+    if (!PRODUCTS.some(p => p.name === name)) { alert('제품 목록에 없는 이름입니다. 목록에서 정확한 제품명을 고르세요.'); return; }
+    UI.drawer.fix = UI.drawer.fix || [];
+    if (!UI.drawer.fix.includes(name)) UI.drawer.fix.push(name);
+    inp.value = '';
+    render();
+    const n = document.getElementById('dFixAdd'); if (n) n.focus();
 }
 function dupRule(i) {
     const r = JSON.parse(JSON.stringify(CFG.rules[i]));
@@ -553,8 +565,12 @@ function renderDrawer() {
         <label class="rvs-fld"><span>질문</span><input value="${_e(d.title)}" onchange="dSet('title', this.value)"><small>{n}은 수량, {d}는 차이로 바뀝니다.</small></label>
         <label class="rvs-fld"><span>설명</span><textarea rows="2" onchange="dSet('desc', this.value)">${_e(d.desc)}</textarea></label>
         <label class="rvs-fld"><span>답변 선택지 (쉼표로 구분)</span><input value="${_e(d.choicesTxt)}" onchange="dSet('choicesTxt', this.value)"></label>`}
-        <label class="rvs-fld"><span>추천 제품 (선택)</span><input list="rvsAllProd" value="${_e(d.fix || '')}" placeholder="제품명 검색" onchange="dSet('fix', this.value)">
-            <datalist id="rvsAllProd">${PRODUCTS.slice(0, 1000).map(p => `<option value="${_e(p.name)}">`).join('')}</datalist></label>
+        <div class="rvs-fld"><span>추천 제품 (여러 개 가능 — 후보 목록 맨 위에 입력 순서대로 표시)</span>
+            <div class="rvs-acts">${(d.fix || []).map((n, i) =>
+                `<span class="rvs-chip">${_e(n)} <button onclick="UI.drawer.fix.splice(${i},1); render()" title="제거">×</button></span>`).join('') || '<span class="rvs-note">없음</span>'}</div>
+            <div class="rvs-acts"><input list="rvsAllProd" id="dFixAdd" placeholder="제품명 검색" style="flex:1; min-width:180px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); dFixAdd();}">
+                <button type="button" class="rvs-mini" onclick="dFixAdd()">추가</button></div>
+            <datalist id="rvsAllProd">${PRODUCTS.slice(0, 1000).map(p => `<option value="${_e(p.name)}">`).join('')}</datalist></div>
         <div class="rvs-acts"><button class="rvs-mini pri" onclick="saveRule()">저장</button><button class="rvs-mini" onclick="UI.drawer=null; render()">취소</button></div>
     </div>`;
 }

@@ -2455,8 +2455,12 @@ function rvCard(f) {
         b = `<p>${RV_ESC(f.desc || '')}</p><div class="rv-acts">${chs.map(c =>
             `<button class="rv-mini" onclick="rvAnswer('${RV_ESC(f.key)}','ans','${RV_ESC(c)}')">${RV_ESC(c)}</button>`).join('')}
             <button class="rv-mini" onclick="rvOpenForm='${RV_ESC(f.key)}'; rvRender()">기타…</button></div>`;
-        if (f.cands && f.cands.length) b += `<div class="rv-acts" style="font-size:12px; color:var(--text-muted);">제안:
+        if (f.cands && f.cands.length === 1) b += `<div class="rv-acts" style="font-size:12px; color:var(--text-muted);">제안:
             <b style="color:var(--text);">${RV_ESC(f.cands[0].name)}</b> · ${Number(f.cands[0].sale_price).toLocaleString('ko-KR')}원
+            <button class="rv-mini" onclick="rvFix('${RV_ESC(f.key)}', 1)">담기</button></div>`;
+        else if (f.cands && f.cands.length > 1) b += `<div class="rv-acts"><span style="font-size:12px; color:var(--text-muted);">제안:</span>
+            <select data-rvpick="${RV_ESC(f.key)}" style="flex:1; min-width:0; max-width:240px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; color:var(--text); font-size:12.5px;">
+                ${f.cands.map(c => `<option value="${c.product_id}">${RV_ESC(c.name)} · ${Number(c.sale_price).toLocaleString('ko-KR')}원</option>`).join('')}</select>
             <button class="rv-mini" onclick="rvFix('${RV_ESC(f.key)}', 1)">담기</button></div>`;
         if (rvOpenForm === f.key) b += `<div class="rv-form"><input id="rvNote" placeholder="직접 입력">
             <div class="rv-acts"><button class="rv-mini pri" onclick="rvAnswer('${RV_ESC(f.key)}','ans',document.getElementById('rvNote').value||'기타')">확인</button></div></div>`;
