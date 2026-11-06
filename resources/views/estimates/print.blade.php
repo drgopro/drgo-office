@@ -274,7 +274,11 @@
 <div class="pay-bar no-print">
     @if($payables->isNotEmpty())
         <div class="pay-col">
-            @php $penaltyAgreed = !empty(($estimate->agreements ?? [])['penalty']['at']); @endphp
+            @php
+                // 위약 카드가 숨김이면 결제를 잠그지 않는다 — 보이지 않는 동의를 요구하지 않음
+                $penaltyEnabled = ($settings['terms_penalty_enabled'] ?? '1') !== '0';
+                $penaltyAgreed = ! $penaltyEnabled || !empty(($estimate->agreements ?? [])['penalty']['at']);
+            @endphp
             @foreach($payables as $p)
                 <button class="pay-btn {{ $penaltyAgreed ? '' : 'locked' }}" data-url="{{ $p['url'] }}" data-amount="{{ number_format($p['amount']) }}"
                     onclick="payClick(this)">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</button>
@@ -680,9 +684,13 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
     $ag = $estimate->agreements ?? [];
     $termsBase = url('/estimate-view/'.$estimate->share_token.'/terms');
     $bankAccount = trim((string) ($settings['payment_bank_account'] ?? ''));
+    $showPenalty = ($settings['terms_penalty_enabled'] ?? '1') !== '0';
+    $showMarketing = ($settings['terms_marketing_enabled'] ?? '1') !== '0';
 @endphp
-{{-- 동의 카드 — 위약(필수)·마케팅(선택). 버튼을 누르면 전문 새창, 완독 후 동의 --}}
-<div class="consent-row no-print">
+{{-- 동의 카드 — 위약(필수)·마케팅(선택). 관리자 페이지 '판매처 설정'에서 노출/비노출 --}}
+@if($showPenalty || $showMarketing)
+<div class="consent-row no-print" style="{{ ($showPenalty && $showMarketing) ? '' : 'grid-template-columns:1fr;' }}">
+    @if($showPenalty)
     <div class="consent-card {{ !empty($ag['penalty']['at']) ? 'ok' : '' }}">
         <div><b>위약 안내 <span style="color:#b03030; font-size:12px;">(필수)</span></b>
             <small>일정 변경·취소·환불 기준 — 결제 전 확인이 필요합니다</small></div>
@@ -692,6 +700,8 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
             <button class="consent-open" onclick="openTerms('penalty')">읽고 동의하기</button>
         @endif
     </div>
+    @endif
+    @if($showMarketing)
     <div class="consent-card {{ !empty($ag['marketing']['at']) ? 'ok' : '' }}">
         <div><b>설치 사례 활용 동의 <span style="color:#2e6cb5; font-size:12px;">(선택)</span></b>
             <small>세팅 사진·채널명을 사례로 소개하는 데 동의해 주시면 큰 힘이 됩니다</small></div>
@@ -701,7 +711,9 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
             <button class="consent-open" onclick="openTerms('marketing')">내용 보기</button>
         @endif
     </div>
+    @endif
 </div>
+@endif
 
 {{-- 결제 수단 선택 — 카드(페이앱) / 계좌이체 안내 --}}
 <div id="payMethodBg" onclick="closePayMethod()"></div>

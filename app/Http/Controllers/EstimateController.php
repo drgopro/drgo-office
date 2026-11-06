@@ -850,6 +850,7 @@ class EstimateController extends Controller
             'seller_name', 'seller_biz_no', 'seller_address',
             'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
             'payment_bank_account', // 계좌이체 안내 — "은행 000-0000 (주)닥터고블린컴퍼니" 형식
+            'terms_penalty_enabled', 'terms_marketing_enabled', // 동의 카드 노출 여부 ('0'=숨김, 기본 노출)
         ]);
 
         return view('estimates.print', [

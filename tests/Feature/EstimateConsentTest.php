@@ -106,6 +106,21 @@ class EstimateConsentTest extends TestCase
         $res->assertSee('이콘타'); // 입금자명 안내
     }
 
+    public function test_consent_cards_can_be_hidden_by_settings(): void
+    {
+        // 위약 카드 숨김 → 결제 잠금도 해제 (보이지 않는 동의를 요구하지 않음)
+        Setting::set('terms_penalty_enabled', '0');
+        $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
+        $res->assertDontSee('위약 안내 <span', false);
+        $res->assertDontSee('pay-btn locked', false);
+        $res->assertSee('설치 사례 활용 동의'); // 마케팅 카드는 그대로
+
+        // 마케팅도 숨김 → 동의 영역 전체 미출력
+        Setting::set('terms_marketing_enabled', '0');
+        $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
+        $res->assertDontSee('class="consent-row', false);
+    }
+
     public function test_custom_terms_from_settings_override_defaults(): void
     {
         Setting::set('terms_penalty_html', '<p>커스텀 위약 조항</p>');

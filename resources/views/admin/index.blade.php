@@ -1028,6 +1028,17 @@
                 <input class="field-input" id="paymentBankAccount" value="{{ $sellerSettings['payment_bank_account'] ?? '' }}" placeholder="예: 국민은행 000000-00-000000 (주)닥터고블린컴퍼니">
             </div>
             <div class="field-group">
+                <div class="field-label">의뢰자 견적서 동의 카드 노출</div>
+                <label style="display:flex; align-items:center; gap:7px; font-size:13.5px; cursor:pointer; margin-bottom:6px;">
+                    <input type="checkbox" id="termsPenaltyEnabled" {{ ($sellerSettings['terms_penalty_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
+                    위약 안내 표시 — 끄면 카드가 숨고 <b>결제 잠금도 해제</b>됩니다 (전문 확정 전 임시 비노출용)
+                </label>
+                <label style="display:flex; align-items:center; gap:7px; font-size:13.5px; cursor:pointer;">
+                    <input type="checkbox" id="termsMarketingEnabled" {{ ($sellerSettings['terms_marketing_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
+                    설치 사례 활용(마케팅) 동의 표시
+                </label>
+            </div>
+            <div class="field-group">
                 <div class="field-label">위약 안내 전문 (HTML) — 의뢰자 견적서 '위약 안내' 새창과 공개 페이지 /terms/penalty 에 표시. 비우면 기본 초안</div>
                 <textarea class="field-input" id="termsPenaltyHtml" rows="8" style="font-family:monospace; font-size:12px;">{{ $sellerSettings['terms_penalty_html'] ?? '' }}</textarea>
                 <input class="field-input" id="termsPenaltyVersion" value="{{ $sellerSettings['terms_penalty_version'] ?? '' }}" placeholder="버전 표기 — 예: v2 (2026-11-10). 전문 개정 시 꼭 올려주세요" style="margin-top:6px;">
@@ -2156,6 +2167,8 @@ async function saveSellerSettings() {
     const body = {
         seller_name: document.getElementById('sellerName').value,
         payment_bank_account: document.getElementById('paymentBankAccount').value,
+        terms_penalty_enabled: document.getElementById('termsPenaltyEnabled').checked ? '1' : '0',
+        terms_marketing_enabled: document.getElementById('termsMarketingEnabled').checked ? '1' : '0',
         terms_penalty_html: document.getElementById('termsPenaltyHtml').value,
         terms_penalty_version: document.getElementById('termsPenaltyVersion').value,
         terms_marketing_html: document.getElementById('termsMarketingHtml').value,
