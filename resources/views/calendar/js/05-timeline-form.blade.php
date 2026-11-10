@@ -115,16 +115,35 @@ function renderTimeline() {
         dayLayouts[ds]=layout;
     });
 
+    // ── 시간대 범위: 기본 9~22시, 보이는 기간에 더 이른/늦은 일정이 있으면 그 시간까지 자동 확장 ──
+    let tlMinH=HOURS[0], tlMaxH=HOURS[HOURS.length-1];
+    cols.forEach(d=>{
+        const ds=fmt(d);
+        events.filter(ev=>isFiltered(ev)&&!ev.is_all_day&&ev.start_date===ds&&ev.start_time).forEach(ev=>{
+            const sh=parseInt(ev.start_time.split(':')[0]);
+            if(!isNaN(sh)) tlMinH=Math.min(tlMinH, sh);
+            let eh=sh;
+            if(evEnd(ev)>ds){ eh=23; }
+            else if(ev.end_time){
+                const [h,m]=ev.end_time.split(':').map(Number);
+                eh=h-(m>0?0:1); // 18:00 종료면 17시 행까지로 충분
+                if(eh<sh) eh=sh;
+            }
+            tlMaxH=Math.max(tlMaxH, Math.min(eh,23));
+        });
+    });
+    const tlHours=Array.from({length:tlMaxH-tlMinH+1},(_,i)=>i+tlMinH);
+
     // ── 반응형: 시간대 행 높이를 화면에 맞게 늘림 (48px 하한) ──
     let TL_HH=48;
     if(window.innerWidth>768){
         const gTop=grid.getBoundingClientRect().top;
         const used=grid.offsetHeight; // 헤더 + 종일 행
-        TL_HH=Math.max(48, Math.floor((window.innerHeight-gTop-used-28)/HOURS.length));
+        TL_HH=Math.max(48, Math.floor((window.innerHeight-gTop-used-28)/tlHours.length));
     }
     grid.style.setProperty('--tl-hh', TL_HH+'px');
 
-    HOURS.forEach(hour=>{
+    tlHours.forEach(hour=>{
         const row=document.createElement('div');
         row.className='tl-row';
         const label=document.createElement('div');
