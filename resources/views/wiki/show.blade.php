@@ -271,7 +271,7 @@
         @endphp
         <div class="wiki-actions" id="viewActions">
             <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
-            <button onclick="openWikiHistory()"><x-icon name="clip" :size="13"/> 역사</button>
+            <button onclick="openWikiHistory()"><x-icon name="clip" :size="13"/> 로그</button>
             @if($canEditWiki)
             <button onclick="toggleEdit()">수정</button>
             <form method="POST" action="{{ route('wiki.destroy', $wiki) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
@@ -1046,7 +1046,7 @@ window.toggleEdit = function() {
 <div id="whOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.style.display='none'">
     <div style="background:var(--surface,#fff);border:1px solid var(--border,#d9dee5);border-radius:16px;width:100%;max-width:1060px;height:min(84vh,860px);display:flex;flex-direction:column;overflow:hidden;">
         <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border,#d9dee5);flex-shrink:0;">
-            <div style="font-size:15px;font-weight:700;">{{ $wiki->title }} <span style="color:var(--text-muted,#8a97a5);font-weight:500;">— 역사</span></div>
+            <div style="font-size:15px;font-weight:700;">{{ $wiki->title }} <span style="color:var(--text-muted,#8a97a5);font-weight:500;">— 수정 로그</span></div>
             <button onclick="document.getElementById('whOverlay').style.display='none'" style="background:none;border:1px solid var(--border,#d9dee5);color:var(--text-muted,#8a97a5);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
         </div>
         <div style="flex:1;display:flex;min-height:0;">
