@@ -222,14 +222,19 @@ function renderLockSummary(){
         petTxt?`반려동물 — ${_esc(petTxt)}`:'',
     ].filter(Boolean).join('<br>')}</div>`:'';
     if (isMove && mfAddr && addr) { LS_ROUTE_FROM = mfAddr; LS_ROUTE_TO = addr; }
+    // 연동 의뢰자 주소 라벨 (자택/스튜디오/이사 전·후 등) — 주소 옆 칩
+    const addrLabelChip = t => {
+        const l = (typeof clientAddrLabelFor === 'function') ? clientAddrLabelFor(t) : '';
+        return l ? ` <span style="display:inline-block;margin-left:4px;font-size:11px;font-weight:600;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:1px 8px;border-radius:999px;vertical-align:1px;white-space:nowrap;">${_esc(l)}</span>` : '';
+    };
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
             <div class="ls-big">${timeBig}${durTxt}</div>
             <div style="margin-top:8px;"><div class="ls-info-label">🚚 출발지 (이사 전)</div>
-                <div class="ls-addr" style="margin-top:2px;">${addrLine(document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : (_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>'), document.getElementById('moveNoFrom')?.checked ? '' : (mfLoc || mfAddr), '출발지 주소')}</div>
+                <div class="ls-addr" style="margin-top:2px;">${addrLine(document.getElementById('moveNoFrom')?.checked ? '<span style="color:var(--text-muted)">출발지 없음</span>' : ((_esc(mfLoc) || '<span style="color:var(--text-muted)">— 미입력 —</span>') + addrLabelChip(mfLoc || mfAddr)), document.getElementById('moveNoFrom')?.checked ? '' : (mfLoc || mfAddr), '출발지 주소')}</div>
                 ${document.getElementById('moveNoFrom')?.checked ? '' : mapIconBtns(mfAddr || mfLoc)}</div>
             <div style="margin-top:8px;"><div class="ls-info-label">📍 도착지 (이사 후)</div>
-                <div class="ls-addr" style="margin-top:2px;">${addrLine(_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>', location || addr, '도착지 주소')}</div>
+                <div class="ls-addr" style="margin-top:2px;">${addrLine((_esc(location) || '<span style="color:var(--text-muted)">— 미입력 —</span>') + addrLabelChip(location || addr), location || addr, '도착지 주소')}</div>
                 ${mapIconBtns(addr || location)}</div>
             ${accessLine}
             ${specialLine}`, '', 'ls-c-time ls-time-card'));
@@ -239,7 +244,7 @@ function renderLockSummary(){
         const locDisplay=_esc(location) || (visitOptsSel.length?`🏢 ${visitOptsSel.map(v=>_esc(v)).join(', ')}`:'');
         left.push(lsCard('일시 · 장소', `
             <div class="ls-big">${timeBig}${durTxt}</div>
-            <div class="ls-addr">${addrLine(locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>', (location || addr) ? (location || addr) : '', '주소')}</div>
+            <div class="ls-addr">${addrLine((locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>') + addrLabelChip(location || addr), (location || addr) ? (location || addr) : '', '주소')}</div>
             ${accessLine}
             ${specialLine}
             ${addrActions}`, '', 'ls-c-time ls-time-card'));

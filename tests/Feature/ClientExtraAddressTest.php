@@ -70,6 +70,28 @@ class ClientExtraAddressTest extends TestCase
         $this->assertSame('스튜디오', $detail->json('extra_addresses.0.label'));
     }
 
+    public function test_address_label_quick_set_endpoint(): void
+    {
+        $this->client->update(['extra_addresses' => [['address' => '고척 스튜디오', 'address_detail' => '', 'label' => '']]]);
+
+        // 메인 주소 라벨
+        $this->actingAs($this->master)->postJson("/api/clients/{$this->client->id}/address-label", [
+            'index' => -1, 'label' => '자택',
+        ])->assertOk();
+        $this->assertSame('자택', $this->client->fresh()->address_label);
+
+        // 추가 주소 라벨
+        $this->actingAs($this->master)->postJson("/api/clients/{$this->client->id}/address-label", [
+            'index' => 0, 'label' => '스튜디오',
+        ])->assertOk();
+        $this->assertSame('스튜디오', $this->client->fresh()->extra_addresses[0]['label']);
+
+        // 없는 추가 주소 인덱스 → 422
+        $this->actingAs($this->master)->postJson("/api/clients/{$this->client->id}/address-label", [
+            'index' => 2, 'label' => 'X',
+        ])->assertStatus(422);
+    }
+
     public function test_extra_addresses_limited_to_three(): void
     {
         $this->actingAs($this->master)->patchJson("/api/clients/{$this->client->id}", [

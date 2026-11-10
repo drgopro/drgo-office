@@ -629,6 +629,31 @@ class ClientController extends Controller
         return response()->json(['ok' => true, 'equipment_project_id' => $client->equipment_project_id]);
     }
 
+    /** 주소 라벨만 지정/변경 — 캘린더 주소 선택 팝업에서 즉석 지정용. index -1=메인(주소 1), 0~2=추가 주소 */
+    public function setAddressLabel(Request $request, Client $client)
+    {
+        abort_unless($this->canViewPii(), 403, '연락처·주소 열람 권한이 필요합니다.');
+        $validated = $request->validate([
+            'index' => 'required|integer|min:-1|max:2',
+            'label' => 'nullable|string|max:30',
+        ]);
+        $label = trim((string) ($validated['label'] ?? ''));
+        $index = (int) $validated['index'];
+
+        if ($index === -1) {
+            $client->update(['address_label' => $label ?: null]);
+        } else {
+            $list = $client->extra_addresses ?? [];
+            if (! isset($list[$index])) {
+                return response()->json(['message' => '해당 추가 주소가 없습니다.'], 422);
+            }
+            $list[$index]['label'] = $label;
+            $client->update(['extra_addresses' => $list]);
+        }
+
+        return response()->json(['ok' => true, 'label' => $label]);
+    }
+
     // JSON 업데이트 API
     public function updateJson(Request $request, Client $client)
     {

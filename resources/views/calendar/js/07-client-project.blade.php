@@ -295,6 +295,38 @@ function renderLinkedProjDocs(){
     wrap.style.display='';
 }
 // 상세 도착 시 공통 갱신 — 수정 뷰 블록 + (잠금 중이면) 요약 카드 재렌더
+// 주소 라벨 즉석 저장 — 선택 팝업에서 명칭 지정 시 의뢰자 정보에 기록하고 메모리의 상세도 갱신
+async function saveClientAddrLabel(idx,label){
+    try{
+        const res=await fetch(`/api/clients/${linkedClientId}/address-label`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':(typeof CSRF!=='undefined'?CSRF:document.querySelector('meta[name="csrf-token"]')?.content),'Accept':'application/json'},
+            body:JSON.stringify({index:idx,label}),
+        });
+        if(!res.ok){ alert('주소 명칭 저장에 실패했습니다.'); return; }
+        if(linkedClientDetail){
+            if(idx===-1) linkedClientDetail.address_label=label;
+            else if((linkedClientDetail.extra_addresses||[])[idx]) linkedClientDetail.extra_addresses[idx].label=label;
+        }
+        if(typeof isLocked!=='undefined'&&isLocked&&typeof renderLockSummary==='function') renderLockSummary();
+    }catch(e){ alert('주소 명칭 저장에 실패했습니다.'); }
+}
+
+// 일정 주소가 연동 의뢰자의 어느 주소인지 라벨 반환 (자택/스튜디오/이사 전·후 등) — 일치하는 주소가 없거나 라벨 미입력이면 ''
+function clientAddrLabelFor(text){
+    const d=linkedClientDetail;
+    if(!d||!text) return '';
+    const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
+    const t=norm(text);
+    if(!t) return '';
+    const cands=[{a:d.address,l:d.address_label},...(d.extra_addresses||[]).map(x=>({a:x.address,l:x.label}))];
+    for(const c of cands){
+        const a=norm(c.a);
+        if(a&&c.l&&(t===a||t.startsWith(a)||a.startsWith(t))) return c.l;
+    }
+    return '';
+}
+
 function onClientDetailReady(){
     renderLinkedEquip();
     renderLinkedProjDocs();
@@ -332,8 +364,8 @@ function applyLinkedClientAddress(target){
     if(!extras.length){ _applyClientAddr(d.address,d.address_detail,target); return; }
     // 주소가 여러 개 — 어떤 주소를 넣을지 선택
     openClientAddrPicker([
-        {label:'주소 1 (메인)'+(d.address_label?` · ${d.address_label}`:''), address:d.address, address_detail:d.address_detail},
-        ...extras.map((a,i)=>({label:`주소 ${i+2}`+(a.label?` · ${a.label}`:''), address:a.address, address_detail:a.address_detail})),
+        {label:'주소 1 (메인)'+(d.address_label?` · ${d.address_label}`:''), address:d.address, address_detail:d.address_detail, idx:-1, hasLabel:!!d.address_label},
+        ...extras.map((a,i)=>({label:`주소 ${i+2}`+(a.label?` · ${a.label}`:''), address:a.address, address_detail:a.address_detail, idx:i, hasLabel:!!a.label})),
     ],target);
 }
 function _applyClientAddr(addr,det,target){
@@ -363,7 +395,19 @@ function openClientAddrPicker(list,target){
         </button>`).join('')}
         <div style="text-align:right;margin-top:4px;"><button type="button" onclick="closeClientAddrPicker()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;">취소</button></div>
     </div>`;
-    ov.querySelectorAll('button[data-i]').forEach(b=>{ b.onclick=()=>{ const a=list[parseInt(b.dataset.i,10)]; _applyClientAddr(a.address,a.address_detail,target); closeClientAddrPicker(); }; });
+    ov.querySelectorAll('button[data-i]').forEach(b=>{ b.onclick=()=>{
+        const a=list[parseInt(b.dataset.i,10)];
+        _applyClientAddr(a.address,a.address_detail,target);
+        closeClientAddrPicker();
+        // 명칭(라벨)이 없는 주소 — 바로 지정할 수 있게 물어보고 의뢰자에 저장 (비우면 건너뜀)
+        if(a.hasLabel===false && typeof a.idx==='number' && linkedClientId){
+            setTimeout(()=>{
+                const name=window.prompt('이 주소의 명칭을 지정해두면 다음부터 주소 옆에 표시됩니다.\n(예: 자택, 스튜디오, 이사 전, 이사 후 — 건너뛰려면 비워두세요)','');
+                if(name===null||!name.trim()) return;
+                saveClientAddrLabel(a.idx, name.trim());
+            },150);
+        }
+    }; });
     document.body.appendChild(ov);
 }
 function closeClientAddrPicker(){ const el=document.getElementById('clientAddrPicker'); if(el) el.remove(); }

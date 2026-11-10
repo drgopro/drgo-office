@@ -271,6 +271,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:clients.edit')->group(function () {
         Route::post('/api/clients', [ClientController::class, 'storeJson']);
         Route::patch('/api/clients/{client}', [ClientController::class, 'updateJson']);
+        Route::post('/api/clients/{client}/address-label', [ClientController::class, 'setAddressLabel']); // 캘린더 주소 선택 시 라벨 즉석 지정
         Route::post('/api/clients/{client}/memos', [ClientController::class, 'storeMemo']);
         Route::delete('/api/client-memos/{memo}', [ClientController::class, 'destroyMemo']);
         Route::post('/api/clients/{client}/contacts', [ClientController::class, 'storeContact']);
