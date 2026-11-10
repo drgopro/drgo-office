@@ -63,6 +63,7 @@
     .todo-lrow-title { font-size:15px; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--td-text); }
     .todo-lrow.sel .todo-lrow-title { font-weight:700; }
     .todo-lrow.done .todo-lrow-title { text-decoration:line-through; color:var(--td-muted); }
+    .todo-lrow.dragging { opacity:0.45; background:#f1f3f6; }
     .todo-lrow-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-shrink:0; }
     .todo-lrow-right .todo-team-label { font-size:13px; color:var(--td-muted); }
     .todo-lrow-right .todo-pri { font-size:12px; padding:4px 10px; }
@@ -585,15 +586,14 @@ function listHtml(todos) {
     return [...byAssignee.entries()].map(([uid, items]) => {
         const m = memberById(uid) || { name: items[0].assignee, team: items[0].team };
         const openCount = items.filter(t => !t.completed).length;
-        const sorted = [...items].sort((a, b) =>
-            (a.completed - b.completed)
-            || ((a.due_date || '9999') < (b.due_date || '9999') ? -1 : (a.due_date || '9999') > (b.due_date || '9999') ? 1 : 0)
-            || (PRI_WEIGHT[a.priority] - PRI_WEIGHT[b.priority]));
+        // 완료는 아래로, 미완료는 수동 순서(sort_order = 서버 응답 순서) 그대로 — 드래그로 바꾼 순서가 유지됨
+        const sorted = [...items].sort((a, b) => a.completed - b.completed);
         return `<div class="todo-lgroup"><div class="todo-lgroup-head">
             <span class="todo-lgroup-name">${esc(m.name)}</span>
             ${m.team ? `<span class="todo-lgroup-team">${esc(m.team)}</span>` : ''}
             <span class="todo-lgroup-count">${openCount}</span>
-        </div><div class="todo-lgroup-box">` + sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''} ${t.id === SELECTED_ID ? 'sel' : ''}" onclick="selectTodo(${t.id})" data-lrow="${t.id}">
+        </div><div class="todo-lgroup-box" data-lgroup="${uid}" ondragover="lrowDragOver(event, this)" ondrop="lrowDrop(event, this)">` + sorted.map(t => `<div class="todo-lrow ${t.completed ? 'done' : ''} ${t.id === SELECTED_ID ? 'sel' : ''}" onclick="selectTodo(${t.id})" data-lrow="${t.id}"
+            draggable="true" ondragstart="lrowDragStart(event, this)" ondragend="this.classList.remove('dragging')">
             <button type="button" class="todo-check ${t.completed ? 'on' : ''}" onclick="event.stopPropagation(); quickComplete(${t.id})" title="${t.completed ? '완료 취소' : '완료 처리'}">
                 <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
@@ -797,10 +797,9 @@ function colDragOver(ev, colEl) {
     colEl.classList.add('drag-over');
     const dragging = document.querySelector('#todoBoard .todo-card.dragging');
     if (!dragging) { return; }
-    const dragTodo = TODOS.find(t => t.id === parseInt(dragging.dataset.id, 10));
     const colAssignee = parseInt(colEl.dataset.assignee, 10);
-    // 멤버는 자기 컬럼 안에서만 이동 (다른 컬럼으로의 실시간 이동 차단)
-    if (!IS_ADMIN && dragTodo && dragTodo.assignee_id !== colAssignee) { return; }
+    // 멤버는 자기 컬럼 안에서만 이동 (다른 컬럼으로의 실시간 이동 차단) — 공동 담당 카드도 내 컬럼에서는 이동 가능
+    if (!IS_ADMIN && colAssignee !== TODO_ME) { return; }
     const body = colEl.querySelector('.todo-col-body');
     const after = cardAfterPointer(body, ev.clientY);
     if (after === null) { body.appendChild(dragging); }
@@ -842,14 +841,46 @@ async function dropTodo(ev, assigneeId) {
     // 드롭된 컬럼의 화면 순서 그대로 저장
     const body = ev.currentTarget.querySelector('.todo-col-body');
     const ids = body ? [...body.querySelectorAll('.todo-card')].map(c => parseInt(c.dataset.id, 10)).filter(Boolean) : [];
-    if (ids.length) {
-        const res = await fetch('/api/todos/reorder', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
-            body: JSON.stringify({ ids }),
-        });
-        if (!res.ok) { alert('순서 저장에 실패했습니다.'); }
-    }
+    await saveTodoOrder(ids);
+    await refreshBoard();
+}
+
+async function saveTodoOrder(ids) {
+    if (!ids.length) { return; }
+    const res = await fetch('/api/todos/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': TODO_CSRF, 'Accept': 'application/json' },
+        body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) { alert('순서 저장에 실패했습니다.'); }
+}
+
+// ── 리스트 뷰 드래그 정렬 — 같은 담당자 섹션 안에서만 (멤버는 본인 섹션만) ──
+function lrowDragStart(ev, row) {
+    const uid = parseInt(row.closest('.todo-lgroup-box').dataset.lgroup, 10);
+    if (!IS_ADMIN && uid !== TODO_ME) { ev.preventDefault(); return; }
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', row.dataset.lrow);
+    row.classList.add('dragging');
+}
+
+function lrowDragOver(ev, boxEl) {
+    const dragging = document.querySelector('.todo-lrow.dragging');
+    if (!dragging || dragging.closest('.todo-lgroup-box') !== boxEl) { return; } // 다른 섹션으로 이동 금지
+    ev.preventDefault();
+    let after = null;
+    boxEl.querySelectorAll('.todo-lrow:not(.dragging)').forEach(row => {
+        const box = row.getBoundingClientRect();
+        if (ev.clientY < box.top + box.height / 2 && after === null) { after = row; }
+    });
+    if (after === null) { boxEl.appendChild(dragging); }
+    else if (after !== dragging) { boxEl.insertBefore(dragging, after); }
+}
+
+async function lrowDrop(ev, boxEl) {
+    ev.preventDefault();
+    const ids = [...boxEl.querySelectorAll('.todo-lrow')].map(r => parseInt(r.dataset.lrow, 10)).filter(Boolean);
+    await saveTodoOrder(ids);
     await refreshBoard();
 }
 

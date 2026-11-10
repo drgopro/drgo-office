@@ -78,8 +78,9 @@ class TodoController extends Controller
             'ids.*' => 'integer|exists:todos,id',
         ]);
 
-        $todos = Todo::whereIn('id', $validated['ids'])->get()->keyBy('id');
-        if (! Auth::user()->isAdmin() && $todos->contains(fn (Todo $t) => $t->assignee_id !== Auth::id())) {
+        $todos = Todo::with('assignees')->whereIn('id', $validated['ids'])->get()->keyBy('id');
+        if (! Auth::user()->isAdmin() && $todos->contains(fn (Todo $t) => $t->assignee_id !== Auth::id()
+            && ! $t->assignees->contains('id', Auth::id()))) {
             abort(403, '본인 할 일만 순서를 변경할 수 있습니다.');
         }
 

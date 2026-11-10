@@ -164,6 +164,22 @@ class TodoTest extends TestCase
         ])->assertOk();
     }
 
+    public function test_member_can_reorder_including_co_assigned_todo(): void
+    {
+        // 공동 담당(대표는 타인)인 할 일이 내 컬럼에 섞여 있어도 순서 변경 가능해야 함
+        $mine = Todo::factory()->create(['assignee_id' => $this->user->id]);
+        $lead = User::factory()->create();
+        $shared = Todo::factory()->create(['assignee_id' => $lead->id]);
+        $shared->syncAssigneesOrdered([$lead->id, $this->user->id], false);
+
+        $this->actingAs($this->user)->patchJson('/api/todos/reorder', [
+            'ids' => [$shared->id, $mine->id],
+        ])->assertOk();
+
+        $this->assertSame(1, $shared->fresh()->sort_order);
+        $this->assertSame(2, $mine->fresh()->sort_order);
+    }
+
     public function test_complete_toggles(): void
     {
         // 멤버는 본인 할 일만 조작 가능 (IDOR 방지)
