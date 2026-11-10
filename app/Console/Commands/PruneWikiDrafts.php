@@ -24,7 +24,7 @@ class PruneWikiDrafts extends Command
                 Storage::delete($attachment->file_path);
                 Storage::delete('thumbs/'.md5($attachment->file_path).'.webp');
             }
-            $draft->delete(); // 첨부 행은 FK cascade로 함께 삭제
+            $draft->forceDelete(); // 소프트 삭제(보관함) 대상이 아니라 영구 삭제 — 첨부 행은 FK cascade로 함께 삭제
             $this->line("임시저장 삭제: #{$draft->id} {$draft->title} (마지막 수정 {$draft->updated_at->format('Y-m-d')})");
         }
 
