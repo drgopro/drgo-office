@@ -1181,7 +1181,10 @@ function renderClientContent(id) {
                             <input class="field-input" id="f-address-${id}" value="${_esc(d.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${id})">
                             <button class="ncm-btn primary" style="white-space:nowrap;" onclick="searchAddress(${id})">주소 검색</button>
                         </div>
-                        <input class="field-input" id="f-address_detail-${id}" value="${_esc(d.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <input class="field-input" id="f-address_detail-${id}" value="${_esc(d.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="flex:1;">
+                            <input class="field-input" id="f-address_label-${id}" value="${_esc(d.address_label||'')}" placeholder="라벨 (예: 자택, 이사 전)" maxlength="30" style="width:150px;">
+                        </div>
                         <div id="xaddr-list-${id}">${renderExtraAddrRows(d.extra_addresses||[], id)}</div>
                         <button class="ncm-btn" id="xaddr-add-${id}" onclick="addExtraAddr(${id})" style="margin-top:10px; ${(d.extra_addresses||[]).length>=3?'display:none;':''}">+ 주소 추가</button>
                     </div>
@@ -1492,7 +1495,10 @@ function renderExtraAddrRows(list, clientId) {
             <input class="field-input" id="f-xaddr-${clientId}-${idx}" value="${_esc(a.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${clientId}, ${idx})">
             <button class="ncm-btn primary" style="white-space:nowrap;" onclick="searchAddress(${clientId}, ${idx})">주소 검색</button>
         </div>
-        <input class="field-input" id="f-xaddr_detail-${clientId}-${idx}" value="${_esc(a.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <input class="field-input" id="f-xaddr_detail-${clientId}-${idx}" value="${_esc(a.address_detail||'')}" placeholder="상세주소 (동/호수 등)" style="flex:1;">
+            <input class="field-input" id="f-xaddr_label-${clientId}-${idx}" value="${_esc(a.label||'')}" placeholder="라벨 (예: 스튜디오, 이사 후)" maxlength="30" style="width:170px;">
+        </div>
     </div>`).join('');
 }
 function collectExtraAddrs(clientId) {
@@ -1500,7 +1506,11 @@ function collectExtraAddrs(clientId) {
     for (let i = 0; i < 3; i++) {
         const el = document.getElementById(`f-xaddr-${clientId}-${i}`);
         if (!el) break;
-        out.push({ address: el.value.trim(), address_detail: (document.getElementById(`f-xaddr_detail-${clientId}-${i}`)?.value || '').trim() });
+        out.push({
+            address: el.value.trim(),
+            address_detail: (document.getElementById(`f-xaddr_detail-${clientId}-${i}`)?.value || '').trim(),
+            label: (document.getElementById(`f-xaddr_label-${clientId}-${i}`)?.value || '').trim(),
+        });
     }
     return out;
 }
@@ -1910,6 +1920,7 @@ async function saveClient(id) {
         gender: document.getElementById(`f-gender-${id}`)?.value || null,
         address: document.getElementById(`f-address-${id}`)?.value || '',
         address_detail: document.getElementById(`f-address_detail-${id}`)?.value || '',
+        address_label: document.getElementById(`f-address_label-${id}`)?.value || '',
         extra_addresses: collectExtraAddrs(id).filter(a => a.address),
         important_memo: document.getElementById(`f-imp-memo-${id}`)?.value || document.getElementById(`f-important_memo-${id}`)?.value || '',
         memo: document.getElementById(`f-memo-${id}`)?.value || '',
@@ -2402,8 +2413,8 @@ function renderClientView(d) {
         ${cvField('의뢰자 유형', CV_TYPE[d.client_type] || '')}
         ${cvField('등록일', d.created_at)}
         <div><div class="cv-l">마케팅 활용 동의</div><div class="cv-v">${d.marketing_consent_count ? `<span style="color:var(--accent);font-weight:700;">동의 ${d.marketing_consent_count}회</span>` : '<span class="dim">동의 이력 없음</span>'}${d.marketing_denied_count ? ` <span style="color:var(--red, #dc2626);font-size:12px;">· 거부 ${d.marketing_denied_count}회</span>` : ''}</div></div>
-        ${cvField((d.extra_addresses||[]).length ? '주소 1 (메인)' : '주소', addr, true)}
-        ${(d.extra_addresses||[]).map((a, i) => cvField(`주소 ${i+2}`, [a.address, a.address_detail].filter(Boolean).join(', '), true)).join('')}
+        ${cvField(((d.extra_addresses||[]).length ? '주소 1 (메인)' : '주소') + (d.address_label ? ` · ${d.address_label}` : ''), addr, true)}
+        ${(d.extra_addresses||[]).map((a, i) => cvField(`주소 ${i+2}` + (a.label ? ` · ${a.label}` : ''), [a.address, a.address_detail].filter(Boolean).join(', '), true)).join('')}
         ${cvField('특이사항', d.important_memo, true)}
     </div>`;
     // 방송 정보

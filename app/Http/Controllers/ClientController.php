@@ -283,9 +283,11 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'address_label' => 'nullable|string|max:30',
             'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
             'extra_addresses.*.address' => 'nullable|string|max:300',
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
+            'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
@@ -378,9 +380,11 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'address_label' => 'nullable|string|max:30',
             'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
             'extra_addresses.*.address' => 'nullable|string|max:300',
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
+            'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
@@ -517,6 +521,7 @@ class ClientController extends Controller
             'phone' => $pii ? $client->phone : null,
             'address' => $pii ? $client->address : null,
             'address_detail' => $pii ? $client->address_detail : null,
+            'address_label' => $client->address_label,
             'extra_addresses' => $pii ? ($client->extra_addresses ?? []) : [],
             'can_view_pii' => $pii,
             'grade' => $client->grade,
@@ -633,9 +638,11 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:30',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'address_label' => 'nullable|string|max:30',
             'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
             'extra_addresses.*.address' => 'nullable|string|max:300',
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
+            'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'grade' => 'required|in:normal,vip,rental',
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
@@ -658,7 +665,7 @@ class ClientController extends Controller
         // 추가 주소 정리 — 주소가 빈 행 제거, 최대 3개, 없으면 null
         if (array_key_exists('extra_addresses', $validated)) {
             $validated['extra_addresses'] = collect($validated['extra_addresses'] ?? [])
-                ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? ''))])
+                ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? '')), 'label' => trim((string) ($a['label'] ?? ''))])
                 ->filter(fn ($a) => $a['address'] !== '')
                 ->slice(0, 3)->values()->all() ?: null;
         }
@@ -703,9 +710,11 @@ class ClientController extends Controller
             'affiliation' => 'nullable|string|max:200',
             'address' => 'nullable|string|max:300',
             'address_detail' => 'nullable|string|max:200',
+            'address_label' => 'nullable|string|max:30',
             'extra_addresses' => 'nullable|array|max:3', // 주소 2~4 (주소 1은 address가 메인)
             'extra_addresses.*.address' => 'nullable|string|max:300',
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
+            'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
             'channeltalk_user_id' => 'nullable|string|max:60', // 채널톡 연동 버튼으로 불러온 고객 ID
@@ -728,7 +737,7 @@ class ClientController extends Controller
         // 추가 주소 정리 — 주소가 빈 행 제거, 최대 3개, 없으면 null
         if (array_key_exists('extra_addresses', $validated)) {
             $validated['extra_addresses'] = collect($validated['extra_addresses'] ?? [])
-                ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? ''))])
+                ->map(fn ($a) => ['address' => trim((string) ($a['address'] ?? '')), 'address_detail' => trim((string) ($a['address_detail'] ?? '')), 'label' => trim((string) ($a['label'] ?? ''))])
                 ->filter(fn ($a) => $a['address'] !== '')
                 ->slice(0, 3)->values()->all() ?: null;
         }

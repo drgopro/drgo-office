@@ -332,8 +332,8 @@ function applyLinkedClientAddress(target){
     if(!extras.length){ _applyClientAddr(d.address,d.address_detail,target); return; }
     // 주소가 여러 개 — 어떤 주소를 넣을지 선택
     openClientAddrPicker([
-        {label:'주소 1 (메인)', address:d.address, address_detail:d.address_detail},
-        ...extras.map((a,i)=>({label:`주소 ${i+2}`, address:a.address, address_detail:a.address_detail})),
+        {label:'주소 1 (메인)'+(d.address_label?` · ${d.address_label}`:''), address:d.address, address_detail:d.address_detail},
+        ...extras.map((a,i)=>({label:`주소 ${i+2}`+(a.label?` · ${a.label}`:''), address:a.address, address_detail:a.address_detail})),
     ],target);
 }
 function _applyClientAddr(addr,det,target){
@@ -358,7 +358,7 @@ function openClientAddrPicker(list,target){
     ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;padding:20px;">
         <div style="font-size:14px;font-weight:700;margin-bottom:12px;">어떤 주소를 넣을까요?</div>
         ${list.map((a,i)=>`<button type="button" data-i="${i}" style="display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;color:var(--text);font-size:13px;cursor:pointer;">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${a.label}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${_esc(a.label)}</div>
             <div>${_esc(a.address)}${a.address_detail?`, ${_esc(a.address_detail)}`:''}</div>
         </button>`).join('')}
         <div style="text-align:right;margin-top:4px;"><button type="button" onclick="closeClientAddrPicker()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;">취소</button></div>

@@ -48,6 +48,28 @@ class ClientExtraAddressTest extends TestCase
         $this->assertSame('서울 동작구 장승배기로 142', $detail->json('address')); // 메인 주소 유지
     }
 
+    public function test_address_labels_save_and_appear_in_detail(): void
+    {
+        $this->actingAs($this->master)->patchJson("/api/clients/{$this->client->id}", [
+            'nickname' => '에이몬드', 'grade' => 'normal',
+            'address' => '서울 동작구 장승배기로 142',
+            'address_label' => '이사 전',
+            'extra_addresses' => [
+                ['address' => '서울 구로구 고척로27길 81-22', 'label' => '스튜디오'],
+                ['address' => '경기 광명시 어딘가 12', 'label' => ''],
+            ],
+        ])->assertOk();
+
+        $fresh = $this->client->fresh();
+        $this->assertSame('이사 전', $fresh->address_label);
+        $this->assertSame('스튜디오', $fresh->extra_addresses[0]['label']);
+        $this->assertSame('', $fresh->extra_addresses[1]['label']);
+
+        $detail = $this->actingAs($this->master)->getJson("/api/clients/{$this->client->id}/detail")->assertOk();
+        $this->assertSame('이사 전', $detail->json('address_label'));
+        $this->assertSame('스튜디오', $detail->json('extra_addresses.0.label'));
+    }
+
     public function test_extra_addresses_limited_to_three(): void
     {
         $this->actingAs($this->master)->patchJson("/api/clients/{$this->client->id}", [

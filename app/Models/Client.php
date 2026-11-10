@@ -18,6 +18,7 @@ class Client extends Model
         'phones',
         'address',
         'address_detail',
+        'address_label',
         'extra_addresses',
         'grade',
         'platforms',
