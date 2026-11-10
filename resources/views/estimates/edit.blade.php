@@ -2267,7 +2267,8 @@ async function searchClients(q) {
             const res = await fetch(`/api/clients/search?q=${encodeURIComponent(q)}`);
             const clients = await res.json();
             if (!clients.length) { el.classList.remove('show'); return; }
-            el.innerHTML = clients.map(c => `<div class="client-result-item" onclick='selectClient(${JSON.stringify(c)})'>${c.nickname || c.name || ''}${c.nickname && c.name ? ' ('+c.name+')' : ''} ${c.phone||''}</div>`).join('');
+            const closeRow = `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface);border-bottom:1px solid var(--border);"><span style="font-size:11px;color:var(--text-muted);">검색 결과</span><button type="button" onclick="document.getElementById('clientResults').classList.remove('show')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;">✕ 닫기</button></div>`;
+            el.innerHTML = closeRow + clients.map(c => `<div class="client-result-item" onclick='selectClient(${JSON.stringify(c)})'>${c.nickname || c.name || ''}${c.nickname && c.name ? ' ('+c.name+')' : ''} ${c.phone||''}</div>`).join('');
             el.classList.add('show');
         } catch(e) { el.classList.remove('show'); }
     }, 300);
@@ -2318,6 +2319,9 @@ Promise.resolve(clientId ? loadClientProjects(clientId, {{ $estimate->project_id
 
 document.addEventListener('click', e => {
     if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults').classList.remove('show');
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('clientResults').classList.remove('show');
 });
 </script>
 {{-- ═══ 견적서 검토 패널 — 직원 시안(견적 검토 시스템) 디자인 이식 ═══ --}}

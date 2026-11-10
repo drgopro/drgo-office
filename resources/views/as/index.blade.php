@@ -347,9 +347,10 @@ function clSearchInput(){
             const res = await fetch('/api/clients/search?q=' + encodeURIComponent(q));
             const list = await res.json();
             const box = document.getElementById('clResults');
-            box.innerHTML = list.length
+            const closeRow = `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface);border-bottom:1px solid var(--border);"><span style="font-size:11px;color:var(--text-muted);">검색 결과</span><button type="button" onclick="document.getElementById('clResults').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;">✕ 닫기</button></div>`;
+            box.innerHTML = closeRow + (list.length
                 ? list.map(c => `<div class="cl-item" onclick="clPick(${c.id}, '${_e(c.nickname||c.name||'').replace(/'/g,"\\'")}')">${_e(c.nickname||c.name)}${c.name && c.nickname ? ' <small>('+_e(c.name)+')</small>' : ''}${c.phone ? ' <small>'+_e(c.phone)+'</small>' : ''}${c.affiliation ? ' <small style="color:var(--accent);">'+_e(c.affiliation)+'</small>' : ''}</div>`).join('')
-                : '<div class="cl-item" style="color:var(--text-muted); cursor:default;">검색 결과 없음</div>';
+                : '<div class="cl-item" style="color:var(--text-muted); cursor:default;">검색 결과 없음</div>');
             box.classList.add('open');
         } catch (e) { /* 네트워크 오류 — 입력 계속 가능 */ }
     }, 250);
@@ -485,6 +486,12 @@ async function asSave(){
 document.addEventListener('click', e => {
     if (!e.target.closest('#clSearchWrap')) document.getElementById('clResults')?.classList.remove('open');
     if (!e.target.closest('#prodSearchWrap')) document.getElementById('prodResults')?.classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        document.getElementById('clResults')?.classList.remove('open');
+        document.getElementById('prodResults')?.classList.remove('open');
+    }
 });
 
 asLoad();

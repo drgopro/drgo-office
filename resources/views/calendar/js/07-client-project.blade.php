@@ -7,9 +7,19 @@ const CLIENT_LINK_EXCLUDED_COLORS=['blue','red'];
 function colorSupportsClientLink(c){ return !CLIENT_LINK_EXCLUDED_COLORS.includes(c); }
 let clientSearchTimer=null;
 
+// 결과창 상단 고정 닫기 줄 — 결과창이 아래 영역을 가려 클릭을 막는 문제 대응 (바깥 클릭·Esc 로도 닫힘)
+function clientSearchCloseRow(fn){
+    return `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface2,var(--surface));border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;color:var(--text-muted);">검색 결과</span>
+        <button type="button" onclick="${fn}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;">✕ 닫기</button></div>`;
+}
+function closeClientSearchResults(){ const el=document.getElementById('clientSearchResults'); if(el) el.style.display='none'; }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeClientSearchResults(); });
+
 function renderClientList(list){
-    if(!list.length) return '<div style="padding:10px;font-size:12px;color:var(--text-muted);text-align:center;">결과 없음</div>';
-    return list.map(c=>{
+    const close=clientSearchCloseRow('closeClientSearchResults()');
+    if(!list.length) return close+'<div style="padding:10px;font-size:12px;color:var(--text-muted);text-align:center;">결과 없음</div>';
+    return close+list.map(c=>{
         const nick=c.nickname||'';const nm=c.name||'';const ph=c.phone||'';
         return `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
             <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectClient(${c.id},'${nick.replace(/'/g,"\\'")}','${nm.replace(/'/g,"\\'")}','${ph.replace(/'/g,"\\'")}')">

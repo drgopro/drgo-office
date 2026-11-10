@@ -738,11 +738,20 @@ async function searchClients(q) {
         const list = await res.json();
         lastClientResults = Array.isArray(list) ? list : [];
         const el = document.getElementById('clientResults');
-        if (!lastClientResults.length) { el.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>'; el.classList.add('open'); return; }
-        el.innerHTML = lastClientResults.map((c, i) => `<div class="client-search-result" onclick="selectClient(${i})">${esc(c.name || c.nickname || '')}${c.name && c.nickname ? ' ('+esc(c.nickname)+')' : ''} ${c.phone ? '· '+esc(c.phone) : ''}</div>`).join('');
+        const closeRow = `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface);border-bottom:1px solid var(--border);"><span style="font-size:11px;color:var(--text-muted);">검색 결과</span><button type="button" onclick="document.getElementById('clientResults').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;">✕ 닫기</button></div>`;
+        if (!lastClientResults.length) { el.innerHTML = closeRow + '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>'; el.classList.add('open'); return; }
+        el.innerHTML = closeRow + lastClientResults.map((c, i) => `<div class="client-search-result" onclick="selectClient(${i})">${esc(c.name || c.nickname || '')}${c.name && c.nickname ? ' ('+esc(c.nickname)+')' : ''} ${c.phone ? '· '+esc(c.phone) : ''}</div>`).join('');
         el.classList.add('open');
     }, 200);
 }
+
+// 바깥 클릭·Esc 로 검색 결과창 닫기 — 결과창이 아래 입력란을 가려 클릭을 막는 문제 대응
+document.addEventListener('click', e => {
+    if (!e.target.closest('.client-search-wrap')) document.getElementById('clientResults')?.classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('clientResults')?.classList.remove('open');
+});
 
 function selectClient(i) {
     const c = lastClientResults[i];
