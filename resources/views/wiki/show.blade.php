@@ -271,7 +271,7 @@
         @endphp
         <div class="wiki-actions" id="viewActions">
             <button id="copyWikiLinkBtn" onclick="copyWikiLink()" title="문서 링크 복사"><x-icon name="link" :size="13"/> 링크 복사</button>
-            <button onclick="openActivityLog('Wiki',{{ $wiki->id }},'{{ addslashes($wiki->title) }} 수정 로그')"><x-icon name="clip" :size="13"/> 로그</button>
+            <button onclick="openWikiHistory()"><x-icon name="clip" :size="13"/> 역사</button>
             @if($canEditWiki)
             <button onclick="toggleEdit()">수정</button>
             <form method="POST" action="{{ route('wiki.destroy', $wiki) }}" style="display:inline;" onsubmit="return confirm('이 문서를 삭제하시겠습니까?')">
@@ -1041,4 +1041,178 @@ window.toggleEdit = function() {
 })();
 </script>
 @include('partials.tiptap-sticky-toolbar')
+
+{{-- ── 역사 (수정 로그 → 리비전 비교) — 나무위키식: 왼쪽 리비전 목록, 오른쪽 줄 단위 diff ── --}}
+<div id="whOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--surface,#fff);border:1px solid var(--border,#d9dee5);border-radius:16px;width:100%;max-width:1060px;height:min(84vh,860px);display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border,#d9dee5);flex-shrink:0;">
+            <div style="font-size:15px;font-weight:700;">{{ $wiki->title }} <span style="color:var(--text-muted,#8a97a5);font-weight:500;">— 역사</span></div>
+            <button onclick="document.getElementById('whOverlay').style.display='none'" style="background:none;border:1px solid var(--border,#d9dee5);color:var(--text-muted,#8a97a5);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;">
+            <div id="whList" style="width:252px;flex-shrink:0;overflow-y:auto;border-right:1px solid var(--border,#d9dee5);padding:8px;"></div>
+            <div id="whDiff" style="flex:1;overflow:auto;padding:14px 18px;"></div>
+        </div>
+    </div>
+</div>
+<style>
+.wh-rev { padding:9px 11px; border-radius:10px; cursor:pointer; margin-bottom:2px; }
+.wh-rev:hover { background:var(--surface-2,#f4f6f8); }
+.wh-rev.on { background:var(--surface-2,#eef3fd); box-shadow:inset 3px 0 0 #2563eb; }
+.wh-rev .r { font-size:12px; font-weight:800; color:#2563eb; margin-right:6px; }
+.wh-rev .u { font-size:12.5px; font-weight:600; }
+.wh-rev .d { font-size:11px; color:var(--text-muted,#8a97a5); margin-top:2px; }
+.wh-rev .f { font-size:11px; color:var(--text-muted,#8a97a5); margin-top:2px; }
+.wh-table { width:100%; border-collapse:collapse; font-size:12.5px; line-height:1.55; table-layout:fixed; }
+.wh-table td { border:1px solid var(--border,#e3e7ec); padding:4px 9px; vertical-align:top; word-break:break-word; }
+.wh-table td.n { width:44px; text-align:right; color:var(--text-muted,#9aa5b1); background:var(--surface-2,#f7f8fa); font-size:11px; user-select:none; }
+.wh-table tr.del td.t { background:#fdecec; }
+.wh-table tr.add td.t { background:#e8f7ee; }
+.wh-table tr.gap td { text-align:center; color:var(--text-muted,#9aa5b1); background:var(--surface-2,#f7f8fa); }
+.wh-table .hl-del { background:#f6b7b7; border-radius:3px; }
+.wh-table .hl-add { background:#9fe0b5; border-radius:3px; }
+.wh-head { font-size:13px; font-weight:800; margin-bottom:10px; }
+.wh-meta { font-size:12px; color:var(--text-muted,#8a97a5); margin-bottom:12px; }
+.wh-field { font-size:12.5px; margin:0 0 8px; }
+.wh-field b { font-weight:700; }
+.wh-field .o { text-decoration:line-through; color:#ef4444; }
+.wh-field .w { color:#16a34a; }
+</style>
+<script>
+let WH_LOGS = null;
+async function openWikiHistory() {
+    const overlay = document.getElementById('whOverlay');
+    overlay.style.display = 'flex';
+    if (!WH_LOGS) {
+        document.getElementById('whList').innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-muted,#999);">로딩 중...</div>';
+        try {
+            const res = await fetch('/api/activity-logs?type=Wiki&id={{ $wiki->id }}&limit=200');
+            if (!res.ok) throw new Error();
+            const logs = await res.json();
+            // 오래된 것부터 r1, r2... 번호 부여 후 최신순 표시
+            logs.reverse().forEach((l, i) => l.rev = i + 1);
+            WH_LOGS = logs.reverse();
+        } catch (e) {
+            document.getElementById('whList').innerHTML = '<div style="padding:16px;font-size:12.5px;color:#ef4444;">로드 실패</div>';
+            return;
+        }
+    }
+    renderWhList(WH_LOGS.length ? 0 : -1);
+}
+
+function renderWhList(selIdx) {
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const list = document.getElementById('whList');
+    if (!WH_LOGS.length) {
+        list.innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-muted,#999);">수정 이력이 없습니다.</div>';
+        document.getElementById('whDiff').innerHTML = '';
+        return;
+    }
+    const AL = { create: '생성', update: '수정', delete: '삭제' };
+    list.innerHTML = WH_LOGS.map((l, i) => {
+        const fields = l.changes ? Object.keys(l.changes) : [];
+        return `<div class="wh-rev ${i === selIdx ? 'on' : ''}" onclick="renderWhList(${i})">
+            <div><span class="r">r${l.rev}</span><span class="u">${esc(l.user)}</span></div>
+            <div class="d">${esc(l.created_at)} · ${AL[l.action] || esc(l.action)}</div>
+            ${fields.length ? `<div class="f">${esc(fields.join(', '))}</div>` : ''}
+        </div>`;
+    }).join('');
+    if (selIdx >= 0) { renderWhDiff(selIdx); }
+}
+
+// HTML 본문 → 비교용 텍스트 줄 (블록 태그 경계를 줄바꿈으로)
+function whLines(html) {
+    const s = String(html ?? '')
+        .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr|\/blockquote|\/pre)[^>]*>/gi, '\n')
+        .replace(/<li[^>]*>/gi, '• ').replace(/<\/t[dh]>/gi, ' | ');
+    const el = document.createElement('div');
+    el.innerHTML = s.replace(/<[^>]+>/g, '');
+    const lines = el.textContent.split('\n').map(x => x.replace(/\s+$/, '')).filter((x, i, a) => x !== '' || (a[i - 1] ?? '') !== '');
+    while (lines.length && lines[lines.length - 1] === '') { lines.pop(); }
+    return lines;
+}
+
+// 줄 단위 LCS diff → [{type:'same'|'del'|'add', text, oldNo, newNo}]
+function whLineDiff(a, b) {
+    if (a.length * b.length > 4000000) { // 아주 긴 문서 — 공통 접두/접미만 제외
+        let p = 0; while (p < a.length && p < b.length && a[p] === b[p]) p++;
+        let s = 0; while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
+        return [...a.slice(0, p).map((t, i) => ({ type: 'same', text: t, oldNo: i + 1, newNo: i + 1 })),
+            ...a.slice(p, a.length - s).map((t, i) => ({ type: 'del', text: t, oldNo: p + i + 1 })),
+            ...b.slice(p, b.length - s).map((t, i) => ({ type: 'add', text: t, newNo: p + i + 1 })),
+            ...a.slice(a.length - s).map((t, i) => ({ type: 'same', text: t, oldNo: a.length - s + i + 1, newNo: b.length - s + i + 1 }))];
+    }
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+    for (let i = m - 1; i >= 0; i--) {
+        for (let j = n - 1; j >= 0; j--) {
+            dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+    }
+    const out = []; let i = 0, j = 0;
+    while (i < m && j < n) {
+        if (a[i] === b[j]) { out.push({ type: 'same', text: a[i], oldNo: i + 1, newNo: j + 1 }); i++; j++; }
+        else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push({ type: 'del', text: a[i], oldNo: i + 1 }); i++; }
+        else { out.push({ type: 'add', text: b[j], newNo: j + 1 }); j++; }
+    }
+    while (i < m) { out.push({ type: 'del', text: a[i], oldNo: i + 1 }); i++; }
+    while (j < n) { out.push({ type: 'add', text: b[j], newNo: j + 1 }); j++; }
+    return out;
+}
+
+// 짝지어진 수정 줄의 바뀐 구간만 진하게 (공통 접두/접미 제외)
+function whInline(oldT, newT, esc) {
+    let p = 0; while (p < oldT.length && p < newT.length && oldT[p] === newT[p]) p++;
+    let s = 0; while (s < oldT.length - p && s < newT.length - p && oldT[oldT.length - 1 - s] === newT[newT.length - 1 - s]) s++;
+    const mk = (t, cls) => esc(t.slice(0, p)) + (t.length - p - s > 0 ? `<span class="${cls}">${esc(t.slice(p, t.length - s))}</span>` : '') + esc(t.slice(t.length - s));
+    return [mk(oldT, 'hl-del'), mk(newT, 'hl-add')];
+}
+
+function renderWhDiff(idx) {
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const log = WH_LOGS[idx];
+    const pane = document.getElementById('whDiff');
+    const head = `<div class="wh-head">r${log.rev > 1 ? (log.rev - 1) + ' vs r' + log.rev : log.rev}</div>
+        <div class="wh-meta">${esc(log.user)} · ${esc(log.created_at)}${log.summary ? ' · ' + esc(log.summary) : ''}</div>`;
+    const ch = log.changes || {};
+
+    // 내용 외 필드(제목·카테고리 등)는 한 줄 old → new
+    const fieldRows = Object.entries(ch).filter(([k]) => k !== '내용').map(([k, v]) => {
+        const o = typeof v.old === 'object' ? JSON.stringify(v.old) : (v.old ?? '—');
+        const w = typeof v.new === 'object' ? JSON.stringify(v.new) : (v.new ?? '—');
+        return `<div class="wh-field"><b>${esc(k)}</b> · <span class="o">${esc(o)}</span> → <span class="w">${esc(w)}</span></div>`;
+    }).join('');
+
+    if (!ch['내용']) {
+        pane.innerHTML = head + (fieldRows || '<div style="font-size:12.5px;color:var(--text-muted,#999);">본문 변경 없음' + (log.action === 'create' ? ' — 문서 생성' : '') + '</div>');
+        return;
+    }
+
+    const diff = whLineDiff(whLines(ch['내용'].old), whLines(ch['내용'].new));
+    // 변경 줄 주변 2줄만 보여주고 나머지는 … 로 접기 + 인접한 del/add 짝은 단어 강조
+    const CTX = 2;
+    const keep = new Set();
+    diff.forEach((r, i) => { if (r.type !== 'same') { for (let k = Math.max(0, i - CTX); k <= Math.min(diff.length - 1, i + CTX); k++) keep.add(k); } });
+    let rows = '', gap = false;
+    for (let i = 0; i < diff.length; i++) {
+        if (!keep.has(i)) { if (!gap) { rows += '<tr class="gap"><td class="n">…</td><td class="n">…</td><td></td></tr>'; gap = true; } continue; }
+        gap = false;
+        const r = diff[i];
+        let text = esc(r.text);
+        if (r.type === 'del' && diff[i + 1] && diff[i + 1].type === 'add' && (!diff[i + 2] || diff[i + 2].type !== 'add')) {
+            const [o, w] = whInline(r.text, diff[i + 1].text, esc);
+            rows += `<tr class="del"><td class="n">${r.oldNo}</td><td class="n"></td><td class="t">${o}</td></tr>`;
+            rows += `<tr class="add"><td class="n"></td><td class="n">${diff[i + 1].newNo}</td><td class="t">${w}</td></tr>`;
+            i++; continue;
+        }
+        if (r.type === 'del') { rows += `<tr class="del"><td class="n">${r.oldNo}</td><td class="n"></td><td class="t">${text}</td></tr>`; }
+        else if (r.type === 'add') { rows += `<tr class="add"><td class="n"></td><td class="n">${r.newNo}</td><td class="t">${text}</td></tr>`; }
+        else { rows += `<tr><td class="n">${r.oldNo}</td><td class="n">${r.newNo}</td><td class="t">${text}</td></tr>`; }
+    }
+    const changed = diff.filter(r => r.type !== 'same').length;
+    pane.innerHTML = head + fieldRows + (changed
+        ? `<table class="wh-table"><colgroup><col style="width:44px"><col style="width:44px"><col></colgroup>${rows}</table>`
+        : '<div style="font-size:12.5px;color:var(--text-muted,#999);">표시할 본문 차이가 없습니다 (서식만 변경).</div>');
+}
+</script>
 @endpush
