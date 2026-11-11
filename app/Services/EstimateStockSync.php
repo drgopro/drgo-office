@@ -45,7 +45,10 @@ class EstimateStockSync
             if (! $pid) {
                 continue;
             }
-            $qty = max(1, (int) ($item['qty'] ?? 1));
+            $qty = (int) ($item['qty'] ?? 1);
+            if ($qty < 1) {
+                continue; // 음수 수량(환불 표시 라인) — 출고·재고 대상 아님
+            }
             $parentDirect = ! empty($item['ordered']) && ($item['purchase_source'] ?? '') === '사무실 발송';
             $bundles = is_array($item['bundle_items'] ?? null) ? $item['bundle_items'] : [];
 

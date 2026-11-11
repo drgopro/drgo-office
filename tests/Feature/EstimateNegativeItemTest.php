@@ -47,6 +47,22 @@ class EstimateNegativeItemTest extends TestCase
         $this->assertSame('카메라 본체', $fresh->product_items[0]['name']);
     }
 
+    public function test_negative_qty_saves_and_reduces_total(): void
+    {
+        // 환불 제품 표시 — 수량을 음수로 넣으면 금액이 차감된다 (0은 거부 유지)
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", [
+            'product_items' => [
+                ['name' => '카메라 본체', 'sale_price' => 300000, 'qty' => 2, 'subtotal' => 600000],
+                ['name' => '카메라 본체 (환불)', 'sale_price' => 300000, 'qty' => -1, 'subtotal' => -300000],
+            ],
+        ])->assertOk();
+
+        $fresh = $this->estimate->fresh();
+        $this->assertSame(-1, (int) $fresh->product_items[1]['qty']);
+        $this->assertSame(300000, (int) $fresh->product_total);
+        $this->assertSame(300000, (int) $fresh->total_amount);
+    }
+
     public function test_builder_manual_price_input_allows_negative(): void
     {
         $res = $this->actingAs($this->admin)->get("/estimates/{$this->estimate->id}/edit")->assertOk();

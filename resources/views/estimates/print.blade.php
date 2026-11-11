@@ -229,7 +229,7 @@
 <div style="position:fixed; inset:0; z-index:9999; pointer-events:none; display:flex; align-items:center; justify-content:center;">
     <div style="transform:rotate(-24deg); font-size:84px; font-weight:900; color:rgba(220,38,38,0.13); letter-spacing:12px; white-space:nowrap;">테스트 견적</div>
 </div>
-<div style="position:fixed; top:0; left:0; right:0; z-index:9999; background:#fef3e2; color:#b45309; border-bottom:1px solid #f3d9a9; text-align:center; font-size:12px; font-weight:800; padding:5px 0;">🧪 테스트 견적서 — 실제 거래용이 아닙니다</div>
+<div style="position:fixed; top:0; left:0; right:0; z-index:9999; background:#fef3e2; color:#b45309; border-bottom:1px solid #f3d9a9; text-align:center; font-size:12px; font-weight:800; padding:5px 0;">테스트 견적서 — 실제 거래용이 아닙니다</div>
 @endif
 
 @php

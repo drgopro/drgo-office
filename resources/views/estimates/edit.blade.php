@@ -425,7 +425,7 @@
     @endif
     <div class="panel-right-header">
         <h2 id="estTitleNo" onclick="editEstTitle()" style="cursor:text; border-radius:6px; padding:2px 6px; margin-left:-6px;" title="클릭해서 견적서 제목 수정 (출력물 상단에 표시)">{{ $estimate->title ?: ($estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no) }}</h2>
-        <span id="testBadge" style="{{ $estimate->is_test ? '' : 'display:none;' }} font-size:11px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:3px 10px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트를 건너뜁니다. 출력물에도 테스트 표시가 붙습니다.">🧪 테스트</span>
+        <span id="testBadge" style="{{ $estimate->is_test ? '' : 'display:none;' }} font-size:11px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:3px 10px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트를 건너뜁니다. 출력물에도 테스트 표시가 붙습니다.">테스트</span>
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
             <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">주문/배송</button>
@@ -1653,13 +1653,22 @@ document.addEventListener('dragover', e => {
 document.addEventListener('dragend', __stopDndScroll);
 document.addEventListener('drop', __stopDndScroll);
 
+// 수량 음수 허용 — 환불·차감 항목을 -수량으로 표시 (0은 건너뜀, 합계에서 자동 차감)
+function normQty(v, fallback = 1) {
+    let q = parseInt(v);
+    if (isNaN(q)) q = fallback;
+    if (q === 0) q = fallback > 0 ? 1 : -1;
+    return Math.max(-9999, Math.min(9999, q));
+}
 function changeQty(idx, delta) {
-    cartItems[idx].qty = Math.max(1, cartItems[idx].qty + delta);
+    let q = cartItems[idx].qty + delta;
+    if (q === 0) q = delta > 0 ? 1 : -1; // 0 건너뛰기 — 1 ↔ -1
+    cartItems[idx].qty = Math.max(-9999, Math.min(9999, q));
     cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty;
     renderCart();
 }
 function setQty(idx, val) {
-    cartItems[idx].qty = Math.max(1, parseInt(val)||1);
+    cartItems[idx].qty = normQty(val);
     cartItems[idx].subtotal = Number(cartItems[idx].sale_price) * cartItems[idx].qty;
     renderCart();
 }
@@ -1736,7 +1745,7 @@ function addManualItem() {
     if (!name) return alert('제품명을 입력해주세요.');
     // 음수 허용 — 재방문 할인 등 차감 항목을 -금액으로 기록 (합계에서 자동 차감)
     const price = parseInt(document.getElementById('miPrice').value) || 0;
-    const qty = Math.max(1, parseInt(document.getElementById('miQty').value) || 1);
+    const qty = normQty(document.getElementById('miQty').value); // 음수 허용 — 환불 표시 항목
     const miCat = document.getElementById('miCat').value.trim() || '기타';
     insertCartItem({
         product_id: null, sku: '', category: miCat, category_root: miCat,

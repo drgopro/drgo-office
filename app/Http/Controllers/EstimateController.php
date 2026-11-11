@@ -447,7 +447,7 @@ class EstimateController extends Controller
             'product_items.*.name' => 'required|string|max:200',
             'product_items.*.purchase_price' => 'nullable|numeric|min:0',
             'product_items.*.sale_price' => 'required|numeric', // 음수 허용 — 재방문 할인 등 차감 항목 (-금액)
-            'product_items.*.qty' => 'required|integer|min:1|max:9999',
+            'product_items.*.qty' => 'required|integer|between:-9999,9999|not_in:0', // 음수 허용 — 환불 제품 표시·금액 차감
             'product_items.*.subtotal' => 'required|numeric', // 음수 허용 (차감 항목의 소계)
             'product_items.*.time_required' => 'nullable|string|max:50',
             'product_items.*.use_time' => 'nullable|boolean', // 소요시간 입력폼 사용 여부 (제품 설정 스냅샷)
@@ -792,7 +792,7 @@ class EstimateController extends Controller
                 if (! empty($i['replaced'])) {
                     continue;
                 }
-                $qty = max(1, (int) ($i['qty'] ?? 1));
+                $qty = ((int) ($i['qty'] ?? 1)) ?: 1; // 음수 수량(환불 표시 라인)은 그대로 음수 라인으로
                 $amount = (int) ($i['subtotal'] ?? ((int) ($i['sale_price'] ?? 0) * $qty));
                 $lines->push([
                     'name' => ($label ? "[{$label}] " : '').($i['name'] ?? ''),

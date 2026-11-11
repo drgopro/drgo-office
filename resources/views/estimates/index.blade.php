@@ -361,7 +361,7 @@ async function loadEstimates() {
         }).join('');
         return `<tr>
             <td class="text-muted">#${e.display_no ?? e.id}${rounds.length ? ` <button id="rndCaret-${e.id}" onclick="event.stopPropagation(); toggleEstRounds(${e.id})" title="추가 차수 펼치기/접기" style="background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--accent); font-size:10.5px; font-weight:700; padding:1px 7px; cursor:pointer; white-space:nowrap;">▸ +${rounds.length}차</button>` : ''}</td>
-            <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}${e.is_test ? ' <span style="font-size:10px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:1px 7px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트 생략">🧪 테스트</span>' : ''}${e.title ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${_esc(e.title)}</div>` : ''}</td>
+            <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}${e.is_test ? ' <span style="font-size:10px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:1px 7px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트 생략">테스트</span>' : ''}${e.title ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${_esc(e.title)}</div>` : ''}</td>
             <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원${estUsdSub(e.total_amount, e.currency, e.usd_rate)}</td>
             <td class="text-muted">${itemCount}건</td>
             <td><span class="badge badge-${e.status}">${stMap[e.status]}</span></td>

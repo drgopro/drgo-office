@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,6 +25,7 @@ class EstimateValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Setting::set('estimate_review.config', json_encode(['gate' => false])); // 검토 게이트 — 이 테스트의 관심사 아님
         $this->admin = User::factory()->create(['role' => 'master']);
         $this->estimate = Estimate::create([
             'status' => 'created', 'product_items' => [], 'service_items' => [],
