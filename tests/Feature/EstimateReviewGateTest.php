@@ -51,6 +51,23 @@ class EstimateReviewGateTest extends TestCase
         $this->actingAs($this->admin)->postJson("/api/estimates/{$this->estimate->id}/review/finish")->assertOk();
     }
 
+    public function test_test_mode_bypasses_gate_and_inherits_to_rounds(): void
+    {
+        // 토글 켜기 → 검토 없이 발행 가능
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$this->estimate->id}/toggle-test")
+            ->assertOk()->assertJson(['is_test' => true]);
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$this->estimate->id}/issue")->assertOk();
+
+        // 차수도 테스트 상속 → 검토 없이 발행 전환 가능
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$this->estimate->id}/rounds")->assertCreated();
+        $round = Estimate::where('parent_estimate_id', $this->estimate->id)->first();
+        $this->assertTrue((bool) $round->is_test);
+
+        // 토글 끄기 → 게이트 복귀
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$this->estimate->id}/toggle-test")
+            ->assertOk()->assertJson(['is_test' => false]);
+    }
+
     public function test_issue_transition_blocked_until_review_done(): void
     {
         $this->actingAs($this->admin)->patchJson("/api/estimates/{$this->estimate->id}", ['status' => 'issued'])

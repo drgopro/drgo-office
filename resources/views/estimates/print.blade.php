@@ -224,6 +224,13 @@
     </style>
 </head>
 <body class="{{ !empty($publicMode) ? 'public-mode' : '' }}">
+@if($estimate->is_test)
+{{-- 테스트 견적 표시 — 고객 전달 사고 방지용 (화면·인쇄 모두 표시) --}}
+<div style="position:fixed; inset:0; z-index:9999; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+    <div style="transform:rotate(-24deg); font-size:84px; font-weight:900; color:rgba(220,38,38,0.13); letter-spacing:12px; white-space:nowrap;">테스트 견적</div>
+</div>
+<div style="position:fixed; top:0; left:0; right:0; z-index:9999; background:#fef3e2; color:#b45309; border-bottom:1px solid #f3d9a9; text-align:center; font-size:12px; font-weight:800; padding:5px 0;">🧪 테스트 견적서 — 실제 거래용이 아닙니다</div>
+@endif
 
 @php
     // 환불/결제취소 합계 — 항목별 환불 기록(세트 구성품 환불 포함, 부모에 합산됨)

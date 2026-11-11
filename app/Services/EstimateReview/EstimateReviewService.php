@@ -92,6 +92,9 @@ class EstimateReviewService
         if (! $this->gateEnabled()) {
             return null;
         }
+        if ($estimate->is_test) {
+            return null; // 테스트 견적 — 기능 테스트용이라 검토 게이트 미적용
+        }
         $state = $estimate->review_state;
         if (empty($state['done'])) {
             return '검토가 완료되지 않은 견적서입니다. 검토 버튼으로 품목 점검을 마친 뒤 진행하세요.';

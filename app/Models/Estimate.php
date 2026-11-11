@@ -80,6 +80,7 @@ class Estimate extends Model
         'terms_sections',
         'draft',
         'draft_saved_at',
+        'is_test',
         'created_by',
     ];
 
@@ -87,6 +88,7 @@ class Estimate extends Model
         'terms_sections' => 'array',
         'agreements' => 'array',
         'review_state' => 'array',
+        'is_test' => 'boolean',
         'product_items' => 'array',
         'service_items' => 'array',
         'category_breakdown' => 'array',

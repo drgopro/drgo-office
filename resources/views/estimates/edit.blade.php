@@ -425,6 +425,7 @@
     @endif
     <div class="panel-right-header">
         <h2 id="estTitleNo" onclick="editEstTitle()" style="cursor:text; border-radius:6px; padding:2px 6px; margin-left:-6px;" title="클릭해서 견적서 제목 수정 (출력물 상단에 표시)">{{ $estimate->title ?: ($estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no) }}</h2>
+        <span id="testBadge" style="{{ $estimate->is_test ? '' : 'display:none;' }} font-size:11px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:3px 10px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트를 건너뜁니다. 출력물에도 테스트 표시가 붙습니다.">🧪 테스트</span>
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">
             <button class="btn btn-ghost" id="orderModeBtn" style="padding:5px 12px; font-size:12px;" onclick="toggleOrderMode()">주문/배송</button>
@@ -695,6 +696,7 @@
                 <button onclick="footMoreRun(() => openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그'))">로그 <span>변경 이력</span></button>
                 <button onclick="footMoreRun(openStatement)">거래명세서 <span>공급가액·세액 분리</span></button>
                 <button onclick="footMoreRun(printEstimate)">🖨 견적서 출력 <span>인쇄용 문서</span></button>
+                <button onclick="footMoreRun(toggleTestMode)">테스트 모드 <span id="fmTestState">{{ $estimate->is_test ? '켜짐 — 검토 생략' : '꺼짐' }}</span></button>
                 <button class="fm-danger" onclick="footMoreRun(deleteEstimate)">삭제 <span>이 견적서 삭제</span></button>
             </div>
         </div>
@@ -2090,6 +2092,17 @@ function toggleFootMore(e) {
     const m = document.getElementById('footMoreMenu');
     m.hidden = !m.hidden;
 }
+// 테스트 견적 모드 — 검토 게이트(출력·발행 잠금) 우회. 기능 테스트용, 출력물에 테스트 표시
+async function toggleTestMode() {
+    const res = await fetch(`/api/estimates/${estId}/toggle-test`, { method: 'POST', headers: H });
+    if (!res.ok) { alert('테스트 모드 전환에 실패했습니다.'); return; }
+    const on = (await res.json()).is_test;
+    document.getElementById('fmTestState').textContent = on ? '켜짐 — 검토 생략' : '꺼짐';
+    const badge = document.getElementById('testBadge');
+    if (badge) badge.style.display = on ? '' : 'none';
+    if (on) alert('테스트 모드가 켜졌습니다.\n이 견적서는 검토 없이 저장·발행·출력할 수 있고, 출력물에 "테스트" 표시가 붙습니다.');
+}
+
 function footMoreRun(fn) {
     document.getElementById('footMoreMenu').hidden = true;
     fn();

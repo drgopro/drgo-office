@@ -1205,6 +1205,14 @@ class EstimateController extends Controller
      * 추가 차수(N차 추가 견적) 생성 — 결제 완료(또는 발행) 이후 추가 결제 건을
      * 부모 견적서에 묶는다. 차수는 실제 견적서 행이라 페이앱 결제·환불·매출 연동을 그대로 탄다.
      */
+    /** 테스트 견적 모드 토글 — 기능 테스트용 견적서는 검토 게이트(출력·발행 잠금)를 건너뛴다. 출력물에는 테스트 표시가 붙는다 */
+    public function toggleTest(Estimate $estimate)
+    {
+        $estimate->update(['is_test' => ! $estimate->is_test]);
+
+        return response()->json(['ok' => true, 'is_test' => (bool) $estimate->fresh()->is_test]);
+    }
+
     public function storeRound(Estimate $estimate)
     {
         if ($estimate->parent_estimate_id) {
@@ -1216,6 +1224,8 @@ class EstimateController extends Controller
 
         $round = Estimate::create([
             'parent_estimate_id' => $estimate->id,
+            'is_test' => $estimate->is_test, // 테스트 견적의 차수도 테스트로
+
             'round' => (int) ($estimate->rounds()->max('round') ?? 1) + 1,
             'status' => 'created',
             'client_id' => $estimate->client_id,
