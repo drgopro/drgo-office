@@ -487,7 +487,7 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                     <tr>
                         <td class="cell-no col-no">{{ $globalIdx }}</td>
                         <td class="cell-cat">{{ $item['category'] ?? '' }}</td>
-                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif<span @if(!empty($item['replaced'])) style="text-decoration:line-through; color:#8a94a0;" @endif>{{ $item['name'] }}</span>@if(!empty($item['replaced']))<span class="deal-tag discount" style="text-decoration:none;">대체</span>@if(!empty($item['replaced_note']))<div style="font-size:10.5px; color:#c03838; margin-top:2px;">↳ {{ $item['replaced_note'] }}</div>@endif @endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.$money($item['refund_amount']) : '' }}</span>@endif @if(($item['deal_type'] ?? null) === 'special')<span class="deal-tag special">특가</span>@elseif(($item['deal_type'] ?? null) === 'discount')<span class="deal-tag discount">할인{{ !empty($item['discount_rate']) ? ' '.rtrim(rtrim(number_format($item['discount_rate'], 1), '0'), '.').'%' : '' }}</span>@endif
+                        <td class="cell-name">@if(!empty($item['mid_category']))<div style="font-size:10px; color:#8a94a0; margin-bottom:1px;">{{ $item['mid_category'] }}</div>@endif<span @if(!empty($item['replaced'])) style="text-decoration:line-through; color:#8a94a0;" @elseif(((int) ($item['qty'] ?? 1) < 0 || (int) ($item['subtotal'] ?? 0) < 0)) style="color:#b03030;" @endif>{{ $item['name'] }}</span>@if(!empty($item['replaced']))<span class="deal-tag discount" style="text-decoration:none;">대체</span>@if(!empty($item['replaced_note']))<div style="font-size:10.5px; color:#c03838; margin-top:2px;">↳ {{ $item['replaced_note'] }}</div>@endif @endif @if($itemRefunded)<span class="refund-tag">환불{{ (int) ($item['refund_qty'] ?? 0) > 0 ? ' '.$item['refund_qty'].'개' : '' }}{{ (int) ($item['refund_amount'] ?? 0) > 0 ? ' '.$money($item['refund_amount']) : '' }}</span>@endif @if(($item['deal_type'] ?? null) === 'special')<span class="deal-tag special">특가</span>@elseif(($item['deal_type'] ?? null) === 'discount')<span class="deal-tag discount">할인{{ !empty($item['discount_rate']) ? ' '.rtrim(rtrim(number_format($item['discount_rate'], 1), '0'), '.').'%' : '' }}</span>@endif
                             @if($refundedParts->isNotEmpty())
                                 <div class="refund-detail">
                                     @foreach($refundedParts as $b)
@@ -498,9 +498,10 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                             @if(!empty($item['remark']))<div style="font-size:10.5px; color:#5a6b7d; margin-top:2px;">{{ $item['remark'] }}</div>@endif
                         </td>
                         <td class="text-center col-time">{{ $item['time_required'] ?? '' }}</td>
-                        <td class="text-right">@if(!empty($item['deal_type']) && (int) ($item['original_price'] ?? 0) > (int) $item['sale_price'])<div class="deal-orig">{{ $money($item['original_price']) }}</div>@endif{{ $money($item['sale_price']) }}</td>
-                        <td class="text-center">{{ $item['qty'] }}</td>
-                        <td class="text-right cell-total">@if(!empty($item['replaced']))<span style="text-decoration:line-through; color:#8a94a0; font-weight:400;">{{ $money($item['subtotal']) }}</span>@else{{ $money($item['subtotal']) }} @endif</td>
+                        @php $lineNeg = empty($item['replaced']) && ((int) ($item['qty'] ?? 1) < 0 || (int) ($item['subtotal'] ?? 0) < 0); @endphp
+                        <td class="text-right" @if($lineNeg) style="color:#b03030;" @endif>@if(!empty($item['deal_type']) && (int) ($item['original_price'] ?? 0) > (int) $item['sale_price'])<div class="deal-orig">{{ $money($item['original_price']) }}</div>@endif{{ ($lineNeg && (int) $item['sale_price'] > 0 ? '-' : '').$money($item['sale_price']) }}</td>
+                        <td class="text-center" @if($lineNeg) style="color:#b03030;" @endif>{{ $item['qty'] }}</td>
+                        <td class="text-right cell-total">@if(!empty($item['replaced']))<span style="text-decoration:line-through; color:#8a94a0; font-weight:400;">{{ $money($item['subtotal']) }}</span>@else<span @if($lineNeg) style="color:#b03030;" @endif>{{ $money($item['subtotal']) }}</span> @endif</td>
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
@@ -533,6 +534,12 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
         </tbody>
     </table>
 
+    @php $negTotal = collect($items)->reject(fn ($i) => ! empty($i['replaced']))->sum(fn ($i) => min(0, (int) ($i['subtotal'] ?? 0))) + collect($services)->sum(fn ($s) => min(0, (int) ($s['amount'] ?? 0))); @endphp
+    @if($negTotal < 0)
+        <div style="display:flex; justify-content:flex-end; gap:14px; padding:7px 14px 0; font-size:12.5px; font-weight:700; color:#b03030;">
+            <span>차감 합계 (환불·할인)</span><span>{{ number_format($negTotal) }} 원</span>
+        </div>
+    @endif
     <div class="total-bar">
         <div>
             <span class="t-label">총 견적 금액</span>

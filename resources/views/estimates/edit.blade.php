@@ -99,6 +99,8 @@
         .cart-table { width:100%; border-collapse:separate; border-spacing:0; }
         .cart-table th { font-size:12.5px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; white-space:nowrap; }
         .cart-table td { font-size:14.5px; padding:9px 6px; border-bottom:1px solid var(--border); }
+        /* 음수(환불·차감) 라인 — 붉은 폰트 */
+        .cart-table tr.neg-item td, .cart-table tr.neg-item .cell-name span:first-of-type, .cart-table tr.neg-item .qty-ctrl input { color:var(--red); }
         .cart-table tr:last-child td { border-bottom:none; }
         /* 대분류 밴드 — 슬레이트 배경 + 우측 소계 */
         .cart-cat-header td { background:var(--slate); color:#fff; font-size:13.5px; font-weight:700; padding:8px 10px; border-bottom:none; }
@@ -583,6 +585,7 @@
         <div class="total-section">
             <div class="total-row"><span>제품 소계</span><span id="productTotal">0원</span></div>
             <div class="total-row" id="svcTotalRow" style="display:none;"><span>서비스 소계</span><span id="serviceTotal">0원</span></div>
+            <div class="total-row" id="negTotalRow" style="display:none; color:var(--red);"><span>차감 합계 <span style="font-size:11px; font-weight:400;">(환불·할인 라인)</span></span><span id="negTotal" style="color:var(--red); font-weight:700;">0원</span></div>
             <div class="total-row grand"><span>총 견적 금액</span><span id="grandTotal">0원</span></div>
             <div class="total-row" id="usdTotalRow" style="display:none;"><span>USD 환산 <span id="usdRateInfo" style="font-size:11px; color:var(--text-muted); font-weight:400;"></span></span><span id="usdGrandTotal" style="color:var(--accent); font-weight:700;"></span></div>
             <div class="total-items">총 항목 수: <span id="totalItems">0</span>개 (부가세 포함)</div>
@@ -1336,14 +1339,15 @@ function renderCart() {
             // 엑셀 가져오기 중분류(제품명 위 작은 라벨) + 항목 비고(클릭해서 수정, 의뢰자 견적서에 표시)
             const midLine = item.mid_category ? `<div style="font-size:11px; color:var(--text-muted); margin-bottom:1px;">${_escE(item.mid_category)}</div>` : '';
             const remarkLine = item.remark ? `<div style="font-size:12px; color:var(--slate); margin-top:3px; cursor:pointer;" onclick="editItemRemark(${idx})" title="클릭해서 비고 수정 — 의뢰자 견적서에 표시됩니다">비고: ${_escE(item.remark)}</div>` : '';
-            html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
+            const isNeg = !item.replaced && ((Number(item.qty) < 0) || (Number(item.subtotal) || 0) < 0);
+            html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}" class="${isNeg ? 'neg-item' : ''}">
                 <td>${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> `}<span class="cart-row-num">${globalIdx}</span></td>
                 <td style="font-size:12px; color:var(--text-muted);">${orderMode
                     ? _escE(item.category || '')
                     : `<span style="cursor:pointer;" onclick="editItemSubCategory(${idx})" title="클릭해서 이 항목의 분류(2차) 수정 — 예: 렌즈/바디/케이블. 이 견적서에만 적용되고 제품 관리에는 영향 없음 (1차 분류는 분류 헤더의 ✎로 수정)">${_escE(item.category || '') || '<span style=\'color:var(--slate);\'>분류 입력</span>'}</span>`}</td>
                 <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''} style="${item.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${item.name}</span>${item.replaced ? ` <span style="font-size:10.5px; color:#c03838; border:1px solid #c03838; border-radius:3px; padding:0 5px; cursor:pointer;" onclick="setItemReplaced(${idx})" title="대체됨 — 클릭해서 사유 수정/해제. 금액은 소계·합계에서 제외">대체됨</span>${item.replaced_note ? `<div style="font-size:12px; color:#c03838; margin-top:2px;">↳ ${_escE(item.replaced_note)}</div>` : ''}` : ''}${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' + (!orderMode ? ` <span style="font-size:10.5px; cursor:pointer; color:${item.is_service ? '#7c5db5' : 'var(--slate)'}; border:1px solid currentColor; border-radius:3px; padding:0 5px;" onclick="toggleItemKind(${idx})" title="클릭해서 장비/서비스 전환 — 서비스는 주문내역에서 제외되고 세팅비 매출로 집계됩니다 (저장해야 반영)">${item.is_service ? '서비스' : '장비'}</span>` : '') : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${srcLine}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
-                <td class="text-right">${item.deal_type && Number(item.original_price) > Number(item.sale_price) ? `<div class="deal-orig">${fmt(item.original_price)}원</div>` : ''}${fmt(item.sale_price)}원<div>${orderMode
+                <td class="text-right">${item.deal_type && Number(item.original_price) > Number(item.sale_price) ? `<div class="deal-orig">${fmt(item.original_price)}원</div>` : ''}${isNeg && Number(item.sale_price) > 0 ? '-' : ''}${fmt(item.sale_price)}원<div>${orderMode
                     ? (item.deal_type ? `<span class="deal-badge ${item.deal_type}">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>` : '')
                     : (item.deal_type
                         ? `<span class="deal-badge ${item.deal_type}" onclick="setItemDeal(${idx})" title="클릭해서 특가/할인 수정·해제">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>`
@@ -1968,6 +1972,12 @@ function updateTotals() {
     document.getElementById('productTotal').textContent = fmt(pt)+'원';
     document.getElementById('serviceTotal').textContent = fmt(st)+'원';
     document.getElementById('grandTotal').textContent = fmt(pt+st)+'원';
+    document.getElementById('grandTotal').style.color = (pt+st) < 0 ? 'var(--red)' : '';
+    // 차감 합계 — 음수(환불·할인) 라인만 모아 붉은 폰트로 표시
+    const neg = cartItems.reduce((s,i) => s + (!i.replaced && (Number(i.subtotal)||0) < 0 ? Number(i.subtotal) : 0), 0)
+        + svcItems.reduce((s,i) => s + ((Number(i.amount)||0) < 0 ? Number(i.amount) : 0), 0);
+    const negRow = document.getElementById('negTotalRow');
+    if (negRow) { negRow.style.display = neg < 0 ? '' : 'none'; document.getElementById('negTotal').textContent = fmt(neg)+'원'; }
     document.getElementById('totalItems').textContent = cartItems.length + svcItems.filter(s=>s.name).length;
     // 모바일 하단 고정 바·시트 하단 요약 미러링
     document.querySelectorAll('.m-grand').forEach(el => { el.textContent = fmt(pt+st)+'원'; });
