@@ -1290,7 +1290,7 @@ function renderCart() {
     let html = '', globalIdx = 0;
     order.forEach((cat, gIdx) => {
         const items = map[cat];
-        const catTotal = items.reduce((s, i) => s + i.subtotal, 0);
+        const catTotal = items.reduce((s, i) => s + (i.replaced ? 0 : (Number(i.subtotal) || 0)), 0); // 대체 항목 제외 — 출력물 소계와 동일 기준
         html += `<tr class="cart-cat-header" data-gidx="${gIdx}">
             <td colspan="4">${(orderMode || !sortMode) ? '' : `<span class="drag-handle" draggable="true" data-drag-cat="${gIdx}" title="드래그해서 대분류 순서 변경">⠿</span> `}${_escE(cat)}</td>
             <td colspan="4" style="text-align:right;">${orderMode ? '' : `<button class="cat-rename-btn" onclick="renameCategory(${gIdx})" title="대분류 이름 수정 (예: 게임용 PC / 송출용 PC)">✎</button>`}</td>
@@ -1389,7 +1389,8 @@ function renderCart() {
                 }).join('');
             }
         });
-        html += `<tr class="cart-subtotal" data-gidx="${gIdx}"><td colspan="6">${_escE(cat)} 소계</td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
+        const catQty = items.reduce((s, i) => s + (i.replaced ? 0 : (parseInt(i.qty) || 0)), 0);
+        html += `<tr class="cart-subtotal" data-gidx="${gIdx}"><td colspan="6">${_escE(cat)} 소계 <span style="font-weight:400; color:var(--text-muted);">· ${catQty}개</span></td><td class="text-right">${fmt(catTotal)}원</td><td></td></tr>`;
     });
     tb.innerHTML = html;
     updateTotals();

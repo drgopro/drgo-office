@@ -505,7 +505,7 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
-                    <td colspan="6" class="sub-label">{{ $category ?: '기타' }} 소계</td>
+                    <td colspan="6" class="sub-label">{{ $category ?: '기타' }} 소계 <span style="font-weight:400; opacity:0.75;">· {{ $catItems->reject(fn ($i) => ! empty($i['replaced']))->sum(fn ($i) => (int) ($i['qty'] ?? 1)) }}개</span></td>
                     {{-- 대체된(취소선) 항목은 소계에서 제외 --}}
                     <td class="text-right">{{ $money($catItems->reject(fn ($i) => ! empty($i['replaced']))->sum('subtotal')) }}</td>
                 </tr>
@@ -527,7 +527,7 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
-                    <td colspan="6" class="sub-label">서비스 소계</td>
+                    <td colspan="6" class="sub-label">서비스 소계 <span style="font-weight:400; opacity:0.75;">· {{ count($services) }}개</span></td>
                     <td class="text-right">{{ $money($estimate->service_total) }}</td>
                 </tr>
             @endif
