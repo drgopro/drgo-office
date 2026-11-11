@@ -14,7 +14,11 @@
     .head h1 { margin:0; font-size:21px; letter-spacing:.05em; }
     .head small { opacity:.75; font-size:12px; }
     .doc { background:#fff; border:1px solid var(--line); border-radius:12px; padding:26px 28px; font-size:14.5px; line-height:1.75; }
+    /* 섹션 문구에 문서 래퍼(.doc 등)가 통째로 들어와도 이중 박스가 생기지 않게 평탄화 */
+    .doc .doc, .doc [class*="wrap"], .doc [class*="card"] { border:none !important; border-radius:0 !important; padding:0 !important; margin:0 !important; background:transparent !important; max-width:none !important; box-shadow:none !important; }
+    .doc h1 { font-size:19px; margin:4px 0 8px; color:var(--navy); }
     .doc h3 { font-size:15.5px; margin:22px 0 8px; color:var(--navy); }
+    .doc h4 { font-size:14px; margin:18px 0 6px; color:#2c3e50; }
     .doc ul { padding-left:20px; margin:6px 0; }
     .optional-badge { display:inline-block; background:rgba(46,108,181,.12); color:var(--blue); font-size:12px; font-weight:700; border-radius:5px; padding:2px 8px; margin-left:8px; vertical-align:middle; }
     .foot { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:14px 16px calc(14px + env(safe-area-inset-bottom)); }
