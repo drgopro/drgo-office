@@ -58,9 +58,9 @@ class DashboardController extends Controller
                 'clients' => Client::whereBetween('created_at', [$ds, $de])->count(),
                 'projects' => Project::whereBetween('created_at', [$ds, $de])->count(),
                 'consults' => Consultation::where('consulted_at', '>=', $ds)->where('consulted_at', '<=', $de)->count(),
-                'est_amount' => (int) Estimate::whereBetween('created_at', [$ds, $de])->sum('total_amount'),
-                'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$ds, $de])->sum('total_amount'),
-                'est_count' => Estimate::whereBetween('created_at', [$ds, $de])->count(),
+                'est_amount' => (int) Estimate::real()->whereBetween('created_at', [$ds, $de])->sum('total_amount'),
+                'est_paid' => (int) Estimate::real()->where('status', 'paid')->whereBetween('created_at', [$ds, $de])->sum('total_amount'),
+                'est_count' => Estimate::real()->whereBetween('created_at', [$ds, $de])->count(),
             ];
         }
 
@@ -76,9 +76,9 @@ class DashboardController extends Controller
                 'projects' => Project::whereBetween('created_at', [$ys, $ye])->count(),
                 'consults' => Consultation::whereBetween('consulted_at', [$ys, $ye])->count(),
                 'schedules' => Schedule::where('start_date', '>=', $ys)->where('start_date', '<=', substr($ye, 0, 10))->count(),
-                'est_amount' => (int) Estimate::whereBetween('created_at', [$ys, $ye])->sum('total_amount'),
-                'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$ys, $ye])->sum('total_amount'),
-                'est_count' => Estimate::whereBetween('created_at', [$ys, $ye])->count(),
+                'est_amount' => (int) Estimate::real()->whereBetween('created_at', [$ys, $ye])->sum('total_amount'),
+                'est_paid' => (int) Estimate::real()->where('status', 'paid')->whereBetween('created_at', [$ys, $ye])->sum('total_amount'),
+                'est_count' => Estimate::real()->whereBetween('created_at', [$ys, $ye])->count(),
             ];
         }
 
@@ -89,10 +89,10 @@ class DashboardController extends Controller
         $projectByType = Project::select('project_type', DB::raw('count(*) as cnt'))->groupBy('project_type')->pluck('cnt', 'project_type');
 
         // 견적서 통계
-        $estimateTotal = Estimate::count();
-        $estimateByStatus = Estimate::select('status', DB::raw('count(*) as cnt'))->groupBy('status')->pluck('cnt', 'status');
-        $estimateTotalAmount = Estimate::whereIn('status', ['completed', 'paid'])->sum('total_amount');
-        $estimatePaidAmount = Estimate::where('status', 'paid')->sum('total_amount');
+        $estimateTotal = Estimate::real()->count();
+        $estimateByStatus = Estimate::real()->select('status', DB::raw('count(*) as cnt'))->groupBy('status')->pluck('cnt', 'status');
+        $estimateTotalAmount = Estimate::real()->whereIn('status', ['completed', 'paid'])->sum('total_amount');
+        $estimatePaidAmount = Estimate::real()->where('status', 'paid')->sum('total_amount');
 
         // 상담 이력 통계
         $consultTotal = Consultation::count();
@@ -124,9 +124,9 @@ class DashboardController extends Controller
                 'schedules' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->count(),
                 'schedules_visit' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->whereIn('color', $visitKeys)->count(),
                 'schedules_remote' => Schedule::where('start_date', '>=', $sd)->where('start_date', '<=', $ed)->whereIn('color', $remoteKeys)->count(),
-                'est_amount' => (int) Estimate::whereBetween('created_at', [$start, $end])->sum('total_amount'),
-                'est_paid' => (int) Estimate::where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount'),
-                'est_count' => Estimate::whereBetween('created_at', [$start, $end])->count(),
+                'est_amount' => (int) Estimate::real()->whereBetween('created_at', [$start, $end])->sum('total_amount'),
+                'est_paid' => (int) Estimate::real()->where('status', 'paid')->whereBetween('created_at', [$start, $end])->sum('total_amount'),
+                'est_count' => Estimate::real()->whereBetween('created_at', [$start, $end])->count(),
             ];
         }
 
@@ -428,7 +428,7 @@ class DashboardController extends Controller
                 ])
             ),
             'estimates' => response()->json(
-                $dateFilter(Estimate::with('creator')->orderByDesc('created_at'))->limit(300)->get()->map(fn ($e) => [
+                $dateFilter(Estimate::real()->with('creator')->orderByDesc('created_at'))->limit(300)->get()->map(fn ($e) => [
                     'id' => $e->id, 'client' => $e->client_nickname ?: $e->client_name,
                     'status' => $statusL[$e->status] ?? $e->status, 'total' => number_format($e->total_amount ?? 0),
                     'creator' => $e->creator?->display_name, 'created_at' => $e->created_at->format('Y.m.d'),
@@ -512,7 +512,7 @@ class DashboardController extends Controller
 
         if (! $ledgerUsed) { // 폴백 — 원장 테이블이 없는(롤백) 경우의 기존 계산
             // 6. 세팅 후 매출 등록된 건수 (결제완료 견적서 — 결제 기록 미연동분)
-            $allPaidEstimates = Estimate::where('status', 'paid')
+            $allPaidEstimates = Estimate::real()->where('status', 'paid')
                 ->whereBetween('created_at', [$fromDt, $toDt])
                 ->when(! empty($linkedEstimateIds), fn ($q) => $q->whereNotIn('id', $linkedEstimateIds))
                 ->get();
@@ -1027,7 +1027,7 @@ class DashboardController extends Controller
         $bold($s6, 'A1:F1');
         $row = 2;
         // 작성이 완료된 항목만 — temp(작성 전 임시) 견적은 출력양 파악에 의미 없어 제외 (조유신 피드백)
-        Estimate::with('creator')->whereBetween('created_at', [$fromDt, $toDt])->where('status', '!=', 'temp')->orderByDesc('created_at')->chunk(200, function ($items) use ($s6, &$row, $statusL) {
+        Estimate::real()->with('creator')->whereBetween('created_at', [$fromDt, $toDt])->where('status', '!=', 'temp')->orderByDesc('created_at')->chunk(200, function ($items) use ($s6, &$row, $statusL) {
             foreach ($items as $e) {
                 $s6->fromArray([$e->id, $e->client_nickname ?: $e->client_name, $statusL[$e->status] ?? $e->status, $e->total_amount ?? 0, $e->creator?->display_name, $e->created_at->format('Y.m.d')], null, "A{$row}");
                 $row++;
@@ -1046,7 +1046,7 @@ class DashboardController extends Controller
         $bold($s6b, 'A1:K1');
         $row = 2;
         $marginTotals = ['sales' => 0, 'psales' => 0, 'purchase' => 0, 'service' => 0, 'profit' => 0];
-        Estimate::where('status', 'paid')
+        Estimate::real()->where('status', 'paid')
             ->where(function ($q) use ($fromDt, $toDt) {
                 $q->whereBetween('paid_at', [$fromDt, $toDt])
                     ->orWhere(fn ($q2) => $q2->whereNull('paid_at')->whereBetween('updated_at', [$fromDt, $toDt]));

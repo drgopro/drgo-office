@@ -50,6 +50,10 @@ class RevenueLedger
         $prevBase = RevenueEntry::where('estimate_id', $estimate->id)->where('kind', 'estimate_paid')->first();
         RevenueEntry::where('estimate_id', $estimate->id)->delete();
 
+        if ($estimate->is_test) {
+            return; // 테스트 견적 — 매출 원장(통계)에서 제외. 모드 해제 시 재동기화로 복원된다
+        }
+
         $charge = ProjectPayment::where('estimate_id', $estimate->id)->where('type', 'charge')->first();
         // 매출 인식 대상: 결제완료 상태, 또는 결제 이력이 있는 결제취소(전액 환불 흔적을 +/−로 남긴다)
         if (! ($estimate->status === 'paid' || ($estimate->status === 'cancelled' && $charge))) {

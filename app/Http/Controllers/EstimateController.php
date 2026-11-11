@@ -17,6 +17,7 @@ use App\Services\EstimateStockSync;
 use App\Services\ExchangeRateService;
 use App\Services\PayAppClient;
 use App\Services\PaymentCompleteAlert;
+use App\Services\RevenueLedger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1209,6 +1210,7 @@ class EstimateController extends Controller
     public function toggleTest(Estimate $estimate)
     {
         $estimate->update(['is_test' => ! $estimate->is_test]);
+        RevenueLedger::syncEstimate($estimate->fresh()); // 매출 원장 반영/제외 즉시 갱신
 
         return response()->json(['ok' => true, 'is_test' => (bool) $estimate->fresh()->is_test]);
     }

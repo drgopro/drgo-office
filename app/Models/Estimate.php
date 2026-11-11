@@ -408,6 +408,12 @@ class Estimate extends Model
     }
 
     /** 부모 견적서 — 이 행이 N차 추가 견적일 때 */
+    /** 통계·집계용 — 테스트 견적 제외 */
+    public function scopeReal($query)
+    {
+        return $query->where('is_test', false);
+    }
+
     public function parent()
     {
         return $this->belongsTo(self::class, 'parent_estimate_id');

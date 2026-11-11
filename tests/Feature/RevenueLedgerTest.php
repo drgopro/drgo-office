@@ -51,6 +51,23 @@ class RevenueLedgerTest extends TestCase
         ], $overrides));
     }
 
+    public function test_test_estimate_excluded_from_ledger_and_restored_on_toggle_off(): void
+    {
+        $estimate = $this->makePaidEstimate(['is_test' => true]);
+        RevenueLedger::syncEstimate($estimate);
+        $this->assertSame(0, RevenueEntry::where('estimate_id', $estimate->id)->count());
+
+        // 테스트 모드 해제 → 재동기화로 원장 복원
+        $estimate->update(['is_test' => false]);
+        RevenueLedger::syncEstimate($estimate->fresh());
+        $this->assertSame(1, RevenueEntry::where('estimate_id', $estimate->id)->where('kind', 'estimate_paid')->count());
+
+        // 다시 켜면 원장에서 제거
+        $estimate->update(['is_test' => true]);
+        RevenueLedger::syncEstimate($estimate->fresh());
+        $this->assertSame(0, RevenueEntry::where('estimate_id', $estimate->id)->count());
+    }
+
     public function test_paid_estimate_recognized_on_payment_date_with_split(): void
     {
         $estimate = $this->makePaidEstimate();
