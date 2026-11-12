@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     {{-- 모바일에서도 PC와 같은 고정 문서 폭으로 보이도록 (축소 표시) --}}
     <meta name="viewport" content="width=920">
-    <title>거래명세서 #{{ $estimate->display_no }}</title>
+    <title>거래명세서</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -19,14 +19,14 @@
         .party { border:1.5px solid #39485c; }
         .party-head { background:#eef1f5; font-size:12.5px; font-weight:800; letter-spacing:0.3em; text-indent:0.3em; text-align:center; padding:7px 0; border-bottom:1px solid #c6cdd6; }
         .party table { width:100%; border-collapse:collapse; }
-        .party td { font-size:12px; padding:6px 9px; border-bottom:1px solid #e2e6eb; vertical-align:middle; }
+        .party td { font-size:12px; padding:6px 9px; border-bottom:1px solid #c9d0d9; vertical-align:middle; }
         .party tr:last-child td { border-bottom:none; }
-        .party td.lbl { width:74px; background:#f7f8fa; color:#55607a; font-weight:700; text-align:center; border-right:1px solid #e2e6eb; white-space:nowrap; }
+        .party td.lbl { width:74px; background:#f7f8fa; color:#55607a; font-weight:700; text-align:center; border-right:1px solid #c9d0d9; white-space:nowrap; }
         .biz-name-wrap { position:relative; display:inline-block; font-weight:700; }
         .seller-stamp { position:absolute; left:100%; top:50%; transform:translate(-30%,-50%); width:58px; max-height:58px; object-fit:contain; opacity:0.88; pointer-events:none; }
         .items { width:100%; border-collapse:collapse; margin-bottom:0; border:1.5px solid #39485c; }
-        .items th { background:#eef1f5; font-size:11.5px; font-weight:800; color:#39485c; padding:8px 6px; border:1px solid #c6cdd6; }
-        .items td { font-size:12px; padding:7px 8px; border:1px solid #dfe3e9; }
+        .items th { background:#eef1f5; font-size:11.5px; font-weight:800; color:#39485c; padding:8px 6px; border:1px solid #9aa5b2; }
+        .items td { font-size:12px; padding:7px 8px; border:1px solid #aab3bf; }
         .items td.num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
         .items td.ctr { text-align:center; white-space:nowrap; }
         .items .minus td { color:#b03030; }
@@ -36,10 +36,11 @@
         .grand-bar .val { font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
         .grand-bar .val small { font-size:12px; font-weight:600; }
         @media print {
-            body { background:#fff; }
+            body { background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
             .no-print { display:none !important; }
-            .stmt-wrap { margin:0 auto; box-shadow:none; padding:10px 6px; max-width:100%; }
-            @page { margin:14mm 12mm; }
+            .stmt-wrap { margin:0 auto; box-shadow:none; padding:14mm 12mm; max-width:100%; }
+            /* 여백 0 — 브라우저가 머리글(날짜·제목)·바닥글(URL·쪽번호)을 넣을 공간을 없앰. 문서 여백은 stmt-wrap 패딩으로 유지 */
+            @page { margin:0; }
         }
     </style>
 </head>
