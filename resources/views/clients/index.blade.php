@@ -89,6 +89,20 @@
     /* 서브 탭 */
     .sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
     .sub-tab { padding:8px 16px; font-size:13px; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.12s; }
+    /* 프로젝트 탭 — 진행단계 프로세스 바 (AS 현황 스테퍼와 동일 문법) */
+    .cp-steps { display:flex; min-width:0; padding:10px 2px 0; margin-top:10px; border-top:1px dashed var(--border); }
+    .cp-steps.cancelled { opacity:0.45; }
+    .cp-step { flex:1; min-width:0; text-align:center; position:relative; }
+    .cp-step::before { content:''; position:absolute; top:5px; left:-50%; width:100%; height:2px; background:var(--border); }
+    .cp-step:first-child::before { display:none; }
+    .cp-step.on::before { background:var(--accent); }
+    .cp-dot { position:relative; z-index:1; width:11px; height:11px; margin:0 auto 4px; border-radius:50%; background:var(--surface); border:2px solid var(--border); box-sizing:border-box; }
+    .cp-step.on .cp-dot { background:var(--accent); border-color:var(--accent); }
+    .cp-step.cur .cp-dot { box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .cp-name { font-size:10px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
+    .cp-step.on .cp-name { color:var(--text); }
+    .cp-step.cur .cp-name { color:var(--accent); }
+    .cp-date { font-size:9.5px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
     .sub-tab:hover { color:var(--text); }
     .sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
     .sub-panel { display:none; }
@@ -1394,18 +1408,40 @@ function renderProjectList(projects, clientId, order) {
         return sortOrder === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
     });
     return sorted.map(p => `
-        <div style="padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
-            <div>
-                <div style="font-size:14px; font-weight:600;">${_esc(p.name)}</div>
-                <div style="font-size:11px; color:var(--text-muted);">${_esc([TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · '))}</div>
+        <div style="padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:14px; font-weight:600;">${_esc(p.name)}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${_esc([TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · '))}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
+                    ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
+                    ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
+                </div>
             </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
-                ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
-                ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
-            </div>
+            ${projectStepsHtml(p)}
         </div>
     `).join('');
+}
+
+// 프로젝트 진행단계 프로세스 바 — 유형별 flow 기준, 현재 단계까지 채움 (취소는 멈춘 단계까지 흐리게)
+function projectStepsHtml(p) {
+    const stages = p.stages || [];
+    if (!stages.length) return '';
+    const cancelled = p.stage === 'cancelled';
+    const curCode = cancelled ? (p.cancelled_from_stage || '') : p.stage;
+    const curIdx = stages.findIndex(s => s.code === curCode);
+    const dates = p.stage_dates || {};
+    return `<div class="cp-steps ${cancelled ? 'cancelled' : ''}">` + stages.map((s, i) => {
+        const on = curIdx >= 0 && i <= curIdx;
+        const d = dates[s.code] ? String(dates[s.code]).replace('-', '.') : '';
+        return `<div class="cp-step ${on ? 'on' : ''} ${i === curIdx && !cancelled ? 'cur' : ''}">
+            <div class="cp-dot"></div>
+            <div class="cp-name" title="${_esc(s.label)}">${_esc(s.label)}</div>
+            ${d ? `<div class="cp-date">${d}</div>` : ''}
+        </div>`;
+    }).join('') + '</div>';
 }
 
 function renderDocList(docs, clientId) {

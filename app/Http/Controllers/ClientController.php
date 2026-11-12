@@ -556,6 +556,10 @@ class ClientController extends Controller
                 'type' => $p->project_type,
                 'stage' => $p->stage,
                 'stage_label' => $p->stageLabel(),
+                // 진행단계 스테퍼 — 유형별 flow와 단계별 처리 일시 (AS 현황식 프로세스 바)
+                'stages' => collect($p->flowStages())->map(fn ($s) => ['code' => $s['code'] ?? '', 'label' => $s['label'] ?? ''])->values(),
+                'stage_dates' => collect($p->stage_data ?? [])->map(fn ($d) => isset($d['updated_at']) ? substr((string) $d['updated_at'], 5, 5) : null)->filter()->all() ?: new \stdClass,
+                'cancelled_from_stage' => $p->cancelled_from_stage,
                 'tags' => $p->tags ?? ['major' => [], 'minor' => []],
                 'address' => $pii ? $p->address : null, // 세팅 장소 — 캘린더 장소 연동용
                 'address_detail' => $pii ? $p->address_detail : null,
