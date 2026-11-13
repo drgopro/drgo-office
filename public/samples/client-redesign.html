@@ -5,272 +5,282 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>의뢰자 조회 — 개편 샘플</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root{
-  --side:#1f2b40; --side-ink:#c9d2e3; --side-dim:#8e9bb5;
-  --bg:#f4f5f7; --paper:#fff; --soft:#f7f8fa; --line:#e4e7ec; --line-2:#cfd4dc;
-  --ink:#1c2029; --sub:#5b6270; --blue:#2f5bc4; --blue-soft:#edf2fc;
-  --red:#c63c32; --green:#25803f; --amber:#a2650b; --today:#fff8e6;
+  --desk:#e9ebee; --desk-2:#dfe2e6; --paper:#fdfdfc; --ink:#171a20; --ink-2:#3b404a; --sub:#6a707c; --rule:#d3d7dd;
+  --star:#d6283f; --star-soft:#fbe6e9; --memo:#fff7c9; --memo-edge:#efe2a0;
+  --serif:"Hahmlet","Noto Serif KR",serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;word-break:keep-all;letter-spacing:-.01em}
-button,input,textarea,select{font:inherit;color:inherit;letter-spacing:inherit}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+body{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--desk);color:var(--ink);font-size:15px;line-height:1.6;word-break:keep-all;letter-spacing:-.01em}
+button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .num{font-variant-numeric:tabular-nums}
-a{color:var(--blue);text-decoration:none}
-a:hover{text-decoration:underline}
 
-.app{display:grid;grid-template-columns:200px 280px minmax(0,1fr);min-height:100vh}
+.app{display:grid;grid-template-columns:76px 248px minmax(0,1fr);min-height:100vh}
 
-/* 사이드바 — 지금 오피스 그대로 */
-.side{background:var(--side);color:var(--side-ink);padding:18px 12px;display:flex;flex-direction:column;gap:2px}
-.logo{font-weight:800;font-size:17px;color:#fff;padding:0 10px 18px;letter-spacing:-.02em;line-height:1.2}
-.logo small{display:block;font-size:11px;font-weight:600;color:var(--side-dim);margin-top:2px}
-.side a{display:block;padding:8px 12px;border-radius:8px;color:var(--side-ink);font-size:14px}
-.side a:hover{background:rgba(255,255,255,.07);text-decoration:none}
-.side a[aria-current]{background:#fff;color:var(--side);font-weight:700}
-.side .grp{font-size:12px;color:var(--side-dim);padding:16px 12px 4px}
+/* rail */
+.rail{background:var(--ink);display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:6px}
+.logo{color:#fff;font-family:var(--serif);font-weight:700;font-size:20px;margin-bottom:18px;position:relative}
+.logo::after{content:"★";position:absolute;top:-6px;right:-10px;font-size:10px;color:var(--star)}
+.rail a{width:56px;padding:9px 0 7px;border-radius:12px;color:#9aa1ae;text-decoration:none;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.rail a svg{width:20px;height:20px}
+.rail a:hover{color:#fff;background:#262a33}
+.rail a[aria-current]{color:#fff;background:#2c313b}
 
-/* 목록 */
-.list{background:var(--paper);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
-.list-top{padding:18px 16px 12px}
-.list-top h1{font-size:17px;margin:0 0 12px;font-weight:700}
-.list-top h1 span{color:var(--sub);font-weight:500;font-size:14px;margin-left:4px}
-.search{width:100%;height:38px;border:1px solid var(--line-2);border-radius:10px;padding:0 12px;background:var(--soft)}
-.search:focus{background:#fff;border-color:var(--blue);outline:0}
-.quick{display:flex;gap:14px;margin-top:12px;font-size:13px}
-.quick button{border:0;background:none;padding:0 0 4px;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent}
-.quick button[aria-pressed=true]{color:var(--ink);font-weight:700;border-color:var(--ink)}
-.rows{list-style:none;margin:0;padding:4px 8px 16px;overflow:auto}
-.rows button{width:100%;border:0;background:none;text-align:left;padding:11px 10px;border-radius:10px;cursor:pointer;display:block}
-.rows button:hover{background:var(--soft)}
-.rows button[aria-current]{background:var(--blue-soft)}
-.rows .r1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.rows .nm{font-weight:600;font-size:15px}
-.rows .dt{font-size:12px;color:var(--sub)}
-.rows .dt.today{color:var(--amber);font-weight:600}
-.rows .r2{font-size:13px;color:var(--sub)}
+/* client list — plain, no boxes */
+.list{padding:26px 10px 26px 22px;min-width:0;border-right:1px solid var(--desk-2)}
+.find{display:flex;align-items:center;gap:8px;border-bottom:1.5px solid var(--ink);padding:0 2px 8px;margin:0 12px 18px 0}
+.find input{border:0;background:transparent;outline:0;flex:1;font-size:15px;min-width:0}
+.find svg{width:17px;height:17px;flex-shrink:0}
+.list h2{font-size:12px;color:var(--sub);font-weight:600;margin:0 0 6px}
+.people{list-style:none;margin:0 0 22px;padding:0}
+.people button{width:100%;text-align:left;border:0;background:none;padding:8px 12px 8px 0;cursor:pointer;display:flex;align-items:baseline;gap:8px;border-radius:8px}
+.people button:hover .pn{text-decoration:underline;text-underline-offset:3px}
+.people .pn{font-weight:600;font-size:15px}
+.people .ps{font-size:13px;color:var(--sub);margin-left:auto;white-space:nowrap}
+.people button[aria-current] .pn{font-family:var(--serif);font-size:17px}
+.people button[aria-current] .ps{color:var(--star);font-weight:600}
 
-/* 본문 */
-.main{padding:26px 32px 48px;min-width:0;max-width:1180px}
-.head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.avatar{width:52px;height:52px;border-radius:50%;background:#e8ecf4;color:#3a4a6b;display:grid;place-items:center;font-weight:700;font-size:19px;flex-shrink:0}
-.who{flex:1;min-width:220px}
-.who h2{margin:0;font-size:24px;font-weight:700;letter-spacing:-.03em;line-height:1.25}
-.who h2 .vip{font-size:12px;font-weight:700;color:var(--amber);margin-left:8px;vertical-align:4px}
-.who p{margin:3px 0 0;color:var(--sub)}
-.who p span+span::before{content:"";display:inline-block;width:1px;height:11px;background:var(--line-2);margin:0 10px;vertical-align:-1px}
-.acts{display:flex;gap:8px}
-.btn{height:36px;padding:0 14px;border:1px solid var(--line-2);background:#fff;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
-.btn:hover{background:var(--soft);border-color:#b8bec9}
-.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.pri:hover{background:#264ca6}
+/* main */
+.main{padding:34px 44px 70px;min-width:0}
+.top{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.name{flex:1;min-width:260px}
+.name h1{font-family:var(--serif);font-weight:700;font-size:52px;line-height:1.05;margin:0;letter-spacing:-.04em}
+.facts{display:flex;flex-wrap:wrap;gap:4px 22px;margin-top:12px;color:var(--ink-2);font-size:15px}
+.facts .vip{color:var(--star);font-weight:700}
+.btns{display:flex;gap:8px;padding-top:8px}
+.b{height:40px;padding:0 18px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;transition:background-color .15s,color .15s}
+.b:hover{background:var(--ink);color:#fff}
+.b.solid{background:var(--ink);color:#fff}
+.b.solid:hover{background:#2e333d;border-color:#2e333d}
 
-/* 진행 단계 — AS현황 스타일 점·선 */
-.flow{margin:22px 0 24px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 24px 16px}
-.flow-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
-.flow-top b{font-size:15px}
-.flow-top span{font-size:13px;color:var(--sub)}
-.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,1fr)}
-.steps li{position:relative;text-align:center;font-size:13px;color:var(--sub)}
-.steps li::before{content:"";position:absolute;top:9px;left:calc(-50% + 12px);right:calc(50% + 12px);height:2px;background:var(--line)}
-.steps li:first-child::before{display:none}
-.steps li.ok::before,.steps li.now::before{background:#9bb1df}
-.dot{width:20px;height:20px;border-radius:50%;margin:0 auto 6px;border:2px solid var(--line-2);background:#fff;display:grid;place-items:center}
-.ok .dot{background:var(--blue);border-color:var(--blue)}
-.ok .dot::after{content:"";width:7px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
-.now .dot{border-color:var(--blue);border-width:6px}
-.now{color:var(--ink)!important;font-weight:700}
-.steps small{display:block;font-size:12px;font-weight:500;color:var(--sub)}
-.now small{color:var(--blue);font-weight:600}
+/* journey — one line of words */
+.journey{margin:30px 0 40px;display:flex;align-items:center;flex-wrap:wrap;gap:6px 0;font-size:15px}
+.journey .s{color:var(--sub);display:inline-flex;align-items:center}
+.journey .s.done{color:var(--ink-2)}
+.journey .s+.s::before{content:"";display:inline-block;width:38px;height:1.5px;background:var(--rule);margin:0 12px}
+.journey .s.done+.s::before{background:var(--ink-2)}
+.journey .pill{color:var(--ink);font-weight:700;background:var(--paper);border-radius:999px;padding:6px 14px 6px 12px;box-shadow:0 1px 0 var(--desk-2),0 6px 18px -8px rgba(23,26,32,.35)}
+.journey .pill i{font-style:normal;color:var(--star);margin-right:6px}
+.journey .pill em{font-style:normal;font-weight:500;color:var(--sub);margin-left:8px}
+.journey .s.now::before{margin-right:12px}
 
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:24px;align-items:start}
-.grid>*{min-width:0}
-.panel{background:#fff;border:1px solid var(--line);border-radius:14px}
-.panel+.panel{margin-top:16px}
-.ph{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 4px}
-.ph h3{margin:0;font-size:16px;font-weight:700}
-.ph a{font-size:13px;font-weight:600}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:56px;align-items:start}
+.cols>*{min-width:0}
 
-/* 기록 */
-.write{margin:10px 20px 6px;border:1px solid var(--line-2);border-radius:12px;background:var(--soft)}
-.write:focus-within{background:#fff;border-color:var(--blue)}
-.write textarea{display:block;width:100%;border:0;background:transparent;resize:none;padding:12px 14px 4px;min-height:52px;outline:0}
-.write .bar{display:flex;align-items:center;gap:6px;padding:6px 8px 8px 10px}
-.write .kind{border:0;background:none;font-size:13px;color:var(--sub);padding:4px 8px;border-radius:7px;cursor:pointer}
-.write .kind[aria-pressed=true]{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 0 0 1px var(--line-2)}
-.write .bar .btn{margin-left:auto;height:32px}
-.day{margin:16px 20px 0;font-size:13px;font-weight:700;color:var(--sub)}
-.entry{display:flex;gap:12px;padding:12px 20px}
-.entry+.entry{border-top:1px solid #f0f1f4}
-.entry.hl{background:var(--today)}
-.who-ic{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:12px;font-weight:700;background:#eef0f4;color:#4b5363}
-.who-ic.sys{background:transparent;border:1px dashed var(--line-2);color:var(--sub)}
-.e-top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.e-top b{font-weight:600}
-.e-top .t{font-size:12px;color:var(--sub)}
-.e-top .k{font-size:12px;font-weight:600}
-.k.pay{color:var(--amber)}.k.est{color:var(--blue)}.k.cal{color:var(--green)}.k.memo{color:var(--sub)}
-.entry p{margin:2px 0 0;color:#2d323c}
-.entry p .m{color:var(--sub)}
-.more-log{display:block;text-align:center;padding:12px;font-size:13px;font-weight:600;border-top:1px solid var(--line)}
+/* composer */
+.compose{display:flex;gap:12px;align-items:flex-end;padding-bottom:14px;border-bottom:1.5px solid var(--ink);margin-bottom:34px}
+.compose textarea{flex:1;border:0;background:transparent;resize:none;outline:0;font-size:17px;min-height:30px;padding:0}
+.compose textarea::placeholder{color:#8a909b}
+.compose .b{height:36px;padding:0 16px}
 
-/* 오른쪽 */
-.next{padding:18px 20px}
-.next .lab{font-size:13px;color:var(--sub)}
-.next .when{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:2px 0 4px}
-.next .where{color:#2d323c;font-size:14px}
-.next .row{display:flex;gap:6px;margin-top:14px}
-.money{padding:4px 20px 18px}
-.money .line{display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--sub)}
-.money .line.neg{color:var(--red)}
-.money .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:8px;padding-top:10px}
-.money .total b{font-size:20px;letter-spacing:-.02em}
-.paid{font-size:12px;font-weight:700;color:var(--green)}
-.info{padding:6px 20px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
-.info div{min-width:0}
-.info .full{grid-column:1/-1}
-.info dt{font-size:12px;color:var(--sub);margin-bottom:1px}
-.info dd{margin:0}
-.info .tag{font-size:12px;font-weight:600;color:var(--blue);margin-right:6px}
-.fill{display:block;margin:0 20px 16px;padding:10px 12px;border-radius:10px;background:var(--soft);font-size:13px;color:var(--sub)}
-.fill a{float:right;font-weight:600}
+/* desk of objects */
+.desk{position:relative;padding-left:96px}
+.when{position:absolute;left:-96px;top:0;width:80px;font-size:13px;color:var(--sub);line-height:1.35;padding-top:6px}
+.when b{display:block;font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600}
+.obj{position:relative;margin-bottom:26px}
 
-@media (max-width:1240px){.grid{grid-template-columns:1fr}.app{grid-template-columns:200px 250px minmax(0,1fr)}}
+.memo{background:var(--memo);padding:18px 22px 16px;border-radius:2px 2px 14px 2px;box-shadow:0 1px 0 var(--memo-edge),0 10px 22px -16px rgba(80,60,0,.45);max-width:560px}
+.memo p{margin:0;font-size:16px;line-height:1.7;color:#2b2a22}
+.memo .sig{margin-top:10px;font-size:13px;color:#7a7350}
+
+.receipt{background:var(--paper);width:260px;padding:16px 20px 22px;box-shadow:0 8px 20px -14px rgba(23,26,32,.5);
+  -webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - 8px) no-repeat, radial-gradient(circle 5px at 50% 100%,transparent 98%,#000) bottom/12px 9px repeat-x;
+          mask:linear-gradient(#000 0 0) top/100% calc(100% - 8px) no-repeat, radial-gradient(circle 5px at 50% 100%,transparent 98%,#000) bottom/12px 9px repeat-x}
+.receipt .t{font-size:13px;color:var(--sub);display:flex;justify-content:space-between}
+.receipt .amt{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.03em;margin:4px 0 2px}
+.receipt .d{font-size:13px;color:var(--ink-2);border-top:1px dashed var(--rule);padding-top:8px;margin-top:8px}
+
+.doc{background:var(--paper);max-width:420px;padding:18px 22px 16px;box-shadow:0 10px 24px -18px rgba(23,26,32,.55);
+  clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,0 100%)}
+.doc::after{content:"";position:absolute;top:0;right:0;width:26px;height:26px;background:linear-gradient(225deg,var(--desk) 50%,#e3e5e8 50%)}
+.doc h4{margin:0;font-family:var(--serif);font-size:18px;font-weight:600}
+.doc h4 a{color:inherit;text-decoration:none}
+.doc h4 a:hover{text-decoration:underline;text-underline-offset:3px}
+.doc ul{list-style:none;margin:10px 0 8px;padding:0;font-size:14px;color:var(--ink-2)}
+.doc li{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #eef0f2}
+.doc li.neg{color:var(--star)}
+.doc .sum{display:flex;justify-content:space-between;font-weight:700;padding-top:4px}
+.doc .by{font-size:13px;color:var(--sub);margin-top:8px}
+
+.ticket{display:flex;max-width:440px;background:var(--paper);border-radius:12px;box-shadow:0 10px 24px -18px rgba(23,26,32,.55);overflow:hidden}
+.ticket .main-t{padding:16px 20px;flex:1}
+.ticket .stub{width:96px;border-left:2px dashed var(--desk-2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--serif);position:relative}
+.ticket .stub::before,.ticket .stub::after{content:"";position:absolute;left:-9px;width:16px;height:16px;border-radius:50%;background:var(--desk)}
+.ticket .stub::before{top:-8px}.ticket .stub::after{bottom:-8px}
+.ticket .stub b{font-size:30px;line-height:1;font-weight:700}
+.ticket .stub span{font-size:12px;color:var(--sub);font-family:inherit;margin-top:4px}
+.ticket .k{font-size:13px;color:var(--sub)}
+.ticket .h{font-weight:700;font-size:16px;margin:2px 0}
+.ticket .p{font-size:14px;color:var(--ink-2)}
+
+.older{display:inline-block;margin-left:96px;font-size:14px;font-weight:600;color:var(--ink);border-bottom:1.5px solid var(--ink);text-decoration:none;padding-bottom:1px}
+
+/* side — no boxes */
+.side{position:sticky;top:24px}
+.side h3{font-size:13px;color:var(--sub);font-weight:600;margin:0 0 6px}
+.next-date{font-family:var(--serif);font-size:34px;line-height:1.15;font-weight:700;letter-spacing:-.03em}
+.next-date small{display:block;font-size:18px;font-weight:500;color:var(--ink-2);letter-spacing:-.02em;margin-top:2px}
+.next-p{margin:10px 0 14px;color:var(--ink-2);font-size:14px}
+.side .row{display:flex;gap:6px;flex-wrap:wrap}
+.side .b{height:34px;padding:0 14px;font-size:13px}
+.side section{padding:26px 0;border-top:1.5px solid var(--ink)}
+.side section:first-child{border-top:0;padding-top:0}
+dl{margin:0;display:grid;grid-template-columns:76px 1fr;gap:9px 12px;font-size:14px}
+dt{color:var(--sub)}
+dd{margin:0}
+dd .lb{font-size:12px;font-weight:700;color:var(--star);margin-right:6px}
+.blank{margin-top:14px;font-size:13px;color:var(--sub)}
+.blank a{color:var(--ink);font-weight:600}
+
+/* one orchestrated moment: objects settle onto the desk */
+@media (prefers-reduced-motion:no-preference){
+  .obj{animation:settle .5s cubic-bezier(.2,.75,.25,1) both}
+  .obj:nth-of-type(2){animation-delay:.07s}.obj:nth-of-type(3){animation-delay:.14s}.obj:nth-of-type(4){animation-delay:.21s}.obj:nth-of-type(5){animation-delay:.28s}
+  @keyframes settle{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+}
+
+@media (max-width:1240px){.cols{grid-template-columns:1fr}.side{position:static}.app{grid-template-columns:76px 220px minmax(0,1fr)}}
 @media (max-width:860px){
   .app{grid-template-columns:minmax(0,1fr)}
-  .side,.list{display:none}
-  .main{padding:18px 16px 48px}
-  .acts{width:100%}.acts .btn{flex:1;height:40px}
-  .flow{padding:16px 10px 14px}
-  .steps li{font-size:12px}
-  .steps small{font-size:11px}
+  .rail,.list{display:none}
+  .main{padding:22px 18px 60px}
+  .name h1{font-size:40px}
+  .btns{width:100%}.btns .b{flex:1}
+  .journey{margin:22px 0 28px;font-size:14px}
+  .journey .s+.s::before{width:16px;margin:0 6px}
+  .desk{padding-left:0}
+  .when{position:static;width:auto;display:flex;gap:6px;align-items:baseline;padding:0 0 6px}
+  .when b{display:inline;font-size:15px}
+  .older{margin-left:0}
+  .receipt{width:100%;max-width:300px}
 }
 </style>
 </head>
 <body>
 <div class="app">
-  <nav class="side" aria-label="주 메뉴">
-    <div class="logo">닥터고블린<small>OFFICE</small></div>
-    <a href="#">대시보드</a><a href="#">캘린더</a><a href="#">할 일</a>
-    <a href="#" aria-current="page">의뢰자</a><a href="#">프로젝트</a><a href="#">견적서</a>
-    <div class="grp">지식·자산</div>
-    <a href="#">재고</a><a href="#">AS 현황</a><a href="#">위키</a><a href="#">렌탈</a>
+  <nav class="rail" aria-label="주 메뉴">
+    <div class="logo" aria-label="닥터고블린">닥</div>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>홈</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>캘린더</a>
+    <a href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-3.6 4-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/></svg>의뢰자</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h10"/></svg>프로젝트</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6.5 3.5h8l3 3v14h-11z"/><path d="M9 11h6M9 15h4"/></svg>견적서</a>
   </nav>
 
   <aside class="list" aria-label="의뢰자 목록">
-    <div class="list-top">
-      <h1>의뢰자<span class="num">128명</span></h1>
-      <input class="search" placeholder="이름, 닉네임, 연락처" aria-label="의뢰자 검색">
-      <div class="quick" role="group" aria-label="보기">
-        <button aria-pressed="true">전체</button><button aria-pressed="false">진행 중</button><button aria-pressed="false">VIP</button><button aria-pressed="false">렌탈</button>
-      </div>
-    </div>
-    <ul class="rows">
-      <li><button aria-current="true"><div class="r1"><span class="nm">새벽라디오</span><span class="dt today">오늘</span></div><div class="r2">방문 세팅 앞두고 있어요</div></button></li>
-      <li><button><div class="r1"><span class="nm">고래상점</span><span class="dt num">11.12</span></div><div class="r2">견적 답장을 기다리는 중</div></button></li>
-      <li><button><div class="r1"><span class="nm">하루한판</span><span class="dt num">11.09</span></div><div class="r2">원격 세팅 끝남</div></button></li>
-      <li><button><div class="r1"><span class="nm">밤비노</span><span class="dt num">11.07</span></div><div class="r2">마이크 AS 접수</div></button></li>
-      <li><button><div class="r1"><span class="nm">온도차</span><span class="dt num">11.05</span></div><div class="r2">첫 상담만 했어요</div></button></li>
-      <li><button><div class="r1"><span class="nm">초록바다</span><span class="dt num">11.02</span></div><div class="r2">렌탈 계약 중</div></button></li>
+    <label class="find"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input placeholder="누구를 찾으세요?" aria-label="의뢰자 검색"></label>
+    <h2>오늘 연락할 사람</h2>
+    <ul class="people">
+      <li><button aria-current="true"><span class="pn">새벽라디오</span><span class="ps">방문 D-5</span></button></li>
+      <li><button><span class="pn">고래상점</span><span class="ps">견적 답장 대기</span></button></li>
+    </ul>
+    <h2>최근에 본 사람</h2>
+    <ul class="people">
+      <li><button><span class="pn">하루한판</span><span class="ps num">11.09</span></button></li>
+      <li><button><span class="pn">밤비노</span><span class="ps num">11.07</span></button></li>
+      <li><button><span class="pn">온도차</span><span class="ps num">11.05</span></button></li>
+      <li><button><span class="pn">초록바다</span><span class="ps num">11.02</span></button></li>
     </ul>
   </aside>
 
   <main class="main">
-    <div class="head">
-      <div class="avatar" aria-hidden="true">새</div>
-      <div class="who">
-        <h2>새벽라디오<span class="vip">VIP</span></h2>
-        <p><span>김하늘</span><span class="num">010-2481-7730</span><span>SOOP</span></p>
+    <div class="top">
+      <div class="name">
+        <h1>새벽라디오</h1>
+        <div class="facts"><span>김하늘</span><span class="num">010-2481-7730</span><span>SOOP에서 노래 방송</span><span class="vip">VIP</span></div>
       </div>
-      <div class="acts">
-        <button class="btn">작성 모드로 열기</button>
-        <button class="btn pri">정보 수정</button>
+      <div class="btns">
+        <button class="b">작성 모드로 열기</button>
+        <button class="b solid">정보 수정</button>
       </div>
     </div>
 
-    <section class="flow" aria-labelledby="h-flow">
-      <div class="flow-top"><b id="h-flow">방문 세팅</b><span>시작한 지 12일째</span></div>
-      <ol class="steps">
-        <li class="ok"><span class="dot"></span>상담<small class="num">11.02</small></li>
-        <li class="ok"><span class="dot"></span>일정<small class="num">11.04</small></li>
-        <li class="ok"><span class="dot"></span>견적·계약<small class="num">11.06</small></li>
-        <li class="ok"><span class="dot"></span>결제<small class="num">11.08</small></li>
-        <li class="now" aria-current="step"><span class="dot"></span>방문 세팅<small class="num">11.18 오후 2시</small></li>
-        <li><span class="dot"></span>완료<small>&nbsp;</small></li>
-      </ol>
-    </section>
+    <ol class="journey" aria-label="방문 세팅 진행 단계" style="list-style:none;padding:0">
+      <li class="s done">상담</li>
+      <li class="s done">일정</li>
+      <li class="s done">견적·계약</li>
+      <li class="s done">결제</li>
+      <li class="s now" aria-current="step"><span class="pill"><i aria-hidden="true">★</i>방문 세팅<em class="num">11월 18일 오후 2시</em></span></li>
+      <li class="s">완료</li>
+    </ol>
 
-    <div class="grid">
-      <section class="panel" aria-labelledby="h-log">
-        <div class="ph"><h3 id="h-log">상담 기록</h3></div>
-        <div class="write">
-          <textarea placeholder="통화나 상담 내용을 적어 두세요" aria-label="새 기록"></textarea>
-          <div class="bar" role="group" aria-label="기록 종류">
-            <button class="kind" aria-pressed="true">통화</button><button class="kind" aria-pressed="false">메모</button><button class="kind" aria-pressed="false">방문</button>
-            <button class="btn pri">남기기</button>
-          </div>
+    <div class="cols">
+      <section aria-label="상담 기록">
+        <div class="compose">
+          <textarea rows="1" placeholder="방금 통화한 내용을 적어 두세요" aria-label="새 기록"></textarea>
+          <button class="b solid">남기기</button>
         </div>
 
-        <div class="day">오늘</div>
-        <div class="entry hl"><span class="who-ic" aria-hidden="true">서윤</span><div>
-          <div class="e-top"><b>이서윤</b><span class="k memo">통화</span><span class="t num">오전 10:42</span></div>
-          <p>책상 폭은 140cm래요. 쓰던 오디오 인터페이스는 회수해 달라고 하셨어요. <span class="m">주차는 건물 뒤편에 하면 됩니다.</span></p></div></div>
+        <div class="desk">
+          <div class="obj">
+            <div class="when"><b>오늘</b>오전 10:42</div>
+            <div class="memo"><p>책상 폭은 140cm. 쓰던 오디오 인터페이스는 회수해 달라고 하셨어요. 주차는 건물 뒤편에 하면 된대요.</p><div class="sig">이서윤, 통화하고 남김</div></div>
+          </div>
 
-        <div class="day">11월 8일</div>
-        <div class="entry"><span class="who-ic sys" aria-hidden="true">자동</span><div>
-          <div class="e-top"><b>결제 완료</b><span class="k pay">결제</span><span class="t num">오후 4:20</span></div>
-          <p>카드 일시불 <b class="num">1,840,000원</b>. <span class="m">거래명세서를 메일로 보냈어요.</span></p></div></div>
+          <div class="obj">
+            <div class="when"><b class="num">11.08</b>오후 4:20</div>
+            <div class="receipt"><div class="t"><span>카드 일시불</span><span>결제 완료</span></div><div class="amt num">1,840,000원</div><div class="d">거래명세서를 메일로 보냈어요</div></div>
+          </div>
 
-        <div class="day">11월 6일</div>
-        <div class="entry"><span class="who-ic" aria-hidden="true">서윤</span><div>
-          <div class="e-top"><b>이서윤</b><span class="k est">견적</span><span class="t num">오후 1:05</span></div>
-          <p><a href="#">견적서 #2041</a>을 보냈어요. 마이크와 암, 인터페이스, 조명 2개에 방문비까지. <span class="m">쓰던 웹캠 반품 1건은 빼 드렸어요.</span></p></div></div>
+          <div class="obj">
+            <div class="when"><b class="num">11.06</b>오후 1:05</div>
+            <div class="doc">
+              <h4><a href="#">견적서 #2041</a></h4>
+              <ul class="num">
+                <li><span>콘덴서 마이크 + 암</span><span>620,000</span></li>
+                <li><span>오디오 인터페이스</span><span>480,000</span></li>
+                <li><span>조명 2개</span><span>360,000</span></li>
+                <li><span>방문 세팅비 외 2개</span><span>500,000</span></li>
+                <li class="neg"><span>쓰던 웹캠 반품</span><span>−120,000</span></li>
+              </ul>
+              <div class="sum num"><span>합계</span><span>1,840,000원</span></div>
+              <div class="by">이서윤이 보냄</div>
+            </div>
+          </div>
 
-        <div class="day">11월 4일</div>
-        <div class="entry"><span class="who-ic" aria-hidden="true">서윤</span><div>
-          <div class="e-top"><b>이서윤</b><span class="k cal">일정</span><span class="t num">오전 11:30</span></div>
-          <p>방문은 11월 18일 오후 2시로 잡았어요. <span class="m">박지훈 기사님, 3시간 정도 예상.</span></p></div></div>
+          <div class="obj">
+            <div class="when"><b class="num">11.04</b>오전 11:30</div>
+            <div class="ticket">
+              <div class="main-t"><div class="k">방문 일정 잡음</div><div class="h">박지훈 기사님, 3시간 예상</div><div class="p">마포구 월드컵로 112, 3층</div></div>
+              <div class="stub"><b class="num">18</b><span>11월 수요일</span></div>
+            </div>
+          </div>
 
-        <a class="more-log" href="#">지난 기록 8개 더 보기</a>
+          <div class="obj">
+            <div class="when"><b class="num">11.02</b>오후 7:12</div>
+            <div class="memo"><p>노래 방송을 시작하려는데 목소리에 잡음이 낀다고 하심. 예산은 200만 원 안쪽.</p><div class="sig">이서윤, 첫 상담</div></div>
+          </div>
+        </div>
+        <a class="older" href="#">더 지난 기록 보기</a>
       </section>
 
-      <div>
-        <section class="panel next" aria-labelledby="h-next">
-          <div class="lab" id="h-next">다음 일정</div>
-          <div class="when num">11월 18일 (수) 오후 2시</div>
-          <div class="where">박지훈 기사님 방문 세팅<br>마포구 월드컵로 112, 3층</div>
-          <div class="row"><button class="btn">캘린더에서 보기</button><button class="btn">일정 바꾸기</button></div>
+      <aside class="side" aria-label="요약">
+        <section>
+          <h3>다음에 만나는 날</h3>
+          <div class="next-date num">11월 18일<small>수요일 오후 2시, 5일 남음</small></div>
+          <p class="next-p">박지훈 기사님이 스튜디오로 방문해 세팅해요.</p>
+          <div class="row"><button class="b">캘린더에서 보기</button><button class="b">날짜 바꾸기</button></div>
         </section>
-
-        <section class="panel" aria-labelledby="h-est">
-          <div class="ph"><h3 id="h-est">견적서 #2041</h3><span class="paid">결제 완료</span></div>
-          <div class="money num">
-            <div class="line"><span>품목 6개</span><span>1,960,000원</span></div>
-            <div class="line neg"><span>웹캠 반품</span><span>−120,000원</span></div>
-            <div class="total"><span>합계</span><b>1,840,000원</b></div>
-          </div>
-        </section>
-
-        <section class="panel" aria-labelledby="h-info">
-          <div class="ph"><h3 id="h-info">의뢰자 정보</h3><a href="#">수정</a></div>
-          <dl class="info">
-            <div class="full"><dt>주소</dt><dd><span class="tag">스튜디오</span>마포구 월드컵로 112, 3층<br><span class="tag">자택</span>은평구 통일로 684</dd></div>
-            <div><dt>방송 주제</dt><dd>노래, 소통</dd></div>
-            <div><dt>알게 된 곳</dt><dd>지인 소개</dd></div>
-            <div><dt>마케팅 동의</dt><dd>동의함</dd></div>
-            <div><dt>지난 프로젝트</dt><dd>2건</dd></div>
+        <section>
+          <h3>의뢰자에 대해</h3>
+          <dl>
+            <dt>주소</dt><dd><span class="lb">스튜디오</span>마포구 월드컵로 112, 3층<br><span class="lb">자택</span>은평구 통일로 684</dd>
+            <dt>알게 된 곳</dt><dd>지인 소개</dd>
+            <dt>마케팅</dt><dd>동의함 (11.06)</dd>
+            <dt>지난 작업</dt><dd>원격 세팅, 마이크 AS</dd>
           </dl>
-          <span class="fill">아직 비어 있는 칸 6개<a href="#">채우기</a></span>
+          <p class="blank">아직 모르는 것 6가지 <a href="#" style="margin-left:8px">채우기</a></p>
         </section>
-      </div>
+      </aside>
     </div>
   </main>
 </div>
-<script>
-document.querySelectorAll('[role=group]').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.classList.contains('pri'))return;g.querySelectorAll('button:not(.pri)').forEach(x=>x.setAttribute('aria-pressed',x===b));}));
-</script>
 </body>
 </html>
