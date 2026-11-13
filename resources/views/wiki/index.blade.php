@@ -154,6 +154,15 @@
         /* 모바일: 카테고리 목록은 기본 접힘 → 토글로 펼침(세로 목록) */
         .wiki-cat-list { display:none; max-height:50vh; overflow-y:auto; padding:6px 0; }
         .wiki-sidebar.cat-open .wiki-cat-list { display:block; }
+        /* 보조 버튼이 한 줄씩 길게 쌓이지 않게 — 새 문서만 한 줄, 나머지는 칸으로 */
+        .wiki-sidebar-footer { flex-direction:row !important; flex-wrap:wrap; gap:6px !important; }
+        .wiki-sidebar-footer > #wikiNewBtn { flex:1 1 100%; }
+        .wiki-sidebar-footer > button.btn-new { flex:1 1 30%; min-width:0; min-height:36px; padding:6px 8px !important; font-size:12px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        /* 문서 목록 머리: 제목·건수 한 줄, 버튼은 다음 줄에 (화면 밖으로 밀리지 않게) */
+        .wiki-main-header { flex-wrap:wrap; gap:8px; }
+        .wiki-main-header > div:last-child { width:100%; flex-wrap:wrap; gap:6px !important; }
+        .wiki-main-header .wiki-main-count { margin-right:auto; }
+        .wiki-main-header .wiki-cat-edit-btn { padding:7px 10px; font-size:13px; }
     }
 </style>
 @endpush
@@ -232,7 +241,7 @@
             <a href="{{ route('wiki.create') }}{{ request('cat') ? '?cat='.(int) request('cat') : '' }}" id="wikiNewBtn" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
             <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')"><x-icon name="gear" :size="13"/> 연결도 에디터</button>
             @if(auth()->user()->isAdmin())
-                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px;" onclick="genUpdateNoteDraft()">⚡ 업데이트 초안 생성</button>
+                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px;" onclick="genUpdateNoteDraft()">⚡ 업데이트 초안</button>
                 <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:13px;" onclick="openWikiTrash()" title="삭제된 게시물 — 복구하거나 영구 삭제할 수 있습니다 (기존 공지사항 게시물도 새 게시판으로 이관 후 여기 보관)">🗑 삭제된 게시물</button>
             @endif
         </div>

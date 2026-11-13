@@ -142,6 +142,8 @@
     /* 탭 (견적서 목록 | 프리셋) */
     /* 탭 (견적서 목록 | 취소 | 프리셋) — 알약 세그먼트: 선택 탭에 흰 알약 고정, hover는 옅은 톤 */
     .est-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:16px; overflow-x:auto; }
+    /* 모바일: 탭 4개가 잘리지 않게 2×2 칸으로 */
+    @media (max-width:768px) { .est-tabs { display:grid !important; grid-template-columns:1fr 1fr; border-radius:14px !important; overflow:visible !important; } .est-tab { padding:8px 8px !important; font-size:13px !important; border-radius:10px !important; } .est-pill { display:none !important; } .est-tab.active { background:var(--surface); box-shadow:0 1px 4px rgba(0,0,0,.14); color:var(--text); } }
     .est-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:999px; padding:8px 16px; font-size:15px; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; transition:color 0.15s, background 0.15s; }
     .est-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); }
     [data-theme="light"] .est-tab:hover:not(.active) { background:rgba(255,255,255,0.65); }

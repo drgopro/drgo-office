@@ -185,6 +185,8 @@ document.addEventListener('click', function(e){
             .logo { font-size:13px; padding-right:10px; margin-right:10px; letter-spacing:0.1em; }
             .header-right { gap:6px; }
             .header-right .user-role { display:none; }
+            /* 모바일 머리글의 로그아웃 — 큰 상자 대신 작은 글자 버튼 */
+            .header-right .logout-btn { min-height:0 !important; height:30px; padding:0 8px; border:0 !important; background:none; font-size:13px; color:var(--text-muted); }
         }
         /* ── 햄버거 전환 ≤ 980px — 좌측 드로어 (화면 일부만 가림, 좌측 정렬) ── */
         @media (max-width: 980px) {

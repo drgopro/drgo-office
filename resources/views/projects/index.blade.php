@@ -107,6 +107,7 @@
 
     /* 전체/진행/완료/취소 탭 — 알약(세그먼트) 형태, 선택 탭은 떠 있는 흰 알약 */
     .proj-status-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
+    @media (max-width:768px) { .pst-tab { padding:8px 8px !important; font-size:13px !important; gap:4px !important; } }
     .pst-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:14px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.15s; }
     /* hover — 선택 알약은 그대로 두고, 더 옅은 톤의 알약이 살짝 비친다 */
     .pst-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); transition:color 0.15s, background 0.15s; }

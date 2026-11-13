@@ -154,6 +154,13 @@
         /* 모바일: 카테고리 목록은 기본 접힘 → 토글로 펼침(세로 목록) */
         .wiki-cat-list { display:none; max-height:50vh; overflow-y:auto; padding:6px 0; }
         .wiki-sidebar.cat-open .wiki-cat-list { display:block; }
+        .wiki-sidebar-footer { flex-direction:row !important; flex-wrap:wrap; gap:6px !important; }
+        .wiki-sidebar-footer > a.btn-new { flex:1 1 100%; }
+        .wiki-sidebar-footer > button.btn-new { flex:1 1 30%; min-width:0; min-height:36px; padding:6px 8px !important; font-size:12px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .wiki-main-header { flex-wrap:wrap; gap:8px; }
+        .wiki-main-header > div:last-child { width:100%; flex-wrap:wrap; gap:6px !important; }
+        .wiki-main-header .wiki-main-count { margin-right:auto; }
+        .wiki-main-header .wiki-cat-edit-btn { padding:7px 10px; font-size:13px; }
     }
 </style>
 @endpush

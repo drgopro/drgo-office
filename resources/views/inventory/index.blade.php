@@ -205,8 +205,11 @@
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
         .data-table { min-width:600px; }
         .data-table th, .data-table td { padding:10px; font-size:13px; white-space:nowrap; }
-        .toolbar { flex-direction:column; align-items:stretch; }
-        .toolbar input[type="text"] { width:100%; }
+        /* 툴바: 검색은 한 줄 전체, 버튼·선택은 내용 폭으로 줄바꿈 (전부 한 줄씩 길게 쌓이지 않게) */
+        .toolbar { flex-direction:row; flex-wrap:wrap; align-items:center; gap:6px; }
+        .toolbar input[type="text"] { width:100%; flex-basis:100%; }
+        .toolbar > select { flex:1 1 40%; min-width:0; }
+        .toolbar > button, .toolbar > .btn-outline, .toolbar > .btn-primary { flex:0 1 auto; width:auto; }
         .tab-bar { flex-wrap:wrap; }
         .tab-btn { font-size:13px; padding:8px 4px; }
         .modal { width:95vw; max-width:95vw; padding:16px; }
