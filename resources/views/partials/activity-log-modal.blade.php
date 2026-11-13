@@ -43,9 +43,9 @@ async function openActivityLog(type, id, title) {
             }
             return `<div style="padding:10px 0;border-bottom:1px solid var(--border,#d9dee5);">
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;color:${ACTION_C[log.action]||'var(--text-muted)'};border:1px solid;opacity:0.8;">${ACTION_L[log.action]||esc(log.action)}</span>
+                    <span style="font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;color:${ACTION_C[log.action]||'var(--text-muted)'};border:1px solid;opacity:0.8;">${ACTION_L[log.action]||esc(log.action)}</span>
                     <span style="font-size:12px;font-weight:600;">${esc(log.user)}</span>
-                    <span style="font-size:10px;color:var(--text-muted,#999);margin-left:auto;">${esc(log.created_at)}</span>
+                    <span style="font-size:11px;color:var(--text-muted,#999);margin-left:auto;">${esc(log.created_at)}</span>
                 </div>
                 ${log.summary ? '<div style="font-size:12px;color:var(--text-muted,#999);margin-top:4px;">'+esc(log.summary)+'</div>' : ''}
                 ${changesHtml}

@@ -8,14 +8,14 @@
     .rx-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
     .rx-header h1 { font-size:20px; font-weight:800; margin:0; }
     .rx-sub { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
-    .rx-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:12.5px; text-decoration:none; font-weight:600; }
+    .rx-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:13px; text-decoration:none; font-weight:600; }
     .rx-back:hover { border-color:var(--accent); color:var(--text); }
 
     .rx-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; margin-bottom:14px; }
-    .rx-controls label { font-size:11.5px; font-weight:700; color:var(--text-muted); }
-    .rx-controls input[type=date], .rx-controls select, .rx-controls input[type=text] { border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:8px; padding:7px 10px; font-size:12.5px; outline:none; }
+    .rx-controls label { font-size:12px; font-weight:700; color:var(--text-muted); }
+    .rx-controls input[type=date], .rx-controls select, .rx-controls input[type=text] { border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
     .rx-controls input:focus, .rx-controls select:focus { border-color:var(--accent); }
-    .rx-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:8px 16px; font-size:12.5px; font-weight:700; cursor:pointer; }
+    .rx-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .rx-go { color:#fff; }
     .rx-quick { display:flex; gap:6px; }
     .rx-quick button { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:7px 11px; font-size:12px; cursor:pointer; }
@@ -24,11 +24,11 @@
     .rx-csv { margin-left:auto; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:7px 13px; font-size:12px; cursor:pointer; }
     .rx-csv:hover { border-color:var(--accent); color:var(--accent); }
 
-    .rx-summary { font-size:12.5px; color:var(--text-muted); margin-bottom:10px; }
+    .rx-summary { font-size:13px; color:var(--text-muted); margin-bottom:10px; }
     .rx-summary b { color:var(--accent); font-size:14px; }
 
     .rx-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:auto; max-height:calc(100vh - 320px); }
-    .rx-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .rx-table { width:100%; border-collapse:collapse; font-size:13px; }
     .rx-table th { position:sticky; top:0; background:var(--surface2); text-align:right; padding:9px 12px; font-size:11px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; z-index:1; }
     .rx-table th:first-child { text-align:left; left:0; z-index:2; }
     .rx-table td { padding:8px 12px; border-bottom:1px solid var(--border); text-align:right; white-space:nowrap; }

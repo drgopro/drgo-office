@@ -76,7 +76,7 @@
     /* 선택 영역 색상 팝업 */
     .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
     .fmt-bubble.show { display:flex; }
-    .fmt-bubble .fb-label { font-size:10px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-label { font-size:11px; color:var(--text-muted); margin:0 2px; }
     .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
     .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
     .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
@@ -102,7 +102,7 @@
     .step-dot.cancelled.cancel-point { opacity:0.9; border-color:#a06060; color:#c05050; font-weight:800; }
     .step-label.cancelled { color:var(--text-muted); opacity:0.6; }
     .step-label.cancelled.cancel-point { color:#c05050; opacity:0.95; font-weight:700; }
-    .step-label { font-size:10px; color:var(--text-muted); }
+    .step-label { font-size:11px; color:var(--text-muted); }
     .step-label.active { color:var(--accent); font-weight:600; }
 
     .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
@@ -144,8 +144,8 @@
     .consult-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
     .consult-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .consult-date { font-size:12px; color:var(--text-muted); }
-    .consult-type-badge { font-size:10px; padding:2px 7px; border-radius:4px; background:var(--surface); color:var(--text-muted); }
-    .consult-result-badge { font-size:10px; padding:2px 7px; border-radius:4px; }
+    .consult-type-badge { font-size:11px; padding:2px 7px; border-radius:4px; background:var(--surface); color:var(--text-muted); }
+    .consult-result-badge { font-size:11px; padding:2px 7px; border-radius:4px; }
     .result-in_progress { background:#2a2010; color:var(--accent); }
     .result-waiting     { background:#1a1a2a; color:#8ab4c8; }
     .result-valid       { background:#1a2a1a; color:#7ac87a; }
@@ -179,17 +179,17 @@
     .btn-choose:hover { border-color:var(--accent); }
     .file-preview-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .file-preview-item { position:relative; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; color:var(--text); max-width:220px; }
-    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); overflow:hidden; position:relative; }
+    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-muted); overflow:hidden; position:relative; }
     .file-preview-item .thumb img, .file-preview-item .thumb canvas { width:100%; height:100%; object-fit:cover; }
     .file-preview-item .thumb .video-badge { position:absolute; bottom:1px; right:1px; background:rgba(0,0,0,0.7); color:#fff; font-size:7px; padding:1px 3px; border-radius:2px; }
     .file-preview-item .file-info { overflow:hidden; }
     .file-preview-item .file-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
-    .file-preview-item .file-size { font-size:10px; color:var(--text-muted); }
+    .file-preview-item .file-size { font-size:11px; color:var(--text-muted); }
     .file-preview-item .btn-remove { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:#fff; border:none; font-size:11px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
 
     /* 썸네일 그리드 (업로드된 파일) */
     .doc-grid { display:flex; flex-wrap:wrap; gap:12px; }
-    .doc-cat-tab { padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:11.5px; font-weight:700; cursor:pointer; }
+    .doc-cat-tab { padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:700; cursor:pointer; }
     .doc-cat-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .doc-up-tabs { display:flex; gap:5px; flex-wrap:wrap; padding-bottom:1px; }
     .doc-thumb-card { position:relative; width:120px; cursor:pointer; }
@@ -199,11 +199,11 @@
     .doc-thumb-card .thumb-img .video-play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; background:rgba(0,0,0,0.6); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; pointer-events:none; }
     .doc-thumb-meta { margin-top:6px; }
     .doc-thumb-meta .thumb-name { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .doc-thumb-meta .thumb-note { font-size:10px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-    .doc-thumb-meta .thumb-date { font-size:9px; color:var(--text-muted); margin-top:1px; }
+    .doc-thumb-meta .thumb-note { font-size:11px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+    .doc-thumb-meta .thumb-date { font-size:11px; color:var(--text-muted); margin-top:1px; }
     .doc-thumb-card .thumb-actions { position:absolute; top:4px; right:4px; display:none; gap:3px; }
     .doc-thumb-card:hover .thumb-actions { display:flex; }
-    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
     .thumb-actions a:hover, .thumb-actions button:hover { background:rgba(0,0,0,0.85); }
 
     /* 앨범 모달 */
@@ -268,7 +268,7 @@
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
     .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; transition:color 0.12s; }
     .pcf-sec-title:hover { color:var(--text); }
-    .pcf-sec-toggle { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-size:10px; color:var(--text-muted); transition:transform 0.2s; }
+    .pcf-sec-toggle { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-size:11px; color:var(--text-muted); transition:transform 0.2s; }
     .pcf-section.collapsed .pcf-sec-toggle { transform:rotate(-90deg); }
     .pcf-section.collapsed > :not(.pcf-sec-title) { display:none !important; }
     .pcf-subgroup { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
@@ -292,7 +292,7 @@
         .pcf-grid .pcf-field, .pcf-grid .pcf-field.w-1, .pcf-grid .pcf-field.w-2, .pcf-grid .pcf-field.w-3, .pcf-grid .pcf-field.w-4 { grid-column:1 / -1; }
     }
     .pcf-label { font-size:11px; color:var(--text-muted); font-weight:600; }
-    .pcf-help { font-size:10px; color:var(--text-muted); opacity:0.7; }
+    .pcf-help { font-size:11px; color:var(--text-muted); opacity:0.7; }
     .pcf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; }
     .pcf-input:focus { border-color:var(--accent); }
     .pcf-radios { display:flex; gap:10px; flex-wrap:wrap; font-size:13px; }
@@ -313,11 +313,11 @@
     .pfa-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:440px; display:flex; flex-direction:column; gap:14px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
     .pfa-title { font-size:15px; font-weight:700; color:var(--text); }
     .pfa-group { display:flex; flex-direction:column; gap:6px; }
-    .pfa-lab { font-size:11.5px; color:var(--text-muted); font-weight:600; }
+    .pfa-lab { font-size:12px; color:var(--text-muted); font-weight:600; }
     .pfa-types { display:flex; flex-wrap:wrap; gap:6px; }
     .pfa-type-chip { padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; }
     .pfa-type-chip.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
-    .pfa-check { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text); cursor:pointer; }
+    .pfa-check { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text); cursor:pointer; }
     .pfa-check input { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; }
     .pfa-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:2px; }
     .pfa-btn-ghost { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
@@ -328,30 +328,30 @@
     .rqp-title { border:1px solid var(--border); border-radius:9px; overflow:hidden; background:var(--surface); }
     .rqp-head { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:13px; font-weight:700; user-select:none; }
     .rqp-head:hover { background:var(--surface2); }
-    .rqp-caret { font-size:10px; color:var(--text-muted); transition:transform .15s; }
+    .rqp-caret { font-size:11px; color:var(--text-muted); transition:transform .15s; }
     .rqp-title.open .rqp-caret { transform:rotate(90deg); }
     .rqp-cnt { margin-left:auto; font-size:11px; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border-radius:9px; padding:1px 9px; }
     .rqp-body { display:none; flex-direction:column; gap:9px; padding:4px 12px 11px; }
     .rqp-title.open .rqp-body { display:flex; }
-    .rqp-cat-name { font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+    .rqp-cat-name { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
     .rqp-leafs { display:flex; flex-wrap:wrap; gap:6px; }
     .rqp-leaf { padding:5px 11px; border-radius:8px; border:1px solid var(--border); font-size:12px; cursor:pointer; color:var(--text-muted); background:none; transition:all .12s; }
     .rqp-leaf:hover { border-color:var(--accent); color:var(--text); }
     .rqp-leaf.on { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:var(--accent); color:var(--accent); font-weight:700; }
     .req-tag { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px; font-size:12px; background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 32%, transparent); color:var(--text); }
-    .req-tag .rq-sep { color:var(--text-muted); font-size:10px; }
+    .req-tag .rq-sep { color:var(--text-muted); font-size:11px; }
     .req-tag .rq-qbtn { border:none; background:none; cursor:pointer; font-size:12px; color:var(--text-muted); padding:0 2px; line-height:1; }
     .req-tag .rq-qbtn:hover { color:var(--accent); }
     .rqm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:950; align-items:center; justify-content:center; padding:16px; }
     .rqm-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
-    .rqm-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:12.5px; }
-    .rqm-btn { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:11.5px; cursor:pointer; }
+    .rqm-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; }
+    .rqm-btn { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; }
     .rqm-btn:hover { border-color:var(--accent); color:var(--accent); }
     .rqm-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; font-size:13px; padding:8px 18px; }
     /* ── 추가 정보 저장 상태 배지 + 수동 저장 버튼 ── */
-    .pcf-badge { font-size:11.5px; font-weight:600; letter-spacing:0; }
+    .pcf-badge { font-size:12px; font-weight:600; letter-spacing:0; }
     /* 요약 보기 — 값 있는 항목만 압축 표시 (캘린더 요약과 동일 개념) */
-    .pcf-sum-row { display:flex; gap:10px; padding:5px 0; border-bottom:1px dashed var(--border); font-size:12.5px; align-items:baseline; }
+    .pcf-sum-row { display:flex; gap:10px; padding:5px 0; border-bottom:1px dashed var(--border); font-size:13px; align-items:baseline; }
     .pcf-sum-row:last-child { border-bottom:none; }
     .pcf-sum-label { color:var(--text-muted); min-width:120px; flex-shrink:0; }
     .pcf-sum-val { font-weight:600; word-break:break-all; }
@@ -359,7 +359,7 @@
     .pcf-ent-row .pcf-input { flex:1; min-width:0; }
     .pcf-ent-del { flex-shrink:0; width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); font-size:12px; cursor:pointer; line-height:1; }
     .pcf-ent-del:hover { border-color:var(--red); color:var(--red); }
-    .pcf-ent-add { border:1px dashed var(--border); background:none; color:var(--accent); border-radius:6px; padding:4px 10px; font-size:11.5px; cursor:pointer; }
+    .pcf-ent-add { border:1px dashed var(--border); background:none; color:var(--accent); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
     .pcf-ent-add:hover { border-color:var(--accent); }
     .pcf-badge.dirty { color:#d4a96a; }
     .pcf-badge.saving { color:var(--text-muted); }
@@ -396,7 +396,7 @@
                     {{-- 의뢰자 이름 클릭 → 의뢰자 상세 --}}
                     <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.DRGO_STANDALONE) drgoWriteMode.open('/clients/{{ $project->client->id }}/write','client-{{ $project->client->id }}'); else if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
                 @else
-                    <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:10px; color:var(--text-muted);">(확인불가)</span></span>
+                    <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:11px; color:var(--text-muted);">(확인불가)</span></span>
                 @endif
             </div>
             <div>
@@ -456,7 +456,7 @@
             {{-- 익명(의뢰자 미연동) 프로젝트 — 진행 단계 바가 없으므로 헤더에서 완료 처리/되돌리기 --}}
             @unless($project->client_id)
                 @if($project->stage === 'done')
-                    <span style="font-size:12px;padding:7px 12px;border-radius:8px;background:rgba(45,138,62,0.12);color:#2d8a3e;font-weight:700;">완료됨{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
+                    <span style="font-size:12px;padding:7px 12px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;font-weight:700;">완료됨{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
                     <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="anonReopenProject()" title="완료를 취소하고 진행 중으로 되돌립니다">완료 취소</button>
                 @elseif($project->stage !== 'cancelled')
                     <button class="btn-edit" style="background:var(--accent);border:1px solid var(--accent);color:var(--accent-text,#fff);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
@@ -594,7 +594,7 @@
                 <div class="info-label">이름</div>
                 <div>
                     {{ $project->manual_client_name ?: '(미입력)' }}
-                    <span style="font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border);">의뢰자명 확인 불가</span>
+                    <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border);">의뢰자명 확인 불가</span>
                 </div>
             </div>
             <div class="text-muted" style="color:var(--text-muted); font-size:12px; padding:6px 0;">의뢰자와 연동되지 않은 프로젝트입니다. 이름은 참고용 주관식 입력입니다.</div>
@@ -715,7 +715,7 @@
                         <a href="/estimates/{{ $eid }}/edit" onclick="event.preventDefault(); window.open(this.href, 'est_{{ $eid }}')" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $le->display_no }}</a>
                         <span style="font-weight:600;">{{ number_format((int) $le->total_amount) }}원</span>
                         @if($le->status === 'paid')
-                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#2d8a3e; font-weight:700;">결제완료</span>
+                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#1d7330; font-weight:700;">결제완료</span>
                         @elseif($le->status === 'cancelled')
                             <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(220,38,38,0.10); color:#dc2626; font-weight:700;">결제취소</span>
                         @elseif($le->status === 'quote_cancelled')
@@ -984,8 +984,8 @@
                             <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제 금액 (원) *</div>
                             <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" oninput="window.payAmountManual=true; recalcPayAmount();" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                                <span id="payAmountNote" style="font-size:10px; color:var(--text-muted);">(항목 합산 자동 반영)</span>
-                                <button type="button" onclick="window.payAmountManual=false; recalcPayAmount();" style="background:none; border:none; color:var(--accent); font-size:10px; cursor:pointer; padding:0;">↻ 항목 합산으로 재설정</button>
+                                <span id="payAmountNote" style="font-size:11px; color:var(--text-muted);">(항목 합산 자동 반영)</span>
+                                <button type="button" onclick="window.payAmountManual=false; recalcPayAmount();" style="background:none; border:none; color:var(--accent); font-size:11px; cursor:pointer; padding:0;">↻ 항목 합산으로 재설정</button>
                             </div>
                         </div>
                         <div>
@@ -1130,7 +1130,7 @@
         <div class="info-card full" id="reqItemsCard">
             <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <span>의뢰 내용 (세팅 항목)</span>
-                <span style="font-size:11px; font-weight:400; color:var(--text-muted);">타이틀 → 분류 → 세부 항목 선택 · 연결된 캘린더 일정에 표시됩니다</span>
+                <span style="font-size:12px; font-weight:400; color:var(--text-muted);">타이틀 → 분류 → 세부 항목 선택 · 연결된 캘린더 일정에 표시됩니다</span>
                 <button type="button" class="pcf-save-btn" id="rqmManageBtn" onclick="openRqpManage()" style="display:none; margin-left:auto;">⚙ 선택지 관리</button>
             </div>
             <div id="reqItemTags" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:10px;"></div>
@@ -1149,13 +1149,13 @@
                 <div style="font-size:15px;font-weight:700;">의뢰 세부 항목 선택지 관리</div>
                 <div id="rqmList" style="display:flex;flex-direction:column;gap:6px;"></div>
                 <div style="border-top:1px dashed var(--border);"></div>
-                <div id="rqmFormTitle" style="font-size:12.5px;font-weight:700;">새 세팅 타이틀 추가</div>
+                <div id="rqmFormTitle" style="font-size:13px;font-weight:700;">새 세팅 타이틀 추가</div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                    <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">세팅 타이틀 <span style="color:var(--red)">*</span></span>
+                    <span style="font-size:12px;color:var(--text-muted);font-weight:600;">세팅 타이틀 <span style="color:var(--red)">*</span></span>
                     <input type="text" id="rqmTitle" class="pcf-input" placeholder="예: 신규·이사 세팅, 세팅 추가·개선">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                    <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">분류와 세부 항목 <span style="font-weight:400;">— 한 줄에 하나씩 <b>분류: 항목1, 항목2</b> 형식</span></span>
+                    <span style="font-size:12px;color:var(--text-muted);font-weight:600;">분류와 세부 항목 <span style="font-weight:400;">— 한 줄에 하나씩 <b>분류: 항목1, 항목2</b> 형식</span></span>
                     <textarea id="rqmChildren" class="pcf-input" style="min-height:120px;resize:vertical;" placeholder="컴퓨터: 컴퓨터 부품 교체, 컴퓨터 현장 조립&#10;오디오: DAW 세팅, 마이크 추가 설치"></textarea>
                 </div>
                 <div style="display:flex;justify-content:flex-end;gap:8px;">
@@ -1203,7 +1203,7 @@
                 <div class="pfa-title">장비 항목 편집</div>
                 <div id="pfaList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
                 <div style="border-top:1px dashed var(--border);"></div>
-                <div class="pfa-subtitle" id="pfaFormTitle" style="font-size:12.5px;font-weight:700;color:var(--text);">새 항목 추가</div>
+                <div class="pfa-subtitle" id="pfaFormTitle" style="font-size:13px;font-weight:700;color:var(--text);">새 항목 추가</div>
                 <div class="pfa-group" id="pfaScopeGroup">
                     <span class="pfa-lab">적용 범위</span>
                     <div class="pfa-types">
@@ -1306,14 +1306,14 @@
             <div id="projectMemoThread">
                 @forelse($project->memos as $memo)
                     <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="pmemo-{{ $memo->id }}">
-                        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
+                        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
                         <div style="flex:1; min-width:0;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div>
                                     <span style="font-size:12px; font-weight:600;">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
-                                    <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
+                                    <span style="font-size:11px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
                                 </div>
-                                <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
+                                <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
                             </div>
                             <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">{{ $memo->content }}</div>
                         </div>
@@ -1957,7 +1957,7 @@ function renderMkConsentSelect() {
     if (!sel) return;
     sel.value = mkConsent === null ? '' : (mkConsent ? '1' : '0');
     const style = mkConsent === true
-        ? 'background:rgba(45,138,62,0.12);color:#2d8a3e;border-color:rgba(45,138,62,0.35);font-weight:700;'
+        ? 'background:rgba(45,138,62,0.12);color:#1d7330;border-color:rgba(45,138,62,0.35);font-weight:700;'
         : (mkConsent === false
             ? 'background:rgba(200,80,80,0.10);color:var(--red);border-color:rgba(200,80,80,0.35);font-weight:700;'
             : 'background:var(--surface2);color:var(--text);');
@@ -2686,7 +2686,7 @@ async function openEquipImport() {
         body.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">불러올 장비 정보가 없습니다 — 이 의뢰자의 다른 프로젝트에 입력된 장비가 없습니다.</div>';
         return;
     }
-    const rowStyle = 'display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--text);font-size:12.5px;';
+    const rowStyle = 'display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--text);font-size:13px;';
     let html = '';
     if (data.client) {
         html += `<button type="button" style="${rowStyle}" onclick="runEquipImport(${data.client.id}, this)">`
@@ -2694,7 +2694,7 @@ async function openEquipImport() {
             + `<span style="color:var(--text-muted);margin-left:auto;">${pcfEsc(data.client.name)} · ${data.client.count}개 항목</span></button>`;
     }
     if ((data.projects||[]).length) {
-        html += `<div style="font-size:11.5px;color:var(--text-muted);font-weight:600;margin-top:4px;">이전 프로젝트에서 선택</div>`;
+        html += `<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:4px;">이전 프로젝트에서 선택</div>`;
         html += data.projects.map(p =>
             `<button type="button" style="${rowStyle}" onclick="runEquipImport(${p.id}, this)">`
             + `<span style="font-weight:600;">${pcfEsc(p.name)}</span>`
@@ -3166,7 +3166,7 @@ function openPcfAdd() {
 function closePcfAdd() { document.getElementById('pfaOverlay').style.display = 'none'; }
 
 function pfaRowHtml(i, badgeHtml, btnsHtml) {
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
         <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(i.label)}</b>
         ${badgeHtml}
         <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">${PFA_TYPES[i.type]||i.type}${i.subsection?' · '+pcfEsc(i.subsection):''}</span>
@@ -3175,13 +3175,13 @@ function pfaRowHtml(i, badgeHtml, btnsHtml) {
 }
 function pfaRenderList() {
     const list = document.getElementById('pfaList');
-    const localBadge = '<span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);">이 프로젝트</span>';
-    const globalBadge = '<span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--purple, #7c5cb0) 14%, transparent);color:var(--purple, #7c5cb0);">전체 공통</span>';
+    const localBadge = '<span style="flex-shrink:0;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);">이 프로젝트</span>';
+    const globalBadge = '<span style="flex-shrink:0;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--purple, #7c5cb0) 14%, transparent);color:var(--purple, #7c5cb0);">전체 공통</span>';
     const btn = (fn, txt, danger) => `<button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;${danger?'color:var(--red);':''}" onclick="${fn}">${txt}</button>`;
     let html = pfaItems().map(i => pfaRowHtml(i, localBadge, btn(`pfaEdit('${i.key}')`, '수정') + btn(`pfaDelete('${i.key}')`, '삭제', true))).join('');
     html += pfaGlobalItems().map(i => pfaRowHtml(i, globalBadge,
         PCF_CAN_MANAGE ? btn(`pfaEditGlobal(${i.id})`, '수정') + btn(`pfaDeleteGlobal(${i.id})`, '삭제', true)
-            : '<span style="flex-shrink:0;font-size:10.5px;color:var(--text-muted);">관리자만 편집</span>')).join('');
+            : '<span style="flex-shrink:0;font-size:11px;color:var(--text-muted);">관리자만 편집</span>')).join('');
     list.innerHTML = html || '<div style="font-size:12px;color:var(--text-muted);">등록된 장비 항목이 없습니다.</div>';
 }
 function pfaSetScope(s) {
@@ -3358,7 +3358,7 @@ function renderReqPicker() {
                 <div class="rqp-leafs">${(cat.items || []).length ? (cat.items || []).map((d, di) =>
                     `<button type="button" class="rqp-leaf ${reqItemFind(p.title, cat.name, d) ? 'on' : ''}" onclick="rqToggleLeaf(${pi},${ci},${di})">${pcfEsc(d)}</button>`
                 ).join('') : '<span style="font-size:11px;color:var(--text-muted);">세부 항목 없음</span>'}</div></div>`).join('')
-                : '<div style="font-size:11.5px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
+                : '<div style="font-size:12px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
         </div>`;
     }).join('');
     renderReqTags();
@@ -3556,10 +3556,10 @@ function _fmtPh(n){ return Number(n||0).toLocaleString('ko-KR'); }
 function renderBillingBlock() {
     if (!__billings.length) return '';
     const statusPill = b => b.status === 'paid'
-        ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">완료</span>'
+        ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">완료</span>'
         : (b.status === 'partial'
-            ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">부분입금</span>'
-            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">미입금</span>');
+            ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">부분입금</span>'
+            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">미입금</span>');
     return `<div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
         ${__billings.map(b => `
         <div style="padding:10px 14px; background:var(--surface2); border:1px dashed var(--border); border-radius:10px; ${b.status==='paid'?'opacity:0.55;':''}">
@@ -3602,9 +3602,9 @@ function renderPaymentHistory() {
         const isCharge = p.type === 'charge';
         const isRefund = p.type === 'refund';
         const isCancel = p.type === 'cancel';
-        const badge = isCharge ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;border:1px solid rgba(122,200,160,0.35);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">결제</span>'
-            : isRefund ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;border:1px solid rgba(232,137,74,0.35);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">환불</span>'
-            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);border:1px solid rgba(200,80,80,0.35);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">결제 취소</span>';
+        const badge = isCharge ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;border:1px solid rgba(122,200,160,0.35);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">결제</span>'
+            : isRefund ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;border:1px solid rgba(232,137,74,0.35);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">환불</span>'
+            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);border:1px solid rgba(200,80,80,0.35);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">결제 취소</span>';
         const amount = isCharge ? `+${_fmtPh(p.amount)}원` : `${_fmtPh(p.amount)}원`;
         const amtColor = isCharge ? 'var(--accent)' : 'var(--red)';
         const refundInfo = isCharge && p.refunded_amount > 0
@@ -3615,8 +3615,8 @@ function renderPaymentHistory() {
         const itemsHtml = (p.items && p.items.length)
             ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it => {
                 const srcBadge = it.source === 'estimate'
-                    ? '<span style="font-size:9px; color:var(--accent); border:1px solid var(--accent); border-radius:3px; padding:0 4px; margin-right:4px;">견적</span>'
-                    : (it.source === 'manual' ? '<span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px; margin-right:4px;">수기</span>' : '');
+                    ? '<span style="font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:3px; padding:0 4px; margin-right:4px;">견적</span>'
+                    : (it.source === 'manual' ? '<span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px; margin-right:4px;">수기</span>' : '');
                 return `<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${srcBadge}${_escPh(it.name||'-')}</span><span>${it.qty||1}개 × ${_fmtPh(it.price||0)}원</span></div>`;
             }).join('')}</div>`
             : '';
@@ -3626,7 +3626,7 @@ function renderPaymentHistory() {
                     ${badge}
                     <span style="font-size:14px; font-weight:700; color:${amtColor};">${amount}</span>
                     ${refundInfo}
-                    ${fullyRefunded ? '<span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
+                    ${fullyRefunded ? '<span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     ${isCharge ? `<button onclick="editPayment(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>` : `<button onclick="openRefundEdit(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>`}
@@ -3774,7 +3774,7 @@ function renderRefundItems() {
     wrap.innerHTML = ctx.items.map((it, i) => {
         return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; ${it.sub ? 'margin-left:22px; ' : ''}background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
             <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
-            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ` <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">${it.setName ? _escPh(it.setName) + ' ' : ''}세트 구성품</span>` : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:10px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
+            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ` <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">${it.setName ? _escPh(it.setName) + ' ' : ''}세트 구성품</span>` : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:11px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
                 <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
                 <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
@@ -4030,7 +4030,7 @@ function openLinkedSchedule(url) {
             onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg, var(--accent)); flex-shrink:0;"></span>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pcfEsc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:10px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
+                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pcfEsc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:11px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + pcfEsc(sc.location) : ''}</div>
             </div>
             <span style="font-size:11px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
@@ -4280,8 +4280,8 @@ function addPayItem(it = {name:'', qty:1, price:0}) {
     row.dataset.source = isEst ? 'estimate' : 'manual';
     row.style.cssText = 'display:flex; gap:6px; align-items:center;';
     const badge = isEst
-        ? '<span title="견적서 항목" style="font-size:10px; color:var(--accent); border:1px solid var(--accent); border-radius:4px; padding:1px 5px; white-space:nowrap;">견적</span>'
-        : '<span title="수기 항목" style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 5px; white-space:nowrap;">수기</span>';
+        ? '<span title="견적서 항목" style="font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:4px; padding:1px 5px; white-space:nowrap;">견적</span>'
+        : '<span title="수기 항목" style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 5px; white-space:nowrap;">수기</span>';
     row.innerHTML = `
         ${badge}
         <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;" oninput="recalcPayAmount()">

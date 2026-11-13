@@ -8,7 +8,7 @@
     .crm-top { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
     .crm-wrap h1.page { font-size:24px; font-weight:800; margin:0; }
     .crm-wrap .lead { font-size:13px; color:var(--text-muted); }
-    .crm-banner { background:rgba(212,188,150,0.12); border:1px solid var(--accent); border-radius:10px; padding:9px 13px; font-size:12.5px; margin:10px 0 16px; }
+    .crm-banner { background:rgba(212,188,150,0.12); border:1px solid var(--accent); border-radius:10px; padding:9px 13px; font-size:13px; margin:10px 0 16px; }
     .crm-btn { border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; }
     .crm-btn.primary { background:var(--accent); color:var(--accent-text); }
     .crm-btn.ghost { background:var(--surface); border:1px solid var(--border); color:var(--text-muted); }
@@ -26,8 +26,8 @@
     table.pj-table tr.row-main:hover td { background:var(--surface2); }
     table.pj-table tr.row-main.cancelled td { background:rgba(220,38,38,0.06); }
     .pj-tags-cell { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
-    .pj-type-badge { font-size:10px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:2px 8px; white-space:nowrap; }
-    .pj-stage-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:5px; background:var(--surface2); border:1px solid var(--border); white-space:nowrap; }
+    .pj-type-badge { font-size:11px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:2px 8px; white-space:nowrap; }
+    .pj-stage-badge { font-size:11px; font-weight:600; padding:2px 8px; border-radius:5px; background:var(--surface2); border:1px solid var(--border); white-space:nowrap; }
     .pj-stage-badge.billing { background:rgba(36,138,56,0.12); border-color:#86efac; color:#248a38; }
     .pj-stage-badge.done { color:var(--text-muted); }
     .pj-cell-muted { color:var(--text-muted); font-size:12px; }
@@ -48,7 +48,7 @@
     .pj-cancel-badge { font-size:11px; font-weight:700; color:#fff; background:#dc2626; border-radius:5px; padding:2px 8px; }
     .pj-reason { font-size:11px; color:#b91c1c; background:#fee2e2; border:1px solid #fecaca; border-radius:5px; padding:2px 8px; }
     .pj-pipe { display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-top:10px; }
-    .pj-step { font-size:11.5px; padding:5px 10px; border-radius:7px; background:var(--surface2); border:1px solid var(--border); cursor:pointer; white-space:nowrap; }
+    .pj-step { font-size:12px; padding:5px 10px; border-radius:7px; background:var(--surface2); border:1px solid var(--border); cursor:pointer; white-space:nowrap; }
     .pj-step.cur { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     .pj-step.done { opacity:0.55; }
     .pj-step.billing { border-color:#86efac; }
@@ -78,7 +78,7 @@
     .tag-dd-chips { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
     .tag-dd-ph { font-size:13px; color:var(--text-muted); }
     .tag-dd-chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#9d174d; background:#fdf2f8; border:1px solid #fbcfe8; border-radius:14px; padding:3px 6px 3px 10px; }
-    .tag-dd-chip .x { width:15px; height:15px; border-radius:50%; background:#f8d4e4; color:#9d174d; font-size:10px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; cursor:pointer; }
+    .tag-dd-chip .x { width:15px; height:15px; border-radius:50%; background:#f8d4e4; color:#9d174d; font-size:11px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; cursor:pointer; }
     .tag-dd-caret { color:var(--accent); margin-left:auto; }
     .tag-dd-menu { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.15); overflow:hidden; max-height:240px; overflow-y:auto; }
     .tag-dd-opt { font-size:13px; padding:9px 13px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); cursor:pointer; }

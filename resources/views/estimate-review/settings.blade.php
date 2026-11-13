@@ -6,14 +6,14 @@
 <style>
     .rvs-wrap { padding:24px; max-width:1240px; margin:0 auto; }
     .rvs-wrap h2 { font-size:20px; font-weight:800; margin:0; }
-    .rvs-lead { font-size:12.5px; color:var(--text-muted); margin:6px 0 16px; max-width:75ch; }
+    .rvs-lead { font-size:13px; color:var(--text-muted); margin:6px 0 16px; max-width:75ch; }
     .rvs-tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:16px; }
-    .rvs-tabs button { border:0; background:none; padding:8px 14px; font-size:13.5px; font-weight:500; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; }
+    .rvs-tabs button { border:0; background:none; padding:8px 14px; font-size:14px; font-weight:500; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; }
     .rvs-tabs button.on { color:var(--text); font-weight:700; border-color:var(--accent); }
     .rvs-save { font-size:12px; color:var(--text-muted); margin-left:auto; align-self:center; padding-bottom:6px; }
     .rvs-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; min-width:0; margin-bottom:14px; }
     .rvs-pad { padding:14px 16px; display:grid; gap:10px; }
-    .rvs-card h3 { margin:0; font-size:14.5px; font-weight:700; }
+    .rvs-card h3 { margin:0; font-size:15px; font-weight:700; }
     .rvs-tw { overflow-x:auto; }
     table.rvs-t { border-collapse:collapse; width:100%; font-size:13px; }
     .rvs-t th { background:var(--surface2); text-align:left; font-size:12px; font-weight:700; color:var(--text-muted); white-space:nowrap; padding:7px 10px; border-bottom:1px solid var(--border); }
@@ -52,11 +52,11 @@
     .rvs-fld { display:grid; gap:4px; }
     .rvs-fld > span { font-size:12px; font-weight:700; color:var(--text-muted); }
     .rvs-fld input, .rvs-fld select, .rvs-fld textarea { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:13px; width:100%; }
-    .rvs-fld small { color:var(--text-muted); font-size:11.5px; }
+    .rvs-fld small { color:var(--text-muted); font-size:12px; }
     .rvs-chk { display:flex; flex-wrap:wrap; gap:4px; }
     .rvs-grouptitle { font-size:11px; color:var(--text-muted); width:100%; margin-top:4px; }
     .rvs-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
-    .rvs-note { font-size:11.5px; color:var(--text-muted); }
+    .rvs-note { font-size:12px; color:var(--text-muted); }
     .rvs-specmeta { font-size:12px; color:var(--text-muted); }
     .rvs-chips { display:flex; flex-wrap:wrap; gap:4px; }
     .rvs-fchip { border:1px solid var(--border); background:var(--surface); border-radius:7px; padding:3px 10px; font-size:12px; font-weight:500; color:var(--text); cursor:pointer; }
@@ -482,7 +482,7 @@ function specForm(sp, fields) {
         }
         const vals = d.port ? (sp[f] ? sp[f].t || [] : []) : (sp[f] || []);
         const toggles = CFG.types[d.fam].map(x => `<button type="button" class="rvs-mini ${vals.includes(x)?'on':''}" onclick="specTog('${f}','${_e(x)}',${d.port?'true':'false'})">${_e(x)}</button>`).join('');
-        const qty = d.port && d.qty ? `<label style="display:flex; align-items:center; gap:5px; font-size:12.5px">${d.qty}
+        const qty = d.port && d.qty ? `<label style="display:flex; align-items:center; gap:5px; font-size:13px">${d.qty}
             <input class="rvs-input" type="number" min="1" value="${sp[f] && sp[f].n || 1}" style="width:64px" onchange="(UI.specEdit.spec['${f}']=UI.specEdit.spec['${f}']||{t:[],n:1}).n=Math.max(1,+this.value||1)"></label>` : '';
         return `<div class="rvs-fld"><span>${d.label}</span><div class="rvs-acts">${toggles}${qty}</div></div>`;
     }).join('');

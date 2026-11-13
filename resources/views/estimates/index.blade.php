@@ -39,7 +39,7 @@
     .text-right { text-align:right; }
     .data-table th.text-right { text-align:right; } /* th 기본 left보다 특이성 보강 — 금액 헤더를 값과 같은 우측 정렬로 */
 
-    .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-created { background:#2a2010; color:var(--accent); }
     .badge-editing { background:#1a1a2a; color:#8ab4c8; }
     .badge-completed { background:#1a2a1a; color:#7ac87a; }
@@ -73,16 +73,16 @@
     [data-theme="light"] .btn-primary { color:#fff; }
     /* 헤더 버튼 — 생성/검토 규칙 동일한 컴팩트 사이즈 */
     .page-header .btn-primary, .btn-review-rules { padding:6px 13px; font-size:12px; border-radius:8px; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid transparent; }
-    .btn-review-rules { background:rgba(212,160,23,0.14); color:#a86300; border:1px solid rgba(212,160,23,0.5); }
+    .btn-review-rules { background:rgba(212,160,23,0.14); color:#8a5200; border:1px solid rgba(212,160,23,0.5); }
     .btn-review-rules:hover { background:rgba(212,160,23,0.24); }
     [data-theme="dark"] .btn-review-rules { color:#e8c268; border-color:rgba(232,194,104,0.45); background:rgba(232,194,104,0.12); }
     [data-theme="dark"] .btn-review-rules:hover { background:rgba(232,194,104,0.2); }
-    [data-theme="light"] .badge-created   { background:#f0ebe2; color:#8a6d30; }
+    [data-theme="light"] .badge-created   { background:#f0ebe2; color:#6e5622; }
     [data-theme="light"] .badge-editing   { background:#e0f0ff; color:#2e6a9a; }
     [data-theme="light"] .badge-completed { background:#e8f5e8; color:#248a38; }
     [data-theme="light"] .badge-issued    { background:#f0e8fa; color:#7a38b8; }
     [data-theme="light"] .badge-paid      { background:#e0f8f5; color:#0a8a70; }
-    [data-theme="light"] .badge-cancelled { background:#ececec; color:#808080; }
+    [data-theme="light"] .badge-cancelled { background:#ececec; color:#5f6676; }
     [data-theme="light"] .badge-quote_cancelled { background:#ececec; color:#808080; }
     [data-theme="light"] .badge-hold      { background:#ffe8e8; color:#c03838; }
     @media (max-width: 768px) {
@@ -106,35 +106,35 @@
         /* 견적서 목록: #번호 + 상태(우측) / 의뢰자·제목 / 금액·항목수 / 작성자·일시 / 버튼 */
         #estBody td:nth-child(1) { order:0; font-weight:600; }
         #estBody td:nth-child(5) { order:1; margin-left:auto; }
-        #estBody td:nth-child(2) { order:2; flex-basis:100%; font-size:14.5px; font-weight:600; }
+        #estBody td:nth-child(2) { order:2; flex-basis:100%; font-size:15px; font-weight:600; }
         #estBody td:nth-child(3) { order:3; font-size:16px; font-weight:800; color:var(--navy, var(--text)); }
         #estBody td:nth-child(4) { order:4; }
         #estBody tr::after { content:""; order:5; flex-basis:100%; } /* 금액 줄과 작성자 메타 줄 분리 */
         #estBody td:nth-child(6) { order:6; }
         #estBody td:nth-child(7) { order:7; }
         #estBody td:nth-child(8) { order:8; }
-        #estBody td:nth-child(6), #estBody td:nth-child(7), #estBody td:nth-child(8) { font-size:11.5px; }
+        #estBody td:nth-child(6), #estBody td:nth-child(7), #estBody td:nth-child(8) { font-size:12px; }
         #estBody td:nth-child(7)::before, #estBody td:nth-child(8)::before { content:"· "; color:var(--text-muted); }
         #estBody td:nth-child(9) { order:9; flex-basis:100%; margin-top:4px; }
         #estBody .action-cell { display:flex; gap:6px; flex-wrap:wrap; }
-        #estBody .btn-act { padding:7px 12px; font-size:12.5px; }
+        #estBody .btn-act { padding:7px 12px; font-size:13px; }
         /* 카드형 — ⋯ 드롭다운 대신 모든 작업 버튼을 수정 버튼 옆에 나란히 펼침 */
         #estBody .btn-act-more { display:none; }
         #estBody .print-dropdown, #estBody .print-dropdown-menu { display:contents; }
-        #estBody .print-dropdown-menu button { display:inline-block; width:auto; white-space:nowrap; padding:7px 12px; font-size:12.5px; font-weight:600; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); }
+        #estBody .print-dropdown-menu button { display:inline-block; width:auto; white-space:nowrap; padding:7px 12px; font-size:13px; font-weight:600; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); }
         #estBody .print-dropdown-menu .menu-danger { color:var(--red); border-color:rgba(192,56,56,0.5); }
 
         /* 프리셋: 제목 / 금액·품목수 / 작성자·수정일 / 버튼 */
-        #presetBody td:nth-child(1) { order:0; flex-basis:100%; font-size:14.5px; }
+        #presetBody td:nth-child(1) { order:0; flex-basis:100%; font-size:15px; }
         #presetBody td:nth-child(1) .drag-handle { display:none; } /* 모바일 — HTML5 드래그 미지원이라 핸들 숨김 */
         #presetBody td:nth-child(3) { order:1; font-size:16px; font-weight:800; color:var(--navy, var(--text)); }
         #presetBody td:nth-child(2) { order:2; }
         #presetBody tr::after { content:""; order:3; flex-basis:100%; }
-        #presetBody td:nth-child(4), #presetBody td:nth-child(5) { order:4; font-size:11.5px; }
+        #presetBody td:nth-child(4), #presetBody td:nth-child(5) { order:4; font-size:12px; }
         #presetBody td:nth-child(5)::before { content:"· "; color:var(--text-muted); }
         #presetBody td:nth-child(6) { order:5; flex-basis:100%; margin-top:4px; }
         #presetBody .action-cell { display:flex; gap:6px; }
-        #presetBody .btn-act { padding:7px 12px; font-size:12.5px; }
+        #presetBody .btn-act { padding:7px 12px; font-size:13px; }
     }
     /* 상태 필터 pill — 다중 선택 토글 */
     .st-pill { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:16px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; }
@@ -143,7 +143,7 @@
     /* 탭 (견적서 목록 | 프리셋) */
     /* 탭 (견적서 목록 | 취소 | 프리셋) — 알약 세그먼트: 선택 탭에 흰 알약 고정, hover는 옅은 톤 */
     .est-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:16px; overflow-x:auto; }
-    .est-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:999px; padding:8px 16px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; transition:color 0.15s, background 0.15s; }
+    .est-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:999px; padding:8px 16px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; transition:color 0.15s, background 0.15s; }
     .est-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); }
     [data-theme="light"] .est-tab:hover:not(.active) { background:rgba(255,255,255,0.65); }
     .est-tab.active { color:var(--text); font-weight:800; }
@@ -153,8 +153,8 @@
     [data-theme="light"] .est-tabs:not(.est-js) .est-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
     /* 탭 건수 배지 — 목록=초록, 취소=빨강, 프리셋=파랑 (프로젝트 목록과 동일 규칙) */
     .est-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; margin-left:6px; }
-    .est-count-list { background:rgba(45,138,62,0.12); color:#2d8a3e; }
-    .est-count-cancelled { background:rgba(200,80,80,0.12); color:var(--red); }
+    .est-count-list { background:rgba(45,138,62,0.12); color:#1d7330; }
+    .est-count-cancelled { background:rgba(200,80,80,0.12); color:#a82e2e; }
     .est-count-all { background:rgba(150,150,170,0.16); color:var(--text-muted); }
     .est-count-presets { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .est-count-presets { background:#e0f0ff; color:#2e6a9a; }
@@ -279,7 +279,7 @@ function renderEstPager(meta) {
         return;
     }
     const btn = (label, page, disabled, current) =>
-        `<button ${disabled ? 'disabled' : ''} onclick="estGoPage(${page})" style="min-width:32px; padding:6px 10px; border-radius:7px; font-size:12.5px; cursor:${disabled ? 'default' : 'pointer'}; border:1px solid ${current ? 'var(--accent)' : 'var(--border)'}; background:${current ? 'var(--accent)' : 'none'}; color:${current ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text)'};">${label}</button>`;
+        `<button ${disabled ? 'disabled' : ''} onclick="estGoPage(${page})" style="min-width:32px; padding:6px 10px; border-radius:7px; font-size:13px; cursor:${disabled ? 'default' : 'pointer'}; border:1px solid ${current ? 'var(--accent)' : 'var(--border)'}; background:${current ? 'var(--accent)' : 'none'}; color:${current ? '#fff' : disabled ? 'var(--text-muted)' : 'var(--text)'};">${label}</button>`;
     // 페이지 번호 — 현재 페이지 주변 최대 7개
     const pages = [];
     const start = Math.max(1, Math.min(meta.page - 3, meta.last_page - 6));
@@ -360,8 +360,8 @@ async function loadEstimates() {
             </tr>`;
         }).join('');
         return `<tr>
-            <td class="text-muted">#${e.display_no ?? e.id}${rounds.length ? ` <button id="rndCaret-${e.id}" onclick="event.stopPropagation(); toggleEstRounds(${e.id})" title="추가 차수 펼치기/접기" style="background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--accent); font-size:10.5px; font-weight:700; padding:1px 7px; cursor:pointer; white-space:nowrap;">▸ +${rounds.length}차</button>` : ''}</td>
-            <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}${e.is_test ? ' <span style="font-size:10px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:1px 7px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트 생략">테스트</span>' : ''}${e.title ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${_esc(e.title)}</div>` : ''}</td>
+            <td class="text-muted">#${e.display_no ?? e.id}${rounds.length ? ` <button id="rndCaret-${e.id}" onclick="event.stopPropagation(); toggleEstRounds(${e.id})" title="추가 차수 펼치기/접기" style="background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--accent); font-size:11px; font-weight:700; padding:1px 7px; cursor:pointer; white-space:nowrap;">▸ +${rounds.length}차</button>` : ''}</td>
+            <td>${e.client_nickname && e.client_name ? e.client_nickname+' / '+e.client_name : (e.client_nickname || e.client_name || '-')}${e.is_test ? ' <span style="font-size:11px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:1px 7px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트 생략">테스트</span>' : ''}${e.title ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${_esc(e.title)}</div>` : ''}</td>
             <td class="text-right" style="font-weight:600;">${fmt(e.total_amount)}원${estUsdSub(e.total_amount, e.currency, e.usd_rate)}</td>
             <td class="text-muted">${itemCount}건</td>
             <td><span class="badge badge-${e.status}">${stMap[e.status]}</span></td>

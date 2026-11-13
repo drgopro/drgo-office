@@ -29,7 +29,7 @@
 #globalDlNote { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100001; pointer-events:none;
     opacity:0; transition:opacity .18s ease; display:flex; align-items:center; gap:9px;
     background:rgba(24,24,24,0.86); backdrop-filter:blur(2px); box-shadow:0 2px 10px rgba(0,0,0,0.28);
-    color:#f2ede4; font-size:12.5px; font-weight:600; padding:8px 16px; border-radius:20px; white-space:nowrap; }
+    color:#f2ede4; font-size:13px; font-weight:600; padding:8px 16px; border-radius:20px; white-space:nowrap; }
 #globalDlNote.on { opacity:1; }
 </style>
 <script>

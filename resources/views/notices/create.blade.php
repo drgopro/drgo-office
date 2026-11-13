@@ -8,7 +8,7 @@
     .wiki-back { color:var(--text-muted); text-decoration:none; font-size:13px; }
     .wiki-back:hover { color:var(--text); }
     .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-    .field-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
+    .field-label { font-size:11px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
     .field-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; box-sizing:border-box; }
     .field-input:focus { border-color:var(--accent); }
 
@@ -42,7 +42,7 @@
     /* 선택 영역 색상 팝업 */
     .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
     .fmt-bubble.show { display:flex; }
-    .fmt-bubble .fb-label { font-size:10px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-label { font-size:11px; color:var(--text-muted); margin:0 2px; }
     .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
     .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
     .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
@@ -99,7 +99,7 @@
                 <b style="font-size:15px;">임시저장 글 불러오기</b>
                 <button onclick="closeDraftModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
             </div>
-            <div style="font-size:11.5px;color:var(--text-muted);padding:0 18px 10px;">자동 저장된 초안입니다. 마지막 수정 후 7일이 지나면 자동 삭제됩니다.</div>
+            <div style="font-size:12px;color:var(--text-muted);padding:0 18px 10px;">자동 저장된 초안입니다. 마지막 수정 후 7일이 지나면 자동 삭제됩니다.</div>
             <div id="draftList" style="flex:1;overflow-y:auto;padding:0 12px 14px;"></div>
         </div>
     </div>
@@ -446,7 +446,7 @@ window.openDraftModal=async function(){
     list.innerHTML=drafts.map(d=>`
         <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);">
             <div style="flex:1;min-width:0;">
-                <div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escD(d.title)||'(제목 없음)'}</div>
+                <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escD(d.title)||'(제목 없음)'}</div>
                 <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">마지막 수정 ${d.updated_at}</div>
             </div>
             <button onclick="loadDraft(${d.id})" style="background:var(--accent);color:var(--accent-text);border:none;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">불러오기</button>

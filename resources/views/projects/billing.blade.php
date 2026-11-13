@@ -17,7 +17,7 @@
     .bl-table tr:hover td { background:var(--surface2); }
     .bl-amount { font-weight:600; text-align:right; white-space:nowrap; }
     .bl-balance { color:var(--red); font-weight:700; text-align:right; white-space:nowrap; }
-    .bl-status { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:700; }
+    .bl-status { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700; }
     .bl-status.unpaid { background:rgba(200,80,80,0.12); color:var(--red); }
     .bl-status.partial { background:rgba(232,137,74,0.12); color:#e8894a; }
     .bl-link { color:var(--accent); text-decoration:none; font-weight:600; }

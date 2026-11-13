@@ -38,7 +38,7 @@
     .filter-chips { display:flex; flex-wrap:wrap; gap:5px 6px; flex:1; min-width:0; }
     .chip-toggle { position:relative; display:inline-flex; align-items:center; }
     .chip-toggle input { position:absolute; opacity:0; pointer-events:none; }
-    .chip-toggle .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--border); border-radius:20px; background:var(--surface); color:var(--text-muted); font-size:11.5px; cursor:pointer; transition:all .15s; user-select:none; line-height:1.4; white-space:nowrap; }
+    .chip-toggle .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--border); border-radius:20px; background:var(--surface); color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; user-select:none; line-height:1.4; white-space:nowrap; }
     .chip-toggle .chip::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--text-muted); opacity:0.4; transition:all .15s; }
     .chip-toggle:hover .chip { border-color:var(--accent); color:var(--text); }
     .chip-toggle input:checked + .chip { color:var(--text); border-color:var(--accent); background:var(--surface2); }
@@ -77,7 +77,7 @@
     tr:hover td { background:var(--surface2); }
     .project-link { font-weight:600; color:var(--text); text-decoration:none; }
     .pj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
-    .pj-tag { font-size:10px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
+    .pj-tag { font-size:11px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
     .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
@@ -89,12 +89,12 @@
     .client-link { color:var(--text-muted); font-size:12px; text-decoration:none; }
     .client-link:hover { color:var(--accent); }
 
-    .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-visit   { background:#1a3a2a; color:#7ac87a; }
     .badge-remote  { background:#1a2a3a; color:#8ab4c8; }
     .badge-as      { background:#2a1a1a; color:#c87a7a; }
 
-    .stage-badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .stage-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .stage-consulting { background:#2a2010; color:var(--accent); }
     .stage-equipment  { background:#1a2a1a; color:#7ac87a; }
     .stage-proposal   { background:#1a1a2a; color:#8ab4c8; }
@@ -119,8 +119,8 @@
     [data-theme="light"] .proj-status-tabs:not(.pst-js) .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
     /* 탭 전환 시 목록 페이드 */
     .table-wrap, .pagination { transition:opacity 0.18s ease; }
-    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); }
-    .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
+    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:#a82e2e; }
+    .pst-count-active { background:rgba(45,138,62,0.12); color:#1d7330; }
     .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
     .pst-count-all { background:rgba(150,150,170,0.16); color:var(--text-muted); }
@@ -144,7 +144,7 @@
     [data-theme="light"] .stage-proposal   { background:#e0f0ff; color:#2e6a9a; }
     [data-theme="light"] .stage-estimate   { background:#f0e8ff; color:#5c2e90; }
     [data-theme="light"] .stage-payment    { background:#e0f8f5; color:#0a8a70; }
-    [data-theme="light"] .stage-visit      { background:#e8f5e8; color:#248a38; }
+    [data-theme="light"] .stage-visit      { background:#e8f5e8; color:#1e7a32; }
     [data-theme="light"] .stage-as         { background:#ffe8e8; color:#c03838; }
     [data-theme="light"] .stage-done       { background:#e8eaef; color:#5a6070; }
     [data-theme="light"] .stage-cancelled  { background:#ffe8e8; color:#c03838; }
@@ -458,12 +458,12 @@
                     <td>
                         <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '{{ addslashes($project->name) }}');">{{ $project->name }}</a>
                         @if($project->marketing_consent === true)
-                            <span title="마케팅 활용 동의" style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(45,138,62,0.12);color:#2d8a3e;border:1px solid rgba(45,138,62,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✓ 마케팅</span>
+                            <span title="마케팅 활용 동의" style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;border:1px solid rgba(45,138,62,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✓ 마케팅</span>
                             @if($project->marketing_posted_at)
-                                <span title="마케팅 포스팅 완료 {{ $project->marketing_posted_at->format('Y.m.d') }}" style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;vertical-align:middle;">포스팅 완료</span>
+                                <span title="마케팅 포스팅 완료 {{ $project->marketing_posted_at->format('Y.m.d') }}" style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;vertical-align:middle;">포스팅 완료</span>
                             @endif
                         @elseif($project->marketing_consent === false)
-                            <span title="마케팅 활용 거부" style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(200,80,80,0.10);color:var(--red);border:1px solid rgba(200,80,80,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✕ 마케팅</span>
+                            <span title="마케팅 활용 거부" style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:rgba(200,80,80,0.10);color:var(--red);border:1px solid rgba(200,80,80,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✕ 마케팅</span>
                         @endif
                         @php $__tags = $project->tags ?? []; $__maj = $__tags['major'] ?? []; $__min = $__tags['minor'] ?? []; @endphp
                         @if(!empty($__maj) || !empty($__min))
@@ -487,7 +487,7 @@
                             @else
                                 <span class="text-muted" style="color:var(--text-muted);">(의뢰자 없음)</span>
                             @endif
-                            <span style="font-size:9px; padding:1px 6px; border-radius:8px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border); white-space:nowrap;">확인불가</span>
+                            <span style="font-size:11px; padding:1px 6px; border-radius:8px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border); white-space:nowrap;">확인불가</span>
                         @endif
                     </td>
                     <td>

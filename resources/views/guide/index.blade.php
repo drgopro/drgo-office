@@ -13,7 +13,7 @@
     .guide-card:hover { border-color:var(--accent); box-shadow:0 4px 14px rgba(24,39,64,.08); text-decoration:none; }
     .guide-ico { flex-shrink:0; width:40px; height:40px; border-radius:11px; background:#1f2b40; color:#fff; display:flex; align-items:center; justify-content:center; font-size:19px; }
     .guide-card h2 { font-size:15px; font-weight:700; margin:1px 0 4px; }
-    .guide-card p { font-size:12.5px; color:var(--text-muted); line-height:1.6; margin:0; }
+    .guide-card p { font-size:13px; color:var(--text-muted); line-height:1.6; margin:0; }
     .guide-card .go { margin-top:7px; display:inline-block; font-size:12px; font-weight:700; color:var(--accent); }
 </style>
 @endpush

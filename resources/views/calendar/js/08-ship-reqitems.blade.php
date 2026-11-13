@@ -69,7 +69,7 @@ function shipRowHtml(s){
         <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
         <span class="ship-carrier">${_esc(s.carrier_label)}</span>
         ${noHtml}
-        ${fromEst?'<span style="font-size:10px;color:var(--text-muted);border:1px solid var(--border);border-radius:3px;padding:0 4px;white-space:nowrap;" title="연동된 견적서의 주문/배송에서 등록된 송장">견적서</span>':''}
+        ${fromEst?'<span style="font-size:11px;color:var(--text-muted);border:1px solid var(--border);border-radius:3px;padding:0 4px;white-space:nowrap;" title="연동된 견적서의 주문/배송에서 등록된 송장">견적서</span>':''}
         ${locHtml}
         <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
         ${fromEst?'':`<button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>`}
@@ -208,7 +208,7 @@ function reqNoteHtml(){
     if(!projReqNote) return '';
     return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb, var(--m-accent, #3A5683) 6%, #fff);border:1px solid color-mix(in srgb, var(--m-accent, #3A5683) 22%, #e0dfda);">
         <div style="font-size:11px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
-        <div style="font-size:12.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(projReqNote)}</div></div>`;
+        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(projReqNote)}</div></div>`;
 }
 function renderReqView(){
     const el=document.getElementById('reqItemsView');
@@ -245,7 +245,7 @@ function renderEstimateList(list){
                 <div style="display:flex;align-items:center;gap:6px;">
                     <span style="font-size:13px;font-weight:600;">#${e.display_no??e.id}</span>
                     <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
-                    <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
+                    <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--text-muted);">
                     ${amt?'<span style="color:var(--accent);">'+amt+'</span>':''}

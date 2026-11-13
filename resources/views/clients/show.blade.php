@@ -38,7 +38,7 @@
     .project-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; text-decoration:none; transition:border-color 0.15s; }
     .project-item:hover { border-color:var(--accent); }
     .pj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .pj-tag { font-size:10px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
+    .pj-tag { font-size:11px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
     .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
@@ -91,12 +91,12 @@
     .btn-choose:hover { border-color:var(--accent); }
     .file-preview-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .file-preview-item { position:relative; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; color:var(--text); max-width:220px; }
-    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; object-fit:cover; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); overflow:hidden; position:relative; }
+    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; object-fit:cover; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-muted); overflow:hidden; position:relative; }
     .file-preview-item .thumb img, .file-preview-item .thumb canvas { width:100%; height:100%; object-fit:cover; }
     .file-preview-item .thumb .video-badge { position:absolute; bottom:1px; right:1px; background:rgba(0,0,0,0.7); color:#fff; font-size:7px; padding:1px 3px; border-radius:2px; line-height:1; }
     .file-preview-item .file-info { overflow:hidden; }
     .file-preview-item .file-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
-    .file-preview-item .file-size { font-size:10px; color:var(--text-muted); }
+    .file-preview-item .file-size { font-size:11px; color:var(--text-muted); }
     .file-preview-item .btn-remove { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:#fff; border:none; font-size:11px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
     /* 썸네일 그리드 */
     .doc-grid { display:flex; flex-wrap:wrap; gap:12px; }
@@ -107,11 +107,11 @@
     .doc-thumb-card .thumb-img .video-play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; background:rgba(0,0,0,0.6); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; pointer-events:none; }
     .doc-thumb-meta { margin-top:6px; }
     .doc-thumb-meta .thumb-name { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .doc-thumb-meta .thumb-note { font-size:10px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-    .doc-thumb-meta .thumb-date { font-size:9px; color:var(--text-muted); margin-top:1px; }
+    .doc-thumb-meta .thumb-note { font-size:11px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+    .doc-thumb-meta .thumb-date { font-size:11px; color:var(--text-muted); margin-top:1px; }
     .doc-thumb-card .thumb-actions { position:absolute; top:4px; right:4px; display:none; gap:3px; }
     .doc-thumb-card:hover .thumb-actions { display:flex; }
-    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
     .thumb-actions a:hover, .thumb-actions button:hover { background:rgba(0,0,0,0.85); }
 
     /* 앨범 모달 */

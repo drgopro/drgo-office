@@ -10,7 +10,7 @@
     .page-sub { font-size:12px; color:var(--text-muted); margin-bottom:18px; }
     .btn-primary { background:var(--accent); border:none; color:var(--accent-text); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
     [data-theme="light"] .btn-primary { color:#fff; }
-    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer; }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
 
     /* 단계 카운트 카드 — 클릭 시 해당 단계 필터 */
@@ -19,7 +19,7 @@
     .stat-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--sc, var(--border)); }
     .stat-card:hover { border-color:var(--accent); }
     .stat-card.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
-    .stat-label { font-size:10.5px; color:var(--text-muted); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stat-label { font-size:11px; color:var(--text-muted); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .stat-value { font-size:22px; font-weight:800; white-space:nowrap; line-height:1; }
     .stat-card.received { --sc:#d9a24a; }
     .stat-card.in_repair { --sc:#4a90d9; }
@@ -42,14 +42,14 @@
 
     .ac-main { grid-area:main; display:flex; flex-direction:column; gap:5px; min-width:0; }
     .ac-product { font-size:15px; font-weight:800; line-height:1.35; word-break:break-all; }
-    .ac-links { display:flex; align-items:center; gap:6px; font-size:12.5px; min-width:0; flex-wrap:wrap; }
+    .ac-links { display:flex; align-items:center; gap:6px; font-size:13px; min-width:0; flex-wrap:wrap; }
     .ac-links svg { flex-shrink:0; width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; color:var(--text-muted); }
     .ac-links a { color:var(--accent); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px; }
     .ac-links a:hover { text-decoration:underline; }
     .ac-links .sep { color:var(--text-muted); }
     .ac-desc { font-size:12px; color:var(--text-muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; cursor:default; }
     .ac-cost { display:flex; align-items:center; gap:6px; font-size:12px; }
-    .cost-badge { display:inline-flex; align-items:center; font-size:10.5px; font-weight:800; padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.7; }
+    .cost-badge { display:inline-flex; align-items:center; font-size:11px; font-weight:800; padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.7; }
     .cost-badge.free { background:rgba(122,200,122,0.15); color:#7ac87a; border:1px solid rgba(122,200,122,0.35); }
     .cost-badge.paid { background:rgba(200,80,80,0.13); color:#e08585; border:1px solid rgba(200,80,80,0.35); }
     .cost-badge.unset { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
@@ -66,10 +66,10 @@
     .step-dot { position:relative; z-index:1; width:14px; height:14px; margin:0 auto 5px; border-radius:50%; background:var(--surface); border:2px solid var(--border); box-sizing:border-box; }
     .step.on .step-dot { background:var(--accent); border-color:var(--accent); }
     .step.cur .step-dot { box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-    .step-name { font-size:10.5px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .step-name { font-size:11px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .step.on .step-name { color:var(--text); }
     .step.cur .step-name { color:var(--accent); }
-    .step-date { font-size:10px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+    .step-date { font-size:11px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
 
     .ac-side { grid-area:side; display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
     .status-sel { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:12px; font-weight:600; outline:none; cursor:pointer; }
@@ -80,10 +80,10 @@
     .as-badge.repaired { background:rgba(155,112,200,0.16); color:#b394d9; border:1px solid rgba(155,112,200,0.4); }
     .as-badge.done { background:rgba(122,200,122,0.15); color:#7ac87a; border:1px solid rgba(122,200,122,0.35); }
     .ac-btns { display:flex; gap:6px; }
-    .mini-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; }
+    .mini-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:12px; padding:4px 10px; cursor:pointer; white-space:nowrap; }
     .mini-btn:hover { border-color:var(--accent); color:var(--accent); }
     .mini-btn.danger:hover { border-color:#dc2626; color:#dc2626; }
-    .next-btn { background:none; border:1px solid var(--accent); border-radius:6px; color:var(--accent); font-size:11.5px; font-weight:700; padding:4px 10px; cursor:pointer; white-space:nowrap; }
+    .next-btn { background:none; border:1px solid var(--accent); border-radius:6px; color:var(--accent); font-size:12px; font-weight:700; padding:4px 10px; cursor:pointer; white-space:nowrap; }
     .next-btn:hover { background:var(--accent); color:var(--accent-text); }
     [data-theme="light"] .next-btn:hover { color:#fff; }
 

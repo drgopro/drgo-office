@@ -94,7 +94,7 @@
         .info-box h3 { font-size:11px; font-weight:700; letter-spacing:0.18em; color:var(--slate); margin-bottom:11px; }
         .info-table { width:100%; border-collapse:collapse; }
         .info-table td { padding:4.5px 0; font-size:12px; vertical-align:top; }
-        .info-table .label { color:#7f94ab; width:84px; font-weight:600; }
+        .info-table .label { color:#5c6f86; width:84px; font-weight:600; }
         .info-table .value { color:var(--ink); font-weight:600; }
 
         /* 제품 테이블 */

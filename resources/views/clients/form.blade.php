@@ -231,7 +231,7 @@ function showDupClientDialog(existing, onConfirm) {
                 <div style="font-weight:700;">${label}</div>
                 <div style="color:var(--text-muted);">${fdEsc(existing.phone || '')}</div>
             </div>
-            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
             <div style="display:flex; gap:8px; justify-content:flex-end;">
                 <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer;">등록 취소</button>
                 <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">추가등록</button>

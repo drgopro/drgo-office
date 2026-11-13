@@ -10,7 +10,7 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root, [data-theme="dark"] { --bg:#111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --red:#d48888; --green:#88d488; }
-        [data-theme="light"] { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#6b7684; --accent:#2e6cb5; --accent-text:#fff; --red:#c03838; --green:#248a38; --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
+        [data-theme="light"] { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#6b7684; --accent:#2e6cb5; --accent-text:#fff; --red:#c03838; --green:#1e7a32; --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
         :root, [data-theme="dark"] { --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; display:flex; height:100vh; overflow:hidden; }
@@ -31,9 +31,9 @@
         .product-item { display:flex; justify-content:space-between; align-items:center; padding:10px 8px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; font-size:13px; }
         .product-item:hover { background:var(--surface2); }
         .product-item .pi-name { flex:1; font-weight:600; }
-        .product-item .pi-cat { font-size:10.5px; color:var(--text-muted); margin-top:3px; font-weight:400; }
-        .product-item .pi-price { font-size:12.5px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
-        .product-item .pi-stock { font-size:10px; margin-left:8px; }
+        .product-item .pi-cat { font-size:11px; color:var(--text-muted); margin-top:3px; font-weight:400; }
+        .product-item .pi-price { font-size:13px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
+        .product-item .pi-stock { font-size:11px; margin-left:8px; }
         .pi-stock.low { color:var(--red); }
         .pi-stock.ok { color:var(--text-muted); }
 
@@ -52,7 +52,7 @@
         .cart-section h4 { font-size:12px; color:var(--slate); font-weight:700; margin-bottom:12px; letter-spacing:0.08em; }
         .cart-table { width:100%; border-collapse:separate; border-spacing:0; }
         .cart-table th { font-size:11px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; }
-        .cart-table td { font-size:12.5px; padding:9px 6px; border-bottom:1px solid var(--border); }
+        .cart-table td { font-size:13px; padding:9px 6px; border-bottom:1px solid var(--border); }
         .cart-table tr:last-child td { border-bottom:none; }
         /* 대분류 밴드 — 슬레이트 배경 + 우측 소계 */
         .cart-cat-header td { background:var(--slate); color:#fff; font-size:12px; font-weight:700; padding:8px 10px; border-bottom:none; }
@@ -298,7 +298,7 @@ function filterProducts() {
         const prices = g.options.map(o => Number(o.sale_price) || 0);
         const mn = Math.min(...prices), mx = Math.max(...prices);
         return `<div class="product-item" onclick="openOptionPicker(${g.id})">
-            <div><div class="pi-name">${g.name} <span style="font-size:10px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
+            <div><div class="pi-name">${g.name} <span style="font-size:11px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
             <div class="pi-cat">${g.options[0]?.category_path || g.options[0]?.category || ''} · ${g.options.map(o => o.option_name || o.name).join(' / ')}</div></div>
             <div style="text-align:right;"><div class="pi-price">${mn === mx ? fmt(mn) : fmt(mn)+'~'+fmt(mx)}원</div></div>
         </div>`;
@@ -395,8 +395,8 @@ function renderCart() {
             globalIdx++;
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${sortMode ? `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> ` : ''}<span class="cart-row-num">${globalIdx}</span></td>
-                <td style="font-size:10px; color:var(--text-muted);">${_escE(item.category||'')}</td>
-                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:9px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:9px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
+                <td style="font-size:11px; color:var(--text-muted);">${_escE(item.category||'')}</td>
+                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:11px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
                 <td class="text-right"><input type="number" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
                 <td><div class="qty-ctrl">
                     <button onclick="changeQty(${idx},-1)">−</button>

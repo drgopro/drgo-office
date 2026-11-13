@@ -22,6 +22,7 @@
 /* 작성 모드 — 일정 창만 전체 화면(그리드는 가림), 메인 캘린더의 진입 버튼 */
 body.cal-write #modalOverlay { background:var(--bg); backdrop-filter:none; }
 body.cal-write .cal-wm-new, body.cal-write #calAddFab { display:none !important; }
+.cal-wm-new { width:auto !important; min-width:0; padding:0 10px !important; white-space:nowrap; } /* nav-btn의 고정 정사각 폭을 풀어 글자 넘침 방지 */
 #calWriteIdle { display:none; position:fixed; inset:0; z-index:250; background:var(--bg); align-items:center; justify-content:center; }
 #calWriteIdle .cwi-in { text-align:center; }
 #calWriteIdle .cwi-msg { font-size:15px; color:var(--text-muted); margin-bottom:14px; }

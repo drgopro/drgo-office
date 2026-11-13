@@ -11,7 +11,7 @@
 
     .stat-row { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:20px; }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 18px; min-width:0; }
-    .stat-label { font-size:10px; color:var(--text-muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stat-label { font-size:11px; color:var(--text-muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .stat-value { font-size:22px; font-weight:700; white-space:nowrap; }
 
     .toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
@@ -33,8 +33,8 @@
     [data-theme="light"] .pst-pill { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
     .proj-status-tabs:not(.pst-js) .pst-tab.active { background:var(--surface); box-shadow:0 2px 8px rgba(0,0,0,0.22); }
     [data-theme="light"] .proj-status-tabs:not(.pst-js) .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
-    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:var(--red); white-space:nowrap; flex-shrink:0; }
-    .pst-count-active { background:rgba(45,138,62,0.12); color:#2d8a3e; }
+    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:#a82e2e; white-space:nowrap; flex-shrink:0; }
+    .pst-count-active { background:rgba(45,138,62,0.12); color:#1d7330; }
     .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
     .rental-kind-tabs { width:max-content; max-width:100%; margin:0 auto 18px; }
@@ -42,7 +42,7 @@
     .pst-count-all { background:rgba(160,160,160,0.16); color:var(--text-muted); }
 
     /* 종류 칩 — 전체 보기에서 장비/서버를 한눈에 구분 (카드·관리 모달 공통) */
-    .kind-tag { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:800; padding:0 7px; border-radius:999px; white-space:nowrap; flex-shrink:0; line-height:1.8; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); }
+    .kind-tag { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:800; padding:0 7px; border-radius:999px; white-space:nowrap; flex-shrink:0; line-height:1.8; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); }
     .kind-tag.server { background:rgba(110,140,230,0.14); color:#8aa4f0; border-color:rgba(110,140,230,0.4); }
     [data-theme="light"] .kind-tag.server { background:#e8ecfd; color:#3a52b0; border-color:#b8c4f0; }
     .card-product-row { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -63,7 +63,7 @@
     .status-terminated { background:rgba(160,160,160,0.15); color:var(--text-muted); border:1px solid var(--border); }
     [data-theme="light"] .status-active { background:#e8f5e8; color:#1a7a2a; border-color:#a0d8a0; }
     [data-theme="light"] .status-pending { background:#e0f0ff; color:#2e6a9a; border-color:#a8cbe8; }
-    .fee-manual-tag { display:inline-flex; align-items:center; font-size:10px; padding:0 6px; border-radius:4px; font-weight:700; white-space:nowrap; flex-shrink:0; background:rgba(230,160,60,0.16); color:#d9a24a; border:1px solid rgba(230,160,60,0.4); line-height:1.7; margin-left:4px; }
+    .fee-manual-tag { display:inline-flex; align-items:center; font-size:11px; padding:0 6px; border-radius:4px; font-weight:700; white-space:nowrap; flex-shrink:0; background:rgba(230,160,60,0.16); color:#d9a24a; border:1px solid rgba(230,160,60,0.4); line-height:1.7; margin-left:4px; }
     [data-theme="light"] .fee-manual-tag { background:#fff3e0; color:#9a5a10; border-color:#f0c890; }
     .mono { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
 
@@ -80,7 +80,7 @@
     .card-client a { text-decoration:none; flex-shrink:0; }
     .card-meta { grid-area:meta; display:grid; grid-template-columns:1fr 1fr 1.1fr; gap:10px; padding:8px 14px; background:var(--surface2); border-radius:8px; min-width:0; }
     .card-meta div { min-width:0; }
-    .card-meta .k { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:2px; white-space:nowrap; }
+    .card-meta .k { font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:2px; white-space:nowrap; }
     .card-meta .v { font-size:13px; font-weight:600; white-space:nowrap; display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis; }
     .card-meta .fee { color:var(--accent); font-weight:700; }
     .card-access { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); min-width:0; }
@@ -149,7 +149,7 @@
     .cvw-product.none { color:var(--text-muted); font-weight:600; }
     .cvw-client { font-size:13px; color:var(--text-muted); margin-top:3px; }
     .cvw-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; padding:12px 14px; background:var(--surface2); border-radius:10px; margin-bottom:12px; }
-    .cvw-grid .k { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px; }
+    .cvw-grid .k { font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px; }
     .cvw-grid .v { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; }
     .cvw-row { display:flex; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid var(--border); }
     .cvw-row .k { flex:0 0 84px; color:var(--text-muted); font-size:12px; padding-top:1px; }
@@ -201,7 +201,7 @@
         .page-title { font-size:18px; }
         .stat-row { gap:8px; grid-template-columns:repeat(2, minmax(0, 1fr)); }
         .stat-card { padding:10px 12px; }
-        .stat-label { letter-spacing:0.06em; font-size:9px; }
+        .stat-label { letter-spacing:0.06em; font-size:11px; }
         .stat-value { font-size:16px; }
         .toolbar input[type=text] { width:100%; flex:1 1 100%; }
         .toolbar select { flex:1; min-width:0; }

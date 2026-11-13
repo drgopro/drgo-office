@@ -19,7 +19,7 @@
         .field-input:focus { border-color:var(--accent); }
         .item-head { display:flex; gap:8px; font-size:11px; color:var(--slate); font-weight:700; padding:0 2px 6px; }
         .item-row { display:flex; gap:8px; margin-bottom:7px; align-items:center; }
-        .item-row input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:12.5px; color:var(--text); outline:none; }
+        .item-row input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:13px; color:var(--text); outline:none; }
         .item-row input:focus { border-color:var(--accent); }
         .w-name { flex:2.2; min-width:0; }
         .w-qty { width:64px; text-align:right; }
@@ -31,14 +31,14 @@
         .btn-plus { background:var(--surface); border:1px dashed #b9c4d2; color:var(--accent); font-size:12px; padding:7px 12px; border-radius:7px; cursor:pointer; width:100%; }
         .btn-plus:hover { border-color:var(--accent); }
         .footer { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
-        .btn { padding:8px 16px; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; border:1px solid transparent; }
+        .btn { padding:8px 16px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; }
         .btn-navy { background:var(--navy); color:#fff; font-weight:700; }
         .btn-navy:hover { filter:brightness(1.25); }
         .btn-line { background:var(--surface); border-color:#c9d2dc; color:#33404e; }
     </style>
 </head>
 <body>
-<h2>{{ $order ? '주문 수정' : '주문 추가' }} <span style="font-size:11.5px; color:var(--text-muted); font-weight:400;">— 사무실 비품·간식 등 견적서와 무관한 주문 건</span></h2>
+<h2>{{ $order ? '주문 수정' : '주문 추가' }} <span style="font-size:12px; color:var(--text-muted); font-weight:400;">— 사무실 비품·간식 등 견적서와 무관한 주문 건</span></h2>
 
 <div class="card">
     <div style="display:flex; gap:14px;">

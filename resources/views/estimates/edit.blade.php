@@ -12,7 +12,7 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root, [data-theme="dark"] { --bg:#111; --surface:#1c1c1c; --surface2:#272727; --border:#3a3a3a; --text:#f0ebe2; --text-muted:#a09890; --accent:#d4bc96; --red:#d48888; --green:#88d488; --blue:#8ab4c8; }
-        [data-theme="light"] { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#6b7684; --accent:#2e6cb5; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
+        [data-theme="light"] { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#5a6070; --accent:#2e6cb5; --red:#c03838; --green:#1e7a32; --blue:#2e6a9a; --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
         :root, [data-theme="dark"] { --navy:#1d2d3d; --slate:#416180; --slate-lt:#cfe0f0; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; display:flex; height:100vh; overflow:hidden; }
@@ -34,8 +34,8 @@
         .product-item:hover { background:var(--surface2); }
         .product-item .pi-name { flex:1; font-weight:600; }
         .product-item .pi-cat { font-size:12px; color:var(--text-muted); margin-top:3px; font-weight:400; }
-        .product-item .pi-price { font-size:14.5px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
-        .product-item .pi-stock { font-size:11.5px; margin-left:8px; }
+        .product-item .pi-price { font-size:15px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
+        .product-item .pi-stock { font-size:12px; margin-left:8px; }
         .pi-stock.low { color:var(--red); }
         .pi-stock.ok { color:var(--text-muted); }
 
@@ -70,7 +70,7 @@
         .preset-item:hover { border-color:var(--accent); box-shadow:0 1px 5px rgba(29,45,61,0.08); }
         .preset-item.drag-src { opacity:0.35; }
         .preset-name { font-size:14px; font-weight:700; line-height:1.4; word-break:keep-all; }
-        .preset-total { font-size:13.5px; color:var(--accent); font-weight:700; margin-top:4px; }
+        .preset-total { font-size:14px; color:var(--accent); font-weight:700; margin-top:4px; }
         .panel-right-header { background:var(--surface); padding:13px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
         .panel-right-header h2 { font-size:18px; font-weight:800; color:var(--navy); }
         /* 헤더 제목 인라인 편집 — 텍스트 클릭으로 수정 */
@@ -97,21 +97,21 @@
         .cart-section { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:16px 18px; margin-bottom:14px; }
         .cart-section h4 { font-size:13px; color:var(--slate); font-weight:700; margin-bottom:12px; letter-spacing:0.08em; }
         .cart-table { width:100%; border-collapse:separate; border-spacing:0; }
-        .cart-table th { font-size:12.5px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; white-space:nowrap; }
-        .cart-table td { font-size:14.5px; padding:9px 6px; border-bottom:1px solid var(--border); }
+        .cart-table th { font-size:13px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; white-space:nowrap; }
+        .cart-table td { font-size:15px; padding:9px 6px; border-bottom:1px solid var(--border); }
         /* 음수(환불·차감) 라인 — 붉은 폰트 */
         .cart-table tr.neg-item td, .cart-table tr.neg-item .cell-name span:first-of-type, .cart-table tr.neg-item .qty-ctrl input { color:var(--red); }
         .cart-table tr:last-child td { border-bottom:none; }
         /* 대분류 밴드 — 슬레이트 배경 + 우측 소계 */
-        .cart-cat-header td { background:var(--slate); color:#fff; font-size:13.5px; font-weight:700; padding:8px 10px; border-bottom:none; }
+        .cart-cat-header td { background:var(--slate); color:#fff; font-size:14px; font-weight:700; padding:8px 10px; border-bottom:none; }
         .cart-cat-header td:first-child { border-radius:6px 0 0 6px; }
         .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
         .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
-        .cart-row-num { color:var(--accent); font-weight:600; font-size:13.5px; }
+        .cart-row-num { color:var(--accent); font-weight:600; font-size:14px; }
         /* 주문/배송 모드 — 주문완료 표시(제품명 텍스트에만 옅은 녹색 배경) + 토글 버튼 */
         .name-ordered { background:#e4f2e4; border-radius:4px; padding:2px 7px; margin-left:-7px; }
-        .order-mode-label { font-size:12.5px; font-weight:700; color:var(--slate); background:var(--slate-lt); padding:3px 11px; border-radius:6px; margin-left:10px; }
-        .btn-order { padding:3px 11px; font-size:12.5px; font-weight:600; border-radius:6px; border:1px solid #7cb87c; background:var(--surface); color:var(--green); cursor:pointer; white-space:nowrap; }
+        .order-mode-label { font-size:13px; font-weight:700; color:var(--slate); background:var(--slate-lt); padding:3px 11px; border-radius:6px; margin-left:10px; }
+        .btn-order { padding:3px 11px; font-size:13px; font-weight:600; border-radius:6px; border:1px solid #7cb87c; background:var(--surface); color:var(--green); cursor:pointer; white-space:nowrap; }
         .btn-order:hover { background:#eef7ee; }
         .btn-order.cancel { border-color:#c9d2dc; color:var(--text-muted); }
         .btn-order.cancel:hover { border-color:var(--red); color:var(--red); background:var(--surface); }
@@ -120,13 +120,13 @@
         .btn-order.direct:hover { background:#fdf3e5; }
         .name-ordered.direct { background:#fdeeda; }
         .name-ordered.mixed { background:#dce8f7; } /* 세트 구성품 주문완료+직접발송 혼합 — 파랑 */
-        .office-ship-badge { font-size:10.5px; color:#d78a2e; border:1px solid #e0a04a; border-radius:3px; padding:0 5px; }
+        .office-ship-badge { font-size:11px; color:#d78a2e; border:1px solid #e0a04a; border-radius:3px; padding:0 5px; }
         #orderModeBtn.mode-on { background:var(--navy); color:#fff; border-color:var(--navy); }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
         .cart-subtotal td { background:#f2f4f6; font-size:14px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
         .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
         .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
-        .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:12.5px; text-align:center; outline:none; }
+        .time-input { width:60px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 6px; color:var(--text); font-size:13px; text-align:center; outline:none; }
         /* 드래그 정렬 — 대분류/항목 순서 변경 */
         #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
         /* 프리셋 순서 변경 토글 — 포인트(액센트) 컬러로 강조 */
@@ -134,14 +134,14 @@
         #btnPresetSort:hover { background:rgba(46,108,181,0.16); }
         #btnPresetSort.on, #btnPresetSort.on:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
         /* 특가/할인 배지 — 가격 셀 아래 작은 라벨 (add는 지정 전 진입점) */
-        .deal-badge { display:inline-block; font-size:10.5px; font-weight:700; border-radius:4px; padding:0 5px; margin-top:2px; cursor:pointer; white-space:nowrap; }
+        .deal-badge { display:inline-block; font-size:11px; font-weight:700; border-radius:4px; padding:0 5px; margin-top:2px; cursor:pointer; white-space:nowrap; }
         .deal-badge.special { color:#c05a12; border:1px solid #c05a12; background:rgba(192,90,18,0.06); }
         .deal-badge.discount { color:#2a6bb8; border:1px solid #2a6bb8; background:rgba(42,107,184,0.06); }
         .deal-badge.add { color:var(--text-muted); border:1px dashed var(--border); opacity:0.55; font-weight:500; }
         .deal-badge.add:hover { opacity:1; color:var(--navy); border-color:var(--navy); }
         .deal-orig { font-size:11px; color:var(--text-muted); text-decoration:line-through; }
         /* 세트 구성품 접기/펼치기 (빌더 전용) */
-        .bundle-toggle { background:none; border:1px solid #9db8d4; color:var(--accent); border-radius:4px; font-size:10.5px; padding:0 6px; cursor:pointer; margin-left:5px; vertical-align:middle; }
+        .bundle-toggle { background:none; border:1px solid #9db8d4; color:var(--accent); border-radius:4px; font-size:11px; padding:0 6px; cursor:pointer; margin-left:5px; vertical-align:middle; }
         .bundle-toggle:hover { background:var(--surface2); }
         .bundle-sub td { background:var(--surface2); font-size:12px; color:var(--text-muted); padding:5px 6px; }
         .bundle-sub .bs-qty { color:var(--accent); font-weight:600; }
@@ -159,16 +159,16 @@
         .qty-ctrl { display:flex; align-items:center; gap:3px; }
         .qty-ctrl button { width:22px; height:22px; border:1px solid #9db8d4; background:var(--surface); color:var(--accent); border-radius:50%; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
         .qty-ctrl button:hover { background:var(--surface2); }
-        .qty-ctrl input { width:34px; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13.5px; padding:3px 2px; outline:none; }
+        .qty-ctrl input { width:34px; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:14px; padding:3px 2px; outline:none; }
         .btn-remove { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; }
         .btn-remove:hover { color:var(--red); }
         .text-right { text-align:right; }
 
         /* 서비스 항목 */
         .svc-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
-        .svc-row input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--text); font-size:13.5px; outline:none; }
+        .svc-row input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--text); font-size:14px; outline:none; }
         .svc-row input:focus { border-color:var(--accent); }
-        .btn-add-svc { background:none; border:1px dashed var(--border); color:var(--text-muted); font-size:12.5px; padding:5px 10px; border-radius:6px; cursor:pointer; width:100%; }
+        .btn-add-svc { background:none; border:1px dashed var(--border); color:var(--text-muted); font-size:13px; padding:5px 10px; border-radius:6px; cursor:pointer; width:100%; }
         .btn-add-svc:hover { border-color:var(--accent); color:var(--accent); }
 
         /* 합계 */
@@ -181,7 +181,7 @@
         .panel-right-footer { background:var(--surface); padding:12px 20px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-items:center; }
         .panel-right-footer .btn { white-space:nowrap; flex-shrink:0; }
         /* 버튼이 많아 좁은 창에서 두 줄로 떨어질 때 — 패딩을 줄여 한 줄 유지 구간을 넓힌다 */
-        @media (max-width: 1750px) { .panel-right-footer { gap:6px; } .panel-right-footer .btn { padding:9px 11px; font-size:12.5px; } }
+        @media (max-width: 1750px) { .panel-right-footer { gap:6px; } .panel-right-footer .btn { padding:9px 11px; font-size:13px; } }
         @media (max-width: 1500px) { .panel-right-footer .btn { padding:8px 9px; font-size:12px; } }
         #footMoreMenu { position:absolute; right:0; bottom:calc(100% + 6px); min-width:210px; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.18); padding:5px; z-index:60; }
         #footMoreMenu button { display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%; background:none; border:none; border-radius:7px; padding:9px 11px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; text-align:left; white-space:nowrap; }
@@ -230,7 +230,7 @@
                 display:flex; flex-direction:column; gap:9px; position:fixed; left:0; right:0; bottom:0; z-index:61;
                 background:var(--surface); border-top:1px solid var(--border); padding:11px 16px calc(14px + env(safe-area-inset-bottom));
             }
-            #mSheetFoot .m-total-row { display:flex; align-items:baseline; font-size:12.5px; color:var(--text-muted); }
+            #mSheetFoot .m-total-row { display:flex; align-items:baseline; font-size:13px; color:var(--text-muted); }
             #mSheetFoot .m-grand { margin-left:auto; font-size:17px; font-weight:800; color:var(--navy); }
             #mSheetFoot > button { height:48px; border:1px solid var(--navy); background:var(--navy); color:#fff; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
 
@@ -261,14 +261,14 @@
                 padding:10px 12px; margin:8px 0; row-gap:4px;
             }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(1) { order:0; }
-            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(2) { order:1; font-size:11.5px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(2) { order:1; font-size:12px; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td.cell-name { order:2; flex-basis:100%; font-size:15px; font-weight:600; white-space:normal; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(4) { order:3; flex-basis:100%; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(5) { order:4; font-size:13px; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(5)::after { content:"×"; color:var(--text-muted); margin-left:7px; font-size:12px; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(6) { order:5; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(6)::after { content:"="; color:var(--text-muted); margin-left:5px; font-size:12px; }
-            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(7) { order:6; font-size:14.5px; }
+            #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(7) { order:6; font-size:15px; }
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub) td:nth-child(8) { order:7; margin-left:auto; padding-right:0; }
             /* 편집 모드(수량 스테퍼 행): ×/= 기호 생략 + 금액 우측 정렬로 한 줄 유지 */
             #cartBody tr:not(.cart-cat-header):not(.cart-subtotal):not(.bundle-sub):has(.qty-ctrl) td:nth-child(5)::after,
@@ -278,7 +278,7 @@
             /* 상태 태그·취소 버튼 하단 정렬 + 터치 타깃 */
             .qty-ctrl button { width:30px; height:30px; font-size:14px; }
             .qty-ctrl input { width:38px; padding:6px 2px; }
-            .btn-order { padding:7px 13px; font-size:12.5px; }
+            .btn-order { padding:7px 13px; font-size:13px; }
             .btn-remove { font-size:17px; padding:4px 8px; }
             .cart-cat-header { background:var(--slate); border-radius:8px; padding:2px 6px; margin-top:12px; }
             .cart-cat-header td { background:none; border-radius:0 !important; }
@@ -296,7 +296,7 @@
             /* 하단 고정 바: 합계 → 보조 버튼 줄 → [제품 담기][저장] 줄 */
             .panel-right-footer { flex-wrap:wrap; padding:10px 14px calc(14px + env(safe-area-inset-bottom)); gap:6px; }
             .panel-right-footer .btn { padding:8px 6px; font-size:12px; flex-grow:1; white-space:nowrap; }
-            #mTotalBar { display:flex; flex-basis:100%; align-items:baseline; font-size:12.5px; color:var(--text-muted); }
+            #mTotalBar { display:flex; flex-basis:100%; align-items:baseline; font-size:13px; color:var(--text-muted); }
             #mTotalBar .m-grand { margin-left:auto; font-size:20px; font-weight:800; color:var(--navy); }
             /* 제품 담기+저장은 폭 합계가 한 줄을 넘도록 잡아 항상 마지막 줄에 단독 배치 */
             #mAddProductsBtn { display:flex; align-items:center; justify-content:center; flex-grow:1; flex-basis:56%; height:46px; border:1px solid var(--accent); background:var(--surface); color:var(--accent); border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; white-space:nowrap; }
@@ -322,7 +322,7 @@
             .m-sheet-grip { width:44px; height:5px; border-radius:3px; background:var(--border); margin:4px auto 10px; }
             .m-more-head { display:flex; align-items:center; justify-content:space-between; font-size:15px; font-weight:800; color:var(--navy); margin-bottom:10px; }
             .m-more-head button { background:none; border:none; font-size:20px; color:var(--text-muted); cursor:pointer; padding:2px 6px; }
-            .m-more-row { display:flex; justify-content:space-between; align-items:center; width:100%; background:none; border:none; border-top:1px solid var(--border); padding:14px 2px; font-size:14.5px; font-weight:600; color:var(--text); cursor:pointer; text-align:left; }
+            .m-more-row { display:flex; justify-content:space-between; align-items:center; width:100%; background:none; border:none; border-top:1px solid var(--border); padding:14px 2px; font-size:15px; font-weight:600; color:var(--text); cursor:pointer; text-align:left; }
             .m-more-row span { font-size:12px; color:var(--text-muted); font-weight:400; }
             .m-more-danger, .m-more-danger span { color:var(--red); }
             .m-more-close { width:100%; margin-top:10px; padding:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
@@ -366,12 +366,12 @@
         <h3 style="display:flex; align-items:center; gap:4px;">
             <button type="button" class="rvside-tab active" id="rvTabPreset" onclick="rvSideTab('preset')">프리셋</button>
             <button type="button" class="rvside-tab" id="rvTabReview" onclick="rvSideTab('review')">검토</button>
-            <button class="btn-add-svc" id="btnPresetSort" style="width:auto; padding:4px 10px; margin-left:auto; margin-right:6px; font-size:11.5px;" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">순서 변경</button>
+            <button class="btn-add-svc" id="btnPresetSort" style="width:auto; padding:4px 8px; margin-left:auto; margin-right:6px; font-size:12px; white-space:nowrap;" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">순서 변경</button>
             <button id="presetsToggle" onclick="togglePresetsPanel()" title="패널 접기">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l4 4-4 4"></path></svg>
             </button>
         </h3>
-        <label id="presetReplaceRow" style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
+        <label id="presetReplaceRow" style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
             <input type="checkbox" id="presetReplaceMode" style="width:13px; height:13px;"> 불러올 때 기존 품목 비우기
         </label>
     </div>
@@ -420,7 +420,7 @@
 <div class="panel-right">
     @if($estimate->parent_estimate_id && $estimate->parent)
         {{-- 차수(추가 견적) 편집 중 — 어떤 견적서의 몇 차인지 항상 표시 --}}
-        <div style="display:flex; align-items:center; gap:10px; padding:8px 16px; background:rgba(59,94,160,0.12); border-bottom:1px solid var(--border); font-size:12.5px; font-weight:700; color:var(--accent);">
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 16px; background:rgba(59,94,160,0.12); border-bottom:1px solid var(--border); font-size:13px; font-weight:700; color:var(--accent);">
             ↳ 견적서 #{{ $estimate->parent->display_no }}의 {{ $estimate->round }}차 추가 견적입니다
             <span style="font-weight:400; color:var(--text-muted);">— 의뢰자에게는 본 견적서와 합쳐진 최종 견적서 1장으로 보입니다</span>
             <button class="btn btn-ghost" style="margin-left:auto; padding:4px 10px; font-size:12px;" onclick="location.href='/estimates/{{ $estimate->parent->id }}/edit'">본 견적서 열기</button>
@@ -429,7 +429,7 @@
     <div class="panel-right-header">
         <h2 id="estTitleNo" onclick="editEstTitle()" style="cursor:text; border-radius:6px; padding:2px 6px; margin-left:-6px;" title="클릭해서 견적서 제목 수정 (출력물 상단에 표시)">{{ $estimate->title ?: ($estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no) }}</h2>
         {{-- 앱 탭(iframe) 안에서 열렸을 때만 — 독립 창(작성 모드)으로 꺼내기 --}}
-        <button type="button" id="estPopout" class="wm-accent" onclick="drgoWriteMode.open(location.pathname, 'est_{{ $estimate->id }}')" title="이 견적서를 독립된 창으로 띄웁니다" style="display:none; font-size:11.5px; font-weight:700; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:3px 9px; cursor:pointer; white-space:nowrap;">↗ 작성 모드</button>
+        <button type="button" id="estPopout" class="wm-accent" onclick="drgoWriteMode.open(location.pathname, 'est_{{ $estimate->id }}')" title="이 견적서를 독립된 창으로 띄웁니다" style="display:none; font-size:12px; font-weight:700; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:3px 9px; cursor:pointer; white-space:nowrap;">↗ 작성 모드</button>
         <script>
             if (window !== window.top) document.getElementById('estPopout').style.display = '';
             window.drgoWriteContext = () => ({ kind: '견적서', label: @json('#'.$estimate->display_no.($estimate->client_nickname ? ' '.$estimate->client_nickname : '')), url: location.pathname, key: 'est_{{ $estimate->id }}' });
@@ -576,7 +576,7 @@
                     <div style="font-size:14px; font-weight:700;">차감할 본 견적서(#{{ $estimate->parent->display_no }}) 항목 선택</div>
                     <button onclick="closeDeductPicker()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">×</button>
                 </div>
-                <div style="padding:8px 16px 0; font-size:11.5px; color:var(--text-muted);">이미 환불 기록된 수량은 잔여 수량에서 빠져 있습니다.</div>
+                <div style="padding:8px 16px 0; font-size:12px; color:var(--text-muted);">이미 환불 기록된 수량은 잔여 수량에서 빠져 있습니다.</div>
                 <div id="deductPickerList" style="overflow-y:auto; padding:8px 12px 12px;"></div>
             </div>
         </div>
@@ -601,7 +601,7 @@
                 <button type="button" class="btn-add-svc" id="btnApplyUsd" style="width:auto; padding:6px 14px;" onclick="applyUsd()" title="수출입은행 오늘 매매기준율로 달러 표시를 적용합니다. 저장하면 이 시점 환율로 고정됩니다.">USD($)로 적용</button>
                 <button type="button" class="btn-add-svc" id="btnRefreshUsd" style="width:auto; padding:6px 14px; display:none;" onclick="applyUsd()" title="입금이 늦어지는 등 환율을 다시 잡아야 할 때 — 오늘 고시 환율로 재적용하고 저장하면 그 값으로 고정됩니다">오늘 환율로 갱신</button>
                 <button type="button" class="btn-add-svc" id="btnRevertKrw" style="width:auto; padding:6px 14px; display:none;" onclick="revertKrw()">원화 표시로 되돌리기</button>
-                <span id="usdHint" style="font-size:11.5px; color:var(--text-muted);"></span>
+                <span id="usdHint" style="font-size:12px; color:var(--text-muted);"></span>
             </div>
         </div>
 
@@ -644,7 +644,7 @@
                     @if($rLines->isNotEmpty())
                         <div style="padding:0 12px 8px; display:flex; flex-direction:column; gap:2px;">
                             @foreach($rLines as $ln)
-                                <div style="display:flex; justify-content:space-between; gap:10px; font-size:11.5px; color:{{ $ln['amt'] < 0 ? 'var(--red)' : 'var(--text-muted)' }};">
+                                <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; color:{{ $ln['amt'] < 0 ? 'var(--red)' : 'var(--text-muted)' }};">
                                     <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">· {{ $ln['name'] }} ×{{ $ln['qty'] }}</span>
                                     <span style="white-space:nowrap;">{{ number_format($ln['amt']) }}원</span>
                                 </div>
@@ -652,7 +652,7 @@
                         </div>
                     @endif
                     @if($rIsDeduct)
-                        <div style="display:flex; align-items:center; gap:8px; padding:7px 12px; border-top:1px dashed var(--border); font-size:11.5px; color:var(--red);">
+                        <div style="display:flex; align-items:center; gap:8px; padding:7px 12px; border-top:1px dashed var(--border); font-size:12px; color:var(--red);">
                             차액이 음수입니다 — {{ number_format(abs($r->total_amount)) }}원은 결제가 아니라 환불 대상입니다. 프로젝트 결제 내역의 [환불]로 처리하세요.
                             @if($estimate->project_id)
                                 <button class="btn btn-ghost" style="margin-left:auto; padding:3px 9px; font-size:11px;" onclick="window.open('/projects/{{ $estimate->project_id }}')">프로젝트 열기</button>
@@ -664,7 +664,7 @@
             <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
                 <button class="btn btn-ghost" style="border-color:var(--accent); color:var(--accent); font-weight:700;" onclick="createRound()">+ 추가 견적 만들기</button>
                 @if($builderRounds->isNotEmpty())
-                    <span style="margin-left:auto; font-size:12.5px; color:var(--text-muted);">최종 금액 (환불 반영)</span>
+                    <span style="margin-left:auto; font-size:13px; color:var(--text-muted);">최종 금액 (환불 반영)</span>
                     <b style="font-size:15px;">{{ number_format($finalTotal) }}원</b>
                 @endif
             </div>
@@ -1013,11 +1013,11 @@ function filterProducts() {
         return `
         <div class="product-item" onclick="openOptionPicker(${g.id})">
             <div>
-                <div class="pi-name">${g.name} <span style="font-size:10px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
+                <div class="pi-name">${g.name} <span style="font-size:11px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
                 <div class="pi-cat">${g.options[0]?.category_path || g.options[0]?.category || ''} · ${g.options.map(o => o.option_name || o.name).join(' / ')}</div>
             </div>
             <div style="text-align:right;">
-                <div class="pi-price">${groupSale ? `<span style="font-size:9.5px; color:var(--red); border:1px solid currentColor; border-radius:3px; padding:0 3px;">할인</span> ` : ''}${mn === mx ? fmt(mn) : fmt(mn) + '~' + fmt(mx)}원</div>
+                <div class="pi-price">${groupSale ? `<span style="font-size:11px; color:var(--red); border:1px solid currentColor; border-radius:3px; padding:0 3px;">할인</span> ` : ''}${mn === mx ? fmt(mn) : fmt(mn) + '~' + fmt(mx)}원</div>
                 <div class="pi-stock ${totalQty > 0 ? 'ok' : 'low'}">재고 ${totalQty}</div>
             </div>
         </div>`;
@@ -1073,7 +1073,7 @@ function saleRate(p) {
 }
 function piPriceHtml(p) {
     if (!prodOnSale(p)) return `${fmt(p.sale_price)}원`;
-    return `<span style="text-decoration:line-through; color:var(--text-muted); font-size:10.5px; font-weight:400;">${fmt(p.sale_price)}</span> <span style="color:var(--red);">${fmt(p.discounted_price)}원</span> <span style="font-size:9.5px; color:var(--red); border:1px solid currentColor; border-radius:3px; padding:0 3px;" title="기간 할인 ${fmt(p.discount_amount)}원 — 담으면 '할인'으로 자동 표시">할인</span>`;
+    return `<span style="text-decoration:line-through; color:var(--text-muted); font-size:11px; font-weight:400;">${fmt(p.sale_price)}</span> <span style="color:var(--red);">${fmt(p.discounted_price)}원</span> <span style="font-size:11px; color:var(--red); border:1px solid currentColor; border-radius:3px; padding:0 3px;" title="기간 할인 ${fmt(p.discount_amount)}원 — 담으면 '할인'으로 자동 표시">할인</span>`;
 }
 
 // === 장바구니 ===
@@ -1308,7 +1308,7 @@ function renderCart() {
             // 소요시간 입력폼 — '소요시간 사용' 제품만 표시 (구버전 항목은 값이 있으면 표시)
             const showTime = item.use_time !== undefined ? item.use_time : !!item.time_required;
             const timeCell = !showTime ? ''
-                : (orderMode ? `<span style="font-size:12.5px; color:var(--text-muted);">${_escE(item.time_required || '')}</span>`
+                : (orderMode ? `<span style="font-size:13px; color:var(--text-muted);">${_escE(item.time_required || '')}</span>`
                     : `<input class="time-input" value="${_escE(item.time_required || '')}" onchange="cartItems[${idx}].time_required=this.value">`);
             const qtyCell = orderMode ? `<span style="padding-left:6px;">${item.qty}</span>`
                 : `<div class="qty-ctrl">
@@ -1337,7 +1337,7 @@ function renderCart() {
             // 주문완료 항목의 구매처/발송처 — 주문 내역에서 기입한 값을 제품명 아래 작게 (내부 화면 전용,
             // 출력물·의뢰자 견적서 미노출). 주문/배송 뷰의 '사무실 발송' 배지와 중복되는 경우만 생략
             const srcLine = item.ordered && item.purchase_source && !(orderMode && item.purchase_source === '사무실 발송')
-                ? `<div style="font-size:11.5px; color:var(--text-muted); font-weight:400; margin-top:2px;">${item.purchase_source === '사무실 발송' ? '발송처' : '구매처'}: ${_escE(item.purchase_source)}</div>`
+                ? `<div style="font-size:12px; color:var(--text-muted); font-weight:400; margin-top:2px;">${item.purchase_source === '사무실 발송' ? '발송처' : '구매처'}: ${_escE(item.purchase_source)}</div>`
                 : '';
             // 주문/배송 뷰 전용 — 제품 메모를 제품명 아래 회색으로 (스냅샷에 저장하지 않아 출력물 미노출)
             // 제품 메모 — 빌더(편집/주문 뷰) 전용 표시. 스냅샷에 저장하지 않으므로 의뢰자 링크·출력물에는 노출되지 않는다
@@ -1352,7 +1352,7 @@ function renderCart() {
                 <td style="font-size:12px; color:var(--text-muted);">${orderMode
                     ? _escE(item.category || '')
                     : `<span style="cursor:pointer;" onclick="editItemSubCategory(${idx})" title="클릭해서 이 항목의 분류(2차) 수정 — 예: 렌즈/바디/케이블. 이 견적서에만 적용되고 제품 관리에는 영향 없음 (1차 분류는 분류 헤더의 ✎로 수정)">${_escE(item.category || '') || '<span style=\'color:var(--slate);\'>분류 입력</span>'}</span>`}</td>
-                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''} style="${item.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${item.name}</span>${item.replaced ? ` <span style="font-size:10.5px; color:#c03838; border:1px solid #c03838; border-radius:3px; padding:0 5px; cursor:pointer;" onclick="setItemReplaced(${idx})" title="대체됨 — 클릭해서 사유 수정/해제. 금액은 소계·합계에서 제외">대체됨</span>${item.replaced_note ? `<div style="font-size:12px; color:#c03838; margin-top:2px;">↳ ${_escE(item.replaced_note)}</div>` : ''}` : ''}${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:10.5px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' + (!orderMode ? ` <span style="font-size:10.5px; cursor:pointer; color:${item.is_service ? '#7c5db5' : 'var(--slate)'}; border:1px solid currentColor; border-radius:3px; padding:0 5px;" onclick="toggleItemKind(${idx})" title="클릭해서 장비/서비스 전환 — 서비스는 주문내역에서 제외되고 세팅비 매출로 집계됩니다 (저장해야 반영)">${item.is_service ? '서비스' : '장비'}</span>` : '') : ''}${isProductMissing(item) ? '<span style="font-size:11.5px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${srcLine}${memoLine}${remarkLine}</td>
+                <td class="cell-name">${midLine}<span class="${nameCls}" ${nameTitle ? `title="${nameTitle}"` : ''} style="${item.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${item.name}</span>${item.replaced ? ` <span style="font-size:11px; color:#c03838; border:1px solid #c03838; border-radius:3px; padding:0 5px; cursor:pointer;" onclick="setItemReplaced(${idx})" title="대체됨 — 클릭해서 사유 수정/해제. 금액은 소계·합계에서 제외">대체됨</span>${item.replaced_note ? `<div style="font-size:12px; color:#c03838; margin-top:2px;">↳ ${_escE(item.replaced_note)}</div>` : ''}` : ''}${(item.bundle_items||[]).length ? ` <button class="bundle-toggle" onclick="toggleBundle(${idx})" title="세트 구성품 ${item.bundle_items.length}개 ${__bundleOpen.has(item) ? '접기' : '펼치기'} — 의뢰자 견적서에는 세트 한 줄로만 표시됩니다">세트 ${item.bundle_items.length} ${__bundleOpen.has(item) ? '▾' : '▸'}</button>` : ''}${(item.refunded || item.refund_qty > 0 || item.refund_amount > 0) ? ` <span style="font-size:11px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="환불/결제취소 기록${item.refunded_at ? ' · ' + item.refunded_at : ''} — 세트는 펼치면 구성품별 환불 내역이 보입니다">환불 ${item.refund_qty > 0 ? item.refund_qty + '개' : ''}${item.refund_amount ? ` ${fmt(item.refund_amount)}원` : ''}</span>` : ''}${orderMode && item.purchase_source === '사무실 발송' ? ' <span class="office-ship-badge" title="사무실에서 직접 발송 — 주문 내역 구매처에 \'사무실 발송\'으로 기록됩니다">사무실 발송</span>' : ''}${item.manual || !item.product_id ? ' <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 5px;" title="일회성 수기 품목 — 제품 관리에 등록되지 않고 견적서에만 저장됩니다">수기</span>' + (!orderMode ? ` <span style="font-size:11px; cursor:pointer; color:${item.is_service ? '#7c5db5' : 'var(--slate)'}; border:1px solid currentColor; border-radius:3px; padding:0 5px;" onclick="toggleItemKind(${idx})" title="클릭해서 장비/서비스 전환 — 서비스는 주문내역에서 제외되고 세팅비 매출로 집계됩니다 (저장해야 반영)">${item.is_service ? '서비스' : '장비'}</span>` : '') : ''}${isProductMissing(item) ? '<span style="font-size:12px; color:var(--text-muted); margin-left:6px;" title="원본 제품이 삭제되었지만 견적서 데이터는 보존됩니다">(삭제된 제품)</span>' : ''}${srcLine}${memoLine}${remarkLine}</td>
                 <td>${timeCell}</td>
                 <td class="text-right">${item.deal_type && Number(item.original_price) > Number(item.sale_price) ? `<div class="deal-orig">${fmt(item.original_price)}원</div>` : ''}${isNeg && Number(item.sale_price) > 0 ? '-' : ''}${fmt(item.sale_price)}원<div>${orderMode
                     ? (item.deal_type ? `<span class="deal-badge ${item.deal_type}">${item.deal_type === 'special' ? '특가' : '할인' + (item.discount_rate ? ` ${item.discount_rate}%` : '')}</span>` : '')
@@ -1382,7 +1382,7 @@ function renderCart() {
                            <button class="btn-order direct" onclick="bundleDirectShip(${idx},${bIdx})" title="사무실에서 발송 — 주문완료 + 구매처 '사무실 발송' 기록" style="margin-top:3px;">직접발송</button>${orderStockLine(b.product_id, b.name, totQty)}`);
                     return `<tr class="bundle-sub" data-gidx="${gIdx}">
                         <td></td><td></td>
-                        <td><span class="${bOrdered ? 'name-ordered' + (b.source === '사무실 발송' ? ' direct' : '') : ''}" ${bOrdered ? `title="${b.source === '사무실 발송' ? '직접발송 (사무실 발송)' : (item.ordered ? '세트 주문완료' : '구성품 주문완료')}"` : ''}>└ ${_escE(b.name)}</span>${b.source ? ` <span class="office-ship-badge" title="구성품 구매처">${_escE(b.source)}</span>` : ''}${(b.refund_qty>0||b.refund_amount>0) ? ` <span style="font-size:10.5px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="구성품 부분환불">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : ''}${orderMode && b.memo ? `<div style="font-size:11.5px; color:var(--text-muted); font-weight:400; margin-top:2px; white-space:pre-line;">${_escE(b.memo)}</div>` : ''}</td>
+                        <td><span class="${bOrdered ? 'name-ordered' + (b.source === '사무실 발송' ? ' direct' : '') : ''}" ${bOrdered ? `title="${b.source === '사무실 발송' ? '직접발송 (사무실 발송)' : (item.ordered ? '세트 주문완료' : '구성품 주문완료')}"` : ''}>└ ${_escE(b.name)}</span>${b.source ? ` <span class="office-ship-badge" title="구성품 구매처">${_escE(b.source)}</span>` : ''}${(b.refund_qty>0||b.refund_amount>0) ? ` <span style="font-size:11px; color:var(--red); border:1px solid var(--red); border-radius:3px; padding:0 4px;" title="구성품 부분환불">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : ''}${orderMode && b.memo ? `<div style="font-size:12px; color:var(--text-muted); font-weight:400; margin-top:2px; white-space:pre-line;">${_escE(b.memo)}</div>` : ''}</td>
                         <td></td>
                         <td class="text-right">${price ? fmt(price) + '원' : ''}</td>
                         <td><span class="bs-qty" style="padding-left:6px;" title="세트당 ${b.qty}개 × 세트 ${item.qty}개">${totQty}</span></td>
@@ -1789,7 +1789,7 @@ const PARENT_DEDUCT_ITEMS = @json($parentDeductItems);
 function openDeductPicker() {
     const list = document.getElementById('deductPickerList');
     if (!PARENT_DEDUCT_ITEMS.length) {
-        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12.5px;">차감할 수 있는 항목이 없습니다 (전부 환불되었거나 항목이 없음).</div>';
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">차감할 수 있는 항목이 없습니다 (전부 환불되었거나 항목이 없음).</div>';
     } else {
         list.innerHTML = PARENT_DEDUCT_ITEMS.map((it, i) => `
             <div style="display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--border); font-size:13px;">
@@ -2366,7 +2366,7 @@ document.addEventListener('keydown', e => {
 </script>
 {{-- ═══ 견적서 검토 패널 — 직원 시안(견적 검토 시스템) 디자인 이식 ═══ --}}
 <style>
-.rvside-tab { border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; padding:4px 12px; font-size:12.5px; font-weight:700; cursor:pointer; }
+.rvside-tab { border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; padding:4px 9px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
 .rvside-tab.active { background:var(--navy); border-color:var(--navy); color:#fff; }
 #rvBody { display:grid; gap:10px; align-content:start; }
 #rvBody .rv-f { background:var(--surface2); }
@@ -2382,17 +2382,17 @@ document.addEventListener('keydown', e => {
 .rv-notice.stale { background:rgba(168,99,0,.12); color:#a86300; }
 .rv-notice.ok { background:rgba(36,138,56,.12); color:var(--green); }
 .rv-notice.ready { background:rgba(46,108,181,.12); color:var(--blue); }
-.rv-notice b { font-size:13.5px; }
+.rv-notice b { font-size:14px; }
 .rv-notice input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:13px; width:100%; }
 .rv-gl { font-size:12px; font-weight:700; color:var(--text-muted); margin:4px 0 -4px; }
 .rv-list { display:grid; gap:8px; }
 .rv-list.dim { opacity:.5; pointer-events:none; }
 .rv-f { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; display:grid; gap:7px; min-width:0; }
 .rv-f header { display:flex; gap:6px; align-items:flex-start; }
-.rv-f h4 { margin:0; font-size:13.5px; font-weight:700; line-height:1.4; flex:1; min-width:0; color:var(--text); }
-.rv-f p { margin:0; font-size:12.5px; color:var(--text-muted); }
+.rv-f h4 { margin:0; font-size:14px; font-weight:700; line-height:1.4; flex:1; min-width:0; color:var(--text); }
+.rv-f p { margin:0; font-size:13px; color:var(--text-muted); }
 .rv-f.done { background:transparent; padding:7px 12px; }
-.rv-f.done h4 { font-weight:500; color:var(--text-muted); font-size:12.5px; }
+.rv-f.done h4 { font-weight:500; color:var(--text-muted); font-size:13px; }
 .rv-f.done p { font-size:12px; }
 .rv-pill { font-size:11px; font-weight:700; border-radius:4px; padding:1px 6px; white-space:nowrap; }
 .rv-pill.p-bad { background:rgba(192,56,56,.12); color:var(--red); }
@@ -2407,12 +2407,12 @@ document.addEventListener('keydown', e => {
 .rv-mini.link { border:0; background:none; color:var(--blue); padding:4px 2px; }
 .rv-acts { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
 .rv-form { display:grid; gap:6px; background:var(--surface2); border-radius:6px; padding:8px; }
-.rv-form input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12.5px; width:100%; }
-.rv-pass { font-size:12.5px; padding:5px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; color:var(--text); }
+.rv-form input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:13px; width:100%; }
+.rv-pass { font-size:13px; padding:5px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; color:var(--text); }
 .rv-pass span:last-child { color:var(--green); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .rv-more { background:none; border:0; padding:0; font-size:13px; font-weight:500; color:var(--blue); text-align:left; cursor:pointer; }
 .rv-route { font-size:12px; color:var(--text); margin:0; } .rv-route b { color:var(--green); }
-.rv-empty { color:var(--text-muted); text-align:center; padding:40px 12px; font-size:13.5px; }
+.rv-empty { color:var(--text-muted); text-align:center; padding:40px 12px; font-size:14px; }
 #rvBtn { border:1px solid var(--navy); background:var(--navy); color:#fff; font-weight:700; }
 #rvBtn.st-bad { background:var(--red); border-color:var(--red); }
 #rvBtn.st-stale { background:#a86300; border-color:#a86300; }
@@ -2537,7 +2537,7 @@ function rvCard(f) {
             <b style="color:var(--text);">${RV_ESC(f.cands[0].name)}</b> · ${Number(f.cands[0].sale_price).toLocaleString('ko-KR')}원
             <button class="rv-mini" onclick="rvFix('${RV_ESC(f.key)}', 1)">담기</button></div>`;
         else if (f.cands && f.cands.length > 1) b += `<div class="rv-acts"><span style="font-size:12px; color:var(--text-muted);">제안:</span>
-            <select data-rvpick="${RV_ESC(f.key)}" style="flex:1; min-width:0; max-width:240px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; color:var(--text); font-size:12.5px;">
+            <select data-rvpick="${RV_ESC(f.key)}" style="flex:1; min-width:0; max-width:240px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; color:var(--text); font-size:13px;">
                 ${f.cands.map(c => `<option value="${c.product_id}">${RV_ESC(c.name)} · ${Number(c.sale_price).toLocaleString('ko-KR')}원</option>`).join('')}</select>
             <button class="rv-mini" onclick="rvFix('${RV_ESC(f.key)}', 1)">담기</button></div>`;
         if (rvOpenForm === f.key) b += `<div class="rv-form"><input id="rvNote" placeholder="직접 입력">
@@ -2548,7 +2548,7 @@ function rvCard(f) {
             b += `<dl class="rv-ev"><dt>부족</dt><dd>${f.short}개</dd></dl>`;
         }
         if (f.cands && f.cands.length) {
-            b += `<div class="rv-acts"><select data-rvpick="${RV_ESC(f.key)}" style="flex:1; min-width:0; max-width:260px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; color:var(--text); font-size:12.5px;">
+            b += `<div class="rv-acts"><select data-rvpick="${RV_ESC(f.key)}" style="flex:1; min-width:0; max-width:260px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; color:var(--text); font-size:13px;">
                 ${f.cands.map(c => `<option value="${c.product_id}">${RV_ESC(c.name)} · ${Number(c.sale_price).toLocaleString('ko-KR')}원</option>`).join('')}</select>
                 <button class="rv-mini pri" onclick="rvFix('${RV_ESC(f.key)}', ${Math.max(1, f.short || 1)})">${Math.max(1, f.short || 1)}개 담기</button></div>`;
         }

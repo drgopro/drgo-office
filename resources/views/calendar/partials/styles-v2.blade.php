@@ -72,7 +72,7 @@
     .cal-v2 .opt-chip.sched-pill { font-size:calc(11px * var(--cal-fz,1)); font-weight:700; line-height:16px; padding:0 6px; margin-left:4px; margin-right:0; border-radius:999px; background:transparent; border:1px solid color-mix(in srgb, var(--text) 40%, transparent); color:var(--text); }
     .cal-v2 .opt-chip.sched-pill.confirmed { background:#2f9e44; border-color:#2f9e44; color:#fff; }
     /* 전체(컴팩트) 뷰 칩은 16px 높이 — 알약도 그에 맞춰 축소 */
-    .cal-v2 .mc-chip .opt-chip.sched-pill, .cal-v2 .mc-bar .opt-chip.sched-pill { font-size:9.5px; line-height:12px; padding:0 4px; margin-left:3px; }
+    .cal-v2 .mc-chip .opt-chip.sched-pill, .cal-v2 .mc-bar .opt-chip.sched-pill { font-size:11px; line-height:12px; padding:0 4px; margin-left:3px; }
 
     /* 완료 — 체크 아이콘 + 55% */
     .cal-v2 .event-chip.is-completed, .cal-v2 .mday-title-overlay.is-completed, .cal-v2 .mc-chip.is-completed,
@@ -131,15 +131,15 @@
         .cal-v2 .ev-pop .ep-head .opt-ic svg { width:15px; height:15px; }
         .cal-v2 .ev-pop .ep-title { font-size:15px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cal-v2 .ev-pop .ep-head .opt-chip.sched-pill { margin:0; font-size:11px; line-height:18px; padding:0 7px; }
-        .cal-v2 .ev-pop .ep-sub { font-size:12.5px; color:var(--text-muted); }
+        .cal-v2 .ev-pop .ep-sub { font-size:13px; color:var(--text-muted); }
         .cal-v2 .ev-pop .ep-urgent { margin-left:6px; color:#C03838; font-weight:700; }
-        .cal-v2 .ev-pop .ep-row { display:flex; align-items:center; gap:6px; font-size:12.5px; }
+        .cal-v2 .ev-pop .ep-row { display:flex; align-items:center; gap:6px; font-size:13px; }
         .cal-v2 .ev-pop .ep-k { color:var(--text-muted); opacity:0.8; }
         .cal-v2 .ev-pop .ep-v { font-weight:600; }
-        .cal-v2 .ev-pop .ep-addr { font-size:12.5px; color:var(--text-muted); line-height:1.45; }
-        .cal-v2 .ev-pop .agenda-move { font-size:12.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px; }
+        .cal-v2 .ev-pop .ep-addr { font-size:13px; color:var(--text-muted); line-height:1.45; }
+        .cal-v2 .ev-pop .agenda-move { font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:2px; }
         .cal-v2 .ev-pop .ep-actions { display:flex; gap:6px; margin-top:4px; }
-        .cal-v2 .ev-pop .ep-actions button { flex:1; height:30px; border-radius:8px; font-size:12.5px; cursor:pointer; }
+        .cal-v2 .ev-pop .ep-actions button { flex:1; height:30px; border-radius:8px; font-size:13px; cursor:pointer; }
         .cal-v2 .ev-pop .ep-edit { border:1px solid var(--border); background:var(--surface); color:var(--text); }
         .cal-v2 .ev-pop .ep-edit:hover { background:var(--surface2); }
         .cal-v2 .ev-pop .ep-detail { border:none; background:var(--accent); color:var(--accent-text); font-weight:600; }
@@ -159,7 +159,7 @@
         .cal-v2 .mc-cell.selected .mc-daynum { background:none; color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent); }
         .cal-v2 .mc-cell.today .mc-daynum, .cal-v2 .mc-cell.today.selected .mc-daynum { background:var(--accent); color:var(--accent-text); box-shadow:none; }
         .cal-v2 .mc-slot { height:20px; }
-        .cal-v2 .mc-chip, .cal-v2 .mc-chip.in-lane, .cal-v2 .mc-bar { height:20px; line-height:20px; font-size:12.5px; font-weight:700; letter-spacing:-0.04em; padding:0 3px; border-left:none; border-radius:5px; color:#fff; }
+        .cal-v2 .mc-chip, .cal-v2 .mc-chip.in-lane, .cal-v2 .mc-bar { height:20px; line-height:20px; font-size:13px; font-weight:700; letter-spacing:-0.04em; padding:0 3px; border-left:none; border-radius:5px; color:#fff; }
         .cal-v2 .mc-bar { padding:0 4px; }
         .cal-v2 .mc-title { text-overflow:clip; }
         .cal-v2 .mc-chip .mc-time, .cal-v2 .mc-chip .opt-chip, .cal-v2 .mc-bar .opt-chip { display:none; }
@@ -179,7 +179,7 @@
         .cal-v2 .mobile-day-events .mde-header { font-size:15px; }
         .cal-v2 .mobile-day-events .mde-time { width:52px; font-size:15px; font-variant-numeric:tabular-nums; }
         .cal-v2 .mobile-day-events .mde-title { font-size:16px; }
-        .cal-v2 .mobile-day-events .mde-meta { font-size:13.5px; margin-top:3px; }
+        .cal-v2 .mobile-day-events .mde-meta { font-size:14px; margin-top:3px; }
         .cal-v2 .mobile-day-events .mde-assignee { font-size:13px; }
         .cal-v2 .mobile-day-events .mde-bar.is-tentative { background:none !important; border-left:3px dashed var(--mde-c); width:0; }
     }

@@ -2,7 +2,7 @@
 <style>
     .crm-tagpick .ctp-field { margin-bottom:14px; }
     .crm-tagpick .ctp-cap { font-size:11px; color:var(--text-muted); margin-bottom:5px; display:flex; gap:8px; align-items:center; }
-    .crm-tagpick .ctp-hint { font-size:10px; opacity:0.65; font-weight:400; }
+    .crm-tagpick .ctp-hint { font-size:11px; opacity:0.65; font-weight:400; }
     .crm-tagpick .ctp-major-select { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; cursor:pointer; box-sizing:border-box; }
     .crm-tagpick .ctp-inputwrap { position:relative; }
     .crm-tagpick .ctp-minor-input { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }

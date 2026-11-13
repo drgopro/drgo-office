@@ -99,10 +99,10 @@
     .cal-hl-items { display:contents; }
     .cal-mpicker { position:absolute; left:0; top:calc(100% + 6px); z-index:40; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:0 10px 28px rgba(0,0,0,0.45); width:250px; }
     .cal-mpicker-year { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:10px; }
-    .cal-mpicker-year span { font-size:14.5px; font-weight:800; }
+    .cal-mpicker-year span { font-size:15px; font-weight:800; }
     .cal-mpicker-year button { width:28px; height:28px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:14px; cursor:pointer; }
     .cal-mpicker-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-    .cal-mpicker-grid button { padding:8px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12.5px; cursor:pointer; }
+    .cal-mpicker-grid button { padding:8px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:13px; cursor:pointer; }
     .cal-mpicker-grid button.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
     .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
@@ -135,7 +135,7 @@
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
         .cal-hamburger { display:inline-flex; align-items:center; justify-content:center; position:absolute; left:0; top:50%; transform:translateY(-50%); border:none; background:none; box-shadow:none; color:var(--text); padding:4px; cursor:pointer; }
         .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
-        .cal-mini-period::after { content:'▾'; font-size:10px; color:var(--text-muted); }
+        .cal-mini-period::after { content:'▾'; font-size:11px; color:var(--text-muted); }
         .cal-header { justify-content:space-between; }
         {{-- 연.월 중앙 정렬 — ☰는 좌측 고정, 타이틀 좌우 ‹ ›로 날/주/월 이동 --}}
         .cal-header-left { width:100%; justify-content:center; position:relative; flex:1 1 100%; gap:4px; }
@@ -210,7 +210,7 @@
             <button type="button" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기">«</button>
         </span>
     </div>
-    <div class="cs-mini-grid cs-mini-dow"><span style="color:#e06c6c;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#5b8def;">토</span></div>
+    <div class="cs-mini-grid cs-mini-dow"><span style="color:#b83a3a;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#2e5fb8;">토</span></div>
     <div class="cs-mini-grid" id="csMiniGrid"></div>
     <div class="cs-divider"></div>
     <div class="cs-sec-title">표시 중 · <span id="csOnCount">0</span></div>

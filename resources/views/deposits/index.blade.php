@@ -12,11 +12,11 @@
     .toolbar input[type="date"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
     .toolbar input:focus { border-color:var(--accent); }
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
-    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer; }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
     .btn-outline.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .dep-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); }
-    .dep-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:13.5px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
+    .dep-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
     .dep-tab:hover { color:var(--text); }
     .dep-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
     /* 페이앱 상태 뱃지 */
@@ -35,7 +35,7 @@
     .sum-line b { color:var(--text); font-size:14px; }
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
-    .data-table th { text-align:left; padding:11px 12px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table th { text-align:left; padding:11px 12px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; }
     .data-table td { padding:11px 12px; font-size:13px; border-bottom:1px solid var(--border); }
     .data-table tr:last-child td { border-bottom:none; }
     .text-right { text-align:right; }
@@ -45,7 +45,7 @@
     .amt { font-weight:700; white-space:nowrap; }
     .sel-col { width:36px; text-align:center !important; }
     .sel-col input, .mob-sel { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
-    .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
     .btn-del:hover { background:var(--red); color:#fff; }
     .bank-badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
     /* 원문 보기 — 클릭 시 행 아래로 펼침 */
@@ -55,14 +55,14 @@
     .dep-raw pre { margin:0; background:var(--surface2); border:none; border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
-    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
+    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:13px; cursor:pointer; }
     .pager-btn:hover:not(:disabled) { color:var(--text); border-color:var(--accent); }
     .pager-btn.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .pager-btn:disabled { opacity:0.4; cursor:default; }
     .mob-cards { display:none; }
     .mob-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
     .mob-card-title { font-weight:700; font-size:14px; }
-    .mob-card-sub { color:var(--text-muted); font-size:11.5px; margin-top:4px; }
+    .mob-card-sub { color:var(--text-muted); font-size:12px; margin-top:4px; }
     [data-theme="light"] .pager-btn.active { color:#fff; }
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
@@ -343,9 +343,9 @@ async function loadDepCandidates() {
                 <div style="font-weight:700;">#${_esc(String(c.no))} ${c.title ? '· '+_esc(c.title) : ''}</div>
                 <div class="text-muted" style="margin-top:2px;">
                     ${_esc(c.client)} · ${fmt(c.total_amount)}원 · ${_esc(c.status)}
-                    ${c.amount_match ? ' <span class="pa-badge paid" style="font-size:10px;">금액 일치</span>' : ''}
-                    ${c.name_match ? ' <span class="pa-badge waiting" style="font-size:10px;">이름 유사</span>' : ''}
-                    ${c.matched_sum > 0 ? ` <span class="pa-badge waiting" style="font-size:10px;">기존 매칭 ${fmt(c.matched_sum)}원</span>` : ''}
+                    ${c.amount_match ? ' <span class="pa-badge paid" style="font-size:11px;">금액 일치</span>' : ''}
+                    ${c.name_match ? ' <span class="pa-badge waiting" style="font-size:11px;">이름 유사</span>' : ''}
+                    ${c.matched_sum > 0 ? ` <span class="pa-badge waiting" style="font-size:11px;">기존 매칭 ${fmt(c.matched_sum)}원</span>` : ''}
                 </div>
             </div>
             <button type="button" class="btn-outline" style="padding:6px 14px;font-size:12px;white-space:nowrap;" onclick="depMatchConfirm(${c.id}, ${c.total_amount}, ${c.matched_sum})">이 견적서로 매칭</button>

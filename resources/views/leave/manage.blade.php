@@ -84,9 +84,9 @@ function lvRender(){
             <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; flex-wrap:wrap;" onclick="lvToggle(${r.user_id})">
                 <b style="font-size:14px; min-width:80px;">${lvEsc(r.name)}</b>
                 <span style="font-size:12px; color:var(--text-muted);">입사 ${r.hire_date || '미등록'}</span>
-                <span style="font-size:12.5px;">부여 <b>${r.granted !== null ? lvFmtDays(r.granted)+'일' : '미확정'}</b></span>
-                <span style="font-size:12.5px;">사용 <b>${lvFmtDays(r.used)}일</b></span>
-                <span style="font-size:12.5px;">잔여 <b style="color:${remainColor};">${r.remaining !== null ? lvFmtDays(r.remaining)+'일' : '—'}</b></span>
+                <span style="font-size:13px;">부여 <b>${r.granted !== null ? lvFmtDays(r.granted)+'일' : '미확정'}</b></span>
+                <span style="font-size:13px;">사용 <b>${lvFmtDays(r.used)}일</b></span>
+                <span style="font-size:13px;">잔여 <b style="color:${remainColor};">${r.remaining !== null ? lvFmtDays(r.remaining)+'일' : '—'}</b></span>
                 <span style="margin-left:auto; font-size:12px; color:var(--text-muted);">${open ? '▾ 접기' : '▸ 관리'}</span>
             </div>
             ${open ? lvDetail(r) : ''}
@@ -94,29 +94,29 @@ function lvRender(){
     }).join('');
 }
 function lvDetail(r){
-    const inp = 'padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:12.5px;';
+    const inp = 'padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:13px;';
     __lvSug[r.user_id] = r.suggest || lvSuggest(r.hire_date, r.fiscal_leave);
     const s = __lvSug[r.user_id];
     return `<div style="border-top:1px solid var(--border); padding:14px 16px; display:flex; flex-direction:column; gap:14px;" onclick="event.stopPropagation()">
         <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-            <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">입사일
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-muted);">입사일
                 <input type="date" id="lvHire-${r.user_id}" value="${r.hire_date || ''}" style="${inp}" onchange="lvHireChanged(${r.user_id})" oninput="lvHireChanged(${r.user_id})"></label>
             <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text); cursor:pointer; padding-bottom:8px;" title="체크하면 매년 1월 1일 기준으로 연차를 기산합니다 (입사 이듬해는 비례연차 제안)">
                 <input type="checkbox" id="lvFiscal-${r.user_id}" ${r.fiscal_leave ? 'checked' : ''} onchange="lvHireChanged(${r.user_id})" style="width:14px; height:14px; accent-color:var(--accent); cursor:pointer;">
                 회계연도(1/1) 기준</label>
-            <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted);">${LV_YEAR}년 부여 일수 <span id="lvSugWrap-${r.user_id}">${lvSugHtml(s)}</span>
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-muted);">${LV_YEAR}년 부여 일수 <span id="lvSugWrap-${r.user_id}">${lvSugHtml(s)}</span>
                 <div style="display:flex; gap:6px;">
                     <input type="number" step="0.5" min="0" id="lvGrant-${r.user_id}" value="${r.granted ?? ''}" placeholder="${s ? lvFmtDays(s.days) : ''}" style="${inp} width:90px;">
                     <button id="lvSugBtn-${r.user_id}" onclick="lvApplySug(${r.user_id})" style="${inp} cursor:pointer; white-space:nowrap; ${s ? '' : 'display:none;'}">제안값</button>
                 </div></label>
-            <label style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--text-muted); flex:1; min-width:140px;">메모
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-muted); flex:1; min-width:140px;">메모
                 <input id="lvGrantNote-${r.user_id}" value="${lvEsc(r.grant_note || '')}" maxlength="300" placeholder="이월 2일 포함 등" style="${inp}"></label>
             <button onclick="lvSave(${r.user_id}, this)" style="padding:8px 18px; background:var(--accent); color:var(--accent-text, #fff); border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">저장</button>
         </div>
         <div>
-            <div style="font-size:12.5px; font-weight:700; margin-bottom:6px;">${LV_YEAR}년 사용 내역</div>
+            <div style="font-size:13px; font-weight:700; margin-bottom:6px;">${LV_YEAR}년 사용 내역</div>
             ${r.usages.length ? r.usages.map(u => `
-                <div style="display:flex; align-items:center; gap:10px; padding:5px 2px; border-bottom:1px solid var(--border); font-size:12.5px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:10px; padding:5px 2px; border-bottom:1px solid var(--border); font-size:13px; flex-wrap:wrap;">
                     <span style="font-weight:600;">${u.used_on}</span>
                     <span style="font-size:11px; padding:1px 7px; border-radius:10px; background:var(--surface2);">${lvEsc(u.type)} ${lvFmtDays(u.days)}일</span>
                     ${u.from_calendar ? '<span style="font-size:11px; color:var(--text-muted);">캘린더 연동</span>' : ''}

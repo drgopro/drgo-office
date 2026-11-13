@@ -37,7 +37,12 @@ body { font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Goth
 /* 모달이 열려 있는 동안 배경 페이지 스크롤 잠금 — 이중 스크롤바 방지 (모달 자체만 스크롤) */
 body:has(.modal-overlay.open), body:has(.todo-overlay.open) { overflow:hidden; }
 input, button, textarea, select { font-family:inherit; }
-[data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --accent-text:#ffffff; --red:#c03838; --green:#248a38; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
+/* 타이포 토큰 (DESIGN.md) · 안내 글자 대비 · 제목 균형 · 자릿수 맞춤 숫자 */
+:root { --fs-label:11px; --fs-body-sm:12px; --fs-body:13px; --fs-title-sm:15px; --fs-title:18px; --fs-headline:22px; }
+::placeholder { color:#5f6575; opacity:1; }
+h1, h2, h3 { text-wrap:balance; }
+.num, .text-right, td.num, .tabular { font-variant-numeric:tabular-nums; }
+[data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --accent-text:#ffffff; --red:#c03838; --green:#1e7a32; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
 /* 라이트모드 버튼/입력 보정 */
 [data-theme="light"] body { background:var(--bg); color:var(--text); }
 [data-theme="light"] .btn-edit, [data-theme="light"] .btn-outline { border-color:#a0a8b4; color:#4a5060; }
@@ -61,7 +66,7 @@ input, button, textarea, select { font-family:inherit; }
 [data-theme="light"] .stage-proposal { background:#e0f0ff; color:#2e6a9a; }
 [data-theme="light"] .stage-estimate { background:#f0e8ff; color:#5c2e90; }
 [data-theme="light"] .stage-payment { background:#e0f8f5; color:#0a8a70; }
-[data-theme="light"] .stage-visit { background:#e8f5e8; color:#248a38; }
+[data-theme="light"] .stage-visit { background:#e8f5e8; color:#1e7a32; }
 [data-theme="light"] .stage-as { background:#ffe8e8; color:#c03838; }
 [data-theme="light"] .stage-done { background:#e8eaef; color:#5a6070; }
 

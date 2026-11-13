@@ -42,8 +42,8 @@
     /* 일정 칩 — 상태별 시각 구분 */
     .ch-chip { font-size:11px; padding:3px 7px; border-radius:4px; border-left:3px solid var(--accent); background:var(--surface2); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; position:relative; }
     .ch-chip:hover { filter:brightness(1.18); }
-    .ch-chip .ch-marker { display:inline-block; margin-right:3px; font-size:10px; }
-    .ch-chip .ch-time { display:inline-block; margin-right:4px; font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .ch-chip .ch-marker { display:inline-block; margin-right:3px; font-size:11px; }
+    .ch-chip .ch-time { display:inline-block; margin-right:4px; font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
     .ch-chip.state-completed .ch-time,
     .ch-chip.state-deleted .ch-time { opacity:0.7; }
 
@@ -96,24 +96,24 @@
     .ch-panel-empty { padding:30px 0; text-align:center; color:var(--text-muted); font-size:12px; }
     .ch-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:12px; line-height:1.5; }
     .ch-log-head { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
-    .ch-log-action { font-size:10px; padding:2px 7px; border-radius:3px; font-weight:600; }
+    .ch-log-action { font-size:11px; padding:2px 7px; border-radius:3px; font-weight:600; }
     .ch-log-action.update { background:var(--surface); color:var(--accent); }
     .ch-log-action.delete { background:rgba(212,136,136,0.2); color:var(--red); }
     .ch-log-action.complete { background:rgba(122,200,122,0.2); color:var(--green); }
     .ch-log-action.uncomplete { background:var(--surface); color:var(--text-muted); }
     .ch-log-action.restore { background:rgba(138,180,200,0.2); color:var(--blue); }
     .ch-log-user { font-size:12px; font-weight:600; color:var(--text); }
-    .ch-log-time { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; margin-left:auto; }
+    .ch-log-time { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; margin-left:auto; }
     .ch-log-diff { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center; }
-    .ch-log-key { font-size:10px; color:var(--text-muted); margin-right:4px; }
+    .ch-log-key { font-size:11px; color:var(--text-muted); margin-right:4px; }
     .ch-log-old { padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:11px; text-decoration:line-through; }
     .ch-log-new { padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:11px; }
-    .ch-log-arrow { color:var(--text-muted); font-size:10px; }
+    .ch-log-arrow { color:var(--text-muted); font-size:11px; }
 
     @media (max-width:768px) {
         .ch-day { min-height:80px; padding:4px; }
-        .ch-day-num { font-size:10px; }
-        .ch-chip { font-size:10px; padding:2px 5px; }
+        .ch-day-num { font-size:11px; }
+        .ch-chip { font-size:11px; padding:2px 5px; }
         .ch-panel { width:100%; }
     }
 </style>
@@ -398,7 +398,7 @@ async function chOpenPanel(chipIdx) {
         }
 
         const reasonHtml = h.reason
-            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:10px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${chEsc(h.reason)}</div>`
+            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:11px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${chEsc(h.reason)}</div>`
             : '';
         return `<div class="ch-log-item">
             <div class="ch-log-head">

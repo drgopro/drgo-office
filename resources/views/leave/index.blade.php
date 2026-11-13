@@ -46,7 +46,7 @@
     </div>
 
     @if($summary['granted'] === null)
-        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:13px; color:var(--text-muted); margin-bottom:16px;">
             {{ $year }}년 부여 연차가 아직 확정되지 않았습니다. 경영지원팀에 문의해주세요.
         </div>
     @endif

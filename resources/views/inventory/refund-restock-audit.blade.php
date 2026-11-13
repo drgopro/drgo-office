@@ -4,12 +4,12 @@
 <style>
     .ra-wrap { max-width:1100px; margin:0 auto; padding:24px 16px; }
     .ra-title { font-size:18px; font-weight:800; margin-bottom:4px; }
-    .ra-sub { font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:18px; }
+    .ra-sub { font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:18px; }
     .ra-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
     .ra-table { width:100%; border-collapse:collapse; }
     .ra-table th { font-size:11px; color:var(--text-muted); text-align:left; padding:10px 14px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
     .ra-table td { font-size:13px; padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
-    .ra-kind { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:9px; white-space:nowrap; }
+    .ra-kind { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:9px; white-space:nowrap; }
     .ra-kind-direct { background:rgba(200,80,80,0.12); color:var(--red); }
     .ra-kind-vendor { background:rgba(74,144,217,0.14); color:#4a90d9; }
     .ra-apply { padding:5px 13px; font-size:12px; font-weight:700; border-radius:7px; border:1px solid var(--accent); background:none; color:var(--accent); cursor:pointer; white-space:nowrap; }

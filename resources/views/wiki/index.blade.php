@@ -11,7 +11,7 @@
     .wiki-sidebar-header { padding:16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
     .wiki-sidebar-title { font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:6px; }
     .wiki-cat-mtoggle { display:none; align-items:center; gap:5px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; }
-    .wiki-cat-mtoggle .wcm-caret { font-size:10px; color:var(--text-muted); transition:transform .15s; }
+    .wiki-cat-mtoggle .wcm-caret { font-size:11px; color:var(--text-muted); transition:transform .15s; }
     .wiki-sidebar.cat-open .wiki-cat-mtoggle .wcm-caret { transform:rotate(180deg); }
     .wiki-sidebar-search { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; width:100%; }
     .wiki-sidebar-search:focus { border-color:var(--accent); }
@@ -19,7 +19,7 @@
     .wiki-cat-item { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; font-size:13px; cursor:pointer; color:var(--text-muted); transition:all 0.12s; border-left:3px solid transparent; }
     .wiki-cat-item:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-item.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
-    .wiki-cat-count { font-size:10px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
+    .wiki-cat-count { font-size:11px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
     /* 계층 트리 */
     .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:5px 10px 5px 4px; font-size:13px; line-height:1.3; min-height:0; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
     .wiki-cat-row:hover { color:var(--text); background:var(--surface2); }
@@ -86,10 +86,10 @@
     .wiki-item-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
     .wiki-title { font-size:14px; font-weight:600; }
     .wiki-pin { font-size:11px; color:var(--accent); }
-    .wiki-pin-badge { font-size:9px; padding:2px 7px; border-radius:8px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap; flex-shrink:0; }
+    .wiki-pin-badge { font-size:11px; padding:2px 7px; border-radius:8px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap; flex-shrink:0; }
     .wiki-comment-count { font-size:11px; color:var(--accent); font-weight:700; white-space:nowrap; flex-shrink:0; }
     .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
-    .wiki-cat-badge { font-size:10px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
+    .wiki-cat-badge { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
     .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
     .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
 
@@ -124,7 +124,7 @@
     .wiki-modal.open { display:flex; }
     .wiki-modal-body { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:700px; max-height:90vh; overflow-y:auto; padding:24px; }
     .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-    .field-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
+    .field-label { font-size:11px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
     .field-input, .field-textarea { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; box-sizing:border-box; }
     .field-input:focus, .field-textarea:focus { border-color:var(--accent); }
     .field-textarea { resize:vertical; min-height:300px; line-height:1.7; font-family:monospace; font-size:13px; }
@@ -379,7 +379,7 @@
             <button onclick="document.getElementById('wikiTrashModal').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
         <div class="ce-body">
-            <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
             <div id="wikiTrashList" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
     </div>
@@ -928,7 +928,7 @@ async function openWikiTrash() {
     let rows = [];
     try { const res = await fetch('/api/wiki/trash', { headers:{'Accept':'application/json'} }); if (res.ok) rows = await res.json(); } catch (e) {}
     if (!rows.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">삭제된 게시물이 없습니다.</div>'; return; }
-    const tBtn = 'background:none;border-radius:7px;cursor:pointer;font-size:11.5px;padding:5px 10px;white-space:nowrap;flex-shrink:0;';
+    const tBtn = 'background:none;border-radius:7px;cursor:pointer;font-size:12px;padding:5px 10px;white-space:nowrap;flex-shrink:0;';
     list.innerHTML = rows.map(r => `
         <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:0;">
             <div style="flex:1 1 auto;min-width:0;">

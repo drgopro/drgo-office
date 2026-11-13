@@ -414,14 +414,14 @@ async function openHistoryModal() {
         }
 
         const reasonHtml = h.reason
-            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface2); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:10px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${escHtml(h.reason)}</div>`
+            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface2); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:11px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${escHtml(h.reason)}</div>`
             : '';
 
         return `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <span style="font-size:10px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:${ACTION_COLOR[h.action]||'var(--accent)'}; font-weight:600;">${ACTION_LABEL[h.action]||h.action}</span>
+                <span style="font-size:11px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:${ACTION_COLOR[h.action]||'var(--accent)'}; font-weight:600;">${ACTION_LABEL[h.action]||h.action}</span>
                 <span style="font-size:12px; font-weight:600;">${escHtml(h.user_name||'-')}</span>
-                <span style="font-size:10px; color:var(--text-muted);">${h.created_at}</span>
+                <span style="font-size:11px; color:var(--text-muted);">${h.created_at}</span>
             </div>
             ${body}
             ${reasonHtml}

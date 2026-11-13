@@ -226,7 +226,7 @@
                     <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;" onclick="toggleShipmentBody()">
                         <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
                         <span style="display:inline-flex;gap:4px;align-items:center;" onclick="event.stopPropagation();">
-                            <span style="font-weight:400;font-size:10px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
+                            <span style="font-weight:400;font-size:11px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="all" onclick="setShipIconOverride('all')" title="배송 완료로 표시" style="color:var(--green);">○</button>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="part" onclick="setShipIconOverride('part')" title="부분 배송으로 표시" style="color:#d78a2e;">△</button>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="none" onclick="setShipIconOverride('none')" title="미배송으로 표시" style="color:var(--red);">✕</button>
@@ -456,9 +456,9 @@
                 </div>
                 <div class="field-group">
                     <label class="field-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">세팅 항목
-                        <span style="font-weight:400;font-size:10.5px;color:var(--text-muted);">연결된 프로젝트의 의뢰 내용에서 불러옴 — 작성/수정은 프로젝트 페이지에서</span>
+                        <span style="font-weight:400;font-size:11px;color:var(--text-muted);">연결된 프로젝트의 의뢰 내용에서 불러옴 — 작성/수정은 프로젝트 페이지에서</span>
                     </label>
-                    <div id="reqItemsView" style="font-size:12.5px;line-height:1.7;"></div>
+                    <div id="reqItemsView" style="font-size:13px;line-height:1.7;"></div>
                 </div>
                 <div class="field-group">
                     <label class="field-label">의뢰 세부항목 (자유 메모)</label>

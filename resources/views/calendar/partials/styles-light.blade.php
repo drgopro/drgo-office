@@ -52,3 +52,13 @@
 .modal { border-radius:18px; }
 .day-popover { border-radius:14px; box-shadow:var(--card-shadow); }
 </style>
+
+<style>
+/* 일정 유형 배지 글자 — 다크용 파스텔은 흰 바탕에서 2~3:1이라 같은 색상의 진한 값으로 (WCAG AA) */
+[data-theme="light"] .type-badge.gold   { color:#7a5c22; }
+[data-theme="light"] .type-badge.teal   { color:#a14f12; }
+[data-theme="light"] .type-badge.blue   { color:#2e6a9a; }
+[data-theme="light"] .type-badge.red    { color:#b02f2f; }
+[data-theme="light"] .type-badge.green  { color:#1e7a32; }
+[data-theme="light"] .type-badge.purple { color:#6a3fa0; }
+</style>

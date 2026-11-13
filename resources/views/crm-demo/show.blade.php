@@ -66,7 +66,7 @@
     .mini.danger { border-color:var(--red); color:var(--red); }
     .save-btn { background:var(--accent); color:var(--accent-text); border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
 
-    .pay-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+    .pay-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
     .pay-badge.charge { background:rgba(122,200,160,0.15); color:#2f8f5b; border:1px solid rgba(122,200,160,0.45); }
     .pay-badge.refund { background:rgba(232,137,74,0.15); color:#c2691f; border:1px solid rgba(232,137,74,0.45); }
     .pay-badge.cancel { background:rgba(200,80,80,0.15); color:var(--red); border:1px solid rgba(200,80,80,0.45); }
@@ -209,7 +209,7 @@
             <div>
                 <label class="pl" style="display:flex; justify-content:space-between; align-items:center;"><span>결제 항목 (수기 입력)</span><button class="mini" onclick="addPayItem()">+ 항목</button></label>
                 <div id="payItems" style="display:flex; flex-direction:column; gap:6px;"></div>
-                <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">항목 입력 시 금액이 자동 합산됩니다.</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">항목 입력 시 금액이 자동 합산됩니다.</div>
             </div>
             <div id="payBalanceFields">
                 <label class="pl">잔금 여부</label>
@@ -299,7 +299,7 @@ function renderPayments(data){
             <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     ${badge}<span style="font-size:14px; font-weight:800; color:${amtColor};">${amount}</span>${refundInfo}
-                    ${fully?'<span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>':''}
+                    ${fully?'<span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>':''}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     ${isCharge?`<button class="mini" onclick="editPay(${p.id})">수정</button>`:''}

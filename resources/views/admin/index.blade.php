@@ -40,7 +40,7 @@
     .data-table tr:hover td { background:var(--surface2); }
     .text-muted { color:var(--text-muted); font-size:12px; }
 
-    .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-success { background:#1a2a1a; color:#7ac87a; }
     .badge-fail { background:#2a1a1a; color:#c87a7a; }
 
@@ -136,9 +136,9 @@
     .cf-card-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .cf-card-label { font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:6px; line-height:1.3; }
     .cf-required { color:var(--red); font-weight:700; }
-    .cf-card-key { font-size:10px; color:var(--text-muted); font-family:ui-monospace,Menlo,monospace; }
+    .cf-card-key { font-size:11px; color:var(--text-muted); font-family:ui-monospace,Menlo,monospace; }
     .cf-card-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-    .cf-type-badge { display:inline-flex; align-items:center; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; letter-spacing:0.02em; }
+    .cf-type-badge { display:inline-flex; align-items:center; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; letter-spacing:0.02em; }
     .cf-type-text { background:rgba(122,160,200,0.15); color:#7aa0c8; }
     .cf-type-textarea { background:rgba(122,160,200,0.15); color:#7aa0c8; }
     .cf-type-select { background:rgba(180,140,80,0.15); color:#d4a96a; }
@@ -146,7 +146,7 @@
     .cf-type-checkbox { background:rgba(180,140,80,0.15); color:#d4a96a; }
     .cf-type-number { background:rgba(122,200,160,0.15); color:#7ac8a0; }
     .cf-type-date { background:rgba(200,122,180,0.15); color:#c87ab4; }
-    .cf-chip { display:inline-flex; align-items:center; font-size:10px; padding:2px 7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); }
+    .cf-chip { display:inline-flex; align-items:center; font-size:11px; padding:2px 7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); }
     .cf-chip.muted { opacity:0.7; }
 
     /* 필드 모달 */
@@ -266,30 +266,30 @@
     <div class="tab-panel" id="panel-menu">
         <style>
             .sm-card { max-width:520px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
-            .sm-desc { font-size:11.5px; color:var(--text-muted); margin:4px 0 12px; line-height:1.6; }
+            .sm-desc { font-size:12px; color:var(--text-muted); margin:4px 0 12px; line-height:1.6; }
             .sm-toolbar { display:flex; gap:6px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
-            .sm-add { background:none; border:1px dashed var(--border); color:var(--text-muted); border-radius:7px; font-size:11.5px; padding:5px 11px; cursor:pointer; }
+            .sm-add { background:none; border:1px dashed var(--border); color:var(--text-muted); border-radius:7px; font-size:12px; padding:5px 11px; cursor:pointer; }
             .sm-add:hover { color:var(--text); border-color:var(--text-muted); }
-            .sm-reset { background:none; border:none; color:var(--text-muted); font-size:11.5px; cursor:pointer; text-decoration:underline; margin-left:auto; }
+            .sm-reset { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline; margin-left:auto; }
             .sm-list { display:flex; flex-direction:column; gap:3px; }
             .sm-row { display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:8px; padding:0 8px 0 10px; height:34px; background:var(--surface); }
             .sm-row.sec, .sm-row.gap { background:var(--surface2); border-style:dashed; }
             .sm-row.gap { height:26px; }
             .sm-row.drag-over { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
             .sm-grip { cursor:grab; color:var(--text-muted); font-size:12px; user-select:none; flex-shrink:0; }
-            .sm-name { font-size:12.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-            .sm-tag { font-size:9.5px; font-weight:700; color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); padding:1px 6px; border-radius:7px; flex-shrink:0; }
-            .sm-gaptext { flex:1; text-align:center; font-size:10px; color:var(--text-muted); letter-spacing:0.2em; }
+            .sm-name { font-size:13px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .sm-tag { font-size:11px; font-weight:700; color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); padding:1px 6px; border-radius:7px; flex-shrink:0; }
+            .sm-gaptext { flex:1; text-align:center; font-size:11px; color:var(--text-muted); letter-spacing:0.2em; }
             .sm-input { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); outline:none; }
             .sm-input:focus { border-color:var(--accent); }
             .sm-ctl { display:flex; gap:3px; margin-left:auto; flex-shrink:0; }
-            .sm-ico { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:10px; padding:0; }
+            .sm-ico { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:11px; padding:0; }
             .sm-ico:hover:not(:disabled) { background:var(--surface2); color:var(--text); }
             .sm-ico:disabled { opacity:.25; cursor:default; }
             .sm-ico.del:hover { color:var(--red, #dc2626); }
         </style>
         <div class="sm-card">
-            <b style="font-size:13.5px;">좌측 메뉴 구성</b>
+            <b style="font-size:14px;">좌측 메뉴 구성</b>
             <div class="sm-desc">드래그(⠿) 또는 ▲▼로 순서를 옮기고 섹션 라벨·구분선을 배치합니다.<br>저장 후 새로고침하면 전 직원에게 적용됩니다 — 권한 없는 메뉴는 각자에게 자동으로 숨겨집니다.</div>
             <div class="sm-toolbar">
                 <button class="sm-add" onclick="smAddRow('label')">+ 섹션 라벨</button>
@@ -468,7 +468,7 @@
                     <div class="field-label">소분류 (선택)</div>
                     <input type="text" class="field-input" id="fieldSubsection" list="fieldSubsectionList" placeholder="예: PC, 카메라, 오디오, 조명" maxlength="50">
                     <datalist id="fieldSubsectionList"></datalist>
-                    <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">필드 너비 (4열 기준)</div>
@@ -484,7 +484,7 @@
             <div class="field-group">
                 <div class="field-label">우선순위 (정렬용)</div>
                 <input type="number" class="field-input" id="fieldPriority" value="0" min="-100" max="100" step="1" style="max-width:140px;">
-                <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
             </div>
 
             <div class="field-group" id="optionsWrap" style="display:none;">
@@ -601,7 +601,7 @@
                     <div class="field-label">소분류 (선택)</div>
                     <input type="text" class="field-input" id="projectFieldSubsection" list="projectFieldSubsectionList" placeholder="예: PC, 카메라, 오디오, 조명" maxlength="50">
                     <datalist id="projectFieldSubsectionList"></datalist>
-                    <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">필드 너비 (4열 기준)</div>
@@ -617,7 +617,7 @@
             <div class="field-group">
                 <div class="field-label">우선순위 (정렬용)</div>
                 <input type="number" class="field-input" id="projectFieldPriority" value="0" min="-100" max="100" step="1" style="max-width:140px;">
-                <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
             </div>
 
             <div class="field-group" id="projectOptionsWrap" style="display:none;">
@@ -1029,11 +1029,11 @@
             </div>
             <div class="field-group">
                 <div class="field-label">의뢰자 견적서 동의 카드 노출</div>
-                <label style="display:flex; align-items:center; gap:7px; font-size:13.5px; cursor:pointer; margin-bottom:6px;">
+                <label style="display:flex; align-items:center; gap:7px; font-size:14px; cursor:pointer; margin-bottom:6px;">
                     <input type="checkbox" id="termsPenaltyEnabled" {{ ($sellerSettings['terms_penalty_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
                     위약 안내 표시 — 끄면 카드가 숨고 <b>결제 잠금도 해제</b>됩니다 (전문 확정 전 임시 비노출용)
                 </label>
-                <label style="display:flex; align-items:center; gap:7px; font-size:13.5px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:7px; font-size:14px; cursor:pointer;">
                     <input type="checkbox" id="termsMarketingEnabled" {{ ($sellerSettings['terms_marketing_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
                     설치 사례 활용(마케팅) 동의 표시
                 </label>
@@ -1195,7 +1195,7 @@
             <input class="field-input" type="email" id="accEmail">
         </div>
         <div class="field-group">
-            <div class="field-label">비밀번호 변경 <span style="font-size:10px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
+            <div class="field-label">비밀번호 변경 <span style="font-size:11px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
             <div style="position:relative;">
                 <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)" style="padding-right:40px;">
                 <button type="button" onclick="togglePwVisibility('accPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -1358,7 +1358,7 @@ async function loadPaymentAlertSettings() {
         let selected = [];
         try { selected = JSON.parse(settings.payment_alert_managers || '[]') || []; } catch (e) {}
         document.getElementById('paManagers').innerHTML = users.filter(u => u.is_active).map(u => `
-            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
+            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:13px;">
                 <input type="checkbox" name="paManager" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
                 ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
             </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
@@ -1416,7 +1416,7 @@ function renderManagerChips(wrapId, inputName, users, storedJson) {
     let selected = [];
     try { selected = JSON.parse(storedJson || '[]') || []; } catch (e) {}
     document.getElementById(wrapId).innerHTML = users.filter(u => u.is_active).map(u => `
-        <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12.5px;">
+        <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:13px;">
             <input type="checkbox" name="${inputName}" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
             ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
         </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
@@ -1822,11 +1822,11 @@ function renderAssigneesAdmin() {
 
     const row = a => {
         const badge = a.is_external
-            ? '<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(232,137,74,0.18); color:var(--teal); font-weight:600;">외부</span>'
-            : `<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(138,180,200,0.18); color:var(--blue); font-weight:600;">내부 · ${escAd(a.user?.role||'')}</span>`;
+            ? '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(232,137,74,0.18); color:var(--teal); font-weight:600;">외부</span>'
+            : `<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(138,180,200,0.18); color:var(--blue); font-weight:600;">내부 · ${escAd(a.user?.role||'')}</span>`;
         const status = a.is_active
-            ? '<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:rgba(122,200,122,0.18); color:var(--green); font-weight:600;">활성</span>'
-            : '<span style="font-size:10px; padding:2px 7px; border-radius:4px; background:var(--surface2); color:var(--text-muted); font-weight:600;">비활성</span>';
+            ? '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(122,200,122,0.18); color:var(--green); font-weight:600;">활성</span>'
+            : '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:var(--surface2); color:var(--text-muted); font-weight:600;">비활성</span>';
         return `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:6px;">
             <div style="flex:1; min-width:0;">
                 <div style="font-weight:600; font-size:13px;">${escAd(a.name)}</div>
@@ -1948,7 +1948,7 @@ async function loadUsers() {
         const statusOpts = [['active','활성'],['inactive','비활성'],['resigned','퇴사']]
             .map(([v,l]) => `<option value="${v}" ${u.status === v ? 'selected' : ''}>${l}</option>`).join('');
         const resignedTag = u.status === 'resigned' && u.resigned_at
-            ? `<div style="font-size:10px; color:var(--text-muted); margin-top:2px;">퇴사 ${u.resigned_at}</div>` : '';
+            ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">퇴사 ${u.resigned_at}</div>` : '';
 
         return `<tr data-uid="${u.id}" ${u.status === 'resigned' ? 'style="opacity:0.55;"' : ''}>
             <td>${u.display_name}</td>
@@ -2177,13 +2177,13 @@ function tpsRender() {
         }).join(' ');
         return `<div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:grid; gap:8px; ${t.active ? '' : 'opacity:0.55;'}">
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                ${isCommon ? '<b style="font-size:13.5px;">공통 (항상 포함)</b>'
+                ${isCommon ? '<b style="font-size:14px;">공통 (항상 포함)</b>'
                     : `<input class="field-input" style="width:140px;" value="${(t.name||'').replace(/"/g,'&quot;')}" onchange="TPS[${i}].name=this.value" placeholder="섹션 이름">`}
                 <input class="field-input" style="width:130px;" value="${(t.version||'').replace(/"/g,'&quot;')}" onchange="TPS[${i}].version=this.value" placeholder="버전 — v1">
-                ${isCommon ? '' : `<label style="display:flex; align-items:center; gap:5px; font-size:12.5px; cursor:pointer;"><input type="checkbox" ${t.active?'checked':''} onchange="TPS[${i}].active=this.checked; tpsRender()"> 사용</label>`}
+                ${isCommon ? '' : `<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" ${t.active?'checked':''} onchange="TPS[${i}].active=this.checked; tpsRender()"> 사용</label>`}
                 ${isCommon ? '' : `<button type="button" class="btn-save" style="margin:0; margin-left:auto; width:auto; background:none; border:1px solid var(--border); color:var(--red);" onclick="if(confirm('이 섹션을 삭제할까요?')){TPS.splice(${i},1); tpsRender();}">삭제</button>`}
             </div>
-            ${isCommon ? '' : `<div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; font-size:11.5px; color:var(--text-muted);">자동 적용 유형: ${typeChips}</div>`}
+            ${isCommon ? '' : `<div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--text-muted);">자동 적용 유형: ${typeChips}</div>`}
             <textarea class="field-input" rows="4" style="font-family:monospace; font-size:12px;" onchange="TPS[${i}].html=this.value" placeholder="섹션 본문 (HTML)">${(t.html||'').replace(/</g,'&lt;')}</textarea>
         </div>`;
     }).join('');

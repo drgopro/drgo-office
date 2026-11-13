@@ -23,9 +23,9 @@
 
     .mk-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
     .mk-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
-    .mk-card .mk-label { font-size:10px; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
+    .mk-card .mk-label { font-size:11px; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
     .mk-card .mk-value { font-size:22px; font-weight:700; }
-    .mk-card .mk-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
+    .mk-card .mk-sub { font-size:12px; color:var(--text-muted); margin-top:4px; }
 
     .mk-two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .mk-three-col { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; }
@@ -185,7 +185,7 @@
                             <div>
                                 <div class="mk-list-item" onclick="pmToggle({{ $loop->index }})" style="cursor:pointer;" title="클릭해서 이동한 의뢰자 보기">
                                     <span class="mk-list-label">{{ $mv['from'] }} <span style="color:var(--text-muted);">→</span> <b>{{ $mv['to'] }}</b></span>
-                                    <span class="mk-list-value">{{ $mv['count'] }}명 <span class="pm-caret" id="pmCaret{{ $loop->index }}" style="color:var(--text-muted); font-size:10px;">▸</span></span>
+                                    <span class="mk-list-value">{{ $mv['count'] }}명 <span class="pm-caret" id="pmCaret{{ $loop->index }}" style="color:var(--text-muted); font-size:11px;">▸</span></span>
                                 </div>
                                 <div id="pmDetail{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
                                     @foreach($mv['clients'] as $cl)
@@ -236,7 +236,7 @@
                             <div class="mk-bar">
                                 <div class="mk-bar-fill" style="width:{{ ($cnt / $maxC) * 100 }}%; background:rgba(138,180,200,0.3);"></div>
                                 <span class="mk-bar-label">{{ $content }}</span>
-                                <span class="mk-bar-value" style="color:#8ab4c8;">{{ $cnt }}명</span>
+                                <span class="mk-bar-value" style="color:#2e6a9a;">{{ $cnt }}명</span>
                             </div>
                         @endforeach
                     </div>
@@ -327,12 +327,12 @@
                                     <span class="mk-list-value">
                                         @if($sec['posting'])
                                             @if($mc['posted_count'] >= count($mc['projects']))
-                                                <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:10px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
+                                                <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:11px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
                                             @else
-                                                <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:10px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
+                                                <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:11px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
                                             @endif
                                         @endif
-                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-{{ $mcKey }}" style="color:var(--text-muted); font-size:10px;">▸</span>
+                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-{{ $mcKey }}" style="color:var(--text-muted); font-size:11px;">▸</span>
                                     </span>
                                 </div>
                                 <div id="mcDetail-{{ $mcKey }}" style="display:none; padding:2px 10px 8px 14px;">
@@ -536,7 +536,7 @@
                         <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; padding:0 14px; height:100%; font-size:13px; font-weight:700;">
                             <span>{{ number_format($s['value']) }}건</span>
                             @if($conv !== null)
-                                <span style="font-size:11px; color:{{ $conv >= 50 ? '#7ac87a' : ($conv >= 20 ? '#c8b08a' : '#c87a7a') }};">
+                                <span style="font-size:11px; color:{{ $conv >= 50 ? '#1e7a32' : ($conv >= 20 ? '#7a5c22' : '#b02f2f') }};">
                                     ↓ 전환율 {{ $conv }}%
                                 </span>
                             @endif
@@ -571,22 +571,22 @@
         <div class="mk-grid">
             <div class="mk-card">
                 <div class="mk-label"><x-icon name="chat" :size="14"/> 상담 중</div>
-                <div class="mk-value" style="color:#c8b08a;">{{ $pipeline['consulting'] }}</div>
+                <div class="mk-value" style="color:#7a5c22;">{{ $pipeline['consulting'] }}</div>
                 <div class="mk-sub">초기 상담 단계</div>
             </div>
             <div class="mk-card">
                 <div class="mk-label"><x-icon name="note" :size="14"/> 견적 단계</div>
-                <div class="mk-value" style="color:#8ab4c8;">{{ $pipeline['estimate'] }}</div>
+                <div class="mk-value" style="color:#2e6a9a;">{{ $pipeline['estimate'] }}</div>
                 <div class="mk-sub">장비파악·제안·견적</div>
             </div>
             <div class="mk-card">
                 <div class="mk-label"><x-icon name="money" :size="14"/> 결제 대기</div>
-                <div class="mk-value" style="color:#e8894a;">{{ $pipeline['payment'] }}</div>
+                <div class="mk-value" style="color:#a14f12;">{{ $pipeline['payment'] }}</div>
                 <div class="mk-sub">결제/예약 단계</div>
             </div>
             <div class="mk-card">
                 <div class="mk-label"><x-icon name="wrench" :size="14"/> 세팅 진행</div>
-                <div class="mk-value" style="color:#7ac87a;">{{ $pipeline['visit'] }}</div>
+                <div class="mk-value" style="color:#1e7a32;">{{ $pipeline['visit'] }}</div>
                 <div class="mk-sub">세팅·AS 진행 중</div>
             </div>
         </div>
@@ -603,12 +603,12 @@
             </div>
             <div class="mk-card">
                 <div class="mk-label">세팅 완료</div>
-                <div class="mk-value" style="color:#7ac87a;">{{ number_format($settingDone) }}</div>
+                <div class="mk-value" style="color:#1e7a32;">{{ number_format($settingDone) }}</div>
                 <div class="mk-sub">전환율 {{ $newProjects > 0 ? round(($settingDone / $newProjects) * 100, 1) : 0 }}%</div>
             </div>
             <div class="mk-card">
                 <div class="mk-label">취소</div>
-                <div class="mk-value" style="color:#c87a7a;">{{ number_format($cancelled) }}</div>
+                <div class="mk-value" style="color:#b02f2f;">{{ number_format($cancelled) }}</div>
             </div>
         </div>
 
@@ -651,7 +651,7 @@
                 @foreach($cancelReasons as $reason => $cnt)
                     <div class="mk-list-item">
                         <span class="mk-list-label">{{ $reason }}</span>
-                        <span class="mk-list-value" style="color:#c87a7a;">{{ $cnt }}건</span>
+                        <span class="mk-list-value" style="color:#b02f2f;">{{ $cnt }}건</span>
                     </div>
                 @endforeach
             </div>
@@ -665,7 +665,7 @@
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card mk-clickable" onclick="goRevenuePage()" title="결제가 발생한 프로젝트 보기">
-                <div class="mk-label">총 매출 <span style="font-size:10px; color:var(--accent);">상세 ↗</span></div>
+                <div class="mk-label">총 매출 <span style="font-size:11px; color:var(--accent);">상세 ↗</span></div>
                 <div class="mk-value" style="color:var(--accent); font-size:20px;">{{ number_format($revenueTotal) }}원</div>
             </div>
             <div class="mk-card">
@@ -700,11 +700,11 @@
             <table style="width:100%; border-collapse:collapse; min-width:520px;">
                 <thead>
                     <tr>
-                        <th style="text-align:left; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">의뢰자 유형</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">세팅비</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">장비판매</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">기타</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border);">합계</th>
+                        <th style="text-align:left; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">의뢰자 유형</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">세팅비</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">장비판매</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">기타</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">합계</th>
                     </tr>
                 </thead>
                 <tbody>

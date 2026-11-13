@@ -18,9 +18,9 @@
         padding:10px 12px; gap:18px; max-width:520px; }
     .wrs-panel.open { display:flex; }
     .wrs-col { flex:1; min-width:0; }
-    .wrs-col-head { font-size:11.5px; font-weight:700; color:var(--accent); padding-bottom:5px; border-bottom:1px solid var(--border); margin-bottom:5px; }
+    .wrs-col-head { font-size:12px; font-weight:700; color:var(--accent); padding-bottom:5px; border-bottom:1px solid var(--border); margin-bottom:5px; }
     .wrs-col-head.unread { color:var(--red, #dc2626); }
-    .wrs-row { display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:2px 0; }
+    .wrs-row { display:flex; justify-content:space-between; gap:8px; font-size:13px; padding:2px 0; }
     .wrs-at { color:var(--text-muted); font-size:11px; white-space:nowrap; }
     .wrs-empty { font-size:12px; color:var(--text-muted); padding:4px 0; }
     .wiki-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:12px; }
@@ -28,7 +28,7 @@
     .wiki-back:hover { color:var(--text); }
     .wiki-title-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
     .wiki-title-text { font-size:22px; font-weight:700; }
-    .wiki-cat { font-size:10px; padding:3px 10px; border-radius:12px; background:var(--surface2); color:var(--accent); font-weight:600; border:1px solid var(--border); }
+    .wiki-cat { font-size:11px; padding:3px 10px; border-radius:12px; background:var(--surface2); color:var(--accent); font-weight:600; border:1px solid var(--border); }
     .wiki-cat-path { font-size:12px; color:var(--text-muted); margin-bottom:6px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
     .wiki-cat-path .wcp-seg { color:var(--accent); font-weight:600; }
     .wiki-cat-path .wcp-sep { color:var(--text-muted); opacity:0.6; }
@@ -99,8 +99,8 @@
         .wiki-header { flex-direction:column; gap:10px; margin-bottom:14px; }
         .wiki-title-text { font-size:18px; }
         .wiki-actions { width:100%; }
-        .wiki-actions button, .wiki-actions a { flex:1; justify-content:center; padding:7px 6px; font-size:11.5px; }
-        .wiki-content { padding:16px 14px; font-size:13.5px; }
+        .wiki-actions button, .wiki-actions a { flex:1; justify-content:center; padding:7px 6px; font-size:12px; }
+        .wiki-content { padding:16px 14px; font-size:14px; }
         .wiki-content h1 { font-size:20px; }
         .wiki-content h2 { font-size:17px; }
         .wiki-content pre { padding:10px 12px; }
@@ -114,7 +114,7 @@
     .edit-form.active { display:block; }
     .view-mode.hidden { display:none; }
     .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-    .field-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
+    .field-label { font-size:11px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
     .field-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; }
     .field-input:focus { border-color:var(--accent); }
 
@@ -152,7 +152,7 @@
     /* 선택 영역 색상 팝업 */
     .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
     .fmt-bubble.show { display:flex; }
-    .fmt-bubble .fb-label { font-size:10px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-label { font-size:11px; color:var(--text-muted); margin:0 2px; }
     .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
     .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
     .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
@@ -206,7 +206,7 @@
         <div style="flex:1;min-width:0;">
             <a href="{{ route('wiki.index', $wikiListParams) }}" class="wiki-back">← 위키 목록</a>
             <div class="wiki-title-row" id="viewTitle">
-                @if($wiki->is_pinned)<span style="font-size:10px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 고정</span>@endif
+                @if($wiki->is_pinned)<span style="font-size:11px; padding:3px 9px; border-radius:10px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap;">📌 고정</span>@endif
                 <span class="wiki-title-text">{{ $wiki->title }}</span>
             </div>
             @php
@@ -530,7 +530,7 @@
         <button onclick="imgViewerZoom(-0.2)">−</button>
         <span id="imgViewerLevel">100%</span>
         <button onclick="imgViewerZoom(0.2)">+</button>
-        <button onclick="imgViewerZoomReset()" style="font-size:10px;width:auto;padding:0 8px;border-radius:12px;">맞춤</button>
+        <button onclick="imgViewerZoomReset()" style="font-size:11px;width:auto;padding:0 8px;border-radius:12px;">맞춤</button>
     </div>
     <div class="img-viewer-hint">스크롤: 확대/축소 · 더블클릭: 원본 크기 · 드래그: 이동</div>
 </div>
@@ -1060,10 +1060,10 @@ window.toggleEdit = function() {
 .wh-rev:hover { background:var(--surface-2,#f4f6f8); }
 .wh-rev.on { background:var(--surface-2,#eef3fd); box-shadow:inset 3px 0 0 #2563eb; }
 .wh-rev .r { font-size:12px; font-weight:800; color:#2563eb; margin-right:6px; }
-.wh-rev .u { font-size:12.5px; font-weight:600; }
+.wh-rev .u { font-size:13px; font-weight:600; }
 .wh-rev .d { font-size:11px; color:var(--text-muted,#8a97a5); margin-top:2px; }
 .wh-rev .f { font-size:11px; color:var(--text-muted,#8a97a5); margin-top:2px; }
-.wh-table { width:100%; border-collapse:collapse; font-size:12.5px; line-height:1.55; table-layout:fixed; }
+.wh-table { width:100%; border-collapse:collapse; font-size:13px; line-height:1.55; table-layout:fixed; }
 .wh-table td { border:1px solid var(--border,#e3e7ec); padding:4px 9px; vertical-align:top; word-break:break-word; }
 .wh-table td.n { width:44px; text-align:right; color:var(--text-muted,#9aa5b1); background:var(--surface-2,#f7f8fa); font-size:11px; user-select:none; }
 .wh-table tr.del td.t { background:#fdecec; }
@@ -1073,7 +1073,7 @@ window.toggleEdit = function() {
 .wh-table .hl-add { background:#9fe0b5; border-radius:3px; }
 .wh-head { font-size:13px; font-weight:800; margin-bottom:10px; }
 .wh-meta { font-size:12px; color:var(--text-muted,#8a97a5); margin-bottom:12px; }
-.wh-field { font-size:12.5px; margin:0 0 8px; }
+.wh-field { font-size:13px; margin:0 0 8px; }
 .wh-field b { font-weight:700; }
 .wh-field .o { text-decoration:line-through; color:#ef4444; }
 .wh-field .w { color:#16a34a; }
@@ -1084,7 +1084,7 @@ async function openWikiHistory() {
     const overlay = document.getElementById('whOverlay');
     overlay.style.display = 'flex';
     if (!WH_LOGS) {
-        document.getElementById('whList').innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-muted,#999);">로딩 중...</div>';
+        document.getElementById('whList').innerHTML = '<div style="padding:16px;font-size:13px;color:var(--text-muted,#999);">로딩 중...</div>';
         try {
             const res = await fetch('/api/activity-logs?type=Wiki&id={{ $wiki->id }}&limit=200');
             if (!res.ok) throw new Error();
@@ -1093,7 +1093,7 @@ async function openWikiHistory() {
             logs.reverse().forEach((l, i) => l.rev = i + 1);
             WH_LOGS = logs.reverse();
         } catch (e) {
-            document.getElementById('whList').innerHTML = '<div style="padding:16px;font-size:12.5px;color:#ef4444;">로드 실패</div>';
+            document.getElementById('whList').innerHTML = '<div style="padding:16px;font-size:13px;color:#ef4444;">로드 실패</div>';
             return;
         }
     }
@@ -1104,7 +1104,7 @@ function renderWhList(selIdx) {
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const list = document.getElementById('whList');
     if (!WH_LOGS.length) {
-        list.innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-muted,#999);">수정 이력이 없습니다.</div>';
+        list.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--text-muted,#999);">수정 이력이 없습니다.</div>';
         document.getElementById('whDiff').innerHTML = '';
         return;
     }
@@ -1184,7 +1184,7 @@ function renderWhDiff(idx) {
     }).join('');
 
     if (!ch['내용']) {
-        pane.innerHTML = head + (fieldRows || '<div style="font-size:12.5px;color:var(--text-muted,#999);">본문 변경 없음' + (log.action === 'create' ? ' — 문서 생성' : '') + '</div>');
+        pane.innerHTML = head + (fieldRows || '<div style="font-size:13px;color:var(--text-muted,#999);">본문 변경 없음' + (log.action === 'create' ? ' — 문서 생성' : '') + '</div>');
         return;
     }
 
@@ -1212,7 +1212,7 @@ function renderWhDiff(idx) {
     const changed = diff.filter(r => r.type !== 'same').length;
     pane.innerHTML = head + fieldRows + (changed
         ? `<table class="wh-table"><colgroup><col style="width:44px"><col style="width:44px"><col></colgroup>${rows}</table>`
-        : '<div style="font-size:12.5px;color:var(--text-muted,#999);">표시할 본문 차이가 없습니다 (서식만 변경).</div>');
+        : '<div style="font-size:13px;color:var(--text-muted,#999);">표시할 본문 차이가 없습니다 (서식만 변경).</div>');
 }
 </script>
 @endpush

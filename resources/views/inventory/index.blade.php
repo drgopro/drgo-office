@@ -17,7 +17,7 @@
     .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     .tab-btn:not(.active):hover { color:var(--text); background:var(--surface2); }
     .disc-seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; flex-shrink:0; }
-    .disc-seg button { border:none; background:var(--surface); color:var(--text-muted); font-size:12.5px; font-weight:600; padding:8px 13px; cursor:pointer; }
+    .disc-seg button { border:none; background:var(--surface); color:var(--text-muted); font-size:13px; font-weight:600; padding:8px 13px; cursor:pointer; }
     .disc-seg button + button { border-left:1px solid var(--border); }
     .disc-seg button.active { background:var(--accent); color:var(--accent-text, #fff); }
     .tab-panel { display:none; }
@@ -30,7 +30,7 @@
     .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
-    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; cursor:pointer; }
+    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:13px; cursor:pointer; }
     .pager-btn:hover:not(:disabled) { color:var(--text); border-color:var(--accent); }
     .pager-btn.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .pager-btn:disabled { opacity:0.4; cursor:default; }
@@ -38,7 +38,7 @@
     .cat-chip-row + .cat-chip-row { margin-top:7px; }
     .cat-chip-sub { padding-left:16px; }
     .cat-chip-arrow { color:var(--text-muted); font-size:12px; }
-    .cat-chip { padding:6px 14px; border:1px solid var(--border); border-radius:16px; background:var(--surface2); color:var(--text-muted); font-size:12.5px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+    .cat-chip { padding:6px 14px; border:1px solid var(--border); border-radius:16px; background:var(--surface2); color:var(--text-muted); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
     .cat-chip:hover { color:var(--text); border-color:var(--accent); }
     .cat-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .cat-chip-sub .cat-chip { padding:4px 11px; font-size:12px; }
@@ -52,11 +52,11 @@
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; table-layout:auto; }
     /* 밀도 압축 — 가로 스크롤 최소화 (패딩/폰트 축소) */
-    .data-table th { font-size:10.5px; color:var(--text-muted); font-weight:600; text-align:center; padding:9px 8px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
-    .data-table td { font-size:12.5px; padding:9px 8px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
+    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:center; padding:9px 8px; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table td { font-size:13px; padding:9px 8px; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
     .sku-cell { font-size:11px !important; letter-spacing:-0.2px; }
     /* 전체 편집 모드 인라인 입력폼 */
-    .pe-input { width:100%; min-width:120px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:12.5px; color:var(--text); outline:none; }
+    .pe-input { width:100%; min-width:120px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:13px; color:var(--text); outline:none; }
     .pe-input:focus { border-color:var(--accent); }
     .pe-input.pe-num { min-width:80px; max-width:112px; text-align:right; -moz-appearance:textfield; appearance:textfield; }
     .pe-input.pe-num::-webkit-outer-spin-button, .pe-input.pe-num::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
@@ -64,7 +64,7 @@
     .pe-input.pe-invalid { border-color:var(--red, #dc2626); }
     /* 편집 모드에서는 입력창이 있는 칸 아무 곳이나 클릭해도 수정 시작 */
     #productBody td:has(.pe-input) { cursor:text; }
-    .action-cell button { padding:4px 7px !important; font-size:11.5px !important; }
+    .action-cell button { padding:4px 7px !important; font-size:12px !important; }
     .data-table td.text-wrap { white-space:normal; word-break:keep-all; overflow-wrap:break-word; }
     /* 제품명/카테고리 최소 폭 — 좁은 해상도에서 한 글자씩 세로로 깨지는 대신 표가 가로 스크롤되도록 */
     #panel-products .data-table th:nth-child(3), #panel-products .data-table td:nth-child(3) { min-width:170px; }
@@ -75,7 +75,7 @@
     .data-table tr:hover td { background:var(--surface2); }
     .empty-row { text-align:center; padding:40px !important; color:var(--text-muted); font-size:13px; }
 
-    .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-in { background:#1a2a1a; color:#7ac87a; } .badge-out { background:#2a1a1a; color:#c87a7a; }
     .badge-adjust { background:#1a1a2a; color:#8ab4c8; } .badge-return { background:#2a2010; color:var(--accent); }
     .badge-low { background:#2a1a1a; color:#c87a7a; } .badge-ok { background:#1a2a1a; color:#7ac87a; }
@@ -135,7 +135,7 @@
     .cat-children .cat-children { padding-left:24px; }
     .cat-depth { color:var(--text-muted); font-size:11px; }
     .cat-kind { display:inline-flex; gap:0; }
-    .cat-kind span { font-size:10.5px; border:1px solid var(--border); color:var(--text-muted); padding:1px 7px; cursor:pointer; user-select:none; }
+    .cat-kind span { font-size:11px; border:1px solid var(--border); color:var(--text-muted); padding:1px 7px; cursor:pointer; user-select:none; }
     .cat-kind .cat-svc { border-radius:4px 0 0 4px; border-right:none; }
     .cat-kind .cat-prod { border-radius:0 4px 4px 0; }
     .cat-kind .cat-svc.on { border-color:var(--accent); color:var(--accent); background:rgba(46,108,181,0.08); font-weight:700; }
@@ -181,11 +181,11 @@
     .mob-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
     .mob-card-top { display:flex; gap:10px; align-items:flex-start; }
     .mob-card-top input[type="checkbox"] { width:17px; height:17px; margin-top:2px; accent-color:var(--accent); flex-shrink:0; }
-    .mob-card-title { font-weight:700; font-size:13.5px; line-height:1.45; word-break:break-all; }
-    .mob-card-sub { color:var(--text-muted); font-size:11.5px; margin-top:4px; }
-    .mob-card-line { font-size:12.5px; margin-top:7px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+    .mob-card-title { font-weight:700; font-size:14px; line-height:1.45; word-break:break-all; }
+    .mob-card-sub { color:var(--text-muted); font-size:12px; margin-top:4px; }
+    .mob-card-line { font-size:13px; margin-top:7px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
     .mob-card-actions { display:flex; gap:6px; margin-top:11px; }
-    .mob-card-actions button { flex:1; padding:8px 0; font-size:12.5px; }
+    .mob-card-actions button { flex:1; padding:8px 0; font-size:13px; }
     [data-theme="light"] .mob-card { border-color:#c8ccd4; }
     /* 중간 해상도 — 주문 내역 비핵심 열(품목·결제완료·주문일)을 접어 버튼이 가로스크롤로
        밀리지 않게 (견적서 목록과 동일 방식). 세트 구성 그리드도 줄바꿈 가능한 flex로 전환 */
@@ -220,7 +220,7 @@
         #orderCard .data-table, #orderCard tbody { display:block; min-width:0 !important; }
         #orderCard thead { display:none; }
         #orderCard tr { display:flex; flex-wrap:wrap; align-items:center; row-gap:5px; }
-        #orderCard td { display:block; border-bottom:none; padding:1px 4px 1px 0 !important; white-space:normal !important; font-size:12.5px; }
+        #orderCard td { display:block; border-bottom:none; padding:1px 4px 1px 0 !important; white-space:normal !important; font-size:13px; }
         #orderCard td:empty { display:none; }
         #orderCard td.empty-row { flex-basis:100%; text-align:center; padding:16px 4px !important; }
         #orderCard tr:hover td { background:none; }
@@ -228,7 +228,7 @@
         #orderCard tr[onclick*="toggleOrderGroup"] { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin:10px 0 4px; }
         #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(1) { flex-basis:100%; }
         #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(2) { flex-basis:100%; font-size:15px; }
-        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(n+3):not(.action-cell) { font-size:11.5px; }
+        #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(n+3):not(.action-cell) { font-size:12px; }
         #orderCard tr[onclick*="toggleOrderGroup"] td:nth-child(n+4):not(.action-cell)::before { content:"· "; }
         #orderCard tr[onclick*="toggleOrderGroup"] td.action-cell { flex-basis:100%; margin-top:4px; }
         #orderCard .action-cell { display:flex; gap:6px; }
@@ -242,7 +242,7 @@
         #orderCard td[colspan="6"] .oi-memo { flex:1 1 100% !important; }
         #orderCard td[colspan="6"] label { margin-right:auto; }
         #orderCard td[colspan="6"] .oi-refamt { width:110px !important; }
-        #orderCard td[colspan="6"] .btn-outline { padding:8px 18px; font-size:12.5px; }
+        #orderCard td[colspan="6"] .btn-outline { padding:8px 18px; font-size:13px; }
         /* 펼친 상세 행 = 카드 아래 이어지는 패널 */
         #orderCard tr:not([onclick*="toggleOrderGroup"]):not(:first-child) { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0 0 4px; }
         #orderCard tr[data-oik] td:nth-child(2), #orderCard tr td.text-wrap { flex-basis:100%; font-weight:600; }
@@ -291,7 +291,7 @@
                 <option value="gte">N개 이상</option>
                 <option value="lte">N개 이하</option>
             </select>
-            <input type="number" id="stockFilterVal" min="0" placeholder="N" style="display:none; width:74px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:12.5px; text-align:right;" oninput="prodPage=1;saveStockFilter();loadProducts()">
+            <input type="number" id="stockFilterVal" min="0" placeholder="N" style="display:none; width:74px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font-size:13px; text-align:right;" oninput="prodPage=1;saveStockFilter();loadProducts()">
             <button class="btn-outline" id="groupOnlyBtn" onclick="toggleGroupOnly()" title="옵션 그룹으로 묶인 제품만 표시">옵션 그룹만</button>
             <select id="prodPerPage" onchange="setProdPerPage(this.value)" title="페이지당 표시 개수">
                 <option value="10">10개씩</option>
@@ -299,9 +299,9 @@
                 <option value="50">50개씩</option>
                 <option value="100">100개씩</option>
             </select>
-            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-muted);white-space:nowrap;">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--text-muted);white-space:nowrap;">
                 ⚠ 마진 경고 기준
-                <input type="number" id="marginWarnInput" min="0" max="99" value="{{ $marginWarnPercent }}" style="width:54px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12.5px;text-align:right;">
+                <input type="number" id="marginWarnInput" min="0" max="99" value="{{ $marginWarnPercent }}" style="width:54px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;text-align:right;">
                 %
                 <button class="btn-outline btn-sm" onclick="saveMarginWarn()">저장</button>
             </span>
@@ -365,7 +365,7 @@
                 <button class="btn-outline" id="ordViewCards" onclick="setOrderView('cards')" style="border-radius:8px 0 0 8px;">카드</button>
                 <button class="btn-outline" id="ordViewSheet" onclick="setOrderView('sheet')" style="border-radius:0 8px 8px 0; border-left:none;" title="주문 대기 항목을 제품 단위 한 줄씩 — 당일 주문 처리용 시트">주문 시트</button>
             </span>
-            <input id="ordSearch" class="field-input" placeholder="제품명·의뢰자·구매처·주문명 검색" style="width:230px; padding:7px 10px; font-size:12.5px;" oninput="orderSearchChanged()">
+            <input id="ordSearch" class="field-input" placeholder="제품명·의뢰자·구매처·주문명 검색" style="width:230px; padding:7px 10px; font-size:13px;" oninput="orderSearchChanged()">
             <span style="display:flex; align-items:center; gap:4px;">
                 <input type="date" id="ordFrom" class="field-input" style="padding:6px 8px; font-size:12px;" onchange="orderSearchChanged(true)" title="기간 시작일 (결제완료일/주문일 기준)">
                 <span class="text-muted">~</span>
@@ -436,7 +436,7 @@
         <div class="field-group">
             <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
                 <input type="checkbox" id="pIsBundle" onchange="onBundleToggle()" style="accent-color:var(--accent); width:15px; height:15px; cursor:pointer;">
-                세트 상품 <span style="color:var(--text-muted);font-size:11.5px;">(자체 재고 없음 — 출고 시 구성품 재고를 함께 소진)</span>
+                세트 상품 <span style="color:var(--text-muted);font-size:12px;">(자체 재고 없음 — 출고 시 구성품 재고를 함께 소진)</span>
             </label>
         </div>
         <div class="field-group" id="bundleSection" style="display:none; border:1px dashed var(--border); border-radius:8px; padding:10px 12px;">
@@ -447,7 +447,7 @@
                 <select class="field-select" id="bundleAddSelect" style="flex:1; min-width:0;"><option value="">구성품 선택…</option></select>
                 <button type="button" class="btn-outline btn-sm" onclick="addBundleRow()">+ 추가</button>
             </div>
-            <div id="bundleSum" style="font-size:11.5px; color:var(--text-muted); margin-top:8px;"></div>
+            <div id="bundleSum" style="font-size:12px; color:var(--text-muted); margin-top:8px;"></div>
         </div>
         <div class="field-row">
             <div class="field-group">
@@ -462,17 +462,17 @@
         <div class="field-group" id="discountBox" style="border:1.5px dashed var(--border); border-radius:8px; padding:10px 12px; transition:border-color 0.15s, background 0.15s;">
             <label style="display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; cursor:pointer;">
                 <input type="checkbox" id="pDiscountOn" onchange="toggleDiscountFields()" style="accent-color:var(--red, #c03838); width:15px; height:15px; cursor:pointer;">
-                기간 할인 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 할인가로 판매되고, 견적서에 담을 때 '할인'으로 자동 표시</span>
+                기간 할인 <span style="font-weight:400; color:var(--text-muted); font-size:12px;">— 할인가로 판매되고, 견적서에 담을 때 '할인'으로 자동 표시</span>
             </label>
             <div id="discountFields" style="display:none; margin-top:10px;">
                 <input class="field-input" id="pDiscount" type="number" min="0" placeholder="할인액 (원)" oninput="updateDiscountHint()">
                 <div class="field-row" style="margin-top:8px;">
                     <div class="field-group" style="margin:0;">
-                        <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 시작 (비우면 즉시)</div>
+                        <div class="field-label" style="font-weight:400; font-size:12px;">할인 시작 (비우면 즉시)</div>
                         <input class="field-input" id="pDiscountStart" type="datetime-local" onchange="updateDiscountHint()">
                     </div>
                     <div class="field-group" style="margin:0;">
-                        <div class="field-label" style="font-weight:400; font-size:11.5px;">할인 종료 (비우면 계속)</div>
+                        <div class="field-label" style="font-weight:400; font-size:12px;">할인 종료 (비우면 계속)</div>
                         <input class="field-input" id="pDiscountEnd" type="datetime-local" onchange="updateDiscountHint()">
                     </div>
                 </div>
@@ -500,7 +500,7 @@
             </div>
         </div>
         <div class="field-group">
-            <div class="field-label">매출 분류 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 통계의 세팅비/장비판매 구분. 기본은 카테고리의 '서비스' 설정을 따릅니다</span></div>
+            <div class="field-label">매출 분류 <span style="font-weight:400; color:var(--text-muted); font-size:12px;">— 통계의 세팅비/장비판매 구분. 기본은 카테고리의 '서비스' 설정을 따릅니다</span></div>
             <select class="field-input" id="pServiceKind">
                 <option value="">카테고리 따름</option>
                 <option value="product">제품 (장비판매)</option>
@@ -512,7 +512,7 @@
             <input class="field-input" id="pMemo">
         </div>
         <div class="field-group">
-            <div class="field-label">검색 태그 <span style="font-weight:400; color:var(--text-muted); font-size:11.5px;">— 화면에는 표시되지 않고 검색에만 사용 (쉼표 구분, 예: 야마하, yamaha, 오디오믹서)</span></div>
+            <div class="field-label">검색 태그 <span style="font-weight:400; color:var(--text-muted); font-size:12px;">— 화면에는 표시되지 않고 검색에만 사용 (쉼표 구분, 예: 야마하, yamaha, 오디오믹서)</span></div>
             <input class="field-input" id="pSearchTags" placeholder="야마하, yamaha">
         </div>
         <div class="field-group">
@@ -523,7 +523,7 @@
                 </label>
                 <input class="field-input" id="pTimeRequired" placeholder="기본 소요시간 (예: 2시간)" style="flex:1; display:none;">
             </div>
-            <div style="font-weight:400; color:var(--text-muted); font-size:11.5px; margin-top:4px;">체크한 제품만 견적서에서 소요시간 입력폼이 표시됩니다</div>
+            <div style="font-weight:400; color:var(--text-muted); font-size:12px; margin-top:4px;">체크한 제품만 견적서에서 소요시간 입력폼이 표시됩니다</div>
         </div>
         <div class="field-group">
             <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
@@ -607,7 +607,7 @@
         <div class="field-group">
             <div class="field-label">구성 제품별 옵션명 *</div>
             <div id="gItems" style="display:flex; flex-direction:column; gap:6px;"></div>
-            <div id="gItemsNote" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.</div>
+            <div id="gItemsNote" style="font-size:12px; color:var(--text-muted); margin-top:6px;">재고·가격·입출고는 지금처럼 제품(옵션)별로 관리되고, 견적서에서는 그룹 하나로 표시돼 옵션을 골라 추가합니다.</div>
         </div>
         <div class="field-group">
             <div class="field-label">제품 검색해서 추가</div>
@@ -1215,7 +1215,7 @@ async function loadDiscountLogs() {
         <td class="text-right">${fmt(l.sale_price)}</td>
         <td class="text-right">${l.action !== 'clear' ? fmt(l.discount_amount) : '-'}</td>
         <td class="text-right">${l.action !== 'clear' ? `<b style="color:var(--red, #c03838);">${fmt(l.discounted_price)}</b>` : '-'}</td>
-        <td class="text-muted" style="font-size:11.5px;">${l.action === 'clear' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}${l.expired ? ' <span style="font-size:10.5px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0 5px;" title="할인 기간이 지나 자동 종료된 기간 할인 이력">기간 종료</span>' : ''}</td>
+        <td class="text-muted" style="font-size:12px;">${l.action === 'clear' ? '-' : (!l.starts_at && !l.ends_at ? '상시' : `${l.starts_at || ''} ~ ${l.ends_at || '계속'}`)}${l.expired ? ' <span style="font-size:11px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0 5px;" title="할인 기간이 지나 자동 종료된 기간 할인 이력">기간 종료</span>' : ''}</td>
         <td class="text-muted">${_esc(l.user_name || (l.action === 'expire' ? '자동' : '-'))}</td>
     </tr>`).join('');
 }
@@ -1539,9 +1539,9 @@ function updateProdBulkBar() {
 let __editGroupId = null; // null=새 그룹 만들기, 값 있으면 해당 그룹 수정
 function _groupItemRow(p, optVal, extra = '') {
     return `<div style="display:flex; align-items:center; gap:8px;" data-grow="${p.id}">
-        <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span>${extra}</span>
-        <input class="field-input g-opt" data-id="${p.id}" value="${_esc(optVal || '')}" placeholder="옵션명 (예: 블랙)" style="width:150px; padding:7px 10px; font-size:12.5px;">
-        <label style="display:inline-flex; align-items:center; gap:3px; font-size:11.5px; color:var(--text-muted); white-space:nowrap; cursor:pointer;" title="체크하면 이 제품을 그룹에서 뺍니다 (제품·재고는 유지)">
+        <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span>${extra}</span>
+        <input class="field-input g-opt" data-id="${p.id}" value="${_esc(optVal || '')}" placeholder="옵션명 (예: 블랙)" style="width:150px; padding:7px 10px; font-size:13px;">
+        <label style="display:inline-flex; align-items:center; gap:3px; font-size:12px; color:var(--text-muted); white-space:nowrap; cursor:pointer;" title="체크하면 이 제품을 그룹에서 뺍니다 (제품·재고는 유지)">
             <input type="checkbox" class="g-del">제외</label>
     </div>`;
 }
@@ -1578,7 +1578,7 @@ async function openGroupEditModal(groupId) {
     document.getElementById('gName').value = members[0]?.group?.name || '';
     document.getElementById('gItems').innerHTML =
         members.map(p => _groupItemRow(p, p.option_name)).join('') +
-        additions.map(p => _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:10px;">추가</span>')).join('');
+        additions.map(p => _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:11px;">추가</span>')).join('');
     resetGroupSearch();
     openModal('groupModal');
 }
@@ -1608,14 +1608,14 @@ async function runGroupSearch() {
         __gSearchCache[p.id] = p;
         let action;
         if (inModal.has(p.id)) {
-            action = '<span class="text-muted" style="font-size:11.5px; white-space:nowrap;">구성에 있음</span>';
+            action = '<span class="text-muted" style="font-size:12px; white-space:nowrap;">구성에 있음</span>';
         } else if (p.group_id && p.group_id !== __editGroupId) {
-            action = `<span class="text-muted" style="font-size:11.5px; white-space:nowrap;" title="먼저 해당 그룹에서 제외해야 합니다">다른 그룹: ${_esc(p.group?.name || '')}</span>`;
+            action = `<span class="text-muted" style="font-size:12px; white-space:nowrap;" title="먼저 해당 그룹에서 제외해야 합니다">다른 그룹: ${_esc(p.group?.name || '')}</span>`;
         } else {
             action = `<button class="btn-outline btn-sm" onclick="addGroupCandidate(${p.id})">추가</button>`;
         }
         return `<div style="display:flex; align-items:center; gap:8px; padding:4px 2px;">
-            <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span></span>
+            <span class="text-muted" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;">${_esc(p.name)} <span style="opacity:0.7;">(${_esc(p.sku)})</span></span>
             ${action}
         </div>`;
     }).join('') || '<div class="text-muted" style="font-size:12px; padding:4px 2px;">검색 결과가 없습니다.</div>';
@@ -1624,7 +1624,7 @@ function addGroupCandidate(id) {
     const p = __gSearchCache[id];
     if (!p || document.querySelector(`#gItems [data-grow="${id}"]`)) return;
     document.getElementById('gItems').insertAdjacentHTML('beforeend',
-        _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:10px;">추가</span>'));
+        _groupItemRow(p, '', ' <span class="badge badge-ok" style="font-size:11px;">추가</span>'));
     runGroupSearch(); // 방금 넣은 제품을 '구성에 있음'으로 갱신
 }
 async function saveProductGroup() {
@@ -1783,7 +1783,7 @@ function saleCellHtml(p) {
     const amt = activeDiscount(p);
     if (!amt) return fmt(p.sale_price);
     const until = p.discount_ends_at ? ` · ${toLocalDT(p.discount_ends_at).replace('T',' ')}까지` : '';
-    return `<span style="text-decoration:line-through; color:var(--text-muted); font-size:11px;">${fmt(p.sale_price)}</span> <b style="color:var(--red, #dc2626);">${fmt(Math.max(0, Number(p.sale_price) - amt))}</b> <span style="font-size:10px; color:var(--red, #dc2626); border:1px solid currentColor; border-radius:3px; padding:0 4px; white-space:nowrap;" title="기간 할인 ${fmt(amt)}원${until}">할인</span>`;
+    return `<span style="text-decoration:line-through; color:var(--text-muted); font-size:11px;">${fmt(p.sale_price)}</span> <b style="color:var(--red, #dc2626);">${fmt(Math.max(0, Number(p.sale_price) - amt))}</b> <span style="font-size:11px; color:var(--red, #dc2626); border:1px solid currentColor; border-radius:3px; padding:0 4px; white-space:nowrap;" title="기간 할인 ${fmt(amt)}원${until}">할인</span>`;
 }
 // 지금 적용 중인 할인액 — 서버 Product::activeDiscountAmount()와 동일 규칙
 function activeDiscount(p) {
@@ -1815,7 +1815,7 @@ function updateDiscountHint() {
     const rate = Math.round(Math.min(amt, sale) / sale * 100);
     const end = document.getElementById('pDiscountEnd').value;
     const expired = end && new Date(end).getTime() < Date.now();
-    el.innerHTML = `할인가 <b style="color:var(--red, #c03838); font-size:13.5px;">${fmt(final)}원</b> <span style="color:var(--text-muted);">(${fmt(Math.min(amt, sale))}원 할인 · 약 ${rate}%)</span>`
+    el.innerHTML = `할인가 <b style="color:var(--red, #c03838); font-size:14px;">${fmt(final)}원</b> <span style="color:var(--text-muted);">(${fmt(Math.min(amt, sale))}원 할인 · 약 ${rate}%)</span>`
         + (expired ? ' <span style="font-size:11px; font-weight:700; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 6px;">기간 종료 — 현재 미적용</span>' : '');
 }
 
@@ -2244,7 +2244,7 @@ function renderOrders() {
         const gd = o.group_date || (o.updated_at || '').slice(0, 10);
         if (gd !== lastDate) {
             lastDate = gd;
-            out += `<tr class="ord-date-row"><td colspan="9" style="background:var(--surface); border-top:2px solid var(--border); padding:9px 12px; font-weight:800; font-size:12.5px; color:var(--slate);">📅 ${ordDateLabel(gd)} <span style="font-weight:600; color:var(--text-muted);">· ${dateCounts[gd]}건</span></td></tr>`;
+            out += `<tr class="ord-date-row"><td colspan="9" style="background:var(--surface); border-top:2px solid var(--border); padding:9px 12px; font-weight:800; font-size:13px; color:var(--slate);">📅 ${ordDateLabel(gd)} <span style="font-weight:600; color:var(--text-muted);">· ${dateCounts[gd]}건</span></td></tr>`;
         }
         out += renderOrderCard(o);
     }
@@ -2323,7 +2323,7 @@ function renderOrderCard(o) {
                        ${stockChip(it.stock, it.qty, it.stock_buildable)}`}
                        <input class="oi-amt field-input" type="number" min="0" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:118px; text-align:right; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="${it.default_amount ? fmt(it.default_amount) : '구매 금액'}" title="구매 금액 (비우면 미기록 — 흐린 값은 매입가×수량 참고치)" value="${it.amount ?? ''}" onclick="event.stopPropagation()">
                        ${isBundleItem
-                         ? `<span class="text-muted" style="font-size:11.5px; flex:1; min-width:80px;" title="세트 항목의 구매처/메모/환불은 아래 세트 구성에서 구성품별로 처리합니다 — 구성품이 전부 환불되면 세트도 자동 취소됩니다">구매처·메모·환불은 세트 구성에서 ↓${it.refunded ? ` <span class="badge badge-low" style="font-size:10px;">환불${it.refund_amount ? ' ' + fmt(it.refund_amount) + '원' : ''}</span>` : ''}</span>`
+                         ? `<span class="text-muted" style="font-size:12px; flex:1; min-width:80px;" title="세트 항목의 구매처/메모/환불은 아래 세트 구성에서 구성품별로 처리합니다 — 구성품이 전부 환불되면 세트도 자동 취소됩니다">구매처·메모·환불은 세트 구성에서 ↓${it.refunded ? ` <span class="badge badge-low" style="font-size:11px;">환불${it.refund_amount ? ' ' + fmt(it.refund_amount) + '원' : ''}</span>` : ''}</span>`
                          : `<input class="oi-src field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; width:130px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="구매처" maxlength="100" value="${_esc(it.purchase_source)}" onclick="event.stopPropagation()">
                        <input class="oi-memo field-input" ${itemOrdered ? '' : 'disabled'} style="padding:6px 9px; font-size:12px; flex:1; min-width:80px; ${itemOrdered ? '' : 'opacity:0.4;'}" placeholder="메모" maxlength="500" value="${_esc(it.memo)}" onclick="event.stopPropagation()">
                        <label style="display:${itemOrdered ? 'inline-flex' : 'none'}; align-items:center; gap:4px; font-size:12px; white-space:nowrap; cursor:pointer;" title="환불/결제취소 수동 체크 — 프로젝트에서 환불 처리하면 자동으로 표시됩니다" onclick="event.stopPropagation()">
@@ -2343,29 +2343,29 @@ function renderOrderCard(o) {
                             const bRef = b.refund_qty>0||b.refund_amount>0;
                             const ordBadge = (b.ordered
                                 ? (b.source === '사무실 발송'
-                                    ? ' <span class="badge badge-direct" style="font-size:10px;" title="사무실에서 직접 발송">직접발송</span>'
-                                    : ' <span class="badge badge-ok" style="font-size:10px;" title="구성품 주문완료">주문완료</span>')
+                                    ? ' <span class="badge badge-direct" style="font-size:11px;" title="사무실에서 직접 발송">직접발송</span>'
+                                    : ' <span class="badge badge-ok" style="font-size:11px;" title="구성품 주문완료">주문완료</span>')
                                 : '')
-                                + (b.ordered && b.ordered_at ? ` <span style="font-size:10.5px; color:var(--text-muted); white-space:nowrap;" title="주문완료 처리 시각 ${_esc(b.ordered_at)}">${_esc(b.ordered_at.slice(5))}</span>` : '');
+                                + (b.ordered && b.ordered_at ? ` <span style="font-size:11px; color:var(--text-muted); white-space:nowrap;" title="주문완료 처리 시각 ${_esc(b.ordered_at)}">${_esc(b.ordered_at.slice(5))}</span>` : '');
                             const refBadge = bRef ? ` <span style="color:var(--red, #dc2626); font-weight:700; white-space:nowrap;">환불 ${b.refund_qty>0?b.refund_qty+'개':''}${b.refund_amount?` ${fmt(b.refund_amount)}원`:''}</span>` : '';
                             // 미주문 구성품 — 이름 옆 소형 주문완료/직발 버튼 (구성품 단위 처리)
                             const bOrdBtns = o.type === 'estimate' && !b.ordered
-                                ? ` <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px;" onclick="event.stopPropagation(); markBundleOrdered(${o.id}, ${it.index}, ${bi}, false, this)" title="구성품 주문완료 처리">주문완료</button>
-                                    <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px;" onclick="event.stopPropagation(); markBundleOrdered(${o.id}, ${it.index}, ${bi}, true, this)" title="사무실 재고로 직접 발송 — 재고 차감">직발</button> ${stockChip(b.stock, b.qty)}`
+                                ? ` <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="event.stopPropagation(); markBundleOrdered(${o.id}, ${it.index}, ${bi}, false, this)" title="구성품 주문완료 처리">주문완료</button>
+                                    <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="event.stopPropagation(); markBundleOrdered(${o.id}, ${it.index}, ${bi}, true, this)" title="사무실 재고로 직접 발송 — 재고 차감">직발</button> ${stockChip(b.stock, b.qty)}`
                                 : o.type === 'estimate' && b.ordered
-                                ? ` <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px; color:var(--red, #dc2626); border-color:var(--red, #dc2626);" onclick="event.stopPropagation(); cancelBundleOrdered(${o.id}, ${it.index}, ${bi}, ${b.source === '사무실 발송'}, this)" title="구성품 주문완료를 취소하고 미주문으로 되돌립니다${b.source === '사무실 발송' ? ' — 직접발송으로 차감된 재고는 복원됩니다' : ''}">취소</button>`
+                                ? ` <button class="btn-outline btn-sm" style="padding:2px 8px; font-size:11px; color:var(--red, #dc2626); border-color:var(--red, #dc2626);" onclick="event.stopPropagation(); cancelBundleOrdered(${o.id}, ${it.index}, ${bi}, ${b.source === '사무실 발송'}, this)" title="구성품 주문완료를 취소하고 미주문으로 되돌립니다${b.source === '사무실 발송' ? ' — 직접발송으로 차감된 재고는 복원됩니다' : ''}">취소</button>`
                                 : '';
                             const nameCell = `<div style="min-width:0; white-space:normal; word-break:break-word;">└ ${_esc(b.name)} <span class="text-muted" style="white-space:nowrap;">×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}</span>${ordBadge}${refBadge}${bOrdBtns}</div>`;
                             if (o.type !== 'estimate') {
                                 return `<div data-brow style="padding:2px 0;">${nameCell}</div>`;
                             }
                             // 열 구성: 이름 | 구매처 | 메모 | 환불체크 | 수량 | 환불액 | 저장 (수량·환불액은 체크 시에만 활성)
-                            const inp = 'padding:4px 7px; font-size:11.5px; width:100%; box-sizing:border-box;';
+                            const inp = 'padding:4px 7px; font-size:12px; width:100%; box-sizing:border-box;';
                             return `<div data-brow="${o.id}:${it.index}:${bi}" style="display:grid; grid-template-columns:${bGridCols}; gap:4px 8px; align-items:center; padding:2px 0;">
                                 ${nameCell}
                                 <input class="ob-src field-input" value="${_esc(b.source)}" placeholder="구매처" maxlength="100" style="${inp}" title="구성품 구매처 — 직접발송이면 '사무실 발송'" onclick="event.stopPropagation()">
                                 <input class="ob-memo field-input" value="${_esc(b.memo)}" placeholder="메모" maxlength="500" style="${inp}" title="구성품별 주문 메모" onclick="event.stopPropagation()">
-                                <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; white-space:nowrap; font-size:11.5px;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
+                                <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; white-space:nowrap; font-size:12px;" title="구성품 단위 환불/결제취소 수동 체크 — 프로젝트에서 환불 처리해도 자동 표시됩니다" onclick="event.stopPropagation()">
                                     <input type="checkbox" class="ob-ref" ${bRef?'checked':''} onchange="const r=this.closest('[data-brow]'); r.querySelectorAll('.ob-qty,.ob-amt').forEach(x=>{x.disabled=!this.checked; x.style.opacity=this.checked?'':'0.35';})">환불</label>
                                 <input class="ob-qty field-input" type="number" min="1" max="${b.qty}" value="${b.refund_qty||b.qty}" ${bRef?'':'disabled'} style="${inp} text-align:right; ${bRef?'':'opacity:0.35;'}" title="환불 수량 (총 ${b.qty}개)" onclick="event.stopPropagation()">
                                 <input class="ob-amt field-input" type="number" min="0" value="${bRef&&b.refund_amount?b.refund_amount:''}" ${bRef?'':'disabled'} placeholder="${b.price?fmt(b.price*(b.refund_qty||b.qty)):'환불액'}" style="${inp} text-align:right; ${bRef?'':'opacity:0.35;'}" title="환불 금액 (비우면 단가×수량으로 자동 계산)" onclick="event.stopPropagation()">
@@ -2377,12 +2377,12 @@ function renderOrderCard(o) {
                     ? ` <span class="badge badge-low" title="환불/결제취소됨">환불${it.refund_amount ? ` ${fmt(it.refund_amount)}원` : ''}</span>` : '';
                 // 제품 관리의 메모 (판매처 등) — 제품명 아래 작게
                 const prodMemo = it.product_memo
-                    ? `<div class="text-muted" style="font-size:11.5px; margin-top:3px; white-space:pre-line;">${_esc(it.product_memo)}</div>` : '';
+                    ? `<div class="text-muted" style="font-size:12px; margin-top:3px; white-space:pre-line;">${_esc(it.product_memo)}</div>` : '';
                 const itemOrdAt = o.type === 'estimate' && it.ordered && it.ordered_at
                     ? ` <span class="text-muted" style="font-size:11px; white-space:nowrap;" title="주문완료 처리 시각 ${_esc(it.ordered_at)}">주문 ${_esc(it.ordered_at.slice(5))}</span>` : '';
                 return `<tr style="background:var(--surface2);" ${o.type==='estimate'?`data-oik="${o.id}:${it.index}"`:''}>
                     <td></td>
-                    <td style="padding-left:26px;" class="text-wrap"><span style="${it.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${_esc(it.name)}</span>${o.type === 'estimate' && it.manual ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}${refundBadge}${itemOrdAt}${prodMemo}</td>
+                    <td style="padding-left:26px;" class="text-wrap"><span style="${it.replaced ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${_esc(it.name)}</span>${o.type === 'estimate' && it.manual ? ' <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}${refundBadge}${itemOrdAt}${prodMemo}</td>
                     <td class="text-muted">${it.qty}개</td>
                     ${noteCells}
                 </tr>${bundleRow}`;
@@ -2463,7 +2463,7 @@ function renderOrderSheet() {
         const key = `${r.estId}:${r.index}${r.bi !== null ? ':' + r.bi : ''}`;
         out += `<tr style="${r.done ? 'opacity:0.55;' : ''}" data-osrow="${key}">
             <td class="text-muted" style="white-space:nowrap;">${(r.date || '').slice(5)}</td>
-            <td class="text-wrap">${_esc(r.name)}${r.manual ? ' <span style="font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}</td>
+            <td class="text-wrap">${_esc(r.name)}${r.manual ? ' <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;" title="수기 입력 항목 — 제품 관리에 등록되지 않은 일회성 품목">수기</span>' : ''}</td>
             <td class="text-muted" style="white-space:nowrap;">${r.qty}개${r.done ? '' : ' ' + stockChip(r.stock, r.qty, r.buildable)}</td>
             <td class="text-muted text-wrap">${_esc(r.client || '-')} · <a href="javascript:void(0)" onclick="window.open('/estimates/${r.estId}/edit','est_${r.estId}')" style="color:var(--accent); text-decoration:none;">#${r.no}</a></td>
             <td>${r.done

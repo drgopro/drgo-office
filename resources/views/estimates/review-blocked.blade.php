@@ -9,7 +9,7 @@
     .box { background:#fff; border:1px solid #dfe3e9; border-radius:12px; padding:36px 40px; max-width:460px; text-align:center; box-shadow:0 2px 10px rgba(20,30,40,.08); }
     h2 { margin:0 0 10px; font-size:19px; }
     p { margin:0 0 20px; font-size:14px; color:#66727f; line-height:1.6; }
-    a { display:inline-block; background:#1d2d3d; color:#fff; text-decoration:none; border-radius:8px; padding:9px 18px; font-size:13.5px; font-weight:700; }
+    a { display:inline-block; background:#1d2d3d; color:#fff; text-decoration:none; border-radius:8px; padding:9px 18px; font-size:14px; font-weight:700; }
 </style>
 </head>
 <body>

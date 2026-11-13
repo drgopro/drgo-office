@@ -14,7 +14,7 @@
     .sidebar-search { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
     .sidebar-search:focus { border-color:var(--accent); }
     .sidebar-filters { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
-    .filter-chip { padding:3px 8px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:none; color:var(--text-muted); transition:all 0.12s; }
+    .filter-chip { padding:3px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:none; color:var(--text-muted); transition:all 0.12s; }
     .filter-chip.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     .filter-chip:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
 
@@ -27,7 +27,7 @@
     .sidebar-pagination button.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     [data-theme="light"] .sidebar-pagination button.active { color:#fff; }
     .sidebar-pagination button:disabled { opacity:0.35; cursor:default; }
-    .sidebar-pagination .pg-info { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
+    .sidebar-pagination .pg-info { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
     .sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all 0.12s; position:relative; }
     .sidebar-item:hover { background:var(--surface2); }
     .sidebar-item.active { background:var(--surface2); border-left:3px solid var(--accent); }
@@ -35,8 +35,8 @@
     .sidebar-item .item-info { flex:1; min-width:0; }
     .sidebar-item .item-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sidebar-item .item-sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sidebar-item .item-grade { font-size:10px; padding:3px 8px; border-radius:10px; font-weight:700; flex-shrink:0; letter-spacing:0.05em; border:1px solid; }
-    .grade-normal { background:rgba(160,168,180,0.15); color:#a0a8b4; border-color:rgba(160,168,180,0.4); }
+    .sidebar-item .item-grade { font-size:11px; padding:3px 8px; border-radius:10px; font-weight:700; flex-shrink:0; letter-spacing:0.05em; border:1px solid; }
+    .grade-normal { background:rgba(160,168,180,0.15); color:#5f6676; border-color:rgba(160,168,180,0.4); }
     .grade-vip { background:rgba(212,188,150,0.18); color:#d4bc96; border-color:rgba(212,188,150,0.5); }
     .grade-rental { background:rgba(138,180,200,0.18); color:#8ab4c8; border-color:rgba(138,180,200,0.5); }
     [data-theme="light"] .grade-normal { background:#eceef2; color:#5a6070; border-color:#b8bcc8; }
@@ -61,8 +61,8 @@
     .client-tab:hover { color:var(--text); background:var(--surface2); }
     .client-tab.active { color:var(--accent); background:var(--surface2); border-color:var(--border); font-weight:600; position:relative; }
     .client-tab.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface2); }
-    .client-tab .ct-avatar { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; border:1px solid var(--border); }
-    .client-tab .ct-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:9px; opacity:0; transition:opacity 0.1s; }
+    .client-tab .ct-avatar { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; border:1px solid var(--border); }
+    .client-tab .ct-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:11px; opacity:0; transition:opacity 0.1s; }
     .client-tab:hover .ct-close { opacity:0.5; }
     .client-tab .ct-close:hover { opacity:1; background:var(--border); }
     .client-tab.ct-dragging { opacity:0.4; cursor:grabbing; }
@@ -103,10 +103,10 @@
     .cp-dot { position:relative; z-index:1; width:11px; height:11px; margin:0 auto 4px; border-radius:50%; background:var(--surface); border:2px solid var(--border); box-sizing:border-box; }
     .cp-step.on .cp-dot { background:var(--accent); border-color:var(--accent); }
     .cp-step.cur .cp-dot { box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-    .cp-name { font-size:10px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
+    .cp-name { font-size:11px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
     .cp-step.on .cp-name { color:var(--text); }
     .cp-step.cur .cp-name { color:var(--accent); }
-    .cp-date { font-size:9.5px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+    .cp-date { font-size:11px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
     .sub-tab:hover { color:var(--text); }
     .sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
     .sub-panel { display:none; }
@@ -159,7 +159,7 @@
     .ncm-btn.primary:hover { opacity:0.9; color:var(--accent-text); }
     .ncm-btn.icon { width:34px; padding:0; font-size:15px; }
     .ncm-hero { margin-top:10px; width:100%; border:none; outline:none; font-size:24px; font-weight:800; color:var(--text); background:transparent; padding:0; box-sizing:border-box; font-family:inherit; }
-    .ncm-hero::placeholder { color:var(--text-muted); opacity:0.55; font-weight:700; }
+    .ncm-hero::placeholder { color:#6b7180; opacity:1; font-weight:700; }
     .ncm-pills { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
     .ncm-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border:1px dashed var(--border); border-radius:999px; font-size:12px; color:var(--text-muted); }
     .ncm-pill select { border:none; background:transparent; color:var(--text); font-size:12px; font-weight:600; outline:none; cursor:pointer; font-family:inherit; }
@@ -182,8 +182,8 @@
     /* 03 장비 — 자동 연동 안내 (읽기 전용) */
     .ncm-equip { border-style:dashed; }
     .ncm-equip .ncm-card-head { margin-bottom:0; }
-    .ncm-badge { padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:10.5px; font-weight:700; }
-    .ncm-equip-note { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px 16px; background:var(--surface2); border-radius:10px; font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+    .ncm-badge { padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
+    .ncm-equip-note { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px 16px; background:var(--surface2); border-radius:10px; font-size:13px; color:var(--text-muted); line-height:1.5; }
     .ncm-equip-note b { color:var(--text); }
     .ncm-equip-ico { width:34px; height:34px; border-radius:10px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:15px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
     /* 사이드바 */
@@ -196,12 +196,12 @@
     .ncm-bar { height:6px; background:var(--surface2); border-radius:99px; margin-top:10px; overflow:hidden; }
     .ncm-bar div { width:0; height:100%; background:var(--accent); border-radius:99px; transition:width .2s; }
     .ncm-secs { display:flex; flex-direction:column; gap:2px; margin-top:14px; }
-    .ncm-sec-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; font-size:12.5px; color:var(--text); }
+    .ncm-sec-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; font-size:13px; color:var(--text); }
     .ncm-sec-row.done { background:var(--surface2); font-weight:600; }
     .ncm-sec-no { font-size:11px; font-weight:700; color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
-    .ncm-sec-row.done .ncm-sec-no { width:18px; height:18px; border-radius:50%; background:var(--accent); color:var(--accent-text); font-size:10px; display:inline-flex; align-items:center; justify-content:center; }
+    .ncm-sec-row.done .ncm-sec-no { width:18px; height:18px; border-radius:50%; background:var(--accent); color:var(--accent-text); font-size:11px; display:inline-flex; align-items:center; justify-content:center; }
     .ncm-sec-cnt { margin-left:auto; font-size:11px; color:var(--text-muted); }
-    .ncm-req { padding:4px 10px; border:1px solid color-mix(in srgb, var(--red) 45%, transparent); background:color-mix(in srgb, var(--red) 10%, transparent); border-radius:999px; font-size:11.5px; color:var(--red); }
+    .ncm-req { padding:4px 10px; border:1px solid color-mix(in srgb, var(--red) 45%, transparent); background:color-mix(in srgb, var(--red) 10%, transparent); border-radius:999px; font-size:12px; color:var(--red); }
     .ncm-req-done { font-size:12px; color:var(--green, #3fae54); font-weight:600; }
     /* 관계자·메모 섹션 — 위 정보 입력 본문 컬럼과 가로폭 일치 (사이드 236px + gap 20px 제외) */
     .info-narrow { max-width:calc(100% - 256px); }
@@ -225,7 +225,7 @@
     [data-theme="light"] .sidebar-item { color:var(--text); }
     [data-theme="light"] .sidebar-item:hover { background:var(--surface2); }
     [data-theme="light"] .sidebar-item.active { background:var(--accent); color:#fff; }
-    [data-theme="light"] .sidebar-item.active .item-sub { color:rgba(255,255,255,0.8); }
+    [data-theme="light"] .sidebar-item.active .item-sub { color:#dfe6f5; }
     [data-theme="light"] .sidebar-item.active .avatar { color:#fff !important; border-color:rgba(255,255,255,0.5) !important; }
     [data-theme="light"] .client-tab.active { background:var(--surface2); border-color:var(--border); }
     [data-theme="light"] .sub-tab { color:var(--text-muted); }
@@ -247,7 +247,7 @@
     .cv-rt { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; color:var(--text); }
     .cv-bar { width:4px; height:16px; background:var(--accent); border-radius:2px; flex-shrink:0; }
     .cv-rd { font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.5; padding-left:13px; }
-    .cv-badge { padding:3px 10px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:10.5px; font-weight:700; }
+    .cv-badge { padding:3px 10px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
     .cv-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:36px; row-gap:16px; }
     .cv-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; column-gap:30px; row-gap:14px; }
     .cv-l { font-size:12px; color:var(--text-muted); font-weight:600; }
@@ -259,22 +259,22 @@
     .cv-bizdoc-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
     .cv-bizdoc-thumb .pdf { color:var(--red); }
     .cv-bizdoc-name { font-size:11px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .cv-bizdoc-meta { font-size:10px; color:var(--text-muted); display:flex; justify-content:space-between; gap:6px; }
-    .cv-bizdoc-meta a, .cv-bizdoc-meta button { font-size:10px; color:var(--accent); text-decoration:none; background:none; border:0; padding:0; cursor:pointer; font-family:inherit; }
+    .cv-bizdoc-meta { font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; gap:6px; }
+    .cv-bizdoc-meta a, .cv-bizdoc-meta button { font-size:11px; color:var(--accent); text-decoration:none; background:none; border:0; padding:0; cursor:pointer; font-family:inherit; }
     .cv-bizdoc-meta button.del { color:var(--red); }
     .cv-bizdoc-add { width:132px; height:96px; border:1px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; background:transparent; transition:border-color .12s, color .12s; }
     .cv-bizdoc-add:hover { border-color:var(--accent); color:var(--accent); }
     .cv-bizdoc-add.busy { opacity:.6; pointer-events:none; }
     .cv-bizdoc-add input { display:none; }
-    .cv-v { font-size:14.5px; color:var(--text); margin-top:4px; font-weight:500; word-break:break-word; white-space:pre-wrap; }
-    .cv-v.dim { color:var(--text-muted); opacity:0.55; font-weight:400; }
+    .cv-v { font-size:15px; color:var(--text); margin-top:4px; font-weight:500; word-break:break-word; white-space:pre-wrap; }
+    .cv-v.dim { color:var(--text-muted); font-weight:400; }
     .cv-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-    .cv-chip { padding:5px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text); font-size:12.5px; }
+    .cv-chip { padding:5px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text); font-size:13px; }
     .cv-chip.fill { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
     .cv-chip.cv-plat { display:inline-flex; align-items:center; gap:6px; font-weight:600; padding:4px 12px 4px 6px; }
     .cv-chip.cv-plat img { width:18px; height:18px; border-radius:5px; }
     .cv-eqwrap { display:flex; flex-direction:column; gap:18px; }
-    .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11.5px; font-weight:700; margin-bottom:10px; }
+    .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:12px; font-weight:700; margin-bottom:10px; }
     .cv-eqlink { font-size:13px; font-weight:600; color:var(--accent); text-decoration:none; }
     .cv-eqtabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
     .cv-eqtab { padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; }
@@ -1004,7 +1004,7 @@ function renderClientList() {
         return `<div class="sidebar-item ${active}" onclick="openClient(${c.id})">
             <div class="item-info" style="flex:1;min-width:0;">
                 <div class="item-name">${_esc(displayName)}</div>
-                <div class="item-sub">${_esc(sub) || '<span style="opacity:0.5;">플랫폼 없음</span>'}</div>
+                <div class="item-sub">${_esc(sub) || '<span>플랫폼 없음</span>'}</div>
             </div>
             <span class="item-grade grade-${c.grade}">${GRADE_LABELS[c.grade]||''}</span>
         </div>`;
@@ -1462,10 +1462,10 @@ function renderProjectList(projects, clientId, order) {
                     <div style="font-size:11px; color:var(--text-muted);">${_esc([TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · '))}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
-                    <button style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); drgoWriteMode.open('/projects/${p.id}/write','project-${p.id}')" title="이 프로젝트를 작성 모드(독립 창)로 열기">↗ 작성 모드</button>
-                    ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
-                    ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
+                    <span style="font-size:11px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
+                    <button style="padding:3px 8px; font-size:11px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); drgoWriteMode.open('/projects/${p.id}/write','project-${p.id}')" title="이 프로젝트를 작성 모드(독립 창)로 열기">↗ 작성 모드</button>
+                    ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:11px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
+                    ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:11px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
                 </div>
             </div>
             ${projectStepsHtml(p)}
@@ -1501,12 +1501,12 @@ function renderDocList(docs, clientId) {
         const thumbContent = isImg
             ? `<img src="${doc.thumb_url||doc.view_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async">`
             : isVid ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:14px;">▶</div>`
-            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:10px;font-weight:600;color:var(--text-muted);">${ext}</div>`;
+            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:11px;font-weight:600;color:var(--text-muted);">${ext}</div>`;
         return `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
             <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; flex-shrink:0; cursor:pointer; border:1px solid var(--border);" onclick="openAlbumViewer(${clientId},${i})">${thumbContent}</div>
             <div style="flex:1; min-width:0;">
                 <div style="font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${_esc(doc.file_name)}">${_esc(doc.file_name)}</div>
-                <div style="font-size:10px; color:var(--text-muted);">${doc.note ? _esc(doc.note) + ' · ' : ''}${doc.created_at}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${doc.note ? _esc(doc.note) + ' · ' : ''}${doc.created_at}</div>
             </div>
             <div style="display:flex; gap:6px; flex-shrink:0;">
                 <a href="${doc.download_url}" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--accent); text-decoration:none; transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">다운로드</a>
@@ -1550,7 +1550,7 @@ function renderEstimateList(estimates, clientId) {
             </div>
             <div style="display:flex; gap:6px;">
                 <button onclick="window.open('${e.print_url}','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--text); cursor:pointer;">보기</button>
-                ${isPaid ? '<span style="padding:4px 10px; font-size:11px; color:var(--text-muted); opacity:0.5;">결제완료</span>' : `<button onclick="window.open('${e.edit_url}','_blank')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">편집</button>`}
+                ${isPaid ? '<span style="padding:4px 10px; font-size:11px; color:var(--text-muted);">결제완료</span>' : `<button onclick="window.open('${e.edit_url}','_blank')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">편집</button>`}
             </div>
         </div>`;
     }).join('');
@@ -1776,17 +1776,17 @@ function renderFilePreview(clientId) {
         } else if (VID_TYPES.includes(f.type)) {
             thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:16px;">▶</div>`;
         } else if (f.type === 'application/pdf') {
-            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:10px;font-weight:700;color:var(--red);">PDF</div>`;
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:11px;font-weight:700;color:var(--red);">PDF</div>`;
         } else {
             const ext = f.name.split('.').pop().toUpperCase();
-            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:10px;color:var(--text-muted);">${ext}</div>`;
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:11px;color:var(--text-muted);">${ext}</div>`;
         }
 
         return `<div style="width:80px; position:relative;">
             <div style="width:80px; height:80px; border:1px solid var(--border); border-radius:6px; overflow:hidden;">${thumbContent}</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</div>
-            <div style="font-size:9px; color:var(--text-muted);">${formatFileSize(f.size)}</div>
-            <button onclick="removeFile(${clientId},${i})" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${formatFileSize(f.size)}</div>
+            <button onclick="removeFile(${clientId},${i})" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>`;
     }).join('');
 }
@@ -1987,7 +1987,7 @@ async function loadClientSchedules(clientId, force = false) {
             onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg); flex-shrink:0;"></span>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:10px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
+                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:11px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + _esc(sc.location) : ''}</div>
             </div>
             <span style="font-size:11px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
@@ -2187,7 +2187,7 @@ function showDupClientDialog(existing, onConfirm) {
                 <div style="font-weight:700;">${label}</div>
                 <div style="color:var(--text-muted);">${_esc(existing.phone || '')}</div>
             </div>
-            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
             <div style="display:flex; gap:8px; justify-content:flex-end;">
                 <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer;">등록 취소</button>
                 <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">추가등록</button>
@@ -2265,7 +2265,7 @@ async function ctSearch() {
             ${u.linked_client ? '' : `onclick='ctPick(${JSON.stringify(u).replace(/'/g, "&#39;")})'`}>
             <div style="flex:1; min-width:0;">
                 <div style="font-size:13px; font-weight:600;">${_esc(u.name || '(이름 없음)')}</div>
-                <div style="font-size:11.5px; color:var(--text-muted);">${_esc(u.mobile || '-')}${u.email ? ' · ' + _esc(u.email) : ''}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${_esc(u.mobile || '-')}${u.email ? ' · ' + _esc(u.email) : ''}</div>
             </div>
             ${u.linked_client
                 ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;" title="이미 이 채널톡 고객과 연동된 의뢰자가 있습니다">연동됨: ${_esc(u.linked_client.label || '')}</span>`
@@ -2415,14 +2415,14 @@ async function createClient(forceDuplicate = false) {
 // ── 메모 스레드 ──
 function renderMemoItem(m, clientId) {
     return `<div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="memo-item-${m.id}">
-        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--accent); flex-shrink:0;">${(m.user_name||'?').substring(0,1)}</div>
+        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0;">${(m.user_name||'?').substring(0,1)}</div>
         <div style="flex:1; min-width:0;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <span style="font-size:12px; font-weight:600;">${_esc(m.user_name)}</span>
-                    <span style="font-size:10px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
+                    <span style="font-size:11px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
                 </div>
-                ${CAN_CLIENT_EDIT ? `<button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:10px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>` : ''}
+                ${CAN_CLIENT_EDIT ? `<button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; opacity:0.85;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.85;this.style.color='var(--text-muted)'">삭제</button>` : ''}
             </div>
             <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${_esc(m.content)}</div>
         </div>
@@ -2612,7 +2612,7 @@ function cvBizDocsHtml(d, bizDocs) {
         </div>`;
     }).join('');
     const add = CAN_DOC_EDIT
-        ? `<label class="cv-bizdoc-add" id="bizdoc-add-${d.id}"><span style="font-size:18px; line-height:1;">+</span><span>${bizDocs.length ? '추가 첨부' : '사업자등록증 첨부'}</span><span style="font-size:10px; font-weight:400;">이미지 · PDF</span><input type="file" accept="image/*,application/pdf" multiple onchange="bizDocUpload(${d.id}, this)"></label>`
+        ? `<label class="cv-bizdoc-add" id="bizdoc-add-${d.id}"><span style="font-size:18px; line-height:1;">+</span><span>${bizDocs.length ? '추가 첨부' : '사업자등록증 첨부'}</span><span style="font-size:11px; font-weight:400;">이미지 · PDF</span><input type="file" accept="image/*,application/pdf" multiple onchange="bizDocUpload(${d.id}, this)"></label>`
         : (bizDocs.length ? '' : '<div class="cv-v dim">—</div>');
     return `<div class="cv-bizdocs">${cards}${add}</div>`;
 }
@@ -2788,9 +2788,9 @@ function renderEquipmentSummary(latest) {
             </div>`;
         }).join('');
         return `<div style="background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:10px 12px;">
-            <div style="font-size:10px; font-weight:700; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+            <div style="font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
                 <span style="font-size:14px;">${icon}</span>${escText(subLabel)}
-                <span style="margin-left:auto; font-weight:400; color:var(--text-muted); font-size:10px;">${fields.length}개</span>
+                <span style="margin-left:auto; font-weight:400; color:var(--text-muted); font-size:11px;">${fields.length}개</span>
             </div>
             ${rows}
         </div>`;
@@ -2852,7 +2852,7 @@ function renderCustomFields(customData, clientId, skipEquipment) {
             value = value.value; // has_quantity 끈 뒤 잔존 객체
         }
         const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
-        const help = f.help_text ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
+        const help = f.help_text ? `<div style="font-size:11px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
         const inputId = `cf-${clientId}-${f.key}`;
         const placeholder = escAttr(f.placeholder || '');
         const w = resolveWidth(f);

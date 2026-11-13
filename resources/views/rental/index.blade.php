@@ -17,7 +17,7 @@
     .comp-add-btn svg { width:12px; height:12px; stroke:currentColor; stroke-width:2.5; fill:none; stroke-linecap:round; }
     .comp-del-btn { flex-shrink:0; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:none; border-radius:50%; background:none; color:var(--text-muted); font-size:15px; cursor:pointer; transition:all 0.15s; }
     .comp-del-btn:hover { background:rgba(212,110,110,0.14); color:var(--red); }
-    .comp-recover-btn { flex-shrink:0; padding:5px 11px; border:none; border-radius:999px; background:rgba(212,110,110,0.12); color:var(--red); font-size:11.5px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+    .comp-recover-btn { flex-shrink:0; padding:5px 11px; border:none; border-radius:999px; background:rgba(212,110,110,0.12); color:var(--red); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; }
     .comp-recover-btn:hover { background:rgba(212,110,110,0.24); }
     .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
@@ -66,17 +66,17 @@
     .board-wrap { max-height:calc(100vh - 280px); min-height:420px; overflow:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; -webkit-overflow-scrolling:touch; position:relative; }
     .eq-board { display:grid; min-width:max-content; border-collapse:collapse; }
     .eq-cell-base { border-right:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; transition:background .12s; }
-    .eq-corner { position:sticky; top:0; left:0; z-index:6; background:var(--surface2); padding:10px 12px; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); text-align:left; justify-content:flex-start; }
+    .eq-corner { position:sticky; top:0; left:0; z-index:6; background:var(--surface2); padding:10px 12px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); text-align:left; justify-content:flex-start; }
     .eq-col-header { position:sticky; top:0; z-index:5; background:var(--surface2); padding:10px 8px; font-size:12px; font-weight:600; color:var(--text); cursor:pointer; min-height:56px; flex-direction:column; gap:3px; text-align:center; }
     .eq-col-header:hover { background:var(--surface); }
     .eq-col-header .ch-name { font-size:13px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-    .eq-col-header .ch-sub { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .eq-col-header .ch-sub { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
     .eq-col-header.empty { color:var(--text-muted); font-style:italic; font-weight:400; }
     .eq-col-header.empty:hover { color:var(--accent); }
     .eq-row-header { position:sticky; left:0; z-index:4; background:var(--surface2); padding:10px 12px; font-size:13px; color:var(--text); cursor:pointer; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; min-height:54px; }
     .eq-row-header:hover { background:var(--surface); }
     .eq-row-header .rh-name { font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-    .eq-row-header .rh-serial { font-family:"SF Mono",Menlo,monospace; font-size:10px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+    .eq-row-header .rh-serial { font-family:"SF Mono",Menlo,monospace; font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
     .eq-row-header.empty { color:var(--text-muted); font-style:italic; font-weight:400; }
     .eq-row-header.empty:hover { color:var(--accent); }
     .eq-matrix-cell { cursor:pointer; min-height:54px; position:relative; }
@@ -106,7 +106,7 @@
     .eq-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:12px; line-height:1.5; }
     .eq-log-head-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
     .eq-log-user { font-weight:700; color:var(--accent); font-size:12px; }
-    .eq-log-time { font-size:10px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .eq-log-time { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
     .eq-log-action { color:var(--text-muted); }
     .eq-log-action strong { color:var(--text); font-weight:600; }
 
@@ -382,7 +382,7 @@
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <button type="button" class="btn-cancel btn-sm" onclick="cmSetAll(true)">전체선택</button>
             <button type="button" class="btn-cancel btn-sm" onclick="cmSetAll(false)">전체선택 해제</button>
-            <span class="text-muted" style="font-size:11.5px; align-self:center;">체크한 구성품만 함께 이동합니다</span>
+            <span class="text-muted" style="font-size:12px; align-self:center;">체크한 구성품만 함께 이동합니다</span>
         </div>
         <div id="cmList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;"></div>
         <div class="modal-actions">
@@ -701,7 +701,7 @@ function openCompMoveModal(itemId, targetId, isReturn, memo) {
     const dest = destId ? bdState.targets.find(t=>t.id===destId) : null;
     document.getElementById('cmInfo').innerHTML = `
         <b>${bdEsc(item?.name||'')}</b> → <span style="color:var(--accent);font-weight:600;">${dest?bdEsc(dest.name):(isReturn?'반납':'미지정')}</span>
-        <div class="text-muted" style="font-size:11.5px;">함께 이동하는 구성품을 확인하세요. 체크하지 않은 구성품은 ${isReturn?'현재':'이전'} 위치에 남은 것으로 기록됩니다.</div>`;
+        <div class="text-muted" style="font-size:12px;">함께 이동하는 구성품을 확인하세요. 체크하지 않은 구성품은 ${isReturn?'현재':'이전'} 위치에 남은 것으로 기록됩니다.</div>`;
     document.getElementById('cmList').innerHTML = comps.map((c, i) => {
         const leftAt = c.left_target_id ? bdState.targets.find(t=>t.id===c.left_target_id) : null;
         // 이전 이동에서 남겨진 구성품 — Red 하이라이트 + 마지막 위치 표시, 기본 체크 해제

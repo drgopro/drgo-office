@@ -12,7 +12,7 @@
         .login-box { width: 360px; padding: 40px; background: #1a1a1a; border-radius: 16px; border: 1px solid #2a2a2a; }
         .logo { text-align: center; margin-bottom: 32px; }
         .logo h1 { font-size: 18px; font-weight: 700; color: #c8b08a; letter-spacing: 0.1em; }
-        .logo p { font-size: 12px; color: #666; margin-top: 4px; }
+        .logo p { font-size: 12px; color: #8f8f8f; margin-top: 4px; }
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
         input { width: 100%; padding: 10px 14px; background: #111; border: 1px solid #333; border-radius: 8px; color: #f0e8d8; font-size: 14px; outline: none; transition: border-color 0.2s; }
