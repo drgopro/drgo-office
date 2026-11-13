@@ -7,6 +7,7 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductBundleItem;
 use App\Models\ProductCategory;
+use App\Models\Setting;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,6 +25,8 @@ class BundleProductTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // 검토 게이트 비활성 — 이 테스트는 인쇄/공개 화면 렌더링을 검증한다 (게이트는 EstimateReviewGateTest가 담당)
+        Setting::set('estimate_review.config', json_encode(['gate' => false]));
         $this->master = User::factory()->create(['role' => 'master']);
         $this->cat = ProductCategory::create(['name' => '방송장비', 'code' => 'BC', 'depth' => 1, 'sort_order' => 1]);
     }

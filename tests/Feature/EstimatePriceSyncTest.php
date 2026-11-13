@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Estimate;
 use App\Models\Product;
 use App\Models\ProductBundleItem;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,6 +25,8 @@ class EstimatePriceSyncTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // 검토 게이트 비활성 — 이 테스트는 인쇄/공개 화면 렌더링을 검증한다 (게이트는 EstimateReviewGateTest가 담당)
+        Setting::set('estimate_review.config', json_encode(['gate' => false]));
         $this->admin = User::factory()->create(['role' => 'master']);
         $this->product = Product::create([
             'sku' => 'CAM-100', 'name' => 'EOS R50', 'category' => '비디오',

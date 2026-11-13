@@ -37,6 +37,6 @@ class ProjectRequestItemsTest extends TestCase
         $member = User::factory()->create(['role' => 'member']);
 
         $this->actingAs($member)->getJson("/api/projects/{$project->id}/request-items")
-            ->assertOk()->assertExactJson(['req_items' => []]);
+            ->assertOk()->assertExactJson(['req_items' => [], 'client_req_note' => '']);
     }
 }

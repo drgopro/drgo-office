@@ -111,7 +111,7 @@ class CalendarDesignV2Test extends TestCase
             ->assertSee('chip.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);', false)
             ->assertSee('if(card)openEventPopover(ev,chip); else openDetailModal(ev);', false)
             // 연일(다일) 바도 2행 카드 — 제목 오버레이가 카드 레이아웃을 그리고 바 높이를 셀 칩과 맞춤
-            ->assertSee("ov.className='mday-title-overlay'+(ev.completed_at?' is-completed':'')+(card?' chip-card':'');", false)
+            ->assertSee("ov.className='mday-title-overlay color-'+ev.color+(ev.completed_at?' is-completed':'')+(card?' chip-card':'')+(isTentativeEv(ev)?' is-tentative':'');", false)
             ->assertSee('ov.innerHTML=card?buildChipCardHtml(ev):buildChipHtml(ev);', false)
             // 담당자 여럿: 카드 전체 hover 툴팁
             ->assertSee("if(card){ const sn=assigneeNamesOf(ev); if(sn.length>1){ chip.dataset.anames=sn.join('|');", false);

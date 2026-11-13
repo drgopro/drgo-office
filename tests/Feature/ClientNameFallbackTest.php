@@ -26,15 +26,22 @@ class ClientNameFallbackTest extends TestCase
     public function test_client_show_page_falls_back_to_nickname(): void
     {
         $client = $this->nicknameOnlyClient();
+        $admin = $this->admin();
 
-        $res = $this->actingAs($this->admin())->get("/clients/{$client->id}");
+        // 구 상세 페이지는 기준 화면(의뢰자 목록의 상세 탭)으로 리다이렉트
+        $this->actingAs($admin)->get("/clients/{$client->id}")
+            ->assertRedirect('/clients?open='.$client->id);
 
-        $res->assertOk();
-        $this->assertStringContainsString(
-            '<div class="client-name">고블린</div>',
-            $res->getContent(),
-            '이름이 없으면 닉네임을 대표 이름으로 표시'
-        );
+        // 상세 데이터는 이름 없이 닉네임만 내려옴
+        $this->actingAs($admin)->getJson("/api/clients/{$client->id}/detail")
+            ->assertOk()
+            ->assertJsonPath('name', null)
+            ->assertJsonPath('nickname', '고블린');
+
+        // 기준 화면은 이름이 없으면 닉네임을 대표 이름으로 표시
+        $this->actingAs($admin)->get('/clients')
+            ->assertOk()
+            ->assertSee("_esc(d.nickname || d.name || '(이름 없음)')", false);
     }
 
     public function test_projects_index_falls_back_to_nickname(): void

@@ -65,6 +65,6 @@ class WikiBackNavigationTest extends TestCase
 
         $this->actingAs($user)->delete("/wiki/{$wiki->id}")
             ->assertRedirect('/wiki?cat='.$cat->id);
-        $this->assertDatabaseMissing('wikis', ['id' => $wiki->id]);
+        $this->assertSoftDeleted('wikis', ['id' => $wiki->id]);
     }
 }

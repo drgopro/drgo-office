@@ -69,6 +69,6 @@ class WikiBackLinkTest extends TestCase
 
         $this->actingAs($this->admin)->delete("/wiki/{$wiki->id}", ['back' => 'type=update'])
             ->assertRedirect(route('wiki.index', ['type' => 'update']));
-        $this->assertDatabaseMissing('wikis', ['id' => $wiki->id]);
+        $this->assertSoftDeleted('wikis', ['id' => $wiki->id]);
     }
 }

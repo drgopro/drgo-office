@@ -46,15 +46,15 @@ class ClientRegisterRedesignTest extends TestCase
 
     public function test_create_page_shows_etc_inputs_for_platform_and_topic(): void
     {
-        // 등록 페이지(/clients/create)에도 플랫폼·방송 주제 '기타' 수기입력 칸 제공
+        // 등록 페이지(/clients/create)는 기준 화면의 등록 모달로 통합 — 모달에도 플랫폼·방송 주제 '기타' 수기입력 칸 제공
         $user = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($user)->get('/clients/create')->assertOk()
-            ->assertSee('platformEtcWrap', false)
-            ->assertSee('name="platform_etc"', false)
-            ->assertSee('topicEtcWrap', false)
-            ->assertSee('name="topic_etc"', false)
-            ->assertSee('toggleFormEtc', false);
+        $this->actingAs($user)->get('/clients/create')->assertRedirect('/clients?new=1');
+
+        $this->actingAs($user)->get('/clients?new=1')->assertOk()
+            ->assertSee("renderCheckboxGroup('platforms', 'nc', PLATFORM_OPTIONS, [], '')", false)
+            ->assertSee("renderCheckboxGroup('topics', 'nc', TOPIC_OPTIONS, [], '')", false)
+            ->assertSee('function toggleEtcInput(group, id)', false);
     }
 
     public function test_detail_view_renders_readonly_layout_with_edit_toggle(): void
