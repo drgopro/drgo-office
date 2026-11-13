@@ -5,28 +5,28 @@
 @push('styles')
 <style>
     .wiki-wrap { padding:24px; max-width:900px; margin:0 auto; }
-    .wiki-back { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .wiki-back { color:var(--text-muted); text-decoration:none; font-size:14px; }
     .wiki-back:hover { color:var(--text); }
     .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-    .field-label { font-size:11px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
-    .field-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; box-sizing:border-box; }
+    .field-label { font-size:12px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
+    .field-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:15px; outline:none; width:100%; box-sizing:border-box; }
     .field-input:focus { border-color:var(--accent); }
 
     .tiptap-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); }
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
-    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
     .tiptap-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     [data-theme="light"] .tiptap-toolbar button.is-active { color:#fff; }
     .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
-    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
-    .ProseMirror { padding:20px 24px; min-height:400px; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
+    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:12px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
+    .ProseMirror { padding:20px 24px; min-height:400px; outline:none; font-size:15px; line-height:1.85; color:var(--text); }
     .ProseMirror p { margin:0 0 10px; }
     .ProseMirror h1 { font-size:24px; font-weight:700; margin:20px 0 10px; }
     .ProseMirror h2 { font-size:20px; font-weight:700; margin:16px 0 8px; }
     .ProseMirror h3 { font-size:16px; font-weight:600; margin:14px 0 6px; }
     .ProseMirror ul, .ProseMirror ol { margin:0 0 10px; padding-left:24px; }
-    .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:13px; }
+    .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:14px; }
     .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
     .ProseMirror pre code { background:none; padding:0; }
     .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
@@ -42,34 +42,34 @@
     /* 선택 영역 색상 팝업 */
     .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
     .fmt-bubble.show { display:flex; }
-    .fmt-bubble .fb-label { font-size:11px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-label { font-size:12px; color:var(--text-muted); margin:0 2px; }
     .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
-    .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+    .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
     .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
     .fmt-bubble .fb-h { width:22px; height:22px; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
-    .fmt-bubble .fb-reset { background:var(--surface2); color:var(--text-muted); font-weight:600; font-size:11px; }
+    .fmt-bubble .fb-reset { background:var(--surface2); color:var(--text-muted); font-weight:600; font-size:12px; }
     /* 본문 하이라이트 표시 */
     .ProseMirror mark { border-radius:3px; padding:0 2px; }
     .slash-menu.visible { display:block; }
-    .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); transition:background 0.1s; }
+    .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:14px; color:var(--text); transition:background 0.1s; }
     .slash-item:hover, .slash-item.selected { background:var(--surface2); }
-    .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+    .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
     .slash-label { font-weight:500; }
-    .slash-desc { font-size:11px; color:var(--text-muted); }
+    .slash-desc { font-size:12px; color:var(--text-muted); }
 
     /* 템플릿 메뉴 */
     .tpl-menu { display:none; position:absolute; right:0; top:calc(100% + 6px); width:300px; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:900; overflow:hidden; }
     .tpl-menu.open { display:block; }
     .tpl-list { max-height:280px; overflow-y:auto; padding:6px; }
-    .tpl-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:7px; cursor:pointer; font-size:13px; }
+    .tpl-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:7px; cursor:pointer; font-size:14px; }
     .tpl-item:hover { background:var(--surface2); }
     .tpl-item-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .tpl-item-meta { font-size:11px; color:var(--text-muted); flex-shrink:0; }
-    .tpl-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 5px; border-radius:4px; flex-shrink:0; }
+    .tpl-item-meta { font-size:12px; color:var(--text-muted); flex-shrink:0; }
+    .tpl-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:13px; padding:2px 5px; border-radius:4px; flex-shrink:0; }
     .tpl-del:hover { color:#e03131; background:var(--surface2); }
-    .tpl-empty { padding:16px 12px; text-align:center; color:var(--text-muted); font-size:12px; line-height:1.6; }
+    .tpl-empty { padding:16px 12px; text-align:center; color:var(--text-muted); font-size:13px; line-height:1.6; }
     .tpl-foot { border-top:1px solid var(--border); padding:8px; }
-    .tpl-save-btn { width:100%; background:none; border:1px dashed var(--border); color:var(--text-muted); padding:7px 0; border-radius:7px; font-size:12px; cursor:pointer; }
+    .tpl-save-btn { width:100%; background:none; border:1px dashed var(--border); color:var(--text-muted); padding:7px 0; border-radius:7px; font-size:13px; cursor:pointer; }
     .tpl-save-btn:hover { color:var(--text); border-color:var(--accent); }
 </style>
 @endpush
@@ -87,13 +87,13 @@
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 20px;">
         <h1 style="font-size:20px;font-weight:700;margin:0;">새 문서 작성</h1>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);"></span>
-            <button onclick="openDraftModal()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">불러오기</button>
+            <span id="autosaveStatus" style="font-size:13px;color:var(--text-muted);"></span>
+            <button onclick="openDraftModal()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:14px;cursor:pointer;">불러오기</button>
             <div style="position:relative;">
-                <button id="tplBtn" onclick="toggleTplMenu()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;">템플릿</button>
+                <button id="tplBtn" onclick="toggleTplMenu()" style="background:none;border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:14px;cursor:pointer;">템플릿</button>
                 <div id="tplMenu" class="tpl-menu"></div>
             </div>
-            <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">등록</button>
+            <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">등록</button>
         </div>
     </div>
 
@@ -104,7 +104,7 @@
                 <b style="font-size:15px;">임시저장 글 불러오기</b>
                 <button onclick="closeDraftModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
             </div>
-            <div style="font-size:12px;color:var(--text-muted);padding:0 18px 10px;">자동 저장된 초안입니다. 마지막 수정 후 7일이 지나면 자동 삭제됩니다.</div>
+            <div style="font-size:13px;color:var(--text-muted);padding:0 18px 10px;">자동 저장된 초안입니다. 마지막 수정 후 7일이 지나면 자동 삭제됩니다.</div>
             <div id="draftList" style="flex:1;overflow-y:auto;padding:0 12px 14px;"></div>
         </div>
     </div>
@@ -150,7 +150,7 @@
             <div class="field-label">고정</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 0;">
                 <input type="checkbox" id="wikiPinned">
-                <span style="font-size:12px;">📌</span>
+                <span style="font-size:13px;">📌</span>
             </label>
         </div>
     </div>
@@ -160,7 +160,7 @@
         <div class="field-label">열람 권한 <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0;">선택한 팀만 열람 (아무것도 선택하지 않으면 전체 공개)</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;padding:6px 0;">
             @foreach($teams as $t)
-                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;border:1px solid var(--border);border-radius:999px;padding:6px 13px;">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;border:1px solid var(--border);border-radius:999px;padding:6px 13px;">
                     <input type="checkbox" class="wiki-allowed-team" value="{{ $t->id }}">
                     {{ $t->name }}
                 </label>
@@ -185,11 +185,11 @@
             <button onclick="editor.chain().focus().toggleCodeBlock().run()" title="코드 블록">{ }</button>
             <button onclick="editor.chain().focus().setHorizontalRule().run()" title="구분선">—</button>
             <div class="sep"></div>
-            <button onclick="editor.chain().focus().setTextAlign('left').run()" title="좌측 정렬" style="font-size:11px;">≡←</button>
-            <button onclick="editor.chain().focus().setTextAlign('center').run()" title="중앙 정렬" style="font-size:11px;">≡</button>
-            <button onclick="editor.chain().focus().setTextAlign('right').run()" title="우측 정렬" style="font-size:11px;">→≡</button>
+            <button onclick="editor.chain().focus().setTextAlign('left').run()" title="좌측 정렬" style="font-size:12px;">≡←</button>
+            <button onclick="editor.chain().focus().setTextAlign('center').run()" title="중앙 정렬" style="font-size:12px;">≡</button>
+            <button onclick="editor.chain().focus().setTextAlign('right').run()" title="우측 정렬" style="font-size:12px;">→≡</button>
             <div class="sep"></div>
-            <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:13px;">
+            <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:14px;">
                 📎
                 <input type="file" style="display:none;" onchange="uploadAndInsert(this.files[0])">
             </label>
@@ -199,8 +199,8 @@
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
-        <a href="{{ route('wiki.index', $wikiBackParams) }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;text-decoration:none;">취소</a>
-        <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+        <a href="{{ route('wiki.index', $wikiBackParams) }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:14px;text-decoration:none;">취소</a>
+        <button onclick="saveNewWiki()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
     </div>
 </div>
 
@@ -514,19 +514,19 @@ function _escD(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 window.openDraftModal=async function(){
     document.getElementById('draftOverlay').style.display='flex';
     const list=document.getElementById('draftList');
-    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">불러오는 중…</div>';
     const res=await fetch('/api/wiki/drafts',{headers:{'Accept':'application/json'}});
-    if(!res.ok){ list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">목록을 불러오지 못했습니다</div>'; return; }
+    if(!res.ok){ list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">목록을 불러오지 못했습니다</div>'; return; }
     const drafts=await res.json();
-    if(!drafts.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px;">임시저장된 글이 없습니다</div>'; return; }
+    if(!drafts.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">임시저장된 글이 없습니다</div>'; return; }
     list.innerHTML=drafts.map(d=>`
         <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);">
             <div style="flex:1;min-width:0;">
-                <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escD(d.title)||'(제목 없음)'}</div>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">마지막 수정 ${d.updated_at}</div>
+                <div style="font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escD(d.title)||'(제목 없음)'}</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">마지막 수정 ${d.updated_at}</div>
             </div>
-            <button onclick="loadDraft(${d.id})" style="background:var(--accent);color:var(--accent-text);border:none;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">불러오기</button>
-            <button onclick="deleteDraft(${d.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;border-radius:7px;font-size:12px;cursor:pointer;flex-shrink:0;">삭제</button>
+            <button onclick="loadDraft(${d.id})" style="background:var(--accent);color:var(--accent-text);border:none;padding:6px 12px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">불러오기</button>
+            <button onclick="deleteDraft(${d.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;border-radius:7px;font-size:13px;cursor:pointer;flex-shrink:0;">삭제</button>
         </div>`).join('');
 };
 window.closeDraftModal=function(){ document.getElementById('draftOverlay').style.display='none'; };
@@ -570,16 +570,16 @@ window.deleteDraft=async function(id){
         removePopup();activeImg=img;
         img.style.outline='2px solid var(--accent)';img.style.outlineOffset='2px';
         popup=document.createElement('div');
-        popup.style.cssText='position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:12px;';
-        popup.innerHTML=`<span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">크기:</span>
-            <button onclick="imgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">25%</button>
-            <button onclick="imgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">50%</button>
-            <button onclick="imgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">75%</button>
-            <button onclick="imgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">100%</button>
+        popup.style.cssText='position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:13px;';
+        popup.innerHTML=`<span style="color:var(--text-muted);font-size:12px;white-space:nowrap;">크기:</span>
+            <button onclick="imgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">25%</button>
+            <button onclick="imgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">50%</button>
+            <button onclick="imgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">75%</button>
+            <button onclick="imgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">100%</button>
             <span style="color:var(--text-muted);">|</span>
-            <input type="number" id="imgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
-            <span style="color:var(--text-muted);font-size:11px;">px</span>
-            <button onclick="imgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>`;
+            <input type="number" id="imgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:13px;text-align:center;">
+            <span style="color:var(--text-muted);font-size:12px;">px</span>
+            <button onclick="imgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:12px;font-weight:600;cursor:pointer;">적용</button>`;
         document.body.appendChild(popup);
         const rect=img.getBoundingClientRect();
         popup.style.left=Math.max(8,rect.left+(rect.width-popup.offsetWidth)/2)+'px';

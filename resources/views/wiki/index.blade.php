@@ -9,19 +9,19 @@
     /* 좌측 사이드바 */
     .wiki-sidebar { width:240px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
     .wiki-sidebar-header { padding:16px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
-    .wiki-sidebar-title { font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:6px; }
-    .wiki-cat-mtoggle { display:none; align-items:center; gap:5px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; }
-    .wiki-cat-mtoggle .wcm-caret { font-size:11px; color:var(--text-muted); transition:transform .15s; }
+    .wiki-sidebar-title { font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+    .wiki-cat-mtoggle { display:none; align-items:center; gap:5px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 11px; font-size:13px; font-weight:600; cursor:pointer; }
+    .wiki-cat-mtoggle .wcm-caret { font-size:12px; color:var(--text-muted); transition:transform .15s; }
     .wiki-sidebar.cat-open .wiki-cat-mtoggle .wcm-caret { transform:rotate(180deg); }
-    .wiki-sidebar-search { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; width:100%; }
+    .wiki-sidebar-search { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; width:100%; }
     .wiki-sidebar-search:focus { border-color:var(--accent); }
     .wiki-cat-list { flex:1; display:block; overflow-y:auto; padding:6px 0; min-height:0; }
-    .wiki-cat-item { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; font-size:13px; cursor:pointer; color:var(--text-muted); transition:all 0.12s; border-left:3px solid transparent; }
+    .wiki-cat-item { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; font-size:14px; cursor:pointer; color:var(--text-muted); transition:all 0.12s; border-left:3px solid transparent; }
     .wiki-cat-item:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-item.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
-    .wiki-cat-count { font-size:11px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
+    .wiki-cat-count { font-size:12px; background:var(--surface2); color:var(--text-muted); padding:1px 6px; border-radius:10px; min-width:18px; text-align:center; }
     /* 계층 트리 */
-    .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:5px 10px 5px 4px; font-size:13px; line-height:1.3; min-height:0; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
+    .wiki-cat-row { display:flex; align-items:center; gap:4px; padding:5px 10px 5px 4px; font-size:14px; line-height:1.3; min-height:0; cursor:pointer; color:var(--text-muted); border-left:3px solid transparent; transition:all .12s; }
     .wiki-cat-row:hover { color:var(--text); background:var(--surface2); }
     .wiki-cat-row.active { color:var(--accent); background:var(--surface2); border-left-color:var(--accent); font-weight:600; }
     /* 접기/펼치기 캐럿 — 히트 영역을 키우고, 이 영역을 클릭할 때만 접힘 (행 클릭은 필터만) */
@@ -34,20 +34,20 @@
     /* 하위 계층: 중첩 컨테이너마다 들여쓰기 + 점선 가이드 라인 */
     #wikiCatTree .wiki-cat-children { margin-left:16px; border-left:1px dashed var(--border); }
     /* 계층별 타이포: 최상단 굵게·크게 / 하위 보통·작게 */
-    #wikiCatTree .wiki-cat-row { font-size:12px; font-weight:400; }
-    #wikiCatTree .wiki-cat-row.cat-top { font-size:14px; font-weight:700; }
-    .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
+    #wikiCatTree .wiki-cat-row { font-size:13px; font-weight:400; }
+    #wikiCatTree .wiki-cat-row.cat-top { font-size:15px; font-weight:700; }
+    .wiki-cat-edit-btn { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:13px; cursor:pointer; white-space:nowrap; }
     .wiki-cat-edit-btn:hover { border-color:var(--accent); color:var(--accent); }
     .wiki-cat-edit-btn.active { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
     /* 게시물 선택 모드 액션 바 */
     .wiki-selbar { display:none; align-items:center; gap:8px; padding:8px 12px; margin-bottom:10px; border:1px solid var(--accent); border-radius:10px; background:color-mix(in srgb, var(--accent) 8%, transparent); flex-wrap:wrap; }
     .wiki-selbar.open { display:flex; }
-    .wiki-selbar-count { font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; }
-    .wiki-selbar-arrow { color:var(--text-muted); font-size:12px; }
-    .wiki-selbar-target { flex:1; min-width:140px; max-width:280px; padding:6px 10px; font-size:12px; }
-    .wiki-selbar-move { background:var(--accent); color:var(--accent-text); border:none; border-radius:7px; padding:6px 16px; font-size:12px; font-weight:700; cursor:pointer; }
+    .wiki-selbar-count { font-size:13px; font-weight:700; color:var(--accent); white-space:nowrap; }
+    .wiki-selbar-arrow { color:var(--text-muted); font-size:13px; }
+    .wiki-selbar-target { flex:1; min-width:140px; max-width:280px; padding:6px 10px; font-size:13px; }
+    .wiki-selbar-move { background:var(--accent); color:var(--accent-text); border:none; border-radius:7px; padding:6px 16px; font-size:13px; font-weight:700; cursor:pointer; }
     .wiki-selbar-move:disabled { opacity:0.45; cursor:default; }
-    .wiki-selbar-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:12px; cursor:pointer; }
+    .wiki-selbar-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:6px 12px; font-size:13px; cursor:pointer; }
     .wiki-sel-cb { width:15px; height:15px; flex-shrink:0; pointer-events:none; accent-color:var(--accent); }
     .wiki-item.sel-on { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, transparent); }
     /* 카테고리 편집 모달 */
@@ -57,66 +57,66 @@
     .ce-head { display:flex; justify-content:space-between; align-items:center; padding:15px 18px; border-bottom:1px solid var(--border); font-size:15px; font-weight:800; }
     .ce-body { padding:14px 18px; overflow-y:auto; }
     .ce-row { display:flex; align-items:center; gap:6px; padding:5px 0; }
-    .ce-handle { cursor:grab; color:var(--text-muted); font-size:13px; flex-shrink:0; user-select:none; opacity:0.5; }
+    .ce-handle { cursor:grab; color:var(--text-muted); font-size:14px; flex-shrink:0; user-select:none; opacity:0.5; }
     .ce-handle:active { cursor:grabbing; }
     .ce-row:hover .ce-handle { opacity:1; }
-    .ce-row .ce-name { flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .ce-row input.ce-edit { flex:1; padding:5px 8px; border:1px solid var(--accent); border-radius:6px; background:var(--surface2); color:var(--text); font-size:13px; }
-    .ce-mini { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:3px 8px; font-size:11px; cursor:pointer; flex-shrink:0; }
+    .ce-row .ce-name { flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ce-row input.ce-edit { flex:1; padding:5px 8px; border:1px solid var(--accent); border-radius:6px; background:var(--surface2); color:var(--text); font-size:14px; }
+    .ce-mini { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:3px 8px; font-size:12px; cursor:pointer; flex-shrink:0; }
     .ce-mini:hover { border-color:var(--accent); color:var(--accent); }
     .ce-mini.del:hover { border-color:var(--red); color:var(--red); }
     .ce-addtop { display:flex; gap:6px; margin-bottom:12px; }
-    .ce-addtop input { flex:1; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text); font-size:13px; }
+    .ce-addtop input { flex:1; padding:8px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text); font-size:14px; }
     .ce-foot { padding:12px 18px; border-top:1px solid var(--border); text-align:right; }
     .wiki-cat-item.active .wiki-cat-count { background:rgba(var(--accent),0.15); color:var(--accent); }
     .wiki-sidebar-footer { padding:12px 16px; border-top:1px solid var(--border); }
-    .btn-new { background:var(--accent); color:var(--accent-text); border:none; padding:8px 0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
+    .btn-new { background:var(--accent); color:var(--accent-text); border:none; padding:8px 0; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
     [data-theme="light"] .btn-new { color:#fff; }
 
     /* 우측 문서 목록 */
     .wiki-main { flex:1; overflow-y:auto; padding:20px 24px; min-width:0; }
     .wiki-main-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
     .wiki-main-title { font-size:16px; font-weight:700; }
-    .wiki-main-count { font-size:12px; color:var(--text-muted); }
+    .wiki-main-count { font-size:13px; color:var(--text-muted); }
 
     .wiki-list { display:flex; flex-direction:column; gap:6px; }
     .wiki-item { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 16px; cursor:pointer; transition:all 0.12s; }
     .wiki-item:hover { border-color:var(--accent); background:var(--surface2); }
     .wiki-item.pinned { border-left:3px solid var(--accent); }
     .wiki-item-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
-    .wiki-title { font-size:14px; font-weight:600; }
-    .wiki-pin { font-size:11px; color:var(--accent); }
-    .wiki-pin-badge { font-size:11px; padding:2px 7px; border-radius:8px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap; flex-shrink:0; }
-    .wiki-comment-count { font-size:11px; color:var(--accent); font-weight:700; white-space:nowrap; flex-shrink:0; }
-    .wiki-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
-    .wiki-cat-badge { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
-    .wiki-preview { font-size:12px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
-    .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
+    .wiki-title { font-size:15px; font-weight:600; }
+    .wiki-pin { font-size:12px; color:var(--accent); }
+    .wiki-pin-badge { font-size:12px; padding:2px 7px; border-radius:8px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); font-weight:700; border:1px solid var(--accent); white-space:nowrap; flex-shrink:0; }
+    .wiki-comment-count { font-size:12px; color:var(--accent); font-weight:700; white-space:nowrap; flex-shrink:0; }
+    .wiki-meta { font-size:12px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
+    .wiki-cat-badge { font-size:12px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--accent); font-weight:600; }
+    .wiki-preview { font-size:13px; color:var(--text-muted); margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.5; }
+    .empty { text-align:center; padding:40px; color:var(--text-muted); font-size:14px; }
 
     /* 검색 필터 바 — 기본 접힘, [검색] 버튼으로 펼침 */
     .wiki-filter-bar { display:none; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
     .wiki-filter-bar.open { display:flex; }
     /* 검색 토글 버튼 — 배경색으로 강조 */
     /* 게시물 순서 편집 (핸들 드래그 + ▲▼) — 편집 모드·카테고리 뷰·관리자 전용 */
-    .wiki-drag-handle { display:inline-flex; align-items:center; justify-content:center; width:24px; height:26px; margin-right:2px; border-radius:6px; color:var(--text-muted); font-size:14px; cursor:grab; flex-shrink:0; user-select:none; letter-spacing:-1px; }
+    .wiki-drag-handle { display:inline-flex; align-items:center; justify-content:center; width:24px; height:26px; margin-right:2px; border-radius:6px; color:var(--text-muted); font-size:15px; cursor:grab; flex-shrink:0; user-select:none; letter-spacing:-1px; }
     .wiki-drag-handle:hover { background:var(--surface2); color:var(--text); }
     .wiki-drag-handle:active { cursor:grabbing; }
     .wiki-order-btns { display:inline-flex; gap:3px; margin-left:auto; flex-shrink:0; }
-    .wiki-order-btns button { width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:11px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+    .wiki-order-btns button { width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
     .wiki-order-btns button:hover { color:var(--accent); border-color:var(--accent); }
     .wiki-item.wiki-drag-src { opacity:0.45; }
     #wikiFilterToggle { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     #wikiFilterToggle:hover { opacity:0.88; color:var(--accent-text); background:var(--accent); }
     #wikiFilterToggle.wf-toggle-on { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
     #wikiFilterToggle.wf-toggle-on:hover { opacity:1; background:var(--surface2); color:var(--accent); }
-    .wf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
+    .wf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
     .wf-input:focus { border-color:var(--accent); }
     .wf-search { flex:1; min-width:160px; }
-    .wf-tilde { color:var(--text-muted); font-size:12px; }
-    .wf-btn { background:var(--accent); color:var(--accent-text); border:none; padding:7px 16px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; }
-    .wf-reset { color:var(--text-muted); font-size:12px; text-decoration:none; padding:6px 8px; white-space:nowrap; }
+    .wf-tilde { color:var(--text-muted); font-size:13px; }
+    .wf-btn { background:var(--accent); color:var(--accent-text); border:none; padding:7px 16px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; }
+    .wf-reset { color:var(--text-muted); font-size:13px; text-decoration:none; padding:6px 8px; white-space:nowrap; }
     .wf-reset:hover { color:var(--red, #e03131); }
-    .wf-active { font-size:11px; color:var(--text-muted); margin:-4px 0 10px; }
+    .wf-active { font-size:12px; color:var(--text-muted); margin:-4px 0 10px; }
     @media (max-width:768px) { .wf-search { min-width:100%; } }
 
     /* 모달 */
@@ -124,13 +124,13 @@
     .wiki-modal.open { display:flex; }
     .wiki-modal-body { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:700px; max-height:90vh; overflow-y:auto; padding:24px; }
     .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
-    .field-label { font-size:11px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
-    .field-input, .field-textarea { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; width:100%; box-sizing:border-box; }
+    .field-label { font-size:12px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; }
+    .field-input, .field-textarea { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:15px; outline:none; width:100%; box-sizing:border-box; }
     .field-input:focus, .field-textarea:focus { border-color:var(--accent); }
-    .field-textarea { resize:vertical; min-height:300px; line-height:1.7; font-family:monospace; font-size:13px; }
+    .field-textarea { resize:vertical; min-height:300px; line-height:1.7; font-family:monospace; font-size:14px; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
-    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:14px; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-save { color:#fff; }
     .hidden { display:none !important; }
     .wiki-preview-pane h1 { font-size:22px; font-weight:700; margin:16px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--border); }
@@ -138,12 +138,12 @@
     .wiki-preview-pane h3 { font-size:15px; font-weight:600; margin:12px 0 6px; }
     .wiki-preview-pane p { margin:0 0 10px; }
     .wiki-preview-pane ul, .wiki-preview-pane ol { margin:0 0 10px; padding-left:20px; }
-    .wiki-preview-pane code { background:var(--surface); padding:1px 5px; border-radius:3px; font-size:12px; }
-    .wiki-preview-pane pre { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px 14px; overflow-x:auto; margin:8px 0; font-size:12px; }
+    .wiki-preview-pane code { background:var(--surface); padding:1px 5px; border-radius:3px; font-size:13px; }
+    .wiki-preview-pane pre { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px 14px; overflow-x:auto; margin:8px 0; font-size:13px; }
     .wiki-preview-pane pre code { background:none; padding:0; }
     .wiki-preview-pane blockquote { border-left:3px solid var(--accent); margin:8px 0; padding:6px 14px; color:var(--text-muted); background:var(--surface); border-radius:0 6px 6px 0; }
     .wiki-preview-pane table { width:100%; border-collapse:collapse; margin:8px 0; }
-    .wiki-preview-pane th, .wiki-preview-pane td { border:1px solid var(--border); padding:6px 10px; font-size:12px; }
+    .wiki-preview-pane th, .wiki-preview-pane td { border:1px solid var(--border); padding:6px 10px; font-size:13px; }
     .wiki-preview-pane th { background:var(--surface); font-weight:600; }
     .wiki-preview-pane img { max-width:100%; border-radius:6px; }
 
@@ -230,10 +230,10 @@
         <div class="wiki-cat-list" id="wikiCatTree"></div>
         <div class="wiki-sidebar-footer" style="display:flex;flex-direction:column;gap:6px;">
             <a href="{{ route('wiki.create') }}{{ request('cat') ? '?cat='.(int) request('cat') : '' }}" id="wikiNewBtn" class="btn-new" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">+ 새 문서</a>
-            <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')"><x-icon name="gear" :size="13"/> 연결도 에디터</button>
+            <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px;" onclick="window.open('{{ route('wiki.broadcast-editor') }}','broadcast_editor','width=1400,height=900,scrollbars=yes,resizable=yes')"><x-icon name="gear" :size="13"/> 연결도 에디터</button>
             @if(auth()->user()->isAdmin())
-                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;" onclick="genUpdateNoteDraft()">⚡ 업데이트 초안 생성</button>
-                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:12px;" onclick="openWikiTrash()" title="삭제된 게시물 — 복구하거나 영구 삭제할 수 있습니다 (기존 공지사항 게시물도 새 게시판으로 이관 후 여기 보관)">🗑 삭제된 게시물</button>
+                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px;" onclick="genUpdateNoteDraft()">⚡ 업데이트 초안 생성</button>
+                <button class="btn-new" style="background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:13px;" onclick="openWikiTrash()" title="삭제된 게시물 — 복구하거나 영구 삭제할 수 있습니다 (기존 공지사항 게시물도 새 게시판으로 이관 후 여기 보관)">🗑 삭제된 게시물</button>
             @endif
         </div>
     </div>
@@ -343,22 +343,22 @@
                 <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
                     <span>내용 * (마크다운 지원)</span>
                     <div style="display:flex;gap:6px;">
-                        <label style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-muted);">
+                        <label style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;color:var(--text-muted);">
                             <x-icon name="clip" :size="12"/> 파일 첨부
                             <input type="file" id="wikiFileInput" style="display:none;" onchange="uploadWikiFile(this.files[0],'newContent')">
                         </label>
-                        <button type="button" onclick="document.getElementById('previewPane').classList.toggle('hidden');this.textContent=this.textContent==='미리보기'?'미리보기 닫기':'미리보기'" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;background:none;color:var(--text-muted);">미리보기</button>
+                        <button type="button" onclick="document.getElementById('previewPane').classList.toggle('hidden');this.textContent=this.textContent==='미리보기'?'미리보기 닫기':'미리보기'" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:none;color:var(--text-muted);">미리보기</button>
                     </div>
                 </div>
                 <div style="display:flex;gap:12px;">
                     <textarea class="field-textarea" name="content" id="newContent" required placeholder="# 제목&#10;&#10;내용을 입력하세요..." oninput="updatePreview('newContent','previewPane')" style="flex:1;"></textarea>
-                    <div id="previewPane" class="wiki-preview-pane hidden" style="flex:1;min-height:300px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;overflow-y:auto;font-size:14px;line-height:1.85;"></div>
+                    <div id="previewPane" class="wiki-preview-pane hidden" style="flex:1;min-height:300px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;overflow-y:auto;font-size:15px;line-height:1.85;"></div>
                 </div>
             </div>
             <div class="field-group">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
                     <input type="checkbox" name="is_pinned" value="1">
-                    <span style="font-size:12px;"><x-icon name="pin" :size="12"/> 상단 고정</span>
+                    <span style="font-size:13px;"><x-icon name="pin" :size="12"/> 상단 고정</span>
                 </label>
             </div>
             <div class="modal-actions">
@@ -379,7 +379,7 @@
             <button onclick="document.getElementById('wikiTrashModal').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
         <div class="ce-body">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">삭제된 게시물이 보관됩니다. 복구하면 원래 분류로 돌아가고, 영구 삭제하면 되돌릴 수 없습니다.</div>
             <div id="wikiTrashList" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
     </div>
@@ -394,7 +394,7 @@
                 <button class="ce-mini" onclick="ceAdd(null, document.getElementById('ceTopInput'))">+ 추가</button>
             </div>
             <div id="ceTree"></div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">· 대분류 포함 최대 5단계까지 추가할 수 있습니다. · 삭제 시 하위 카테고리는 상위로 이동합니다.</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:10px;">· 대분류 포함 최대 5단계까지 추가할 수 있습니다. · 삭제 시 하위 카테고리는 상위로 이동합니다.</div>
         </div>
         <div class="ce-foot"><button class="ce-mini" onclick="closeCatEditor()">닫기</button></div>
     </div>
@@ -583,7 +583,7 @@ function renderDocList() {
     // 순서 편집 가능: 게시물 편집 모드 + 특정 카테고리 뷰 + 관리자 (필터 미적용)
     const canReorder = WIKI_SEL_MODE && wikiManualSortActive() && WIKI_IS_ADMIN;
     list.innerHTML = docs.map(d => `<div class="wiki-item ${d.is_pinned ? 'pinned' : ''} ${WIKI_SEL_MODE && WIKI_SEL.has(d.id) ? 'sel-on' : ''}"${canReorder ? ` data-id="${d.id}"` : ''} onclick="${WIKI_SEL_MODE ? `toggleDocSel(${d.id})` : `openWikiDoc(${d.id})`}">
-        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}${d.restricted ? '<span title="열람 제한 문서" style="font-size:12px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
+        <div class="wiki-item-header">${canReorder ? '<span class="wiki-drag-handle" title="드래그하여 순서 변경" onclick="event.stopPropagation()">⠿</span>' : ''}${WIKI_SEL_MODE ? `<input type="checkbox" class="wiki-sel-cb" ${WIKI_SEL.has(d.id) ? 'checked' : ''} tabindex="-1">` : ''}${d.is_pinned ? '<span class="wiki-pin-badge">📌 고정</span>' : ''}${d.restricted ? '<span title="열람 제한 문서" style="font-size:13px;">🔒</span>' : ''}<div class="wiki-title">${wikiEsc(d.title)}</div>${d.type === 'meeting' && d.comments ? `<span class="wiki-comment-count">💬 ${d.comments}</span>` : ''}
             ${canReorder ? `<span class="wiki-order-btns" onclick="event.stopPropagation()">
                 <button type="button" title="위로" onclick="wikiMoveDoc(${d.id},-1)">▲</button>
                 <button type="button" title="아래로" onclick="wikiMoveDoc(${d.id},1)">▼</button>
@@ -836,7 +836,7 @@ function ceRender() {
         return h;
     }
     document.getElementById('ceTree').innerHTML = (map[null] || []).map(c => node(c, 1)).join('')
-        || '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">카테고리가 없습니다. 위에서 추가하세요.</div>';
+        || '<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">카테고리가 없습니다. 위에서 추가하세요.</div>';
     ceAttachDnD();
 }
 let CE_DRAG_ID = null;
@@ -923,17 +923,17 @@ document.getElementById('catEditModal')?.addEventListener('click', e => { if (e.
 // ── 삭제된 게시물 보관함 (관리자) ──
 async function openWikiTrash() {
     const list = document.getElementById('wikiTrashList');
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">불러오는 중…</div>';
     document.getElementById('wikiTrashModal').classList.add('open');
     let rows = [];
     try { const res = await fetch('/api/wiki/trash', { headers:{'Accept':'application/json'} }); if (res.ok) rows = await res.json(); } catch (e) {}
-    if (!rows.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">삭제된 게시물이 없습니다.</div>'; return; }
-    const tBtn = 'background:none;border-radius:7px;cursor:pointer;font-size:12px;padding:5px 10px;white-space:nowrap;flex-shrink:0;';
+    if (!rows.length) { list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">삭제된 게시물이 없습니다.</div>'; return; }
+    const tBtn = 'background:none;border-radius:7px;cursor:pointer;font-size:13px;padding:5px 10px;white-space:nowrap;flex-shrink:0;';
     list.innerHTML = rows.map(r => `
         <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:0;">
             <div style="flex:1 1 auto;min-width:0;">
-                <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${wikiEsc(r.title)}</div>
-                <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wikiEsc(r.type_label)} · ${wikiEsc(r.creator)} · 삭제 ${r.deleted_at}</div>
+                <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${wikiEsc(r.title)}</div>
+                <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${wikiEsc(r.type_label)} · ${wikiEsc(r.creator)} · 삭제 ${r.deleted_at}</div>
             </div>
             <button style="${tBtn}border:1px solid var(--accent);color:var(--accent);" onclick="wikiTrashRestore(${r.id}, this)">복구</button>
             <button style="${tBtn}border:1px solid var(--red, #dc2626);color:var(--red, #dc2626);" onclick="wikiTrashForce(${r.id}, this)">영구 삭제</button>

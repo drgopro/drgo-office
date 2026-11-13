@@ -69,7 +69,7 @@ function shipRowHtml(s){
         <span class="ship-status-ico" style="color:${ico[1]}">${ico[0]}</span>
         <span class="ship-carrier">${_esc(s.carrier_label)}</span>
         ${noHtml}
-        ${fromEst?'<span style="font-size:11px;color:var(--text-muted);border:1px solid var(--border);border-radius:3px;padding:0 4px;white-space:nowrap;" title="연동된 견적서의 주문/배송에서 등록된 송장">견적서</span>':''}
+        ${fromEst?'<span style="font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:3px;padding:0 4px;white-space:nowrap;" title="연동된 견적서의 주문/배송에서 등록된 송장">견적서</span>':''}
         ${locHtml}
         <span class="ship-event" title="${_esc(evTxt)}">${_esc(evTxt)}</span>
         ${fromEst?'':`<button type="button" class="ship-del" onclick="deleteShipment(${s.id})" title="송장 삭제">✕</button>`}
@@ -207,15 +207,15 @@ function reqItemsGroupedHtml(items){
 function reqNoteHtml(){
     if(!projReqNote) return '';
     return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb, var(--m-accent, #3A5683) 6%, #fff);border:1px solid color-mix(in srgb, var(--m-accent, #3A5683) 22%, #e0dfda);">
-        <div style="font-size:11px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
-        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(projReqNote)}</div></div>`;
+        <div style="font-size:12px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
+        <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(projReqNote)}</div></div>`;
 }
 function renderReqView(){
     const el=document.getElementById('reqItemsView');
     if(!el) return;
     const items=activeReqItems();
     if(!items.length&&!projReqNote){
-        el.innerHTML=`<span style="color:var(--text-muted);font-size:12px;">${linkedProjectId?'연결된 프로젝트에 작성된 의뢰 내용이 없습니다.':'프로젝트를 연결하면 의뢰 내용을 불러옵니다.'}</span>`;
+        el.innerHTML=`<span style="color:var(--text-muted);font-size:13px;">${linkedProjectId?'연결된 프로젝트에 작성된 의뢰 내용이 없습니다.':'프로젝트를 연결하면 의뢰 내용을 불러옵니다.'}</span>`;
         return;
     }
     el.innerHTML=(items.length?reqItemsGroupedHtml(items):'')
@@ -232,7 +232,7 @@ function resetAttachments(){
 let estimateSearchTimer=null;
 function renderEstimateList(list){
     const sm={created:'작성중',editing:'수정중',completed:'완료',paid:'결제완료',hold:'보류'};
-    if(!list.length) return '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">결과 없음</div>';
+    if(!list.length) return '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:14px;">결과 없음</div>';
     // 자동 첨부 파일명(날짜 닉네임(이름))용 의뢰자 메타 — 선택 시 참조
     window.__estSearchMeta=window.__estSearchMeta||{};
     list.forEach(e=>{ window.__estSearchMeta[e.id]={nickname:e.client_nickname||'',cname:e.client_name||'',status:e.status||''}; });
@@ -243,16 +243,16 @@ function renderEstimateList(list){
         return `<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectEstimate(${e.id},'${name.replace(/'/g,"\\'")}',${e.total_amount||0},${e.display_no??e.id})">
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <span style="font-size:13px;font-weight:600;">#${e.display_no??e.id}</span>
-                    <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
-                    <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
+                    <span style="font-size:14px;font-weight:600;">#${e.display_no??e.id}</span>
+                    <span style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+                    <span style="font-size:12px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text-muted);flex-shrink:0;">${sm[e.status]||e.status}</span>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--text-muted);">
+                <div style="display:flex;gap:8px;margin-top:3px;font-size:12px;color:var(--text-muted);">
                     ${amt?'<span style="color:var(--accent);">'+amt+'</span>':''}
                     ${date?'<span>'+date+'</span>':''}
                 </div>
             </div>
-            <button onclick="event.stopPropagation();window.open('/estimates/${e.id}/print','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
+            <button onclick="event.stopPropagation();window.open('/estimates/${e.id}/print','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
         </div>`;
     }).join('');
 }
@@ -260,13 +260,13 @@ function renderEstimateList(list){
 async function openEstimateSearch(){
     document.getElementById('estimateSearchOverlay').style.display='flex';
     document.getElementById('estimateSearchInput').value='';
-    document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로딩 중...</div>';
+    document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:14px;">로딩 중...</div>';
     setTimeout(()=>document.getElementById('estimateSearchInput').focus(),50);
     // 최근 목록 자동 로드
     try{
         const res=await fetch('/api/estimates');
         if(res.ok){const data=await res.json();const list=data.data||data;document.getElementById('estimateSearchResults').innerHTML=renderEstimateList(list);}
-    }catch(e){document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">로드 실패</div>';}
+    }catch(e){document.getElementById('estimateSearchResults').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:14px;">로드 실패</div>';}
 }
 function searchEstimates(query){
     clearTimeout(estimateSearchTimer);
@@ -400,10 +400,10 @@ function renderLinkedEstimates(){
         const label=`#${m.display_no??id}${m.name?' '+_esc(m.name):''}`;
         const amt=m.total?` · ${m.total.toLocaleString()}원`:'';
         return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;">
-            <div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}<span style="font-weight:400;color:var(--text-muted);">${amt}</span></div>
+            <div style="font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}<span style="font-weight:400;color:var(--text-muted);">${amt}</span></div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
-                <button type="button" onclick="openLinkedEstimate(${id})" data-always-active style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);cursor:pointer;">보기</button>
-                <button type="button" onclick="unlinkEstimate(${id})" data-always-active style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
+                <button type="button" onclick="openLinkedEstimate(${id})" data-always-active style="font-size:12px;padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-muted);cursor:pointer;">보기</button>
+                <button type="button" onclick="unlinkEstimate(${id})" data-always-active style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;cursor:pointer;">해제</button>
             </div></div>`;
     }).join('');
     lists.forEach(l=>{l.innerHTML=html;});

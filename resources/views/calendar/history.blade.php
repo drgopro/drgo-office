@@ -9,16 +9,16 @@
     /* 헤더 */
     .ch-header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
     .ch-title { font-size:18px; font-weight:700; letter-spacing:0.04em; }
-    .ch-back { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 10px; border-radius:7px; font-size:12px; cursor:pointer; }
+    .ch-back { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 10px; border-radius:7px; font-size:13px; cursor:pointer; }
     .ch-back:hover { border-color:var(--accent); color:var(--accent); }
     .ch-spacer { flex:1; }
-    .ch-nav { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; justify-content:center; }
+    .ch-nav { background:none; border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; justify-content:center; }
     .ch-nav:hover { border-color:var(--accent); color:var(--accent); }
-    .ch-period { font-size:14px; font-weight:600; min-width:120px; text-align:center; }
+    .ch-period { font-size:15px; font-weight:600; min-width:120px; text-align:center; }
 
     /* 상태 필터 */
     .ch-filter { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
-    .ch-fbtn { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1px solid var(--border); background:none; color:var(--text-muted); border-radius:20px; font-size:12px; cursor:pointer; transition:all .15s; }
+    .ch-fbtn { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1px solid var(--border); background:none; color:var(--text-muted); border-radius:20px; font-size:13px; cursor:pointer; transition:all .15s; }
     .ch-fbtn:hover { border-color:var(--accent); color:var(--accent); }
     .ch-fbtn.active { color:var(--text); border-color:var(--accent); background:var(--surface2); }
     .ch-dot { width:8px; height:8px; border-radius:50%; background:var(--text-muted); }
@@ -30,20 +30,20 @@
     /* 캘린더 그리드 */
     .ch-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
     .ch-weekdays { display:grid; grid-template-columns:repeat(7,1fr); background:var(--surface2); border-bottom:1px solid var(--border); }
-    .ch-weekday { padding:8px 0; text-align:center; font-size:11px; color:var(--text-muted); letter-spacing:0.1em; font-weight:600; }
+    .ch-weekday { padding:8px 0; text-align:center; font-size:12px; color:var(--text-muted); letter-spacing:0.1em; font-weight:600; }
     .ch-days-grid { display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(120px,1fr); }
     .ch-day { border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:6px; min-height:120px; position:relative; display:flex; flex-direction:column; gap:3px; overflow:hidden; }
     .ch-day:nth-child(7n) { border-right:none; }
-    .ch-day-num { font-size:11px; color:var(--text-muted); margin-bottom:2px; }
+    .ch-day-num { font-size:12px; color:var(--text-muted); margin-bottom:2px; }
     .ch-day.today .ch-day-num { color:var(--accent); font-weight:700; }
     .ch-day.other-month { opacity:0.4; }
     .ch-day.sunday .ch-day-num { color:var(--red); }
 
     /* 일정 칩 — 상태별 시각 구분 */
-    .ch-chip { font-size:11px; padding:3px 7px; border-radius:4px; border-left:3px solid var(--accent); background:var(--surface2); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; position:relative; }
+    .ch-chip { font-size:12px; padding:3px 7px; border-radius:4px; border-left:3px solid var(--accent); background:var(--surface2); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:all .12s; position:relative; }
     .ch-chip:hover { filter:brightness(1.18); }
-    .ch-chip .ch-marker { display:inline-block; margin-right:3px; font-size:11px; }
-    .ch-chip .ch-time { display:inline-block; margin-right:4px; font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .ch-chip .ch-marker { display:inline-block; margin-right:3px; font-size:12px; }
+    .ch-chip .ch-time { display:inline-block; margin-right:4px; font-size:12px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
     .ch-chip.state-completed .ch-time,
     .ch-chip.state-deleted .ch-time { opacity:0.7; }
 
@@ -89,31 +89,31 @@
     .ch-panel { position:fixed; top:0; right:0; bottom:0; width:420px; max-width:92vw; background:var(--surface); border-left:1px solid var(--border); z-index:90; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
     .ch-panel.open { transform:translateX(0); }
     .ch-panel-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
-    .ch-panel-title { font-size:14px; font-weight:700; }
+    .ch-panel-title { font-size:15px; font-weight:700; }
     .ch-panel-close { background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; }
-    .ch-panel-meta { padding:12px 18px; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; }
+    .ch-panel-meta { padding:12px 18px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; }
     .ch-panel-body { flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:10px; }
-    .ch-panel-empty { padding:30px 0; text-align:center; color:var(--text-muted); font-size:12px; }
-    .ch-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:12px; line-height:1.5; }
+    .ch-panel-empty { padding:30px 0; text-align:center; color:var(--text-muted); font-size:13px; }
+    .ch-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:13px; line-height:1.5; }
     .ch-log-head { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
-    .ch-log-action { font-size:11px; padding:2px 7px; border-radius:3px; font-weight:600; }
+    .ch-log-action { font-size:12px; padding:2px 7px; border-radius:3px; font-weight:600; }
     .ch-log-action.update { background:var(--surface); color:var(--accent); }
     .ch-log-action.delete { background:rgba(212,136,136,0.2); color:var(--red); }
     .ch-log-action.complete { background:rgba(122,200,122,0.2); color:var(--green); }
     .ch-log-action.uncomplete { background:var(--surface); color:var(--text-muted); }
     .ch-log-action.restore { background:rgba(138,180,200,0.2); color:var(--blue); }
-    .ch-log-user { font-size:12px; font-weight:600; color:var(--text); }
-    .ch-log-time { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; margin-left:auto; }
+    .ch-log-user { font-size:13px; font-weight:600; color:var(--text); }
+    .ch-log-time { font-size:12px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; margin-left:auto; }
     .ch-log-diff { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; align-items:center; }
-    .ch-log-key { font-size:11px; color:var(--text-muted); margin-right:4px; }
-    .ch-log-old { padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:11px; text-decoration:line-through; }
-    .ch-log-new { padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:11px; }
-    .ch-log-arrow { color:var(--text-muted); font-size:11px; }
+    .ch-log-key { font-size:12px; color:var(--text-muted); margin-right:4px; }
+    .ch-log-old { padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:12px; text-decoration:line-through; }
+    .ch-log-new { padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:12px; }
+    .ch-log-arrow { color:var(--text-muted); font-size:12px; }
 
     @media (max-width:768px) {
         .ch-day { min-height:80px; padding:4px; }
-        .ch-day-num { font-size:11px; }
-        .ch-chip { font-size:11px; padding:2px 5px; }
+        .ch-day-num { font-size:12px; }
+        .ch-chip { font-size:12px; padding:2px 5px; }
         .ch-panel { width:100%; }
     }
 </style>
@@ -137,7 +137,7 @@
         <button class="ch-fbtn active" data-state="modified" onclick="chToggleFilter(this)"><span class="ch-dot"></span>변경됨</button>
         <button class="ch-fbtn active" data-state="deleted" onclick="chToggleFilter(this)"><span class="ch-dot"></span>삭제됨</button>
         <div style="flex:1;"></div>
-        <span class="text-muted" id="chCount" style="font-size:11px; color:var(--text-muted); align-self:center;"></span>
+        <span class="text-muted" id="chCount" style="font-size:12px; color:var(--text-muted); align-self:center;"></span>
     </div>
 
     <div class="ch-grid-wrap">
@@ -377,7 +377,7 @@ async function chOpenPanel(chipIdx) {
             if (snap.start_date) lines.push(`<div><span class="ch-log-key">일자</span> <span style="color:var(--text);">${chFmtValue('start_date', snap.start_date)}${snap.end_date && snap.end_date !== snap.start_date ? ' ~ '+chFmtValue('end_date', snap.end_date) : ''}</span></div>`);
             if (snap.client_name) lines.push(`<div><span class="ch-log-key">의뢰자</span> <span style="color:var(--text);">${chEsc(snap.client_name)}</span></div>`);
             if (snap.location) lines.push(`<div><span class="ch-log-key">장소</span> <span style="color:var(--text);">${chEsc(snap.location)}</span></div>`);
-            body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:11px;">${lines.join('')}</div>`;
+            body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:12px;">${lines.join('')}</div>`;
         } else {
             const entries = Object.entries(changes).filter(([k]) => k !== 'snapshot');
             if (!entries.length) {
@@ -398,7 +398,7 @@ async function chOpenPanel(chipIdx) {
         }
 
         const reasonHtml = h.reason
-            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:11px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${chEsc(h.reason)}</div>`
+            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface); border-left:3px solid var(--accent); border-radius:4px; font-size:13px; color:var(--text);"><span style="font-size:12px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${chEsc(h.reason)}</div>`
             : '';
         return `<div class="ch-log-item">
             <div class="ch-log-head">

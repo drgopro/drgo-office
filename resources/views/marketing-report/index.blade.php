@@ -8,24 +8,24 @@
     .mk-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
     .mk-title { font-size:20px; font-weight:700; }
     .mk-filter { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .mk-filter input, .mk-filter button { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; }
+    .mk-filter input, .mk-filter button { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:13px; }
     .mk-filter button { background:var(--accent); color:var(--accent-text); border:none; font-weight:600; cursor:pointer; }
     [data-theme="light"] .mk-filter button { color:#fff; }
     .mk-filter .mk-navbtn { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); font-weight:700; padding:6px 10px; }
     .mk-filter .mk-navbtn:hover { border-color:var(--accent); color:var(--accent); }
-    .mk-preset-select { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
+    .mk-preset-select { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer; }
     [data-theme="light"] .mk-filter .mk-navbtn { color:var(--text-muted); }
 
     .mk-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
-    .mk-section-title { font-size:14px; font-weight:700; color:var(--accent); margin-bottom:16px; display:flex; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    .mk-section-title { font-size:15px; font-weight:700; color:var(--accent); margin-bottom:16px; display:flex; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--border); }
     .mk-clickable { cursor:pointer; transition:all 0.15s; }
     .mk-clickable:hover { border-color:var(--accent); box-shadow:0 3px 10px rgba(24,39,64,.08); }
 
     .mk-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
     .mk-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
-    .mk-card .mk-label { font-size:11px; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
+    .mk-card .mk-label { font-size:12px; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
     .mk-card .mk-value { font-size:22px; font-weight:700; }
-    .mk-card .mk-sub { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .mk-card .mk-sub { font-size:13px; color:var(--text-muted); margin-top:4px; }
 
     .mk-two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .mk-three-col { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; }
@@ -33,7 +33,7 @@
     .mk-chart-wrap canvas { position:absolute; inset:0; width:100% !important; height:100% !important; }
 
     .mk-list { display:flex; flex-direction:column; gap:6px; }
-    .mk-list-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:6px; font-size:13px; }
+    .mk-list-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:6px; font-size:14px; }
     .mk-list-item .mk-list-label { color:var(--text); }
     .mk-list-item .mk-list-value { font-weight:700; color:var(--accent); }
     /* 목록 안 링크 — 브라우저 기본(파랑/보라 밑줄) 대신 본문색, hover 시에만 강조 */
@@ -42,10 +42,10 @@
 
     .mk-bar { background:var(--surface2); border-radius:4px; overflow:hidden; height:20px; display:flex; align-items:center; padding:0 8px; position:relative; }
     .mk-bar-fill { position:absolute; left:0; top:0; bottom:0; background:rgba(200,176,138,0.3); z-index:0; }
-    .mk-bar-label { font-size:11px; color:var(--text); z-index:1; }
-    .mk-bar-value { margin-left:auto; font-weight:700; color:var(--accent); font-size:12px; z-index:1; }
+    .mk-bar-label { font-size:12px; color:var(--text); z-index:1; }
+    .mk-bar-value { margin-left:auto; font-weight:700; color:var(--accent); font-size:13px; z-index:1; }
 
-    .mk-matrix { width:100%; border-collapse:collapse; font-size:12px; }
+    .mk-matrix { width:100%; border-collapse:collapse; font-size:13px; }
     .mk-matrix th, .mk-matrix td { padding:8px 10px; border:1px solid var(--border); text-align:center; }
     .mk-matrix th { background:var(--surface2); color:var(--text-muted); font-weight:600; }
     .mk-matrix td { background:var(--surface); }
@@ -55,7 +55,7 @@
     @media (max-width:768px) {
         .mk-two-col { grid-template-columns:1fr; }
         .mk-three-col { grid-template-columns:1fr; }
-        .mk-matrix { font-size:11px; }
+        .mk-matrix { font-size:12px; }
     }
 </style>
 @endpush
@@ -83,10 +83,10 @@
             <button type="button" class="mk-navbtn" onclick="mkMonthNav(1)" title="다음 달">▶</button>
             <button type="submit">조회</button>
             @if(Auth::user()->hasPermission('stats.export'))
-            <a href="/api/dashboard-export/excel?from={{ $from }}&to={{ $to }}" onclick="event.preventDefault(); drgoDownload(this.href, this)" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;"><x-icon name="download" :size="13"/> 엑셀</a>
-            <a href="{{ route('marketing-report.revenue-explorer') }}?from={{ $from }}&to={{ $to }}" title="매출 인식 원장을 원하는 차원(월/의뢰자 유형/프로젝트 유형/작업 유형 등)으로 직접 조합해 보는 셀프서비스 피벗 (매출·일정 데이터)" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:600;">통계 탐색기</a>
-            <a href="{{ route('marketing-report.schedules-export') }}?from={{ $from }}&to={{ $to }}" onclick="event.preventDefault(); drgoDownload(this.href, this)" title="기간 내 일정을 날짜별로 나열 (의뢰자 플랫폼·경력·결제 포함, 월별 시트)" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;"><x-icon name="download" :size="13"/> 일정 엑셀</a>
-            <a href="{{ route('marketing-report.schedules-export-raw') }}?from={{ $from }}&to={{ $to }}" onclick="event.preventDefault(); drgoDownload(this.href, this)" title="마케팅부 추출 사양서 형식 (17컬럼, 1건=1행 RAW) — 현재 입력 데이터 기준 샘플" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;"><x-icon name="download" :size="13"/> 엑셀 샘플 출력</a>
+            <a href="/api/dashboard-export/excel?from={{ $from }}&to={{ $to }}" onclick="event.preventDefault(); drgoDownload(this.href, this)" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:13px;text-decoration:none;"><x-icon name="download" :size="13"/> 엑셀</a>
+            <a href="{{ route('marketing-report.revenue-explorer') }}?from={{ $from }}&to={{ $to }}" title="매출 인식 원장을 원하는 차원(월/의뢰자 유형/프로젝트 유형/작업 유형 등)으로 직접 조합해 보는 셀프서비스 피벗 (매출·일정 데이터)" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;">통계 탐색기</a>
+            <a href="{{ route('marketing-report.schedules-export') }}?from={{ $from }}&to={{ $to }}" onclick="event.preventDefault(); drgoDownload(this.href, this)" title="기간 내 일정을 날짜별로 나열 (의뢰자 플랫폼·경력·결제 포함, 월별 시트)" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:13px;text-decoration:none;"><x-icon name="download" :size="13"/> 일정 엑셀</a>
+            <a href="{{ route('marketing-report.schedules-export-raw') }}?from={{ $from }}&to={{ $to }}" onclick="event.preventDefault(); drgoDownload(this.href, this)" title="마케팅부 추출 사양서 형식 (17컬럼, 1건=1행 RAW) — 현재 입력 데이터 기준 샘플" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:13px;text-decoration:none;"><x-icon name="download" :size="13"/> 엑셀 샘플 출력</a>
             @endif
             <select class="mk-preset-select" onchange="mkApplyPreset(this.value); this.selectedIndex=0;">
                 <option value="">기간 선택…</option>
@@ -107,7 +107,7 @@
     {{-- 섹션 1: 마케팅 지표 --}}
     <div class="mk-section">
         <div class="mk-section-title"><x-icon name="chart-bar" :size="15"/> 마케팅 지표</div>
-        <div style="font-size:12px; color:var(--text-muted); margin:-8px 0 16px;">📅 조회 기간: {{ $from }} ~ {{ $to }}</div>
+        <div style="font-size:13px; color:var(--text-muted); margin:-8px 0 16px;">📅 조회 기간: {{ $from }} ~ {{ $to }}</div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card">
@@ -135,12 +135,12 @@
         <div class="mk-two-col">
             {{-- 유입경로 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">유입경로별 분포</div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">유입경로별 분포</div>
                 <div class="mk-chart-wrap"><canvas id="chartInflow"></canvas></div>
             </div>
             {{-- 플랫폼 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼별 분포</div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼별 분포</div>
                 @if(count($platformCounts))
                     <div class="mk-list">
                         @php $max = max($platformCounts); @endphp
@@ -154,14 +154,14 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:12px;">데이터 없음</div>
+                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">데이터 없음</div>
                 @endif
             </div>
         </div>
 
         {{-- 상담 인입 시간대 분포 — 어느 시간에 상담이 몰리는지 (피크 강조) --}}
         <div style="margin-top:20px;">
-            <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">
+            <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">
                 상담 인입 시간대 분포
                 <span style="font-weight:400;">· 인입 시간이 기록된 상담 {{ number_format($inboundTimeTotal) }}건 기준</span>
                 @if($inboundPeakHour !== null)
@@ -171,25 +171,25 @@
             @if($inboundTimeTotal > 0)
                 <div class="mk-chart-wrap" style="height:200px;"><canvas id="chartInboundHours"></canvas></div>
             @else
-                <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">기록된 인입 시간이 없습니다 — 상담 등록 시 '인입 시간'을 입력하면 여기에 집계됩니다.</div>
+                <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">기록된 인입 시간이 없습니다 — 상담 등록 시 '인입 시간'을 입력하면 여기에 집계됩니다.</div>
             @endif
         </div>
 
         {{-- 플랫폼 이동 수요 — 의뢰자 플랫폼 변경 로그 기반, 상세 펼침에 누가·언제 --}}
         <div class="mk-two-col" style="margin-top:20px;">
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 이동 수요 <span style="font-weight:400;">· 기간 내 플랫폼 변경 로그</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 이동 수요 <span style="font-weight:400;">· 기간 내 플랫폼 변경 로그</span></div>
                 @if(count($platformMoves))
                     <div class="mk-list">
                         @foreach($platformMoves as $mv)
                             <div>
                                 <div class="mk-list-item" onclick="pmToggle({{ $loop->index }})" style="cursor:pointer;" title="클릭해서 이동한 의뢰자 보기">
                                     <span class="mk-list-label">{{ $mv['from'] }} <span style="color:var(--text-muted);">→</span> <b>{{ $mv['to'] }}</b></span>
-                                    <span class="mk-list-value">{{ $mv['count'] }}명 <span class="pm-caret" id="pmCaret{{ $loop->index }}" style="color:var(--text-muted); font-size:11px;">▸</span></span>
+                                    <span class="mk-list-value">{{ $mv['count'] }}명 <span class="pm-caret" id="pmCaret{{ $loop->index }}" style="color:var(--text-muted); font-size:12px;">▸</span></span>
                                 </div>
                                 <div id="pmDetail{{ $loop->index }}" style="display:none; padding:2px 10px 8px 14px;">
                                     @foreach($mv['clients'] as $cl)
-                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
+                                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:3px 0; border-bottom:1px dashed var(--border);">
                                             <a href="/clients/{{ $cl['id'] }}" target="_blank" style="font-weight:600;">{{ $cl['name'] }}</a>
                                             <span style="color:var(--text-muted);">{{ $cl['date'] }}</span>
                                         </div>
@@ -199,11 +199,11 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:12px;">기간 내 플랫폼 이동 없음</div>
+                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">기간 내 플랫폼 이동 없음</div>
                 @endif
             </div>
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 이동 추이 <span style="font-weight:400;">· 최근 6개월</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 이동 추이 <span style="font-weight:400;">· 최근 6개월</span></div>
                 <div class="mk-list">
                     @php $pmMax = max(1, count($platformMoveTrend) ? max($platformMoveTrend) : 0); @endphp
                     @foreach($platformMoveTrend as $m => $n)
@@ -228,7 +228,7 @@
         <div class="mk-two-col" style="margin-top:20px;">
             {{-- 콘텐츠 유형 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">콘텐츠 유형별 분포</div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">콘텐츠 유형별 분포</div>
                 @if(count($contentCounts))
                     <div class="mk-list">
                         @php $maxC = max($contentCounts); @endphp
@@ -241,13 +241,13 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:12px;">데이터 없음</div>
+                    <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">데이터 없음</div>
                 @endif
             </div>
 
             {{-- 의뢰자 유형 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형</div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형</div>
                 <div class="mk-list">
                     @foreach($typeL as $key => $label)
                         @php $cnt = $clientsByType[$key] ?? 0; $ratio = $newClients > 0 ? round(($cnt / $newClients) * 100) : 0; @endphp
@@ -263,7 +263,7 @@
 
     {{-- 섹션 1.1: 마케팅 활용 동의 의뢰자 — 프로젝트에서 동의 체크된 의뢰자만 추림 (기간 무관 스냅샷) --}}
     <div class="mk-section">
-        <div class="mk-section-title"><x-icon name="check" :size="15"/> 마케팅 활용 동의 의뢰자 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관 · 동의 체크된 프로젝트 기준 · 취소 프로젝트 제외)</span></div>
+        <div class="mk-section-title"><x-icon name="check" :size="15"/> 마케팅 활용 동의 의뢰자 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">(기간 무관 · 동의 체크된 프로젝트 기준 · 취소 프로젝트 제외)</span></div>
 
         <div class="mk-grid" style="margin-bottom:16px;">
             <div class="mk-card">
@@ -283,7 +283,7 @@
             </div>
             <div class="mk-card">
                 <div class="mk-label">포스팅 완료 프로젝트</div>
-                <div class="mk-value" style="color:#2563eb;">{{ number_format($marketingPostedProjectCount) }}<span style="font-size:13px; font-weight:400; color:var(--text-muted);"> / {{ number_format($marketingConsentProjectCount) }}</span></div>
+                <div class="mk-value" style="color:#2563eb;">{{ number_format($marketingPostedProjectCount) }}<span style="font-size:14px; font-weight:400; color:var(--text-muted);"> / {{ number_format($marketingConsentProjectCount) }}</span></div>
                 <div class="mk-sub">포스팅 대기 {{ number_format(max(0, $marketingConsentProjectCount - $marketingPostedProjectCount)) }}건 · 프로젝트 상세에서 완료 처리</div>
             </div>
             <div class="mk-card">
@@ -307,7 +307,7 @@
         <div class="mk-three-col">
             @foreach($mkConsentSections as $sec)
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:{{ $sec['color'] }};">{{ $sec['title'] }} <span style="font-weight:400; color:var(--text-muted);">· {{ count($sec['items']) }}</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:{{ $sec['color'] }};">{{ $sec['title'] }} <span style="font-weight:400; color:var(--text-muted);">· {{ count($sec['items']) }}</span></div>
                 @if(count($sec['items']))
                     <div class="mk-list">
                         @foreach($sec['items'] as $mc)
@@ -321,30 +321,30 @@
                                             <b>{{ $mc['name'] }}</b>
                                         @endif
                                         @if(count($mc['platforms']))
-                                            <span style="color:var(--text-muted); font-size:11px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
+                                            <span style="color:var(--text-muted); font-size:12px; margin-left:6px;">{{ implode(', ', $mc['platforms']) }}</span>
                                         @endif
                                     </span>
                                     <span class="mk-list-value">
                                         @if($sec['posting'])
                                             @if($mc['posted_count'] >= count($mc['projects']))
-                                                <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:11px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
+                                                <span title="모든 동의 프로젝트 포스팅 완료" style="font-size:12px; font-weight:700; color:#2563eb; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">✓ 포스팅 완료</span>
                                             @else
-                                                <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:11px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
+                                                <span title="포스팅 완료 {{ $mc['posted_count'] }} / 동의 프로젝트 {{ count($mc['projects']) }}" style="font-size:12px; font-weight:700; color:#b45309; border:1px solid rgba(217,119,6,0.4); background:rgba(217,119,6,0.10); border-radius:8px; padding:1px 7px; margin-right:6px; vertical-align:middle;">포스팅 대기 {{ count($mc['projects']) - $mc['posted_count'] }}</span>
                                             @endif
                                         @endif
-                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-{{ $mcKey }}" style="color:var(--text-muted); font-size:11px;">▸</span>
+                                        프로젝트 {{ count($mc['projects']) }}건 <span id="mcCaret-{{ $mcKey }}" style="color:var(--text-muted); font-size:12px;">▸</span>
                                     </span>
                                 </div>
                                 <div id="mcDetail-{{ $mcKey }}" style="display:none; padding:2px 10px 8px 14px;">
                                     @foreach($mc['projects'] as $mp)
-                                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; padding:3px 0; border-bottom:1px dashed var(--border);">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px; padding:3px 0; border-bottom:1px dashed var(--border);">
                                             <a href="/projects/{{ $mp['id'] }}" target="_blank" style="font-weight:600;">{{ $mp['name'] }}</a>
                                             <span style="display:flex; align-items:center; gap:8px; white-space:nowrap;">
                                                 @if($sec['posting'])
                                                     @if($mp['posted_at'])
-                                                        <span style="font-size:11px; color:#2563eb; font-weight:600;">✓ 포스팅 {{ $mp['posted_at'] }}</span>
+                                                        <span style="font-size:12px; color:#2563eb; font-weight:600;">✓ 포스팅 {{ $mp['posted_at'] }}</span>
                                                     @else
-                                                        <span style="font-size:11px; color:#b45309;">포스팅 대기</span>
+                                                        <span style="font-size:12px; color:#b45309;">포스팅 대기</span>
                                                     @endif
                                                 @endif
                                                 <span style="color:var(--text-muted);">{{ $mp['date'] }}</span>
@@ -356,7 +356,7 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">{{ $sec['empty'] }}</div>
+                    <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:13px;">{{ $sec['empty'] }}</div>
                 @endif
             </div>
             @endforeach
@@ -373,7 +373,7 @@
 
     {{-- 섹션 1.2: 일정 지표 (마케팅 사양서 기준 — 엑셀 샘플 출력과 동일 매핑) --}}
     <div class="mk-section">
-        <div class="mk-section-title"><x-icon name="calendar" :size="15"/> 일정 지표 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(사양서 기준 · 사내업무/휴가 제외한 의뢰 건, 엑셀 샘플 출력과 동일 집계)</span></div>
+        <div class="mk-section-title"><x-icon name="calendar" :size="15"/> 일정 지표 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">(사양서 기준 · 사내업무/휴가 제외한 의뢰 건, 엑셀 샘플 출력과 동일 집계)</span></div>
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card">
@@ -383,12 +383,12 @@
             </div>
             <div class="mk-card">
                 <div class="mk-label">매출 발생</div>
-                <div class="mk-value">{{ number_format($schedStats['revenue_cnt']) }}건 <span style="font-size:13px;color:var(--text-muted);">({{ $schedStats['revenue_rate'] }}%)</span></div>
+                <div class="mk-value">{{ number_format($schedStats['revenue_cnt']) }}건 <span style="font-size:14px;color:var(--text-muted);">({{ $schedStats['revenue_rate'] }}%)</span></div>
                 <div class="mk-sub">무상/미기재 {{ number_format($schedStats['free_cnt']) }}건</div>
             </div>
             <div class="mk-card">
                 <div class="mk-label">일정 기재 매출액</div>
-                <div class="mk-value">{{ number_format($schedStats['revenue_sum']) }}<span style="font-size:12px;">원</span></div>
+                <div class="mk-value">{{ number_format($schedStats['revenue_sum']) }}<span style="font-size:13px;">원</span></div>
                 <div class="mk-sub">건당 평균 {{ number_format($schedStats['avg_price']) }}원</div>
             </div>
             <div class="mk-card">
@@ -411,7 +411,7 @@
         <div class="mk-two-col" style="margin-bottom:20px;">
             {{-- 유형별 분포 (사양서 10종 기준) --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">유형별 분포 <span style="font-weight:400;">(사내업무·휴가 포함 전체)</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">유형별 분포 <span style="font-weight:400;">(사내업무·휴가 포함 전체)</span></div>
                 <div class="mk-list">
                     @forelse($schedStats['by_type'] as $type => $cnt)
                         <div class="mk-bar">
@@ -420,25 +420,25 @@
                             <span class="mk-bar-value">{{ $cnt }}건 ({{ round($cnt / max(1, $schedStats['all']) * 100) }}%)</span>
                         </div>
                     @empty
-                        <div style="font-size:12px;color:var(--text-muted);">기간 내 일정이 없습니다.</div>
+                        <div style="font-size:13px;color:var(--text-muted);">기간 내 일정이 없습니다.</div>
                     @endforelse
                 </div>
             </div>
             {{-- 의뢰자 유형별 건수·매출 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형별 건수 · 매출 <span style="font-weight:400;">(연결 프로젝트 기준, 미연결=미입력)</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형별 건수 · 매출 <span style="font-weight:400;">(연결 프로젝트 기준, 미연결=미입력)</span></div>
                 <div class="mk-list">
                     @forelse($schedStats['by_client_type'] as $ct => $d)
                         <div class="mk-list-item">
                             <span class="mk-list-label">{{ $ct }}</span>
-                            <span style="font-size:12px;color:var(--text-muted);">{{ number_format($d['sum']) }}원</span>
+                            <span style="font-size:13px;color:var(--text-muted);">{{ number_format($d['sum']) }}원</span>
                             <span class="mk-list-value">{{ $d['cnt'] }}건</span>
                         </div>
                     @empty
-                        <div style="font-size:12px;color:var(--text-muted);">의뢰 건이 없습니다.</div>
+                        <div style="font-size:13px;color:var(--text-muted);">의뢰 건이 없습니다.</div>
                     @endforelse
                 </div>
-                <div style="font-size:12px; font-weight:600; margin:16px 0 10px; color:var(--text-muted);">담당자별 처리량 <span style="font-weight:400;">(주담당 기준)</span></div>
+                <div style="font-size:13px; font-weight:600; margin:16px 0 10px; color:var(--text-muted);">담당자별 처리량 <span style="font-weight:400;">(주담당 기준)</span></div>
                 <div class="mk-list">
                     @foreach(array_slice($schedStats['by_assignee'], 0, 8, true) as $name => $cnt)
                         <div class="mk-bar">
@@ -456,7 +456,7 @@
         @php
             $ptCols = collect($schedStats['platform_types'])->flatMap(fn ($t) => array_keys($t))->unique()->values();
         @endphp
-        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 × 유형 교차</div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">플랫폼 × 유형 교차</div>
         <div style="overflow-x:auto; margin-bottom:20px;">
             <table class="mk-matrix">
                 <tr><th>플랫폼</th>@foreach($ptCols as $c)<th>{{ $c }}</th>@endforeach<th>합계</th></tr>
@@ -476,7 +476,7 @@
         <div class="mk-two-col">
             {{-- 요일별 부하 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">요일별 의뢰 부하</div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">요일별 의뢰 부하</div>
                 <div class="mk-list">
                     @foreach($schedStats['by_dow'] as $d => $cnt)
                         <div class="mk-bar">
@@ -489,7 +489,7 @@
             </div>
             {{-- 권역별 수요 --}}
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">권역별 수요 TOP 10 <span style="font-weight:400;">(주소 기반)</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">권역별 수요 TOP 10 <span style="font-weight:400;">(주소 기반)</span></div>
                 <div class="mk-list">
                     @forelse($schedStats['by_region'] as $region => $cnt)
                         <div class="mk-bar">
@@ -498,7 +498,7 @@
                             <span class="mk-bar-value">{{ $cnt }}건</span>
                         </div>
                     @empty
-                        <div style="font-size:12px;color:var(--text-muted);">주소가 입력된 의뢰 건이 없습니다.</div>
+                        <div style="font-size:13px;color:var(--text-muted);">주소가 입력된 의뢰 건이 없습니다.</div>
                     @endforelse
                 </div>
             </div>
@@ -507,7 +507,7 @@
 
     {{-- 섹션 1.5: 퍼널 분석 --}}
     <div class="mk-section">
-        <div class="mk-section-title"><x-icon name="chart" :size="15"/> 퍼널 분석 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 내 유입된 문의 코호트)</span></div>
+        <div class="mk-section-title"><x-icon name="chart" :size="15"/> 퍼널 분석 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">(기간 내 유입된 문의 코호트)</span></div>
 
         @php
             $stages = [
@@ -530,13 +530,13 @@
                     }
                 @endphp
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="width:100px; font-size:12px; color:var(--text); font-weight:600;">{{ $s['icon'] }} {{ $s['label'] }}</div>
+                    <div style="width:100px; font-size:13px; color:var(--text); font-weight:600;">{{ $s['icon'] }} {{ $s['label'] }}</div>
                     <div style="flex:1; background:var(--surface2); border-radius:6px; height:34px; position:relative; overflow:hidden;">
                         <div style="position:absolute; left:0; top:0; bottom:0; width:{{ $width }}%; background:{{ $s['color'] }}; opacity:0.3; transition:width 0.5s;"></div>
-                        <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; padding:0 14px; height:100%; font-size:13px; font-weight:700;">
+                        <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; padding:0 14px; height:100%; font-size:14px; font-weight:700;">
                             <span>{{ number_format($s['value']) }}건</span>
                             @if($conv !== null)
-                                <span style="font-size:11px; color:{{ $conv >= 50 ? '#1e7a32' : ($conv >= 20 ? '#7a5c22' : '#b02f2f') }};">
+                                <span style="font-size:12px; color:{{ $conv >= 50 ? '#1e7a32' : ($conv >= 20 ? '#7a5c22' : '#b02f2f') }};">
                                     ↓ 전환율 {{ $conv }}%
                                 </span>
                             @endif
@@ -567,7 +567,7 @@
 
     {{-- 섹션 1.6: 파이프라인 (현재 진행 중) --}}
     <div class="mk-section">
-        <div class="mk-section-title"><x-icon name="gear" :size="15"/> 현재 파이프라인 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(기간 무관, 실시간 스냅샷)</span></div>
+        <div class="mk-section-title"><x-icon name="gear" :size="15"/> 현재 파이프라인 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">(기간 무관, 실시간 스냅샷)</span></div>
         <div class="mk-grid">
             <div class="mk-card">
                 <div class="mk-label"><x-icon name="chat" :size="14"/> 상담 중</div>
@@ -613,7 +613,7 @@
         </div>
 
         {{-- 규모 × 작업유형 매트릭스 --}}
-        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">규모 × 작업유형 매트릭스</div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">규모 × 작업유형 매트릭스</div>
         @php $workTypes = array_keys($workL); @endphp
         <div style="overflow-x:auto;">
             <table class="mk-matrix">
@@ -646,7 +646,7 @@
 
         @if(count($cancelReasons) > 0)
         <div style="margin-top:20px;">
-            <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">취소 사유 <span style="font-weight:400;">(기간 내 유입된 프로젝트 기준 — 위 취소 건수와 합계 일치)</span></div>
+            <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">취소 사유 <span style="font-weight:400;">(기간 내 유입된 프로젝트 기준 — 위 취소 건수와 합계 일치)</span></div>
             <div class="mk-list">
                 @foreach($cancelReasons as $reason => $cnt)
                     <div class="mk-list-item">
@@ -665,7 +665,7 @@
 
         <div class="mk-grid" style="margin-bottom:20px;">
             <div class="mk-card mk-clickable" onclick="goRevenuePage()" title="결제가 발생한 프로젝트 보기">
-                <div class="mk-label">총 매출 <span style="font-size:11px; color:var(--accent);">상세 ↗</span></div>
+                <div class="mk-label">총 매출 <span style="font-size:12px; color:var(--accent);">상세 ↗</span></div>
                 <div class="mk-value" style="color:var(--accent); font-size:20px;">{{ number_format($revenueTotal) }}원</div>
             </div>
             <div class="mk-card">
@@ -679,7 +679,7 @@
         </div>
 
         @if(array_sum($revenueBreakdown) > 0)
-        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">세부 카테고리 매출 분해</div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">세부 카테고리 매출 분해</div>
         <div class="mk-list" style="margin-bottom:20px;">
             @foreach($breakdownL as $key => $label)
                 @php $val = $revenueBreakdown[$key] ?? 0; @endphp
@@ -695,34 +695,34 @@
 
         {{-- 의뢰자 규모 × 매출 구분 매트릭스 — 개인 세팅 / 개인 장비판매 / 스튜디오 세팅 / ... --}}
         @if(!empty($revenueByScale))
-        <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형 × 매출 구분 <span style="font-weight:400;">(프로젝트 규모 → 의뢰자 유형 순 판정, 둘 다 없으면 미지정 · 기타=세팅/장비 구분 없는 수기 결제)</span></div>
+        <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">의뢰자 유형 × 매출 구분 <span style="font-weight:400;">(프로젝트 규모 → 의뢰자 유형 순 판정, 둘 다 없으면 미지정 · 기타=세팅/장비 구분 없는 수기 결제)</span></div>
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow-x:auto; margin-bottom:20px;">
             <table style="width:100%; border-collapse:collapse; min-width:520px;">
                 <thead>
                     <tr>
-                        <th style="text-align:left; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">의뢰자 유형</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">세팅비</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">장비판매</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">기타</th>
-                        <th style="text-align:right; padding:9px 14px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border);">합계</th>
+                        <th style="text-align:left; padding:9px 14px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">의뢰자 유형</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">세팅비</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">장비판매</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">기타</th>
+                        <th style="text-align:right; padding:9px 14px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border);">합계</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($revenueByScale as $scaleLabel => $d)
                     <tr>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:700; border-bottom:1px solid var(--border);">{{ $scaleLabel }}</td>
-                        <td style="padding:9px 14px; font-size:13px; text-align:right; border-bottom:1px solid var(--border);">{{ $d['setup'] ? number_format($d['setup']).'원' : '-' }}</td>
-                        <td style="padding:9px 14px; font-size:13px; text-align:right; border-bottom:1px solid var(--border);">{{ $d['product'] ? number_format($d['product']).'원' : '-' }}</td>
-                        <td style="padding:9px 14px; font-size:13px; text-align:right; border-bottom:1px solid var(--border); color:var(--text-muted);">{{ $d['other'] ? number_format($d['other']).'원' : '-' }}</td>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right; border-bottom:1px solid var(--border); color:var(--accent);">{{ number_format($d['total']) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($d['total'] / $revenueTotal * 100) : 0 }}%)</span></td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:700; border-bottom:1px solid var(--border);">{{ $scaleLabel }}</td>
+                        <td style="padding:9px 14px; font-size:14px; text-align:right; border-bottom:1px solid var(--border);">{{ $d['setup'] ? number_format($d['setup']).'원' : '-' }}</td>
+                        <td style="padding:9px 14px; font-size:14px; text-align:right; border-bottom:1px solid var(--border);">{{ $d['product'] ? number_format($d['product']).'원' : '-' }}</td>
+                        <td style="padding:9px 14px; font-size:14px; text-align:right; border-bottom:1px solid var(--border); color:var(--text-muted);">{{ $d['other'] ? number_format($d['other']).'원' : '-' }}</td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:700; text-align:right; border-bottom:1px solid var(--border); color:var(--accent);">{{ number_format($d['total']) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:12px;">({{ $revenueTotal > 0 ? round($d['total'] / $revenueTotal * 100) : 0 }}%)</span></td>
                     </tr>
                     @endforeach
                     <tr>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:800;">합계</td>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right;">{{ number_format(array_sum(array_column($revenueByScale, 'setup'))) }}원</td>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right;">{{ number_format(array_sum(array_column($revenueByScale, 'product'))) }}원</td>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:700; text-align:right; color:var(--text-muted);">{{ number_format(array_sum(array_column($revenueByScale, 'other'))) }}원</td>
-                        <td style="padding:9px 14px; font-size:13px; font-weight:800; text-align:right; color:var(--accent);">{{ number_format(array_sum(array_column($revenueByScale, 'total'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:800;">합계</td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:700; text-align:right;">{{ number_format(array_sum(array_column($revenueByScale, 'setup'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:700; text-align:right;">{{ number_format(array_sum(array_column($revenueByScale, 'product'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:700; text-align:right; color:var(--text-muted);">{{ number_format(array_sum(array_column($revenueByScale, 'other'))) }}원</td>
+                        <td style="padding:9px 14px; font-size:14px; font-weight:800; text-align:right; color:var(--accent);">{{ number_format(array_sum(array_column($revenueByScale, 'total'))) }}원</td>
                     </tr>
                 </tbody>
             </table>
@@ -734,19 +734,19 @@
         <div class="mk-two-col">
             @if(count($revenueByProjectType))
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">프로젝트 유형별 매출 <span style="font-weight:400;">· 하위 항목은 작업 유형</span></div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">프로젝트 유형별 매출 <span style="font-weight:400;">· 하위 항목은 작업 유형</span></div>
                 <div class="mk-list">
                     @foreach($revenueByProjectType as $label => $data)
                     <div class="mk-list-item">
                         <span class="mk-list-label" style="font-weight:700;">{{ $label }}</span>
-                        <span class="mk-list-value">{{ number_format($data['total']) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($data['total'] / $revenueTotal * 100) : 0 }}%)</span></span>
+                        <span class="mk-list-value">{{ number_format($data['total']) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:12px;">({{ $revenueTotal > 0 ? round($data['total'] / $revenueTotal * 100) : 0 }}%)</span></span>
                     </div>
                     {{-- 유형 안에서 어떤 작업이 매출을 만들었는지 — 작업 유형이 미지정 하나뿐이면 생략 --}}
                     @if(count($data['works']) > 1 || !isset($data['works']['미지정']))
                         @foreach($data['works'] as $wLabel => $wVal)
                         <div class="mk-list-item" style="padding-left:24px; background:transparent;">
-                            <span class="mk-list-label" style="color:var(--text-muted); font-size:12px;">└ {{ $wLabel }}</span>
-                            <span class="mk-list-value" style="font-size:12px; color:var(--text-muted);">{{ number_format($wVal) }}원 <span style="font-weight:400; font-size:11px;">({{ $data['total'] > 0 ? round($wVal / $data['total'] * 100) : 0 }}%)</span></span>
+                            <span class="mk-list-label" style="color:var(--text-muted); font-size:13px;">└ {{ $wLabel }}</span>
+                            <span class="mk-list-value" style="font-size:13px; color:var(--text-muted);">{{ number_format($wVal) }}원 <span style="font-weight:400; font-size:12px;">({{ $data['total'] > 0 ? round($wVal / $data['total'] * 100) : 0 }}%)</span></span>
                         </div>
                         @endforeach
                     @endif
@@ -756,12 +756,12 @@
             @endif
             @if(count($revenueByWorkType))
             <div>
-                <div style="font-size:12px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">작업 유형별 매출</div>
+                <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-muted);">작업 유형별 매출</div>
                 <div class="mk-list">
                     @foreach($revenueByWorkType as $label => $val)
                     <div class="mk-list-item">
                         <span class="mk-list-label">{{ $label }}</span>
-                        <span class="mk-list-value">{{ number_format($val) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:11px;">({{ $revenueTotal > 0 ? round($val / $revenueTotal * 100) : 0 }}%)</span></span>
+                        <span class="mk-list-value">{{ number_format($val) }}원 <span style="color:var(--text-muted); font-weight:400; font-size:12px;">({{ $revenueTotal > 0 ? round($val / $revenueTotal * 100) : 0 }}%)</span></span>
                     </div>
                     @endforeach
                 </div>
@@ -852,7 +852,7 @@ if (inflowData.length) {
         options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}, padding:8}}} }
     });
 } else {
-    document.getElementById('chartInflow').parentElement.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:12px;">데이터 없음</div>';
+    document.getElementById('chartInflow').parentElement.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:13px;">데이터 없음</div>';
 }
 
 // 월별 추이 라인차트

@@ -389,11 +389,11 @@ async function openHistoryModal() {
         if (h.action === 'delete' && changes.snapshot) {
             const snap = changes.snapshot;
             const lines = [];
-            if (snap.title) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">제목</span> <span style="color:var(--text);">${escHtml(snap.title)}</span></div>`);
-            if (snap.start_date) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">일자</span> <span style="color:var(--text);">${escHtml(fmtLogValue('start_date', snap.start_date))}${snap.end_date && snap.end_date !== snap.start_date ? ' ~ '+escHtml(fmtLogValue('end_date', snap.end_date)) : ''}</span></div>`);
-            if (snap.client_name) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">의뢰자</span> <span style="color:var(--text);">${escHtml(snap.client_name)}</span></div>`);
-            if (snap.location) lines.push(`<div><span style="font-size:11px;color:var(--text-muted);">장소</span> <span style="color:var(--text);">${escHtml(snap.location)}</span></div>`);
-            body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:12px;">${lines.join('')}</div>`;
+            if (snap.title) lines.push(`<div><span style="font-size:12px;color:var(--text-muted);">제목</span> <span style="color:var(--text);">${escHtml(snap.title)}</span></div>`);
+            if (snap.start_date) lines.push(`<div><span style="font-size:12px;color:var(--text-muted);">일자</span> <span style="color:var(--text);">${escHtml(fmtLogValue('start_date', snap.start_date))}${snap.end_date && snap.end_date !== snap.start_date ? ' ~ '+escHtml(fmtLogValue('end_date', snap.end_date)) : ''}</span></div>`);
+            if (snap.client_name) lines.push(`<div><span style="font-size:12px;color:var(--text-muted);">의뢰자</span> <span style="color:var(--text);">${escHtml(snap.client_name)}</span></div>`);
+            if (snap.location) lines.push(`<div><span style="font-size:12px;color:var(--text-muted);">장소</span> <span style="color:var(--text);">${escHtml(snap.location)}</span></div>`);
+            body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:13px;">${lines.join('')}</div>`;
         } else if (h.action === 'restore' || h.action === 'uncomplete' || (h.action === 'complete' && !Object.keys(changes).length)) {
             body = '';
         } else {
@@ -402,11 +402,11 @@ async function openHistoryModal() {
                 const oldVal = fmtLogValue(key, val.old);
                 const newVal = fmtLogValue(key, val.new);
                 return `<div style="margin:6px 0;">
-                    <div style="font-size:11px; color:var(--text-muted);">${label}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">${label}</div>
                     <div style="display:flex; gap:6px; margin-top:2px; flex-wrap:wrap; align-items:center;">
-                        <span style="padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:12px; text-decoration:line-through;">${escHtml(oldVal)}</span>
-                        <span style="color:var(--text-muted); font-size:11px;">→</span>
-                        <span style="padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:12px;">${escHtml(newVal)}</span>
+                        <span style="padding:2px 8px; border-radius:4px; background:rgba(212,136,136,0.15); color:var(--red); font-size:13px; text-decoration:line-through;">${escHtml(oldVal)}</span>
+                        <span style="color:var(--text-muted); font-size:12px;">→</span>
+                        <span style="padding:2px 8px; border-radius:4px; background:rgba(136,212,136,0.15); color:var(--green); font-size:13px;">${escHtml(newVal)}</span>
                     </div>
                 </div>`;
             }).join('');
@@ -414,14 +414,14 @@ async function openHistoryModal() {
         }
 
         const reasonHtml = h.reason
-            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface2); border-left:3px solid var(--accent); border-radius:4px; font-size:12px; color:var(--text);"><span style="font-size:11px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${escHtml(h.reason)}</div>`
+            ? `<div style="margin-top:6px; padding:6px 10px; background:var(--surface2); border-left:3px solid var(--accent); border-radius:4px; font-size:13px; color:var(--text);"><span style="font-size:12px; color:var(--text-muted); letter-spacing:0.04em; margin-right:6px;">사유</span>${escHtml(h.reason)}</div>`
             : '';
 
         return `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <span style="font-size:11px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:${ACTION_COLOR[h.action]||'var(--accent)'}; font-weight:600;">${ACTION_LABEL[h.action]||h.action}</span>
-                <span style="font-size:12px; font-weight:600;">${escHtml(h.user_name||'-')}</span>
-                <span style="font-size:11px; color:var(--text-muted);">${h.created_at}</span>
+                <span style="font-size:12px; padding:2px 6px; border-radius:3px; background:var(--surface2); color:${ACTION_COLOR[h.action]||'var(--accent)'}; font-weight:600;">${ACTION_LABEL[h.action]||h.action}</span>
+                <span style="font-size:13px; font-weight:600;">${escHtml(h.user_name||'-')}</span>
+                <span style="font-size:12px; color:var(--text-muted);">${h.created_at}</span>
             </div>
             ${body}
             ${reasonHtml}

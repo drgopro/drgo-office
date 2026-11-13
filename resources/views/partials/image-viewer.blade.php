@@ -12,11 +12,11 @@
     .dvw-nav:hover { background:rgba(255,255,255,0.3); }
     .dvw-nav.prev { left:16px; }
     .dvw-nav.next { right:16px; }
-    .dvw-zoominfo { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px; border-radius:20px; font-size:11px; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+    .dvw-zoominfo { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; opacity:0; transition:opacity 0.3s; pointer-events:none; }
     .dvw-zoominfo.show { opacity:1; }
-    .dvw-filename { position:absolute; bottom:34px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7); font-size:12px; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
-    .dvw-count { position:absolute; top:18px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7); font-size:12px; pointer-events:none; }
-    .dvw-hint { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.4); font-size:11px; pointer-events:none; }
+    .dvw-filename { position:absolute; bottom:34px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7); font-size:13px; max-width:80vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
+    .dvw-count { position:absolute; top:18px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7); font-size:13px; pointer-events:none; }
+    .dvw-hint { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.4); font-size:12px; pointer-events:none; }
 </style>
 <div class="dvw" id="dvw" aria-hidden="true">
     <button type="button" class="dvw-close" onclick="drgoViewer.close()">✕</button>

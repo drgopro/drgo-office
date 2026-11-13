@@ -6,43 +6,43 @@
 <style>
     .rvs-wrap { padding:24px; max-width:1240px; margin:0 auto; }
     .rvs-wrap h2 { font-size:20px; font-weight:800; margin:0; }
-    .rvs-lead { font-size:13px; color:var(--text-muted); margin:6px 0 16px; max-width:75ch; }
+    .rvs-lead { font-size:14px; color:var(--text-muted); margin:6px 0 16px; max-width:75ch; }
     .rvs-tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:16px; }
-    .rvs-tabs button { border:0; background:none; padding:8px 14px; font-size:14px; font-weight:500; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; }
+    .rvs-tabs button { border:0; background:none; padding:8px 14px; font-size:15px; font-weight:500; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; }
     .rvs-tabs button.on { color:var(--text); font-weight:700; border-color:var(--accent); }
-    .rvs-save { font-size:12px; color:var(--text-muted); margin-left:auto; align-self:center; padding-bottom:6px; }
+    .rvs-save { font-size:13px; color:var(--text-muted); margin-left:auto; align-self:center; padding-bottom:6px; }
     .rvs-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; min-width:0; margin-bottom:14px; }
     .rvs-pad { padding:14px 16px; display:grid; gap:10px; }
     .rvs-card h3 { margin:0; font-size:15px; font-weight:700; }
     .rvs-tw { overflow-x:auto; }
-    table.rvs-t { border-collapse:collapse; width:100%; font-size:13px; }
-    .rvs-t th { background:var(--surface2); text-align:left; font-size:12px; font-weight:700; color:var(--text-muted); white-space:nowrap; padding:7px 10px; border-bottom:1px solid var(--border); }
+    table.rvs-t { border-collapse:collapse; width:100%; font-size:14px; }
+    .rvs-t th { background:var(--surface2); text-align:left; font-size:13px; font-weight:700; color:var(--text-muted); white-space:nowrap; padding:7px 10px; border-bottom:1px solid var(--border); }
     .rvs-t td { padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
     .rvs-t tr:last-child td { border-bottom:0; }
     .rvs-t tr.gh td { background:var(--surface2); font-weight:700; }
     .rvs-t tr.off td:not(:first-child) { opacity:.5; }
-    .rvs-pill { font-size:11px; font-weight:700; border-radius:4px; padding:1px 6px; white-space:nowrap; }
+    .rvs-pill { font-size:12px; font-weight:700; border-radius:4px; padding:1px 6px; white-space:nowrap; }
     .rvs-pill.p-bad { background:rgba(192,56,56,.12); color:var(--red); }
     .rvs-pill.p-ask { background:rgba(168,99,0,.14); color:#a86300; }
     .rvs-pill.p-ok { background:rgba(36,138,56,.12); color:var(--green); }
     .rvs-pill.p-off { background:var(--surface2); color:var(--text-muted); }
-    .rvs-chip { display:inline-flex; gap:3px; align-items:center; background:rgba(46,108,181,.1); color:var(--blue); border-radius:4px; padding:1px 7px; font-size:12px; font-weight:500; margin:1px 3px 1px 0; white-space:nowrap; }
+    .rvs-chip { display:inline-flex; gap:3px; align-items:center; background:rgba(46,108,181,.1); color:var(--blue); border-radius:4px; padding:1px 7px; font-size:13px; font-weight:500; margin:1px 3px 1px 0; white-space:nowrap; }
     .rvs-chip.inh { background:var(--surface2); color:var(--text-muted); }
-    .rvs-chip button { border:0; background:none; padding:0 1px; color:inherit; font-size:12px; line-height:1; cursor:pointer; }
-    .rvs-mini { border:1px solid var(--border); background:var(--surface); border-radius:6px; padding:4px 9px; font-size:12px; font-weight:500; color:var(--text); cursor:pointer; white-space:nowrap; }
+    .rvs-chip button { border:0; background:none; padding:0 1px; color:inherit; font-size:13px; line-height:1; cursor:pointer; }
+    .rvs-mini { border:1px solid var(--border); background:var(--surface); border-radius:6px; padding:4px 9px; font-size:13px; font-weight:500; color:var(--text); cursor:pointer; white-space:nowrap; }
     .rvs-mini.pri { background:var(--accent); border-color:var(--accent); color:var(--accent-text, #fff); }
     [data-theme="light"] .rvs-mini.pri { color:#fff; }
     .rvs-mini.on { background:rgba(46,108,181,.12); border-color:var(--blue); color:var(--blue); }
     .rvs-mini.danger { color:var(--red); }
     .rvs-mini:disabled { opacity:.5; cursor:not-allowed; }
     .rvs-acts { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-    .rvs-input, .rvs-sel { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:13px; max-width:100%; }
+    .rvs-input, .rvs-sel { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:14px; max-width:100%; }
     .rvs-chkline { display:flex; flex-wrap:wrap; gap:10px 18px; }
-    .rvs-chkline label { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+    .rvs-chkline label { display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; }
     .rvs-two { display:grid; grid-template-columns:300px minmax(0,1fr); gap:14px; align-items:start; }
     @media (max-width:900px) { .rvs-two { grid-template-columns:minmax(0,1fr); } }
     .rvs-tree { max-height:calc(100vh - 260px); overflow-y:auto; padding:6px; }
-    .rvs-tree button { display:flex; justify-content:space-between; gap:8px; width:100%; text-align:left; border:0; background:none; border-radius:5px; padding:4px 8px; font-size:13px; color:var(--text); cursor:pointer; }
+    .rvs-tree button { display:flex; justify-content:space-between; gap:8px; width:100%; text-align:left; border:0; background:none; border-radius:5px; padding:4px 8px; font-size:14px; color:var(--text); cursor:pointer; }
     .rvs-tree button:hover { background:var(--surface2); }
     .rvs-tree button.sel { background:rgba(46,108,181,.12); color:var(--blue); font-weight:700; }
     .rvs-tree small { color:var(--text-muted); white-space:nowrap; }
@@ -50,16 +50,16 @@
     .rvs-drawerbg { position:fixed; inset:0; background:rgba(10,18,26,.45); z-index:300; }
     .rvs-drawer { position:fixed; top:0; right:0; bottom:0; width:min(560px,100%); background:var(--surface); z-index:301; overflow-y:auto; padding:18px; display:grid; gap:13px; align-content:start; box-shadow:-4px 0 18px rgba(0,0,0,.25); }
     .rvs-fld { display:grid; gap:4px; }
-    .rvs-fld > span { font-size:12px; font-weight:700; color:var(--text-muted); }
-    .rvs-fld input, .rvs-fld select, .rvs-fld textarea { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:13px; width:100%; }
-    .rvs-fld small { color:var(--text-muted); font-size:12px; }
+    .rvs-fld > span { font-size:13px; font-weight:700; color:var(--text-muted); }
+    .rvs-fld input, .rvs-fld select, .rvs-fld textarea { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 9px; color:var(--text); font-size:14px; width:100%; }
+    .rvs-fld small { color:var(--text-muted); font-size:13px; }
     .rvs-chk { display:flex; flex-wrap:wrap; gap:4px; }
-    .rvs-grouptitle { font-size:11px; color:var(--text-muted); width:100%; margin-top:4px; }
+    .rvs-grouptitle { font-size:12px; color:var(--text-muted); width:100%; margin-top:4px; }
     .rvs-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
-    .rvs-note { font-size:12px; color:var(--text-muted); }
-    .rvs-specmeta { font-size:12px; color:var(--text-muted); }
+    .rvs-note { font-size:13px; color:var(--text-muted); }
+    .rvs-specmeta { font-size:13px; color:var(--text-muted); }
     .rvs-chips { display:flex; flex-wrap:wrap; gap:4px; }
-    .rvs-fchip { border:1px solid var(--border); background:var(--surface); border-radius:7px; padding:3px 10px; font-size:12px; font-weight:500; color:var(--text); cursor:pointer; }
+    .rvs-fchip { border:1px solid var(--border); background:var(--surface); border-radius:7px; padding:3px 10px; font-size:13px; font-weight:500; color:var(--text); cursor:pointer; }
     .rvs-fchip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text, #fff); }
     [data-theme="light"] .rvs-fchip.on { color:#fff; }
 </style>
@@ -213,7 +213,7 @@ function tabRules() {
         </tr>`).join('')).join('');
     return `
     <div class="rvs-card rvs-pad"><h3>출력·발행 잠금</h3>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer"><input type="checkbox" ${CFG.gate !== false ? 'checked' : ''} onchange="CFG.gate=this.checked; markDirty()">
+        <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer"><input type="checkbox" ${CFG.gate !== false ? 'checked' : ''} onchange="CFG.gate=this.checked; markDirty()">
         검토가 완료되지 않은 견적서는 출력·발행할 수 없습니다 (발행·결제 완료된 기존 견적서의 출력은 허용)</label>
     </div>
     <div class="rvs-card rvs-pad"><h3>연결 검사 사용</h3>
@@ -345,7 +345,7 @@ function roleEditor(list, scope, key) {
         `<span class="rvs-chip">${_e(roleLabel(r))}
             <button onclick="roleAdj('${scope}','${_e(key)}','${r}',-1)">−</button>${n}<button onclick="roleAdj('${scope}','${_e(key)}','${r}',1)">＋</button>
             <button onclick="roleAdj('${scope}','${_e(key)}','${r}',0)">×</button></span>`).join('') || '<span class="rvs-note">역할 없음</span>'}
-        <select class="rvs-sel" id="roleAdd-${scope}" style="font-size:12px">${['<option value="">역할 선택</option>', ...[...new Set(CFG.roles.map(r=>r.group))].map(g =>
+        <select class="rvs-sel" id="roleAdd-${scope}" style="font-size:13px">${['<option value="">역할 선택</option>', ...[...new Set(CFG.roles.map(r=>r.group))].map(g =>
             `<optgroup label="${_e(g)}">${CFG.roles.filter(r=>r.group===g && !(list||[]).some(x=>x[0]===r.id)).map(r=>`<option value="${r.id}">${_e(r.label)}</option>`).join('')}</optgroup>`)].join('')}</select>
         <button class="rvs-mini" onclick="roleAddTo('${scope}','${_e(key)}')">추가</button></div>`;
 }
@@ -410,7 +410,7 @@ function tabProducts() {
                 ${catHas ? `<div><button class="rvs-mini" onclick="delete CFG.categoryRolesByPath['${_e(sel)}']; markDirty(); render()">지정 해제 (상위 상속)</button></div>` : ''}</div>` : ''}
             <div class="rvs-bar">
                 <input class="rvs-input" id="rvsProdQ" placeholder="제품명 검색" value="${_e(UI.prodQ)}" oninput="rvsSearch(this,'prodQ')" style="flex:1; min-width:180px">
-                <label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer"><input type="checkbox" ${UI.onlyEmpty?'checked':''} onchange="UI.onlyEmpty=this.checked; render()"> 역할 없는 제품만</label>
+                <label style="display:flex; align-items:center; gap:5px; font-size:14px; cursor:pointer"><input type="checkbox" ${UI.onlyEmpty?'checked':''} onchange="UI.onlyEmpty=this.checked; render()"> 역할 없는 제품만</label>
             </div>
             <div class="rvs-card rvs-tw"><table class="rvs-t" style="min-width:640px">
                 <thead><tr><th>제품</th><th>역할</th><th>지정 방식</th><th></th></tr></thead>
@@ -470,7 +470,7 @@ function openSpec(name) {
 function specForm(sp, fields) {
     return fields.map(f => {
         const d = FIELDS[f];
-        if (d.bool) return `<label style="display:flex; align-items:center; gap:6px; font-size:13px"><input type="checkbox" ${sp[f] ? 'checked' : ''} onchange="UI.specEdit.spec['${f}']=this.checked; render()"> ${d.label}</label>`;
+        if (d.bool) return `<label style="display:flex; align-items:center; gap:6px; font-size:14px"><input type="checkbox" ${sp[f] ? 'checked' : ''} onchange="UI.specEdit.spec['${f}']=this.checked; render()"> ${d.label}</label>`;
         if (d.cable) {
             const c = sp.cable || { a:'', b:'', kind:'cable' };
             const all = [...CFG.types.video, ...CFG.types.audio];
@@ -482,7 +482,7 @@ function specForm(sp, fields) {
         }
         const vals = d.port ? (sp[f] ? sp[f].t || [] : []) : (sp[f] || []);
         const toggles = CFG.types[d.fam].map(x => `<button type="button" class="rvs-mini ${vals.includes(x)?'on':''}" onclick="specTog('${f}','${_e(x)}',${d.port?'true':'false'})">${_e(x)}</button>`).join('');
-        const qty = d.port && d.qty ? `<label style="display:flex; align-items:center; gap:5px; font-size:13px">${d.qty}
+        const qty = d.port && d.qty ? `<label style="display:flex; align-items:center; gap:5px; font-size:14px">${d.qty}
             <input class="rvs-input" type="number" min="1" value="${sp[f] && sp[f].n || 1}" style="width:64px" onchange="(UI.specEdit.spec['${f}']=UI.specEdit.spec['${f}']||{t:[],n:1}).n=Math.max(1,+this.value||1)"></label>` : '';
         return `<div class="rvs-fld"><span>${d.label}</span><div class="rvs-acts">${toggles}${qty}</div></div>`;
     }).join('');

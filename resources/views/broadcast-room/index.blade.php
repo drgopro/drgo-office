@@ -10,11 +10,11 @@
 
     .stat-row { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; margin-bottom:20px; }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 18px; }
-    .stat-label { font-size:11px; color:var(--text-muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:6px; }
+    .stat-label { font-size:12px; color:var(--text-muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:6px; }
     .stat-value { font-size:20px; font-weight:700; }
 
     .tabs { display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:16px; }
-    .tab-btn { flex:1; padding:10px; border:none; background:none; color:var(--text-muted); font-size:13px; font-weight:600; cursor:pointer; border-radius:6px; }
+    .tab-btn { flex:1; padding:10px; border:none; background:none; color:var(--text-muted); font-size:14px; font-weight:600; cursor:pointer; border-radius:6px; }
     .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     [data-theme="light"] .tab-btn.active { color:#fff; }
 
@@ -22,18 +22,18 @@
     .tab-panel.active { display:block; }
 
     .toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:flex-end; }
-    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-primary { color:#fff; }
-    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:6px; font-size:13px; cursor:pointer; }
 
     .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; }
     table { width:100%; border-collapse:collapse; }
-    th { padding:11px 14px; font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; background:var(--surface2); border-bottom:1px solid var(--border); }
-    td { padding:10px 14px; font-size:13px; border-bottom:1px solid var(--border); }
+    th { padding:11px 14px; font-size:12px; color:var(--text-muted); font-weight:600; text-align:left; background:var(--surface2); border-bottom:1px solid var(--border); }
+    td { padding:10px 14px; font-size:14px; border-bottom:1px solid var(--border); }
     tr:last-child td { border-bottom:none; }
     tr:hover td { background:var(--surface2); }
 
-    .status-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .status-badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .status-active { background:rgba(122,200,122,0.15); color:#7ac87a; border:1px solid rgba(122,200,122,0.35); }
     .status-terminated { background:rgba(160,160,160,0.15); color:var(--text-muted); border:1px solid var(--border); }
     [data-theme="light"] .status-active { background:#e8f5e8; color:#1a7a2a; }
@@ -43,13 +43,13 @@
     .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:500px; max-width:95vw; padding:24px; }
     .modal h3 { font-size:16px; margin-bottom:16px; }
     .field-group { margin-bottom:14px; }
-    .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
-    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
+    .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; }
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .client-search-wrap { position:relative; }
     .client-search-results { display:none; position:absolute; top:100%; left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:0 0 8px 8px; max-height:240px; overflow-y:auto; z-index:10; box-shadow:0 4px 12px rgba(0,0,0,0.2); }
     .client-search-results.open { display:block; }
-    .client-search-result { padding:10px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border); }
+    .client-search-result { padding:10px 12px; font-size:14px; cursor:pointer; border-bottom:1px solid var(--border); }
     .client-search-result:hover { background:var(--surface2); }
 
     @media (max-width:768px) {
@@ -142,7 +142,7 @@
                 <input type="hidden" id="cClientId">
                 <div class="client-search-results" id="cClientResults"></div>
             </div>
-            <div id="cSelectedClient" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
+            <div id="cSelectedClient" style="margin-top:6px; font-size:13px; color:var(--accent); display:none;"></div>
         </div>
         <div class="field-group"><div class="field-label">호실</div><input type="text" class="field-input" id="cRoomNo" placeholder="예: 2 (2호실)"></div>
         <div class="field-row">
@@ -174,14 +174,14 @@
                 <input type="hidden" id="uClientId">
                 <div class="client-search-results" id="uClientResults"></div>
             </div>
-            <div id="uSelectedClient" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
+            <div id="uSelectedClient" style="margin-top:6px; font-size:13px; color:var(--accent); display:none;"></div>
         </div>
         <div class="field-group"><div class="field-label">호실</div><input type="text" class="field-input" id="uRoomNo" placeholder="예: 2 (2호실)"></div>
         <div class="field-row">
             <div class="field-group"><div class="field-label">시작 일시 *</div><input type="datetime-local" class="field-input" id="uStartAt"></div>
             <div class="field-group"><div class="field-label">종료 일시 *</div><input type="datetime-local" class="field-input" id="uEndAt"></div>
         </div>
-        <div class="field-group" style="font-size:11px; color:var(--text-muted);">⏱ 계산된 이용 시간: <span id="uHoursPreview">—</span> · 📅 등록 시 캘린더에 자동 일정이 생성됩니다 (원격/방송룸 카테고리)</div>
+        <div class="field-group" style="font-size:12px; color:var(--text-muted);">⏱ 계산된 이용 시간: <span id="uHoursPreview">—</span> · 📅 등록 시 캘린더에 자동 일정이 생성됩니다 (원격/방송룸 카테고리)</div>
         <div class="field-group"><div class="field-label">금액 (원) *</div><input type="number" class="field-input" id="uFee" min="0" step="1000"></div>
         <div class="field-group"><div class="field-label">메모</div><textarea class="field-input" id="uMemo" rows="2"></textarea></div>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -255,7 +255,7 @@ async function searchClients(q, prefix) {
         const res = await fetch('/api/rental-contracts/search-clients?q=' + encodeURIComponent(q));
         const list = await res.json();
         const el = document.getElementById(prefix + 'ClientResults');
-        if (!list.length) { el.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>'; el.classList.add('open'); return; }
+        if (!list.length) { el.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:13px;">검색 결과 없음</div>'; el.classList.add('open'); return; }
         el.innerHTML = list.map(c => `<div class="client-search-result" onclick='selectClient(${JSON.stringify(c)}, "${prefix}")'>${c.name || c.nickname || ''}${c.name && c.nickname ? ' ('+c.nickname+')' : ''} ${c.phone ? '· '+c.phone : ''}</div>`).join('');
         el.classList.add('open');
     }, 200);

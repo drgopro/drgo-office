@@ -7,25 +7,25 @@
     .bl-wrap { padding:24px; max-width:1100px; margin:0 auto; }
     .bl-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
     .bl-title { font-size:18px; font-weight:700; }
-    .bl-total { font-size:13px; color:var(--text-muted); }
+    .bl-total { font-size:14px; color:var(--text-muted); }
     .bl-total b { color:var(--red); font-size:16px; }
     .bl-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-    .bl-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .bl-table th { text-align:left; padding:10px 14px; background:var(--surface2); color:var(--text-muted); font-size:11px; font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap; }
+    .bl-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .bl-table th { text-align:left; padding:10px 14px; background:var(--surface2); color:var(--text-muted); font-size:12px; font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap; }
     .bl-table td { padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
     .bl-table tr:last-child td { border-bottom:none; }
     .bl-table tr:hover td { background:var(--surface2); }
     .bl-amount { font-weight:600; text-align:right; white-space:nowrap; }
     .bl-balance { color:var(--red); font-weight:700; text-align:right; white-space:nowrap; }
-    .bl-status { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700; }
+    .bl-status { display:inline-block; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:700; }
     .bl-status.unpaid { background:rgba(200,80,80,0.12); color:var(--red); }
     .bl-status.partial { background:rgba(232,137,74,0.12); color:#e8894a; }
     .bl-link { color:var(--accent); text-decoration:none; font-weight:600; }
     .bl-link:hover { text-decoration:underline; }
-    .bl-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; white-space:nowrap; }
+    .bl-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
     .bl-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .bl-empty { padding:48px 0; text-align:center; color:var(--text-muted); font-size:13px; }
-    .bl-back { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .bl-empty { padding:48px 0; text-align:center; color:var(--text-muted); font-size:14px; }
+    .bl-back { color:var(--text-muted); text-decoration:none; font-size:14px; }
     .bl-back:hover { color:var(--text); }
     @media (max-width:768px) { .bl-card { overflow-x:auto; } .bl-table { min-width:760px; } }
 </style>
@@ -35,7 +35,7 @@
 <div class="bl-wrap">
     <a href="{{ route('projects.index') }}" class="bl-back">← 프로젝트 목록</a>
     <div class="bl-header" style="margin-top:8px;">
-        <div class="bl-title">💸 잔금 관리 <span style="font-size:12px;color:var(--text-muted);font-weight:400;">— 미입금·부분입금 청구 모아보기</span></div>
+        <div class="bl-title">💸 잔금 관리 <span style="font-size:13px;color:var(--text-muted);font-weight:400;">— 미입금·부분입금 청구 모아보기</span></div>
         <div class="bl-total">총 미수 잔금 <b>{{ number_format($totalBalance) }}원</b> · {{ $rows->count() }}건</div>
     </div>
 
@@ -64,9 +64,9 @@
                     <td>{{ $b->project?->client?->name ?: $b->project?->client?->nickname ?: '-' }}</td>
                     <td>
                         <a class="bl-link" href="/projects/{{ $b->project_id }}" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openNav('projects','/projects/{{ $b->project_id }}'); else location.href=this.href;">{{ $b->project?->name ?? '프로젝트 #'.$b->project_id }}</a>
-                        @if($b->memo)<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ Str::limit($b->memo, 40) }}</div>@endif
+                        @if($b->memo)<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ Str::limit($b->memo, 40) }}</div>@endif
                     </td>
-                    <td style="white-space:nowrap;">{{ $b->billed_at?->format('Y.m.d') }} <span style="color:var(--text-muted);font-size:11px;">({{ (int) $b->billed_at?->diffInDays(now()) }}일 경과)</span></td>
+                    <td style="white-space:nowrap;">{{ $b->billed_at?->format('Y.m.d') }} <span style="color:var(--text-muted);font-size:12px;">({{ (int) $b->billed_at?->diffInDays(now()) }}일 경과)</span></td>
                     <td class="bl-amount">{{ number_format($b->amount) }}원</td>
                     <td class="bl-amount" style="color:var(--text-muted);">{{ number_format($row['paid_total']) }}원</td>
                     <td class="bl-balance">{{ number_format($row['balance']) }}원</td>

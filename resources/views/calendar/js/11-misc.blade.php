@@ -638,7 +638,7 @@ function buildEventPayload(ev){
 
 function showCalToast(msg){
     const t=document.createElement('div');
-    t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-text);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;';
+    t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-text);padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;';
     t.textContent=msg;
     document.body.appendChild(t);
     setTimeout(()=>t.remove(),2000);
@@ -658,7 +658,7 @@ function renderTrash() {
     const body = document.getElementById('trashBody');
     document.getElementById('trashCount').textContent = `${trashItems.length}건`;
     if (!trashItems.length) {
-        body.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">휴지통이 비어 있습니다.</div>';
+        body.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:14px;">휴지통이 비어 있습니다.</div>';
         document.getElementById('trashSelectAll').checked = false;
         updateTrashButtons();
         return;
@@ -667,11 +667,11 @@ function renderTrash() {
         <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border);">
             <input type="checkbox" class="trash-check" data-id="${it.id}" onchange="updateTrashButtons()">
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(it.title||'(제목 없음)')}</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${it.start_date}${it.end_date && it.end_date !== it.start_date ? ' ~ '+it.end_date : ''} · ${escHtml(it.client_name||'')} · ${escHtml(it.creator||'-')} 등록 · ${it.deleted_at} 삭제</div>
+                <div style="font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(it.title||'(제목 없음)')}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${it.start_date}${it.end_date && it.end_date !== it.start_date ? ' ~ '+it.end_date : ''} · ${escHtml(it.client_name||'')} · ${escHtml(it.creator||'-')} 등록 · ${it.deleted_at} 삭제</div>
             </div>
-            <button class="nav-btn" style="font-size:11px; width:auto; padding:3px 8px;" onclick="trashRestoreOne(${it.id})">복원</button>
-            <button class="nav-btn" style="font-size:11px; width:auto; padding:3px 8px; color:var(--red); border-color:var(--red);" onclick="trashForceOne(${it.id})">영구삭제</button>
+            <button class="nav-btn" style="font-size:12px; width:auto; padding:3px 8px;" onclick="trashRestoreOne(${it.id})">복원</button>
+            <button class="nav-btn" style="font-size:12px; width:auto; padding:3px 8px; color:var(--red); border-color:var(--red);" onclick="trashForceOne(${it.id})">영구삭제</button>
         </div>
     `).join('');
     document.getElementById('trashSelectAll').checked = false;
@@ -771,7 +771,7 @@ CAL_AUTOGROW_IDS.forEach(id => {
     hint.id = 'calSwipeHint';
     hint.style.cssText = 'display:none;position:fixed;left:50%;transform:translateX(-50%);z-index:150;'
         + 'bottom:calc(14px + env(safe-area-inset-bottom));background:var(--surface);border:1px solid var(--accent);'
-        + 'color:var(--accent);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;'
+        + 'color:var(--accent);border-radius:20px;padding:7px 16px;font-size:13px;font-weight:700;'
         + 'box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;';
     document.body.appendChild(hint);
 

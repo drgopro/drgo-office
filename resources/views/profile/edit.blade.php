@@ -11,20 +11,20 @@
     .section-title { font-size:15px; font-weight:700; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border); }
 
     .field-group { margin-bottom:16px; }
-    .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; display:block; }
-    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
+    .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; display:block; }
+    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; }
     .field-input:focus { border-color:var(--accent); }
     .field-input:disabled { opacity:0.5; cursor:not-allowed; }
-    .field-hint { font-size:11px; color:var(--text-muted); margin-top:4px; }
+    .field-hint { font-size:12px; color:var(--text-muted); margin-top:4px; }
 
-    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity 0.15s; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; transition:opacity 0.15s; }
     .btn-save:hover { opacity:0.85; }
 
-    .alert { padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; }
+    .alert { padding:10px 14px; border-radius:8px; font-size:14px; margin-bottom:16px; }
     .alert-success { background:#1a2a1a; color:#7ac87a; border:1px solid #2a3a2a; }
     .alert-error { background:#2a1a1a; color:#c87a7a; border:1px solid #3a2a2a; }
 
-    .info-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .info-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px; }
     .info-row:last-child { border-bottom:none; }
     .info-label { color:var(--text-muted); }
     [data-theme="light"] .btn-save { color:#fff; }

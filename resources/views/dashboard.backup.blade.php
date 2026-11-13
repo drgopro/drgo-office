@@ -7,26 +7,26 @@
     .dash-wrap { padding:24px; max-width:1200px; margin:0 auto; }
     .dash-header { margin-bottom:24px; }
     .dash-header h1 { font-size:20px; font-weight:700; }
-    .dash-header p { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .dash-header p { font-size:13px; color:var(--text-muted); margin-top:4px; }
 
     .stat-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-bottom:24px; }
     .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; cursor:pointer; transition:all 0.15s; }
     .stat-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
     .stat-label { font-size:10px; letter-spacing:0.15em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; }
     .stat-value { font-size:28px; font-weight:700; color:var(--text); }
-    .stat-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
+    .stat-sub { font-size:12px; color:var(--text-muted); margin-top:4px; }
     .stat-badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; margin-right:4px; }
 
     .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
     .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .chart-card.full { grid-column:1/-1; }
-    .chart-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+    .chart-title { font-size:14px; font-weight:600; color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
     .chart-wrap { position:relative; width:100%; height:220px; }
     .chart-wrap.short { height:180px; }
     .chart-wrap canvas { position:absolute; inset:0; width:100% !important; height:100% !important; }
 
     .detail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
-    .detail-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:12px; }
+    .detail-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:13px; }
     .detail-item-label { color:var(--text-muted); }
     .detail-item-value { font-weight:600; color:var(--text); }
 
@@ -37,19 +37,19 @@
     .dash-modal-header { padding:16px 20px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); flex-shrink:0; }
     .dash-modal-header h3 { font-size:15px; font-weight:600; }
     .dash-modal-content { flex:1; overflow-y:auto; padding:16px 20px; }
-    .dash-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .dash-table { width:100%; border-collapse:collapse; font-size:14px; }
     .dash-table th { text-align:left; padding:8px 10px; font-size:10px; letter-spacing:0.1em; color:var(--text-muted); text-transform:uppercase; border-bottom:2px solid var(--border); position:sticky; top:0; background:var(--surface); }
     .dash-table td { padding:8px 10px; border-bottom:1px solid var(--border); }
     .dash-table tr:hover td { background:var(--surface2); }
     .dash-table a { color:var(--accent); text-decoration:none; }
     .dash-table a:hover { text-decoration:underline; }
     .dash-filter { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-    .dash-filter select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer; }
+    .dash-filter select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:13px; cursor:pointer; }
 
-    .trend-tab { background:none; border:none; color:var(--text-muted); padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:600; transition:all 0.12s; }
+    .trend-tab { background:none; border:none; color:var(--text-muted); padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer; font-weight:600; transition:all 0.12s; }
     .trend-tab.active { background:var(--accent); color:var(--accent-text); }
     [data-theme="light"] .trend-tab.active { color:#fff; }
-    .dm-period { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; transition:all 0.12s; }
+    .dm-period { background:none; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; transition:all 0.12s; }
     .dm-period:hover { border-color:var(--accent); color:var(--accent); }
     .dm-period.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:600; }
     [data-theme="light"] .dm-period.active { color:#fff; }
@@ -70,10 +70,10 @@
             <p>{{ now()->format('Y년 m월 d일') }} 기준 통계</p>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <input type="date" id="excelFrom" value="{{ now()->startOfMonth()->format('Y-m-d') }}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:11px;">
-            <span style="color:var(--text-muted);font-size:11px;">~</span>
-            <input type="date" id="excelTo" value="{{ now()->format('Y-m-d') }}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:11px;">
-            <a href="#" onclick="event.preventDefault();location.href='/api/dashboard-export/excel?from='+document.getElementById('excelFrom').value+'&to='+document.getElementById('excelTo').value;" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:8px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📥 엑셀 다운로드</a>
+            <input type="date" id="excelFrom" value="{{ now()->startOfMonth()->format('Y-m-d') }}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;">
+            <span style="color:var(--text-muted);font-size:12px;">~</span>
+            <input type="date" id="excelTo" value="{{ now()->format('Y-m-d') }}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;">
+            <a href="#" onclick="event.preventDefault();location.href='/api/dashboard-export/excel?from='+document.getElementById('excelFrom').value+'&to='+document.getElementById('excelTo').value;" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">📥 엑셀 다운로드</a>
         </div>
     </div>
 
@@ -86,7 +86,7 @@
         </div>
         <div class="stat-card" onclick="openDetail('projects')">
             <div class="stat-label">진행중 / 전체 프로젝트</div>
-            <div class="stat-value">{{ number_format($projectActive) }} <span style="font-size:14px;color:var(--text-muted);">/ {{ $projectTotal }}</span></div>
+            <div class="stat-value">{{ number_format($projectActive) }} <span style="font-size:15px;color:var(--text-muted);">/ {{ $projectTotal }}</span></div>
         </div>
         <div class="stat-card" onclick="openDetail('consultations')">
             <div class="stat-label">이번 달 상담</div>
@@ -100,7 +100,7 @@
 
     {{-- 최근 3개월 요약 --}}
     <div style="margin-bottom:24px;">
-        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">📋 최근 3개월 ({{ now()->subMonths(2)->format('Y.m') }} ~ {{ now()->format('Y.m') }})</div>
+        <div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:12px;">📋 최근 3개월 ({{ now()->subMonths(2)->format('Y.m') }} ~ {{ now()->format('Y.m') }})</div>
         <div class="stat-cards" style="margin-bottom:0;">
             <div class="stat-card" onclick="openDetail('clients')">
                 <div class="stat-label">신규 의뢰자</div>
@@ -139,7 +139,7 @@
         $scaleSum = ($scaleThisMonth ?? collect())->sum();
     @endphp
     <div style="margin-bottom:24px;">
-        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">🏗 규모별 프로젝트 (이번 달)</div>
+        <div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:12px;">🏗 규모별 프로젝트 (이번 달)</div>
         <div class="stat-cards" style="margin-bottom:0;">
             @foreach($scaleLabels as $key => [$name, $icon])
                 @php $cnt = $scaleThisMonth[$key] ?? 0; $totalCnt = $projectByScale[$key] ?? 0; @endphp
@@ -158,7 +158,7 @@
 
     {{-- 렌탈/방송룸 요약 --}}
     <div style="margin-bottom:24px;">
-        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;">🔁 렌탈/방송룸 현황</div>
+        <div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:12px;">🔁 렌탈/방송룸 현황</div>
         <div class="stat-cards" style="margin-bottom:0;">
             <div class="stat-card" style="cursor:pointer;" onclick="if(window.parent&&window.parent.drgoTabs)window.parent.drgoTabs.openNav('rental-contracts','/rental-contracts');else location.href='/rental-contracts'">
                 <div class="stat-label">🏠 렌탈 진행중</div>
@@ -173,7 +173,7 @@
             @if(Auth::user()->isAdmin())
             <div class="stat-card" style="cursor:pointer;background:rgba(155,112,200,0.08);" onclick="if(window.parent&&window.parent.drgoTabs)window.parent.drgoTabs.openNav('marketing-report','/marketing-report');else location.href='/marketing-report'">
                 <div class="stat-label">📊 마케팅 통계</div>
-                <div class="stat-value" style="font-size:14px;color:var(--accent);">상세 보기 →</div>
+                <div class="stat-value" style="font-size:15px;color:var(--accent);">상세 보기 →</div>
                 <div class="stat-sub">유입·플랫폼·규모 분석</div>
             </div>
             @endif
@@ -240,7 +240,7 @@
         <div class="dash-modal-header" style="flex-direction:column;gap:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
                 <h3 id="dashModalTitle">상세</h3>
-                <button onclick="closeDashModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+                <button onclick="closeDashModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;">✕</button>
             </div>
             <div id="dashModalFilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100;">
                 <button class="dm-period active" data-period="1m" onclick="setDetailPeriod('1m',this)">1개월</button>
@@ -248,15 +248,15 @@
                 <button class="dm-period" data-period="6m" onclick="setDetailPeriod('6m',this)">6개월</button>
                 <button class="dm-period" data-period="all" onclick="setDetailPeriod('all',this)">전체</button>
                 <span style="color:var(--border);margin:0 4px;">|</span>
-                <input type="month" id="dmMonth" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;cursor:pointer;" onchange="setDetailMonth(this.value)">
+                <input type="month" id="dmMonth" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;cursor:pointer;" onchange="setDetailMonth(this.value)">
                 <span style="color:var(--border);margin:0 4px;">|</span>
-                <input type="date" id="dmFrom" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;" title="시작일">
-                <span style="font-size:11px;color:var(--text-muted);">~</span>
-                <input type="date" id="dmTo" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:11px;width:120px;" title="종료일">
-                <button onclick="applyCustomRange()" style="background:var(--accent);color:var(--accent-text);border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">조회</button>
+                <input type="date" id="dmFrom" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:120px;" title="시작일">
+                <span style="font-size:12px;color:var(--text-muted);">~</span>
+                <input type="date" id="dmTo" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;width:120px;" title="종료일">
+                <button onclick="applyCustomRange()" style="background:var(--accent);color:var(--accent-text);border:none;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">조회</button>
             </div>
         </div>
-        <div style="padding:8px 20px 0;font-size:12px;color:var(--text-muted);" id="dashModalInfo"></div>
+        <div style="padding:8px 20px 0;font-size:13px;color:var(--text-muted);" id="dashModalInfo"></div>
         <div class="dash-modal-content" id="dashModalContent">
             <div style="padding:20px;text-align:center;color:var(--text-muted);">로딩 중...</div>
         </div>

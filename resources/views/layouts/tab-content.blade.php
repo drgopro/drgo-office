@@ -38,7 +38,9 @@ body { font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Goth
 body:has(.modal-overlay.open), body:has(.todo-overlay.open) { overflow:hidden; }
 input, button, textarea, select { font-family:inherit; }
 /* 타이포 토큰 (DESIGN.md) · 안내 글자 대비 · 제목 균형 · 자릿수 맞춤 숫자 */
-:root { --fs-label:11px; --fs-body-sm:12px; --fs-body:13px; --fs-title-sm:15px; --fs-title:18px; --fs-headline:22px; }
+:root { --fs-label:12px; --fs-body-sm:13px; --fs-body:14px; --fs-title-sm:16px; --fs-title:18px; --fs-headline:22px; }
+        body { letter-spacing:-0.01em; word-break:keep-all; overflow-wrap:break-word; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+        h1,h2,h3,h4 { letter-spacing:-0.02em; }
 ::placeholder { color:#5f6575; opacity:1; }
 h1, h2, h3 { text-wrap:balance; }
 .num, .text-right, td.num, .tabular { font-variant-numeric:tabular-nums; }
@@ -76,16 +78,16 @@ h1, h2, h3 { text-wrap:balance; }
 
 /* ── 글로벌 페이지네이션 (vendor.pagination.drgo) ── */
 .drgo-pager { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center; }
-.drgo-pager-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:500; text-decoration:none; line-height:1; cursor:pointer; transition:all 0.15s; box-sizing:border-box; }
+.drgo-pager-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:13px; font-weight:500; text-decoration:none; line-height:1; cursor:pointer; transition:all 0.15s; box-sizing:border-box; }
 .drgo-pager-btn:hover:not(.disabled):not(.active) { border-color:var(--accent); color:var(--accent); }
 .drgo-pager-btn.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; cursor:default; }
 [data-theme="light"] .drgo-pager-btn.active { color:#fff; }
 .drgo-pager-btn.disabled { opacity:0.35; cursor:not-allowed; }
-.drgo-pager-dots { color:var(--text-muted); padding:0 4px; font-size:12px; }
-.drgo-pager-info { font-size:11px; color:var(--text-muted); margin-left:10px; font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
+.drgo-pager-dots { color:var(--text-muted); padding:0 4px; font-size:13px; }
+.drgo-pager-info { font-size:12px; color:var(--text-muted); margin-left:10px; font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
 @media (max-width: 600px) {
     .drgo-pager-info { display:none; }
-    .drgo-pager-btn { min-width:28px; height:28px; padding:0 6px; font-size:11px; }
+    .drgo-pager-btn { min-width:28px; height:28px; padding:0 6px; font-size:12px; }
 }
 
 /* ── 모바일 기본 스타일 (iframe 내부 모든 페이지 적용) ── */
@@ -126,9 +128,9 @@ h1, h2, h3 { text-wrap:balance; }
 .drgo-modal-dock { position:fixed; bottom:16px; right:16px; display:flex; flex-direction:column-reverse; gap:8px; z-index:9990; pointer-events:none; }
 .drgo-modal-chip { pointer-events:auto; display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface,#1c1c1c); border:1px solid var(--accent,#c8b08a); border-radius:24px; box-shadow:0 4px 14px rgba(0,0,0,0.3); cursor:pointer; max-width:280px; transition:transform 0.12s, box-shadow 0.12s; }
 .drgo-modal-chip:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.4); }
-.drgo-modal-chip-icon { font-size:14px; flex-shrink:0; }
-.drgo-modal-chip-title { font-size:12px; font-weight:600; color:var(--text,#f0ebe2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
-.drgo-modal-chip-close { background:none; border:none; color:var(--text-muted,#a09890); cursor:pointer; padding:2px 6px; font-size:14px; line-height:1; flex-shrink:0; border-radius:50%; }
+.drgo-modal-chip-icon { font-size:15px; flex-shrink:0; }
+.drgo-modal-chip-title { font-size:13px; font-weight:600; color:var(--text,#f0ebe2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+.drgo-modal-chip-close { background:none; border:none; color:var(--text-muted,#a09890); cursor:pointer; padding:2px 6px; font-size:15px; line-height:1; flex-shrink:0; border-radius:50%; }
 .drgo-modal-chip-close:hover { background:var(--surface2,#272727); color:var(--red,#d48888); }
 [data-theme="light"] .drgo-modal-chip { background:#fff; }
 </style>
@@ -254,25 +256,25 @@ function openExcelImportModal(type, typeName) {
                     <button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
                 <div style="margin-bottom:16px;">
-                    <a id="excelTemplateLink" href="#" style="font-size:12px;color:var(--accent);text-decoration:none;">📥 템플릿 다운로드 (.xlsx)</a>
-                    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">템플릿을 다운로드하여 데이터를 입력한 후 업로드하세요. 빨간색 컬럼은 필수값입니다.</div>
+                    <a id="excelTemplateLink" href="#" style="font-size:13px;color:var(--accent);text-decoration:none;">📥 템플릿 다운로드 (.xlsx)</a>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">템플릿을 다운로드하여 데이터를 입력한 후 업로드하세요. 빨간색 컬럼은 필수값입니다.</div>
                 </div>
                 <div style="margin-bottom:16px;">
                     <input type="file" id="excelImportFile" accept=".xlsx,.xls,.csv" style="display:none;">
-                    <button onclick="document.getElementById('excelImportFile').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:13px;cursor:pointer;width:100%;text-align:center;">📎 파일 선택 (.xlsx, .csv)</button>
-                    <div id="excelFileName" style="font-size:12px;color:var(--accent);margin-top:6px;display:none;"></div>
+                    <button onclick="document.getElementById('excelImportFile').click()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:14px;cursor:pointer;width:100%;text-align:center;">📎 파일 선택 (.xlsx, .csv)</button>
+                    <div id="excelFileName" style="font-size:13px;color:var(--accent);margin-top:6px;display:none;"></div>
                 </div>
                 <div id="excelProductOpts" style="margin-bottom:16px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; display:none;">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
                         <input type="checkbox" id="excelAutoCreateCats" checked> 없는 카테고리 자동 생성 (1·2·3차)
                     </label>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-left:22px;">체크 해제 시 카테고리가 미리 등록되어 있어야 합니다.</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px; margin-left:22px;">체크 해제 시 카테고리가 미리 등록되어 있어야 합니다.</div>
                 </div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;">
-                    <button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
-                    <button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;" disabled>가져오기</button>
+                    <button onclick="document.getElementById('excelImportOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:14px;cursor:pointer;">취소</button>
+                    <button id="excelImportBtn" onclick="submitExcelImport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;" disabled>가져오기</button>
                 </div>
-                <div id="excelImportResult" style="display:none;margin-top:16px;padding:12px;border-radius:8px;font-size:12px;"></div>
+                <div id="excelImportResult" style="display:none;margin-top:16px;padding:12px;border-radius:8px;font-size:13px;"></div>
             </div>`;
         document.body.appendChild(overlay);
         document.getElementById('excelImportFile').addEventListener('change', function () {

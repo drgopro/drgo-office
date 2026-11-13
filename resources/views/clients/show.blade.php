@@ -7,16 +7,16 @@
     .page-wrap { padding:24px; max-width:900px; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
     .page-header-left { display:flex; align-items:center; gap:12px; }
-    .back-btn { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .back-btn { color:var(--text-muted); text-decoration:none; font-size:14px; }
     .back-btn:hover { color:var(--text); }
     .client-name { font-size:22px; font-weight:700; }
-    .client-nickname { font-size:14px; color:var(--text-muted); margin-top:2px; }
-    .btn-edit { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:13px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
+    .client-nickname { font-size:15px; color:var(--text-muted); margin-top:2px; }
+    .btn-edit { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:14px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
     .btn-edit:hover { border-color:var(--accent); color:var(--accent); }
-    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; }
 
     /* 배지 */
-    .badge { display:inline-block; font-size:11px; padding:3px 10px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:12px; padding:3px 10px; border-radius:4px; font-weight:600; }
     .badge-normal { background:var(--surface2); color:var(--text-muted); }
     .badge-vip { background:#3a2a1a; color:var(--accent); }
     .badge-rental { background:#1a2a3a; color:#8ab4c8; }
@@ -25,30 +25,30 @@
     .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
     .info-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .info-card.full { grid-column:1/-1; }
-    .card-title { font-size:12px; font-weight:600; color:var(--accent); margin-bottom:14px; letter-spacing:0.05em; }
-    .info-row { display:flex; margin-bottom:10px; font-size:13px; }
+    .card-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:14px; letter-spacing:0.05em; }
+    .info-row { display:flex; margin-bottom:10px; font-size:14px; }
     .info-label { color:var(--text-muted); min-width:80px; flex-shrink:0; }
     .info-value { color:var(--text); }
 
     /* 태그 */
-    .tag { display:inline-block; font-size:11px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--text-muted); margin-right:4px; margin-bottom:4px; }
+    .tag { display:inline-block; font-size:12px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--text-muted); margin-right:4px; margin-bottom:4px; }
 
     /* 프로젝트 */
     .project-list { display:flex; flex-direction:column; gap:8px; }
     .project-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; text-decoration:none; transition:border-color 0.15s; }
     .project-item:hover { border-color:var(--accent); }
     .pj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-    .pj-tag { font-size:11px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
+    .pj-tag { font-size:12px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
     .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
-    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
+    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:13px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
     .tag-chip-pick input { display:none; }
     .tag-chip-pick:has(input:checked) { background:rgba(36,138,56,0.14); border-color:#248a38; color:#248a38; font-weight:600; }
-    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:11px; cursor:pointer; }
-    .project-name { font-size:13px; font-weight:600; color:var(--text); }
-    .project-meta { font-size:11px; color:var(--text-muted); margin-top:3px; }
-    .project-stage { font-size:11px; padding:3px 8px; border-radius:4px; }
+    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:12px; cursor:pointer; }
+    .project-name { font-size:14px; font-weight:600; color:var(--text); }
+    .project-meta { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    .project-stage { font-size:12px; padding:3px 8px; border-radius:4px; }
     .stage-consulting { background:#2a2010; color:var(--accent); }
     .stage-equipment  { background:#1a2a1a; color:#7ac87a; }
     .stage-proposal   { background:#1a1a2a; color:#8ab4c8; }
@@ -57,61 +57,61 @@
     .stage-visit      { background:#1a2a1a; color:#7ac87a; }
     .stage-as         { background:#2a1a1a; color:#c87a7a; }
     .stage-done       { background:var(--surface2); color:var(--text-muted); }
-    .empty-projects { text-align:center; padding:30px; color:var(--text-muted); font-size:13px; }
+    .empty-projects { text-align:center; padding:30px; color:var(--text-muted); font-size:14px; }
 
-    .success-msg { background:#1a3a2a; border:1px solid #2a5a3a; color:#7ac87a; padding:10px 16px; border-radius:8px; margin-bottom:16px; font-size:13px; }
+    .success-msg { background:#1a3a2a; border:1px solid #2a5a3a; color:#7ac87a; padding:10px 16px; border-radius:8px; margin-bottom:16px; font-size:14px; }
 
     /* 견적서 */
     .estimate-list { display:flex; flex-direction:column; gap:6px; }
     .estimate-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; transition:border-color 0.15s; }
     .estimate-item:hover { border-color:var(--accent); }
     .estimate-info { display:flex; flex-direction:column; gap:3px; }
-    .estimate-id { font-size:13px; font-weight:600; color:var(--text); }
-    .estimate-meta { font-size:11px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
-    .estimate-amount { font-size:13px; font-weight:600; color:var(--accent); }
-    .estimate-status { font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; letter-spacing:0.03em; border:1px solid; }
+    .estimate-id { font-size:14px; font-weight:600; color:var(--text); }
+    .estimate-meta { font-size:12px; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
+    .estimate-amount { font-size:14px; font-weight:600; color:var(--accent); }
+    .estimate-status { font-size:12px; padding:3px 10px; border-radius:12px; font-weight:700; letter-spacing:0.03em; border:1px solid; }
     .est-created { background:rgba(107,114,128,0.1); color:#6b7280; border-color:rgba(107,114,128,0.3); }
     .est-editing { background:rgba(200,176,138,0.15); color:var(--accent); border-color:rgba(200,176,138,0.4); }
     .est-completed { background:rgba(34,197,94,0.12); color:#22c55e; border-color:rgba(34,197,94,0.35); }
     .est-paid { background:rgba(6,182,212,0.12); color:#06b6d4; border-color:rgba(6,182,212,0.35); }
     .est-hold { background:rgba(239,68,68,0.12); color:#ef4444; border-color:rgba(239,68,68,0.35); }
     .estimate-actions { display:flex; gap:6px; align-items:center; }
-    .estimate-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 12px; border-radius:6px; font-size:11px; cursor:pointer; text-decoration:none; transition:all 0.15s; }
+    .estimate-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer; text-decoration:none; transition:all 0.15s; }
     .estimate-btn:hover { border-color:var(--accent); color:var(--accent); }
 
     /* 문서 */
     .doc-upload-area { margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border); }
     .doc-upload-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
-    .doc-upload-area .field-mini { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
-    .doc-upload-area select, .doc-upload-area input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
+    .doc-upload-area .field-mini { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+    .doc-upload-area select, .doc-upload-area input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
     .doc-upload-area select:focus, .doc-upload-area input[type="text"]:focus { border-color:var(--accent); }
-    .btn-upload { background:var(--accent); color:var(--accent-text); border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .btn-upload { background:var(--accent); color:var(--accent-text); border:none; padding:7px 14px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
     .btn-upload:disabled { opacity:0.4; cursor:default; }
-    .btn-choose { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 14px; color:var(--text); font-size:12px; cursor:pointer; white-space:nowrap; }
+    .btn-choose { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 14px; color:var(--text); font-size:13px; cursor:pointer; white-space:nowrap; }
     .btn-choose:hover { border-color:var(--accent); }
     .file-preview-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-    .file-preview-item { position:relative; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; color:var(--text); max-width:220px; }
-    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; object-fit:cover; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-muted); overflow:hidden; position:relative; }
+    .file-preview-item { position:relative; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:13px; color:var(--text); max-width:220px; }
+    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; object-fit:cover; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text-muted); overflow:hidden; position:relative; }
     .file-preview-item .thumb img, .file-preview-item .thumb canvas { width:100%; height:100%; object-fit:cover; }
     .file-preview-item .thumb .video-badge { position:absolute; bottom:1px; right:1px; background:rgba(0,0,0,0.7); color:#fff; font-size:7px; padding:1px 3px; border-radius:2px; line-height:1; }
     .file-preview-item .file-info { overflow:hidden; }
     .file-preview-item .file-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
-    .file-preview-item .file-size { font-size:11px; color:var(--text-muted); }
-    .file-preview-item .btn-remove { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:#fff; border:none; font-size:11px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
+    .file-preview-item .file-size { font-size:12px; color:var(--text-muted); }
+    .file-preview-item .btn-remove { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:#fff; border:none; font-size:12px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
     /* 썸네일 그리드 */
     .doc-grid { display:flex; flex-wrap:wrap; gap:12px; }
     .doc-thumb-card { position:relative; width:120px; cursor:pointer; }
-    .doc-thumb-card .thumb-img { width:120px; height:120px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; color:var(--text-muted); font-weight:600; transition:border-color 0.15s; position:relative; }
+    .doc-thumb-card .thumb-img { width:120px; height:120px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:12px; color:var(--text-muted); font-weight:600; transition:border-color 0.15s; position:relative; }
     .doc-thumb-card:hover .thumb-img { border-color:var(--accent); }
     .doc-thumb-card .thumb-img img, .doc-thumb-card .thumb-img video { width:100%; height:100%; object-fit:cover; }
-    .doc-thumb-card .thumb-img .video-play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; background:rgba(0,0,0,0.6); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; pointer-events:none; }
+    .doc-thumb-card .thumb-img .video-play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; background:rgba(0,0,0,0.6); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; pointer-events:none; }
     .doc-thumb-meta { margin-top:6px; }
-    .doc-thumb-meta .thumb-name { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .doc-thumb-meta .thumb-note { font-size:11px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-    .doc-thumb-meta .thumb-date { font-size:11px; color:var(--text-muted); margin-top:1px; }
+    .doc-thumb-meta .thumb-name { font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .doc-thumb-meta .thumb-note { font-size:12px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+    .doc-thumb-meta .thumb-date { font-size:12px; color:var(--text-muted); margin-top:1px; }
     .doc-thumb-card .thumb-actions { position:absolute; top:4px; right:4px; display:none; gap:3px; }
     .doc-thumb-card:hover .thumb-actions { display:flex; }
-    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
     .thumb-actions a:hover, .thumb-actions button:hover { background:rgba(0,0,0,0.85); }
 
     /* 앨범 모달 */
@@ -120,16 +120,16 @@
     .album-inner { position:relative; max-width:90vw; max-height:90vh; display:flex; flex-direction:column; align-items:center; }
     .album-media { max-width:85vw; max-height:75vh; border-radius:12px; object-fit:contain; background:#000; user-select:none; }
     .album-media-wrap.zoomed .album-media { max-width:none; max-height:none; }
-    .album-info { color:#fff; font-size:13px; margin-top:10px; text-align:center; }
+    .album-info { color:#fff; font-size:14px; margin-top:10px; text-align:center; }
     .album-info .album-name { font-weight:600; }
-    .album-info .album-note { font-size:11px; color:rgba(255,255,255,0.5); margin-top:2px; }
+    .album-info .album-note { font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px; }
     .album-nav { position:fixed; top:50%; transform:translateY(-50%); width:80px; height:200px; background:none; border:none; color:#fff; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:302; }
     .album-nav .nav-circle { width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
     .album-nav:hover .nav-circle { background:rgba(255,255,255,0.3); }
     .album-nav.prev { left:0; }
     .album-nav.next { right:0; }
     .album-close { position:fixed; top:20px; right:20px; background:none; border:none; color:#fff; font-size:28px; cursor:pointer; z-index:303; }
-    .album-counter { font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px; }
+    .album-counter { font-size:12px; color:rgba(255,255,255,0.4); margin-top:4px; }
     .album-zoom-controls { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:303; }
     .album-zoom-controls button { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .album-zoom-controls button:hover { background:rgba(255,255,255,0.3); }
@@ -245,14 +245,14 @@
         <div class="info-card">
             <div class="card-title">메모</div>
             @if($client->important_memo)
-                <div style="font-size:12px; color:var(--accent); margin-bottom:6px;"><x-icon name="warning" :size="13"/> 중요</div>
-                <div style="font-size:13px; margin-bottom:10px;">{{ $client->important_memo }}</div>
+                <div style="font-size:13px; color:var(--accent); margin-bottom:6px;"><x-icon name="warning" :size="13"/> 중요</div>
+                <div style="font-size:14px; margin-bottom:10px;">{{ $client->important_memo }}</div>
             @endif
             @if($client->memo)
-                <div style="font-size:13px; color:var(--text-muted);">{{ $client->memo }}</div>
+                <div style="font-size:14px; color:var(--text-muted);">{{ $client->memo }}</div>
             @endif
             @if(!$client->important_memo && !$client->memo)
-                <div style="color:var(--text-muted); font-size:13px;">-</div>
+                <div style="color:var(--text-muted); font-size:14px;">-</div>
             @endif
         </div>
 
@@ -277,7 +277,7 @@
         <div class="info-card full" data-upload-max-bytes="{{ $effectiveMaxBytes }}" data-upload-max-mb="{{ $effectiveMaxMb }}">
             <div class="card-title" style="display:flex; justify-content:space-between;">
                 <span>문서 ({{ $client->documents->count() }}건)
-                    <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:6px;">· 파일당 최대 {{ $effectiveMaxMb }}MB</span>
+                    <span style="font-size:12px; font-weight:400; color:var(--text-muted); margin-left:6px;">· 파일당 최대 {{ $effectiveMaxMb }}MB</span>
                 </span>
             </div>
             <form method="POST" action="{{ route('documents.store', $client) }}" enctype="multipart/form-data" id="docUploadForm">
@@ -396,7 +396,7 @@
             <div class="card-title" style="display:flex; justify-content:space-between;">
                 <span>견적서 ({{ $client->estimates->count() }}건)</span>
                 @if(Auth::user()->hasPermission('estimates.edit'))
-                    <a href="{{ route('estimates') }}?client_id={{ $client->id }}" class="btn-edit" style="font-size:11px; padding:4px 10px;">+ 새 견적서</a>
+                    <a href="{{ route('estimates') }}?client_id={{ $client->id }}" class="btn-edit" style="font-size:12px; padding:4px 10px;">+ 새 견적서</a>
                 @endif
             </div>
             @if($client->estimates->count() > 0)
@@ -456,9 +456,9 @@
     </div>
     <div class="album-zoom-controls" id="albumZoomControls" style="display:none;">
         <button onclick="albumZoom(-1)" title="축소">−</button>
-        <span id="albumZoomLevel" style="min-width:48px; text-align:center; color:#fff; font-size:13px; font-weight:600; line-height:36px;">100%</span>
+        <span id="albumZoomLevel" style="min-width:48px; text-align:center; color:#fff; font-size:14px; font-weight:600; line-height:36px;">100%</span>
         <button onclick="albumZoom(1)" title="확대">+</button>
-        <button onclick="albumZoomReset()" title="원본 크기" style="font-size:11px; width:auto; padding:0 10px; border-radius:18px;">맞춤</button>
+        <button onclick="albumZoomReset()" title="원본 크기" style="font-size:12px; width:auto; padding:0 10px; border-radius:18px;">맞춤</button>
     </div>
 </div>
 @endsection
@@ -553,7 +553,7 @@ function renderAlbum() {
         wrap.appendChild(iframe);
     } else {
         const div = document.createElement('div');
-        div.style.cssText = 'color:var(--text-muted); font-size:14px; padding:60px; text-align:center;';
+        div.style.cssText = 'color:var(--text-muted); font-size:15px; padding:60px; text-align:center;';
         div.textContent = '미리보기를 지원하지 않는 파일입니다.';
         wrap.appendChild(div);
     }
@@ -720,13 +720,13 @@ document.addEventListener('keydown', e => {
         <form method="POST" action="{{ route('projects.store', $client) }}">
             @csrf
             <div style="margin-bottom:14px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">프로젝트명 *</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">프로젝트명 *</div>
                 <input type="text" name="name" required placeholder="예: 풀세팅 - 홍길동"
-                    style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none;">
+                    style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none;">
             </div>
             <div style="margin-bottom:14px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">유형 *</div>
-                <select name="project_type" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; cursor:pointer;">
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">유형 *</div>
+                <select name="project_type" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; cursor:pointer;">
                     <option value="visit">방문세팅</option>
                     <option value="remote">원격세팅</option>
                     <option value="design">디자인</option>
@@ -739,13 +739,13 @@ document.addEventListener('keydown', e => {
                 @include('partials.tag-picker', ['key' => 'client-show'])
             </div>
             <div style="margin-bottom:20px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">메모</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">메모</div>
                 <textarea name="memo" rows="2" placeholder="간단한 메모"
-                    style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; resize:vertical;"></textarea>
+                    style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; resize:vertical;"></textarea>
             </div>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button type="button" onclick="closeProjectModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer;">취소</button>
-                <button type="submit" style="background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">생성</button>
+                <button type="button" onclick="closeProjectModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:14px; cursor:pointer;">취소</button>
+                <button type="submit" style="background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">생성</button>
             </div>
         </form>
     </div>

@@ -7,22 +7,22 @@
     .rv-wrap { padding:24px; max-width:960px; margin:0 auto; }
     .rv-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
     .rv-header h1 { font-size:20px; font-weight:800; }
-    .rv-header .sub { font-size:13px; color:var(--text-muted); margin-top:5px; }
-    .rv-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:13px; text-decoration:none; font-weight:600; }
+    .rv-header .sub { font-size:14px; color:var(--text-muted); margin-top:5px; }
+    .rv-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:14px; text-decoration:none; font-weight:600; }
     .rv-back:hover { border-color:var(--accent); color:var(--text); text-decoration:none; }
 
     /* 기간 설정 */
     .rv-period { display:flex; align-items:center; gap:7px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; margin-bottom:14px; }
-    .rv-period input[type=date] { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:8px; padding:6px 9px; font-size:13px; }
-    .rv-period .rv-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:7px 15px; font-size:13px; font-weight:700; cursor:pointer; }
+    .rv-period input[type=date] { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:8px; padding:6px 9px; font-size:14px; }
+    .rv-period .rv-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:7px 15px; font-size:14px; font-weight:700; cursor:pointer; }
     .rv-period .tilde { color:var(--text-muted); }
     .rv-period .rv-quick { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
 
     /* 필터 칩 */
     .rv-filters { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 16px 8px; margin-bottom:14px; }
     .rv-filter-row { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:9px; }
-    .rv-filter-label { font-size:12px; font-weight:700; color:var(--text-muted); width:34px; flex-shrink:0; }
-    .rv-chip { border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:15px; padding:4px 13px; font-size:13px; cursor:pointer; }
+    .rv-filter-label { font-size:13px; font-weight:700; color:var(--text-muted); width:34px; flex-shrink:0; }
+    .rv-chip { border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:15px; padding:4px 13px; font-size:14px; cursor:pointer; }
     .rv-chip:hover { border-color:var(--accent); color:var(--text); }
     .rv-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
 
@@ -32,26 +32,26 @@
     .rv-item:last-child { border-bottom:none; }
     .rv-row { display:flex; align-items:center; gap:11px; padding:13px 16px; cursor:pointer; }
     .rv-row:hover { background:var(--surface2); }
-    .rv-caret { flex-shrink:0; width:16px; color:var(--text-muted); font-size:11px; transition:transform .15s; }
+    .rv-caret { flex-shrink:0; width:16px; color:var(--text-muted); font-size:12px; transition:transform .15s; }
     .rv-item.open .rv-caret { transform:rotate(90deg); }
-    .rv-name { font-size:14px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .rv-sub { font-size:12px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rv-name { font-size:15px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rv-sub { font-size:13px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .rv-amt { margin-left:auto; flex-shrink:0; font-size:15px; font-weight:800; color:var(--accent); }
     .rv-amt.minus { color:#c0392b; }
-    .rv-open { flex-shrink:0; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:8px; width:29px; height:29px; cursor:pointer; font-size:14px; }
+    .rv-open { flex-shrink:0; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:8px; width:29px; height:29px; cursor:pointer; font-size:15px; }
     .rv-open:hover { border-color:var(--accent); color:var(--accent); }
     /* 개별 결제 건 (펼침) */
     .rv-pays { display:none; padding:2px 16px 12px 43px; background:color-mix(in srgb, var(--surface2) 45%, transparent); }
     .rv-item.open .rv-pays { display:block; }
-    .rv-pay { display:flex; align-items:center; gap:9px; padding:7px 0; font-size:13px; border-bottom:1px dashed var(--border); }
+    .rv-pay { display:flex; align-items:center; gap:9px; padding:7px 0; font-size:14px; border-bottom:1px dashed var(--border); }
     .rv-pay:last-child { border-bottom:none; }
     .rv-pay-label { flex-shrink:0; font-weight:700; color:var(--accent); }
     .rv-pay-label.minus, .rv-pay-amt.minus { color:#c0392b; }
     .rv-pay-info { color:var(--text-muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .rv-pay-amt { margin-left:auto; flex-shrink:0; font-weight:700; }
-    .rv-est-btn { margin-left:auto; flex-shrink:0; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; padding:3px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+    .rv-est-btn { margin-left:auto; flex-shrink:0; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:7px; padding:3px 11px; font-size:13px; font-weight:600; cursor:pointer; }
     .rv-est-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .rv-empty { color:var(--text-muted); font-size:13px; text-align:center; padding:46px 0; }
+    .rv-empty { color:var(--text-muted); font-size:14px; text-align:center; padding:46px 0; }
 
     @media (max-width:640px) {
         .rv-wrap { padding:16px 12px; }

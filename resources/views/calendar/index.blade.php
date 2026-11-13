@@ -27,7 +27,7 @@ body.cal-write .cal-wm-new, body.cal-write #calAddFab { display:none !important;
 #calWriteIdle .cwi-in { text-align:center; }
 #calWriteIdle .cwi-msg { font-size:15px; color:var(--text-muted); margin-bottom:14px; }
 #calWriteIdle .cwi-btns { display:flex; gap:8px; justify-content:center; }
-.cal-wm-btn { width:auto !important; padding:0 9px !important; font-size:12px !important; white-space:nowrap; }
+.cal-wm-btn { width:auto !important; padding:0 9px !important; font-size:13px !important; white-space:nowrap; }
 @media (max-width:768px) { .cal-wm-new { display:none; } }
 </style>
 @endpush

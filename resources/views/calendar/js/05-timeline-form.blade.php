@@ -374,7 +374,7 @@ function renderVisitOpts(){
     list.innerHTML=opts.map(opt=>{
         const v=String(opt).replace(/"/g,'&quot;'); const t=String(opt).replace(/</g,'&lt;');
         return `<label class="visit-opt"><input type="checkbox" value="${v}" onchange="onVisitOptChange()">${t}</label>`;
-    }).join('') || `<span style="font-size:12px;color:var(--text-muted);">${empty}</span>`;
+    }).join('') || `<span style="font-size:13px;color:var(--text-muted);">${empty}</span>`;
     list.querySelectorAll('input').forEach(cb=>{ if(prevChecked.includes(cb.value)) cb.checked=true; });
     const label=document.getElementById('visitOptsLabel');
     if(label) label.textContent=isOffice?'장소 선택':'내방 옵션';
@@ -450,7 +450,7 @@ function updateAssigneeBtn(){
 }
 function renderAssigneeList(){
     const c=document.getElementById('assigneeList');
-    if(!assignees.length){c.innerHTML='<div style="font-size:12px;color:var(--text-muted);">등록된 담당자 없음</div>';return;}
+    if(!assignees.length){c.innerHTML='<div style="font-size:13px;color:var(--text-muted);">등록된 담당자 없음</div>';return;}
     // 검색창은 한 번만 만들고 유지 (칩만 다시 그려야 입력 중 포커스·커서가 안 날아감)
     let search=document.getElementById('assigneeSearch');
     let chips=document.getElementById('assigneeChips');
@@ -545,8 +545,8 @@ function updateNotifyBtn(){
 function renderNotifyList(){
     const c=document.getElementById('notifyList');
     if(!c) return;
-    if(!assignees.length){c.innerHTML='<div style="font-size:12px;color:var(--text-muted);">등록된 멤버 없음</div>';return;}
-    c.innerHTML='<div style="width:100%;font-size:11px;color:var(--text-muted);margin-bottom:4px;">선택하지 않으면 담당자 전체에게 알림이 갑니다</div>';
+    if(!assignees.length){c.innerHTML='<div style="font-size:13px;color:var(--text-muted);">등록된 멤버 없음</div>';return;}
+    c.innerHTML='<div style="width:100%;font-size:12px;color:var(--text-muted);margin-bottom:4px;">선택하지 않으면 담당자 전체에게 알림이 갑니다</div>';
     const ordered=[...assignees].sort((a,b)=>((a.user_id===CAL_USER_ID)?0:1)-((b.user_id===CAL_USER_ID)?0:1));
     ordered.forEach(a=>{
         const isSelf=a.user_id===CAL_USER_ID;

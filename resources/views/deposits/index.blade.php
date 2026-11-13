@@ -8,61 +8,61 @@
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .page-title { font-size:20px; font-weight:800; }
     .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-    .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:200px; }
-    .toolbar input[type="date"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
+    .toolbar input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:14px; outline:none; width:200px; }
+    .toolbar input[type="date"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:14px; outline:none; }
     .toolbar input:focus { border-color:var(--accent); }
-    .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
-    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
+    .toolbar select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:14px; outline:none; cursor:pointer; }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:14px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
     .btn-outline.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .dep-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--border); }
-    .dep-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
+    .dep-tab { background:none; border:none; border-bottom:2px solid transparent; padding:9px 14px; font-size:15px; font-weight:600; color:var(--text-muted); cursor:pointer; margin-bottom:-1px; }
     .dep-tab:hover { color:var(--text); }
     .dep-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
     /* 페이앱 상태 뱃지 */
-    .pa-badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+    .pa-badge { display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
     .pa-badge.paid { background:#e7f6ec; color:#15803d; }
     .pa-badge.waiting { background:#fef3e2; color:#b45309; }
     .pa-badge.refunded, .pa-badge.req_cancelled { background:#fdeaea; color:#dc2626; }
     .pa-badge.mismatch { background:#dc2626; color:#fff; }
     .pa-badge.diff { background:#fdeaea; color:#dc2626; }
-    .pa-btn { display:block; width:96px; text-align:center; border:none; border-radius:8px; padding:6px 0; font-size:12px; font-weight:600; color:var(--text-muted); text-decoration:none; white-space:nowrap; background:var(--surface2); }
+    .pa-btn { display:block; width:96px; text-align:center; border:none; border-radius:8px; padding:6px 0; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; white-space:nowrap; background:var(--surface2); }
     .pa-btn:hover { color:var(--accent); background:var(--border); }
     .pa-btn.danger { color:#b45309; cursor:pointer; }
     .pa-btn.danger:hover { color:#dc2626; background:#fdeaea; }
     .pa-btns { display:inline-flex; flex-direction:column; gap:6px; }
-    .sum-line { font-size:13px; color:var(--text-muted); margin-bottom:10px; }
-    .sum-line b { color:var(--text); font-size:14px; }
+    .sum-line { font-size:14px; color:var(--text-muted); margin-bottom:10px; }
+    .sum-line b { color:var(--text); font-size:15px; }
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
-    .data-table th { text-align:left; padding:11px 12px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; }
-    .data-table td { padding:11px 12px; font-size:13px; border-bottom:1px solid var(--border); }
+    .data-table th { text-align:left; padding:11px 12px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+    .data-table td { padding:11px 12px; font-size:14px; border-bottom:1px solid var(--border); }
     .data-table tr:last-child td { border-bottom:none; }
     .text-right { text-align:right; }
     .text-center { text-align:center !important; }
-    .text-muted { color:var(--text-muted); font-size:12px; }
-    .empty-row { text-align:center; color:var(--text-muted); padding:32px 0; font-size:13px; }
+    .text-muted { color:var(--text-muted); font-size:13px; }
+    .empty-row { text-align:center; color:var(--text-muted); padding:32px 0; font-size:14px; }
     .amt { font-weight:700; white-space:nowrap; }
     .sel-col { width:36px; text-align:center !important; }
     .sel-col input, .mob-sel { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
-    .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .btn-del { background:none; border:1px solid var(--red); color:var(--red); padding:7px 14px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
     .btn-del:hover { background:var(--red); color:#fff; }
-    .bank-badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
+    .bank-badge { display:inline-block; font-size:12px; font-weight:600; padding:2px 9px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
     /* 원문 보기 — 클릭 시 행 아래로 펼침 */
-    .raw-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:11px; padding:3px 9px; cursor:pointer; white-space:nowrap; }
+    .raw-btn { flex-shrink:0; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:12px; padding:3px 9px; cursor:pointer; white-space:nowrap; }
     .raw-btn:hover { border-color:var(--accent); color:var(--accent); }
     .dep-raw { flex:1; min-width:0; padding:0 10px; }
-    .dep-raw pre { margin:0; background:var(--surface2); border:none; border-radius:10px; padding:10px 14px; font-size:12px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
+    .dep-raw pre { margin:0; background:var(--surface2); border:none; border-radius:10px; padding:10px 14px; font-size:13px; line-height:1.7; color:var(--text-muted); white-space:pre-wrap; word-break:break-all; font-family:inherit; font-weight:400; }
     .pager { display:flex; gap:4px; align-items:center; justify-content:center; margin-top:12px; flex-wrap:wrap; }
-    .pager-info { font-size:12px; color:var(--text-muted); margin-right:8px; }
-    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:13px; cursor:pointer; }
+    .pager-info { font-size:13px; color:var(--text-muted); margin-right:8px; }
+    .pager-btn { min-width:30px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text-muted); font-size:14px; cursor:pointer; }
     .pager-btn:hover:not(:disabled) { color:var(--text); border-color:var(--accent); }
     .pager-btn.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .pager-btn:disabled { opacity:0.4; cursor:default; }
     .mob-cards { display:none; }
     .mob-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
-    .mob-card-title { font-weight:700; font-size:14px; }
-    .mob-card-sub { color:var(--text-muted); font-size:12px; margin-top:4px; }
+    .mob-card-title { font-weight:700; font-size:15px; }
+    .mob-card-sub { color:var(--text-muted); font-size:13px; margin-top:4px; }
     [data-theme="light"] .pager-btn.active { color:#fff; }
     @media (max-width: 768px) {
         .page-wrap { padding:16px; }
@@ -174,12 +174,12 @@
 <div id="depMatchOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:300;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this) closeDepMatch()">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(560px,100%);max-height:80vh;display:flex;flex-direction:column;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
-            <div style="font-size:14px;font-weight:700;">견적서 매칭</div>
+            <div style="font-size:15px;font-weight:700;">견적서 매칭</div>
             <button onclick="closeDepMatch()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">×</button>
         </div>
         <div style="padding:12px 16px 0;">
-            <div id="dmInfo" style="font-size:13px;font-weight:600;margin-bottom:10px;"></div>
-            <input type="text" id="dmSearch" placeholder="견적서 번호·의뢰자·제목 검색" oninput="dmSearchInput()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;">
+            <div id="dmInfo" style="font-size:14px;font-weight:600;margin-bottom:10px;"></div>
+            <input type="text" id="dmSearch" placeholder="견적서 번호·의뢰자·제목 검색" oninput="dmSearchInput()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;">
             <div class="text-muted" style="margin-top:6px;">매칭된 입금 합계가 견적 금액에 도달하면 결제완료(계좌이체)로 전환되고 결제완료 톡방 알림이 발송됩니다.</div>
         </div>
         <div id="dmList" style="overflow-y:auto;padding:6px 16px 14px;"></div>
@@ -289,7 +289,7 @@ async function loadDeposits() {
             ${d.raw_text ? `<button type="button" class="raw-btn" id="depRawBtnM${d.id}" onclick="toggleDepRaw(${d.id}, this)">원문 보기</button>` : ''}
         </div>
         <div style="margin-top:8px;">${depMatchCell(d)}</div>
-        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;"><pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre></div>` : ''}
+        ${d.raw_text ? `<div id="depRawM${d.id}" style="display:none;margin-top:8px;"><pre style="margin:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all;font-family:inherit;">${_esc(d.raw_text)}</pre></div>` : ''}
     </div>`).join('');
 }
 
@@ -301,7 +301,7 @@ function depMatchCell(d) {
             <button type="button" class="raw-btn" onclick="depUnmatch(${d.id})">해제</button>
         </div>`;
     }
-    return `<button type="button" class="btn-outline" style="padding:5px 12px;font-size:12px;" onclick="openDepMatch(${d.id})">매칭</button>`;
+    return `<button type="button" class="btn-outline" style="padding:5px 12px;font-size:13px;" onclick="openDepMatch(${d.id})">매칭</button>`;
 }
 
 let depMatchId = null;
@@ -338,17 +338,17 @@ async function loadDepCandidates() {
     }
     const dep = (window.__depRows || {})[depMatchId] || {};
     el.innerHTML = list.map(c => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--border);font-size:13px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--border);font-size:14px;">
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:700;">#${_esc(String(c.no))} ${c.title ? '· '+_esc(c.title) : ''}</div>
                 <div class="text-muted" style="margin-top:2px;">
                     ${_esc(c.client)} · ${fmt(c.total_amount)}원 · ${_esc(c.status)}
-                    ${c.amount_match ? ' <span class="pa-badge paid" style="font-size:11px;">금액 일치</span>' : ''}
-                    ${c.name_match ? ' <span class="pa-badge waiting" style="font-size:11px;">이름 유사</span>' : ''}
-                    ${c.matched_sum > 0 ? ` <span class="pa-badge waiting" style="font-size:11px;">기존 매칭 ${fmt(c.matched_sum)}원</span>` : ''}
+                    ${c.amount_match ? ' <span class="pa-badge paid" style="font-size:12px;">금액 일치</span>' : ''}
+                    ${c.name_match ? ' <span class="pa-badge waiting" style="font-size:12px;">이름 유사</span>' : ''}
+                    ${c.matched_sum > 0 ? ` <span class="pa-badge waiting" style="font-size:12px;">기존 매칭 ${fmt(c.matched_sum)}원</span>` : ''}
                 </div>
             </div>
-            <button type="button" class="btn-outline" style="padding:6px 14px;font-size:12px;white-space:nowrap;" onclick="depMatchConfirm(${c.id}, ${c.total_amount}, ${c.matched_sum})">이 견적서로 매칭</button>
+            <button type="button" class="btn-outline" style="padding:6px 14px;font-size:13px;white-space:nowrap;" onclick="depMatchConfirm(${c.id}, ${c.total_amount}, ${c.matched_sum})">이 견적서로 매칭</button>
         </div>`).join('');
 }
 async function depMatchConfirm(estimateId, totalAmount, matchedSum) {

@@ -10,23 +10,23 @@
     <style>
         :root { --bg:#eef0f3; --surface:#fff; --surface2:#f2f4f7; --border:#dfe3e9; --text:#1d1f24; --text-muted:#6b7684; --accent:#2e6cb5; --red:#c03838; --green:#1e7a32; --navy:#1d2d3d; --slate:#416180; }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; padding:18px; font-size:13px; }
+        body { background:var(--bg); color:var(--text); font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; padding:18px; font-size:14px; }
         input, button, select { font-family:inherit; }
         h2 { font-size:16px; font-weight:800; color:var(--navy); margin-bottom:14px; }
         .card { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:14px 16px; margin-bottom:12px; }
-        .card h4 { font-size:12px; color:var(--slate); font-weight:700; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
-        .ship-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border); font-size:13px; }
+        .card h4 { font-size:13px; color:var(--slate); font-weight:700; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+        .ship-row { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border); font-size:14px; }
         .ship-row:last-child { border-bottom:none; }
         .ship-carrier { font-weight:700; white-space:nowrap; }
-        .ship-no { font-family:monospace; font-size:13px; }
+        .ship-no { font-family:monospace; font-size:14px; }
         .ship-no-link { color:var(--accent); text-decoration:none; }
         .ship-no-link:hover { text-decoration:underline; }
-        .badge { font-size:11px; padding:2px 8px; border-radius:4px; font-weight:700; white-space:nowrap; }
+        .badge { font-size:12px; padding:2px 8px; border-radius:4px; font-weight:700; white-space:nowrap; }
         .badge-delivered { background:#e8f5e8; color:#248a38; }
         .badge-moving { background:#e0f0ff; color:#2e6a9a; }
         .badge-unknown { background:#ececec; color:#5f6676; }
-        .ship-event { color:var(--text-muted); font-size:12px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .btn { padding:7px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid transparent; }
+        .ship-event { color:var(--text-muted); font-size:13px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .btn { padding:7px 14px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; }
         .btn-navy { background:var(--navy); color:#fff; font-weight:700; }
         .btn-navy:hover { filter:brightness(1.25); }
         .btn-line { background:var(--surface); border-color:#c9d2dc; color:#33404e; }
@@ -34,14 +34,14 @@
         .btn-x { background:none; border:none; color:var(--text-muted); font-size:15px; cursor:pointer; }
         .btn-x:hover { color:var(--red); }
         .add-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
-        .add-row select, .add-row input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:13px; color:var(--text); outline:none; }
+        .add-row select, .add-row input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:14px; color:var(--text); outline:none; }
         .add-row select { width:150px; }
         .add-row input { flex:1; }
         .add-row input:focus, .add-row select:focus { border-color:var(--accent); }
-        .btn-plus { background:var(--surface); border:1px dashed #b9c4d2; color:var(--accent); font-size:12px; padding:7px 12px; border-radius:7px; cursor:pointer; width:100%; }
+        .btn-plus { background:var(--surface); border:1px dashed #b9c4d2; color:var(--accent); font-size:13px; padding:7px 12px; border-radius:7px; cursor:pointer; width:100%; }
         .btn-plus:hover { border-color:var(--accent); }
         .footer { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
-        .empty { text-align:center; color:var(--text-muted); padding:16px; font-size:12px; }
+        .empty { text-align:center; color:var(--text-muted); padding:16px; font-size:13px; }
     </style>
 </head>
 <body>
@@ -49,7 +49,7 @@
 
     <div class="card">
         <h4>등록된 운송장
-            <button class="btn btn-line" style="margin-left:auto; padding:4px 10px; font-size:11px;" onclick="refreshShipments()">배송상태 새로고침</button>
+            <button class="btn btn-line" style="margin-left:auto; padding:4px 10px; font-size:12px;" onclick="refreshShipments()">배송상태 새로고침</button>
         </h4>
         <div id="shipList"><div class="empty">불러오는 중...</div></div>
     </div>

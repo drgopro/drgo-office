@@ -10,11 +10,11 @@
     /* ── 좌측 사이드바 ── */
     .crm-sidebar { width:220px; min-width:220px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; }
     .sidebar-header { padding:12px; border-bottom:1px solid var(--border); }
-    .sidebar-title { font-size:13px; font-weight:700; margin-bottom:10px; color:var(--text-muted); }
-    .sidebar-search { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
+    .sidebar-title { font-size:14px; font-weight:700; margin-bottom:10px; color:var(--text-muted); }
+    .sidebar-search { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
     .sidebar-search:focus { border-color:var(--accent); }
     .sidebar-filters { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
-    .filter-chip { padding:3px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:none; color:var(--text-muted); transition:all 0.12s; }
+    .filter-chip { padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:none; color:var(--text-muted); transition:all 0.12s; }
     .filter-chip.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     .filter-chip:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
 
@@ -22,20 +22,20 @@
     .sidebar-pagination { display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px 8px; border-top:1px solid var(--border); background:var(--surface); }
     .sidebar-pagination .pg-row { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; max-width:100%; overflow-x:auto; scrollbar-width:none; }
     .sidebar-pagination .pg-row::-webkit-scrollbar { display:none; }
-    .sidebar-pagination button { flex:0 0 auto; background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 0; border-radius:5px; font-size:11px; cursor:pointer; min-width:22px; line-height:1.3; }
+    .sidebar-pagination button { flex:0 0 auto; background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 0; border-radius:5px; font-size:12px; cursor:pointer; min-width:22px; line-height:1.3; }
     .sidebar-pagination button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
     .sidebar-pagination button.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     [data-theme="light"] .sidebar-pagination button.active { color:#fff; }
     .sidebar-pagination button:disabled { opacity:0.35; cursor:default; }
-    .sidebar-pagination .pg-info { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
+    .sidebar-pagination .pg-info { font-size:12px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; white-space:nowrap; }
     .sidebar-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; transition:all 0.12s; position:relative; }
     .sidebar-item:hover { background:var(--surface2); }
     .sidebar-item.active { background:var(--surface2); border-left:3px solid var(--accent); }
-    .sidebar-item .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; border:1px solid var(--border); }
+    .sidebar-item .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; border:1px solid var(--border); }
     .sidebar-item .item-info { flex:1; min-width:0; }
-    .sidebar-item .item-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sidebar-item .item-sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sidebar-item .item-grade { font-size:11px; padding:3px 8px; border-radius:10px; font-weight:700; flex-shrink:0; letter-spacing:0.05em; border:1px solid; }
+    .sidebar-item .item-name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-item .item-sub { font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-item .item-grade { font-size:12px; padding:3px 8px; border-radius:10px; font-weight:700; flex-shrink:0; letter-spacing:0.05em; border:1px solid; }
     .grade-normal { background:rgba(160,168,180,0.15); color:#5f6676; border-color:rgba(160,168,180,0.4); }
     .grade-vip { background:rgba(212,188,150,0.18); color:#d4bc96; border-color:rgba(212,188,150,0.5); }
     .grade-rental { background:rgba(138,180,200,0.18); color:#8ab4c8; border-color:rgba(138,180,200,0.5); }
@@ -44,7 +44,7 @@
     [data-theme="light"] .grade-rental { background:#e0f0ff; color:#2e6a9a; border-color:#88b8d8; }
     .sidebar-item .online-dot { width:6px; height:6px; border-radius:50%; background:var(--green); position:absolute; right:10px; top:50%; transform:translateY(-50%); }
 
-    .sidebar-add { margin:8px; padding:8px; border-radius:8px; border:1px dashed var(--border); text-align:center; font-size:12px; color:var(--text-muted); cursor:pointer; transition:all 0.12s; }
+    .sidebar-add { margin:8px; padding:8px; border-radius:8px; border:1px dashed var(--border); text-align:center; font-size:13px; color:var(--text-muted); cursor:pointer; transition:all 0.12s; }
     .sidebar-add:hover { border-color:var(--accent); color:var(--accent); }
 
     /* ── 우측 메인 ── */
@@ -57,22 +57,22 @@
     body.client-focus .crm-sidebar, body.client-focus .client-tab-bar, body.client-focus .sidebar-overlay { display:none !important; }
     body.client-focus .crm-wrap { height:100vh; height:100dvh; }
     .client-tab-bar::-webkit-scrollbar { display:none; }
-    .client-tab { display:flex; align-items:center; gap:5px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--text-muted); border:none; background:none; white-space:nowrap; border-radius:5px 5px 0 0; border:1px solid transparent; border-bottom:none; transition:all 0.12s; flex-shrink:0; }
+    .client-tab { display:flex; align-items:center; gap:5px; padding:6px 12px; font-size:13px; cursor:pointer; color:var(--text-muted); border:none; background:none; white-space:nowrap; border-radius:5px 5px 0 0; border:1px solid transparent; border-bottom:none; transition:all 0.12s; flex-shrink:0; }
     .client-tab:hover { color:var(--text); background:var(--surface2); }
     .client-tab.active { color:var(--accent); background:var(--surface2); border-color:var(--border); font-weight:600; position:relative; }
     .client-tab.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:var(--surface2); }
-    .client-tab .ct-avatar { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; border:1px solid var(--border); }
-    .client-tab .ct-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:11px; opacity:0; transition:opacity 0.1s; }
+    .client-tab .ct-avatar { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:1px solid var(--border); }
+    .client-tab .ct-close { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:3px; font-size:12px; opacity:0; transition:opacity 0.1s; }
     .client-tab:hover .ct-close { opacity:0.5; }
     .client-tab .ct-close:hover { opacity:1; background:var(--border); }
     .client-tab.ct-dragging { opacity:0.4; cursor:grabbing; }
     .client-tab.ct-drag-over { box-shadow:inset 2px 0 0 var(--accent); }
-    .client-tab-add { padding:4px 8px; font-size:14px; color:var(--text-muted); cursor:pointer; background:none; border:none; border-radius:4px; }
+    .client-tab-add { padding:4px 8px; font-size:15px; color:var(--text-muted); cursor:pointer; background:none; border:none; border-radius:4px; }
     .client-tab-add:hover { color:var(--accent); background:var(--surface2); }
 
     /* 의뢰자 상세 영역 */
     .client-content { flex:1; overflow-y:auto; }
-    .client-empty { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:14px; }
+    .client-empty { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:15px; }
     .client-pane { display:none; padding:20px; padding-bottom:60px; }
     .client-pane.active { display:block; }
 
@@ -81,18 +81,18 @@
     .detail-identity { display:flex; align-items:center; gap:12px; }
     .detail-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; border:2px solid var(--accent); }
     .detail-name { font-size:18px; font-weight:700; }
-    .detail-meta { font-size:12px; color:var(--text-muted); }
+    .detail-meta { font-size:13px; color:var(--text-muted); }
     .detail-actions { display:flex; gap:6px; }
-    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:7px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
     .btn-save:hover { opacity:0.85; }
-    .btn-delete { background:none; border:1px solid var(--red); color:var(--red); padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-delete { background:none; border:1px solid var(--red); color:var(--red); padding:7px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
     .btn-delete:hover { background:var(--red); color:#fff; }
-    .btn-log { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-log { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); padding:7px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
     .btn-log:hover { border-color:var(--accent); color:var(--accent); }
 
     /* 서브 탭 */
     .sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
-    .sub-tab { padding:8px 16px; font-size:13px; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.12s; }
+    .sub-tab { padding:8px 16px; font-size:14px; color:var(--text-muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.12s; }
     /* 프로젝트 탭 — 진행단계 프로세스 바 (AS 현황 스테퍼와 동일 문법) */
     .cp-steps { display:flex; min-width:0; padding:10px 2px 0; margin-top:10px; border-top:1px dashed var(--border); }
     .cp-steps.cancelled { opacity:0.45; }
@@ -103,10 +103,10 @@
     .cp-dot { position:relative; z-index:1; width:11px; height:11px; margin:0 auto 4px; border-radius:50%; background:var(--surface); border:2px solid var(--border); box-sizing:border-box; }
     .cp-step.on .cp-dot { background:var(--accent); border-color:var(--accent); }
     .cp-step.cur .cp-dot { box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-    .cp-name { font-size:11px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
+    .cp-name { font-size:12px; font-weight:700; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
     .cp-step.on .cp-name { color:var(--text); }
     .cp-step.cur .cp-name { color:var(--accent); }
-    .cp-date { font-size:11px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+    .cp-date { font-size:12px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
     .sub-tab:hover { color:var(--text); }
     .sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
     .sub-panel { display:none; }
@@ -123,17 +123,17 @@
     .cf-dyn-grid > .field.w-3 { grid-column:span 3; }
     .cf-dyn-grid > .field.w-4 { grid-column:1 / -1; }
     .field { }
-    .field-label { font-size:11px; color:var(--text-muted); margin-bottom:5px; }
+    .field-label { font-size:12px; color:var(--text-muted); margin-bottom:5px; }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
-    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
+    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:13px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
     .tag-chip-pick input { display:none; }
     .tag-chip-pick:has(input:checked) { background:rgba(36,138,56,0.14); border-color:#248a38; color:#248a38; font-weight:600; }
-    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:11px; cursor:pointer; }
-    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
+    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:12px; cursor:pointer; }
+    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:14px; outline:none; }
     .field-input:focus { border-color:var(--accent); }
     .field-textarea { min-height:60px; resize:vertical; }
     .chk-group { display:flex; flex-wrap:wrap; gap:6px; }
-    .chk-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:12px; cursor:pointer; user-select:none; transition:all 0.12s; }
+    .chk-chip { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border-radius:16px; border:1px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:13px; cursor:pointer; user-select:none; transition:all 0.12s; }
     .chk-chip:hover { border-color:var(--accent); color:var(--text); }
     .chk-chip input[type=checkbox], .chk-chip input[type=radio] { display:none; }
     .chk-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
@@ -141,7 +141,7 @@
     .field-select { cursor:pointer; }
 
     /* 알림 */
-    .toast { position:fixed; bottom:20px; right:20px; background:var(--accent); color:var(--accent-text); padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600; z-index:999; display:none; }
+    .toast { position:fixed; bottom:20px; right:20px; background:var(--accent); color:var(--accent-text); padding:10px 16px; border-radius:8px; font-size:14px; font-weight:600; z-index:999; display:none; }
     .toast.show { display:block; }
 
     /* 새 의뢰자 모달 — 캘린더 일정 등록과 동일 문법 (히어로 + 번호 카드 + 사이드 진행) */
@@ -150,10 +150,10 @@
     .new-client-modal.ncm { background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:0; width:1100px; max-width:96vw; max-height:92vh; overflow-y:auto; }
     .ncm-head { background:var(--surface); border-bottom:1px solid var(--border); padding:18px 28px 16px; position:sticky; top:0; z-index:5; border-radius:14px 14px 0 0; }
     .ncm-head-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .ncm-meta { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); }
+    .ncm-meta { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); }
     .ncm-meta b { color:var(--text); font-weight:600; }
     .ncm-actions { display:flex; align-items:center; gap:8px; }
-    .ncm-btn { height:34px; padding:0 16px; border:1px solid var(--border); border-radius:8px; background:var(--surface); font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+    .ncm-btn { height:34px; padding:0 16px; border:1px solid var(--border); border-radius:8px; background:var(--surface); font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; }
     .ncm-btn:hover { color:var(--text); border-color:var(--text-muted); }
     .ncm-btn.primary { border:none; background:var(--accent); color:var(--accent-text); font-weight:700; padding:0 18px; }
     .ncm-btn.primary:hover { opacity:0.9; color:var(--accent-text); }
@@ -161,48 +161,48 @@
     .ncm-hero { margin-top:10px; width:100%; border:none; outline:none; font-size:24px; font-weight:800; color:var(--text); background:transparent; padding:0; box-sizing:border-box; font-family:inherit; }
     .ncm-hero::placeholder { color:#6b7180; opacity:1; font-weight:700; }
     .ncm-pills { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-    .ncm-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border:1px dashed var(--border); border-radius:999px; font-size:12px; color:var(--text-muted); }
-    .ncm-pill select { border:none; background:transparent; color:var(--text); font-size:12px; font-weight:600; outline:none; cursor:pointer; font-family:inherit; }
+    .ncm-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border:1px dashed var(--border); border-radius:999px; font-size:13px; color:var(--text-muted); }
+    .ncm-pill select { border:none; background:transparent; color:var(--text); font-size:13px; font-weight:600; outline:none; cursor:pointer; font-family:inherit; }
     .ncm-body { display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:20px; padding:22px 28px 26px; align-items:start; }
     .ncm-cards { display:flex; flex-direction:column; gap:16px; min-width:0; }
     .ncm-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 22px; }
     .ncm-card-head { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-    .ncm-no { font-size:12px; font-weight:700; color:var(--text-muted); background:var(--surface2); border-radius:6px; padding:3px 8px; }
+    .ncm-no { font-size:13px; font-weight:700; color:var(--text-muted); background:var(--surface2); border-radius:6px; padding:3px 8px; }
     .ncm-title { font-size:15px; font-weight:700; color:var(--text); }
-    .ncm-cnt { margin-left:auto; font-size:12px; color:var(--text-muted); }
-    .ncm-label { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
-    .ncm-input { width:100%; height:38px; border:1px solid var(--border); border-radius:8px; padding:0 12px; font-size:14px; color:var(--text); background:var(--surface); box-sizing:border-box; outline:none; font-family:inherit; }
+    .ncm-cnt { margin-left:auto; font-size:13px; color:var(--text-muted); }
+    .ncm-label { font-size:13px; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
+    .ncm-input { width:100%; height:38px; border:1px solid var(--border); border-radius:8px; padding:0 12px; font-size:15px; color:var(--text); background:var(--surface); box-sizing:border-box; outline:none; font-family:inherit; }
     .ncm-input:focus { border-color:var(--accent); }
     .ncm-ta { height:64px; padding:10px 12px; resize:vertical; }
     .ncm-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     /* 칩(라디오/체크) — 단색 pill (기존 chk-chip 메커니즘 위에 크기·모양만 조정) */
     .ncm .chk-group { display:flex; flex-wrap:wrap; gap:8px; }
-    .ncm .chk-chip { padding:7px 14px; border-radius:999px; background:var(--surface); font-size:13px; }
+    .ncm .chk-chip { padding:7px 14px; border-radius:999px; background:var(--surface); font-size:14px; }
     .ncm .chk-chip.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     /* 03 장비 — 자동 연동 안내 (읽기 전용) */
     .ncm-equip { border-style:dashed; }
     .ncm-equip .ncm-card-head { margin-bottom:0; }
-    .ncm-badge { padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
-    .ncm-equip-note { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px 16px; background:var(--surface2); border-radius:10px; font-size:13px; color:var(--text-muted); line-height:1.5; }
+    .ncm-badge { padding:3px 9px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:12px; font-weight:700; }
+    .ncm-equip-note { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px 16px; background:var(--surface2); border-radius:10px; font-size:14px; color:var(--text-muted); line-height:1.5; }
     .ncm-equip-note b { color:var(--text); }
     .ncm-equip-ico { width:34px; height:34px; border-radius:10px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:15px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
     /* 사이드바 */
     .ncm-side { display:flex; flex-direction:column; gap:14px; position:sticky; top:96px; }
     .ncm-side-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
-    .ncm-side-title { font-size:12px; font-weight:700; color:var(--text-muted); }
+    .ncm-side-title { font-size:13px; font-weight:700; color:var(--text-muted); }
     .ncm-prog { display:flex; align-items:baseline; gap:8px; margin-top:8px; }
     .ncm-pct { font-size:28px; font-weight:800; color:var(--text); }
-    .ncm-prog-sub { font-size:12px; color:var(--text-muted); }
+    .ncm-prog-sub { font-size:13px; color:var(--text-muted); }
     .ncm-bar { height:6px; background:var(--surface2); border-radius:99px; margin-top:10px; overflow:hidden; }
     .ncm-bar div { width:0; height:100%; background:var(--accent); border-radius:99px; transition:width .2s; }
     .ncm-secs { display:flex; flex-direction:column; gap:2px; margin-top:14px; }
-    .ncm-sec-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; font-size:13px; color:var(--text); }
+    .ncm-sec-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; font-size:14px; color:var(--text); }
     .ncm-sec-row.done { background:var(--surface2); font-weight:600; }
-    .ncm-sec-no { font-size:11px; font-weight:700; color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
-    .ncm-sec-row.done .ncm-sec-no { width:18px; height:18px; border-radius:50%; background:var(--accent); color:var(--accent-text); font-size:11px; display:inline-flex; align-items:center; justify-content:center; }
-    .ncm-sec-cnt { margin-left:auto; font-size:11px; color:var(--text-muted); }
-    .ncm-req { padding:4px 10px; border:1px solid color-mix(in srgb, var(--red) 45%, transparent); background:color-mix(in srgb, var(--red) 10%, transparent); border-radius:999px; font-size:12px; color:var(--red); }
-    .ncm-req-done { font-size:12px; color:var(--green, #3fae54); font-weight:600; }
+    .ncm-sec-no { font-size:12px; font-weight:700; color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
+    .ncm-sec-row.done .ncm-sec-no { width:18px; height:18px; border-radius:50%; background:var(--accent); color:var(--accent-text); font-size:12px; display:inline-flex; align-items:center; justify-content:center; }
+    .ncm-sec-cnt { margin-left:auto; font-size:12px; color:var(--text-muted); }
+    .ncm-req { padding:4px 10px; border:1px solid color-mix(in srgb, var(--red) 45%, transparent); background:color-mix(in srgb, var(--red) 10%, transparent); border-radius:999px; font-size:13px; color:var(--red); }
+    .ncm-req-done { font-size:13px; color:var(--green, #3fae54); font-weight:600; }
     /* 관계자·메모 섹션 — 위 정보 입력 본문 컬럼과 가로폭 일치 (사이드 236px + gap 20px 제외) */
     .info-narrow { max-width:calc(100% - 256px); }
     @media (max-width:900px) {
@@ -246,38 +246,38 @@
     .cv-rail { border-right:2px solid var(--border); padding-right:20px; }
     .cv-rt { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; color:var(--text); }
     .cv-bar { width:4px; height:16px; background:var(--accent); border-radius:2px; flex-shrink:0; }
-    .cv-rd { font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.5; padding-left:13px; }
-    .cv-badge { padding:3px 10px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:11px; font-weight:700; }
+    .cv-rd { font-size:13px; color:var(--text-muted); margin-top:8px; line-height:1.5; padding-left:13px; }
+    .cv-badge { padding:3px 10px; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:12px; font-weight:700; }
     .cv-grid { display:grid; grid-template-columns:1fr 1fr; column-gap:36px; row-gap:16px; }
     .cv-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; column-gap:30px; row-gap:14px; }
-    .cv-l { font-size:12px; color:var(--text-muted); font-weight:600; }
+    .cv-l { font-size:13px; color:var(--text-muted); font-weight:600; }
     /* 사업자 정보 — 사업자등록증 첨부 (썸네일 클릭 = 미리보기, 이미지·PDF) */
     .cv-bizdocs { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
     .cv-bizdoc { width:132px; position:relative; }
-    .cv-bizdoc-thumb { width:132px; height:96px; border:1px solid var(--border); border-radius:8px; overflow:hidden; cursor:pointer; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--text-muted); transition:border-color .12s, transform .12s; }
+    .cv-bizdoc-thumb { width:132px; height:96px; border:1px solid var(--border); border-radius:8px; overflow:hidden; cursor:pointer; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--text-muted); transition:border-color .12s, transform .12s; }
     .cv-bizdoc-thumb:hover { border-color:var(--accent); transform:translateY(-1px); }
     .cv-bizdoc-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
     .cv-bizdoc-thumb .pdf { color:var(--red); }
-    .cv-bizdoc-name { font-size:11px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .cv-bizdoc-meta { font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; gap:6px; }
-    .cv-bizdoc-meta a, .cv-bizdoc-meta button { font-size:11px; color:var(--accent); text-decoration:none; background:none; border:0; padding:0; cursor:pointer; font-family:inherit; }
+    .cv-bizdoc-name { font-size:12px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cv-bizdoc-meta { font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; gap:6px; }
+    .cv-bizdoc-meta a, .cv-bizdoc-meta button { font-size:12px; color:var(--accent); text-decoration:none; background:none; border:0; padding:0; cursor:pointer; font-family:inherit; }
     .cv-bizdoc-meta button.del { color:var(--red); }
-    .cv-bizdoc-add { width:132px; height:96px; border:1px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; background:transparent; transition:border-color .12s, color .12s; }
+    .cv-bizdoc-add { width:132px; height:96px; border:1px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--text-muted); font-size:13px; font-weight:600; cursor:pointer; background:transparent; transition:border-color .12s, color .12s; }
     .cv-bizdoc-add:hover { border-color:var(--accent); color:var(--accent); }
     .cv-bizdoc-add.busy { opacity:.6; pointer-events:none; }
     .cv-bizdoc-add input { display:none; }
     .cv-v { font-size:15px; color:var(--text); margin-top:4px; font-weight:500; word-break:break-word; white-space:pre-wrap; }
     .cv-v.dim { color:var(--text-muted); font-weight:400; }
     .cv-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-    .cv-chip { padding:5px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text); font-size:13px; }
+    .cv-chip { padding:5px 13px; border-radius:999px; border:1px solid var(--border); color:var(--text); font-size:14px; }
     .cv-chip.fill { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
     .cv-chip.cv-plat { display:inline-flex; align-items:center; gap:6px; font-weight:600; padding:4px 12px 4px 6px; }
     .cv-chip.cv-plat img { width:18px; height:18px; border-radius:5px; }
     .cv-eqwrap { display:flex; flex-direction:column; gap:18px; }
-    .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:12px; font-weight:700; margin-bottom:10px; }
-    .cv-eqlink { font-size:13px; font-weight:600; color:var(--accent); text-decoration:none; }
+    .cv-eqgroup .cv-subchip { display:inline-block; padding:3px 10px; border-radius:6px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:13px; font-weight:700; margin-bottom:10px; }
+    .cv-eqlink { font-size:14px; font-weight:600; color:var(--accent); text-decoration:none; }
     .cv-eqtabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
-    .cv-eqtab { padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; font-weight:600; cursor:pointer; }
+    .cv-eqtab { padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; font-weight:600; cursor:pointer; }
     .cv-eqtab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .cv-eqlink:hover { text-decoration:underline; }
     @media (max-width:768px) {
@@ -303,19 +303,19 @@
         .sidebar-overlay.open { display:block; }
 
         /* 사이드바 토글 버튼 표시 */
-        .sidebar-toggle { display:flex; align-items:center; gap:6px; padding:8px 12px; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:12px; cursor:pointer; min-height:36px; flex-shrink:0; }
+        .sidebar-toggle { display:flex; align-items:center; gap:6px; padding:8px 12px; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:13px; cursor:pointer; min-height:36px; flex-shrink:0; }
         .sidebar-toggle:hover { border-color:var(--accent); color:var(--accent); }
 
         /* 터치 타겟 확대 */
-        .filter-chip { padding:6px 12px; font-size:11px; min-height:32px; }
+        .filter-chip { padding:6px 12px; font-size:12px; min-height:32px; }
         .sidebar-item { padding:12px 12px; }
-        .sidebar-search { min-height:40px; font-size:14px; }
+        .sidebar-search { min-height:40px; font-size:15px; }
         .sidebar-add { min-height:44px; display:flex; align-items:center; justify-content:center; }
 
         /* 서브탭 스크롤 */
         .sub-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; }
         .sub-tabs::-webkit-scrollbar { display:none; }
-        .sub-tab { white-space:nowrap; flex-shrink:0; padding:8px 14px; font-size:12px; }
+        .sub-tab { white-space:nowrap; flex-shrink:0; padding:8px 14px; font-size:13px; }
 
         /* 상세 헤더 세로 배치 */
         .detail-header { flex-direction:column; gap:10px; align-items:flex-start; }
@@ -380,7 +380,7 @@
             {{-- 모바일 전용 사이드바 토글 — 탭 재렌더(#clientTabBar innerHTML 교체)에 지워지지 않게 바깥에 둔다 --}}
             <button class="sidebar-toggle" onclick="openSidebar()"><x-icon name="users" :size="14"/> 고객목록</button>
             <div class="client-tabs" id="clientTabBar">
-                <span style="padding:0 8px; color:var(--text-muted); font-size:11px;">열린 의뢰자가 없습니다</span>
+                <span style="padding:0 8px; color:var(--text-muted); font-size:12px;">열린 의뢰자가 없습니다</span>
             </div>
         </div>
         <div class="client-content" id="clientContent">
@@ -411,12 +411,12 @@
             <div id="ncCtPanel" style="display:none; margin-top:10px; border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--surface2);">
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input class="ncm-input" id="ncCtSearch" placeholder="채널톡 고객 검색 — 이름/전화번호/이메일" style="flex:1;" oninput="ctSearchChanged()">
-                    <button type="button" class="ncm-btn" id="ncCtSyncBtn" style="height:30px; padding:0 10px; font-size:12px; white-space:nowrap;" onclick="ctSyncRecent()" title="검색에 안 뜨면 최근 상담 고객을 지금 바로 채널톡에서 가져옵니다">지금 동기화</button>
-                    <span id="ncCtLinkedBadge" style="display:none; font-size:11px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:10px; padding:3px 9px; white-space:nowrap;">연동됨</span>
-                    <button type="button" class="ncm-btn" id="ncCtUnlinkBtn" style="display:none; height:30px; padding:0 10px; font-size:12px;" onclick="ctUnlink()">해제</button>
+                    <button type="button" class="ncm-btn" id="ncCtSyncBtn" style="height:30px; padding:0 10px; font-size:13px; white-space:nowrap;" onclick="ctSyncRecent()" title="검색에 안 뜨면 최근 상담 고객을 지금 바로 채널톡에서 가져옵니다">지금 동기화</button>
+                    <span id="ncCtLinkedBadge" style="display:none; font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:10px; padding:3px 9px; white-space:nowrap;">연동됨</span>
+                    <button type="button" class="ncm-btn" id="ncCtUnlinkBtn" style="display:none; height:30px; padding:0 10px; font-size:13px;" onclick="ctUnlink()">해제</button>
                 </div>
                 <div id="ncCtResults" style="margin-top:8px; max-height:220px; overflow-y:auto;"></div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">채널톡 고객 정보는 10분마다 자동 동기화됩니다. 선택하면 이름·연락처가 채워지고 등록 시 채널톡 고객과 연동됩니다.</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">채널톡 고객 정보는 10분마다 자동 동기화됩니다. 선택하면 이름·연락처가 채워지고 등록 시 채널톡 고객과 연동됩니다.</div>
             </div>
             <div class="ncm-pills">
                 <label class="ncm-pill">등급
@@ -558,16 +558,16 @@
     <div style="display:flex; flex-direction:column; align-items:center;">
         <div id="albumMediaWrap" style="display:flex; align-items:center; justify-content:center; min-height:200px;"></div>
         <div style="text-align:center; margin-top:10px;">
-            <div id="albumName" style="color:#fff; font-size:13px;"></div>
-            <div id="albumNote" style="color:rgba(255,255,255,0.5); font-size:11px;"></div>
-            <div id="albumCounter" style="color:rgba(255,255,255,0.4); font-size:11px; margin-top:4px;"></div>
+            <div id="albumName" style="color:#fff; font-size:14px;"></div>
+            <div id="albumNote" style="color:rgba(255,255,255,0.5); font-size:12px;"></div>
+            <div id="albumCounter" style="color:rgba(255,255,255,0.4); font-size:12px; margin-top:4px;"></div>
         </div>
     </div>
     <div id="albumZoomControls" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); gap:8px; z-index:603;">
         <button onclick="albumZoomStep(-1)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;">−</button>
-        <span id="albumZoomLevel" style="min-width:48px;text-align:center;color:#fff;font-size:13px;font-weight:600;line-height:36px;">100%</span>
+        <span id="albumZoomLevel" style="min-width:48px;text-align:center;color:#fff;font-size:14px;font-weight:600;line-height:36px;">100%</span>
         <button onclick="albumZoomStep(1)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;">+</button>
-        <button onclick="albumZoomReset()" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:11px;cursor:pointer;padding:0 12px;">맞춤</button>
+        <button onclick="albumZoomReset()" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:0 12px;">맞춤</button>
     </div>
 </div>
 
@@ -673,7 +673,7 @@ function stationAddrInputsHtml(selected, values) {
     if (!selected.length) return '';
     return `<div class="ncm-label" style="margin-top:16px;">방송국 주소</div>` + selected.map(p => `
         <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-            <span style="flex:0 0 96px; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden;">${platformLabelHtml(p)}</span>
+            <span style="flex:0 0 96px; font-size:13px; color:var(--text-muted); white-space:nowrap; overflow:hidden;">${platformLabelHtml(p)}</span>
             <input type="text" class="field-input" data-station-plat="${_esc(p)}" value="${_esc(values[p]||'')}" placeholder="${_esc(STATION_ADDR_EXAMPLES[p] || 'https://... 채널 주소')}" style="flex:1;">
         </div>`).join('');
 }
@@ -991,7 +991,7 @@ function renderClientList() {
     if (titleEl) titleEl.textContent = `의뢰자 목록 (${clientTotal}명)`;
 
     if (!filtered.length) {
-        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">결과 없음</div>';
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">결과 없음</div>';
         return;
     }
 
@@ -1073,7 +1073,7 @@ function closeClientTab(id, e) {
 function renderClientTabs() {
     const bar = document.getElementById('clientTabBar');
     if (!openClientTabs.length) {
-        bar.innerHTML = '<span style="padding:0 8px; color:var(--text-muted); font-size:11px;">열린 의뢰자가 없습니다</span>';
+        bar.innerHTML = '<span style="padding:0 8px; color:var(--text-muted); font-size:12px;">열린 의뢰자가 없습니다</span>';
         return;
     }
     bar.innerHTML = openClientTabs.map(t => {
@@ -1153,7 +1153,7 @@ function renderClientContent(id) {
         <div class="detail-header">
             <div class="detail-identity">
                 <div>
-                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">${_esc(d.nickname || d.name || '(이름 없음)')}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}${d.marketing_consent_count ? `<span title="마케팅 활용 동의 ${d.marketing_consent_count}회 — 프로젝트의 마케팅 활용 동의 기준" style="font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:2px 9px;white-space:nowrap;">마케팅 동의 ${d.marketing_consent_count}회</span>` : ''}</div>
+                    <div class="detail-name" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">${_esc(d.nickname || d.name || '(이름 없음)')}${platIcons ? `<span style="display:inline-flex;gap:4px;align-items:center;">${platIcons}</span>` : ''}${d.marketing_consent_count ? `<span title="마케팅 활용 동의 ${d.marketing_consent_count}회 — 프로젝트의 마케팅 활용 동의 기준" style="font-size:12px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:2px 9px;white-space:nowrap;">마케팅 동의 ${d.marketing_consent_count}회</span>` : ''}</div>
                     <div class="detail-meta">${_esc([d.name, GRADE_LABELS[d.grade], d.assigned_user].filter(Boolean).join(' · '))}</div>
                 </div>
             </div>
@@ -1304,7 +1304,7 @@ function renderClientContent(id) {
 
             <!-- 관계자 · 매니저 (의뢰자당 최대 10명, 검색에 함께 매칭) -->
             <div class="info-narrow" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
-                <div class="field-label" style="margin:0 0 10px; font-size:12px; font-weight:600;">관계자 · 매니저
+                <div class="field-label" style="margin:0 0 10px; font-size:13px; font-weight:600;">관계자 · 매니저
                     <span style="font-weight:400; color:var(--text-muted);">최대 10명 · 이름/연락처가 의뢰자 검색에 함께 매칭됩니다</span>
                 </div>
                 <div id="contact-list-${id}">${renderClientContacts(d.contacts || [], id)}</div>
@@ -1322,7 +1322,7 @@ function renderClientContent(id) {
 
             <!-- 메모 (인라인 스레드) -->
             <div class="info-narrow" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
-                <div class="field-label" style="margin:0 0 10px; font-size:12px; font-weight:600;">메모</div>
+                <div class="field-label" style="margin:0 0 10px; font-size:13px; font-weight:600;">메모</div>
                 ${CAN_CLIENT_EDIT ? `
                 <div style="display:flex; gap:8px; margin-bottom:12px;">
                     <textarea class="field-input" id="info-memo-input-${id}" rows="1" placeholder="메모를 입력하세요..." style="flex:1; resize:none; min-height:34px;" onfocus="this.rows=2" onblur="if(!this.value)this.rows=1"></textarea>
@@ -1335,7 +1335,7 @@ function renderClientContent(id) {
         <!-- 프로젝트 -->
         <div class="sub-panel" id="sub-projects-${id}">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
-                <select id="project-sort-${id}" onchange="sortProjects(${id}, this.value)" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; cursor:pointer;">
+                <select id="project-sort-${id}" onchange="sortProjects(${id}, this.value)" style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:13px; cursor:pointer;">
                     <option value="desc">최신 순</option>
                     <option value="asc">오래된 순</option>
                 </select>
@@ -1396,11 +1396,11 @@ function renderClientContent(id) {
             ${CAN_DOC_EDIT ? `
             <div style="margin-bottom:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--accent); color:var(--accent-text); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--accent); color:var(--accent-text); border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;">
                         + 파일 추가
                         <input type="file" multiple id="doc-file-${id}" style="display:none;" onchange="docAddFiles(${id}, this)">
                     </label>
-                    <select class="field-input field-select" id="doc-cat-${id}" style="width:auto; padding:7px 10px; font-size:12px;">
+                    <select class="field-input field-select" id="doc-cat-${id}" style="width:auto; padding:7px 10px; font-size:13px;">
                         <option>사진/이미지</option>
                         <option>현금영수증</option>
                         <option>사업자등록증</option>
@@ -1408,7 +1408,7 @@ function renderClientContent(id) {
                         <option>견적서</option>
                         <option>기타</option>
                     </select>
-                    <input class="field-input" id="doc-note-${id}" placeholder="메모" style="width:140px; padding:7px 10px; font-size:12px;">
+                    <input class="field-input" id="doc-note-${id}" placeholder="메모" style="width:140px; padding:7px 10px; font-size:13px;">
                     <button type="button" class="btn-save" id="doc-upload-btn-${id}" onclick="uploadDocs(${id})" disabled style="padding:7px 16px;">업로드</button>
                 </div>
                 <div id="doc-preview-${id}" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;"></div>
@@ -1421,12 +1421,12 @@ function renderClientContent(id) {
         <!-- 견적서 -->
         <!-- 일정 — 캘린더에서 이 의뢰자로 등록된 일정 (클릭 시 캘린더에서 열기) -->
         <div class="sub-panel" id="sub-schedules-${id}">
-            <div id="csch-list-${id}" style="display:flex; flex-direction:column; gap:8px;"><div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">탭을 열면 불러옵니다…</div></div>
+            <div id="csch-list-${id}" style="display:flex; flex-direction:column; gap:8px;"><div style="padding:14px; text-align:center; color:var(--text-muted); font-size:13px;">탭을 열면 불러옵니다…</div></div>
         </div>
 
         <div class="sub-panel" id="sub-estimates-${id}">
             ${CAN_EST_EDIT ? `<div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                <button onclick="createEstimateForClient(${id})" style="padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">+ 새 견적서 (이 의뢰자 연동)</button>
+                <button onclick="createEstimateForClient(${id})" style="padding:5px 12px; border-radius:6px; font-size:13px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">+ 새 견적서 (이 의뢰자 연동)</button>
             </div>` : ''}
             <div id="estimate-list-${id}">
                 ${renderEstimateList(d.estimates||[], id)}
@@ -1458,14 +1458,14 @@ function renderProjectList(projects, clientId, order) {
         <div style="padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <div style="font-size:14px; font-weight:600;">${_esc(p.name)}</div>
-                    <div style="font-size:11px; color:var(--text-muted);">${_esc([TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · '))}</div>
+                    <div style="font-size:15px; font-weight:600;">${_esc(p.name)}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">${_esc([TYPE_LABELS[p.type]||p.type, `상담 ${p.consultations_count}건`, p.created_at].filter(Boolean).join(' · '))}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:11px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
-                    <button style="padding:3px 8px; font-size:11px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); drgoWriteMode.open('/projects/${p.id}/write','project-${p.id}')" title="이 프로젝트를 작성 모드(독립 창)로 열기">↗ 작성 모드</button>
-                    ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:11px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
-                    ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:11px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
+                    <span style="font-size:12px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
+                    <button style="padding:3px 8px; font-size:12px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); drgoWriteMode.open('/projects/${p.id}/write','project-${p.id}')" title="이 프로젝트를 작성 모드(독립 창)로 열기">↗ 작성 모드</button>
+                    ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:12px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
+                    ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:12px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
                 </div>
             </div>
             ${projectStepsHtml(p)}
@@ -1493,24 +1493,24 @@ function projectStepsHtml(p) {
 }
 
 function renderDocList(docs, clientId) {
-    if (!docs.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">첨부파일이 없습니다.</div>';
+    if (!docs.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:14px;">첨부파일이 없습니다.</div>';
     return docs.map((doc, i) => {
         const isImg = doc.mime_type && doc.mime_type.startsWith('image/');
         const isVid = doc.mime_type && doc.mime_type.startsWith('video/');
         const ext = doc.file_name.split('.').pop().toUpperCase();
         const thumbContent = isImg
             ? `<img src="${doc.thumb_url||doc.view_url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async">`
-            : isVid ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:14px;">▶</div>`
-            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:11px;font-weight:600;color:var(--text-muted);">${ext}</div>`;
+            : isVid ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:15px;">▶</div>`
+            : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:12px;font-weight:600;color:var(--text-muted);">${ext}</div>`;
         return `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
             <div style="width:40px; height:40px; border-radius:6px; overflow:hidden; flex-shrink:0; cursor:pointer; border:1px solid var(--border);" onclick="openAlbumViewer(${clientId},${i})">${thumbContent}</div>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${_esc(doc.file_name)}">${_esc(doc.file_name)}</div>
-                <div style="font-size:11px; color:var(--text-muted);">${doc.note ? _esc(doc.note) + ' · ' : ''}${doc.created_at}</div>
+                <div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${_esc(doc.file_name)}">${_esc(doc.file_name)}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${doc.note ? _esc(doc.note) + ' · ' : ''}${doc.created_at}</div>
             </div>
             <div style="display:flex; gap:6px; flex-shrink:0;">
-                <a href="${doc.download_url}" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--accent); text-decoration:none; transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">다운로드</a>
-                <button onclick="deleteDoc(${doc.id},${clientId})" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--red); color:var(--red); cursor:pointer; transition:all 0.12s;" onmouseover="this.style.background='var(--red)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='var(--red)'">삭제</button>
+                <a href="${doc.download_url}" style="padding:4px 10px; border-radius:5px; font-size:12px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--accent); text-decoration:none; transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">다운로드</a>
+                <button onclick="deleteDoc(${doc.id},${clientId})" style="padding:4px 10px; border-radius:5px; font-size:12px; font-weight:600; background:none; border:1px solid var(--red); color:var(--red); cursor:pointer; transition:all 0.12s;" onmouseover="this.style.background='var(--red)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='var(--red)'">삭제</button>
             </div>
         </div>`;
     }).join('');
@@ -1532,7 +1532,7 @@ async function createEstimateForClient(clientId) {
 }
 
 function renderEstimateList(estimates, clientId) {
-    if (!estimates.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:13px;">등록된 견적서가 없습니다.</div>';
+    if (!estimates.length) return '<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:14px;">등록된 견적서가 없습니다.</div>';
     return estimates.map(e => {
         const statusLabel = EST_STATUS[e.status] || e.status;
         const statusColor = EST_COLOR[e.status] || 'var(--text-muted)';
@@ -1541,16 +1541,16 @@ function renderEstimateList(estimates, clientId) {
         return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px;">
             <div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:12px; color:var(--text-muted);">#${e.no ?? e.id}</span>
-                    <span style="font-size:11px; padding:2px 8px; border-radius:4px; background:color-mix(in srgb, ${statusColor} 20%, transparent); color:${statusColor}; font-weight:600;">${statusLabel}</span>
+                    <span style="font-size:13px; color:var(--text-muted);">#${e.no ?? e.id}</span>
+                    <span style="font-size:12px; padding:2px 8px; border-radius:4px; background:color-mix(in srgb, ${statusColor} 20%, transparent); color:${statusColor}; font-weight:600;">${statusLabel}</span>
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                     ${amount ? '<span style="font-weight:600; color:var(--text);">' + amount + '</span> · ' : ''}${e.created_at}${e.creator_name ? ' · ' + _esc(e.creator_name) : ''}
                 </div>
             </div>
             <div style="display:flex; gap:6px;">
-                <button onclick="window.open('${e.print_url}','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--text); cursor:pointer;">보기</button>
-                ${isPaid ? '<span style="padding:4px 10px; font-size:11px; color:var(--text-muted);">결제완료</span>' : `<button onclick="window.open('${e.edit_url}','_blank')" style="padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">편집</button>`}
+                <button onclick="window.open('${e.print_url}','estimate_print','width=900,height=700,scrollbars=yes,resizable=yes')" style="padding:4px 10px; border-radius:5px; font-size:12px; font-weight:600; background:var(--surface2); border:1px solid var(--border); color:var(--text); cursor:pointer;">보기</button>
+                ${isPaid ? '<span style="padding:4px 10px; font-size:12px; color:var(--text-muted);">결제완료</span>' : `<button onclick="window.open('${e.edit_url}','_blank')" style="padding:4px 10px; border-radius:5px; font-size:12px; font-weight:600; background:none; border:1px solid var(--accent); color:var(--accent); cursor:pointer;">편집</button>`}
             </div>
         </div>`;
     }).join('');
@@ -1573,7 +1573,7 @@ function searchAddress(clientId, xIdx) {
 function renderExtraAddrRows(list, clientId) {
     return (list || []).map((a, idx) => `<div style="margin-top:12px;">
         <div class="ncm-label" style="display:flex; align-items:center; gap:8px;">주소 ${idx+2}
-            <button onclick="removeExtraAddr(${clientId}, ${idx})" style="background:none;border:1px solid var(--border);color:var(--red);padding:1px 9px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+            <button onclick="removeExtraAddr(${clientId}, ${idx})" style="background:none;border:1px solid var(--border);color:var(--red);padding:1px 9px;border-radius:6px;font-size:12px;cursor:pointer;">삭제</button>
         </div>
         <div style="display:flex; gap:8px;">
             <input class="field-input" id="f-xaddr-${clientId}-${idx}" value="${_esc(a.address||'')}" readonly style="flex:1; cursor:pointer;" onclick="searchAddress(${clientId}, ${idx})">
@@ -1776,17 +1776,17 @@ function renderFilePreview(clientId) {
         } else if (VID_TYPES.includes(f.type)) {
             thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:16px;">▶</div>`;
         } else if (f.type === 'application/pdf') {
-            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:11px;font-weight:700;color:var(--red);">PDF</div>`;
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:12px;font-weight:700;color:var(--red);">PDF</div>`;
         } else {
             const ext = f.name.split('.').pop().toUpperCase();
-            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:11px;color:var(--text-muted);">${ext}</div>`;
+            thumbContent = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:4px;font-size:12px;color:var(--text-muted);">${ext}</div>`;
         }
 
         return `<div style="width:80px; position:relative;">
             <div style="width:80px; height:80px; border:1px solid var(--border); border-radius:6px; overflow:hidden;">${thumbContent}</div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</div>
-            <div style="font-size:11px; color:var(--text-muted);">${formatFileSize(f.size)}</div>
-            <button onclick="removeFile(${clientId},${i})" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.name}">${f.name}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${formatFileSize(f.size)}</div>
+            <button onclick="removeFile(${clientId},${i})" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>`;
     }).join('');
 }
@@ -1908,7 +1908,7 @@ function renderAlbumMedia() {
         iframe.src = doc.view_url; iframe.style.cssText = 'width:80vw;height:75vh;border:none;';
         wrap.appendChild(iframe);
     } else {
-        wrap.innerHTML = '<div style="color:var(--text-muted);font-size:14px;padding:60px;text-align:center;">미리보기를 지원하지 않는 파일입니다.</div>';
+        wrap.innerHTML = '<div style="color:var(--text-muted);font-size:15px;padding:60px;text-align:center;">미리보기를 지원하지 않는 파일입니다.</div>';
     }
     document.getElementById('albumName').textContent = doc.file_name;
     document.getElementById('albumNote').textContent = doc.note || '';
@@ -1964,7 +1964,7 @@ async function loadClientSchedules(clientId, force = false) {
     if (!force && __cschLoaded.has(clientId)) return;
     const wrap = document.getElementById(`csch-list-${clientId}`);
     if (!wrap) return;
-    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">불러오는 중…</div>';
+    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:13px;">불러오는 중…</div>';
     let rows = [];
     try {
         const res = await fetch(`/api/clients/${clientId}/schedules`, { headers:{'Accept':'application/json'} });
@@ -1974,7 +1974,7 @@ async function loadClientSchedules(clientId, force = false) {
     const tabBtn = document.getElementById(`cschtab-${clientId}`);
     if (tabBtn) tabBtn.textContent = `일정 ${rows.length}`;
     if (!rows.length) {
-        wrap.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">캘린더에 등록된 일정이 없습니다.</div>';
+        wrap.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">캘린더에 등록된 일정이 없습니다.</div>';
         return;
     }
     const today = new Date().toISOString().slice(0, 10);
@@ -1987,10 +1987,10 @@ async function loadClientSchedules(clientId, force = false) {
             onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg); flex-shrink:0;"></span>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:11px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + _esc(sc.location) : ''}</div>
+                <div style="font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:12px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + _esc(sc.location) : ''}</div>
             </div>
-            <span style="font-size:11px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
+            <span style="font-size:12px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
         </div>`;
     }).join('');
 }
@@ -2183,14 +2183,14 @@ function showDupClientDialog(existing, onConfirm) {
     ov.innerHTML = `
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px; max-width:380px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25);">
             <div style="font-size:15px; font-weight:800; margin-bottom:10px;">이미 등록된 의뢰자입니다</div>
-            <div style="font-size:13px; line-height:1.7; color:var(--text); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+            <div style="font-size:14px; line-height:1.7; color:var(--text); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:12px;">
                 <div style="font-weight:700;">${label}</div>
                 <div style="color:var(--text-muted);">${_esc(existing.phone || '')}</div>
             </div>
-            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
+            <div style="font-size:14px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
             <div style="display:flex; gap:8px; justify-content:flex-end;">
-                <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer;">등록 취소</button>
-                <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">추가등록</button>
+                <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:14px; cursor:pointer;">등록 취소</button>
+                <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">추가등록</button>
             </div>
         </div>`;
     document.body.appendChild(ov);
@@ -2241,7 +2241,7 @@ async function ctSyncRecent() {
             await ctSearch(); // 갱신된 미러로 바로 재검색
         } else {
             const box = document.getElementById('ncCtResults');
-            if (box) box.innerHTML = `<div style="padding:8px; font-size:12px; color:var(--green);">동기화 완료 — 최근 상담 고객 ${body.upserted || 0}명 갱신${body.linked ? `, 의뢰자 자동 연동 ${body.linked}건` : ''}. 이제 검색해 보세요.</div>`;
+            if (box) box.innerHTML = `<div style="padding:8px; font-size:13px; color:var(--green);">동기화 완료 — 최근 상담 고객 ${body.upserted || 0}명 갱신${body.linked ? `, 의뢰자 자동 연동 ${body.linked}건` : ''}. 이제 검색해 보세요.</div>`;
         }
     } finally {
         ctSyncBusy = false;
@@ -2252,24 +2252,24 @@ async function ctSearch() {
     const q = document.getElementById('ncCtSearch').value.trim();
     const box = document.getElementById('ncCtResults');
     if (!q) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div style="padding:8px; font-size:12px; color:var(--text-muted);">검색 중...</div>';
+    box.innerHTML = '<div style="padding:8px; font-size:13px; color:var(--text-muted);">검색 중...</div>';
     const res = await fetch('/api/channeltalk/users?q=' + encodeURIComponent(q));
     const list = res.ok ? await res.json() : [];
     if (!list.length) {
-        box.innerHTML = `<div style="padding:8px; font-size:12px; color:var(--text-muted);">채널톡에서 찾지 못했습니다 — 방금 상담한 고객은 아직 미러에 없을 수 있습니다.
-            <button type="button" class="ncm-btn" style="height:26px; padding:0 10px; font-size:12px; margin-left:6px;" onclick="ctSyncRecent()">지금 동기화</button></div>`;
+        box.innerHTML = `<div style="padding:8px; font-size:13px; color:var(--text-muted);">채널톡에서 찾지 못했습니다 — 방금 상담한 고객은 아직 미러에 없을 수 있습니다.
+            <button type="button" class="ncm-btn" style="height:26px; padding:0 10px; font-size:13px; margin-left:6px;" onclick="ctSyncRecent()">지금 동기화</button></div>`;
         return;
     }
     box.innerHTML = list.map(u => `
         <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border); ${u.linked_client ? 'opacity:0.65;' : 'cursor:pointer;'}"
             ${u.linked_client ? '' : `onclick='ctPick(${JSON.stringify(u).replace(/'/g, "&#39;")})'`}>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600;">${_esc(u.name || '(이름 없음)')}</div>
-                <div style="font-size:12px; color:var(--text-muted);">${_esc(u.mobile || '-')}${u.email ? ' · ' + _esc(u.email) : ''}</div>
+                <div style="font-size:14px; font-weight:600;">${_esc(u.name || '(이름 없음)')}</div>
+                <div style="font-size:13px; color:var(--text-muted);">${_esc(u.mobile || '-')}${u.email ? ' · ' + _esc(u.email) : ''}</div>
             </div>
             ${u.linked_client
-                ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;" title="이미 이 채널톡 고객과 연동된 의뢰자가 있습니다">연동됨: ${_esc(u.linked_client.label || '')}</span>`
-                : '<span style="font-size:11px; color:var(--accent); white-space:nowrap;">불러오기</span>'}
+                ? `<span style="font-size:12px; color:var(--text-muted); white-space:nowrap;" title="이미 이 채널톡 고객과 연동된 의뢰자가 있습니다">연동됨: ${_esc(u.linked_client.label || '')}</span>`
+                : '<span style="font-size:12px; color:var(--accent); white-space:nowrap;">불러오기</span>'}
         </div>`).join('');
 }
 // 체크박스 그룹(플랫폼/주제) 채우기 — 기존 선택은 유지하고 추가만, '기타' 텍스트는 빈 칸일 때만
@@ -2415,22 +2415,22 @@ async function createClient(forceDuplicate = false) {
 // ── 메모 스레드 ──
 function renderMemoItem(m, clientId) {
     return `<div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="memo-item-${m.id}">
-        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0;">${(m.user_name||'?').substring(0,1)}</div>
+        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); flex-shrink:0;">${(m.user_name||'?').substring(0,1)}</div>
         <div style="flex:1; min-width:0;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <span style="font-size:12px; font-weight:600;">${_esc(m.user_name)}</span>
-                    <span style="font-size:11px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
+                    <span style="font-size:13px; font-weight:600;">${_esc(m.user_name)}</span>
+                    <span style="font-size:12px; color:var(--text-muted); margin-left:6px;">${m.created_at}</span>
                 </div>
-                ${CAN_CLIENT_EDIT ? `<button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; opacity:0.85;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.85;this.style.color='var(--text-muted)'">삭제</button>` : ''}
+                ${CAN_CLIENT_EDIT ? `<button onclick="deleteMemo(${m.id},${clientId})" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; opacity:0.85;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.85;this.style.color='var(--text-muted)'">삭제</button>` : ''}
             </div>
-            <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${_esc(m.content)}</div>
+            <div style="font-size:14px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">${_esc(m.content)}</div>
         </div>
     </div>`;
 }
 
 function renderMemoThread(memos, clientId) {
-    if (!memos || !memos.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:13px;">메모가 없습니다.</div>';
+    if (!memos || !memos.length) return '<div style="padding:30px; text-align:center; color:var(--text-muted); font-size:14px;">메모가 없습니다.</div>';
     return memos.map(m => renderMemoItem(m, clientId)).join('');
 }
 
@@ -2514,7 +2514,7 @@ function renderClientView(d) {
         ${cvField('유입경로', CV_SRC[d.inflow_source] || '')}
         ${cvField('의뢰자 유형', CV_TYPE[d.client_type] || '')}
         ${cvField('등록일', d.created_at)}
-        <div><div class="cv-l">마케팅 활용 동의</div><div class="cv-v">${d.marketing_consent_count ? `<span style="color:var(--accent);font-weight:700;">동의 ${d.marketing_consent_count}회</span>` : '<span class="dim">동의 이력 없음</span>'}${d.marketing_denied_count ? ` <span style="color:var(--red, #dc2626);font-size:12px;">· 거부 ${d.marketing_denied_count}회</span>` : ''}</div></div>
+        <div><div class="cv-l">마케팅 활용 동의</div><div class="cv-v">${d.marketing_consent_count ? `<span style="color:var(--accent);font-weight:700;">동의 ${d.marketing_consent_count}회</span>` : '<span class="dim">동의 이력 없음</span>'}${d.marketing_denied_count ? ` <span style="color:var(--red, #dc2626);font-size:13px;">· 거부 ${d.marketing_denied_count}회</span>` : ''}</div></div>
         ${cvField(((d.extra_addresses||[]).length ? '주소 1 (메인)' : '주소') + (d.address_label ? ` · ${d.address_label}` : ''), addr, true)}
         ${(d.extra_addresses||[]).map((a, i) => cvField(`주소 ${i+2}` + (a.label ? ` · ${a.label}` : ''), [a.address, a.address_detail].filter(Boolean).join(', '), true)).join('')}
         ${cvField('특이사항', d.important_memo, true)}
@@ -2533,7 +2533,7 @@ function renderClientView(d) {
             const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
             return `<div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                 <span class="cv-chip cv-plat" style="flex:0 0 auto;">${(typeof PLATFORM_ICONS !== 'undefined' && PLATFORM_ICONS[p]) ? `<img src="${PLATFORM_ICONS[p]}" alt="">` : ''}${_esc(p)}</span>
-                <a href="${_esc(href)}" target="_blank" rel="noopener" style="font-size:13px; color:var(--accent); word-break:break-all;">${_esc(url)}</a>
+                <a href="${_esc(href)}" target="_blank" rel="noopener" style="font-size:14px; color:var(--accent); word-break:break-all;">${_esc(url)}</a>
             </div>`;
         }).join('')
         : '<div class="cv-v dim">—</div>';
@@ -2612,7 +2612,7 @@ function cvBizDocsHtml(d, bizDocs) {
         </div>`;
     }).join('');
     const add = CAN_DOC_EDIT
-        ? `<label class="cv-bizdoc-add" id="bizdoc-add-${d.id}"><span style="font-size:18px; line-height:1;">+</span><span>${bizDocs.length ? '추가 첨부' : '사업자등록증 첨부'}</span><span style="font-size:11px; font-weight:400;">이미지 · PDF</span><input type="file" accept="image/*,application/pdf" multiple onchange="bizDocUpload(${d.id}, this)"></label>`
+        ? `<label class="cv-bizdoc-add" id="bizdoc-add-${d.id}"><span style="font-size:18px; line-height:1;">+</span><span>${bizDocs.length ? '추가 첨부' : '사업자등록증 첨부'}</span><span style="font-size:12px; font-weight:400;">이미지 · PDF</span><input type="file" accept="image/*,application/pdf" multiple onchange="bizDocUpload(${d.id}, this)"></label>`
         : (bizDocs.length ? '' : '<div class="cv-v dim">—</div>');
     return `<div class="cv-bizdocs">${cards}${add}</div>`;
 }
@@ -2782,25 +2782,25 @@ function renderEquipmentSummary(latest) {
         const icon = cfSubIcon(sub);
         const rows = fields.map(f => {
             const v = formatCfDisplay(f.value);
-            return `<div style="display:flex; gap:10px; font-size:12px; align-items:baseline; padding:3px 0;">
+            return `<div style="display:flex; gap:10px; font-size:13px; align-items:baseline; padding:3px 0;">
                 <span style="color:var(--text-muted); flex-shrink:0; min-width:90px;">${escText(f.label)}</span>
                 <span style="color:var(--text); flex:1; word-break:break-all; font-weight:500;">${escText(v)}</span>
             </div>`;
         }).join('');
         return `<div style="background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:10px 12px;">
-            <div style="font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                <span style="font-size:14px;">${icon}</span>${escText(subLabel)}
-                <span style="margin-left:auto; font-weight:400; color:var(--text-muted); font-size:11px;">${fields.length}개</span>
+            <div style="font-size:12px; font-weight:700; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <span style="font-size:15px;">${icon}</span>${escText(subLabel)}
+                <span style="margin-left:auto; font-weight:400; color:var(--text-muted); font-size:12px;">${fields.length}개</span>
             </div>
             ${rows}
         </div>`;
     }).join('');
 
     return `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
-        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보 <span style="font-weight:400; font-size:11px; color:var(--text-muted);">(최근 프로젝트 기준)</span></div>
+        <div style="font-size:13px; font-weight:700; color:var(--accent); margin-bottom:12px;">📦 장비 정보 <span style="font-weight:400; font-size:12px; color:var(--text-muted);">(최근 프로젝트 기준)</span></div>
         <div style="background:rgba(212,188,150,0.06); border:1px solid rgba(212,188,150,0.25); border-radius:10px; padding:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <a href="/projects/${latest.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))" style="font-size:11px; color:var(--text-muted); text-decoration:none;">📁 ${escText(latest.project_name)} · ${latest.created_at} →</a>
+                <a href="/projects/${latest.project_id}" onclick="event.preventDefault(); openTopTab('projects', this.getAttribute('href'))" style="font-size:12px; color:var(--text-muted); text-decoration:none;">📁 ${escText(latest.project_name)} · ${latest.created_at} →</a>
             </div>
             <div style="display:flex; flex-direction:column; gap:10px;">${cardsHtml}</div>
         </div>
@@ -2852,7 +2852,7 @@ function renderCustomFields(customData, clientId, skipEquipment) {
             value = value.value; // has_quantity 끈 뒤 잔존 객체
         }
         const required = f.is_required ? ' <span style="color:var(--red);">*</span>' : '';
-        const help = f.help_text ? `<div style="font-size:11px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
+        const help = f.help_text ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${escText(f.help_text)}</div>` : '';
         const inputId = `cf-${clientId}-${f.key}`;
         const placeholder = escAttr(f.placeholder || '');
         const w = resolveWidth(f);
@@ -2872,14 +2872,14 @@ function renderCustomFields(customData, clientId, skipEquipment) {
             </select>`;
         } else if (f.type === 'radio') {
             const opts = (f.options || []).map((o, i) => `
-                <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
+                <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:14px; cursor:pointer;">
                     <input type="radio" name="${inputId}" value="${escAttr(o)}" ${value === o ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="radio"> ${escText(o)}
                 </label>`).join('');
             mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
         } else if (f.type === 'checkbox') {
             const arr = Array.isArray(value) ? value : [];
             const opts = (f.options || []).map(o => `
-                <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:13px; cursor:pointer;">
+                <label style="display:inline-flex; align-items:center; gap:5px; margin-right:12px; font-size:14px; cursor:pointer;">
                     <input type="checkbox" value="${escAttr(o)}" ${arr.includes(o) ? 'checked' : ''} data-cf-key="${escAttr(f.key)}" data-cf-type="checkbox"> ${escText(o)}
                 </label>`).join('');
             mainHtml = `<div style="padding:6px 0;">${opts}</div>`;
@@ -2889,7 +2889,7 @@ function renderCustomFields(customData, clientId, skipEquipment) {
         if (useQty) {
             const qtyHtml = `<input type="number" class="field-input" min="0" step="1" value="${escAttr(qtyValue ?? '')}" placeholder="수량" data-cf-qty-key="${escAttr(f.key)}" style="max-width:90px;">`;
             if (f.type === 'textarea' || f.type === 'radio') {
-                out += `<div style="display:flex; flex-direction:column; gap:6px;">${mainHtml}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyHtml}</div></div>`;
+                out += `<div style="display:flex; flex-direction:column; gap:6px;">${mainHtml}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:12px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyHtml}</div></div>`;
             } else {
                 out += `<div style="display:grid; grid-template-columns:1fr 90px; gap:6px;">${mainHtml}${qtyHtml}</div>`;
             }
@@ -2908,7 +2908,7 @@ function renderCustomFields(customData, clientId, skipEquipment) {
         const hasSubsections = subKeys.some(s => s !== '');
 
         html += `<div style="margin-top:20px; border-top:1px solid var(--border); padding-top:14px;">
-            <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>`;
+            <div style="font-size:13px; font-weight:700; color:var(--accent); margin-bottom:12px;">${secLabel}</div>`;
 
         if (!hasSubsections) {
             const sortedFields = [...(subs[''] || [])].sort((a, b) => (b.priority || 0) - (a.priority || 0));
@@ -2932,8 +2932,8 @@ function renderCustomFields(customData, clientId, skipEquipment) {
                 const subLabel = sub || '기타';
                 const icon = cfSubIcon(sub);
                 html += `<div style="background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px;">
-                    <div style="font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
-                        <span style="font-size:14px;">${icon}</span>${escText(subLabel)}
+                    <div style="font-size:12px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+                        <span style="font-size:15px;">${icon}</span>${escText(subLabel)}
                     </div>
                     <div class="cf-dyn-grid">`;
                 fields.forEach(f => { html += renderOneField(f); });
@@ -2984,7 +2984,7 @@ function collectCustomData(clientId) {
 }
 
 function renderInfoMemos(memos, clientId) {
-    if (!memos || !memos.length) return '<div style="padding:12px; text-align:center; color:var(--text-muted); font-size:12px;">메모가 없습니다.</div>';
+    if (!memos || !memos.length) return '<div style="padding:12px; text-align:center; color:var(--text-muted); font-size:13px;">메모가 없습니다.</div>';
     const recent = memos.slice(0, 3);
     const rest = memos.slice(3);
     let html = recent.map(m => renderMemoItem(m, clientId)).join('');
@@ -2993,7 +2993,7 @@ function renderInfoMemos(memos, clientId) {
             ${rest.map(m => renderMemoItem(m, clientId)).join('')}
         </div>`;
         html += `<div style="text-align:center; padding:8px;" id="info-memos-toggle-${clientId}">
-            <button onclick="toggleMoreMemos(${clientId})" style="background:none; border:1px solid var(--border); color:var(--accent); font-size:11px; padding:4px 12px; border-radius:5px; cursor:pointer;">+ ${rest.length}개 더 보기</button>
+            <button onclick="toggleMoreMemos(${clientId})" style="background:none; border:1px solid var(--border); color:var(--accent); font-size:12px; padding:4px 12px; border-radius:5px; cursor:pointer;">+ ${rest.length}개 더 보기</button>
         </div>`;
     }
     return html;
@@ -3015,15 +3015,15 @@ const CLIENT_CONTACTS = {}; // clientId → contacts[]
 
 function renderClientContacts(contacts, clientId) {
     CLIENT_CONTACTS[clientId] = contacts;
-    if (!contacts.length) return '<div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12px;">등록된 관계자가 없습니다.</div>';
-    return contacts.map(c => `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px;">
+    if (!contacts.length) return '<div style="padding:10px; text-align:center; color:var(--text-muted); font-size:13px;">등록된 관계자가 없습니다.</div>';
+    return contacts.map(c => `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:14px;">
         <b>${_esc(c.name)}</b>
-        ${c.relation ? `<span style="font-size:11px; padding:2px 9px; border-radius:10px; background:var(--surface2); color:var(--text-muted);">${_esc(c.relation)}</span>` : ''}
+        ${c.relation ? `<span style="font-size:12px; padding:2px 9px; border-radius:10px; background:var(--surface2); color:var(--text-muted);">${_esc(c.relation)}</span>` : ''}
         <span style="color:var(--text-muted);">${_esc(c.phone||'')}</span>
-        ${c.memo ? `<span style="color:var(--text-muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${_esc(c.memo)}</span>` : ''}
+        ${c.memo ? `<span style="color:var(--text-muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${_esc(c.memo)}</span>` : ''}
         ${CAN_CLIENT_EDIT ? `<span style="margin-left:auto; display:flex; gap:4px; flex-shrink:0;">
-            <button onclick="editClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
-            <button onclick="deleteClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--red);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+            <button onclick="editClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">수정</button>
+            <button onclick="deleteClientContact(${clientId}, ${c.id})" style="background:none;border:1px solid var(--border);color:var(--red);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">삭제</button>
         </span>` : ''}
     </div>`).join('');
 }

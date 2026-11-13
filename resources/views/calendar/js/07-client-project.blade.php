@@ -10,23 +10,23 @@ let clientSearchTimer=null;
 // 결과창 상단 고정 닫기 줄 — 결과창이 아래 영역을 가려 클릭을 막는 문제 대응 (바깥 클릭·Esc 로도 닫힘)
 function clientSearchCloseRow(fn){
     return `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface2,var(--surface));border-bottom:1px solid var(--border);">
-        <span style="font-size:11px;color:var(--text-muted);">검색 결과</span>
-        <button type="button" onclick="${fn}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;">✕ 닫기</button></div>`;
+        <span style="font-size:12px;color:var(--text-muted);">검색 결과</span>
+        <button type="button" onclick="${fn}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;">✕ 닫기</button></div>`;
 }
 function closeClientSearchResults(){ const el=document.getElementById('clientSearchResults'); if(el) el.style.display='none'; }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeClientSearchResults(); });
 
 function renderClientList(list){
     const close=clientSearchCloseRow('closeClientSearchResults()');
-    if(!list.length) return close+'<div style="padding:10px;font-size:12px;color:var(--text-muted);text-align:center;">결과 없음</div>';
+    if(!list.length) return close+'<div style="padding:10px;font-size:13px;color:var(--text-muted);text-align:center;">결과 없음</div>';
     return close+list.map(c=>{
         const nick=c.nickname||'';const nm=c.name||'';const ph=c.phone||'';
         return `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;transition:background 0.1s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
             <div style="flex:1;cursor:pointer;min-width:0;" onclick="selectClient(${c.id},'${nick.replace(/'/g,"\\'")}','${nm.replace(/'/g,"\\'")}','${ph.replace(/'/g,"\\'")}')">
-                <span style="font-weight:600;font-size:13px;">${nick||nm}</span>${nick&&nm?' <span style="color:var(--text-muted);font-size:12px;">('+nm+')</span>':''}
-                <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${ph}</span>${c.affiliation?' <span style="color:var(--accent);font-size:11px;">'+c.affiliation+'</span>':''}
+                <span style="font-weight:600;font-size:14px;">${nick||nm}</span>${nick&&nm?' <span style="color:var(--text-muted);font-size:13px;">('+nm+')</span>':''}
+                <span style="color:var(--text-muted);font-size:12px;margin-left:6px;">${ph}</span>${c.affiliation?' <span style="color:var(--accent);font-size:12px;">'+c.affiliation+'</span>':''}
             </div>
-            <button onclick="event.stopPropagation();window.open('/clients/${c.id}','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
+            <button onclick="event.stopPropagation();window.open('/clients/${c.id}','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 8px;border-radius:6px;font-size:12px;cursor:pointer;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">보기</button>
         </div>`;
     }).join('');
 }
@@ -50,12 +50,12 @@ function searchClients(query){
 
 async function loadRecentClients(){
     const results=document.getElementById('clientSearchResults');
-    results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:12px;">로딩 중...</div>';
+    results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:13px;">로딩 중...</div>';
     results.style.display='';
     try{
         const res=await fetch('/api/clients/list?limit=15');
         if(res.ok){const data=await res.json();const list=data.data||data;results.innerHTML=renderClientList(Array.isArray(list)?list.slice(0,15):[]);}
-    }catch(e){results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:12px;">로드 실패</div>';}
+    }catch(e){results.innerHTML='<div style="padding:10px;text-align:center;color:var(--text-muted);font-size:13px;">로드 실패</div>';}
 }
 
 // 기존 일정 복원 시 client_id만 있고 이름이 없을 때, API로 닉네임/이름 조회해 표시 갱신
@@ -388,12 +388,12 @@ function openClientAddrPicker(list,target){
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;';
     ov.onclick=e=>{ if(e.target===ov) closeClientAddrPicker(); };
     ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;padding:20px;">
-        <div style="font-size:14px;font-weight:700;margin-bottom:12px;">어떤 주소를 넣을까요?</div>
-        ${list.map((a,i)=>`<button type="button" data-i="${i}" style="display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;color:var(--text);font-size:13px;cursor:pointer;">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${_esc(a.label)}</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:12px;">어떤 주소를 넣을까요?</div>
+        ${list.map((a,i)=>`<button type="button" data-i="${i}" style="display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;color:var(--text);font-size:14px;cursor:pointer;">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:3px;">${_esc(a.label)}</div>
             <div>${_esc(a.address)}${a.address_detail?`, ${_esc(a.address_detail)}`:''}</div>
         </button>`).join('')}
-        <div style="text-align:right;margin-top:4px;"><button type="button" onclick="closeClientAddrPicker()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;">취소</button></div>
+        <div style="text-align:right;margin-top:4px;"><button type="button" onclick="closeClientAddrPicker()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button></div>
     </div>`;
     ov.querySelectorAll('button[data-i]').forEach(b=>{ b.onclick=()=>{
         const a=list[parseInt(b.dataset.i,10)];

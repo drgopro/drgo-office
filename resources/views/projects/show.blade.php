@@ -7,11 +7,11 @@
     .page-wrap { padding:24px 32px; max-width:1400px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
     .page-header-left { display:flex; align-items:center; gap:12px; }
-    .back-btn { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .back-btn { color:var(--text-muted); text-decoration:none; font-size:14px; }
     .back-btn:hover { color:var(--text); }
     .project-name { font-size:22px; font-weight:700; }
     /* 모바일에서 항목이 눌려 글자가 세로로 꺾이지 않게 — 줄바꿈 허용 + 항목 단위 nowrap */
-    .project-meta { font-size:13px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:6px 8px; flex-wrap:wrap; }
+    .project-meta { font-size:14px; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; gap:6px 8px; flex-wrap:wrap; }
     .project-meta > span { white-space:nowrap; flex-shrink:0; }
 
     .process-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-bottom:16px; }
@@ -35,26 +35,26 @@
         pointer-events:none;
     }
     /* '더 보기 / 접기' 버튼 — 뷰 모드에서는 무조건 노출 */
-    .vr-expand-btn { display:none; width:100%; margin-top:8px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+    .vr-expand-btn { display:none; width:100%; margin-top:8px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.15s; }
     .vr-expand-btn:hover { color:var(--accent); border-color:var(--accent); background:var(--surface); }
     #visitReportCard[data-mode="view"] .vr-expand-btn { display:block; }
     /* JS에서 측정 후 'is-short' 클래스 부착 시에만 버튼 숨김 */
     #visitReportCard[data-mode="view"].is-short .vr-expand-btn { display:none; }
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); position:sticky; top:0; z-index:10; border-radius:10px 10px 0 0; }
-    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
     .tiptap-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     [data-theme="light"] .tiptap-toolbar button.is-active { color:#fff; }
     .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
-    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
+    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:12px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
     #vrEditor .ProseMirror,
-    #vrEditor.ProseMirror { padding:20px 24px; min-height:360px; outline:none; font-size:14px; line-height:1.6; color:var(--text); }
+    #vrEditor.ProseMirror { padding:20px 24px; min-height:360px; outline:none; font-size:15px; line-height:1.6; color:var(--text); }
     #vrEditor .ProseMirror p { margin:0 0 6px; }
     #vrEditor .ProseMirror h1 { font-size:24px; font-weight:700; margin:20px 0 10px; }
     #vrEditor .ProseMirror h2 { font-size:20px; font-weight:700; margin:16px 0 8px; }
     #vrEditor .ProseMirror h3 { font-size:16px; font-weight:600; margin:14px 0 6px; }
     #vrEditor .ProseMirror ul, #vrEditor .ProseMirror ol { margin:0 0 10px; padding-left:24px; }
-    #vrEditor .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:13px; }
+    #vrEditor .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:14px; }
     #vrEditor .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
     #vrEditor .ProseMirror pre code { background:none; padding:0; }
     #vrEditor .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
@@ -76,24 +76,24 @@
     /* 선택 영역 색상 팝업 */
     .fmt-bubble { position:fixed; z-index:9500; display:none; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:5px 8px; box-shadow:0 6px 24px rgba(0,0,0,0.28); }
     .fmt-bubble.show { display:flex; }
-    .fmt-bubble .fb-label { font-size:11px; color:var(--text-muted); margin:0 2px; }
+    .fmt-bubble .fb-label { font-size:12px; color:var(--text-muted); margin:0 2px; }
     .fmt-bubble .fb-sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
-    .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+    .fmt-bubble .fb-c { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
     .fmt-bubble .fb-c:hover, .fmt-bubble .fb-h:hover { outline:2px solid var(--accent); }
     .fmt-bubble .fb-h { width:22px; height:22px; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
-    .fmt-bubble .fb-reset { background:var(--surface2); color:var(--text-muted); font-weight:600; font-size:11px; }
+    .fmt-bubble .fb-reset { background:var(--surface2); color:var(--text-muted); font-weight:600; font-size:12px; }
     #vrEditor .ProseMirror mark { border-radius:3px; padding:0 2px; }
-    .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); transition:background 0.1s; }
+    .slash-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:14px; color:var(--text); transition:background 0.1s; }
     .slash-item:hover, .slash-item.selected { background:var(--surface2); }
-    .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+    .slash-icon { width:28px; height:28px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
     .slash-label { font-weight:500; }
-    .slash-desc { font-size:11px; color:var(--text-muted); }
-    .process-title { font-size:12px; color:var(--accent); font-weight:600; margin-bottom:16px; letter-spacing:0.05em; }
+    .slash-desc { font-size:12px; color:var(--text-muted); }
+    .process-title { font-size:13px; color:var(--accent); font-weight:600; margin-bottom:16px; letter-spacing:0.05em; }
     .process-steps { display:flex; align-items:flex-start; }
     .process-step { flex:1; text-align:center; position:relative; }
     .process-step::after { content:''; position:absolute; top:14px; left:50%; width:100%; height:2px; background:var(--border); z-index:0; }
     .process-step:last-child::after { display:none; }
-    .step-dot { width:28px; height:28px; border-radius:50%; border:2px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:center; margin:0 auto 6px; font-size:11px; position:relative; z-index:1; cursor:pointer; transition:all 0.2s; color:var(--text-muted); }
+    .step-dot { width:28px; height:28px; border-radius:50%; border:2px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:center; margin:0 auto 6px; font-size:12px; position:relative; z-index:1; cursor:pointer; transition:all 0.2s; color:var(--text-muted); }
     .step-dot:hover { border-color:var(--accent); color:var(--accent); }
     .step-dot.done { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .step-dot.active { border-color:var(--accent); color:var(--accent); background:var(--surface2); }
@@ -102,7 +102,7 @@
     .step-dot.cancelled.cancel-point { opacity:0.9; border-color:#a06060; color:#c05050; font-weight:800; }
     .step-label.cancelled { color:var(--text-muted); opacity:0.6; }
     .step-label.cancelled.cancel-point { color:#c05050; opacity:0.95; font-weight:700; }
-    .step-label { font-size:11px; color:var(--text-muted); }
+    .step-label { font-size:12px; color:var(--text-muted); }
     .step-label.active { color:var(--accent); font-weight:600; }
 
     .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
@@ -121,19 +121,19 @@
     .info-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
     .info-card.full { grid-column:1/-1; }
     .pj-tags { display:flex; flex-wrap:wrap; gap:5px; }
-    .pj-tag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:12px; line-height:1.5; }
+    .pj-tag { font-size:12px; font-weight:600; padding:2px 9px; border-radius:12px; line-height:1.5; }
     .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
-    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
+    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:13px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
     .tag-chip-pick input { display:none; }
     .tag-chip-pick:has(input:checked) { background:rgba(36,138,56,0.14); border-color:#248a38; color:#248a38; font-weight:600; }
-    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:11px; cursor:pointer; }
-    .card-title { font-size:12px; font-weight:600; color:var(--accent); margin-bottom:14px; letter-spacing:0.05em; display:flex; justify-content:space-between; align-items:center; }
-    .info-row { display:flex; margin-bottom:10px; font-size:13px; }
+    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:12px; cursor:pointer; }
+    .card-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:14px; letter-spacing:0.05em; display:flex; justify-content:space-between; align-items:center; }
+    .info-row { display:flex; margin-bottom:10px; font-size:14px; }
     .info-label { color:var(--text-muted); min-width:80px; flex-shrink:0; }
 
-    .badge { display:inline-block; font-size:11px; padding:3px 10px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:12px; padding:3px 10px; border-radius:4px; font-weight:600; }
     .badge-visit   { background:#1a3a2a; color:#7ac87a; }
     .badge-remote  { background:#1a2a3a; color:#8ab4c8; }
     .badge-as      { background:#2a1a1a; color:#c87a7a; }
@@ -143,67 +143,67 @@
     .consult-item.important { border-color:#3a2a10; background:#1a1500; }
     .consult-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
     .consult-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .consult-date { font-size:12px; color:var(--text-muted); }
-    .consult-type-badge { font-size:11px; padding:2px 7px; border-radius:4px; background:var(--surface); color:var(--text-muted); }
-    .consult-result-badge { font-size:11px; padding:2px 7px; border-radius:4px; }
+    .consult-date { font-size:13px; color:var(--text-muted); }
+    .consult-type-badge { font-size:12px; padding:2px 7px; border-radius:4px; background:var(--surface); color:var(--text-muted); }
+    .consult-result-badge { font-size:12px; padding:2px 7px; border-radius:4px; }
     .result-in_progress { background:#2a2010; color:var(--accent); }
     .result-waiting     { background:#1a1a2a; color:#8ab4c8; }
     .result-valid       { background:#1a2a1a; color:#7ac87a; }
     .result-invalid     { background:#2a1a1a; color:#c87a7a; }
     .result-done        { background:var(--surface); color:var(--text-muted); }
-    .consult-content { font-size:13px; color:var(--text); line-height:1.6; white-space:pre-wrap; }
+    .consult-content { font-size:14px; color:var(--text); line-height:1.6; white-space:pre-wrap; }
     .consult-footer { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
-    .consult-author { font-size:11px; color:var(--text-muted); }
+    .consult-author { font-size:12px; color:var(--text-muted); }
     .consult-actions { display:flex; gap:6px; }
-    .btn-del { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; }
+    .btn-del { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:2px 6px; }
     .btn-del:hover { color:var(--red); }
-    .btn-edit-sm { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 6px; }
+    .btn-edit-sm { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:2px 6px; }
     .btn-edit-sm:hover { color:var(--accent); }
-    .important-mark { color:var(--accent); font-size:12px; }
+    .important-mark { color:var(--accent); font-size:13px; }
 
-    .empty { text-align:center; padding:30px; color:var(--text-muted); font-size:13px; }
+    .empty { text-align:center; padding:30px; color:var(--text-muted); font-size:14px; }
 
-    .success-msg { background:#1a3a2a; border:1px solid #2a5a3a; color:#7ac87a; padding:10px 16px; border-radius:8px; margin-bottom:16px; font-size:13px; }
+    .success-msg { background:#1a3a2a; border:1px solid #2a5a3a; color:#7ac87a; padding:10px 16px; border-radius:8px; margin-bottom:16px; font-size:14px; }
     .important-memo-box { background:rgba(212,188,150,0.12); border:1px solid rgba(212,188,150,0.4); color:var(--accent); }
     [data-theme="light"] .important-memo-box { background:#fff3e0; border-color:#e0b870; color:#a06800; }
 
     /* 문서 업로드 */
     .doc-upload-area { margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border); }
     .doc-upload-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
-    .doc-upload-area .field-mini { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
-    .doc-upload-area select, .doc-upload-area input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:12px; outline:none; }
+    .doc-upload-area .field-mini { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+    .doc-upload-area select, .doc-upload-area input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; }
     .doc-upload-area select:focus, .doc-upload-area input[type="text"]:focus { border-color:var(--accent); }
-    .btn-upload { background:var(--accent); color:var(--accent-text); border:none; padding:7px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .btn-upload { background:var(--accent); color:var(--accent-text); border:none; padding:7px 14px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
     .btn-upload:disabled { opacity:0.4; cursor:default; }
-    .btn-choose { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 14px; color:var(--text); font-size:12px; cursor:pointer; white-space:nowrap; }
+    .btn-choose { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 14px; color:var(--text); font-size:13px; cursor:pointer; white-space:nowrap; }
     .btn-choose:hover { border-color:var(--accent); }
     .file-preview-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-    .file-preview-item { position:relative; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; color:var(--text); max-width:220px; }
-    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-muted); overflow:hidden; position:relative; }
+    .file-preview-item { position:relative; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:13px; color:var(--text); max-width:220px; }
+    .file-preview-item .thumb { width:36px; height:36px; border-radius:4px; background:var(--bg); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text-muted); overflow:hidden; position:relative; }
     .file-preview-item .thumb img, .file-preview-item .thumb canvas { width:100%; height:100%; object-fit:cover; }
     .file-preview-item .thumb .video-badge { position:absolute; bottom:1px; right:1px; background:rgba(0,0,0,0.7); color:#fff; font-size:7px; padding:1px 3px; border-radius:2px; }
     .file-preview-item .file-info { overflow:hidden; }
     .file-preview-item .file-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
-    .file-preview-item .file-size { font-size:11px; color:var(--text-muted); }
-    .file-preview-item .btn-remove { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:#fff; border:none; font-size:11px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
+    .file-preview-item .file-size { font-size:12px; color:var(--text-muted); }
+    .file-preview-item .btn-remove { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--red); color:#fff; border:none; font-size:12px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
 
     /* 썸네일 그리드 (업로드된 파일) */
     .doc-grid { display:flex; flex-wrap:wrap; gap:12px; }
-    .doc-cat-tab { padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:12px; font-weight:700; cursor:pointer; }
+    .doc-cat-tab { padding:5px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); font-size:13px; font-weight:700; cursor:pointer; }
     .doc-cat-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
     .doc-up-tabs { display:flex; gap:5px; flex-wrap:wrap; padding-bottom:1px; }
     .doc-thumb-card { position:relative; width:120px; cursor:pointer; }
-    .doc-thumb-card .thumb-img { width:120px; height:120px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; color:var(--text-muted); font-weight:600; transition:border-color 0.15s; }
+    .doc-thumb-card .thumb-img { width:120px; height:120px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:12px; color:var(--text-muted); font-weight:600; transition:border-color 0.15s; }
     .doc-thumb-card:hover .thumb-img { border-color:var(--accent); }
     .doc-thumb-card .thumb-img img, .doc-thumb-card .thumb-img video { width:100%; height:100%; object-fit:cover; }
-    .doc-thumb-card .thumb-img .video-play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; background:rgba(0,0,0,0.6); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; pointer-events:none; }
+    .doc-thumb-card .thumb-img .video-play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; background:rgba(0,0,0,0.6); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; pointer-events:none; }
     .doc-thumb-meta { margin-top:6px; }
-    .doc-thumb-meta .thumb-name { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .doc-thumb-meta .thumb-note { font-size:11px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-    .doc-thumb-meta .thumb-date { font-size:11px; color:var(--text-muted); margin-top:1px; }
+    .doc-thumb-meta .thumb-name { font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .doc-thumb-meta .thumb-note { font-size:12px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+    .doc-thumb-meta .thumb-date { font-size:12px; color:var(--text-muted); margin-top:1px; }
     .doc-thumb-card .thumb-actions { position:absolute; top:4px; right:4px; display:none; gap:3px; }
     .doc-thumb-card:hover .thumb-actions { display:flex; }
-    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .thumb-actions a, .thumb-actions button { width:22px; height:22px; border-radius:4px; background:rgba(0,0,0,0.65); border:none; color:#fff; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
     .thumb-actions a:hover, .thumb-actions button:hover { background:rgba(0,0,0,0.85); }
 
     /* 앨범 모달 */
@@ -213,23 +213,23 @@
     .album-media { max-width:85vw; max-height:75vh; border-radius:12px; object-fit:contain; background:#000; user-select:none; }
     .album-media-wrap.zoomed .album-media { max-width:none; max-height:none; }
     .album-media-wrap { display:flex; align-items:center; justify-content:center; min-height:200px; }
-    .album-info { color:#fff; font-size:13px; margin-top:10px; text-align:center; }
+    .album-info { color:#fff; font-size:14px; margin-top:10px; text-align:center; }
     .album-info .album-name { font-weight:600; }
-    .album-info .album-note { font-size:11px; color:rgba(255,255,255,0.5); margin-top:2px; }
+    .album-info .album-note { font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px; }
     .album-nav { position:fixed; top:50%; transform:translateY(-50%); width:80px; height:200px; background:none; border:none; color:#fff; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:302; }
     .album-nav .nav-circle { width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
     .album-nav:hover .nav-circle { background:rgba(255,255,255,0.3); }
     .album-nav.prev { left:0; }
     .album-nav.next { right:0; }
     .album-close { position:fixed; top:20px; right:20px; background:none; border:none; color:#fff; font-size:28px; cursor:pointer; z-index:303; }
-    .album-counter { font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px; }
+    .album-counter { font-size:12px; color:rgba(255,255,255,0.4); margin-top:4px; }
     .album-zoom-controls { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:303; }
     .album-zoom-controls button { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .album-zoom-controls button:hover { background:rgba(255,255,255,0.3); }
     .album-media-wrap img.album-media { transition:transform 0.2s; cursor:grab; }
     .album-media-wrap img.album-media.dragging { cursor:grabbing; transition:none; }
 
-    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
 
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
     .modal-overlay.open { display:flex; }
@@ -238,18 +238,18 @@
     .modal-title { font-size:16px; font-weight:700; }
     .modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; }
     .field-group { margin-bottom:14px; }
-    .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
-    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
+    .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; }
     .field-input:focus { border-color:var(--accent); }
-    .field-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
+    .field-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; cursor:pointer; }
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .field-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; resize:vertical; }
+    .field-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; resize:vertical; }
     .field-textarea:focus { border-color:var(--accent); }
-    .check-row { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+    .check-row { display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; }
     .check-row input { accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
-    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:14px; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .step-dot.done { color:#fff; }
     [data-theme="light"] .btn-upload { color:#fff; }
     [data-theme="light"] .btn-primary { color:#fff; }
@@ -266,14 +266,14 @@
 
     /* 동적 필드 (관리자 정의) */
     .pcf-section { display:flex; flex-direction:column; gap:10px; }
-    .pcf-sec-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; transition:color 0.12s; }
+    .pcf-sec-title { font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:0.06em; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; grid-column:1 / -1; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; transition:color 0.12s; }
     .pcf-sec-title:hover { color:var(--text); }
-    .pcf-sec-toggle { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-size:11px; color:var(--text-muted); transition:transform 0.2s; }
+    .pcf-sec-toggle { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; font-size:12px; color:var(--text-muted); transition:transform 0.2s; }
     .pcf-section.collapsed .pcf-sec-toggle { transform:rotate(-90deg); }
     .pcf-section.collapsed > :not(.pcf-sec-title) { display:none !important; }
     .pcf-subgroup { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
-    .pcf-sub-title { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
-    .pcf-sub-title .pcf-sub-icon { font-size:14px; }
+    .pcf-sub-title { font-size:12px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+    .pcf-sub-title .pcf-sub-icon { font-size:15px; }
     .pcf-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px 16px; }
     .pcf-grid .pcf-field { grid-column:span 2; min-width:0; }
     .pcf-grid .pcf-field.w-1 { grid-column:span 1; }
@@ -291,11 +291,11 @@
         .pcf-grid { grid-template-columns:1fr; }
         .pcf-grid .pcf-field, .pcf-grid .pcf-field.w-1, .pcf-grid .pcf-field.w-2, .pcf-grid .pcf-field.w-3, .pcf-grid .pcf-field.w-4 { grid-column:1 / -1; }
     }
-    .pcf-label { font-size:11px; color:var(--text-muted); font-weight:600; }
-    .pcf-help { font-size:11px; color:var(--text-muted); opacity:0.7; }
-    .pcf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; }
+    .pcf-label { font-size:12px; color:var(--text-muted); font-weight:600; }
+    .pcf-help { font-size:12px; color:var(--text-muted); opacity:0.7; }
+    .pcf-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text); font-size:14px; outline:none; font-family:inherit; box-sizing:border-box; }
     .pcf-input:focus { border-color:var(--accent); }
-    .pcf-radios { display:flex; gap:10px; flex-wrap:wrap; font-size:13px; }
+    .pcf-radios { display:flex; gap:10px; flex-wrap:wrap; font-size:14px; }
     .pcf-radios label { display:inline-flex; align-items:center; gap:4px; cursor:pointer; }
     [data-theme="light"] .pcf-input { background:#fff; border-color:#b8bcc8; }
     /* ── 토글(있음/없음) 입력 ── */
@@ -305,67 +305,67 @@
     .pcf-tg-track::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--text-muted); transition:all .18s; }
     .pcf-toggle input:checked + .pcf-tg-track { background:var(--accent); border-color:var(--accent); }
     .pcf-toggle input:checked + .pcf-tg-track::after { left:18px; background:#fff; }
-    .pcf-toggle-txt { font-size:13px; color:var(--text); }
+    .pcf-toggle-txt { font-size:14px; color:var(--text); }
     /* ── 장비 항목 추가 ── */
-    .pcf-add-btn { margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:11px; padding:3px 10px; cursor:pointer; font-weight:600; letter-spacing:0; transition:all .15s; }
+    .pcf-add-btn { margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-size:12px; padding:3px 10px; cursor:pointer; font-weight:600; letter-spacing:0; transition:all .15s; }
     .pcf-add-btn:hover { border-color:var(--accent); color:var(--accent); }
     .pfa-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:900; align-items:center; justify-content:center; padding:16px; }
     .pfa-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:440px; display:flex; flex-direction:column; gap:14px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
     .pfa-title { font-size:15px; font-weight:700; color:var(--text); }
     .pfa-group { display:flex; flex-direction:column; gap:6px; }
-    .pfa-lab { font-size:12px; color:var(--text-muted); font-weight:600; }
+    .pfa-lab { font-size:13px; color:var(--text-muted); font-weight:600; }
     .pfa-types { display:flex; flex-wrap:wrap; gap:6px; }
-    .pfa-type-chip { padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; }
+    .pfa-type-chip { padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; transition:all .15s; }
     .pfa-type-chip.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
-    .pfa-check { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text); cursor:pointer; }
+    .pfa-check { display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--text); cursor:pointer; }
     .pfa-check input { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; }
     .pfa-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:2px; }
-    .pfa-btn-ghost { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
-    .pfa-btn-primary { padding:8px 20px; border-radius:8px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    .pfa-btn-ghost { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:14px; cursor:pointer; }
+    .pfa-btn-primary { padding:8px 20px; border-radius:8px; border:none; background:var(--accent); color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
 
     /* ── 의뢰 내용 3뎁스 피커 (타이틀 → 분류 → 세부 항목) ── */
     .req-picker { display:flex; flex-direction:column; gap:6px; }
     .rqp-title { border:1px solid var(--border); border-radius:9px; overflow:hidden; background:var(--surface); }
-    .rqp-head { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:13px; font-weight:700; user-select:none; }
+    .rqp-head { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:14px; font-weight:700; user-select:none; }
     .rqp-head:hover { background:var(--surface2); }
-    .rqp-caret { font-size:11px; color:var(--text-muted); transition:transform .15s; }
+    .rqp-caret { font-size:12px; color:var(--text-muted); transition:transform .15s; }
     .rqp-title.open .rqp-caret { transform:rotate(90deg); }
-    .rqp-cnt { margin-left:auto; font-size:11px; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border-radius:9px; padding:1px 9px; }
+    .rqp-cnt { margin-left:auto; font-size:12px; font-weight:700; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border-radius:9px; padding:1px 9px; }
     .rqp-body { display:none; flex-direction:column; gap:9px; padding:4px 12px 11px; }
     .rqp-title.open .rqp-body { display:flex; }
-    .rqp-cat-name { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+    .rqp-cat-name { font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
     .rqp-leafs { display:flex; flex-wrap:wrap; gap:6px; }
-    .rqp-leaf { padding:5px 11px; border-radius:8px; border:1px solid var(--border); font-size:12px; cursor:pointer; color:var(--text-muted); background:none; transition:all .12s; }
+    .rqp-leaf { padding:5px 11px; border-radius:8px; border:1px solid var(--border); font-size:13px; cursor:pointer; color:var(--text-muted); background:none; transition:all .12s; }
     .rqp-leaf:hover { border-color:var(--accent); color:var(--text); }
     .rqp-leaf.on { background:color-mix(in srgb, var(--accent) 16%, transparent); border-color:var(--accent); color:var(--accent); font-weight:700; }
-    .req-tag { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px; font-size:12px; background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 32%, transparent); color:var(--text); }
-    .req-tag .rq-sep { color:var(--text-muted); font-size:11px; }
-    .req-tag .rq-qbtn { border:none; background:none; cursor:pointer; font-size:12px; color:var(--text-muted); padding:0 2px; line-height:1; }
+    .req-tag { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px; font-size:13px; background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 32%, transparent); color:var(--text); }
+    .req-tag .rq-sep { color:var(--text-muted); font-size:12px; }
+    .req-tag .rq-qbtn { border:none; background:none; cursor:pointer; font-size:13px; color:var(--text-muted); padding:0 2px; line-height:1; }
     .req-tag .rq-qbtn:hover { color:var(--accent); }
     .rqm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:950; align-items:center; justify-content:center; padding:16px; }
     .rqm-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; box-shadow:0 12px 40px rgba(0,0,0,0.35); }
-    .rqm-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; }
-    .rqm-btn { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:12px; cursor:pointer; }
+    .rqm-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:14px; }
+    .rqm-btn { padding:5px 12px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:13px; cursor:pointer; }
     .rqm-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .rqm-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; font-size:13px; padding:8px 18px; }
+    .rqm-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; font-size:14px; padding:8px 18px; }
     /* ── 추가 정보 저장 상태 배지 + 수동 저장 버튼 ── */
-    .pcf-badge { font-size:12px; font-weight:600; letter-spacing:0; }
+    .pcf-badge { font-size:13px; font-weight:600; letter-spacing:0; }
     /* 요약 보기 — 값 있는 항목만 압축 표시 (캘린더 요약과 동일 개념) */
-    .pcf-sum-row { display:flex; gap:10px; padding:5px 0; border-bottom:1px dashed var(--border); font-size:13px; align-items:baseline; }
+    .pcf-sum-row { display:flex; gap:10px; padding:5px 0; border-bottom:1px dashed var(--border); font-size:14px; align-items:baseline; }
     .pcf-sum-row:last-child { border-bottom:none; }
     .pcf-sum-label { color:var(--text-muted); min-width:120px; flex-shrink:0; }
     .pcf-sum-val { font-weight:600; word-break:break-all; }
     .pcf-ent-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
     .pcf-ent-row .pcf-input { flex:1; min-width:0; }
-    .pcf-ent-del { flex-shrink:0; width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); font-size:12px; cursor:pointer; line-height:1; }
+    .pcf-ent-del { flex-shrink:0; width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text-muted); font-size:13px; cursor:pointer; line-height:1; }
     .pcf-ent-del:hover { border-color:var(--red); color:var(--red); }
-    .pcf-ent-add { border:1px dashed var(--border); background:none; color:var(--accent); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
+    .pcf-ent-add { border:1px dashed var(--border); background:none; color:var(--accent); border-radius:6px; padding:4px 10px; font-size:13px; cursor:pointer; }
     .pcf-ent-add:hover { border-color:var(--accent); }
     .pcf-badge.dirty { color:#d4a96a; }
     .pcf-badge.saving { color:var(--text-muted); }
     .pcf-badge.saved { color:#5cb87a; }
     .pcf-badge.error { color:var(--red); }
-    .pcf-save-btn { margin-left:auto; background:var(--accent); border:none; border-radius:7px; color:#fff; font-size:12px; font-weight:700; padding:5px 16px; cursor:pointer; letter-spacing:0; }
+    .pcf-save-btn { margin-left:auto; background:var(--accent); border:none; border-radius:7px; color:#fff; font-size:13px; font-weight:700; padding:5px 16px; cursor:pointer; letter-spacing:0; }
     .pcf-save-btn:hover { filter:brightness(1.1); }
 </style>
 @endpush
@@ -396,14 +396,14 @@
                     {{-- 의뢰자 이름 클릭 → 의뢰자 상세 --}}
                     <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.DRGO_STANDALONE) drgoWriteMode.open('/clients/{{ $project->client->id }}/write','client-{{ $project->client->id }}'); else if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
                 @else
-                    <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:11px; color:var(--text-muted);">(확인불가)</span></span>
+                    <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:12px; color:var(--text-muted);">(확인불가)</span></span>
                 @endif
             </div>
             <div>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <div class="project-name" id="projectNameDisplay" onclick="enableProjectNameEdit()" style="cursor:pointer;" title="클릭하여 수정">{{ $project->name }}</div>
                     {{-- 마케팅 포스팅 완료 — 제목 옆 배지 (상단 '포스팅 완료 처리' 버튼과 동기화) --}}
-                    <span id="mkPostedTitleBadge" title="마케팅 포스팅 완료" style="display:{{ ($project->marketing_consent === true && $project->marketing_posted_at) ? 'inline-block' : 'none' }};font-size:11px;padding:2px 9px;border-radius:10px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;">✓ 포스팅 완료</span>
+                    <span id="mkPostedTitleBadge" title="마케팅 포스팅 완료" style="display:{{ ($project->marketing_consent === true && $project->marketing_posted_at) ? 'inline-block' : 'none' }};font-size:12px;padding:2px 9px;border-radius:10px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;">✓ 포스팅 완료</span>
                 </div>
                 <input id="projectNameEdit" type="text" value="{{ $project->name }}" style="display:none;font-size:22px;font-weight:600;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);width:100%;outline:none;" onblur="saveProjectName()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}if(event.key==='Escape'){this.value='{{ addslashes($project->name) }}';this.blur();}">
                 @php
@@ -426,26 +426,26 @@
                         {{ $projectTypeLabel }}
                     </span>
                     @if($project->client_scale)
-                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
+                        <span style="font-size:12px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
                             {{ $scaleL[$project->client_scale] ?? $project->client_scale }}
                             @if($workTypeLabel) · {{ $workTypeLabel }} @endif
                         </span>
                     @elseif($workTypeLabel)
-                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
+                        <span style="font-size:12px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer;" onclick="openScaleEditor()" title="규모/작업유형 수정">
                             {{ $workTypeLabel }}
                         </span>
                     @else
-                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text-muted);cursor:pointer;border:1px dashed var(--border);" onclick="openScaleEditor()">+ 규모 지정</span>
+                        <span style="font-size:12px;padding:3px 8px;border-radius:4px;background:var(--surface2);color:var(--text-muted);cursor:pointer;border:1px dashed var(--border);" onclick="openScaleEditor()">+ 규모 지정</span>
                     @endif
-                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);" title="마케팅 활용 동의 여부">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);" title="마케팅 활용 동의 여부">
                         마케팅 활용
-                        <select id="mkConsentSelect" onchange="saveMarketingConsent(this.value)" style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text);border:1px solid var(--border);cursor:pointer;outline:none;">
+                        <select id="mkConsentSelect" onchange="saveMarketingConsent(this.value)" style="font-size:12px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text);border:1px solid var(--border);cursor:pointer;outline:none;">
                             <option value="" @selected($project->marketing_consent === null)>미확인</option>
                             <option value="1" @selected($project->marketing_consent === true)>동의</option>
                             <option value="0" @selected($project->marketing_consent === false)>거부</option>
                         </select>
                         {{-- 포스팅 완료 — 동의 프로젝트에서만 노출, 클릭으로 완료/해제 (마케팅 통계의 포스팅 완료·대기 집계 기준) --}}
-                        <button type="button" id="mkPostedBtn" onclick="toggleMarketingPosted()" style="display:none;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;"></button>
+                        <button type="button" id="mkPostedBtn" onclick="toggleMarketingPosted()" style="display:none;font-size:12px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;"></button>
                     </span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
                     <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
@@ -456,21 +456,21 @@
             {{-- 익명(의뢰자 미연동) 프로젝트 — 진행 단계 바가 없으므로 헤더에서 완료 처리/되돌리기 --}}
             @unless($project->client_id)
                 @if($project->stage === 'done')
-                    <span style="font-size:12px;padding:7px 12px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;font-weight:700;">완료됨{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
-                    <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="anonReopenProject()" title="완료를 취소하고 진행 중으로 되돌립니다">완료 취소</button>
+                    <span style="font-size:13px;padding:7px 12px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;font-weight:700;">완료됨{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
+                    <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="anonReopenProject()" title="완료를 취소하고 진행 중으로 되돌립니다">완료 취소</button>
                 @elseif($project->stage !== 'cancelled')
-                    <button class="btn-edit" style="background:var(--accent);border:1px solid var(--accent);color:var(--accent-text,#fff);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
+                    <button class="btn-edit" style="background:var(--accent);border:1px solid var(--accent);color:var(--accent-text,#fff);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:700;" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
                 @endif
             @endunless
             @unless(config('view.standalone'))
-            <span class="wm-split"><button type="button" class="btn-edit wm-accent" style="padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit wm-accent" style="padding:8px 7px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
+            <span class="wm-split"><button type="button" class="btn-edit wm-accent" style="padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit wm-accent" style="padding:8px 7px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
             @endunless
-            <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
-            <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
+            <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
+            <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
             @if($project->stage !== 'cancelled')
-                <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
+                <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
             @endif
-            <button class="btn-edit" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="deleteProject()" title="완전 삭제">삭제</button>
+            <button class="btn-edit" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="deleteProject()" title="완전 삭제">삭제</button>
         </div>
     </div>
 
@@ -541,14 +541,14 @@
     </div>
 
     @if($project->stage === 'cancelled' && $project->cancel_reason)
-    <div style="background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;">
+    <div style="background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
             <div style="font-weight:700;color:var(--red);">⛔ 취소 사유</div>
             @if(Auth::user()->hasPermission('projects.edit'))
                 @php
                     $reopenLabel = \App\Models\Project::STAGE_LABELS[$project->cancelled_from_stage] ?? null;
                 @endphp
-                <button type="button" onclick="reopenCancelledProject()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;" title="취소를 해제하고 {{ $reopenLabel ? $reopenLabel.' 단계로' : '진행 상태로' }} 되돌립니다">↺ 취소 해제</button>
+                <button type="button" onclick="reopenCancelledProject()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:7px;font-size:13px;cursor:pointer;" title="취소를 해제하고 {{ $reopenLabel ? $reopenLabel.' 단계로' : '진행 상태로' }} 되돌립니다">↺ 취소 해제</button>
             @endif
         </div>
         <div style="color:var(--text);">{{ $project->cancel_reason }}</div>
@@ -556,7 +556,7 @@
             <div style="color:var(--text-muted);margin-top:4px;">{{ $project->cancel_detail }}</div>
         @endif
         @if($project->cancelled_at)
-            <div style="color:var(--text-muted);font-size:11px;margin-top:6px;">취소일: {{ $project->cancelled_at->format('Y.m.d H:i') }}@if($project->cancelled_from_stage) · 취소 시점: {{ \App\Models\Project::STAGE_LABELS[$project->cancelled_from_stage] ?? $project->cancelled_from_stage }} 단계@endif</div>
+            <div style="color:var(--text-muted);font-size:12px;margin-top:6px;">취소일: {{ $project->cancelled_at->format('Y.m.d H:i') }}@if($project->cancelled_from_stage) · 취소 시점: {{ \App\Models\Project::STAGE_LABELS[$project->cancelled_from_stage] ?? $project->cancelled_from_stage }} 단계@endif</div>
         @endif
     </div>
     @endif
@@ -572,7 +572,7 @@
                         {{ $project->client->name ?: $project->client->nickname }}
                     </a>
                     @if($project->client->name && $project->client->nickname)
-                        <span style="color:var(--text-muted); font-size:12px;"> ({{ $project->client->nickname }})</span>
+                        <span style="color:var(--text-muted); font-size:13px;"> ({{ $project->client->nickname }})</span>
                     @endif
                 </div>
             </div>
@@ -585,7 +585,7 @@
                 <div>{{ $project->client->address ?? '-' }}</div>
             </div>
             @if($project->client->important_memo)
-            <div class="important-memo-box" style="margin-top:10px; border-radius:6px; padding:8px 12px; font-size:12px;">
+            <div class="important-memo-box" style="margin-top:10px; border-radius:6px; padding:8px 12px; font-size:13px;">
                 ⚠ {{ $project->client->important_memo }}
             </div>
             @endif
@@ -594,30 +594,30 @@
                 <div class="info-label">이름</div>
                 <div>
                     {{ $project->manual_client_name ?: '(미입력)' }}
-                    <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border);">의뢰자명 확인 불가</span>
+                    <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border);">의뢰자명 확인 불가</span>
                 </div>
             </div>
-            <div class="text-muted" style="color:var(--text-muted); font-size:12px; padding:6px 0;">의뢰자와 연동되지 않은 프로젝트입니다. 이름은 참고용 주관식 입력입니다.</div>
+            <div class="text-muted" style="color:var(--text-muted); font-size:13px; padding:6px 0;">의뢰자와 연동되지 않은 프로젝트입니다. 이름은 참고용 주관식 입력입니다.</div>
             @endif
         </div>
 
         <div class="info-card">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>세팅 장소 <span style="font-weight:400;font-size:11px;color:var(--text-muted);">— 의뢰자 주소와 별개, 캘린더 연동</span></span>
-                <button onclick="toggleAddrEdit()" id="addrEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
+                <span>세팅 장소 <span style="font-weight:400;font-size:12px;color:var(--text-muted);">— 의뢰자 주소와 별개, 캘린더 연동</span></span>
+                <button onclick="toggleAddrEdit()" id="addrEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">수정</button>
             </div>
-            <div id="addrDisplay" style="font-size:13px; color:{{ $project->address ? 'var(--text)' : 'var(--text-muted)' }}; padding:4px 0;">
+            <div id="addrDisplay" style="font-size:14px; color:{{ $project->address ? 'var(--text)' : 'var(--text-muted)' }}; padding:4px 0;">
                 {{ $project->address ? $project->address.($project->address_detail ? ', '.$project->address_detail : '') : '세팅 장소가 지정되지 않았습니다.' }}
             </div>
             <div id="addrEdit" style="display:none;">
                 <div style="display:flex; gap:6px;">
-                    <input id="pjAddr" value="{{ $project->address }}" readonly placeholder="주소 검색 버튼으로 입력" onclick="searchProjectAddress()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;cursor:pointer;">
-                    <button onclick="searchProjectAddress()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 12px;border-radius:7px;font-size:12px;cursor:pointer;white-space:nowrap;">🔍 검색</button>
+                    <input id="pjAddr" value="{{ $project->address }}" readonly placeholder="주소 검색 버튼으로 입력" onclick="searchProjectAddress()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;outline:none;cursor:pointer;">
+                    <button onclick="searchProjectAddress()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 12px;border-radius:7px;font-size:13px;cursor:pointer;white-space:nowrap;">🔍 검색</button>
                 </div>
-                <input id="pjAddrDetail" value="{{ $project->address_detail }}" placeholder="상세주소 (동/호수 등)" style="width:100%;margin-top:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;">
+                <input id="pjAddrDetail" value="{{ $project->address_detail }}" placeholder="상세주소 (동/호수 등)" style="width:100%;margin-top:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;outline:none;">
                 <div style="text-align:right;margin-top:8px;display:flex;gap:6px;justify-content:flex-end;">
-                    <button onclick="clearProjectAddress()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 12px;border-radius:7px;font-size:12px;cursor:pointer;">비우기</button>
-                    <button onclick="saveProjectAddress()" style="background:var(--accent);color:var(--accent-text);border:none;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+                    <button onclick="clearProjectAddress()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:7px 12px;border-radius:7px;font-size:13px;cursor:pointer;">비우기</button>
+                    <button onclick="saveProjectAddress()" style="background:var(--accent);color:var(--accent-text);border:none;padding:7px 16px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -625,10 +625,10 @@
         <div class="info-card">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>프로젝트 개요</span>
-                <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
+                <button onclick="toggleMemoEdit()" id="memoEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">수정</button>
             </div>
-            <div id="memoDisplay" style="font-size:13px; color:{{ $project->overview ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->overview ?: '프로젝트 개요가 없습니다.' }}</div>
-            <textarea id="memoEdit" placeholder="프로젝트 개요를 입력하세요" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->overview }}</textarea>
+            <div id="memoDisplay" style="font-size:14px; color:{{ $project->overview ? 'var(--text)' : 'var(--text-muted)' }}; white-space:pre-wrap; text-align:left; padding:4px 0;">{{ $project->overview ?: '프로젝트 개요가 없습니다.' }}</div>
+            <textarea id="memoEdit" placeholder="프로젝트 개요를 입력하세요" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit;">{{ $project->overview }}</textarea>
         </div>
 
         @php
@@ -643,11 +643,11 @@
         <div class="info-card">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>태그</span>
-                <button onclick="toggleTagEdit()" id="tagEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>
+                <button onclick="toggleTagEdit()" id="tagEditBtn" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">수정</button>
             </div>
             <div id="tagDisplay" style="padding:4px 0;">
                 @if(empty($__curMajor) && empty($__curMinor))
-                    <span style="font-size:13px;color:var(--text-muted);">지정된 태그가 없습니다.</span>
+                    <span style="font-size:14px;color:var(--text-muted);">지정된 태그가 없습니다.</span>
                 @else
                     <div class="pj-tags">
                         @foreach($__curMajor as $__t)<span class="pj-tag pj-tag-major">{{ $__t }}</span>@endforeach
@@ -658,7 +658,7 @@
             <div id="tagEdit" style="display:none;">
                 @include('partials.tag-picker', ['key' => 'project-show', 'preMajor' => $__curMajor, 'preMinor' => $__curMinor])
                 <div style="text-align:right;margin-top:12px;">
-                    <button onclick="saveTags()" style="background:var(--accent);color:var(--accent-text);border:none;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+                    <button onclick="saveTags()" style="background:var(--accent);color:var(--accent-text);border:none;padding:7px 16px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -678,11 +678,11 @@
         <div class="info-card full">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>📅 일정 제안</span>
-                <button type="button" onclick="openProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+                <button type="button" onclick="openProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">편집</button>
             </div>
-            <div id="proposalSummary" data-ids='@json($proposalData['schedule_ids'] ?? [])' style="font-size:13px; color:var(--text-muted);">불러오는 중...</div>
+            <div id="proposalSummary" data-ids='@json($proposalData['schedule_ids'] ?? [])' style="font-size:14px; color:var(--text-muted);">불러오는 중...</div>
             @if(!empty($proposalData['note']))
-                <div style="margin-top:8px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $proposalData['note'] }}</div>
+                <div style="margin-top:8px; font-size:13px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $proposalData['note'] }}</div>
             @endif
         </div>
         @endif
@@ -698,7 +698,7 @@
         <div class="info-card full">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>📝 견적/계약</span>
-                <button type="button" onclick="openEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+                <button type="button" onclick="openEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">편집</button>
             </div>
             @php
                 // 표시 번호(#display_no)로 통일 — 실제 id는 링크에만 사용.
@@ -706,7 +706,7 @@
                 $linkedEstimates = \App\Models\Estimate::whereIn('id', $estimateData['estimate_ids'] ?? [])
                     ->get()->keyBy('id');
             @endphp
-            <div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:14px;">
             @foreach(($estimateData['estimate_ids'] ?? []) as $eid)
                 @if($linkedEstimates->has($eid))
                     @php $le = $linkedEstimates[$eid]; @endphp
@@ -715,11 +715,11 @@
                         <a href="/estimates/{{ $eid }}/edit" onclick="event.preventDefault(); window.open(this.href, 'est_{{ $eid }}')" style="color:var(--accent); text-decoration:none;">→ 견적서 #{{ $le->display_no }}</a>
                         <span style="font-weight:600;">{{ number_format((int) $le->total_amount) }}원</span>
                         @if($le->status === 'paid')
-                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#1d7330; font-weight:700;">결제완료</span>
+                            <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:rgba(45,138,62,0.12); color:#1d7330; font-weight:700;">결제완료</span>
                         @elseif($le->status === 'cancelled')
-                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(220,38,38,0.10); color:#dc2626; font-weight:700;">결제취소</span>
+                            <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:rgba(220,38,38,0.10); color:#dc2626; font-weight:700;">결제취소</span>
                         @elseif($le->status === 'quote_cancelled')
-                            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(120,120,120,0.12); color:var(--text-muted); font-weight:700; text-decoration:line-through;">견적 취소</span>
+                            <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:rgba(120,120,120,0.12); color:var(--text-muted); font-weight:700; text-decoration:line-through;">견적 취소</span>
                         @endif
                     </div>
                 @else
@@ -728,7 +728,7 @@
             @endforeach
             </div>
             @if(!empty($estimateData['note']))
-                <div style="margin-top:8px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $estimateData['note'] }}</div>
+                <div style="margin-top:8px; font-size:13px; color:var(--text-muted); white-space:pre-wrap;">📝 {{ $estimateData['note'] }}</div>
             @endif
         </div>
         @endif
@@ -738,17 +738,17 @@
         <div class="info-card full">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🛠 {{ $vrLabel }}</span>
-                <button type="button" onclick="openVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">편집</button>
+                <button type="button" onclick="openVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">편집</button>
             </div>
-            <div style="font-size:13px; color:var(--text); white-space:pre-wrap; line-height:1.55;">{{ $visitData['report'] }}</div>
+            <div style="font-size:14px; color:var(--text); white-space:pre-wrap; line-height:1.55;">{{ $visitData['report'] }}</div>
         </div>
         @endif
 
         <!-- 결제 내역 (charge/refund/cancel 트랜잭션) -->
         <div class="info-card full" id="paymentHistoryCard" style="display:none;">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>💰 결제 내역 <span id="phNetTotal" style="font-size:12px; color:var(--text-muted); margin-left:6px;"></span></span>
-                <button type="button" onclick="openPaymentModal()" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">+ 결제 추가</button>
+                <span>💰 결제 내역 <span id="phNetTotal" style="font-size:13px; color:var(--text-muted); margin-left:6px;"></span></span>
+                <button type="button" onclick="openPaymentModal()" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;">+ 결제 추가</button>
             </div>
             <div id="paymentHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
@@ -759,31 +759,31 @@
                 <div style="font-size:15px; font-weight:700; margin-bottom:14px;">환불 정보 수정</div>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 금액 (원)</div>
-                        <input type="number" id="reAmount" min="1" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 금액 (원)</div>
+                        <input type="number" id="reAmount" min="1" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; outline:none; box-sizing:border-box;">
                     </div>
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
-                        <input type="text" id="reMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
+                        <input type="text" id="reMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                     </div>
                     <div style="display:flex; gap:8px;">
                         <div style="flex:1;">
-                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 요청 일시</div>
-                            <input type="datetime-local" id="reReqAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 요청 일시</div>
+                            <input type="datetime-local" id="reReqAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                         </div>
                         <div style="flex:1;">
-                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 완료 일시</div>
-                            <input type="datetime-local" id="reDoneAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 완료 일시</div>
+                            <input type="datetime-local" id="reDoneAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                         </div>
                     </div>
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 사유</div>
-                        <textarea id="reMemo" rows="2" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; resize:vertical;"></textarea>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 사유</div>
+                        <textarea id="reMemo" rows="2" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; font-family:inherit; box-sizing:border-box; resize:vertical;"></textarea>
                     </div>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-                    <button type="button" onclick="document.getElementById('refundEditOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveRefundEdit()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="document.getElementById('refundEditOverlay').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveRefundEdit()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -796,51 +796,51 @@
                     <button type="button" onclick="closeRefundModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
                 <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
-                    <div id="refundChargeMeta" style="font-size:12px; color:var(--text-muted); padding:8px 12px; background:var(--surface2); border-radius:8px;"></div>
+                    <div id="refundChargeMeta" style="font-size:13px; color:var(--text-muted); padding:8px 12px; background:var(--surface2); border-radius:8px;"></div>
 
                     <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; cursor:pointer; user-select:none;">
                         <input type="checkbox" id="refundManualMode" onchange="toggleRefundManualMode(this.checked)">
-                        <span style="font-size:13px; font-weight:600;">환불금액 수기 입력</span>
-                        <span style="font-size:11px; color:var(--text-muted); margin-left:auto;">항목과 무관하게 금액 직접 지정</span>
+                        <span style="font-size:14px; font-weight:600;">환불금액 수기 입력</span>
+                        <span style="font-size:12px; color:var(--text-muted); margin-left:auto;">항목과 무관하게 금액 직접 지정</span>
                     </label>
 
                     <div id="refundItemsWrap">
-                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">환불할 제품 선택 (체크 + 수량 조정)</div>
+                        <div style="font-size:13px; color:var(--text-muted); margin-bottom:6px;">환불할 제품 선택 (체크 + 수량 조정)</div>
                         <div id="refundItemsList" style="display:flex; flex-direction:column; gap:6px;"></div>
                     </div>
 
                     <div id="refundManualWrap" style="display:none;">
-                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">환불 금액 (원) <span id="refundManualMax" style="color:var(--text-muted);"></span></div>
-                        <input type="number" id="refundManualAmount" placeholder="환불 금액 입력" min="0" oninput="updateRefundPreview()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
+                        <div style="font-size:13px; color:var(--text-muted); margin-bottom:6px;">환불 금액 (원) <span id="refundManualMax" style="color:var(--text-muted);"></span></div>
+                        <input type="number" id="refundManualAmount" placeholder="환불 금액 입력" min="0" oninput="updateRefundPreview()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; outline:none; box-sizing:border-box;">
                     </div>
                     <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:var(--surface2); border-radius:8px;">
-                        <span style="font-size:12px; color:var(--text-muted);">환불 금액 (선택 항목 합산):</span>
+                        <span style="font-size:13px; color:var(--text-muted);">환불 금액 (선택 항목 합산):</span>
                         <span id="refundAmountPreview" style="font-size:18px; font-weight:700; color:var(--red); margin-left:auto;">0원</span>
                     </div>
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">사유 / 메모</div>
-                        <textarea id="refundReason" rows="2" placeholder="환불 사유" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box; resize:vertical;"></textarea>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">사유 / 메모</div>
+                        <textarea id="refundReason" rows="2" placeholder="환불 사유" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; font-family:inherit; box-sizing:border-box; resize:vertical;"></textarea>
                     </div>
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
-                        <input type="text" id="refundMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 수단</div>
+                        <input type="text" id="refundMethod" placeholder="예: 카드 취소 / 계좌 환불" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                         <div style="display:flex; gap:8px; margin-top:10px;">
                             <div style="flex:1;">
-                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 요청 일시</div>
-                                <input type="datetime-local" id="refundRequestedAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 요청 일시</div>
+                                <input type="datetime-local" id="refundRequestedAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                             </div>
                             <div style="flex:1;">
-                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">환불 완료 일시</div>
-                                <input type="datetime-local" id="refundedAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">환불 완료 일시</div>
+                                <input type="datetime-local" id="refundedAt" style="width:100%; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                             </div>
                         </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:space-between; padding:14px 20px; border-top:1px solid var(--border);">
-                    <button type="button" onclick="confirmFullCancel()" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">⚠ 전체 결제 취소</button>
+                    <button type="button" onclick="confirmFullCancel()" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">⚠ 전체 결제 취소</button>
                     <div style="display:flex; gap:8px;">
-                        <button type="button" onclick="closeRefundModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                        <button type="button" onclick="submitRefund('refund')" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">선택 항목 환불</button>
+                        <button type="button" onclick="closeRefundModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+                        <button type="button" onclick="submitRefund('refund')" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">선택 항목 환불</button>
                     </div>
                 </div>
             </div>
@@ -852,8 +852,8 @@
             $sdHeadStyle = 'display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border);';
             $sdBodyStyle = 'padding:18px 20px; display:flex; flex-direction:column; gap:14px;';
             $sdFootStyle = 'display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);';
-            $sdInputStyle = 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit; box-sizing:border-box;';
-            $sdLabelStyle = 'font-size:11px;color:var(--text-muted);margin-bottom:4px;';
+            $sdInputStyle = 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; font-family:inherit; box-sizing:border-box;';
+            $sdLabelStyle = 'font-size:12px;color:var(--text-muted);margin-bottom:4px;';
         @endphp
 
         <!-- 일정제안 모달 -->
@@ -864,7 +864,7 @@
                     <button type="button" onclick="closeProposalModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
                 <div style="{{ $sdBodyStyle }}">
-                    <div style="font-size:11px; color:var(--text-muted);">의뢰자 이름과 일치하는 캘린더 일정 후보입니다. 이 프로젝트에 연결할 일정을 체크해 주세요.</div>
+                    <div style="font-size:12px; color:var(--text-muted);">의뢰자 이름과 일치하는 캘린더 일정 후보입니다. 이 프로젝트에 연결할 일정을 체크해 주세요.</div>
                     <div id="proposalSchedulesList" style="display:flex; flex-direction:column; gap:6px; max-height:380px; overflow-y:auto; padding:4px 2px;"></div>
                     <div>
                         <div style="{{ $sdLabelStyle }}">메모</div>
@@ -872,8 +872,8 @@
                     </div>
                 </div>
                 <div style="{{ $sdFootStyle }}">
-                    <button type="button" onclick="closeProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveProposal()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="closeProposalModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveProposal()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -886,7 +886,7 @@
                     <button type="button" onclick="closeEstimateInfoModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
                 <div style="{{ $sdBodyStyle }}">
-                    <div style="font-size:11px; color:var(--text-muted);">이 의뢰자의 견적서 목록입니다. 이 프로젝트에 연결할 견적서를 체크해 주세요.</div>
+                    <div style="font-size:12px; color:var(--text-muted);">이 의뢰자의 견적서 목록입니다. 이 프로젝트에 연결할 견적서를 체크해 주세요.</div>
                     <div id="estimateInfoList" style="display:flex; flex-direction:column; gap:6px; max-height:380px; overflow-y:auto; padding:4px 2px;"></div>
                     <div>
                         <div style="{{ $sdLabelStyle }}">메모</div>
@@ -894,8 +894,8 @@
                     </div>
                 </div>
                 <div style="{{ $sdFootStyle }}">
-                    <button type="button" onclick="closeEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveEstimateInfo()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="closeEstimateInfoModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveEstimateInfo()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -908,12 +908,12 @@
                     <button type="button" onclick="closeVisitReportModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
                 </div>
                 <div style="{{ $sdBodyStyle }}">
-                    <div style="font-size:11px; color:var(--text-muted);">{{ $isRemoteProject ? '원격으로 진행한 작업, 특이사항 등을 자유롭게 작성합니다.' : '방문 현장 상황, 진행한 작업, 특이사항 등을 자유롭게 작성합니다.' }}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">{{ $isRemoteProject ? '원격으로 진행한 작업, 특이사항 등을 자유롭게 작성합니다.' : '방문 현장 상황, 진행한 작업, 특이사항 등을 자유롭게 작성합니다.' }}</div>
                     <textarea id="visitReportText" rows="14" placeholder="예:&#10;• 방문 일시: 2026-05-13 14:00&#10;• 동행: 김광래, 황진선&#10;• 작업 내역: 카메라 설치, 음향 세팅 등&#10;• 특이사항: …" style="{{ $sdInputStyle }} resize:vertical; line-height:1.6; min-height:300px;"></textarea>
                 </div>
                 <div style="{{ $sdFootStyle }}">
-                    <button type="button" onclick="closeVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveVisitReport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="closeVisitReportModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveVisitReport()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -927,17 +927,17 @@
                 </div>
                 <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
-                        <input type="text" id="peName" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
+                        <input type="text" id="peName" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                     </div>
                     <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형</div>
-                        <select id="peProjectType" onchange="updatePeWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형</div>
+                        <select id="peProjectType" onchange="updatePeWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;"></select>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div>
-                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
-                            <select id="peScale" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">규모</div>
+                            <select id="peScale" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                                 <option value="">선택</option>
                                 <option value="personal">개인</option>
                                 <option value="studio">스튜디오</option>
@@ -947,14 +947,14 @@
                             </select>
                         </div>
                         <div>
-                            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
-                            <select id="peWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
+                            <select id="peWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;"></select>
                         </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
-                    <button type="button" onclick="closeProjectEditModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-                    <button type="button" onclick="saveProjectEdit()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+                    <button type="button" onclick="closeProjectEditModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+                    <button type="button" onclick="saveProjectEdit()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -969,34 +969,34 @@
                 <div style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
 
                     <div>
-                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">견적서 연결</div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">견적서 연결</div>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <select id="payEstimateId" onchange="onSelectEstimate(true)" style="flex:1; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
+                            <select id="payEstimateId" onchange="onSelectEstimate(true)" style="flex:1; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; font-family:inherit;">
                                 <option value="">— 견적서 미연결 (수기 입력) —</option>
                             </select>
-                            <button type="button" id="payViewEstimateBtn" onclick="viewLinkedEstimate()" style="display:none; white-space:nowrap; background:none; border:1px solid var(--accent); color:var(--accent); padding:9px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">📄 견적서 보기</button>
+                            <button type="button" id="payViewEstimateBtn" onclick="viewLinkedEstimate()" style="display:none; white-space:nowrap; background:none; border:1px solid var(--accent); color:var(--accent); padding:9px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">📄 견적서 보기</button>
                         </div>
-                        <div id="payEstimateInfo" style="font-size:11px; color:var(--text-muted); margin-top:4px; min-height:14px;"></div>
+                        <div id="payEstimateInfo" style="font-size:12px; color:var(--text-muted); margin-top:4px; min-height:14px;"></div>
                     </div>
 
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div>
-                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제 금액 (원) *</div>
-                            <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" oninput="window.payAmountManual=true; recalcPayAmount();" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">결제 금액 (원) *</div>
+                            <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" oninput="window.payAmountManual=true; recalcPayAmount();" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                                <span id="payAmountNote" style="font-size:11px; color:var(--text-muted);">(항목 합산 자동 반영)</span>
-                                <button type="button" onclick="window.payAmountManual=false; recalcPayAmount();" style="background:none; border:none; color:var(--accent); font-size:11px; cursor:pointer; padding:0;">↻ 항목 합산으로 재설정</button>
+                                <span id="payAmountNote" style="font-size:12px; color:var(--text-muted);">(항목 합산 자동 반영)</span>
+                                <button type="button" onclick="window.payAmountManual=false; recalcPayAmount();" style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer; padding:0;">↻ 항목 합산으로 재설정</button>
                             </div>
                         </div>
                         <div>
-                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제일</div>
-                            <input type="date" id="payPaidAt" value="{{ $payment['paid_at'] ?? date('Y-m-d') }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">결제일</div>
+                            <input type="date" id="payPaidAt" value="{{ $payment['paid_at'] ?? date('Y-m-d') }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none;">
                         </div>
                     </div>
 
                     <div>
-                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">결제 수단</div>
-                        <select id="payMethod" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; font-family:inherit;">
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">결제 수단</div>
+                        <select id="payMethod" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; font-family:inherit;">
                             <option value="">선택...</option>
                             <option value="카드">카드</option>
                             <option value="현금">현금</option>
@@ -1006,55 +1006,55 @@
                     </div>
 
                     <div>
-                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
                             <span>결제 항목 (수기 또는 견적서에서 자동 채움)</span>
-                            <button type="button" onclick="addPayItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 8px; border-radius:5px; font-size:11px; cursor:pointer;">+ 항목</button>
+                            <button type="button" onclick="addPayItem()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:2px 8px; border-radius:5px; font-size:12px; cursor:pointer;">+ 항목</button>
                         </div>
                         <div id="payItemsWrap" style="display:flex; flex-direction:column; gap:6px;"></div>
                     </div>
 
                     <div style="display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:end;">
                         <div>
-                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">잔금 여부</div>
+                            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">잔금 여부</div>
                             <div style="display:flex; gap:6px;">
-                                <label style="display:flex; align-items:center; gap:4px; font-size:13px; cursor:pointer;">
+                                <label style="display:flex; align-items:center; gap:4px; font-size:14px; cursor:pointer;">
                                     <input type="radio" name="payHasBalance" value="1" onchange="togglePayBalance()"> O
                                 </label>
-                                <label style="display:flex; align-items:center; gap:4px; font-size:13px; cursor:pointer;">
+                                <label style="display:flex; align-items:center; gap:4px; font-size:14px; cursor:pointer;">
                                     <input type="radio" name="payHasBalance" value="0" checked onchange="togglePayBalance()"> X
                                 </label>
                             </div>
                         </div>
                         <div id="payBalanceAmountWrap" style="display:none;">
-                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">잔금 금액 (원)</div>
-                            <input type="number" id="payBalanceAmount" min="0" value="{{ $payment['balance_amount'] ?? '' }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;">
+                            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">잔금 금액 (원)</div>
+                            <input type="number" id="payBalanceAmount" min="0" value="{{ $payment['balance_amount'] ?? '' }}" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none;">
                         </div>
                     </div>
 
                     <div>
-                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">메모</div>
-                        <textarea id="payMemo" rows="2" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; font-family:inherit; box-sizing:border-box;">{{ $payment['memo'] ?? '' }}</textarea>
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">메모</div>
+                        <textarea id="payMemo" rows="2" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; resize:vertical; font-family:inherit; box-sizing:border-box;">{{ $payment['memo'] ?? '' }}</textarea>
                     </div>
 
-                    <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); cursor:pointer;">
                         <input type="checkbox" id="payMarkPaid" checked> 연결한 견적서의 상태를 '결제됨'으로 표시
                     </label>
 
                     {{-- 청구 — 지금 입금이 아니라 받을 금액으로 등록 (입금은 이후 추적) --}}
                     <div id="payBillWrap" style="border-top:1px dashed var(--border); padding-top:10px;">
-                        <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                        <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
                             <input type="checkbox" id="payAsBilling" onchange="togglePayBilling()"> <b>💸 청구로 등록</b>
                             <span style="color:var(--text-muted);">— 아직 입금 전, 받을 금액으로 기록하고 입금을 추적합니다</span>
                         </label>
                         <div id="payBillingLinkWrap" style="display:none; margin-top:8px;">
-                            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">입금을 연결할 청구 (선택)</div>
-                            <select id="payBillingId" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none;"></select>
+                            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">입금을 연결할 청구 (선택)</div>
+                            <select id="payBillingId" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none;"></select>
                         </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
-                    <button type="button" class="btn-cancel" onclick="closePaymentModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:7px; font-size:13px; cursor:pointer;">취소</button>
-                    <button type="button" class="btn-save" onclick="savePayment()" style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 18px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer;">저장</button>
+                    <button type="button" class="btn-cancel" onclick="closePaymentModal()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:7px; font-size:14px; cursor:pointer;">취소</button>
+                    <button type="button" class="btn-save" onclick="savePayment()" style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 18px; border-radius:7px; font-size:14px; font-weight:700; cursor:pointer;">저장</button>
                 </div>
             </div>
         </div>
@@ -1064,10 +1064,10 @@
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <span>📋 {{ $vrLabel }}</span>
                 <div style="display:flex; gap:6px; align-items:center;">
-                    <span id="vrSaveStatus" style="font-size:11px; color:var(--text-muted);"></span>
-                    <button type="button" id="vrBtnEdit" onclick="vrSetMode('edit')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'inline-flex' : 'none' }};">✏️ 수정</button>
-                    <button type="button" id="vrBtnCancel" onclick="vrSetMode('view')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; display:none;">취소</button>
-                    <button type="button" id="vrBtnSave" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; display:{{ $hasReport ? 'none' : 'inline-flex' }};">저장</button>
+                    <span id="vrSaveStatus" style="font-size:12px; color:var(--text-muted);"></span>
+                    <button type="button" id="vrBtnEdit" onclick="vrSetMode('edit')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; display:{{ $hasReport ? 'inline-flex' : 'none' }};">✏️ 수정</button>
+                    <button type="button" id="vrBtnCancel" onclick="vrSetMode('view')" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; display:none;">취소</button>
+                    <button type="button" id="vrBtnSave" onclick="saveVisitReportEditor()" style="background:var(--accent); color:var(--accent-text); border:none; padding:6px 14px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; display:{{ $hasReport ? 'none' : 'inline-flex' }};">저장</button>
                 </div>
             </div>
             <div class="tiptap-wrap">
@@ -1087,17 +1087,17 @@
                     <button type="button" data-cmd="codeBlock" title="코드 블록">{ }</button>
                     <button type="button" data-cmd="hr" title="구분선">—</button>
                     <div class="sep"></div>
-                    <button type="button" data-cmd="alignLeft" title="좌측 정렬" style="font-size:11px;">≡←</button>
-                    <button type="button" data-cmd="alignCenter" title="중앙 정렬" style="font-size:11px;">≡</button>
-                    <button type="button" data-cmd="alignRight" title="우측 정렬" style="font-size:11px;">→≡</button>
+                    <button type="button" data-cmd="alignLeft" title="좌측 정렬" style="font-size:12px;">≡←</button>
+                    <button type="button" data-cmd="alignCenter" title="중앙 정렬" style="font-size:12px;">≡</button>
+                    <button type="button" data-cmd="alignRight" title="우측 정렬" style="font-size:12px;">→≡</button>
                     <div class="sep"></div>
-                    <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:13px;">
+                    <label class="tool-btn" title="이미지/파일 첨부" style="cursor:pointer;color:var(--text-muted);font-size:14px;">
                         📎
                         <input type="file" style="display:none;" onchange="vrUploadAndInsert(this.files[0]); this.value='';">
                     </label>
-                    <button type="button" data-cmd="table" class="tool-btn" title="표 삽입" style="font-size:11px;">📊 표</button>
+                    <button type="button" data-cmd="table" class="tool-btn" title="표 삽입" style="font-size:12px;">📊 표</button>
                     <div class="sep"></div>
-                    <button type="button" class="tool-btn" title="템플릿 불러오기" onclick="vrOpenTemplatePicker()" style="font-size:11px;">📋 템플릿</button>
+                    <button type="button" class="tool-btn" title="템플릿 불러오기" onclick="vrOpenTemplatePicker()" style="font-size:12px;">📋 템플릿</button>
                 </div>
                 <div id="vrEditor"></div>
             </div>
@@ -1130,14 +1130,14 @@
         <div class="info-card full" id="reqItemsCard">
             <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <span>의뢰 내용 (세팅 항목)</span>
-                <span style="font-size:12px; font-weight:400; color:var(--text-muted);">타이틀 → 분류 → 세부 항목 선택 · 연결된 캘린더 일정에 표시됩니다</span>
+                <span style="font-size:13px; font-weight:400; color:var(--text-muted);">타이틀 → 분류 → 세부 항목 선택 · 연결된 캘린더 일정에 표시됩니다</span>
                 <button type="button" class="pcf-save-btn" id="rqmManageBtn" onclick="openRqpManage()" style="display:none; margin-left:auto;">⚙ 선택지 관리</button>
             </div>
             <div id="reqItemTags" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:10px;"></div>
             <div id="reqItemPicker" class="req-picker"></div>
             {{-- 의뢰자 요구사항 — 수기 메모 (custom_data.__client_req_note, 연결된 캘린더 일정에도 표시) --}}
             <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
-                <div style="font-size:12px; font-weight:700; color:var(--slate); margin-bottom:6px;">의뢰자 요구사항
+                <div style="font-size:13px; font-weight:700; color:var(--slate); margin-bottom:6px;">의뢰자 요구사항
                     <span style="font-weight:400; color:var(--text-muted);">— 수기 작성 · 자동 저장 · 연결된 캘린더 일정에도 표시됩니다</span></div>
                 <textarea id="clientReqNote" class="pcf-input" style="width:100%; min-height:84px; resize:vertical; line-height:1.6;" placeholder="의뢰자가 말한 요구사항을 자유롭게 기록하세요 (예: 웹캠 화질이 어둡다는 불만, 책상 배치는 그대로 유지 희망)" oninput="clientReqNoteChanged()">{{ $project->custom_data['__client_req_note'] ?? '' }}</textarea>
             </div>
@@ -1149,13 +1149,13 @@
                 <div style="font-size:15px;font-weight:700;">의뢰 세부 항목 선택지 관리</div>
                 <div id="rqmList" style="display:flex;flex-direction:column;gap:6px;"></div>
                 <div style="border-top:1px dashed var(--border);"></div>
-                <div id="rqmFormTitle" style="font-size:13px;font-weight:700;">새 세팅 타이틀 추가</div>
+                <div id="rqmFormTitle" style="font-size:14px;font-weight:700;">새 세팅 타이틀 추가</div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                    <span style="font-size:12px;color:var(--text-muted);font-weight:600;">세팅 타이틀 <span style="color:var(--red)">*</span></span>
+                    <span style="font-size:13px;color:var(--text-muted);font-weight:600;">세팅 타이틀 <span style="color:var(--red)">*</span></span>
                     <input type="text" id="rqmTitle" class="pcf-input" placeholder="예: 신규·이사 세팅, 세팅 추가·개선">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                    <span style="font-size:12px;color:var(--text-muted);font-weight:600;">분류와 세부 항목 <span style="font-weight:400;">— 한 줄에 하나씩 <b>분류: 항목1, 항목2</b> 형식</span></span>
+                    <span style="font-size:13px;color:var(--text-muted);font-weight:600;">분류와 세부 항목 <span style="font-weight:400;">— 한 줄에 하나씩 <b>분류: 항목1, 항목2</b> 형식</span></span>
                     <textarea id="rqmChildren" class="pcf-input" style="min-height:120px;resize:vertical;" placeholder="컴퓨터: 컴퓨터 부품 교체, 컴퓨터 현장 조립&#10;오디오: DAW 세팅, 마이크 추가 설치"></textarea>
                 </div>
                 <div style="display:flex;justify-content:flex-end;gap:8px;">
@@ -1203,14 +1203,14 @@
                 <div class="pfa-title">장비 항목 편집</div>
                 <div id="pfaList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
                 <div style="border-top:1px dashed var(--border);"></div>
-                <div class="pfa-subtitle" id="pfaFormTitle" style="font-size:13px;font-weight:700;color:var(--text);">새 항목 추가</div>
+                <div class="pfa-subtitle" id="pfaFormTitle" style="font-size:14px;font-weight:700;color:var(--text);">새 항목 추가</div>
                 <div class="pfa-group" id="pfaScopeGroup">
                     <span class="pfa-lab">적용 범위</span>
                     <div class="pfa-types">
                         <button class="pfa-type-chip" data-s="local" onclick="pfaSetScope('local')">이 프로젝트에만</button>
                         <button class="pfa-type-chip" data-s="global" id="pfaScopeGlobalBtn" onclick="pfaSetScope('global')">전체 프로젝트 공통</button>
                     </div>
-                    <span style="font-size:11px;color:var(--text-muted);" id="pfaScopeHint"></span>
+                    <span style="font-size:12px;color:var(--text-muted);" id="pfaScopeHint"></span>
                 </div>
                 <div class="pfa-group">
                     <span class="pfa-lab">항목 이름 <span style="color:var(--red)">*</span></span>
@@ -1244,11 +1244,11 @@
             <div class="card-title" style="display:flex;justify-content:space-between;align-items:center; gap:8px; flex-wrap:wrap;">
                 <span>상담 이력 ({{ $consultations->count() }}건)</span>
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <select id="consultSortSelect" onchange="sortConsultations(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-size:12px;cursor:pointer;">
+                    <select id="consultSortSelect" onchange="sortConsultations(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);font-size:13px;cursor:pointer;">
                         <option value="desc">최근 순</option>
                         <option value="asc">오래된 순</option>
                     </select>
-                    <button class="btn-primary" onclick="openConsultModal()" style="padding:6px 14px; font-size:12px;">+ 상담 등록</button>
+                    <button class="btn-primary" onclick="openConsultModal()" style="padding:6px 14px; font-size:13px;">+ 상담 등록</button>
                 </div>
             </div>
             @if($consultations->count() > 0)
@@ -1306,20 +1306,20 @@
             <div id="projectMemoThread">
                 @forelse($project->memos as $memo)
                     <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="pmemo-{{ $memo->id }}">
-                        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
+                        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
                         <div style="flex:1; min-width:0;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div>
-                                    <span style="font-size:12px; font-weight:600;">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
-                                    <span style="font-size:11px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
+                                    <span style="font-size:13px; font-weight:600;">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
+                                    <span style="font-size:12px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
                                 </div>
-                                <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
+                                <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
                             </div>
-                            <div style="font-size:13px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">{{ $memo->content }}</div>
+                            <div style="font-size:14px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">{{ $memo->content }}</div>
                         </div>
                     </div>
                 @empty
-                    <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;" id="pmemoEmpty">피드백이 없습니다.</div>
+                    <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:14px;" id="pmemoEmpty">피드백이 없습니다.</div>
                 @endforelse
             </div>
         </div>
@@ -1346,9 +1346,9 @@
         <div class="info-card full" data-upload-max-bytes="{{ $effectiveMaxBytes }}" data-upload-max-mb="{{ $effectiveMaxMb }}">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>첨부 문서 ({{ $project->documents->count() }}건)
-                    <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:6px;">· 파일당 최대 {{ $effectiveMaxMb }}MB</span>
+                    <span style="font-size:12px; font-weight:400; color:var(--text-muted); margin-left:6px;">· 파일당 최대 {{ $effectiveMaxMb }}MB</span>
                 </span>
-                <button type="button" class="btn-primary" onclick="toggleDocUpload()" id="btnToggleDocUpload" style="padding:6px 14px; font-size:12px;">+ 문서 추가</button>
+                <button type="button" class="btn-primary" onclick="toggleDocUpload()" id="btnToggleDocUpload" style="padding:6px 14px; font-size:13px;">+ 문서 추가</button>
             </div>
             <form method="POST" action="{{ route('project-documents.store', $project) }}" enctype="multipart/form-data" id="docUploadForm" style="display:{{ $project->documents->count() > 0 ? 'none' : 'block' }};">
                 @csrf
@@ -1499,15 +1499,15 @@
                                 <option value="{{ sprintf('%02d', $h) }}">{{ sprintf('%02d', $h) }}</option>
                             @endfor
                         </select>
-                        <span style="font-size:12px; color:var(--text-muted);">시</span>
+                        <span style="font-size:13px; color:var(--text-muted);">시</span>
                         <select class="field-select" id="ciMin" onchange="ciAutoFilled = false; syncInboundTime('ci')" title="분 (30분 단위)" style="flex:1;">
                             <option value="00">00</option>
                             <option value="30">30</option>
                         </select>
-                        <span style="font-size:12px; color:var(--text-muted);">분</span>
+                        <span style="font-size:13px; color:var(--text-muted);">분</span>
                         <input type="hidden" name="inbound_time" id="ciTime">
                     </div>
-                    <div id="ciAutoHint" style="display:none; margin-top:4px; font-size:11px; color:var(--text-muted);"></div>
+                    <div id="ciAutoHint" style="display:none; margin-top:4px; font-size:12px; color:var(--text-muted);"></div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">상담 유형 *</div>
@@ -1566,9 +1566,9 @@
     </div>
     <div class="album-zoom-controls" id="albumZoomControls" style="display:none;">
         <button onclick="albumZoom(-1)" title="축소">−</button>
-        <span id="albumZoomLevel" style="min-width:48px; text-align:center; color:#fff; font-size:13px; font-weight:600; line-height:36px;">100%</span>
+        <span id="albumZoomLevel" style="min-width:48px; text-align:center; color:#fff; font-size:14px; font-weight:600; line-height:36px;">100%</span>
         <button onclick="albumZoom(1)" title="확대">+</button>
-        <button onclick="albumZoomReset()" title="원본 크기" style="font-size:11px; width:auto; padding:0 10px; border-radius:18px;">맞춤</button>
+        <button onclick="albumZoomReset()" title="원본 크기" style="font-size:12px; width:auto; padding:0 10px; border-radius:18px;">맞춤</button>
     </div>
 </div>
 
@@ -1595,12 +1595,12 @@
                                 <option value="{{ sprintf('%02d', $h) }}">{{ sprintf('%02d', $h) }}</option>
                             @endfor
                         </select>
-                        <span style="font-size:12px; color:var(--text-muted);">시</span>
+                        <span style="font-size:13px; color:var(--text-muted);">시</span>
                         <select class="field-select" id="eiMin" onchange="syncInboundTime('ei')" title="분 (30분 단위)" style="flex:1;">
                             <option value="00">00</option>
                             <option value="30">30</option>
                         </select>
-                        <span style="font-size:12px; color:var(--text-muted);">분</span>
+                        <span style="font-size:13px; color:var(--text-muted);">분</span>
                         <input type="hidden" name="inbound_time" id="eiTime">
                     </div>
                 </div>
@@ -1653,8 +1653,8 @@
             <button onclick="closeScaleEditor()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
         <div style="margin-bottom:14px;">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">규모 *</div>
-            <select id="editScale" onchange="updateEditWorkTypes()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">규모 *</div>
+            <select id="editScale" onchange="updateEditWorkTypes()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;">
                 <option value="personal" {{ $project->client_scale === 'personal' ? 'selected' : '' }}>개인</option>
                 <option value="studio" {{ $project->client_scale === 'studio' ? 'selected' : '' }}>스튜디오</option>
                 <option value="corporate" {{ $project->client_scale === 'corporate' ? 'selected' : '' }}>기업</option>
@@ -1663,12 +1663,12 @@
             </select>
         </div>
         <div style="margin-bottom:14px;">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">작업 유형 *</div>
-            <select id="editWorkType" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;"></select>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">작업 유형 *</div>
+            <select id="editWorkType" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;"></select>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
-            <button onclick="closeScaleEditor()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">취소</button>
-            <button onclick="submitScale()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+            <button onclick="closeScaleEditor()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:14px;cursor:pointer;">취소</button>
+            <button onclick="submitScale()" style="background:var(--accent);color:var(--accent-text);border:none;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
         </div>
     </div>
 </div>
@@ -1680,9 +1680,9 @@
             <div style="font-size:16px;font-weight:700;">프로젝트 취소</div>
             <button onclick="closeCancelModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">데이터는 보존되며, 단계만 "취소"로 변경됩니다.</p>
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">데이터는 보존되며, 단계만 "취소"로 변경됩니다.</p>
         <div style="margin-bottom:14px;">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">취소 사유 * <span style="font-weight:400;">(복수 선택 가능)</span></div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">취소 사유 * <span style="font-weight:400;">(복수 선택 가능)</span></div>
             @php
                 // 관리자 설정(한 줄=사유 하나) — '기타'는 항상 마지막에 고정
                 $cancelReasonOptions = collect(explode("\n", (string) \App\Models\Setting::get('project_cancel_reasons', "의뢰자 연락 두절\n의뢰자 사정으로 취소\n일정이 맞지 않음")))
@@ -1690,22 +1690,22 @@
             @endphp
             <div style="display:flex;flex-direction:column;gap:6px;" id="cancelReasons">
                 @foreach($cancelReasonOptions as $reasonOpt)
-                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:14px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
                     <input type="checkbox" name="cancel_reason" value="{{ $reasonOpt }}" style="accent-color:var(--accent);"> {{ $reasonOpt }}
                 </label>
                 @endforeach
-                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:14px;transition:all 0.12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
                     <input type="checkbox" name="cancel_reason" value="기타" style="accent-color:var(--accent);"> 기타
                 </label>
             </div>
         </div>
         <div id="cancelDetailWrap" style="display:none;margin-bottom:14px;">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">상세 사유</div>
-            <textarea id="cancelDetail" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;resize:vertical;" placeholder="취소 사유를 입력하세요"></textarea>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">상세 사유</div>
+            <textarea id="cancelDetail" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;resize:vertical;" placeholder="취소 사유를 입력하세요"></textarea>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
-            <button onclick="closeCancelModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:13px;cursor:pointer;">닫기</button>
-            <button onclick="submitCancel()" style="background:var(--red);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">취소 처리</button>
+            <button onclick="closeCancelModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;border-radius:8px;font-size:14px;cursor:pointer;">닫기</button>
+            <button onclick="submitCancel()" style="background:var(--red);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">취소 처리</button>
         </div>
     </div>
 </div>
@@ -1947,7 +1947,7 @@ function renderMkConsentSelect() {
         btn.style.display = mkConsent === true ? '' : 'none';
         btn.textContent = mkPostedAt ? '✓ 포스팅 완료 · ' + mkPostedAt : '포스팅 완료 처리';
         btn.title = mkPostedAt ? '포스팅 완료 (클릭하면 해제)' : '마케팅 콘텐츠 포스팅을 마쳤으면 클릭';
-        btn.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;'
+        btn.style.cssText = 'font-size:12px;padding:2px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;'
             + (mkConsent === true ? '' : 'display:none;')
             + (mkPostedAt
                 ? 'background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;'
@@ -1961,7 +1961,7 @@ function renderMkConsentSelect() {
         : (mkConsent === false
             ? 'background:rgba(200,80,80,0.10);color:var(--red);border-color:rgba(200,80,80,0.35);font-weight:700;'
             : 'background:var(--surface2);color:var(--text);');
-    sel.style.cssText = 'font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);cursor:pointer;outline:none;' + style;
+    sel.style.cssText = 'font-size:12px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);cursor:pointer;outline:none;' + style;
 }
 renderMkConsentSelect();
 
@@ -2424,7 +2424,7 @@ function renderAlbum() {
         wrap.appendChild(iframe);
     } else {
         const div = document.createElement('div');
-        div.style.cssText = 'color:var(--text-muted); font-size:14px; padding:60px; text-align:center;';
+        div.style.cssText = 'color:var(--text-muted); font-size:15px; padding:60px; text-align:center;';
         div.textContent = '미리보기를 지원하지 않는 파일입니다.';
         wrap.appendChild(div);
     }
@@ -2675,7 +2675,7 @@ function pcfEsc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<
 async function openEquipImport() {
     if (!PROJECT_CLIENT_ID) return;
     const body = document.getElementById('eqImportBody');
-    body.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">불러오는 중…</div>';
+    body.innerHTML = '<div style="font-size:13px;color:var(--text-muted);">불러오는 중…</div>';
     document.getElementById('eqImportOverlay').style.display = 'flex';
     let data = null;
     try {
@@ -2683,10 +2683,10 @@ async function openEquipImport() {
         data = res.ok ? await res.json() : null;
     } catch(e) {}
     if (!data || (!data.client && !(data.projects||[]).length)) {
-        body.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">불러올 장비 정보가 없습니다 — 이 의뢰자의 다른 프로젝트에 입력된 장비가 없습니다.</div>';
+        body.innerHTML = '<div style="font-size:13px;color:var(--text-muted);">불러올 장비 정보가 없습니다 — 이 의뢰자의 다른 프로젝트에 입력된 장비가 없습니다.</div>';
         return;
     }
-    const rowStyle = 'display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--text);font-size:13px;';
+    const rowStyle = 'display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--text);font-size:14px;';
     let html = '';
     if (data.client) {
         html += `<button type="button" style="${rowStyle}" onclick="runEquipImport(${data.client.id}, this)">`
@@ -2694,7 +2694,7 @@ async function openEquipImport() {
             + `<span style="color:var(--text-muted);margin-left:auto;">${pcfEsc(data.client.name)} · ${data.client.count}개 항목</span></button>`;
     }
     if ((data.projects||[]).length) {
-        html += `<div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:4px;">이전 프로젝트에서 선택</div>`;
+        html += `<div style="font-size:13px;color:var(--text-muted);font-weight:600;margin-top:4px;">이전 프로젝트에서 선택</div>`;
         html += data.projects.map(p =>
             `<button type="button" style="${rowStyle}" onclick="runEquipImport(${p.id}, this)">`
             + `<span style="font-weight:600;">${pcfEsc(p.name)}</span>`
@@ -2832,7 +2832,7 @@ function renderPcfSummary(wrap) {
                 ${k === 'equipment' && PCF_CAN_MANAGE ? `<button class="pcf-add-btn" onclick="event.stopPropagation();openPcfAdd()">⚙ 항목 편집</button>` : ''}
             </div>`;
         if (!subKeys.length) {
-            html += `<div style="font-size:12px; color:var(--text-muted);">입력된 정보가 없습니다 — 상단 <b>✎ 편집</b>으로 입력하세요.</div>`;
+            html += `<div style="font-size:13px; color:var(--text-muted);">입력된 정보가 없습니다 — 상단 <b>✎ 편집</b>으로 입력하세요.</div>`;
         } else {
             subKeys.sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'ko'))).forEach(sub => {
                 if (sub !== '') html += `<div class="pcf-sub-title" style="margin-top:6px;"><span class="pcf-sub-icon">${pcfSubIcon(sub)}</span>${pcfEsc(sub)}</div>`;
@@ -2843,7 +2843,7 @@ function renderPcfSummary(wrap) {
         }
         html += `</div>`;
     });
-    wrap.innerHTML = html || '<div style="font-size:12px; color:var(--text-muted);">입력된 추가 정보가 없습니다.</div>';
+    wrap.innerHTML = html || '<div style="font-size:13px; color:var(--text-muted);">입력된 추가 정보가 없습니다.</div>';
 }
 
 function renderProjectCustomFields() {
@@ -2912,7 +2912,7 @@ function renderProjectCustomFields() {
             sortedFields.forEach(f => { html += renderFieldHtml(f); });
             html += `</div>`;
             if (k === 'equipment' && !sortedFields.length) {
-                html += `<div style="font-size:12px; color:var(--text-muted);">${PCF_CAN_MANAGE ? '등록된 장비 항목이 없습니다 — <b>⚙ 항목 편집</b>으로 이 프로젝트의 항목을 만들어 보세요.' : '등록된 장비 항목이 없습니다.'}</div>`;
+                html += `<div style="font-size:13px; color:var(--text-muted);">${PCF_CAN_MANAGE ? '등록된 장비 항목이 없습니다 — <b>⚙ 항목 편집</b>으로 이 프로젝트의 항목을 만들어 보세요.' : '등록된 장비 항목이 없습니다.'}</div>`;
             }
         } else {
             // 소분류 있음 → 소분류별 서브카드. 소분류 정렬은 그룹 최대 priority DESC, 빈 소분류는 마지막
@@ -2979,7 +2979,7 @@ function pcfInput(f, val) {
         const qtyInput = `<input type="number" class="pcf-input" min="0" step="1" value="${pcfEsc(vq.qty)}" data-qty-key="${f.key}" oninput="pcfQtyChange(this)" placeholder="수량" style="max-width:90px;">`;
         // textarea/radio 는 세로 배치, 그 외는 한 줄
         if (f.type === 'textarea' || f.type === 'radio') {
-            return `<div style="display:flex; flex-direction:column; gap:6px;">${inner}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyInput}</div></div>`;
+            return `<div style="display:flex; flex-direction:column; gap:6px;">${inner}<div style="display:flex; align-items:center; gap:6px;"><span style="font-size:12px; color:var(--text-muted); white-space:nowrap;">수량</span>${qtyInput}</div></div>`;
         }
         return `<div style="display:grid; grid-template-columns:1fr 90px; gap:6px;">${inner}${qtyInput}</div>`;
     }
@@ -3166,23 +3166,23 @@ function openPcfAdd() {
 function closePcfAdd() { document.getElementById('pfaOverlay').style.display = 'none'; }
 
 function pfaRowHtml(i, badgeHtml, btnsHtml) {
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
         <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(i.label)}</b>
         ${badgeHtml}
-        <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">${PFA_TYPES[i.type]||i.type}${i.subsection?' · '+pcfEsc(i.subsection):''}</span>
+        <span style="color:var(--text-muted);font-size:12px;flex-shrink:0;">${PFA_TYPES[i.type]||i.type}${i.subsection?' · '+pcfEsc(i.subsection):''}</span>
         ${btnsHtml}
     </div>`;
 }
 function pfaRenderList() {
     const list = document.getElementById('pfaList');
-    const localBadge = '<span style="flex-shrink:0;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);">이 프로젝트</span>';
-    const globalBadge = '<span style="flex-shrink:0;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--purple, #7c5cb0) 14%, transparent);color:var(--purple, #7c5cb0);">전체 공통</span>';
-    const btn = (fn, txt, danger) => `<button class="pfa-btn-ghost" style="padding:3px 10px;font-size:11px;${danger?'color:var(--red);':''}" onclick="${fn}">${txt}</button>`;
+    const localBadge = '<span style="flex-shrink:0;font-size:12px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);">이 프로젝트</span>';
+    const globalBadge = '<span style="flex-shrink:0;font-size:12px;font-weight:700;padding:2px 7px;border-radius:7px;background:color-mix(in srgb, var(--purple, #7c5cb0) 14%, transparent);color:var(--purple, #7c5cb0);">전체 공통</span>';
+    const btn = (fn, txt, danger) => `<button class="pfa-btn-ghost" style="padding:3px 10px;font-size:12px;${danger?'color:var(--red);':''}" onclick="${fn}">${txt}</button>`;
     let html = pfaItems().map(i => pfaRowHtml(i, localBadge, btn(`pfaEdit('${i.key}')`, '수정') + btn(`pfaDelete('${i.key}')`, '삭제', true))).join('');
     html += pfaGlobalItems().map(i => pfaRowHtml(i, globalBadge,
         PCF_CAN_MANAGE ? btn(`pfaEditGlobal(${i.id})`, '수정') + btn(`pfaDeleteGlobal(${i.id})`, '삭제', true)
-            : '<span style="flex-shrink:0;font-size:11px;color:var(--text-muted);">관리자만 편집</span>')).join('');
-    list.innerHTML = html || '<div style="font-size:12px;color:var(--text-muted);">등록된 장비 항목이 없습니다.</div>';
+            : '<span style="flex-shrink:0;font-size:12px;color:var(--text-muted);">관리자만 편집</span>')).join('');
+    list.innerHTML = html || '<div style="font-size:13px;color:var(--text-muted);">등록된 장비 항목이 없습니다.</div>';
 }
 function pfaSetScope(s) {
     if (s === 'global' && !PCF_CAN_MANAGE) return;
@@ -3343,7 +3343,7 @@ function renderReqPicker() {
     const mBtn = document.getElementById('rqmManageBtn');
     if (mBtn) mBtn.style.display = PCF_CAN_MANAGE ? '' : 'none';
     if (!REQ_PRESETS.length) {
-        el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">등록된 선택지가 없습니다.${PCF_CAN_MANAGE ? ' <b>⚙ 선택지 관리</b>에서 추가하세요.' : ''}</div>`;
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">등록된 선택지가 없습니다.${PCF_CAN_MANAGE ? ' <b>⚙ 선택지 관리</b>에서 추가하세요.' : ''}</div>`;
         renderReqTags();
         return;
     }
@@ -3357,8 +3357,8 @@ function renderReqPicker() {
                 <div><div class="rqp-cat-name">${pcfEsc(cat.name)}</div>
                 <div class="rqp-leafs">${(cat.items || []).length ? (cat.items || []).map((d, di) =>
                     `<button type="button" class="rqp-leaf ${reqItemFind(p.title, cat.name, d) ? 'on' : ''}" onclick="rqToggleLeaf(${pi},${ci},${di})">${pcfEsc(d)}</button>`
-                ).join('') : '<span style="font-size:11px;color:var(--text-muted);">세부 항목 없음</span>'}</div></div>`).join('')
-                : '<div style="font-size:12px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
+                ).join('') : '<span style="font-size:12px;color:var(--text-muted);">세부 항목 없음</span>'}</div></div>`).join('')
+                : '<div style="font-size:13px;color:var(--text-muted);">분류가 없습니다.</div>'}</div>
         </div>`;
     }).join('');
     renderReqTags();
@@ -3411,13 +3411,13 @@ function openRqpManage() {
 function closeRqpManage() { document.getElementById('rqmOverlay').style.display = 'none'; }
 function rqmRenderList() {
     const list = document.getElementById('rqmList');
-    if (!REQ_PRESETS.length) { list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">등록된 타이틀이 없습니다.</div>'; return; }
+    if (!REQ_PRESETS.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text-muted);">등록된 타이틀이 없습니다.</div>'; return; }
     list.innerHTML = REQ_PRESETS.map((p, pi) => {
         const catCnt = (p.children || []).length;
         const leafCnt = (p.children || []).reduce((n, c) => n + ((c.items || []).length), 0);
         return `<div class="rqm-row">
             <b style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pcfEsc(p.title)}</b>
-            <span style="color:var(--text-muted);font-size:11px;flex-shrink:0;">분류 ${catCnt} · 항목 ${leafCnt}</span>
+            <span style="color:var(--text-muted);font-size:12px;flex-shrink:0;">분류 ${catCnt} · 항목 ${leafCnt}</span>
             <button type="button" class="rqm-btn" onclick="rqmEdit(${pi})">수정</button>
             <button type="button" class="rqm-btn" style="color:var(--red);" onclick="rqmDelete(${pi})">삭제</button>
         </div>`;
@@ -3556,27 +3556,27 @@ function _fmtPh(n){ return Number(n||0).toLocaleString('ko-KR'); }
 function renderBillingBlock() {
     if (!__billings.length) return '';
     const statusPill = b => b.status === 'paid'
-        ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">완료</span>'
+        ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">완료</span>'
         : (b.status === 'partial'
-            ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">부분입금</span>'
-            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">미입금</span>');
+            ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">부분입금</span>'
+            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">미입금</span>');
     return `<div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
         ${__billings.map(b => `
         <div style="padding:10px 14px; background:var(--surface2); border:1px dashed var(--border); border-radius:10px; ${b.status==='paid'?'opacity:0.55;':''}">
             <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <span style="font-size:11px; font-weight:700;">💸 청구</span>
+                    <span style="font-size:12px; font-weight:700;">💸 청구</span>
                     ${statusPill(b)}
-                    <span style="font-size:13px; font-weight:700;">${_fmtPh(b.amount)}원</span>
-                    <span style="font-size:11px; color:var(--text-muted);">입금 ${_fmtPh(b.paid_total)}원${b.status!=='paid'?` · <b style="color:var(--red);">잔금 ${_fmtPh(b.balance)}원</b>`:''}</span>
+                    <span style="font-size:14px; font-weight:700;">${_fmtPh(b.amount)}원</span>
+                    <span style="font-size:12px; color:var(--text-muted);">입금 ${_fmtPh(b.paid_total)}원${b.status!=='paid'?` · <b style="color:var(--red);">잔금 ${_fmtPh(b.balance)}원</b>`:''}</span>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    ${b.status!=='paid' ? `<button onclick="recordBillingPayment(${b.id}, ${b.balance})" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">입금 기록</button>` : ''}
-                    ${b.status!=='paid' && !b.estimate_id ? `<button onclick="markBillingPaid(${b.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">완료 처리</button>` : ''}
-                    <button onclick="deleteBilling(${b.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+                    ${b.status!=='paid' ? `<button onclick="recordBillingPayment(${b.id}, ${b.balance})" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">입금 기록</button>` : ''}
+                    ${b.status!=='paid' && !b.estimate_id ? `<button onclick="markBillingPaid(${b.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">완료 처리</button>` : ''}
+                    <button onclick="deleteBilling(${b.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">삭제</button>
                 </div>
             </div>
-            <div style="margin-top:4px; font-size:11px; color:var(--text-muted);">📅 청구일 ${b.billed_at||'-'}${b.memo?` · 📝 ${_escPh(b.memo)}`:''}${b.estimate_id?` · <a href="#" onclick="event.preventDefault(); window.open('/estimates/${b.estimate_id}/print', 'estimate_${b.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">📄 견적서 #${b.estimate_no||b.estimate_id}</a> <span title="견적서 연동 청구는 수동 완료할 수 없습니다">— 견적서 결제완료 시 자동 완료</span>`:''}</div>
+            <div style="margin-top:4px; font-size:12px; color:var(--text-muted);">📅 청구일 ${b.billed_at||'-'}${b.memo?` · 📝 ${_escPh(b.memo)}`:''}${b.estimate_id?` · <a href="#" onclick="event.preventDefault(); window.open('/estimates/${b.estimate_id}/print', 'estimate_${b.estimate_id}', 'width=900,height=800,scrollbars=yes');" style="color:var(--accent); text-decoration:none;">📄 견적서 #${b.estimate_no||b.estimate_id}</a> <span title="견적서 연동 청구는 수동 완료할 수 없습니다">— 견적서 결제완료 시 자동 완료</span>`:''}</div>
         </div>`).join('')}
     </div>`;
 }
@@ -3590,7 +3590,7 @@ function renderPaymentHistory() {
     const billingHtml = renderBillingBlock();
     if (!__payments.length) {
         document.getElementById('phNetTotal').textContent = '';
-        list.innerHTML = billingHtml + '<div style="padding:10px 0; font-size:12px; color:var(--text-muted);">등록된 결제 내역이 없습니다. 우측 상단 [+ 결제 추가]로 기록할 수 있습니다.</div>';
+        list.innerHTML = billingHtml + '<div style="padding:10px 0; font-size:13px; color:var(--text-muted);">등록된 결제 내역이 없습니다. 우측 상단 [+ 결제 추가]로 기록할 수 있습니다.</div>';
         return;
     }
 
@@ -3602,40 +3602,40 @@ function renderPaymentHistory() {
         const isCharge = p.type === 'charge';
         const isRefund = p.type === 'refund';
         const isCancel = p.type === 'cancel';
-        const badge = isCharge ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;border:1px solid rgba(122,200,160,0.35);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">결제</span>'
-            : isRefund ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;border:1px solid rgba(232,137,74,0.35);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">환불</span>'
-            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);border:1px solid rgba(200,80,80,0.35);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">결제 취소</span>';
+        const badge = isCharge ? '<span style="background:rgba(122,200,160,0.15);color:#7ac8a0;border:1px solid rgba(122,200,160,0.35);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">결제</span>'
+            : isRefund ? '<span style="background:rgba(232,137,74,0.15);color:#e8894a;border:1px solid rgba(232,137,74,0.35);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">환불</span>'
+            : '<span style="background:rgba(200,80,80,0.15);color:var(--red);border:1px solid rgba(200,80,80,0.35);padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;">결제 취소</span>';
         const amount = isCharge ? `+${_fmtPh(p.amount)}원` : `${_fmtPh(p.amount)}원`;
         const amtColor = isCharge ? 'var(--accent)' : 'var(--red)';
         const refundInfo = isCharge && p.refunded_amount > 0
-            ? `<span style="font-size:11px; color:var(--text-muted);">· 환불 ${_fmtPh(p.refunded_amount)}원</span>`
+            ? `<span style="font-size:12px; color:var(--text-muted);">· 환불 ${_fmtPh(p.refunded_amount)}원</span>`
             : '';
         const fullyRefunded = isCharge && p.is_fully_refunded;
         const canRefund = isCharge && !fullyRefunded;
         const itemsHtml = (p.items && p.items.length)
             ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it => {
                 const srcBadge = it.source === 'estimate'
-                    ? '<span style="font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:3px; padding:0 4px; margin-right:4px;">견적</span>'
-                    : (it.source === 'manual' ? '<span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px; margin-right:4px;">수기</span>' : '');
-                return `<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${srcBadge}${_escPh(it.name||'-')}</span><span>${it.qty||1}개 × ${_fmtPh(it.price||0)}원</span></div>`;
+                    ? '<span style="font-size:12px; color:var(--accent); border:1px solid var(--accent); border-radius:3px; padding:0 4px; margin-right:4px;">견적</span>'
+                    : (it.source === 'manual' ? '<span style="font-size:12px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px; margin-right:4px;">수기</span>' : '');
+                return `<div style="display:flex; gap:8px; font-size:12px; color:var(--text-muted);"><span style="flex:1;">${srcBadge}${_escPh(it.name||'-')}</span><span>${it.qty||1}개 × ${_fmtPh(it.price||0)}원</span></div>`;
             }).join('')}</div>`
             : '';
         return `<div style="padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; ${fullyRefunded ? 'opacity:0.6;' : ''}">
             <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     ${badge}
-                    <span style="font-size:14px; font-weight:700; color:${amtColor};">${amount}</span>
+                    <span style="font-size:15px; font-weight:700; color:${amtColor};">${amount}</span>
                     ${refundInfo}
-                    ${fullyRefunded ? '<span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
+                    ${fullyRefunded ? '<span style="font-size:12px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>' : ''}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    ${isCharge ? `<button onclick="editPayment(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>` : `<button onclick="openRefundEdit(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">수정</button>`}
-                    ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'refund')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">환불</button>` : ''}
-                    ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'cancel')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">결제 취소</button>` : ''}
-                    <button onclick="deletePayment(${p.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">삭제</button>
+                    ${isCharge ? `<button onclick="editPayment(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">수정</button>` : `<button onclick="openRefundEdit(${p.id})" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">수정</button>`}
+                    ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'refund')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">환불</button>` : ''}
+                    ${canRefund && p.amount > 0 ? `<button onclick="openRefundModal(${p.id}, 'cancel')" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">결제 취소</button>` : ''}
+                    <button onclick="deletePayment(${p.id})" style="background:none;border:1px solid var(--red);color:var(--red);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">삭제</button>
                 </div>
             </div>
-            <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
+            <div style="margin-top:6px; font-size:13px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
                 <span>📅 ${p.paid_at || p.created_at}</span>
                 ${!isCharge && p.refund_requested_at ? `<span>· 환불 요청 ${p.refund_requested_at}</span>` : ''}
                 ${!isCharge && p.refunded_at ? `<span>· 환불 완료 ${p.refunded_at}</span>` : ''}
@@ -3646,10 +3646,10 @@ function renderPaymentHistory() {
                 ${p.recorder ? `<span>· ${_escPh(p.recorder)}</span>` : ''}
             </div>
             ${itemsHtml}
-            ${isCharge && (p.estimate_unpaid_diff||0) > 0 ? `<div style="margin-top:8px; padding:7px 10px; background:rgba(232,137,74,0.10); border:1px solid rgba(232,137,74,0.4); border-radius:8px; font-size:12px; color:#e8894a;" title="결제 기록 후 견적서에 항목이 추가되어 총액이 커졌습니다. 실제 추가 결제를 받았다면 [+ 결제 추가]로 기록하세요.">
+            ${isCharge && (p.estimate_unpaid_diff||0) > 0 ? `<div style="margin-top:8px; padding:7px 10px; background:rgba(232,137,74,0.10); border:1px solid rgba(232,137,74,0.4); border-radius:8px; font-size:13px; color:#e8894a;" title="결제 기록 후 견적서에 항목이 추가되어 총액이 커졌습니다. 실제 추가 결제를 받았다면 [+ 결제 추가]로 기록하세요.">
                 ⚠ 견적 총액 ${_fmtPh(p.estimate_total)}원 · 결제 합계 ${_fmtPh(p.estimate_total - p.estimate_unpaid_diff)}원 · <b>차액 ${_fmtPh(p.estimate_unpaid_diff)}원 미결제</b>
             </div>` : ''}
-            ${p.memo ? `<div style="margin-top:6px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 ${_escPh(p.memo)}</div>` : ''}
+            ${p.memo ? `<div style="margin-top:6px; font-size:13px; color:var(--text-muted); white-space:pre-wrap;">📝 ${_escPh(p.memo)}</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -3768,16 +3768,16 @@ function renderRefundItems() {
     const ctx = __refundContext;
     if (!ctx) return;
     if (!ctx.items.length) {
-        wrap.innerHTML = '<div style="font-size:12px; color:var(--text-muted); padding:8px;">등록된 항목이 없습니다. 위 \'환불금액 수기 입력\' 옵션을 사용해 주세요.</div>';
+        wrap.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:8px;">등록된 항목이 없습니다. 위 \'환불금액 수기 입력\' 옵션을 사용해 주세요.</div>';
         return;
     }
     wrap.innerHTML = ctx.items.map((it, i) => {
         return `<label style="display:flex; align-items:center; gap:10px; padding:8px 10px; ${it.sub ? 'margin-left:22px; ' : ''}background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
             <input type="checkbox" data-idx="${i}" onchange="toggleRefundItem(${i}, this.checked)" ${it.checked?'checked':''}>
-            <div style="flex:1; font-size:13px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ` <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">${it.setName ? _escPh(it.setName) + ' ' : ''}세트 구성품</span>` : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:11px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:11px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
+            <div style="flex:1; font-size:14px;">${it.sub ? '<span style="color:var(--text-muted);">└ </span>' : ''}${_escPh(it.name)}${it.sub ? ` <span style="font-size:12px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">${it.setName ? _escPh(it.setName) + ' ' : ''}세트 구성품</span>` : ''}${it.officeRestockable ? ' <span title="직접발송이 아닌 제품 — 환불 시 사무실 반품 입고 여부를 물어봅니다" style="font-size:12px; color:var(--text-muted); border:1px dashed var(--border); border-radius:3px; padding:0 4px;">거래처 주문</span>' : ''}${it.refundedNote ? ` <span style="font-size:12px; color:var(--red);">${_escPh(it.refundedNote)}</span>` : ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; outline:none; text-align:right;">
-                <span style="font-size:12px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
+                <input type="number" min="1" max="${it.maxQty}" value="${it.qty}" data-idx="${i}" onchange="changeRefundItemQty(${i}, this.value)" ${it.checked?'':'disabled'} style="width:60px; padding:5px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; outline:none; text-align:right;">
+                <span style="font-size:13px; color:var(--text-muted);">/ ${it.maxQty} × ${_fmtPh(it.price)}원</span>
             </div>
         </label>`;
     }).join('');
@@ -3947,7 +3947,7 @@ async function saveStageData(key, data, advanceTo = null) {
 let proposalScheduleCache = [];
 async function openProposalModal() {
     const wrap = document.getElementById('proposalSchedulesList');
-    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">불러오는 중...</div>';
+    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:13px;">불러오는 중...</div>';
     document.getElementById('proposalModalOverlay').style.display = 'flex';
     const cur = INITIAL_STAGE_DATA.proposal || {};
     const selectedIds = cur.schedule_ids || [];
@@ -3957,7 +3957,7 @@ async function openProposalModal() {
     if (!res.ok) { wrap.innerHTML = '<div style="padding:14px; color:var(--red);">로드 실패</div>'; return; }
     proposalScheduleCache = await res.json();
     if (!proposalScheduleCache.length) {
-        wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">의뢰자 이름이 일치하는 캘린더 일정이 없습니다.<br>먼저 캘린더에 일정을 등록해주세요.</div>';
+        wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:13px;">의뢰자 이름이 일치하는 캘린더 일정이 없습니다.<br>먼저 캘린더에 일정을 등록해주세요.</div>';
         return;
     }
     wrap.innerHTML = proposalScheduleCache.map(s => {
@@ -3967,8 +3967,8 @@ async function openProposalModal() {
         return `<label style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); cursor:pointer;">
             <input type="checkbox" value="${s.id}" ${checked?'checked':''} class="prop-sch-cb">
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600;">${pcfEsc(s.title||'(제목 없음)')}</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel?' · '+timeLabel:''}${s.location?' · '+pcfEsc(s.location):''}</div>
+                <div style="font-size:14px; font-weight:600;">${pcfEsc(s.title||'(제목 없음)')}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel?' · '+timeLabel:''}${s.location?' · '+pcfEsc(s.location):''}</div>
             </div>
         </label>`;
     }).join('');
@@ -3997,7 +3997,7 @@ async function saveProposal() {
         if (!linked.length) { el.textContent = `연결된 일정 ID: ${ids.join(', ')} (캘린더에서 삭제됨)`; return; }
         el.innerHTML = linked.map(s => {
             const dateLabel = s.start_date + (s.end_date && s.end_date !== s.start_date ? ' ~ '+s.end_date : '');
-            return `<div style="display:flex; gap:8px; align-items:center; font-size:13px; margin-bottom:3px;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--chip-${s.color||'gold'}-bg);"></span><span>${pcfEsc(s.title||'(제목 없음)')}</span><span style="color:var(--text-muted); font-size:11px;">${dateLabel}</span></div>`;
+            return `<div style="display:flex; gap:8px; align-items:center; font-size:14px; margin-bottom:3px;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--chip-${s.color||'gold'}-bg);"></span><span>${pcfEsc(s.title||'(제목 없음)')}</span><span style="color:var(--text-muted); font-size:12px;">${dateLabel}</span></div>`;
         }).join('');
     } catch { el.textContent = ''; }
 })();
@@ -4030,10 +4030,10 @@ function openLinkedSchedule(url) {
             onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--chip-${sc.color||'gold'}-bg, var(--accent)); flex-shrink:0;"></span>
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pcfEsc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:11px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + pcfEsc(sc.location) : ''}</div>
+                <div style="font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pcfEsc(sc.title||'(제목 없음)')}${sc.completed ? ' <span style="font-size:12px; color:var(--green, #16a34a); border:1px solid currentColor; border-radius:3px; padding:0 4px;">완료</span>' : ''}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}${sc.location ? ' · ' + pcfEsc(sc.location) : ''}</div>
             </div>
-            <span style="font-size:11px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
+            <span style="font-size:12px; color:var(--accent); white-space:nowrap;">캘린더에서 열기 →</span>
         </div>`;
     }).join('');
     card.style.display = 'block';
@@ -4043,7 +4043,7 @@ function openLinkedSchedule(url) {
 let estimateInfoCache = [];
 async function openEstimateInfoModal() {
     const wrap = document.getElementById('estimateInfoList');
-    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">불러오는 중...</div>';
+    wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:13px;">불러오는 중...</div>';
     document.getElementById('estimateInfoModalOverlay').style.display = 'flex';
     const cur = INITIAL_STAGE_DATA.estimate || {};
     const selectedIds = cur.estimate_ids || [];
@@ -4053,7 +4053,7 @@ async function openEstimateInfoModal() {
     if (!res.ok) { wrap.innerHTML = '<div style="padding:14px; color:var(--red);">로드 실패</div>'; return; }
     estimateInfoCache = await res.json();
     if (!estimateInfoCache.length) {
-        wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">이 의뢰자의 견적서가 없습니다.<br>견적서 페이지에서 먼저 생성해주세요.</div>';
+        wrap.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:13px;">이 의뢰자의 견적서가 없습니다.<br>견적서 페이지에서 먼저 생성해주세요.</div>';
         return;
     }
     const STATUS = {temp:'작성중', created:'완성', editing:'수정중', completed:'발행', paid:'결제완료', hold:'보류', cancelled:'결제 취소', quote_cancelled:'견적 취소'};
@@ -4064,10 +4064,10 @@ async function openEstimateInfoModal() {
         return `<label style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); cursor:pointer;">
             <input type="checkbox" value="${e.id}" ${checked?'checked':''} class="est-cb">
             <div style="flex:1; min-width:0;">
-                <div style="font-size:13px; font-weight:600;">#${e.no ?? e.id} · ${pcfEsc(name)} <span style="font-size:11px; color:var(--text-muted); font-weight:400;">${e.is_linked?'★ 연결됨':''}</span></div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${(e.total_amount||0).toLocaleString()}원 · ${status} · ${e.issued_at||e.created_at||'-'} · 상품 ${e.items_summary.products}건/서비스 ${e.items_summary.services}건</div>
+                <div style="font-size:14px; font-weight:600;">#${e.no ?? e.id} · ${pcfEsc(name)} <span style="font-size:12px; color:var(--text-muted); font-weight:400;">${e.is_linked?'★ 연결됨':''}</span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${(e.total_amount||0).toLocaleString()}원 · ${status} · ${e.issued_at||e.created_at||'-'} · 상품 ${e.items_summary.products}건/서비스 ${e.items_summary.services}건</div>
             </div>
-            <a href="/estimates/${e.id}/edit" target="_blank" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; text-decoration:none;" onclick="event.stopPropagation(); event.preventDefault(); drgoWriteMode.open(this.href, 'est_${e.id}');">열기 ↗</a>
+            <a href="/estimates/${e.id}/edit" target="_blank" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:12px; text-decoration:none;" onclick="event.stopPropagation(); event.preventDefault(); drgoWriteMode.open(this.href, 'est_${e.id}');">열기 ↗</a>
         </label>`;
     }).join('');
 }
@@ -4280,14 +4280,14 @@ function addPayItem(it = {name:'', qty:1, price:0}) {
     row.dataset.source = isEst ? 'estimate' : 'manual';
     row.style.cssText = 'display:flex; gap:6px; align-items:center;';
     const badge = isEst
-        ? '<span title="견적서 항목" style="font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:4px; padding:1px 5px; white-space:nowrap;">견적</span>'
-        : '<span title="수기 항목" style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 5px; white-space:nowrap;">수기</span>';
+        ? '<span title="견적서 항목" style="font-size:12px; color:var(--accent); border:1px solid var(--accent); border-radius:4px; padding:1px 5px; white-space:nowrap;">견적</span>'
+        : '<span title="수기 항목" style="font-size:12px; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:1px 5px; white-space:nowrap;">수기</span>';
     row.innerHTML = `
         ${badge}
         <input type="text" class="pcf-input" value="${pcfEsc(it.name||'')}" placeholder="항목명" data-pi="name" style="flex:2;" oninput="recalcPayAmount()">
         <input type="number" class="pcf-input" value="${it.qty ?? 1}" min="0" placeholder="수량" data-pi="qty" style="flex:0.6; max-width:80px;" oninput="recalcPayAmount()">
         <input type="number" class="pcf-input" value="${it.price ?? 0}" placeholder="단가 (음수=할인)" data-pi="price" style="flex:1; max-width:120px;" oninput="recalcPayAmount()">
-        <button type="button" onclick="this.parentElement.remove(); recalcPayAmount();" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 8px; border-radius:5px; font-size:11px; cursor:pointer;">×</button>
+        <button type="button" onclick="this.parentElement.remove(); recalcPayAmount();" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 8px; border-radius:5px; font-size:12px; cursor:pointer;">×</button>
     `;
     wrap.appendChild(row);
 }
@@ -5044,10 +5044,10 @@ if (editorEl) {
             <button id="vrLbClose" title="닫기 (Esc)" style="position:fixed; top:20px; right:24px; background:rgba(255,255,255,0.12); border:none; color:#fff; width:42px; height:42px; border-radius:50%; font-size:20px; cursor:pointer; z-index:10001;">✕</button>
             <div id="vrLbToolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:6px; align-items:center; background:rgba(0,0,0,0.55); backdrop-filter:blur(8px); border-radius:32px; padding:8px 12px; z-index:10001;">
                 <button data-z="-" title="축소 (-)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:18px;cursor:pointer;">−</button>
-                <span id="vrLbLevel" style="min-width:56px;text-align:center;color:#fff;font-size:13px;font-weight:600;">100%</span>
+                <span id="vrLbLevel" style="min-width:56px;text-align:center;color:#fff;font-size:14px;font-weight:600;">100%</span>
                 <button data-z="+" title="확대 (+)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:18px;cursor:pointer;">+</button>
-                <button data-z="r" title="원본 (1배)" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:11px;cursor:pointer;padding:0 12px;">원본</button>
-                <button data-z="f" title="화면 맞춤" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:11px;cursor:pointer;padding:0 12px;">맞춤</button>
+                <button data-z="r" title="원본 (1배)" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:0 12px;">원본</button>
+                <button data-z="f" title="화면 맞춤" style="height:36px;border-radius:18px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:12px;cursor:pointer;padding:0 12px;">맞춤</button>
             </div>
             <img id="vrLbImg" src="${src}" alt="${alt}" style="max-width:none; max-height:none; transition:transform 0.15s; transform:scale(1); display:block; cursor:grab;">
         `;
@@ -5166,18 +5166,18 @@ if (editorEl) {
             activeImg = img;
             window.__vrActiveImg = img;
             popup = document.createElement('div');
-            popup.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:12px;';
-            popup.innerHTML = `<span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">크기:</span>
-                <button onclick="vrImgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">25%</button>
-                <button onclick="vrImgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">50%</button>
-                <button onclick="vrImgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">75%</button>
-                <button onclick="vrImgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:11px;cursor:pointer;">100%</button>
+            popup.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;font-size:13px;';
+            popup.innerHTML = `<span style="color:var(--text-muted);font-size:12px;white-space:nowrap;">크기:</span>
+                <button onclick="vrImgResize(0.25)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">25%</button>
+                <button onclick="vrImgResize(0.5)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">50%</button>
+                <button onclick="vrImgResize(0.75)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">75%</button>
+                <button onclick="vrImgResize(1)" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--text);font-size:12px;cursor:pointer;">100%</button>
                 <span style="color:var(--text-muted);">|</span>
-                <input type="number" id="vrImgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:12px;text-align:center;">
-                <span style="color:var(--text-muted);font-size:11px;">px</span>
-                <button onclick="vrImgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:600;cursor:pointer;">적용</button>
+                <input type="number" id="vrImgWidthInput" value="${img.offsetWidth}" min="30" max="2000" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);font-size:13px;text-align:center;">
+                <span style="color:var(--text-muted);font-size:12px;">px</span>
+                <button onclick="vrImgApplyWidth()" style="padding:3px 10px;border:none;border-radius:5px;background:var(--accent);color:var(--accent-text);font-size:12px;font-weight:600;cursor:pointer;">적용</button>
                 <span style="color:var(--text-muted);">|</span>
-                <button onclick="vrImgLightbox()" title="원본 보기 (확대/축소)" style="padding:3px 10px;border:1px solid var(--accent);border-radius:5px;background:none;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;">🔍 원본</button>`;
+                <button onclick="vrImgLightbox()" title="원본 보기 (확대/축소)" style="padding:3px 10px;border:1px solid var(--accent);border-radius:5px;background:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">🔍 원본</button>`;
             document.body.appendChild(popup);
             const rect = img.getBoundingClientRect();
             popup.style.left = Math.max(8, rect.left + (rect.width - popup.offsetWidth)/2) + 'px';
@@ -5216,7 +5216,7 @@ if (editorEl) {
         if (document.getElementById('wmStaleBanner')) return;
         const b = document.createElement('div');
         b.id = 'wmStaleBanner';
-        b.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9600;background:#1d2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;';
+        b.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9600;background:#1d2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;';
         b.innerHTML = '다른 창에서 이 프로젝트가 수정되었습니다 <button style="background:#fff;color:#1d2d3d;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;" onclick="location.reload()">새로고침</button><button style="background:none;border:none;color:#fff;opacity:.7;cursor:pointer;" onclick="this.parentElement.remove()">✕</button>';
         document.body.appendChild(b);
     });

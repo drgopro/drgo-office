@@ -18,55 +18,55 @@
     .d-wrap { max-width:1000px; margin:0 auto; padding:18px 18px 80px; }
     .d-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
     .d-back { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .d-backbtn { font-size:13px; color:var(--text-muted); text-decoration:none; border:1px solid var(--border); border-radius:8px; padding:6px 12px; }
+    .d-backbtn { font-size:14px; color:var(--text-muted); text-decoration:none; border:1px solid var(--border); border-radius:8px; padding:6px 12px; }
     .d-backbtn.client { color:var(--accent); border-color:var(--accent); }
     .d-title { font-size:22px; font-weight:800; margin:8px 0 4px; }
     .d-tags { display:inline-flex; gap:5px; flex-wrap:wrap; vertical-align:middle; }
-    .d-tag { font-size:11px; font-weight:700; color:#9d174d; background:#fdf2f8; border:1px solid #fbcfe8; border-radius:12px; padding:2px 9px; }
-    .d-meta { font-size:13px; color:var(--text-muted); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .d-badge { font-size:11px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:2px 8px; }
+    .d-tag { font-size:12px; font-weight:700; color:#9d174d; background:#fdf2f8; border:1px solid #fbcfe8; border-radius:12px; padding:2px 9px; }
+    .d-meta { font-size:14px; color:var(--text-muted); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .d-badge { font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:2px 8px; }
     .d-head-btns { display:flex; gap:8px; flex-wrap:wrap; }
-    .d-btn { font-size:12px; border-radius:8px; padding:8px 14px; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); }
+    .d-btn { font-size:13px; border-radius:8px; padding:8px 14px; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); }
     .d-btn.primary { background:none; border-color:var(--accent); color:var(--accent); font-weight:700; }
     .d-btn.danger { border-color:var(--red); color:var(--red); }
 
     .d-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 22px; margin-bottom:16px; }
-    .d-card-title { font-size:13px; font-weight:800; color:var(--accent); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; }
+    .d-card-title { font-size:14px; font-weight:800; color:var(--accent); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; }
     .d-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     @media(max-width:720px){ .d-grid2{ grid-template-columns:1fr; } }
 
     /* 단계 dots */
-    .proc-title { font-size:13px; font-weight:800; color:var(--accent); margin-bottom:18px; }
+    .proc-title { font-size:14px; font-weight:800; color:var(--accent); margin-bottom:18px; }
     .proc-steps { display:flex; align-items:flex-start; }
     .proc-step { flex:1; display:flex; flex-direction:column; align-items:center; position:relative; }
     .proc-step:not(:last-child)::after { content:''; position:absolute; top:18px; left:50%; width:100%; height:2px; background:var(--border); z-index:0; }
     .proc-step.done:not(:last-child)::after, .proc-step.active:not(:last-child)::after { background:var(--accent); }
-    .step-dot { width:36px; height:36px; border-radius:50%; border:2px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--text-muted); cursor:pointer; position:relative; z-index:1; }
+    .step-dot { width:36px; height:36px; border-radius:50%; border:2px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:var(--text-muted); cursor:pointer; position:relative; z-index:1; }
     .step-dot.done { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
     .step-dot.active { border-color:var(--accent); color:var(--accent); }
     .step-dot.billing { box-shadow:0 0 0 3px rgba(36,138,56,0.18); }
-    .step-label { font-size:12px; margin-top:8px; color:var(--text-muted); text-align:center; }
+    .step-label { font-size:13px; margin-top:8px; color:var(--text-muted); text-align:center; }
     .step-label.active { color:var(--accent); font-weight:700; }
 
-    .info-row { display:flex; gap:14px; font-size:13px; margin-bottom:8px; }
+    .info-row { display:flex; gap:14px; font-size:14px; margin-bottom:8px; }
     .info-row .il { width:60px; color:var(--text-muted); flex-shrink:0; }
-    .d-empty { color:var(--text-muted); font-size:13px; }
+    .d-empty { color:var(--text-muted); font-size:14px; }
 
     .bill-item { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; }
     .bill-amt { font-size:16px; font-weight:800; color:var(--accent); }
-    .bill-line { display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .bill-line { display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-top:4px; }
     .bi { display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
-    .bi input { padding:6px 9px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); font-size:12px; }
+    .bi input { padding:6px 9px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); font-size:13px; }
 
     .cs-item { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; }
-    .cs-meta { font-size:11px; color:var(--text-muted); margin-bottom:5px; display:flex; gap:8px; }
-    .fb-item { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
-    .ta { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text); font-size:13px; box-sizing:border-box; resize:vertical; }
-    .mini { font-size:11px; border:1px solid var(--border); background:none; color:var(--text-muted); border-radius:6px; padding:4px 9px; cursor:pointer; }
+    .cs-meta { font-size:12px; color:var(--text-muted); margin-bottom:5px; display:flex; gap:8px; }
+    .fb-item { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px; }
+    .ta { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text); font-size:14px; box-sizing:border-box; resize:vertical; }
+    .mini { font-size:12px; border:1px solid var(--border); background:none; color:var(--text-muted); border-radius:6px; padding:4px 9px; cursor:pointer; }
     .mini.danger { border-color:var(--red); color:var(--red); }
-    .save-btn { background:var(--accent); color:var(--accent-text); border:none; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+    .save-btn { background:var(--accent); color:var(--accent-text); border:none; border-radius:8px; padding:8px 16px; font-size:14px; font-weight:700; cursor:pointer; }
 
-    .pay-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+    .pay-badge { font-size:12px; font-weight:700; padding:2px 8px; border-radius:10px; }
     .pay-badge.charge { background:rgba(122,200,160,0.15); color:#2f8f5b; border:1px solid rgba(122,200,160,0.45); }
     .pay-badge.refund { background:rgba(232,137,74,0.15); color:#c2691f; border:1px solid rgba(232,137,74,0.45); }
     .pay-badge.cancel { background:rgba(200,80,80,0.15); color:var(--red); border:1px solid rgba(200,80,80,0.45); }
@@ -75,7 +75,7 @@
     .pay-modal-head { display:flex; justify-content:space-between; align-items:center; padding:15px 18px; border-bottom:1px solid var(--border); font-size:15px; font-weight:800; }
     .pay-modal-body { padding:16px 18px; display:flex; flex-direction:column; gap:13px; }
     .pay-modal-foot { display:flex; gap:8px; justify-content:flex-end; padding:13px 18px; border-top:1px solid var(--border); }
-    .pl { display:block; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+    .pl { display:block; font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
 </style>
 @endpush
 
@@ -146,11 +146,11 @@
     {{-- 결제 내역 (운영 동일: 결제/환불/취소 트랜잭션) --}}
     <div class="d-card">
         <div class="d-card-title">
-            <span>💰 결제 내역 <span id="phNetTotal" style="font-size:12px; color:var(--text-muted); margin-left:4px; font-weight:600;"></span></span>
+            <span>💰 결제 내역 <span id="phNetTotal" style="font-size:13px; color:var(--text-muted); margin-left:4px; font-weight:600;"></span></span>
             <button class="mini" onclick="openPayModal()">+ 결제 추가</button>
         </div>
         <div id="payList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        <div id="payBalanceLine" style="display:none; margin-top:10px; font-size:13px; color:var(--red); font-weight:700;"></div>
+        <div id="payBalanceLine" style="display:none; margin-top:10px; font-size:14px; color:var(--red); font-weight:700;"></div>
     </div>
 
     {{-- 상담 이력 --}}
@@ -181,13 +181,13 @@
 <div id="editOv" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; align-items:center; justify-content:center; padding:18px;">
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; padding:20px;">
         <h3 style="margin:0 0 14px; font-size:16px; font-weight:800;">프로젝트 수정</h3>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">의뢰자</label><input id="eClient" class="ta" style="margin-top:5px;"></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">연락처</label><input id="ePhone" class="ta" style="margin-top:5px;"></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">주소</label><input id="eAddr" class="ta" style="margin-top:5px;"></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">의뢰자 유형</label><select id="eReq" class="ta" style="margin-top:5px;"></select></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">프로젝트 유형</label><select id="eType" class="ta" style="margin-top:5px;" onchange="eOnType()"></select></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">작업 유형</label><select id="eWork" class="ta" style="margin-top:5px;"></select></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px; font-weight:700; color:var(--text-muted);">주관식</label><input id="eFree" class="ta" style="margin-top:5px;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">의뢰자</label><input id="eClient" class="ta" style="margin-top:5px;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">연락처</label><input id="ePhone" class="ta" style="margin-top:5px;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">주소</label><input id="eAddr" class="ta" style="margin-top:5px;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">의뢰자 유형</label><select id="eReq" class="ta" style="margin-top:5px;"></select></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">프로젝트 유형</label><select id="eType" class="ta" style="margin-top:5px;" onchange="eOnType()"></select></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">작업 유형</label><select id="eWork" class="ta" style="margin-top:5px;"></select></div>
+        <div style="margin-bottom:12px;"><label style="font-size:13px; font-weight:700; color:var(--text-muted);">주관식</label><input id="eFree" class="ta" style="margin-top:5px;"></div>
         <div style="text-align:right; display:flex; gap:8px; justify-content:flex-end;"><button class="mini" onclick="document.getElementById('editOv').style.display='none'">닫기</button><button class="save-btn" onclick="saveEditDemo()">저장</button></div>
     </div>
 </div>
@@ -209,13 +209,13 @@
             <div>
                 <label class="pl" style="display:flex; justify-content:space-between; align-items:center;"><span>결제 항목 (수기 입력)</span><button class="mini" onclick="addPayItem()">+ 항목</button></label>
                 <div id="payItems" style="display:flex; flex-direction:column; gap:6px;"></div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">항목 입력 시 금액이 자동 합산됩니다.</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">항목 입력 시 금액이 자동 합산됩니다.</div>
             </div>
             <div id="payBalanceFields">
                 <label class="pl">잔금 여부</label>
                 <div style="display:flex; gap:14px; align-items:center;">
-                    <label style="display:flex; gap:4px; align-items:center; font-size:13px;"><input type="radio" name="payHasBalance" value="1" onchange="togglePayBalance()"> 있음</label>
-                    <label style="display:flex; gap:4px; align-items:center; font-size:13px;"><input type="radio" name="payHasBalance" value="0" checked onchange="togglePayBalance()"> 없음</label>
+                    <label style="display:flex; gap:4px; align-items:center; font-size:14px;"><input type="radio" name="payHasBalance" value="1" onchange="togglePayBalance()"> 있음</label>
+                    <label style="display:flex; gap:4px; align-items:center; font-size:14px;"><input type="radio" name="payHasBalance" value="0" checked onchange="togglePayBalance()"> 없음</label>
                     <div id="payBalanceWrap" style="display:none; flex:1;"><input type="number" id="payBalanceAmount" class="ta" placeholder="잔금 금액 (원)" min="0"></div>
                 </div>
             </div>
@@ -230,7 +230,7 @@
     <div class="pay-modal" style="max-width:460px;">
         <div class="pay-modal-head"><span id="refundTitle">↩ 환불</span><button class="mini" onclick="closeRefund()">✕</button></div>
         <div class="pay-modal-body">
-            <div id="refundMeta" style="font-size:12px; color:var(--text-muted);"></div>
+            <div id="refundMeta" style="font-size:13px; color:var(--text-muted);"></div>
             <div id="refundAmountWrap"><label class="pl">환불 금액 (원)</label><input type="number" id="refundAmount" class="ta" min="0"></div>
             <div><label class="pl">사유 (선택)</label><textarea id="refundReason" class="ta" rows="2"></textarea></div>
         </div>
@@ -291,15 +291,15 @@ function renderPayments(data){
             : '<span class="pay-badge cancel">결제 취소</span>';
         const amount = isCharge ? `+${fmt(p.amount)}원` : `${fmt(p.amount)}원`;
         const amtColor = isCharge ? 'var(--accent)' : 'var(--red)';
-        const refundInfo = isCharge && p.refunded_amount>0 ? `<span style="font-size:11px; color:var(--text-muted);">· 환불 ${fmt(p.refunded_amount)}원</span>` : '';
+        const refundInfo = isCharge && p.refunded_amount>0 ? `<span style="font-size:12px; color:var(--text-muted);">· 환불 ${fmt(p.refunded_amount)}원</span>` : '';
         const fully = isCharge && p.is_fully_refunded;
         const canRefund = isCharge && !fully && p.amount>0;
-        const items = (p.items&&p.items.length) ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it=>`<div style="display:flex; gap:8px; font-size:11px; color:var(--text-muted);"><span style="flex:1;">${esc(it.name||'-')}</span><span>${it.qty||1}개 × ${fmt(it.price||0)}원</span></div>`).join('')}</div>` : '';
+        const items = (p.items&&p.items.length) ? `<div style="margin-top:6px; display:flex; flex-direction:column; gap:2px;">${p.items.map(it=>`<div style="display:flex; gap:8px; font-size:12px; color:var(--text-muted);"><span style="flex:1;">${esc(it.name||'-')}</span><span>${it.qty||1}개 × ${fmt(it.price||0)}원</span></div>`).join('')}</div>` : '';
         return `<div style="padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; ${fully?'opacity:0.6;':''}">
             <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    ${badge}<span style="font-size:14px; font-weight:800; color:${amtColor};">${amount}</span>${refundInfo}
-                    ${fully?'<span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>':''}
+                    ${badge}<span style="font-size:15px; font-weight:800; color:${amtColor};">${amount}</span>${refundInfo}
+                    ${fully?'<span style="font-size:12px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:6px;">전액 환불</span>':''}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     ${isCharge?`<button class="mini" onclick="editPay(${p.id})">수정</button>`:''}
@@ -308,11 +308,11 @@ function renderPayments(data){
                     <button class="mini danger" onclick="delPay(${p.id})">삭제</button>
                 </div>
             </div>
-            <div style="margin-top:6px; font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
+            <div style="margin-top:6px; font-size:13px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap;">
                 <span>📅 ${p.paid_at||p.created_at}</span>${p.method?`<span>· ${esc(p.method)}</span>`:''}
             </div>
             ${items}
-            ${p.memo?`<div style="margin-top:6px; font-size:12px; color:var(--text-muted); white-space:pre-wrap;">📝 ${esc(p.memo)}</div>`:''}
+            ${p.memo?`<div style="margin-top:6px; font-size:13px; color:var(--text-muted); white-space:pre-wrap;">📝 ${esc(p.memo)}</div>`:''}
         </div>`;
     }).join('');
 }
@@ -417,7 +417,7 @@ function renderConsults(){
     document.getElementById('csCount').textContent=list.length;
     document.getElementById('csList').innerHTML = list.length ? list.map(c=>`<div class="cs-item">
         <div class="cs-meta"><span>📅 ${esc(c.consulted_at||'')}</span><button class="mini danger" style="margin-left:auto;" onclick="delConsult(${c.id})">삭제</button></div>
-        <div style="font-size:13px; white-space:pre-wrap;">${esc(c.content||'')}</div>
+        <div style="font-size:14px; white-space:pre-wrap;">${esc(c.content||'')}</div>
     </div>`).join('') : '<div class="d-empty">상담 이력이 없습니다.</div>';
 }
 async function addConsult(){

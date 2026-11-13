@@ -8,13 +8,13 @@
     .page-title { font-size:22px; font-weight:700; margin-bottom:20px; }
 
     .tab-bar { display:flex; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:20px; }
-    .tab-btn { flex:1; padding:10px 0; text-align:center; font-size:13px; font-weight:600; border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:8px; transition:all 0.15s; }
+    .tab-btn { flex:1; padding:10px 0; text-align:center; font-size:14px; font-weight:600; border:none; background:none; color:var(--text-muted); cursor:pointer; border-radius:8px; transition:all 0.15s; }
     .tab-btn.active { background:var(--accent); color:var(--accent-text); }
     .tab-btn:not(.active):hover { color:var(--text); background:var(--surface2); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
     .sub-tab-bar { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:18px; }
-    .sub-tab-btn { padding:10px 18px; font-size:13px; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; }
+    .sub-tab-btn { padding:10px 18px; font-size:14px; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; }
     .sub-tab-btn:hover { color:var(--text); }
     .sub-tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
     .sub-tab-panel { display:none; }
@@ -22,7 +22,7 @@
     /* 설정 — 좌측 세로 하위 탭 + 우측 콘텐츠 */
     .settings-split { display:flex; gap:18px; align-items:flex-start; }
     .settings-side { flex:0 0 150px; display:flex; flex-direction:column; gap:2px; position:sticky; top:10px; }
-    .settings-side-btn { text-align:left; padding:9px 13px; font-size:13px; font-weight:600; color:var(--text-muted); background:none; border:none; border-radius:8px; cursor:pointer; transition:all 0.12s; }
+    .settings-side-btn { text-align:left; padding:9px 13px; font-size:14px; font-weight:600; color:var(--text-muted); background:none; border:none; border-radius:8px; cursor:pointer; transition:all 0.12s; }
     .settings-side-btn:hover { color:var(--text); background:var(--surface2); }
     .settings-side-btn.active { color:var(--accent); background:var(--surface2); font-weight:700; box-shadow:inset 2px 0 0 var(--accent); }
     .settings-content-wrap { flex:1; min-width:0; }
@@ -34,38 +34,38 @@
 
     .data-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .data-table { width:100%; border-collapse:collapse; }
-    .data-table th { font-size:11px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
-    .data-table td { font-size:13px; padding:12px 14px; border-bottom:1px solid var(--border); }
+    .data-table th { font-size:12px; color:var(--text-muted); font-weight:600; text-align:left; padding:11px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
+    .data-table td { font-size:14px; padding:12px 14px; border-bottom:1px solid var(--border); }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--surface2); }
-    .text-muted { color:var(--text-muted); font-size:12px; }
+    .text-muted { color:var(--text-muted); font-size:13px; }
 
-    .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-success { background:#1a2a1a; color:#7ac87a; }
     .badge-fail { background:#2a1a1a; color:#c87a7a; }
 
     .pagination-wrap { display:flex; justify-content:center; margin-top:16px; }
-    .pagination-wrap nav span, .pagination-wrap nav a { display:inline-block; padding:6px 12px; margin:0 2px; border-radius:6px; font-size:12px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
+    .pagination-wrap nav span, .pagination-wrap nav a { display:inline-block; padding:6px 12px; margin:0 2px; border-radius:6px; font-size:13px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
     .pagination-wrap nav span[aria-current] { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     .pagination-wrap nav a:hover { border-color:var(--accent); color:var(--accent); }
 
     .settings-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:600px; }
     .settings-form .field-group { margin-bottom:16px; }
-    .settings-form .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
-    .settings-form .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; }
+    .settings-form .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .settings-form .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; }
     .settings-form .field-input:focus { border-color:var(--accent); }
-    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
     .btn-save:hover { opacity:0.85; }
-    .save-msg { font-size:12px; color:var(--green); margin-left:10px; display:none; }
+    .save-msg { font-size:13px; color:var(--green); margin-left:10px; display:none; }
 
     /* 셀렉트, 인라인 폼 */
-    .inline-select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:12px; outline:none; }
+    .inline-select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); font-size:13px; outline:none; }
     .inline-select:focus { border-color:var(--accent); }
-    .btn-sm { background:var(--accent); color:var(--accent-text); border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
+    .btn-sm { background:var(--accent); color:var(--accent-text); border:none; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
     .btn-sm:hover { opacity:0.85; }
-    .btn-danger { background:var(--red); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; }
+    .btn-danger { background:var(--red); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
     .btn-danger:hover { opacity:0.85; }
-    .btn-add { background:none; border:1px solid var(--accent); color:var(--accent); padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:12px; }
+    .btn-add { background:none; border:1px solid var(--accent); color:var(--accent); padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:12px; }
     .btn-add:hover { background:var(--accent); color:var(--accent-text); }
 
     /* 팀 카드 */
@@ -73,12 +73,12 @@
     .team-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
     .team-name-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:15px; font-weight:700; outline:none; max-width:220px; }
     .team-name-input:focus { border-color:var(--accent); }
-    .team-count { font-size:11px; color:var(--text-muted); margin-left:8px; }
+    .team-count { font-size:12px; color:var(--text-muted); margin-left:8px; }
 
     /* 권한 토글 */
     .perm-section { margin-bottom:14px; }
     .perm-section:last-child { margin-bottom:0; }
-    .perm-section-title { font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em; }
+    .perm-section-title { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em; }
     .perm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; }
     .perm-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
     .perm-toggle input[type="checkbox"] { display:none; }
@@ -86,11 +86,11 @@
     .perm-switch::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; background:var(--text-muted); border-radius:50%; transition:all 0.2s; }
     .perm-toggle input:checked + .perm-switch { background:var(--accent); }
     .perm-toggle input:checked + .perm-switch::after { left:18px; background:#fff; }
-    .perm-label { font-size:12px; color:var(--text-muted); transition:color 0.15s; }
+    .perm-label { font-size:13px; color:var(--text-muted); transition:color 0.15s; }
     .perm-toggle input:checked ~ .perm-label { color:var(--text); font-weight:600; }
 
     /* 활성 토글 */
-    .toggle-active { cursor:pointer; font-size:12px; }
+    .toggle-active { cursor:pointer; font-size:13px; }
     .toggle-active.on { color:var(--green); }
     .toggle-active.off { color:var(--red); }
     [data-theme="light"] .tab-btn.active { color:#fff; }
@@ -104,8 +104,8 @@
     .account-modal h3 { font-size:16px; font-weight:700; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; }
     .account-modal .close-btn { background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; }
     .account-modal .field-group { margin-bottom:14px; }
-    .account-modal .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
-    .account-modal .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
+    .account-modal .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .account-modal .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; }
     .account-modal .field-input:focus { border-color:var(--accent); }
     .account-modal .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
     [data-theme="light"] .account-modal { background:#fff; border-color:#c8ccd4; }
@@ -113,32 +113,32 @@
 
     /* 의뢰자 필드 정의 */
     .cf-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
-    .cf-hint { font-size:12px; color:var(--text-muted); line-height:1.5; }
+    .cf-hint { font-size:13px; color:var(--text-muted); line-height:1.5; }
     .cf-empty { padding:48px 24px; text-align:center; background:var(--surface); border:1px dashed var(--border); border-radius:14px; }
     .cf-empty-icon { font-size:32px; margin-bottom:10px; opacity:0.5; }
-    .cf-empty-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
-    .cf-empty-sub { font-size:12px; color:var(--text-muted); }
+    .cf-empty-title { font-size:15px; font-weight:600; color:var(--text); margin-bottom:4px; }
+    .cf-empty-sub { font-size:13px; color:var(--text-muted); }
 
     .cf-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:14px; }
     .cf-section-head { display:flex; align-items:center; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
-    .cf-section-title { font-size:13px; font-weight:700; color:var(--text); }
-    .cf-section-count { font-size:11px; color:var(--text-muted); background:var(--surface2); padding:2px 8px; border-radius:10px; }
+    .cf-section-title { font-size:14px; font-weight:700; color:var(--text); }
+    .cf-section-count { font-size:12px; color:var(--text-muted); background:var(--surface2); padding:2px 8px; border-radius:10px; }
     .cf-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; }
 
     .cf-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:13px 14px; cursor:pointer; transition:border-color 0.15s, transform 0.15s, opacity 0.15s; display:flex; flex-direction:column; gap:8px; position:relative; }
     .cf-card:hover { border-color:var(--accent); transform:translateY(-1px); }
     .cf-card.inactive { opacity:0.55; }
-    .cf-card[draggable="true"] .cf-drag-handle { position:absolute; top:6px; right:6px; width:18px; height:18px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); opacity:0; cursor:grab; font-size:12px; line-height:1; user-select:none; transition:opacity 0.15s; }
+    .cf-card[draggable="true"] .cf-drag-handle { position:absolute; top:6px; right:6px; width:18px; height:18px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); opacity:0; cursor:grab; font-size:13px; line-height:1; user-select:none; transition:opacity 0.15s; }
     .cf-card:hover .cf-drag-handle { opacity:0.7; }
     .cf-card.dragging { opacity:0.35; }
     .cf-card.drag-over-top { box-shadow:inset 0 3px 0 var(--accent); }
     .cf-card.drag-over-bottom { box-shadow:inset 0 -3px 0 var(--accent); }
     .cf-card-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-    .cf-card-label { font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:6px; line-height:1.3; }
+    .cf-card-label { font-size:14px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:6px; line-height:1.3; }
     .cf-required { color:var(--red); font-weight:700; }
-    .cf-card-key { font-size:11px; color:var(--text-muted); font-family:ui-monospace,Menlo,monospace; }
+    .cf-card-key { font-size:12px; color:var(--text-muted); font-family:ui-monospace,Menlo,monospace; }
     .cf-card-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-    .cf-type-badge { display:inline-flex; align-items:center; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; letter-spacing:0.02em; }
+    .cf-type-badge { display:inline-flex; align-items:center; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:600; letter-spacing:0.02em; }
     .cf-type-text { background:rgba(122,160,200,0.15); color:#7aa0c8; }
     .cf-type-textarea { background:rgba(122,160,200,0.15); color:#7aa0c8; }
     .cf-type-select { background:rgba(180,140,80,0.15); color:#d4a96a; }
@@ -146,7 +146,7 @@
     .cf-type-checkbox { background:rgba(180,140,80,0.15); color:#d4a96a; }
     .cf-type-number { background:rgba(122,200,160,0.15); color:#7ac8a0; }
     .cf-type-date { background:rgba(200,122,180,0.15); color:#c87ab4; }
-    .cf-chip { display:inline-flex; align-items:center; font-size:11px; padding:2px 7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); }
+    .cf-chip { display:inline-flex; align-items:center; font-size:12px; padding:2px 7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); }
     .cf-chip.muted { opacity:0.7; }
 
     /* 필드 모달 */
@@ -154,33 +154,33 @@
     .cf-modal-overlay.open { display:flex; }
     .cf-modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:540px; max-width:95vw; max-height:90vh; overflow-y:auto; padding:24px; }
     .cf-modal h3 { font-size:16px; font-weight:700; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
-    .cf-modal-sub { font-size:11px; color:var(--text-muted); margin-bottom:18px; }
+    .cf-modal-sub { font-size:12px; color:var(--text-muted); margin-bottom:18px; }
     .cf-modal .close-btn { background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; }
     .cf-modal .field-group { margin-bottom:14px; }
-    .cf-modal .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; font-weight:600; letter-spacing:0.02em; }
-    .cf-modal .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; font-family:inherit; }
+    .cf-modal .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600; letter-spacing:0.02em; }
+    .cf-modal .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; font-family:inherit; }
     .cf-modal .field-input:focus { border-color:var(--accent); }
     .cf-modal textarea.field-input { resize:vertical; min-height:90px; }
     .cf-modal-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .cf-toggle-row { display:flex; gap:14px; margin:8px 0 18px; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; }
-    .cf-toggle-row label { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); cursor:pointer; font-weight:500; }
+    .cf-toggle-row label { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); cursor:pointer; font-weight:500; }
     .cf-toggle-row input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
     .cf-modal-actions { display:flex; gap:10px; justify-content:flex-end; padding-top:14px; border-top:1px solid var(--border); }
-    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 16px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
     .btn-outline:hover { border-color:var(--text-muted); color:var(--text); }
-    .btn-danger-outline { background:none; border:1px solid var(--red); color:var(--red); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-danger-outline { background:none; border:1px solid var(--red); color:var(--red); padding:8px 16px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
     .btn-danger-outline:hover { background:var(--red); color:#fff; }
     [data-theme="light"] .cf-modal { background:#fff; border-color:#c8ccd4; }
     [data-theme="light"] .cf-modal .field-input { background:#fff; border-color:#b8bcc8; }
     /* ── 보고서 템플릿 Tiptap 에디터 (위키와 동일) ── */
     .tiptap-wrap { border:1px solid var(--border); border-radius:10px; background:var(--surface); }
     .tiptap-toolbar { display:flex; flex-wrap:wrap; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface2); border-radius:10px 10px 0 0; }
-    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+    .tiptap-toolbar button { background:none; border:1px solid transparent; color:var(--text-muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
     .tiptap-toolbar button:hover { background:var(--surface); border-color:var(--border); color:var(--text); }
     .tiptap-toolbar button.is-active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
     .tiptap-toolbar .sep { width:1px; height:20px; background:var(--border); margin:5px 4px; }
-    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:11px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
-    #rtEditor .ProseMirror { padding:16px 20px; min-height:260px; max-height:420px; overflow-y:auto; outline:none; font-size:14px; line-height:1.85; color:var(--text); }
+    .tiptap-toolbar .tool-btn { width:auto; padding:0 8px; font-size:12px; gap:4px; display:inline-flex; white-space:nowrap; height:30px; }
+    #rtEditor .ProseMirror { padding:16px 20px; min-height:260px; max-height:420px; overflow-y:auto; outline:none; font-size:15px; line-height:1.85; color:var(--text); }
     #rtEditor .ProseMirror p { margin:0 0 10px; }
     #rtEditor .ProseMirror h1 { font-size:22px; font-weight:700; margin:16px 0 8px; }
     #rtEditor .ProseMirror h2 { font-size:18px; font-weight:700; margin:14px 0 6px; }
@@ -188,7 +188,7 @@
     #rtEditor .ProseMirror ul, #rtEditor .ProseMirror ol { margin:0 0 10px; padding-left:24px; }
     #rtEditor .ProseMirror blockquote { border-left:3px solid var(--accent); margin:10px 0; padding:6px 16px; color:var(--text-muted); }
     #rtEditor .ProseMirror hr { border:none; border-top:1px solid var(--border); margin:14px 0; }
-    #rtEditor .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:13px; }
+    #rtEditor .ProseMirror code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:14px; }
     #rtEditor .ProseMirror pre { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin:10px 0; overflow-x:auto; }
     #rtEditor .ProseMirror p.is-editor-empty:first-child::before { content:attr(data-placeholder); color:var(--text-muted); float:left; pointer-events:none; height:0; }
     #rtEditor .ProseMirror [data-text-align="center"] { text-align:center; }
@@ -202,14 +202,14 @@
     /* 캘린더 카테고리 */
     .cat-card { display:grid; grid-template-columns:20px 64px 1fr 130px 130px auto; gap:12px; align-items:center; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
     .cat-card.dragging { opacity:0.45; border-style:dashed; }
-    .cat-drag-handle { color:var(--text-muted); cursor:grab; user-select:none; font-size:13px; letter-spacing:-1px; text-align:center; padding:8px 2px; }
+    .cat-drag-handle { color:var(--text-muted); cursor:grab; user-select:none; font-size:14px; letter-spacing:-1px; text-align:center; padding:8px 2px; }
     .cat-drag-handle:active { cursor:grabbing; }
-    .cat-preview { padding:10px 14px; border-radius:8px; text-align:center; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .cat-card input[type=text] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; width:100%; }
+    .cat-preview { padding:10px 14px; border-radius:8px; text-align:center; font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cat-card input[type=text] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:14px; outline:none; width:100%; }
     .cat-card input[type=text]:focus { border-color:var(--accent); }
     .cat-color-wrap { display:flex; align-items:center; gap:6px; }
     .cat-color-wrap input[type=color] { width:36px; height:36px; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer; padding:0; }
-    .cat-color-wrap input[type=text] { width:88px; font-family:ui-monospace,Menlo,monospace; font-size:11px; padding:7px 8px; }
+    .cat-color-wrap input[type=text] { width:88px; font-family:ui-monospace,Menlo,monospace; font-size:12px; padding:7px 8px; }
     .cat-actions { display:flex; gap:6px; justify-content:flex-end; }
     /* 중간 해상도: 카드가 세로로 길게 늘어지지 않도록 3줄 compact 배치 */
     @media (max-width:900px) {
@@ -224,9 +224,9 @@
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
         .data-table { min-width:500px; }
-        .data-table th, .data-table td { padding:10px; font-size:12px; white-space:nowrap; }
+        .data-table th, .data-table td { padding:10px; font-size:13px; white-space:nowrap; }
         .tab-bar { flex-wrap:wrap; }
-        .tab-btn { font-size:12px; padding:8px 4px; }
+        .tab-btn { font-size:13px; padding:8px 4px; }
         .modal { width:95vw !important; max-width:95vw !important; padding:16px !important; }
         .field-row { grid-template-columns:1fr !important; }
     }
@@ -266,30 +266,30 @@
     <div class="tab-panel" id="panel-menu">
         <style>
             .sm-card { max-width:520px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
-            .sm-desc { font-size:12px; color:var(--text-muted); margin:4px 0 12px; line-height:1.6; }
+            .sm-desc { font-size:13px; color:var(--text-muted); margin:4px 0 12px; line-height:1.6; }
             .sm-toolbar { display:flex; gap:6px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
-            .sm-add { background:none; border:1px dashed var(--border); color:var(--text-muted); border-radius:7px; font-size:12px; padding:5px 11px; cursor:pointer; }
+            .sm-add { background:none; border:1px dashed var(--border); color:var(--text-muted); border-radius:7px; font-size:13px; padding:5px 11px; cursor:pointer; }
             .sm-add:hover { color:var(--text); border-color:var(--text-muted); }
-            .sm-reset { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline; margin-left:auto; }
+            .sm-reset { background:none; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; text-decoration:underline; margin-left:auto; }
             .sm-list { display:flex; flex-direction:column; gap:3px; }
             .sm-row { display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:8px; padding:0 8px 0 10px; height:34px; background:var(--surface); }
             .sm-row.sec, .sm-row.gap { background:var(--surface2); border-style:dashed; }
             .sm-row.gap { height:26px; }
             .sm-row.drag-over { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
-            .sm-grip { cursor:grab; color:var(--text-muted); font-size:12px; user-select:none; flex-shrink:0; }
-            .sm-name { font-size:13px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-            .sm-tag { font-size:11px; font-weight:700; color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); padding:1px 6px; border-radius:7px; flex-shrink:0; }
-            .sm-gaptext { flex:1; text-align:center; font-size:11px; color:var(--text-muted); letter-spacing:0.2em; }
-            .sm-input { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); outline:none; }
+            .sm-grip { cursor:grab; color:var(--text-muted); font-size:13px; user-select:none; flex-shrink:0; }
+            .sm-name { font-size:14px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .sm-tag { font-size:12px; font-weight:700; color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); padding:1px 6px; border-radius:7px; flex-shrink:0; }
+            .sm-gaptext { flex:1; text-align:center; font-size:12px; color:var(--text-muted); letter-spacing:0.2em; }
+            .sm-input { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:13px; color:var(--text); outline:none; }
             .sm-input:focus { border-color:var(--accent); }
             .sm-ctl { display:flex; gap:3px; margin-left:auto; flex-shrink:0; }
-            .sm-ico { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:11px; padding:0; }
+            .sm-ico { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:none; border:none; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:12px; padding:0; }
             .sm-ico:hover:not(:disabled) { background:var(--surface2); color:var(--text); }
             .sm-ico:disabled { opacity:.25; cursor:default; }
             .sm-ico.del:hover { color:var(--red, #dc2626); }
         </style>
         <div class="sm-card">
-            <b style="font-size:14px;">좌측 메뉴 구성</b>
+            <b style="font-size:15px;">좌측 메뉴 구성</b>
             <div class="sm-desc">드래그(⠿) 또는 ▲▼로 순서를 옮기고 섹션 라벨·구분선을 배치합니다.<br>저장 후 새로고침하면 전 직원에게 적용됩니다 — 권한 없는 메뉴는 각자에게 자동으로 숨겨집니다.</div>
             <div class="sm-toolbar">
                 <button class="sm-add" onclick="smAddRow('label')">+ 섹션 라벨</button>
@@ -362,7 +362,7 @@
                     <div class="field-label">비밀번호</div>
                     <div style="position:relative;">
                         <input class="field-input" id="newPassword" type="password" placeholder="8자 이상" style="padding-right:40px;">
-                        <button type="button" onclick="togglePwVisibility('newPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                        <button type="button" onclick="togglePwVisibility('newPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
                     </div>
                 </div>
                 <div class="field-group">
@@ -468,7 +468,7 @@
                     <div class="field-label">소분류 (선택)</div>
                     <input type="text" class="field-input" id="fieldSubsection" list="fieldSubsectionList" placeholder="예: PC, 카메라, 오디오, 조명" maxlength="50">
                     <datalist id="fieldSubsectionList"></datalist>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">필드 너비 (4열 기준)</div>
@@ -484,7 +484,7 @@
             <div class="field-group">
                 <div class="field-label">우선순위 (정렬용)</div>
                 <input type="number" class="field-input" id="fieldPriority" value="0" min="-100" max="100" step="1" style="max-width:140px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
             </div>
 
             <div class="field-group" id="optionsWrap" style="display:none;">
@@ -601,7 +601,7 @@
                     <div class="field-label">소분류 (선택)</div>
                     <input type="text" class="field-input" id="projectFieldSubsection" list="projectFieldSubsectionList" placeholder="예: PC, 카메라, 오디오, 조명" maxlength="50">
                     <datalist id="projectFieldSubsectionList"></datalist>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">같은 섹션 안에서 카드 그룹으로 묶이는 이름입니다.</div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">필드 너비 (4열 기준)</div>
@@ -617,7 +617,7 @@
             <div class="field-group">
                 <div class="field-label">우선순위 (정렬용)</div>
                 <input type="number" class="field-input" id="projectFieldPriority" value="0" min="-100" max="100" step="1" style="max-width:140px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">숫자가 클수록 위에 표시됩니다. 같은 소분류 내 필드 순서 및 소분류 그룹 자체 순서에 영향 (그룹 우선순위 = 그룹 내 최대값).</div>
             </div>
 
             <div class="field-group" id="projectOptionsWrap" style="display:none;">
@@ -928,13 +928,13 @@
                         <button type="button" data-rt-cmd="codeBlock" title="코드 블록">{ }</button>
                         <button type="button" data-rt-cmd="hr" title="구분선">—</button>
                         <div class="sep"></div>
-                        <button type="button" data-rt-cmd="alignLeft" title="좌측 정렬" style="font-size:11px;">≡←</button>
-                        <button type="button" data-rt-cmd="alignCenter" title="중앙 정렬" style="font-size:11px;">≡</button>
-                        <button type="button" data-rt-cmd="alignRight" title="우측 정렬" style="font-size:11px;">→≡</button>
+                        <button type="button" data-rt-cmd="alignLeft" title="좌측 정렬" style="font-size:12px;">≡←</button>
+                        <button type="button" data-rt-cmd="alignCenter" title="중앙 정렬" style="font-size:12px;">≡</button>
+                        <button type="button" data-rt-cmd="alignRight" title="우측 정렬" style="font-size:12px;">→≡</button>
                     </div>
                     <div id="rtEditor"></div>
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">템플릿에는 이미지를 포함하지 않는 것을 권장합니다 (텍스트 골격 위주).</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">템플릿에는 이미지를 포함하지 않는 것을 권장합니다 (텍스트 골격 위주).</div>
             </div>
 
             <div class="cf-modal-row">
@@ -962,7 +962,7 @@
     {{-- 내방 옵션 (미팅/내방 카테고리 체크박스) --}}
     <div class="tab-panel" id="panel-visitOptions">
         <div class="settings-form">
-            <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
+            <div style="font-size:14px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
                 캘린더에서 <b>미팅/내방·사내업무</b> 카테고리를 선택하면 주소 검색 위에 나타나는 <b>체크박스 선택지</b>를 관리합니다.<br>
                 한 줄에 하나씩 입력하세요. (체크 시 주소 검색은 숨겨집니다)
             </div>
@@ -980,7 +980,7 @@
     {{-- 프로젝트 취소 사유 --}}
     <div class="tab-panel" id="panel-cancelReasons">
         <div class="settings-form">
-            <div style="font-size:13px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
+            <div style="font-size:14px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;">
                 프로젝트 <b>취소 모달</b>에 표시되는 취소 사유 선택지를 관리합니다.<br>
                 한 줄에 하나씩 입력하세요 — 줄을 추가하면 생성, 고치면 수정, 지우면 삭제됩니다.<br>
                 <b>"기타"</b>(상세 사유 직접 입력)는 목록과 별개로 항상 마지막에 표시됩니다.
@@ -1029,11 +1029,11 @@
             </div>
             <div class="field-group">
                 <div class="field-label">의뢰자 견적서 동의 카드 노출</div>
-                <label style="display:flex; align-items:center; gap:7px; font-size:14px; cursor:pointer; margin-bottom:6px;">
+                <label style="display:flex; align-items:center; gap:7px; font-size:15px; cursor:pointer; margin-bottom:6px;">
                     <input type="checkbox" id="termsPenaltyEnabled" {{ ($sellerSettings['terms_penalty_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
                     위약 안내 표시 — 끄면 카드가 숨고 <b>결제 잠금도 해제</b>됩니다 (전문 확정 전 임시 비노출용)
                 </label>
-                <label style="display:flex; align-items:center; gap:7px; font-size:14px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:7px; font-size:15px; cursor:pointer;">
                     <input type="checkbox" id="termsMarketingEnabled" {{ ($sellerSettings['terms_marketing_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
                     설치 사례 활용(마케팅) 동의 표시
                 </label>
@@ -1045,7 +1045,7 @@
             </div>
             <div class="field-group">
                 <div class="field-label">마케팅(설치 사례 활용) 동의 전문 (HTML) — /terms/marketing. 비우면 기본 초안</div>
-                <textarea class="field-input" id="termsMarketingHtml" rows="8" style="font-family:monospace; font-size:12px;">{{ $sellerSettings['terms_marketing_html'] ?? '' }}</textarea>
+                <textarea class="field-input" id="termsMarketingHtml" rows="8" style="font-family:monospace; font-size:13px;">{{ $sellerSettings['terms_marketing_html'] ?? '' }}</textarea>
                 <input class="field-input" id="termsMarketingVersion" value="{{ $sellerSettings['terms_marketing_version'] ?? '' }}" placeholder="버전 표기 — 예: v2 (2026-11-10)" style="margin-top:6px;">
             </div>
             <div class="field-group">
@@ -1053,7 +1053,7 @@
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <img id="stampPreview" src="{{ !empty($sellerSettings['seller_stamp_path']) ? route('seller.stamp').'?v='.substr(md5($sellerSettings['seller_stamp_path']), 0, 8) : '' }}"
                          style="width:72px; height:72px; object-fit:contain; border:1px solid var(--border); border-radius:8px; background:#fff; {{ empty($sellerSettings['seller_stamp_path']) ? 'display:none;' : '' }}">
-                    <input type="file" id="stampFile" accept="image/png,image/jpeg,image/webp" style="font-size:12px; max-width:230px;">
+                    <input type="file" id="stampFile" accept="image/png,image/jpeg,image/webp" style="font-size:13px; max-width:230px;">
                     <button class="btn-save" style="margin:0;" onclick="uploadSellerStamp()">직인 업로드</button>
                     <button class="btn-save" style="margin:0; background:none; border:1px solid var(--border); color:var(--red); {{ empty($sellerSettings['seller_stamp_path']) ? 'display:none;' : '' }}" id="stampDeleteBtn" onclick="deleteSellerStamp()">직인 삭제</button>
                 </div>
@@ -1195,10 +1195,10 @@
             <input class="field-input" type="email" id="accEmail">
         </div>
         <div class="field-group">
-            <div class="field-label">비밀번호 변경 <span style="font-size:11px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
+            <div class="field-label">비밀번호 변경 <span style="font-size:12px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
             <div style="position:relative;">
                 <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)" style="padding-right:40px;">
-                <button type="button" onclick="togglePwVisibility('accPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                <button type="button" onclick="togglePwVisibility('accPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:4px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
         </div>
         <div class="modal-actions">
@@ -1273,19 +1273,19 @@ async function loadServerStatus(refresh = false) {
         const pct = d.used_percent;
         const barColor = pct >= 85 ? 'var(--red, #e05d5d)' : (pct >= 70 ? '#d9a441' : 'var(--green, #4caf82)');
         const warn = pct >= 85
-            ? '<div style="margin-top:10px; font-size:12px; color:var(--red, #e05d5d); font-weight:600;">디스크가 거의 가득 찼습니다 — 파일 업로드가 실패할 수 있습니다. 아래 큰 폴더부터 정리하세요.</div>'
-            : (pct >= 70 ? '<div style="margin-top:10px; font-size:12px; color:#d9a441;">사용률이 높아지고 있습니다 — 주기적으로 백업·캐시를 정리하세요.</div>' : '');
+            ? '<div style="margin-top:10px; font-size:13px; color:var(--red, #e05d5d); font-weight:600;">디스크가 거의 가득 찼습니다 — 파일 업로드가 실패할 수 있습니다. 아래 큰 폴더부터 정리하세요.</div>'
+            : (pct >= 70 ? '<div style="margin-top:10px; font-size:13px; color:#d9a441;">사용률이 높아지고 있습니다 — 주기적으로 백업·캐시를 정리하세요.</div>' : '');
         diskBody.innerHTML = `
             <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
                 <span style="font-size:26px; font-weight:700; color:${barColor};">${pct}%</span>
-                <span style="font-size:13px; color:var(--text-muted);">사용 ${svrFmtBytes(d.used)} / 전체 ${svrFmtBytes(d.total)} · <b style="color:var(--text);">남은 용량 ${svrFmtBytes(d.free)}</b></span>
+                <span style="font-size:14px; color:var(--text-muted);">사용 ${svrFmtBytes(d.used)} / 전체 ${svrFmtBytes(d.total)} · <b style="color:var(--text);">남은 용량 ${svrFmtBytes(d.free)}</b></span>
             </div>
             <div style="margin-top:10px; height:10px; background:var(--surface2); border-radius:6px; overflow:hidden;">
                 <div style="width:${Math.min(100, pct)}%; height:100%; background:${barColor}; border-radius:6px;"></div>
             </div>${warn}`;
         dirsBody.innerHTML = (d.dirs || []).length
             ? `<table class="data-table"><thead><tr><th>폴더</th><th>용도</th><th style="text-align:right;">용량</th></tr></thead><tbody>${d.dirs.map(x => `
-                <tr><td style="font-family:monospace; font-size:12px;">${x.name}</td><td>${x.label}</td><td style="text-align:right; font-weight:600;">${svrFmtBytes(x.size)}</td></tr>`).join('')}</tbody></table>`
+                <tr><td style="font-family:monospace; font-size:13px;">${x.name}</td><td>${x.label}</td><td style="text-align:right; font-weight:600;">${svrFmtBytes(x.size)}</td></tr>`).join('')}</tbody></table>`
             : '<div class="cf-hint">폴더 정보를 가져오지 못했습니다.</div>';
     } catch (e) {
         diskBody.innerHTML = '<div class="cf-hint">서버 상태를 불러오지 못했습니다: ' + e.message + '</div>';
@@ -1358,9 +1358,9 @@ async function loadPaymentAlertSettings() {
         let selected = [];
         try { selected = JSON.parse(settings.payment_alert_managers || '[]') || []; } catch (e) {}
         document.getElementById('paManagers').innerHTML = users.filter(u => u.is_active).map(u => `
-            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:13px;">
+            <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:14px;">
                 <input type="checkbox" name="paManager" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
-                ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
+                ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:12px;">(${u.team_name})</span>` : ''}
             </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
         paLoaded = true;
     } catch (e) {
@@ -1416,9 +1416,9 @@ function renderManagerChips(wrapId, inputName, users, storedJson) {
     let selected = [];
     try { selected = JSON.parse(storedJson || '[]') || []; } catch (e) {}
     document.getElementById(wrapId).innerHTML = users.filter(u => u.is_active).map(u => `
-        <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:13px;">
+        <label class="chk-chip" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:14px;">
             <input type="checkbox" name="${inputName}" value="${u.id}" ${selected.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">
-            ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:11px;">(${u.team_name})</span>` : ''}
+            ${u.display_name}${u.team_name ? ` <span style="color:var(--text-muted); font-size:12px;">(${u.team_name})</span>` : ''}
         </label>`).join('') || '<span class="cf-hint">사용자가 없습니다.</span>';
 }
 async function fetchAlertSettingsAndUsers() {
@@ -1822,30 +1822,30 @@ function renderAssigneesAdmin() {
 
     const row = a => {
         const badge = a.is_external
-            ? '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(232,137,74,0.18); color:var(--teal); font-weight:600;">외부</span>'
-            : `<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(138,180,200,0.18); color:var(--blue); font-weight:600;">내부 · ${escAd(a.user?.role||'')}</span>`;
+            ? '<span style="font-size:12px; padding:2px 7px; border-radius:4px; background:rgba(232,137,74,0.18); color:var(--teal); font-weight:600;">외부</span>'
+            : `<span style="font-size:12px; padding:2px 7px; border-radius:4px; background:rgba(138,180,200,0.18); color:var(--blue); font-weight:600;">내부 · ${escAd(a.user?.role||'')}</span>`;
         const status = a.is_active
-            ? '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(122,200,122,0.18); color:var(--green); font-weight:600;">활성</span>'
-            : '<span style="font-size:11px; padding:2px 7px; border-radius:4px; background:var(--surface2); color:var(--text-muted); font-weight:600;">비활성</span>';
+            ? '<span style="font-size:12px; padding:2px 7px; border-radius:4px; background:rgba(122,200,122,0.18); color:var(--green); font-weight:600;">활성</span>'
+            : '<span style="font-size:12px; padding:2px 7px; border-radius:4px; background:var(--surface2); color:var(--text-muted); font-weight:600;">비활성</span>';
         return `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:6px;">
             <div style="flex:1; min-width:0;">
-                <div style="font-weight:600; font-size:13px;">${escAd(a.name)}</div>
+                <div style="font-weight:600; font-size:14px;">${escAd(a.name)}</div>
                 <div style="display:flex; gap:6px; margin-top:4px; align-items:center; flex-wrap:wrap;">
                     ${badge}${status}
-                    <span style="font-size:11px; color:var(--text-muted);">순서: ${a.display_order}</span>
+                    <span style="font-size:12px; color:var(--text-muted);">순서: ${a.display_order}</span>
                 </div>
             </div>
-            <button class="btn-outline" style="padding:5px 10px; font-size:11px;" onclick="openAssigneeModal(${a.id})">편집</button>
+            <button class="btn-outline" style="padding:5px 10px; font-size:12px;" onclick="openAssigneeModal(${a.id})">편집</button>
         </div>`;
     };
 
     let html = '';
     if (external.length) {
-        html += '<div style="font-size:11px; color:var(--text-muted); margin:8px 0 6px; letter-spacing:0.04em;">외부 담당자 (수동 등록)</div>';
+        html += '<div style="font-size:12px; color:var(--text-muted); margin:8px 0 6px; letter-spacing:0.04em;">외부 담당자 (수동 등록)</div>';
         html += external.map(row).join('');
     }
     if (internal.length) {
-        html += '<div style="font-size:11px; color:var(--text-muted); margin:14px 0 6px; letter-spacing:0.04em;">내부 담당자 (시스템 사용자 자동 동기화)</div>';
+        html += '<div style="font-size:12px; color:var(--text-muted); margin:14px 0 6px; letter-spacing:0.04em;">내부 담당자 (시스템 사용자 자동 동기화)</div>';
         html += internal.map(row).join('');
     }
     container.innerHTML = html;
@@ -1948,7 +1948,7 @@ async function loadUsers() {
         const statusOpts = [['active','활성'],['inactive','비활성'],['resigned','퇴사']]
             .map(([v,l]) => `<option value="${v}" ${u.status === v ? 'selected' : ''}>${l}</option>`).join('');
         const resignedTag = u.status === 'resigned' && u.resigned_at
-            ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">퇴사 ${u.resigned_at}</div>` : '';
+            ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">퇴사 ${u.resigned_at}</div>` : '';
 
         return `<tr data-uid="${u.id}" ${u.status === 'resigned' ? 'style="opacity:0.55;"' : ''}>
             <td>${u.display_name}</td>
@@ -2173,18 +2173,18 @@ function tpsRender() {
         const isCommon = t.key === 'common';
         const typeChips = Object.entries(TPS_TYPES).map(([k, l]) => {
             const on = (t.auto_types || []).includes(k);
-            return `<button type="button" style="font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer; border:1px solid ${on ? 'var(--accent)' : 'var(--border)'}; background:${on ? 'rgba(59,94,160,0.14)' : 'var(--surface)'}; color:${on ? 'var(--accent)' : 'var(--text-muted)'};" onclick="tpsType(${i},'${k}')">${l}</button>`;
+            return `<button type="button" style="font-size:12px; padding:3px 8px; border-radius:6px; cursor:pointer; border:1px solid ${on ? 'var(--accent)' : 'var(--border)'}; background:${on ? 'rgba(59,94,160,0.14)' : 'var(--surface)'}; color:${on ? 'var(--accent)' : 'var(--text-muted)'};" onclick="tpsType(${i},'${k}')">${l}</button>`;
         }).join(' ');
         return `<div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:grid; gap:8px; ${t.active ? '' : 'opacity:0.55;'}">
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                ${isCommon ? '<b style="font-size:14px;">공통 (항상 포함)</b>'
+                ${isCommon ? '<b style="font-size:15px;">공통 (항상 포함)</b>'
                     : `<input class="field-input" style="width:140px;" value="${(t.name||'').replace(/"/g,'&quot;')}" onchange="TPS[${i}].name=this.value" placeholder="섹션 이름">`}
                 <input class="field-input" style="width:130px;" value="${(t.version||'').replace(/"/g,'&quot;')}" onchange="TPS[${i}].version=this.value" placeholder="버전 — v1">
-                ${isCommon ? '' : `<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" ${t.active?'checked':''} onchange="TPS[${i}].active=this.checked; tpsRender()"> 사용</label>`}
+                ${isCommon ? '' : `<label style="display:flex; align-items:center; gap:5px; font-size:14px; cursor:pointer;"><input type="checkbox" ${t.active?'checked':''} onchange="TPS[${i}].active=this.checked; tpsRender()"> 사용</label>`}
                 ${isCommon ? '' : `<button type="button" class="btn-save" style="margin:0; margin-left:auto; width:auto; background:none; border:1px solid var(--border); color:var(--red);" onclick="if(confirm('이 섹션을 삭제할까요?')){TPS.splice(${i},1); tpsRender();}">삭제</button>`}
             </div>
-            ${isCommon ? '' : `<div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--text-muted);">자동 적용 유형: ${typeChips}</div>`}
-            <textarea class="field-input" rows="4" style="font-family:monospace; font-size:12px;" onchange="TPS[${i}].html=this.value" placeholder="섹션 본문 (HTML)">${(t.html||'').replace(/</g,'&lt;')}</textarea>
+            ${isCommon ? '' : `<div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--text-muted);">자동 적용 유형: ${typeChips}</div>`}
+            <textarea class="field-input" rows="4" style="font-family:monospace; font-size:13px;" onchange="TPS[${i}].html=this.value" placeholder="섹션 본문 (HTML)">${(t.html||'').replace(/</g,'&lt;')}</textarea>
         </div>`;
     }).join('');
 }
@@ -2470,9 +2470,9 @@ function renderCalendarCategories() {
             </div>
             <div class="cat-actions">
                 ${isDefault
-                    ? `<button class="btn-outline" onclick="resetCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;" title="기본 라벨/색으로 되돌림">기본값</button>`
-                    : `<button class="btn-danger-outline" onclick="deleteCalendarCategory(${c.id})" style="padding:7px 12px; font-size:12px;">삭제</button>`}
-                <button class="btn-save" onclick="saveCalendarCategory(${c.id})" style="padding:7px 14px; font-size:12px;">저장</button>
+                    ? `<button class="btn-outline" onclick="resetCalendarCategory(${c.id})" style="padding:7px 12px; font-size:13px;" title="기본 라벨/색으로 되돌림">기본값</button>`
+                    : `<button class="btn-danger-outline" onclick="deleteCalendarCategory(${c.id})" style="padding:7px 12px; font-size:13px;">삭제</button>`}
+                <button class="btn-save" onclick="saveCalendarCategory(${c.id})" style="padding:7px 14px; font-size:13px;">저장</button>
             </div>
         </div>`;
     }).join('');
@@ -2773,7 +2773,7 @@ function renderReportTemplates() {
                 ${star}
             </div>
             <div class="cf-card-row">
-                <div style="font-size:12px; color:var(--text-muted); flex:1; line-height:1.5; max-height:3em; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${preview ? escHtml(preview) : '<em style="opacity:0.6;">(빈 본문)</em>'}</div>
+                <div style="font-size:13px; color:var(--text-muted); flex:1; line-height:1.5; max-height:3em; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${preview ? escHtml(preview) : '<em style="opacity:0.6;">(빈 본문)</em>'}</div>
             </div>
             <div class="cf-card-row">
                 <span class="cf-card-key">순서 ${t.sort_order ?? 0}</span>
@@ -2912,7 +2912,7 @@ async function initRtEditor(initialContent) {
     } catch(err) {
         console.error('Tiptap load failed:', err);
         const ed2 = document.getElementById('rtEditor');
-        if (ed2) ed2.innerHTML = '<div style="padding:14px; color:var(--red); font-size:12px;">에디터 로드 실패 — 새로고침 후 다시 시도해 주세요.</div>';
+        if (ed2) ed2.innerHTML = '<div style="padding:14px; color:var(--red); font-size:13px;">에디터 로드 실패 — 새로고침 후 다시 시도해 주세요.</div>';
     }
 }
 
@@ -3061,7 +3061,7 @@ function renderSmList() {
                 <input class="sm-input" value="${smEsc(r.text)}" maxlength="30" placeholder="섹션 이름" oninput="SM_ROWS[${i}].text=this.value">${ctl}</div>`;
         }
         return `<div class="sm-row gap" draggable="true" data-i="${i}">${grip}<span class="sm-gaptext">구분선</span>${ctl}</div>`;
-    }).join('') || '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:12px;">불러오는 중…</div>';
+    }).join('') || '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:13px;">불러오는 중…</div>';
 
     // 드래그 정렬 — 행을 집어 원하는 위치에 놓기 (▲▼ 버튼과 병행)
     el.querySelectorAll('.sm-row').forEach(row => {

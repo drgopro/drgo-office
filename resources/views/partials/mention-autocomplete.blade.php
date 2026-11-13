@@ -1,7 +1,7 @@
 {{-- @멘션 자동완성 — data-mention 속성이 붙은 input/textarea에 자동 적용 (피드백·위키 댓글 공용) --}}
 <style>
     .mention-dd { position:fixed; z-index:12000; background:var(--surface, #1e2430); border:1px solid var(--border, #3a4152); border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,0.35); padding:4px; max-height:240px; overflow-y:auto; min-width:180px; }
-    .mention-dd-item { padding:7px 12px; border-radius:7px; font-size:13px; color:var(--text, #e8eaf0); cursor:pointer; white-space:nowrap; }
+    .mention-dd-item { padding:7px 12px; border-radius:7px; font-size:14px; color:var(--text, #e8eaf0); cursor:pointer; white-space:nowrap; }
     .mention-dd-item.on, .mention-dd-item:hover { background:var(--accent, #5b8def); color:var(--accent-text, #fff); }
 </style>
 <script>

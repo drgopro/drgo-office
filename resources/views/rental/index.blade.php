@@ -8,23 +8,23 @@
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .page-title { font-size:22px; font-weight:700; }
 
-    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
-    .btn-sm { padding:5px 10px; font-size:12px; border-radius:6px; }
-    .rh-left-warn { color:var(--red); font-size:11px; font-weight:700; margin-left:4px; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+    .btn-sm { padding:5px 10px; font-size:13px; border-radius:6px; }
+    .rh-left-warn { color:var(--red); font-size:12px; font-weight:700; margin-left:4px; }
     /* 구성품 편집기 — 모던 필 버튼 + 고스트 삭제 버튼 */
-    .comp-add-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border:none; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+    .comp-add-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border:none; border-radius:999px; background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.15s; }
     .comp-add-btn:hover { background:color-mix(in srgb, var(--accent) 26%, transparent); }
     .comp-add-btn svg { width:12px; height:12px; stroke:currentColor; stroke-width:2.5; fill:none; stroke-linecap:round; }
     .comp-del-btn { flex-shrink:0; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:none; border-radius:50%; background:none; color:var(--text-muted); font-size:15px; cursor:pointer; transition:all 0.15s; }
     .comp-del-btn:hover { background:rgba(212,110,110,0.14); color:var(--red); }
-    .comp-recover-btn { flex-shrink:0; padding:5px 11px; border:none; border-radius:999px; background:rgba(212,110,110,0.12); color:var(--red); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+    .comp-recover-btn { flex-shrink:0; padding:5px 11px; border:none; border-radius:999px; background:rgba(212,110,110,0.12); color:var(--red); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.15s; }
     .comp-recover-btn:hover { background:rgba(212,110,110,0.24); }
-    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
+    .btn-outline { background:none; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:6px; font-size:13px; cursor:pointer; }
     .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
-    .btn-danger-sm { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:5px 8px; }
+    .btn-danger-sm { background:none; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; padding:5px 8px; }
     .btn-danger-sm:hover { color:var(--red); }
-    .empty-row { text-align:center; padding:20px !important; color:var(--text-muted); font-size:13px; }
-    .text-muted { color:var(--text-muted); font-size:12px; }
+    .empty-row { text-align:center; padding:20px !important; color:var(--text-muted); font-size:14px; }
+    .text-muted { color:var(--text-muted); font-size:13px; }
 
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
     .modal-overlay.open { display:flex; }
@@ -32,14 +32,14 @@
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
     .modal-title { font-size:16px; font-weight:700; }
     .modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; }
-    .field-group { margin-bottom:14px; } .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
-    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
+    .field-group { margin-bottom:14px; } .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; }
     .field-input:focus { border-color:var(--accent); }
-    .field-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; cursor:pointer; box-sizing:border-box; }
+    .field-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; cursor:pointer; box-sizing:border-box; }
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
-    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:13px; cursor:pointer; }
-    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:9px 18px; border-radius:8px; font-size:14px; cursor:pointer; }
+    .btn-save { background:var(--accent); color:var(--accent-text); border:none; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-primary,
     [data-theme="light"] .btn-save { color:#fff; }
     [data-theme="light"] .field-input,
@@ -52,13 +52,13 @@
     .board-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
     .board-toolbar > * { flex-shrink:0; }
     .board-toolbar .search-box { flex:1 1 220px; min-width:180px; max-width:320px; position:relative; }
-    .board-toolbar .search-box input { width:100%; height:32px; padding:0 12px 0 30px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
+    .board-toolbar .search-box input { width:100%; height:32px; padding:0 12px 0 30px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; }
     .board-toolbar .search-box input:focus { border-color:var(--accent); }
-    .board-toolbar .search-box::before { content:"🔍"; position:absolute; left:9px; top:50%; transform:translateY(-50%); font-size:12px; opacity:.6; }
-    .board-toolbar .stat-pill { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 12px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; font-size:11px; color:var(--text-muted); line-height:1; white-space:nowrap; }
-    .board-toolbar .stat-pill strong { color:var(--accent); font-family:"SF Mono",Menlo,Monaco,monospace; font-size:12px; font-weight:700; line-height:1; }
+    .board-toolbar .search-box::before { content:"🔍"; position:absolute; left:9px; top:50%; transform:translateY(-50%); font-size:13px; opacity:.6; }
+    .board-toolbar .stat-pill { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 12px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; font-size:12px; color:var(--text-muted); line-height:1; white-space:nowrap; }
+    .board-toolbar .stat-pill strong { color:var(--accent); font-family:"SF Mono",Menlo,Monaco,monospace; font-size:13px; font-weight:700; line-height:1; }
     .board-toolbar .spacer { flex:1 1 0; min-width:0; }
-    .board-toolbar .tb-btn { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border:1px solid var(--border); background:none; border-radius:7px; color:var(--text-muted); font-size:12px; cursor:pointer; white-space:nowrap; font-family:inherit; }
+    .board-toolbar .tb-btn { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border:1px solid var(--border); background:none; border-radius:7px; color:var(--text-muted); font-size:13px; cursor:pointer; white-space:nowrap; font-family:inherit; }
     .board-toolbar .tb-btn:hover { border-color:var(--accent); color:var(--accent); }
     .board-toolbar .tb-btn.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:700; }
     [data-theme="light"] .board-toolbar .tb-btn.primary { color:#fff; }
@@ -66,17 +66,17 @@
     .board-wrap { max-height:calc(100vh - 280px); min-height:420px; overflow:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; -webkit-overflow-scrolling:touch; position:relative; }
     .eq-board { display:grid; min-width:max-content; border-collapse:collapse; }
     .eq-cell-base { border-right:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; transition:background .12s; }
-    .eq-corner { position:sticky; top:0; left:0; z-index:6; background:var(--surface2); padding:10px 12px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); text-align:left; justify-content:flex-start; }
-    .eq-col-header { position:sticky; top:0; z-index:5; background:var(--surface2); padding:10px 8px; font-size:12px; font-weight:600; color:var(--text); cursor:pointer; min-height:56px; flex-direction:column; gap:3px; text-align:center; }
+    .eq-corner { position:sticky; top:0; left:0; z-index:6; background:var(--surface2); padding:10px 12px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); text-align:left; justify-content:flex-start; }
+    .eq-col-header { position:sticky; top:0; z-index:5; background:var(--surface2); padding:10px 8px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; min-height:56px; flex-direction:column; gap:3px; text-align:center; }
     .eq-col-header:hover { background:var(--surface); }
-    .eq-col-header .ch-name { font-size:13px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-    .eq-col-header .ch-sub { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .eq-col-header .ch-name { font-size:14px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+    .eq-col-header .ch-sub { font-size:12px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
     .eq-col-header.empty { color:var(--text-muted); font-style:italic; font-weight:400; }
     .eq-col-header.empty:hover { color:var(--accent); }
-    .eq-row-header { position:sticky; left:0; z-index:4; background:var(--surface2); padding:10px 12px; font-size:13px; color:var(--text); cursor:pointer; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; min-height:54px; }
+    .eq-row-header { position:sticky; left:0; z-index:4; background:var(--surface2); padding:10px 12px; font-size:14px; color:var(--text); cursor:pointer; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; min-height:54px; }
     .eq-row-header:hover { background:var(--surface); }
-    .eq-row-header .rh-name { font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-    .eq-row-header .rh-serial { font-family:"SF Mono",Menlo,monospace; font-size:11px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+    .eq-row-header .rh-name { font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+    .eq-row-header .rh-serial { font-family:"SF Mono",Menlo,monospace; font-size:12px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
     .eq-row-header.empty { color:var(--text-muted); font-style:italic; font-weight:400; }
     .eq-row-header.empty:hover { color:var(--accent); }
     .eq-matrix-cell { cursor:pointer; min-height:54px; position:relative; }
@@ -101,16 +101,16 @@
     .eq-log-panel { position:fixed; top:0; right:0; bottom:0; width:380px; max-width:92vw; background:var(--surface); border-left:1px solid var(--border); z-index:90; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
     .eq-log-panel.open { transform:translateX(0); }
     .eq-log-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
-    .eq-log-head .title { font-size:14px; font-weight:700; }
+    .eq-log-head .title { font-size:15px; font-weight:700; }
     .eq-log-body { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
-    .eq-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:12px; line-height:1.5; }
+    .eq-log-item { padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:13px; line-height:1.5; }
     .eq-log-head-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
-    .eq-log-user { font-weight:700; color:var(--accent); font-size:12px; }
-    .eq-log-time { font-size:11px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
+    .eq-log-user { font-weight:700; color:var(--accent); font-size:13px; }
+    .eq-log-time { font-size:12px; color:var(--text-muted); font-family:"SF Mono",Menlo,monospace; }
     .eq-log-action { color:var(--text-muted); }
     .eq-log-action strong { color:var(--text); font-weight:600; }
 
-    .eq-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface); color:var(--text); padding:10px 18px; border-radius:8px; border:1px solid var(--border); font-size:13px; opacity:0; pointer-events:none; transition:all .25s; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,0.4); }
+    .eq-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface); color:var(--text); padding:10px 18px; border-radius:8px; border:1px solid var(--border); font-size:14px; opacity:0; pointer-events:none; transition:all .25s; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,0.4); }
     .eq-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
     @media (max-width: 768px) {
@@ -145,7 +145,7 @@
     <div class="board-wrap" id="bdBoardWrap">
         <div class="eq-board" id="bdBoard"></div>
     </div>
-    <div class="text-muted" style="margin-top:8px; font-size:11px;">셀을 클릭하면 해당 위치로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다.</div>
+    <div class="text-muted" style="margin-top:8px; font-size:12px;">셀을 클릭하면 해당 위치로 지정됩니다. ● 마크를 드래그해 같은 행의 다른 셀로 이동할 수 있습니다.</div>
 </div>
 
 <!-- 대여 장비: 추가/편집 모달 -->
@@ -182,7 +182,7 @@
         <div class="field-group">
             <div class="field-label" style="display:flex; align-items:center; gap:8px;">구성품
                 <button type="button" class="comp-add-btn" id="riCompAddBtn" onclick="riAddComp()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>구성품 추가</button>
-                <span class="text-muted" style="font-size:11px;">이동할 때마다 구성품 체크로 동행 여부를 추적합니다</span>
+                <span class="text-muted" style="font-size:12px;">이동할 때마다 구성품 체크로 동행 여부를 추적합니다</span>
             </div>
             <div id="riCompList"></div>
         </div>
@@ -195,7 +195,7 @@
             <div style="background:#fff; padding:8px; border-radius:8px; display:inline-block;">
                 <img id="riQrImg" alt="QR" style="display:block; width:160px; height:160px;">
             </div>
-            <div class="text-muted" style="font-size:11px; margin-top:4px;">인쇄 후 장비에 부착 · 📷 스캔으로 인식</div>
+            <div class="text-muted" style="font-size:12px; margin-top:4px;">인쇄 후 장비에 부착 · 📷 스캔으로 인식</div>
         </div>
         <input type="hidden" id="riId">
         <div class="modal-actions">
@@ -231,10 +231,10 @@
         </div>
         <input type="hidden" id="rtId">
         <div id="rtQrWrap" style="display:none; margin-top:14px; padding:14px; background:var(--surface2); border-radius:10px; text-align:center;">
-            <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">직원 QR 코드</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">직원 QR 코드</div>
             <img id="rtQrImg" style="width:160px; height:160px; border-radius:8px; background:#fff;">
             <div style="margin-top:8px;">
-                <button onclick="printTargetQr()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:6px; font-size:11px; cursor:pointer;"><x-icon name="note" :size="13"/> 인쇄</button>
+                <button onclick="printTargetQr()" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:6px 14px; border-radius:6px; font-size:12px; cursor:pointer;"><x-icon name="note" :size="13"/> 인쇄</button>
             </div>
         </div>
         <div class="modal-actions">
@@ -322,7 +322,7 @@
         </div>
         <div id="qrScanReader" style="width:100%; background:#000; border-radius:8px; overflow:hidden; min-height:260px;"></div>
         <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
-            <div class="text-muted" style="font-size:11px; flex:1;" id="qrScanHint">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
+            <div class="text-muted" style="font-size:12px; flex:1;" id="qrScanHint">장비 QR 코드를 카메라에 비춰주세요. 카메라 권한이 필요합니다.</div>
             <button type="button" class="btn-cancel btn-sm" id="qrSwitchBtn" style="display:none; white-space:nowrap;" onclick="switchQrCamera()">카메라 전환</button>
         </div>
         <div class="field-group" style="margin-top:10px;">
@@ -342,7 +342,7 @@
             <div class="modal-title">장비 액션</div>
             <button class="modal-close" onclick="closeModal('scanActionModal')">×</button>
         </div>
-        <div id="scanActionInfo" style="font-size:13px; line-height:1.6; color:var(--text-muted); margin-bottom:16px;"></div>
+        <div id="scanActionInfo" style="font-size:14px; line-height:1.6; color:var(--text-muted); margin-bottom:16px;"></div>
         <div style="display:flex; flex-direction:column; gap:8px;">
             <button class="btn-save" onclick="scanActionReturn()">반납 처리</button>
             <button class="btn-cancel" onclick="scanActionDetail()">상세 보기 (편집)</button>
@@ -378,11 +378,11 @@
             <div class="modal-title">구성품 확인</div>
             <button class="modal-close" onclick="closeModal('compMoveModal')">×</button>
         </div>
-        <div id="cmInfo" style="font-size:13px; line-height:1.6; margin-bottom:10px;"></div>
+        <div id="cmInfo" style="font-size:14px; line-height:1.6; margin-bottom:10px;"></div>
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <button type="button" class="btn-cancel btn-sm" onclick="cmSetAll(true)">전체선택</button>
             <button type="button" class="btn-cancel btn-sm" onclick="cmSetAll(false)">전체선택 해제</button>
-            <span class="text-muted" style="font-size:12px; align-self:center;">체크한 구성품만 함께 이동합니다</span>
+            <span class="text-muted" style="font-size:13px; align-self:center;">체크한 구성품만 함께 이동합니다</span>
         </div>
         <div id="cmList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;"></div>
         <div class="modal-actions">
@@ -399,7 +399,7 @@
             <div class="modal-title" id="bdCellTitle">위치 지정</div>
             <button class="modal-close" onclick="closeModal('bdCellModal')">×</button>
         </div>
-        <div id="bdCellInfo" style="font-size:13px; line-height:1.6; color:var(--text-muted);"></div>
+        <div id="bdCellInfo" style="font-size:14px; line-height:1.6; color:var(--text-muted);"></div>
         <div class="modal-actions">
             <button class="btn-cancel" id="bdCellClearBtn" style="margin-right:auto; display:none;">반납 처리</button>
             <button class="btn-cancel" onclick="closeModal('bdCellModal')">취소</button>
@@ -630,15 +630,15 @@ function bdOpenCellModal(itemId, targetId) {
     document.getElementById('bdCellTitle').textContent = isCurrentlyHere ? '현재 위치' : '위치 지정';
     document.getElementById('bdCellInfo').innerHTML = `
         <div style="margin-bottom:10px;">
-            <div style="font-size:11px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">장비</div>
-            <div style="color:var(--text);font-weight:600;">${bdEsc(item.name)} ${item.serial?`<span style="font-family:'SF Mono',Menlo,monospace;font-size:11px;color:var(--text-muted);">· ${bdEsc(item.serial)}</span>`:''}</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">장비</div>
+            <div style="color:var(--text);font-weight:600;">${bdEsc(item.name)} ${item.serial?`<span style="font-family:'SF Mono',Menlo,monospace;font-size:12px;color:var(--text-muted);">· ${bdEsc(item.serial)}</span>`:''}</div>
         </div>
         <div style="margin-bottom:10px;">
-            <div style="font-size:11px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">현재 위치</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">현재 위치</div>
             <div style="color:var(--text);">${currentTarget ? bdEsc(currentTarget.name) : '<span style="color:var(--text-muted);">미지정</span>'}</div>
         </div>
         <div>
-            <div style="font-size:11px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">${isCurrentlyHere ? '현재 위치' : '새 위치'}</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">${isCurrentlyHere ? '현재 위치' : '새 위치'}</div>
             <div style="color:var(--accent);font-weight:600;">${bdEsc(target.name)}</div>
         </div>
     `;
@@ -701,14 +701,14 @@ function openCompMoveModal(itemId, targetId, isReturn, memo) {
     const dest = destId ? bdState.targets.find(t=>t.id===destId) : null;
     document.getElementById('cmInfo').innerHTML = `
         <b>${bdEsc(item?.name||'')}</b> → <span style="color:var(--accent);font-weight:600;">${dest?bdEsc(dest.name):(isReturn?'반납':'미지정')}</span>
-        <div class="text-muted" style="font-size:12px;">함께 이동하는 구성품을 확인하세요. 체크하지 않은 구성품은 ${isReturn?'현재':'이전'} 위치에 남은 것으로 기록됩니다.</div>`;
+        <div class="text-muted" style="font-size:13px;">함께 이동하는 구성품을 확인하세요. 체크하지 않은 구성품은 ${isReturn?'현재':'이전'} 위치에 남은 것으로 기록됩니다.</div>`;
     document.getElementById('cmList').innerHTML = comps.map((c, i) => {
         const leftAt = c.left_target_id ? bdState.targets.find(t=>t.id===c.left_target_id) : null;
         // 이전 이동에서 남겨진 구성품 — Red 하이라이트 + 마지막 위치 표시, 기본 체크 해제
         return `<label style="display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid ${leftAt?'var(--red)':'var(--border)'}; border-radius:8px; cursor:pointer; ${leftAt?'background:rgba(212,110,110,0.08);':''}">
             <input type="checkbox" name="cmComp" value="${i}" ${leftAt?'':'checked'} style="width:14px; height:14px;">
-            <span style="font-size:13px; ${leftAt?'color:var(--red); font-weight:600;':''}">${bdEsc(c.name)}</span>
-            ${leftAt?`<span style="margin-left:auto; font-size:11px; color:var(--red);">마지막 위치: ${bdEsc(leftAt.name)}</span>`:''}
+            <span style="font-size:14px; ${leftAt?'color:var(--red); font-weight:600;':''}">${bdEsc(c.name)}</span>
+            ${leftAt?`<span style="margin-left:auto; font-size:12px; color:var(--red);">마지막 위치: ${bdEsc(leftAt.name)}</span>`:''}
         </label>`;
     }).join('');
     openModal('compMoveModal');
@@ -740,14 +740,14 @@ let riCompState = [];
 function riRenderComps() {
     const wrap = document.getElementById('riCompList');
     if (!riCompState.length) {
-        wrap.innerHTML = '<div class="text-muted" style="font-size:12px; padding:4px 0;">구성품이 없습니다. [＋ 구성품 추가]로 항목을 등록하세요.</div>';
+        wrap.innerHTML = '<div class="text-muted" style="font-size:13px; padding:4px 0;">구성품이 없습니다. [＋ 구성품 추가]로 항목을 등록하세요.</div>';
         return;
     }
     wrap.innerHTML = riCompState.map((c, i) => {
         const leftAt = c.left_target_id ? bdState.targets.find(t=>t.id===c.left_target_id) : null;
         return `<div style="display:flex; align-items:center; gap:6px; margin-bottom:5px;">
             <input class="field-input" style="flex:1; ${leftAt?'border-color:var(--red); color:var(--red);':''}" value="${bdEsc(c.name)}" placeholder="구성품 이름 (예: 전원 케이블)" oninput="riCompState[${i}].name=this.value">
-            ${leftAt?`<span style="font-size:11px; color:var(--red); white-space:nowrap;">마지막 위치: ${bdEsc(leftAt.name)}</span>
+            ${leftAt?`<span style="font-size:12px; color:var(--red); white-space:nowrap;">마지막 위치: ${bdEsc(leftAt.name)}</span>
                 <button type="button" class="comp-recover-btn" onclick="riCompState[${i}].left_target_id=null; riRenderComps()" title="본체와 함께 있는 것으로 표시">회수됨</button>`:''}
             <button type="button" class="comp-del-btn" onclick="riCompState.splice(${i},1); riRenderComps()" title="구성품 삭제">✕</button>
         </div>`;
@@ -855,7 +855,7 @@ function printTargetQr() {
     const name = document.getElementById('rtName').value;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent('staff:'+id)}&size=300x300&margin=10`;
     const w = window.open('','_blank','width=400,height=500');
-    w.document.write(`<html><head><title>QR - ${name}</title><style>body{font-family:sans-serif;text-align:center;padding:40px;}h2{margin-bottom:8px;}p{color:#888;font-size:14px;margin-bottom:20px;}img{border:1px solid #ddd;border-radius:8px;}@media print{button{display:none;}}</style></head><body><h2>${name}</h2><p>staff:${id}</p><img src="${qrUrl}" width="250" height="250"><br><br><button onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer;">인쇄</button></body></html>`);
+    w.document.write(`<html><head><title>QR - ${name}</title><style>body{font-family:sans-serif;text-align:center;padding:40px;}h2{margin-bottom:8px;}p{color:#888;font-size:15px;margin-bottom:20px;}img{border:1px solid #ddd;border-radius:8px;}@media print{button{display:none;}}</style></head><body><h2>${name}</h2><p>staff:${id}</p><img src="${qrUrl}" width="250" height="250"><br><br><button onclick="window.print()" style="padding:10px 24px;font-size:15px;cursor:pointer;">인쇄</button></body></html>`);
     w.document.close();
 }
 async function saveRentalTarget() {
@@ -896,7 +896,7 @@ function renderCategoryList() {
         const count = bdState.items.filter(i => i.category_id === c.id).length;
         return `<div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px;">
             <span style="flex:1; font-weight:600;">${bdEsc(c.name)}</span>
-            <span class="text-muted" style="font-size:11px;">장비 ${count}개</span>
+            <span class="text-muted" style="font-size:12px;">장비 ${count}개</span>
             <button class="btn-outline btn-sm" onclick="renameCategory(${c.id})">이름</button>
             <button class="btn-danger-sm" onclick="deleteCategory(${c.id})">삭제</button>
         </div>`;
@@ -938,7 +938,7 @@ function renderGroupList() {
         const count = bdState.items.filter(i => i.group_id === g.id).length;
         return `<div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px;">
             <span style="flex:1; font-weight:600;">${bdEsc(g.name)}</span>
-            <span class="text-muted" style="font-size:11px;">장비 ${count}개</span>
+            <span class="text-muted" style="font-size:12px;">장비 ${count}개</span>
             <button class="btn-outline btn-sm" onclick="openGroupAssignModal(${g.id})">이동</button>
             <button class="btn-outline btn-sm" onclick="renameGroup(${g.id})">이름</button>
             <button class="btn-danger-sm" onclick="deleteGroup(${g.id})">삭제</button>
@@ -1096,8 +1096,8 @@ function openScanActionModal(item) {
     const home = item.home_target_id ? bdState.targets.find(t=>t.id===item.home_target_id) : null;
     document.getElementById('scanActionItemId').value = item.id;
     document.getElementById('scanActionInfo').innerHTML = `
-        <div style="color:var(--text); font-weight:700; font-size:14px; margin-bottom:6px;">${bdEsc(item.name)}</div>
-        ${item.serial ? `<div style="font-family:'SF Mono',Menlo,monospace; font-size:11px;">${bdEsc(item.serial)}</div>` : ''}
+        <div style="color:var(--text); font-weight:700; font-size:15px; margin-bottom:6px;">${bdEsc(item.name)}</div>
+        ${item.serial ? `<div style="font-family:'SF Mono',Menlo,monospace; font-size:12px;">${bdEsc(item.serial)}</div>` : ''}
         <div style="margin-top:8px;">현재 위치: <span style="color:var(--text);">${currentTarget ? bdEsc(currentTarget.name) : '미지정'}</span></div>
         ${home ? `<div>원래 위치: <span style="color:var(--text);">${bdEsc(home.name)}</span></div>` : ''}
     `;

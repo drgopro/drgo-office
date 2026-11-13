@@ -7,14 +7,14 @@
     .guide-wrap { padding:28px 24px 60px; max-width:880px; margin:0 auto; }
     .guide-header { margin-bottom:22px; }
     .guide-header h1 { font-size:21px; font-weight:800; display:flex; align-items:center; gap:9px; }
-    .guide-header p { font-size:13px; color:var(--text-muted); margin-top:5px; }
+    .guide-header p { font-size:14px; color:var(--text-muted); margin-top:5px; }
     .guide-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px; }
     .guide-card { display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; text-decoration:none; color:var(--text); transition:all .15s; }
     .guide-card:hover { border-color:var(--accent); box-shadow:0 4px 14px rgba(24,39,64,.08); text-decoration:none; }
     .guide-ico { flex-shrink:0; width:40px; height:40px; border-radius:11px; background:#1f2b40; color:#fff; display:flex; align-items:center; justify-content:center; font-size:19px; }
     .guide-card h2 { font-size:15px; font-weight:700; margin:1px 0 4px; }
-    .guide-card p { font-size:13px; color:var(--text-muted); line-height:1.6; margin:0; }
-    .guide-card .go { margin-top:7px; display:inline-block; font-size:12px; font-weight:700; color:var(--accent); }
+    .guide-card p { font-size:14px; color:var(--text-muted); line-height:1.6; margin:0; }
+    .guide-card .go { margin-top:7px; display:inline-block; font-size:13px; font-weight:700; color:var(--accent); }
 </style>
 @endpush
 

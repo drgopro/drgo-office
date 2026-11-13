@@ -7,36 +7,36 @@
     .page-wrap { padding:24px; max-width:720px; }
     .page-header { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
     .page-title { font-size:18px; font-weight:700; }
-    .back-btn { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .back-btn { color:var(--text-muted); text-decoration:none; font-size:14px; }
     .back-btn:hover { color:var(--text); }
     .form-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:16px; }
-    .form-section-title { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:16px; letter-spacing:0.05em; }
+    .form-section-title { font-size:14px; font-weight:600; color:var(--accent); margin-bottom:16px; letter-spacing:0.05em; }
     .field-group { margin-bottom:16px; }
-    .field-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; letter-spacing:0.05em; }
-    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; }
+    .field-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; letter-spacing:0.05em; }
+    .field-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; }
     .field-input:focus { border-color:var(--accent); }
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .field-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; cursor:pointer; }
-    .field-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; outline:none; resize:vertical; }
+    .field-select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; cursor:pointer; }
+    .field-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; resize:vertical; }
     .field-textarea:focus { border-color:var(--accent); }
 
     /* 체크박스 그룹 */
     .checkbox-group { display:flex; flex-wrap:wrap; gap:8px; }
     .checkbox-item { display:flex; align-items:center; gap:5px; }
     .checkbox-item input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
-    .checkbox-item label { font-size:13px; cursor:pointer; }
+    .checkbox-item label { font-size:14px; cursor:pointer; }
 
     /* 라디오 그룹 */
     .radio-group { display:flex; gap:12px; flex-wrap:wrap; }
     .radio-item { display:flex; align-items:center; gap:5px; }
     .radio-item input { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
-    .radio-item label { font-size:13px; cursor:pointer; }
+    .radio-item label { font-size:14px; cursor:pointer; }
 
-    .error-msg { font-size:11px; color:var(--red); margin-top:4px; }
+    .error-msg { font-size:12px; color:var(--red); margin-top:4px; }
     .form-actions { display:flex; gap:10px; justify-content:flex-end; }
-    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:10px 24px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
-    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:10px 24px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-block; }
-    .btn-danger { background:none; border:1px solid var(--red); color:var(--red); padding:10px 24px; border-radius:8px; font-size:13px; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:var(--accent-text); border:none; padding:10px 24px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+    .btn-cancel { background:none; border:1px solid var(--border); color:var(--text-muted); padding:10px 24px; border-radius:8px; font-size:14px; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-danger { background:none; border:1px solid var(--red); color:var(--red); padding:10px 24px; border-radius:8px; font-size:14px; cursor:pointer; }
     [data-theme="light"] .btn-primary { color:#fff; }
 </style>
 @endpush
@@ -86,7 +86,7 @@
                 <div class="field-label">주소</div>
                 <div style="display:flex; gap:8px;">
                     <input class="field-input" type="text" name="address" id="address" value="{{ old('address', $client?->address) }}" placeholder="우편번호 검색 버튼을 눌러주세요" readonly style="flex:1; cursor:pointer;" onclick="searchAddress()">
-                    <button type="button" onclick="searchAddress()" style="background:var(--accent); color:var(--accent-text); border:none; padding:0 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">주소 검색</button>
+                    <button type="button" onclick="searchAddress()" style="background:var(--accent); color:var(--accent-text); border:none; padding:0 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;">주소 검색</button>
                 </div>
             </div>
             <div class="field-group">
@@ -227,14 +227,14 @@ function showDupClientDialog(existing, onConfirm) {
     ov.innerHTML = `
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px; max-width:380px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25);">
             <div style="font-size:15px; font-weight:800; margin-bottom:10px;">이미 등록된 의뢰자입니다</div>
-            <div style="font-size:13px; line-height:1.7; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+            <div style="font-size:14px; line-height:1.7; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:12px;">
                 <div style="font-weight:700;">${label}</div>
                 <div style="color:var(--text-muted);">${fdEsc(existing.phone || '')}</div>
             </div>
-            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
+            <div style="font-size:14px; color:var(--text-muted); margin-bottom:16px;">같은 전화번호의 의뢰자가 이미 있습니다. 그래도 새 의뢰자로 추가 등록하시겠습니까?</div>
             <div style="display:flex; gap:8px; justify-content:flex-end;">
-                <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer;">등록 취소</button>
-                <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">추가등록</button>
+                <button type="button" id="dupCancelBtn" style="background:none; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:14px; cursor:pointer;">등록 취소</button>
+                <button type="button" id="dupConfirmBtn" style="background:var(--accent); border:none; color:var(--accent-text, #fff); padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">추가등록</button>
             </div>
         </div>`;
     document.body.appendChild(ov);

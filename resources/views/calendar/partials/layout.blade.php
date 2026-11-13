@@ -65,24 +65,24 @@
             <button class="nav-btn" id="calTrashBtn" onclick="openTrashModal()" title="휴지통 — 삭제된 일정 확인/복구"><x-icon name="trash" :size="14"/></button>
         @endif
         <div style="position:relative;" id="calMoreWrap">
-            <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:14px;">⋯</button>
+            <button class="nav-btn" onclick="toggleCalMenu()" title="더보기" style="font-size:15px;">⋯</button>
             <div class="cal-menu" id="calMenu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
                 {{-- 캘린더 이력 — 사용 빈도가 낮아 비활성화 (라우트는 유지, 필요 시 버튼만 복원) --}}
                 {{-- 휴지통 — 헤더(⋯ 좌측) 버튼으로 이동 --}}
                 <div class="cal-fontsize" title="글자 크기 조절 (월간 뷰)" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 14px;background:none;">
                     <button class="cal-fz-btn" onclick="calFont(-1)" aria-label="글자 작게">A−</button>
-                    <span id="calFontLabel" style="font-size:11px;color:var(--text-muted);min-width:34px;text-align:center;">100%</span>
+                    <span id="calFontLabel" style="font-size:12px;color:var(--text-muted);min-width:34px;text-align:center;">100%</span>
                     <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
                 </div>
                 {{-- 이전 디자인(기본) ↔ 새 디자인 v2 전환 (개인 설정, 새로고침) — 라벨은 JS에서 현재 상태로 갱신 --}}
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-                <button id="calDesignToggle" onclick="toggleCalDesign()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> <span id="calDesignToggleLabel">새 디자인으로 보기</span></button>
+                <button id="calDesignToggle" onclick="toggleCalDesign()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> <span id="calDesignToggleLabel">새 디자인으로 보기</span></button>
                 @if(Auth::user()->isAdmin())
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-                <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
-                <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> iCal 내보내기</button>
-                <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> JSON 가져오기</button>
-                <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:12px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> iCal 가져오기</button>
+                <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
+                <button onclick="location.href='/api/events/export/ical'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> iCal 내보내기</button>
+                <button onclick="document.getElementById('jsonImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> JSON 가져오기</button>
+                <button onclick="document.getElementById('icalImportInput').click()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="upload" :size="13"/> iCal 가져오기</button>
                 @endif
             </div>
         </div>
@@ -100,12 +100,12 @@
     .cal-mpicker { position:absolute; left:0; top:calc(100% + 6px); z-index:40; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:0 10px 28px rgba(0,0,0,0.45); width:250px; }
     .cal-mpicker-year { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:10px; }
     .cal-mpicker-year span { font-size:15px; font-weight:800; }
-    .cal-mpicker-year button { width:28px; height:28px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:14px; cursor:pointer; }
+    .cal-mpicker-year button { width:28px; height:28px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-muted); font-size:15px; cursor:pointer; }
     .cal-mpicker-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-    .cal-mpicker-grid button { padding:8px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:13px; cursor:pointer; }
+    .cal-mpicker-grid button { padding:8px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:14px; cursor:pointer; }
     .cal-mpicker-grid button.on { background:var(--accent); border-color:var(--accent); color:var(--accent-text); font-weight:700; }
     .cal-mpicker-foot { display:flex; gap:6px; margin-top:10px; }
-    .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:12px; cursor:pointer; }
+    .cal-mpicker-foot button { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text); font-size:13px; cursor:pointer; }
     @media (min-width: 769px) {
         /* 데스크탑 2행 헤더 — 1행: 좌측 도구 + 중앙 [오늘] ‹ 연.월 › + 우측 ⋯ / 2행: 뷰 버튼 중앙 */
         .cal-header .cal-center-nav { position:absolute; left:50%; top:14px; transform:translateX(-50%); display:flex; align-items:center; gap:4px; }
@@ -113,7 +113,7 @@
         .cal-center-nav .nav-btn:hover { color:var(--text); background:var(--surface2); }
         .cal-center-nav .month-label { margin:0; min-width:0; white-space:nowrap; }
         /* 오늘 — 묶음 폭에서 빼서(절대배치, ‹ 왼쪽) 연.월 자체가 화면 정중앙에 오게 */
-        .cal-header .cal-center-nav .cal-today-btn { position:absolute; right:100%; top:50%; transform:translateY(-50%); margin:0 6px 0 0; width:auto; padding:0 12px; font-size:12px; font-weight:600; border:1px solid var(--border); border-radius:8px; color:var(--text); }
+        .cal-header .cal-center-nav .cal-today-btn { position:absolute; right:100%; top:50%; transform:translateY(-50%); margin:0 6px 0 0; width:auto; padding:0 12px; font-size:13px; font-weight:600; border:1px solid var(--border); border-radius:8px; color:var(--text); }
         /* 우측 그룹을 헤더 직속으로 풀어 2행 구성: 1행 도구/타이틀/더보기, 2행 뷰 버튼+주 수 */
         .cal-header-right { display:contents !important; }
         #calMoreWrap { margin-left:auto; }
@@ -134,8 +134,8 @@
     @media (max-width: 768px) {
         {{-- 햄버거: 테두리 없이 진한 선 아이콘만 --}}
         .cal-hamburger { display:inline-flex; align-items:center; justify-content:center; position:absolute; left:0; top:50%; transform:translateY(-50%); border:none; background:none; box-shadow:none; color:var(--text); padding:4px; cursor:pointer; }
-        .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:14px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
-        .cal-mini-period::after { content:'▾'; font-size:11px; color:var(--text-muted); }
+        .cal-mini-period { display:inline-flex; align-items:center; gap:3px; font-size:15px; font-weight:800; cursor:pointer; padding:0 2px; letter-spacing:-0.02em; white-space:nowrap; }
+        .cal-mini-period::after { content:'▾'; font-size:12px; color:var(--text-muted); }
         .cal-header { justify-content:space-between; }
         {{-- 연.월 중앙 정렬 — ☰는 좌측 고정, 타이틀 좌우 ‹ ›로 날/주/월 이동 --}}
         .cal-header-left { width:100%; justify-content:center; position:relative; flex:1 1 100%; gap:4px; }

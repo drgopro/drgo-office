@@ -7,40 +7,40 @@
     .rx-wrap { padding:24px; max-width:1200px; margin:0 auto; }
     .rx-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
     .rx-header h1 { font-size:20px; font-weight:800; margin:0; }
-    .rx-sub { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
-    .rx-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:13px; text-decoration:none; font-weight:600; }
+    .rx-sub { font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+    .rx-back { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); border-radius:9px; padding:8px 14px; font-size:14px; text-decoration:none; font-weight:600; }
     .rx-back:hover { border-color:var(--accent); color:var(--text); }
 
     .rx-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; margin-bottom:14px; }
-    .rx-controls label { font-size:12px; font-weight:700; color:var(--text-muted); }
-    .rx-controls input[type=date], .rx-controls select, .rx-controls input[type=text] { border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
+    .rx-controls label { font-size:13px; font-weight:700; color:var(--text-muted); }
+    .rx-controls input[type=date], .rx-controls select, .rx-controls input[type=text] { border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:8px; padding:7px 10px; font-size:14px; outline:none; }
     .rx-controls input:focus, .rx-controls select:focus { border-color:var(--accent); }
-    .rx-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+    .rx-go { border:none; background:var(--accent); color:var(--accent-text); border-radius:8px; padding:8px 16px; font-size:14px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .rx-go { color:#fff; }
     .rx-quick { display:flex; gap:6px; }
-    .rx-quick button { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:7px 11px; font-size:12px; cursor:pointer; }
+    .rx-quick button { background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:7px 11px; font-size:13px; cursor:pointer; }
     .rx-quick button:hover { border-color:var(--accent); color:var(--accent); }
     .rx-sep { width:1px; height:22px; background:var(--border); margin:0 4px; }
-    .rx-csv { margin-left:auto; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:7px 13px; font-size:12px; cursor:pointer; }
+    .rx-csv { margin-left:auto; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:7px 13px; font-size:13px; cursor:pointer; }
     .rx-csv:hover { border-color:var(--accent); color:var(--accent); }
 
-    .rx-summary { font-size:13px; color:var(--text-muted); margin-bottom:10px; }
-    .rx-summary b { color:var(--accent); font-size:14px; }
+    .rx-summary { font-size:14px; color:var(--text-muted); margin-bottom:10px; }
+    .rx-summary b { color:var(--accent); font-size:15px; }
 
     .rx-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:auto; max-height:calc(100vh - 320px); }
-    .rx-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .rx-table th { position:sticky; top:0; background:var(--surface2); text-align:right; padding:9px 12px; font-size:11px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; z-index:1; }
+    .rx-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .rx-table th { position:sticky; top:0; background:var(--surface2); text-align:right; padding:9px 12px; font-size:12px; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; z-index:1; }
     .rx-table th:first-child { text-align:left; left:0; z-index:2; }
     .rx-table td { padding:8px 12px; border-bottom:1px solid var(--border); text-align:right; white-space:nowrap; }
     .rx-table td:first-child { text-align:left; font-weight:600; position:sticky; left:0; background:var(--surface); }
     .rx-table tr:last-child td { border-bottom:none; }
     .rx-table tr.total td { font-weight:800; border-top:2px solid var(--border); background:var(--surface2); position:sticky; bottom:0; }
     .rx-table td.zero { color:var(--text-muted); opacity:0.45; }
-    .rx-empty { padding:48px 16px; text-align:center; color:var(--text-muted); font-size:13px; }
+    .rx-empty { padding:48px 16px; text-align:center; color:var(--text-muted); font-size:14px; }
 
     /* 커스텀 뷰 */
     .rx-mode { display:inline-flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:3px; }
-    .rx-mode button { border:none; background:none; color:var(--text-muted); font-size:12px; font-weight:700; padding:5px 13px; border-radius:999px; cursor:pointer; }
+    .rx-mode button { border:none; background:none; color:var(--text-muted); font-size:13px; font-weight:700; padding:5px 13px; border-radius:999px; cursor:pointer; }
     .rx-mode button.on { background:var(--accent); color:var(--accent-text); }
     [data-theme="light"] .rx-mode button.on { color:#fff; }
     #rxCustomFrame { width:100%; height:calc(100vh - 320px); min-height:420px; border:none; display:block; background:#fff; border-radius:12px; }
@@ -48,9 +48,9 @@
     .rxc-overlay.open { display:flex; }
     .rxc-modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:860px; max-width:100%; padding:22px; }
     .rxc-modal h3 { margin:0 0 10px; font-size:16px; }
-    .rxc-guide { font-size:12px; color:var(--text-muted); line-height:1.7; background:var(--surface2); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+    .rxc-guide { font-size:13px; color:var(--text-muted); line-height:1.7; background:var(--surface2); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
     .rxc-guide b { color:var(--text); }
-    .rxc-modal textarea { width:100%; min-height:320px; box-sizing:border-box; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:ui-monospace, Menlo, monospace; font-size:12px; padding:12px; outline:none; resize:vertical; }
+    .rxc-modal textarea { width:100%; min-height:320px; box-sizing:border-box; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:ui-monospace, Menlo, monospace; font-size:13px; padding:12px; outline:none; resize:vertical; }
     .rxc-modal textarea:focus { border-color:var(--accent); }
     .rxc-actions { display:flex; gap:8px; margin-top:12px; align-items:center; }
 
@@ -127,7 +127,7 @@
         <div class="rxc-actions">
             <button class="rx-csv" style="margin-left:0;" onclick="rxcInsertTemplate()">기본 템플릿 넣기</button>
             <button class="rx-csv" style="margin-left:0;" onclick="rxcCopy()">현재 코드 복사</button>
-            <span id="rxcStatus" style="font-size:12px; color:var(--text-muted);"></span>
+            <span id="rxcStatus" style="font-size:13px; color:var(--text-muted);"></span>
             <span style="flex:1;"></span>
             <button class="rx-csv" style="margin-left:0;" onclick="rxcClose()">닫기</button>
             <button class="rx-go" onclick="rxcSave()">저장</button>
@@ -226,7 +226,7 @@ function rxRender(){
     const ds = DATASETS[rxDataset()];
     const total = rows.reduce((a,r)=>a+(r.amount||0), 0);
     document.getElementById('rxSummary').innerHTML = rxDataset() === 'revenue'
-        ? `기록 ${fmt(rows.length)}건 · 총 매출 <b>${fmt(total)}원</b> <span style="font-size:11px;">(세팅비 ${fmt(rows.reduce((a,r)=>a+r.service,0))}원 · 장비판매 ${fmt(rows.reduce((a,r)=>a+r.product,0))}원)</span>`
+        ? `기록 ${fmt(rows.length)}건 · 총 매출 <b>${fmt(total)}원</b> <span style="font-size:12px;">(세팅비 ${fmt(rows.reduce((a,r)=>a+r.service,0))}원 · 장비판매 ${fmt(rows.reduce((a,r)=>a+r.product,0))}원)</span>`
         : `일정 ${fmt(rows.length)}건 · 기재 결제금액 합 <b>${fmt(total)}원</b>`;
 
     if (!rows.length) { wrap.innerHTML = '<div class="rx-empty">기간 내 매출 기록이 없습니다.</div>'; return; }

@@ -12,15 +12,15 @@
         .login-box { width: 360px; padding: 40px; background: #1a1a1a; border-radius: 16px; border: 1px solid #2a2a2a; }
         .logo { text-align: center; margin-bottom: 32px; }
         .logo h1 { font-size: 18px; font-weight: 700; color: #c8b08a; letter-spacing: 0.1em; }
-        .logo p { font-size: 12px; color: #8f8f8f; margin-top: 4px; }
+        .logo p { font-size: 13px; color: #8f8f8f; margin-top: 4px; }
         .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
-        input { width: 100%; padding: 10px 14px; background: #111; border: 1px solid #333; border-radius: 8px; color: #f0e8d8; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
+        input { width: 100%; padding: 10px 14px; background: #111; border: 1px solid #333; border-radius: 8px; color: #f0e8d8; font-size: 15px; outline: none; transition: border-color 0.2s; }
         input:focus { border-color: #c8b08a; }
-        .error { font-size: 12px; color: #c87a7a; margin-top: 6px; }
-        .btn { width: 100%; padding: 12px; background: #c8b08a; color: var(--accent-text); border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: filter 0.2s; }
+        .error { font-size: 13px; color: #c87a7a; margin-top: 6px; }
+        .btn { width: 100%; padding: 12px; background: #c8b08a; color: var(--accent-text); border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: filter 0.2s; }
         .btn:hover { filter: brightness(1.1); }
-        .remember { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; margin-top: 12px; }
+        .remember { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #888; margin-top: 12px; }
         .remember input { width: auto; }
         .pw-wrap { position: relative; }
         .pw-wrap input { padding-right: 40px; }

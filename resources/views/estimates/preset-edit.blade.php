@@ -19,21 +19,21 @@
         /* 좌측 — 제품 리스트 (견적서 편집과 동일 레이아웃) */
         .panel-left { width:420px; border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
         .panel-left-header { padding:14px 16px; border-bottom:1px solid var(--border); }
-        .panel-left-header h3 { font-size:14px; font-weight:700; margin-bottom:10px; }
+        .panel-left-header h3 { font-size:15px; font-weight:700; margin-bottom:10px; }
         .cat-tabs { display:flex; flex-direction:column; gap:5px; margin-bottom:9px; }
         .cat-tab-row { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-        .cat-tab-arrow { color:var(--text-muted); font-size:11px; margin-right:1px; }
-        .cat-tab { padding:4px 11px; font-size:11px; border:1px solid #b9cbe0; border-radius:7px; background:var(--surface); color:var(--accent); font-weight:600; cursor:pointer; }
+        .cat-tab-arrow { color:var(--text-muted); font-size:12px; margin-right:1px; }
+        .cat-tab { padding:4px 11px; font-size:12px; border:1px solid #b9cbe0; border-radius:7px; background:var(--surface); color:var(--accent); font-weight:600; cursor:pointer; }
         .cat-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
-        .search-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:13px; outline:none; }
+        .search-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:14px; outline:none; }
         .search-input:focus { border-color:var(--accent); }
         .product-list { flex:1; overflow-y:auto; padding:4px 8px; }
-        .product-item { display:flex; justify-content:space-between; align-items:center; padding:10px 8px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; font-size:13px; }
+        .product-item { display:flex; justify-content:space-between; align-items:center; padding:10px 8px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; font-size:14px; }
         .product-item:hover { background:var(--surface2); }
         .product-item .pi-name { flex:1; font-weight:600; }
-        .product-item .pi-cat { font-size:11px; color:var(--text-muted); margin-top:3px; font-weight:400; }
-        .product-item .pi-price { font-size:13px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
-        .product-item .pi-stock { font-size:11px; margin-left:8px; }
+        .product-item .pi-cat { font-size:12px; color:var(--text-muted); margin-top:3px; font-weight:400; }
+        .product-item .pi-price { font-size:14px; color:var(--navy); font-weight:700; white-space:nowrap; margin-left:10px; }
+        .product-item .pi-stock { font-size:12px; margin-left:8px; }
         .pi-stock.low { color:var(--red); }
         .pi-stock.ok { color:var(--text-muted); }
 
@@ -45,22 +45,22 @@
         .panel-right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
         .panel-right-header { background:var(--surface); padding:13px 20px; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center; }
         .panel-right-header h2 { font-size:17px; font-weight:800; color:var(--navy); white-space:nowrap; }
-        .title-input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:14px; font-weight:600; outline:none; }
+        .title-input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:15px; font-weight:600; outline:none; }
         .title-input:focus { border-color:var(--accent); }
         .est-body { flex:1; overflow-y:auto; padding:20px; background:var(--bg); }
         .cart-section { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:16px 18px; margin-bottom:14px; }
-        .cart-section h4 { font-size:12px; color:var(--slate); font-weight:700; margin-bottom:12px; letter-spacing:0.08em; }
+        .cart-section h4 { font-size:13px; color:var(--slate); font-weight:700; margin-bottom:12px; letter-spacing:0.08em; }
         .cart-table { width:100%; border-collapse:separate; border-spacing:0; }
-        .cart-table th { font-size:11px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; }
-        .cart-table td { font-size:13px; padding:9px 6px; border-bottom:1px solid var(--border); }
+        .cart-table th { font-size:12px; color:var(--slate); font-weight:700; letter-spacing:0.06em; text-align:left; padding:8px 6px 10px; border-bottom:1px solid #ccd4dd; }
+        .cart-table td { font-size:14px; padding:9px 6px; border-bottom:1px solid var(--border); }
         .cart-table tr:last-child td { border-bottom:none; }
         /* 대분류 밴드 — 슬레이트 배경 + 우측 소계 */
-        .cart-cat-header td { background:var(--slate); color:#fff; font-size:12px; font-weight:700; padding:8px 10px; border-bottom:none; }
+        .cart-cat-header td { background:var(--slate); color:#fff; font-size:13px; font-weight:700; padding:8px 10px; border-bottom:none; }
         .cart-cat-header td:first-child { border-radius:6px 0 0 6px; }
         .cart-cat-header td:last-child { border-radius:0 6px 6px 0; }
         .cart-row-num { color:var(--accent); font-weight:600; }
         /* 드래그 정렬 (견적서 편집과 동일) */
-        .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:12px; display:inline-block; vertical-align:middle; }
+        .drag-handle { cursor:grab; color:var(--text-muted); user-select:none; padding:0 3px; font-size:13px; display:inline-block; vertical-align:middle; }
         .drag-handle:active { cursor:grabbing; }
         .cart-cat-header .drag-handle { color:rgba(255,255,255,0.65); }
         tr.drop-hint td { border-top:2px solid var(--accent) !important; }
@@ -68,26 +68,26 @@
         tr.drag-preview td { opacity:0.8; background:rgba(46,108,181,0.10) !important; }
         tr.drag-src td { opacity:0.35; }
         /* 분류 소계 — 각 대분류 블록 최하단의 옅은 밴드 */
-        .cart-subtotal td { background:#f2f4f6; font-size:12px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
+        .cart-subtotal td { background:#f2f4f6; font-size:13px; font-weight:700; color:var(--navy); text-align:right; padding:9px 10px; border-bottom:none; }
         .cart-subtotal td:first-child { border-radius:0 0 0 6px; }
         .cart-subtotal td:last-child { border-radius:0 0 6px 0; }
         .qty-ctrl { display:flex; align-items:center; gap:3px; }
-        .qty-ctrl button { width:22px; height:22px; border:1px solid #9db8d4; background:var(--surface); color:var(--accent); border-radius:50%; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+        .qty-ctrl button { width:22px; height:22px; border:1px solid #9db8d4; background:var(--surface); color:var(--accent); border-radius:50%; cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; }
         .qty-ctrl button:hover { background:var(--surface2); }
-        .qty-ctrl input { width:34px; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; padding:3px 2px; outline:none; }
-        .btn-remove { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; }
+        .qty-ctrl input { width:34px; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; padding:3px 2px; outline:none; }
+        .btn-remove { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:15px; }
         .btn-remove:hover { color:var(--red); }
         .text-right { text-align:right; }
         .svc-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
-        .svc-row input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--text); font-size:12px; outline:none; }
+        .svc-row input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--text); font-size:13px; outline:none; }
         .svc-row input:focus { border-color:var(--accent); }
-        .btn-add-svc { background:none; border:1px dashed var(--border); color:var(--text-muted); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
+        .btn-add-svc { background:none; border:1px dashed var(--border); color:var(--text-muted); font-size:12px; padding:5px 10px; border-radius:6px; cursor:pointer; }
         .btn-add-svc:hover { border-color:var(--accent); color:var(--accent); }
         #btnSortMode.on, #btnSortMode.on:hover { background:var(--navy); color:#fff; border:1px solid var(--navy); }
         .total-section { background:var(--surface); border:1px solid #e3e6eb; border-radius:10px; padding:16px 18px; }
         .total-row { display:flex; justify-content:space-between; font-size:18px; font-weight:800; color:var(--navy); }
         .panel-right-footer { background:var(--surface); padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
-        .btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent; }
+        .btn { padding:9px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1px solid transparent; }
         .btn-save { background:var(--navy); color:#fff; font-weight:700; }
         .btn-save:hover { filter:brightness(1.25); }
         .btn-ghost { background:var(--surface); border-color:#d9dee5; color:var(--text-muted); }
@@ -103,7 +103,7 @@
         </div>
         <div style="display:flex; gap:6px;">
             <input class="search-input" id="prodSearch" placeholder="제품명/SKU 검색" oninput="filterProducts()" style="flex:1; width:auto; min-width:0;">
-            <select id="prodSort" onchange="onProdSortChange()" title="제품 리스트 정렬" style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 6px; color:var(--text); font-size:12px; outline:none; cursor:pointer; max-width:120px;">
+            <select id="prodSort" onchange="onProdSortChange()" title="제품 리스트 정렬" style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 6px; color:var(--text); font-size:13px; outline:none; cursor:pointer; max-width:120px;">
                 <option value="name_asc">제품명 ㄱ→ㅎ</option>
                 <option value="name_desc">제품명 ㅎ→ㄱ</option>
                 <option value="price_asc">가격 낮은순</option>
@@ -160,7 +160,7 @@
 <div id="optionPickerOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) closeOptionPicker()">
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(380px, 100%); max-height:70vh; display:flex; flex-direction:column;">
         <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border);">
-            <div style="font-size:14px; font-weight:700;" id="optPickerTitle">옵션 선택</div>
+            <div style="font-size:15px; font-weight:700;" id="optPickerTitle">옵션 선택</div>
             <button onclick="closeOptionPicker()" style="background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">×</button>
         </div>
         <div id="optPickerList" style="overflow-y:auto; padding:8px;"></div>
@@ -298,11 +298,11 @@ function filterProducts() {
         const prices = g.options.map(o => Number(o.sale_price) || 0);
         const mn = Math.min(...prices), mx = Math.max(...prices);
         return `<div class="product-item" onclick="openOptionPicker(${g.id})">
-            <div><div class="pi-name">${g.name} <span style="font-size:11px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
+            <div><div class="pi-name">${g.name} <span style="font-size:12px; color:var(--accent); border:1px solid #9db8d4; border-radius:4px; padding:0 5px;">옵션 ${g.options.length}종</span></div>
             <div class="pi-cat">${g.options[0]?.category_path || g.options[0]?.category || ''} · ${g.options.map(o => o.option_name || o.name).join(' / ')}</div></div>
             <div style="text-align:right;"><div class="pi-price">${mn === mx ? fmt(mn) : fmt(mn)+'~'+fmt(mx)}원</div></div>
         </div>`;
-    }).join('') || '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">제품이 없습니다.</div>';
+    }).join('') || '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">제품이 없습니다.</div>';
 }
 
 function openOptionPicker(groupId) {
@@ -378,7 +378,7 @@ function rebuildFromBlocks(order, map) {
 function renderCart() {
     const tb = document.getElementById('cartBody');
     if (!cartItems.length) {
-        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">좌측에서 제품을 선택하거나 아래에서 수기 품목을 추가하세요</td></tr>';
+        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">좌측에서 제품을 선택하거나 아래에서 수기 품목을 추가하세요</td></tr>';
         updateTotals();
         return;
     }
@@ -395,9 +395,9 @@ function renderCart() {
             globalIdx++;
             html += `<tr data-item-idx="${idx}" data-gidx="${gIdx}">
                 <td>${sortMode ? `<span class="drag-handle" draggable="true" data-drag-item="${idx}" title="드래그해서 순서 변경 (다른 대분류로도 이동 가능)">⠿</span> ` : ''}<span class="cart-row-num">${globalIdx}</span></td>
-                <td style="font-size:11px; color:var(--text-muted);">${_escE(item.category||'')}</td>
-                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:11px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:11px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
-                <td class="text-right"><input type="number" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:12px; outline:none;"></td>
+                <td style="font-size:12px; color:var(--text-muted);">${_escE(item.category||'')}</td>
+                <td>${_escE(item.name)}${(item.bundle_items||[]).length ? ` <span style="font-size:12px; color:var(--accent); border:1px solid #9db8d4; border-radius:3px; padding:0 4px;" title="${_escE(item.bundle_items.map(b=>`${b.name} ×${b.qty}${Number(b.price)?` · ${fmt(b.price)}원`:''}`).join('\n'))}">세트 ${item.bundle_items.length}</span>` : ''}${item.manual || !item.product_id ? ' <span style="font-size:12px; color:var(--text-muted); border:1px solid var(--border); border-radius:3px; padding:0 4px;">수기</span>' : ''}</td>
+                <td class="text-right"><input type="number" value="${item.sale_price}" onchange="setPrice(${idx}, +this.value)" style="width:86px; text-align:right; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 6px; color:var(--text); font-size:13px; outline:none;"></td>
                 <td><div class="qty-ctrl">
                     <button onclick="changeQty(${idx},-1)">−</button>
                     <input value="${item.qty}" onchange="setQty(${idx},+this.value)">

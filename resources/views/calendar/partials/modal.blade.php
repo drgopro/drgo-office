@@ -14,7 +14,7 @@
                     @endforeach
                 </div>
                 <div class="holiday-btn-wrap" style="margin-bottom:4px;">
-                    <span class="holiday-dot" id="holidayDot" style="font-size:12px;color:var(--text-muted);cursor:pointer;">📅 공휴일로 지정</span>
+                    <span class="holiday-dot" id="holidayDot" style="font-size:13px;color:var(--text-muted);cursor:pointer;">📅 공휴일로 지정</span>
                 </div>
                 <div class="title-wrap" style="display:flex;align-items:flex-start;gap:8px;">
                     <textarea class="modal-title-input" id="modalTitle" placeholder="일정 제목을 입력하세요 *" rows="1" style="flex:1;min-width:0;"></textarea>
@@ -32,15 +32,15 @@
                 <div class="assignee-list" id="notifyList" style="display:none;margin-top:8px;"></div>
             </div>
             <div class="modal-header-btns">
-                <span id="privateModeBadge" style="display:none;font-size:11px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa55;border-radius:6px;padding:2px 8px;font-weight:600;">🔒 개인</span>
+                <span id="privateModeBadge" style="display:none;font-size:12px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa55;border-radius:6px;padding:2px 8px;font-weight:600;">🔒 개인</span>
                 <span id="calWmSlot"></span>
-                <button class="icon-btn" id="lockBtn" onclick="toggleLock()" title="요약 보기" style="width:auto;padding:0 10px;font-size:12px;white-space:nowrap;">☐ 요약</button>
+                <button class="icon-btn" id="lockBtn" onclick="toggleLock()" title="요약 보기" style="width:auto;padding:0 10px;font-size:13px;white-space:nowrap;">☐ 요약</button>
                 <button class="btn-save-top" onclick="saveEvent()">저장</button>
                 <button class="icon-btn close-btn" onclick="closeModal()">✕</button>
             </div>
         </div>
         <div class="locked-banner" id="lockedBanner">📄&nbsp; 요약 보기 상태입니다 — 전체 내용을 보거나 수정하려면 '요약'을 해제하세요</div>
-        <div id="balanceBanner" style="display:none;align-items:center;gap:8px;background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.35);border-radius:8px;padding:8px 14px;font-size:12px;letter-spacing:0.05em;color:#e07070;margin:10px 28px 0;">
+        <div id="balanceBanner" style="display:none;align-items:center;gap:8px;background:rgba(200,80,80,0.1);border:1px solid rgba(200,80,80,0.35);border-radius:8px;padding:8px 14px;font-size:13px;letter-spacing:0.05em;color:#e07070;margin:10px 28px 0;">
             <span style="font-size:15px;">💰</span>
             <span id="balanceBannerText">잔금 있음</span>
         </div>
@@ -55,7 +55,7 @@
             {{-- 연차 차감 (휴가/개인 전용, 폼 최상단) — 담당자 기준 leave_usages 자동 기록, 토/일 제외 --}}
             <div class="field-section" id="leaveDeductRow" style="display:none;">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
-                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;user-select:none;" title="체크하면 담당자의 연차에서 자동 차감됩니다 (기간 내 토/일 제외)">
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;user-select:none;" title="체크하면 담당자의 연차에서 자동 차감됩니다 (기간 내 토/일 제외)">
                         <input type="checkbox" id="leaveDeductChk" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;" onchange="document.getElementById('leaveDeductType').style.display=this.checked?'':'none'">
                         🌴 연차 차감
                     </label>
@@ -63,7 +63,7 @@
                         <option value="full">연차 1일</option>
                         <option value="half">반차 0.5일</option>
                     </select>
-                    <span style="font-size:11px;color:var(--text-muted);">담당자 기준 · 토/일 제외 · 내 연차 페이지에 기록</span>
+                    <span style="font-size:12px;color:var(--text-muted);">담당자 기준 · 토/일 제외 · 내 연차 페이지에 기록</span>
                 </div>
             </div>
 
@@ -80,7 +80,7 @@
                 <div class="field-group">
                     <label class="field-label" for="moveFromLocation" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
                         <span>🚚 출발지 <span style="font-weight:400;color:var(--text-muted);">(이사 전 장소)</span></span>
-                        <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;font-size:12px;color:var(--text-muted);cursor:pointer;">
+                        <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;font-size:13px;color:var(--text-muted);cursor:pointer;">
                             <input type="checkbox" id="moveNoFrom" onchange="onMoveNoFromToggle()"> 출발지 없음
                         </label>
                     </label>
@@ -94,7 +94,7 @@
                         </div>
                         <input class="field-input" id="moveFromDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">
                     </div>
-                    <div id="moveNoFromNote" style="display:none;font-size:12px;color:var(--text-muted);padding:4px 2px;">출발지 없이 도착지(이사 후 장소)만 저장됩니다.</div>
+                    <div id="moveNoFromNote" style="display:none;font-size:13px;color:var(--text-muted);padding:4px 2px;">출발지 없이 도착지(이사 후 장소)만 저장됩니다.</div>
                     <input type="hidden" id="moveFromAddress" value="">
                 </div>
             </div>
@@ -105,7 +105,7 @@
                     <label class="field-label" for="modalLocation" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
                         <span><span id="addrBlockLabel">장소</span> <span class="req" id="addrReqMark">*</span></span>
                         {{-- 출발지 입력 토글 — 이사세팅·프로젝트 연동과 무관하게 출발지/도착지 입력 (방문의뢰 전용) --}}
-                        <label id="moveFromToggleWrap" style="display:none;align-items:center;gap:5px;font-weight:400;font-size:12px;color:var(--text-muted);cursor:pointer;" title="체크하면 출발지 입력칸이 열리고 이 장소는 '도착지'가 됩니다 (이사세팅 시 자동 체크)">
+                        <label id="moveFromToggleWrap" style="display:none;align-items:center;gap:5px;font-weight:400;font-size:13px;color:var(--text-muted);cursor:pointer;" title="체크하면 출발지 입력칸이 열리고 이 장소는 '도착지'가 됩니다 (이사세팅 시 자동 체크)">
                             <input type="checkbox" id="moveFromToggle" onchange="updateMoveSettingUI()"> 🚚 출발지 입력
                         </label>
                     </label>
@@ -116,7 +116,7 @@
                             <button type="button" class="addr-search-btn" onclick="clearCalAddr()" title="주소 지우기">✕ 지우기</button>
                             <button type="button" class="addr-search-btn" id="btnClientAddr" style="display:none;" onclick="applyLinkedClientAddress()" title="연동된 의뢰자에 저장된 주소로 채우기">👤 의뢰자 주소</button>
                             <button type="button" class="addr-search-btn" id="btnProjectAddr" style="display:none;" onclick="applyLinkedProjectAddress()" title="선택한 프로젝트의 세팅 장소로 채우기">📁 프로젝트 주소</button>
-                            <span style="font-size:11px;color:var(--text-muted);">도로명은 검색으로만, 상세주소는 아래 직접 입력</span>
+                            <span style="font-size:12px;color:var(--text-muted);">도로명은 검색으로만, 상세주소는 아래 직접 입력</span>
                         </div>
                         <input class="field-input" id="modalLocationDetail" placeholder="상세주소 (동/호수 등) 직접 입력" autocomplete="off" style="margin-top:2px;">
                         {{-- 현장 출입 정보 — 공동현관 출입 방법·반려동물 유무 수기 기입 --}}
@@ -136,7 +136,7 @@
                         <div class="toggle-track" id="alldayTrack"><div class="toggle-thumb"></div></div>
                         <span class="toggle-label">종일</span>
                     </div>
-                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer;user-select:none;margin-left:14px;" title="여러 날에 걸친 일정에서 토/일을 제외 — 캘린더에서 주말은 칩이 끊기고 평일만 이어집니다">
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;margin-left:14px;" title="여러 날에 걸친 일정에서 토/일을 제외 — 캘린더에서 주말은 칩이 끊기고 평일만 이어집니다">
                         <input type="checkbox" id="excludeWeekendsChk" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
                         주말 제외
                     </label>
@@ -159,7 +159,7 @@
                     <input class="dt-input" type="date" id="goldStartDate" style="flex:2;min-width:0;">
                     <input type="hidden" id="goldStartTime" value="13:00">
                     <div class="time-picker-trigger dt-input" id="goldStartTimeTrigger" onclick="openTimePicker(this,'goldStartTime')" style="flex:1;min-width:0;">13:00</div>
-                    <span style="color:var(--text-muted);font-size:13px;flex-shrink:0;">~</span>
+                    <span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">~</span>
                     <input class="dt-input" type="date" id="goldEndDate" style="flex:2;min-width:0;">
                     <input type="hidden" id="goldEndTime" value="14:00">
                     <div class="time-picker-trigger dt-input" id="goldEndTimeTrigger" onclick="openTimePicker(this,'goldEndTime')" style="flex:1;min-width:0;">14:00</div>
@@ -190,7 +190,7 @@
                 </div>
                 <div class="field-group" id="repeatGroup">
                     <div class="notif-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
-                        <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;color:var(--text);user-select:none;">
+                        <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;color:var(--text);user-select:none;">
                             <input type="checkbox" id="repeatChk" onchange="onRepeatChkToggle()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
                             🔁 반복 일정
                         </label>
@@ -210,12 +210,12 @@
                                 </select>
                             </span>
                             <span id="repeatUntilWrap" style="display:inline-flex;align-items:center;gap:4px;">
-                                <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">종료일</span>
+                                <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;">종료일</span>
                                 <input type="date" class="field-input" id="repeatUntil" style="width:140px;padding:6px 8px;">
                             </span>
                         </span>
                     </div>
-                    <div id="repeatEditNote" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;">🔁 반복 일정입니다 — 주기/종료일·카테고리를 바꾸면 <b>이 일정 이후</b>의 반복에 반영됩니다 (지난 반복은 그대로).</div>
+                    <div id="repeatEditNote" style="display:none;font-size:12px;color:var(--text-muted);margin-top:4px;">🔁 반복 일정입니다 — 주기/종료일·카테고리를 바꾸면 <b>이 일정 이후</b>의 반복에 반영됩니다 (지난 반복은 그대로).</div>
                 </div>
             </div>
 
@@ -226,7 +226,7 @@
                     <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;" onclick="toggleShipmentBody()">
                         <span><span class="ship-caret" id="shipCaret">▸</span> 📦 배송 현황 <span id="shipSummaryBadge" style="font-weight:400;"></span></span>
                         <span style="display:inline-flex;gap:4px;align-items:center;" onclick="event.stopPropagation();">
-                            <span style="font-weight:400;font-size:11px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
+                            <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="all" onclick="setShipIconOverride('all')" title="배송 완료로 표시" style="color:var(--green);">○</button>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="part" onclick="setShipIconOverride('part')" title="부분 배송으로 표시" style="color:#d78a2e;">△</button>
                             <button type="button" class="ship-mini-btn ship-ico-btn" data-sio="none" onclick="setShipIconOverride('none')" title="미배송으로 표시" style="color:var(--red);">✕</button>
@@ -237,7 +237,7 @@
                     <div id="shipmentBody" style="display:none;">
                         <div id="shipmentList"></div>
                         {{-- 송장 입력은 견적서 주문/배송으로 일원화 — 캘린더는 표시 전용 --}}
-                        <div id="shipEstimateNote" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 2px;font-size:12px;color:var(--text-muted);">
+                        <div id="shipEstimateNote" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 2px;font-size:13px;color:var(--text-muted);">
                             <span id="shipEstimateNoteText">송장은 견적서의 주문/배송에서 입력합니다.</span>
                             <button type="button" class="ship-mini-btn" id="shipEstimateOpenBtn" style="display:none;">견적서 배송 정보 열기</button>
                         </div>
@@ -272,12 +272,12 @@
             <div id="linkedClientInfo" style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:10px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <span style="font-size:11px;color:var(--text-muted);">연결된 의뢰자</span>
-                        <div style="font-size:13px;font-weight:600;" id="linkedClientName"></div>
+                        <span style="font-size:12px;color:var(--text-muted);">연결된 의뢰자</span>
+                        <div style="font-size:14px;font-weight:600;" id="linkedClientName"></div>
                     </div>
                     <div style="display:flex;gap:6px;">
-                        <a id="linkedClientLink" href="#" target="_blank" data-always-active style="font-size:11px;padding:3px 10px;text-decoration:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);display:inline-flex;align-items:center;">보기</a>
-                        <button type="button" onclick="unlinkClient()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;">해제</button>
+                        <a id="linkedClientLink" href="#" target="_blank" data-always-active style="font-size:12px;padding:3px 10px;text-decoration:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);display:inline-flex;align-items:center;">보기</a>
+                        <button type="button" onclick="unlinkClient()" style="background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:20px;font-size:12px;cursor:pointer;">해제</button>
                     </div>
                 </div>
             </div>
@@ -297,8 +297,8 @@
                 </div>
                 <div data-linked-est-box style="display:none;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
                     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <span style="font-size:11px;color:var(--text-muted);">연결된 견적서</span>
-                        <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:11px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
+                        <span style="font-size:12px;color:var(--text-muted);">연결된 견적서</span>
+                        <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:12px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
                     </div>
                     <div data-linked-est-list style="margin-top:4px;"></div>
                 </div>
@@ -324,7 +324,7 @@
                                 <div class="radio-btn" data-val="틱톡">틱톡</div>
                                 <div class="radio-btn" data-val="기타">기타</div>
                             </div>
-                            <div class="conditional-field" id="g_platform_etc_wrap" style="margin-top:0;flex:1;min-width:80px;"><input class="field-input" id="g_platform_etc" placeholder="직접 입력" style="font-size:13px;"></div>
+                            <div class="conditional-field" id="g_platform_etc_wrap" style="margin-top:0;flex:1;min-width:80px;"><input class="field-input" id="g_platform_etc" placeholder="직접 입력" style="font-size:14px;"></div>
                         </div>
                     </div>
                 </div>
@@ -344,7 +344,7 @@
                             <div class="radio-btn" data-val="기타">기타</div>
                             <div class="radio-btn" data-val="미정">미정</div>
                         </div>
-                        <div class="conditional-field" id="g_topic_etc_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_topic_etc" placeholder="방송 주제를 직접 입력하세요" style="font-size:13px;"></div>
+                        <div class="conditional-field" id="g_topic_etc_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_topic_etc" placeholder="방송 주제를 직접 입력하세요" style="font-size:14px;"></div>
                     </div>
                 </div>
 
@@ -366,7 +366,7 @@
                             <div class="radio-btn" data-val="모름">모름</div>
                             <div class="radio-btn" data-val="직접입력">직접입력</div>
                         </div>
-                        <div class="conditional-field" id="g_budget_etc_wrap" style="margin-top:0;flex:1;min-width:120px;"><input class="field-input" id="g_budget_etc" placeholder="예산 직접 입력" style="font-size:13px;"></div>
+                        <div class="conditional-field" id="g_budget_etc_wrap" style="margin-top:0;flex:1;min-width:120px;"><input class="field-input" id="g_budget_etc" placeholder="예산 직접 입력" style="font-size:14px;"></div>
                     </div>
                 </div>
 
@@ -381,7 +381,7 @@
                             <div class="radio-btn" data-val="커뮤니티">👥 커뮤니티</div>
                             <div class="radio-btn" data-val="기타">기타</div>
                         </div>
-                        <div class="conditional-field" id="g_source_ref_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름" style="font-size:13px;"></div>
+                        <div class="conditional-field" id="g_source_ref_wrap" style="margin-top:0;flex:1;min-width:100px;"><input class="field-input" id="g_source_ref" placeholder="소개해 준 분 이름" style="font-size:14px;"></div>
                     </div>
                 </div>
 
@@ -418,7 +418,7 @@
                             <div class="special-opt-btn" data-seopt="no_change" title="의뢰자와 협의된 날짜 — 일정을 옮길 수 없습니다"><span class="opt-icon">🔒</span>일정 변경 불가</div>
                         </div>
                         <div id="schedReasonWrap" style="display:none;margin-top:6px;">
-                            <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:13px;">
+                            <input class="field-input" id="schedAfterReason" placeholder="사유 (선택)" style="font-size:14px;">
                         </div>
                     </div>
                 </div>
@@ -434,7 +434,7 @@
                         <div class="special-opt-btn" data-opt="external_operator" id="extOperatorBtn" style="display:none;" title="체크하면 종일 일정으로 고정되고 전체/월/주/일 뷰 맨 위에 표시됩니다"><span class="opt-icon">🎛</span>외부 오퍼레이터</div>
                     </div>
                     <div id="specialReasonWrap" style="display:none;margin-top:6px;">
-                        <input class="field-input" id="specialReason" placeholder="차량 이용 사유 입력 (예: 장비 운반, 주차 공간 필요)" style="font-size:13px;">
+                        <input class="field-input" id="specialReason" placeholder="차량 이용 사유 입력 (예: 장비 운반, 주차 공간 필요)" style="font-size:14px;">
                     </div>
                 </div>
 
@@ -456,9 +456,9 @@
                 </div>
                 <div class="field-group">
                     <label class="field-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">세팅 항목
-                        <span style="font-weight:400;font-size:11px;color:var(--text-muted);">연결된 프로젝트의 의뢰 내용에서 불러옴 — 작성/수정은 프로젝트 페이지에서</span>
+                        <span style="font-weight:400;font-size:12px;color:var(--text-muted);">연결된 프로젝트의 의뢰 내용에서 불러옴 — 작성/수정은 프로젝트 페이지에서</span>
                     </label>
-                    <div id="reqItemsView" style="font-size:13px;line-height:1.7;"></div>
+                    <div id="reqItemsView" style="font-size:14px;line-height:1.7;"></div>
                 </div>
                 <div class="field-group">
                     <label class="field-label">의뢰 세부항목 (자유 메모)</label>
@@ -484,11 +484,11 @@
                         <label class="field-label">결제된 금액</label>
                         <div style="display:flex;align-items:center;gap:6px;">
                             <input class="field-input" id="g_estimate_amount" placeholder="금액 입력" type="text" style="flex:1;min-width:0;">
-                            <button type="button" id="g_estimate_btn" onclick="extractEstimateAmount()" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔍 추출</button>
-                            <span id="g_estimate_status" style="font-size:11px;color:var(--text-muted);white-space:nowrap;"></span>
+                            <button type="button" id="g_estimate_btn" onclick="extractEstimateAmount()" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:6px 8px;font-size:12px;cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔍 추출</button>
+                            <span id="g_estimate_status" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
                         </div>
                         {{-- 연동 견적서 환불 합계 — 프로젝트 환불·주문 내역 체크 시 자동 표시 (읽기 전용) --}}
-                        <div id="g_estimate_refund_view" data-amt="" style="display:none;margin-top:5px;font-size:12px;font-weight:700;color:var(--red, #dc2626);"></div>
+                        <div id="g_estimate_refund_view" data-amt="" style="display:none;margin-top:5px;font-size:13px;font-weight:700;color:var(--red, #dc2626);"></div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
@@ -514,7 +514,7 @@
                     </div>
                 </div>
                 {{-- 프로젝트 결제 연동 안내 — 프로젝트 연결 시 결제 금액/잔금은 프로젝트 결제 데이터에서 자동 반영 --}}
-                <div id="projPayNote" style="display:none;font-size:11px;color:var(--accent);margin:-4px 0 8px;"></div>
+                <div id="projPayNote" style="display:none;font-size:12px;color:var(--accent);margin:-4px 0 8px;"></div>
 
                 <div class="divider"></div>
 
@@ -533,8 +533,8 @@
                     {{-- 연결된 견적서 — 추가 견적 등 여러 개 연동 가능, 견적서별 보기/해제 --}}
                     <div id="linkedEstimateInfo" data-linked-est-box style="display:none;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <span style="font-size:11px;color:var(--text-muted);">연결된 견적서</span>
-                            <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:11px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
+                            <span style="font-size:12px;color:var(--text-muted);">연결된 견적서</span>
+                            <button type="button" onclick="openEstimateSearch()" data-always-active style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:12px;cursor:pointer;" title="추가 견적서 연동">+ 추가</button>
                         </div>
                         <div id="linkedEstimateList" data-linked-est-list style="margin-top:4px;"></div>
                     </div>
@@ -627,9 +627,9 @@
 
             {{-- 대여 이력 등록 (신규 등록 시에만) — 원격/방송룸: 시간/월 대여, 렌탈 카테고리: 렌탈 월 계약 --}}
             <div class="field-group" id="brRentalGroup" style="display:none;">
-                <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;color:var(--text);user-select:none;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;color:var(--text);user-select:none;">
                     <input type="checkbox" id="brRentalChk" onchange="onBrRentalToggle()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
-                    📄 대여 이력 등록 <span id="brRentalKindLabel" style="color:var(--text-muted);font-size:12px;">(방송룸)</span>
+                    📄 대여 이력 등록 <span id="brRentalKindLabel" style="color:var(--text-muted);font-size:13px;">(방송룸)</span>
                 </label>
                 <div id="brRentalFields" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
                     <select class="notif-select" id="brRentalMode" onchange="onBrRentalModeChange()">
@@ -638,7 +638,7 @@
                     </select>
                     <input class="field-input" id="brRentalRoom" placeholder="호실 (예: 2)" style="width:100px;padding:6px 8px;">
                     <input class="field-input" id="brRentalFee" type="number" min="0" placeholder="요금(원)" style="width:120px;padding:6px 8px;">
-                    <span id="brRentalHint" style="font-size:11px;color:var(--text-muted);flex-basis:100%;">의뢰자 연동 필수 · 월 대여/렌탈은 시작~종료일이 계약 기간이 됩니다 (제목은 자동 지정)</span>
+                    <span id="brRentalHint" style="font-size:12px;color:var(--text-muted);flex-basis:100%;">의뢰자 연동 필수 · 월 대여/렌탈은 시작~종료일이 계약 기간이 됩니다 (제목은 자동 지정)</span>
                 </div>
             </div>
 
@@ -650,7 +650,7 @@
                     <div class="upload-zone" id="uploadZone" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;position:relative;">
                         <input type="file" id="generalFileInput" multiple accept="*/*" onchange="handleGeneralFiles(this.files)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
                         <div style="font-size:22px;margin-bottom:5px;">📎</div>
-                        <div style="font-size:12px;color:var(--text-muted);">파일을 <span style="color:var(--accent);">클릭</span>하거나 드래그하여 첨부하세요<br><small style="opacity:0.55">이미지는 미리보기가 지원됩니다</small></div>
+                        <div style="font-size:13px;color:var(--text-muted);">파일을 <span style="color:var(--accent);">클릭</span>하거나 드래그하여 첨부하세요<br><small style="opacity:0.55">이미지는 미리보기가 지원됩니다</small></div>
                     </div>
                     <div class="img-grid" id="generalAttachGrid" style="margin-top:8px;"></div>
                 </div>
@@ -682,8 +682,8 @@
         </div>
 
         <div id="reasonField" style="display:none; padding:0 28px 12px;">
-            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">일정 변경 사유 <span style="color:var(--red);">* 날짜/시간 변경 시 필수</span></div>
-            <textarea id="modalReason" rows="2" placeholder="예: 의뢰자 요청으로 일정 변경" style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px; letter-spacing:0.04em;">일정 변경 사유 <span style="color:var(--red);">* 날짜/시간 변경 시 필수</span></div>
+            <textarea id="modalReason" rows="2" placeholder="예: 의뢰자 요청으로 일정 변경" style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; resize:vertical; box-sizing:border-box; font-family:inherit;"></textarea>
         </div>
 
         <div class="modal-footer">

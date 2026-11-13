@@ -1,21 +1,21 @@
 @once
 <style>
     .crm-tagpick .ctp-field { margin-bottom:14px; }
-    .crm-tagpick .ctp-cap { font-size:11px; color:var(--text-muted); margin-bottom:5px; display:flex; gap:8px; align-items:center; }
-    .crm-tagpick .ctp-hint { font-size:11px; opacity:0.65; font-weight:400; }
-    .crm-tagpick .ctp-major-select { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; cursor:pointer; box-sizing:border-box; }
+    .crm-tagpick .ctp-cap { font-size:12px; color:var(--text-muted); margin-bottom:5px; display:flex; gap:8px; align-items:center; }
+    .crm-tagpick .ctp-hint { font-size:12px; opacity:0.65; font-weight:400; }
+    .crm-tagpick .ctp-major-select { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; cursor:pointer; box-sizing:border-box; }
     .crm-tagpick .ctp-inputwrap { position:relative; }
-    .crm-tagpick .ctp-minor-input { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; }
+    .crm-tagpick .ctp-minor-input { width:100%; padding:8px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; }
     .crm-tagpick .ctp-suggest { position:absolute; left:0; right:0; top:100%; z-index:50; background:var(--surface); border:1px solid var(--border); border-radius:0 0 8px 8px; max-height:190px; overflow-y:auto; box-shadow:0 6px 18px rgba(0,0,0,0.25); }
-    .crm-tagpick .ctp-sug-item { padding:8px 11px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .crm-tagpick .ctp-sug-item { padding:8px 11px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .crm-tagpick .ctp-sug-item:hover, .crm-tagpick .ctp-sug-item.active { background:var(--surface2); }
     .crm-tagpick .ctp-sug-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .crm-tagpick .ctp-sug-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:15px; line-height:1; padding:0 4px; opacity:0.55; flex-shrink:0; }
     .crm-tagpick .ctp-sug-del:hover { color:var(--red); opacity:1; }
     .crm-tagpick .ctp-sug-new { color:var(--accent); font-weight:600; }
     .crm-tagpick .ctp-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-    .crm-tagpick .ctp-chip { display:inline-flex; align-items:center; gap:3px; font-size:12px; font-weight:600; padding:3px 5px 3px 10px; border-radius:13px; line-height:1.5; }
-    .crm-tagpick .ctp-chip-x { background:none; border:none; cursor:pointer; font-size:14px; line-height:1; padding:0 3px; color:inherit; opacity:0.6; }
+    .crm-tagpick .ctp-chip { display:inline-flex; align-items:center; gap:3px; font-size:13px; font-weight:600; padding:3px 5px 3px 10px; border-radius:13px; line-height:1.5; }
+    .crm-tagpick .ctp-chip-x { background:none; border:none; cursor:pointer; font-size:15px; line-height:1; padding:0 3px; color:inherit; opacity:0.6; }
     .crm-tagpick .ctp-chip-x:hover { opacity:1; }
     /* 대분류 = 붉은색 / 소분류 = 회색 */
     .crm-tagpick .ctp-chip.ctp-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }

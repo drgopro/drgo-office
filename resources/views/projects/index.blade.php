@@ -9,7 +9,7 @@
     .proj-tabstrip { display:none; align-items:center; background:var(--surface); border-bottom:1px solid var(--border); padding:0 10px; height:38px; gap:1px; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
     .proj-tabstrip::-webkit-scrollbar { display:none; }
     .proj-tabstrip.has-tabs { display:flex; }
-    .proj-tab { display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--text-muted); border:1px solid transparent; border-bottom:none; background:none; white-space:nowrap; border-radius:6px 6px 0 0; flex-shrink:0; transition:all .12s; }
+    .proj-tab { display:flex; align-items:center; gap:6px; padding:6px 12px; font-size:13px; cursor:pointer; color:var(--text-muted); border:1px solid transparent; border-bottom:none; background:none; white-space:nowrap; border-radius:6px 6px 0 0; flex-shrink:0; transition:all .12s; }
     .proj-tab:hover { color:var(--text); background:var(--surface2); }
     .proj-tab.active { color:var(--accent); background:var(--surface2); border-color:var(--border); font-weight:600; }
     .proj-tab .pt-close { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:3px; opacity:0.5; }
@@ -24,21 +24,21 @@
     .page-title { font-size:18px; font-weight:700; }
     .search-bar { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
     .search-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .search-input { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:13px; outline:none; width:240px; }
+    .search-input { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:14px; outline:none; width:240px; }
     .search-input:focus { border-color:var(--accent); }
-    .btn-search { background:var(--accent); color:var(--accent-text); border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-search { background:var(--accent); color:var(--accent-text); border:none; padding:8px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
     [data-theme="light"] .btn-search { color:#fff; }
-    .btn-search-reset { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 14px; border-radius:8px; font-size:12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
+    .btn-search-reset { background:none; border:1px solid var(--border); color:var(--text-muted); padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
     .btn-search-reset:hover { border-color:var(--accent); color:var(--accent); }
 
     /* 체크박스 칩 그룹 */
     /* 라벨 열 + 칩 열 분리 — 칩이 줄바꿈돼도 라벨 오른쪽 열 안에서 가지런히 정렬 */
     .filter-group { display:flex; align-items:flex-start; gap:8px; }
-    .filter-label { font-size:11px; color:var(--text-muted); letter-spacing:0.06em; min-width:42px; padding-top:6px; flex-shrink:0; }
+    .filter-label { font-size:12px; color:var(--text-muted); letter-spacing:0.06em; min-width:42px; padding-top:6px; flex-shrink:0; }
     .filter-chips { display:flex; flex-wrap:wrap; gap:5px 6px; flex:1; min-width:0; }
     .chip-toggle { position:relative; display:inline-flex; align-items:center; }
     .chip-toggle input { position:absolute; opacity:0; pointer-events:none; }
-    .chip-toggle .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--border); border-radius:20px; background:var(--surface); color:var(--text-muted); font-size:12px; cursor:pointer; transition:all .15s; user-select:none; line-height:1.4; white-space:nowrap; }
+    .chip-toggle .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--border); border-radius:20px; background:var(--surface); color:var(--text-muted); font-size:13px; cursor:pointer; transition:all .15s; user-select:none; line-height:1.4; white-space:nowrap; }
     .chip-toggle .chip::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--text-muted); opacity:0.4; transition:all .15s; }
     .chip-toggle:hover .chip { border-color:var(--accent); color:var(--text); }
     .chip-toggle input:checked + .chip { color:var(--text); border-color:var(--accent); background:var(--surface2); }
@@ -48,15 +48,15 @@
     .chip-toggle input:checked + .chip.chip-tag-major::before { background:#c0392b; opacity:1; }
     /* 접이식 태그 필터 */
     .tag-filter { border:1px solid var(--border); border-radius:10px; margin-top:4px; background:var(--surface); }
-    .tag-filter-toggle { display:flex; align-items:center; gap:8px; width:100%; background:none; border:none; padding:9px 14px; cursor:pointer; color:var(--text); font-size:13px; }
-    .tag-filter-caret { display:inline-block; transition:transform .15s; color:var(--text-muted); font-size:11px; }
+    .tag-filter-toggle { display:flex; align-items:center; gap:8px; width:100%; background:none; border:none; padding:9px 14px; cursor:pointer; color:var(--text); font-size:14px; }
+    .tag-filter-caret { display:inline-block; transition:transform .15s; color:var(--text-muted); font-size:12px; }
     .tag-filter.open .tag-filter-caret { transform:rotate(90deg); }
-    .tag-filter-count { background:var(--accent); color:var(--accent-text); font-size:11px; font-weight:700; border-radius:10px; padding:1px 8px; }
+    .tag-filter-count { background:var(--accent); color:var(--accent-text); font-size:12px; font-weight:700; border-radius:10px; padding:1px 8px; }
     .tag-filter-body { display:none; padding:4px 14px 14px; }
     .tag-filter.open .tag-filter-body { display:block; }
     .tag-section { padding:8px 0; }
     .tag-section + .tag-section { border-top:1px dashed var(--border); }
-    .tag-section-label { font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:7px; }
+    .tag-section-label { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:7px; }
     .tag-section-chips { display:flex; flex-wrap:wrap; gap:6px; }
     /* stage별 컬러 dot */
     .chip-toggle[data-stage="consulting"] input:checked + .chip::before { background:#c8b08a; }
@@ -71,30 +71,30 @@
     .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     table { width:100%; border-collapse:collapse; }
     thead { background:var(--surface2); }
-    th { padding:11px 16px; text-align:left; font-size:11px; color:var(--text-muted); font-weight:600; letter-spacing:0.05em; border-bottom:1px solid var(--border); }
-    td { padding:12px 16px; font-size:13px; border-bottom:1px solid var(--border); }
+    th { padding:11px 16px; text-align:left; font-size:12px; color:var(--text-muted); font-weight:600; letter-spacing:0.05em; border-bottom:1px solid var(--border); }
+    td { padding:12px 16px; font-size:14px; border-bottom:1px solid var(--border); }
     tr:last-child td { border-bottom:none; }
     tr:hover td { background:var(--surface2); }
     .project-link { font-weight:600; color:var(--text); text-decoration:none; }
     .pj-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
-    .pj-tag { font-size:11px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
+    .pj-tag { font-size:12px; font-weight:600; padding:2px 8px; border-radius:11px; line-height:1.4; }
     .pj-tag-major { background:rgba(200,80,80,0.14); color:#c0392b; border:1px solid rgba(200,80,80,0.4); }
     .pj-tag-minor { background:var(--surface2); color:var(--text-muted); border:1px solid var(--border); }
     .tag-pick { display:flex; flex-wrap:wrap; gap:6px; }
-    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
+    .tag-chip-pick { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid var(--border); border-radius:14px; font-size:13px; cursor:pointer; background:var(--surface2); color:var(--text-muted); user-select:none; }
     .tag-chip-pick input { display:none; }
     .tag-chip-pick:has(input:checked) { background:rgba(36,138,56,0.14); border-color:#248a38; color:#248a38; font-weight:600; }
-    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:11px; cursor:pointer; }
+    .tag-add-btn { background:none; border:1px solid var(--border); color:var(--accent); border-radius:6px; padding:2px 9px; font-size:12px; cursor:pointer; }
     .project-link:hover { color:var(--accent); }
-    .client-link { color:var(--text-muted); font-size:12px; text-decoration:none; }
+    .client-link { color:var(--text-muted); font-size:13px; text-decoration:none; }
     .client-link:hover { color:var(--accent); }
 
-    .badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .badge-visit   { background:#1a3a2a; color:#7ac87a; }
     .badge-remote  { background:#1a2a3a; color:#8ab4c8; }
     .badge-as      { background:#2a1a1a; color:#c87a7a; }
 
-    .stage-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
+    .stage-badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:4px; font-weight:600; }
     .stage-consulting { background:#2a2010; color:var(--accent); }
     .stage-equipment  { background:#1a2a1a; color:#7ac87a; }
     .stage-proposal   { background:#1a1a2a; color:#8ab4c8; }
@@ -107,7 +107,7 @@
 
     /* 전체/진행/완료/취소 탭 — 알약(세그먼트) 형태, 선택 탭은 떠 있는 흰 알약 */
     .proj-status-tabs { position:relative; display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:999px; padding:5px; margin-bottom:14px; overflow-x:auto; }
-    .pst-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.15s; }
+    .pst-tab { flex:1; position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; font-size:14px; font-weight:600; color:var(--text-muted); text-decoration:none; border-radius:999px; white-space:nowrap; transition:color 0.15s; }
     /* hover — 선택 알약은 그대로 두고, 더 옅은 톤의 알약이 살짝 비친다 */
     .pst-tab:hover:not(.active) { color:var(--text); background:rgba(255,255,255,0.07); transition:color 0.15s, background 0.15s; }
     [data-theme="light"] .pst-tab:hover:not(.active) { background:rgba(255,255,255,0.65); }
@@ -119,22 +119,22 @@
     [data-theme="light"] .proj-status-tabs:not(.pst-js) .pst-tab.active { background:#fff; box-shadow:0 2px 8px rgba(29,45,61,0.14); }
     /* 탭 전환 시 목록 페이드 */
     .table-wrap, .pagination { transition:opacity 0.18s ease; }
-    .pst-count { font-size:11px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:#a82e2e; }
+    .pst-count { font-size:12px; font-weight:700; padding:1px 7px; border-radius:9px; background:rgba(200,80,80,0.12); color:#a82e2e; }
     .pst-count-active { background:rgba(45,138,62,0.12); color:#1d7330; }
     .pst-count-done { background:rgba(74,144,217,0.14); color:#4a90d9; }
     [data-theme="light"] .pst-count-done { background:#e0f0ff; color:#2e6a9a; }
     .pst-count-all { background:rgba(150,150,170,0.16); color:var(--text-muted); }
-    .cancel-reason-sub { font-size:11px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .pj-restore-btn { margin-left:6px; padding:3px 9px; font-size:11px; font-weight:600; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
+    .cancel-reason-sub { font-size:12px; color:var(--text-muted); margin-top:3px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pj-restore-btn { margin-left:6px; padding:3px 9px; font-size:12px; font-weight:600; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
     .pj-restore-btn:hover { border-color:var(--accent); color:var(--accent); }
     /* 검색어 지우기 ✕ — 입력 내용이 있을 때만 표시 */
     .search-input-wrap { position:relative; display:inline-flex; flex:0 1 auto; }
     .search-input-wrap .search-input { padding-right:32px; width:260px; }
-    .search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text-muted); font-size:14px; cursor:pointer; padding:2px 4px; line-height:1; display:none; }
+    .search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--text-muted); font-size:15px; cursor:pointer; padding:2px 4px; line-height:1; display:none; }
     .search-input-wrap.has-text .search-clear { display:block; }
     .search-clear:hover { color:var(--text); }
 
-    .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:14px; }
+    .empty { text-align:center; padding:60px; color:var(--text-muted); font-size:15px; }
     .pagination { display:flex; justify-content:center; margin-top:20px; }
     [data-theme="light"] .badge-visit   { background:#e8f5e8; color:#1a7a2a; }
     [data-theme="light"] .badge-remote  { background:#e0f0ff; color:#1a5a8a; }
@@ -152,7 +152,7 @@
         .page-wrap { padding:16px; }
         .page-header { flex-direction:column; align-items:flex-start; gap:10px; }
         table { min-width:600px; }
-        th, td { padding:10px; font-size:12px; white-space:nowrap; }
+        th, td { padding:10px; font-size:13px; white-space:nowrap; }
         .search-bar { flex-direction:column; }
         .search-input { width:100%; }
     }
@@ -167,8 +167,8 @@
     .drgo-toggle-row.is-on .drgo-toggle-switch { background:var(--accent); }
     .drgo-toggle-row.is-on .drgo-toggle-switch::after { left:20px; }
     .drgo-toggle-label { flex:1; }
-    .drgo-toggle-label .title { font-size:13px; font-weight:600; }
-    .drgo-toggle-label .desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .drgo-toggle-label .title { font-size:14px; font-weight:600; }
+    .drgo-toggle-label .desc { font-size:12px; color:var(--text-muted); margin-top:2px; }
 </style>
 @endpush
 
@@ -182,10 +182,10 @@
         <div class="page-title">프로젝트 관리</div>
         <div style="display:flex; gap:8px;">
             @if(Auth::user()->hasPermission('projects.edit'))
-                <button style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
+                <button style="background:var(--accent); color:var(--accent-text); border:none; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;" onclick="openNewProjectModal()">+ 새 프로젝트</button>
             @endif
-            <a href="{{ route('projects.billing') }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">💸 잔금 관리</a>
-            <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')"><x-icon name="download" :size="14"/> 엑셀 가져오기</button>
+            <a href="{{ route('projects.billing') }}" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">💸 잔금 관리</a>
+            <button style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="openExcelImportModal('projects','프로젝트')"><x-icon name="download" :size="14"/> 엑셀 가져오기</button>
         </div>
     </div>
 
@@ -458,12 +458,12 @@
                     <td>
                         <a href="{{ route('projects.show', $project) }}" class="project-link" onclick="event.preventDefault(); goProjectDetail({{ $project->id }}, '{{ addslashes($project->name) }}');">{{ $project->name }}</a>
                         @if($project->marketing_consent === true)
-                            <span title="마케팅 활용 동의" style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;border:1px solid rgba(45,138,62,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✓ 마케팅</span>
+                            <span title="마케팅 활용 동의" style="display:inline-block;font-size:12px;padding:1px 6px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;border:1px solid rgba(45,138,62,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✓ 마케팅</span>
                             @if($project->marketing_posted_at)
-                                <span title="마케팅 포스팅 완료 {{ $project->marketing_posted_at->format('Y.m.d') }}" style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;vertical-align:middle;">포스팅 완료</span>
+                                <span title="마케팅 포스팅 완료 {{ $project->marketing_posted_at->format('Y.m.d') }}" style="display:inline-block;font-size:12px;padding:1px 6px;border-radius:8px;background:rgba(59,130,246,0.12);color:#2563eb;border:1px solid rgba(59,130,246,0.4);font-weight:700;white-space:nowrap;vertical-align:middle;">포스팅 완료</span>
                             @endif
                         @elseif($project->marketing_consent === false)
-                            <span title="마케팅 활용 거부" style="display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:rgba(200,80,80,0.10);color:var(--red);border:1px solid rgba(200,80,80,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✕ 마케팅</span>
+                            <span title="마케팅 활용 거부" style="display:inline-block;font-size:12px;padding:1px 6px;border-radius:8px;background:rgba(200,80,80,0.10);color:var(--red);border:1px solid rgba(200,80,80,0.35);font-weight:700;white-space:nowrap;vertical-align:middle;">✕ 마케팅</span>
                         @endif
                         @php $__tags = $project->tags ?? []; $__maj = $__tags['major'] ?? []; $__min = $__tags['minor'] ?? []; @endphp
                         @if(!empty($__maj) || !empty($__min))
@@ -487,7 +487,7 @@
                             @else
                                 <span class="text-muted" style="color:var(--text-muted);">(의뢰자 없음)</span>
                             @endif
-                            <span style="font-size:11px; padding:1px 6px; border-radius:8px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border); white-space:nowrap;">확인불가</span>
+                            <span style="font-size:12px; padding:1px 6px; border-radius:8px; background:var(--surface2); color:var(--text-muted); border:1px dashed var(--border); white-space:nowrap;">확인불가</span>
                         @endif
                     </td>
                     <td>
@@ -499,7 +499,7 @@
                         @if($showCancelled)
                             <span class="stage-badge stage-cancelled">취소</span>
                             @if($project->cancelled_from_stage)
-                                <span style="font-size:11px; color:var(--text-muted);">{{ $stageOptions[$project->cancelled_from_stage] ?? $project->cancelled_from_stage }} 중</span>
+                                <span style="font-size:12px; color:var(--text-muted);">{{ $stageOptions[$project->cancelled_from_stage] ?? $project->cancelled_from_stage }} 중</span>
                             @endif
                             @if(Auth::user()->hasPermission('projects.edit'))
                                 <button type="button" class="pj-restore-btn" onclick="restoreProject({{ $project->id }}, '{{ $project->cancelled_from_stage ?: 'consulting' }}', this)" title="취소를 해제하고 취소 직전 단계로 되돌립니다">↩ 복구</button>
@@ -560,33 +560,33 @@
             </label>
 
             <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">의뢰자 *</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">의뢰자 *</div>
                 <div id="npClientSearchWrap" style="position:relative;">
-                    <input type="text" id="npClientSearch" placeholder="이름/닉네임/전화 검색" autocomplete="off" oninput="searchProjectClients(this.value)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                    <input type="text" id="npClientSearch" placeholder="이름/닉네임/전화 검색" autocomplete="off" oninput="searchProjectClients(this.value)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                     <input type="hidden" id="npClientId">
                     <div id="npClientResults" style="display:none; position:absolute; left:0; right:0; top:100%; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; max-height:240px; overflow-y:auto; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
                 </div>
-                <div id="npClientPicked" style="margin-top:6px; font-size:12px; color:var(--accent); display:none;"></div>
+                <div id="npClientPicked" style="margin-top:6px; font-size:13px; color:var(--accent); display:none;"></div>
                 {{-- 의뢰자명 확인 불가 — 의뢰자 미연동 프로젝트 --}}
-                <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); cursor:pointer; margin-top:8px;">
                     <input type="checkbox" id="npNoClient" onchange="toggleNpNoClient()"> 의뢰자명 확인 불가 (의뢰자와 연동하지 않고 생성)
                 </label>
                 <div id="npManualNameWrap" style="display:none; margin-top:6px;">
-                    <input type="text" id="npManualName" placeholder="파악된 이름/별칭을 주관식으로 입력 (선택)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px dashed var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                    <input type="text" id="npManualName" placeholder="파악된 이름/별칭을 주관식으로 입력 (선택)" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px dashed var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                 </div>
             </div>
             <div>
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
-                <input type="text" id="npName" placeholder="예: 김광래 1차 방문세팅" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트명 *</div>
+                <input type="text" id="npName" placeholder="예: 김광래 1차 방문세팅" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
             </div>
             <div id="npTypeRow">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형 *</div>
-                <select id="npType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트 유형 *</div>
+                <select id="npType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;"></select>
             </div>
             <div id="npScaleRow" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div id="npScaleCol">
-                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">규모</div>
-                    <select id="npScale" onchange="updateNpWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+                    <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">규모</div>
+                    <select id="npScale" onchange="updateNpWorkType()" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;">
                         <option value="">선택</option>
                         <option value="personal">개인</option>
                         <option value="studio">스튜디오</option>
@@ -596,21 +596,21 @@
                     </select>
                 </div>
                 <div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
-                    <select id="npWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box;"></select>
+                    <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
+                    <select id="npWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;"></select>
                 </div>
             </div>
             <div id="npMemoRow">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
-                <textarea id="npMemo" rows="2" placeholder="간단한 프로젝트 개요" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
+                <textarea id="npMemo" rows="2" placeholder="간단한 프로젝트 개요" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
             </div>
             <div id="npTagRow">
                 @include('partials.tag-picker', ['key' => 'np'])
             </div>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
-            <button type="button" onclick="closeNewProjectModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;">취소</button>
-            <button type="button" onclick="submitNewProject()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">생성</button>
+            <button type="button" onclick="closeNewProjectModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
+            <button type="button" onclick="submitNewProject()" style="background:var(--accent);color:var(--accent-text);border:none;padding:8px 18px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;">생성</button>
         </div>
     </div>
 </div>
@@ -788,13 +788,13 @@ async function searchProjectClients(q) {
         try {
             const res = await fetch('/api/clients/search?q=' + encodeURIComponent(q), { headers:{'Accept':'application/json'} });
             const list = res.ok ? await res.json() : [];
-            const closeRow = `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface);border-bottom:1px solid var(--border);"><span style="font-size:11px;color:var(--text-muted);">검색 결과</span><button type="button" onclick="document.getElementById('npClientResults').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;">✕ 닫기</button></div>`;
+            const closeRow = `<div style="position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:5px 12px;background:var(--surface);border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--text-muted);">검색 결과</span><button type="button" onclick="document.getElementById('npClientResults').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;">✕ 닫기</button></div>`;
             if (!list.length) {
-                el.innerHTML = closeRow + '<div style="padding:12px; color:var(--text-muted); font-size:12px;">검색 결과 없음</div>';
+                el.innerHTML = closeRow + '<div style="padding:12px; color:var(--text-muted); font-size:13px;">검색 결과 없음</div>';
             } else {
                 el.innerHTML = closeRow + list.map(c => {
                     const display = (c.nickname || c.name || '') + (c.nickname && c.name ? ` (${c.name})` : '') + (c.phone ? ` · ${c.phone}` : '');
-                    return `<div onclick='pickNpClient(${c.id}, ${JSON.stringify(display)})' style="padding:9px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${display}</div>`;
+                    return `<div onclick='pickNpClient(${c.id}, ${JSON.stringify(display)})' style="padding:9px 12px; cursor:pointer; font-size:14px; border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${display}</div>`;
                 }).join('');
             }
             el.style.display = 'block';

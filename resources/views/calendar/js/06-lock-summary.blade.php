@@ -154,10 +154,10 @@ function renderLockSummary(){
                 const m=(typeof linkedEstimateMeta!=='undefined'&&linkedEstimateMeta[id])||{};
                 const label=`견적서 #${m.display_no??id}`;
                 const meta=[m.name?_esc(m.name):'', m.total?`${m.total.toLocaleString()}원`:''].filter(Boolean).join(' · ');
-                return `<div style="display:flex;align-items:center;gap:8px;font-size:13px;min-width:0;">
+                return `<div style="display:flex;align-items:center;gap:8px;font-size:14px;min-width:0;">
                     <a href="/estimates/${id}/edit" target="_blank" onclick="event.preventDefault(); drgoWriteMode.open(this.href, 'est_${id}')" style="color:var(--accent);text-decoration:none;font-weight:700;white-space:nowrap;" title="견적서 편집 화면 열기">${label} →</a>
                     <span style="color:var(--text-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${meta}</span>
-                    <button onclick="event.stopPropagation();window.open('/estimates/${id}/print','estimate_print_'+${id},'width=900,height=700,scrollbars=yes,resizable=yes')" data-always-active style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0;">출력 보기</button>
+                    <button onclick="event.stopPropagation();window.open('/estimates/${id}/print','estimate_print_'+${id},'width=900,height=700,scrollbars=yes,resizable=yes')" data-always-active style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:12px;cursor:pointer;flex-shrink:0;">출력 보기</button>
                 </div>`;
             }).join('')+'</div>';
     }
@@ -225,7 +225,7 @@ function renderLockSummary(){
     // 연동 의뢰자 주소 라벨 (자택/스튜디오/이사 전·후 등) — 주소 옆 칩
     const addrLabelChip = t => {
         const l = (typeof clientAddrLabelFor === 'function') ? clientAddrLabelFor(t) : '';
-        return l ? ` <span style="display:inline-block;margin-left:4px;font-size:11px;font-weight:600;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:1px 8px;border-radius:999px;vertical-align:1px;white-space:nowrap;">${_esc(l)}</span>` : '';
+        return l ? ` <span style="display:inline-block;margin-left:4px;font-size:12px;font-weight:600;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:1px 8px;border-radius:999px;vertical-align:1px;white-space:nowrap;">${_esc(l)}</span>` : '';
     };
     if (isMove && (mfLoc || location || mfAddr || addr)) {
         left.push(lsCard('일시 · 이사 이동 경로', `
@@ -357,11 +357,11 @@ function renderLockSummary(){
             const a = parseInt((amount||'').replace(/[^\d]/g,'')) || 0;
             const r = parseInt(lsRefund.replace(/[^\d]/g,'')) || 0;
             const after = a > r && r > 0 ? ` · 환불 반영 후 ${(a-r).toLocaleString()}원` : '';
-            return `<div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--red,#dc2626);">환불 ${_esc(lsRefund)}원${after}</div>`;
+            return `<div style="margin-top:6px;font-size:14px;font-weight:700;color:var(--red,#dc2626);">환불 ${_esc(lsRefund)}원${after}</div>`;
         })();
         left.push(lsCard('결제 금액', `
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span class="ls-amount-big">${amount?_esc(_fmtAmt(amount))+'원':'<span style="font-size:13px;color:var(--text-muted);font-weight:400;">결제 금액 미입력</span>'}</span>
+                <span class="ls-amount-big">${amount?_esc(_fmtAmt(amount))+'원':'<span style="font-size:14px;color:var(--text-muted);font-weight:400;">결제 금액 미입력</span>'}</span>
                 <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
                     ${(paid==='O'||paid==='결제완료')?'<span class="ls-state on">결제완료</span>':''}
                     ${amount && savedFlag ? '<span class="ls-saved-pill">✅ 저장된 금액</span>' : ''}
@@ -430,7 +430,7 @@ function renderLockSummary(){
     if (lsShips.length) {
         const shipPick=(v,label,color)=>`<button type="button" class="ship-mini-btn ship-ico-btn ${((shipIconOverride||'')===v)?'primary':''}" data-sio="${v}" onclick="event.stopPropagation();setShipIconOverride('${v}')"${color?` style="color:${color};"`:''}>${label}</button>`;
         const shipPicker=canEditCalendar?`<span style="display:inline-flex;gap:4px;align-items:center;">
-                <span style="font-size:11px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
+                <span style="font-size:12px;color:var(--text-muted);margin-right:2px;">제목 표시</span>
                 ${shipPick('all','○','var(--green)')}${shipPick('part','△','#d78a2e')}${shipPick('none','✕','var(--red)')}${shipPick('','없음','')}
             </span>`:'';
         left.push(lsCard('', `
@@ -568,17 +568,17 @@ async function lsLoadProjectSummary(pid){
             </div>
             ${p.client_req_note?`
             <div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb, var(--m-accent, #3A5683) 6%, #fff);border:1px solid color-mix(in srgb, var(--m-accent, #3A5683) 22%, #e0dfda);">
-                <div style="font-size:11px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
-                <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(p.client_req_note)}</div>
+                <div style="font-size:12px;font-weight:800;color:var(--m-accent,#3A5683);margin-bottom:3px;">📌 의뢰자 요구사항</div>
+                <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(p.client_req_note)}</div>
             </div>`:''}
             ${(p.estimates&&p.estimates.length)?`
             <div style="margin-top:8px;">
                 <div class="ls-info-label">연동 견적서</div>
-                ${p.estimates.map(e=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;">
+                ${p.estimates.map(e=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13px;">
                     <a href="/estimates/${e.id}/edit" target="_blank" onclick="event.preventDefault(); drgoWriteMode.open(this.href, 'est_${e.id}')" style="color:var(--accent);text-decoration:none;font-weight:600;">#${e.no ?? e.id}</a>
                     <span>${fmt(e.total_amount)}원</span>
                     <span class="ls-type-pill">${_esc(e.status)}</span>
-                    ${e.date?`<span style="color:var(--text-muted);font-size:11px;">${_esc(e.date)}</span>`:''}
+                    ${e.date?`<span style="color:var(--text-muted);font-size:12px;">${_esc(e.date)}</span>`:''}
                 </div>`).join('')}
             </div>`:''}`;
     }catch(e){ /* 네트워크 오류 — 로딩 문구 유지 */ }

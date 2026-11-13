@@ -7,7 +7,7 @@
 .wm-accent { color:var(--accent, #3b5ea0) !important; border:1px solid var(--accent, #3b5ea0) !important; background:color-mix(in srgb, var(--accent, #3b5ea0) 8%, transparent) !important; font-weight:700 !important; }
 .wm-accent:hover { background:var(--accent, #3b5ea0) !important; color:#fff !important; }
 .wm-menu { position:absolute; right:0; top:calc(100% + 4px); background:var(--surface, #fff); border:1px solid var(--border, #d0d5dd); border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.15); padding:4px; z-index:9500; min-width:150px; }
-.wm-menu button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:13px; border-radius:6px; cursor:pointer; color:var(--text, #1a1e28); white-space:nowrap; }
+.wm-menu button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:14px; border-radius:6px; cursor:pointer; color:var(--text, #1a1e28); white-space:nowrap; }
 .wm-menu button:hover { background:var(--surface2, #eceef2); }
 .wm-menu button.on::after { content:' ✓'; color:var(--accent, #3b5ea0); font-weight:700; }
 </style>
