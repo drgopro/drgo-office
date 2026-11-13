@@ -38,7 +38,19 @@ class EstimateController extends Controller
             'presets' => EstimatePreset::count(),
         ];
 
-        return view('estimates.index', compact('tabCounts'));
+        // 새 디자인 요약 줄 — 테스트 견적 제외, 차수(라운드) 제외한 부모 견적 기준
+        $real = (clone $base)->real();
+        $monthStart = now()->startOfMonth();
+        $glance = [
+            'month' => (clone $real)->where('status', '!=', 'quote_cancelled')->where('created_at', '>=', $monthStart)
+                ->selectRaw('count(*) as c, coalesce(sum(total_amount),0) as s')->first(),
+            'waiting' => (clone $real)->whereIn('status', ['issued', 'completed'])
+                ->selectRaw('count(*) as c, coalesce(sum(total_amount),0) as s')->first(),
+            'paid' => (clone $real)->where('status', 'paid')->where('paid_at', '>=', $monthStart)
+                ->selectRaw('count(*) as c, coalesce(sum(total_amount),0) as s')->first(),
+        ];
+
+        return view('estimates.index', compact('tabCounts', 'glance'));
     }
 
     public function estimates(Request $request)

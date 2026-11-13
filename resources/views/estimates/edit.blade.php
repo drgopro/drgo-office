@@ -335,6 +335,26 @@
         }
     </style>
 @include('partials.write-mode')
+@include('partials.ux-flag')
+@include('partials.ux-v2-theme')
+{{-- 새 화면 디자인(UX v2) — 견적서 편집. html.ux-v2 일 때만 적용 (스위치로 롤백) --}}
+<style id="ux-v2-estimate">
+html.ux-v2 .client-section, html.ux-v2 .cart-section, html.ux-v2 .total-section { border-color:var(--border); border-radius:14px; padding:18px 20px; }
+html.ux-v2 .client-section h4, html.ux-v2 .cart-section h4 { font-size:15px; font-weight:800; color:var(--text); letter-spacing:-.02em; }
+html.ux-v2 .panel-right-header { padding:14px 22px; }
+html.ux-v2 .panel-right-header h2, html.ux-v2 .panel-right-header .est-title { font-weight:800; letter-spacing:-.04em; }
+html.ux-v2 .panel-right-footer { padding:12px 22px; box-shadow:0 -8px 20px -18px rgba(23,26,32,.4); }
+html.ux-v2 .panel-left, html.ux-v2 .panel-presets { background:#fff; }
+html.ux-v2 .est-body { padding:22px; }
+html.ux-v2[data-theme="light"] { --navy:#1f2430; --slate:#3b404a; --slate-lt:#e6e8ec; } /* 남색·청회색 → 먹색 계열 (새 테마와 통일) */
+html.ux-v2 .cart-cat-header td { background:#eceef2; color:var(--text); border-top:1px solid var(--border); }
+html.ux-v2 .cart-cat-header td button { color:var(--text-muted) !important; border-color:var(--border) !important; background:#fff !important; }
+@media (max-width: 768px) { html.ux-v2 .cart-cat-header { background:#eceef2 !important; } html.ux-v2 .cart-cat-header td { background:none; border-top:0; } }
+html.ux-v2 .cart-table th { color:var(--text-muted); font-size:13px; letter-spacing:0; }
+html.ux-v2 .btn-save { background:var(--accent); border-color:var(--accent); }
+/* 검토 버튼: 기본은 테두리 버튼(저장만 진하게), 검토 상태 색(문제·재검토·통과)은 그대로 */
+html.ux-v2 #rvBtn:not(.st-bad):not(.st-stale):not(.st-ready) { background:#fff; color:var(--text); border-color:#c5cad2; }
+</style>
 </head>
 <body>
 <div class="panel-left">
@@ -707,6 +727,7 @@
                 <button onclick="footMoreRun(() => openActivityLog('Estimate',{{ $estimate->id }},'견적서 #{{ $estimate->display_no }} 수정 로그'))">로그 <span>변경 이력</span></button>
                 <button onclick="footMoreRun(openStatement)">거래명세서 <span>공급가액·세액 분리</span></button>
                 <button onclick="footMoreRun(printEstimate)">🖨 견적서 출력 <span>인쇄용 문서</span></button>
+                <button onclick="drgoUx.set(drgoUx.on ? 'v1' : 'v2')" style="{{ config('ux.v2') ? '' : 'display:none;' }}"><script>document.write(window.drgoUx && drgoUx.on ? '이전 디자인으로 보기' : '새 디자인으로 보기')</script></button>
                 <button onclick="footMoreRun(toggleTestMode)">테스트 모드 <span id="fmTestState">{{ $estimate->is_test ? '켜짐 — 검토 생략' : '꺼짐' }}</span></button>
                 <button class="fm-danger" onclick="footMoreRun(deleteEstimate)">삭제 <span>이 견적서 삭제</span></button>
             </div>

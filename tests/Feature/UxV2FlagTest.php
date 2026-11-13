@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -51,5 +52,19 @@ class UxV2FlagTest extends TestCase
             ->assertOk()
             ->assertSee('id="ux2Glance"', false)
             ->assertSee('id="uxSwitchSlot"', false);
+    }
+
+    public function test_estimate_list_glance_excludes_test_estimates(): void
+    {
+        config(['ux.v2' => true]);
+        $user = User::factory()->create(['role' => 'master']);
+        Estimate::create(['client_name' => '실견적', 'total_amount' => 123400, 'status' => 'paid', 'paid_at' => now(), 'created_by' => $user->id]);
+        Estimate::create(['client_name' => '테스트', 'total_amount' => 999900, 'status' => 'paid', 'paid_at' => now(), 'is_test' => true, 'created_by' => $user->id]);
+
+        $this->actingAs($user)->get('/estimates')
+            ->assertOk()
+            ->assertSee('id="ux2Glance"', false)
+            ->assertSee('123,400원')
+            ->assertDontSee('999,900원');
     }
 }

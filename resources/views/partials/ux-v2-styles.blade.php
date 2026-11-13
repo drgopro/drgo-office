@@ -115,6 +115,23 @@ html.ux-v2 .page-wrap .project-name { font-size:26px; font-weight:800; letter-sp
 html.ux-v2 .page-wrap .info-card { border-color:var(--ux-line); border-radius:14px; }
 html.ux-v2 .page-wrap .card-title { font-size:15px; font-weight:800; color:var(--ux-ink); letter-spacing:-.02em; }
 html.ux-v2 .page-wrap .ux2-glance { margin:0 0 16px; }
+/* 프로젝트 머리글 버튼 — 중간 폭에서 두 줄로 쪼개지지 않게: 한 단계 작게, 그래도 모자라면 버튼 줄 전체를 제목 아래 한 줄로 */
+html.ux-v2 .page-wrap .proj-actions { flex-wrap:nowrap !important; flex-shrink:0; }
+html.ux-v2 .page-wrap .page-header-left { min-width:0; }
+@media (max-width: 1500px) and (min-width: 769px) {
+    html.ux-v2 .page-wrap .proj-actions { gap:6px !important; }
+    html.ux-v2 .page-wrap .proj-actions button, html.ux-v2 .page-wrap .proj-actions .ux2-switch { padding:6px 11px !important; font-size:12px !important; line-height:18px !important; min-height:0 !important; }
+}
+@media (max-width: 1280px) and (min-width: 769px) {
+    html.ux-v2 .page-wrap .page-header { flex-wrap:wrap; row-gap:12px; }
+    html.ux-v2 .page-wrap .proj-actions { width:100%; justify-content:flex-end; }
+}
+/* ── 견적서 목록 ── */
+html.ux-v2 .page-wrap .page-title { font-size:26px; font-weight:800; letter-spacing:-.05em; }
+html.ux-v2 .page-wrap .data-card { border-color:var(--ux-line); border-radius:14px; overflow:hidden; }
+html.ux-v2 .page-wrap .data-table thead th { background:#f6f7f9; color:var(--ux-sub); font-size:12px; font-weight:700; letter-spacing:0; }
+html.ux-v2 .page-wrap .data-table tbody tr:hover td { background:#f8f9fb; }
+html.ux-v2 .page-wrap .est-tabs { background:#e9ebef; border-color:transparent; }
 @media (max-width: 768px) {
     html.ux-v2 .page-wrap .page-header { flex-direction:column; align-items:stretch; gap:12px; margin-bottom:16px; }
     html.ux-v2 .page-wrap .page-header-left { flex-direction:column; align-items:flex-start; gap:6px; }

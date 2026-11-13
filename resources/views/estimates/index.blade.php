@@ -3,6 +3,7 @@
 @section('title', '견적서 - 닥터고블린 오피스')
 
 @push('styles')
+@include('partials.ux-v2-styles')
 <style>
     .page-wrap { padding:24px; max-width:1100px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
@@ -170,9 +171,24 @@
             @if(auth()->user()?->hasPermission('estimates.review_admin'))
             <button class="btn-review-rules" onclick="location.href='{{ route('estimate-review.settings') }}'" title="견적서 검토가 확인하는 규칙·역할·규격 관리">검토 규칙</button>
             @endif
+            <span id="uxSwitchSlot"></span>
             <button class="btn-primary" id="headerActionBtn" onclick="createEstimate()">+ 견적서 생성</button>
         </div>
     </div>
+
+    {{-- 새 화면 디자인(UX v2) 요약 줄 — html.ux-v2 일 때만 보임. 테스트 견적 제외 --}}
+    <div class="ux2-glance three" id="ux2Glance">
+        <div class="ux2-g"><h3>이번 달 견적<span class="more">{{ now()->format('n') }}월</span></h3>
+            <div class="ux2-big">{{ number_format($glance['month']->s ?? 0) }}원</div>
+            <div class="ux2-mini">{{ number_format($glance['month']->c ?? 0) }}건 작성</div></div>
+        <div class="ux2-g"><h3>결제 기다리는 중</h3>
+            <div class="ux2-big">{{ number_format($glance['waiting']->s ?? 0) }}원</div>
+            <div class="ux2-mini">발행·완료 {{ number_format($glance['waiting']->c ?? 0) }}건</div></div>
+        <div class="ux2-g"><h3>이번 달 결제 완료<span class="ok">{{ number_format($glance['paid']->c ?? 0) }}건</span></h3>
+            <div class="ux2-big">{{ number_format($glance['paid']->s ?? 0) }}원</div>
+            <div class="ux2-mini">결제일 기준</div></div>
+    </div>
+    <script>(function () { const slot = document.getElementById('uxSwitchSlot'); if (slot && window.drgoUx) { slot.outerHTML = drgoUx.toggleHtml('btn-review-rules'); } })();</script>
 
     <div class="est-tabs">
         <button class="est-tab" id="tabBtnAll" onclick="setEstTab('all')">전체<span class="est-count est-count-all">{{ $tabCounts['all'] ?? 0 }}</span></button>
