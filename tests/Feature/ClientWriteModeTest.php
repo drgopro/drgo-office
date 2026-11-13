@@ -124,7 +124,7 @@ class ClientWriteModeTest extends TestCase
         $this->actingAs($this->userWith(['clients.view']))
             ->get("/clients/{$this->client->id}/write")
             ->assertOk()
-            ->assertSee('id="wmTrail"', false)
+            ->assertSee('class="wmtabs"', false)
             ->assertSee("window.name = 'drgo-write'", false)
             ->assertSee('function toWriteUrl(type, url)', false);
 

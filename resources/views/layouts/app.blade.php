@@ -212,8 +212,9 @@ document.addEventListener('click', function(e){
 
         /* ── 상단 '✍ 작성 모드' — 지금 보는 화면/새 작성을 독립 창으로 ── */
         .wm-top { position:relative; }
-        .wm-top-btn { display:flex; align-items:center; gap:6px; height:28px; padding:0 12px; border-radius:8px; border:none; background:var(--accent); color:var(--accent-text, #fff); font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.12); }
-        .wm-top-btn:hover { filter:brightness(1.08); }
+        .wm-top-btn { display:flex; align-items:center; gap:6px; height:30px; padding:0 10px 0 11px; border-radius:8px; border:1.5px solid #1f2430; background:#fff; color:#1f2430; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:background-color .12s, color .12s; }
+        .wm-top-btn::after { content:""; width:6px; height:6px; border-right:1.6px solid currentColor; border-bottom:1.6px solid currentColor; transform:rotate(45deg) translate(-2px,-2px); margin-left:2px; }
+        .wm-top-btn:hover, .wm-top.open .wm-top-btn { background:#1f2430; color:#fff; }
         .wm-top-btn svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
         .wm-top-panel { display:none; position:absolute; right:0; top:calc(100% + 6px); width:300px; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.18); padding:8px; z-index:400; }
         .wm-top-panel.open { display:block; }
@@ -339,6 +340,11 @@ document.addEventListener('click', function(e){
             html[data-theme] .header .logo { color:#fff; border-right:none; display:flex; align-items:center; }
             html[data-theme] .header .logo .logo-text { display:none; }
             html[data-theme] .header .logo .logo-img { display:block; height:26px; width:auto; }
+            /* 접힌 사이드바 — 가로로 긴 로고가 좁은 폭에 잘려 보이지 않게 정사각 표시(닥★)로 바꾼다 */
+            html[data-theme] body.side-collapsed .header .logo { justify-content:center; padding:0 0 12px; margin:0 0 8px; }
+            html[data-theme] body.side-collapsed .header .logo .logo-img { display:none; }
+            html[data-theme] body.side-collapsed .header .logo::before { content:"닥"; font-size:21px; font-weight:800; color:#fff; letter-spacing:-.02em; line-height:1; }
+            html[data-theme] body.side-collapsed .header .logo::after { content:"★"; font-size:10px; color:#e5484d; align-self:flex-start; margin-left:1px; }
             html[data-theme] .side-toggle { color:#8fa0bd; background:transparent; border-color:#334565; }
             html[data-theme] .side-search { background:rgba(255,255,255,0.06); border-color:#334565; color:#9aa9c4; }
             html[data-theme] .side-search:hover { border-color:#5c7aa6; color:#dbe3f0; }

@@ -9,35 +9,45 @@
     <meta name="robots" content="noindex">
     <title>@yield('title', '닥터고블린 오피스')</title>
     <style>
-        .wmnav { position:sticky; top:0; z-index:9000; display:flex; align-items:center; gap:6px; height:46px; padding:0 12px; background:#1f2b40; color:#dfe6f2; box-shadow:0 1px 0 rgba(0,0,0,.15); }
-        .wmnav-title { font-size:13px; font-weight:800; color:#fff; white-space:nowrap; margin-right:4px; }
-        .wmnav button, .wmnav a { flex-shrink:0; height:30px; padding:0 10px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:transparent; color:#dfe6f2; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
-        .wmnav button:hover, .wmnav a:hover { background:rgba(255,255,255,.08); }
-        .wmnav .arrow { width:30px; padding:0; justify-content:center; font-size:15px; }
-        .wmnav .sep { width:1px; height:20px; background:rgba(255,255,255,.18); flex-shrink:0; margin:0 4px; }
-        .wmnav-trail { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; flex:1; min-width:0; }
-        .wmnav-trail a { max-width:220px; }
-        .wmnav-trail a span { overflow:hidden; text-overflow:ellipsis; }
-        .wmnav-trail a small { font-size:11px; font-weight:600; color:#93a3c2; }
-        .wmnav-trail a.on { background:#fff; color:#1f2b40; border-color:#fff; }
-        .wmnav-trail a.on small { color:#5f6b85; }
-        .wm-popwrap { position:relative; flex-shrink:0; }
-        .wm-pop { display:none; position:absolute; left:0; top:calc(100% + 8px); width:380px; max-width:calc(100vw - 24px); background:#fff; color:#1a1e28; border:1px solid #d0d5dd; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.18); padding:10px; z-index:9600; }
+        .wmnav { position:sticky; top:0; z-index:9000; display:flex; align-items:center; gap:14px; height:52px; padding:0 16px; background:#fff; border-bottom:1px solid #dfe2e7; }
+        .wmnav-title { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:#1f2430; white-space:nowrap; flex-shrink:0; }
+        .wmnav-title svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+        .wmtabs { display:flex; align-items:stretch; gap:4px; height:38px; padding:3px; background:#f0f2f5; border-radius:11px; min-width:0; }
+        .wmtab { position:relative; display:flex; align-items:center; min-width:0; border-radius:8px; }
+        .wmtab.on { background:#fff; box-shadow:0 1px 2px rgba(23,26,32,.12), 0 0 0 1px #e1e4e9; }
+        .wmtab-go { display:flex; align-items:center; gap:7px; line-height:1.2; height:100%; padding:0 6px 0 12px; border:0; background:none; cursor:pointer; min-width:0; max-width:240px; font:inherit; color:#5f6573; }
+        .wmtab-go b { font-size:13px; font-weight:700; color:#3b404a; white-space:nowrap; }
+        .wmtab-go span { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+        .wmtab.on .wmtab-go b, .wmtab.on .wmtab-go span { color:#171a20; }
+        .wmtab.on .wmtab-go span { font-weight:600; }
+        .wmtab-find { flex-shrink:0; width:26px; height:26px; margin-right:4px; border:0; border-radius:6px; background:none; color:#656b78; cursor:pointer; display:grid; place-items:center; }
+        .wmtab-find:hover { background:#e6e8ec; color:#171a20; }
+        .wmtab-find svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; }
+        .wmtab.cal .wmtab-go { padding-right:12px; }
+        .wm-pop { display:none; position:absolute; left:0; top:calc(100% + 8px); width:380px; max-width:calc(100vw - 24px); background:#fff; color:#1a1e28; border:1px solid #d0d5dd; border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.16); padding:10px; z-index:9600; }
         .wm-pop.open { display:block; }
-        .wm-pop .wm-pop-new { width:100%; height:34px; margin-bottom:8px; border-radius:8px; border:1px dashed #9aa3b2; background:#f6f7f9; color:#1f2b40; font-size:13px; font-weight:700; cursor:pointer; }
-                @media (max-width: 640px) { .wmnav-title { display:none; } }
+        .wm-pop .wm-pop-new { width:100%; height:34px; margin-bottom:8px; border-radius:8px; border:1px dashed #9aa3b2; background:#f6f7f9; color:#1f2430; font-size:13px; font-weight:700; cursor:pointer; }
+        /* 작성 모드 화면 — 넓은 창에서 의뢰자 화면이 끝없이 늘어나지 않게 */
+        body .client-pane { max-width:1320px; margin:0 auto; }
+        @media (max-width: 720px) {
+            .wmnav { padding:0 10px; gap:8px; }
+            .wmnav-title span { display:none; }
+            .wmtabs { flex:1; }
+            .wmtab { flex:1; }
+            .wmtab-go { padding:0 4px 0 10px; flex:1; }
+            .wmtab-go span { display:none; }
+            .wm-pop { position:fixed; left:10px; right:10px; top:58px; width:auto; }
+        }
     </style>
 </head>
 <body style="margin:0; background:var(--bg, #f4f5f7);">
 <nav class="wmnav" aria-label="작성 모드 이동">
-    <span class="wmnav-title">작성 모드</span>
-    <button type="button" class="arrow" onclick="history.back()" title="뒤로" aria-label="뒤로">‹</button>
-    <button type="button" class="arrow" onclick="history.forward()" title="앞으로" aria-label="앞으로">›</button>
-    <span class="wm-popwrap"><button type="button" onclick="wmNavPop(event,'clients')">의뢰자 ▾</button><div class="wm-pop" id="wmPopClients"></div></span>
-    <span class="wm-popwrap"><button type="button" onclick="wmNavPop(event,'projects')">프로젝트 ▾</button><div class="wm-pop" id="wmPopProjects"></div></span>
-    <a href="/calendar/write" title="캘린더 열기">캘린더</a>
-    <span class="sep"></span>
-    <div class="wmnav-trail" id="wmTrail"></div>
+    <span class="wmnav-title"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>작성 모드</span></span>
+    <div class="wmtabs" role="tablist">
+        <div class="wmtab" data-kind="clients"><button type="button" class="wmtab-go" role="tab" onclick="wmGo('clients')"><b>의뢰자</b><span></span></button><button type="button" class="wmtab-find" onclick="wmNavPop(event,'clients')" title="다른 의뢰자 찾기 · 새 등록" aria-label="의뢰자 찾기"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button><div class="wm-pop" id="wmPopClients"></div></div>
+        <div class="wmtab" data-kind="projects"><button type="button" class="wmtab-go" role="tab" onclick="wmGo('projects')"><b>프로젝트</b><span></span></button><button type="button" class="wmtab-find" onclick="wmNavPop(event,'projects')" title="다른 프로젝트 찾기" aria-label="프로젝트 찾기"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button><div class="wm-pop" id="wmPopProjects"></div></div>
+        <div class="wmtab cal" data-kind="calendar"><button type="button" class="wmtab-go" role="tab" onclick="wmGo('calendar')"><b>캘린더</b></button></div>
+    </div>
 </nav>
 @include('layouts.tab-content')
 <script>
@@ -81,6 +91,7 @@ try { window.name = 'drgo-write'; } catch (e) {}
     window.wmNavPop = function (e, kind) {
         e.stopPropagation();
         const pop = document.getElementById(kind === 'clients' ? 'wmPopClients' : 'wmPopProjects');
+        if (!pop) { return; }
         const wasOpen = pop.classList.contains('open');
         document.querySelectorAll('.wm-pop').forEach(p => p.classList.remove('open'));
         if (wasOpen) { return; }
@@ -91,35 +102,43 @@ try { window.name = 'drgo-write'; } catch (e) {}
     };
     document.addEventListener('click', () => document.querySelectorAll('.wm-pop').forEach(p => p.classList.remove('open')));
 
-        // 최근 연 화면 — 이 창에서 연 의뢰자·프로젝트·캘린더 (최근 8개, 창을 닫으면 초기화)
-    const KEY = 'drgo_wm_trail';
-    const here = location.pathname + location.search;
-    const kindOf = p => p.startsWith('/clients') ? '의뢰자' : p.startsWith('/projects') ? '프로젝트' : p.startsWith('/calendar') ? '캘린더' : '';
-    const keyOf = p => p.replace(/\?.*$/, '').replace(/^\/calendar\/write.*/, '/calendar/write');
-    function load() { try { return JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
-    function save(list) { try { sessionStorage.setItem(KEY, JSON.stringify(list.slice(0, 8))); } catch (e) {} }
-    function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        // 세 탭 — 이 창에서 마지막으로 본 의뢰자 · 프로젝트 · 캘린더를 기억해 탭으로 오간다 (창을 닫으면 초기화)
+    const KEY = 'drgo_wm_last';
+    const here = location.pathname + location.search.replace(/[?&]edit=1/, '');
+    const kindOf = p => p.startsWith('/clients') ? 'clients' : p.startsWith('/projects') ? 'projects' : p.startsWith('/calendar') ? 'calendar' : '';
+    const cur = kindOf(location.pathname);
+    function load() { try { return JSON.parse(sessionStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } }
+    function save(v) { try { sessionStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
     function render() {
-        const box = document.getElementById('wmTrail');
-        if (!box) { return; }
-        box.innerHTML = load().map(t => `<a href="${esc(t.u)}" class="${keyOf(t.u) === keyOf(here) ? 'on' : ''}" title="${esc(t.k + ' ' + t.l)}"><small>${esc(t.k)}</small><span>${esc(t.l)}</span></a>`).join('');
+        const last = load();
+        document.querySelectorAll('.wmtab').forEach(t => {
+            const k = t.dataset.kind;
+            t.classList.toggle('on', k === cur);
+            const sp = t.querySelector('.wmtab-go span');
+            if (sp) { sp.textContent = last[k] ? last[k].l : ''; t.querySelector('.wmtab-go').title = last[k] ? last[k].l : (k === 'clients' ? '의뢰자 찾기' : '프로젝트 찾기'); }
+        });
     }
     function remember(label) {
-        const kind = kindOf(location.pathname);
-        if (!kind) { return; }
-        const list = load().filter(t => keyOf(t.u) !== keyOf(here));
-        list.unshift({ u: here, k: kind, l: label || (kind === '캘린더' ? '전체 일정' : '불러오는 중') });
-        save(list);
+        if (!cur) { return; }
+        const last = load();
+        last[cur] = { u: here, l: label || (last[cur] && last[cur].u === here ? last[cur].l : '') };
+        save(last);
         render();
         if (label) { document.title = label + ' — 작성 모드'; }
     }
-    remember(location.pathname === '/clients/create/write' ? '신규 등록' : '');
-    // 화면이 그려진 뒤 이름을 읽어 목록 이름을 채운다
-    let tries = location.pathname === '/clients/create/write' ? 99 : 0;
+    window.wmGo = function (kind) {
+        if (kind === cur && kind !== 'calendar') { document.querySelector(`.wmtab[data-kind="${kind}"] .wmtab-find`)?.click(); return; }
+        const last = load();
+        if (kind === 'calendar') { location.href = (last.calendar && last.calendar.u) || '/calendar/write'; return; }
+        if (last[kind] && last[kind].u) { location.href = last[kind].u; return; }
+        document.querySelector(`.wmtab[data-kind="${kind}"] .wmtab-find`)?.click(); // 아직 연 적 없으면 찾기부터
+    };
+    remember(location.pathname === '/clients/create/write' ? '신규 등록' : (cur === 'calendar' ? '' : ''));
+    // 화면이 그려진 뒤 이름을 읽어 탭 이름을 채운다
+    let tries = (location.pathname === '/clients/create/write' || cur === 'calendar') ? 99 : 0;
     const timer = setInterval(() => {
         const name = (document.querySelector('.client-pane.active .detail-name')?.firstChild?.textContent
-            || document.getElementById('projectNameDisplay')?.textContent
-            || (location.pathname.startsWith('/calendar') ? '전체 일정' : '') || '').trim();
+            || document.getElementById('projectNameDisplay')?.textContent || '').trim();
         if (name || ++tries > 20) { clearInterval(timer); if (name) { remember(name); } }
     }, 250);
 })();
