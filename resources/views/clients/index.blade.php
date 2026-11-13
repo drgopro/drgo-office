@@ -51,7 +51,8 @@
     .crm-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
     /* 의뢰자 탭 바 */
-    .client-tab-bar { display:flex; align-items:center; background:var(--surface); border-bottom:1px solid var(--border); padding:0 12px; height:36px; gap:1px; overflow-x:auto; flex-shrink:0; }
+    .client-tab-bar { display:flex; align-items:center; background:var(--surface); border-bottom:1px solid var(--border); padding:0 12px; height:36px; gap:6px; flex-shrink:0; }
+    .client-tabs { display:flex; align-items:center; gap:1px; overflow-x:auto; flex:1; min-width:0; height:100%; }
     .client-tab-bar::-webkit-scrollbar { display:none; }
     .client-tab { display:flex; align-items:center; gap:5px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--text-muted); border:none; background:none; white-space:nowrap; border-radius:5px 5px 0 0; border:1px solid transparent; border-bottom:none; transition:all 0.12s; flex-shrink:0; }
     .client-tab:hover { color:var(--text); background:var(--surface2); }
@@ -372,9 +373,12 @@
 
     {{-- 우측 메인 --}}
     <div class="crm-main">
-        <div class="client-tab-bar" id="clientTabBar">
+        <div class="client-tab-bar">
+            {{-- 모바일 전용 사이드바 토글 — 탭 재렌더(#clientTabBar innerHTML 교체)에 지워지지 않게 바깥에 둔다 --}}
             <button class="sidebar-toggle" onclick="openSidebar()"><x-icon name="users" :size="14"/> 고객목록</button>
-            <span style="padding:0 8px; color:var(--text-muted); font-size:11px;">열린 의뢰자가 없습니다</span>
+            <div class="client-tabs" id="clientTabBar">
+                <span style="padding:0 8px; color:var(--text-muted); font-size:11px;">열린 의뢰자가 없습니다</span>
+            </div>
         </div>
         <div class="client-content" id="clientContent">
             <div class="client-empty" id="clientEmpty">좌측 목록에서 의뢰자를 선택하세요</div>
